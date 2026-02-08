@@ -1,5 +1,4 @@
 import ITranspileError from "../../lib/types/ITranspileError";
-import ITranspileContribution from "./ITranspileContribution";
 
 /**
  * Result of transpiling a single file
@@ -25,9 +24,6 @@ interface IFileResult {
 
   /** Number of top-level declarations found */
   declarationCount: number;
-
-  /** Contributions from this file for accumulation in run() */
-  contribution?: ITranspileContribution;
 }
 
 export default IFileResult;

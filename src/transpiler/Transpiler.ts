@@ -4,6 +4,10 @@
  *
  * Key insight from ADR-053: "A single file transpilation is just a project
  * with one .cnx file."
+ *
+ * Architecture: Both run() and transpileSource() are thin wrappers that
+ * discover files and delegate to _executePipeline(). There is ONE pipeline
+ * for all transpilation — no branching on context/standalone mode.
  */
 
 import { join, basename, dirname, resolve } from "node:path";
@@ -34,6 +38,7 @@ import EFileType from "./data/types/EFileType";
 import IDiscoveredFile from "./data/types/IDiscoveredFile";
 import IncludeDiscovery from "./data/IncludeDiscovery";
 import IncludeResolver from "./data/IncludeResolver";
+import IncludeTreeWalker from "./data/IncludeTreeWalker";
 import DependencyGraph from "./data/DependencyGraph";
 import PathResolver from "./data/PathResolver";
 
@@ -41,8 +46,9 @@ import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
-import ITranspileContext from "./types/ITranspileContext";
-import ITranspileContribution from "./types/ITranspileContribution";
+import IPipelineFile from "./types/IPipelineFile";
+import IPipelineInput from "./types/IPipelineInput";
+import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./types/TranspilerState";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
@@ -52,7 +58,6 @@ import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import AutoConstUpdater from "./logic/symbols/AutoConstUpdater";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
-import StandaloneContextBuilder from "./logic/StandaloneContextBuilder";
 
 /**
  * Unified transpiler
@@ -128,8 +133,14 @@ class Transpiler {
       : null;
   }
 
+  // ===========================================================================
+  // Public API: run() and transpileSource()
+  // ===========================================================================
+
   /**
-   * Execute the unified pipeline
+   * Execute the unified pipeline from CLI inputs.
+   *
+   * Stage 1 (file discovery) happens here, then delegates to _executePipeline().
    */
   async run(): Promise<ITranspilerResult> {
     const result = this._initResult();
@@ -145,36 +156,451 @@ class Transpiler {
 
       this._ensureOutputDirectories();
 
-      // Stage 2: Collect symbols from C/C++ headers
-      this._collectAllHeaderSymbols(headerFiles, result);
+      // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
+      const pipelineFiles: IPipelineFile[] = cnextFiles.map((f) => ({
+        path: f.path,
+        discoveredFile: f,
+      }));
 
-      // Stage 3: Collect symbols from C-Next files
-      if (!this._collectAllCNextSymbols(cnextFiles, result)) {
-        return this._finalizeResult(result);
-      }
+      const input: IPipelineInput = {
+        cnextFiles: pipelineFiles,
+        headerFiles,
+        writeOutputToDisk: true,
+      };
 
-      // Stage 3b: Resolve external const array dimensions
-      this.symbolTable.resolveExternalArrayDimensions();
-
-      // Stage 4: Check for symbol conflicts
-      if (!this._checkSymbolConflicts(result)) {
-        return this._finalizeResult(result);
-      }
-
-      // Stage 5: Analyze and transpile each C-Next file
-      const context = this._buildTranspileContext();
-      await this._transpileAllFiles(cnextFiles, context, result);
-
-      // Stage 6: Generate headers
-      if (result.success) {
-        this._generateAllHeaders(cnextFiles, result);
-      }
+      await this._executePipeline(input, result);
 
       return await this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
     }
   }
+
+  /**
+   * Transpile source code provided as a string.
+   *
+   * Discovers includes from the source, builds an IPipelineInput, and
+   * delegates to the same _executePipeline() as run().
+   *
+   * @param source - The C-Next source code as a string
+   * @param options - Options for transpilation
+   * @returns Promise<IFileResult> with generated code or errors
+   */
+  async transpileSource(
+    source: string,
+    options?: {
+      workingDir?: string;
+      includeDirs?: string[];
+      sourcePath?: string;
+    },
+  ): Promise<IFileResult> {
+    const workingDir = options?.workingDir ?? process.cwd();
+    const additionalIncludeDirs = options?.includeDirs ?? [];
+    const sourcePath = options?.sourcePath ?? "<string>";
+
+    try {
+      await this._initializeRun();
+
+      const input = this._discoverFromSource(
+        source,
+        workingDir,
+        additionalIncludeDirs,
+        sourcePath,
+      );
+
+      const result = this._initResult();
+      await this._executePipeline(input, result);
+
+      // Find our main file's result
+      const fileResult = result.files.find((f) => f.sourcePath === sourcePath);
+      if (fileResult) {
+        return fileResult;
+      }
+
+      // No file result found — pipeline exited early (e.g., parse errors in Stage 3)
+      // Return pipeline errors as a file result
+      if (result.errors.length > 0) {
+        return this.buildErrorResult(sourcePath, result.errors, 0);
+      }
+      return this.buildErrorResult(
+        sourcePath,
+        [
+          {
+            line: 1,
+            column: 0,
+            message: "Pipeline produced no result for source file",
+            severity: "error",
+          },
+        ],
+        0,
+      );
+    } catch (err) {
+      return this.buildCatchResult(sourcePath, err);
+    }
+  }
+
+  // ===========================================================================
+  // Unified Pipeline
+  // ===========================================================================
+
+  /**
+   * The single unified pipeline for all transpilation.
+   *
+   * Both run() and transpileSource() delegate here after file discovery.
+   *
+   * Stage 2: Collect symbols from C/C++ headers
+   * Stage 3: Collect symbols from C-Next files
+   * Stage 3b: Resolve external const array dimensions
+   * Stage 4: Check for symbol conflicts
+   * Stage 5: Generate code (per-file)
+   * Stage 6: Generate headers (per-file)
+   */
+  private async _executePipeline(
+    input: IPipelineInput,
+    result: ITranspilerResult,
+  ): Promise<void> {
+    // Stage 2: Collect symbols from C/C++ headers
+    this._collectAllHeaderSymbols(input.headerFiles, result);
+
+    // Stage 3: Collect symbols from C-Next files
+    if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
+      return;
+    }
+
+    // Stage 3b: Resolve external const array dimensions
+    this.symbolTable.resolveExternalArrayDimensions();
+
+    // Stage 4: Check for symbol conflicts (skipped in standalone mode)
+    if (!input.skipConflictCheck && !this._checkSymbolConflicts(result)) {
+      return;
+    }
+
+    // Stage 5: Analyze and transpile each C-Next file
+    for (const file of input.cnextFiles) {
+      if (file.symbolOnly) {
+        continue;
+      }
+
+      const fileResult = this._transpileFile(file);
+      this._recordFileResult(
+        file.discoveredFile,
+        fileResult,
+        result,
+        input.writeOutputToDisk,
+      );
+    }
+
+    // Stage 6: Generate headers (only write to disk in run() mode)
+    if (result.success && input.writeOutputToDisk) {
+      this._generateAllHeadersFromPipeline(input.cnextFiles, result);
+    }
+  }
+
+  /**
+   * Stage 3 for pipeline files: Collect symbols from all C-Next files.
+   *
+   * Reads source from file.source or disk, then collects symbols.
+   * @returns true if successful, false if errors occurred
+   */
+  private _collectAllCNextSymbolsFromPipeline(
+    cnextFiles: IPipelineFile[],
+    result: ITranspilerResult,
+  ): boolean {
+    for (const file of cnextFiles) {
+      const errors = this._doCollectCNextSymbolsFromPipeline(file);
+      if (errors) {
+        result.errors.push(...errors);
+        result.success = false;
+      }
+    }
+    return result.success;
+  }
+
+  /**
+   * Collect symbols from a single C-Next pipeline file.
+   * Uses file.source when available (in-memory), otherwise reads from disk.
+   *
+   * @returns null on success, or an array of ITranspileError on failure
+   */
+  private _doCollectCNextSymbolsFromPipeline(
+    file: IPipelineFile,
+  ): ITranspileError[] | null {
+    const content = file.source ?? this.fs.readFile(file.path);
+    const { tree, errors } = CNextSourceParser.parse(content);
+
+    // Parse errors — return them with original line/column and sourcePath
+    if (errors.length > 0) {
+      return errors.map((e) => ({ ...e, sourcePath: file.path }));
+    }
+
+    try {
+      // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter
+      const tSymbols = CNextResolver.resolve(tree, file.path);
+      const iSymbols = TSymbolAdapter.toISymbols(tSymbols, this.symbolTable);
+      this.symbolTable.addSymbols(iSymbols);
+
+      // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
+      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+      this.state.setFileSymbolInfo(file.path, symbolInfo);
+
+      // Issue #593: Collect modification analysis in C++ mode
+      if (this.cppDetected) {
+        const results = this.codeGenerator.analyzeModificationsOnly(
+          tree,
+          this.modificationAnalyzer.getModifications(),
+          this.modificationAnalyzer.getParamLists(),
+        );
+        this.modificationAnalyzer.accumulateResults(results);
+      }
+    } catch (err) {
+      // Symbol collection errors (e.g., BitmapCollector) — format as "Code generation failed"
+      const rawMessage = err instanceof Error ? err.message : String(err);
+      const parsed = ParserUtils.parseErrorLocation(rawMessage);
+      return [
+        {
+          line: parsed.line,
+          column: parsed.column,
+          message: `Code generation failed: ${parsed.message}`,
+          severity: "error",
+        },
+      ];
+    }
+
+    return null;
+  }
+
+  /**
+   * Stage 5: Transpile a single C-Next file.
+   *
+   * Assumes the symbol table is already populated (stages 2-3 complete).
+   * Directly updates this.state and this.modificationAnalyzer.
+   */
+  private _transpileFile(file: IPipelineFile): IFileResult {
+    const sourcePath = file.path;
+    const source = file.source ?? this.fs.readFile(file.path);
+
+    try {
+      // Parse source
+      const { tree, tokenStream, errors, declarationCount } =
+        CNextSourceParser.parse(source);
+
+      if (errors.length > 0) {
+        return this.buildErrorResult(sourcePath, errors, declarationCount);
+      }
+
+      // Parse only mode
+      if (this.config.parseOnly) {
+        return this.buildParseOnlyResult(sourcePath, declarationCount);
+      }
+
+      // Run analyzers
+      const externalStructFields =
+        AnalyzerContextBuilder.buildExternalStructFields(this.symbolTable);
+
+      const analyzerErrors = runAnalyzers(tree, tokenStream, {
+        externalStructFields,
+        symbolTable: this.symbolTable,
+      });
+      if (analyzerErrors.length > 0) {
+        return this.buildErrorResult(
+          sourcePath,
+          analyzerErrors,
+          declarationCount,
+        );
+      }
+
+      // Build symbolInfo for code generation
+      const tSymbols = CNextResolver.resolve(tree, sourcePath);
+      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
+      // Merge enum info from included .cnx files
+      const externalEnumSources = this._collectExternalEnumSources(
+        sourcePath,
+        file.cnextIncludes,
+      );
+      if (externalEnumSources.length > 0) {
+        symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
+          symbolInfo,
+          externalEnumSources,
+        );
+      }
+
+      // Inject cross-file modification data for const inference
+      this._setupCrossFileModifications();
+
+      // Generate code
+      const code = this.codeGenerator.generate(
+        tree,
+        this.symbolTable,
+        tokenStream,
+        {
+          debugMode: this.config.debugMode,
+          target: this.config.target,
+          sourcePath,
+          cppMode: this.cppDetected,
+          symbolInfo,
+        },
+      );
+
+      // Collect user includes
+      const userIncludes = IncludeExtractor.collectUserIncludes(tree);
+
+      // Get pass-by-value params (snapshot before next file clears it)
+      const passByValue = this.codeGenerator.getPassByValueParams();
+      const passByValueCopy = MapUtils.deepCopyStringSetMap(passByValue);
+
+      // Directly update state (no contribution round-trip)
+      this.state.setSymbolInfo(sourcePath, symbolInfo);
+      this.state.setPassByValueParams(sourcePath, passByValueCopy);
+      this.state.setUserIncludes(sourcePath, [...userIncludes]);
+
+      // Accumulate C++ modifications directly
+      if (this.cppDetected) {
+        this._accumulateFileModifications();
+      }
+
+      // Update symbol parameters with auto-const info
+      const symbols = this.symbolTable.getSymbolsByFile(sourcePath);
+      const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
+      const knownEnums =
+        this.state.getSymbolInfo(sourcePath)?.knownEnums ?? new Set<string>();
+      AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
+
+      // Generate header content
+      const headerCode = this.generateHeaderContent(
+        symbols,
+        sourcePath,
+        this.symbolTable,
+        this.cppDetected,
+        userIncludes,
+        passByValueCopy,
+        symbolInfo,
+      );
+
+      return this.buildSuccessResult(
+        sourcePath,
+        code,
+        headerCode,
+        declarationCount,
+      );
+    } catch (err) {
+      return this.buildCatchResult(sourcePath, err);
+    }
+  }
+
+  /**
+   * Accumulate C++ modification data from the code generator into the
+   * centralized modification analyzer.
+   */
+  private _accumulateFileModifications(): void {
+    const fileModifications = this.codeGenerator.getModifiedParameters();
+    const modifiedParameters = new Map<string, Set<string>>();
+    for (const [funcName, params] of fileModifications) {
+      modifiedParameters.set(funcName, new Set(params));
+    }
+
+    const fileParamLists = this.codeGenerator.getFunctionParamLists();
+    const functionParamLists = new Map<string, readonly string[]>();
+    for (const [funcName, params] of fileParamLists) {
+      functionParamLists.set(funcName, [...params]);
+    }
+
+    this.modificationAnalyzer.accumulateModifications(modifiedParameters);
+    this.modificationAnalyzer.accumulateParamLists(functionParamLists);
+  }
+
+  // ===========================================================================
+  // File Discovery
+  // ===========================================================================
+
+  /**
+   * Build IPipelineInput from a source string (standalone mode).
+   *
+   * Absorbs what StandaloneContextBuilder used to do, but returns data
+   * instead of performing side effects.
+   */
+  private _discoverFromSource(
+    source: string,
+    workingDir: string,
+    additionalIncludeDirs: string[],
+    sourcePath: string,
+  ): IPipelineInput {
+    // Build search paths
+    const searchPaths = IncludeResolver.buildSearchPaths(
+      workingDir,
+      this.config.includeDirs,
+      additionalIncludeDirs,
+      undefined,
+      this.fs,
+    );
+
+    // Resolve includes from source content
+    const resolver = new IncludeResolver(searchPaths, this.fs);
+    const resolved = resolver.resolve(source, sourcePath);
+    this.warnings.push(...resolved.warnings);
+
+    // Resolve C/C++ headers transitively
+    const { headers: allHeaders, warnings: headerWarnings } =
+      IncludeResolver.resolveHeadersTransitively(
+        resolved.headers,
+        [...this.config.includeDirs],
+        {
+          onDebug: this.config.debugMode
+            ? (msg) => console.log(`[DEBUG] ${msg}`)
+            : undefined,
+          processedPaths: this.state.getProcessedHeadersSet(),
+          fs: this.fs,
+        },
+      );
+    this.warnings.push(...headerWarnings);
+
+    // Store header include directives
+    for (const header of allHeaders) {
+      const directive = resolved.headerIncludeDirectives.get(header.path);
+      if (directive) {
+        this.state.setHeaderDirective(header.path, directive);
+      }
+    }
+
+    // Walk C-Next includes transitively to build include file list
+    const cnextIncludeFiles: IPipelineFile[] = [];
+    IncludeTreeWalker.walk(
+      resolved.cnextIncludes,
+      this.config.includeDirs,
+      (file) => {
+        cnextIncludeFiles.push({
+          path: file.path,
+          discoveredFile: file,
+          symbolOnly: true,
+        });
+      },
+    );
+
+    // Build the main file (with in-memory source and cnextIncludes for enum resolution)
+    const mainFile: IPipelineFile = {
+      path: sourcePath,
+      source,
+      discoveredFile: {
+        path: sourcePath,
+        type: EFileType.CNext,
+        extension: ".cnx",
+      },
+      cnextIncludes: resolved.cnextIncludes,
+    };
+
+    // Includes first (symbols must be collected before main file code gen),
+    // then main file
+    return {
+      cnextFiles: [...cnextIncludeFiles, mainFile],
+      headerFiles: allHeaders,
+      writeOutputToDisk: false,
+      skipConflictCheck: true,
+    };
+  }
+
+  // ===========================================================================
+  // Pipeline Helper Methods
+  // ===========================================================================
 
   /**
    * Initialize a fresh result object
@@ -226,21 +652,7 @@ class Transpiler {
     headerFiles: IDiscoveredFile[],
     result: ITranspilerResult,
   ): void {
-    const { headers: allHeaders, warnings: headerWarnings } =
-      IncludeResolver.resolveHeadersTransitively(
-        headerFiles,
-        this.config.includeDirs,
-        {
-          onDebug: this.config.debugMode
-            ? (msg) => console.log(`[DEBUG] ${msg}`)
-            : undefined,
-          processedPaths: this.state.getProcessedHeadersSet(),
-          fs: this.fs,
-        },
-      );
-    this.warnings.push(...headerWarnings);
-
-    for (const file of allHeaders) {
+    for (const file of headerFiles) {
       try {
         this.doCollectHeaderSymbols(file);
         result.filesProcessed++;
@@ -248,30 +660,6 @@ class Transpiler {
         this.warnings.push(`Failed to process header ${file.path}: ${err}`);
       }
     }
-  }
-
-  /**
-   * Stage 3: Collect symbols from all C-Next files
-   * @returns true if successful, false if parse errors occurred
-   */
-  private _collectAllCNextSymbols(
-    cnextFiles: IDiscoveredFile[],
-    result: ITranspilerResult,
-  ): boolean {
-    for (const file of cnextFiles) {
-      try {
-        this.doCollectCNextSymbols(file);
-      } catch (err) {
-        result.errors.push({
-          line: 1,
-          column: 0,
-          message: `Failed to collect symbols from ${file.path}: ${err}`,
-          severity: "error",
-        });
-        result.success = false;
-      }
-    }
-    return result.success;
   }
 
   /**
@@ -299,94 +687,21 @@ class Transpiler {
   }
 
   /**
-   * Build shared context for transpileSource delegation
-   */
-  private _buildTranspileContext(): ITranspileContext {
-    return {
-      symbolTable: this.symbolTable,
-      symbolInfoByFile: this.state.getSymbolInfoByFileMap(),
-      accumulatedModifications: this.modificationAnalyzer.getModifications(),
-      accumulatedParamLists: this.modificationAnalyzer.getParamLists(),
-      headerIncludeDirectives: this.state.getAllHeaderDirectives(),
-      cppMode: this.cppDetected,
-      includeDirs: this.config.includeDirs,
-      target: this.config.target,
-      debugMode: this.config.debugMode,
-    };
-  }
-
-  /**
-   * Stage 5: Transpile all C-Next files
-   */
-  private async _transpileAllFiles(
-    cnextFiles: IDiscoveredFile[],
-    context: ITranspileContext,
-    result: ITranspilerResult,
-  ): Promise<void> {
-    for (const file of cnextFiles) {
-      const source = this.fs.readFile(file.path);
-      const fileResult = await this.transpileSource(source, {
-        workingDir: dirname(file.path),
-        sourcePath: file.path,
-        context,
-      });
-
-      this._processFileContribution(file.path, fileResult);
-      this._recordFileResult(file, fileResult, result);
-    }
-  }
-
-  /**
-   * Process contributions from a transpiled file
-   */
-  private _processFileContribution(
-    filePath: string,
-    fileResult: IFileResult,
-  ): void {
-    if (!fileResult.contribution) {
-      return;
-    }
-
-    // Store symbol info for header generation
-    this.state.setSymbolInfo(filePath, fileResult.contribution.symbolInfo);
-    this.state.setPassByValueParams(
-      filePath,
-      fileResult.contribution.passByValueParams,
-    );
-    this.state.setUserIncludes(filePath, [
-      ...fileResult.contribution.userIncludes,
-    ]);
-
-    // Issue #593: Merge C++ mode modifications via centralized analyzer
-    if (fileResult.contribution.modifiedParameters) {
-      this.modificationAnalyzer.accumulateModifications(
-        fileResult.contribution.modifiedParameters,
-      );
-    }
-    if (fileResult.contribution.functionParamLists) {
-      this.modificationAnalyzer.accumulateParamLists(
-        fileResult.contribution.functionParamLists,
-      );
-    }
-
-    // Issue #588: Update symbol parameters with auto-const info
-    const symbols = this.symbolTable.getSymbolsByFile(filePath);
-    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
-    const knownEnums =
-      this.state.getSymbolInfo(filePath)?.knownEnums ?? new Set<string>();
-    AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
-  }
-
-  /**
-   * Record file result and write output
+   * Record file result and optionally write output to disk
    */
   private _recordFileResult(
     file: IDiscoveredFile,
     fileResult: IFileResult,
     result: ITranspilerResult,
+    writeOutputToDisk: boolean,
   ): void {
     let outputPath: string | undefined;
-    if (this.config.outDir && fileResult.success && fileResult.code) {
+    if (
+      writeOutputToDisk &&
+      this.config.outDir &&
+      fileResult.success &&
+      fileResult.code
+    ) {
       outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
       this.fs.writeFile(outputPath, fileResult.code);
     }
@@ -408,14 +723,17 @@ class Transpiler {
   }
 
   /**
-   * Stage 6: Generate headers for all C-Next files
+   * Stage 6: Generate headers for pipeline files
    */
-  private _generateAllHeaders(
-    cnextFiles: IDiscoveredFile[],
+  private _generateAllHeadersFromPipeline(
+    cnextFiles: IPipelineFile[],
     result: ITranspilerResult,
   ): void {
     for (const file of cnextFiles) {
-      const headerPath = this.generateHeader(file);
+      if (file.symbolOnly) {
+        continue;
+      }
+      const headerPath = this.generateHeader(file.discoveredFile);
       if (headerPath) {
         result.outputFiles.push(headerPath);
       }
@@ -458,6 +776,10 @@ class Transpiler {
     result.warnings = [...result.warnings, ...this.warnings];
     return result;
   }
+
+  // ===========================================================================
+  // Source Discovery (Stage 1 for run())
+  // ===========================================================================
 
   /**
    * Discover C-Next files from a single input (file or directory).
@@ -671,11 +993,30 @@ class Transpiler {
     // Issue #580: Sort files topologically for correct cross-file const inference
     const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
+    // Resolve headers transitively for the run() path
+    const { headers: allHeaders, warnings: headerWarnings } =
+      IncludeResolver.resolveHeadersTransitively(
+        [...headerSet.values()],
+        this.config.includeDirs,
+        {
+          onDebug: this.config.debugMode
+            ? (msg) => console.log(`[DEBUG] ${msg}`)
+            : undefined,
+          processedPaths: this.state.getProcessedHeadersSet(),
+          fs: this.fs,
+        },
+      );
+    this.warnings.push(...headerWarnings);
+
     return {
       cnextFiles: sortedCnextFiles,
-      headerFiles: [...headerSet.values()],
+      headerFiles: allHeaders,
     };
   }
+
+  // ===========================================================================
+  // Header Symbol Collection
+  // ===========================================================================
 
   /**
    * Stage 2: Collect symbols from a single C/C++ header
@@ -683,7 +1024,7 @@ class Transpiler {
    * SonarCloud S3776: Refactored to use helper methods for reduced complexity.
    */
   private doCollectHeaderSymbols(file: IDiscoveredFile): void {
-    // Track as processed (for cycle detection in transpileSource path)
+    // Track as processed (for cycle detection)
     const absolutePath = resolve(file.path);
     this.state.markHeaderProcessed(absolutePath);
 
@@ -818,47 +1159,9 @@ class Transpiler {
     }
   }
 
-  /**
-   * Stage 3: Collect symbols from a C-Next file
-   * Issue #561: Also collects modification analysis in C++ mode for unified cross-file const inference
-   */
-  private doCollectCNextSymbols(file: IDiscoveredFile): void {
-    const content = this.fs.readFile(file.path);
-    const { tree, errors } = CNextSourceParser.parse(content);
-
-    if (errors.length > 0) {
-      // Format errors with file path for better diagnostics
-      const formattedErrors = errors.map(
-        (e) => `${file.path}:${e.line}:${e.column} - ${e.message}`,
-      );
-      throw new Error(formattedErrors.join("\n"));
-    }
-
-    // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter
-    // TSymbolAdapter.toISymbols registers struct fields in symbolTable for TypeResolver.isStructType()
-    const tSymbols = CNextResolver.resolve(tree, file.path);
-    const iSymbols = TSymbolAdapter.toISymbols(tSymbols, this.symbolTable);
-    this.symbolTable.addSymbols(iSymbols);
-
-    // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
-    // This ensures enum member info is available for all files before code generation
-    const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
-    this.state.setFileSymbolInfo(file.path, symbolInfo);
-
-    // Issue #593: Collect modification analysis in C++ mode for cross-file const inference
-    // This unifies behavior between run() and transpileSource() code paths
-    // Issue #565: Pass accumulated cross-file data for transitive propagation
-    if (this.cppDetected) {
-      const results = this.codeGenerator.analyzeModificationsOnly(
-        tree,
-        this.modificationAnalyzer.getModifications(),
-        this.modificationAnalyzer.getParamLists(),
-      );
-
-      // Issue #593: Accumulate via centralized analyzer
-      this.modificationAnalyzer.accumulateResults(results);
-    }
-  }
+  // ===========================================================================
+  // Code Generation Helpers
+  // ===========================================================================
 
   /**
    * Stage 6: Generate header file for a C-Next file
@@ -922,396 +1225,45 @@ class Transpiler {
   }
 
   /**
-   * Transpile source code provided as a string
-   *
-   * This method enables string-based transpilation while still parsing headers.
-   * Useful for test frameworks that need header type information without reading
-   * the source file from disk.
-   *
-   * ## Issue #634: Consolidated Code Paths
-   *
-   * Both run() and transpileSource() now use the same symbol collection timing:
-   * symbols are collected BEFORE code generation. This eliminates the previous
-   * architectural discrepancy where run() collected symbols first but standalone
-   * mode collected them after.
-   *
-   * When called with a context (from run()), this method:
-   * - Uses the shared symbol table (already populated in Stage 3)
-   * - Skips header/include parsing (Steps 4a, 4b)
-   * - Uses pre-collected symbolInfoByFile for enum resolution
-   * - Returns ITranspileContribution in the result
-   *
-   * When called without context (standalone mode):
-   * - Parses headers and includes via StandaloneContextBuilder
-   * - Collects main file symbols BEFORE code generation (same as run())
-   * - Maintains isolation between calls (symbolTable cleared each time)
-   *
-   * @param source - The C-Next source code as a string
-   * @param options - Options for transpilation
-   * @returns Promise<IFileResult> with generated code or errors
+   * Collect external enum sources from included C-Next files.
    */
-  async transpileSource(
-    source: string,
-    options?: {
-      workingDir?: string; // For resolving relative #includes
-      includeDirs?: string[]; // Additional include paths
-      sourcePath?: string; // Optional source path for error messages
-      context?: ITranspileContext; // Cross-file context from run()
-    },
-  ): Promise<IFileResult> {
-    const workingDir = options?.workingDir ?? process.cwd();
-    const additionalIncludeDirs = options?.includeDirs ?? [];
-    const sourcePath = options?.sourcePath ?? "<string>";
-    const context = options?.context;
-
-    // Determine which symbol table to use
-    const symbolTable = context?.symbolTable ?? this.symbolTable;
-    // Note: cppMode may be updated after header parsing in standalone mode
-    let cppMode = context?.cppMode ?? this.cppDetected;
-
-    // Used for include resolution in standalone mode
-    let resolved: ReturnType<
-      InstanceType<typeof IncludeResolver>["resolve"]
-    > | null = null;
-
-    try {
-      // Initialize cache if enabled (skip if context provided - already done in run())
-      if (!context && this.cacheManager) {
-        await this.cacheManager.initialize();
-      }
-
-      // Issue #593: Clear cross-file modification tracking for fresh analysis
-      // Skip if context provided - run() manages the shared accumulated state
-      if (!context) {
-        this.modificationAnalyzer.clear();
-        // Issue #634: Reset symbol table and state for standalone mode
-        // This ensures repeated standalone calls don't accumulate symbols
-        this.symbolTable.clear();
-        this.state.reset();
-      }
-
-      // Step 1: Build search paths using unified IncludeResolver
-      const searchPaths = IncludeResolver.buildSearchPaths(
-        workingDir,
-        context?.includeDirs
-          ? [...context.includeDirs]
-          : this.config.includeDirs,
-        additionalIncludeDirs,
-        undefined,
-        this.fs,
-      );
-
-      // Step 2: Resolve includes from source content
-      const resolver = new IncludeResolver(searchPaths, this.fs);
-      resolved = resolver.resolve(source, sourcePath);
-
-      // Step 3: Collect warnings
-      this.warnings.push(...resolved.warnings);
-
-      // Steps 4a, 4b: Parse headers and C-Next includes
-      // Skip when context is provided - run() has already done this in Stages 2-3
-      // Issue #591: Extracted to StandaloneContextBuilder for reduced complexity
-      if (!context) {
-        StandaloneContextBuilder.build(this, resolved);
-
-        // Re-capture cppMode after header parsing (may have been set to true)
-        cppMode = this.cppDetected;
-      }
-
-      // Step 5: Parse C-Next source from string
-      const { tree, tokenStream, errors, declarationCount } =
-        CNextSourceParser.parse(source);
-
-      // Check for parse errors
-      if (errors.length > 0) {
-        return this.buildErrorResult(sourcePath, errors, declarationCount);
-      }
-
-      // Parse only mode
-      if (this.config.parseOnly) {
-        return this.buildParseOnlyResult(sourcePath, declarationCount);
-      }
-
-      // Step 6: Run analyzers with struct field info from C/C++ headers
-      // Issue #591: Struct field conversion extracted to AnalyzerContextBuilder
-      const externalStructFields =
-        AnalyzerContextBuilder.buildExternalStructFields(symbolTable);
-
-      const analyzerErrors = runAnalyzers(tree, tokenStream, {
-        externalStructFields,
-        symbolTable,
-      });
-      if (analyzerErrors.length > 0) {
-        return this.buildErrorResult(
-          sourcePath,
-          analyzerErrors,
-          declarationCount,
-        );
-      }
-
-      // Step 7: Generate code with symbol table
-      // ADR-055 Phase 5: Create ICodeGenSymbols from TSymbol[] for CodeGenerator
-      const tSymbols = CNextResolver.resolve(tree, sourcePath);
-      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
-
-      // Issue #634: Consolidate symbol collection timing with run() path
-      // In standalone mode, collect main file symbols BEFORE code generation (like run() does)
-      // This eliminates the duplicate CNextResolver.resolve() call that was after generate()
-      if (!context) {
-        const collectedSymbols = TSymbolAdapter.toISymbols(
-          tSymbols,
-          symbolTable,
-        );
-        symbolTable.addSymbols(collectedSymbols);
-      }
-
-      // Issue #465: Merge enum info from included .cnx files (including transitive)
-      // SonarCloud S3776: Extracted to collectExternalEnumSources helper
-      const externalEnumSources = this.collectExternalEnumSources(
-        context,
-        sourcePath,
-        resolved,
-      );
-
-      // Merge external enum info if any includes were found
-      if (externalEnumSources.length > 0) {
-        symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
-          symbolInfo,
-          externalEnumSources,
-        );
-      }
-
-      // Issue #593: Inject cross-file modification data for const inference
-      // SonarCloud S3776: Extracted to setupCrossFileModifications helper
-      this.setupCrossFileModifications(context, cppMode);
-
-      const code = this.codeGenerator.generate(tree, symbolTable, tokenStream, {
-        debugMode: context?.debugMode ?? this.config.debugMode,
-        target: context?.target ?? this.config.target,
-        sourcePath, // Issue #230: For self-include header generation
-        cppMode, // Issue #250: C++ compatible code generation
-        symbolInfo, // ADR-055: Pre-collected symbol info
-      });
-
-      // Issue #461: Always generate header content
-      // Collect user includes for both header generation and contribution
-      const userIncludes = IncludeExtractor.collectUserIncludes(tree);
-
-      // Get pass-by-value params (snapshot before next file clears it)
-      const passByValue = this.codeGenerator.getPassByValueParams();
-      const passByValueCopy = MapUtils.deepCopyStringSetMap(passByValue);
-
-      // Issue #634: Symbol collection moved to before code generation (line ~905)
-      // This consolidates the timing with run() path - both now collect symbols before generate()
-      // Issue #461: Resolve external const array dimensions before header generation
-      if (!context) {
-        this.symbolTable.resolveExternalArrayDimensions();
-      }
-
-      // Issue #591: Header generation extracted to helper method
-      const symbols = symbolTable.getSymbolsByFile(sourcePath);
-      const headerCode = this.generateHeaderContent(
-        symbols,
-        sourcePath,
-        symbolTable,
-        cppMode,
-        userIncludes,
-        passByValueCopy,
-        symbolInfo,
-      );
-
-      // Flush cache to disk (skip if context provided - run() handles this)
-      if (!context && this.cacheManager) {
-        await this.cacheManager.flush();
-      }
-
-      // Build contribution for run() to accumulate
-      const contribution = context
-        ? this.buildContribution(
-            cppMode,
-            symbolInfo,
-            passByValueCopy,
-            userIncludes,
-          )
-        : undefined;
-
-      return this.buildSuccessResult(
-        sourcePath,
-        code,
-        headerCode,
-        declarationCount,
-        contribution,
-      );
-    } catch (err) {
-      return this.buildCatchResult(sourcePath, err);
-    }
-  }
-
-  /**
-   * Get the symbol table (for testing/inspection)
-   */
-  getSymbolTable(): SymbolTable {
-    return this.symbolTable;
-  }
-
-  /**
-   * Check if C++ output was detected during transpilation.
-   * This is set when C++ syntax is found in included headers (e.g., Arduino.h).
-   */
-  isCppDetected(): boolean {
-    return this.cppDetected;
-  }
-
-  // === IStandaloneTranspiler implementation (Issue #591) ===
-  // These methods implement the interface used by StandaloneContextBuilder
-
-  /** @implements IStandaloneTranspiler.collectHeaderSymbols (Issue #592: now sync) */
-  collectHeaderSymbols(header: IDiscoveredFile): void {
-    this.doCollectHeaderSymbols(header);
-  }
-
-  /** @implements IStandaloneTranspiler.collectCNextSymbols */
-  collectCNextSymbols(cnxInclude: IDiscoveredFile): void {
-    this.doCollectCNextSymbols(cnxInclude);
-  }
-
-  /** @implements IStandaloneTranspiler.getIncludeDirs */
-  getIncludeDirs(): readonly string[] {
-    return this.config.includeDirs;
-  }
-
-  /** @implements IStandaloneTranspiler.setHeaderIncludeDirective */
-  setHeaderIncludeDirective(headerPath: string, directive: string): void {
-    this.state.setHeaderDirective(headerPath, directive);
-  }
-
-  /** @implements IStandaloneTranspiler.addWarning */
-  addWarning(message: string): void {
-    this.warnings.push(message);
-  }
-
-  /** @implements IStandaloneTranspiler.getProcessedHeaders (Issue #592) */
-  getProcessedHeaders(): Set<string> {
-    return this.state.getProcessedHeadersSet();
-  }
-
-  /** @implements IStandaloneTranspiler.isDebugMode (Issue #592) */
-  isDebugMode(): boolean {
-    return this.config.debugMode;
-  }
-
-  // === Result builder helper methods (Issue #591) ===
-
-  /**
-   * Build an error result for parse/analyzer failures.
-   */
-  private buildErrorResult(
+  private _collectExternalEnumSources(
     sourcePath: string,
-    errors: IFileResult["errors"],
-    declarationCount: number,
-  ): IFileResult {
-    return {
-      sourcePath,
-      code: "",
-      success: false,
-      errors,
-      declarationCount,
-    };
-  }
+    cnextIncludes?: ReadonlyArray<{ path: string }>,
+  ): ICodeGenSymbols[] {
+    const symbolInfoByFile = this.state.getSymbolInfoByFileMap();
 
-  /**
-   * Build a result for parse-only mode.
-   */
-  private buildParseOnlyResult(
-    sourcePath: string,
-    declarationCount: number,
-  ): IFileResult {
-    return {
-      sourcePath,
-      code: "",
-      success: true,
-      errors: [],
-      declarationCount,
-    };
-  }
-
-  /**
-   * Build a successful transpilation result.
-   */
-  private buildSuccessResult(
-    sourcePath: string,
-    code: string,
-    headerCode: string | undefined,
-    declarationCount: number,
-    contribution?: ITranspileContribution,
-  ): IFileResult {
-    return {
-      sourcePath,
-      code,
-      headerCode,
-      success: true,
-      errors: [],
-      declarationCount,
-      contribution,
-    };
-  }
-
-  /**
-   * Build a catch/exception result.
-   */
-  private buildCatchResult(sourcePath: string, err: unknown): IFileResult {
-    const rawMessage = err instanceof Error ? err.message : String(err);
-    const parsed = ParserUtils.parseErrorLocation(rawMessage);
-
-    return {
-      sourcePath,
-      code: "",
-      success: false,
-      errors: [
-        {
-          line: parsed.line,
-          column: parsed.column,
-          message: `Code generation failed: ${parsed.message}`,
-          severity: "error",
-        },
-      ],
-      declarationCount: 0,
-    };
-  }
-
-  /**
-   * Build the contribution object for run() to accumulate.
-   */
-  private buildContribution(
-    cppMode: boolean,
-    symbolInfo: ICodeGenSymbols,
-    passByValueParams: Map<string, Set<string>>,
-    userIncludes: string[],
-  ): ITranspileContribution {
-    let modifiedParameters: Map<string, Set<string>> | undefined;
-    let functionParamLists: Map<string, readonly string[]> | undefined;
-
-    if (cppMode) {
-      const fileModifications = this.codeGenerator.getModifiedParameters();
-      modifiedParameters = new Map();
-      for (const [funcName, params] of fileModifications) {
-        modifiedParameters.set(funcName, new Set(params));
-      }
-
-      const fileParamLists = this.codeGenerator.getFunctionParamLists();
-      functionParamLists = new Map();
-      for (const [funcName, params] of fileParamLists) {
-        functionParamLists.set(funcName, [...params]);
-      }
+    if (cnextIncludes) {
+      // Standalone mode: use unified collectForStandalone method
+      return TransitiveEnumCollector.collectForStandalone(
+        cnextIncludes,
+        symbolInfoByFile,
+        this.config.includeDirs,
+      );
     }
 
-    return {
-      symbolInfo,
-      passByValueParams,
-      userIncludes,
-      modifiedParameters,
-      functionParamLists,
-    };
+    // run() mode: use TransitiveEnumCollector with pre-populated symbolInfoByFile
+    return TransitiveEnumCollector.collect(
+      sourcePath,
+      symbolInfoByFile,
+      this.config.includeDirs,
+    );
+  }
+
+  /**
+   * Setup cross-file modification tracking for const inference.
+   */
+  private _setupCrossFileModifications(): void {
+    const accumulatedModifications =
+      this.modificationAnalyzer.getModifications();
+    const accumulatedParamLists = this.modificationAnalyzer.getParamLists();
+
+    if (this.cppDetected && accumulatedModifications.size > 0) {
+      this.codeGenerator.setCrossFileModifications(
+        accumulatedModifications,
+        accumulatedParamLists,
+      );
+    }
   }
 
   /**
@@ -1374,7 +1326,6 @@ class Transpiler {
       : undefined;
 
     // Issue #478: Pass all known enums for cross-file type handling
-    // This includes enums from this file and all transitively included .cnx files
     return this.headerGenerator.generate(
       exportedSymbols,
       headerName,
@@ -1390,62 +1341,102 @@ class Transpiler {
     );
   }
 
+  // ===========================================================================
+  // Result Builder Helpers
+  // ===========================================================================
+
   /**
-   * Collect external enum sources from included C-Next files.
-   * SonarCloud S3776: Extracted from transpileSource() for reduced complexity.
+   * Build an error result for parse/analyzer failures.
    */
-  private collectExternalEnumSources(
-    context: ITranspileContext | undefined,
+  private buildErrorResult(
     sourcePath: string,
-    resolved: ReturnType<
-      InstanceType<typeof IncludeResolver>["resolve"]
-    > | null,
-  ): ICodeGenSymbols[] {
-    const symbolInfoByFile =
-      context?.symbolInfoByFile ?? this.state.getSymbolInfoByFileMap();
-
-    if (context) {
-      // Context mode: use TransitiveEnumCollector with pre-populated symbolInfoByFile
-      return TransitiveEnumCollector.collect(
-        sourcePath,
-        this.state.getSymbolInfoByFileMap(),
-        this.config.includeDirs,
-      );
-    }
-
-    if (resolved) {
-      // Standalone mode: use unified collectForStandalone method
-      return TransitiveEnumCollector.collectForStandalone(
-        resolved.cnextIncludes,
-        symbolInfoByFile,
-        this.config.includeDirs,
-      );
-    }
-
-    return [];
+    errors: IFileResult["errors"],
+    declarationCount: number,
+  ): IFileResult {
+    return {
+      sourcePath,
+      code: "",
+      success: false,
+      errors,
+      declarationCount,
+    };
   }
 
   /**
-   * Setup cross-file modification tracking for const inference.
-   * SonarCloud S3776: Extracted from transpileSource() for reduced complexity.
+   * Build a result for parse-only mode.
    */
-  private setupCrossFileModifications(
-    context: ITranspileContext | undefined,
-    cppMode: boolean,
-  ): void {
-    const accumulatedModifications =
-      context?.accumulatedModifications ??
-      this.modificationAnalyzer.getModifications();
-    const accumulatedParamLists =
-      context?.accumulatedParamLists ??
-      this.modificationAnalyzer.getParamLists();
+  private buildParseOnlyResult(
+    sourcePath: string,
+    declarationCount: number,
+  ): IFileResult {
+    return {
+      sourcePath,
+      code: "",
+      success: true,
+      errors: [],
+      declarationCount,
+    };
+  }
 
-    if (cppMode && accumulatedModifications.size > 0) {
-      this.codeGenerator.setCrossFileModifications(
-        accumulatedModifications,
-        accumulatedParamLists,
-      );
-    }
+  /**
+   * Build a successful transpilation result.
+   */
+  private buildSuccessResult(
+    sourcePath: string,
+    code: string,
+    headerCode: string | undefined,
+    declarationCount: number,
+  ): IFileResult {
+    return {
+      sourcePath,
+      code,
+      headerCode,
+      success: true,
+      errors: [],
+      declarationCount,
+    };
+  }
+
+  /**
+   * Build a catch/exception result.
+   */
+  private buildCatchResult(sourcePath: string, err: unknown): IFileResult {
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    const parsed = ParserUtils.parseErrorLocation(rawMessage);
+
+    return {
+      sourcePath,
+      code: "",
+      success: false,
+      errors: [
+        {
+          line: parsed.line,
+          column: parsed.column,
+          message: `Code generation failed: ${parsed.message}`,
+          severity: "error",
+        },
+      ],
+      declarationCount: 0,
+    };
+  }
+
+  // ===========================================================================
+  // Public Accessors
+  // ===========================================================================
+
+  /**
+   * Get the symbol table (for testing/inspection)
+   */
+  getSymbolTable(): SymbolTable {
+    return this.symbolTable;
+  }
+
+  /**
+   * Check if C++ output was detected during transpilation.
+   * This is set when C++ syntax is found in included headers (e.g., Arduino.h).
+   */
+  isCppDetected(): boolean {
+    return this.cppDetected;
   }
 
   /**
