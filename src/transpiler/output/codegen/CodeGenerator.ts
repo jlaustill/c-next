@@ -4424,17 +4424,6 @@ export default class CodeGenerator implements IOrchestrator {
   // Issue #63: checkConstAssignment moved to TypeValidator
 
   /**
-   * Navigate through expression layers to get to the postfix expression.
-   * Returns null if the expression has multiple terms at any level.
-   * Issue #707: Delegates to ExpressionUnwrapper utility.
-   */
-  private getPostfixExpression(
-    ctx: Parser.ExpressionContext,
-  ): Parser.PostfixExpressionContext | null {
-    return ExpressionUnwrapper.getPostfixExpression(ctx);
-  }
-
-  /**
    * Check if an expression is an lvalue that needs & when passed to functions.
    * This includes member access (cursor.x) and array access (arr[i]).
    * Returns the type of lvalue or null if not an lvalue.
@@ -4442,7 +4431,7 @@ export default class CodeGenerator implements IOrchestrator {
   private getLvalueType(
     ctx: Parser.ExpressionContext,
   ): "member" | "array" | null {
-    const postfix = this.getPostfixExpression(ctx);
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (!postfix) return null;
 
     const ops = postfix.postfixOp();
@@ -4470,7 +4459,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (!this.cppMode) return false;
     if (!targetParamBaseType) return false;
 
-    const postfix = this.getPostfixExpression(ctx);
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (!postfix) return false;
 
     const primary = postfix.primaryExpression();
@@ -4540,7 +4529,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Used to determine when to cast char* to uint8_t* etc.
    */
   private isStringSubscriptAccess(ctx: Parser.ExpressionContext): boolean {
-    const postfix = this.getPostfixExpression(ctx);
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (!postfix) return false;
 
     const ops = postfix.postfixOp();
@@ -4585,7 +4574,7 @@ export default class CodeGenerator implements IOrchestrator {
   private getMemberAccessArrayStatus(
     ctx: Parser.ExpressionContext,
   ): "array" | "not-array" | "unknown" {
-    const postfix = this.getPostfixExpression(ctx);
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (!postfix) return "not-array";
 
     const ops = postfix.postfixOp();
