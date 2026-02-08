@@ -10,20 +10,35 @@ import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 describe("EnumTypeResolver", () => {
   const createMockSymbols = (
     overrides: Partial<ICodeGenSymbols> = {},
-  ): ICodeGenSymbols => ({
-    knownScopes: new Set(),
-    knownEnums: new Set(),
-    knownBitmaps: new Set(),
-    knownStructs: new Set(),
-    bitmapBitWidth: new Map(),
-    enumMembers: new Map(),
-    structFields: new Map(),
-    structFieldArrays: new Map(),
-    functionReturnTypes: new Map(),
-    scopeMemberVisibility: new Map(),
-    scopeEnums: new Map(),
-    ...overrides,
-  });
+  ): ICodeGenSymbols =>
+    ({
+      knownScopes: new Set(),
+      knownEnums: new Set(),
+      knownBitmaps: new Set(),
+      knownStructs: new Set(),
+      knownRegisters: new Set(),
+      bitmapBitWidth: new Map(),
+      bitmapFields: new Map(),
+      bitmapBackingType: new Map(),
+      enumMembers: new Map(),
+      structFields: new Map(),
+      structFieldArrays: new Map(),
+      structFieldDimensions: new Map(),
+      functionReturnTypes: new Map(),
+      scopeMembers: new Map(),
+      scopeMemberVisibility: new Map(),
+      scopedRegisters: new Map(),
+      registerMemberAccess: new Map(),
+      registerMemberTypes: new Map(),
+      registerBaseAddresses: new Map(),
+      registerMemberOffsets: new Map(),
+      registerMemberCTypes: new Map(),
+      scopeVariableUsage: new Map(),
+      scopePrivateConstValues: new Map(),
+      getSingleFunctionForVariable: () => null,
+      hasPublicSymbols: () => false,
+      ...overrides,
+    }) as ICodeGenSymbols;
 
   beforeEach(() => {
     CodeGenState.reset();

@@ -7,6 +7,52 @@ import CodeGenState from "../CodeGenState";
 import TTypeInfo from "../types/TTypeInfo";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 
+/**
+ * Create a minimal mock ICodeGenSymbols with default empty collections.
+ */
+function createMockSymbols(
+  overrides: Partial<{
+    knownScopes: Set<string>;
+    knownEnums: Set<string>;
+    knownBitmaps: Set<string>;
+    knownStructs: Set<string>;
+    knownRegisters: Set<string>;
+    enumMembers: Map<string, Map<string, number>>;
+    structFields: Map<string, Map<string, string>>;
+    structFieldArrays: Map<string, Set<string>>;
+    functionReturnTypes: Map<string, string>;
+    scopeMemberVisibility: Map<string, Map<string, "public" | "private">>;
+  }> = {},
+): ICodeGenSymbols {
+  return {
+    knownScopes: overrides.knownScopes ?? new Set(),
+    knownEnums: overrides.knownEnums ?? new Set(),
+    knownBitmaps: overrides.knownBitmaps ?? new Set(),
+    knownStructs: overrides.knownStructs ?? new Set(),
+    knownRegisters: overrides.knownRegisters ?? new Set(),
+    scopeMembers: new Map(),
+    scopeMemberVisibility: overrides.scopeMemberVisibility ?? new Map(),
+    structFields: overrides.structFields ?? new Map(),
+    structFieldArrays: overrides.structFieldArrays ?? new Map(),
+    structFieldDimensions: new Map(),
+    enumMembers: overrides.enumMembers ?? new Map(),
+    bitmapFields: new Map(),
+    bitmapBackingType: new Map(),
+    bitmapBitWidth: new Map(),
+    scopedRegisters: new Map(),
+    registerMemberAccess: new Map(),
+    registerMemberTypes: new Map(),
+    registerBaseAddresses: new Map(),
+    registerMemberOffsets: new Map(),
+    registerMemberCTypes: new Map(),
+    scopeVariableUsage: new Map(),
+    scopePrivateConstValues: new Map(),
+    functionReturnTypes: overrides.functionReturnTypes ?? new Map(),
+    getSingleFunctionForVariable: () => null,
+    hasPublicSymbols: () => false,
+  };
+}
+
 describe("CodeGenState", () => {
   beforeEach(() => {
     CodeGenState.reset();
@@ -36,6 +82,9 @@ describe("CodeGenState", () => {
         hasHardwareDivide: false,
         maxBitWidth: 32,
         hasAtomic: true,
+        wordSize: 32 as const,
+        hasLdrexStrex: true,
+        hasBasepri: true,
       };
 
       CodeGenState.reset(customTarget);
@@ -100,20 +149,11 @@ describe("CodeGenState", () => {
   });
 
   describe("Struct Field Helpers", () => {
-    const mockSymbols: ICodeGenSymbols = {
-      knownScopes: new Set(),
-      knownEnums: new Set(),
-      knownBitmaps: new Set(),
+    const mockSymbols = createMockSymbols({
       knownStructs: new Set(["MyStruct"]),
-      knownCallbacks: new Set(),
-      bitmapBitWidth: new Map(),
-      enumMembers: new Map(),
       structFields: new Map([["MyStruct", new Map([["field1", "u32"]])]]),
       structFieldArrays: new Map([["MyStruct", new Set(["arrayField"])]]),
-      functionReturnTypes: new Map(),
-      scopeMemberVisibility: new Map(),
-      scopeEnums: new Map(),
-    };
+    });
 
     it("getStructFieldType returns undefined without symbols", () => {
       CodeGenState.symbols = null;
@@ -158,20 +198,10 @@ describe("CodeGenState", () => {
         ["VALUE1", 0],
         ["VALUE2", 1],
       ]);
-      CodeGenState.symbols = {
-        knownScopes: new Set(),
+      CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["MyEnum"]),
-        knownBitmaps: new Set(),
-        knownStructs: new Set(),
-        knownCallbacks: new Set(),
-        bitmapBitWidth: new Map(),
         enumMembers: new Map([["MyEnum", enumMembers]]),
-        structFields: new Map(),
-        structFieldArrays: new Map(),
-        functionReturnTypes: new Map(),
-        scopeMemberVisibility: new Map(),
-        scopeEnums: new Map(),
-      };
+      });
 
       expect(CodeGenState.getEnumMembers("MyEnum")).toBe(enumMembers);
     });
@@ -184,20 +214,9 @@ describe("CodeGenState", () => {
     });
 
     it("returns return type when available", () => {
-      CodeGenState.symbols = {
-        knownScopes: new Set(),
-        knownEnums: new Set(),
-        knownBitmaps: new Set(),
-        knownStructs: new Set(),
-        knownCallbacks: new Set(),
-        bitmapBitWidth: new Map(),
-        enumMembers: new Map(),
-        structFields: new Map(),
-        structFieldArrays: new Map(),
+      CodeGenState.symbols = createMockSymbols({
         functionReturnTypes: new Map([["myFunc", "u32"]]),
-        scopeMemberVisibility: new Map(),
-        scopeEnums: new Map(),
-      };
+      });
 
       expect(CodeGenState.getFunctionReturnType("myFunc")).toBe("u32");
     });
@@ -274,8 +293,9 @@ describe("CodeGenState", () => {
 
     it("registerFunctionSignature adds to functionSignatures and knownFunctions", () => {
       const sig = {
+        name: "myFunc",
         returnType: "void",
-        params: [],
+        parameters: [],
         isPublic: true,
       };
 
@@ -287,8 +307,19 @@ describe("CodeGenState", () => {
 
     it("registerCallbackType adds to callbackTypes", () => {
       const info = {
+        functionName: "onClick",
         returnType: "void",
-        params: [{ name: "x", type: "u32" }],
+        parameters: [
+          {
+            name: "x",
+            type: "u32",
+            isArray: false,
+            isConst: false,
+            isPointer: false,
+            arrayDims: "",
+          },
+        ],
+        typedefName: "ClickHandler",
       };
 
       CodeGenState.registerCallbackType("MyCallback", info);
@@ -376,20 +407,9 @@ describe("CodeGenState", () => {
     });
 
     it("isKnownEnum returns true for known enum", () => {
-      CodeGenState.symbols = {
-        knownScopes: new Set(),
+      CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["MyEnum"]),
-        knownBitmaps: new Set(),
-        knownStructs: new Set(),
-        knownCallbacks: new Set(),
-        bitmapBitWidth: new Map(),
-        enumMembers: new Map(),
-        structFields: new Map(),
-        structFieldArrays: new Map(),
-        functionReturnTypes: new Map(),
-        scopeMemberVisibility: new Map(),
-        scopeEnums: new Map(),
-      };
+      });
 
       expect(CodeGenState.isKnownEnum("MyEnum")).toBe(true);
       expect(CodeGenState.isKnownEnum("UnknownEnum")).toBe(false);
@@ -401,20 +421,9 @@ describe("CodeGenState", () => {
     });
 
     it("isKnownScope returns true for known scope", () => {
-      CodeGenState.symbols = {
+      CodeGenState.symbols = createMockSymbols({
         knownScopes: new Set(["MyScope"]),
-        knownEnums: new Set(),
-        knownBitmaps: new Set(),
-        knownStructs: new Set(),
-        knownCallbacks: new Set(),
-        bitmapBitWidth: new Map(),
-        enumMembers: new Map(),
-        structFields: new Map(),
-        structFieldArrays: new Map(),
-        functionReturnTypes: new Map(),
-        scopeMemberVisibility: new Map(),
-        scopeEnums: new Map(),
-      };
+      });
 
       expect(CodeGenState.isKnownScope("MyScope")).toBe(true);
       expect(CodeGenState.isKnownScope("UnknownScope")).toBe(false);
