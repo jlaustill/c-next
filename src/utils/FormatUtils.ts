@@ -59,6 +59,17 @@ class FormatUtils {
     }
     return `{\n${content}\n}`;
   }
+
+  /**
+   * Get the appropriate scope separator for C++ vs C/C-Next.
+   * C++ uses :: for scope resolution, C/C-Next uses _ (underscore).
+   *
+   * @param isCppContext - Whether generating C++ code
+   * @returns "::" for C++ or "_" for C/C-Next
+   */
+  static getScopeSeparator(isCppContext: boolean): string {
+    return isCppContext ? "::" : "_";
+  }
 }
 
 export default FormatUtils;
