@@ -9,7 +9,7 @@ const mockGenerator: TGeneratorFn<ParserRuleContext> = () => ({
   effects: [],
 });
 
-export default describe("GeneratorRegistry", () => {
+describe("GeneratorRegistry", () => {
   let registry: GeneratorRegistry;
 
   beforeEach(() => {
