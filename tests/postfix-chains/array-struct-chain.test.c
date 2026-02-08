@@ -55,12 +55,12 @@ int main(void) {
     float vx = meshes[0].vertices[0].x;
     float vz = meshes[0].vertices[7].z;
     grid[2][3].flags = 0xFF;
-    ((grid[2][3].flags >> 0) & 1) = true;
-    ((grid[2][3].flags >> 7) & 1) = false;
+    grid[2][3].flags = (grid[2][3].flags & ~(1 << 0)) | (1 << 0);
+    grid[2][3].flags = (grid[2][3].flags & ~(1 << 7)) | (0 << 7);
     bool bit0 = ((grid[2][3].flags >> 0) & 1);
     bool bit7 = ((grid[2][3].flags >> 7) & 1);
-    meshes[1].indices[0] = 0;
-    meshes[1].indices[11] = 7;
+    meshes[1].indices = (meshes[1].indices & ~(1 << 0)) | ((0 ? 1 : 0) << 0);
+    meshes[1].indices = (meshes[1].indices & ~(1 << 11)) | ((7 ? 1 : 0) << 11);
     uint32_t idx = meshes[1].indices[0];
     grid[0][1].transform.scale.x = 1.0;
     grid[0][1].transform.scale.x *= 2.0;

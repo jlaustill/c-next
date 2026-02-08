@@ -42,57 +42,23 @@ interface ITargetExtraction {
   subscripts: Parser.ExpressionContext[];
   hasMemberAccess: boolean;
   hasArrayAccess: boolean;
+  /** Number of expressions in the last subscript operation */
+  lastSubscriptExprCount: number;
 }
 
 /**
- * Extract identifiers from legacy memberAccess or arrayAccess patterns.
- * SonarCloud S3776: Extracted from buildAssignmentContext().
+ * Extract base identifier from assignment target.
+ * With unified grammar, all patterns use IDENTIFIER postfixTargetOp*.
  */
-function extractFromLegacyAccess(
+function extractBaseIdentifier(
   targetCtx: Parser.AssignmentTargetContext,
 ): ITargetExtraction {
   const identifiers: string[] = [];
   const subscripts: Parser.ExpressionContext[] = [];
 
-  const legacyMemberAccess = targetCtx.memberAccess();
-  const legacyArrayAccess = targetCtx.arrayAccess();
-
+  // All patterns now have a base IDENTIFIER
   if (targetCtx.IDENTIFIER()) {
     identifiers.push(targetCtx.IDENTIFIER()!.getText());
-    return {
-      identifiers,
-      subscripts,
-      hasMemberAccess: legacyMemberAccess !== null,
-      hasArrayAccess: legacyArrayAccess !== null,
-    };
-  }
-
-  if (legacyMemberAccess) {
-    for (const id of legacyMemberAccess.IDENTIFIER()) {
-      identifiers.push(id.getText());
-    }
-    for (const expr of legacyMemberAccess.expression()) {
-      subscripts.push(expr);
-    }
-    return {
-      identifiers,
-      subscripts,
-      hasMemberAccess: true,
-      hasArrayAccess: subscripts.length > 0,
-    };
-  }
-
-  if (legacyArrayAccess) {
-    identifiers.push(legacyArrayAccess.IDENTIFIER().getText());
-    for (const expr of legacyArrayAccess.expression()) {
-      subscripts.push(expr);
-    }
-    return {
-      identifiers,
-      subscripts,
-      hasMemberAccess: false,
-      hasArrayAccess: true,
-    };
   }
 
   return {
@@ -100,6 +66,7 @@ function extractFromLegacyAccess(
     subscripts,
     hasMemberAccess: false,
     hasArrayAccess: false,
+    lastSubscriptExprCount: 0,
   };
 }
 
@@ -116,10 +83,13 @@ function processPostfixOps(
       extraction.identifiers.push(op.IDENTIFIER()!.getText());
       extraction.hasMemberAccess = true;
     } else {
-      for (const expr of op.expression()) {
+      const exprs = op.expression();
+      for (const expr of exprs) {
         extraction.subscripts.push(expr);
       }
       extraction.hasArrayAccess = true;
+      // Track the expression count of the last subscript operation
+      extraction.lastSubscriptExprCount = exprs.length;
     }
   }
 }
@@ -149,16 +119,17 @@ function buildAssignmentContext(
   const hasThis = targetCtx.THIS() !== null;
   const postfixOps = targetCtx.postfixTargetOp();
 
-  // Check for legacy memberAccess and arrayAccess
-  const legacyMemberAccess = targetCtx.memberAccess();
-  const legacyArrayAccess = targetCtx.arrayAccess();
-
-  // Extract identifiers and subscripts using helper functions
-  const extraction = extractFromLegacyAccess(targetCtx);
+  // Extract base identifier and process postfix operations
+  const extraction = extractBaseIdentifier(targetCtx);
   processPostfixOps(postfixOps, extraction);
 
-  const { identifiers, subscripts, hasMemberAccess, hasArrayAccess } =
-    extraction;
+  const {
+    identifiers,
+    subscripts,
+    hasMemberAccess,
+    hasArrayAccess,
+    lastSubscriptExprCount,
+  } = extraction;
 
   // Get first identifier type info
   const firstId = identifiers[0] ?? "";
@@ -175,17 +146,9 @@ function buildAssignmentContext(
     !hasArrayAccess &&
     identifiers.length === 1;
 
-  const isSimpleThisAccess =
-    hasThis &&
-    postfixOps.length === 0 &&
-    !legacyMemberAccess &&
-    !legacyArrayAccess;
+  const isSimpleThisAccess = hasThis && postfixOps.length === 0;
 
-  const isSimpleGlobalAccess =
-    hasGlobal &&
-    postfixOps.length === 0 &&
-    !legacyMemberAccess &&
-    !legacyArrayAccess;
+  const isSimpleGlobalAccess = hasGlobal && postfixOps.length === 0;
 
   return {
     statementCtx: ctx,
@@ -206,6 +169,7 @@ function buildAssignmentContext(
     firstIdTypeInfo,
     memberAccessDepth,
     subscriptDepth,
+    lastSubscriptExprCount,
     isSimpleIdentifier,
     isSimpleThisAccess,
     isSimpleGlobalAccess,

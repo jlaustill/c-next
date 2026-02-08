@@ -59,21 +59,34 @@ class AssignmentExpectedTypeResolver {
    * @returns The resolved expected type and assignment context
    */
   resolve(targetCtx: Parser.AssignmentTargetContext): IExpectedTypeResult {
-    // Case 1: Simple identifier (x <- value)
-    if (
-      targetCtx.IDENTIFIER() &&
-      !targetCtx.memberAccess() &&
-      !targetCtx.arrayAccess()
-    ) {
-      return this.resolveForSimpleIdentifier(targetCtx.IDENTIFIER()!.getText());
+    const postfixOps = targetCtx.postfixTargetOp();
+    const baseId = targetCtx.IDENTIFIER()?.getText();
+
+    // Case 1: Simple identifier (x <- value) - no postfix ops
+    if (baseId && postfixOps.length === 0) {
+      return this.resolveForSimpleIdentifier(baseId);
     }
 
-    // Case 2: Member access (config.status <- value)
-    if (targetCtx.memberAccess()) {
-      return this.resolveForMemberAccess(targetCtx.memberAccess()!);
+    // Case 2: Has member access - extract identifiers from postfix chain
+    if (baseId && postfixOps.length > 0) {
+      const identifiers: string[] = [baseId];
+      let hasSubscript = false;
+
+      for (const op of postfixOps) {
+        if (op.IDENTIFIER()) {
+          identifiers.push(op.IDENTIFIER()!.getText());
+        } else {
+          hasSubscript = true;
+        }
+      }
+
+      // If we have member access (multiple identifiers), resolve for member chain
+      if (identifiers.length >= 2 && !hasSubscript) {
+        return this.resolveForMemberChain(identifiers);
+      }
     }
 
-    // Case 3: Array access - no expected type resolution needed
+    // Case 3: Array access or complex patterns - no expected type resolution
     return { expectedType: null, assignmentContext: null };
   }
 
@@ -97,21 +110,18 @@ class AssignmentExpectedTypeResolver {
   }
 
   /**
-   * Resolve expected type for a member access target.
+   * Resolve expected type for a member access chain.
    * Walks the chain of struct types to find the final field's type.
    *
    * Issue #452: Enables type-aware resolution of unqualified enum members
    * for nested access (e.g., config.nested.field).
    */
-  private resolveForMemberAccess(
-    memberAccessCtx: Parser.MemberAccessContext,
-  ): IExpectedTypeResult {
-    const identifiers = memberAccessCtx.IDENTIFIER();
+  private resolveForMemberChain(identifiers: string[]): IExpectedTypeResult {
     if (identifiers.length < 2) {
       return { expectedType: null, assignmentContext: null };
     }
 
-    const rootName = identifiers[0].getText();
+    const rootName = identifiers[0];
     const rootTypeInfo = this.deps.typeRegistry.get(rootName);
 
     if (!rootTypeInfo || !this.deps.isKnownStruct(rootTypeInfo.baseType)) {
@@ -122,7 +132,7 @@ class AssignmentExpectedTypeResolver {
 
     // Walk through each member in the chain to find the final field's type
     for (let i = 1; i < identifiers.length && currentStructType; i++) {
-      const memberName = identifiers[i].getText();
+      const memberName = identifiers[i];
       const structFieldTypes = this.deps.structFields.get(currentStructType);
 
       if (!structFieldTypes?.has(memberName)) {

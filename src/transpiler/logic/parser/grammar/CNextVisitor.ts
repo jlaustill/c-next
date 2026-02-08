@@ -77,8 +77,6 @@ import { FieldInitializerListContext } from "./CNextParser.js";
 import { FieldInitializerContext } from "./CNextParser.js";
 import { ArrayInitializerContext } from "./CNextParser.js";
 import { ArrayInitializerElementContext } from "./CNextParser.js";
-import { MemberAccessContext } from "./CNextParser.js";
-import { ArrayAccessContext } from "./CNextParser.js";
 import { ArgumentListContext } from "./CNextParser.js";
 import { TypeContext } from "./CNextParser.js";
 import { ScopedTypeContext } from "./CNextParser.js";
@@ -546,18 +544,6 @@ export class CNextVisitor<Result> extends AbstractParseTreeVisitor<Result> {
      * @return the visitor result
      */
     visitArrayInitializerElement?: (ctx: ArrayInitializerElementContext) => Result;
-    /**
-     * Visit a parse tree produced by `CNextParser.memberAccess`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitMemberAccess?: (ctx: MemberAccessContext) => Result;
-    /**
-     * Visit a parse tree produced by `CNextParser.arrayAccess`.
-     * @param ctx the parse tree
-     * @return the visitor result
-     */
-    visitArrayAccess?: (ctx: ArrayAccessContext) => Result;
     /**
      * Visit a parse tree produced by `CNextParser.argumentList`.
      * @param ctx the parse tree

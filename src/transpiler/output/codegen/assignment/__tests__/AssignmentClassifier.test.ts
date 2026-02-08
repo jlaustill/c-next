@@ -33,6 +33,7 @@ function createMockContext(
     firstIdTypeInfo: null,
     memberAccessDepth: 0,
     subscriptDepth: 0,
+    lastSubscriptExprCount: 1, // default: 1 expression (array element, single bit)
     isSimpleIdentifier: true,
     isSimpleThisAccess: false,
     isSimpleGlobalAccess: false,
@@ -302,6 +303,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
       ],
       hasArrayAccess: true,
       isSimpleIdentifier: false,
+      lastSubscriptExprCount: 2, // bit range has 2 expressions [start, width]
     });
 
     expect(classifier.classify(ctx)).toBe(AssignmentKind.INTEGER_BIT_RANGE);
@@ -358,6 +360,7 @@ describe("AssignmentClassifier - Array Access", () => {
       ],
       hasArrayAccess: true,
       isSimpleIdentifier: false,
+      lastSubscriptExprCount: 2, // slice has 2 expressions [start, length]
     });
 
     expect(classifier.classify(ctx)).toBe(AssignmentKind.ARRAY_SLICE);

@@ -159,6 +159,47 @@ function handleArrayElementBit(
 }
 
 /**
+ * Handle bit range through struct chain: devices[0].control[0, 4] <- 15
+ *
+ * The target is a chain like array[idx].member or struct.field with a
+ * bit range subscript [start, width] at the end.
+ */
+function handleStructChainBitRange(
+  ctx: IAssignmentContext,
+  deps: IHandlerDeps,
+): string {
+  validateNotCompound(ctx);
+
+  // Build the base target from postfixOps, excluding the last one (the bit range)
+  const baseId = ctx.identifiers[0];
+  const opsBeforeLast = ctx.postfixOps.slice(0, -1);
+
+  let baseTarget = baseId;
+  for (const op of opsBeforeLast) {
+    const memberId = op.IDENTIFIER();
+    if (memberId) {
+      baseTarget += "." + memberId.getText();
+    } else {
+      const exprs = op.expression();
+      if (exprs.length > 0) {
+        baseTarget += "[" + deps.generateExpression(exprs[0]) + "]";
+      }
+    }
+  }
+
+  // Get start and width from the last postfixOp (the bit range)
+  const lastOp = ctx.postfixOps.at(-1)!;
+  const bitRangeExprs = lastOp.expression();
+  const start = deps.generateExpression(bitRangeExprs[0]);
+  const width = deps.generateExpression(bitRangeExprs[1]);
+
+  // Generate bit range write
+  // Limitation: assumes 32-bit types. For 64-bit struct members,
+  // would need to track member type through chain.
+  return BitUtils.multiBitWrite(baseTarget, start, width, ctx.generatedValue);
+}
+
+/**
  * All bit access handlers for registration.
  */
 const bitAccessHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
@@ -166,6 +207,7 @@ const bitAccessHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
   [AssignmentKind.INTEGER_BIT_RANGE, handleIntegerBitRange],
   [AssignmentKind.STRUCT_MEMBER_BIT, handleStructMemberBit],
   [AssignmentKind.ARRAY_ELEMENT_BIT, handleArrayElementBit],
+  [AssignmentKind.STRUCT_CHAIN_BIT_RANGE, handleStructChainBitRange],
 ];
 
 export default bitAccessHandlers;

@@ -11,7 +11,6 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TTypeInfo from "../types/TTypeInfo.js";
-import memberAccessChain from "../memberAccessChain.js";
 
 /**
  * Result of analyzing a member chain for bit access.
@@ -43,6 +42,14 @@ interface IMemberChainAnalyzerDeps {
   generateExpression: (ctx: Parser.ExpressionContext) => string;
 }
 
+/** Mutable state for tracking types through a member chain. */
+interface IChainState {
+  currentType: string;
+  currentStructType: string | undefined;
+  isCurrentArray: boolean;
+  arrayDimsRemaining: number;
+}
+
 /**
  * Analyzes member access chains to detect bit access patterns.
  *
@@ -60,64 +67,222 @@ class MemberChainAnalyzer {
    * Analyze a member chain target to detect bit access at the end.
    *
    * For patterns like grid[2][3].flags[0], detects that [0] is bit access.
-   * Delegates to buildMemberAccessChain which handles the tree-walking and
-   * type tracking logic.
+   * Uses direct postfixTargetOp analysis with type tracking.
    *
    * @param targetCtx - The assignment target context to analyze
    * @returns Analysis result with bit access information
    */
   analyze(targetCtx: Parser.AssignmentTargetContext): IBitAccessAnalysisResult {
-    const memberAccessCtx = targetCtx.memberAccess();
-    if (!memberAccessCtx) {
+    const baseId = targetCtx.IDENTIFIER()?.getText();
+    const postfixOps = targetCtx.postfixTargetOp();
+
+    if (!baseId || postfixOps.length === 0) {
       return { isBitAccess: false };
     }
 
-    const parts = memberAccessCtx.IDENTIFIER().map((id) => id.getText());
-    const expressions = memberAccessCtx.expression();
-    const children = memberAccessCtx.children;
-
-    if (!children || parts.length < 1 || expressions.length === 0) {
+    // Check if the last postfix op is a single-expression subscript (potential bit access)
+    const lastOp = postfixOps.at(-1)!;
+    const lastExprs = lastOp.expression();
+    if (lastExprs.length !== 1 || lastOp.IDENTIFIER()) {
+      // Last op is member access or multi-expression subscript, not bit access
       return { isBitAccess: false };
     }
 
-    const firstPart = parts[0];
-    const firstTypeInfo = this.deps.typeRegistry.get(firstPart);
+    // Count total subscript operations
+    const subscriptCount = postfixOps.filter(
+      (op) => !op.IDENTIFIER() && op.expression().length > 0,
+    ).length;
 
-    // Track bit access result via callback
-    let bitAccessResult: IBitAccessAnalysisResult | null = null;
+    // Walk through the chain to find the type and array status before the last subscript
+    const targetInfo = this.resolveTargetTypeAndArrayStatus(
+      baseId,
+      postfixOps.slice(0, -1),
+      subscriptCount - 1, // subscripts before the last one
+    );
+    if (!targetInfo) {
+      return { isBitAccess: false };
+    }
 
-    memberAccessChain.buildMemberAccessChain({
-      firstId: firstPart,
-      identifiers: parts,
-      expressions,
-      children,
-      separatorOptions: {
-        isStructParam: false,
-        isCrossScope: false,
-      },
-      generateExpression: this.deps.generateExpression,
-      initialTypeInfo: firstTypeInfo
-        ? { isArray: firstTypeInfo.isArray, baseType: firstTypeInfo.baseType }
+    // If the target is still an array, the last subscript is array access, not bit access
+    if (targetInfo.isArray) {
+      return { isBitAccess: false };
+    }
+
+    // Check if the type is an integer (bit access only works on integers)
+    if (!this.isIntegerType(targetInfo.type)) {
+      return { isBitAccess: false };
+    }
+
+    // Build the base target expression (everything except the last subscript)
+    const baseTarget = this.buildBaseTarget(baseId, postfixOps.slice(0, -1));
+    const bitIndex = this.deps.generateExpression(lastExprs[0]);
+
+    return {
+      isBitAccess: true,
+      baseTarget,
+      bitIndex,
+      baseType: targetInfo.type,
+    };
+  }
+
+  /**
+   * Resolve the type and array status of the target by walking through postfix operations.
+   * Returns the type and whether it's still an array before the last subscript.
+   */
+  private resolveTargetTypeAndArrayStatus(
+    baseId: string,
+    ops: Parser.PostfixTargetOpContext[],
+    _subscriptsSoFar: number,
+  ): { type: string; isArray: boolean } | undefined {
+    const baseTypeInfo = this.deps.typeRegistry.get(baseId);
+    if (!baseTypeInfo) {
+      return undefined;
+    }
+
+    const state: IChainState = {
+      currentType: baseTypeInfo.baseType,
+      currentStructType: this.deps.isKnownStruct(baseTypeInfo.baseType)
+        ? baseTypeInfo.baseType
         : undefined,
-      typeTracking: {
-        getStructFields: (structType) => this.deps.structFields.get(structType),
-        getStructArrayFields: (structType) =>
-          this.deps.structFieldArrays.get(structType),
-        isKnownStruct: this.deps.isKnownStruct,
-      },
-      onBitAccess: (baseTarget, bitIndex, memberType) => {
-        bitAccessResult = {
-          isBitAccess: true,
-          baseTarget,
-          bitIndex,
-          baseType: memberType,
-        };
-        // Return non-null to signal early exit from buildMemberAccessChain
-        return baseTarget;
-      },
-    });
+      isCurrentArray: baseTypeInfo.isArray,
+      arrayDimsRemaining: baseTypeInfo.arrayDimensions?.length ?? 0,
+    };
 
-    return bitAccessResult ?? { isBitAccess: false };
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (op.IDENTIFIER()) {
+        const result = this.processMemberOp(op, ops, i, state);
+        if (!result) {
+          return undefined;
+        }
+      } else {
+        this.processSubscriptOp(state);
+      }
+    }
+
+    return { type: state.currentType, isArray: state.isCurrentArray };
+  }
+
+  /**
+   * Process a member access operation (.fieldName) and update chain state.
+   * Returns false if the access is invalid.
+   */
+  private processMemberOp(
+    op: Parser.PostfixTargetOpContext,
+    ops: Parser.PostfixTargetOpContext[],
+    opIndex: number,
+    state: IChainState,
+  ): boolean {
+    const fieldName = op.IDENTIFIER()!.getText();
+    if (!state.currentStructType) {
+      return false;
+    }
+
+    const structFields = this.deps.structFields.get(state.currentStructType);
+    if (!structFields) {
+      return false;
+    }
+
+    const fieldType = structFields.get(fieldName);
+    if (!fieldType) {
+      return false;
+    }
+
+    state.currentType = fieldType;
+
+    // Check if this field is an array
+    const arrayFields = this.deps.structFieldArrays.get(
+      state.currentStructType,
+    );
+    state.isCurrentArray = arrayFields?.has(fieldName) ?? false;
+
+    // If the field type is a struct, update currentStructType
+    state.currentStructType = this.deps.isKnownStruct(state.currentType)
+      ? state.currentType
+      : undefined;
+
+    // Calculate array dimensions remaining based on remaining subscripts
+    state.arrayDimsRemaining = state.isCurrentArray
+      ? this.countRemainingSubscripts(ops, opIndex) + 1
+      : 0;
+
+    return true;
+  }
+
+  /**
+   * Count remaining subscript operations after the given index.
+   */
+  private countRemainingSubscripts(
+    ops: Parser.PostfixTargetOpContext[],
+    afterIndex: number,
+  ): number {
+    return ops
+      .slice(afterIndex + 1)
+      .filter((o) => !o.IDENTIFIER() && o.expression().length > 0).length;
+  }
+
+  /**
+   * Process a subscript operation ([expr]) and update chain state.
+   */
+  private processSubscriptOp(state: IChainState): void {
+    if (!state.isCurrentArray || state.arrayDimsRemaining <= 0) {
+      return;
+    }
+
+    state.arrayDimsRemaining--;
+    if (state.arrayDimsRemaining === 0) {
+      state.isCurrentArray = false;
+      state.currentStructType = this.deps.isKnownStruct(state.currentType)
+        ? state.currentType
+        : undefined;
+    }
+  }
+
+  /**
+   * Check if a type is an integer type.
+   */
+  private isIntegerType(typeName: string): boolean {
+    const intTypes = new Set([
+      "u8",
+      "u16",
+      "u32",
+      "u64",
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+    ]);
+    return intTypes.has(typeName);
+  }
+
+  /**
+   * Build the target expression string from base identifier and postfix operations.
+   */
+  private buildBaseTarget(
+    baseId: string,
+    ops: Parser.PostfixTargetOpContext[],
+  ): string {
+    let result = baseId;
+
+    for (const op of ops) {
+      if (op.IDENTIFIER()) {
+        result += "." + op.IDENTIFIER()!.getText();
+      } else {
+        const exprs = op.expression();
+        if (exprs.length === 1) {
+          result += "[" + this.deps.generateExpression(exprs[0]) + "]";
+        } else if (exprs.length === 2) {
+          result +=
+            "[" +
+            this.deps.generateExpression(exprs[0]) +
+            ", " +
+            this.deps.generateExpression(exprs[1]) +
+            "]";
+        }
+      }
+    }
+
+    return result;
   }
 }
 

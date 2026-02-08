@@ -248,14 +248,11 @@ assignmentOperator
     ;
 
 // Assignment target with unified postfix chain approach (Issue #387)
-// global/this prefixes use postfixTargetOp* for any combination of member/array access
-// Bare identifiers fall back to existing memberAccess/arrayAccess rules for compatibility
+// All patterns use postfixTargetOp* for member/array access chains
 assignmentTarget
     : 'global' '.' IDENTIFIER postfixTargetOp*    // global.x, global.x[i][j].y, etc.
     | 'this' '.' IDENTIFIER postfixTargetOp*      // this.x, this.x[i].y, etc.
-    | arrayAccess                                  // arr[i], reg[start, width]
-    | memberAccess                                 // GPIO7.DR_SET, arr[i].field
-    | IDENTIFIER                                   // Simple identifier
+    | IDENTIFIER postfixTargetOp*                  // x, arr[i], obj.field, arr[i].field, etc.
     ;
 
 // Unified postfix operation for assignment targets (Issue #387)
@@ -459,18 +456,7 @@ arrayInitializerElement
     | arrayInitializer                               // For nested arrays: [[1,2], [3,4]]
     ;
 
-memberAccess
-    : IDENTIFIER ('.' IDENTIFIER)+ ('[' expression ']')+           // ADR-036: screen.pixels[0][0]
-    | IDENTIFIER ('.' IDENTIFIER)+ '[' expression ',' expression ']' // GPIO7.DR[start, width]
-    | IDENTIFIER ('.' IDENTIFIER)+                                  // GPIO7.DR_SET
-    | IDENTIFIER ('[' expression ']')+ ('.' IDENTIFIER)+           // arr[i].field1.field2...
-    | IDENTIFIER (('[' expression ']') | ('.' IDENTIFIER))+        // arr[i].field[j].member... (any mix)
-    ;
-
-arrayAccess
-    : IDENTIFIER '[' expression ']'                       // Single element/bit
-    | IDENTIFIER '[' expression ',' expression ']'        // Bit range [start, width]
-    ;
+// Note: memberAccess and arrayAccess rules removed - unified into assignmentTarget with postfixTargetOp*
 
 argumentList
     : expression (',' expression)*

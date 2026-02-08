@@ -51,6 +51,9 @@ enum AssignmentKind {
   /** item.byte[7] <- true (bit access on struct member) */
   STRUCT_MEMBER_BIT,
 
+  /** devices[0].control[0, 4] <- 15 (bit range through struct chain) */
+  STRUCT_CHAIN_BIT_RANGE,
+
   /** matrix[i][j][FIELD_BIT] <- false (bit on multi-dim array element) */
   ARRAY_ELEMENT_BIT,
 

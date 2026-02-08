@@ -77,8 +77,6 @@ import { FieldInitializerListContext } from "./CNextParser.js";
 import { FieldInitializerContext } from "./CNextParser.js";
 import { ArrayInitializerContext } from "./CNextParser.js";
 import { ArrayInitializerElementContext } from "./CNextParser.js";
-import { MemberAccessContext } from "./CNextParser.js";
-import { ArrayAccessContext } from "./CNextParser.js";
 import { ArgumentListContext } from "./CNextParser.js";
 import { TypeContext } from "./CNextParser.js";
 import { ScopedTypeContext } from "./CNextParser.js";
@@ -839,26 +837,6 @@ export class CNextListener implements ParseTreeListener {
      * @param ctx the parse tree
      */
     exitArrayInitializerElement?: (ctx: ArrayInitializerElementContext) => void;
-    /**
-     * Enter a parse tree produced by `CNextParser.memberAccess`.
-     * @param ctx the parse tree
-     */
-    enterMemberAccess?: (ctx: MemberAccessContext) => void;
-    /**
-     * Exit a parse tree produced by `CNextParser.memberAccess`.
-     * @param ctx the parse tree
-     */
-    exitMemberAccess?: (ctx: MemberAccessContext) => void;
-    /**
-     * Enter a parse tree produced by `CNextParser.arrayAccess`.
-     * @param ctx the parse tree
-     */
-    enterArrayAccess?: (ctx: ArrayAccessContext) => void;
-    /**
-     * Exit a parse tree produced by `CNextParser.arrayAccess`.
-     * @param ctx the parse tree
-     */
-    exitArrayAccess?: (ctx: ArrayAccessContext) => void;
     /**
      * Enter a parse tree produced by `CNextParser.argumentList`.
      * @param ctx the parse tree
