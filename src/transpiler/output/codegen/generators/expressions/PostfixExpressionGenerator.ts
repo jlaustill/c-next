@@ -931,7 +931,11 @@ const tryKnownScopeAccess = (
       state.currentScope,
     );
   }
-  orchestrator.validateCrossScopeVisibility(ctx.result, ctx.memberName);
+  orchestrator.validateCrossScopeVisibility(
+    ctx.result,
+    ctx.memberName,
+    ctx.isGlobalAccess,
+  );
 
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;

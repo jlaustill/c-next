@@ -69,29 +69,37 @@ class AssignmentValidator {
     isCompound: boolean,
     line: number,
   ): void {
-    // Case 1: Simple identifier assignment
-    if (
-      targetCtx.IDENTIFIER() &&
-      !targetCtx.memberAccess() &&
-      !targetCtx.arrayAccess()
-    ) {
-      this.validateSimpleIdentifier(
-        targetCtx.IDENTIFIER()!.getText(),
-        expression,
-        isCompound,
-      );
+    const postfixOps = targetCtx.postfixTargetOp();
+    const baseId = targetCtx.IDENTIFIER()?.getText();
+
+    // Case 1: Simple identifier assignment (no postfix ops)
+    if (baseId && postfixOps.length === 0) {
+      this.validateSimpleIdentifier(baseId, expression, isCompound);
       return;
     }
 
-    // Case 2: Array element assignment
-    if (targetCtx.arrayAccess()) {
-      this.validateArrayElement(targetCtx.arrayAccess()!, line);
-      return;
+    // Analyze postfix ops for member/array patterns
+    const identifiers: string[] = baseId ? [baseId] : [];
+    const subscriptExprs: Parser.ExpressionContext[] = [];
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        identifiers.push(op.IDENTIFIER()!.getText());
+      } else {
+        for (const expr of op.expression()) {
+          subscriptExprs.push(expr);
+        }
+      }
     }
 
-    // Case 3: Member access assignment
-    if (targetCtx.memberAccess()) {
-      this.validateMemberAccess(targetCtx.memberAccess()!, expression);
+    // Case 2: Has subscripts - validate array bounds
+    if (subscriptExprs.length > 0 && identifiers.length > 0) {
+      this.validateArrayElement(identifiers[0], subscriptExprs, line);
+    }
+
+    // Case 3: Has member access - validate member access
+    if (identifiers.length >= 2) {
+      this.validateMemberAccess(identifiers, expression);
     }
   }
 
@@ -151,11 +159,10 @@ class AssignmentValidator {
    * Validate array element assignment.
    */
   private validateArrayElement(
-    arrayAccessCtx: Parser.ArrayAccessContext,
+    arrayName: string,
+    subscriptExprs: Parser.ExpressionContext[],
     line: number,
   ): void {
-    const arrayName = arrayAccessCtx.IDENTIFIER().getText();
-
     // ADR-013: Validate const assignment on array
     const constError = this.deps.typeValidator.checkConstAssignment(arrayName);
     if (constError) {
@@ -168,7 +175,7 @@ class AssignmentValidator {
       this.deps.typeValidator.checkArrayBounds(
         arrayName,
         typeInfo.arrayDimensions,
-        arrayAccessCtx.expression(),
+        subscriptExprs,
         line,
         this.deps.tryEvaluateConstant,
       );
@@ -179,15 +186,15 @@ class AssignmentValidator {
    * Validate member access assignment.
    */
   private validateMemberAccess(
-    memberAccessCtx: Parser.MemberAccessContext,
+    identifiers: string[],
     expression: Parser.ExpressionContext,
   ): void {
-    const identifiers = memberAccessCtx.IDENTIFIER();
-    if (identifiers.length === 0) {
+    if (identifiers.length < 2) {
       return;
     }
 
-    const rootName = identifiers[0].getText();
+    const rootName = identifiers[0];
+    const memberName = identifiers[1];
 
     // ADR-013: Validate const assignment on struct root
     const constError = this.deps.typeValidator.checkConstAssignment(rootName);
@@ -195,11 +202,6 @@ class AssignmentValidator {
       throw new Error(`${constError} (member access)`);
     }
 
-    if (identifiers.length < 2) {
-      return;
-    }
-
-    const memberName = identifiers[1].getText();
     const fullName = `${rootName}_${memberName}`;
 
     // ADR-013: Check for read-only register members

@@ -18,6 +18,7 @@ describe("MemberSeparatorResolver", () => {
       isKnownScope: vi.fn(() => false),
       isKnownRegister: vi.fn(() => false),
       validateCrossScopeVisibility: vi.fn(),
+      validateRegisterAccess: vi.fn(),
       getStructParamSeparator: vi.fn(() => "->"),
       ...overrides,
     };

@@ -178,6 +178,16 @@ The codebase is organized into three layers under `src/transpiler/`:
 - Grammar directories excluded from prettier/oxlint via ignore patterns
 - `npm run antlr` — C-Next grammar, `npm run antlr:all` — All grammars (C-Next, C, C++)
 
+### After Grammar Rule Changes
+
+When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
+
+1. Regenerate parser: `npm run antlr`
+2. Update code that references old `Parser.*Context` types
+3. Remove dead methods that used removed contexts (TypeScript will flag as "never read")
+4. Remove unused imports
+5. Update unit test mocks for changed interfaces (add new required fields with defaults)
+
 ### Symbol Resolution Architecture (ADR-055)
 
 **Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
@@ -218,6 +228,25 @@ The codebase is organized into three layers under `src/transpiler/`:
 
 - **Function declarations**: Use `functionDeclaration()` not `functionDefinition()` — the C-Next grammar uses "declaration" terminology
 - **Expression unwrapping**: Use `ExpressionUnwrapper` utility in `src/transpiler/output/codegen/utils/` for drilling through expression hierarchy (ternary → or → and → ... → postfix)
+
+### Assignment Classification (ADR-109)
+
+When adding new assignment patterns:
+
+1. Add new `AssignmentKind` enum value in `assignment/AssignmentKind.ts`
+2. Update `AssignmentClassifier.ts` to detect the pattern
+3. Create handler function in appropriate `*Handlers.ts` file
+4. Register handler in the handlers export array
+5. Update handler count in unit tests (e.g., "exports exactly N handlers")
+
+**Key context field**: `lastSubscriptExprCount` distinguishes `[0]` (1 expr = array) from `[0, 4]` (2 exprs = bit range)
+
+### Cross-Scope Visibility Rules
+
+- **Self-scope reference**: `Scope.member` inside `Scope` is an error - use `this.member`
+- **Global prefix exception**: `global.Scope.member` inside `Scope` is allowed (explicit qualification)
+- **Private access in own scope**: A scope can access its own private members via `this.` or `global.Scope.`
+- Validation method: `_validateCrossScopeVisibility(scope, member, isGlobalAccess)`
 
 ### Code Generation Patterns
 

@@ -76,12 +76,19 @@ class MemberSeparatorResolver {
     }
 
     // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
-    if (ctx.hasGlobal && deps.isKnownRegister(identifierChain[0])) {
+    if (deps.isKnownRegister(identifierChain[0])) {
+      // Validate register access from inside scope requires global. prefix
+      deps.validateRegisterAccess(
+        identifierChain[0],
+        memberName,
+        ctx.hasGlobal,
+      );
       return "_";
     }
 
-    // Scope member access with visibility validation
-    if (ctx.hasGlobal && deps.isKnownScope(identifierChain[0])) {
+    // Scope member access: Sensor.buffer -> Sensor_buffer
+    // Works with or without global. prefix (both are valid syntax)
+    if (deps.isKnownScope(identifierChain[0])) {
       deps.validateCrossScopeVisibility(identifierChain[0], memberName);
       return "_";
     }

@@ -149,39 +149,40 @@ class InitializationListener extends CNextListener {
     ctx: Parser.AssignmentStatementContext,
   ): void => {
     const targetCtx = ctx.assignmentTarget();
+    const baseId = targetCtx.IDENTIFIER()?.getText();
+    const postfixOps = targetCtx.postfixTargetOp();
 
-    // Simple variable assignment: x <- value
-    if (
-      targetCtx.IDENTIFIER() &&
-      !targetCtx.memberAccess() &&
-      !targetCtx.arrayAccess()
-    ) {
-      const name = targetCtx.IDENTIFIER()!.getText();
-      this.analyzer.recordAssignment(name);
+    if (!baseId) {
+      return;
     }
 
-    // Member access: p.x <- value (struct field) or arr[i][j] <- value (multi-dim array)
-    if (targetCtx.memberAccess()) {
-      const memberCtx = targetCtx.memberAccess()!;
-      const identifiers = memberCtx.IDENTIFIER();
-      if (identifiers.length >= 2) {
-        // Struct field access: p.x <- value
-        const varName = identifiers[0].getText();
-        const fieldName = identifiers[1].getText();
-        this.analyzer.recordAssignment(varName, fieldName);
-      } else if (identifiers.length === 1) {
-        // Multi-dimensional array access: arr[i][j] <- value
-        const varName = identifiers[0].getText();
-        this.analyzer.recordAssignment(varName);
+    // Simple variable assignment: x <- value (no postfix ops)
+    if (postfixOps.length === 0) {
+      this.analyzer.recordAssignment(baseId);
+      return;
+    }
+
+    // Analyze postfix operations
+    const identifiers: string[] = [baseId];
+    let hasSubscript = false;
+
+    for (const op of postfixOps) {
+      if (op.IDENTIFIER()) {
+        identifiers.push(op.IDENTIFIER()!.getText());
+      } else {
+        hasSubscript = true;
       }
     }
 
-    // Array access: arr[i] <- value
-    if (targetCtx.arrayAccess()) {
-      const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
-      // Array element assignment initializes that element, but for simplicity
-      // we'll consider the array as a whole. More granular tracking would be complex.
-      this.analyzer.recordAssignment(arrayName);
+    // Member access: p.x <- value (struct field)
+    if (identifiers.length >= 2 && !hasSubscript) {
+      const varName = identifiers[0];
+      const fieldName = identifiers[1];
+      this.analyzer.recordAssignment(varName, fieldName);
+    } else {
+      // Array access or mixed: arr[i] <- value or arr[i].field <- value
+      // Consider the array/base as a whole initialized
+      this.analyzer.recordAssignment(baseId);
     }
   };
 
@@ -298,28 +299,6 @@ class InitializationListener extends CNextListener {
     // Don't skip for struct member access (.field.length)
     return ops.length === 1 || firstOpText.startsWith("[");
   }
-
-  override enterMemberAccess = (ctx: Parser.MemberAccessContext): void => {
-    // Skip if we're in a write context
-    if (this.analyzer.isInWriteContext()) {
-      return;
-    }
-
-    // Skip if we're in function call arguments
-    if (this.inFunctionCallArgs > 0) {
-      return;
-    }
-
-    const identifiers = ctx.IDENTIFIER();
-    if (identifiers.length >= 2) {
-      const varName = identifiers[0].getText();
-      const fieldName = identifiers[1].getText();
-      const { line, column } = ParserUtils.getPosition(ctx);
-
-      // Check if the specific field is initialized
-      this.analyzer.checkRead(varName, line, column, fieldName);
-    }
-  };
 
   // ========================================================================
   // Control Flow: If Statements

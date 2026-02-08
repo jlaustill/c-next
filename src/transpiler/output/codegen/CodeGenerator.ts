@@ -63,8 +63,6 @@ import commentUtils from "./generators/support/CommentUtils";
 import NullCheckAnalyzer from "../../logic/analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
-// Shared member access validation (ADR-013/016/057)
-import MemberAccessValidator from "./helpers/MemberAccessValidator";
 // ADR-109: Assignment decomposition (Phase 2)
 import AssignmentHandlerRegistry from "./assignment/index";
 import AssignmentClassifier from "./assignment/AssignmentClassifier";
@@ -76,10 +74,6 @@ import LiteralUtils from "../../../utils/LiteralUtils";
 import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
-// PR #715: Bit range access helper for improved testability
-import BitRangeHelper from "./helpers/BitRangeHelper";
-// PR #715: Centralized error messages for improved testability
-import CodeGenErrors from "./helpers/CodeGenErrors";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
 // Issue #644: Member chain analyzer for bit access pattern detection
@@ -324,8 +318,6 @@ export default class CodeGenerator implements IOrchestrator {
 
   // Issue #60: Symbol fields moved to SymbolCollector
   // Remaining fields not yet extracted:
-
-  private inAssignmentTarget: boolean = false;
 
   private knownFunctions: Set<string> = new Set(); // Track C-Next defined functions
 
@@ -935,8 +927,12 @@ export default class CodeGenerator implements IOrchestrator {
    * Validate cross-scope member visibility.
    * Part of IOrchestrator interface - delegates to private implementation.
    */
-  validateCrossScopeVisibility(scopeName: string, memberName: string): void {
-    this._validateCrossScopeVisibility(scopeName, memberName);
+  validateCrossScopeVisibility(
+    scopeName: string,
+    memberName: string,
+    isGlobalAccess: boolean = false,
+  ): void {
+    this._validateCrossScopeVisibility(scopeName, memberName, isGlobalAccess);
   }
 
   /**
@@ -1811,9 +1807,31 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownRegister: (name: string) => this.symbols!.knownRegisters.has(name),
       validateCrossScopeVisibility: (scopeName: string, memberName: string) =>
         this.validateCrossScopeVisibility(scopeName, memberName),
+      validateRegisterAccess: (
+        registerName: string,
+        memberName: string,
+        hasGlobal: boolean,
+      ) => this._validateRegisterAccess(registerName, memberName, hasGlobal),
       getStructParamSeparator: () =>
         memberAccessChain.getStructParamSeparator({ cppMode: this.cppMode }),
     };
+  }
+
+  /**
+   * Validate register access from inside a scope requires global. prefix
+   */
+  private _validateRegisterAccess(
+    registerName: string,
+    memberName: string,
+    hasGlobal: boolean,
+  ): void {
+    // Only validate when inside a scope and accessing without global. prefix
+    if (this.context.currentScope && !hasGlobal) {
+      throw new Error(
+        `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
+          `from inside scope '${this.context.currentScope}'`,
+      );
+    }
   }
 
   /**
@@ -6551,27 +6569,13 @@ export default class CodeGenerator implements IOrchestrator {
   private _generateAssignmentTarget(
     ctx: Parser.AssignmentTargetContext,
   ): string {
-    // Set flag to indicate we're generating an assignment target (write context)
-    this.inAssignmentTarget = true;
-    try {
-      return this.doGenerateAssignmentTarget(ctx);
-    } finally {
-      this.inAssignmentTarget = false;
-    }
+    return this.doGenerateAssignmentTarget(ctx);
   }
 
   private doGenerateAssignmentTarget(
     ctx: Parser.AssignmentTargetContext,
   ): string {
-    // Issue #387: Handle memberAccess and arrayAccess alternatives first
-    // These are separate sub-rules in the grammar (not unified with postfixTargetOp)
-    if (ctx.memberAccess()) {
-      return this.generateMemberAccess(ctx.memberAccess()!);
-    }
-    if (ctx.arrayAccess()) {
-      return this.generateArrayAccess(ctx.arrayAccess()!);
-    }
-
+    // Issue #387: Unified postfix chain - all patterns now use IDENTIFIER postfixTargetOp*
     const hasGlobal = ctx.GLOBAL() !== null;
     const hasThis = ctx.THIS() !== null;
     const identifier = ctx.IDENTIFIER()?.getText();
@@ -6694,20 +6698,31 @@ export default class CodeGenerator implements IOrchestrator {
   private _validateCrossScopeVisibility(
     scopeName: string,
     memberName: string,
+    isGlobalAccess: boolean = false,
   ): void {
-    // Skip if accessing own scope (via this.)
-    if (this.context.currentScope === scopeName) return;
-
-    const visibility =
-      this.symbols!.scopeMemberVisibility.get(scopeName)?.get(memberName);
-    if (visibility === "private") {
-      const context = this.context.currentScope
-        ? `from scope '${this.context.currentScope}'`
-        : "from outside the scope";
+    // Error if referencing own scope by name (must use this. prefix)
+    // Exception: global.Scope.member is allowed for explicit qualification
+    if (!isGlobalAccess && this.context.currentScope === scopeName) {
       throw new Error(
-        `Cannot access private member '${memberName}' of scope '${scopeName}' ${context}. ` +
-          `Only public members are accessible outside their scope.`,
+        `Error: Cannot reference own scope '${scopeName}' by name. ` +
+          `Use 'this.${memberName}' instead of '${scopeName}.${memberName}'`,
       );
+    }
+
+    // Check private member access (skip for own scope - we can access our own privates)
+    const isOwnScope = this.context.currentScope === scopeName;
+    if (!isOwnScope) {
+      const visibility =
+        this.symbols!.scopeMemberVisibility.get(scopeName)?.get(memberName);
+      if (visibility === "private") {
+        const context = this.context.currentScope
+          ? `from scope '${this.context.currentScope}'`
+          : "from outside the scope";
+        throw new Error(
+          `Cannot access private member '${memberName}' of scope '${scopeName}' ${context}. ` +
+            `Only public members are accessible outside their scope.`,
+        );
+      }
     }
   }
 
@@ -7279,331 +7294,9 @@ export default class CodeGenerator implements IOrchestrator {
     return ExpressionUtils.hasFunctionCall(expr);
   }
 
-  private generateMemberAccess(ctx: Parser.MemberAccessContext): string {
-    const parts = ctx.IDENTIFIER().map((id) => id.getText());
-    const expressions = ctx.expression();
-    if (expressions.length > 0) {
-      // Note: Register bit access in assignment targets (GPIO.DR[3] <- true) is handled
-      // by AssignmentClassifier dispatch, not here. The memberAccess grammar rule only
-      // appears in assignmentTarget, and register bit patterns are classified as
-      // REGISTER_BIT/REGISTER_BIT_RANGE before reaching this code.
-      return this.generateSubscriptMemberAccess(ctx, parts, expressions);
-    }
-    return this.generatePlainMemberAccess(parts);
-  }
-
-  /**
-   * Generate member access with subscript expressions using child-walking
-   * via buildMemberAccessChain (Bug #8, Issue #644).
-   */
-  private generateSubscriptMemberAccess(
-    ctx: Parser.MemberAccessContext,
-    parts: string[],
-    expressions: Parser.ExpressionContext[],
-  ): string {
-    const firstPart = parts[0];
-    const isCrossScope = this.isKnownScope(firstPart);
-    const paramInfo = this.context.currentParameters.get(firstPart);
-    const isStructParam = paramInfo?.isStruct ?? false;
-
-    if (isCrossScope) {
-      MemberAccessValidator.validateNotSelfScopeReference(
-        firstPart,
-        parts[1],
-        this.context.currentScope,
-      );
-    }
-
-    const firstTypeInfo = this.context.typeRegistry.get(firstPart);
-
-    const chainResult = memberAccessChain.buildMemberAccessChain({
-      firstId: firstPart,
-      identifiers: parts,
-      expressions,
-      children: ctx.children!,
-      separatorOptions: {
-        isStructParam,
-        isCrossScope,
-        cppMode: this.cppMode,
-      },
-      generateExpression: (expr) => this._generateExpression(expr),
-      initialTypeInfo: firstTypeInfo
-        ? {
-            isArray: firstTypeInfo.isArray,
-            baseType: firstTypeInfo.baseType,
-          }
-        : undefined,
-      typeTracking: {
-        getStructFields: (structType) =>
-          this.symbols!.structFields.get(structType),
-        getStructArrayFields: (structType) =>
-          this.symbols!.structFieldArrays.get(structType),
-        isKnownStruct: (name) => this.isKnownStruct(name),
-      },
-      onBitAccess: (result, bitIndex) => `((${result} >> ${bitIndex}) & 1)`,
-    });
-
-    return chainResult.code;
-  }
-
-  // --- Plain member access helpers ---
-
-  /**
-   * Generate plain register member access: GPIO7.DR -> GPIO7_DR
-   */
-  private generatePlainRegisterAccess(parts: string[]): string {
-    const firstPart = parts[0];
-
-    // ADR-016: Inside a scope, accessing a global register requires global. prefix
-    if (this.context.currentScope) {
-      throw new Error(
-        `Error: Use 'global.${parts.join(".")}' to access register '${firstPart}' from inside scope '${this.context.currentScope}'`,
-      );
-    }
-
-    // memberAccess grammar guarantees parts.length >= 2: IDENTIFIER ('.' IDENTIFIER)+
-    const memberName = parts[1];
-    MemberAccessValidator.validateRegisterReadAccess(
-      `${firstPart}_${memberName}`,
-      memberName,
-      `${firstPart}.${memberName}`,
-      this.symbols!.registerMemberAccess,
-      this.inAssignmentTarget,
-    );
-    return parts.join("_");
-  }
-
-  /**
-   * Generate plain scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
-   */
-  private generatePlainScopeAccess(parts: string[]): string {
-    const firstPart = parts[0];
-
-    MemberAccessValidator.validateNotSelfScopeReference(
-      firstPart,
-      parts[1],
-      this.context.currentScope,
-    );
-
-    // ADR-016: Validate visibility before allowing cross-scope access
-    const memberName = parts[1];
-    this.validateCrossScopeVisibility(firstPart, memberName);
-
-    // Check if the scope variable is a struct type - if so, remaining parts
-    // are struct field access and should use '.' not '_'
-    // e.g., Motor.current.speed -> Motor_current.speed (not Motor_current_speed)
-    if (parts.length > 2) {
-      const scopeVarName = `${firstPart}_${memberName}`;
-      const scopeVarType = this.context.typeRegistry.get(scopeVarName);
-      if (scopeVarType && this._isKnownStruct(scopeVarType.baseType)) {
-        return `${scopeVarName}.${parts.slice(2).join(".")}`;
-      }
-    }
-    return parts.join("_");
-  }
-
-  /**
-   * Coordinator for plain member access (no subscripts).
-   */
-  private generatePlainMemberAccess(parts: string[]): string {
-    const firstPart = parts[0];
-
-    // Register member access: GPIO7.DR -> GPIO7_DR
-    if (this.symbols!.knownRegisters.has(firstPart)) {
-      return this.generatePlainRegisterAccess(parts);
-    }
-
-    // Scope member access: Timing.tickCount -> Timing_tickCount (ADR-016)
-    if (this.isKnownScope(firstPart)) {
-      return this.generatePlainScopeAccess(parts);
-    }
-
-    // ADR-006: Struct parameter member access
-    const paramInfo = this.context.currentParameters.get(firstPart);
-    if (paramInfo?.isStruct) {
-      return memberAccessChain.buildStructParamMemberAccess(
-        firstPart,
-        parts.slice(1),
-        { cppMode: this.cppMode },
-      );
-    }
-
-    return parts.join(".");
-  }
-
-  private generateArrayAccess(ctx: Parser.ArrayAccessContext): string {
-    const rawName = ctx.IDENTIFIER().getText();
-    const exprs = ctx.expression();
-    const name = this._resolveArrayAccessName(rawName);
-
-    if (exprs.length === 1) {
-      return this._generateSingleIndexAccess(rawName, name, exprs[0], ctx);
-    }
-    if (exprs.length === 2) {
-      return this._generateBitRangeAccess(rawName, name, exprs);
-    }
-    return `${name}[/* error */]`;
-  }
-
-  /**
-   * Resolve the access name for array/bit access, handling parameter dereferencing
-   */
-  private _resolveArrayAccessName(rawName: string): string {
-    const paramInfo = this.context.currentParameters.get(rawName);
-    if (!paramInfo || paramInfo.isArray) return rawName;
-
-    const isPassByValue =
-      this._isFloatType(paramInfo.baseType) ||
-      this.symbols!.knownEnums.has(paramInfo.baseType) ||
-      (this.context.currentFunctionName &&
-        this._isParameterPassByValueByName(
-          this.context.currentFunctionName,
-          rawName,
-        ));
-
-    return isPassByValue ? rawName : `(*${rawName})`;
-  }
-
-  /**
-   * Generate single index access: array[i] or bit access flags[3]
-   */
-  private _generateSingleIndexAccess(
-    rawName: string,
-    name: string,
-    indexExpr: Parser.ExpressionContext,
-    ctx: Parser.ArrayAccessContext,
-  ): string {
-    const typeInfo = this.context.typeRegistry.get(rawName);
-
-    // Check if this is a bitmap type
-    if (typeInfo?.isBitmap && typeInfo.bitmapTypeName) {
-      const line = ctx.start?.line ?? 0;
-      throw CodeGenErrors.bitmapBracketIndexing(
-        line,
-        typeInfo.bitmapTypeName,
-        rawName,
-      );
-    }
-
-    // ADR-036: Compile-time bounds checking
-    if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-      this.typeValidator!.checkArrayBounds(
-        rawName,
-        typeInfo.arrayDimensions,
-        [indexExpr],
-        ctx.start?.line ?? 0,
-        (expr) => this._tryEvaluateConstant(expr),
-      );
-    }
-
-    const index = this._generateExpression(indexExpr);
-    return `${name}[${index}]`;
-  }
-
-  /**
-   * Generate bit range access: flags[start, width]
-   */
-  private _generateBitRangeAccess(
-    rawName: string,
-    name: string,
-    exprs: Parser.ExpressionContext[],
-  ): string {
-    const start = this._generateExpression(exprs[0]);
-    const width = this._generateExpression(exprs[1]);
-    const typeInfo = this.context.typeRegistry.get(rawName);
-
-    // Float bit indexing read: use shadow variable + memcpy
-    const isFloatType =
-      typeInfo?.baseType === "f32" || typeInfo?.baseType === "f64";
-    if (isFloatType && typeInfo) {
-      return this._generateFloatBitRangeRead(
-        rawName,
-        name,
-        start,
-        width,
-        typeInfo,
-      );
-    }
-
-    return this._generateIntegerBitRangeRead(name, start, width);
-  }
-
-  /**
-   * Generate float bit range read with shadow variable
-   */
-  private _generateFloatBitRangeRead(
-    rawName: string,
-    name: string,
-    start: string,
-    width: string,
-    typeInfo: { baseType: string },
-  ): string {
-    if (!this.context.inFunctionBody) {
-      throw CodeGenErrors.floatBitIndexingAtGlobalScope(rawName, start, width);
-    }
-
-    this.requireInclude("string");
-    this.requireInclude("float_static_assert");
-
-    const isF64 = typeInfo.baseType === "f64";
-    const shadowType = isF64 ? "uint64_t" : "uint32_t";
-    const shadowName = `__bits_${rawName}`;
-    const mask = this.generateBitMask(width, isF64);
-
-    // Ensure shadow variable is declared
-    if (!this.context.floatBitShadows.has(shadowName)) {
-      this.context.floatBitShadows.add(shadowName);
-      this.pendingTempDeclarations.push(`${shadowType} ${shadowName};`);
-    }
-
-    const shadowIsCurrent = this.context.floatShadowCurrent.has(shadowName);
-    this.context.floatShadowCurrent.add(shadowName);
-
-    return this._buildFloatBitReadExpr(
-      shadowName,
-      name,
-      start,
-      mask,
-      shadowIsCurrent,
-    );
-  }
-
-  /**
-   * Build the bit read expression for floats.
-   * Delegates to BitRangeHelper for testability.
-   */
-  private _buildFloatBitReadExpr(
-    shadowName: string,
-    name: string,
-    start: string,
-    mask: string,
-    shadowIsCurrent: boolean,
-  ): string {
-    return BitRangeHelper.buildFloatBitReadExpr({
-      shadowName,
-      varName: name,
-      start,
-      mask,
-      shadowIsCurrent,
-    });
-  }
-
-  /**
-   * Generate integer bit range read: ((value >> start) & mask)
-   * Delegates to BitRangeHelper for testability.
-   */
-  private _generateIntegerBitRangeRead(
-    name: string,
-    start: string,
-    width: string,
-  ): string {
-    const mask = this.generateBitMask(width);
-    return BitRangeHelper.buildIntegerBitReadExpr({
-      varName: name,
-      start,
-      mask,
-    });
-  }
+  // NOTE: generateMemberAccess and generateArrayAccess removed in grammar consolidation
+  // These methods referenced MemberAccessContext and ArrayAccessContext which no longer
+  // exist after unifying to assignmentTarget: IDENTIFIER postfixTargetOp*
 
   // ========================================================================
   // Types

@@ -273,6 +273,12 @@ class AssignmentClassifier {
     const firstId = ids[0];
     const typeInfo = this.deps.typeRegistry.get(firstId);
 
+    // Check for bit range through struct chain: devices[0].control[0, 4]
+    // Detected by last subscript having 2 expressions (start, width)
+    if (ctx.lastSubscriptExprCount === 2) {
+      return AssignmentKind.STRUCT_CHAIN_BIT_RANGE;
+    }
+
     // Multi-dimensional array element: arr[i][j] (1 identifier, multiple subscripts)
     if (ids.length === 1) {
       return this.classifyMultiDimArrayAccess(typeInfo, ctx.subscripts.length);
@@ -486,14 +492,31 @@ class AssignmentClassifier {
     const typeInfo = this.deps.typeRegistry.get(name) ?? null;
 
     // Use shared classifier for array vs bit access decision
+    // Use lastSubscriptExprCount to distinguish [0][0] (two ops, each 1 expr)
+    // from [0, 5] (one op, 2 exprs)
     const subscriptKind = SubscriptClassifier.classify({
       typeInfo,
-      subscriptCount: ctx.subscripts.length,
+      subscriptCount: ctx.lastSubscriptExprCount,
       isRegisterAccess: false,
     });
 
     switch (subscriptKind) {
       case "array_element":
+        // Multi-dimensional array: matrix[i][j] has multiple subscript operations
+        // but each with 1 expression (vs slice [0, 5] with 2 expressions in 1 op)
+        if (ctx.subscripts.length > 1) {
+          // Check if last subscript is bit access on an integer array element
+          // e.g., matrix[i][j][bit] where matrix is 2D integer array
+          const numDims = typeInfo?.arrayDimensions?.length ?? 0;
+          if (
+            ctx.subscripts.length === numDims + 1 &&
+            typeInfo &&
+            TypeCheckUtils.isInteger(typeInfo.baseType)
+          ) {
+            return AssignmentKind.ARRAY_ELEMENT_BIT;
+          }
+          return AssignmentKind.MULTI_DIM_ARRAY_ELEMENT;
+        }
         // String array element (special case for 2D string arrays)
         if (
           typeInfo?.isString &&

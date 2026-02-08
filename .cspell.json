@@ -329,7 +329,9 @@
     "SDKMAN",
     "madge",
     "sfdp",
-    "Unwrapper"
+    "Unwrapper",
+    "dval",
+    "fval"
   ],
   "ignorePaths": [
     "node_modules/**",

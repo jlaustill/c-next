@@ -88,10 +88,11 @@ describe("BitAccessHandlers", () => {
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT_RANGE);
       expect(kinds).toContain(AssignmentKind.STRUCT_MEMBER_BIT);
       expect(kinds).toContain(AssignmentKind.ARRAY_ELEMENT_BIT);
+      expect(kinds).toContain(AssignmentKind.STRUCT_CHAIN_BIT_RANGE);
     });
 
-    it("exports exactly 4 handlers", () => {
-      expect(bitAccessHandlers.length).toBe(4);
+    it("exports exactly 5 handlers", () => {
+      expect(bitAccessHandlers.length).toBe(5);
     });
   });
 
@@ -463,6 +464,79 @@ describe("BitAccessHandlers", () => {
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
+      });
+
+      expect(() => getHandler()!(ctx, deps)).toThrow(
+        "Compound assignment operators not supported for bit field access",
+      );
+    });
+  });
+
+  describe("handleStructChainBitRange (STRUCT_CHAIN_BIT_RANGE)", () => {
+    const getHandler = () =>
+      bitAccessHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRUCT_CHAIN_BIT_RANGE,
+      )?.[1];
+
+    it("generates bit range write through struct chain", () => {
+      const deps = createMockDeps({
+        generateExpression: vi
+          .fn()
+          .mockReturnValueOnce("0") // array index
+          .mockReturnValueOnce("0") // bit range start
+          .mockReturnValueOnce("4"), // bit range width
+      });
+
+      // Create mock postfixOps for devices[0].control[0, 4]
+      const mockPostfixOps = [
+        {
+          IDENTIFIER: () => null,
+          expression: () => [{ mockValue: "0" }],
+        },
+        {
+          IDENTIFIER: () => ({ getText: () => "control" }),
+          expression: () => [],
+        },
+        {
+          IDENTIFIER: () => null,
+          expression: () => [{ mockValue: "0" }, { mockValue: "4" }],
+        },
+      ];
+
+      const ctx = createMockContext({
+        identifiers: ["devices", "control"],
+        subscripts: [
+          { mockValue: "0" } as never,
+          { mockValue: "0" } as never,
+          { mockValue: "4" } as never,
+        ],
+        postfixOps: mockPostfixOps as never,
+        generatedValue: "15",
+        hasMemberAccess: true,
+        hasArrayAccess: true,
+        lastSubscriptExprCount: 2,
+      });
+
+      const result = getHandler()!(ctx, deps);
+
+      expect(result).toContain("devices[0].control =");
+      expect(result).toContain("& ~(");
+      expect(result).toContain("<< 0");
+      expect(result).toContain("15");
+    });
+
+    it("throws on compound assignment", () => {
+      const deps = createMockDeps();
+      const mockPostfixOps = [
+        {
+          IDENTIFIER: () => null,
+          expression: () => [{ mockValue: "0" }, { mockValue: "4" }],
+        },
+      ];
+      const ctx = createMockContext({
+        isCompound: true,
+        cnextOp: "+<-",
+        postfixOps: mockPostfixOps as never,
       });
 
       expect(() => getHandler()!(ctx, deps)).toThrow(

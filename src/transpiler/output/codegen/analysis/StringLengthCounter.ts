@@ -228,10 +228,10 @@ class StringLengthCounter {
     // Assignment statement
     if (ctx.assignmentStatement()) {
       const assign = ctx.assignmentStatement()!;
-      // Count in target (array index expressions)
+      // Count in target (array index expressions from postfix ops)
       const target = assign.assignmentTarget();
-      if (target.arrayAccess()) {
-        for (const expr of target.arrayAccess()!.expression()) {
+      for (const op of target.postfixTargetOp()) {
+        for (const expr of op.expression()) {
           this.walkExpression(expr, counts);
         }
       }

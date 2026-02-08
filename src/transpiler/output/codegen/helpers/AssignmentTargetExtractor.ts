@@ -16,6 +16,7 @@ interface IAssignmentTargetResult {
 
 /**
  * Extracts base identifier from various assignment target patterns.
+ * With unified grammar, all patterns use IDENTIFIER postfixTargetOp*.
  */
 class AssignmentTargetExtractor {
   /**
@@ -33,53 +34,24 @@ class AssignmentTargetExtractor {
       return { baseIdentifier: null, hasSingleIndexSubscript: false };
     }
 
-    // Simple identifier: x <- value
-    if (target.IDENTIFIER()) {
-      return {
-        baseIdentifier: target.IDENTIFIER()!.getText(),
-        hasSingleIndexSubscript: false,
-      };
+    // All patterns have base IDENTIFIER
+    const baseIdentifier = target.IDENTIFIER()?.getText() ?? null;
+
+    // Check postfixTargetOp for subscripts
+    const postfixOps = target.postfixTargetOp();
+    let hasSingleIndexSubscript = false;
+
+    for (const op of postfixOps) {
+      const exprs = op.expression();
+      if (exprs.length === 1) {
+        // Single-index subscript (array access)
+        hasSingleIndexSubscript = true;
+        break;
+      }
+      // Two-index subscript (bit extraction) doesn't set the flag
     }
 
-    // Member access: x.field <- value
-    if (target.memberAccess()) {
-      return this.extractFromMemberAccess(target.memberAccess()!);
-    }
-
-    // Array access: x[i] <- value
-    if (target.arrayAccess()) {
-      return this.extractFromArrayAccess(target.arrayAccess()!);
-    }
-
-    return { baseIdentifier: null, hasSingleIndexSubscript: false };
-  }
-
-  /**
-   * Extract from member access pattern.
-   */
-  private static extractFromMemberAccess(
-    memberAccess: Parser.MemberAccessContext,
-  ): IAssignmentTargetResult {
-    const identifiers = memberAccess.IDENTIFIER();
-    return {
-      baseIdentifier: identifiers.length > 0 ? identifiers[0].getText() : null,
-      hasSingleIndexSubscript: false,
-    };
-  }
-
-  /**
-   * Extract from array access pattern.
-   * Single-index subscript (x[i]) is array access.
-   * Two-index subscript (x[0, 8]) is bit extraction.
-   */
-  private static extractFromArrayAccess(
-    arrayAccess: Parser.ArrayAccessContext,
-  ): IAssignmentTargetResult {
-    const isSingleIndex = arrayAccess.expression().length === 1;
-    return {
-      baseIdentifier: arrayAccess.IDENTIFIER()?.getText() ?? null,
-      hasSingleIndexSubscript: isSingleIndex,
-    };
+    return { baseIdentifier, hasSingleIndexSubscript };
   }
 }
 
