@@ -21,6 +21,7 @@ interface ISymbol {
  */
 interface ISymbolTable {
   getOverloads(name: string): ISymbol[];
+  getStructFields?(name: string): unknown;
 }
 
 class SymbolLookupHelper {
@@ -151,6 +152,23 @@ class SymbolLookupHelper {
   ): boolean {
     if (knownScopes?.has(name)) return true;
     return SymbolLookupHelper.isNamespace(symbolTable, name);
+  }
+
+  /**
+   * Check if a type is a known struct (combined local + symbol table lookup).
+   * Checks local knownStructs and knownBitmaps, then falls back to symbol table.
+   * Issue #551: Bitmaps are struct-like (use pass-by-reference with -> access).
+   */
+  static isKnownStruct(
+    knownStructs: ReadonlySet<string> | undefined,
+    knownBitmaps: ReadonlySet<string> | undefined,
+    symbolTable: ISymbolTable | null | undefined,
+    typeName: string,
+  ): boolean {
+    if (knownStructs?.has(typeName)) return true;
+    if (knownBitmaps?.has(typeName)) return true;
+    if (symbolTable?.getStructFields?.(typeName)) return true;
+    return false;
   }
 }
 

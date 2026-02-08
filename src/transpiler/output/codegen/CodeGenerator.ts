@@ -848,7 +848,12 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownStruct(typeName: string): boolean {
-    return this._isKnownStruct(typeName);
+    return SymbolLookupHelper.isKnownStruct(
+      this.symbols?.knownStructs,
+      this.symbols?.knownBitmaps,
+      this.symbolTable,
+      typeName,
+    );
   }
 
   /**
@@ -1098,7 +1103,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   indent(text: string): string {
-    return this._indent(text);
+    return FormatUtils.indentAllLines(text, this.context.indentLevel);
   }
 
   /**
@@ -1762,27 +1767,6 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return undefined;
-  }
-
-  /**
-   * Check if a type name is a known struct (C-Next or C header).
-   * Issue #103: Must check both local knownStructs AND SymbolTable
-   * for proper type chain tracking through nested C header structs.
-   */
-  private _isKnownStruct(typeName: string): boolean {
-    // Check C-Next structs first (local definitions)
-    if (this.symbols!.knownStructs.has(typeName)) {
-      return true;
-    }
-    // Issue #551: Bitmaps are struct-like (use pass-by-reference with -> access)
-    if (this.symbols!.knownBitmaps.has(typeName)) {
-      return true;
-    }
-    // Check SymbolTable for C header structs
-    if (this.symbolTable?.getStructFields(typeName)) {
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -5731,7 +5715,7 @@ export default class CodeGenerator implements IOrchestrator {
     typeName: string,
     name: string,
   ): string | null {
-    if (!this._isKnownStruct(typeName) && !this._isKnownPrimitive(typeName)) {
+    if (!this.isKnownStruct(typeName) && !this._isKnownPrimitive(typeName)) {
       return null;
     }
 
@@ -6245,7 +6229,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // In C++ mode, unknown user types may have non-trivial constructors
     // Known structs (C-Next or C headers) are POD types where {0} works
-    return this.cppMode && !this._isKnownStruct(typeName);
+    return this.cppMode && !this.isKnownStruct(typeName);
   }
 
   /**
@@ -7219,18 +7203,6 @@ export default class CodeGenerator implements IOrchestrator {
       validateCrossScopeVisibility: (scope, member) =>
         this._validateCrossScopeVisibility(scope, member),
     });
-  }
-
-  // ========================================================================
-  // Helpers
-  // ========================================================================
-
-  private _indent(text: string): string {
-    const spaces = FormatUtils.indent(this.context.indentLevel);
-    return text
-      .split("\n")
-      .map((line) => spaces + line)
-      .join("\n");
   }
 
   // ========================================================================

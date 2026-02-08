@@ -434,4 +434,94 @@ describe("SymbolLookupHelper", () => {
       ).toBe(true);
     });
   });
+
+  describe("isKnownStruct", () => {
+    it("returns true when in knownStructs set", () => {
+      const knownStructs = new Set(["MyStruct"]);
+      expect(
+        SymbolLookupHelper.isKnownStruct(
+          knownStructs,
+          undefined,
+          null,
+          "MyStruct",
+        ),
+      ).toBe(true);
+    });
+
+    it("returns true when in knownBitmaps set", () => {
+      const knownBitmaps = new Set(["MyBitmap"]);
+      expect(
+        SymbolLookupHelper.isKnownStruct(
+          new Set(),
+          knownBitmaps,
+          null,
+          "MyBitmap",
+        ),
+      ).toBe(true);
+    });
+
+    it("returns true when in symbol table via getStructFields", () => {
+      const mockTable = {
+        getOverloads: () => [],
+        getStructFields: (name: string) =>
+          name === "CStruct" ? new Map([["field", "int"]]) : undefined,
+      };
+      expect(
+        SymbolLookupHelper.isKnownStruct(
+          new Set(),
+          new Set(),
+          mockTable,
+          "CStruct",
+        ),
+      ).toBe(true);
+    });
+
+    it("returns false when not found anywhere", () => {
+      const mockTable = {
+        getOverloads: () => [],
+        getStructFields: () => undefined,
+      };
+      expect(
+        SymbolLookupHelper.isKnownStruct(
+          new Set(),
+          new Set(),
+          mockTable,
+          "Unknown",
+        ),
+      ).toBe(false);
+    });
+
+    it("returns false when all sources are undefined/null", () => {
+      expect(
+        SymbolLookupHelper.isKnownStruct(undefined, undefined, null, "Unknown"),
+      ).toBe(false);
+    });
+
+    it("checks knownStructs before knownBitmaps", () => {
+      const knownStructs = new Set(["MyType"]);
+      const knownBitmaps = new Set<string>();
+      expect(
+        SymbolLookupHelper.isKnownStruct(
+          knownStructs,
+          knownBitmaps,
+          null,
+          "MyType",
+        ),
+      ).toBe(true);
+    });
+
+    it("handles symbol table without getStructFields method", () => {
+      const mockTable = {
+        getOverloads: () => [],
+      };
+      expect(
+        SymbolLookupHelper.isKnownStruct(
+          new Set(),
+          new Set(),
+          mockTable,
+          "Unknown",
+        ),
+      ).toBe(false);
+    });
+  });
 });
