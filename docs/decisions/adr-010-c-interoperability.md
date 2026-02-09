@@ -1,6 +1,6 @@
 # ADR-010: C/C++ Interoperability via Unified ANTLR Parsing
 
-**Status:** Partial (In Progress)
+**Status:** Implemented
 **Date:** 2025-12-27
 **Last Updated:** 2026-01-13
 **Decision Makers:** C-Next Language Design Team
@@ -232,7 +232,7 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 
 **Known Issues:**
 
-- Array indexing on C header structs broken (related to [Issue #8](https://github.com/jlaustill/c-next/issues/8))
+- ~~Array indexing on C header structs broken~~ — Resolved ([Issue #8](https://github.com/jlaustill/c-next/issues/8) closed)
 
 ---
 
@@ -306,7 +306,7 @@ Build process:
      - **Benefit:** Matches standard C behavior and improves IntelliSense (only shows symbols in scope)
    - **Rationale:** Unified parsing should be the default behavior as shown in architecture diagram
    - **Watch mode:** Deferred - VSCode extension already handles live rebuilds gracefully
-   - **Implementation:** TODO - requires refactoring CLI to remove mode distinction and implement smart include discovery
+   - **Implementation:** Complete — unified parsing is now always enabled, `--project` flag removed
 
 4. **C++ priority** ✅
    - **Decision:** Context-dependent priority - fix issues in whichever language users encounter them
