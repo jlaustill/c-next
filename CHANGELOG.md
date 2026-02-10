@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.64] - 2026-02-10
+
+### Fixed
+
+- Fix C-Next style array types (`CppClass[4] items`) not detected as arrays in C++ mode codegen, causing incorrect scalar reference generation (PR #755)
+- Fix constructor detection false-positives on C function prototypes in test framework — `hasCppFeatures()` now excludes C return types and typed arguments (PR #755)
+- Unify `_getArrayZeroInitializer` detection logic for C-style and C-Next style arrays (PR #755)
+
+### Changed
+
+- Reuse transpiler's `detectCppSyntax()` in test framework for robust C++ header detection (class, namespace, template, access specifiers) instead of narrow typed-enum regex (PR #755)
+- Extract shared `C_KEYWORDS` and `C_TYPES` constants for constructor detection regex patterns (PR #755)
+
 ## [0.1.63] - 2026-02-10
 
 ### Added
