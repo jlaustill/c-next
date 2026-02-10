@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.63] - 2026-02-10
+
+### Added
+
+- Enforce C-Next array syntax (`u8[10] arr`) and reject C-style declarations (`u8 arr[10]`) for user types including structs, bitmaps, and enums (ADR-058, PR #749)
+- ADR-058 documentation for C-Next array syntax enforcement
+- Unit tests for array syntax validation, CodeGenState, resolvers, and generator registration error paths
+
+### Changed
+
+- Migrate 9 helpers from DI to static CodeGenState pattern: CppModeHelper, StringLengthCounter, MemberChainAnalyzer, FloatBitHelper, AssignmentExpectedTypeResolver, AssignmentClassifier, AssignmentValidator, ArrayInitHelper, StringDeclHelper (PRs #750, #753)
+- Extract CodeGenState for centralized code generation state management
+- Extract ScopeResolver, EnumTypeResolver, SizeofResolver from CodeGenerator
+- Convert TypeResolver to static class (PR #749)
+- Extract shared ArrayDimensionUtils to eliminate duplication
+
+### Fixed
+
+- Resolve struct enum field assignment via global prefix (PR #751)
+- Fix global arrays passed to functions incorrectly using address-of operator (PR #747)
+- Fix array subscript bug in TypeResolver refactoring (PR #749)
+- Resolve 12 SonarCloud issues: complexity, redundant code, negated conditions (PRs #750, #752)
+- Remove duplicate statements and dead code from CodeGenerator
+
+## [0.1.62] - 2026-02-08
+
+### Changed
+
+- Unify transpiler pipeline and eliminate dual code paths (PR #747)
+- Inline CodeGenerator delegator methods for simplified architecture (PRs #744-#747)
+- Consolidate array/member access grammar paths
+- Extract ArrayAccessHelper and CodegenParserUtils utilities
+
+### Fixed
+
+- Inline private const scope members referenced without `this.` prefix
+- Reduce cognitive complexity in `transpileSource` for SonarCloud compliance
+- Remove orphaned JSDoc and unused methods
+
+### Added
+
+- 35+ CodeGenerator unit tests for improved coverage
+- Tests for TypeGenerationHelper array and template types
+- Mocked tests for parseCHeader edge cases
+
 ## [0.1.61] - 2026-02-07
 
 ### Changed
@@ -868,6 +913,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.35]: https://github.com/jlaustill/c-next/compare/v0.1.34...v0.1.35
 [0.1.34]: https://github.com/jlaustill/c-next/compare/v0.1.33...v0.1.34
 [0.1.33]: https://github.com/jlaustill/c-next/compare/v0.1.32...v0.1.33
+[0.1.63]: https://github.com/jlaustill/c-next/compare/v0.1.62...v0.1.63
+[0.1.62]: https://github.com/jlaustill/c-next/compare/v0.1.61...v0.1.62
 [0.1.32]: https://github.com/jlaustill/c-next/compare/v0.1.31...v0.1.32
 [0.1.31]: https://github.com/jlaustill/c-next/compare/v0.1.30...v0.1.31
 [0.1.30]: https://github.com/jlaustill/c-next/compare/v0.1.29...v0.1.30
