@@ -1,14 +1,14 @@
 // tests/functions/array-member-to-array-param.test.cnx
 // test-execution
 // Tests: Issue #342 - array member passed to array parameter
-// When passing msg.buf (u8[8]) to a function expecting const u8 data[8],
+// When passing msg.buf (u8[8]) to a function expecting const u8[8] data,
 // the transpiler should NOT generate static_cast - just pass the array directly.
 // Arrays naturally decay to pointers in C/C++.
 
 #include "array-member-to-array-param.h"
 
 // Function that takes an array parameter
-u32 processBuffer(const u8 data[8], u8 len) {
+u32 processBuffer(const u8[8] data, u8 len) {
     u32 sum <- 0;
     u8 i <- 0;
     while (i < len) {
@@ -19,12 +19,12 @@ u32 processBuffer(const u8 data[8], u8 len) {
 }
 
 // Function with different array size
-u32 processHeader(const u8 header[4]) {
+u32 processHeader(const u8[4] header) {
     return header[0] + header[1] + header[2] + header[3];
 }
 
 // Function with larger array
-u32 processPayload(const u8 payload[16], u8 len) {
+u32 processPayload(const u8[16] payload, u8 len) {
     u32 sum <- 0;
     u8 i <- 0;
     while (i < len) {

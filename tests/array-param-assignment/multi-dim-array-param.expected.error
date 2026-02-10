@@ -1,0 +1,1 @@
+6:13 Code generation failed: C-style array parameter is not allowed. Use 'u32[][3] arr' instead of 'u32 arr[][3]'

@@ -536,9 +536,16 @@ stringType
     | 'string'                             // Unsized: for const inference
     ;
 
+// C-Next style array type: dimensions in type position
+// Supports: u8[8], u8[4][4], u8[] (unbounded), string<32>[5]
 arrayType
-    : primitiveType '[' expression ']'
-    | userType '[' expression ']'
+    : primitiveType arrayTypeDimension+
+    | userType arrayTypeDimension+
+    | stringType arrayTypeDimension+
+    ;
+
+arrayTypeDimension
+    : '[' expression? ']'
     ;
 
 // ----------------------------------------------------------------------------

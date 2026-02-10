@@ -23,18 +23,26 @@ function generateArrayTypeDimension(
     return "";
   }
 
-  const sizeExpr = arrayTypeCtx.expression();
-  if (!sizeExpr) {
-    return "[]";
+  // Handle all dimensions from arrayType (supports u8[4][4], u8[], etc.)
+  const dims = arrayTypeCtx.arrayTypeDimension();
+  let result = "";
+  for (const dim of dims) {
+    const sizeExpr = dim.expression();
+    if (!sizeExpr) {
+      result += "[]";
+      continue;
+    }
+
+    const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
+    if (constValue === undefined) {
+      // Fall back to expression generation for macros, enums, etc.
+      result += `[${orchestrator.generateExpression(sizeExpr)}]`;
+    } else {
+      result += `[${constValue}]`;
+    }
   }
 
-  const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
-  if (constValue === undefined) {
-    // Fall back to expression generation for macros, enums, etc.
-    return `[${orchestrator.generateExpression(sizeExpr)}]`;
-  }
-
-  return `[${constValue}]`;
+  return result;
 }
 
 /**

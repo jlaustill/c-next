@@ -704,6 +704,12 @@ const generateStringLength = (
     return subscriptDepth === 0 ? String(dims[0]) : `strlen(${result})`;
   }
 
+  // String array with subscript - use result which contains arr[index]
+  // This handles string<32>[5] parameters where subscriptDepth=1 after arr[index]
+  if (subscriptDepth > 0) {
+    return `strlen(${result})`;
+  }
+
   // Simple string: check length cache first, then use strlen
   if (resolvedIdentifier && state.lengthCache?.has(resolvedIdentifier)) {
     return state.lengthCache.get(resolvedIdentifier)!;

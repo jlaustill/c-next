@@ -4,7 +4,7 @@
 
 u32 result;
 
-void handleByArray(u8 data[4], u8 idx) {
+void handleByArray(u8[4] data, u8 idx) {
     switch (data[idx]) {
         case 1 {
             result <- 10;

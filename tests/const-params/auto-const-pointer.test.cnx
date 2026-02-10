@@ -18,12 +18,12 @@ u32 mixedParams(u32 readVal, u32 writeVal) {
 }
 
 // Array parameter modification via index
-void arrayMod(u8 arr[4]) {
+void arrayMod(u8[4] arr) {
     arr[0] <- 99;  // Array element modified - no const on arr
 }
 
 // Array parameter read-only
-u8 arrayReadOnly(u8 arr[4]) {
+u8 arrayReadOnly(u8[4] arr) {
     return arr[0];  // Only reads - should get const
 }
 

@@ -15,7 +15,7 @@ scope TestScope {
     public string<64> publicArr[4];
 }
 
-u32 checkArrayLength(string<64> arr[4]) {
+u32 checkArrayLength(string<64>[4] arr) {
     return arr.length;
 }
 

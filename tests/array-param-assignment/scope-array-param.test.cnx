@@ -2,11 +2,11 @@
 // Tests: Issue #368 - Array parameter in scope (original bug report case)
 
 scope Test {
-    public void writeToArray(u8 data[], u8 value) {
+    public void writeToArray(u8[] data, u8 value) {
         data[0] <- value;
     }
 
-    public void writeAtIndex(u8 data[], u32 index, u8 value) {
+    public void writeAtIndex(u8[] data, u32 index, u8 value) {
         data[index] <- value;
     }
 }

@@ -44,15 +44,11 @@ function createMockConstModifier(
 
 /**
  * Create a mock array type context.
+ * Updated for new grammar: arrayType has arrayTypeDimension() which returns dimensions
  */
 function createMockArrayType(sizeExpr?: string | null) {
-  if (sizeExpr === null) {
-    // Empty brackets - no expression
-    return {
-      expression: () => null,
-    };
-  }
-  return {
+  // Create a single dimension with optional expression
+  const mockDimension = {
     expression: () =>
       sizeExpr
         ? {
@@ -60,6 +56,15 @@ function createMockArrayType(sizeExpr?: string | null) {
             __mockValue: sizeExpr,
           }
         : null,
+  };
+
+  return {
+    // New grammar: arrayTypeDimension() returns array of dimensions
+    arrayTypeDimension: () => [mockDimension],
+    // Keep primitiveType for base type extraction
+    primitiveType: () => null,
+    userType: () => null,
+    stringType: () => null,
   };
 }
 

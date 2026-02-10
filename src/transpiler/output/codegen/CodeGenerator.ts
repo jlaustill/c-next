@@ -3579,7 +3579,12 @@ export default class CodeGenerator implements IOrchestrator {
   private _parseArrayTypeDimensionFromCtx(
     arrayTypeCtx: Parser.ArrayTypeContext,
   ): number | undefined {
-    const sizeExpr = arrayTypeCtx.expression();
+    // Get first dimension for backwards compatibility
+    const dims = arrayTypeCtx.arrayTypeDimension();
+    if (dims.length === 0) {
+      return undefined;
+    }
+    const sizeExpr = dims[0].expression();
     if (!sizeExpr) {
       return undefined;
     }
@@ -3596,12 +3601,14 @@ export default class CodeGenerator implements IOrchestrator {
   ): number[] {
     const arrayDimensions: number[] = [];
 
-    // Get dimension from array type syntax
-    const sizeExpr = arrayTypeCtx.expression();
-    if (sizeExpr) {
-      const size = Number.parseInt(sizeExpr.getText(), 10);
-      if (!Number.isNaN(size)) {
-        arrayDimensions.push(size);
+    // Get all dimensions from array type syntax (supports multi-dimensional)
+    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
+      const sizeExpr = dim.expression();
+      if (sizeExpr) {
+        const size = Number.parseInt(sizeExpr.getText(), 10);
+        if (!Number.isNaN(size)) {
+          arrayDimensions.push(size);
+        }
       }
     }
 
@@ -3671,7 +3678,9 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _processParameter(param: Parser.ParameterContext): void {
     const name = param.IDENTIFIER().getText();
-    const isArray = param.arrayDimension().length > 0;
+    // Check both C-Next style (u8[8] param) and legacy style (u8 param[8])
+    const isArray =
+      param.arrayDimension().length > 0 || param.type().arrayType() !== null;
     const isConst = param.constModifier() !== null;
     const typeCtx = param.type();
 
@@ -3768,6 +3777,38 @@ export default class CodeGenerator implements IOrchestrator {
       };
     }
 
+    // Handle C-Next style array type (u8[8] param) - extract base type
+    if (typeCtx.arrayType()) {
+      const arrayTypeCtx = typeCtx.arrayType()!;
+      if (arrayTypeCtx.primitiveType()) {
+        return {
+          typeName: arrayTypeCtx.primitiveType()!.getText(),
+          isStruct: false,
+          isCallback: false,
+          isString: false,
+        };
+      }
+      if (arrayTypeCtx.userType()) {
+        const typeName = arrayTypeCtx.userType()!.getText();
+        return {
+          typeName,
+          isStruct: this.isStructType(typeName),
+          isCallback: CodeGenState.callbackTypes.has(typeName),
+          isString: false,
+        };
+      }
+      // Handle string array type (string<32>[5] param)
+      if (arrayTypeCtx.stringType()) {
+        const stringCtx = arrayTypeCtx.stringType()!;
+        return {
+          typeName: stringCtx.getText(), // "string<32>"
+          isStruct: false,
+          isCallback: false,
+          isString: true,
+        };
+      }
+    }
+
     // Fallback
     return {
       typeName: typeCtx.getText(),
@@ -3793,10 +3834,27 @@ export default class CodeGenerator implements IOrchestrator {
     const isEnum = CodeGenState.symbols!.knownEnums.has(typeName);
     const isBitmap = CodeGenState.symbols!.knownBitmaps.has(typeName);
 
-    // Extract array dimensions
-    const arrayDimensions = isArray
-      ? ArrayDimensionParser.parseForParameters(param.arrayDimension())
-      : [];
+    // Extract array dimensions from either C-style or C-Next style
+    let arrayDimensions: number[] = [];
+    if (isArray) {
+      // Try C-style first (param.arrayDimension())
+      if (param.arrayDimension().length > 0) {
+        arrayDimensions = ArrayDimensionParser.parseForParameters(
+          param.arrayDimension(),
+        );
+      } else if (typeCtx.arrayType()) {
+        // C-Next style: get dimensions from arrayType
+        for (const dim of typeCtx.arrayType()!.arrayTypeDimension()) {
+          const expr = dim.expression();
+          if (expr) {
+            const size = Number.parseInt(expr.getText(), 10);
+            if (!Number.isNaN(size)) {
+              arrayDimensions.push(size);
+            }
+          }
+        }
+      }
+    }
 
     // Get string capacity if applicable
     const stringCapacity = this._getStringCapacity(typeCtx, isString);
@@ -3830,10 +3888,25 @@ export default class CodeGenerator implements IOrchestrator {
     typeCtx: Parser.TypeContext,
     isString: boolean,
   ): number | undefined {
-    if (!isString || !typeCtx.stringType()) return undefined;
-    const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
-    if (!intLiteral) return undefined;
-    return Number.parseInt(intLiteral.getText(), 10);
+    if (!isString) return undefined;
+
+    // Check direct stringType (e.g., string<32> param)
+    if (typeCtx.stringType()) {
+      const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
+      if (intLiteral) {
+        return Number.parseInt(intLiteral.getText(), 10);
+      }
+    }
+
+    // Check arrayType with stringType (e.g., string<32>[5] param)
+    if (typeCtx.arrayType()?.stringType()) {
+      const intLiteral = typeCtx.arrayType()!.stringType()!.INTEGER_LITERAL();
+      if (intLiteral) {
+        return Number.parseInt(intLiteral.getText(), 10);
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -3930,7 +4003,14 @@ export default class CodeGenerator implements IOrchestrator {
         if (dims.length > 0) {
           arrayDims = dims.map((d) => this.generateArrayDimension(d)).join("");
         } else if (arrayTypeCtx) {
-          arrayDims = `[${this.generateExpression(arrayTypeCtx.expression())}]`;
+          // Generate all dimensions from arrayType (supports multi-dimensional)
+          arrayDims = arrayTypeCtx
+            .arrayTypeDimension()
+            .map((d) => {
+              const expr = d.expression();
+              return expr ? `[${this.generateExpression(expr)}]` : "[]";
+            })
+            .join("");
         } else {
           arrayDims = "";
         }
@@ -5182,6 +5262,22 @@ export default class CodeGenerator implements IOrchestrator {
     const name = ctx.IDENTIFIER().getText();
     const dims = ctx.arrayDimension();
 
+    // Reject ALL C-style array parameters - require C-Next style (dimensions in type)
+    // C-style: u8 data[8], u8 data[4][4], u8 data[]
+    // C-Next:  u8[8] data, u8[4][4] data, u8[] data
+    if (dims.length > 0) {
+      const baseType = typeName;
+      const dimensions = dims
+        .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
+        .join("");
+      const line = ctx.start?.line ?? 0;
+      const col = ctx.start?.column ?? 0;
+      throw new Error(
+        `${line}:${col} C-style array parameter is not allowed. ` +
+          `Use '${baseType}${dimensions} ${name}' instead of '${baseType} ${name}${dimensions}'`,
+      );
+    }
+
     // ADR-029: Check if this is a callback type parameter
     if (CodeGenState.callbackTypes.has(typeName)) {
       const callbackInfo = CodeGenState.callbackTypes.get(typeName)!;
@@ -5190,26 +5286,29 @@ export default class CodeGenerator implements IOrchestrator {
 
     const type = this.generateType(ctx.type());
 
-    // Handle C-Next style array type in parameter (e.g., u8[8] param)
+    // Handle C-Next style array type in parameter (e.g., u8[8] param, u8[4][4] param, string<32>[5] param)
     const arrayTypeCtx = ctx.type().arrayType();
     if (arrayTypeCtx) {
-      const dimExpr = this.generateExpression(arrayTypeCtx.expression());
+      let dims = arrayTypeCtx
+        .arrayTypeDimension()
+        .map((d) => {
+          const expr = d.expression();
+          return expr ? `[${this.generateExpression(expr)}]` : "[]";
+        })
+        .join("");
+      // For string arrays, add the string capacity dimension (string<32>[5] -> char[5][33])
+      if (arrayTypeCtx.stringType()) {
+        const stringCtx = arrayTypeCtx.stringType()!;
+        const intLiteral = stringCtx.INTEGER_LITERAL();
+        if (intLiteral) {
+          const capacity = Number.parseInt(intLiteral.getText(), 10);
+          dims += `[${capacity + 1}]`;
+        }
+      }
       const wasModified = this._isCurrentParameterModified(name);
       const autoConst = !wasModified && !constMod ? "const " : "";
-      return `${autoConst}${constMod}${type} ${name}[${dimExpr}]`;
+      return `${autoConst}${constMod}${type} ${name}${dims}`;
     }
-
-    // Try special cases first
-    const stringArrayResult = this._tryGenerateStringArrayParam(
-      ctx,
-      constMod,
-      name,
-      dims,
-    );
-    if (stringArrayResult) return stringArrayResult;
-
-    const arrayResult = this._tryGenerateArrayParam(constMod, type, name, dims);
-    if (arrayResult) return arrayResult;
 
     // Pass-by-value types
     if (this._isPassByValueType(typeName, name)) {
@@ -5231,46 +5330,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Unknown types use pass-by-value (standard C semantics)
     return `${constMod}${type} ${name}`;
-  }
-
-  /**
-   * Try to generate string array parameter: string<N>[] -> char arr[n][N+1]
-   */
-  private _tryGenerateStringArrayParam(
-    ctx: Parser.ParameterContext,
-    constMod: string,
-    name: string,
-    dims: Parser.ArrayDimensionContext[],
-  ): string | null {
-    if (!ctx.type().stringType() || dims.length === 0) {
-      return null;
-    }
-
-    const stringType = ctx.type().stringType()!;
-    const capacity = stringType.INTEGER_LITERAL()
-      ? Number.parseInt(stringType.INTEGER_LITERAL()!.getText(), 10)
-      : 256;
-    const dimStr = dims.map((d) => this.generateArrayDimension(d)).join("");
-    return `${constMod}char ${name}${dimStr}[${capacity + 1}]`;
-  }
-
-  /**
-   * Try to generate array parameter with auto-const
-   */
-  private _tryGenerateArrayParam(
-    constMod: string,
-    type: string,
-    name: string,
-    dims: Parser.ArrayDimensionContext[],
-  ): string | null {
-    if (dims.length === 0) {
-      return null;
-    }
-
-    const dimStr = dims.map((d) => this.generateArrayDimension(d)).join("");
-    const wasModified = this._isCurrentParameterModified(name);
-    const autoConst = !wasModified && !constMod ? "const " : "";
-    return `${autoConst}${constMod}${type} ${name}${dimStr}`;
   }
 
   /**
@@ -5515,39 +5574,51 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get array dimension string from arrayType syntax (u16[8] -> "[8]").
+   * Get array dimension string from arrayType syntax (u16[8] -> "[8]", u16[4][4] -> "[4][4]").
    * Evaluates const expressions to their numeric values for C compatibility.
    */
   private _getArrayTypeDimension(typeCtx: Parser.TypeContext): string {
     if (!typeCtx.arrayType()) {
       return "";
     }
-    const sizeExpr = typeCtx.arrayType()!.expression();
-    if (!sizeExpr) {
-      return "[]";
+    const dims = typeCtx.arrayType()!.arrayTypeDimension();
+    let result = "";
+    for (const dim of dims) {
+      const sizeExpr = dim.expression();
+      if (!sizeExpr) {
+        result += "[]";
+        continue;
+      }
+      // Try to evaluate as constant first (required for C file-scope arrays)
+      const constValue = this.tryEvaluateConstant(sizeExpr);
+      if (constValue !== undefined) {
+        result += `[${constValue}]`;
+      } else {
+        // Fall back to expression text (for macros, enums, etc.)
+        result += `[${this.generateExpression(sizeExpr)}]`;
+      }
     }
-    // Try to evaluate as constant first (required for C file-scope arrays)
-    const constValue = this.tryEvaluateConstant(sizeExpr);
-    if (constValue !== undefined) {
-      return `[${constValue}]`;
-    }
-    // Fall back to expression text (for macros, enums, etc.)
-    return `[${this.generateExpression(sizeExpr)}]`;
+    return result;
   }
 
   /**
-   * Parse array dimension from arrayType syntax for size validation.
+   * Parse first array dimension from arrayType syntax for size validation.
    */
   private _parseArrayTypeDimension(typeCtx: Parser.TypeContext): number | null {
     if (!typeCtx.arrayType()) {
       return null;
     }
-    const sizeExpr = typeCtx.arrayType()!.expression();
+    const dims = typeCtx.arrayType()!.arrayTypeDimension();
+    if (dims.length === 0) {
+      return null;
+    }
+    const sizeExpr = dims[0].expression();
     if (!sizeExpr) {
       return null;
     }
     const sizeText = sizeExpr.getText();
-    if (/^\d+$/.exec(sizeText)) {
+    const digitRegex = /^\d+$/;
+    if (digitRegex.exec(sizeText)) {
       return Number.parseInt(sizeText, 10);
     }
     return null;

@@ -70,17 +70,16 @@ class FunctionCollector {
       const type = TypeUtils.getTypeName(typeCtx, scopeName);
       const isConst = p.constModifier() !== null;
 
-      const arrayDims = p.arrayDimension();
-      const isArray = arrayDims.length > 0;
+      // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
+      const arrayTypeCtx = typeCtx.arrayType();
+      const hasArrayType = arrayTypeCtx !== null;
 
-      // Extract array dimensions as strings (can contain expressions like SIZE)
+      // Extract array dimensions from arrayType syntax (supports multi-dimensional)
       const arrayDimensions: string[] = [];
-      if (isArray) {
-        for (const dim of arrayDims) {
-          const text = dim.getText();
-          const regex = /\[([^\]]*)\]/;
-          const match = regex.exec(text);
-          arrayDimensions.push(match ? match[1] : ""); // "" means unbounded
+      if (hasArrayType) {
+        for (const dim of arrayTypeCtx.arrayTypeDimension()) {
+          const sizeExpr = dim.expression();
+          arrayDimensions.push(sizeExpr ? sizeExpr.getText() : "");
         }
       }
 
@@ -88,7 +87,7 @@ class FunctionCollector {
         name,
         type,
         isConst,
-        isArray,
+        isArray: hasArrayType,
       };
 
       if (arrayDimensions.length > 0) {

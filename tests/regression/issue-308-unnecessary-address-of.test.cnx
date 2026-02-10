@@ -33,7 +33,7 @@ u32 sumFourBytes(u8 b0, u8 b1, u8 b2, u8 b3) {
 // Scenario 2: Struct member array (THE FIX)
 // Array should decay to pointer, NOT have & added
 // ============================================================
-u8 sumArray(u8 arr[6], u8 len) {
+u8 sumArray(u8[6] arr, u8 len) {
     u8 sum <- 0;
     u8 i <- 0;
     while (i < len) {

@@ -20,11 +20,11 @@ scope TestScope {
     public u8 publicArr[16];
 }
 
-u32 checkArrayLength(u8 arr[16]) {
+u32 checkArrayLength(u8[16] arr) {
     return arr.length;
 }
 
-u32 checkElementLength(u8 arr[16]) {
+u32 checkElementLength(u8[16] arr) {
     return arr[0].length;
 }
 

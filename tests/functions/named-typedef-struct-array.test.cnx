@@ -8,7 +8,7 @@
 
 scope Handler {
     // Method that takes an array parameter (target of the call)
-    public u32 processBuffer(const u8 data[8], u8 len) {
+    public u32 processBuffer(const u8[8] data, u8 len) {
         u32 sum <- 0;
         u8 i <- 0;
         while (i < len) {
@@ -19,7 +19,7 @@ scope Handler {
     }
 
     // Method that takes a larger array
-    public u32 processData(const u8 data[16], u8 len) {
+    public u32 processData(const u8[16] data, u8 len) {
         u32 sum <- 0;
         u8 i <- 0;
         while (i < len) {

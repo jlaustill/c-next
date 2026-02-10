@@ -77,9 +77,9 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].isConst).toBe(true);
     });
 
-    it("handles array parameters", () => {
+    it("handles array parameters (C-Next style)", () => {
       const code = `
-        void processArray(u8 data[]) {
+        void processArray(u8[] data) {
         }
       `;
       const tree = parse(code);
@@ -90,9 +90,9 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].arrayDimensions).toEqual([""]);
     });
 
-    it("handles sized array parameters", () => {
+    it("handles sized array parameters (C-Next style)", () => {
       const code = `
-        void processBuffer(u8 buffer[256]) {
+        void processBuffer(u8[256] buffer) {
         }
       `;
       const tree = parse(code);
@@ -103,9 +103,9 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].arrayDimensions).toEqual(["256"]);
     });
 
-    it("handles multi-dimensional array parameters", () => {
+    it("handles multi-dimensional array parameters (C-Next style)", () => {
       const code = `
-        void processMatrix(f32 matrix[4][4]) {
+        void processMatrix(f32[4][4] matrix) {
         }
       `;
       const tree = parse(code);

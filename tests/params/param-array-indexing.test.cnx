@@ -33,7 +33,7 @@ void swapElements(u8 buf, u32 i, u32 j) {
 }
 
 // Test 6: With explicit array syntax (should still work)
-void writeExplicit(u8 buf[], u32 idx) {
+void writeExplicit(u8[] buf, u32 idx) {
     buf[idx] <- 99;
 }
 
@@ -50,11 +50,11 @@ u8 getHighByte(u16 value) {
 // Test 8: Local array with bit access after consuming all dimensions
 // This tests the currentStructType fix for primitive array elements
 // matrix[i][j] is array access, then [BIT] should be bit access
-u8 getArrayBit(u8 matrix[2][2], u32 row, u32 col, u32 bit) {
+u8 getArrayBit(u8[2][2] matrix, u32 row, u32 col, u32 bit) {
     return matrix[row][col][bit];
 }
 
-void setArrayBit(u8 matrix[2][2], u32 row, u32 col, u32 bit, bool val) {
+void setArrayBit(u8[2][2] matrix, u32 row, u32 col, u32 bit, bool val) {
     matrix[row][col][bit] <- val;
 }
 

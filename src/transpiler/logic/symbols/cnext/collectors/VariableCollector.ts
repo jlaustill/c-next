@@ -110,19 +110,21 @@ class VariableCollector {
     const initExpr = ctx.expression();
     const arrayDimensions: (number | string)[] = [];
 
-    // Collect dimension from arrayType syntax (u16[8] arr)
+    // Collect dimensions from arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr)
     if (hasArrayTypeSyntax) {
-      const sizeExpr = arrayTypeCtx.expression();
-      if (sizeExpr) {
-        const dimText = sizeExpr.getText();
-        const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-        if (literalSize !== undefined) {
-          arrayDimensions.push(literalSize);
-        } else if (constValues?.has(dimText)) {
-          arrayDimensions.push(constValues.get(dimText)!);
-        } else {
-          // Keep as string for macro/enum references
-          arrayDimensions.push(dimText);
+      for (const dim of arrayTypeCtx.arrayTypeDimension()) {
+        const sizeExpr = dim.expression();
+        if (sizeExpr) {
+          const dimText = sizeExpr.getText();
+          const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+          if (literalSize !== undefined) {
+            arrayDimensions.push(literalSize);
+          } else if (constValues?.has(dimText)) {
+            arrayDimensions.push(constValues.get(dimText)!);
+          } else {
+            // Keep as string for macro/enum references
+            arrayDimensions.push(dimText);
+          }
         }
       }
     }

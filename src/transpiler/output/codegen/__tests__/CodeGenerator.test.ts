@@ -1568,7 +1568,7 @@ describe("CodeGenerator", () => {
 
     it("should generate array parameter", () => {
       const source = `
-        void process(u32 arr[10]) { }
+        void process(u32[10] arr) { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -5284,7 +5284,7 @@ describe("CodeGenerator", () => {
   describe("Array passed to function", () => {
     it("should pass array without address-of operator", () => {
       const source = `
-        void processData(u32 data[]) { }
+        void processData(u32[] data) { }
         u32[5] myData;
         void main() {
           processData(myData);
@@ -5942,7 +5942,7 @@ describe("CodeGenerator", () => {
   describe("Function with array return type simulation", () => {
     it("should handle function returning via output parameter", () => {
       const source = `
-        void getData(u8 output[]) {
+        void getData(u8[] output) {
           output[0] <- 1;
           output[1] <- 2;
         }
@@ -6285,7 +6285,7 @@ describe("CodeGenerator", () => {
   describe("Array parameter bounds", () => {
     it("should handle sized array parameter", () => {
       const source = `
-        void process(u32 arr[10]) {
+        void process(u32[10] arr) {
           arr[0] <- 1;
         }
       `;
@@ -6813,7 +6813,7 @@ describe("CodeGenerator", () => {
   describe("Local array tracking", () => {
     it("should track local arrays for function arguments", () => {
       const source = `
-        void process(u8 arr[]) { }
+        void process(u8[] arr) { }
         void main() {
           u8[10] local;
           process(local);
@@ -8067,7 +8067,7 @@ describe("CodeGenerator", () => {
 
       it("should handle identifier argument (array)", () => {
         const source = `
-          void callee(u32 arr[10]) { }
+          void callee(u32[10] arr) { }
           void test() {
             u32[10] data;
             callee(data);
@@ -8181,7 +8181,7 @@ describe("CodeGenerator", () => {
       it("should handle struct field array argument", () => {
         const source = `
           struct Data { u32 values[10]; }
-          void callee(u32 arr[10]) { }
+          void callee(u32[10] arr) { }
           void test(Data d) {
             callee(d.values);
           }
@@ -8246,7 +8246,7 @@ describe("CodeGenerator", () => {
       it("should handle struct member array as argument (array decay)", () => {
         const source = `
           struct Config { u8 data[16]; }
-          void processData(u8 buffer[16]) { }
+          void processData(u8[16] buffer) { }
           void test() {
             Config cfg;
             processData(cfg.data);
@@ -8377,7 +8377,7 @@ describe("CodeGenerator", () => {
 
       it("should process array parameter type", () => {
         const source = `
-          void test(u32 arr[10]) {
+          void test(u32[10] arr) {
             u32 x <- arr[0];
           }
         `;
@@ -8583,7 +8583,7 @@ describe("CodeGenerator", () => {
 
       it("should error on sizeof of array parameter", () => {
         const source = `
-          void test(u32 arr[10]) {
+          void test(u32[10] arr) {
             u32 size <- sizeof(arr);
           }
         `;
@@ -8670,7 +8670,7 @@ describe("CodeGenerator", () => {
 
       it("should handle parameter array access", () => {
         const source = `
-          void test(u32 arr[10]) {
+          void test(u32[10] arr) {
             u32 val <- arr[0];
           }
         `;
@@ -10032,7 +10032,7 @@ describe("CodeGenerator", () => {
 
       it("should resolve array parameter", () => {
         const source = `
-          void test(u32 arr[10]) {
+          void test(u32[10] arr) {
             arr[0] <- 1;
           }
         `;
@@ -11078,7 +11078,7 @@ describe("CodeGenerator", () => {
 
       it("should not dereference array parameter for index access", () => {
         const source = `
-          u32 getElement(u32 arr[10]) {
+          u32 getElement(u32[10] arr) {
             return arr[5];
           }
         `;
@@ -11263,7 +11263,7 @@ describe("CodeGenerator", () => {
     describe("function call argument generation", () => {
       it("should handle array argument passed to function", () => {
         const source = `
-          void process(u32 data[10]) {
+          void process(u32[10] data) {
             data[0] <- 1;
           }
           void test() {
@@ -12301,7 +12301,7 @@ describe("CodeGenerator", () => {
     describe("array parameter dimensions", () => {
       it("should handle multi-dimensional array parameter", () => {
         const source = `
-          void processMatrix(u32 matrix[3][3]) {
+          void processMatrix(u32[3][3] matrix) {
             matrix[0][0] <- 1;
           }
         `;
@@ -12321,7 +12321,7 @@ describe("CodeGenerator", () => {
 
       it("should handle unsized array parameter", () => {
         const source = `
-          void processData(u8 data[], u32 len) {
+          void processData(u8[] data, u32 len) {
             data[0] <- 0xFF;
           }
         `;
@@ -12633,7 +12633,7 @@ describe("CodeGenerator", () => {
     describe("string array parameters", () => {
       it("should handle string array parameter with capacity", () => {
         const source = `
-          void processNames(string<32> names[10]) {
+          void processNames(string<32>[10] names) {
             string<32> first <- names[0];
           }
         `;
@@ -13499,7 +13499,7 @@ describe("CodeGenerator", () => {
 
       it("should handle array parameters", () => {
         const source = `
-          void sum(u32 values[], u32 count) {
+          void sum(u32[] values, u32 count) {
             u32 total <- 0;
           }
         `;
@@ -15254,7 +15254,7 @@ describe("CodeGenerator", () => {
 
       it("should generate function with array parameter", () => {
         const source = `
-          void process(u32 arr[10]) {
+          void process(u32[10] arr) {
             u32 val <- arr[0];
           }
         `;
