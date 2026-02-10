@@ -3667,7 +3667,7 @@ export default class CodeGenerator implements IOrchestrator {
       }
 
       // Not an enum/bitmap - register as regular user type (struct)
-      bitWidth = 0;
+      // bitWidth already initialized to 0, no reassignment needed
     }
 
     if (!baseType) {

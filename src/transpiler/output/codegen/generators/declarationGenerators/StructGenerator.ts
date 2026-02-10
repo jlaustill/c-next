@@ -21,6 +21,111 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
+import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
+
+/**
+ * Generate array type dimension string from arrayType syntax (e.g., u8[16]).
+ * Returns empty string if no arrayType syntax is present.
+ */
+function generateArrayTypeDimension(
+  arrayTypeCtx: Parser.ArrayTypeContext | null,
+  orchestrator: IOrchestrator,
+): string {
+  if (arrayTypeCtx === null) {
+    return "";
+  }
+
+  const sizeExpr = arrayTypeCtx.expression();
+  if (!sizeExpr) {
+    return "[]";
+  }
+
+  const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
+  if (constValue === undefined) {
+    // Fall back to expression generation for macros, enums, etc.
+    return `[${orchestrator.generateExpression(sizeExpr)}]`;
+  }
+
+  return `[${constValue}]`;
+}
+
+/**
+ * Generate a callback field declaration for a struct.
+ */
+function generateCallbackField(
+  fieldName: string,
+  callbackInfo: { typedefName: string },
+  isArray: boolean,
+  arrayDims: Parser.ArrayDimensionContext[],
+  orchestrator: IOrchestrator,
+): string {
+  if (isArray) {
+    const dims = orchestrator.generateArrayDimensions(arrayDims);
+    return `    ${callbackInfo.typedefName} ${fieldName}${dims};`;
+  }
+  return `    ${callbackInfo.typedefName} ${fieldName};`;
+}
+
+/**
+ * Generate a regular (non-callback) field declaration for a struct.
+ */
+function generateRegularField(
+  fieldName: string,
+  structName: string,
+  member: Parser.StructMemberContext,
+  isArray: boolean,
+  arrayDims: Parser.ArrayDimensionContext[],
+  input: IGeneratorInput,
+  orchestrator: IOrchestrator,
+): string {
+  const type = orchestrator.generateType(member.type());
+
+  // Check for arrayType syntax: u8[16] data -> member.type().arrayType()
+  // Use optional chaining for mock compatibility in tests
+  const arrayTypeCtx = member.type().arrayType?.() ?? null;
+  const arrayTypeDimStr = generateArrayTypeDimension(
+    arrayTypeCtx,
+    orchestrator,
+  );
+  const hasArrayTypeSyntax = arrayTypeCtx !== null;
+
+  // Check if we have tracked dimensions for this field (includes string capacity for string arrays)
+  const fieldDims = getTrackedFieldDimensions(
+    input.symbols,
+    structName,
+    fieldName,
+  );
+
+  if (fieldDims !== undefined) {
+    // Use tracked dimensions (includes string capacity for string arrays)
+    const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
+    return `    ${type} ${fieldName}${dimsStr};`;
+  }
+
+  if (hasArrayTypeSyntax || isArray) {
+    // Combine arrayType dimension (if any) with arrayDimension dimensions
+    const dims = orchestrator.generateArrayDimensions(arrayDims);
+    return `    ${type} ${fieldName}${arrayTypeDimStr}${dims};`;
+  }
+
+  return `    ${type} ${fieldName};`;
+}
+
+/**
+ * Get tracked field dimensions from symbols if available.
+ */
+function getTrackedFieldDimensions(
+  symbols: ICodeGenSymbols | null,
+  structName: string,
+  fieldName: string,
+): readonly number[] | undefined {
+  if (!symbols) {
+    return undefined;
+  }
+  const trackedDimensions = symbols.structFieldDimensions.get(structName);
+  const fieldDims = trackedDimensions?.get(fieldName);
+  return fieldDims && fieldDims.length > 0 ? fieldDims : undefined;
+}
 
 /**
  * Generate a C typedef struct from a C-Next struct declaration.
@@ -64,52 +169,28 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
         typeName,
       });
 
-      if (isArray) {
-        const dims = orchestrator.generateArrayDimensions(arrayDims);
-        lines.push(`    ${callbackInfo.typedefName} ${fieldName}${dims};`);
-      } else {
-        lines.push(`    ${callbackInfo.typedefName} ${fieldName};`);
-      }
+      lines.push(
+        generateCallbackField(
+          fieldName,
+          callbackInfo,
+          isArray,
+          arrayDims,
+          orchestrator,
+        ),
+      );
     } else {
       // Regular field handling
-      const type = orchestrator.generateType(member.type());
-
-      // Check for arrayType syntax: u8[16] data -> member.type().arrayType()
-      // Try to evaluate as constant first (required for C struct fields)
-      // Use optional chaining for mock compatibility in tests
-      const arrayTypeCtx = member.type().arrayType?.() ?? null;
-      const hasArrayTypeSyntax = arrayTypeCtx !== null;
-      let arrayTypeDimStr = "";
-      if (hasArrayTypeSyntax) {
-        const sizeExpr = arrayTypeCtx.expression();
-        if (sizeExpr) {
-          const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
-          if (constValue !== undefined) {
-            arrayTypeDimStr = `[${constValue}]`;
-          } else {
-            // Fall back to expression generation for macros, enums, etc.
-            arrayTypeDimStr = `[${orchestrator.generateExpression(sizeExpr)}]`;
-          }
-        } else {
-          arrayTypeDimStr = "[]";
-        }
-      }
-
-      // Check if we have tracked dimensions for this field (includes string capacity for string arrays)
-      const trackedDimensions = input.symbols?.structFieldDimensions.get(name);
-      const fieldDims = trackedDimensions?.get(fieldName);
-
-      if (fieldDims && fieldDims.length > 0) {
-        // Use tracked dimensions (includes string capacity for string arrays)
-        const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
-        lines.push(`    ${type} ${fieldName}${dimsStr};`);
-      } else if (hasArrayTypeSyntax || isArray) {
-        // Combine arrayType dimension (if any) with arrayDimension dimensions
-        const dims = orchestrator.generateArrayDimensions(arrayDims);
-        lines.push(`    ${type} ${fieldName}${arrayTypeDimStr}${dims};`);
-      } else {
-        lines.push(`    ${type} ${fieldName};`);
-      }
+      lines.push(
+        generateRegularField(
+          fieldName,
+          name,
+          member,
+          isArray,
+          arrayDims,
+          input,
+          orchestrator,
+        ),
+      );
     }
   }
 

@@ -24,6 +24,65 @@ import generateScopedRegister from "./ScopedRegisterGenerator";
 import BitmapCommentUtils from "./BitmapCommentUtils";
 
 /**
+ * Generate array type dimension string from arrayType syntax.
+ * Evaluates constants when possible, falls back to expression generation.
+ */
+function generateArrayTypeDimStr(
+  arrayTypeCtx: Parser.ArrayTypeContext | null,
+  orchestrator: IOrchestrator,
+): string {
+  if (arrayTypeCtx === null) {
+    return "";
+  }
+
+  const sizeExpr = arrayTypeCtx.expression();
+  if (!sizeExpr) {
+    return "[]";
+  }
+
+  const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
+  if (constValue === undefined) {
+    // Fall back to expression generation for macros, enums, etc.
+    return `[${orchestrator.generateExpression(sizeExpr)}]`;
+  }
+
+  return `[${constValue}]`;
+}
+
+/**
+ * Generate string capacity dimension if applicable.
+ */
+function generateStringCapacityDim(typeCtx: Parser.TypeContext): string {
+  const stringCtx = typeCtx.stringType();
+  if (!stringCtx) {
+    return "";
+  }
+
+  const intLiteral = stringCtx.INTEGER_LITERAL();
+  if (!intLiteral) {
+    return "";
+  }
+
+  const capacity = Number.parseInt(intLiteral.getText(), 10);
+  return `[${capacity + 1}]`;
+}
+
+/**
+ * Generate initializer expression for a variable declaration.
+ */
+function generateInitializer(
+  varDecl: Parser.VariableDeclarationContext,
+  isArray: boolean,
+  orchestrator: IOrchestrator,
+): string {
+  if (varDecl.expression()) {
+    return ` = ${orchestrator.generateExpression(varDecl.expression()!)}`;
+  }
+  // ADR-015: Zero initialization for uninitialized scope variables
+  return ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;
+}
+
+/**
  * Extract scoped name from a declaration node.
  * Returns both the local name and the fully qualified scoped name.
  */
@@ -81,22 +140,14 @@ function generateScopeVariable(
   // Issue #375: Check for constructor syntax
   const constructorArgList = varDecl.constructorArgumentList();
   if (constructorArgList) {
-    // ADR-016: All scope variables are emitted at file scope
-    const type = orchestrator.generateType(varDecl.type());
-    const fullName = `${scopeName}_${varName}`;
-    const prefix = isPrivate ? "static " : "";
-
-    // Validate and resolve constructor arguments
-    const argIdentifiers = constructorArgList.IDENTIFIER();
-    const line = varDecl.start?.line ?? 0;
-    const resolvedArgs = resolveConstructorArgs(
-      argIdentifiers,
+    return generateConstructorVariable(
+      varDecl,
+      varName,
       scopeName,
-      line,
+      isPrivate,
+      constructorArgList,
       orchestrator,
     );
-
-    return `${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`;
   }
 
   // Issue #282: Check if this is a const variable - const values should be inlined
@@ -107,8 +158,7 @@ function generateScopeVariable(
   // Use optional chaining for mock compatibility in tests
   const arrayDims = varDecl.arrayDimension();
   const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
-  const hasArrayTypeSyntax = arrayTypeCtx !== null;
-  const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
+  const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
 
   // Issue #282: Private const variables should be inlined, not emitted at file scope
   // Issue #500: EXCEPT arrays - arrays must be emitted as static const
@@ -117,6 +167,62 @@ function generateScopeVariable(
     return null;
   }
 
+  return generateRegularVariable(
+    varDecl,
+    varName,
+    scopeName,
+    isPrivate,
+    isConst,
+    isArray,
+    arrayTypeCtx,
+    arrayDims,
+    orchestrator,
+  );
+}
+
+/**
+ * Generate a constructor-style variable declaration.
+ */
+function generateConstructorVariable(
+  varDecl: Parser.VariableDeclarationContext,
+  varName: string,
+  scopeName: string,
+  isPrivate: boolean,
+  constructorArgList: Parser.ConstructorArgumentListContext,
+  orchestrator: IOrchestrator,
+): string {
+  // ADR-016: All scope variables are emitted at file scope
+  const type = orchestrator.generateType(varDecl.type());
+  const fullName = `${scopeName}_${varName}`;
+  const prefix = isPrivate ? "static " : "";
+
+  // Validate and resolve constructor arguments
+  const argIdentifiers = constructorArgList.IDENTIFIER();
+  const line = varDecl.start?.line ?? 0;
+  const resolvedArgs = resolveConstructorArgs(
+    argIdentifiers,
+    scopeName,
+    line,
+    orchestrator,
+  );
+
+  return `${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`;
+}
+
+/**
+ * Generate a regular (non-constructor) variable declaration.
+ */
+function generateRegularVariable(
+  varDecl: Parser.VariableDeclarationContext,
+  varName: string,
+  scopeName: string,
+  isPrivate: boolean,
+  isConst: boolean,
+  isArray: boolean,
+  arrayTypeCtx: Parser.ArrayTypeContext | null,
+  arrayDims: Parser.ArrayDimensionContext[],
+  orchestrator: IOrchestrator,
+): string {
   // ADR-016: All scope variables are emitted at file scope (static-like persistence)
   const type = orchestrator.generateType(varDecl.type());
   const fullName = `${scopeName}_${varName}`;
@@ -124,44 +230,19 @@ function generateScopeVariable(
   const constPrefix = isConst ? "const " : "";
   const prefix = isPrivate ? "static " : "";
 
-  // ADR-036: arrayDimension() now returns an array (arrayDims defined above)
-  // Also handle C-Next style arrayType syntax (u16[8] arr)
+  // Build declaration with all dimensions
   let decl = `${prefix}${constPrefix}${type} ${fullName}`;
-  if (hasArrayTypeSyntax) {
-    // C-Next style: dimension is in the type (u16[8] arr)
-    // Try to evaluate as constant first (required for C file-scope arrays)
-    const sizeExpr = arrayTypeCtx.expression();
-    if (sizeExpr) {
-      const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
-      if (constValue !== undefined) {
-        decl += `[${constValue}]`;
-      } else {
-        // Fall back to expression generation for macros, enums, etc.
-        decl += `[${orchestrator.generateExpression(sizeExpr)}]`;
-      }
-    } else {
-      decl += "[]";
-    }
-  }
+  decl += generateArrayTypeDimStr(arrayTypeCtx, orchestrator);
+
   if (arrayDims.length > 0) {
     // C-style or additional dimensions
     decl += orchestrator.generateArrayDimensions(arrayDims);
   }
+
   // ADR-045: Add string capacity dimension for string arrays
-  if (varDecl.type().stringType()) {
-    const stringCtx = varDecl.type().stringType()!;
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    if (intLiteral) {
-      const capacity = Number.parseInt(intLiteral.getText(), 10);
-      decl += `[${capacity + 1}]`;
-    }
-  }
-  if (varDecl.expression()) {
-    decl += ` = ${orchestrator.generateExpression(varDecl.expression()!)}`;
-  } else {
-    // ADR-015: Zero initialization for uninitialized scope variables
-    decl += ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;
-  }
+  decl += generateStringCapacityDim(varDecl.type());
+  decl += generateInitializer(varDecl, isArray, orchestrator);
+
   return decl + ";";
 }
 
@@ -481,6 +562,32 @@ function generateScopedBitmapInline(
 }
 
 /**
+ * Generate a single struct field declaration for scoped struct.
+ */
+function generateScopedStructField(
+  member: Parser.StructMemberContext,
+  orchestrator: IOrchestrator,
+): string {
+  const fieldName = member.IDENTIFIER().getText();
+  const fieldType = orchestrator.generateType(member.type());
+
+  // Handle C-Next style arrayType syntax (u16[8] arr)
+  const arrayTypeCtx = member.type().arrayType?.() ?? null;
+  let dimStr = generateArrayTypeDimStr(arrayTypeCtx, orchestrator);
+
+  // Handle C-style array dimensions if present
+  const arrayDims = member.arrayDimension();
+  if (arrayDims.length > 0) {
+    dimStr += orchestrator.generateArrayDimensions(arrayDims);
+  }
+
+  // Handle string capacity for string fields
+  dimStr += generateStringCapacityDim(member.type());
+
+  return `    ${fieldType} ${fieldName}${dimStr};`;
+}
+
+/**
  * Generate struct inside a scope with proper prefixing.
  * Struct fields maintain their original types.
  */
@@ -495,46 +602,7 @@ function generateScopedStructInline(
 
   // Process struct members
   for (const member of node.structMember()) {
-    const fieldName = member.IDENTIFIER().getText();
-    const fieldType = orchestrator.generateType(member.type());
-
-    // Handle C-Next style arrayType syntax (u16[8] arr)
-    // Try to evaluate as constant first (required for C struct fields)
-    // Use optional chaining for mock compatibility in tests
-    const arrayTypeCtx = member.type().arrayType?.() ?? null;
-    let dimStr = "";
-    if (arrayTypeCtx !== null) {
-      const sizeExpr = arrayTypeCtx.expression();
-      if (sizeExpr) {
-        const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
-        if (constValue !== undefined) {
-          dimStr = `[${constValue}]`;
-        } else {
-          // Fall back to expression generation for macros, enums, etc.
-          dimStr = `[${orchestrator.generateExpression(sizeExpr)}]`;
-        }
-      } else {
-        dimStr = "[]";
-      }
-    }
-
-    // Handle C-style array dimensions if present
-    const arrayDims = member.arrayDimension();
-    if (arrayDims.length > 0) {
-      dimStr += orchestrator.generateArrayDimensions(arrayDims);
-    }
-
-    // Handle string capacity for string fields
-    if (member.type().stringType()) {
-      const stringCtx = member.type().stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-      if (intLiteral) {
-        const capacity = Number.parseInt(intLiteral.getText(), 10);
-        dimStr += `[${capacity + 1}]`;
-      }
-    }
-
-    lines.push(`    ${fieldType} ${fieldName}${dimStr};`);
+    lines.push(generateScopedStructField(member, orchestrator));
   }
 
   lines.push(`} ${fullName};`, "");
