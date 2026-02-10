@@ -24,6 +24,7 @@ import IFunctionSignature from "./types/IFunctionSignature";
 import ICallbackTypeInfo from "./types/ICallbackTypeInfo";
 import ITargetCapabilities from "./types/ITargetCapabilities";
 import TOverflowBehavior from "./types/TOverflowBehavior";
+import TYPE_WIDTH from "./types/TYPE_WIDTH";
 
 /**
  * Default target capabilities (safe fallback)
@@ -535,13 +536,80 @@ export default class CodeGenState {
   }
 
   /**
-   * Get struct field info.
+   * Get struct field type (simple lookup).
    */
   static getStructFieldType(
     structName: string,
     fieldName: string,
   ): string | undefined {
     return this.symbols?.structFields.get(structName)?.get(fieldName);
+  }
+
+  /**
+   * Get struct field info including dimensions (checks SymbolTable then local symbols).
+   */
+  static getStructFieldInfo(
+    structType: string,
+    fieldName: string,
+  ): { type: string; dimensions?: (number | string)[] } | null {
+    // First check SymbolTable (C header structs)
+    if (this.symbolTable) {
+      const fieldInfo = this.symbolTable.getStructFieldInfo(
+        structType,
+        fieldName,
+      );
+      if (fieldInfo) {
+        return {
+          type: fieldInfo.type,
+          dimensions: fieldInfo.arrayDimensions,
+        };
+      }
+    }
+
+    // Fall back to local C-Next struct fields
+    const localFields = this.symbols?.structFields.get(structType);
+    if (localFields) {
+      const fieldType = localFields.get(fieldName);
+      if (fieldType) {
+        const fieldDimensions =
+          this.symbols?.structFieldDimensions.get(structType);
+        const dimensions = fieldDimensions?.get(fieldName);
+        return {
+          type: fieldType,
+          dimensions: dimensions ? [...dimensions] : undefined,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get member type info for a struct field.
+   * Returns full TTypeInfo for the field, or null if not found.
+   */
+  static getMemberTypeInfo(
+    structType: string,
+    memberName: string,
+  ): TTypeInfo | null {
+    const fieldInfo = this.getStructFieldInfo(structType, memberName);
+    if (!fieldInfo) return null;
+
+    const isArray =
+      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
+      (this.symbols?.structFieldArrays.get(structType)?.has(memberName) ??
+        false);
+    const dims = fieldInfo.dimensions?.filter(
+      (d): d is number => typeof d === "number",
+    );
+
+    return {
+      baseType: fieldInfo.type,
+      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
+      isConst: false,
+      isArray,
+      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
+    };
   }
 
   /**

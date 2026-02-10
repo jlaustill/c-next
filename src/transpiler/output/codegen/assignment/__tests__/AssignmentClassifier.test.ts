@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
+import CodeGenState from "../../CodeGenState";
 import TTypeInfo from "../../types/TTypeInfo";
 
 // ========================================================================
@@ -55,72 +56,46 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
 }
 
 /**
- * Create mock classifier dependencies.
+ * Helper to set up CodeGenState.symbols with minimal fields.
  */
-function createMockDeps(
-  overrides: Partial<{
-    typeRegistry: Map<string, TTypeInfo>;
-    knownRegisters: Set<string>;
-    knownScopes: Set<string>;
-    knownStructs: Set<string>;
-    bitmapFields: Map<string, Map<string, { offset: number; width: number }>>;
-    registerMemberTypes: Map<string, string>;
-    structFields: Map<string, Map<string, string>>;
-    structFieldArrays: Map<string, Set<string>>;
-    structFieldDimensions: Map<string, Map<string, readonly number[]>>;
-    currentScope: string | null;
-  }> = {},
-) {
-  const typeRegistry = overrides.typeRegistry ?? new Map();
-  const knownRegisters = overrides.knownRegisters ?? new Set();
-  const knownScopes = overrides.knownScopes ?? new Set();
-  const knownStructs = overrides.knownStructs ?? new Set();
-  const bitmapFields = overrides.bitmapFields ?? new Map();
-  const registerMemberTypes = overrides.registerMemberTypes ?? new Map();
-  const structFields = overrides.structFields ?? new Map();
-  const structFieldArrays = overrides.structFieldArrays ?? new Map();
-  const structFieldDimensions = overrides.structFieldDimensions ?? new Map();
-
-  return {
-    symbols: {
-      knownScopes,
-      knownStructs,
-      knownRegisters,
-      knownEnums: new Set<string>(),
-      knownBitmaps: new Set<string>(),
-      scopeMembers: new Map<string, Set<string>>(),
-      scopeMemberVisibility: new Map(),
-      structFields,
-      structFieldArrays,
-      structFieldDimensions,
-      enumMembers: new Map(),
-      bitmapFields,
-      bitmapBackingType: new Map(),
-      bitmapBitWidth: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes,
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberCTypes: new Map(),
-      scopeVariableUsage: new Map(),
-      scopePrivateConstValues: new Map(),
-      functionReturnTypes: new Map(),
-      getSingleFunctionForVariable: () => null,
-      hasPublicSymbols: () => false,
-    },
-    typeRegistry,
-    currentScope: overrides.currentScope ?? null,
-    isKnownStruct: (name: string) => knownStructs.has(name),
-    isKnownScope: (name: string) => knownScopes.has(name),
-    getMemberTypeInfo: (structType: string, memberName: string) => {
-      const fields = structFields.get(structType);
-      const fieldType = fields?.get(memberName);
-      if (fieldType) {
-        return createTypeInfo({ baseType: fieldType });
-      }
-      return null;
-    },
+function setupSymbols(
+  overrides: {
+    knownRegisters?: Set<string>;
+    knownScopes?: Set<string>;
+    knownStructs?: Set<string>;
+    bitmapFields?: Map<string, Map<string, { offset: number; width: number }>>;
+    registerMemberTypes?: Map<string, string>;
+    structFields?: Map<string, Map<string, string>>;
+    structFieldArrays?: Map<string, Set<string>>;
+    structFieldDimensions?: Map<string, Map<string, readonly number[]>>;
+  } = {},
+): void {
+  CodeGenState.symbols = {
+    knownScopes: overrides.knownScopes ?? new Set(),
+    knownStructs: overrides.knownStructs ?? new Set(),
+    knownRegisters: overrides.knownRegisters ?? new Set(),
+    knownEnums: new Set<string>(),
+    knownBitmaps: new Set<string>(),
+    scopeMembers: new Map<string, Set<string>>(),
+    scopeMemberVisibility: new Map(),
+    structFields: overrides.structFields ?? new Map(),
+    structFieldArrays: overrides.structFieldArrays ?? new Map(),
+    structFieldDimensions: overrides.structFieldDimensions ?? new Map(),
+    enumMembers: new Map(),
+    bitmapFields: overrides.bitmapFields ?? new Map(),
+    bitmapBackingType: new Map(),
+    bitmapBitWidth: new Map(),
+    scopedRegisters: new Map(),
+    registerMemberAccess: new Map(),
+    registerMemberTypes: overrides.registerMemberTypes ?? new Map(),
+    registerBaseAddresses: new Map(),
+    registerMemberOffsets: new Map(),
+    registerMemberCTypes: new Map(),
+    scopeVariableUsage: new Map(),
+    scopePrivateConstValues: new Map(),
+    functionReturnTypes: new Map(),
+    getSingleFunctionForVariable: () => null,
+    hasPublicSymbols: () => false,
   };
 }
 
@@ -128,29 +103,28 @@ function createMockDeps(
 // SIMPLE Assignment
 // ========================================================================
 describe("AssignmentClassifier - SIMPLE", () => {
-  it("classifies simple identifier assignment", () => {
-    const deps = createMockDeps();
-    const classifier = new AssignmentClassifier(deps);
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupSymbols();
+  });
 
+  it("classifies simple identifier assignment", () => {
     const ctx = createMockContext({
       identifiers: ["x"],
       isSimpleIdentifier: true,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 
   it("classifies unknown pattern as SIMPLE fallback", () => {
-    const deps = createMockDeps();
-    const classifier = new AssignmentClassifier(deps);
-
     const ctx = createMockContext({
       identifiers: ["unknown"],
       hasMemberAccess: true,
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 });
 
@@ -158,19 +132,19 @@ describe("AssignmentClassifier - SIMPLE", () => {
 // Bitmap Field Assignments
 // ========================================================================
 describe("AssignmentClassifier - Bitmap Fields", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies single-bit bitmap field", () => {
     const bitmapFields = new Map([
       ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
     ]);
-    const typeRegistry = new Map([
-      [
-        "flags",
-        createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
-      ],
-    ]);
-
-    const deps = createMockDeps({ bitmapFields, typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ bitmapFields });
+    CodeGenState.typeRegistry.set(
+      "flags",
+      createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["flags", "Running"],
@@ -178,7 +152,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
     );
   });
@@ -187,15 +161,11 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     const bitmapFields = new Map([
       ["StatusFlags", new Map([["Mode", { offset: 4, width: 4 }]])],
     ]);
-    const typeRegistry = new Map([
-      [
-        "flags",
-        createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
-      ],
-    ]);
-
-    const deps = createMockDeps({ bitmapFields, typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ bitmapFields });
+    CodeGenState.typeRegistry.set(
+      "flags",
+      createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["flags", "Mode"],
@@ -203,7 +173,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.BITMAP_FIELD_MULTI_BIT,
     );
   });
@@ -214,13 +184,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     ]);
     const knownRegisters = new Set(["MOTOR"]);
     const registerMemberTypes = new Map([["MOTOR_CTRL", "ControlBits"]]);
-
-    const deps = createMockDeps({
-      bitmapFields,
-      knownRegisters,
-      registerMemberTypes,
-    });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ bitmapFields, knownRegisters, registerMemberTypes });
 
     const ctx = createMockContext({
       identifiers: ["MOTOR", "CTRL", "Enable"],
@@ -228,7 +192,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
     );
   });
@@ -241,17 +205,11 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     const structFields = new Map([
       ["Device", new Map([["flags", "DeviceFlags"]])],
     ]);
-    const typeRegistry = new Map([
-      ["device", createTypeInfo({ baseType: "Device" })],
-    ]);
-
-    const deps = createMockDeps({
-      bitmapFields,
-      knownStructs,
-      structFields,
-      typeRegistry,
-    });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ bitmapFields, knownStructs, structFields });
+    CodeGenState.typeRegistry.set(
+      "device",
+      createTypeInfo({ baseType: "Device" }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["device", "flags", "Active"],
@@ -259,7 +217,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD,
     );
   });
@@ -269,13 +227,13 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
 // Integer Bit Access
 // ========================================================================
 describe("AssignmentClassifier - Integer Bit Access", () => {
-  it("classifies single bit access on integer", () => {
-    const typeRegistry = new Map([
-      ["flags", createTypeInfo({ baseType: "u8" })],
-    ]);
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupSymbols();
+  });
 
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+  it("classifies single bit access on integer", () => {
+    CodeGenState.typeRegistry.set("flags", createTypeInfo({ baseType: "u8" }));
 
     const ctx = createMockContext({
       identifiers: ["flags"],
@@ -284,16 +242,11 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.INTEGER_BIT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.INTEGER_BIT);
   });
 
   it("classifies bit range access on integer", () => {
-    const typeRegistry = new Map([
-      ["flags", createTypeInfo({ baseType: "u32" })],
-    ]);
-
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    CodeGenState.typeRegistry.set("flags", createTypeInfo({ baseType: "u32" }));
 
     const ctx = createMockContext({
       identifiers: ["flags"],
@@ -306,7 +259,9 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
       lastSubscriptExprCount: 2, // bit range has 2 expressions [start, width]
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.INTEGER_BIT_RANGE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.INTEGER_BIT_RANGE,
+    );
   });
 });
 
@@ -314,19 +269,19 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
 // Array Assignments
 // ========================================================================
 describe("AssignmentClassifier - Array Access", () => {
-  it("classifies simple array element", () => {
-    const typeRegistry = new Map([
-      [
-        "arr",
-        createTypeInfo({
-          isArray: true,
-          arrayDimensions: [10],
-        }),
-      ],
-    ]);
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupSymbols();
+  });
 
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+  it("classifies simple array element", () => {
+    CodeGenState.typeRegistry.set(
+      "arr",
+      createTypeInfo({
+        isArray: true,
+        arrayDimensions: [10],
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["arr"],
@@ -335,22 +290,19 @@ describe("AssignmentClassifier - Array Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.ARRAY_ELEMENT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.ARRAY_ELEMENT,
+    );
   });
 
   it("classifies array slice", () => {
-    const typeRegistry = new Map([
-      [
-        "buffer",
-        createTypeInfo({
-          isArray: true,
-          arrayDimensions: [100],
-        }),
-      ],
-    ]);
-
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    CodeGenState.typeRegistry.set(
+      "buffer",
+      createTypeInfo({
+        isArray: true,
+        arrayDimensions: [100],
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["buffer"],
@@ -363,7 +315,7 @@ describe("AssignmentClassifier - Array Access", () => {
       lastSubscriptExprCount: 2, // slice has 2 expressions [start, length]
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.ARRAY_SLICE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.ARRAY_SLICE);
   });
 });
 
@@ -371,28 +323,30 @@ describe("AssignmentClassifier - Array Access", () => {
 // String Assignments
 // ========================================================================
 describe("AssignmentClassifier - String Assignments", () => {
-  it("classifies simple string variable", () => {
-    const typeRegistry = new Map([
-      [
-        "name",
-        createTypeInfo({
-          baseType: "string<32>",
-          isString: true,
-          stringCapacity: 32,
-        }),
-      ],
-    ]);
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupSymbols();
+  });
 
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+  it("classifies simple string variable", () => {
+    CodeGenState.typeRegistry.set(
+      "name",
+      createTypeInfo({
+        baseType: "string<32>",
+        isString: true,
+        stringCapacity: 32,
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["name"],
       isSimpleIdentifier: true,
-      firstIdTypeInfo: typeRegistry.get("name")!,
+      firstIdTypeInfo: CodeGenState.typeRegistry.get("name")!,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.STRING_SIMPLE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.STRING_SIMPLE,
+    );
   });
 
   it("classifies struct field string", () => {
@@ -400,12 +354,11 @@ describe("AssignmentClassifier - String Assignments", () => {
     const structFields = new Map([
       ["Person", new Map([["name", "string<64>"]])],
     ]);
-    const typeRegistry = new Map([
-      ["person", createTypeInfo({ baseType: "Person" })],
-    ]);
-
-    const deps = createMockDeps({ knownStructs, structFields, typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownStructs, structFields });
+    CodeGenState.typeRegistry.set(
+      "person",
+      createTypeInfo({ baseType: "Person" }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["person", "name"],
@@ -413,7 +366,9 @@ describe("AssignmentClassifier - String Assignments", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.STRING_STRUCT_FIELD);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.STRING_STRUCT_FIELD,
+    );
   });
 });
 
@@ -421,19 +376,19 @@ describe("AssignmentClassifier - String Assignments", () => {
 // Special Compound Assignments
 // ========================================================================
 describe("AssignmentClassifier - Special Compound", () => {
-  it("classifies atomic RMW", () => {
-    const typeRegistry = new Map([
-      [
-        "counter",
-        createTypeInfo({
-          baseType: "u32",
-          isAtomic: true,
-        }),
-      ],
-    ]);
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupSymbols();
+  });
 
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+  it("classifies atomic RMW", () => {
+    CodeGenState.typeRegistry.set(
+      "counter",
+      createTypeInfo({
+        baseType: "u32",
+        isAtomic: true,
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["counter"],
@@ -442,22 +397,17 @@ describe("AssignmentClassifier - Special Compound", () => {
       cOp: "+=",
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.ATOMIC_RMW);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.ATOMIC_RMW);
   });
 
   it("classifies overflow clamp", () => {
-    const typeRegistry = new Map([
-      [
-        "saturated",
-        createTypeInfo({
-          baseType: "u8",
-          overflowBehavior: "clamp",
-        }),
-      ],
-    ]);
-
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    CodeGenState.typeRegistry.set(
+      "saturated",
+      createTypeInfo({
+        baseType: "u8",
+        overflowBehavior: "clamp",
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["saturated"],
@@ -466,22 +416,19 @@ describe("AssignmentClassifier - Special Compound", () => {
       cOp: "+=",
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.OVERFLOW_CLAMP);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.OVERFLOW_CLAMP,
+    );
   });
 
   it("does not classify float as overflow clamp", () => {
-    const typeRegistry = new Map([
-      [
-        "value",
-        createTypeInfo({
-          baseType: "f32",
-          overflowBehavior: "clamp",
-        }),
-      ],
-    ]);
-
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    CodeGenState.typeRegistry.set(
+      "value",
+      createTypeInfo({
+        baseType: "f32",
+        overflowBehavior: "clamp",
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["value"],
@@ -491,7 +438,7 @@ describe("AssignmentClassifier - Special Compound", () => {
     });
 
     // Floats use native arithmetic, so not OVERFLOW_CLAMP
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 });
 
@@ -499,10 +446,13 @@ describe("AssignmentClassifier - Special Compound", () => {
 // Global/This Prefix Patterns
 // ========================================================================
 describe("AssignmentClassifier - Prefix Patterns", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies global.member", () => {
     const knownScopes = new Set(["Counter"]);
-    const deps = createMockDeps({ knownScopes });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownScopes });
 
     const ctx = createMockContext({
       identifiers: ["Counter", "value"],
@@ -511,12 +461,13 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.GLOBAL_MEMBER);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.GLOBAL_MEMBER,
+    );
   });
 
   it("classifies global.arr[i]", () => {
-    const deps = createMockDeps();
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols();
 
     const ctx = createMockContext({
       identifiers: ["arr"],
@@ -527,12 +478,14 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.GLOBAL_ARRAY);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.GLOBAL_ARRAY,
+    );
   });
 
   it("classifies this.member", () => {
-    const deps = createMockDeps({ currentScope: "Counter" });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols();
+    CodeGenState.currentScope = "Counter";
 
     const ctx = createMockContext({
       identifiers: ["count"],
@@ -541,12 +494,12 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.THIS_MEMBER);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_MEMBER);
   });
 
   it("classifies this.arr[i]", () => {
-    const deps = createMockDeps({ currentScope: "Buffer" });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols();
+    CodeGenState.currentScope = "Buffer";
 
     const ctx = createMockContext({
       identifiers: ["data"],
@@ -557,7 +510,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.THIS_ARRAY);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_ARRAY);
   });
 });
 
@@ -565,10 +518,13 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 // Register Bit Access
 // ========================================================================
 describe("AssignmentClassifier - Register Bit Access", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies register single bit", () => {
     const knownRegisters = new Set(["GPIO7"]);
-    const deps = createMockDeps({ knownRegisters });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownRegisters });
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "DR_SET"],
@@ -578,13 +534,14 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.REGISTER_BIT,
+    );
   });
 
   it("classifies register bit range", () => {
     const knownRegisters = new Set(["GPIO7"]);
-    const deps = createMockDeps({ knownRegisters });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownRegisters });
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "DR_SET"],
@@ -597,18 +554,16 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT_RANGE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.REGISTER_BIT_RANGE,
+    );
   });
 
   it("classifies scoped register bit", () => {
     const knownScopes = new Set(["Teensy4"]);
     const knownRegisters = new Set(["Teensy4_GPIO7"]);
-    const deps = createMockDeps({
-      knownScopes,
-      knownRegisters,
-      currentScope: "Teensy4",
-    });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownScopes, knownRegisters });
+    CodeGenState.currentScope = "Teensy4";
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "DR_SET"],
@@ -619,7 +574,9 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.SCOPED_REGISTER_BIT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.SCOPED_REGISTER_BIT,
+    );
   });
 });
 
@@ -627,6 +584,10 @@ describe("AssignmentClassifier - Register Bit Access", () => {
 // Scoped Register Bitmap Field (4-id pattern)
 // ========================================================================
 describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies Scope.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
     const bitmapFields = new Map([
       ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
@@ -636,14 +597,12 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
     const registerMemberTypes = new Map([
       ["Teensy4_GPIO7_ICR1", "ControlBits"],
     ]);
-
-    const deps = createMockDeps({
+    setupSymbols({
       bitmapFields,
       knownScopes,
       knownRegisters,
       registerMemberTypes,
     });
-    const classifier = new AssignmentClassifier(deps);
 
     const ctx = createMockContext({
       identifiers: ["Teensy4", "GPIO7", "ICR1", "Enable"],
@@ -651,14 +610,13 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
     );
   });
 
   it("returns null for unknown scope in 4-id pattern", () => {
-    const deps = createMockDeps();
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols();
 
     const ctx = createMockContext({
       identifiers: ["UnknownScope", "REG", "MEMBER", "field"],
@@ -666,7 +624,7 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 });
 
@@ -674,24 +632,24 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
 // Bitmap Array Element Field
 // ========================================================================
 describe("AssignmentClassifier - Bitmap Array Element Field", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies bitmapArr[i].field as BITMAP_ARRAY_ELEMENT_FIELD", () => {
     const bitmapFields = new Map([
       ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
     ]);
-    const typeRegistry = new Map([
-      [
-        "flagsArr",
-        createTypeInfo({
-          isBitmap: true,
-          isArray: true,
-          bitmapTypeName: "StatusFlags",
-          arrayDimensions: [10],
-        }),
-      ],
-    ]);
-
-    const deps = createMockDeps({ bitmapFields, typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ bitmapFields });
+    CodeGenState.typeRegistry.set(
+      "flagsArr",
+      createTypeInfo({
+        isBitmap: true,
+        isArray: true,
+        bitmapTypeName: "StatusFlags",
+        arrayDimensions: [10],
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["flagsArr", "Active"],
@@ -701,7 +659,7 @@ describe("AssignmentClassifier - Bitmap Array Element Field", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
     );
   });
@@ -711,20 +669,20 @@ describe("AssignmentClassifier - Bitmap Array Element Field", () => {
 // Multi-dim Array with Bit Indexing
 // ========================================================================
 describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
-  it("classifies matrix[i][j][bit] as ARRAY_ELEMENT_BIT", () => {
-    const typeRegistry = new Map([
-      [
-        "matrix",
-        createTypeInfo({
-          baseType: "u32",
-          isArray: true,
-          arrayDimensions: [4, 4],
-        }),
-      ],
-    ]);
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupSymbols();
+  });
 
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+  it("classifies matrix[i][j][bit] as ARRAY_ELEMENT_BIT", () => {
+    CodeGenState.typeRegistry.set(
+      "matrix",
+      createTypeInfo({
+        baseType: "u32",
+        isArray: true,
+        arrayDimensions: [4, 4],
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["matrix"],
@@ -738,23 +696,20 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.ARRAY_ELEMENT_BIT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.ARRAY_ELEMENT_BIT,
+    );
   });
 
   it("classifies matrix[i][j] as MULTI_DIM_ARRAY_ELEMENT", () => {
-    const typeRegistry = new Map([
-      [
-        "matrix",
-        createTypeInfo({
-          baseType: "u32",
-          isArray: true,
-          arrayDimensions: [4, 4],
-        }),
-      ],
-    ]);
-
-    const deps = createMockDeps({ typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    CodeGenState.typeRegistry.set(
+      "matrix",
+      createTypeInfo({
+        baseType: "u32",
+        isArray: true,
+        arrayDimensions: [4, 4],
+      }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["matrix"],
@@ -767,7 +722,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.MULTI_DIM_ARRAY_ELEMENT,
     );
   });
@@ -777,13 +732,14 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
 // Scoped Register Bit Range via This Prefix
 // ========================================================================
 describe("AssignmentClassifier - Scoped Register Bit Range", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies this.reg[start, width] as SCOPED_REGISTER_BIT_RANGE", () => {
     const knownRegisters = new Set(["Teensy4_GPIO7"]);
-    const deps = createMockDeps({
-      knownRegisters,
-      currentScope: "Teensy4",
-    });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownRegisters });
+    CodeGenState.currentScope = "Teensy4";
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "ICR1"],
@@ -800,7 +756,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.SCOPED_REGISTER_BIT_RANGE,
     );
   });
@@ -810,10 +766,13 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
 // Register Bit Access via classifyMemberWithSubscript (non-scoped, 2+ ids)
 // ========================================================================
 describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies REG.MEMBER[bit] as REGISTER_BIT (non-this, non-global)", () => {
     const knownRegisters = new Set(["TIMER"]);
-    const deps = createMockDeps({ knownRegisters });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownRegisters });
 
     const ctx = createMockContext({
       identifiers: ["TIMER", "CTRL"],
@@ -823,13 +782,14 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.REGISTER_BIT,
+    );
   });
 
   it("classifies REG.MEMBER[start, width] as REGISTER_BIT_RANGE (non-this)", () => {
     const knownRegisters = new Set(["TIMER"]);
-    const deps = createMockDeps({ knownRegisters });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownRegisters });
 
     const ctx = createMockContext({
       identifiers: ["TIMER", "CTRL"],
@@ -842,14 +802,15 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT_RANGE);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.REGISTER_BIT_RANGE,
+    );
   });
 
   it("classifies Scope.REG.MEMBER[bit] as REGISTER_BIT via memberWithSubscript", () => {
     const knownScopes = new Set(["Teensy4"]);
     const knownRegisters = new Set(["Teensy4_GPIO7"]);
-    const deps = createMockDeps({ knownScopes, knownRegisters });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownScopes, knownRegisters });
 
     const ctx = createMockContext({
       identifiers: ["Teensy4", "GPIO7", "DR_SET"],
@@ -859,7 +820,9 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.REGISTER_BIT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.REGISTER_BIT,
+    );
   });
 });
 
@@ -867,19 +830,18 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
 // This Prefix - Scoped Register Bitmap Field
 // ========================================================================
 describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies this.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
     const knownRegisters = new Set(["Motor_GPIO7"]);
     const registerMemberTypes = new Map([["Motor_GPIO7_ICR1", "CtrlBits"]]);
     const bitmapFields = new Map([
       ["CtrlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
     ]);
-    const deps = createMockDeps({
-      knownRegisters,
-      registerMemberTypes,
-      bitmapFields,
-      currentScope: "Motor",
-    });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownRegisters, registerMemberTypes, bitmapFields });
+    CodeGenState.currentScope = "Motor";
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "ICR1", "Enable"],
@@ -888,7 +850,7 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
     );
   });
@@ -898,15 +860,18 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
 // Member Chain
 // ========================================================================
 describe("AssignmentClassifier - Member Chain", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   it("classifies complex member chain as MEMBER_CHAIN", () => {
     const knownStructs = new Set(["Config"]);
     const structFields = new Map([["Config", new Map([["items", "Item"]])]]);
-    const typeRegistry = new Map([
-      ["config", createTypeInfo({ baseType: "Config" })],
-    ]);
-
-    const deps = createMockDeps({ knownStructs, structFields, typeRegistry });
-    const classifier = new AssignmentClassifier(deps);
+    setupSymbols({ knownStructs, structFields });
+    CodeGenState.typeRegistry.set(
+      "config",
+      createTypeInfo({ baseType: "Config" }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["config", "items"],
@@ -916,6 +881,8 @@ describe("AssignmentClassifier - Member Chain", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(classifier.classify(ctx)).toBe(AssignmentKind.MEMBER_CHAIN);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.MEMBER_CHAIN,
+    );
   });
 });

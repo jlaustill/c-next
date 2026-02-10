@@ -6110,15 +6110,7 @@ export default class CodeGenerator implements IOrchestrator {
       generateExpression: () => value,
     });
     const handlerDeps = this.buildHandlerDeps();
-    const classifier = new AssignmentClassifier({
-      symbols: handlerDeps.symbols,
-      typeRegistry: handlerDeps.typeRegistry,
-      currentScope: handlerDeps.currentScope,
-      isKnownStruct: handlerDeps.isKnownStruct,
-      isKnownScope: handlerDeps.isKnownScope,
-      getMemberTypeInfo: handlerDeps.getMemberTypeInfo,
-    });
-    const assignmentKind = classifier.classify(assignCtx);
+    const assignmentKind = AssignmentClassifier.classify(assignCtx);
     const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
     return handler(assignCtx, handlerDeps);
   }
