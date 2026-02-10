@@ -266,6 +266,11 @@ When adding new assignment patterns:
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
   3. Handle effect in `processEffects()` switch statement
   4. Generate output in `assembleOutput()` where other effects are emitted
+- **DI to CodeGenState migration**: When converting helpers from constructor DI to static methods:
+  1. Replace `this.deps.property` with `CodeGenState.property`
+  2. For callbacks needing CodeGenerator context (e.g., `generateExpression`), pass as method parameter
+  3. Update tests: `CodeGenState.reset()` in `beforeEach`, create `setupSymbols()` helper for state setup
+  4. Remove unused `symbols` variables after migration (oxlint will flag them)
 
 ### Adding CLI Flags
 
