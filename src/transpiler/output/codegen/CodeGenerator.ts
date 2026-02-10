@@ -5606,12 +5606,9 @@ export default class CodeGenerator implements IOrchestrator {
         continue;
       }
       // Try to evaluate as constant first (required for C file-scope arrays)
-      const constValue = this.tryEvaluateConstant(sizeExpr);
-      // Use constant value if evaluable, otherwise fall back to expression text
+      // Fall back to expression text for macros, enums, etc.
       const dimValue =
-        constValue === undefined
-          ? this.generateExpression(sizeExpr) // for macros, enums, etc.
-          : constValue;
+        this.tryEvaluateConstant(sizeExpr) ?? this.generateExpression(sizeExpr);
       result += `[${dimValue}]`;
     }
     return result;
