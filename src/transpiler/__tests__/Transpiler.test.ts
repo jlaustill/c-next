@@ -356,29 +356,6 @@ describe("Transpiler", () => {
         expect(hFile?.content).toContain("Math_add");
       });
 
-      // Note: Directory discovery uses fast-glob which accesses the real filesystem.
-      // This test is skipped because fast-glob doesn't work with MockFileSystem.
-      // Directory discovery is tested in integration tests with the real filesystem.
-      it.skip("discovers files in a directory (uses fast-glob, needs real fs)", async () => {
-        mockFs.addDirectory("/project/src");
-        mockFs.addFile("/project/src/a.cnx", "void a() { }");
-        mockFs.addFile("/project/src/b.cnx", "void b() { }");
-
-        const transpiler = new Transpiler(
-          {
-            inputs: ["/project/src"],
-            outDir: "/project/build",
-            noCache: true,
-          },
-          mockFs,
-        );
-
-        const result = await transpiler.run();
-
-        expect(result.success).toBe(true);
-        expect(result.filesProcessed).toBe(2);
-      });
-
       it("returns error for non-existent input", async () => {
         const transpiler = new Transpiler(
           {

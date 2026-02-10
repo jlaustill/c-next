@@ -309,8 +309,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   private readonly commentFormatter: CommentFormatter = new CommentFormatter();
 
-  /** Type resolution and classification */
-  private typeResolver: TypeResolver | null = null;
+  /** Type resolution and classification - now a static class, no instance needed */
 
   /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
   public symbols: ICodeGenSymbols | null = null;
@@ -761,7 +760,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeResolver.
    */
   isFloatType(typeName: string): boolean {
-    return this.typeResolver!.isFloatType(typeName);
+    return TypeResolver.isFloatType(typeName);
   }
 
   /**
@@ -769,7 +768,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeResolver.
    */
   isIntegerType(typeName: string): boolean {
-    return this.typeResolver!.isIntegerType(typeName);
+    return TypeResolver.isIntegerType(typeName);
   }
 
   /**
@@ -985,7 +984,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return this.typeResolver!.getExpressionType(ctx);
+    return TypeResolver.getExpressionType(ctx);
   }
 
   /**
@@ -2244,14 +2243,6 @@ export default class CodeGenerator implements IOrchestrator {
   private initializeHelperObjects(tree: Parser.ProgramContext): void {
     const symbols = CodeGenState.symbols!;
 
-    // Initialize type resolver
-    this.typeResolver = new TypeResolver({
-      symbols: symbols,
-      symbolTable: CodeGenState.symbolTable,
-      typeRegistry: CodeGenState.typeRegistry,
-      resolveIdentifier: (name: string) => this.resolveIdentifier(name),
-    });
-
     // Collect function/callback information
     this.collectFunctionsAndCallbacks(tree);
     this.analyzePassByValue(tree);
@@ -2261,7 +2252,6 @@ export default class CodeGenerator implements IOrchestrator {
       symbols: symbols,
       symbolTable: CodeGenState.symbolTable,
       typeRegistry: CodeGenState.typeRegistry,
-      typeResolver: this.typeResolver,
       callbackTypes: CodeGenState.callbackTypes,
       knownFunctions: CodeGenState.knownFunctions,
       knownGlobals: new Set(),
@@ -3752,7 +3742,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isStructType(typeName: string): boolean {
-    return this.typeResolver!.isStructType(typeName);
+    return TypeResolver.isStructType(typeName);
   }
 
   /**
@@ -4206,11 +4196,11 @@ export default class CodeGenerator implements IOrchestrator {
   // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface (ADR-053 A2)
   // Private versions kept for internal use
   private _isIntegerType(typeName: string): boolean {
-    return this.typeResolver!.isIntegerType(typeName);
+    return TypeResolver.isIntegerType(typeName);
   }
 
   private _isFloatType(typeName: string): boolean {
-    return this.typeResolver!.isFloatType(typeName);
+    return TypeResolver.isFloatType(typeName);
   }
 
   /**
@@ -4221,7 +4211,7 @@ export default class CodeGenerator implements IOrchestrator {
     sourceType: string,
     targetType: string,
   ): boolean {
-    return this.typeResolver!.isNarrowingConversion(sourceType, targetType);
+    return TypeResolver.isNarrowingConversion(sourceType, targetType);
   }
 
   /**
@@ -4229,7 +4219,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Sign change occurs when converting between signed and unsigned types
    */
   private isSignConversion(sourceType: string, targetType: string): boolean {
-    return this.typeResolver!.isSignConversion(sourceType, targetType);
+    return TypeResolver.isSignConversion(sourceType, targetType);
   }
 
   /**
@@ -4242,7 +4232,7 @@ export default class CodeGenerator implements IOrchestrator {
     literalText: string,
     targetType: string,
   ): void {
-    this.typeResolver!.validateLiteralFitsType(literalText, targetType);
+    TypeResolver.validateLiteralFitsType(literalText, targetType);
   }
 
   /**
@@ -4251,7 +4241,7 @@ export default class CodeGenerator implements IOrchestrator {
   private getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
   ): string | null {
-    return this.typeResolver!.getUnaryExpressionType(ctx);
+    return TypeResolver.getUnaryExpressionType(ctx);
   }
 
   /**
@@ -4262,7 +4252,7 @@ export default class CodeGenerator implements IOrchestrator {
     targetType: string,
     sourceType: string | null,
   ): void {
-    this.typeResolver!.validateTypeConversion(targetType, sourceType);
+    TypeResolver.validateTypeConversion(targetType, sourceType);
   }
 
   // Issue #63: checkConstAssignment moved to TypeValidator

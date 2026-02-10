@@ -1,0 +1,44 @@
+// test-execution
+// Tests: switch on array element subscript (bug fix)
+// Verifies that switch(array[index]) correctly resolves as element type, not bool
+
+u32 result;
+
+void handleByArray(u8 data[4], u8 idx) {
+    switch (data[idx]) {
+        case 1 {
+            result <- 10;
+        }
+        case 2 {
+            result <- 20;
+        }
+        case 3 {
+            result <- 30;
+        }
+        default {
+            result <- 99;
+        }
+    }
+}
+
+u32 main() {
+    u8 arr[4] <- [1, 2, 3, 4];
+    u8 idx0 <- 0;
+    u8 idx1 <- 1;
+    u8 idx2 <- 2;
+    u8 idx3 <- 3;
+
+    handleByArray(arr, idx0);
+    if (result != 10) return 1;
+
+    handleByArray(arr, idx1);
+    if (result != 20) return 2;
+
+    handleByArray(arr, idx2);
+    if (result != 30) return 3;
+
+    handleByArray(arr, idx3);
+    if (result != 99) return 4;
+
+    return 0;
+}

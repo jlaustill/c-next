@@ -35,7 +35,6 @@ class TypeValidator {
   private readonly symbols: ICodeGenSymbols | null;
   private readonly symbolTable: SymbolTable | null;
   private readonly typeRegistry: Map<string, TTypeInfo>;
-  private readonly typeResolver: TypeResolver;
   private readonly callbackTypes: Map<string, ICallbackTypeInfo>;
   private readonly knownFunctions: Set<string>;
   private readonly knownGlobals: Set<string>;
@@ -50,7 +49,6 @@ class TypeValidator {
     this.symbols = deps.symbols;
     this.symbolTable = deps.symbolTable;
     this.typeRegistry = deps.typeRegistry;
-    this.typeResolver = deps.typeResolver;
     this.callbackTypes = deps.callbackTypes;
     this.knownFunctions = deps.knownFunctions;
     this.knownGlobals = deps.knownGlobals;
@@ -1164,7 +1162,7 @@ class TypeValidator {
     }
 
     // Only validate integer types
-    if (!this.typeResolver.isIntegerType(targetType)) {
+    if (!TypeResolver.isIntegerType(targetType)) {
       return;
     }
 
@@ -1177,10 +1175,10 @@ class TypeValidator {
 
     if (isDecimalLiteral || isHexLiteral || isBinaryLiteral) {
       // Validate literal fits in target type
-      this.typeResolver.validateLiteralFitsType(trimmed, targetType);
+      TypeResolver.validateLiteralFitsType(trimmed, targetType);
     } else {
       // Not a literal - check for narrowing/sign conversions
-      this.typeResolver.validateTypeConversion(targetType, sourceType);
+      TypeResolver.validateTypeConversion(targetType, sourceType);
     }
   }
 }

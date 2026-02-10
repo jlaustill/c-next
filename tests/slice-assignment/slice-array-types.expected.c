@@ -21,14 +21,10 @@ int main(void) {
     uint16_t arr16[16] = {0};
     uint64_t value2 = 0x0102030405060708;
     memcpy(&arr16[0], &value2, 8);
-    uint8_t byte0 = arr16[0];
-    uint8_t byte1 = arr16[0] >> 8;
-    uint8_t byte2 = arr16[1];
-    uint8_t byte3 = arr16[1] >> 8;
-    if (byte0 != 0x08) return 5;
-    if (byte1 != 0x07) return 6;
-    if (byte2 != 0x06) return 7;
-    if (byte3 != 0x05) return 8;
+    if (arr16[0] != 0x0708) return 5;
+    if (arr16[1] != 0x0506) return 6;
+    if (arr16[2] != 0x0304) return 7;
+    if (arr16[3] != 0x0102) return 8;
     uint32_t arr32[16] = {0};
     uint32_t value3 = 0xAABBCCDD;
     memcpy(&arr32[0], &value3, 4);
