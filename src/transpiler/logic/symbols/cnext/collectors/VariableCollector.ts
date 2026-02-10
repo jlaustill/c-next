@@ -72,6 +72,32 @@ class VariableCollector {
   }
 
   /**
+   * Collect dimensions from C-Next style arrayType syntax (u16[8] arr, u16[4][4] arr).
+   */
+  private static collectArrayTypeDimensions(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    constValues: Map<string, number> | undefined,
+  ): (number | string)[] {
+    const dimensions: (number | string)[] = [];
+    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
+      const sizeExpr = dim.expression();
+      if (!sizeExpr) continue;
+
+      const dimText = sizeExpr.getText();
+      const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+      if (literalSize !== undefined) {
+        dimensions.push(literalSize);
+      } else if (constValues?.has(dimText)) {
+        dimensions.push(constValues.get(dimText)!);
+      } else {
+        // Keep as string for macro/enum references
+        dimensions.push(dimText);
+      }
+    }
+    return dimensions;
+  }
+
+  /**
    * Collect a variable declaration and return an IVariableSymbol.
    *
    * @param ctx The variable declaration context
@@ -112,21 +138,12 @@ class VariableCollector {
 
     // Collect dimensions from arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr)
     if (hasArrayTypeSyntax) {
-      for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-        const sizeExpr = dim.expression();
-        if (sizeExpr) {
-          const dimText = sizeExpr.getText();
-          const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-          if (literalSize !== undefined) {
-            arrayDimensions.push(literalSize);
-          } else if (constValues?.has(dimText)) {
-            arrayDimensions.push(constValues.get(dimText)!);
-          } else {
-            // Keep as string for macro/enum references
-            arrayDimensions.push(dimText);
-          }
-        }
-      }
+      arrayDimensions.push(
+        ...VariableCollector.collectArrayTypeDimensions(
+          arrayTypeCtx,
+          constValues,
+        ),
+      );
     }
 
     // Collect additional dimensions from arrayDimension syntax

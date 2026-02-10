@@ -3819,6 +3819,37 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Extract array dimensions from parameter (C-style or C-Next style).
+   */
+  private _extractParamArrayDimensions(
+    param: Parser.ParameterContext,
+    typeCtx: Parser.TypeContext,
+    isArray: boolean,
+  ): number[] {
+    if (!isArray) return [];
+
+    // Try C-style first (param.arrayDimension())
+    if (param.arrayDimension().length > 0) {
+      return ArrayDimensionParser.parseForParameters(param.arrayDimension());
+    }
+
+    // C-Next style: get dimensions from arrayType
+    const arrayTypeCtx = typeCtx.arrayType();
+    if (!arrayTypeCtx) return [];
+
+    const dimensions: number[] = [];
+    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
+      const expr = dim.expression();
+      if (!expr) continue;
+      const size = Number.parseInt(expr.getText(), 10);
+      if (!Number.isNaN(size)) {
+        dimensions.push(size);
+      }
+    }
+    return dimensions;
+  }
+
+  /**
    * Register a parameter in the type registry
    */
   private _registerParameterType(
@@ -3834,29 +3865,14 @@ export default class CodeGenerator implements IOrchestrator {
     const isEnum = CodeGenState.symbols!.knownEnums.has(typeName);
     const isBitmap = CodeGenState.symbols!.knownBitmaps.has(typeName);
 
-    // Extract array dimensions from either C-style or C-Next style
-    let arrayDimensions: number[] = [];
-    if (isArray) {
-      // Try C-style first (param.arrayDimension())
-      if (param.arrayDimension().length > 0) {
-        arrayDimensions = ArrayDimensionParser.parseForParameters(
-          param.arrayDimension(),
-        );
-      } else if (typeCtx.arrayType()) {
-        // C-Next style: get dimensions from arrayType
-        for (const dim of typeCtx.arrayType()!.arrayTypeDimension()) {
-          const expr = dim.expression();
-          if (expr) {
-            const size = Number.parseInt(expr.getText(), 10);
-            if (!Number.isNaN(size)) {
-              arrayDimensions.push(size);
-            }
-          }
-        }
-      }
-    }
+    // Extract array dimensions
+    const arrayDimensions = this._extractParamArrayDimensions(
+      param,
+      typeCtx,
+      isArray,
+    );
 
-    // Get string capacity if applicable
+    // Add string capacity dimension if applicable
     const stringCapacity = this._getStringCapacity(typeCtx, isString);
     if (isArray && stringCapacity !== undefined) {
       arrayDimensions.push(stringCapacity + 1);
@@ -5591,12 +5607,12 @@ export default class CodeGenerator implements IOrchestrator {
       }
       // Try to evaluate as constant first (required for C file-scope arrays)
       const constValue = this.tryEvaluateConstant(sizeExpr);
-      if (constValue !== undefined) {
-        result += `[${constValue}]`;
-      } else {
-        // Fall back to expression text (for macros, enums, etc.)
-        result += `[${this.generateExpression(sizeExpr)}]`;
-      }
+      // Use constant value if evaluable, otherwise fall back to expression text
+      const dimValue =
+        constValue === undefined
+          ? this.generateExpression(sizeExpr) // for macros, enums, etc.
+          : constValue;
+      result += `[${dimValue}]`;
     }
     return result;
   }
