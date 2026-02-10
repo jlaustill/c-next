@@ -7169,6 +7169,142 @@ describe("CodeGenerator", () => {
 
       // Note: Template type tests skipped - template argument transformation
       // (i32 -> int32_t) is a separate issue to be addressed in another PR
+
+      it("should generate C-Next style array params with dimensions in C++ mode", () => {
+        const source = `
+          void fill(u8[8] buf) {
+              buf[0] <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // C-Next style u8[8] param should generate uint8_t buf[8], not uint8_t& buf
+        expect(code).toContain("uint8_t buf[8]");
+        expect(code).not.toContain("uint8_t& buf");
+        expect(code).not.toContain("uint8_t&  buf");
+      });
+
+      it("should generate const C-Next style array params in C++ mode", () => {
+        const source = `
+          u8 read(const u8[4] data) {
+              return data[0];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // Const C-Next style array param should retain dimension
+        expect(code).toContain("const uint8_t data[4]");
+        expect(code).not.toContain("const uint8_t& data");
+      });
+
+      it("should generate C-Next style array params in C mode too", () => {
+        const source = `
+          void fill(u8[8] buf) {
+              buf[0] <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // C mode should also generate uint8_t buf[8]
+        expect(code).toContain("uint8_t buf[8]");
+        expect(code).not.toContain("uint8_t* buf");
+      });
+
+      it("should generate primitive C-Next style arrays with {0} in C++ mode", () => {
+        const source = `
+          void main() {
+              u32[8] counters;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // Primitive type arrays should still use {0}
+        expect(code).toContain("uint32_t counters[8] = {0}");
+      });
+
+      it("should generate unknown user type C-Next style arrays with {} in C++ mode", () => {
+        const source = `
+          void main() {
+              UnknownType[4] items;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // Unknown types in C++ mode use {} (may have non-trivial constructors)
+        expect(code).toContain("UnknownType items[4] = {}");
+      });
+
+      it("should generate known C-Next struct arrays with {0} in C++ mode", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void main() {
+              Point[3] pts;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+          cppMode: true,
+        });
+
+        // Known C-Next structs are POD types, {0} is correct
+        expect(code).toContain("Point pts[3] = {0}");
+      });
     });
   });
 

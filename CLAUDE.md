@@ -310,6 +310,7 @@ When adding a new CLI flag that affects code generation, update all layers:
 - **`npm test`** — Tests transpilation via `Transpiler.transpileSource()` API (parallelized, fast)
 - **`npm run test:cli`** — Tests CLI behavior via subprocess in `scripts/test-cli.js` (flags, exit codes, file I/O)
 - CLI-specific features (PlatformIO detection, `--target` flag) need `test:cli` tests, not `npm test`
+- **Single file test**: `npm test -- tests/dir/file.test.cnx` (full filename required, bare directory only works for multiple tests)
 
 ### Unit Test File Location
 
@@ -417,6 +418,8 @@ u32 main() {
 - `tests/array-initializers/u64-array-init.test.cnx` (31 validations)
 
 ### Common Mistakes to Avoid
+
+- **Removing source comments**: When removing a comment from `.test.cnx` (e.g., `// test-transpile-only`), also update `.expected.c` — the transpiler echoes source comments into generated output
 
 ❌ **WRONG** - Execution test without validation:
 

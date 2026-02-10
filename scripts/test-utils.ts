@@ -18,8 +18,22 @@ import { randomBytes } from "node:crypto";
 import ITools from "./types/ITools";
 import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
+import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
+
+// Shared patterns for distinguishing C++ constructors from C function prototypes
+const C_KEYWORDS =
+  "return|if|while|for|switch|case|else|do|break|continue|goto|sizeof|typeof|alignof";
+const C_TYPES =
+  "void|int|char|float|double|long|short|unsigned|signed|bool|enum|struct|union|static|extern|const|volatile|inline|u?int\\d+_t|size_t";
 
 class TestUtils {
+  // First word of a line that is NOT a C++ constructor (keywords + C types)
+  static readonly NON_CONSTRUCTOR_FIRST_WORD = new RegExp(
+    `^(${C_KEYWORDS}|${C_TYPES})$`,
+  );
+  // Type keywords appearing in function arguments indicate a prototype, not a constructor
+  static readonly C_TYPE_IN_ARGS = new RegExp(`\\b(${C_TYPES})\\b`);
+
   /**
    * Normalize output for comparison (trim trailing whitespace, normalize line endings)
    */
@@ -107,16 +121,18 @@ class TestUtils {
     // Issue #375: Check for C++ constructor call syntax
     // Pattern: TypeName varName(args); at global scope
     // Matches lines like "Adafruit_MAX31856 thermocouple(pin);"
-    // Excludes: return statements, control flow, function calls
+    // Excludes: keywords, C types, and function prototypes (args contain type keywords)
     // Split into two patterns to reduce regex complexity (SonarCloud S5843)
-    const constructorMatch = /^\s*(\w+)\s+\w+\([^)]*\)\s*;/m.exec(cCode);
+    const constructorMatch = /^\s*(\w+)\s+\w+\(([^)]*)\)\s*;/m.exec(cCode);
     if (constructorMatch) {
       const firstWord = constructorMatch[1];
-      const isKeyword =
-        /^(return|if|while|for|switch|case|else|do|break|continue|goto|sizeof|typeof|alignof)$/.test(
-          firstWord,
-        );
-      if (!isKeyword) {
+      const argsContent = constructorMatch[2];
+      const isKeywordOrCType =
+        TestUtils.NON_CONSTRUCTOR_FIRST_WORD.test(firstWord);
+      // Function prototypes have type keywords in args (e.g., "const int* x");
+      // constructor calls have plain values (e.g., "pin, 42")
+      const argsHaveTypes = TestUtils.C_TYPE_IN_ARGS.test(argsContent);
+      if (!isKeywordOrCType && !argsHaveTypes) {
         return true;
       }
     }
@@ -130,7 +146,7 @@ class TestUtils {
    * Checks for:
    * - C++ casts: static_cast, reinterpret_cast, etc. (Issue #267)
    * - C++ template types: Type<Args> (Issue #291)
-   * - C++14 typed enums: enum Foo : type { (in included headers)
+   * - C++ structural syntax in headers: class, namespace, template, access specifiers, typed enums
    *
    * Note: Named "requiresCpp14" for historical reasons, but now detects
    * any C++ feature that requires g++ compilation.
@@ -156,8 +172,12 @@ class TestUtils {
         const headerPath = join(cFileDir, match[1]);
         if (existsSync(headerPath)) {
           const headerContent = readFileSync(headerPath, "utf-8");
-          // Check for C++14 typed enum syntax: enum Name : type {
-          if (/enum\s+\w+\s*:\s*\w+\s*\{/.test(headerContent)) {
+          // Use transpiler's robust C++ detection for headers
+          if (detectCppSyntax(headerContent)) {
+            return true;
+          }
+          // Also check for inline C++ code in headers (casts, ::, constructors)
+          if (TestUtils.hasCppFeatures(headerContent)) {
             return true;
           }
         }

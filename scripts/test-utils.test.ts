@@ -102,11 +102,84 @@ describe("hasNoWarningsMarker", () => {
 });
 
 describe("TestUtils.requiresCpp14", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-cpp14-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
   it("should be a function", () => {
     expect(typeof TestUtils.requiresCpp14).toBe("function");
   });
 
-  // Note: File-based testing covered by integration tests
+  it("should detect C++ class keyword in included header", () => {
+    const headerContent = `#ifndef TEST_H\n#define TEST_H\nclass MyClass {\npublic:\n    int value;\n};\n#endif\n`;
+    writeFileSync(join(tempDir, "test.h"), headerContent);
+    const cContent = `#include "test.h"\nint main(void) { return 0; }\n`;
+    const cFile = join(tempDir, "test.c");
+    writeFileSync(cFile, cContent);
+    expect(TestUtils.requiresCpp14(cFile)).toBe(true);
+  });
+
+  it("should detect namespace keyword in included header", () => {
+    const headerContent = `namespace utils {\n    void helper();\n}\n`;
+    writeFileSync(join(tempDir, "test.h"), headerContent);
+    const cContent = `#include "test.h"\nint main(void) { return 0; }\n`;
+    const cFile = join(tempDir, "test.c");
+    writeFileSync(cFile, cContent);
+    expect(TestUtils.requiresCpp14(cFile)).toBe(true);
+  });
+
+  it("should detect access specifiers in included header", () => {
+    const headerContent = `struct Foo {\npublic:\n    int x;\n};\n`;
+    writeFileSync(join(tempDir, "test.h"), headerContent);
+    const cContent = `#include "test.h"\nint main(void) { return 0; }\n`;
+    const cFile = join(tempDir, "test.c");
+    writeFileSync(cFile, cContent);
+    expect(TestUtils.requiresCpp14(cFile)).toBe(true);
+  });
+
+  it("should detect typed enum in included header", () => {
+    const headerContent = `enum Color : uint8_t { RED, GREEN, BLUE };\n`;
+    writeFileSync(join(tempDir, "test.h"), headerContent);
+    const cContent = `#include "test.h"\nint main(void) { return 0; }\n`;
+    const cFile = join(tempDir, "test.c");
+    writeFileSync(cFile, cContent);
+    expect(TestUtils.requiresCpp14(cFile)).toBe(true);
+  });
+
+  it("should detect template declaration in included header", () => {
+    const headerContent = `template<typename T>\nT max(T a, T b) { return a > b ? a : b; }\n`;
+    writeFileSync(join(tempDir, "test.h"), headerContent);
+    const cContent = `#include "test.h"\nint main(void) { return 0; }\n`;
+    const cFile = join(tempDir, "test.c");
+    writeFileSync(cFile, cContent);
+    expect(TestUtils.requiresCpp14(cFile)).toBe(true);
+  });
+
+  it("should return false for plain C header", () => {
+    const headerContent = `#ifndef TEST_H\n#define TEST_H\ntypedef struct { int x; int y; } Point;\n#endif\n`;
+    writeFileSync(join(tempDir, "test.h"), headerContent);
+    const cContent = `#include "test.h"\nint main(void) { return 0; }\n`;
+    const cFile = join(tempDir, "test.c");
+    writeFileSync(cFile, cContent);
+    expect(TestUtils.requiresCpp14(cFile)).toBe(false);
+  });
+
+  it("should detect C++ features in inline code without headers", () => {
+    const cContent = `static_cast<int>(x);\n`;
+    const cFile = join(tempDir, "test.c");
+    writeFileSync(cFile, cContent);
+    expect(TestUtils.requiresCpp14(cFile)).toBe(true);
+  });
+
+  it("should return false when file does not exist", () => {
+    expect(TestUtils.requiresCpp14(join(tempDir, "nonexistent.c"))).toBe(false);
+  });
 });
 
 describe("TestUtils.hasCppFeatures", () => {
@@ -213,6 +286,51 @@ describe("TestUtils.hasCppFeatures", () => {
     it("should NOT detect standalone function calls", () => {
       // Function calls don't have a type before them
       expect(TestUtils.hasCppFeatures("printf(msg);")).toBe(false);
+    });
+  });
+
+  // Function prototypes should not trigger C++ detection
+  describe("function prototypes", () => {
+    it("should NOT detect void function prototype", () => {
+      expect(TestUtils.hasCppFeatures("void foo(int x);")).toBe(false);
+    });
+
+    it("should NOT detect int function prototype", () => {
+      expect(TestUtils.hasCppFeatures("int getValue(void);")).toBe(false);
+    });
+
+    it("should NOT detect uint32_t function prototype", () => {
+      expect(TestUtils.hasCppFeatures("uint32_t getCount(void);")).toBe(false);
+    });
+
+    it("should NOT detect bool function prototype", () => {
+      expect(TestUtils.hasCppFeatures("bool isReady(void);")).toBe(false);
+    });
+
+    it("should NOT detect static function prototype", () => {
+      expect(TestUtils.hasCppFeatures("static init(void);")).toBe(false);
+    });
+
+    it("should NOT detect enum return type prototype", () => {
+      expect(TestUtils.hasCppFeatures("enum getState(void);")).toBe(false);
+    });
+
+    it("should NOT detect struct return type prototype", () => {
+      expect(TestUtils.hasCppFeatures("struct getConfig(void);")).toBe(false);
+    });
+
+    it("should NOT detect custom type return with typed args", () => {
+      expect(TestUtils.hasCppFeatures("Motor_EMode Motor_getMode(void);")).toBe(
+        false,
+      );
+    });
+
+    it("should NOT detect custom type return with const param", () => {
+      expect(
+        TestUtils.hasCppFeatures(
+          "void DeviceManager_configure(const DeviceConfig* newConfig);",
+        ),
+      ).toBe(false);
     });
   });
 
