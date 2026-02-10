@@ -18,6 +18,7 @@ import { randomBytes } from "node:crypto";
 import ITools from "./types/ITools";
 import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
+import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 
 class TestUtils {
   /**
@@ -130,7 +131,7 @@ class TestUtils {
    * Checks for:
    * - C++ casts: static_cast, reinterpret_cast, etc. (Issue #267)
    * - C++ template types: Type<Args> (Issue #291)
-   * - C++14 typed enums: enum Foo : type { (in included headers)
+   * - C++ structural syntax in headers: class, namespace, template, access specifiers, typed enums
    *
    * Note: Named "requiresCpp14" for historical reasons, but now detects
    * any C++ feature that requires g++ compilation.
@@ -156,8 +157,12 @@ class TestUtils {
         const headerPath = join(cFileDir, match[1]);
         if (existsSync(headerPath)) {
           const headerContent = readFileSync(headerPath, "utf-8");
-          // Check for C++14 typed enum syntax: enum Name : type {
-          if (/enum\s+\w+\s*:\s*\w+\s*\{/.test(headerContent)) {
+          // Use transpiler's robust C++ detection for headers
+          if (detectCppSyntax(headerContent)) {
+            return true;
+          }
+          // Also check for inline C++ code in headers (casts, ::, constructors)
+          if (TestUtils.hasCppFeatures(headerContent)) {
             return true;
           }
         }
