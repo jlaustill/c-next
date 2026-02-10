@@ -3,6 +3,7 @@ import AssignmentValidator from "../AssignmentValidator.js";
 import TypeValidator from "../../TypeValidator.js";
 import EnumAssignmentValidator from "../EnumAssignmentValidator.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
+import CodeGenState from "../../CodeGenState.js";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.
@@ -21,24 +22,53 @@ function parseAssignment(target: string) {
   };
 }
 
-describe("AssignmentValidator", () => {
-  let typeRegistry: Map<
-    string,
-    {
-      baseType: string;
-      bitWidth: number;
-      isArray: boolean;
-      isConst: boolean;
-      isEnum?: boolean;
-      enumTypeName?: string;
-      arrayDimensions?: number[];
-    }
-  >;
-  let floatShadowCurrent: Set<string>;
-  let registerMemberAccess: Map<string, string>;
-  let callbackFieldTypes: Map<string, string>;
-  let validator: AssignmentValidator;
+/**
+ * Default callbacks for testing.
+ */
+const defaultCallbacks = {
+  getExpressionType: () => null,
+  tryEvaluateConstant: () => undefined,
+  isCallbackTypeUsedAsFieldType: () => false,
+};
 
+/**
+ * Helper to set up CodeGenState.symbols with minimal fields.
+ */
+function setupSymbols(
+  overrides: {
+    registerMemberAccess?: Map<string, string>;
+  } = {},
+): void {
+  CodeGenState.symbols = {
+    knownScopes: new Set(),
+    knownStructs: new Set(),
+    knownRegisters: new Set(),
+    knownEnums: new Set(),
+    knownBitmaps: new Set(),
+    scopeMembers: new Map(),
+    scopeMemberVisibility: new Map(),
+    structFields: new Map(),
+    structFieldArrays: new Map(),
+    structFieldDimensions: new Map(),
+    enumMembers: new Map(),
+    bitmapFields: new Map(),
+    bitmapBackingType: new Map(),
+    bitmapBitWidth: new Map(),
+    scopedRegisters: new Map(),
+    registerMemberAccess: overrides.registerMemberAccess ?? new Map(),
+    registerMemberTypes: new Map(),
+    registerBaseAddresses: new Map(),
+    registerMemberOffsets: new Map(),
+    registerMemberCTypes: new Map(),
+    scopeVariableUsage: new Map(),
+    scopePrivateConstValues: new Map(),
+    functionReturnTypes: new Map(),
+    getSingleFunctionForVariable: () => null,
+    hasPublicSymbols: () => false,
+  };
+}
+
+describe("AssignmentValidator", () => {
   beforeEach(() => {
     vi.spyOn(TypeValidator, "checkConstAssignment").mockReturnValue(null);
     vi.spyOn(TypeValidator, "checkArrayBounds").mockImplementation(() => {});
@@ -53,22 +83,8 @@ describe("AssignmentValidator", () => {
       "validateEnumAssignment",
     ).mockImplementation(() => {});
 
-    typeRegistry = new Map();
-    floatShadowCurrent = new Set();
-    registerMemberAccess = new Map();
-    callbackFieldTypes = new Map();
-
-    validator = new AssignmentValidator({
-      typeRegistry,
-      floatShadowCurrent,
-      registerMemberAccess,
-      callbackFieldTypes,
-      isKnownStruct: () => false,
-      isIntegerType: (t) => t.startsWith("u") || t.startsWith("i"),
-      getExpressionType: () => null,
-      tryEvaluateConstant: () => undefined,
-      isCallbackTypeUsedAsFieldType: () => false,
-    });
+    CodeGenState.reset();
+    setupSymbols();
   });
 
   afterEach(() => {
@@ -79,7 +95,13 @@ describe("AssignmentValidator", () => {
     it("should check const assignment for simple identifier", () => {
       const { target, expression } = parseAssignment("counter");
 
-      validator.validate(target, expression, false, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        1,
+        defaultCallbacks,
+      );
 
       expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith(
         "counter",
@@ -92,22 +114,34 @@ describe("AssignmentValidator", () => {
       );
       const { target, expression } = parseAssignment("x");
 
-      expect(() => validator.validate(target, expression, false, 1)).toThrow(
-        "cannot assign to const variable 'x'",
-      );
+      expect(() =>
+        AssignmentValidator.validate(
+          target,
+          expression,
+          false,
+          1,
+          defaultCallbacks,
+        ),
+      ).toThrow("cannot assign to const variable 'x'");
     });
 
     it("should invalidate float shadow on assignment", () => {
-      floatShadowCurrent.add("__bits_myFloat");
+      CodeGenState.floatShadowCurrent.add("__bits_myFloat");
       const { target, expression } = parseAssignment("myFloat");
 
-      validator.validate(target, expression, false, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        1,
+        defaultCallbacks,
+      );
 
-      expect(floatShadowCurrent.has("__bits_myFloat")).toBe(false);
+      expect(CodeGenState.floatShadowCurrent.has("__bits_myFloat")).toBe(false);
     });
 
     it("should validate enum assignment for enum-typed variable", () => {
-      typeRegistry.set("status", {
+      CodeGenState.typeRegistry.set("status", {
         baseType: "Status",
         bitWidth: 8,
         isArray: false,
@@ -117,7 +151,13 @@ describe("AssignmentValidator", () => {
       });
       const { target, expression } = parseAssignment("status");
 
-      validator.validate(target, expression, false, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        1,
+        defaultCallbacks,
+      );
 
       expect(
         EnumAssignmentValidator.validateEnumAssignment,
@@ -125,7 +165,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should validate integer assignment for integer-typed variable", () => {
-      typeRegistry.set("counter", {
+      CodeGenState.typeRegistry.set("counter", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -133,7 +173,13 @@ describe("AssignmentValidator", () => {
       });
       const { target, expression } = parseAssignment("counter");
 
-      validator.validate(target, expression, false, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        1,
+        defaultCallbacks,
+      );
 
       expect(TypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
         "u32",
@@ -144,7 +190,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should pass isCompound flag to integer validation", () => {
-      typeRegistry.set("counter", {
+      CodeGenState.typeRegistry.set("counter", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -152,7 +198,13 @@ describe("AssignmentValidator", () => {
       });
       const { target, expression } = parseAssignment("counter");
 
-      validator.validate(target, expression, true, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        true,
+        1,
+        defaultCallbacks,
+      );
 
       expect(TypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
         "u32",
@@ -163,7 +215,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should rethrow validation error with line:column prefix", () => {
-      typeRegistry.set("counter", {
+      CodeGenState.typeRegistry.set("counter", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
@@ -176,13 +228,19 @@ describe("AssignmentValidator", () => {
       );
       const { target, expression } = parseAssignment("counter");
 
-      expect(() => validator.validate(target, expression, false, 1)).toThrow(
-        /^\d+:\d+ Error: Cannot assign u32 to u8 \(narrowing\)/,
-      );
+      expect(() =>
+        AssignmentValidator.validate(
+          target,
+          expression,
+          false,
+          1,
+          defaultCallbacks,
+        ),
+      ).toThrow(/^\d+:\d+ Error: Cannot assign u32 to u8 \(narrowing\)/);
     });
 
     it("should handle non-Error validation exceptions", () => {
-      typeRegistry.set("counter", {
+      CodeGenState.typeRegistry.set("counter", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
@@ -195,9 +253,15 @@ describe("AssignmentValidator", () => {
       );
       const { target, expression } = parseAssignment("counter");
 
-      expect(() => validator.validate(target, expression, false, 1)).toThrow(
-        /^\d+:\d+ string error/,
-      );
+      expect(() =>
+        AssignmentValidator.validate(
+          target,
+          expression,
+          false,
+          1,
+          defaultCallbacks,
+        ),
+      ).toThrow(/^\d+:\d+ string error/);
     });
   });
 
@@ -205,7 +269,13 @@ describe("AssignmentValidator", () => {
     it("should check const assignment for array", () => {
       const { target, expression } = parseAssignment("arr[0]");
 
-      validator.validate(target, expression, false, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        1,
+        defaultCallbacks,
+      );
 
       expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith("arr");
     });
@@ -216,13 +286,19 @@ describe("AssignmentValidator", () => {
       );
       const { target, expression } = parseAssignment("arr[0]");
 
-      expect(() => validator.validate(target, expression, false, 1)).toThrow(
-        "cannot assign to const variable 'arr' (array element)",
-      );
+      expect(() =>
+        AssignmentValidator.validate(
+          target,
+          expression,
+          false,
+          1,
+          defaultCallbacks,
+        ),
+      ).toThrow("cannot assign to const variable 'arr' (array element)");
     });
 
     it("should check array bounds for array with dimensions", () => {
-      typeRegistry.set("arr", {
+      CodeGenState.typeRegistry.set("arr", {
         baseType: "u8",
         bitWidth: 8,
         isConst: false,
@@ -231,7 +307,13 @@ describe("AssignmentValidator", () => {
       });
       const { target, expression } = parseAssignment("arr[0]");
 
-      validator.validate(target, expression, false, 5);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        5,
+        defaultCallbacks,
+      );
 
       expect(TypeValidator.checkArrayBounds).toHaveBeenCalledWith(
         "arr",
@@ -247,7 +329,13 @@ describe("AssignmentValidator", () => {
     it("should check const assignment for struct root", () => {
       const { target, expression } = parseAssignment("config.value");
 
-      validator.validate(target, expression, false, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        1,
+        defaultCallbacks,
+      );
 
       expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith("config");
     });
@@ -258,44 +346,55 @@ describe("AssignmentValidator", () => {
       );
       const { target, expression } = parseAssignment("config.value");
 
-      expect(() => validator.validate(target, expression, false, 1)).toThrow(
-        "cannot assign to const variable 'config' (member access)",
-      );
+      expect(() =>
+        AssignmentValidator.validate(
+          target,
+          expression,
+          false,
+          1,
+          defaultCallbacks,
+        ),
+      ).toThrow("cannot assign to const variable 'config' (member access)");
     });
 
     it("should throw for read-only register member", () => {
-      registerMemberAccess.set("GPIO_PIN", "ro");
+      const registerMemberAccess = new Map([["GPIO_PIN", "ro"]]);
+      setupSymbols({ registerMemberAccess });
       const { target, expression } = parseAssignment("GPIO.PIN");
 
-      expect(() => validator.validate(target, expression, false, 1)).toThrow(
-        "cannot assign to read-only register member 'PIN'",
-      );
+      expect(() =>
+        AssignmentValidator.validate(
+          target,
+          expression,
+          false,
+          1,
+          defaultCallbacks,
+        ),
+      ).toThrow("cannot assign to read-only register member 'PIN'");
     });
 
     it("should validate callback assignment for callback field", () => {
-      typeRegistry.set("handler", {
+      CodeGenState.typeRegistry.set("handler", {
         baseType: "Handler",
         bitWidth: 0,
         isArray: false,
         isConst: false,
       });
-      callbackFieldTypes.set("Handler.onEvent", "EventCallback");
-
-      const validatorWithStruct = new AssignmentValidator({
-        typeRegistry,
-        floatShadowCurrent,
-        registerMemberAccess,
-        callbackFieldTypes,
-        isKnownStruct: (name) => name === "Handler",
-        isIntegerType: () => false,
-        getExpressionType: () => null,
-        tryEvaluateConstant: () => undefined,
-        isCallbackTypeUsedAsFieldType: () => false,
-      });
+      CodeGenState.callbackFieldTypes.set("Handler.onEvent", "EventCallback");
+      // Mark Handler as a known struct
+      if (CodeGenState.symbols) {
+        CodeGenState.symbols.knownStructs.add("Handler");
+      }
 
       const { target, expression } = parseAssignment("handler.onEvent");
 
-      validatorWithStruct.validate(target, expression, false, 1);
+      AssignmentValidator.validate(
+        target,
+        expression,
+        false,
+        1,
+        defaultCallbacks,
+      );
 
       expect(TypeValidator.validateCallbackAssignment).toHaveBeenCalledWith(
         "EventCallback",

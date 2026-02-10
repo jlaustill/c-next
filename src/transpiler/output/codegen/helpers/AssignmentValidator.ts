@@ -10,29 +10,21 @@
  * - Array bounds checking
  * - Read-only register members
  * - Callback field assignments
+ *
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TypeValidator from "../TypeValidator.js";
 import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
-import TTypeInfo from "../types/TTypeInfo.js";
+import CodeGenState from "../CodeGenState.js";
+import TypeCheckUtils from "../../../../utils/TypeCheckUtils.js";
 
 /**
- * Dependencies required for assignment validation.
+ * Callbacks required for assignment validation.
+ * These need CodeGenerator context and cannot be replaced with static state.
  */
-interface IAssignmentValidatorDeps {
-  /** Type registry for looking up variable types */
-  readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
-  /** Float shadow tracking state for invalidation */
-  readonly floatShadowCurrent: Set<string>;
-  /** Register member access modifiers for read-only checks */
-  readonly registerMemberAccess: ReadonlyMap<string, string>;
-  /** Callback field types for nominal typing validation */
-  readonly callbackFieldTypes: ReadonlyMap<string, string>;
-  /** Check if a type is a known struct */
-  isKnownStruct: (typeName: string) => boolean;
-  /** Check if a type is an integer type */
-  isIntegerType: (typeName: string) => boolean;
+interface IAssignmentValidatorCallbacks {
   /** Get the type of an expression */
   getExpressionType: (ctx: Parser.ExpressionContext) => string | null;
   /** Try to evaluate a constant expression */
@@ -45,12 +37,6 @@ interface IAssignmentValidatorDeps {
  * Coordinates all assignment validations.
  */
 class AssignmentValidator {
-  private readonly deps: IAssignmentValidatorDeps;
-
-  constructor(deps: IAssignmentValidatorDeps) {
-    this.deps = deps;
-  }
-
   /**
    * Validate an assignment target.
    *
@@ -58,19 +44,26 @@ class AssignmentValidator {
    * @param expression - The expression being assigned
    * @param isCompound - Whether this is a compound assignment (+<-, -<-, etc.)
    * @param line - Line number for error messages
+   * @param callbacks - Callbacks to CodeGenerator methods
    */
-  validate(
+  static validate(
     targetCtx: Parser.AssignmentTargetContext,
     expression: Parser.ExpressionContext,
     isCompound: boolean,
     line: number,
+    callbacks: IAssignmentValidatorCallbacks,
   ): void {
     const postfixOps = targetCtx.postfixTargetOp();
     const baseId = targetCtx.IDENTIFIER()?.getText();
 
     // Case 1: Simple identifier assignment (no postfix ops)
     if (baseId && postfixOps.length === 0) {
-      this.validateSimpleIdentifier(baseId, expression, isCompound);
+      AssignmentValidator.validateSimpleIdentifier(
+        baseId,
+        expression,
+        isCompound,
+        callbacks,
+      );
       return;
     }
 
@@ -90,22 +83,32 @@ class AssignmentValidator {
 
     // Case 2: Has subscripts - validate array bounds
     if (subscriptExprs.length > 0 && identifiers.length > 0) {
-      this.validateArrayElement(identifiers[0], subscriptExprs, line);
+      AssignmentValidator.validateArrayElement(
+        identifiers[0],
+        subscriptExprs,
+        line,
+        callbacks,
+      );
     }
 
     // Case 3: Has member access - validate member access
     if (identifiers.length >= 2) {
-      this.validateMemberAccess(identifiers, expression);
+      AssignmentValidator.validateMemberAccess(
+        identifiers,
+        expression,
+        callbacks,
+      );
     }
   }
 
   /**
    * Validate simple identifier assignment.
    */
-  private validateSimpleIdentifier(
+  private static validateSimpleIdentifier(
     id: string,
     expression: Parser.ExpressionContext,
     isCompound: boolean,
+    callbacks: IAssignmentValidatorCallbacks,
   ): void {
     // ADR-013: Validate const assignment
     const constError = TypeValidator.checkConstAssignment(id);
@@ -115,14 +118,14 @@ class AssignmentValidator {
 
     // Invalidate float shadow when variable is assigned directly
     const shadowName = `__bits_${id}`;
-    this.deps.floatShadowCurrent.delete(shadowName);
+    CodeGenState.floatShadowCurrent.delete(shadowName);
 
-    const targetTypeInfo = this.deps.typeRegistry.get(id);
+    const targetTypeInfo = CodeGenState.typeRegistry.get(id);
     if (!targetTypeInfo) {
       return;
     }
 
-    // ADR-017: Validate enum type assignment
+    // ADR-017: Validate enum assignment for enum-typed variable
     if (targetTypeInfo.isEnum && targetTypeInfo.enumTypeName) {
       EnumAssignmentValidator.validateEnumAssignment(
         targetTypeInfo.enumTypeName,
@@ -131,22 +134,24 @@ class AssignmentValidator {
     }
 
     // ADR-024: Validate integer type conversions
-    if (this.deps.isIntegerType(targetTypeInfo.baseType)) {
+    if (TypeCheckUtils.isInteger(targetTypeInfo.baseType)) {
       try {
         TypeValidator.validateIntegerAssignment(
           targetTypeInfo.baseType,
           expression.getText(),
-          this.deps.getExpressionType(expression),
+          callbacks.getExpressionType(expression),
           isCompound,
         );
       } catch (validationError) {
-        const line = expression.start?.line ?? 0;
+        const errorLine = expression.start?.line ?? 0;
         const col = expression.start?.column ?? 0;
         const msg =
           validationError instanceof Error
             ? validationError.message
             : String(validationError);
-        throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
+        throw new Error(`${errorLine}:${col} ${msg}`, {
+          cause: validationError,
+        });
       }
     }
   }
@@ -154,10 +159,11 @@ class AssignmentValidator {
   /**
    * Validate array element assignment.
    */
-  private validateArrayElement(
+  private static validateArrayElement(
     arrayName: string,
     subscriptExprs: Parser.ExpressionContext[],
     line: number,
+    callbacks: IAssignmentValidatorCallbacks,
   ): void {
     // ADR-013: Validate const assignment on array
     const constError = TypeValidator.checkConstAssignment(arrayName);
@@ -166,14 +172,14 @@ class AssignmentValidator {
     }
 
     // ADR-036: Compile-time bounds checking
-    const typeInfo = this.deps.typeRegistry.get(arrayName);
+    const typeInfo = CodeGenState.typeRegistry.get(arrayName);
     if (typeInfo?.isArray && typeInfo.arrayDimensions) {
       TypeValidator.checkArrayBounds(
         arrayName,
         typeInfo.arrayDimensions,
         subscriptExprs,
         line,
-        this.deps.tryEvaluateConstant,
+        callbacks.tryEvaluateConstant,
       );
     }
   }
@@ -181,9 +187,10 @@ class AssignmentValidator {
   /**
    * Validate member access assignment.
    */
-  private validateMemberAccess(
+  private static validateMemberAccess(
     identifiers: string[],
     expression: Parser.ExpressionContext,
+    callbacks: IAssignmentValidatorCallbacks,
   ): void {
     if (identifiers.length < 2) {
       return;
@@ -201,7 +208,7 @@ class AssignmentValidator {
     const fullName = `${rootName}_${memberName}`;
 
     // ADR-013: Check for read-only register members
-    const accessMod = this.deps.registerMemberAccess.get(fullName);
+    const accessMod = CodeGenState.symbols?.registerMemberAccess.get(fullName);
     if (accessMod === "ro") {
       throw new Error(
         `cannot assign to read-only register member '${memberName}' ` +
@@ -210,19 +217,19 @@ class AssignmentValidator {
     }
 
     // ADR-029: Validate callback field assignments with nominal typing
-    const rootTypeInfo = this.deps.typeRegistry.get(rootName);
-    if (rootTypeInfo && this.deps.isKnownStruct(rootTypeInfo.baseType)) {
+    const rootTypeInfo = CodeGenState.typeRegistry.get(rootName);
+    if (rootTypeInfo && CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
       const structType = rootTypeInfo.baseType;
       const callbackFieldKey = `${structType}.${memberName}`;
       const expectedCallbackType =
-        this.deps.callbackFieldTypes.get(callbackFieldKey);
+        CodeGenState.callbackFieldTypes.get(callbackFieldKey);
 
       if (expectedCallbackType) {
         TypeValidator.validateCallbackAssignment(
           expectedCallbackType,
           expression,
           memberName,
-          this.deps.isCallbackTypeUsedAsFieldType,
+          callbacks.isCallbackTypeUsedAsFieldType,
         );
       }
     }

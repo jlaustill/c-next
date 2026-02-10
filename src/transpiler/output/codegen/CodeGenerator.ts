@@ -320,9 +320,6 @@ export default class CodeGenerator implements IOrchestrator {
   /** Issue #644: Array initialization helper for size inference and fill-all */
   private arrayInitHelper: ArrayInitHelper | null = null;
 
-  /** Issue #644: Assignment validation coordinator helper */
-  private assignmentValidator: AssignmentValidator | null = null;
-
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
 
@@ -2229,20 +2226,18 @@ export default class CodeGenerator implements IOrchestrator {
    * Initialize all helper objects needed for code generation.
    */
   private initializeHelperObjects(tree: Parser.ProgramContext): void {
-    const symbols = CodeGenState.symbols!;
-
     // Collect function/callback information
     this.collectFunctionsAndCallbacks(tree);
     this.analyzePassByValue(tree);
 
     // Initialize remaining helpers
-    this.initializeAnalysisHelpers(symbols);
+    this.initializeAnalysisHelpers();
   }
 
   /**
    * Initialize analysis and generation helpers.
    */
-  private initializeAnalysisHelpers(symbols: ICodeGenSymbols): void {
+  private initializeAnalysisHelpers(): void {
     // Create arrayInitState proxy
     const arrayInitState = {
       get lastArrayInitCount() {
@@ -2285,19 +2280,6 @@ export default class CodeGenerator implements IOrchestrator {
       generateExpression: (ctx) => this.generateExpression(ctx),
       getTypeName: (ctx) => this.getTypeName(ctx),
       generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-    });
-
-    this.assignmentValidator = new AssignmentValidator({
-      typeRegistry: CodeGenState.typeRegistry,
-      floatShadowCurrent: CodeGenState.floatShadowCurrent,
-      registerMemberAccess: symbols.registerMemberAccess,
-      callbackFieldTypes: CodeGenState.callbackFieldTypes,
-      isKnownStruct: (name) => this.isKnownStruct(name),
-      isIntegerType: (name) => this._isIntegerType(name),
-      getExpressionType: (ctx) => this.getExpressionType(ctx),
-      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-      isCallbackTypeUsedAsFieldType: (name) =>
-        this.isCallbackTypeUsedAsFieldType(name),
     });
   }
 
@@ -6096,11 +6078,17 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #644: Validate assignment (const, enum, integer, array bounds, callbacks)
     // Delegated to AssignmentValidator helper to reduce cognitive complexity
-    this.assignmentValidator!.validate(
+    AssignmentValidator.validate(
       targetCtx,
       ctx.expression(),
       isCompound,
       ctx.start?.line ?? 0,
+      {
+        getExpressionType: (exprCtx) => this.getExpressionType(exprCtx),
+        tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
+        isCallbackTypeUsedAsFieldType: (name) =>
+          this.isCallbackTypeUsedAsFieldType(name),
+      },
     );
 
     // ADR-109: Dispatch to assignment handlers
