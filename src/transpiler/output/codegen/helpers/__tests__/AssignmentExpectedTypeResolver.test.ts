@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
+import CodeGenState from "../../CodeGenState.js";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.
@@ -16,34 +17,53 @@ function parseAssignmentTarget(target: string) {
   return assignStmt.assignmentTarget();
 }
 
+/**
+ * Helper to set up struct fields in CodeGenState.symbols
+ */
+function setupStructFields(
+  structName: string,
+  fields: Map<string, string>,
+): void {
+  if (!CodeGenState.symbols) {
+    CodeGenState.symbols = {
+      knownStructs: new Set(),
+      knownScopes: new Set(),
+      knownEnums: new Set(),
+      knownBitmaps: new Set(),
+      knownRegisters: new Set(),
+      knownFunctions: new Set(),
+      structFields: new Map(),
+      structFieldArrays: new Map(),
+      enumMembers: new Map(),
+      bitmapMembers: new Map(),
+      registerMembers: new Map(),
+      scopeMembers: new Map(),
+      registerMemberAccess: new Map(),
+      functionSignatures: new Map(),
+      callbackTypes: new Map(),
+    };
+  }
+  CodeGenState.symbols.knownStructs.add(structName);
+  CodeGenState.symbols.structFields.set(structName, fields);
+}
+
 describe("AssignmentExpectedTypeResolver", () => {
-  let resolver: AssignmentExpectedTypeResolver;
-  let typeRegistry: Map<
-    string,
-    { baseType: string; overflowBehavior?: string }
-  >;
-  let structFields: Map<string, Map<string, string>>;
-  let knownStructs: Set<string>;
-
   beforeEach(() => {
-    typeRegistry = new Map();
-    structFields = new Map();
-    knownStructs = new Set();
-
-    resolver = new AssignmentExpectedTypeResolver({
-      typeRegistry: typeRegistry as any,
-      structFields,
-      isKnownStruct: (name) => knownStructs.has(name),
-    });
+    CodeGenState.reset();
   });
 
   describe("resolve()", () => {
     describe("simple identifier", () => {
       it("should resolve expected type for known variable", () => {
-        typeRegistry.set("counter", { baseType: "u32" });
+        CodeGenState.typeRegistry.set("counter", {
+          baseType: "u32",
+          bitWidth: 32,
+          isArray: false,
+          isConst: false,
+        });
         const target = parseAssignmentTarget("counter");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.expectedType).toBe("u32");
         expect(result.assignmentContext).toEqual({
@@ -54,13 +74,16 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should use specified overflow behavior", () => {
-        typeRegistry.set("counter", {
+        CodeGenState.typeRegistry.set("counter", {
           baseType: "u8",
+          bitWidth: 8,
+          isArray: false,
+          isConst: false,
           overflowBehavior: "wrap",
         });
         const target = parseAssignmentTarget("counter");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.assignmentContext?.overflowBehavior).toBe("wrap");
       });
@@ -68,7 +91,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       it("should return null for unknown variable", () => {
         const target = parseAssignmentTarget("unknown");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.expectedType).toBeNull();
         expect(result.assignmentContext).toBeNull();
@@ -77,45 +100,61 @@ describe("AssignmentExpectedTypeResolver", () => {
 
     describe("member access", () => {
       it("should resolve expected type for struct field", () => {
-        typeRegistry.set("config", { baseType: "Config" });
-        knownStructs.add("Config");
-        structFields.set("Config", new Map([["status", "Status"]]));
+        CodeGenState.typeRegistry.set("config", {
+          baseType: "Config",
+          bitWidth: 0,
+          isArray: false,
+          isConst: false,
+        });
+        setupStructFields("Config", new Map([["status", "Status"]]));
         const target = parseAssignmentTarget("config.status");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.expectedType).toBe("Status");
       });
 
       it("should walk nested struct chain", () => {
-        typeRegistry.set("app", { baseType: "App" });
-        knownStructs.add("App");
-        knownStructs.add("Config");
-        structFields.set("App", new Map([["config", "Config"]]));
-        structFields.set("Config", new Map([["mode", "Mode"]]));
+        CodeGenState.typeRegistry.set("app", {
+          baseType: "App",
+          bitWidth: 0,
+          isArray: false,
+          isConst: false,
+        });
+        setupStructFields("App", new Map([["config", "Config"]]));
+        setupStructFields("Config", new Map([["mode", "Mode"]]));
         const target = parseAssignmentTarget("app.config.mode");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.expectedType).toBe("Mode");
       });
 
       it("should return null for non-struct root", () => {
-        typeRegistry.set("counter", { baseType: "u32" });
+        CodeGenState.typeRegistry.set("counter", {
+          baseType: "u32",
+          bitWidth: 32,
+          isArray: false,
+          isConst: false,
+        });
         const target = parseAssignmentTarget("counter.value");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.expectedType).toBeNull();
       });
 
       it("should return null for unknown field", () => {
-        typeRegistry.set("config", { baseType: "Config" });
-        knownStructs.add("Config");
-        structFields.set("Config", new Map([["status", "Status"]]));
+        CodeGenState.typeRegistry.set("config", {
+          baseType: "Config",
+          bitWidth: 0,
+          isArray: false,
+          isConst: false,
+        });
+        setupStructFields("Config", new Map([["status", "Status"]]));
         const target = parseAssignmentTarget("config.unknown");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.expectedType).toBeNull();
       });
@@ -123,10 +162,15 @@ describe("AssignmentExpectedTypeResolver", () => {
 
     describe("array access", () => {
       it("should return null for array access target", () => {
-        typeRegistry.set("arr", { baseType: "u32" });
+        CodeGenState.typeRegistry.set("arr", {
+          baseType: "u32",
+          bitWidth: 32,
+          isArray: true,
+          isConst: false,
+        });
         const target = parseAssignmentTarget("arr[0]");
 
-        const result = resolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target);
 
         expect(result.expectedType).toBeNull();
         expect(result.assignmentContext).toBeNull();

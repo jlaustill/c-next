@@ -320,9 +320,6 @@ export default class CodeGenerator implements IOrchestrator {
   /** Issue #644: Array initialization helper for size inference and fill-all */
   private arrayInitHelper: ArrayInitHelper | null = null;
 
-  /** Issue #644: Assignment expected type resolution helper */
-  private expectedTypeResolver: AssignmentExpectedTypeResolver | null = null;
-
   /** Issue #644: Assignment validation coordinator helper */
   private assignmentValidator: AssignmentValidator | null = null;
 
@@ -2278,12 +2275,6 @@ export default class CodeGenerator implements IOrchestrator {
       generateExpression: (ctx) => this.generateExpression(ctx),
       getTypeName: (ctx) => this.getTypeName(ctx),
       generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-    });
-
-    this.expectedTypeResolver = new AssignmentExpectedTypeResolver({
-      typeRegistry: CodeGenState.typeRegistry,
-      structFields: symbols.structFields,
-      isKnownStruct: (name) => this.isKnownStruct(name),
     });
 
     this.assignmentValidator = new AssignmentValidator({
@@ -5870,7 +5861,8 @@ export default class CodeGenerator implements IOrchestrator {
     const savedExpectedType = CodeGenState.expectedType;
     const savedAssignmentContext = { ...CodeGenState.assignmentContext };
 
-    const resolved = this.expectedTypeResolver!.resolve(targetCtx);
+    // Issue #644: AssignmentExpectedTypeResolver is now static
+    const resolved = AssignmentExpectedTypeResolver.resolve(targetCtx);
     if (resolved.expectedType) {
       CodeGenState.expectedType = resolved.expectedType;
     }

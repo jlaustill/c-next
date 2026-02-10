@@ -5,12 +5,14 @@
  *
  * Sets up expectedType and assignmentContext for expression generation,
  * enabling type-aware resolution of unqualified enum members and overflow behavior.
+ *
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
-import TTypeInfo from "../types/TTypeInfo.js";
 import TOverflowBehavior from "../types/TOverflowBehavior.js";
 import analyzePostfixOps from "../../../../utils/PostfixAnalysisUtils.js";
+import CodeGenState from "../CodeGenState.js";
 
 /**
  * Result of resolving expected type for an assignment target.
@@ -32,40 +34,24 @@ interface IAssignmentContext {
 }
 
 /**
- * Dependencies required for expected type resolution.
- */
-interface IExpectedTypeResolverDeps {
-  /** Type registry for looking up variable types */
-  readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
-  /** Struct field types: structName -> (fieldName -> fieldType) */
-  readonly structFields: ReadonlyMap<string, ReadonlyMap<string, string>>;
-  /** Check if a type is a known struct */
-  isKnownStruct: (typeName: string) => boolean;
-}
-
-/**
  * Resolves expected type for assignment targets.
  */
 class AssignmentExpectedTypeResolver {
-  private readonly deps: IExpectedTypeResolverDeps;
-
-  constructor(deps: IExpectedTypeResolverDeps) {
-    this.deps = deps;
-  }
-
   /**
    * Resolve expected type for an assignment target.
    *
    * @param targetCtx - The assignment target context
    * @returns The resolved expected type and assignment context
    */
-  resolve(targetCtx: Parser.AssignmentTargetContext): IExpectedTypeResult {
+  static resolve(
+    targetCtx: Parser.AssignmentTargetContext,
+  ): IExpectedTypeResult {
     const postfixOps = targetCtx.postfixTargetOp();
     const baseId = targetCtx.IDENTIFIER()?.getText();
 
     // Case 1: Simple identifier (x <- value) - no postfix ops
     if (baseId && postfixOps.length === 0) {
-      return this.resolveForSimpleIdentifier(baseId);
+      return AssignmentExpectedTypeResolver.resolveForSimpleIdentifier(baseId);
     }
 
     // Case 2: Has member access - extract identifiers from postfix chain
@@ -77,7 +63,9 @@ class AssignmentExpectedTypeResolver {
 
       // If we have member access (multiple identifiers), resolve for member chain
       if (identifiers.length >= 2 && !hasSubscript) {
-        return this.resolveForMemberChain(identifiers);
+        return AssignmentExpectedTypeResolver.resolveForMemberChain(
+          identifiers,
+        );
       }
     }
 
@@ -88,8 +76,8 @@ class AssignmentExpectedTypeResolver {
   /**
    * Resolve expected type for a simple identifier target.
    */
-  private resolveForSimpleIdentifier(id: string): IExpectedTypeResult {
-    const typeInfo = this.deps.typeRegistry.get(id);
+  private static resolveForSimpleIdentifier(id: string): IExpectedTypeResult {
+    const typeInfo = CodeGenState.typeRegistry.get(id);
     if (!typeInfo) {
       return { expectedType: null, assignmentContext: null };
     }
@@ -111,15 +99,17 @@ class AssignmentExpectedTypeResolver {
    * Issue #452: Enables type-aware resolution of unqualified enum members
    * for nested access (e.g., config.nested.field).
    */
-  private resolveForMemberChain(identifiers: string[]): IExpectedTypeResult {
+  private static resolveForMemberChain(
+    identifiers: string[],
+  ): IExpectedTypeResult {
     if (identifiers.length < 2) {
       return { expectedType: null, assignmentContext: null };
     }
 
     const rootName = identifiers[0];
-    const rootTypeInfo = this.deps.typeRegistry.get(rootName);
+    const rootTypeInfo = CodeGenState.typeRegistry.get(rootName);
 
-    if (!rootTypeInfo || !this.deps.isKnownStruct(rootTypeInfo.baseType)) {
+    if (!rootTypeInfo || !CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
       return { expectedType: null, assignmentContext: null };
     }
 
@@ -128,7 +118,8 @@ class AssignmentExpectedTypeResolver {
     // Walk through each member in the chain to find the final field's type
     for (let i = 1; i < identifiers.length && currentStructType; i++) {
       const memberName = identifiers[i];
-      const structFieldTypes = this.deps.structFields.get(currentStructType);
+      const structFieldTypes =
+        CodeGenState.symbols?.structFields.get(currentStructType);
 
       if (!structFieldTypes?.has(memberName)) {
         break;
@@ -139,7 +130,7 @@ class AssignmentExpectedTypeResolver {
       if (i === identifiers.length - 1) {
         // Last field in chain - this is the assignment target's type
         return { expectedType: memberType, assignmentContext: null };
-      } else if (this.deps.isKnownStruct(memberType)) {
+      } else if (CodeGenState.isKnownStruct(memberType)) {
         // Intermediate field - continue walking if it's a struct
         currentStructType = memberType;
       } else {
