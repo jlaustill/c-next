@@ -314,32 +314,12 @@ export default class CodeGenerator implements IOrchestrator {
   /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
   public symbols: ICodeGenSymbols | null = null;
 
-  /** Issue #644: String length counter for strlen caching optimization */
-  private stringLengthCounter: StringLengthCounter | null = null;
-
-  /** Issue #644: Member chain analyzer for bit access pattern detection */
-  private memberChainAnalyzer: MemberChainAnalyzer | null = null;
-
-  /** Issue #644: Float bit write helper for shadow variable pattern */
-  private floatBitHelper: FloatBitHelper | null = null;
-
   /** Issue #644: String declaration helper for bounded/array/concat strings */
-  private stringDeclHelper: StringDeclHelper | null = null;
 
   /** Issue #644: Array initialization helper for size inference and fill-all */
-  private arrayInitHelper: ArrayInitHelper | null = null;
-
-  /** Issue #644: Assignment expected type resolution helper */
-  private expectedTypeResolver: AssignmentExpectedTypeResolver | null = null;
-
-  /** Issue #644: Assignment validation coordinator helper */
-  private assignmentValidator: AssignmentValidator | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
-
-  /** Issue #644: C/C++ mode helper for consolidated mode-specific patterns */
-  private cppHelper: CppModeHelper | null = null;
 
   /**
    * Initialize generator registry with extracted generators.
@@ -1188,8 +1168,8 @@ export default class CodeGenerator implements IOrchestrator {
   countStringLengthAccesses(
     ctx: Parser.ExpressionContext,
   ): Map<string, number> {
-    // Issue #644: Delegate to extracted StringLengthCounter
-    return this.stringLengthCounter!.countExpression(ctx);
+    // Issue #644: Delegate to extracted StringLengthCounter (now static)
+    return StringLengthCounter.countExpression(ctx);
   }
 
   /**
@@ -1200,8 +1180,8 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.BlockContext,
     counts: Map<string, number>,
   ): void {
-    // Issue #644: Delegate to extracted StringLengthCounter
-    this.stringLengthCounter!.countBlockInto(ctx, counts);
+    // Issue #644: Delegate to extracted StringLengthCounter (now static)
+    StringLengthCounter.countBlockInto(ctx, counts);
   }
 
   /**
@@ -2010,7 +1990,7 @@ export default class CodeGenerator implements IOrchestrator {
       isParameterPassByValue: (funcName: string, paramName: string) =>
         this._isParameterPassByValueByName(funcName, paramName),
       currentFunctionName: CodeGenState.currentFunctionName,
-      maybeDereference: (id: string) => this.cppHelper!.maybeDereference(id),
+      maybeDereference: (id: string) => CppModeHelper.maybeDereference(id),
     };
   }
 
@@ -2172,7 +2152,6 @@ export default class CodeGenerator implements IOrchestrator {
     CodeGenState.includeDirs = options?.includeDirs ?? [];
     CodeGenState.inputs = options?.inputs ?? [];
     CodeGenState.cppMode = options?.cppMode ?? false;
-    this.cppHelper = new CppModeHelper({ cppMode: CodeGenState.cppMode });
     CodeGenState.pendingTempDeclarations = [];
     CodeGenState.tempVarCounter = 0;
     CodeGenState.pendingCppClassAssignments = [];
@@ -2245,105 +2224,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Initialize all helper objects needed for code generation.
    */
   private initializeHelperObjects(tree: Parser.ProgramContext): void {
-    const symbols = CodeGenState.symbols!;
-
     // Collect function/callback information
     this.collectFunctionsAndCallbacks(tree);
     this.analyzePassByValue(tree);
-
-    // Initialize remaining helpers
-    this.initializeAnalysisHelpers(symbols);
-  }
-
-  /**
-   * Initialize analysis and generation helpers.
-   */
-  private initializeAnalysisHelpers(symbols: ICodeGenSymbols): void {
-    this.stringLengthCounter = new StringLengthCounter((name: string) =>
-      CodeGenState.typeRegistry.get(name),
-    );
-
-    this.memberChainAnalyzer = new MemberChainAnalyzer({
-      typeRegistry: CodeGenState.typeRegistry,
-      structFields: symbols.structFields,
-      structFieldArrays: symbols.structFieldArrays,
-      isKnownStruct: (name) => this.isKnownStruct(name),
-      generateExpression: (ctx) => this.generateExpression(ctx),
-    });
-
-    this.floatBitHelper = new FloatBitHelper({
-      cppMode: CodeGenState.cppMode,
-      state: {
-        floatBitShadows: CodeGenState.floatBitShadows,
-        floatShadowCurrent: CodeGenState.floatShadowCurrent,
-      },
-      generateBitMask: (width, is64Bit) => this.generateBitMask(width, is64Bit),
-      foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
-      requireInclude: (header) => this.requireInclude(header),
-    });
-
-    // Create arrayInitState proxy
-    const arrayInitState = {
-      get lastArrayInitCount() {
-        return CodeGenState.lastArrayInitCount;
-      },
-      set lastArrayInitCount(val: number) {
-        CodeGenState.lastArrayInitCount = val;
-      },
-      get lastArrayFillValue() {
-        return CodeGenState.lastArrayFillValue;
-      },
-      set lastArrayFillValue(val: string | undefined) {
-        CodeGenState.lastArrayFillValue = val;
-      },
-    };
-
-    this.stringDeclHelper = new StringDeclHelper({
-      typeRegistry: CodeGenState.typeRegistry,
-      getInFunctionBody: () => CodeGenState.inFunctionBody,
-      getIndentLevel: () => CodeGenState.indentLevel,
-      arrayInitState,
-      localArrays: CodeGenState.localArrays,
-      generateExpression: (ctx) => this.generateExpression(ctx),
-      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-      getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
-      getSubstringOperands: (ctx) => this._getSubstringOperands(ctx),
-      getStringLiteralLength: (literal) => StringUtils.literalLength(literal),
-      getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
-      requireStringInclude: () => this.requireInclude("string"),
-    });
-
-    this.arrayInitHelper = new ArrayInitHelper({
-      typeRegistry: CodeGenState.typeRegistry,
-      localArrays: CodeGenState.localArrays,
-      arrayInitState: arrayInitState,
-      getExpectedType: () => CodeGenState.expectedType,
-      setExpectedType: (type) => {
-        CodeGenState.expectedType = type;
-      },
-      generateExpression: (ctx) => this.generateExpression(ctx),
-      getTypeName: (ctx) => this.getTypeName(ctx),
-      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-    });
-
-    this.expectedTypeResolver = new AssignmentExpectedTypeResolver({
-      typeRegistry: CodeGenState.typeRegistry,
-      structFields: symbols.structFields,
-      isKnownStruct: (name) => this.isKnownStruct(name),
-    });
-
-    this.assignmentValidator = new AssignmentValidator({
-      typeRegistry: CodeGenState.typeRegistry,
-      floatShadowCurrent: CodeGenState.floatShadowCurrent,
-      registerMemberAccess: symbols.registerMemberAccess,
-      callbackFieldTypes: CodeGenState.callbackFieldTypes,
-      isKnownStruct: (name) => this.isKnownStruct(name),
-      isIntegerType: (name) => this._isIntegerType(name),
-      getExpressionType: (ctx) => this.getExpressionType(ctx),
-      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-      isCallbackTypeUsedAsFieldType: (name) =>
-        this.isCallbackTypeUsedAsFieldType(name),
-    });
   }
 
   /**
@@ -4509,12 +4392,12 @@ export default class CodeGenerator implements IOrchestrator {
       const members = CodeGenState.scopeMembers.get(CodeGenState.currentScope);
       if (members?.has(id)) {
         const scopedName = `${CodeGenState.currentScope}_${id}`;
-        return this.cppHelper!.maybeAddressOf(scopedName);
+        return CppModeHelper.maybeAddressOf(scopedName);
       }
     }
 
     // Local variable - add & (except in C++ mode)
-    return this.cppHelper!.maybeAddressOf(id);
+    return CppModeHelper.maybeAddressOf(id);
   }
 
   /**
@@ -4536,7 +4419,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Generate expression with address-of
     const generatedExpr = this.generateExpression(ctx);
-    const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
+    const expr = CppModeHelper.maybeAddressOf(generatedExpr);
 
     // String subscript access may need cast
     if (lvalueType === "array") {
@@ -4581,11 +4464,11 @@ export default class CodeGenerator implements IOrchestrator {
     const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
     const value = this.generateExpression(ctx);
     const tempName = `_cnx_tmp_${CodeGenState.tempVarCounter++}`;
-    const castExpr = this.cppHelper!.cast(cType, value);
+    const castExpr = CppModeHelper.cast(cType, value);
     CodeGenState.pendingTempDeclarations.push(
       `${cType} ${tempName} = ${castExpr};`,
     );
-    return this.cppHelper!.maybeAddressOf(tempName);
+    return CppModeHelper.maybeAddressOf(tempName);
   }
 
   /**
@@ -4602,7 +4485,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-      return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
+      return CppModeHelper.reinterpretCast(`${cType}*`, expr);
     }
 
     return expr;
@@ -5425,7 +5308,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     const wasModified = this._isCurrentParameterModified(name);
     const autoConst = !wasModified && !constMod ? "const " : "";
-    const refOrPtr = this.cppHelper!.refOrPtr();
+    const refOrPtr = CppModeHelper.refOrPtr();
     return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
   }
 
@@ -5458,13 +5341,24 @@ export default class CodeGenerator implements IOrchestrator {
     this._trackLocalVariable(ctx, name);
 
     // ADR-045: Handle bounded string type specially - early return
-    const stringResult = this.stringDeclHelper!.generateStringDecl(
+    const stringResult = StringDeclHelper.generateStringDecl(
       typeCtx,
       name,
       ctx.expression() ?? null,
       ctx.arrayDimension(),
       modifiers,
       ctx.constModifier() !== null,
+      {
+        generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+        generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
+        getStringConcatOperands: (concatCtx) =>
+          this._getStringConcatOperands(concatCtx),
+        getSubstringOperands: (substrCtx) =>
+          this._getSubstringOperands(substrCtx),
+        getStringExprCapacity: (exprCode) =>
+          this.getStringExprCapacity(exprCode),
+        requireStringInclude: () => this.requireInclude("string"),
+      },
     );
     if (stringResult.handled) {
       return stringResult.code;
@@ -5567,13 +5461,18 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-035: Handle array initializers with size inference
     if (ctx.expression()) {
-      const arrayInitResult = this.arrayInitHelper!.processArrayInit(
+      const arrayInitResult = ArrayInitHelper.processArrayInit(
         name,
         typeCtx,
         ctx.expression()!,
         arrayDims,
         hasEmptyArrayDim,
         declaredSize,
+        {
+          generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+          getTypeName: (typeCtxParam) => this.getTypeName(typeCtxParam),
+          generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
+        },
       );
       if (arrayInitResult) {
         // Track as local array for type resolution
@@ -6077,7 +5976,10 @@ export default class CodeGenerator implements IOrchestrator {
     bitIndex?: string;
     baseType?: string;
   } {
-    return this.memberChainAnalyzer!.analyze(targetCtx);
+    // Issue #644: MemberChainAnalyzer is now static, pass generateExpression callback
+    return MemberChainAnalyzer.analyze(targetCtx, (ctx) =>
+      this.generateExpression(ctx),
+    );
   }
 
   /**
@@ -6091,12 +5993,18 @@ export default class CodeGenerator implements IOrchestrator {
     width: string | null,
     value: string,
   ): string | null {
-    return this.floatBitHelper!.generateFloatBitWrite(
+    // Issue #644: FloatBitHelper is now static, pass callbacks
+    return FloatBitHelper.generateFloatBitWrite(
       name,
       typeInfo,
       bitIndex,
       width,
       value,
+      {
+        generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
+        foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
+        requireInclude: (header) => this.requireInclude(header),
+      },
     );
   }
 
@@ -6109,7 +6017,8 @@ export default class CodeGenerator implements IOrchestrator {
     const savedExpectedType = CodeGenState.expectedType;
     const savedAssignmentContext = { ...CodeGenState.assignmentContext };
 
-    const resolved = this.expectedTypeResolver!.resolve(targetCtx);
+    // Issue #644: AssignmentExpectedTypeResolver is now static
+    const resolved = AssignmentExpectedTypeResolver.resolve(targetCtx);
     if (resolved.expectedType) {
       CodeGenState.expectedType = resolved.expectedType;
     }
@@ -6131,11 +6040,17 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #644: Validate assignment (const, enum, integer, array bounds, callbacks)
     // Delegated to AssignmentValidator helper to reduce cognitive complexity
-    this.assignmentValidator!.validate(
+    AssignmentValidator.validate(
       targetCtx,
       ctx.expression(),
       isCompound,
       ctx.start?.line ?? 0,
+      {
+        getExpressionType: (exprCtx) => this.getExpressionType(exprCtx),
+        tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
+        isCallbackTypeUsedAsFieldType: (name) =>
+          this.isCallbackTypeUsedAsFieldType(name),
+      },
     );
 
     // ADR-109: Dispatch to assignment handlers
@@ -6145,15 +6060,7 @@ export default class CodeGenerator implements IOrchestrator {
       generateExpression: () => value,
     });
     const handlerDeps = this.buildHandlerDeps();
-    const classifier = new AssignmentClassifier({
-      symbols: handlerDeps.symbols,
-      typeRegistry: handlerDeps.typeRegistry,
-      currentScope: handlerDeps.currentScope,
-      isKnownStruct: handlerDeps.isKnownStruct,
-      isKnownScope: handlerDeps.isKnownScope,
-      getMemberTypeInfo: handlerDeps.getMemberTypeInfo,
-    });
-    const assignmentKind = classifier.classify(assignCtx);
+    const assignmentKind = AssignmentClassifier.classify(assignCtx);
     const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
     return handler(assignCtx, handlerDeps);
   }
@@ -6442,7 +6349,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #304/#644: Transform NULL → nullptr in C++ mode
     if (result.code === "NULL") {
-      return this.cppHelper!.nullLiteral();
+      return CppModeHelper.nullLiteral();
     }
 
     return result.code;
@@ -6508,7 +6415,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Issue #267/#644: Use C++ casts when cppMode is enabled for MISRA compliance
-    return this.cppHelper!.cast(targetType, expr);
+    return CppModeHelper.cast(targetType, expr);
   }
 
   /**
@@ -6534,7 +6441,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     if (!maxValue) {
       // Unknown type, fall back to raw cast - Issue #644
-      return this.cppHelper!.cast(targetType, expr);
+      return CppModeHelper.cast(targetType, expr);
     }
 
     // Mark that we need limits.h for the type limit macros
@@ -6554,7 +6461,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Generate clamping expression:
     // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
     // Note: For unsigned targets, MIN is 0 so we check < 0.0
-    const finalCast = this.cppHelper!.cast(targetType, `(${expr})`);
+    const finalCast = CppModeHelper.cast(targetType, `(${expr})`);
     return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : ${finalCast})`;
   }
 

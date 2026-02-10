@@ -2,50 +2,37 @@
  * Unit tests for FloatBitHelper
  *
  * Issue #644: Tests for the extracted float bit write helper.
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FloatBitHelper from "../FloatBitHelper.js";
+import CodeGenState from "../../CodeGenState.js";
 import type TTypeInfo from "../../types/TTypeInfo.js";
 import type TIncludeHeader from "../../generators/TIncludeHeader.js";
 
-/** Test-local copy of IFloatBitState interface */
-interface IFloatBitState {
-  floatBitShadows: Set<string>;
-  floatShadowCurrent: Set<string>;
-}
-
-/** Test-local copy of IFloatBitHelperDeps interface */
-interface IFloatBitHelperDeps {
-  cppMode: boolean;
-  state: IFloatBitState;
+/**
+ * Callback types for code generation operations.
+ */
+interface IFloatBitCallbacks {
   generateBitMask: (width: string, is64Bit?: boolean) => string;
   foldBooleanToInt: (expr: string) => string;
   requireInclude: (header: TIncludeHeader) => void;
 }
 
 describe("FloatBitHelper", () => {
-  let state: IFloatBitState;
-  let deps: IFloatBitHelperDeps;
-  let helper: FloatBitHelper;
+  let callbacks: IFloatBitCallbacks;
 
   beforeEach(() => {
-    state = {
-      floatBitShadows: new Set<string>(),
-      floatShadowCurrent: new Set<string>(),
-    };
+    CodeGenState.reset();
 
-    deps = {
-      cppMode: false,
-      state,
+    callbacks = {
       generateBitMask: vi.fn((width, _is64Bit) => `((1U << ${width}) - 1)`),
       foldBooleanToInt: vi.fn((expr) =>
         expr === "true" ? "1" : expr === "false" ? "0" : expr,
       ),
       requireInclude: vi.fn(),
     };
-
-    helper = new FloatBitHelper(deps);
   });
 
   describe("generateFloatBitWrite", () => {
@@ -57,16 +44,17 @@ describe("FloatBitHelper", () => {
         isArray: false,
       };
 
-      const result = helper.generateFloatBitWrite(
+      const result = FloatBitHelper.generateFloatBitWrite(
         "myVar",
         typeInfo,
         "3",
         null,
         "true",
+        callbacks,
       );
 
       expect(result).toBeNull();
-      expect(deps.requireInclude).not.toHaveBeenCalled();
+      expect(callbacks.requireInclude).not.toHaveBeenCalled();
     });
 
     it("generates single bit write for f32", () => {
@@ -77,20 +65,23 @@ describe("FloatBitHelper", () => {
         isArray: false,
       };
 
-      const result = helper.generateFloatBitWrite(
+      const result = FloatBitHelper.generateFloatBitWrite(
         "myFloat",
         typeInfo,
         "3",
         null,
         "true",
+        callbacks,
       );
 
       expect(result).toContain("uint32_t __bits_myFloat;");
       expect(result).toContain("memcpy(&__bits_myFloat, &myFloat");
       expect(result).toContain("& ~(1U << 3)");
       expect(result).toContain("memcpy(&myFloat, &__bits_myFloat");
-      expect(deps.requireInclude).toHaveBeenCalledWith("string");
-      expect(deps.requireInclude).toHaveBeenCalledWith("float_static_assert");
+      expect(callbacks.requireInclude).toHaveBeenCalledWith("string");
+      expect(callbacks.requireInclude).toHaveBeenCalledWith(
+        "float_static_assert",
+      );
     });
 
     it("generates single bit write for f64", () => {
@@ -101,12 +92,13 @@ describe("FloatBitHelper", () => {
         isArray: false,
       };
 
-      const result = helper.generateFloatBitWrite(
+      const result = FloatBitHelper.generateFloatBitWrite(
         "myDouble",
         typeInfo,
         "5",
         null,
         "false",
+        callbacks,
       );
 
       expect(result).toContain("uint64_t __bits_myDouble;");
@@ -121,16 +113,17 @@ describe("FloatBitHelper", () => {
         isArray: false,
       };
 
-      const result = helper.generateFloatBitWrite(
+      const result = FloatBitHelper.generateFloatBitWrite(
         "myFloat",
         typeInfo,
         "0",
         "8",
         "value",
+        callbacks,
       );
 
       expect(result).toContain("uint32_t __bits_myFloat;");
-      expect(deps.generateBitMask).toHaveBeenCalledWith("8", false);
+      expect(callbacks.generateBitMask).toHaveBeenCalledWith("8", false);
     });
 
     it("skips declaration when shadow already exists", () => {
@@ -142,14 +135,15 @@ describe("FloatBitHelper", () => {
       };
 
       // Pre-declare the shadow
-      state.floatBitShadows.add("__bits_myFloat");
+      CodeGenState.floatBitShadows.add("__bits_myFloat");
 
-      const result = helper.generateFloatBitWrite(
+      const result = FloatBitHelper.generateFloatBitWrite(
         "myFloat",
         typeInfo,
         "3",
         null,
         "true",
+        callbacks,
       );
 
       expect(result).not.toContain("uint32_t __bits_myFloat;");
@@ -165,15 +159,16 @@ describe("FloatBitHelper", () => {
       };
 
       // Pre-declare and mark as current
-      state.floatBitShadows.add("__bits_myFloat");
-      state.floatShadowCurrent.add("__bits_myFloat");
+      CodeGenState.floatBitShadows.add("__bits_myFloat");
+      CodeGenState.floatShadowCurrent.add("__bits_myFloat");
 
-      const result = helper.generateFloatBitWrite(
+      const result = FloatBitHelper.generateFloatBitWrite(
         "myFloat",
         typeInfo,
         "3",
         null,
         "true",
+        callbacks,
       );
 
       expect(result).not.toContain("uint32_t __bits_myFloat;");
@@ -190,9 +185,16 @@ describe("FloatBitHelper", () => {
         isArray: false,
       };
 
-      helper.generateFloatBitWrite("myFloat", typeInfo, "3", null, "true");
+      FloatBitHelper.generateFloatBitWrite(
+        "myFloat",
+        typeInfo,
+        "3",
+        null,
+        "true",
+        callbacks,
+      );
 
-      expect(state.floatShadowCurrent.has("__bits_myFloat")).toBe(true);
+      expect(CodeGenState.floatShadowCurrent.has("__bits_myFloat")).toBe(true);
     });
   });
 });

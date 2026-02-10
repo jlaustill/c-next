@@ -3,21 +3,13 @@
  *
  * Issue #644: Tests for the extracted member chain analyzer.
  * Updated to use unified postfixTargetOp grammar after consolidation.
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer.js";
-import type TTypeInfo from "../../types/TTypeInfo.js";
+import CodeGenState from "../../CodeGenState.js";
 import type * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
-
-/** Test-local copy of IMemberChainAnalyzerDeps interface */
-interface IMemberChainAnalyzerDeps {
-  typeRegistry: ReadonlyMap<string, TTypeInfo>;
-  structFields: ReadonlyMap<string, ReadonlyMap<string, string>>;
-  structFieldArrays: ReadonlyMap<string, ReadonlySet<string>>;
-  isKnownStruct: (name: string) => boolean;
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-}
 
 /** Mock type for PostfixTargetOpContext */
 interface IMockPostfixOp {
@@ -65,47 +57,89 @@ function createTargetCtx(baseId: string | null, postfixOps: IMockPostfixOp[]) {
   } as unknown as Parser.AssignmentTargetContext;
 }
 
+/**
+ * Mock generateExpression callback - just returns getText() of the context
+ */
+function mockGenerateExpression(ctx: Parser.ExpressionContext): string {
+  return (ctx as unknown as { getText(): string }).getText();
+}
+
 describe("MemberChainAnalyzer", () => {
-  let typeRegistry: Map<string, TTypeInfo>;
-  let structFields: Map<string, Map<string, string>>;
-  let structFieldArrays: Map<string, Set<string>>;
-  let deps: IMemberChainAnalyzerDeps;
-  let analyzer: MemberChainAnalyzer;
-
   beforeEach(() => {
-    typeRegistry = new Map();
-    structFields = new Map();
-    structFieldArrays = new Map();
-
-    deps = {
-      typeRegistry,
-      structFields,
-      structFieldArrays,
-      isKnownStruct: vi.fn((name) => structFields.has(name)),
-      generateExpression: vi.fn((ctx) =>
-        (ctx as { getText(): string }).getText(),
-      ),
-    };
-
-    analyzer = new MemberChainAnalyzer(deps);
+    CodeGenState.reset();
   });
+
+  /**
+   * Helper to set up struct fields in CodeGenState.symbols
+   */
+  function setupStructFields(
+    structName: string,
+    fields: Map<string, string>,
+    arrayFields: Set<string> = new Set(),
+  ): void {
+    // Initialize symbols if not set
+    if (!CodeGenState.symbols) {
+      CodeGenState.symbols = {
+        knownStructs: new Set(),
+        knownScopes: new Set(),
+        knownEnums: new Set(),
+        knownBitmaps: new Set(),
+        knownRegisters: new Set(),
+        structFields: new Map(),
+        structFieldArrays: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapFields: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapBitWidth: new Map(),
+        scopeMembers: new Map(),
+        scopeMemberVisibility: new Map(),
+        scopedRegisters: new Map(),
+        registerMemberAccess: new Map(),
+        registerMemberTypes: new Map(),
+        registerBaseAddresses: new Map(),
+        registerMemberOffsets: new Map(),
+        registerMemberCTypes: new Map(),
+        scopeVariableUsage: new Map(),
+        scopePrivateConstValues: new Map(),
+        functionReturnTypes: new Map(),
+        getSingleFunctionForVariable: () => null,
+        hasPublicSymbols: () => false,
+      };
+    }
+    (CodeGenState.symbols.knownStructs as Set<string>).add(structName);
+    (CodeGenState.symbols.structFields as Map<string, Map<string, string>>).set(
+      structName,
+      fields,
+    );
+    (CodeGenState.symbols.structFieldArrays as Map<string, Set<string>>).set(
+      structName,
+      arrayFields,
+    );
+  }
 
   describe("analyze", () => {
     it("returns isBitAccess false when no base identifier", () => {
       const targetCtx = createTargetCtx(null, []);
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns isBitAccess false when no postfix operations", () => {
       const targetCtx = createTargetCtx("x", []);
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns isBitAccess false when last op is member access", () => {
       // point.flags (no subscript at end)
-      typeRegistry.set("point", {
+      CodeGenState.typeRegistry.set("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -113,16 +147,19 @@ describe("MemberChainAnalyzer", () => {
       });
       const pointFields = new Map<string, string>();
       pointFields.set("flags", "u8");
-      structFields.set("Point", pointFields);
+      setupStructFields("Point", pointFields);
 
       const targetCtx = createTargetCtx("point", [createMemberOp("flags")]);
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns isBitAccess false when last subscript has 2 expressions (bit range)", () => {
       // flags[0, 8] - bit range, not single bit access
-      typeRegistry.set("flags", {
+      CodeGenState.typeRegistry.set("flags", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -130,7 +167,10 @@ describe("MemberChainAnalyzer", () => {
       });
 
       const targetCtx = createTargetCtx("flags", [createBitRangeOp("0", "8")]);
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
@@ -138,10 +178,9 @@ describe("MemberChainAnalyzer", () => {
       // Setup: struct Point { u8 flags; }
       const pointFields = new Map<string, string>();
       pointFields.set("flags", "u8");
-      structFields.set("Point", pointFields);
-      structFieldArrays.set("Point", new Set());
+      setupStructFields("Point", pointFields);
 
-      typeRegistry.set("point", {
+      CodeGenState.typeRegistry.set("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -153,7 +192,10 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("3"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("point.flags");
@@ -165,10 +207,9 @@ describe("MemberChainAnalyzer", () => {
       // Setup: struct Grid { u8 items[10]; }
       const gridFields = new Map<string, string>();
       gridFields.set("items", "u8");
-      structFields.set("Grid", gridFields);
-      structFieldArrays.set("Grid", new Set(["items"]));
+      setupStructFields("Grid", gridFields, new Set(["items"]));
 
-      typeRegistry.set("grid", {
+      CodeGenState.typeRegistry.set("grid", {
         baseType: "Grid",
         bitWidth: 0,
         isArray: false,
@@ -180,7 +221,10 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("0"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       // items is an array, so [0] is array access, not bit access
       expect(result.isBitAccess).toBe(false);
@@ -190,10 +234,9 @@ describe("MemberChainAnalyzer", () => {
       // Setup: struct Point { string name; }
       const pointFields = new Map<string, string>();
       pointFields.set("name", "string");
-      structFields.set("Point", pointFields);
-      structFieldArrays.set("Point", new Set());
+      setupStructFields("Point", pointFields);
 
-      typeRegistry.set("point", {
+      CodeGenState.typeRegistry.set("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -205,7 +248,10 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("0"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       // name is a string, not an integer, so no bit access
       expect(result.isBitAccess).toBe(false);
@@ -215,10 +261,9 @@ describe("MemberChainAnalyzer", () => {
       // Setup: struct Device { u8 flags; }, Device devices[4];
       const deviceFields = new Map<string, string>();
       deviceFields.set("flags", "u8");
-      structFields.set("Device", deviceFields);
-      structFieldArrays.set("Device", new Set());
+      setupStructFields("Device", deviceFields);
 
-      typeRegistry.set("devices", {
+      CodeGenState.typeRegistry.set("devices", {
         baseType: "Device",
         bitWidth: 0,
         isArray: true,
@@ -232,7 +277,10 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("7"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("devices[0].flags");
@@ -242,7 +290,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for 2D array element: matrix[0][1]", () => {
       // matrix[0][1] is array access, not bit access
-      typeRegistry.set("matrix", {
+      CodeGenState.typeRegistry.set("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -255,7 +303,10 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("1"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       // This is 2D array access, not bit access
       expect(result.isBitAccess).toBe(false);
@@ -264,7 +315,7 @@ describe("MemberChainAnalyzer", () => {
     it("detects bit access on 2D array element: matrix[0][1][3]", () => {
       // matrix[0][1][3] where matrix is u8[4][4]
       // The third subscript [3] is bit access on the u8 element
-      typeRegistry.set("matrix", {
+      CodeGenState.typeRegistry.set("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -278,7 +329,10 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("3"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("matrix[0][1]");
@@ -293,14 +347,17 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("0"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns false for member access on non-struct", () => {
       // x.field[0] where x is a primitive
-      typeRegistry.set("x", {
+      CodeGenState.typeRegistry.set("x", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -312,7 +369,10 @@ describe("MemberChainAnalyzer", () => {
         createSubscriptOp("0"),
       ]);
 
-      const result = analyzer.analyze(targetCtx);
+      const result = MemberChainAnalyzer.analyze(
+        targetCtx,
+        mockGenerateExpression,
+      );
 
       expect(result.isBitAccess).toBe(false);
     });

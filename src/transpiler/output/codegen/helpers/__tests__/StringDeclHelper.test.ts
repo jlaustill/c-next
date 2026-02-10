@@ -2,50 +2,39 @@
  * Unit tests for StringDeclHelper
  *
  * Issue #644: Tests for the extracted string declaration helper.
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper.js";
-import type TTypeInfo from "../../types/TTypeInfo.js";
+import CodeGenState from "../../CodeGenState.js";
+
+/**
+ * Default callbacks for testing.
+ */
+const defaultCallbacks = {
+  generateExpression: vi.fn((ctx: { getText: () => string }) => ctx.getText()),
+  generateArrayDimensions: vi.fn(
+    (dims: { expression: () => { getText: () => string } | null }[]) =>
+      dims
+        .map((d) => {
+          const expr = d.expression();
+          return expr ? `[${expr.getText()}]` : "[]";
+        })
+        .join(""),
+  ),
+  getStringConcatOperands: vi.fn(() => null),
+  getSubstringOperands: vi.fn(() => null),
+  getStringExprCapacity: vi.fn(() => null),
+  requireStringInclude: vi.fn(),
+};
 
 describe("StringDeclHelper", () => {
-  let typeRegistry: Map<string, TTypeInfo>;
-  let localArrays: Set<string>;
-  let arrayInitState: {
-    lastArrayInitCount: number;
-    lastArrayFillValue: string | undefined;
-  };
-  let helper: StringDeclHelper;
-
   beforeEach(() => {
-    typeRegistry = new Map();
-    localArrays = new Set();
-    arrayInitState = {
-      lastArrayInitCount: 0,
-      lastArrayFillValue: undefined,
-    };
-
-    helper = new StringDeclHelper({
-      typeRegistry,
-      getInFunctionBody: () => true,
-      getIndentLevel: () => 1,
-      arrayInitState,
-      localArrays,
-      generateExpression: vi.fn((ctx) => ctx.getText()),
-      generateArrayDimensions: vi.fn((dims) =>
-        dims
-          .map((d: { expression: () => { getText: () => string } | null }) => {
-            const expr = d.expression();
-            return expr ? `[${expr.getText()}]` : "[]";
-          })
-          .join(""),
-      ),
-      getStringConcatOperands: vi.fn(() => null),
-      getSubstringOperands: vi.fn(() => null),
-      getStringLiteralLength: vi.fn((literal) => literal.length - 2), // Remove quotes
-      getStringExprCapacity: vi.fn(() => null),
-      requireStringInclude: vi.fn(),
-    });
+    CodeGenState.reset();
+    CodeGenState.inFunctionBody = true;
+    CodeGenState.indentLevel = 1;
+    vi.clearAllMocks();
   });
 
   describe("generateStringDecl", () => {
@@ -54,13 +43,14 @@ describe("StringDeclHelper", () => {
         stringType: () => null,
       } as never;
 
-      const result = helper.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "myVar",
         null,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        defaultCallbacks,
       );
 
       expect(result.handled).toBe(false);
@@ -77,13 +67,14 @@ describe("StringDeclHelper", () => {
         getText: () => '"Hello"',
       } as never;
 
-      const result = helper.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "greeting",
         expression,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        defaultCallbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -98,13 +89,14 @@ describe("StringDeclHelper", () => {
         }),
       } as never;
 
-      const result = helper.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "buffer",
         null,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        defaultCallbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -122,13 +114,14 @@ describe("StringDeclHelper", () => {
         getText: () => '"Test"',
       } as never;
 
-      const result = helper.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "label",
         expression,
         [],
         { extern: "", const: "const ", atomic: "", volatile: "" },
         true,
+        defaultCallbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -147,13 +140,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helper.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "small",
           expression,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          defaultCallbacks,
         ),
       ).toThrow("exceeds string<5> capacity");
     });
@@ -166,13 +160,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helper.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "invalid",
           null,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          defaultCallbacks,
         ),
       ).toThrow("Non-const string requires explicit capacity");
     });
@@ -185,13 +180,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helper.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "invalid",
           null,
           [],
           { extern: "", const: "const ", atomic: "", volatile: "" },
           true,
+          defaultCallbacks,
         ),
       ).toThrow("const string requires initializer");
     });
@@ -208,33 +204,24 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helper.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "invalid",
           expression,
           [],
           { extern: "", const: "const ", atomic: "", volatile: "" },
           true,
+          defaultCallbacks,
         ),
       ).toThrow("const string requires string literal");
     });
 
     it("generates unsized const string with literal initializer", () => {
       const requireStringInclude = vi.fn();
-      const helperWithMock = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         requireStringInclude,
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -246,19 +233,20 @@ describe("StringDeclHelper", () => {
         getText: () => '"Hello"',
       } as never;
 
-      const result = helperWithMock.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "greeting",
         expression,
         [],
         { extern: "", const: "const ", atomic: "", volatile: "" },
         true,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
       expect(result.code).toBe('const char greeting[6] = "Hello";');
       expect(requireStringInclude).toHaveBeenCalled();
-      expect(typeRegistry.get("greeting")).toMatchObject({
+      expect(CodeGenState.typeRegistry.get("greeting")).toMatchObject({
         baseType: "char",
         isString: true,
         stringCapacity: 5,
@@ -276,13 +264,14 @@ describe("StringDeclHelper", () => {
         getText: () => '"External"',
       } as never;
 
-      const result = helper.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "extStr",
         expression,
         [],
         { extern: "extern ", const: "", atomic: "", volatile: "" },
         false,
+        defaultCallbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -292,21 +281,10 @@ describe("StringDeclHelper", () => {
 
   describe("string variable assignment validation", () => {
     it("throws error when source string capacity exceeds destination", () => {
-      const getStringExprCapacity = vi.fn(() => 100);
-      const helperWithCapacity = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity,
-        requireStringInclude: vi.fn(),
-      });
+      const callbacks = {
+        ...defaultCallbacks,
+        getStringExprCapacity: vi.fn(() => 100),
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -319,33 +297,23 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helperWithCapacity.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "small",
           expression,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("Cannot assign string<100> to string<32>");
     });
 
     it("allows assignment when source capacity fits", () => {
-      const getStringExprCapacity = vi.fn(() => 20);
-      const helperWithCapacity = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity,
-        requireStringInclude: vi.fn(),
-      });
+      const callbacks = {
+        ...defaultCallbacks,
+        getStringExprCapacity: vi.fn(() => 20),
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -357,13 +325,14 @@ describe("StringDeclHelper", () => {
         getText: () => "smallString",
       } as never;
 
-      const result = helperWithCapacity.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "dest",
         expression,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -379,22 +348,10 @@ describe("StringDeclHelper", () => {
         leftCapacity: 10,
         rightCapacity: 10,
       };
-      const getStringConcatOperands = vi.fn(() => concatOps);
-
-      const helperWithConcat = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands,
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      const callbacks = {
+        ...defaultCallbacks,
+        getStringConcatOperands: vi.fn(() => concatOps),
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -406,13 +363,14 @@ describe("StringDeclHelper", () => {
         getText: () => "str1 + str2",
       } as never;
 
-      const result = helperWithConcat.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "combined",
         expression,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -425,27 +383,17 @@ describe("StringDeclHelper", () => {
     });
 
     it("throws error for concatenation at global scope", () => {
+      CodeGenState.inFunctionBody = false;
       const concatOps = {
         left: "str1",
         right: "str2",
         leftCapacity: 10,
         rightCapacity: 10,
       };
-
-      const helperGlobalScope = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => false, // Global scope
-        getIndentLevel: () => 0,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
+      const callbacks = {
+        ...defaultCallbacks,
         getStringConcatOperands: vi.fn(() => concatOps),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -458,13 +406,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helperGlobalScope.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "combined",
           expression,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("String concatenation cannot be used at global scope");
     });
@@ -476,21 +425,10 @@ describe("StringDeclHelper", () => {
         leftCapacity: 20,
         rightCapacity: 20,
       };
-
-      const helperWithConcat = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
+      const callbacks = {
+        ...defaultCallbacks,
         getStringConcatOperands: vi.fn(() => concatOps),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -503,13 +441,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helperWithConcat.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "combined",
           expression,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("String concatenation requires capacity 40, but string<30>");
     });
@@ -521,21 +460,10 @@ describe("StringDeclHelper", () => {
         leftCapacity: 5,
         rightCapacity: 5,
       };
-
-      const helperWithConcat = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
+      const callbacks = {
+        ...defaultCallbacks,
         getStringConcatOperands: vi.fn(() => concatOps),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -547,13 +475,14 @@ describe("StringDeclHelper", () => {
         getText: () => "str1 + str2",
       } as never;
 
-      const result = helperWithConcat.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "combined",
         expression,
         [],
         { extern: "", const: "const ", atomic: "", volatile: "" },
         true,
+        callbacks,
       );
 
       expect(result.code).toContain('const char combined[21] = "";');
@@ -568,21 +497,10 @@ describe("StringDeclHelper", () => {
         length: "5",
         sourceCapacity: 32,
       };
-
-      const helperWithSubstr = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         getSubstringOperands: vi.fn(() => substringOps),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -594,13 +512,14 @@ describe("StringDeclHelper", () => {
         getText: () => "srcStr.substring(0, 5)",
       } as never;
 
-      const result = helperWithSubstr.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "sub",
         expression,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -610,27 +529,17 @@ describe("StringDeclHelper", () => {
     });
 
     it("throws error for substring at global scope", () => {
+      CodeGenState.inFunctionBody = false;
       const substringOps = {
         source: "srcStr",
         start: "0",
         length: "5",
         sourceCapacity: 32,
       };
-
-      const helperGlobalScope = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => false,
-        getIndentLevel: () => 0,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         getSubstringOperands: vi.fn(() => substringOps),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -643,13 +552,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helperGlobalScope.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "sub",
           expression,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("Substring extraction cannot be used at global scope");
     });
@@ -661,21 +571,10 @@ describe("StringDeclHelper", () => {
         length: "10",
         sourceCapacity: 32, // start + length = 40 > 32
       };
-
-      const helperWithSubstr = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         getSubstringOperands: vi.fn(() => substringOps),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -688,13 +587,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helperWithSubstr.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "sub",
           expression,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("Substring bounds [30, 10] exceed source string<32>");
     });
@@ -706,21 +606,10 @@ describe("StringDeclHelper", () => {
         length: "20",
         sourceCapacity: 32,
       };
-
-      const helperWithSubstr = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         getSubstringOperands: vi.fn(() => substringOps),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -733,13 +622,14 @@ describe("StringDeclHelper", () => {
       } as never;
 
       expect(() =>
-        helperWithSubstr.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "sub",
           expression,
           [],
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("Substring length 20 exceeds destination string<10>");
     });
@@ -751,21 +641,10 @@ describe("StringDeclHelper", () => {
         length: "5",
         sourceCapacity: 32,
       };
-
-      const helperWithSubstr = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         getSubstringOperands: vi.fn(() => substringOps),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -777,16 +656,16 @@ describe("StringDeclHelper", () => {
         getText: () => "srcStr.substring(startVar, 5)",
       } as never;
 
-      const result = helperWithSubstr.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "sub",
         expression,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
-      // Should succeed - no bounds check when start is not numeric
       expect(result.handled).toBe(true);
       expect(result.code).toContain("strncpy(sub, srcStr + startVar, 5)");
     });
@@ -798,21 +677,10 @@ describe("StringDeclHelper", () => {
         length: "lenVar", // Non-numeric
         sourceCapacity: 32,
       };
-
-      const helperWithSubstr = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         getSubstringOperands: vi.fn(() => substringOps),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -824,13 +692,14 @@ describe("StringDeclHelper", () => {
         getText: () => "srcStr.substring(0, lenVar)",
       } as never;
 
-      const result = helperWithSubstr.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "sub",
         expression,
         [],
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -844,21 +713,10 @@ describe("StringDeclHelper", () => {
         length: "3",
         sourceCapacity: 32,
       };
-
-      const helperWithSubstr = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState,
-        localArrays,
-        generateExpression: vi.fn((ctx) => ctx.getText()),
-        generateArrayDimensions: vi.fn(),
-        getStringConcatOperands: vi.fn(() => null),
+      const callbacks = {
+        ...defaultCallbacks,
         getSubstringOperands: vi.fn(() => substringOps),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -870,13 +728,14 @@ describe("StringDeclHelper", () => {
         getText: () => "srcStr.substring(5, 3)",
       } as never;
 
-      const result = helperWithSubstr.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "sub",
         expression,
         [],
         { extern: "", const: "const ", atomic: "", volatile: "" },
         true,
+        callbacks,
       );
 
       expect(result.code).toContain('const char sub[11] = "";');
@@ -885,31 +744,15 @@ describe("StringDeclHelper", () => {
 
   describe("string array declarations", () => {
     it("generates string array with explicit initializer list", () => {
-      // The arrayInitState is shared and mutated by generateExpression
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithArray = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
-        // generateExpression sets array init state as a side effect
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 3;
-          sharedArrayInitState.lastArrayFillValue = undefined;
+          CodeGenState.lastArrayInitCount = 3;
+          CodeGenState.lastArrayFillValue = undefined;
           return '{"Hello", "World", "Test"}';
         }),
         generateArrayDimensions: vi.fn(() => "[3]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -925,13 +768,14 @@ describe("StringDeclHelper", () => {
         { expression: () => ({ getText: () => "3" }) },
       ] as never[];
 
-      const result = helperWithArray.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "labels",
         expression,
         arrayDims,
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -940,29 +784,15 @@ describe("StringDeclHelper", () => {
     });
 
     it("generates string array with size inference", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithArray = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 2;
-          sharedArrayInitState.lastArrayFillValue = undefined;
+          CodeGenState.lastArrayInitCount = 2;
+          CodeGenState.lastArrayFillValue = undefined;
           return '{"One", "Two"}';
         }),
         generateArrayDimensions: vi.fn(() => "[]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -978,19 +808,22 @@ describe("StringDeclHelper", () => {
         { expression: () => null }, // Empty dimension for inference
       ] as never[];
 
-      const result = helperWithArray.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "labels",
         expression,
         arrayDims,
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
       expect(result.code).toContain("[2]"); // Inferred size
       expect(result.code).toContain("[11]"); // capacity + 1
-      expect(typeRegistry.get("labels")?.arrayDimensions).toEqual([2, 11]);
+      expect(CodeGenState.typeRegistry.get("labels")?.arrayDimensions).toEqual([
+        2, 11,
+      ]);
     });
 
     it("generates string array without initializer (zero-init)", () => {
@@ -1004,13 +837,14 @@ describe("StringDeclHelper", () => {
         { expression: () => ({ getText: () => "5" }) },
       ] as never[];
 
-      const result = helper.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "messages",
         null,
         arrayDims,
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        defaultCallbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -1018,29 +852,15 @@ describe("StringDeclHelper", () => {
     });
 
     it("generates string array with fill-all syntax", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithFill = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 0;
-          sharedArrayInitState.lastArrayFillValue = '"Hello"';
+          CodeGenState.lastArrayInitCount = 0;
+          CodeGenState.lastArrayFillValue = '"Hello"';
           return '{"Hello"*}';
         }),
         generateArrayDimensions: vi.fn(() => "[3]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -1056,13 +876,14 @@ describe("StringDeclHelper", () => {
         { expression: () => ({ getText: () => "3" }) },
       ] as never[];
 
-      const result = helperWithFill.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "greetings",
         expression,
         arrayDims,
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -1070,29 +891,15 @@ describe("StringDeclHelper", () => {
     });
 
     it("generates string array with empty fill value (no expansion)", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithFill = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 0;
-          sharedArrayInitState.lastArrayFillValue = '""';
+          CodeGenState.lastArrayInitCount = 0;
+          CodeGenState.lastArrayFillValue = '""';
           return '{""*}';
         }),
         generateArrayDimensions: vi.fn(() => "[3]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -1108,13 +915,14 @@ describe("StringDeclHelper", () => {
         { expression: () => ({ getText: () => "3" }) },
       ] as never[];
 
-      const result = helperWithFill.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "empty",
         expression,
         arrayDims,
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
@@ -1123,29 +931,15 @@ describe("StringDeclHelper", () => {
     });
 
     it("throws error for fill-all without explicit size", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithFill = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 0;
-          sharedArrayInitState.lastArrayFillValue = '"Hello"';
+          CodeGenState.lastArrayInitCount = 0;
+          CodeGenState.lastArrayFillValue = '"Hello"';
           return '{"Hello"*}';
         }),
         generateArrayDimensions: vi.fn(() => "[]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -1162,41 +956,28 @@ describe("StringDeclHelper", () => {
       ] as never[];
 
       expect(() =>
-        helperWithFill.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "greetings",
           expression,
           arrayDims,
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("Fill-all syntax");
     });
 
     it("throws error for array size mismatch", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithArray = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 2; // Only 2 elements
-          sharedArrayInitState.lastArrayFillValue = undefined;
+          CodeGenState.lastArrayInitCount = 2; // Only 2 elements
+          CodeGenState.lastArrayFillValue = undefined;
           return '{"One", "Two"}';
         }),
         generateArrayDimensions: vi.fn(() => "[3]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -1213,22 +994,19 @@ describe("StringDeclHelper", () => {
       ] as never[];
 
       expect(() =>
-        helperWithArray.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "labels",
           expression,
           arrayDims,
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          callbacks,
         ),
       ).toThrow("Array size mismatch - declared [3] but got 2 elements");
     });
 
     it("throws error for string array initialization from variable", () => {
-      // Reset array init state to simulate non-array-initializer
-      arrayInitState.lastArrayInitCount = 0;
-      arrayInitState.lastArrayFillValue = undefined;
-
       const typeCtx = {
         stringType: () => ({
           INTEGER_LITERAL: () => ({ getText: () => "10" }),
@@ -1244,41 +1022,28 @@ describe("StringDeclHelper", () => {
       ] as never[];
 
       expect(() =>
-        helper.generateStringDecl(
+        StringDeclHelper.generateStringDecl(
           typeCtx,
           "labels",
           expression,
           arrayDims,
           { extern: "", const: "", atomic: "", volatile: "" },
           false,
+          defaultCallbacks,
         ),
       ).toThrow("String array initialization from variables not supported");
     });
 
     it("generates string array with modifiers", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithArray = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 2;
-          sharedArrayInitState.lastArrayFillValue = undefined;
+          CodeGenState.lastArrayInitCount = 2;
+          CodeGenState.lastArrayFillValue = undefined;
           return '{"A", "B"}';
         }),
         generateArrayDimensions: vi.fn(() => "[2]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -1294,7 +1059,7 @@ describe("StringDeclHelper", () => {
         { expression: () => ({ getText: () => "2" }) },
       ] as never[];
 
-      const result = helperWithArray.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "data",
         expression,
@@ -1306,35 +1071,22 @@ describe("StringDeclHelper", () => {
           volatile: "volatile ",
         },
         true,
+        callbacks,
       );
 
       expect(result.code).toContain("extern const volatile char data");
     });
 
     it("handles non-numeric array dimension (macro)", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const helperWithArray = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 2;
-          sharedArrayInitState.lastArrayFillValue = undefined;
+          CodeGenState.lastArrayInitCount = 2;
+          CodeGenState.lastArrayFillValue = undefined;
           return '{"A", "B"}';
         }),
         generateArrayDimensions: vi.fn(() => "[ARRAY_SIZE]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -1351,44 +1103,29 @@ describe("StringDeclHelper", () => {
       ] as never[];
 
       // Should not throw - macros skip size validation
-      const result = helperWithArray.generateStringDecl(
+      const result = StringDeclHelper.generateStringDecl(
         typeCtx,
         "data",
         expression,
         arrayDims,
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
       expect(result.handled).toBe(true);
     });
 
     it("tracks local arrays in localArrays set", () => {
-      const sharedArrayInitState = {
-        lastArrayInitCount: 0,
-        lastArrayFillValue: undefined as string | undefined,
-      };
-
-      const localArraysSet = new Set<string>();
-
-      const helperWithTracking = new StringDeclHelper({
-        typeRegistry,
-        getInFunctionBody: () => true,
-        getIndentLevel: () => 1,
-        arrayInitState: sharedArrayInitState,
-        localArrays: localArraysSet,
+      const callbacks = {
+        ...defaultCallbacks,
         generateExpression: vi.fn(() => {
-          sharedArrayInitState.lastArrayInitCount = 2;
-          sharedArrayInitState.lastArrayFillValue = undefined;
+          CodeGenState.lastArrayInitCount = 2;
+          CodeGenState.lastArrayFillValue = undefined;
           return '{"X", "Y"}';
         }),
         generateArrayDimensions: vi.fn(() => "[2]"),
-        getStringConcatOperands: vi.fn(() => null),
-        getSubstringOperands: vi.fn(() => null),
-        getStringLiteralLength: vi.fn((literal) => literal.length - 2),
-        getStringExprCapacity: vi.fn(() => null),
-        requireStringInclude: vi.fn(),
-      });
+      };
 
       const typeCtx = {
         stringType: () => ({
@@ -1404,16 +1141,17 @@ describe("StringDeclHelper", () => {
         { expression: () => ({ getText: () => "2" }) },
       ] as never[];
 
-      helperWithTracking.generateStringDecl(
+      StringDeclHelper.generateStringDecl(
         typeCtx,
         "tracked",
         expression,
         arrayDims,
         { extern: "", const: "", atomic: "", volatile: "" },
         false,
+        callbacks,
       );
 
-      expect(localArraysSet.has("tracked")).toBe(true);
+      expect(CodeGenState.localArrays.has("tracked")).toBe(true);
     });
   });
 });
