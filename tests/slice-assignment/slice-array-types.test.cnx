@@ -21,17 +21,13 @@ u32 main() {
     u64 value2 <- 0x0102030405060708;
     arr16[0, 8] <- value2;
 
-    // u16 array stores 16-bit values, but we're copying bytes
-    // First u16: 0x0201 (little-endian: bytes 0x08, 0x07)
-    u8 byte0 <- arr16[0];
-    u8 byte1 <- arr16[0] >> 8;
-    u8 byte2 <- arr16[1];
-    u8 byte3 <- arr16[1] >> 8;
-
-    if (byte0 != 0x08) return 5;
-    if (byte1 != 0x07) return 6;
-    if (byte2 != 0x06) return 7;
-    if (byte3 != 0x05) return 8;
+    // u16 array stores 16-bit values, memcpy copies bytes
+    // Little-endian: bytes 08 07 06 05 04 03 02 01
+    // arr16[0] = bytes 08,07 = 0x0708, arr16[1] = bytes 06,05 = 0x0506
+    if (arr16[0] != 0x0708) return 5;
+    if (arr16[1] != 0x0506) return 6;
+    if (arr16[2] != 0x0304) return 7;
+    if (arr16[3] != 0x0102) return 8;
 
    
 // Test 3: u32 array

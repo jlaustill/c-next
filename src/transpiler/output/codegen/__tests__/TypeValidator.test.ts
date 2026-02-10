@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import TypeValidator from "../TypeValidator";
+import TypeResolver from "../TypeResolver";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../types/TTypeInfo";
 import type TParameterInfo from "../types/TParameterInfo";
@@ -72,7 +73,6 @@ function createMockDeps(options: MockDepsOptions = {}): ITypeValidatorDeps {
     symbols: options.symbols ?? createMockSymbols(),
     symbolTable: null,
     typeRegistry: options.typeRegistry ?? new Map(),
-    typeResolver: {} as never,
     callbackTypes: options.callbackTypes ?? new Map(),
     knownFunctions: options.knownFunctions ?? new Set(),
     knownGlobals: options.knownGlobals ?? new Set(),
@@ -2790,114 +2790,99 @@ describe("TypeValidator", () => {
   // ========================================================================
 
   describe("validateIntegerAssignment", () => {
-    function createValidatorWithMockResolver(mockResolver: {
-      isIntegerType?: (type: string) => boolean;
-      validateLiteralFitsType?: (literal: string, type: string) => void;
-      validateTypeConversion?: (target: string, source: string | null) => void;
-    }) {
-      const deps = createMockDeps();
-      const fullMockResolver = {
-        isIntegerType: mockResolver.isIntegerType ?? (() => true),
-        validateLiteralFitsType:
-          mockResolver.validateLiteralFitsType ?? vi.fn(),
-        validateTypeConversion: mockResolver.validateTypeConversion ?? vi.fn(),
-      };
-      return new TypeValidator({
-        ...deps,
-        typeResolver: fullMockResolver as never,
-      });
-    }
-
     it("skips validation for compound assignments", () => {
-      const validateLiteralFitsType = vi.fn();
-      const validateTypeConversion = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        validateLiteralFitsType,
-        validateTypeConversion,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const literalSpy = vi.spyOn(TypeResolver, "validateLiteralFitsType");
+      const conversionSpy = vi.spyOn(TypeResolver, "validateTypeConversion");
 
       validator.validateIntegerAssignment("u8", "10", null, true);
 
-      expect(validateLiteralFitsType).not.toHaveBeenCalled();
-      expect(validateTypeConversion).not.toHaveBeenCalled();
+      expect(literalSpy).not.toHaveBeenCalled();
+      expect(conversionSpy).not.toHaveBeenCalled();
+      literalSpy.mockRestore();
+      conversionSpy.mockRestore();
     });
 
     it("skips validation for non-integer types", () => {
-      const validateLiteralFitsType = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        isIntegerType: () => false,
-        validateLiteralFitsType,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const spy = vi.spyOn(TypeResolver, "validateLiteralFitsType");
 
       validator.validateIntegerAssignment("f32", "10", null, false);
 
-      expect(validateLiteralFitsType).not.toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
     });
 
     it("validates decimal literal fits in target type", () => {
-      const validateLiteralFitsType = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        validateLiteralFitsType,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const spy = vi
+        .spyOn(TypeResolver, "validateLiteralFitsType")
+        .mockImplementation(() => {});
 
       validator.validateIntegerAssignment("u8", "100", null, false);
 
-      expect(validateLiteralFitsType).toHaveBeenCalledWith("100", "u8");
+      expect(spy).toHaveBeenCalledWith("100", "u8");
+      spy.mockRestore();
     });
 
     it("validates negative decimal literal fits in target type", () => {
-      const validateLiteralFitsType = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        validateLiteralFitsType,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const spy = vi
+        .spyOn(TypeResolver, "validateLiteralFitsType")
+        .mockImplementation(() => {});
 
       validator.validateIntegerAssignment("i8", "-50", null, false);
 
-      expect(validateLiteralFitsType).toHaveBeenCalledWith("-50", "i8");
+      expect(spy).toHaveBeenCalledWith("-50", "i8");
+      spy.mockRestore();
     });
 
     it("validates hex literal fits in target type", () => {
-      const validateLiteralFitsType = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        validateLiteralFitsType,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const spy = vi
+        .spyOn(TypeResolver, "validateLiteralFitsType")
+        .mockImplementation(() => {});
 
       validator.validateIntegerAssignment("u8", "0xFF", null, false);
 
-      expect(validateLiteralFitsType).toHaveBeenCalledWith("0xFF", "u8");
+      expect(spy).toHaveBeenCalledWith("0xFF", "u8");
+      spy.mockRestore();
     });
 
     it("validates binary literal fits in target type", () => {
-      const validateLiteralFitsType = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        validateLiteralFitsType,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const spy = vi
+        .spyOn(TypeResolver, "validateLiteralFitsType")
+        .mockImplementation(() => {});
 
       validator.validateIntegerAssignment("u8", "0b11111111", null, false);
 
-      expect(validateLiteralFitsType).toHaveBeenCalledWith("0b11111111", "u8");
+      expect(spy).toHaveBeenCalledWith("0b11111111", "u8");
+      spy.mockRestore();
     });
 
     it("validates type conversion for non-literal expressions", () => {
-      const validateTypeConversion = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        validateTypeConversion,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const spy = vi
+        .spyOn(TypeResolver, "validateTypeConversion")
+        .mockImplementation(() => {});
 
       validator.validateIntegerAssignment("u8", "myVariable", "u16", false);
 
-      expect(validateTypeConversion).toHaveBeenCalledWith("u8", "u16");
+      expect(spy).toHaveBeenCalledWith("u8", "u16");
+      spy.mockRestore();
     });
 
     it("trims whitespace from expression text", () => {
-      const validateLiteralFitsType = vi.fn();
-      const validator = createValidatorWithMockResolver({
-        validateLiteralFitsType,
-      });
+      const validator = new TypeValidator(createMockDeps());
+      const spy = vi
+        .spyOn(TypeResolver, "validateLiteralFitsType")
+        .mockImplementation(() => {});
 
       validator.validateIntegerAssignment("u8", "  100  ", null, false);
 
-      expect(validateLiteralFitsType).toHaveBeenCalledWith("100", "u8");
+      expect(spy).toHaveBeenCalledWith("100", "u8");
+      spy.mockRestore();
     });
   });
 });

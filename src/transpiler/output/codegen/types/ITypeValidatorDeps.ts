@@ -7,7 +7,6 @@ import SymbolTable from "../../../logic/symbols/SymbolTable";
 import TTypeInfo from "./TTypeInfo";
 import TParameterInfo from "./TParameterInfo";
 import ICallbackTypeInfo from "./ICallbackTypeInfo";
-import TypeResolver from "../TypeResolver";
 
 interface ITypeValidatorDeps {
   /** Symbol information from C-Next source (ADR-055: ICodeGenSymbols) */
@@ -18,9 +17,6 @@ interface ITypeValidatorDeps {
 
   /** Type registry for variable type information */
   typeRegistry: Map<string, TTypeInfo>;
-
-  /** Type resolver for type checking operations (Issue #61) */
-  typeResolver: TypeResolver;
 
   /** Callback type definitions for signature validation */
   callbackTypes: Map<string, ICallbackTypeInfo>;
