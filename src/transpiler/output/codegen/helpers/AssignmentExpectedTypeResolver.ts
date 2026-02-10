@@ -118,14 +118,14 @@ class AssignmentExpectedTypeResolver {
     // Walk through each member in the chain to find the final field's type
     for (let i = 1; i < identifiers.length && currentStructType; i++) {
       const memberName = identifiers[i];
-      const structFieldTypes =
+      const structFieldTypes: ReadonlyMap<string, string> | undefined =
         CodeGenState.symbols?.structFields.get(currentStructType);
 
       if (!structFieldTypes?.has(memberName)) {
         break;
       }
 
-      const memberType = structFieldTypes.get(memberName)!;
+      const memberType: string = structFieldTypes.get(memberName)!;
 
       if (i === identifiers.length - 1) {
         // Last field in chain - this is the assignment target's type

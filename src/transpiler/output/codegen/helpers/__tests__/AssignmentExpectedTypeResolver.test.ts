@@ -31,20 +31,33 @@ function setupStructFields(
       knownEnums: new Set(),
       knownBitmaps: new Set(),
       knownRegisters: new Set(),
-      knownFunctions: new Set(),
       structFields: new Map(),
       structFieldArrays: new Map(),
+      structFieldDimensions: new Map(),
       enumMembers: new Map(),
-      bitmapMembers: new Map(),
-      registerMembers: new Map(),
+      bitmapFields: new Map(),
+      bitmapBackingType: new Map(),
+      bitmapBitWidth: new Map(),
       scopeMembers: new Map(),
+      scopeMemberVisibility: new Map(),
+      scopedRegisters: new Map(),
       registerMemberAccess: new Map(),
-      functionSignatures: new Map(),
-      callbackTypes: new Map(),
+      registerMemberTypes: new Map(),
+      registerBaseAddresses: new Map(),
+      registerMemberOffsets: new Map(),
+      registerMemberCTypes: new Map(),
+      scopeVariableUsage: new Map(),
+      scopePrivateConstValues: new Map(),
+      functionReturnTypes: new Map(),
+      getSingleFunctionForVariable: () => null,
+      hasPublicSymbols: () => false,
     };
   }
-  CodeGenState.symbols.knownStructs.add(structName);
-  CodeGenState.symbols.structFields.set(structName, fields);
+  (CodeGenState.symbols.knownStructs as Set<string>).add(structName);
+  (CodeGenState.symbols.structFields as Map<string, Map<string, string>>).set(
+    structName,
+    fields,
+  );
 }
 
 describe("AssignmentExpectedTypeResolver", () => {

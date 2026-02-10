@@ -383,7 +383,7 @@ describe("AssignmentValidator", () => {
       CodeGenState.callbackFieldTypes.set("Handler.onEvent", "EventCallback");
       // Mark Handler as a known struct
       if (CodeGenState.symbols) {
-        CodeGenState.symbols.knownStructs.add("Handler");
+        (CodeGenState.symbols.knownStructs as Set<string>).add("Handler");
       }
 
       const { target, expression } = parseAssignment("handler.onEvent");
