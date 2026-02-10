@@ -9,7 +9,7 @@
 
 A safer C for embedded systems development. Transpiles to clean, readable C.
 
-**Status: Working Transpiler** — Verified on Teensy MicroMod hardware.
+**Status: Working Transpiler** — Verified on Teensy MicroMod, 4.0, and stm32 hardware.
 
 ## Quick Example
 
@@ -104,7 +104,7 @@ The C-Next VS Code extension provides syntax highlighting, live C preview, Intel
 
 ## Getting Started with PlatformIO
 
-C-Next integrates seamlessly with PlatformIO embedded projects. The transpiler automatically converts `.cnx` files to `.c` before each build.
+C-Next integrates seamlessly with PlatformIO embedded projects. The transpiler automatically converts `.cnx` files to `.c`, `.h`, and `.cpp` as needed before each build.
 
 ### Quick Setup
 
@@ -145,11 +145,11 @@ Transpiling 2 c-next files...
 Building...
 ```
 
-3. **Commit both `.cnx` and generated `.c` files** to version control
+3. **Commit both `.cnx` and generated `.c|.cpp|.h` files** to version control
 
 ### Why Commit Generated Files?
 
-Generated `.c` files are **reviewable artifacts** in pull requests:
+Generated `.c|.cpp|.h` files are **reviewable artifacts** in pull requests:
 
 ```diff
 + // ConfigStorage.cnx
@@ -165,7 +165,7 @@ Generated `.c` files are **reviewable artifacts** in pull requests:
 
 **Benefits**:
 
-- See exactly what C code the transpiler generates
+- See exactly what C/CPP code the transpiler generates
 - Review safety features (overflow protection, atomic operations)
 - Verify transpiler behavior
 - Build succeeds even if transpiler isn't available
@@ -181,9 +181,9 @@ my-teensy-project/
 ├── src/
 │   ├── main.cpp             # C++ entry point
 │   ├── ConfigStorage.cnx    # c-next source
-│   ├── ConfigStorage.c      # Generated (committed)
+│   ├── ConfigStorage.cpp    # Generated (committed)
 │   ├── SensorProcessor.cnx  # c-next source
-│   └── SensorProcessor.c    # Generated (committed)
+│   └── SensorProcessor.cpp  # Generated (committed)
 └── include/
     └── AppConfig.h          # Shared types
 ```
@@ -201,7 +201,7 @@ This removes:
 - `cnext_build.py` script
 - `extra_scripts` reference from `platformio.ini`
 
-Your `.cnx` files and generated `.c` files remain untouched.
+Your `.cnx` files and generated `.c|.cpp|.h` files remain untouched.
 
 ### Manual Integration
 
@@ -262,7 +262,7 @@ Generated headers automatically include guards:
 | Add concepts to catch errors | Remove the ability to make errors       |
 | Borrow checker complexity    | Startup allocation = predictable memory |
 | Lifetime annotations         | Fixed runtime layout = clear lifetimes  |
-| `unsafe` escape hatch        | Clean C is the escape hatch             |
+| `unsafe` escape hatch        | No escape hatch needed!                 |
 
 **Guiding Principle:** If Linus Torvalds wouldn't approve of the complexity, it doesn't ship. Safety through removal, not addition.
 
@@ -360,10 +360,12 @@ memcpy(&buffer[8], &timestamp, 8);
 
 ### Scopes (ADR-016)
 
-Organize code with automatic name prefixing. Inside scopes, explicit qualification is required:
+Organize code with automatic name prefixing. Inside scopes, explicit qualification is available to avoid naming collisions:
 
 - `this.X` for scope-local members
 - `global.X` for global variables, functions, and registers
+
+If the same name exists in local, scope, and global levels, the precedence is local, scope, global just like you are used to in other languages.
 
 ```cnx
 const u8 LED_BIT <- 3;
@@ -652,7 +654,7 @@ Allocate at startup, run with fixed memory. Per MISRA C:2023 Dir 4.12: all memor
 
 ## Hardware Testing
 
-Verified on **Teensy MicroMod** (NXP i.MX RT1062):
+Verified on **Teensy MicroMod**, **Teensy 4.0**, and **STM32** hardware:
 
 ```bash
 # Build and flash with PlatformIO
@@ -674,16 +676,20 @@ _Using C-Next in your project? Open an issue to get listed!_
 
 ```
 c-next/
-├── grammar/CNext.g4           # ANTLR4 grammar definition
+├── grammar/CNext.g4                    # ANTLR4 grammar definition
 ├── src/
-│   ├── codegen/CodeGenerator.ts   # Transpiler core
-│   ├── parser/                    # Generated ANTLR parser
-│   └── index.ts                   # CLI entry point
+│   ├── index.ts                        # CLI entry point
+│   ├── transpiler/
+│   │   ├── Transpiler.ts               # Orchestrator
+│   │   ├── data/                       # Discovery layer (files, includes, deps)
+│   │   ├── logic/                      # Business logic (parser, symbols, analysis)
+│   │   └── output/                     # Generation (codegen, headers)
+│   └── utils/                          # Shared utilities
 ├── examples/
-│   ├── blink.cnx                  # LED blink (Teensy verified)
-│   └── bit_test.cnx               # Bit manipulation tests
-├── test-teensy/                   # PlatformIO test project
-└── docs/decisions/               # Architecture Decision Records
+│   ├── blink.cnx                       # LED blink (Teensy verified)
+│   └── bit_test.cnx                    # Bit manipulation tests
+├── test-teensy/                        # PlatformIO test project
+└── docs/decisions/                     # Architecture Decision Records
 ```
 
 ## Architecture Decision Records
@@ -692,53 +698,70 @@ Decisions are documented in `/docs/decisions/`:
 
 ### Implemented
 
-| ADR                                                                   | Title                     | Description                                                   |
-| --------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------- |
-| [ADR-001](docs/decisions/adr-001-assignment-operator.md)              | Assignment Operator       | `<-` for assignment, `=` for comparison                       |
-| [ADR-003](docs/decisions/adr-003-static-allocation.md)                | Static Allocation         | No dynamic memory after init                                  |
-| [ADR-004](docs/decisions/adr-004-register-bindings.md)                | Register Bindings         | Type-safe hardware access                                     |
-| [ADR-006](docs/decisions/adr-006-simplified-references.md)            | Simplified References     | Pass by reference, no pointer syntax                          |
-| [ADR-007](docs/decisions/adr-007-type-aware-bit-indexing.md)          | Type-Aware Bit Indexing   | Integers as bit arrays, `.length` property                    |
-| [ADR-010](docs/decisions/adr-010-c-interoperability.md)               | C Interoperability        | Unified ANTLR parser architecture                             |
-| [ADR-011](docs/decisions/adr-011-vscode-extension.md)                 | VS Code Extension         | Live C preview with syntax highlighting                       |
-| [ADR-012](docs/decisions/adr-012-static-analysis.md)                  | Static Analysis           | cppcheck integration for generated C                          |
-| [ADR-013](docs/decisions/adr-013-const-qualifier.md)                  | Const Qualifier           | Compile-time const enforcement                                |
-| [ADR-014](docs/decisions/adr-014-structs.md)                          | Structs                   | Data containers without methods                               |
-| [ADR-015](docs/decisions/adr-015-null-state.md)                       | Null State                | Zero initialization for all variables                         |
-| [ADR-016](docs/decisions/adr-016-scope.md)                            | Scope                     | `this.`/`global.` explicit qualification                      |
-| [ADR-017](docs/decisions/adr-017-enums.md)                            | Enums                     | Type-safe enums with C-style casting                          |
-| [ADR-030](docs/decisions/adr-030-forward-declarations.md)             | Define-Before-Use         | Functions must be defined before called                       |
-| [ADR-037](docs/decisions/adr-037-preprocessor.md)                     | Preprocessor              | Flag-only defines, const for values                           |
-| [ADR-043](docs/decisions/adr-043-comments.md)                         | Comments                  | Comment preservation with MISRA compliance                    |
-| [ADR-044](docs/decisions/adr-044-primitive-types.md)                  | Primitive Types           | Fixed-width types with `clamp`/`wrap` overflow                |
-| [ADR-024](docs/decisions/adr-024-type-casting.md)                     | Type Casting              | Widening implicit, narrowing uses bit indexing                |
-| [ADR-022](docs/decisions/adr-022-conditional-expressions.md)          | Conditional Expressions   | Ternary with required parens, boolean condition, no nesting   |
-| [ADR-025](docs/decisions/adr-025-switch-statements.md)                | Switch Statements         | Safe switch with braces, `\|\|` syntax, counted `default(n)`  |
-| [ADR-029](docs/decisions/adr-029-function-pointers.md)                | Callbacks                 | Function-as-Type pattern with nominal typing                  |
-| [ADR-045](docs/decisions/adr-045-string-type.md)                      | Bounded Strings           | `string<N>` with compile-time safety                          |
-| [ADR-023](docs/decisions/adr-023-sizeof.md)                           | Sizeof                    | Type/value size queries with safety checks                    |
-| [ADR-027](docs/decisions/adr-027-do-while.md)                         | Do-While                  | `do { } while ()` with boolean condition (E0701)              |
-| [ADR-032](docs/decisions/adr-032-nested-structs.md)                   | Nested Structs            | Named nested structs only (no anonymous)                      |
-| [ADR-035](docs/decisions/adr-035-array-initializers.md)               | Array Initializers        | `[1, 2, 3]` syntax with `[0*]` fill-all                       |
-| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md)          | Multi-dim Arrays          | `arr[i][j]` with compile-time bounds enforcement              |
-| [ADR-040](docs/decisions/adr-040-isr-declaration.md)                  | ISR Type                  | Built-in `ISR` type for `void(void)` function pointers        |
-| [ADR-034](docs/decisions/adr-034-bit-fields.md)                       | Bitmap Types              | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data  |
-| [ADR-048](docs/decisions/adr-048-cli-executable.md)                   | CLI Executable            | `cnext` command with smart defaults                           |
-| [ADR-049](docs/decisions/adr-049-atomic-types.md)                     | Atomic Types              | `atomic` keyword with LDREX/STREX or PRIMASK fallback         |
-| [ADR-050](docs/decisions/adr-050-critical-sections.md)                | Critical Sections         | `critical { }` blocks with PRIMASK save/restore               |
-| [ADR-108](docs/decisions/adr-108-volatile-keyword.md)                 | Volatile Variables        | `volatile` keyword prevents compiler optimization             |
-| [ADR-046](docs/decisions/adr-046-nullable-c-interop.md)               | Nullable C Interop        | `c_` prefix for nullable C pointer types (supersedes ADR-047) |
-| [ADR-047](docs/decisions/adr-047-nullable-types.md)                   | NULL for C Interop        | `NULL` keyword for C stream functions (superseded by ADR-046) |
-| [ADR-052](docs/decisions/adr-052-safe-numeric-literal-generation.md)  | Safe Numeric Literals     | `type_MIN`/`type_MAX` constants + safe hex conversion         |
-| [ADR-053](docs/decisions/adr-053-transpiler-pipeline-architecture.md) | Transpiler Pipeline       | Unified multi-pass pipeline with header symbol extraction     |
-| [ADR-057](docs/decisions/adr-057-implicit-scope-resolution.md)        | Implicit Scope Resolution | Bare identifiers resolve local → scope → global               |
+| ADR                                                                   | Title                     | Description                                                  |
+| --------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------ |
+| [ADR-001](docs/decisions/adr-001-assignment-operator.md)              | Assignment Operator       | `<-` for assignment, `=` for comparison                      |
+| [ADR-003](docs/decisions/adr-003-static-allocation.md)                | Static Allocation         | No dynamic memory after init                                 |
+| [ADR-004](docs/decisions/adr-004-register-bindings.md)                | Register Bindings         | Type-safe hardware access                                    |
+| [ADR-006](docs/decisions/adr-006-simplified-references.md)            | Simplified References     | Pass by reference, no pointer syntax                         |
+| [ADR-007](docs/decisions/adr-007-type-aware-bit-indexing.md)          | Type-Aware Bit Indexing   | Integers as bit arrays, `.length` property                   |
+| [ADR-010](docs/decisions/adr-010-c-interoperability.md)               | C Interoperability        | Unified ANTLR parser architecture                            |
+| [ADR-011](docs/decisions/adr-011-vscode-extension.md)                 | VS Code Extension         | Live C preview with syntax highlighting                      |
+| [ADR-012](docs/decisions/adr-012-static-analysis.md)                  | Static Analysis           | cppcheck integration for generated C                         |
+| [ADR-013](docs/decisions/adr-013-const-qualifier.md)                  | Const Qualifier           | Compile-time const enforcement                               |
+| [ADR-014](docs/decisions/adr-014-structs.md)                          | Structs                   | Data containers without methods                              |
+| [ADR-015](docs/decisions/adr-015-null-state.md)                       | Null State                | Zero initialization for all variables                        |
+| [ADR-016](docs/decisions/adr-016-scope.md)                            | Scope                     | `this.`/`global.` explicit qualification                     |
+| [ADR-017](docs/decisions/adr-017-enums.md)                            | Enums                     | Type-safe enums with C-style casting                         |
+| [ADR-030](docs/decisions/adr-030-forward-declarations.md)             | Define-Before-Use         | Functions must be defined before called                      |
+| [ADR-037](docs/decisions/adr-037-preprocessor.md)                     | Preprocessor              | Flag-only defines, const for values                          |
+| [ADR-043](docs/decisions/adr-043-comments.md)                         | Comments                  | Comment preservation with MISRA compliance                   |
+| [ADR-044](docs/decisions/adr-044-primitive-types.md)                  | Primitive Types           | Fixed-width types with `clamp`/`wrap` overflow               |
+| [ADR-024](docs/decisions/adr-024-type-casting.md)                     | Type Casting              | Widening implicit, narrowing uses bit indexing               |
+| [ADR-022](docs/decisions/adr-022-conditional-expressions.md)          | Conditional Expressions   | Ternary with required parens, boolean condition, no nesting  |
+| [ADR-025](docs/decisions/adr-025-switch-statements.md)                | Switch Statements         | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
+| [ADR-029](docs/decisions/adr-029-function-pointers.md)                | Callbacks                 | Function-as-Type pattern with nominal typing                 |
+| [ADR-045](docs/decisions/adr-045-string-type.md)                      | Bounded Strings           | `string<N>` with compile-time safety                         |
+| [ADR-023](docs/decisions/adr-023-sizeof.md)                           | Sizeof                    | Type/value size queries with safety checks                   |
+| [ADR-027](docs/decisions/adr-027-do-while.md)                         | Do-While                  | `do { } while ()` with boolean condition (E0701)             |
+| [ADR-032](docs/decisions/adr-032-nested-structs.md)                   | Nested Structs            | Named nested structs only (no anonymous)                     |
+| [ADR-035](docs/decisions/adr-035-array-initializers.md)               | Array Initializers        | `[1, 2, 3]` syntax with `[0*]` fill-all                      |
+| [ADR-036](docs/decisions/adr-036-multidimensional-arrays.md)          | Multi-dim Arrays          | `arr[i][j]` with compile-time bounds enforcement             |
+| [ADR-040](docs/decisions/adr-040-isr-declaration.md)                  | ISR Type                  | Built-in `ISR` type for `void(void)` function pointers       |
+| [ADR-034](docs/decisions/adr-034-bit-fields.md)                       | Bitmap Types              | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
+| [ADR-048](docs/decisions/adr-048-cli-executable.md)                   | CLI Executable            | `cnext` command with smart defaults                          |
+| [ADR-049](docs/decisions/adr-049-atomic-types.md)                     | Atomic Types              | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
+| [ADR-050](docs/decisions/adr-050-critical-sections.md)                | Critical Sections         | `critical { }` blocks with PRIMASK save/restore              |
+| [ADR-108](docs/decisions/adr-108-volatile-keyword.md)                 | Volatile Variables        | `volatile` keyword prevents compiler optimization            |
+| [ADR-046](docs/decisions/adr-046-nullable-c-interop.md)               | Nullable C Interop        | `c_` prefix for nullable C pointer types                     |
+| [ADR-053](docs/decisions/adr-053-transpiler-pipeline-architecture.md) | Transpiler Pipeline       | Unified multi-pass pipeline with header symbol extraction    |
+| [ADR-057](docs/decisions/adr-057-implicit-scope-resolution.md)        | Implicit Scope Resolution | Bare identifiers resolve local → scope → global              |
+
+### Accepted
+
+| ADR                                                                  | Title                 | Description                                           |
+| -------------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
+| [ADR-051](docs/decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection   |
+| [ADR-052](docs/decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion |
+
+### Superseded
+
+| ADR                                                 | Title              | Description                                                 |
+| --------------------------------------------------- | ------------------ | ----------------------------------------------------------- |
+| [ADR-047](docs/decisions/adr-047-nullable-types.md) | NULL for C Interop | `NULL` keyword for C stream functions (replaced by ADR-046) |
 
 ### Research (v1 Roadmap)
 
-| ADR                                                          | Title                         | Description                             |
-| ------------------------------------------------------------ | ----------------------------- | --------------------------------------- |
-| [ADR-008](docs/decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention     |
-| [ADR-009](docs/decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks |
+| ADR                                                              | Title                         | Description                                         |
+| ---------------------------------------------------------------- | ----------------------------- | --------------------------------------------------- |
+| [ADR-008](docs/decisions/adr-008-language-bug-prevention.md)     | Language-Level Bug Prevention | Top 15 embedded bugs and prevention                 |
+| [ADR-009](docs/decisions/adr-009-isr-safety.md)                  | ISR Safety                    | Safe interrupts without `unsafe` blocks             |
+| [ADR-054](docs/decisions/adr-054-array-index-overflow.md)        | Array Index Overflow          | Overflow semantics for array index expressions      |
+| [ADR-055](docs/decisions/adr-055-symbol-parser-architecture.md)  | Symbol Parser Architecture    | Unified symbol resolution design                    |
+| [ADR-056](docs/decisions/adr-056-cast-overflow-behavior.md)      | Cast Overflow Behavior        | Consistent overflow semantics for type casts        |
+| [ADR-060](docs/decisions/adr-060-vscode-extension-separation.md) | VS Code Extension Separation  | Separate repository for VS Code extension           |
+| [ADR-058](docs/decisions/adr-058-explicit-length-properties.md)  | Explicit Length Properties    | Replace `.length` with `.bit_length`/`.byte_length` |
+| [ADR-109](docs/decisions/adr-109-codegenerator-decomposition.md) | CodeGenerator Decomposition   | Breaking down CodeGenerator into modules            |
 
 ### Research (v2 Roadmap)
 
