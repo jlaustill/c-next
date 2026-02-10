@@ -20,7 +20,20 @@ import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
 import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 
+// Shared patterns for distinguishing C++ constructors from C function prototypes
+const C_KEYWORDS =
+  "return|if|while|for|switch|case|else|do|break|continue|goto|sizeof|typeof|alignof";
+const C_TYPES =
+  "void|int|char|float|double|long|short|unsigned|signed|bool|enum|struct|union|static|extern|const|volatile|inline|u?int\\d+_t|size_t";
+
 class TestUtils {
+  // First word of a line that is NOT a C++ constructor (keywords + C types)
+  static readonly NON_CONSTRUCTOR_FIRST_WORD = new RegExp(
+    `^(${C_KEYWORDS}|${C_TYPES})$`,
+  );
+  // Type keywords appearing in function arguments indicate a prototype, not a constructor
+  static readonly C_TYPE_IN_ARGS = new RegExp(`\\b(${C_TYPES})\\b`);
+
   /**
    * Normalize output for comparison (trim trailing whitespace, normalize line endings)
    */
@@ -115,15 +128,10 @@ class TestUtils {
       const firstWord = constructorMatch[1];
       const argsContent = constructorMatch[2];
       const isKeywordOrCType =
-        /^(return|if|while|for|switch|case|else|do|break|continue|goto|sizeof|typeof|alignof|void|int|char|float|double|long|short|unsigned|signed|bool|enum|struct|union|static|extern|const|volatile|inline|u?int\d+_t|size_t)$/.test(
-          firstWord,
-        );
+        TestUtils.NON_CONSTRUCTOR_FIRST_WORD.test(firstWord);
       // Function prototypes have type keywords in args (e.g., "const int* x");
       // constructor calls have plain values (e.g., "pin, 42")
-      const argsHaveTypes =
-        /\b(void|int|char|float|double|long|short|unsigned|signed|bool|const|struct|enum|union|u?int\d+_t|size_t)\b/.test(
-          argsContent,
-        );
+      const argsHaveTypes = TestUtils.C_TYPE_IN_ARGS.test(argsContent);
       if (!isKeywordOrCType && !argsHaveTypes) {
         return true;
       }

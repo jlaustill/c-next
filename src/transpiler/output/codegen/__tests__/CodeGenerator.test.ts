@@ -7261,7 +7261,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain("uint32_t counters[8] = {0}");
       });
 
-      it("should generate unknown user type C-Next style arrays with {0} in C++ mode", () => {
+      it("should generate unknown user type C-Next style arrays with {} in C++ mode", () => {
         const source = `
           void main() {
               UnknownType[4] items;
@@ -7279,8 +7279,8 @@ describe("CodeGenerator", () => {
           cppMode: true,
         });
 
-        // Unknown types not from C++ headers use {0} (conservative)
-        expect(code).toContain("UnknownType items[4] = {0}");
+        // Unknown types in C++ mode use {} (may have non-trivial constructors)
+        expect(code).toContain("UnknownType items[4] = {}");
       });
 
       it("should generate known C-Next struct arrays with {0} in C++ mode", () => {

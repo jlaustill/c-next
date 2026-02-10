@@ -5833,12 +5833,10 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
     // Also check C-Next style array type (e.g., CppClass[4]) where
-    // the userType is nested inside arrayType. Only use isCppType()
-    // (explicit C++ header source) to avoid false positives for C
-    // header typedef structs that aren't in isKnownStruct.
+    // the userType is nested inside arrayType.
     if (typeCtx.arrayType()?.userType()) {
       const typeName = typeCtx.arrayType()!.userType()!.getText();
-      if (this.isCppType(typeName)) {
+      if (this._needsEmptyBraceInit(typeName)) {
         return "{}";
       }
     }
