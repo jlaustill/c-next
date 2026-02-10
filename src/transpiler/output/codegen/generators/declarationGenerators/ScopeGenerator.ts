@@ -22,50 +22,7 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import generateScopedRegister from "./ScopedRegisterGenerator";
 import BitmapCommentUtils from "./BitmapCommentUtils";
-
-/**
- * Generate array type dimension string from arrayType syntax.
- * Evaluates constants when possible, falls back to expression generation.
- */
-function generateArrayTypeDimStr(
-  arrayTypeCtx: Parser.ArrayTypeContext | null,
-  orchestrator: IOrchestrator,
-): string {
-  if (arrayTypeCtx === null) {
-    return "";
-  }
-
-  const sizeExpr = arrayTypeCtx.expression();
-  if (!sizeExpr) {
-    return "[]";
-  }
-
-  const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
-  if (constValue === undefined) {
-    // Fall back to expression generation for macros, enums, etc.
-    return `[${orchestrator.generateExpression(sizeExpr)}]`;
-  }
-
-  return `[${constValue}]`;
-}
-
-/**
- * Generate string capacity dimension if applicable.
- */
-function generateStringCapacityDim(typeCtx: Parser.TypeContext): string {
-  const stringCtx = typeCtx.stringType();
-  if (!stringCtx) {
-    return "";
-  }
-
-  const intLiteral = stringCtx.INTEGER_LITERAL();
-  if (!intLiteral) {
-    return "";
-  }
-
-  const capacity = Number.parseInt(intLiteral.getText(), 10);
-  return `[${capacity + 1}]`;
-}
+import ArrayDimensionUtils from "./ArrayDimensionUtils";
 
 /**
  * Generate initializer expression for a variable declaration.
@@ -232,7 +189,10 @@ function generateRegularVariable(
 
   // Build declaration with all dimensions
   let decl = `${prefix}${constPrefix}${type} ${fullName}`;
-  decl += generateArrayTypeDimStr(arrayTypeCtx, orchestrator);
+  decl += ArrayDimensionUtils.generateArrayTypeDimension(
+    arrayTypeCtx,
+    orchestrator,
+  );
 
   if (arrayDims.length > 0) {
     // C-style or additional dimensions
@@ -240,7 +200,7 @@ function generateRegularVariable(
   }
 
   // ADR-045: Add string capacity dimension for string arrays
-  decl += generateStringCapacityDim(varDecl.type());
+  decl += ArrayDimensionUtils.generateStringCapacityDim(varDecl.type());
   decl += generateInitializer(varDecl, isArray, orchestrator);
 
   return decl + ";";
@@ -573,7 +533,10 @@ function generateScopedStructField(
 
   // Handle C-Next style arrayType syntax (u16[8] arr)
   const arrayTypeCtx = member.type().arrayType?.() ?? null;
-  let dimStr = generateArrayTypeDimStr(arrayTypeCtx, orchestrator);
+  let dimStr = ArrayDimensionUtils.generateArrayTypeDimension(
+    arrayTypeCtx,
+    orchestrator,
+  );
 
   // Handle C-style array dimensions if present
   const arrayDims = member.arrayDimension();
@@ -582,7 +545,7 @@ function generateScopedStructField(
   }
 
   // Handle string capacity for string fields
-  dimStr += generateStringCapacityDim(member.type());
+  dimStr += ArrayDimensionUtils.generateStringCapacityDim(member.type());
 
   return `    ${fieldType} ${fieldName}${dimStr};`;
 }

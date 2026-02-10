@@ -22,32 +22,7 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
-
-/**
- * Generate array type dimension string from arrayType syntax (e.g., u8[16]).
- * Returns empty string if no arrayType syntax is present.
- */
-function generateArrayTypeDimension(
-  arrayTypeCtx: Parser.ArrayTypeContext | null,
-  orchestrator: IOrchestrator,
-): string {
-  if (arrayTypeCtx === null) {
-    return "";
-  }
-
-  const sizeExpr = arrayTypeCtx.expression();
-  if (!sizeExpr) {
-    return "[]";
-  }
-
-  const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
-  if (constValue === undefined) {
-    // Fall back to expression generation for macros, enums, etc.
-    return `[${orchestrator.generateExpression(sizeExpr)}]`;
-  }
-
-  return `[${constValue}]`;
-}
+import ArrayDimensionUtils from "./ArrayDimensionUtils";
 
 /**
  * Generate a callback field declaration for a struct.
@@ -83,7 +58,7 @@ function generateRegularField(
   // Check for arrayType syntax: u8[16] data -> member.type().arrayType()
   // Use optional chaining for mock compatibility in tests
   const arrayTypeCtx = member.type().arrayType?.() ?? null;
-  const arrayTypeDimStr = generateArrayTypeDimension(
+  const arrayTypeDimStr = ArrayDimensionUtils.generateArrayTypeDimension(
     arrayTypeCtx,
     orchestrator,
   );
