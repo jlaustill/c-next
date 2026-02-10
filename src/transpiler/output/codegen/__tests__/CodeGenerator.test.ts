@@ -12340,6 +12340,238 @@ describe("CodeGenerator", () => {
       });
     });
 
+    describe("C-style array parameter rejection", () => {
+      it("should reject C-style array parameter with single dimension", () => {
+        const source = `
+          void process(u8 data[8]) {
+            data[0] <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/C-style array parameter is not allowed/);
+      });
+
+      it("should reject C-style array parameter with multiple dimensions", () => {
+        const source = `
+          void process(u32 matrix[3][3]) {
+            matrix[0][0] <- 1;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/C-style array parameter is not allowed/);
+      });
+
+      it("should reject C-style unsized array parameter", () => {
+        const source = `
+          void process(u8 data[]) {
+            data[0] <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/C-style array parameter is not allowed/);
+      });
+
+      it("should suggest correct C-Next style syntax in error message", () => {
+        const source = `
+          void process(i32 values[10]) {
+            values[0] <- 1;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/Use 'i32\[10\] values' instead of 'i32 values\[10\]'/);
+      });
+    });
+
+    describe("user type array parameters", () => {
+      it("should handle struct array parameter with C-Next style", () => {
+        const source = `
+          struct Point { i32 x; i32 y; }
+          void processPoints(Point[4] points) {
+            points[0].x <- 10;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Point points[4]");
+      });
+
+      it("should detect struct type in arrayType for parameter", () => {
+        const source = `
+          struct Data { u32 value; }
+          void process(Data[8] items) {
+            items[0].value <- 42;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Data items[8]");
+        expect(code).toContain("items[0].value = 42");
+      });
+    });
+
+    describe("multi-dimensional C-Next style array parameters", () => {
+      it("should handle 2D array parameter", () => {
+        const source = `
+          void processMatrix(i32[4][4] matrix) {
+            matrix[0][0] <- 1;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("int32_t matrix[4][4]");
+      });
+
+      it("should handle 3D array parameter", () => {
+        const source = `
+          void processCube(u8[2][3][4] cube) {
+            cube[0][0][0] <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("uint8_t cube[2][3][4]");
+      });
+
+      it("should handle unbounded first dimension with sized second", () => {
+        const source = `
+          void processRows(u32[][4] rows, u32 count) {
+            rows[0][0] <- 1;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("uint32_t rows[][4]");
+      });
+    });
+
+    describe("string array parameter capacity", () => {
+      it("should add capacity dimension for string array parameter", () => {
+        const source = `
+          void processNames(string<16>[5] names) {
+            names[0] <- "test";
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // string<16>[5] -> char[5][17] (capacity + 1 for null terminator)
+        expect(code).toContain("char names[5][17]");
+      });
+
+      it("should handle string array with larger capacity", () => {
+        const source = `
+          void logMessages(string<128>[10] messages) {
+            messages[0] <- "hello";
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("char messages[10][129]");
+      });
+    });
+
     describe("sizeof helpers", () => {
       it("should handle sizeof on primitive type", () => {
         const source = `
