@@ -1,21 +1,20 @@
 // test-execution
-// Tests: Issue #368 - Array parameter element assignment generates bitwise ops instead of array access
+// Tests: Issue #368 - Array parameter element assignment
 // When assigning to an array element via function parameter (data[0] <- value),
 // the transpiler should generate array access, not bit manipulation.
-// Bug: Unsized array parameters (u8 data[]) generate bit ops; sized arrays (u8 arr[8]) work fine.
 
-// Function that writes to array element by index - UNSIZED parameter (triggers bug)
-void writeAt(u8 arr[], u32 index, u8 value) {
+// Function that writes to array element by index - sized parameter
+void writeAt(u8[8] arr, u32 index, u8 value) {
     arr[index] <- value;
 }
 
-// Function that writes to first element with literal index - UNSIZED parameter
-void writeFirst(u8 data[], u8 value) {
+// Function that writes to first element with literal index
+void writeFirst(u8[8] data, u8 value) {
     data[0] <- value;
 }
 
-// Function that reads and writes array elements - UNSIZED parameters
-void copyElement(u8 src[], u8 dst[], u32 index) {
+// Function that reads and writes array elements
+void copyElement(u8[4] src, u8[4] dst, u32 index) {
     dst[index] <- src[index];
 }
 

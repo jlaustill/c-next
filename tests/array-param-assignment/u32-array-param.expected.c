@@ -7,29 +7,24 @@
 
 // test-execution
 // Tests: u32 array parameter assignment
-// Coverage: Sized and unsized u32 array parameters
-// Unsized array parameter
-void writeU32(uint32_t arr[], uint32_t index, uint32_t value) {
-    arr[index] = value;
-}
-
+// Coverage: Sized u32 array parameters
 // Sized array parameter
-void writeU32Sized(uint32_t arr[4], uint32_t index, uint32_t value) {
+void writeU32(uint32_t arr[4], uint32_t index, uint32_t value) {
     arr[index] = value;
 }
 
 // Read and return from array parameter
-uint32_t readU32(const uint32_t arr[], uint32_t index) {
+uint32_t readU32(const uint32_t arr[4], uint32_t index) {
     return arr[index];
 }
 
 // Modify array element with compound assignment
-void incrementU32(uint32_t arr[], uint32_t index) {
+void incrementU32(uint32_t arr[4], uint32_t index) {
     arr[index] += 1;
 }
 
 // Copy between arrays
-void copyU32(const uint32_t src[], uint32_t dst[], uint32_t index) {
+void copyU32(const uint32_t src[4], uint32_t dst[4], uint32_t index) {
     dst[index] = src[index];
 }
 
@@ -43,7 +38,7 @@ int main(void) {
     if (buffer[0] != 100000) return 1;
     writeU32(buffer, 3, 999999);
     if (buffer[3] != 999999) return 2;
-    writeU32Sized(buffer, 1, 500000);
+    writeU32(buffer, 1, 500000);
     if (buffer[1] != 500000) return 3;
     uint32_t result = readU32(buffer, 0);
     if (result != 100000) return 4;

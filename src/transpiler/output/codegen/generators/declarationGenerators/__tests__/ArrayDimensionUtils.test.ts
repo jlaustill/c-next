@@ -26,7 +26,7 @@ describe("ArrayDimensionUtils", () => {
     it("returns [] for context with no expression", () => {
       const orchestrator = createMockOrchestrator();
       const ctx = {
-        expression: () => null,
+        arrayTypeDimension: () => [{ expression: () => null }],
       };
       const result = ArrayDimensionUtils.generateArrayTypeDimension(
         ctx as never,
@@ -38,7 +38,9 @@ describe("ArrayDimensionUtils", () => {
     it("returns constant dimension when evaluable", () => {
       const orchestrator = createMockOrchestrator(16);
       const ctx = {
-        expression: () => ({ getText: () => "16" }),
+        arrayTypeDimension: () => [
+          { expression: () => ({ getText: () => "16" }) },
+        ],
       };
       const result = ArrayDimensionUtils.generateArrayTypeDimension(
         ctx as never,
@@ -52,7 +54,7 @@ describe("ArrayDimensionUtils", () => {
       const orchestrator = createMockOrchestrator(undefined, "BUFFER_SIZE");
       const mockExpr = { getText: () => "BUFFER_SIZE" };
       const ctx = {
-        expression: () => mockExpr,
+        arrayTypeDimension: () => [{ expression: () => mockExpr }],
       };
       const result = ArrayDimensionUtils.generateArrayTypeDimension(
         ctx as never,

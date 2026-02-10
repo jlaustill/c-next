@@ -2,7 +2,7 @@
 // Tests: Issue #368 variant - u8 array with explicit size
 
 // Function with explicit array size (like the working u32 test)
-void writeToSized(u8 arr[8], u32 index, u8 value) {
+void writeToSized(u8[8] arr, u32 index, u8 value) {
     arr[index] <- value;
 }
 

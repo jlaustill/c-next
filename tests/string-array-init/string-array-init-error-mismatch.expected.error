@@ -1,2 +1,1 @@
-5:16 missing IDENTIFIER at '['
-5:20 extraneous input 'LABELS' expecting {'<-', '[', ';'}
+1:0 Code generation failed: Error: Array size mismatch - declared [3] but got 2 elements

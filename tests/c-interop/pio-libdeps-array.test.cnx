@@ -7,7 +7,7 @@
 
 scope PioArrayTest {
     // Function that takes array parameter by reference
-    public void processBuffer(const u8 data[8], u8 len) {
+    public void processBuffer(const u8[8] data, u8 len) {
         u8 sum <- 0;
         for (u8 i <- 0; i < len; i +<- 1) {
             sum +<- data[i];

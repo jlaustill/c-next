@@ -18,7 +18,7 @@ scope TestScope {
 }
 
 // Function with multi-dim array parameter
-u32 checkMatrixLength(u8 matrix[4][8]) {
+u32 checkMatrixLength(u8[4][8] matrix) {
     return matrix.length;
 }
 

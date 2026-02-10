@@ -156,6 +156,61 @@ describe("VariableCollector", () => {
       expect(symbol.isArray).toBe(true);
       expect(symbol.arrayDimensions).toEqual([10, 20]);
     });
+
+    it("collects C-Next style array with dimensions in type (u8[8] arr)", () => {
+      const code = `
+        u8[8] buffer;
+      `;
+      const tree = parse(code);
+      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+
+      expect(symbol.isArray).toBe(true);
+      expect(symbol.arrayDimensions).toEqual([8]);
+    });
+
+    it("collects C-Next style multi-dimensional array (u8[4][4] arr)", () => {
+      const code = `
+        u8[4][4] matrix;
+      `;
+      const tree = parse(code);
+      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+
+      expect(symbol.isArray).toBe(true);
+      expect(symbol.arrayDimensions).toEqual([4, 4]);
+    });
+
+    it("collects C-Next style array with const reference dimension", () => {
+      const code = `
+        u8[SIZE] buffer;
+      `;
+      const tree = parse(code);
+      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const constValues = new Map<string, number>([["SIZE", 16]]);
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        undefined,
+        true,
+        constValues,
+      );
+
+      expect(symbol.isArray).toBe(true);
+      expect(symbol.arrayDimensions).toEqual([16]);
+    });
+
+    it("preserves unresolved macro as string in C-Next style array", () => {
+      const code = `
+        u8[BUFFER_SIZE] buffer;
+      `;
+      const tree = parse(code);
+      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+
+      expect(symbol.isArray).toBe(true);
+      expect(symbol.arrayDimensions).toEqual(["BUFFER_SIZE"]);
+    });
   });
 
   describe("scoped variables", () => {

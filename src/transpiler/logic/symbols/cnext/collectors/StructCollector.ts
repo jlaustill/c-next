@@ -30,7 +30,13 @@ function processArrayTypeSyntax(
     return { isArray: false, dimension: undefined };
   }
 
-  const sizeExpr = arrayTypeCtx.expression();
+  // Get the first dimension (for backwards compatibility with single-dimension code)
+  const dims = arrayTypeCtx.arrayTypeDimension();
+  if (dims.length === 0) {
+    return { isArray: true, dimension: undefined };
+  }
+
+  const sizeExpr = dims[0].expression();
   if (!sizeExpr) {
     return { isArray: true, dimension: undefined };
   }

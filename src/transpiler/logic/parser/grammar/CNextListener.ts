@@ -89,6 +89,7 @@ import { TemplateArgumentListContext } from "./CNextParser.js";
 import { TemplateArgumentContext } from "./CNextParser.js";
 import { StringTypeContext } from "./CNextParser.js";
 import { ArrayTypeContext } from "./CNextParser.js";
+import { ArrayTypeDimensionContext } from "./CNextParser.js";
 import { LiteralContext } from "./CNextParser.js";
 
 
@@ -957,6 +958,16 @@ export class CNextListener implements ParseTreeListener {
      * @param ctx the parse tree
      */
     exitArrayType?: (ctx: ArrayTypeContext) => void;
+    /**
+     * Enter a parse tree produced by `CNextParser.arrayTypeDimension`.
+     * @param ctx the parse tree
+     */
+    enterArrayTypeDimension?: (ctx: ArrayTypeDimensionContext) => void;
+    /**
+     * Exit a parse tree produced by `CNextParser.arrayTypeDimension`.
+     * @param ctx the parse tree
+     */
+    exitArrayTypeDimension?: (ctx: ArrayTypeDimensionContext) => void;
     /**
      * Enter a parse tree produced by `CNextParser.literal`.
      * @param ctx the parse tree

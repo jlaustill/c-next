@@ -208,6 +208,10 @@ class TypeGenerationHelper {
     // Array type
     if (ctx.arrayType()) {
       const arrCtx = ctx.arrayType()!;
+      // String arrays have base type "char"
+      if (arrCtx.stringType()) {
+        return "char";
+      }
       const primitiveText = arrCtx.primitiveType()?.getText() ?? null;
       const userTypeName = arrCtx.userType()?.getText() ?? null;
       const needsStruct = userTypeName

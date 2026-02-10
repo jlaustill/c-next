@@ -11,11 +11,11 @@
 // Tests: Issue #368 - Array parameter in scope (original bug report case)
 /* Scope: Test */
 
-void Test_writeToArray(uint8_t data[], uint8_t value) {
+void Test_writeToArray(uint8_t data[8], uint8_t value) {
     data[0] = value;
 }
 
-void Test_writeAtIndex(uint8_t data[], uint32_t index, uint8_t value) {
+void Test_writeAtIndex(uint8_t data[8], uint32_t index, uint8_t value) {
     data[index] = value;
 }
 

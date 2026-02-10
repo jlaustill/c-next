@@ -1,0 +1,21 @@
+// Reproducer for array param codegen mismatch between .h and .cpp
+// The issue: .cpp generates correct array syntax but .h uses reference
+
+scope CommandHandler {
+    public void process(const u8[8] data) {
+        // Process the data
+    }
+}
+
+scope J1939Bus {
+    public void send(u8[8] buffer) {
+        // Send the buffer
+    }
+}
+
+void main() {
+    u8[8] data;
+    data[0] <- 0x42;
+    CommandHandler.process(data);
+    J1939Bus.send(data);
+}

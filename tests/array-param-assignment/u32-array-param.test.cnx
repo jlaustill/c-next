@@ -1,34 +1,29 @@
 // test-execution
 // Tests: u32 array parameter assignment
-// Coverage: Sized and unsized u32 array parameters
-
-// Unsized array parameter
-void writeU32(u32 arr[], u32 index, u32 value) {
-    arr[index] <- value;
-}
+// Coverage: Sized u32 array parameters
 
 // Sized array parameter
-void writeU32Sized(u32 arr[4], u32 index, u32 value) {
+void writeU32(u32[4] arr, u32 index, u32 value) {
     arr[index] <- value;
 }
 
 // Read and return from array parameter
-u32 readU32(u32 arr[], u32 index) {
+u32 readU32(u32[4] arr, u32 index) {
     return arr[index];
 }
 
 // Modify array element with compound assignment
-void incrementU32(u32 arr[], u32 index) {
+void incrementU32(u32[4] arr, u32 index) {
     arr[index] +<- 1;
 }
 
 // Copy between arrays
-void copyU32(u32 src[], u32 dst[], u32 index) {
+void copyU32(u32[4] src, u32[4] dst, u32 index) {
     dst[index] <- src[index];
 }
 
 u32 main() {
-    // Test unsized parameter write
+    // Test sized parameter write
     u32[4] buffer;
     buffer[0] <- 0;
     buffer[1] <- 0;
@@ -41,8 +36,7 @@ u32 main() {
     writeU32(buffer, 3, 999999);
     if (buffer[3] != 999999) return 2;
 
-    // Test sized parameter write
-    writeU32Sized(buffer, 1, 500000);
+    writeU32(buffer, 1, 500000);
     if (buffer[1] != 500000) return 3;
 
     // Test read from array parameter

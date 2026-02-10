@@ -40,7 +40,7 @@ void swapElements(uint8_t* buf, uint32_t i, uint32_t j) {
 }
 
 // Test 6: With explicit array syntax (should still work)
-void writeExplicit(uint8_t buf[], uint32_t idx) {
+void writeExplicit(uint8_t buf[8], uint32_t idx) {
     buf[idx] = 99;
 }
 

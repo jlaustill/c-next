@@ -6,22 +6,21 @@
 #include <stdint.h>
 
 // test-execution
-// Tests: Issue #368 - Array parameter element assignment generates bitwise ops instead of array access
+// Tests: Issue #368 - Array parameter element assignment
 // When assigning to an array element via function parameter (data[0] <- value),
 // the transpiler should generate array access, not bit manipulation.
-// Bug: Unsized array parameters (u8 data[]) generate bit ops; sized arrays (u8 arr[8]) work fine.
-// Function that writes to array element by index - UNSIZED parameter (triggers bug)
-void writeAt(uint8_t arr[], uint32_t index, uint8_t value) {
+// Function that writes to array element by index - sized parameter
+void writeAt(uint8_t arr[8], uint32_t index, uint8_t value) {
     arr[index] = value;
 }
 
-// Function that writes to first element with literal index - UNSIZED parameter
-void writeFirst(uint8_t data[], uint8_t value) {
+// Function that writes to first element with literal index
+void writeFirst(uint8_t data[8], uint8_t value) {
     data[0] = value;
 }
 
-// Function that reads and writes array elements - UNSIZED parameters
-void copyElement(const uint8_t src[], uint8_t dst[], uint32_t index) {
+// Function that reads and writes array elements
+void copyElement(const uint8_t src[4], uint8_t dst[4], uint32_t index) {
     dst[index] = src[index];
 }
 

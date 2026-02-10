@@ -8,22 +8,22 @@
 // test-execution
 // Tests: Multi-dimensional array parameters
 // Coverage: 2D array parameters passed to functions
-// Note: C requires all dimensions except first to be specified
-void write2D(uint32_t arr[][3], uint32_t row, uint32_t col, uint32_t value) {
+// All dimensions must be specified for memory safety
+void write2D(uint32_t arr[2][3], uint32_t row, uint32_t col, uint32_t value) {
     arr[row][col] = value;
 }
 
-uint32_t read2D(const uint32_t arr[][3], uint32_t row, uint32_t col) {
+uint32_t read2D(const uint32_t arr[2][3], uint32_t row, uint32_t col) {
     return arr[row][col];
 }
 
-void fillRow(uint32_t arr[][3], uint32_t row, uint32_t val0, uint32_t val1, uint32_t val2) {
+void fillRow(uint32_t arr[2][3], uint32_t row, uint32_t val0, uint32_t val1, uint32_t val2) {
     arr[row][0] = val0;
     arr[row][1] = val1;
     arr[row][2] = val2;
 }
 
-uint32_t sumRow(const uint32_t arr[][3], uint32_t row) {
+uint32_t sumRow(const uint32_t arr[2][3], uint32_t row) {
     return arr[row][0] + arr[row][1] + arr[row][2];
 }
 
