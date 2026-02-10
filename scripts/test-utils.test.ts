@@ -289,6 +289,51 @@ describe("TestUtils.hasCppFeatures", () => {
     });
   });
 
+  // Function prototypes should not trigger C++ detection
+  describe("function prototypes", () => {
+    it("should NOT detect void function prototype", () => {
+      expect(TestUtils.hasCppFeatures("void foo(int x);")).toBe(false);
+    });
+
+    it("should NOT detect int function prototype", () => {
+      expect(TestUtils.hasCppFeatures("int getValue(void);")).toBe(false);
+    });
+
+    it("should NOT detect uint32_t function prototype", () => {
+      expect(TestUtils.hasCppFeatures("uint32_t getCount(void);")).toBe(false);
+    });
+
+    it("should NOT detect bool function prototype", () => {
+      expect(TestUtils.hasCppFeatures("bool isReady(void);")).toBe(false);
+    });
+
+    it("should NOT detect static function prototype", () => {
+      expect(TestUtils.hasCppFeatures("static init(void);")).toBe(false);
+    });
+
+    it("should NOT detect enum return type prototype", () => {
+      expect(TestUtils.hasCppFeatures("enum getState(void);")).toBe(false);
+    });
+
+    it("should NOT detect struct return type prototype", () => {
+      expect(TestUtils.hasCppFeatures("struct getConfig(void);")).toBe(false);
+    });
+
+    it("should NOT detect custom type return with typed args", () => {
+      expect(TestUtils.hasCppFeatures("Motor_EMode Motor_getMode(void);")).toBe(
+        false,
+      );
+    });
+
+    it("should NOT detect custom type return with const param", () => {
+      expect(
+        TestUtils.hasCppFeatures(
+          "void DeviceManager_configure(const DeviceConfig* newConfig);",
+        ),
+      ).toBe(false);
+    });
+  });
+
   // Plain C code should not trigger C++ detection
   describe("plain C code", () => {
     it("should NOT detect plain C functions", () => {

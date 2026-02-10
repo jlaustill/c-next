@@ -108,16 +108,23 @@ class TestUtils {
     // Issue #375: Check for C++ constructor call syntax
     // Pattern: TypeName varName(args); at global scope
     // Matches lines like "Adafruit_MAX31856 thermocouple(pin);"
-    // Excludes: return statements, control flow, function calls
+    // Excludes: keywords, C types, and function prototypes (args contain type keywords)
     // Split into two patterns to reduce regex complexity (SonarCloud S5843)
-    const constructorMatch = /^\s*(\w+)\s+\w+\([^)]*\)\s*;/m.exec(cCode);
+    const constructorMatch = /^\s*(\w+)\s+\w+\(([^)]*)\)\s*;/m.exec(cCode);
     if (constructorMatch) {
       const firstWord = constructorMatch[1];
-      const isKeyword =
-        /^(return|if|while|for|switch|case|else|do|break|continue|goto|sizeof|typeof|alignof)$/.test(
+      const argsContent = constructorMatch[2];
+      const isKeywordOrCType =
+        /^(return|if|while|for|switch|case|else|do|break|continue|goto|sizeof|typeof|alignof|void|int|char|float|double|long|short|unsigned|signed|bool|enum|struct|union|static|extern|const|volatile|inline|u?int\d+_t|size_t)$/.test(
           firstWord,
         );
-      if (!isKeyword) {
+      // Function prototypes have type keywords in args (e.g., "const int* x");
+      // constructor calls have plain values (e.g., "pin, 42")
+      const argsHaveTypes =
+        /\b(void|int|char|float|double|long|short|unsigned|signed|bool|const|struct|enum|union|u?int\d+_t|size_t)\b/.test(
+          argsContent,
+        );
+      if (!isKeywordOrCType && !argsHaveTypes) {
         return true;
       }
     }
