@@ -1,0 +1,16 @@
+// test-cpp-mode
+// test-transpile-only
+// Tests: C++ class array initialization uses {} instead of {0}
+// Bug: CppClass[4] items generated = {0} which fails for C++ classes
+
+#include "cpp-class-array-init.h"
+
+// C-Next style array of C++ class (should generate = {})
+CppTestClass[4] items;
+
+// C-Next style array of primitive (should still generate = {0})
+u32[8] counters;
+
+void main() {
+    u8 dummy <- 0;
+}

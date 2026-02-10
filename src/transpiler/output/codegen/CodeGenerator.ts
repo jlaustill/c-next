@@ -3870,7 +3870,10 @@ export default class CodeGenerator implements IOrchestrator {
         const paramName = param.IDENTIFIER().getText();
         const isConst = param.constModifier() !== null;
         // arrayDimension() returns an array (due to grammar's *), so check length
-        const isArray = param.arrayDimension().length > 0;
+        // Also check C-Next style array type (e.g., u8[8] param)
+        const isArray =
+          param.arrayDimension().length > 0 ||
+          param.type().arrayType() !== null;
         const baseType = this.getTypeName(param.type());
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
@@ -3903,7 +3906,8 @@ export default class CodeGenerator implements IOrchestrator {
         const typeName = this.getTypeName(param.type());
         const isConst = param.constModifier() !== null;
         const dims = param.arrayDimension();
-        const isArray = dims.length > 0;
+        const arrayTypeCtx = param.type().arrayType();
+        const isArray = dims.length > 0 || arrayTypeCtx !== null;
 
         // ADR-029: Check if parameter type is itself a callback type
         const isCallbackParam = CodeGenState.callbackTypes.has(typeName);
@@ -3922,9 +3926,14 @@ export default class CodeGenerator implements IOrchestrator {
           isPointer = !isArray;
         }
 
-        const arrayDims = isArray
-          ? dims.map((d) => this.generateArrayDimension(d)).join("")
-          : "";
+        let arrayDims: string;
+        if (dims.length > 0) {
+          arrayDims = dims.map((d) => this.generateArrayDimension(d)).join("");
+        } else if (arrayTypeCtx) {
+          arrayDims = `[${this.generateExpression(arrayTypeCtx.expression())}]`;
+        } else {
+          arrayDims = "";
+        }
         parameters.push({
           name: paramName,
           type: paramType,
@@ -5181,6 +5190,15 @@ export default class CodeGenerator implements IOrchestrator {
 
     const type = this.generateType(ctx.type());
 
+    // Handle C-Next style array type in parameter (e.g., u8[8] param)
+    const arrayTypeCtx = ctx.type().arrayType();
+    if (arrayTypeCtx) {
+      const dimExpr = this.generateExpression(arrayTypeCtx.expression());
+      const wasModified = this._isCurrentParameterModified(name);
+      const autoConst = !wasModified && !constMod ? "const " : "";
+      return `${autoConst}${constMod}${type} ${name}[${dimExpr}]`;
+    }
+
     // Try special cases first
     const stringArrayResult = this._tryGenerateStringArrayParam(
       ctx,
@@ -5811,6 +5829,16 @@ export default class CodeGenerator implements IOrchestrator {
     if (typeCtx.userType()) {
       const typeName = typeCtx.userType()!.getText();
       if (this._needsEmptyBraceInit(typeName)) {
+        return "{}";
+      }
+    }
+    // Also check C-Next style array type (e.g., CppClass[4]) where
+    // the userType is nested inside arrayType. Only use isCppType()
+    // (explicit C++ header source) to avoid false positives for C
+    // header typedef structs that aren't in isKnownStruct.
+    if (typeCtx.arrayType()?.userType()) {
+      const typeName = typeCtx.arrayType()!.userType()!.getText();
+      if (this.isCppType(typeName)) {
         return "{}";
       }
     }
