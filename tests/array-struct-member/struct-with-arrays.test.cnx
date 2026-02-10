@@ -3,22 +3,22 @@
 // Coverage: u8, u16, u32, u64 arrays inside structs
 
 struct ByteBuffer {
-    u8 data[8];
+    u8[8] data;
     u32 len;
 }
 
 struct WordBuffer {
-    u16 values[4];
+    u16[4] values;
     u32 count;
 }
 
 struct LongBuffer {
-    u32 items[4];
+    u32[4] items;
     u32 cap;
 }
 
 struct WideBuffer {
-    u64 entries[2];
+    u64[2] entries;
     u32 used;
 }
 

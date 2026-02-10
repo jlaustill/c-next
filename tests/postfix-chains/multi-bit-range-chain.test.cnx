@@ -8,7 +8,7 @@ struct Device {
     u32 config;
 }
 
-Device devices[4];
+Device[4] devices;
 
 u8 flags <- 0;
 u16 settings <- 0;

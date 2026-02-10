@@ -62,6 +62,23 @@ class TypeUtils {
       return "string";
     }
 
+    // Handle arrayType: Type[size] - extract the inner type without dimension
+    // The dimension is tracked separately in arrayDimensions
+    if (ctx.arrayType()) {
+      const arrayTypeCtx = ctx.arrayType()!;
+      // Check what inner type is present
+      if (arrayTypeCtx.primitiveType()) {
+        return arrayTypeCtx.primitiveType()!.getText();
+      }
+      if (arrayTypeCtx.userType()) {
+        return arrayTypeCtx.userType()!.getText();
+      }
+      // Fallback for other nested types - strip the dimension part
+      const text = arrayTypeCtx.getText();
+      const bracketIdx = text.indexOf("[");
+      return bracketIdx > 0 ? text.substring(0, bracketIdx) : text;
+    }
+
     // Fallback
     return ctx.getText();
   }

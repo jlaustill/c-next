@@ -1,0 +1,16 @@
+// Test: C-Next style array declaration should generate correct C
+// Array dimension in type position: u16[8] myArray
+u16[8] myArray;
+
+// With initialization
+u8[4] initialized <- [1, 2, 3, 4];
+
+// Different types
+i32[3] signedArray;
+
+// In a function
+void useArrays() {
+    u32[2] localArray;
+    localArray[0] <- 10;
+    localArray[1] <- 20;
+}

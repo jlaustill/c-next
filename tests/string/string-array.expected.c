@@ -9,6 +9,7 @@
 // test-execution
 // ADR-045: Test array of strings
 // Validates: declaration, element access, array.length, element.length, loops
+// C-style allowed for string arrays (grammar limitation)
 char globalNames[5][33] = {0};
 
 uint32_t getArrayLength(char arr[5][33]) {

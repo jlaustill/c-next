@@ -5,7 +5,7 @@
 // the innermost (leaf) array dimension containing primitive types.
 
 u32 main() {
-    u8 board[4][8];
+    u8[4] board[8];
 
     // INVALID: Trying to slice the outer dimension
     // board[0] is u8[8], not a primitive type that can be sliced into a buffer

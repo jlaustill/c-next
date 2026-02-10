@@ -1,7 +1,7 @@
 // test-execution
 // Comprehensive .length test for i8 arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 8 (element bit width)
-i8 globalArr[16];
+i8[16] globalArr;
 
 scope TestScope {
     public u32 getGlobalArrayLength() {
@@ -10,7 +10,7 @@ scope TestScope {
     public u32 getGlobalElementLength() {
         return global.globalArr[0].length;
     }
-    i8 scopeArr[16];
+    i8[16] scopeArr;
     public u32 getScopeArrayLength() {
         return this.scopeArr.length;
     }
@@ -29,7 +29,7 @@ u32 checkElementLength(i8 arr[16]) {
 }
 
 struct TestStruct {
-    i8 arr[16];
+    i8[16] arr;
 }
 
 i32 main() {
@@ -71,7 +71,7 @@ i32 main() {
         return 8;
     }
 
-    i8 localArr[16];
+    i8[16] localArr;
     localArr[0] <- -42;
     if (localArr.length != 16) {
         return 9;
@@ -80,7 +80,7 @@ i32 main() {
         return 10;
     }
 
-    i8 testArr[16];
+    i8[16] testArr;
     testArr[0] <- -42;
     result <- checkArrayLength(testArr);
     if (result != 16) {

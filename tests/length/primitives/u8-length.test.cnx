@@ -80,7 +80,7 @@ i32 main() {
 
    
 // Test Context 8: Array element
-    u8 arr[4];
+    u8[4] arr;
     arr[0] <- 42;
     if (arr[0].length != 8) {
         return 8;

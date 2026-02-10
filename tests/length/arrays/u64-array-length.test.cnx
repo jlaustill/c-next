@@ -1,7 +1,7 @@
 // test-execution
 // Comprehensive .length test for u64 arrays across all contexts
 // Tests: array.length returns 16 (element count), array[0].length returns 64 (element bit width)
-u64 globalArr[16];
+u64[16] globalArr;
 
 scope TestScope {
     public u32 getGlobalArrayLength() {
@@ -10,7 +10,7 @@ scope TestScope {
     public u32 getGlobalElementLength() {
         return global.globalArr[0].length;
     }
-    u64 scopeArr[16];
+    u64[16] scopeArr;
     public u32 getScopeArrayLength() {
         return this.scopeArr.length;
     }
@@ -29,7 +29,7 @@ u32 checkElementLength(u64 arr[16]) {
 }
 
 struct TestStruct {
-    u64 arr[16];
+    u64[16] arr;
 }
 
 i32 main() {
@@ -71,7 +71,7 @@ i32 main() {
         return 8;
     }
 
-    u64 localArr[16];
+    u64[16] localArr;
     localArr[0] <- 1000000;
     if (localArr.length != 16) {
         return 9;
@@ -80,7 +80,7 @@ i32 main() {
         return 10;
     }
 
-    u64 testArr[16];
+    u64[16] testArr;
     testArr[0] <- 1000000;
     result <- checkArrayLength(testArr);
     if (result != 16) {

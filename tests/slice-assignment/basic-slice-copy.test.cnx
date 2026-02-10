@@ -4,7 +4,7 @@
 // Each byte is verified individually to ensure correct memory layout
 
 u32 main() {
-    u8 buffer[64];
+    u8[64] buffer;
 
    
 // Test 1: Copy u32 (4 bytes) into buffer

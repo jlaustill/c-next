@@ -2,9 +2,9 @@
 // Tests: multi-dimensional i64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: timestamps, large counters, high-precision measurements
-i64 matrix2d[4][8];
+i64[4] matrix2d[8];
 
-i64 cube3d[2][3][4];
+i64[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations with large positive and negative values
@@ -85,7 +85,7 @@ u32 main() {
 
    
 // Test i64 specific edge cases with very large values
-    i64 testArray[4][2];
+    i64[4] testArray[2];
 
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
@@ -109,7 +109,7 @@ u32 main() {
 
    
 // Test 2D array with timestamp pattern (milliseconds since epoch)
-    i64 timestamps[3][3];
+    i64[3] timestamps[3];
 
     // Initialize all elements first
     for (u32 tsi <- 0; tsi < 3; tsi +<- 1) {
@@ -143,7 +143,7 @@ u32 main() {
 
    
 // Test with nano-precision timestamps (nanoseconds)
-    i64 nanos[2][2];
+    i64[2] nanos[2];
 
     // Initialize all elements first
     for (u32 ni <- 0; ni < 2; ni +<- 1) {
@@ -163,7 +163,7 @@ u32 main() {
 
    
 // Test large financial calculations (atomic units, e.g., satoshis)
-    i64 balances[2][2];
+    i64[2] balances[2];
 
     // Initialize all elements first
     for (u32 bi <- 0; bi < 2; bi +<- 1) {

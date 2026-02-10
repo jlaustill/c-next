@@ -1,5 +1,5 @@
 // ADR-036: Basic 2D array declaration and access
-u8 matrix[4][8];
+u8[4] matrix[8];
 
 void init() {
     matrix[0][0] <- 1;

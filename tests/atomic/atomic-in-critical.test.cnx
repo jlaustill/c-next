@@ -7,7 +7,7 @@ atomic u32 sharedCounter <- 0;
 
 atomic wrap u16 sequence <- 0;
 
-u8 buffer[64];
+u8[64] buffer;
 
 u32 writeIdx <- 0;
 

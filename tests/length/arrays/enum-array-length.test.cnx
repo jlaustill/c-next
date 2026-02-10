@@ -20,7 +20,7 @@ u32 checkElementLength(State arr[16]) {
 i32 main() {
 
 // Test 1: Array parameter length should return 16 (array size)
-    State testArr[16];
+    State[16] testArr;
     u32 result <- checkArrayLength(testArr);
     if (result != 16) {
         return 1;

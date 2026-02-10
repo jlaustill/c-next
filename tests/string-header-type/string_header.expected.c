@@ -10,6 +10,7 @@
 // Bug #427: Headers emit string<N> instead of char[N+1]
 char greeting[33] = "Hello";
 
+// C-style allowed for string arrays (grammar limitation)
 extern const char labels[3][17] = {"one", "two", "three"};
 
 int main(void) {

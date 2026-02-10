@@ -15,7 +15,7 @@ struct Point {
 }
 
 // Array element type
-f32 samples[4];
+f32[4] samples;
 
 // Function with f32 parameter and return
 f32 add(f32 a, f32 b) {

@@ -74,6 +74,27 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
       // Regular field handling
       const type = orchestrator.generateType(member.type());
 
+      // Check for arrayType syntax: u8[16] data -> member.type().arrayType()
+      // Try to evaluate as constant first (required for C struct fields)
+      // Use optional chaining for mock compatibility in tests
+      const arrayTypeCtx = member.type().arrayType?.() ?? null;
+      const hasArrayTypeSyntax = arrayTypeCtx !== null;
+      let arrayTypeDimStr = "";
+      if (hasArrayTypeSyntax) {
+        const sizeExpr = arrayTypeCtx.expression();
+        if (sizeExpr) {
+          const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
+          if (constValue !== undefined) {
+            arrayTypeDimStr = `[${constValue}]`;
+          } else {
+            // Fall back to expression generation for macros, enums, etc.
+            arrayTypeDimStr = `[${orchestrator.generateExpression(sizeExpr)}]`;
+          }
+        } else {
+          arrayTypeDimStr = "[]";
+        }
+      }
+
       // Check if we have tracked dimensions for this field (includes string capacity for string arrays)
       const trackedDimensions = input.symbols?.structFieldDimensions.get(name);
       const fieldDims = trackedDimensions?.get(fieldName);
@@ -82,10 +103,10 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
         // Use tracked dimensions (includes string capacity for string arrays)
         const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
         lines.push(`    ${type} ${fieldName}${dimsStr};`);
-      } else if (isArray) {
-        // Fall back to AST dimensions for non-string arrays
+      } else if (hasArrayTypeSyntax || isArray) {
+        // Combine arrayType dimension (if any) with arrayDimension dimensions
         const dims = orchestrator.generateArrayDimensions(arrayDims);
-        lines.push(`    ${type} ${fieldName}${dims};`);
+        lines.push(`    ${type} ${fieldName}${arrayTypeDimStr}${dims};`);
       } else {
         lines.push(`    ${type} ${fieldName};`);
       }

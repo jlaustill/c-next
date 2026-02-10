@@ -13,7 +13,7 @@ struct InputData {
 }
 
 struct Configuration {
-    InputData tempInputs[8];
+    InputData[8] tempInputs;
 }
 
 // Function that exposes the bug - passing struct by value with array member access

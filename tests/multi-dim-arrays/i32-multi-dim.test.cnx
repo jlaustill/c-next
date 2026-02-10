@@ -2,9 +2,9 @@
 // Tests: multi-dimensional i32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large counters, financial data, coordinate systems
-i32 matrix2d[4][8];
+i32[4] matrix2d[8];
 
-i32 cube3d[2][3][4];
+i32[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations with positive and negative values
@@ -85,7 +85,7 @@ u32 main() {
 
    
 // Test i32 specific edge cases
-    i32 testArray[4][2];
+    i32[4] testArray[2];
 
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
@@ -109,7 +109,7 @@ u32 main() {
 
    
 // Test 2D array with financial data pattern (cents)
-    i32 balances[3][3];
+    i32[3] balances[3];
 
     // Initialize all elements first
     for (u32 bi <- 0; bi < 3; bi +<- 1) {
@@ -133,7 +133,7 @@ u32 main() {
 
    
 // Test negative value calculations
-    i32 deltas[2][2];
+    i32[2] deltas[2];
 
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
@@ -148,7 +148,7 @@ u32 main() {
 
    
 // Test with timestamp offsets (seconds from epoch)
-    i32 offsets[2][3];
+    i32[2] offsets[3];
 
     // Initialize all elements first
     for (u32 oi <- 0; oi < 2; oi +<- 1) {

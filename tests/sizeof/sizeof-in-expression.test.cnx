@@ -47,14 +47,14 @@ u32 main() {
     if (larger != 1) return 10;
 
     // Calculate array element count from sizes
-    u8 buffer[100];
+    u8[100] buffer;
     u32 bufSize <- sizeof(buffer);
     u32 elemSize <- sizeof(u8);
     u32 elemCount <- bufSize / elemSize;
     if (elemCount != 100) return 11;
 
     // More complex: element count for u32 array
-    u32 intBuffer[25];
+    u32[25] intBuffer;
     u32 intBufSize <- sizeof(intBuffer);
     u32 intElemSize <- sizeof(u32);
     u32 intElemCount <- intBufSize / intElemSize;

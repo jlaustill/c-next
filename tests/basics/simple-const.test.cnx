@@ -25,7 +25,7 @@ u32 main() {
     if (result != 150) return 6;
 
     // Constant used in array operations
-    u32 data[3] <- [1, 2, 3];
+    u32[3] data <- [1, 2, 3];
     const u32 EXPECTED_LENGTH <- 3;
     if (data.length != EXPECTED_LENGTH) return 7;
 

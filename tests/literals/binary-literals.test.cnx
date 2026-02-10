@@ -85,7 +85,7 @@ u32 main() {
     // ===== Binary in array initializers =====
 
     // Test binary in array (flag bits)
-    u8 flags[4] <- [0b0001, 0b0010, 0b0100, 0b1000];
+    u8[4] flags <- [0b0001, 0b0010, 0b0100, 0b1000];
     if (flags[0] != 1) return 18;
     if (flags[1] != 2) return 19;
     if (flags[2] != 4) return 20;

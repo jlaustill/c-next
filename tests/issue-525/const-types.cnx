@@ -10,7 +10,7 @@ const u32 DWORD_CONST <- 100000;
 const string<16> STRING_CONST <- "Hello";
 
 // Const array
-const u8 BYTE_ARRAY[4] <- [1, 2, 3, 4];
+const u8[4] BYTE_ARRAY <- [1, 2, 3, 4];
 
-// Const string array
+// Const string array (C-style allowed for string arrays - grammar limitation)
 const string<8> STRING_ARRAY[3] <- ["one", "two", "three"];

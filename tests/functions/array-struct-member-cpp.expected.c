@@ -14,7 +14,7 @@
 #include <stdbool.h>
 
 // Array of external C structs with bool/enum members
-SensorReading sensors[4] = {};
+SensorReading sensors[4] = {0};
 
 uint32_t process(uint32_t crc, uint8_t byte) {
     return crc ^ byte;

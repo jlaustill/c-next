@@ -8,7 +8,7 @@ struct SensorReading {
 }
 
 // Fixed-size array of readings - no heap allocation
-SensorReading readings[10];
+SensorReading[10] readings;
 
 void addReading(u8 index, u32 ts, i16 val, u8 id) {
     readings[index].timestamp <- ts;

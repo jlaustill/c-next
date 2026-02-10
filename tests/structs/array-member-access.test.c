@@ -8,31 +8,33 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint32_t b) {
-    if (a > UINT32_MAX - b) return UINT32_MAX;
-    return a + b;
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
 }
 
-/* test-execution */
-// Test accessing array members within structs
-// Bug: config.items[i].value transpiles to bit operations instead of array access
-typedef struct {
+// test-execution
+// Regression test: accessing array members within structs
+// Verifies config.items[i].value transpiles correctly (was generating bit operations)
+typedef struct Item {
     uint32_t value;
     uint8_t flags;
 } Item;
 
-typedef struct {
+typedef struct Container {
     Item items[3];
 } Container;
 
-int32_t main(void) {
+int main(void) {
     Container cfg = {0};
-    cfg.items.value[0] = 100;
-    cfg.items.flags[0] = 0x01;
-    cfg.items.value[1] = 200;
-    cfg.items.flags[1] = 0x02;
-    cfg.items.value[2] = 300;
-    cfg.items.flags[2] = 0x04;
+    cfg.items[0].value = 100;
+    cfg.items[0].flags = 0x01;
+    cfg.items[1].value = 200;
+    cfg.items[1].flags = 0x02;
+    cfg.items[2].value = 300;
+    cfg.items[2].flags = 0x04;
     uint32_t sum = 0;
     for (uint32_t i = 0; i < 3; i += 1) {
         sum = cnx_clamp_add_u32(sum, cfg.items[i].value);

@@ -2,6 +2,7 @@
 // Issue #380: String array initializers - execution validation
 // Tests: array access, .length, .capacity after inline initialization
 
+// C-style allowed for string arrays (grammar limitation)
 const string<10> LABELS[3] <- [
     "One",
     "Two",

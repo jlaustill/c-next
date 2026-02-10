@@ -2,9 +2,9 @@
 // Tests: multi-dimensional u16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor data, medium-range counters, port numbers
-u16 matrix2d[4][8];
+u16[4] matrix2d[8];
 
-u16 cube3d[2][3][4];
+u16[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations
@@ -85,7 +85,7 @@ u32 main() {
 
    
 // Test u16 specific edge cases
-    u16 testArray[3][2];
+    u16[3] testArray[2];
 
     // Initialize all elements first
     for (u32 ti <- 0; ti < 3; ti +<- 1) {
@@ -105,7 +105,7 @@ u32 main() {
 
    
 // Test 2D array with port numbers pattern
-    u16 ports[3][3];
+    u16[3] ports[3];
 
     // Initialize all elements first
     for (u32 pi <- 0; pi < 3; pi +<- 1) {
@@ -129,7 +129,7 @@ u32 main() {
 
    
 // Test large value calculations
-    u16 data[2][2];
+    u16[2] data[2];
 
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {

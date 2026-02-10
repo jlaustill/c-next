@@ -22,7 +22,7 @@ void handleByArray(u8 data[4], u8 idx) {
 }
 
 u32 main() {
-    u8 arr[4] <- [1, 2, 3, 4];
+    u8[4] arr <- [1, 2, 3, 4];
     u8 idx0 <- 0;
     u8 idx1 <- 1;
     u8 idx2 <- 2;

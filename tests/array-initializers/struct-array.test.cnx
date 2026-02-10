@@ -6,7 +6,7 @@ struct Command {
 }
 
 // Array of structs with explicit size
-const Command commands[3] <- [
+const Command[3] commands <- [
     {code: 0x01, len: 4},
     {code: 0x02, len: 8},
     {code: 0x03, len: 2}

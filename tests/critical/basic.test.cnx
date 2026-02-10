@@ -1,4 +1,4 @@
-u8 buffer[64];
+u8[64] buffer;
 
 u32 writeIdx <- 0;
 

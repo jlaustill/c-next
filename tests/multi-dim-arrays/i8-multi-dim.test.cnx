@@ -2,9 +2,9 @@
 // Tests: multi-dimensional i8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: temperature sensors, small signed offsets, delta values
-i8 matrix2d[4][8];
+i8[4] matrix2d[8];
 
-i8 cube3d[2][3][4];
+i8[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations with positive and negative values
@@ -85,7 +85,7 @@ u32 main() {
 
    
 // Test i8 specific edge cases
-    i8 testArray[4][2];
+    i8[4] testArray[2];
 
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
@@ -109,7 +109,7 @@ u32 main() {
 
    
 // Test 2D array with temperature sensor pattern (in Celsius)
-    i8 temps[3][3];
+    i8[3] temps[3];
 
     // Initialize all elements first
     for (u32 tei <- 0; tei < 3; tei +<- 1) {
@@ -133,7 +133,7 @@ u32 main() {
 
    
 // Test negative value calculations
-    i8 deltas[2][2];
+    i8[2] deltas[2];
 
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {

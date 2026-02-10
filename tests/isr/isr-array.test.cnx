@@ -13,7 +13,7 @@ void hardFaultHandler() {
 }
 
 // Array of ISR pointers
-ISR vectorTable[3];
+ISR[3] vectorTable;
 
 void initVectors() {
     vectorTable[0] <- resetHandler;

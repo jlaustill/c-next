@@ -7,7 +7,7 @@ struct TReading {
     bool valid;
 }
 
-TReading readings[4][4];
+TReading[4] readings[4];
 
 scope Test {
     public u32 run() {

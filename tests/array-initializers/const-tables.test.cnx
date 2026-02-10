@@ -21,7 +21,7 @@ const u8 hexDigits[] <- [
 ];
 
 // CRC table snippet
-const u16 crcTable[8] <- [
+const u16[8] crcTable <- [
     0x0000,
     0x1021,
     0x2042,

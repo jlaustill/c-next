@@ -1,9 +1,9 @@
 // ADR-035: Basic Array Initialization Test
 // Tests: explicit size with values
 // Fixed size array with values
-u8 data[5] <- [1, 2, 3, 4, 5];
+u8[5] data <- [1, 2, 3, 4, 5];
 
 // Different types
-u16 words[3] <- [100, 200, 300];
+u16[3] words <- [100, 200, 300];
 
-i32 signedNums[4] <- [-1, 0, 1, 2];
+i32[4] signedNums <- [-1, 0, 1, 2];

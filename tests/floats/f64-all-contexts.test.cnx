@@ -12,7 +12,7 @@ struct Vector {
 }
 
 // Array element type
-f64 measurements[8];
+f64[8] measurements;
 
 // Function with f64 parameter and return
 f64 multiply(f64 a, f64 b) {

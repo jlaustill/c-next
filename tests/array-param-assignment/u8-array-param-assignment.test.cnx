@@ -21,7 +21,7 @@ void copyElement(u8 src[], u8 dst[], u32 index) {
 
 u32 main() {
     // Test 1: Write to array element via function
-    u8 buffer[8];
+    u8[8] buffer;
     buffer[0] <- 0;
     buffer[1] <- 0;
 
@@ -37,8 +37,8 @@ u32 main() {
     if (buffer[0] != 123) return 3;
 
     // Test 4: Copy element between arrays
-    u8 source[4];
-    u8 dest[4];
+    u8[4] source;
+    u8[4] dest;
     source[0] <- 0;
     source[1] <- 0;
     source[2] <- 0;

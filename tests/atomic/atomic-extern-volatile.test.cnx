@@ -9,7 +9,7 @@ struct TReading {
 }
 
 // Global atomic variables should generate volatile extern declarations
-atomic TReading readings[4];
+atomic TReading[4] readings;
 atomic u32 counter <- 0;
 atomic u8 flags <- 0;
 

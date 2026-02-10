@@ -7,7 +7,7 @@ struct Item {
 }
 
 struct Container {
-    Item items[3];
+    Item[3] items;
 }
 
 i32 main() {

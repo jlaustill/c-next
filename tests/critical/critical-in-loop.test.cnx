@@ -1,7 +1,7 @@
 // test-coverage: 33.2-critical-inside-loop
 // Coverage: Section 7.7, 33.2 - Critical section inside loops
 // Tests: critical sections inside for, while, and do-while loops
-u32 sharedData[10];
+u32[10] sharedData;
 
 u32 counter <- 0;
 

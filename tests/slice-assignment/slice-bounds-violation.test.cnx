@@ -3,7 +3,7 @@
 // Slice assignments that exceed buffer bounds are now caught at compile time.
 
 u32 main() {
-    u8 buffer[32];
+    u8[32] buffer;
 
     // This should fail at compile time
     // Buffer size is 32 bytes, trying to write 8 bytes at offset 28
