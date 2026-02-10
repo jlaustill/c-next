@@ -56,7 +56,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       symbols: mockSymbols,
       symbolTable: null,
       typeRegistry,
-      typeResolver: {} as never,
+
       callbackTypes: new Map(),
       knownFunctions: new Set(["globalFunc", "Motor_stop"]),
       knownGlobals: new Set(["globalCounter"]),
