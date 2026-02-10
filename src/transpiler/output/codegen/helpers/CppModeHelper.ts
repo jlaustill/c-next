@@ -5,26 +5,16 @@
  *
  * In C mode, struct parameters are passed by pointer (need & for address, * for type).
  * In C++ mode, struct parameters are passed by reference (no & needed, & for type).
+ *
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
-/**
- * Options for C/C++ mode helpers.
- */
-interface CppModeOptions {
-  /** Whether we're generating C++ code */
-  cppMode: boolean;
-}
+import CodeGenState from "../CodeGenState";
 
 /**
- * Helper class for C/C++ mode-specific code generation patterns.
+ * Static helper class for C/C++ mode-specific code generation patterns.
  */
 class CppModeHelper {
-  private readonly cppMode: boolean;
-
-  constructor(options: CppModeOptions) {
-    this.cppMode = options.cppMode;
-  }
-
   /**
    * Get address-of expression for struct parameter passing.
    * C mode: `&expr` (pass pointer to struct)
@@ -33,8 +23,8 @@ class CppModeHelper {
    * @param expr - The expression to potentially wrap
    * @returns The expression with address-of operator in C mode
    */
-  maybeAddressOf(expr: string): string {
-    return this.cppMode ? expr : `&${expr}`;
+  static maybeAddressOf(expr: string): string {
+    return CodeGenState.cppMode ? expr : `&${expr}`;
   }
 
   /**
@@ -45,8 +35,8 @@ class CppModeHelper {
    * @param expr - The expression to potentially dereference
    * @returns The expression with dereference in C mode
    */
-  maybeDereference(expr: string): string {
-    return this.cppMode ? expr : `(*${expr})`;
+  static maybeDereference(expr: string): string {
+    return CodeGenState.cppMode ? expr : `(*${expr})`;
   }
 
   /**
@@ -56,8 +46,8 @@ class CppModeHelper {
    *
    * @returns The type modifier character
    */
-  refOrPtr(): string {
-    return this.cppMode ? "&" : "*";
+  static refOrPtr(): string {
+    return CodeGenState.cppMode ? "&" : "*";
   }
 
   /**
@@ -67,8 +57,8 @@ class CppModeHelper {
    *
    * @returns The member access separator
    */
-  memberSeparator(): string {
-    return this.cppMode ? "." : "->";
+  static memberSeparator(): string {
+    return CodeGenState.cppMode ? "." : "->";
   }
 
   /**
@@ -78,8 +68,8 @@ class CppModeHelper {
    *
    * @returns The null pointer literal
    */
-  nullLiteral(): string {
-    return this.cppMode ? "nullptr" : "NULL";
+  static nullLiteral(): string {
+    return CodeGenState.cppMode ? "nullptr" : "NULL";
   }
 
   /**
@@ -91,8 +81,10 @@ class CppModeHelper {
    * @param expr - The expression to cast
    * @returns The cast expression
    */
-  cast(type: string, expr: string): string {
-    return this.cppMode ? `static_cast<${type}>(${expr})` : `(${type})${expr}`;
+  static cast(type: string, expr: string): string {
+    return CodeGenState.cppMode
+      ? `static_cast<${type}>(${expr})`
+      : `(${type})${expr}`;
   }
 
   /**
@@ -104,8 +96,8 @@ class CppModeHelper {
    * @param expr - The expression to cast
    * @returns The cast expression
    */
-  reinterpretCast(type: string, expr: string): string {
-    return this.cppMode
+  static reinterpretCast(type: string, expr: string): string {
+    return CodeGenState.cppMode
       ? `reinterpret_cast<${type}>(${expr})`
       : `(${type})${expr}`;
   }
@@ -115,8 +107,8 @@ class CppModeHelper {
    *
    * @returns True if generating C++ code
    */
-  isCppMode(): boolean {
-    return this.cppMode;
+  static isCppMode(): boolean {
+    return CodeGenState.cppMode;
   }
 }
 

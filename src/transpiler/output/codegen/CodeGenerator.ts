@@ -338,9 +338,6 @@ export default class CodeGenerator implements IOrchestrator {
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
 
-  /** Issue #644: C/C++ mode helper for consolidated mode-specific patterns */
-  private cppHelper: CppModeHelper | null = null;
-
   /**
    * Initialize generator registry with extracted generators.
    * Called once before code generation begins.
@@ -2000,7 +1997,7 @@ export default class CodeGenerator implements IOrchestrator {
       isParameterPassByValue: (funcName: string, paramName: string) =>
         this._isParameterPassByValueByName(funcName, paramName),
       currentFunctionName: CodeGenState.currentFunctionName,
-      maybeDereference: (id: string) => this.cppHelper!.maybeDereference(id),
+      maybeDereference: (id: string) => CppModeHelper.maybeDereference(id),
     };
   }
 
@@ -2162,7 +2159,6 @@ export default class CodeGenerator implements IOrchestrator {
     CodeGenState.includeDirs = options?.includeDirs ?? [];
     CodeGenState.inputs = options?.inputs ?? [];
     CodeGenState.cppMode = options?.cppMode ?? false;
-    this.cppHelper = new CppModeHelper({ cppMode: CodeGenState.cppMode });
     CodeGenState.pendingTempDeclarations = [];
     CodeGenState.tempVarCounter = 0;
     CodeGenState.pendingCppClassAssignments = [];
@@ -4449,12 +4445,12 @@ export default class CodeGenerator implements IOrchestrator {
       const members = CodeGenState.scopeMembers.get(CodeGenState.currentScope);
       if (members?.has(id)) {
         const scopedName = `${CodeGenState.currentScope}_${id}`;
-        return this.cppHelper!.maybeAddressOf(scopedName);
+        return CppModeHelper.maybeAddressOf(scopedName);
       }
     }
 
     // Local variable - add & (except in C++ mode)
-    return this.cppHelper!.maybeAddressOf(id);
+    return CppModeHelper.maybeAddressOf(id);
   }
 
   /**
@@ -4476,7 +4472,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Generate expression with address-of
     const generatedExpr = this.generateExpression(ctx);
-    const expr = this.cppHelper!.maybeAddressOf(generatedExpr);
+    const expr = CppModeHelper.maybeAddressOf(generatedExpr);
 
     // String subscript access may need cast
     if (lvalueType === "array") {
@@ -4521,11 +4517,11 @@ export default class CodeGenerator implements IOrchestrator {
     const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
     const value = this.generateExpression(ctx);
     const tempName = `_cnx_tmp_${CodeGenState.tempVarCounter++}`;
-    const castExpr = this.cppHelper!.cast(cType, value);
+    const castExpr = CppModeHelper.cast(cType, value);
     CodeGenState.pendingTempDeclarations.push(
       `${cType} ${tempName} = ${castExpr};`,
     );
-    return this.cppHelper!.maybeAddressOf(tempName);
+    return CppModeHelper.maybeAddressOf(tempName);
   }
 
   /**
@@ -4542,7 +4538,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-      return this.cppHelper!.reinterpretCast(`${cType}*`, expr);
+      return CppModeHelper.reinterpretCast(`${cType}*`, expr);
     }
 
     return expr;
@@ -5357,7 +5353,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     const wasModified = this._isCurrentParameterModified(name);
     const autoConst = !wasModified && !constMod ? "const " : "";
-    const refOrPtr = this.cppHelper!.refOrPtr();
+    const refOrPtr = CppModeHelper.refOrPtr();
     return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
   }
 
@@ -6230,7 +6226,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #304/#644: Transform NULL → nullptr in C++ mode
     if (result.code === "NULL") {
-      return this.cppHelper!.nullLiteral();
+      return CppModeHelper.nullLiteral();
     }
 
     return result.code;
@@ -6296,7 +6292,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Issue #267/#644: Use C++ casts when cppMode is enabled for MISRA compliance
-    return this.cppHelper!.cast(targetType, expr);
+    return CppModeHelper.cast(targetType, expr);
   }
 
   /**
@@ -6322,7 +6318,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     if (!maxValue) {
       // Unknown type, fall back to raw cast - Issue #644
-      return this.cppHelper!.cast(targetType, expr);
+      return CppModeHelper.cast(targetType, expr);
     }
 
     // Mark that we need limits.h for the type limit macros
@@ -6342,7 +6338,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Generate clamping expression:
     // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
     // Note: For unsigned targets, MIN is 0 so we check < 0.0
-    const finalCast = this.cppHelper!.cast(targetType, `(${expr})`);
+    const finalCast = CppModeHelper.cast(targetType, `(${expr})`);
     return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : ${finalCast})`;
   }
 
