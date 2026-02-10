@@ -1,34 +1,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeValidator from "../TypeValidator";
+import CodeGenState from "../CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
-import type TTypeInfo from "../types/TTypeInfo";
 
 describe("TypeValidator.resolveBareIdentifier", () => {
-  let mockSymbols: ICodeGenSymbols;
-  let scopeMembers: Map<string, Set<string>>;
-  let typeRegistry: Map<string, TTypeInfo>;
-  let currentScope: string | null;
-
-  beforeEach(() => {
-    scopeMembers = new Map([["Motor", new Set(["speed", "maxSpeed"])]]);
-    typeRegistry = new Map<string, TTypeInfo>([
-      [
-        "globalCounter",
-        { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
-      ],
-      [
-        "Motor_speed",
-        { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
-      ],
-    ]);
-    currentScope = "Motor";
-    mockSymbols = {
-      knownScopes: new Set(["Motor", "LED"]),
-      knownRegisters: new Set(["GPIO"]),
-      knownEnums: new Set(["State"]),
-      knownStructs: new Set(["Point"]),
+  const createMockSymbols = (
+    overrides: Partial<ICodeGenSymbols> = {},
+  ): ICodeGenSymbols =>
+    ({
+      knownScopes: new Set(),
+      knownRegisters: new Set(),
+      knownEnums: new Set(),
+      knownStructs: new Set(),
       knownBitmaps: new Set(),
-      scopeMembers: new Map([["Motor", new Set(["speed", "maxSpeed"])]]),
+      scopeMembers: new Map(),
       scopeMemberVisibility: new Map(),
       structFields: new Map(),
       structFieldArrays: new Map(),
@@ -48,31 +33,40 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       functionReturnTypes: new Map(),
       getSingleFunctionForVariable: () => null,
       hasPublicSymbols: () => false,
-    } as ICodeGenSymbols;
-  });
+      ...overrides,
+    }) as ICodeGenSymbols;
 
-  function createValidator(): TypeValidator {
-    return new TypeValidator({
-      symbols: mockSymbols,
-      symbolTable: null,
-      typeRegistry,
-
-      callbackTypes: new Map(),
-      knownFunctions: new Set(["globalFunc", "Motor_stop"]),
-      knownGlobals: new Set(["globalCounter"]),
-      getCurrentScope: () => currentScope,
-      getScopeMembers: () => scopeMembers,
-      getCurrentParameters: () => new Map(),
-      getLocalVariables: () => new Set(),
-      resolveIdentifier: (name: string) => name,
-      getExpressionType: () => null,
+  beforeEach(() => {
+    CodeGenState.reset();
+    CodeGenState.scopeMembers = new Map([
+      ["Motor", new Set(["speed", "maxSpeed"])],
+    ]);
+    CodeGenState.typeRegistry.set("globalCounter", {
+      baseType: "u32",
+      bitWidth: 32,
+      isArray: false,
+      isConst: false,
     });
-  }
+    CodeGenState.typeRegistry.set("Motor_speed", {
+      baseType: "u32",
+      bitWidth: 32,
+      isArray: false,
+      isConst: false,
+    });
+    CodeGenState.currentScope = "Motor";
+    CodeGenState.symbols = createMockSymbols({
+      knownScopes: new Set(["Motor", "LED"]),
+      knownRegisters: new Set(["GPIO"]),
+      knownEnums: new Set(["State"]),
+      knownStructs: new Set(["Point"]),
+      scopeMembers: new Map([["Motor", new Set(["speed", "maxSpeed"])]]),
+    });
+    CodeGenState.knownFunctions = new Set(["globalFunc", "Motor_stop"]);
+  });
 
   describe("inside a scope", () => {
     it("returns null for local variables (no transformation needed)", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "localVar",
         true,
         () => false,
@@ -81,8 +75,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
     });
 
     it("resolves scope member to prefixed name", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "speed",
         false,
         () => false,
@@ -91,8 +84,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
     });
 
     it("resolves global variable to itself", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "globalCounter",
         false,
         () => false,
@@ -101,8 +93,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
     });
 
     it("resolves global function to itself", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "globalFunc",
         false,
         () => false,
@@ -111,8 +102,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
     });
 
     it("resolves scope function to prefixed name", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "stop",
         false,
         () => false,
@@ -122,8 +112,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
     });
 
     it("returns null for unknown identifiers", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "unknownName",
         false,
         () => false,
@@ -134,12 +123,11 @@ describe("TypeValidator.resolveBareIdentifier", () => {
 
   describe("outside a scope", () => {
     beforeEach(() => {
-      currentScope = null;
+      CodeGenState.currentScope = null;
     });
 
     it("returns null for local variables", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "localVar",
         true,
         () => false,
@@ -148,8 +136,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
     });
 
     it("returns null for global variables (no transformation)", () => {
-      const validator = createValidator();
-      const result = validator.resolveBareIdentifier(
+      const result = TypeValidator.resolveBareIdentifier(
         "globalCounter",
         false,
         () => false,
@@ -161,28 +148,25 @@ describe("TypeValidator.resolveBareIdentifier", () => {
   describe("resolveForMemberAccess", () => {
     it("prefers scope name over global variable for member access", () => {
       // Setup: global variable 'LED' exists AND scope 'LED' exists
-      typeRegistry.set("LED", {
+      CodeGenState.typeRegistry.set("LED", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
         isConst: false,
       });
-      const validator = createValidator();
 
-      const result = validator.resolveForMemberAccess("LED");
+      const result = TypeValidator.resolveForMemberAccess("LED");
       expect(result).toBe("LED"); // Returns scope name, not transformed
       expect(result).not.toBe("Motor_LED"); // Should NOT be scope-prefixed
     });
 
     it("returns scope name when it exists", () => {
-      const validator = createValidator();
-      const result = validator.resolveForMemberAccess("LED");
+      const result = TypeValidator.resolveForMemberAccess("LED");
       expect(result).toBe("LED");
     });
 
     it("returns null for unknown identifiers", () => {
-      const validator = createValidator();
-      const result = validator.resolveForMemberAccess("Unknown");
+      const result = TypeValidator.resolveForMemberAccess("Unknown");
       expect(result).toBeNull();
     });
   });

@@ -21,10 +21,6 @@ import TTypeInfo from "../types/TTypeInfo.js";
  * Dependencies required for assignment validation.
  */
 interface IAssignmentValidatorDeps {
-  /** TypeValidator for const and callback validation */
-  readonly typeValidator: TypeValidator;
-  /** EnumAssignmentValidator for enum type validation */
-  readonly enumValidator: EnumAssignmentValidator;
   /** Type registry for looking up variable types */
   readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
   /** Float shadow tracking state for invalidation */
@@ -112,7 +108,7 @@ class AssignmentValidator {
     isCompound: boolean,
   ): void {
     // ADR-013: Validate const assignment
-    const constError = this.deps.typeValidator.checkConstAssignment(id);
+    const constError = TypeValidator.checkConstAssignment(id);
     if (constError) {
       throw new Error(constError);
     }
@@ -128,7 +124,7 @@ class AssignmentValidator {
 
     // ADR-017: Validate enum type assignment
     if (targetTypeInfo.isEnum && targetTypeInfo.enumTypeName) {
-      this.deps.enumValidator.validateEnumAssignment(
+      EnumAssignmentValidator.validateEnumAssignment(
         targetTypeInfo.enumTypeName,
         expression,
       );
@@ -137,7 +133,7 @@ class AssignmentValidator {
     // ADR-024: Validate integer type conversions
     if (this.deps.isIntegerType(targetTypeInfo.baseType)) {
       try {
-        this.deps.typeValidator.validateIntegerAssignment(
+        TypeValidator.validateIntegerAssignment(
           targetTypeInfo.baseType,
           expression.getText(),
           this.deps.getExpressionType(expression),
@@ -164,7 +160,7 @@ class AssignmentValidator {
     line: number,
   ): void {
     // ADR-013: Validate const assignment on array
-    const constError = this.deps.typeValidator.checkConstAssignment(arrayName);
+    const constError = TypeValidator.checkConstAssignment(arrayName);
     if (constError) {
       throw new Error(`${constError} (array element)`);
     }
@@ -172,7 +168,7 @@ class AssignmentValidator {
     // ADR-036: Compile-time bounds checking
     const typeInfo = this.deps.typeRegistry.get(arrayName);
     if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-      this.deps.typeValidator.checkArrayBounds(
+      TypeValidator.checkArrayBounds(
         arrayName,
         typeInfo.arrayDimensions,
         subscriptExprs,
@@ -197,7 +193,7 @@ class AssignmentValidator {
     const memberName = identifiers[1];
 
     // ADR-013: Validate const assignment on struct root
-    const constError = this.deps.typeValidator.checkConstAssignment(rootName);
+    const constError = TypeValidator.checkConstAssignment(rootName);
     if (constError) {
       throw new Error(`${constError} (member access)`);
     }
@@ -222,7 +218,7 @@ class AssignmentValidator {
         this.deps.callbackFieldTypes.get(callbackFieldKey);
 
       if (expectedCallbackType) {
-        this.deps.typeValidator.validateCallbackAssignment(
+        TypeValidator.validateCallbackAssignment(
           expectedCallbackType,
           expression,
           memberName,

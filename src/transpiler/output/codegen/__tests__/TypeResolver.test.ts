@@ -388,6 +388,8 @@ describe("TypeResolver", () => {
       return {
         IDENTIFIER: () =>
           opts.identifier ? { getText: () => opts.identifier } : null,
+        GLOBAL: () => null,
+        THIS: () => null,
         literal: () => (opts.literal ? { getText: () => opts.literal } : null),
         expression: () => null,
         castExpression: () =>
@@ -817,6 +819,165 @@ describe("TypeResolver", () => {
 
       // Plain u8 (not array) with [0] should be bit indexing -> "bool"
       expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("bool");
+    });
+  });
+
+  // ========================================================================
+  // global/this Primary Expression Handling
+  // ========================================================================
+
+  describe("getPostfixExpressionType with global/this", () => {
+    it("should resolve global.structVar.field type", () => {
+      typeRegistry.set("config", {
+        baseType: "TConfig",
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+      symbolTable.addStructField("TConfig", "value", "u32");
+
+      const ctx = {
+        primaryExpression: () => ({
+          IDENTIFIER: () => null,
+          GLOBAL: () => ({ getText: () => "global" }),
+          THIS: () => null,
+          literal: () => null,
+          expression: () => null,
+          castExpression: () => null,
+        }),
+        children: [
+          { getText: () => "global" },
+          { getText: () => ".config" },
+          { getText: () => ".value" },
+        ],
+      } as unknown as Parameters<
+        typeof TypeResolver.getPostfixExpressionType
+      >[0];
+
+      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
+    });
+
+    it("should resolve global.arrayVar[0] element type", () => {
+      typeRegistry.set("inputs", {
+        baseType: "TInput",
+        bitWidth: 0,
+        isArray: true,
+        isConst: false,
+      });
+
+      const ctx = {
+        primaryExpression: () => ({
+          IDENTIFIER: () => null,
+          GLOBAL: () => ({ getText: () => "global" }),
+          THIS: () => null,
+          literal: () => null,
+          expression: () => null,
+          castExpression: () => null,
+        }),
+        children: [
+          { getText: () => "global" },
+          { getText: () => ".inputs" },
+          { getText: () => "[0]" },
+        ],
+      } as unknown as Parameters<
+        typeof TypeResolver.getPostfixExpressionType
+      >[0];
+
+      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("TInput");
+    });
+
+    it("should resolve this.scopeVar type", () => {
+      CodeGenState.currentScope = "Motor";
+      typeRegistry.set("Motor_speed", {
+        baseType: "u32",
+        bitWidth: 32,
+        isArray: false,
+        isConst: false,
+      });
+
+      const ctx = {
+        primaryExpression: () => ({
+          IDENTIFIER: () => null,
+          GLOBAL: () => null,
+          THIS: () => ({ getText: () => "this" }),
+          literal: () => null,
+          expression: () => null,
+          castExpression: () => null,
+        }),
+        children: [{ getText: () => "this" }, { getText: () => ".speed" }],
+      } as unknown as Parameters<
+        typeof TypeResolver.getPostfixExpressionType
+      >[0];
+
+      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
+    });
+
+    it("should return null for global.unknownVar", () => {
+      const ctx = {
+        primaryExpression: () => ({
+          IDENTIFIER: () => null,
+          GLOBAL: () => ({ getText: () => "global" }),
+          THIS: () => null,
+          literal: () => null,
+          expression: () => null,
+          castExpression: () => null,
+        }),
+        children: [{ getText: () => "global" }, { getText: () => ".unknown" }],
+      } as unknown as Parameters<
+        typeof TypeResolver.getPostfixExpressionType
+      >[0];
+
+      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+    });
+
+    it("should return null for this.X without current scope", () => {
+      CodeGenState.currentScope = null;
+
+      const ctx = {
+        primaryExpression: () => ({
+          IDENTIFIER: () => null,
+          GLOBAL: () => null,
+          THIS: () => ({ getText: () => "this" }),
+          literal: () => null,
+          expression: () => null,
+          castExpression: () => null,
+        }),
+        children: [{ getText: () => "this" }, { getText: () => ".speed" }],
+      } as unknown as Parameters<
+        typeof TypeResolver.getPostfixExpressionType
+      >[0];
+
+      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+    });
+
+    it("should resolve global.struct.enumField for enum type", () => {
+      typeRegistry.set("input", {
+        baseType: "TInput",
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+      symbolTable.addStructField("TInput", "assignedValue", "EValueId");
+
+      const ctx = {
+        primaryExpression: () => ({
+          IDENTIFIER: () => null,
+          GLOBAL: () => ({ getText: () => "global" }),
+          THIS: () => null,
+          literal: () => null,
+          expression: () => null,
+          castExpression: () => null,
+        }),
+        children: [
+          { getText: () => "global" },
+          { getText: () => ".input" },
+          { getText: () => ".assignedValue" },
+        ],
+      } as unknown as Parameters<
+        typeof TypeResolver.getPostfixExpressionType
+      >[0];
+
+      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("EValueId");
     });
   });
 

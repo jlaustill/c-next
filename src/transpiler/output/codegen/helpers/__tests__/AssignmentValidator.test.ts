@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AssignmentValidator from "../AssignmentValidator.js";
+import TypeValidator from "../../TypeValidator.js";
+import EnumAssignmentValidator from "../EnumAssignmentValidator.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 
 /**
@@ -20,15 +22,6 @@ function parseAssignment(target: string) {
 }
 
 describe("AssignmentValidator", () => {
-  let mockTypeValidator: {
-    checkConstAssignment: ReturnType<typeof vi.fn>;
-    checkArrayBounds: ReturnType<typeof vi.fn>;
-    validateIntegerAssignment: ReturnType<typeof vi.fn>;
-    validateCallbackAssignment: ReturnType<typeof vi.fn>;
-  };
-  let mockEnumValidator: {
-    validateEnumAssignment: ReturnType<typeof vi.fn>;
-  };
   let typeRegistry: Map<
     string,
     {
@@ -47,23 +40,25 @@ describe("AssignmentValidator", () => {
   let validator: AssignmentValidator;
 
   beforeEach(() => {
-    mockTypeValidator = {
-      checkConstAssignment: vi.fn().mockReturnValue(null),
-      checkArrayBounds: vi.fn(),
-      validateIntegerAssignment: vi.fn(),
-      validateCallbackAssignment: vi.fn(),
-    };
-    mockEnumValidator = {
-      validateEnumAssignment: vi.fn(),
-    };
+    vi.spyOn(TypeValidator, "checkConstAssignment").mockReturnValue(null);
+    vi.spyOn(TypeValidator, "checkArrayBounds").mockImplementation(() => {});
+    vi.spyOn(TypeValidator, "validateIntegerAssignment").mockImplementation(
+      () => {},
+    );
+    vi.spyOn(TypeValidator, "validateCallbackAssignment").mockImplementation(
+      () => {},
+    );
+    vi.spyOn(
+      EnumAssignmentValidator,
+      "validateEnumAssignment",
+    ).mockImplementation(() => {});
+
     typeRegistry = new Map();
     floatShadowCurrent = new Set();
     registerMemberAccess = new Map();
     callbackFieldTypes = new Map();
 
     validator = new AssignmentValidator({
-      typeValidator: mockTypeValidator as any,
-      enumValidator: mockEnumValidator as any,
       typeRegistry,
       floatShadowCurrent,
       registerMemberAccess,
@@ -76,19 +71,23 @@ describe("AssignmentValidator", () => {
     });
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe("validate() - simple identifier", () => {
     it("should check const assignment for simple identifier", () => {
       const { target, expression } = parseAssignment("counter");
 
       validator.validate(target, expression, false, 1);
 
-      expect(mockTypeValidator.checkConstAssignment).toHaveBeenCalledWith(
+      expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith(
         "counter",
       );
     });
 
     it("should throw when assigning to const variable", () => {
-      mockTypeValidator.checkConstAssignment.mockReturnValue(
+      vi.mocked(TypeValidator.checkConstAssignment).mockReturnValue(
         "cannot assign to const variable 'x'",
       );
       const { target, expression } = parseAssignment("x");
@@ -120,10 +119,9 @@ describe("AssignmentValidator", () => {
 
       validator.validate(target, expression, false, 1);
 
-      expect(mockEnumValidator.validateEnumAssignment).toHaveBeenCalledWith(
-        "Status",
-        expression,
-      );
+      expect(
+        EnumAssignmentValidator.validateEnumAssignment,
+      ).toHaveBeenCalledWith("Status", expression);
     });
 
     it("should validate integer assignment for integer-typed variable", () => {
@@ -137,7 +135,7 @@ describe("AssignmentValidator", () => {
 
       validator.validate(target, expression, false, 1);
 
-      expect(mockTypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
+      expect(TypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
         "u32",
         expect.any(String),
         null,
@@ -156,7 +154,7 @@ describe("AssignmentValidator", () => {
 
       validator.validate(target, expression, true, 1);
 
-      expect(mockTypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
+      expect(TypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
         "u32",
         expect.any(String),
         null,
@@ -171,9 +169,11 @@ describe("AssignmentValidator", () => {
         isArray: false,
         isConst: false,
       });
-      mockTypeValidator.validateIntegerAssignment.mockImplementation(() => {
-        throw new Error("Error: Cannot assign u32 to u8 (narrowing)");
-      });
+      vi.mocked(TypeValidator.validateIntegerAssignment).mockImplementation(
+        () => {
+          throw new Error("Error: Cannot assign u32 to u8 (narrowing)");
+        },
+      );
       const { target, expression } = parseAssignment("counter");
 
       expect(() => validator.validate(target, expression, false, 1)).toThrow(
@@ -188,9 +188,11 @@ describe("AssignmentValidator", () => {
         isArray: false,
         isConst: false,
       });
-      mockTypeValidator.validateIntegerAssignment.mockImplementation(() => {
-        throw "string error";
-      });
+      vi.mocked(TypeValidator.validateIntegerAssignment).mockImplementation(
+        () => {
+          throw "string error";
+        },
+      );
       const { target, expression } = parseAssignment("counter");
 
       expect(() => validator.validate(target, expression, false, 1)).toThrow(
@@ -205,13 +207,11 @@ describe("AssignmentValidator", () => {
 
       validator.validate(target, expression, false, 1);
 
-      expect(mockTypeValidator.checkConstAssignment).toHaveBeenCalledWith(
-        "arr",
-      );
+      expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith("arr");
     });
 
     it("should throw with 'array element' suffix for const array", () => {
-      mockTypeValidator.checkConstAssignment.mockReturnValue(
+      vi.mocked(TypeValidator.checkConstAssignment).mockReturnValue(
         "cannot assign to const variable 'arr'",
       );
       const { target, expression } = parseAssignment("arr[0]");
@@ -233,7 +233,7 @@ describe("AssignmentValidator", () => {
 
       validator.validate(target, expression, false, 5);
 
-      expect(mockTypeValidator.checkArrayBounds).toHaveBeenCalledWith(
+      expect(TypeValidator.checkArrayBounds).toHaveBeenCalledWith(
         "arr",
         [10],
         expect.anything(),
@@ -249,13 +249,11 @@ describe("AssignmentValidator", () => {
 
       validator.validate(target, expression, false, 1);
 
-      expect(mockTypeValidator.checkConstAssignment).toHaveBeenCalledWith(
-        "config",
-      );
+      expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith("config");
     });
 
     it("should throw with 'member access' suffix for const struct", () => {
-      mockTypeValidator.checkConstAssignment.mockReturnValue(
+      vi.mocked(TypeValidator.checkConstAssignment).mockReturnValue(
         "cannot assign to const variable 'config'",
       );
       const { target, expression } = parseAssignment("config.value");
@@ -284,8 +282,6 @@ describe("AssignmentValidator", () => {
       callbackFieldTypes.set("Handler.onEvent", "EventCallback");
 
       const validatorWithStruct = new AssignmentValidator({
-        typeValidator: mockTypeValidator as any,
-        enumValidator: mockEnumValidator as any,
         typeRegistry,
         floatShadowCurrent,
         registerMemberAccess,
@@ -301,7 +297,7 @@ describe("AssignmentValidator", () => {
 
       validatorWithStruct.validate(target, expression, false, 1);
 
-      expect(mockTypeValidator.validateCallbackAssignment).toHaveBeenCalledWith(
+      expect(TypeValidator.validateCallbackAssignment).toHaveBeenCalledWith(
         "EventCallback",
         expression,
         "onEvent",
