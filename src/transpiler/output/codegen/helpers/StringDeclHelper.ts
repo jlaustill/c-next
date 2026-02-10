@@ -2,6 +2,7 @@
  * StringDeclHelper - Generates string variable declarations
  *
  * Issue #644: Extracted from CodeGenerator to reduce file size.
+ * Migrated to use CodeGenState instead of constructor DI.
  *
  * Handles all string-related declaration patterns:
  * - Bounded strings: string<64> name
@@ -13,7 +14,8 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import FormatUtils from "../../../../utils/FormatUtils.js";
-import TTypeInfo from "../types/TTypeInfo.js";
+import StringUtils from "../../../../utils/StringUtils.js";
+import CodeGenState from "../CodeGenState.js";
 
 /** C null terminator character literal for generated code */
 const C_NULL_CHAR = String.raw`'\0'`;
@@ -39,46 +41,6 @@ interface ISubstringOps {
 }
 
 /**
- * Array initialization tracking state.
- */
-interface IArrayInitState {
-  lastArrayInitCount: number;
-  lastArrayFillValue: string | undefined;
-}
-
-/**
- * Dependencies required for string declaration generation.
- */
-interface IStringDeclHelperDeps {
-  /** Type registry for looking up variable types */
-  typeRegistry: Map<string, TTypeInfo>;
-  /** Get whether currently inside a function body */
-  getInFunctionBody: () => boolean;
-  /** Get current indentation level */
-  getIndentLevel: () => number;
-  /** Array initialization tracking */
-  arrayInitState: IArrayInitState;
-  /** Local arrays set */
-  localArrays: Set<string>;
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-  /** Generate array dimensions */
-  generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) => string;
-  /** Get string concatenation operands */
-  getStringConcatOperands: (
-    ctx: Parser.ExpressionContext,
-  ) => IStringConcatOps | null;
-  /** Get substring extraction operands */
-  getSubstringOperands: (ctx: Parser.ExpressionContext) => ISubstringOps | null;
-  /** Get string literal length */
-  getStringLiteralLength: (literal: string) => number;
-  /** Get string expression capacity */
-  getStringExprCapacity: (exprCode: string) => number | null;
-  /** Request string include */
-  requireStringInclude: () => void;
-}
-
-/**
  * Declaration modifiers for string variable declarations.
  */
 interface IStringDeclModifiers {
@@ -99,26 +61,42 @@ interface IStringDeclResult {
 }
 
 /**
+ * Callbacks required for string declaration generation.
+ * These need CodeGenerator context and cannot be replaced with static state.
+ */
+interface IStringDeclCallbacks {
+  /** Generate expression code */
+  generateExpression: (ctx: Parser.ExpressionContext) => string;
+  /** Generate array dimensions */
+  generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) => string;
+  /** Get string concatenation operands */
+  getStringConcatOperands: (
+    ctx: Parser.ExpressionContext,
+  ) => IStringConcatOps | null;
+  /** Get substring extraction operands */
+  getSubstringOperands: (ctx: Parser.ExpressionContext) => ISubstringOps | null;
+  /** Get string expression capacity */
+  getStringExprCapacity: (exprCode: string) => number | null;
+  /** Request string include */
+  requireStringInclude: () => void;
+}
+
+/**
  * Generates string variable declarations in C.
  */
 class StringDeclHelper {
-  private readonly deps: IStringDeclHelperDeps;
-
-  constructor(deps: IStringDeclHelperDeps) {
-    this.deps = deps;
-  }
-
   /**
    * Generate string declaration if the type is a string type.
    * Returns { handled: false } if not a string type.
    */
-  generateStringDecl(
+  static generateStringDecl(
     typeCtx: Parser.TypeContext,
     name: string,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
     modifiers: IStringDeclModifiers,
     isConst: boolean,
+    callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     const stringCtx = typeCtx.stringType();
     if (!stringCtx) {
@@ -130,21 +108,23 @@ class StringDeclHelper {
     if (intLiteral) {
       // Bounded string with explicit capacity
       const capacity = Number.parseInt(intLiteral.getText(), 10);
-      return this.generateBoundedStringDecl(
+      return StringDeclHelper._generateBoundedStringDecl(
         name,
         capacity,
         expression,
         arrayDims,
         modifiers,
         isConst,
+        callbacks,
       );
     } else {
       // Unsized string - requires const and literal
-      return this.generateUnsizedStringDecl(
+      return StringDeclHelper._generateUnsizedStringDecl(
         name,
         expression,
         modifiers,
         isConst,
+        callbacks,
       );
     }
   }
@@ -152,25 +132,27 @@ class StringDeclHelper {
   /**
    * Generate bounded string declaration (string<N>).
    */
-  private generateBoundedStringDecl(
+  private static _generateBoundedStringDecl(
     name: string,
     capacity: number,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
     modifiers: IStringDeclModifiers,
     isConst: boolean,
+    callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     const { extern, const: constMod } = modifiers;
 
     // String arrays: string<64> arr[4] -> char arr[4][65] = {0};
     if (arrayDims.length > 0) {
-      return this.generateStringArrayDecl(
+      return StringDeclHelper._generateStringArrayDecl(
         name,
         capacity,
         expression,
         arrayDims,
         modifiers,
         isConst,
+        callbacks,
       );
     }
 
@@ -182,50 +164,70 @@ class StringDeclHelper {
       };
     }
 
-    return this._generateBoundedStringWithInit(
+    return StringDeclHelper._generateBoundedStringWithInit(
       name,
       capacity,
       expression,
       extern,
       constMod,
+      callbacks,
     );
   }
 
   /**
    * Generate bounded string with initializer expression
    */
-  private _generateBoundedStringWithInit(
+  private static _generateBoundedStringWithInit(
     name: string,
     capacity: number,
     expression: Parser.ExpressionContext,
     extern: string,
     constMod: string,
+    callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     // Check for string concatenation
-    const concatOps = this.deps.getStringConcatOperands(expression);
+    const concatOps = callbacks.getStringConcatOperands(expression);
     if (concatOps) {
-      return this.generateConcatDecl(name, capacity, concatOps, constMod);
+      return StringDeclHelper._generateConcatDecl(
+        name,
+        capacity,
+        concatOps,
+        constMod,
+      );
     }
 
     // Check for substring extraction
-    const substringOps = this.deps.getSubstringOperands(expression);
+    const substringOps = callbacks.getSubstringOperands(expression);
     if (substringOps) {
-      return this.generateSubstringDecl(name, capacity, substringOps, constMod);
+      return StringDeclHelper._generateSubstringDecl(
+        name,
+        capacity,
+        substringOps,
+        constMod,
+      );
     }
 
     // Validate and generate simple assignment
-    this._validateStringInit(expression.getText(), capacity);
-    const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${this.deps.generateExpression(expression)};`;
+    StringDeclHelper._validateStringInit(
+      expression.getText(),
+      capacity,
+      callbacks,
+    );
+    const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${callbacks.generateExpression(expression)};`;
     return { code, handled: true };
   }
 
   /**
    * Validate string initialization (literal length and variable capacity)
    */
-  private _validateStringInit(exprText: string, capacity: number): void {
+  private static _validateStringInit(
+    exprText: string,
+    capacity: number,
+    callbacks: IStringDeclCallbacks,
+  ): void {
     // Validate string literal fits capacity
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
-      const content = this.deps.getStringLiteralLength(exprText);
+      const content = StringUtils.literalLength(exprText);
       if (content > capacity) {
         throw new Error(
           `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
@@ -234,7 +236,7 @@ class StringDeclHelper {
     }
 
     // Check for string variable assignment
-    const srcCapacity = this.deps.getStringExprCapacity(exprText);
+    const srcCapacity = callbacks.getStringExprCapacity(exprText);
     if (srcCapacity !== null && srcCapacity > capacity) {
       throw new Error(
         `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
@@ -245,13 +247,14 @@ class StringDeclHelper {
   /**
    * Generate string array declaration.
    */
-  private generateStringArrayDecl(
+  private static _generateStringArrayDecl(
     name: string,
     capacity: number,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
     modifiers: IStringDeclModifiers,
     isConst: boolean,
+    callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     const {
       extern,
@@ -263,20 +266,20 @@ class StringDeclHelper {
 
     // No initializer - zero-initialize
     if (!expression) {
-      decl += this.deps.generateArrayDimensions(arrayDims);
+      decl += callbacks.generateArrayDimensions(arrayDims);
       decl += `[${capacity + 1}]`;
       return { code: `${decl} = {0};`, handled: true };
     }
 
     // Reset array init tracking and generate initializer
-    this.deps.arrayInitState.lastArrayInitCount = 0;
-    this.deps.arrayInitState.lastArrayFillValue = undefined;
-    const initValue = this.deps.generateExpression(expression);
+    CodeGenState.lastArrayInitCount = 0;
+    CodeGenState.lastArrayFillValue = undefined;
+    const initValue = callbacks.generateExpression(expression);
 
     // Check if it was an array initializer
     const isArrayInit =
-      this.deps.arrayInitState.lastArrayInitCount > 0 ||
-      this.deps.arrayInitState.lastArrayFillValue !== undefined;
+      CodeGenState.lastArrayInitCount > 0 ||
+      CodeGenState.lastArrayFillValue !== undefined;
 
     if (!isArrayInit) {
       throw new Error(
@@ -285,18 +288,21 @@ class StringDeclHelper {
     }
 
     // Track as local array
-    this.deps.localArrays.add(name);
+    CodeGenState.localArrays.add(name);
 
     const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
     if (hasEmptyArrayDim) {
-      decl += this._handleSizeInference(name, capacity, isConst);
+      decl += StringDeclHelper._handleSizeInference(name, capacity, isConst);
     } else {
-      decl += this._handleExplicitSize(arrayDims);
+      decl += StringDeclHelper._handleExplicitSize(arrayDims, callbacks);
     }
 
     decl += `[${capacity + 1}]`; // String capacity + null terminator
 
-    const finalInitValue = this._expandFillAllIfNeeded(initValue, arrayDims);
+    const finalInitValue = StringDeclHelper._expandFillAllIfNeeded(
+      initValue,
+      arrayDims,
+    );
     return { code: `${decl} = ${finalInitValue};`, handled: true };
   }
 
@@ -304,22 +310,22 @@ class StringDeclHelper {
    * Handle size inference for empty array dimension.
    * Returns the dimension string to append to declaration.
    */
-  private _handleSizeInference(
+  private static _handleSizeInference(
     name: string,
     capacity: number,
     isConst: boolean,
   ): string {
-    const fillValue = this.deps.arrayInitState.lastArrayFillValue;
+    const fillValue = CodeGenState.lastArrayFillValue;
     if (fillValue !== undefined) {
       throw new Error(
         `Error: Fill-all syntax [${fillValue}*] requires explicit array size`,
       );
     }
 
-    const arraySize = this.deps.arrayInitState.lastArrayInitCount;
+    const arraySize = CodeGenState.lastArrayInitCount;
 
     // Update type registry with inferred size
-    this.deps.typeRegistry.set(name, {
+    CodeGenState.typeRegistry.set(name, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,
@@ -336,16 +342,16 @@ class StringDeclHelper {
    * Handle explicit array size with validation.
    * Returns the dimension string to append to declaration.
    */
-  private _handleExplicitSize(
+  private static _handleExplicitSize(
     arrayDims: Parser.ArrayDimensionContext[],
+    callbacks: IStringDeclCallbacks,
   ): string {
-    const declaredSize = this._getFirstDimNumericSize(arrayDims);
+    const declaredSize = StringDeclHelper._getFirstDimNumericSize(arrayDims);
 
     // Validate element count matches declared size (only for non-fill-all)
     if (declaredSize !== null) {
-      const isFillAll =
-        this.deps.arrayInitState.lastArrayFillValue !== undefined;
-      const elementCount = this.deps.arrayInitState.lastArrayInitCount;
+      const isFillAll = CodeGenState.lastArrayFillValue !== undefined;
+      const elementCount = CodeGenState.lastArrayInitCount;
 
       if (!isFillAll && elementCount !== declaredSize) {
         throw new Error(
@@ -354,18 +360,18 @@ class StringDeclHelper {
       }
     }
 
-    return this.deps.generateArrayDimensions(arrayDims);
+    return callbacks.generateArrayDimensions(arrayDims);
   }
 
   /**
    * Expand fill-all syntax if needed.
    * ["Hello"*] with size 3 -> {"Hello", "Hello", "Hello"}
    */
-  private _expandFillAllIfNeeded(
+  private static _expandFillAllIfNeeded(
     initValue: string,
     arrayDims: Parser.ArrayDimensionContext[],
   ): string {
-    const fillVal = this.deps.arrayInitState.lastArrayFillValue;
+    const fillVal = CodeGenState.lastArrayFillValue;
     if (fillVal === undefined) {
       return initValue;
     }
@@ -375,7 +381,7 @@ class StringDeclHelper {
       return initValue;
     }
 
-    const declaredSize = this._getFirstDimNumericSize(arrayDims);
+    const declaredSize = StringDeclHelper._getFirstDimNumericSize(arrayDims);
     if (declaredSize === null) {
       return initValue;
     }
@@ -387,7 +393,7 @@ class StringDeclHelper {
   /**
    * Get the numeric size from the first array dimension, or null if not numeric.
    */
-  private _getFirstDimNumericSize(
+  private static _getFirstDimNumericSize(
     arrayDims: Parser.ArrayDimensionContext[],
   ): number | null {
     const firstDimExpr = arrayDims[0]?.expression();
@@ -406,7 +412,7 @@ class StringDeclHelper {
   /**
    * Generate string concatenation declaration.
    */
-  private generateConcatDecl(
+  private static _generateConcatDecl(
     name: string,
     capacity: number,
     concatOps: IStringConcatOps,
@@ -414,7 +420,7 @@ class StringDeclHelper {
   ): IStringDeclResult {
     // String concatenation requires runtime function calls (strncpy, strncat)
     // which cannot exist at global scope in C
-    if (!this.deps.getInFunctionBody()) {
+    if (!CodeGenState.inFunctionBody) {
       throw new Error(
         `Error: String concatenation cannot be used at global scope. ` +
           `Move the declaration inside a function.`,
@@ -430,7 +436,7 @@ class StringDeclHelper {
     }
 
     // Generate safe concatenation code
-    const indent = FormatUtils.indent(this.deps.getIndentLevel());
+    const indent = FormatUtils.indent(CodeGenState.indentLevel);
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
@@ -444,7 +450,7 @@ class StringDeclHelper {
   /**
    * Generate substring extraction declaration.
    */
-  private generateSubstringDecl(
+  private static _generateSubstringDecl(
     name: string,
     capacity: number,
     substringOps: ISubstringOps,
@@ -452,7 +458,7 @@ class StringDeclHelper {
   ): IStringDeclResult {
     // Substring extraction requires runtime function calls (strncpy)
     // which cannot exist at global scope in C
-    if (!this.deps.getInFunctionBody()) {
+    if (!CodeGenState.inFunctionBody) {
       throw new Error(
         `Error: Substring extraction cannot be used at global scope. ` +
           `Move the declaration inside a function.`,
@@ -481,7 +487,7 @@ class StringDeclHelper {
     }
 
     // Generate safe substring extraction code
-    const indent = FormatUtils.indent(this.deps.getIndentLevel());
+    const indent = FormatUtils.indent(CodeGenState.indentLevel);
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
@@ -494,11 +500,12 @@ class StringDeclHelper {
   /**
    * Generate unsized const string declaration.
    */
-  private generateUnsizedStringDecl(
+  private static _generateUnsizedStringDecl(
     name: string,
     expression: Parser.ExpressionContext | null,
     modifiers: IStringDeclModifiers,
     isConst: boolean,
+    callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     if (!isConst) {
       throw new Error(
@@ -520,11 +527,11 @@ class StringDeclHelper {
     }
 
     // Infer capacity from literal length
-    const inferredCapacity = this.deps.getStringLiteralLength(exprText);
-    this.deps.requireStringInclude();
+    const inferredCapacity = StringUtils.literalLength(exprText);
+    callbacks.requireStringInclude();
 
     // Register in type registry with inferred capacity
-    this.deps.typeRegistry.set(name, {
+    CodeGenState.typeRegistry.set(name, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,

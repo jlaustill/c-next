@@ -315,7 +315,6 @@ export default class CodeGenerator implements IOrchestrator {
   public symbols: ICodeGenSymbols | null = null;
 
   /** Issue #644: String declaration helper for bounded/array/concat strings */
-  private stringDeclHelper: StringDeclHelper | null = null;
 
   /** Issue #644: Array initialization helper for size inference and fill-all */
 
@@ -2228,45 +2227,6 @@ export default class CodeGenerator implements IOrchestrator {
     // Collect function/callback information
     this.collectFunctionsAndCallbacks(tree);
     this.analyzePassByValue(tree);
-
-    // Initialize remaining helpers
-    this.initializeAnalysisHelpers();
-  }
-
-  /**
-   * Initialize analysis and generation helpers.
-   */
-  private initializeAnalysisHelpers(): void {
-    // Create arrayInitState proxy
-    const arrayInitState = {
-      get lastArrayInitCount() {
-        return CodeGenState.lastArrayInitCount;
-      },
-      set lastArrayInitCount(val: number) {
-        CodeGenState.lastArrayInitCount = val;
-      },
-      get lastArrayFillValue() {
-        return CodeGenState.lastArrayFillValue;
-      },
-      set lastArrayFillValue(val: string | undefined) {
-        CodeGenState.lastArrayFillValue = val;
-      },
-    };
-
-    this.stringDeclHelper = new StringDeclHelper({
-      typeRegistry: CodeGenState.typeRegistry,
-      getInFunctionBody: () => CodeGenState.inFunctionBody,
-      getIndentLevel: () => CodeGenState.indentLevel,
-      arrayInitState,
-      localArrays: CodeGenState.localArrays,
-      generateExpression: (ctx) => this.generateExpression(ctx),
-      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-      getStringConcatOperands: (ctx) => this._getStringConcatOperands(ctx),
-      getSubstringOperands: (ctx) => this._getSubstringOperands(ctx),
-      getStringLiteralLength: (literal) => StringUtils.literalLength(literal),
-      getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
-      requireStringInclude: () => this.requireInclude("string"),
-    });
   }
 
   /**
@@ -5381,13 +5341,24 @@ export default class CodeGenerator implements IOrchestrator {
     this._trackLocalVariable(ctx, name);
 
     // ADR-045: Handle bounded string type specially - early return
-    const stringResult = this.stringDeclHelper!.generateStringDecl(
+    const stringResult = StringDeclHelper.generateStringDecl(
       typeCtx,
       name,
       ctx.expression() ?? null,
       ctx.arrayDimension(),
       modifiers,
       ctx.constModifier() !== null,
+      {
+        generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+        generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
+        getStringConcatOperands: (concatCtx) =>
+          this._getStringConcatOperands(concatCtx),
+        getSubstringOperands: (substrCtx) =>
+          this._getSubstringOperands(substrCtx),
+        getStringExprCapacity: (exprCode) =>
+          this.getStringExprCapacity(exprCode),
+        requireStringInclude: () => this.requireInclude("string"),
+      },
     );
     if (stringResult.handled) {
       return stringResult.code;
