@@ -7,10 +7,12 @@
  * Used to detect bit access at the end of member chains, e.g.:
  * - grid[2][3].flags[0] - detects that [0] is bit access on flags
  * - point.x[3, 4] - detects bit range access on integer field
+ *
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
-import TTypeInfo from "../types/TTypeInfo.js";
+import CodeGenState from "../CodeGenState.js";
 
 /**
  * Result of analyzing a member chain for bit access.
@@ -27,20 +29,9 @@ interface IBitAccessAnalysisResult {
 }
 
 /**
- * Dependencies required for member chain analysis.
+ * Callback type for generating expression code.
  */
-interface IMemberChainAnalyzerDeps {
-  /** Type registry for looking up variable types */
-  typeRegistry: ReadonlyMap<string, TTypeInfo>;
-  /** Struct field types by struct name */
-  structFields: ReadonlyMap<string, ReadonlyMap<string, string>>;
-  /** Struct field array flags by struct name */
-  structFieldArrays: ReadonlyMap<string, ReadonlySet<string>>;
-  /** Function to check if a type name is a known struct */
-  isKnownStruct: (name: string) => boolean;
-  /** Function to generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-}
+type GenerateExpressionFn = (ctx: Parser.ExpressionContext) => string;
 
 /** Mutable state for tracking types through a member chain. */
 interface IChainState {
@@ -57,12 +48,6 @@ interface IChainState {
  * detection callbacks to determine if the final subscript is bit access.
  */
 class MemberChainAnalyzer {
-  private readonly deps: IMemberChainAnalyzerDeps;
-
-  constructor(deps: IMemberChainAnalyzerDeps) {
-    this.deps = deps;
-  }
-
   /**
    * Analyze a member chain target to detect bit access at the end.
    *
@@ -70,9 +55,13 @@ class MemberChainAnalyzer {
    * Uses direct postfixTargetOp analysis with type tracking.
    *
    * @param targetCtx - The assignment target context to analyze
+   * @param generateExpression - Callback to generate expression code
    * @returns Analysis result with bit access information
    */
-  analyze(targetCtx: Parser.AssignmentTargetContext): IBitAccessAnalysisResult {
+  static analyze(
+    targetCtx: Parser.AssignmentTargetContext,
+    generateExpression: GenerateExpressionFn,
+  ): IBitAccessAnalysisResult {
     const baseId = targetCtx.IDENTIFIER()?.getText();
     const postfixOps = targetCtx.postfixTargetOp();
 
@@ -94,7 +83,7 @@ class MemberChainAnalyzer {
     ).length;
 
     // Walk through the chain to find the type and array status before the last subscript
-    const targetInfo = this.resolveTargetTypeAndArrayStatus(
+    const targetInfo = MemberChainAnalyzer.resolveTargetTypeAndArrayStatus(
       baseId,
       postfixOps.slice(0, -1),
       subscriptCount - 1, // subscripts before the last one
@@ -109,13 +98,17 @@ class MemberChainAnalyzer {
     }
 
     // Check if the type is an integer (bit access only works on integers)
-    if (!this.isIntegerType(targetInfo.type)) {
+    if (!MemberChainAnalyzer.isIntegerType(targetInfo.type)) {
       return { isBitAccess: false };
     }
 
     // Build the base target expression (everything except the last subscript)
-    const baseTarget = this.buildBaseTarget(baseId, postfixOps.slice(0, -1));
-    const bitIndex = this.deps.generateExpression(lastExprs[0]);
+    const baseTarget = MemberChainAnalyzer.buildBaseTarget(
+      baseId,
+      postfixOps.slice(0, -1),
+      generateExpression,
+    );
+    const bitIndex = generateExpression(lastExprs[0]);
 
     return {
       isBitAccess: true,
@@ -129,19 +122,19 @@ class MemberChainAnalyzer {
    * Resolve the type and array status of the target by walking through postfix operations.
    * Returns the type and whether it's still an array before the last subscript.
    */
-  private resolveTargetTypeAndArrayStatus(
+  private static resolveTargetTypeAndArrayStatus(
     baseId: string,
     ops: Parser.PostfixTargetOpContext[],
     _subscriptsSoFar: number,
   ): { type: string; isArray: boolean } | undefined {
-    const baseTypeInfo = this.deps.typeRegistry.get(baseId);
+    const baseTypeInfo = CodeGenState.typeRegistry.get(baseId);
     if (!baseTypeInfo) {
       return undefined;
     }
 
     const state: IChainState = {
       currentType: baseTypeInfo.baseType,
-      currentStructType: this.deps.isKnownStruct(baseTypeInfo.baseType)
+      currentStructType: CodeGenState.isKnownStruct(baseTypeInfo.baseType)
         ? baseTypeInfo.baseType
         : undefined,
       isCurrentArray: baseTypeInfo.isArray,
@@ -151,12 +144,12 @@ class MemberChainAnalyzer {
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
       if (op.IDENTIFIER()) {
-        const result = this.processMemberOp(op, ops, i, state);
+        const result = MemberChainAnalyzer.processMemberOp(op, ops, i, state);
         if (!result) {
           return undefined;
         }
       } else {
-        this.processSubscriptOp(state);
+        MemberChainAnalyzer.processSubscriptOp(state);
       }
     }
 
@@ -167,7 +160,7 @@ class MemberChainAnalyzer {
    * Process a member access operation (.fieldName) and update chain state.
    * Returns false if the access is invalid.
    */
-  private processMemberOp(
+  private static processMemberOp(
     op: Parser.PostfixTargetOpContext,
     ops: Parser.PostfixTargetOpContext[],
     opIndex: number,
@@ -178,7 +171,9 @@ class MemberChainAnalyzer {
       return false;
     }
 
-    const structFields = this.deps.structFields.get(state.currentStructType);
+    const structFields = CodeGenState.symbols?.structFields.get(
+      state.currentStructType,
+    );
     if (!structFields) {
       return false;
     }
@@ -191,19 +186,19 @@ class MemberChainAnalyzer {
     state.currentType = fieldType;
 
     // Check if this field is an array
-    const arrayFields = this.deps.structFieldArrays.get(
+    const arrayFields = CodeGenState.symbols?.structFieldArrays.get(
       state.currentStructType,
     );
     state.isCurrentArray = arrayFields?.has(fieldName) ?? false;
 
     // If the field type is a struct, update currentStructType
-    state.currentStructType = this.deps.isKnownStruct(state.currentType)
+    state.currentStructType = CodeGenState.isKnownStruct(state.currentType)
       ? state.currentType
       : undefined;
 
     // Calculate array dimensions remaining based on remaining subscripts
     state.arrayDimsRemaining = state.isCurrentArray
-      ? this.countRemainingSubscripts(ops, opIndex) + 1
+      ? MemberChainAnalyzer.countRemainingSubscripts(ops, opIndex) + 1
       : 0;
 
     return true;
@@ -212,7 +207,7 @@ class MemberChainAnalyzer {
   /**
    * Count remaining subscript operations after the given index.
    */
-  private countRemainingSubscripts(
+  private static countRemainingSubscripts(
     ops: Parser.PostfixTargetOpContext[],
     afterIndex: number,
   ): number {
@@ -224,7 +219,7 @@ class MemberChainAnalyzer {
   /**
    * Process a subscript operation ([expr]) and update chain state.
    */
-  private processSubscriptOp(state: IChainState): void {
+  private static processSubscriptOp(state: IChainState): void {
     if (!state.isCurrentArray || state.arrayDimsRemaining <= 0) {
       return;
     }
@@ -232,7 +227,7 @@ class MemberChainAnalyzer {
     state.arrayDimsRemaining--;
     if (state.arrayDimsRemaining === 0) {
       state.isCurrentArray = false;
-      state.currentStructType = this.deps.isKnownStruct(state.currentType)
+      state.currentStructType = CodeGenState.isKnownStruct(state.currentType)
         ? state.currentType
         : undefined;
     }
@@ -241,7 +236,7 @@ class MemberChainAnalyzer {
   /**
    * Check if a type is an integer type.
    */
-  private isIntegerType(typeName: string): boolean {
+  private static isIntegerType(typeName: string): boolean {
     const intTypes = new Set([
       "u8",
       "u16",
@@ -258,9 +253,10 @@ class MemberChainAnalyzer {
   /**
    * Build the target expression string from base identifier and postfix operations.
    */
-  private buildBaseTarget(
+  private static buildBaseTarget(
     baseId: string,
     ops: Parser.PostfixTargetOpContext[],
+    generateExpression: GenerateExpressionFn,
   ): string {
     let result = baseId;
 
@@ -270,13 +266,13 @@ class MemberChainAnalyzer {
       } else {
         const exprs = op.expression();
         if (exprs.length === 1) {
-          result += "[" + this.deps.generateExpression(exprs[0]) + "]";
+          result += "[" + generateExpression(exprs[0]) + "]";
         } else if (exprs.length === 2) {
           result +=
             "[" +
-            this.deps.generateExpression(exprs[0]) +
+            generateExpression(exprs[0]) +
             ", " +
-            this.deps.generateExpression(exprs[1]) +
+            generateExpression(exprs[1]) +
             "]";
         }
       }

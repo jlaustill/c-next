@@ -314,9 +314,6 @@ export default class CodeGenerator implements IOrchestrator {
   /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
   public symbols: ICodeGenSymbols | null = null;
 
-  /** Issue #644: Member chain analyzer for bit access pattern detection */
-  private memberChainAnalyzer: MemberChainAnalyzer | null = null;
-
   /** Issue #644: Float bit write helper for shadow variable pattern */
   private floatBitHelper: FloatBitHelper | null = null;
 
@@ -2242,14 +2239,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Initialize analysis and generation helpers.
    */
   private initializeAnalysisHelpers(symbols: ICodeGenSymbols): void {
-    this.memberChainAnalyzer = new MemberChainAnalyzer({
-      typeRegistry: CodeGenState.typeRegistry,
-      structFields: symbols.structFields,
-      structFieldArrays: symbols.structFieldArrays,
-      isKnownStruct: (name) => this.isKnownStruct(name),
-      generateExpression: (ctx) => this.generateExpression(ctx),
-    });
-
     this.floatBitHelper = new FloatBitHelper({
       cppMode: CodeGenState.cppMode,
       state: {
@@ -5854,7 +5843,10 @@ export default class CodeGenerator implements IOrchestrator {
     bitIndex?: string;
     baseType?: string;
   } {
-    return this.memberChainAnalyzer!.analyze(targetCtx);
+    // Issue #644: MemberChainAnalyzer is now static, pass generateExpression callback
+    return MemberChainAnalyzer.analyze(targetCtx, (ctx) =>
+      this.generateExpression(ctx),
+    );
   }
 
   /**
