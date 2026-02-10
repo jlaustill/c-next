@@ -18,6 +18,15 @@ import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
  */
 type InternalTypeInfo = { baseType: string; isArray: boolean };
 
+/**
+ * Discriminated union for postfix suffix processing results.
+ * stop=true: return type immediately (terminal suffix like bit indexing).
+ * stop=false: continue chain with updated InternalTypeInfo.
+ */
+type SuffixResult =
+  | { stop: true; type: string | null }
+  | { stop: false; info: InternalTypeInfo };
+
 class TypeResolver {
   /**
    * ADR-024: Check if a type is any integer (signed or unsigned)
@@ -225,7 +234,7 @@ class TypeResolver {
       if (result.stop) {
         return result.type;
       }
-      current = result.info!;
+      current = result.info;
     }
 
     return current.baseType;
@@ -238,7 +247,7 @@ class TypeResolver {
   private static processPostfixSuffix(
     text: string,
     current: InternalTypeInfo,
-  ): { type: string | null; stop: boolean; info?: InternalTypeInfo } {
+  ): SuffixResult {
     if (text.startsWith(".")) {
       const memberName = text.slice(1);
       const memberInfo = TypeResolver.getMemberTypeInfo(
@@ -246,10 +255,9 @@ class TypeResolver {
         memberName,
       );
       if (!memberInfo) {
-        return { type: null, stop: true };
+        return { stop: true, type: null };
       }
       return {
-        type: null,
         stop: false,
         info: { baseType: memberInfo.baseType, isArray: memberInfo.isArray },
       };
@@ -259,7 +267,7 @@ class TypeResolver {
       return TypeResolver.processIndexingSuffix(text, current);
     }
 
-    return { type: null, stop: false, info: current };
+    return { stop: false, info: current };
   }
 
   /**
@@ -270,18 +278,17 @@ class TypeResolver {
   private static processIndexingSuffix(
     text: string,
     current: InternalTypeInfo,
-  ): { type: string | null; stop: boolean; info?: InternalTypeInfo } {
+  ): SuffixResult {
     const inner = text.slice(1, -1);
 
     // Range indexing: [start, width] - always bit extraction
     if (inner.includes(",")) {
-      return { type: null, stop: true };
+      return { stop: true, type: null };
     }
 
     // Array access: if current type is known to be an array, index yields element
     if (current.isArray) {
       return {
-        type: null,
         stop: false,
         info: { baseType: current.baseType, isArray: false },
       };
@@ -289,15 +296,11 @@ class TypeResolver {
 
     // Bit indexing on integer: single bit returns bool
     if (TypeResolver.isIntegerType(current.baseType)) {
-      return { type: "bool", stop: true };
+      return { stop: true, type: "bool" };
     }
 
-    // Unknown indexing - pass through
-    return {
-      type: null,
-      stop: false,
-      info: { baseType: current.baseType, isArray: false },
-    };
+    // Unknown indexing - preserve current state
+    return { stop: false, info: current };
   }
 
   /**
