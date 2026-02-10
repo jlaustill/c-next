@@ -4,7 +4,7 @@
 // to ensure bounds safety at compile time.
 
 u32 main() {
-    u8 buffer[8];
+    u8[8] buffer;
     u32 offset <- 0;
     u8 length <- 4;
 

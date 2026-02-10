@@ -58,7 +58,7 @@ i32 main() {
         return 7;
     }
 
-    f64 arr[4];
+    f64[4] arr;
     arr[0] <- 3.14159;
     if (arr[0].length != 64) {
         return 8;

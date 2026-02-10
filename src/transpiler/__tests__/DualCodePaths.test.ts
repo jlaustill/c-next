@@ -282,7 +282,7 @@ const u8 MAX_SIZE <- 100;
       const mainSource = `
 #include "constants.cnx"
 
-u8 buffer[MAX_SIZE];
+u8[MAX_SIZE] buffer;
 
 void main() {
     buffer[0] <- 42;

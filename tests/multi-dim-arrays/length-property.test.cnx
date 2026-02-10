@@ -1,5 +1,5 @@
 // ADR-036: .length on first dimension
-u8 matrix[4][8];
+u8[4] matrix[8];
 
 i32 main() {
     u32 rows <- matrix.length; // Should be 4

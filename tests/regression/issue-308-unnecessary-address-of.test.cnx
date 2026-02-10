@@ -15,7 +15,7 @@
 // Struct with array member to test the fix
 struct DataResult {
     u8 errorCode;
-    u8 data[6];
+    u8[6] data;
     u8 dataLen;
 }
 
@@ -48,7 +48,7 @@ u32 main() {
     // Test Scenario 1: Array element access
     // data[i] should pass the VALUE at index i, not &data[i]
     // ============================================================
-    u8 data[8];
+    u8[8] data;
     data[0] <- 0x12;
     data[1] <- 0x34;
     data[2] <- 0x56;

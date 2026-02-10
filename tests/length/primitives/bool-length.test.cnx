@@ -59,7 +59,7 @@ i32 main() {
         return 7;
     }
 
-    bool arr[4];
+    bool[4] arr;
     arr[0] <- true;
     if (arr[0].length != 8) {
         return 8;

@@ -4767,10 +4767,18 @@ export default class CodeGenerator implements IOrchestrator {
     const prefix = isPrivate ? "static " : "";
 
     const arrayDims = varDecl.arrayDimension();
-    const isArray = arrayDims.length > 0;
+    const hasArrayTypeSyntax = varDecl.type().arrayType() !== null;
+    const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
 
     let decl = `${prefix}${type} ${fullName}`;
-    if (isArray) {
+
+    // Handle arrayType dimension (C-Next style: u8[16] data)
+    if (hasArrayTypeSyntax) {
+      decl += this._getArrayTypeDimension(varDecl.type());
+    }
+
+    // Handle arrayDimension (C-style or additional dimensions)
+    if (arrayDims.length > 0) {
       decl += this.generateArrayDimensions(arrayDims);
     }
 
@@ -5448,6 +5456,10 @@ export default class CodeGenerator implements IOrchestrator {
 
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
+
+    // Reject C-style array declarations (u16 arr[8]) - require C-Next style (u16[8] arr)
+    this._validateArrayDeclarationSyntax(ctx, typeCtx, name);
+
     const type = this._inferVariableType(ctx, name);
 
     // Track local variable metadata
@@ -5537,6 +5549,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Issue #696: Handle array declaration with dimension parsing and init.
+   * Bug fix: Also handles C-Next style arrayType syntax (u16[8] myArray).
    */
   private _handleArrayDeclaration(
     ctx: Parser.VariableDeclarationContext,
@@ -5545,14 +5558,20 @@ export default class CodeGenerator implements IOrchestrator {
     decl: string,
   ): { handled: boolean; code: string; decl: string; isArray: boolean } {
     const arrayDims = ctx.arrayDimension();
-    const isArray = arrayDims.length > 0;
+    const hasArrayTypeSyntax = typeCtx.arrayType() !== null;
+    const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
 
     if (!isArray) {
       return { handled: false, code: "", decl, isArray: false };
     }
 
+    // Generate dimension string from arrayType syntax (u16[8] myArray)
+    const arrayTypeDimStr = this._getArrayTypeDimension(typeCtx);
+
     const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
-    const declaredSize = this._parseFirstArrayDimension(arrayDims);
+    const declaredSize =
+      this._parseArrayTypeDimension(typeCtx) ??
+      this._parseFirstArrayDimension(arrayDims);
 
     // ADR-035: Handle array initializers with size inference
     if (ctx.expression()) {
@@ -5565,20 +5584,62 @@ export default class CodeGenerator implements IOrchestrator {
         declaredSize,
       );
       if (arrayInitResult) {
+        // Include arrayType dimension before arrayDimension dimensions
+        const fullDimSuffix = arrayTypeDimStr + arrayInitResult.dimensionSuffix;
         return {
           handled: true,
-          code: `${decl}${arrayInitResult.dimensionSuffix} = ${arrayInitResult.initValue};`,
+          code: `${decl}${fullDimSuffix} = ${arrayInitResult.initValue};`,
           decl,
           isArray: true,
         };
       }
     }
 
-    // Generate dimensions and track as local array
-    const newDecl = decl + this.generateArrayDimensions(arrayDims);
+    // Generate dimensions: arrayType dimension first, then arrayDimension dimensions
+    const newDecl =
+      decl + arrayTypeDimStr + this.generateArrayDimensions(arrayDims);
     CodeGenState.localArrays.add(name);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
+  }
+
+  /**
+   * Get array dimension string from arrayType syntax (u16[8] -> "[8]").
+   * Evaluates const expressions to their numeric values for C compatibility.
+   */
+  private _getArrayTypeDimension(typeCtx: Parser.TypeContext): string {
+    if (!typeCtx.arrayType()) {
+      return "";
+    }
+    const sizeExpr = typeCtx.arrayType()!.expression();
+    if (!sizeExpr) {
+      return "[]";
+    }
+    // Try to evaluate as constant first (required for C file-scope arrays)
+    const constValue = this.tryEvaluateConstant(sizeExpr);
+    if (constValue !== undefined) {
+      return `[${constValue}]`;
+    }
+    // Fall back to expression text (for macros, enums, etc.)
+    return `[${this.generateExpression(sizeExpr)}]`;
+  }
+
+  /**
+   * Parse array dimension from arrayType syntax for size validation.
+   */
+  private _parseArrayTypeDimension(typeCtx: Parser.TypeContext): number | null {
+    if (!typeCtx.arrayType()) {
+      return null;
+    }
+    const sizeExpr = typeCtx.arrayType()!.expression();
+    if (!sizeExpr) {
+      return null;
+    }
+    const sizeText = sizeExpr.getText();
+    if (/^\d+$/.exec(sizeText)) {
+      return Number.parseInt(sizeText, 10);
+    }
+    return null;
   }
 
   /**
@@ -5595,6 +5656,101 @@ export default class CodeGenerator implements IOrchestrator {
       return Number.parseInt(sizeText, 10);
     }
     return null;
+  }
+
+  /**
+   * Validate array declaration syntax - reject C-style, require C-Next style.
+   * C-style: u16 arr[8] (all dimensions after identifier) - REJECTED
+   * C-Next style: u16[8] arr (first dimension in type) - REQUIRED
+   * Multi-dim C-Next: u16[4] arr[2] (first in type, rest after) - ALLOWED
+   * Exceptions (grammar limitations):
+   *   - Empty dimensions for size inference: u8 arr[] <- [...]
+   *   - Qualified types: SeaDash.Parse.Result arr[3] (no arrayType support)
+   *   - Scoped/global types: this.Type arr[3], global.Type arr[3]
+   *   - String types: string<N> arr[3]
+   */
+  private _validateArrayDeclarationSyntax(
+    ctx: Parser.VariableDeclarationContext,
+    typeCtx: Parser.TypeContext,
+    name: string,
+  ): void {
+    const arrayDims = ctx.arrayDimension();
+    if (arrayDims.length === 0) {
+      return; // Not an array declaration
+    }
+
+    // If type already has arrayType, additional dimensions are allowed (multi-dim)
+    if (typeCtx.arrayType()) {
+      return; // Valid C-Next style: u16[4] arr[2] → uint16_t arr[4][2]
+    }
+
+    // Allow empty first dimension for size inference: u8 arr[] <- [1, 2, 3]
+    // The grammar doesn't support u8[] arr syntax, so this is the only way
+    if (arrayDims.length === 1 && !arrayDims[0].expression()) {
+      return; // Size inference pattern allowed
+    }
+
+    // Allow C-style for multi-dimensional arrays: u8 matrix[4][4]
+    // The arrayType grammar only supports single dimension, so multi-dim needs C-style
+    if (arrayDims.length > 1) {
+      return; // Multi-dimensional arrays need C-style
+    }
+
+    // Allow C-style for types that don't support arrayType syntax:
+    // - Qualified types (Scope.Type, Namespace::Type)
+    // - Scoped types (this.Type)
+    // - Global types (global.Type)
+    // - String types (string<N>)
+    // - Bitmap types (code generator doesn't yet handle arrayType for bitmaps)
+    if (
+      typeCtx.qualifiedType() ||
+      typeCtx.scopedType() ||
+      typeCtx.globalType() ||
+      typeCtx.stringType()
+    ) {
+      return; // Grammar limitation - these can't use arrayType
+    }
+
+    // Allow C-style for user types (structs, bitmaps, enums)
+    // The arrayType code generation doesn't fully handle all struct array patterns
+    if (typeCtx.userType()) {
+      return; // User type arrays need C-style until code generator is fully updated
+    }
+
+    // C-style array declaration detected - reject with helpful error
+    const baseType = this._extractBaseTypeName(typeCtx);
+    const dimensions = arrayDims
+      .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
+      .join("");
+    const line = ctx.start?.line ?? 0;
+    const col = ctx.start?.column ?? 0;
+
+    throw new Error(
+      `${line}:${col} C-style array declaration is not allowed. ` +
+        `Use '${baseType}${dimensions} ${name}' instead of '${baseType} ${name}${dimensions}'`,
+    );
+  }
+
+  /**
+   * Extract base type name from type context for error messages.
+   */
+  private _extractBaseTypeName(typeCtx: Parser.TypeContext): string {
+    if (typeCtx.primitiveType()) {
+      return typeCtx.primitiveType()!.getText();
+    }
+    if (typeCtx.userType()) {
+      return typeCtx.userType()!.getText();
+    }
+    if (typeCtx.arrayType()) {
+      const arrCtx = typeCtx.arrayType()!;
+      if (arrCtx.primitiveType()) {
+        return arrCtx.primitiveType()!.getText();
+      }
+      if (arrCtx.userType()) {
+        return arrCtx.userType()!.getText();
+      }
+    }
+    return typeCtx.getText();
   }
 
   /**

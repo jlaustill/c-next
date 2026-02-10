@@ -4,7 +4,7 @@
 // to ensure bounds safety. Runtime offsets/lengths are not allowed.
 
 u32 main() {
-    u8 buffer[128];
+    u8[128] buffer;
 
     // This should fail at compile time because offset is a runtime variable
     u32 offset <- 0;

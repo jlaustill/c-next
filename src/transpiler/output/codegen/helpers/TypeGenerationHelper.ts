@@ -242,6 +242,15 @@ class TypeGenerationHelper {
       return "string";
     }
 
+    // Bug fix: Handle arrayType syntax (u16[8] myArray) - check inner primitive type
+    if (ctx.arrayType()) {
+      const arrCtx = ctx.arrayType()!;
+      if (arrCtx.primitiveType()) {
+        const type = arrCtx.primitiveType()!.getText();
+        return TypeGenerationHelper.generatePrimitiveType(type).include;
+      }
+    }
+
     return null;
   }
 }

@@ -73,7 +73,7 @@ u32 main() {
     // ===== Hex in array initializers =====
 
     // Test hex in array
-    u8 bytes[4] <- [0x48, 0x65, 0x6C, 0x6C];
+    u8[4] bytes <- [0x48, 0x65, 0x6C, 0x6C];
     if (bytes[0] != 72) return 15;  // 'H'
     if (bytes[1] != 101) return 16; // 'e'
     if (bytes[2] != 108) return 17; // 'l'

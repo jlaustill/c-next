@@ -12,7 +12,7 @@ scope Test {
 }
 
 u32 main() {
-    u8 buffer[8];
+    u8[8] buffer;
     buffer[0] <- 0;
     buffer[1] <- 0;
     buffer[2] <- 0;

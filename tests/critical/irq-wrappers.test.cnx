@@ -2,7 +2,7 @@
 // This avoids macro collisions with platform headers (e.g., Teensy's imxrt.h)
 // See GitHub issue #473
 
-u8 buffer[64];
+u8[64] buffer;
 u32 writeIdx <- 0;
 
 void enqueue(u8 data) {

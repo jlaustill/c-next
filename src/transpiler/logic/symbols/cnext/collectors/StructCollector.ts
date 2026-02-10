@@ -66,6 +66,25 @@ class StructCollector {
       const dimensions: number[] = [];
       let isArray = false;
 
+      // Check for C-Next style arrayType syntax: Item[3] items -> typeCtx.arrayType()
+      const arrayTypeCtx = typeCtx.arrayType();
+      if (arrayTypeCtx) {
+        isArray = true;
+        const sizeExpr = arrayTypeCtx.expression();
+        if (sizeExpr) {
+          const dimText = sizeExpr.getText();
+          const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+          if (literalSize !== undefined) {
+            dimensions.push(literalSize);
+          } else if (constValues?.has(dimText)) {
+            dimensions.push(constValues.get(dimText)!);
+          }
+          // Note: non-literal, non-const expressions (like global.EnumName.COUNT)
+          // won't be resolvable at symbol collection time - dimensions stays empty
+          // but isArray is still true so the field is tracked as an array
+        }
+      }
+
       // Handle string types specially
       if (typeCtx.stringType()) {
         const stringCtx = typeCtx.stringType()!;

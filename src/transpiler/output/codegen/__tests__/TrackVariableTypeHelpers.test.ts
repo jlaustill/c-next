@@ -192,7 +192,7 @@ describe("trackVariableTypeWithName helpers", () => {
   describe("trackVariableTypeWithName integration", () => {
     it("handles array type syntax", async () => {
       const source = `
-        u8 buffer[10];
+        u8[10] buffer;
         void main() {
           buffer[0] <- 255;
         }

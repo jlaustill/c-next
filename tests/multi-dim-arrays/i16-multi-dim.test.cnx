@@ -2,9 +2,9 @@
 // Tests: multi-dimensional i16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor readings, coordinate systems, signed offsets
-i16 matrix2d[4][8];
+i16[4] matrix2d[8];
 
-i16 cube3d[2][3][4];
+i16[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations with positive and negative values
@@ -85,7 +85,7 @@ u32 main() {
 
    
 // Test i16 specific edge cases
-    i16 testArray[4][2];
+    i16[4] testArray[2];
 
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
@@ -109,7 +109,7 @@ u32 main() {
 
    
 // Test 2D array with coordinate system pattern
-    i16 coords[3][3];
+    i16[3] coords[3];
 
     // Initialize all elements first
     for (u32 ci <- 0; ci < 3; ci +<- 1) {
@@ -133,7 +133,7 @@ u32 main() {
 
    
 // Test negative value calculations
-    i16 deltas[2][2];
+    i16[2] deltas[2];
 
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
@@ -148,7 +148,7 @@ u32 main() {
 
    
 // Test with altitude values (meters, can be negative)
-    i16 altitudes[2][3];
+    i16[2] altitudes[3];
 
     // Initialize all elements first
     for (u32 ai <- 0; ai < 2; ai +<- 1) {

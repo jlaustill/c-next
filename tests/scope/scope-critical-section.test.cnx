@@ -3,14 +3,14 @@
 // Tests: public method with critical, private method with critical, this. inside critical, global. inside critical
 
 // Global variables for testing global. accessor inside critical sections
-u8 globalSharedBuffer[16];
+u8[16] globalSharedBuffer;
 u32 globalWriteIndex <- 0;
 u32 globalReadIndex <- 0;
 bool globalBufferLock <- false;
 
 scope CriticalTest {
     // Scope-level variables accessed via this. inside critical sections
-    u8 buffer[32];
+    u8[32] buffer;
     u32 writeIndex <- 0;
     u32 readIndex <- 0;
     u8 count <- 0;

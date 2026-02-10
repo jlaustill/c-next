@@ -2,9 +2,9 @@
 // Tests: multi-dimensional u64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large data buffers, matrices for embedded systems
-u64 matrix2d[4][8];
+u64[4] matrix2d[8];
 
-u64 cube3d[2][3][4];
+u64[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations
@@ -93,7 +93,7 @@ u32 main() {
 
    
 // Test 2D array with large timestamp values
-    u64 timestamps[3][2];
+    u64[3] timestamps[2];
     timestamps[0][0] <- 1609459200000; // Jan 1, 2021
     timestamps[0][1] <- 1612137600000; // Feb 1, 2021
     timestamps[1][0] <- 1614556800000; // Mar 1, 2021

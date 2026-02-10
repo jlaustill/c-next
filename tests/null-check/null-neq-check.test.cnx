@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 void processFile() {
-    u8 buffer[64];
+    u8[64] buffer;
     buffer[0] <- 0; // Initialize
 
     u8 result <- fgets(buffer, buffer.length, stdin);

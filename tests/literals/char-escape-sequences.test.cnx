@@ -42,7 +42,7 @@ u32 main() {
     // ===== Escape sequences in arrays =====
    
 // Test escape sequences as array elements
-    u8 escapes[7] <- ['\n', '\t', '\r', '\0', '\\', '\'', '\"'];
+    u8[7] escapes <- ['\n', '\t', '\r', '\0', '\\', '\'', '\"'];
     if (escapes[0] != 10) return 8; // newline
     if (escapes[1] != 9) return 9; // tab
     if (escapes[2] != 13) return 10; // carriage return

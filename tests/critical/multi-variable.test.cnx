@@ -4,7 +4,7 @@ u32 readIdx <- 0;
 
 u32 writeIdx <- 0;
 
-u8 buffer[64];
+u8[64] buffer;
 
 void transfer() {
     critical {

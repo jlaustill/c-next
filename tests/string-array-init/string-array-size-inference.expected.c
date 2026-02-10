@@ -12,7 +12,7 @@
 // Size inferred from initializer count (3 elements)
 extern const char DAYS[3][17] = {"Monday", "Tuesday", "Wednesday"};
 
-// Local array with size inference
+// Local array with size inference (C-style for string arrays)
 void test(void) {
     char items[4][9] = {"A", "B", "C", "D"};
     uint8_t count = 4;

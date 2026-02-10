@@ -7,7 +7,7 @@ void writeToSized(u8 arr[8], u32 index, u8 value) {
 }
 
 u32 main() {
-    u8 buffer[8];
+    u8[8] buffer;
     buffer[0] <- 0;
 
     writeToSized(buffer, 0, 42);

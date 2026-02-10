@@ -6,7 +6,7 @@
 u32 main() {
    
 // Test 1: u8 array
-    u8 arr8[32];
+    u8[32] arr8;
     u32 value1 <- 0x11223344;
     arr8[0, 4] <- value1;
 
@@ -17,7 +17,7 @@ u32 main() {
 
    
 // Test 2: u16 array
-    u16 arr16[16];
+    u16[16] arr16;
     u64 value2 <- 0x0102030405060708;
     arr16[0, 8] <- value2;
 
@@ -35,7 +35,7 @@ u32 main() {
 
    
 // Test 3: u32 array
-    u32 arr32[16];
+    u32[16] arr32;
     u32 value3 <- 0xAABBCCDD;
     arr32[0, 4] <- value3;
 
@@ -44,7 +44,7 @@ u32 main() {
 
    
 // Test 4: u64 array
-    u64 arr64[8];
+    u64[8] arr64;
     u64 value4 <- 0x123456789ABCDEF0;
     arr64[0, 8] <- value4;
 
@@ -53,7 +53,7 @@ u32 main() {
 
    
 // Test 5: u8 buffer (basic byte array)
-    u8 buffer[64];
+    u8[64] buffer;
     u32 value5 <- 0x55667788;
     buffer[0, 4] <- value5;
 
@@ -64,7 +64,7 @@ u32 main() {
 
    
 // Test 6: Multiple copies to same array at different offsets
-    u8 multiArr[32];
+    u8[32] multiArr;
     u32 val1 <- 0x11111111;
     u32 val2 <- 0x22222222;
     u32 val3 <- 0x33333333;

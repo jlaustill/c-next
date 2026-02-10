@@ -12,12 +12,12 @@ bitmap8 DeviceFlags {
 
 struct Sensor {
     u32 id;
-    u8 data[8];
+    u8[8] data;
     DeviceFlags flags;
 }
 
 struct Controller {
-    Sensor sensors[4];
+    Sensor[4] sensors;
     u32 status;
 }
 
@@ -27,7 +27,7 @@ register PERIPH @ 0x50000000 {
 }
 
 scope Device {
-    Controller controllers[2];
+    Controller[2] controllers;
 
     register HW @ 0x60000000 {
         STATUS: DeviceFlags rw @ 0x00,

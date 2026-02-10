@@ -3,7 +3,7 @@
 // Note: Nested critical is valid syntax - inner critical is redundant but allowed
 u32 sharedCounter <- 0;
 
-u32 buffer[10];
+u32[10] buffer;
 
 u32 writeIdx <- 0;
 

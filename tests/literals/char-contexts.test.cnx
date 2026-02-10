@@ -51,7 +51,7 @@ u32 main() {
     // ===== Array element context =====
    
 // Test char literals in array initializer
-    u8 vowels[5] <- ['a', 'e', 'i', 'o', 'u'];
+    u8[5] vowels <- ['a', 'e', 'i', 'o', 'u'];
     if (vowels[0] != 'a') return 10;
     if (vowels[1] != 'e') return 11;
     if (vowels[2] != 'i') return 12;
@@ -60,7 +60,7 @@ u32 main() {
 
    
 // Test array element assignment with char literal
-    u8 buffer[4];
+    u8[4] buffer;
     buffer[0] <- 'H';
     buffer[1] <- 'i';
     buffer[2] <- '!';

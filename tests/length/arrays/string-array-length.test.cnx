@@ -1,6 +1,7 @@
 // test-execution
 // Comprehensive .length test for string arrays across all contexts
 // Tests: array.length returns 4 (element count), string.length returns strlen (runtime)
+// C-style allowed for string arrays (grammar limitation)
 string<64> globalArr[4];
 
 scope TestScope {

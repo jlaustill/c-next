@@ -3,14 +3,14 @@
 // Tests: [value*] fills all elements with the specified value
 // Validates that all array elements are properly initialized
 // Zero fill
-u8 buffer[100] <- [0*];
+u8[100] buffer <- [0*];
 
 // Fill with other values
-u8 ones[50] <- [1*];
+u8[50] ones <- [1*];
 
-u16 magic[10] <- [0xDEAD*];
+u16[10] magic <- [0xDEAD*];
 
-i32 negatives[5] <- [-1*];
+i32[5] negatives <- [-1*];
 
 u32 main() {
    

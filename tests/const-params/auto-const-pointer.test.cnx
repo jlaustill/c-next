@@ -41,11 +41,11 @@ u32 main() {
     u32 result <- mixedParams(a, b);
     if (result != 15) return 2;
 
-    u8 data[4] <- [1, 2, 3, 4];
+    u8[4] data <- [1, 2, 3, 4];
     arrayMod(data);
     if (data[0] != 99) return 3;
 
-    u8 data2[4] <- [10, 20, 30, 40];
+    u8[4] data2 <- [10, 20, 30, 40];
     u8 val <- arrayReadOnly(data2);
     if (val != 10) return 4;
 

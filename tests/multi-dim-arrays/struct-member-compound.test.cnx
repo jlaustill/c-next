@@ -1,8 +1,8 @@
 // Test: Compound assignment on struct member arrays
 // Verifies fix for line 4114 in CodeGenerator.ts
 struct Buffer {
-    u8 data[8];
-    i32 counts[4];
+    u8[8] data;
+    i32[4] counts;
 }
 
 Buffer buf;

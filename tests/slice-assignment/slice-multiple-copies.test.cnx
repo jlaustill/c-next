@@ -4,7 +4,7 @@
 // Simulates real-world buffer building with explicit layout
 
 u32 main() {
-    u8 buffer[256];
+    u8[256] buffer;
 
     // Sequential writes building a protocol packet
     // Packet format: [magic:4][version:2][length:2][flags:1][reserved:3][data:8]

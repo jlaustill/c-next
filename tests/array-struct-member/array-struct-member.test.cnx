@@ -12,9 +12,9 @@ struct Sensor {
 }
 
 // Test arrays
-Point points[3];
+Point[3] points;
 
-Sensor sensors[4];
+Sensor[4] sensors;
 
 // Test function to verify array-of-struct assignment
 i32 main() {

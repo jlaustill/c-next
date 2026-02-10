@@ -8,19 +8,19 @@ const u8 BIN_SIZE <- 0b1010;
 
 struct TData {
     // Single dimension with constant
-    u8 buffer[BUFFER_SIZE];
+    u8[BUFFER_SIZE] buffer;
 
     // Multi-dimensional with constants
-    i16 matrix[ROWS][COLS];
+    i16[ROWS] matrix[COLS];
 
     // Hex constant dimension
-    bool flags[HEX_SIZE];
+    bool[HEX_SIZE] flags;
 
     // Binary constant dimension
-    u16 binary_arr[BIN_SIZE];
+    u16[BIN_SIZE] binary_arr;
 
     // Literal dimension (control case)
-    u32 literal_arr[5];
+    u32[5] literal_arr;
 
     // Non-array field
     i32 value;

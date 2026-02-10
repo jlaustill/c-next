@@ -1,7 +1,7 @@
 // Test float arrays
-f32 samples_f32[10];
+f32[10] samples_f32;
 
-f64 measurements_f64[5];
+f64[5] measurements_f64;
 
 void test_f32_array() {
     // Initialization
@@ -39,8 +39,8 @@ void test_f64_array() {
 
 void test_array_init() {
     // Array with initializer
-    f32 coords[3] <- [0.0, 1.0, 2.0];
-    f64 precise[2] <- [3.14159, 2.71828];
+    f32[3] coords <- [0.0, 1.0, 2.0];
+    f64[2] precise <- [3.14159, 2.71828];
 
     f32 x <- coords[0];
     f64 pi <- precise[0];

@@ -14,7 +14,7 @@ struct Sensor {
 }
 
 struct DataBuffer {
-    u8 data[64];
+    u8[64] data;
     u32 len;
 }
 

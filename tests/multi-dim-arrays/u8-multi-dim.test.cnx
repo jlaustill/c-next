@@ -2,9 +2,9 @@
 // Tests: multi-dimensional u8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: small data buffers, pixel data, byte arrays
-u8 matrix2d[4][8];
+u8[4] matrix2d[8];
 
-u8 cube3d[2][3][4];
+u8[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations
@@ -77,7 +77,7 @@ u32 main() {
 
    
 // Test u8 specific edge cases
-    u8 testArray[3][2];
+    u8[3] testArray[2];
 
     // Initialize all elements first
     for (u32 ti <- 0; ti < 3; ti +<- 1) {
@@ -97,7 +97,7 @@ u32 main() {
 
    
 // Test 2D array with byte buffer pattern
-    u8 buffer[4][4];
+    u8[4] buffer[4];
 
     // Initialize all elements first
     for (u32 bi <- 0; bi < 4; bi +<- 1) {

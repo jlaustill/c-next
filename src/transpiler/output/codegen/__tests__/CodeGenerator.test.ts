@@ -1466,7 +1466,7 @@ describe("CodeGenerator", () => {
   describe("Array declarations", () => {
     it("should generate array declaration", () => {
       const source = `
-        u32 arr[10];
+        u32[10] arr;
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -1485,7 +1485,7 @@ describe("CodeGenerator", () => {
 
     it("should generate array with initializer", () => {
       const source = `
-        u32 arr[3] <- [1, 2, 3];
+        u32[3] arr <- [1, 2, 3];
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -1505,7 +1505,7 @@ describe("CodeGenerator", () => {
 
     it("should generate multi-dimensional array", () => {
       const source = `
-        u32 matrix[3][3];
+        u32[3] matrix[3];
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -2586,7 +2586,7 @@ describe("CodeGenerator", () => {
   describe("Array element assignment", () => {
     it("should generate array element assignment", () => {
       const source = `
-        wrap u32 arr[10];
+        wrap u32[10] arr;
         void main() {
           arr[0] <- 42;
           arr[5] <- 100;
@@ -2734,7 +2734,7 @@ describe("CodeGenerator", () => {
     it("should generate struct with array field", () => {
       const source = `
         struct Buffer {
-          u8 data[64];
+          u8[64] data;
           u32 length;
         }
       `;
@@ -3297,7 +3297,7 @@ describe("CodeGenerator", () => {
     it("should generate struct with array member access", () => {
       const source = `
         struct Buffer {
-          u8 data[64];
+          u8[64] data;
         }
         Buffer buf;
         void main() {
@@ -3427,7 +3427,7 @@ describe("CodeGenerator", () => {
   describe("Const array", () => {
     it("should generate const array", () => {
       const source = `
-        const u32 LOOKUP[4] <- [10, 20, 30, 40];
+        const u32[4] LOOKUP <- [10, 20, 30, 40];
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -3853,7 +3853,7 @@ describe("CodeGenerator", () => {
   describe("Array fill-all syntax", () => {
     it("should generate fill-all array [0*]", () => {
       const source = `
-        u32 data[10] <- [0*];
+        u32[10] data <- [0*];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -3872,7 +3872,7 @@ describe("CodeGenerator", () => {
 
     it("should generate fill-all array with non-zero value", () => {
       const source = `
-        u8 buffer[4] <- [255*];
+        u8[4] buffer <- [255*];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -3893,7 +3893,7 @@ describe("CodeGenerator", () => {
   describe("Nested array initializers", () => {
     it("should generate 2D array initializer", () => {
       const source = `
-        u32 matrix[2][3] <- [[1, 2, 3], [4, 5, 6]];
+        u32[2] matrix[3] <- [[1, 2, 3], [4, 5, 6]];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -3914,7 +3914,7 @@ describe("CodeGenerator", () => {
     it("should generate array of struct initializers", () => {
       const source = `
         struct Point { i32 x; i32 y; }
-        Point points[2] <- [{x: 1, y: 2}, {x: 3, y: 4}];
+        Point[2] points <- [{x: 1, y: 2}, {x: 3, y: 4}];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -4184,7 +4184,7 @@ describe("CodeGenerator", () => {
     it("should resolve const as array dimension at file scope", () => {
       const source = `
         const u32 SIZE <- 10;
-        u32 data[SIZE];
+        u32[SIZE] data;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -4205,7 +4205,7 @@ describe("CodeGenerator", () => {
   describe("Multi-dimensional array", () => {
     it("should generate 3D array declaration", () => {
       const source = `
-        u8 cube[2][3][4];
+        u8[2] cube[3][4];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -4686,7 +4686,7 @@ describe("CodeGenerator", () => {
   describe("Array indexing with expressions", () => {
     it("should generate array index with arithmetic", () => {
       const source = `
-        u32 data[10];
+        u32[10] data;
         wrap u32 i <- 2;
         void main() {
           data[i * 2 + 1] <- 42;
@@ -4877,7 +4877,7 @@ describe("CodeGenerator", () => {
   describe("Array length", () => {
     it("should generate array length using sizeof", () => {
       const source = `
-        u32 data[10];
+        u32[10] data;
         u32 len <- data.length;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -5285,7 +5285,7 @@ describe("CodeGenerator", () => {
     it("should pass array without address-of operator", () => {
       const source = `
         void processData(u32 data[]) { }
-        u32 myData[5];
+        u32[5] myData;
         void main() {
           processData(myData);
         }
@@ -5310,7 +5310,7 @@ describe("CodeGenerator", () => {
     it("should generate struct with array field", () => {
       const source = `
         struct Buffer {
-          u8 data[64];
+          u8[64] data;
           u32 length;
         }
       `;
@@ -5694,7 +5694,7 @@ describe("CodeGenerator", () => {
   describe("Array bounds checking", () => {
     it("should throw error for out-of-bounds constant index", () => {
       const source = `
-        u32 data[5];
+        u32[5] data;
         void main() {
           data[10] <- 1;
         }
@@ -5899,7 +5899,7 @@ describe("CodeGenerator", () => {
   describe("Sizeof variable", () => {
     it("should generate sizeof for variable", () => {
       const source = `
-        u32 arr[10];
+        u32[10] arr;
         u32 size <- sizeof(arr);
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -5921,7 +5921,7 @@ describe("CodeGenerator", () => {
     it("should resolve const to literal for file-scope array", () => {
       const source = `
         const u32 BUFFER_SIZE <- 256;
-        u8 buffer[BUFFER_SIZE];
+        u8[BUFFER_SIZE] buffer;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -6056,7 +6056,7 @@ describe("CodeGenerator", () => {
     it("should generate struct with array field access", () => {
       const source = `
         struct Message {
-          u8 data[8];
+          u8[8] data;
           u8 length;
         }
         Message msg;
@@ -6166,7 +6166,7 @@ describe("CodeGenerator", () => {
       const source = `
         void setup() {
           const u32 SIZE <- 5;
-          u32 data[SIZE];
+          u32[SIZE] data;
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -6181,7 +6181,8 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("SIZE");
-      expect(code).toContain("[SIZE]");
+      // Const value is evaluated at compile time
+      expect(code).toContain("data[5]");
     });
   });
 
@@ -6666,7 +6667,7 @@ describe("CodeGenerator", () => {
 
   describe("Array with literal size", () => {
     it("should generate array with integer literal size", () => {
-      const source = `u32 buffer[100];`;
+      const source = `u32[100] buffer;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
       const symbolTable = new SymbolTable();
@@ -6793,7 +6794,7 @@ describe("CodeGenerator", () => {
 
   describe("Array initialization with values", () => {
     it("should generate array with initialization list", () => {
-      const source = `u8 data[4] <- [1, 2, 3, 4];`;
+      const source = `u8[4] data <- [1, 2, 3, 4];`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
       const symbolTable = new SymbolTable();
@@ -6814,7 +6815,7 @@ describe("CodeGenerator", () => {
       const source = `
         void process(u8 arr[]) { }
         void main() {
-          u8 local[10];
+          u8[10] local;
           process(local);
         }
       `;
@@ -7081,7 +7082,7 @@ describe("CodeGenerator", () => {
       it("should initialize POD arrays to {0}", () => {
         const source = `
           void main() {
-            u32 values[10];
+            u32[10] values;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -7102,7 +7103,7 @@ describe("CodeGenerator", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void main() {
-            Point points[5];
+            Point[5] points;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -7347,7 +7348,7 @@ describe("CodeGenerator", () => {
       it("should generate struct array member write", () => {
         const source = `
           struct Item { u32 value; }
-          Item items[3];
+          Item[3] items;
           void main() {
               items[0].value <- 42;
           }
@@ -7932,7 +7933,7 @@ describe("CodeGenerator", () => {
         const source = `
           void callee(u32 arr[10]) { }
           void test() {
-            u32 data[10];
+            u32[10] data;
             callee(data);
           }
         `;
@@ -7976,7 +7977,7 @@ describe("CodeGenerator", () => {
         const source = `
           void callee(u32 val) { }
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             callee(arr[0]);
           }
         `;
@@ -8426,7 +8427,7 @@ describe("CodeGenerator", () => {
       it("should handle sizeof on variable", () => {
         const source = `
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             u32 size <- sizeof(arr);
           }
         `;
@@ -8491,7 +8492,7 @@ describe("CodeGenerator", () => {
       it("should handle single index array access", () => {
         const source = `
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             u32 val <- arr[5];
           }
         `;
@@ -8575,7 +8576,7 @@ describe("CodeGenerator", () => {
       it("should handle C++ mode array access", () => {
         const source = `
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             u32 val <- arr[5];
           }
         `;
@@ -8597,7 +8598,7 @@ describe("CodeGenerator", () => {
       it("should handle multi-dimensional array access", () => {
         const source = `
           void test() {
-            u32 matrix[3][3];
+            u32[3] matrix[3];
             u32 val <- matrix[1][2];
           }
         `;
@@ -8778,7 +8779,7 @@ describe("CodeGenerator", () => {
         const source = `
           struct Point { u32 x; u32 y; }
           void test() {
-            Point points[10];
+            Point[10] points;
             u32 x <- points[0].x;
           }
         `;
@@ -9141,7 +9142,7 @@ describe("CodeGenerator", () => {
       it("should resolve const values in expressions", () => {
         const source = `
           const u32 MAX_SIZE <- 100;
-          u32 buffer[MAX_SIZE];
+          u32[MAX_SIZE] buffer;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
@@ -9210,7 +9211,7 @@ describe("CodeGenerator", () => {
       it("should handle array access in assignment target", () => {
         const source = `
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             arr[5] <- 42;
           }
         `;
@@ -9716,7 +9717,7 @@ describe("CodeGenerator", () => {
       it("should generate struct with array member", () => {
         const source = `
           struct Buffer {
-            u8 data[64];
+            u8[64] data;
             u32 size;
           }
           Buffer buf;
@@ -9833,7 +9834,7 @@ describe("CodeGenerator", () => {
       it("should generate array with initializer list", () => {
         const source = `
           void test() {
-            u32 arr[5] <- [1, 2, 3, 4, 5];
+            u32[5] arr <- [1, 2, 3, 4, 5];
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -11130,7 +11131,7 @@ describe("CodeGenerator", () => {
             data[0] <- 1;
           }
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             process(arr);
           }
         `;
@@ -11436,7 +11437,7 @@ describe("CodeGenerator", () => {
       it("should handle array with size in declaration", () => {
         const source = `
           void test() {
-            u8 buffer[10];
+            u8[10] buffer;
             buffer[0] <- 0xFF;
           }
         `;
@@ -11458,7 +11459,7 @@ describe("CodeGenerator", () => {
         const source = `
           const u32 BUFFER_SIZE <- 64;
           void test() {
-            u8 buffer[BUFFER_SIZE];
+            u8[BUFFER_SIZE] buffer;
             buffer[0] <- 0;
           }
         `;
@@ -12208,7 +12209,7 @@ describe("CodeGenerator", () => {
       it("should handle sizeof on local array", () => {
         const source = `
           void test() {
-            u8 buffer[16];
+            u8[16] buffer;
             u32 size <- sizeof(buffer);
           }
         `;
@@ -12368,7 +12369,7 @@ describe("CodeGenerator", () => {
       it("should resolve array element access in expression", () => {
         const source = `
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             u32 val <- arr[5];
           }
         `;
@@ -12389,7 +12390,7 @@ describe("CodeGenerator", () => {
       it("should resolve array element with variable index", () => {
         const source = `
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             u32 i <- 3;
             u32 val <- arr[i];
           }
@@ -12802,7 +12803,7 @@ describe("CodeGenerator", () => {
         const source = `
           struct Item { u32 id; }
           void test() {
-            Item items[10];
+            Item[10] items;
             items[0].id <- 42;
           }
         `;
@@ -13071,7 +13072,7 @@ describe("CodeGenerator", () => {
       it("should handle array type with user-defined struct", () => {
         const source = `
           struct Point { i32 x; i32 y; }
-          Point points[10];
+          Point[10] points;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
@@ -13089,8 +13090,8 @@ describe("CodeGenerator", () => {
 
       it("should handle array type with primitive types", () => {
         const source = `
-          u8 buffer[256];
-          i32 numbers[10];
+          u8[256] buffer;
+          i32[10] numbers;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
@@ -13590,7 +13591,7 @@ describe("CodeGenerator", () => {
     describe("array access resolution helpers", () => {
       it("should resolve simple array access", () => {
         const source = `
-          u8 buffer[10];
+          u8[10] buffer;
           void test() {
             u8 val <- buffer[5];
           }
@@ -13611,7 +13612,7 @@ describe("CodeGenerator", () => {
 
       it("should handle array access with variable index", () => {
         const source = `
-          u8 data[20];
+          u8[20] data;
           void test() {
             u32 idx <- 3;
             u8 val <- data[idx];
@@ -14098,7 +14099,7 @@ describe("CodeGenerator", () => {
       it("should register array type correctly", () => {
         const source = `
           void test() {
-            u8 buffer[10];
+            u8[10] buffer;
             buffer[0] <- 0xFF;
           }
         `;
@@ -14119,7 +14120,7 @@ describe("CodeGenerator", () => {
       it("should register multi-dimensional array", () => {
         const source = `
           void test() {
-            u8 matrix[10][20];
+            u8[10] matrix[20];
             matrix[0][0] <- 0;
           }
         `;
@@ -14140,7 +14141,7 @@ describe("CodeGenerator", () => {
       it("should handle i32 array type", () => {
         const source = `
           void test() {
-            i32 values[5];
+            i32[5] values;
             values[0] <- 100;
           }
         `;
@@ -14161,7 +14162,7 @@ describe("CodeGenerator", () => {
       it("should handle const array type", () => {
         const source = `
           void test() {
-            const u8 data[4] <- [1, 2, 3, 4];
+            const u8[4] data <- [1, 2, 3, 4];
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -14211,7 +14212,7 @@ describe("CodeGenerator", () => {
             u32 id;
           }
           void process() {
-            Item items[3];
+            Item[3] items;
             u32 first <- items[0].id;
           }
         `;
@@ -14610,7 +14611,7 @@ describe("CodeGenerator", () => {
       it("should generate array element write", () => {
         const source = `
           void test() {
-            u32 arr[10];
+            u32[10] arr;
             arr[5] <- 42;
           }
         `;
@@ -15384,7 +15385,7 @@ describe("CodeGenerator", () => {
     describe("array access via ArrayAccessHelper", () => {
       it("should generate single-index array access", () => {
         const source = `
-          u32 arr[10];
+          u32[10] arr;
           void test() {
             u32 val <- arr[5];
           }
@@ -15405,7 +15406,7 @@ describe("CodeGenerator", () => {
 
       it("should generate array access with variable index", () => {
         const source = `
-          u8 data[100];
+          u8[100] data;
           void test(u32 idx) {
             u8 val <- data[idx];
           }

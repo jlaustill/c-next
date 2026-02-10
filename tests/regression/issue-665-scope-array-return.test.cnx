@@ -12,7 +12,7 @@ enum EIndex {
 
 // Test 1: Basic enum-sized array with enum index (original bug)
 scope Test {
-    f32 values[global.EIndex.COUNT];
+    f32[global.EIndex.COUNT] values;
 
     public void set(EIndex idx, f32 value) {
         this.values[idx] <- value;
@@ -25,7 +25,7 @@ scope Test {
 
 // Test 2: Enum-sized array with integer index
 scope TestIntIndex {
-    i32 data[global.EIndex.COUNT];
+    i32[global.EIndex.COUNT] data;
 
     public void set(u8 idx, i32 value) {
         this.data[idx] <- value;
@@ -38,7 +38,7 @@ scope TestIntIndex {
 
 // Test 3: Literal-sized array (regression check - should still work)
 scope TestLiteral {
-    u16 items[4];
+    u16[4] items;
 
     public void set(u8 idx, u16 value) {
         this.items[idx] <- value;
@@ -51,8 +51,8 @@ scope TestLiteral {
 
 // Test 4: Multiple arrays in same scope
 scope TestMultiple {
-    u8 first[global.EIndex.COUNT];
-    u8 second[global.EIndex.COUNT];
+    u8[global.EIndex.COUNT] first;
+    u8[global.EIndex.COUNT] second;
 
     public void setFirst(EIndex idx, u8 value) {
         this.first[idx] <- value;
@@ -73,7 +73,7 @@ scope TestMultiple {
 
 // Test 5: Return with index arithmetic
 scope TestArithmetic {
-    i32 arr[global.EIndex.COUNT];
+    i32[global.EIndex.COUNT] arr;
 
     public void set(u8 idx, i32 value) {
         this.arr[idx] <- value;

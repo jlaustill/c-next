@@ -59,7 +59,7 @@ u32 main() {
     if (result != 20) return 7;
 
     // === TERNARY IN ARRAY INDEX TESTS ===
-    u32 arr[5];
+    u32[5] arr;
     arr[0] <- 100;
     arr[1] <- 200;
     arr[2] <- 300;
@@ -106,7 +106,7 @@ u32 main() {
 
    
 // Test 14: Ternary in array write (index)
-    u32 writeArr[3];
+    u32[3] writeArr;
     writeArr[0] <- 0;
     writeArr[1] <- 0;
     writeArr[2] <- 0;

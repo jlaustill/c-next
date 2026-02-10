@@ -11,7 +11,7 @@ struct Config {
 }
 
 u32 main() {
-    u8 buffer[256];
+    u8[256] buffer;
 
     // Create a config struct
     Config config;

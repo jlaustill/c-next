@@ -6,7 +6,7 @@
 
 u32 main() {
     // Test direct constant indexing
-    u32 arr[5] <- [10, 20, 30, 40, 50];
+    u32[5] arr <- [10, 20, 30, 40, 50];
 
     if (arr[0] != 10) return 1;
     if (arr[4] != 50) return 2;
@@ -30,7 +30,7 @@ u32 main() {
     if (arr[base + offset] != 40) return 5;
 
     // Test 2D array bounds
-    u32 matrix[3][3] <- [
+    u32[3] matrix[3] <- [
         [1, 2, 3],
         [4, 5, 6],
         [7, 8, 9]
@@ -41,7 +41,7 @@ u32 main() {
     if (matrix[1][1] != 5) return 8;
 
     // Test small arrays (edge case for bounds checking)
-    u8 tiny[2] <- [100, 200];
+    u8[2] tiny <- [100, 200];
     if (tiny[0] != 100) return 9;
     if (tiny[1] != 200) return 10;
 

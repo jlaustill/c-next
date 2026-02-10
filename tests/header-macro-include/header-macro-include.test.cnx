@@ -7,7 +7,7 @@
 
 #include "config.h"
 
-u32 devices[DEVICE_COUNT];
+u32[DEVICE_COUNT] devices;
 
 u32 main() {
     return 0;

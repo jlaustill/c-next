@@ -5,14 +5,14 @@
 
 // C-Next defined struct with array field
 struct CNextStruct {
-    u8 buffer[16];
-    u32 values[4];
+    u8[16] buffer;
+    u32[4] values;
 }
 
 // Nested struct
 struct Outer {
     ExternalStruct inner;
-    u8 direct[8];
+    u8[8] direct;
 }
 
 // Global variables
