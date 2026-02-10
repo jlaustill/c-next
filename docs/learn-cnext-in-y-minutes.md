@@ -129,8 +129,8 @@ const u32 BUFFER_SIZE <- 256;
 const u8 VERSION[] <- "1.0.0";
 const f32 PI <- 3.14159;
 
-// Const in function parameters
-void process(const u8 data[]) {
+// Const in function parameters - all dimensions must be sized
+void process(const u8[256] data) {
     // data is read-only, use data.length for size
 }
 ```
@@ -167,8 +167,8 @@ u32 add(const u32 a, const u32 b) {
     return a + b;
 }
 
-// Parameters with const
-void process(const u8 data[]) {
+// Parameters with const - all array dimensions must be specified
+void process(const u8[256] data) {
     // data is read-only, use data.length for size
 }
 
@@ -214,13 +214,13 @@ void main() {
 Per MISRA C:2012 Rule 8.2, all function parameters must have names:
 
 ```cnx
-// OK: All parameters named
-void process(u8 data[], u32 flags) {
+// OK: All parameters named with explicit sizes
+void process(u8[256] data, u32 flags) {
     // use data.length for array size
 }
 
 // ERROR: Unnamed parameters not allowed
-// void process(u8[], u32) { }  // Compile error
+// void process(u8[256], u32) { }  // Compile error
 ```
 
 ### Program Entry Point
@@ -234,6 +234,7 @@ i32 main() {
 }
 
 // CLI style with command line arguments
+// Note: main() is a special case - args[][] is allowed for C interop
 #include <stdio.h>
 
 i32 main(u8 args[][]) {
@@ -443,9 +444,10 @@ u8 localBuffer[256];
 usize bufBytes <- sizeof(localBuffer); // 256 - OK
 
 // Array parameters - sizeof is FORBIDDEN (returns pointer size in C!)
-void process(u8 data[]) {
+// Note: All array parameter dimensions must be sized for memory safety
+void process(u8[256] data) {
     // usize bad <- sizeof(data);              // ERROR E0601: use .length
-    usize count <- data.length;                // Element count
+    usize count <- data.length;                // Element count (256)
     usize bytes <- sizeof(u8) * data.length;   // Byte count (safe pattern)
 }
 

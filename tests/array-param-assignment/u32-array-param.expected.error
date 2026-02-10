@@ -1,1 +1,0 @@
-26:24 Code generation failed: C-style array parameter is not allowed. Use 'u32[] dst' instead of 'u32 dst[]'

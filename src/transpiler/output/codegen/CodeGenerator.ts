@@ -5305,8 +5305,19 @@ export default class CodeGenerator implements IOrchestrator {
     // Handle C-Next style array type in parameter (e.g., u8[8] param, u8[4][4] param, string<32>[5] param)
     const arrayTypeCtx = ctx.type().arrayType();
     if (arrayTypeCtx) {
-      let dims = arrayTypeCtx
-        .arrayTypeDimension()
+      // Check for unbounded dimensions - reject for memory safety
+      const allDims = arrayTypeCtx.arrayTypeDimension();
+      const hasUnboundedDim = allDims.some((d) => !d.expression());
+      if (hasUnboundedDim) {
+        const line = ctx.start?.line ?? 0;
+        const col = ctx.start?.column ?? 0;
+        throw new Error(
+          `${line}:${col} Unbounded array parameters are not allowed. ` +
+            `All dimensions must have explicit sizes for memory safety.`,
+        );
+      }
+
+      let dims = allDims
         .map((d) => {
           const expr = d.expression();
           return expr ? `[${this.generateExpression(expr)}]` : "[]";

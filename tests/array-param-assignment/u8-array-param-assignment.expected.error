@@ -1,1 +1,0 @@
-18:27 Code generation failed: C-style array parameter is not allowed. Use 'u8[] dst' instead of 'u8 dst[]'

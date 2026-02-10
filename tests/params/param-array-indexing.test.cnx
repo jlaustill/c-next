@@ -33,7 +33,7 @@ void swapElements(u8 buf, u32 i, u32 j) {
 }
 
 // Test 6: With explicit array syntax (should still work)
-void writeExplicit(u8[] buf, u32 idx) {
+void writeExplicit(u8[8] buf, u32 idx) {
     buf[idx] <- 99;
 }
 

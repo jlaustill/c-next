@@ -5284,7 +5284,7 @@ describe("CodeGenerator", () => {
   describe("Array passed to function", () => {
     it("should pass array without address-of operator", () => {
       const source = `
-        void processData(u32[] data) { }
+        void processData(u32[5] data) { }
         u32[5] myData;
         void main() {
           processData(myData);
@@ -5942,7 +5942,7 @@ describe("CodeGenerator", () => {
   describe("Function with array return type simulation", () => {
     it("should handle function returning via output parameter", () => {
       const source = `
-        void getData(u8[] output) {
+        void getData(u8[2] output) {
           output[0] <- 1;
           output[1] <- 2;
         }
@@ -6813,7 +6813,7 @@ describe("CodeGenerator", () => {
   describe("Local array tracking", () => {
     it("should track local arrays for function arguments", () => {
       const source = `
-        void process(u8[] arr) { }
+        void process(u8[10] arr) { }
         void main() {
           u8[10] local;
           process(local);
@@ -12318,26 +12318,6 @@ describe("CodeGenerator", () => {
 
         expect(code).toContain("uint32_t matrix[3][3]");
       });
-
-      it("should handle unsized array parameter", () => {
-        const source = `
-          void processData(u8[] data, u32 len) {
-            data[0] <- 0xFF;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
-        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generator.generate(tree, symbolTable, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("uint8_t data[]");
-      });
     });
 
     describe("C-style array parameter rejection", () => {
@@ -12508,7 +12488,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain("uint8_t cube[2][3][4]");
       });
 
-      it("should handle unbounded first dimension with sized second", () => {
+      it("should reject unbounded array parameter for memory safety", () => {
         const source = `
           void processRows(u32[][4] rows, u32 count) {
             rows[0][0] <- 1;
@@ -12520,12 +12500,32 @@ describe("CodeGenerator", () => {
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/Unbounded array parameters are not allowed/);
+      });
 
-        expect(code).toContain("uint32_t rows[][4]");
+      it("should reject simple unbounded array parameter", () => {
+        const source = `
+          void process(u8[] data) {
+            data[0] <- 0xFF;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/Unbounded array parameters are not allowed/);
       });
     });
 
@@ -13731,7 +13731,7 @@ describe("CodeGenerator", () => {
 
       it("should handle array parameters", () => {
         const source = `
-          void sum(u32[] values, u32 count) {
+          void sum(u32[10] values) {
             u32 total <- 0;
           }
         `;
@@ -13747,7 +13747,7 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("values");
-        expect(code).toContain("count");
+        expect(code).toContain("uint32_t values[10]");
       });
     });
 

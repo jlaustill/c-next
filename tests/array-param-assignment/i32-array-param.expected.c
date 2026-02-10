@@ -8,28 +8,23 @@
 // test-execution
 // Tests: i32 array parameter assignment
 // Coverage: Signed integer array parameters with negative values
-// Write to unsized array
-void writeI32(int32_t arr[], uint32_t index, int32_t value) {
-    arr[index] = value;
-}
-
 // Write to sized array
-void writeI32Sized(int32_t arr[4], uint32_t index, int32_t value) {
+void writeI32(int32_t arr[4], uint32_t index, int32_t value) {
     arr[index] = value;
 }
 
 // Read from array
-int32_t readI32(const int32_t arr[], uint32_t index) {
+int32_t readI32(const int32_t arr[4], uint32_t index) {
     return arr[index];
 }
 
 // Negate array element
-void negateI32(int32_t arr[], uint32_t index) {
+void negateI32(int32_t arr[4], uint32_t index) {
     arr[index] = -arr[index];
 }
 
 // Add to array element
-void addToI32(int32_t arr[], uint32_t index, int32_t delta) {
+void addToI32(int32_t arr[4], uint32_t index, int32_t delta) {
     arr[index] += delta;
 }
 
@@ -43,9 +38,9 @@ int main(void) {
     if (buffer[0] != 12345) return 1;
     writeI32(buffer, 1, -9999);
     if (buffer[1] != -9999) return 2;
-    writeI32Sized(buffer, 2, -2147483648);
+    writeI32(buffer, 2, -2147483648);
     if (buffer[2] != -2147483648) return 3;
-    writeI32Sized(buffer, 3, 2147483647);
+    writeI32(buffer, 3, 2147483647);
     if (buffer[3] != 2147483647) return 4;
     int32_t result = readI32(buffer, 1);
     if (result != -9999) return 5;
