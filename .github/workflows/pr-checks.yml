@@ -23,11 +23,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
@@ -91,11 +95,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
@@ -118,11 +126,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
@@ -144,11 +156,15 @@ jobs:
         with:
           fetch-depth: 0 # Full history for SonarCloud blame data
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
@@ -174,11 +190,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
@@ -203,11 +223,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
@@ -227,11 +251,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm ci
