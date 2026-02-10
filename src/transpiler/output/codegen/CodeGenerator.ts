@@ -314,9 +314,6 @@ export default class CodeGenerator implements IOrchestrator {
   /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
   public symbols: ICodeGenSymbols | null = null;
 
-  /** Issue #644: Float bit write helper for shadow variable pattern */
-  private floatBitHelper: FloatBitHelper | null = null;
-
   /** Issue #644: String declaration helper for bounded/array/concat strings */
   private stringDeclHelper: StringDeclHelper | null = null;
 
@@ -2239,17 +2236,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Initialize analysis and generation helpers.
    */
   private initializeAnalysisHelpers(symbols: ICodeGenSymbols): void {
-    this.floatBitHelper = new FloatBitHelper({
-      cppMode: CodeGenState.cppMode,
-      state: {
-        floatBitShadows: CodeGenState.floatBitShadows,
-        floatShadowCurrent: CodeGenState.floatShadowCurrent,
-      },
-      generateBitMask: (width, is64Bit) => this.generateBitMask(width, is64Bit),
-      foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
-      requireInclude: (header) => this.requireInclude(header),
-    });
-
     // Create arrayInitState proxy
     const arrayInitState = {
       get lastArrayInitCount() {
@@ -5860,12 +5846,18 @@ export default class CodeGenerator implements IOrchestrator {
     width: string | null,
     value: string,
   ): string | null {
-    return this.floatBitHelper!.generateFloatBitWrite(
+    // Issue #644: FloatBitHelper is now static, pass callbacks
+    return FloatBitHelper.generateFloatBitWrite(
       name,
       typeInfo,
       bitIndex,
       width,
       value,
+      {
+        generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
+        foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
+        requireInclude: (header) => this.requireInclude(header),
+      },
     );
   }
 
