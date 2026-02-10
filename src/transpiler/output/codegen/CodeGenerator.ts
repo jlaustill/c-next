@@ -318,7 +318,6 @@ export default class CodeGenerator implements IOrchestrator {
   private stringDeclHelper: StringDeclHelper | null = null;
 
   /** Issue #644: Array initialization helper for size inference and fill-all */
-  private arrayInitHelper: ArrayInitHelper | null = null;
 
   /** Generator registry for modular code generation (ADR-053) */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
@@ -2267,19 +2266,6 @@ export default class CodeGenerator implements IOrchestrator {
       getStringLiteralLength: (literal) => StringUtils.literalLength(literal),
       getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
       requireStringInclude: () => this.requireInclude("string"),
-    });
-
-    this.arrayInitHelper = new ArrayInitHelper({
-      typeRegistry: CodeGenState.typeRegistry,
-      localArrays: CodeGenState.localArrays,
-      arrayInitState: arrayInitState,
-      getExpectedType: () => CodeGenState.expectedType,
-      setExpectedType: (type) => {
-        CodeGenState.expectedType = type;
-      },
-      generateExpression: (ctx) => this.generateExpression(ctx),
-      getTypeName: (ctx) => this.getTypeName(ctx),
-      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
     });
   }
 
@@ -5504,13 +5490,18 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-035: Handle array initializers with size inference
     if (ctx.expression()) {
-      const arrayInitResult = this.arrayInitHelper!.processArrayInit(
+      const arrayInitResult = ArrayInitHelper.processArrayInit(
         name,
         typeCtx,
         ctx.expression()!,
         arrayDims,
         hasEmptyArrayDim,
         declaredSize,
+        {
+          generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+          getTypeName: (typeCtxParam) => this.getTypeName(typeCtxParam),
+          generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
+        },
       );
       if (arrayInitResult) {
         // Track as local array for type resolution

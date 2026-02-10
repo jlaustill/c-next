@@ -7,18 +7,12 @@
  * - Array initializers with size inference: u8 data[] <- [1, 2, 3]
  * - Fill-all syntax: u8 data[10] <- [0*]
  * - Array size validation
+ *
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
-import TTypeInfo from "../types/TTypeInfo.js";
-
-/**
- * Array initialization tracking state.
- */
-interface IArrayInitState {
-  lastArrayInitCount: number;
-  lastArrayFillValue: string | undefined;
-}
+import CodeGenState from "../CodeGenState.js";
 
 /**
  * Result from processing array initialization.
@@ -33,18 +27,10 @@ interface IArrayInitResult {
 }
 
 /**
- * Dependencies required for array initialization.
+ * Callbacks required for array initialization.
+ * These need CodeGenerator context and cannot be replaced with static state.
  */
-interface IArrayInitHelperDeps {
-  /** Type registry for updating inferred dimensions */
-  typeRegistry: Map<string, TTypeInfo>;
-  /** Local arrays set for tracking */
-  localArrays: Set<string>;
-  /** Array initialization tracking state */
-  arrayInitState: IArrayInitState;
-  /** Get/set expected type context */
-  getExpectedType: () => string | null;
-  setExpectedType: (type: string | null) => void;
+interface IArrayInitCallbacks {
   /** Generate expression code */
   generateExpression: (ctx: Parser.ExpressionContext) => string;
   /** Get type name from type context */
@@ -57,12 +43,6 @@ interface IArrayInitHelperDeps {
  * Handles array initialization with size inference and fill-all syntax.
  */
 class ArrayInitHelper {
-  private readonly deps: IArrayInitHelperDeps;
-
-  constructor(deps: IArrayInitHelperDeps) {
-    this.deps = deps;
-  }
-
   /**
    * Process array initialization expression.
    * Returns null if not an array initializer pattern.
@@ -73,33 +53,46 @@ class ArrayInitHelper {
    * @param arrayDims - Array dimension contexts
    * @param hasEmptyArrayDim - Whether any dimension is empty (for inference)
    * @param declaredSize - First dimension size if explicit, null otherwise
+   * @param callbacks - Callbacks to CodeGenerator methods
    */
-  processArrayInit(
+  static processArrayInit(
     name: string,
     typeCtx: Parser.TypeContext,
     expression: Parser.ExpressionContext,
     arrayDims: Parser.ArrayDimensionContext[],
     hasEmptyArrayDim: boolean,
     declaredSize: number | null,
+    callbacks: IArrayInitCallbacks,
   ): IArrayInitResult | null {
     // Reset and generate initializer
-    this.deps.arrayInitState.lastArrayInitCount = 0;
-    this.deps.arrayInitState.lastArrayFillValue = undefined;
+    CodeGenState.lastArrayInitCount = 0;
+    CodeGenState.lastArrayFillValue = undefined;
 
-    const initValue = this._generateArrayInitValue(typeCtx, expression);
+    const initValue = ArrayInitHelper._generateArrayInitValue(
+      typeCtx,
+      expression,
+      callbacks,
+    );
 
     // Check if it was an array initializer
-    if (!this._isArrayInitializer()) {
+    if (!ArrayInitHelper._isArrayInitializer()) {
       return null;
     }
 
-    this.deps.localArrays.add(name);
+    CodeGenState.localArrays.add(name);
 
     const dimensionSuffix = hasEmptyArrayDim
-      ? this._processSizeInference(name)
-      : this._processExplicitSize(arrayDims, declaredSize);
+      ? ArrayInitHelper._processSizeInference(name)
+      : ArrayInitHelper._processExplicitSize(
+          arrayDims,
+          declaredSize,
+          callbacks,
+        );
 
-    const finalInitValue = this._expandFillAllSyntax(initValue, declaredSize);
+    const finalInitValue = ArrayInitHelper._expandFillAllSyntax(
+      initValue,
+      declaredSize,
+    );
 
     return { isArrayInit: true, dimensionSuffix, initValue: finalInitValue };
   }
@@ -107,66 +100,66 @@ class ArrayInitHelper {
   /**
    * Generate the array initializer value with proper expected type
    */
-  private _generateArrayInitValue(
+  private static _generateArrayInitValue(
     typeCtx: Parser.TypeContext,
     expression: Parser.ExpressionContext,
+    callbacks: IArrayInitCallbacks,
   ): string {
-    const typeName = this.deps.getTypeName(typeCtx);
-    const savedExpectedType = this.deps.getExpectedType();
-    this.deps.setExpectedType(typeName);
-    const initValue = this.deps.generateExpression(expression);
-    this.deps.setExpectedType(savedExpectedType);
+    const typeName = callbacks.getTypeName(typeCtx);
+    const savedExpectedType = CodeGenState.expectedType;
+    CodeGenState.expectedType = typeName;
+    const initValue = callbacks.generateExpression(expression);
+    CodeGenState.expectedType = savedExpectedType;
     return initValue;
   }
 
   /**
    * Check if the last expression was an array initializer
    */
-  private _isArrayInitializer(): boolean {
+  private static _isArrayInitializer(): boolean {
     return (
-      this.deps.arrayInitState.lastArrayInitCount > 0 ||
-      this.deps.arrayInitState.lastArrayFillValue !== undefined
+      CodeGenState.lastArrayInitCount > 0 ||
+      CodeGenState.lastArrayFillValue !== undefined
     );
   }
 
   /**
    * Process size inference for empty array dimension (u8 data[] <- [1, 2, 3])
    */
-  private _processSizeInference(name: string): string {
-    if (this.deps.arrayInitState.lastArrayFillValue !== undefined) {
+  private static _processSizeInference(name: string): string {
+    if (CodeGenState.lastArrayFillValue !== undefined) {
       throw new Error(
-        `Error: Fill-all syntax [${this.deps.arrayInitState.lastArrayFillValue}*] requires explicit array size`,
+        `Error: Fill-all syntax [${CodeGenState.lastArrayFillValue}*] requires explicit array size`,
       );
     }
 
     // Update type registry with inferred size for .length support
-    const existingType = this.deps.typeRegistry.get(name);
+    const existingType = CodeGenState.typeRegistry.get(name);
     if (existingType) {
-      existingType.arrayDimensions = [
-        this.deps.arrayInitState.lastArrayInitCount,
-      ];
+      existingType.arrayDimensions = [CodeGenState.lastArrayInitCount];
     }
 
-    return `[${this.deps.arrayInitState.lastArrayInitCount}]`;
+    return `[${CodeGenState.lastArrayInitCount}]`;
   }
 
   /**
    * Process explicit array size with validation
    */
-  private _processExplicitSize(
+  private static _processExplicitSize(
     arrayDims: Parser.ArrayDimensionContext[],
     declaredSize: number | null,
+    callbacks: IArrayInitCallbacks,
   ): string {
-    const dimensionSuffix = this.deps.generateArrayDimensions(arrayDims);
+    const dimensionSuffix = callbacks.generateArrayDimensions(arrayDims);
 
     // Validate size matches if not using fill-all
     if (
       declaredSize !== null &&
-      this.deps.arrayInitState.lastArrayFillValue === undefined &&
-      this.deps.arrayInitState.lastArrayInitCount !== declaredSize
+      CodeGenState.lastArrayFillValue === undefined &&
+      CodeGenState.lastArrayInitCount !== declaredSize
     ) {
       throw new Error(
-        `Error: Array size mismatch - declared [${declaredSize}] but got ${this.deps.arrayInitState.lastArrayInitCount} elements`,
+        `Error: Array size mismatch - declared [${declaredSize}] but got ${CodeGenState.lastArrayInitCount} elements`,
       );
     }
 
@@ -176,18 +169,18 @@ class ArrayInitHelper {
   /**
    * Expand fill-all syntax (e.g., [0*] with size 5 -> {0, 0, 0, 0, 0})
    */
-  private _expandFillAllSyntax(
+  private static _expandFillAllSyntax(
     initValue: string,
     declaredSize: number | null,
   ): string {
     if (
-      this.deps.arrayInitState.lastArrayFillValue === undefined ||
+      CodeGenState.lastArrayFillValue === undefined ||
       declaredSize === null
     ) {
       return initValue;
     }
 
-    const fillVal = this.deps.arrayInitState.lastArrayFillValue;
+    const fillVal = CodeGenState.lastArrayFillValue;
     // C handles {0} correctly, no need to expand
     if (fillVal === "0") {
       return initValue;
