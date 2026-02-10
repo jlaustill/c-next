@@ -1297,6 +1297,16 @@ export default class CodeGenerator implements IOrchestrator {
       const identifierNames = identifiers.map((id) => id.getText());
       return this.resolveQualifiedType(identifierNames);
     }
+    // Handle C-Next array type syntax (Type[N]) - return base type without dimension
+    if (ctx.arrayType()) {
+      const arrayTypeCtx = ctx.arrayType()!;
+      if (arrayTypeCtx.primitiveType()) {
+        return arrayTypeCtx.primitiveType()!.getText();
+      }
+      if (arrayTypeCtx.userType()) {
+        return arrayTypeCtx.userType()!.getText();
+      }
+    }
     if (ctx.userType()) {
       return ctx.userType()!.getText();
     }
@@ -3657,6 +3667,42 @@ export default class CodeGenerator implements IOrchestrator {
     if (arrayTypeCtx.primitiveType()) {
       baseType = arrayTypeCtx.primitiveType()!.getText();
       bitWidth = TYPE_WIDTH[baseType] || 0;
+    } else if (arrayTypeCtx.userType()) {
+      // Handle user types (structs, enums, bitmaps)
+      baseType = arrayTypeCtx.userType()!.getText();
+
+      const combinedArrayDim = arrayDim ?? [];
+
+      // Check if this is an enum or bitmap type and delegate to proper registration
+      if (
+        this._tryRegisterEnumOrBitmapType(
+          registryName,
+          baseType,
+          isConst,
+          combinedArrayDim,
+          overflowBehavior,
+          isAtomic,
+        )
+      ) {
+        // Enum/bitmap was registered, but we need to update with arrayType dimension
+        const existingInfo = CodeGenState.typeRegistry.get(registryName);
+        if (existingInfo) {
+          const arrayTypeDim =
+            this._parseArrayTypeDimensionFromCtx(arrayTypeCtx);
+          const allDims = arrayTypeDim
+            ? [arrayTypeDim, ...(existingInfo.arrayDimensions ?? [])]
+            : existingInfo.arrayDimensions;
+          CodeGenState.typeRegistry.set(registryName, {
+            ...existingInfo,
+            isArray: true,
+            arrayDimensions: allDims,
+          });
+        }
+        return;
+      }
+
+      // Not an enum/bitmap - register as regular user type (struct)
+      bitWidth = 0;
     }
 
     if (!baseType) {
@@ -3677,6 +3723,20 @@ export default class CodeGenerator implements IOrchestrator {
       overflowBehavior,
       isAtomic,
     });
+  }
+
+  /**
+   * Parse array dimension from arrayType context.
+   */
+  private _parseArrayTypeDimensionFromCtx(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+  ): number | undefined {
+    const sizeExpr = arrayTypeCtx.expression();
+    if (!sizeExpr) {
+      return undefined;
+    }
+    const size = Number.parseInt(sizeExpr.getText(), 10);
+    return Number.isNaN(size) ? undefined : size;
   }
 
   /**
@@ -5574,6 +5634,8 @@ export default class CodeGenerator implements IOrchestrator {
         declaredSize,
       );
       if (arrayInitResult) {
+        // Track as local array for type resolution
+        CodeGenState.localArrays.add(name);
         // Include arrayType dimension before arrayDimension dimensions
         const fullDimSuffix = arrayTypeDimStr + arrayInitResult.dimensionSuffix;
         return {
@@ -5699,12 +5761,6 @@ export default class CodeGenerator implements IOrchestrator {
       typeCtx.stringType()
     ) {
       return; // Grammar limitation - these can't use arrayType
-    }
-
-    // Allow C-style for user types (structs, bitmaps, enums)
-    // The arrayType code generation doesn't fully handle all struct array patterns
-    if (typeCtx.userType()) {
-      return; // User type arrays need C-style until code generator is fully updated
     }
 
     // C-style array declaration detected - reject with helpful error

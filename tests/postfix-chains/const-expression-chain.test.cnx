@@ -13,7 +13,7 @@ struct Sensor {
     u8 data;
 }
 
-Sensor sensors[SENSOR_COUNT];
+Sensor[SENSOR_COUNT] sensors;
 
 register GPIO @ 0x40000000 {
     DR:     u32 rw @ 0x00,

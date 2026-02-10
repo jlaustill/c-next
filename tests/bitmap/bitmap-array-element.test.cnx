@@ -12,8 +12,7 @@ bitmap8 StatusFlags {
 
 u32 main() {
     // Create array of bitmap type with fill syntax
-    // C-style allowed for bitmap types (grammar limitation)
-    StatusFlags arr[4] <- [0*];
+    StatusFlags[4] arr <- [0*];
 
    
 // Test 1: Set single-bit field on array element
