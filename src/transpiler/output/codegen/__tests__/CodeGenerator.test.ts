@@ -11476,6 +11476,90 @@ describe("CodeGenerator", () => {
 
         expect(code).toContain("BUFFER_SIZE");
       });
+
+      it("should reject C-style array declaration for primitive types", () => {
+        const source = `
+          void test() {
+            u8 buffer[10];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/C-style array declaration is not allowed/);
+      });
+
+      it("should reject C-style array declaration for user types", () => {
+        const source = `
+          struct Data {
+            u32 value;
+          }
+          void test() {
+            Data items[5];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() => {
+          generator.generate(tree, symbolTable, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          });
+        }).toThrow(/C-style array declaration is not allowed/);
+      });
+
+      it("should allow empty brackets for size inference", () => {
+        const source = `
+          void test() {
+            u8 data[] <- [1, 2, 3];
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("uint8_t data[3]");
+      });
+
+      it("should allow multi-dimensional C-style arrays", () => {
+        const source = `
+          void test() {
+            u8 matrix[4][4];
+            matrix[0][0] <- 0;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("uint8_t matrix[4][4]");
+      });
     });
 
     describe("string expression type checking", () => {
@@ -14177,6 +14261,111 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("const uint8_t data[4]");
+      });
+
+      it("should handle struct array with C-Next syntax", () => {
+        const source = `
+          struct Point {
+            i32 x;
+            i32 y;
+          }
+          void test() {
+            Point[3] points;
+            points[0].x <- 10;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Point points[3]");
+        expect(code).toContain("points[0].x = 10");
+      });
+
+      it("should handle bitmap array with C-Next syntax", () => {
+        const source = `
+          bitmap8 Flags {
+            active,
+            ready,
+            error,
+            mode[3],
+            priority[2]
+          }
+          void test() {
+            Flags[4] flags;
+            flags[0].active <- true;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Flags flags[4]");
+        // Bitmap field access should generate bit manipulation
+        expect(code).toContain("flags[0]");
+      });
+
+      it("should handle enum array with C-Next syntax", () => {
+        const source = `
+          enum Color {
+            RED,
+            GREEN,
+            BLUE
+          }
+          void test() {
+            Color[3] colors;
+            colors[0] <- RED;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("Color colors[3]");
+        expect(code).toContain("colors[0] = Color_RED");
+      });
+
+      it("should handle struct array initializer with C-Next syntax", () => {
+        const source = `
+          struct Item {
+            u8 id;
+          }
+          const Item[2] items <- [{id: 1}, {id: 2}];
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const symbolTable = new SymbolTable();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generator.generate(tree, symbolTable, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("const Item items[2]");
+        expect(code).toContain(".id = 1");
       });
     });
 
