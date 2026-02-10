@@ -314,9 +314,6 @@ export default class CodeGenerator implements IOrchestrator {
   /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
   public symbols: ICodeGenSymbols | null = null;
 
-  /** Issue #644: String length counter for strlen caching optimization */
-  private stringLengthCounter: StringLengthCounter | null = null;
-
   /** Issue #644: Member chain analyzer for bit access pattern detection */
   private memberChainAnalyzer: MemberChainAnalyzer | null = null;
 
@@ -1185,8 +1182,8 @@ export default class CodeGenerator implements IOrchestrator {
   countStringLengthAccesses(
     ctx: Parser.ExpressionContext,
   ): Map<string, number> {
-    // Issue #644: Delegate to extracted StringLengthCounter
-    return this.stringLengthCounter!.countExpression(ctx);
+    // Issue #644: Delegate to extracted StringLengthCounter (now static)
+    return StringLengthCounter.countExpression(ctx);
   }
 
   /**
@@ -1197,8 +1194,8 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.BlockContext,
     counts: Map<string, number>,
   ): void {
-    // Issue #644: Delegate to extracted StringLengthCounter
-    this.stringLengthCounter!.countBlockInto(ctx, counts);
+    // Issue #644: Delegate to extracted StringLengthCounter (now static)
+    StringLengthCounter.countBlockInto(ctx, counts);
   }
 
   /**
@@ -2245,10 +2242,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Initialize analysis and generation helpers.
    */
   private initializeAnalysisHelpers(symbols: ICodeGenSymbols): void {
-    this.stringLengthCounter = new StringLengthCounter((name: string) =>
-      CodeGenState.typeRegistry.get(name),
-    );
-
     this.memberChainAnalyzer = new MemberChainAnalyzer({
       typeRegistry: CodeGenState.typeRegistry,
       structFields: symbols.structFields,

@@ -4,43 +4,34 @@
  * Issue #644: Extracted from CodeGenerator to reduce code duplication.
  * Used for strlen caching optimization - when a string's .length is accessed
  * multiple times, we cache the strlen result in a temp variable.
+ *
+ * Migrated to use CodeGenState instead of constructor DI.
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import TTypeInfo from "../types/TTypeInfo";
-
-/**
- * Type registry lookup function signature.
- */
-type TypeRegistryLookup = (name: string) => TTypeInfo | undefined;
+import CodeGenState from "../CodeGenState";
 
 /**
  * Counts .length accesses on string variables in an expression tree.
  * This enables strlen caching optimization.
  */
 class StringLengthCounter {
-  private readonly typeRegistry: TypeRegistryLookup;
-
-  constructor(typeRegistry: TypeRegistryLookup) {
-    this.typeRegistry = typeRegistry;
-  }
-
   /**
    * Count .length accesses in an expression.
    */
-  countExpression(ctx: Parser.ExpressionContext): Map<string, number> {
+  static countExpression(ctx: Parser.ExpressionContext): Map<string, number> {
     const counts = new Map<string, number>();
-    this.walkExpression(ctx, counts);
+    StringLengthCounter.walkExpression(ctx, counts);
     return counts;
   }
 
   /**
    * Count .length accesses in a block.
    */
-  countBlock(ctx: Parser.BlockContext): Map<string, number> {
+  static countBlock(ctx: Parser.BlockContext): Map<string, number> {
     const counts = new Map<string, number>();
     for (const stmt of ctx.statement()) {
-      this.walkStatement(stmt, counts);
+      StringLengthCounter.walkStatement(stmt, counts);
     }
     return counts;
   }
@@ -48,9 +39,12 @@ class StringLengthCounter {
   /**
    * Count .length accesses in a block, adding to existing counts.
    */
-  countBlockInto(ctx: Parser.BlockContext, counts: Map<string, number>): void {
+  static countBlockInto(
+    ctx: Parser.BlockContext,
+    counts: Map<string, number>,
+  ): void {
     for (const stmt of ctx.statement()) {
-      this.walkStatement(stmt, counts);
+      StringLengthCounter.walkStatement(stmt, counts);
     }
   }
 
@@ -58,134 +52,134 @@ class StringLengthCounter {
    * Walk an expression tree, counting .length accesses.
    * Uses generic traversal - only postfix expressions need special handling.
    */
-  private walkExpression(
+  private static walkExpression(
     ctx: Parser.ExpressionContext,
     counts: Map<string, number>,
   ): void {
     const ternary = ctx.ternaryExpression();
     if (ternary) {
-      this.walkTernary(ternary, counts);
+      StringLengthCounter.walkTernary(ternary, counts);
     }
   }
 
-  private walkTernary(
+  private static walkTernary(
     ctx: Parser.TernaryExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const orExpr of ctx.orExpression()) {
-      this.walkOrExpr(orExpr, counts);
+      StringLengthCounter.walkOrExpr(orExpr, counts);
     }
   }
 
-  private walkOrExpr(
+  private static walkOrExpr(
     ctx: Parser.OrExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const andExpr of ctx.andExpression()) {
-      this.walkAndExpr(andExpr, counts);
+      StringLengthCounter.walkAndExpr(andExpr, counts);
     }
   }
 
-  private walkAndExpr(
+  private static walkAndExpr(
     ctx: Parser.AndExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const eqExpr of ctx.equalityExpression()) {
-      this.walkEqualityExpr(eqExpr, counts);
+      StringLengthCounter.walkEqualityExpr(eqExpr, counts);
     }
   }
 
-  private walkEqualityExpr(
+  private static walkEqualityExpr(
     ctx: Parser.EqualityExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const relExpr of ctx.relationalExpression()) {
-      this.walkRelationalExpr(relExpr, counts);
+      StringLengthCounter.walkRelationalExpr(relExpr, counts);
     }
   }
 
-  private walkRelationalExpr(
+  private static walkRelationalExpr(
     ctx: Parser.RelationalExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const borExpr of ctx.bitwiseOrExpression()) {
-      this.walkBitwiseOrExpr(borExpr, counts);
+      StringLengthCounter.walkBitwiseOrExpr(borExpr, counts);
     }
   }
 
-  private walkBitwiseOrExpr(
+  private static walkBitwiseOrExpr(
     ctx: Parser.BitwiseOrExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const bxorExpr of ctx.bitwiseXorExpression()) {
-      this.walkBitwiseXorExpr(bxorExpr, counts);
+      StringLengthCounter.walkBitwiseXorExpr(bxorExpr, counts);
     }
   }
 
-  private walkBitwiseXorExpr(
+  private static walkBitwiseXorExpr(
     ctx: Parser.BitwiseXorExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const bandExpr of ctx.bitwiseAndExpression()) {
-      this.walkBitwiseAndExpr(bandExpr, counts);
+      StringLengthCounter.walkBitwiseAndExpr(bandExpr, counts);
     }
   }
 
-  private walkBitwiseAndExpr(
+  private static walkBitwiseAndExpr(
     ctx: Parser.BitwiseAndExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const shiftExpr of ctx.shiftExpression()) {
-      this.walkShiftExpr(shiftExpr, counts);
+      StringLengthCounter.walkShiftExpr(shiftExpr, counts);
     }
   }
 
-  private walkShiftExpr(
+  private static walkShiftExpr(
     ctx: Parser.ShiftExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const addExpr of ctx.additiveExpression()) {
-      this.walkAdditiveExpr(addExpr, counts);
+      StringLengthCounter.walkAdditiveExpr(addExpr, counts);
     }
   }
 
-  private walkAdditiveExpr(
+  private static walkAdditiveExpr(
     ctx: Parser.AdditiveExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const multExpr of ctx.multiplicativeExpression()) {
-      this.walkMultiplicativeExpr(multExpr, counts);
+      StringLengthCounter.walkMultiplicativeExpr(multExpr, counts);
     }
   }
 
-  private walkMultiplicativeExpr(
+  private static walkMultiplicativeExpr(
     ctx: Parser.MultiplicativeExpressionContext,
     counts: Map<string, number>,
   ): void {
     for (const unaryExpr of ctx.unaryExpression()) {
-      this.walkUnaryExpr(unaryExpr, counts);
+      StringLengthCounter.walkUnaryExpr(unaryExpr, counts);
     }
   }
 
-  private walkUnaryExpr(
+  private static walkUnaryExpr(
     ctx: Parser.UnaryExpressionContext,
     counts: Map<string, number>,
   ): void {
     const postfix = ctx.postfixExpression();
     if (postfix) {
-      this.walkPostfixExpr(postfix, counts);
+      StringLengthCounter.walkPostfixExpr(postfix, counts);
     }
     // Also check nested unary expressions
     const nestedUnary = ctx.unaryExpression();
     if (nestedUnary) {
-      this.walkUnaryExpr(nestedUnary, counts);
+      StringLengthCounter.walkUnaryExpr(nestedUnary, counts);
     }
   }
 
   /**
    * Walk a postfix expression - this is where we detect .length accesses.
    */
-  private walkPostfixExpr(
+  private static walkPostfixExpr(
     ctx: Parser.PostfixExpressionContext,
     counts: Map<string, number>,
   ): void {
@@ -199,7 +193,7 @@ class StringLengthCounter {
         const memberName = op.IDENTIFIER()?.getText();
         if (memberName === "length") {
           // Check if this is a string type
-          const typeInfo = this.typeRegistry(primaryId);
+          const typeInfo = CodeGenState.typeRegistry.get(primaryId);
           if (typeInfo?.isString) {
             const currentCount = counts.get(primaryId) || 0;
             counts.set(primaryId, currentCount + 1);
@@ -207,21 +201,21 @@ class StringLengthCounter {
         }
         // Walk any nested expressions in array accesses or function calls
         for (const expr of op.expression()) {
-          this.walkExpression(expr, counts);
+          StringLengthCounter.walkExpression(expr, counts);
         }
       }
     }
 
     // Walk nested expression in primary if present
     if (primary.expression()) {
-      this.walkExpression(primary.expression()!, counts);
+      StringLengthCounter.walkExpression(primary.expression()!, counts);
     }
   }
 
   /**
    * Walk a statement, counting .length accesses.
    */
-  private walkStatement(
+  private static walkStatement(
     ctx: Parser.StatementContext,
     counts: Map<string, number>,
   ): void {
@@ -232,26 +226,29 @@ class StringLengthCounter {
       const target = assign.assignmentTarget();
       for (const op of target.postfixTargetOp()) {
         for (const expr of op.expression()) {
-          this.walkExpression(expr, counts);
+          StringLengthCounter.walkExpression(expr, counts);
         }
       }
       // Count in value expression
-      this.walkExpression(assign.expression(), counts);
+      StringLengthCounter.walkExpression(assign.expression(), counts);
     }
     // Expression statement
     if (ctx.expressionStatement()) {
-      this.walkExpression(ctx.expressionStatement()!.expression(), counts);
+      StringLengthCounter.walkExpression(
+        ctx.expressionStatement()!.expression(),
+        counts,
+      );
     }
     // Variable declaration
     if (ctx.variableDeclaration()) {
       const varDecl = ctx.variableDeclaration()!;
       if (varDecl.expression()) {
-        this.walkExpression(varDecl.expression()!, counts);
+        StringLengthCounter.walkExpression(varDecl.expression()!, counts);
       }
     }
     // Nested block
     if (ctx.block()) {
-      this.countBlockInto(ctx.block()!, counts);
+      StringLengthCounter.countBlockInto(ctx.block()!, counts);
     }
     // Note: Could add recursion for if/while/for bodies if deeper analysis needed
   }
