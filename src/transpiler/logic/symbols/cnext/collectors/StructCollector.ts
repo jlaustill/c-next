@@ -13,6 +13,25 @@ import LiteralUtils from "../../../../../utils/LiteralUtils";
 
 class StructCollector {
   /**
+   * Try to resolve a single expression as a numeric dimension.
+   * Handles integer literals and const references.
+   */
+  private static tryResolveExpressionDimension(
+    sizeExpr: Parser.ExpressionContext,
+    constValues?: Map<string, number>,
+  ): number | undefined {
+    const dimText = sizeExpr.getText();
+    const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+    if (literalSize !== undefined) {
+      return literalSize;
+    }
+    if (constValues?.has(dimText)) {
+      return constValues.get(dimText);
+    }
+    return undefined;
+  }
+
+  /**
    * Parse array dimension expressions and append resolved sizes to dimensions array.
    */
   private static parseArrayDimensions(
@@ -23,12 +42,12 @@ class StructCollector {
     for (const dim of arrayDims) {
       const sizeExpr = dim.expression();
       if (sizeExpr) {
-        const dimText = sizeExpr.getText();
-        const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-        if (literalSize !== undefined) {
-          dimensions.push(literalSize);
-        } else if (constValues?.has(dimText)) {
-          dimensions.push(constValues.get(dimText)!);
+        const resolved = StructCollector.tryResolveExpressionDimension(
+          sizeExpr,
+          constValues,
+        );
+        if (resolved !== undefined) {
+          dimensions.push(resolved);
         }
       }
     }
@@ -72,12 +91,12 @@ class StructCollector {
         isArray = true;
         const sizeExpr = arrayTypeCtx.expression();
         if (sizeExpr) {
-          const dimText = sizeExpr.getText();
-          const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-          if (literalSize !== undefined) {
-            dimensions.push(literalSize);
-          } else if (constValues?.has(dimText)) {
-            dimensions.push(constValues.get(dimText)!);
+          const resolved = StructCollector.tryResolveExpressionDimension(
+            sizeExpr,
+            constValues,
+          );
+          if (resolved !== undefined) {
+            dimensions.push(resolved);
           }
           // Note: non-literal, non-const expressions (like global.EnumName.COUNT)
           // won't be resolvable at symbol collection time - dimensions stays empty
