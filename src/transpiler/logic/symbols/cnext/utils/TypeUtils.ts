@@ -5,6 +5,41 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 
+/**
+ * Resolve scoped type (this.Type) to full name.
+ */
+function resolveScopedType(
+  scopedTypeCtx: Parser.ScopedTypeContext,
+  scopeName?: string,
+): string {
+  const typeName = scopedTypeCtx.IDENTIFIER().getText();
+  return scopeName ? `${scopeName}_${typeName}` : typeName;
+}
+
+/**
+ * Resolve string type with optional capacity.
+ */
+function resolveStringType(stringCtx: Parser.StringTypeContext): string {
+  const intLiteral = stringCtx.INTEGER_LITERAL();
+  return intLiteral ? `string<${intLiteral.getText()}>` : "string";
+}
+
+/**
+ * Extract inner type from arrayType context.
+ */
+function resolveArrayInnerType(arrayTypeCtx: Parser.ArrayTypeContext): string {
+  if (arrayTypeCtx.primitiveType()) {
+    return arrayTypeCtx.primitiveType()!.getText();
+  }
+  if (arrayTypeCtx.userType()) {
+    return arrayTypeCtx.userType()!.getText();
+  }
+  // Fallback for other nested types - strip the dimension part
+  const text = arrayTypeCtx.getText();
+  const bracketIdx = text.indexOf("[");
+  return bracketIdx > 0 ? text.substring(0, bracketIdx) : text;
+}
+
 class TypeUtils {
   /**
    * Extract the type name from a type context.
@@ -23,11 +58,7 @@ class TypeUtils {
 
     // Handle this.Type for scoped types (e.g., this.State -> Motor_State)
     if (ctx.scopedType()) {
-      const typeName = ctx.scopedType()!.IDENTIFIER().getText();
-      if (scopeName) {
-        return `${scopeName}_${typeName}`;
-      }
-      return typeName;
+      return resolveScopedType(ctx.scopedType()!, scopeName);
     }
 
     // Issue #478: Handle global.Type for global types inside scope
@@ -54,29 +85,13 @@ class TypeUtils {
 
     // Handle string types - preserve capacity for validation (Issue #139)
     if (ctx.stringType()) {
-      const stringCtx = ctx.stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-      if (intLiteral) {
-        return `string<${intLiteral.getText()}>`;
-      }
-      return "string";
+      return resolveStringType(ctx.stringType()!);
     }
 
     // Handle arrayType: Type[size] - extract the inner type without dimension
     // The dimension is tracked separately in arrayDimensions
     if (ctx.arrayType()) {
-      const arrayTypeCtx = ctx.arrayType()!;
-      // Check what inner type is present
-      if (arrayTypeCtx.primitiveType()) {
-        return arrayTypeCtx.primitiveType()!.getText();
-      }
-      if (arrayTypeCtx.userType()) {
-        return arrayTypeCtx.userType()!.getText();
-      }
-      // Fallback for other nested types - strip the dimension part
-      const text = arrayTypeCtx.getText();
-      const bracketIdx = text.indexOf("[");
-      return bracketIdx > 0 ? text.substring(0, bracketIdx) : text;
+      return resolveArrayInnerType(ctx.arrayType()!);
     }
 
     // Fallback
