@@ -7,7 +7,7 @@
 #include "array-struct-member-cpp.h"
 
 // Array of external C structs with bool/enum members
-SensorReading sensors[4];
+SensorReading[4] sensors;
 
 u32 process(u32 crc, u8 byte) {
     return crc ^ byte;

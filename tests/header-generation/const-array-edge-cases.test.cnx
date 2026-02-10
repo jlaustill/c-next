@@ -8,10 +8,10 @@ const u8 HEX_SIZE <- 0x10;
 const u8 BIN_SIZE <- 0b1010;
 
 // Array using hex constant
-bool hex_arr[HEX_SIZE];
+bool[HEX_SIZE] hex_arr;
 
 // Array using binary constant
-i16 bin_arr[BIN_SIZE];
+i16[BIN_SIZE] bin_arr;
 
 // Array inside a scope using top-level constant
 const u8 BUFFER_SIZE <- 8;

@@ -7,7 +7,7 @@
 atomic const u32 CONFIG <- 42;
 
 // Edge case 2: atomic 2D array
-atomic u8 matrix[4][4];
+atomic u8[4] matrix[4];
 
 // Edge case 3: atomic i64 (signed 64-bit)
 atomic i64 bigSignedCounter <- 0;

@@ -1,9 +1,9 @@
 // test-execution
 // ADR-003: Static array allocation
 // Tests: compile-time sized arrays are valid (no heap allocation)
-u8 rxBuffer[256];
+u8[256] rxBuffer;
 
-u8 txBuffer[128];
+u8[128] txBuffer;
 
 void fillBuffer() {
     u32 i <- 0;

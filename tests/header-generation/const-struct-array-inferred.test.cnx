@@ -26,7 +26,7 @@ TItem mutableItems[] <- [
 const u8 SIZES[] <- [10, 20, 30, 40];
 
 // Also test: const array with explicit size (control case)
-const i32 EXPLICIT[2] <- [100, 200];
+const i32[2] EXPLICIT <- [100, 200];
 
 const u8 ITEM_COUNT <- 3;
 

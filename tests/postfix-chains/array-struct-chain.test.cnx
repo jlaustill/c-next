@@ -28,7 +28,7 @@ struct Mesh {
     u32 indices[12];
 }
 
-Mesh meshes[3];
+Mesh[3] meshes;
 
 void main() {
     // Chain: 2D_array[i][j].struct_member.field (5 levels)

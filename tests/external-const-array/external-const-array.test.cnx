@@ -5,7 +5,7 @@
 
 #include "config.cnx"
 
-bool enabled[DEVICE_COUNT] <- [false, false, false, false];
+bool[DEVICE_COUNT] enabled <- [false, false, false, false];
 
 u32 main() {
     // Simple test - enable first device

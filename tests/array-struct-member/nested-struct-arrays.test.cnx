@@ -8,12 +8,12 @@ struct Coordinate {
 }
 
 struct Path {
-    Coordinate points[4];
+    Coordinate[4] points;
     u32 count;
 }
 
 struct Route {
-    Path segments[2];
+    Path[2] segments;
     u32 totalSegments;
 }
 

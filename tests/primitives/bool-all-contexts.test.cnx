@@ -13,7 +13,7 @@ struct Flags {
 }
 
 // 3. Bool arrays
-bool flagArray[4];
+bool[4] flagArray;
 
 // 4. Function with bool param and return
 bool negate(bool value) {

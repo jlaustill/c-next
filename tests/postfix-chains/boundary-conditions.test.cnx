@@ -8,7 +8,7 @@ struct Data {
     u64 qword;
 }
 
-Data items[16];  // Max reasonable array size for testing
+Data[16] items;  // Max reasonable array size for testing
 
 void main() {
    

@@ -9,6 +9,7 @@ import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IVariableSymbol from "../../types/IVariableSymbol";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
+import LiteralUtils from "../../../../../utils/LiteralUtils";
 
 class VariableCollector {
   /**
@@ -101,17 +102,41 @@ class VariableCollector {
     // Issue #468: Check for atomic modifier
     const isAtomic = ctx.atomicModifier() !== null;
 
-    // Check for array dimensions
+    // Check for array dimensions - both C-style (arrayDimension) and C-Next style (arrayType)
     const arrayDims = ctx.arrayDimension();
-    const isArray = arrayDims.length > 0;
+    const arrayTypeCtx = typeCtx.arrayType();
+    const hasArrayTypeSyntax = arrayTypeCtx !== null;
+    const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
     const initExpr = ctx.expression();
-    const arrayDimensions = isArray
-      ? VariableCollector.collectArrayDimensions(
+    const arrayDimensions: (number | string)[] = [];
+
+    // Collect dimension from arrayType syntax (u16[8] arr)
+    if (hasArrayTypeSyntax) {
+      const sizeExpr = arrayTypeCtx.expression();
+      if (sizeExpr) {
+        const dimText = sizeExpr.getText();
+        const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
+        if (literalSize !== undefined) {
+          arrayDimensions.push(literalSize);
+        } else if (constValues?.has(dimText)) {
+          arrayDimensions.push(constValues.get(dimText)!);
+        } else {
+          // Keep as string for macro/enum references
+          arrayDimensions.push(dimText);
+        }
+      }
+    }
+
+    // Collect additional dimensions from arrayDimension syntax
+    if (arrayDims.length > 0) {
+      arrayDimensions.push(
+        ...VariableCollector.collectArrayDimensions(
           arrayDims,
           constValues,
           initExpr,
-        )
-      : [];
+        ),
+      );
+    }
 
     // Issue #282: Capture initial value for const inlining
     const initialValue = initExpr?.getText();

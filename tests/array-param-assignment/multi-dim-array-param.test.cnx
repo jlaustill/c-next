@@ -22,7 +22,7 @@ u32 sumRow(u32 arr[][3], u32 row) {
 }
 
 u32 main() {
-    u32 matrix[2][3];
+    u32[2] matrix[3];
 
     // Initialize all elements
     matrix[0][0] <- 0;

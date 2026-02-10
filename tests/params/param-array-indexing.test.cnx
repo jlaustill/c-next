@@ -59,9 +59,9 @@ void setArrayBit(u8 matrix[2][2], u32 row, u32 col, u32 bit, bool val) {
 }
 
 u32 main() {
-    u8 buffer[8] <- [0, 0, 0, 0, 0, 0, 0, 0];
-    u8 source[4] <- [10, 20, 30, 40];
-    u8 dest[4] <- [0, 0, 0, 0];
+    u8[8] buffer <- [0, 0, 0, 0, 0, 0, 0, 0];
+    u8[4] source <- [10, 20, 30, 40];
+    u8[4] dest <- [0, 0, 0, 0];
 
     // Test 1: Write with variable index
     writeToParam(buffer, 3);
@@ -98,7 +98,7 @@ u32 main() {
     if (high != 0x12) return 9;
 
     // Test 8: Local array bit access (tests currentStructType fix)
-    u8 matrix[2][2] <- [[0xFF, 0x00], [0xAA, 0x55]];
+    u8[2] matrix[2] <- [[0xFF, 0x00], [0xAA, 0x55]];
 
     // Read bit 0 of matrix[0][0] (0xFF) - should be 1
     u8 bit0 <- getArrayBit(matrix, 0, 0, 0);

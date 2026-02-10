@@ -3,7 +3,7 @@
 // Coverage: Section 1.2 i16 array element type
 u32 main() {
     // Basic i16 array with initialization
-    i16 values[5] <- [-32768, -1000, 0, 1000, 32767];
+    i16[5] values <- [-32768, -1000, 0, 1000, 32767];
 
     if (values[0] != -32768) return 1;
     if (values[1] != -1000) return 2;
@@ -12,7 +12,7 @@ u32 main() {
     if (values[4] != 32767) return 5;
 
     // i16 array with explicit size
-    i16 data[4];
+    i16[4] data;
     data[0] <- -5000;
     data[1] <- 5000;
     data[2] <- -10000;
@@ -30,7 +30,7 @@ u32 main() {
     if (inferred[2] != 300) return 12;
 
     // i16 array in loop
-    i16 loop_arr[3] <- [100, 200, 300];
+    i16[3] loop_arr <- [100, 200, 300];
     i16 sum <- 0;
     for (u32 i <- 0; i < 3; i +<- 1) {
         sum +<- loop_arr[i];
@@ -38,7 +38,7 @@ u32 main() {
     if (sum != 600) return 13;
 
     // i16 array modification
-    i16 modify[2] <- [1000, 2000];
+    i16[2] modify <- [1000, 2000];
     modify[0] <- -1000;
     modify[1] <- -2000;
     if (modify[0] != -1000) return 14;

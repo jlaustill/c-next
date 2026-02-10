@@ -39,7 +39,7 @@ i32 main() {
 
    
 // Test 9-11: While loop with string length
-    string<32> items[4];
+    string<32>[4] items;
     items[0] <- "One";
     items[1] <- "Two";
     items[2] <- "Three";

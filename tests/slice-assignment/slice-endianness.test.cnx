@@ -4,7 +4,7 @@
 // Embedded systems typically use little-endian
 
 u32 main() {
-    u8 buffer[128];
+    u8[128] buffer;
 
    
 // Test 1: u32 endianness - 0x12345678

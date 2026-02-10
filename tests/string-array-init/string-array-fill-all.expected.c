@@ -8,7 +8,7 @@
 // test-transpile-only
 // Issue #380: String array fill-all syntax
 // Tests: ["value"*] expands to fill all elements
-// Fill all 3 elements with "Hello"
+// Fill all 3 elements with "Hello" (C-style allowed for string arrays)
 char greetings[3][11] = {"Hello", "Hello", "Hello"};
 
 // Fill with empty string (should use {""} which C handles)

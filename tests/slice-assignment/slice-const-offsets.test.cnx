@@ -11,7 +11,7 @@ const u8 LEN_VERSION <- 2;
 const u8 LEN_FLAGS <- 1;
 
 u32 main() {
-    u8 buffer[64];
+    u8[64] buffer;
 
     // Test 1: Const variable for offset
     u32 magic <- 0x12345678;

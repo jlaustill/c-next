@@ -9,16 +9,16 @@
 // test-execution
 // Tests: sizeof used as array dimension
 int main(void) {
-    uint8_t typeBuffer[sizeof(uint32_t)] = {0};
+    uint8_t typeBuffer[4] = {0};
     uint32_t typeBufferSize = sizeof(typeBuffer);
     if (typeBufferSize != 4) return 1;
-    uint8_t largeBuffer[sizeof(uint64_t)] = {0};
+    uint8_t largeBuffer[8] = {0};
     uint32_t largeBufferSize = sizeof(largeBuffer);
     if (largeBufferSize != 8) return 2;
     uint8_t recordBuffer[sizeof(uint32_t) + sizeof(uint32_t)] = {0};
     uint32_t recordBufferSize = sizeof(recordBuffer);
     if (recordBufferSize != 8) return 3;
-    uint8_t doubleBuffer[sizeof(uint32_t) * 2] = {0};
+    uint8_t doubleBuffer[8] = {0};
     uint32_t doubleBufferSize = sizeof(doubleBuffer);
     if (doubleBufferSize != 8) return 4;
     typeBuffer[0] = 0xAB;
@@ -27,12 +27,12 @@ int main(void) {
     typeBuffer[3] = 0x12;
     if (typeBuffer[0] != 0xAB) return 5;
     if (typeBuffer[3] != 0x12) return 6;
-    uint8_t shortBuffer[sizeof(uint16_t)] = {0};
+    uint8_t shortBuffer[2] = {0};
     shortBuffer[0] = 0xFF;
     shortBuffer[1] = 0x00;
     if (shortBuffer[0] != 0xFF) return 7;
     if (shortBuffer[1] != 0x00) return 8;
-    uint8_t paddedBuffer[sizeof(uint32_t) + 4] = {0};
+    uint8_t paddedBuffer[8] = {0};
     uint32_t paddedSize = sizeof(paddedBuffer);
     if (paddedSize != 8) return 9;
     return 0;

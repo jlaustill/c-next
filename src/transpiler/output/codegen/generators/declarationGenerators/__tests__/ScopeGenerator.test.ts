@@ -43,9 +43,34 @@ function createMockConstModifier(
 }
 
 /**
+ * Create a mock array type context.
+ */
+function createMockArrayType(sizeExpr?: string | null) {
+  if (sizeExpr === null) {
+    // Empty brackets - no expression
+    return {
+      expression: () => null,
+    };
+  }
+  return {
+    expression: () =>
+      sizeExpr
+        ? {
+            getText: () => sizeExpr,
+            __mockValue: sizeExpr,
+          }
+        : null,
+  };
+}
+
+/**
  * Create a mock type context.
  */
-function createMockType(typeName: string, hasStringType = false) {
+function createMockType(
+  typeName: string,
+  hasStringType = false,
+  arrayTypeSize?: string | null,
+) {
   return {
     getText: () => typeName,
     stringType: () =>
@@ -54,6 +79,8 @@ function createMockType(typeName: string, hasStringType = false) {
             INTEGER_LITERAL: () => ({ getText: () => "32" }),
           }
         : null,
+    arrayType: () =>
+      arrayTypeSize !== undefined ? createMockArrayType(arrayTypeSize) : null,
   };
 }
 
@@ -99,10 +126,16 @@ function createMockVariableDecl(options: {
   hasStringType?: boolean;
   constructorArgs?: string[];
   startLine?: number;
+  arrayTypeSize?: string | null; // C-Next style: u16[8] name
 }) {
   return {
     IDENTIFIER: () => ({ getText: () => options.name }),
-    type: () => createMockType(options.type, options.hasStringType),
+    type: () =>
+      createMockType(
+        options.type,
+        options.hasStringType,
+        options.arrayTypeSize,
+      ),
     constModifier: () => createMockConstModifier(options.isConst ?? false),
     expression: () =>
       options.initialValue ? createMockExpression(options.initialValue) : null,
@@ -207,10 +240,11 @@ function createMockStructMember(
   type: string,
   arrayDims?: string[],
   hasStringType = false,
+  arrayTypeSize?: string | null,
 ) {
   return {
     IDENTIFIER: () => ({ getText: () => name }),
-    type: () => createMockType(type, hasStringType),
+    type: () => createMockType(type, hasStringType, arrayTypeSize),
     arrayDimension: () => (arrayDims ?? []).map(createMockArrayDimension),
   };
 }
@@ -225,13 +259,20 @@ function createMockStructDecl(
     type: string;
     arrayDims?: string[];
     hasStringType?: boolean;
+    arrayTypeSize?: string | null;
   }>,
 ) {
   return {
     IDENTIFIER: () => ({ getText: () => name }),
     structMember: () =>
       members.map((m) =>
-        createMockStructMember(m.name, m.type, m.arrayDims, m.hasStringType),
+        createMockStructMember(
+          m.name,
+          m.type,
+          m.arrayDims,
+          m.hasStringType,
+          m.arrayTypeSize,
+        ),
       ),
   };
 }
@@ -577,6 +618,66 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("static uint8_t Serial_buffer[256] = {0};");
+    });
+
+    it("generates C-Next style array variable with constant size", () => {
+      const varDecl = createMockVariableDecl({
+        name: "data",
+        type: "u16[8]",
+        arrayTypeSize: "8",
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("Buffer", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        ...createMockOrchestrator(),
+        tryEvaluateConstant: vi.fn(() => 8),
+      });
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("static u16[8] Buffer_data[8] = {0};");
+    });
+
+    it("generates C-Next style array variable with non-constant expression (fallback)", () => {
+      const varDecl = createMockVariableDecl({
+        name: "items",
+        type: "u16[BUFFER_SIZE]",
+        arrayTypeSize: "BUFFER_SIZE",
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("Storage", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        ...createMockOrchestrator(),
+        tryEvaluateConstant: vi.fn(() => undefined), // Can't resolve macro
+        generateExpression: vi.fn(() => "BUFFER_SIZE"),
+      });
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain(
+        "static u16[BUFFER_SIZE] Storage_items[BUFFER_SIZE] = {0};",
+      );
+    });
+
+    it("generates C-Next style array variable with no size (empty brackets)", () => {
+      const varDecl = createMockVariableDecl({
+        name: "flexible",
+        type: "u8[]",
+        arrayTypeSize: null, // No size expression
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("Dynamic", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator();
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("static u8[] Dynamic_flexible[] = {0};");
     });
 
     it("generates string variable with capacity dimension (ADR-045)", () => {
@@ -1034,6 +1135,58 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("uint8_t data[256];");
+    });
+
+    it("generates struct field with C-Next array type constant size", () => {
+      const structDecl = createMockStructDecl("Container", [
+        { name: "items", type: "u16[4]", arrayTypeSize: "4" },
+      ]);
+      const member = createMockScopeMember({ structDecl: structDecl });
+      const ctx = createMockScopeContext("Data", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        ...createMockOrchestrator(),
+        tryEvaluateConstant: vi.fn(() => 4),
+      });
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("u16[4] items[4];");
+    });
+
+    it("generates struct field with C-Next array type non-constant (fallback)", () => {
+      const structDecl = createMockStructDecl("FlexContainer", [
+        { name: "buffer", type: "u8[MAX_SIZE]", arrayTypeSize: "MAX_SIZE" },
+      ]);
+      const member = createMockScopeMember({ structDecl: structDecl });
+      const ctx = createMockScopeContext("Flex", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        ...createMockOrchestrator(),
+        tryEvaluateConstant: vi.fn(() => undefined), // Can't resolve macro
+        generateExpression: vi.fn(() => "MAX_SIZE"),
+      });
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("u8[MAX_SIZE] buffer[MAX_SIZE];");
+    });
+
+    it("generates struct field with C-Next array type no size (empty brackets)", () => {
+      const structDecl = createMockStructDecl("DynamicContainer", [
+        { name: "data", type: "u8[]", arrayTypeSize: null },
+      ]);
+      const member = createMockScopeMember({ structDecl: structDecl });
+      const ctx = createMockScopeContext("Dyn", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator();
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("u8[] data[];");
     });
 
     it("generates struct field with string capacity", () => {

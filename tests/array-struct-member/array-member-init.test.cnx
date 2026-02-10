@@ -3,13 +3,13 @@
 // Coverage: Struct initialization with array members
 
 struct Config {
-    u8 flags[4];
+    u8[4] flags;
     u32 version;
 }
 
 struct Packet {
-    u8 header[4];
-    u8 payload[8];
+    u8[4] header;
+    u8[8] payload;
     u32 checksum;
 }
 

@@ -4,7 +4,7 @@
 // Ensures no truncation or overflow in memory operations
 
 u32 main() {
-    u8 buffer[256];
+    u8[256] buffer;
 
    
 // Test 1: u64 maximum value

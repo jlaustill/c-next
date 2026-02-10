@@ -9,7 +9,7 @@ struct DataPoint {
 
 struct Dataset {
     u32 id;
-    DataPoint samples[10];
+    DataPoint[10] samples;
     u8 count;
 }
 

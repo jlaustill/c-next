@@ -103,8 +103,12 @@ function generateScopeVariable(
   const isConst = varDecl.constModifier() !== null;
 
   // Issue #500: Check if array before skipping - arrays must be emitted
+  // Check both C-style arrayDimension and C-Next style arrayType
+  // Use optional chaining for mock compatibility in tests
   const arrayDims = varDecl.arrayDimension();
-  const isArray = arrayDims.length > 0;
+  const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
+  const hasArrayTypeSyntax = arrayTypeCtx !== null;
+  const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
 
   // Issue #282: Private const variables should be inlined, not emitted at file scope
   // Issue #500: EXCEPT arrays - arrays must be emitted as static const
@@ -121,8 +125,26 @@ function generateScopeVariable(
   const prefix = isPrivate ? "static " : "";
 
   // ADR-036: arrayDimension() now returns an array (arrayDims defined above)
+  // Also handle C-Next style arrayType syntax (u16[8] arr)
   let decl = `${prefix}${constPrefix}${type} ${fullName}`;
-  if (isArray) {
+  if (hasArrayTypeSyntax) {
+    // C-Next style: dimension is in the type (u16[8] arr)
+    // Try to evaluate as constant first (required for C file-scope arrays)
+    const sizeExpr = arrayTypeCtx.expression();
+    if (sizeExpr) {
+      const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
+      if (constValue !== undefined) {
+        decl += `[${constValue}]`;
+      } else {
+        // Fall back to expression generation for macros, enums, etc.
+        decl += `[${orchestrator.generateExpression(sizeExpr)}]`;
+      }
+    } else {
+      decl += "[]";
+    }
+  }
+  if (arrayDims.length > 0) {
+    // C-style or additional dimensions
     decl += orchestrator.generateArrayDimensions(arrayDims);
   }
   // ADR-045: Add string capacity dimension for string arrays
@@ -476,11 +498,30 @@ function generateScopedStructInline(
     const fieldName = member.IDENTIFIER().getText();
     const fieldType = orchestrator.generateType(member.type());
 
-    // Handle array dimensions if present
-    const arrayDims = member.arrayDimension();
+    // Handle C-Next style arrayType syntax (u16[8] arr)
+    // Try to evaluate as constant first (required for C struct fields)
+    // Use optional chaining for mock compatibility in tests
+    const arrayTypeCtx = member.type().arrayType?.() ?? null;
     let dimStr = "";
+    if (arrayTypeCtx !== null) {
+      const sizeExpr = arrayTypeCtx.expression();
+      if (sizeExpr) {
+        const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
+        if (constValue !== undefined) {
+          dimStr = `[${constValue}]`;
+        } else {
+          // Fall back to expression generation for macros, enums, etc.
+          dimStr = `[${orchestrator.generateExpression(sizeExpr)}]`;
+        }
+      } else {
+        dimStr = "[]";
+      }
+    }
+
+    // Handle C-style array dimensions if present
+    const arrayDims = member.arrayDimension();
     if (arrayDims.length > 0) {
-      dimStr = orchestrator.generateArrayDimensions(arrayDims);
+      dimStr += orchestrator.generateArrayDimensions(arrayDims);
     }
 
     // Handle string capacity for string fields

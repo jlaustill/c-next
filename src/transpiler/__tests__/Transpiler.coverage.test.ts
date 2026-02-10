@@ -437,7 +437,7 @@ describe("Transpiler coverage tests", () => {
         "/project/src/main.cnx",
         `
         const u8 SIZE <- 10;
-        u8 buffer[SIZE];
+        u8[SIZE] buffer;
         void main() { buffer[0] <- 1; }
       `,
       );

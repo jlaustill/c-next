@@ -2,6 +2,7 @@
 // Bug #427: Headers emit string<N> instead of char[N+1]
 
 string<32> greeting <- "Hello";
+// C-style allowed for string arrays (grammar limitation)
 const string<16> labels[3] <- ["one", "two", "three"];
 
 void main() {

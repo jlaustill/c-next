@@ -27,7 +27,7 @@ u32 main() {
 
    
 // Test 5: Use const as array index bound
-    u16 values[3] <- [100, 200, 300];
+    u16[3] values <- [100, 200, 300];
     u16 sum <- 0;
     for (u16 i <- 0; i < 3; i <- i + 1) {
         sum <- sum + values[i];

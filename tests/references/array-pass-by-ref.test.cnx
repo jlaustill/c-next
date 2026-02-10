@@ -38,7 +38,7 @@ void copyArray(u32 src[4], u32 dst[4], u32 count) {
 u32 main() {
    
 // Test setElement
-    u32 data[10];
+    u32[10] data;
     data[0] <- 100;
     data[5] <- 200;
 
@@ -50,7 +50,7 @@ u32 main() {
 
    
 // Test sumArray
-    u32 nums[5];
+    u32[5] nums;
     nums[0] <- 10;
     nums[1] <- 20;
     nums[2] <- 30;
@@ -66,7 +66,7 @@ u32 main() {
 
    
 // Test zeroArray
-    u32 toZero[8];
+    u32[8] toZero;
     toZero[0] <- 1;
     toZero[1] <- 2;
     toZero[2] <- 3;
@@ -80,8 +80,8 @@ u32 main() {
 
    
 // Test copyArray
-    u32 source[4];
-    u32 dest[4];
+    u32[4] source;
+    u32[4] dest;
     source[0] <- 11;
     source[1] <- 22;
     source[2] <- 33;

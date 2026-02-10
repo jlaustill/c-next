@@ -2,7 +2,7 @@
 struct Image {
     u32 width;
     u32 height;
-    u8 pixels[240][320];
+    u8[240] pixels[320];
 }
 
 Image screen;

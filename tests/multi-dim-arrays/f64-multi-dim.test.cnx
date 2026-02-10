@@ -2,9 +2,9 @@
 // Tests: multi-dimensional f64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: scientific calculations, high-precision measurements, astronomy
-f64 matrix2d[4][8];
+f64[4] matrix2d[8];
 
-f64 cube3d[2][3][4];
+f64[2] cube3d[3][4];
 
 u32 main() {
     // 2D array: Write operations with high-precision decimal values
@@ -85,7 +85,7 @@ u32 main() {
 
    
 // Test f64 specific edge cases
-    f64 testArray[4][2];
+    f64[4] testArray[2];
 
     // Initialize all elements first
     for (u32 ti <- 0; ti < 4; ti +<- 1) {
@@ -109,7 +109,7 @@ u32 main() {
 
    
 // Test 2D array with scientific constants
-    f64 constants[3][3];
+    f64[3] constants[3];
 
     // Initialize all elements first
     for (u32 coi <- 0; coi < 3; coi +<- 1) {
@@ -135,7 +135,7 @@ u32 main() {
 
    
 // Test high precision decimal calculations
-    f64 precise[2][2];
+    f64[2] precise[2];
 
     // Initialize all elements first
     for (u32 pi <- 0; pi < 2; pi +<- 1) {
@@ -155,7 +155,7 @@ u32 main() {
 
    
 // Test floating point arithmetic with high precision
-    f64 calc[2][2];
+    f64[2] calc[2];
 
     // Initialize all elements first
     for (u32 ci <- 0; ci < 2; ci +<- 1) {
@@ -170,7 +170,7 @@ u32 main() {
 
    
 // Test astronomical distances (light-years to meters)
-    f64 distances[2][3];
+    f64[2] distances[3];
 
     // Initialize all elements first
     for (u32 di <- 0; di < 2; di +<- 1) {
@@ -191,7 +191,7 @@ u32 main() {
 
    
 // Test very small numbers (quantum scale)
-    f64 quantum[2][2];
+    f64[2] quantum[2];
 
     // Initialize all elements first
     for (u32 qi <- 0; qi < 2; qi +<- 1) {

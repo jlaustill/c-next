@@ -4,7 +4,7 @@ struct Counter {
     i32 value;
 }
 
-Counter counters[2];
+Counter[2] counters;
 
 i32 main() {
     // Initialize

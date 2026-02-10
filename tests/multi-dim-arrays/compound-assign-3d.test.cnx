@@ -1,6 +1,6 @@
 // Test: Compound assignment on 3D arrays
 // Covers all compound operators on deeply indexed array elements
-u32 cube[3][3][3];
+u32[3] cube[3][3];
 
 i32 main() {
     // Initialize various positions in 3D array

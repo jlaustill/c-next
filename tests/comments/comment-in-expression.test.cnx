@@ -16,7 +16,7 @@ u32 main() {
     if (c != 53) return 3;
 
     // Comment in array index
-    u32 arr[5];
+    u32[5] arr;
     arr[0] <- 100;
     arr[/* index */ 0] <- 200;
     if (arr[0] != 200) return 4;

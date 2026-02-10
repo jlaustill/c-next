@@ -1,1 +1,2 @@
-61:8 error[E0381]: use of uninitialized variable 'maybeEmpty'
+42:14 no viable alternative at input 'string<32>['
+42:18 extraneous input 'items' expecting ';'

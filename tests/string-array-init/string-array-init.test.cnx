@@ -2,7 +2,7 @@
 // Issue #380: String array initializers
 // Tests: const string array with inline initialization
 
-// Array of bounded strings with initializer
+// Array of bounded strings with initializer (C-style allowed for string arrays)
 const string<10> LABELS[3] <- [
     "One",
     "Two",

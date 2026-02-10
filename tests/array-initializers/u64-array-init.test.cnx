@@ -3,7 +3,7 @@
 // Validates array operations with u64 element type
 // Includes typical embedded use cases (timestamps, counters, buffers)
 // Fixed size with explicit values (typical timestamps)
-u64 timestamps[4] <- [
+u64[4] timestamps <- [
     1000000000000,
     2000000000000,
     3000000000000,
@@ -14,10 +14,10 @@ u64 timestamps[4] <- [
 u64 counters[] <- [100, 200, 300, 400, 500];
 
 // Fill syntax - zero initialized buffer
-u64 buffer[100] <- [0*];
+u64[100] buffer <- [0*];
 
 // Fill syntax - ones
-u64 ones[50] <- [1*];
+u64[50] ones <- [1*];
 
 // Const lookup table (factorials)
 const u64 factorials[] <- [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880];
@@ -50,7 +50,7 @@ u32 main() {
 
    
 // Test modification
-    u64 mutable[5] <- [10, 20, 30, 40, 50];
+    u64[5] mutable <- [10, 20, 30, 40, 50];
     mutable[2] <- 999;
     if (mutable[2] != 999) return 14;
     if (mutable[0] != 10) return 15; // Verify other elements unchanged
@@ -72,7 +72,7 @@ u32 main() {
 
    
 // Test array with large values
-    u64 large_vals[3] <- [
+    u64[3] large_vals <- [
         9000000000000000000,
         8000000000000000000,
         7000000000000000000
@@ -82,7 +82,7 @@ u32 main() {
 
    
 // Test sequential modification in loop
-    u64 sequence[10];
+    u64[10] sequence;
     for (u32 i <- 0; i < 10; i +<- 1) {
         sequence[i] <- i * 1000000;
     }
@@ -103,7 +103,7 @@ u32 main() {
 
    
 // Test array assignment from computation
-    u64 computed[3];
+    u64[3] computed;
     computed[0] <- 1000 * 1000; // 1 million
     computed[1] <- 1000 * 1000000; // 1 billion
     computed[2] <- computed[0] + computed[1];

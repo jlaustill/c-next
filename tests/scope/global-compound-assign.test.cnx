@@ -3,7 +3,7 @@
 // Tests global array access with compound operators
 
 i32 counter <- 100;
-i32 values[4];
+i32[4] values;
 
 scope Worker {
     public void updateGlobal() {

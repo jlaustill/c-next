@@ -1,6 +1,6 @@
 // Test: Compound assignment on 1D arrays
 // Covers all compound operators: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
-u32 data[10];
+u32[10] data;
 
 i32 main() {
     // Initialize array elements

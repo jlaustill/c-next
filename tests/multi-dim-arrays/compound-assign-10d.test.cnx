@@ -1,6 +1,6 @@
 // Test: Compound assignment on 10D arrays (extreme depth test)
 // Ensures transpiler correctly handles deeply nested array indexing
-u32 hyper[2][2][2][2][2][2][2][2][2][2];
+u32[2] hyper[2][2][2][2][2][2][2][2][2];
 
 i32 main() {
     // Initialize various positions in 10D array

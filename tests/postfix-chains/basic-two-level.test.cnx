@@ -16,8 +16,8 @@ register GPIO @ 0x40000000 {
     DR_SET: u32 wo @ 0x84,
 }
 
-Point points[4];
-Line lines[2];
+Point[4] points;
+Line[2] lines;
 
 void main() {
     // Struct member access (2 levels)

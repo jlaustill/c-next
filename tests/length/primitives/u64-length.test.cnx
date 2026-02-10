@@ -58,7 +58,7 @@ i32 main() {
         return 7;
     }
 
-    u64 arr[4];
+    u64[4] arr;
     arr[0] <- 1000000;
     if (arr[0].length != 64) {
         return 8;

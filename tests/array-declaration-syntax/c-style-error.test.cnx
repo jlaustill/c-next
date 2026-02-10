@@ -1,0 +1,3 @@
+// Test: C-style array declaration should be rejected
+// C-Next requires array dimensions in the type position: u16[8] not u16 arr[8]
+u16 myArray[8];

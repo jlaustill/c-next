@@ -3,7 +3,7 @@
 // Slice assignment length must be positive.
 
 u32 main() {
-    u8 buffer[64];
+    u8[64] buffer;
 
     // Zero-length copy should fail at compile time
     u32 dummy <- 0xAABBCCDD;

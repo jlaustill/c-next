@@ -19,11 +19,11 @@ struct Object {
 }
 
 struct Scene {
-    Object objects[4];
+    Object[4] objects;
     u32 count;
 }
 
-Scene scenes[2];
+Scene[2] scenes;
 
 void main() {
     // 4-level deep write: scenes[i].objects[j].material.ambient.r

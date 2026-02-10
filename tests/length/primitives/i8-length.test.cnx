@@ -58,7 +58,7 @@ i32 main() {
         return 7;
     }
 
-    i8 arr[4];
+    i8[4] arr;
     arr[0] <- -42;
     if (arr[0].length != 8) {
         return 8;

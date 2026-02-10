@@ -58,7 +58,7 @@ i32 main() {
         return 7;
     }
 
-    u16 arr[4];
+    u16[4] arr;
     arr[0] <- 1000;
     if (arr[0].length != 16) {
         return 8;
