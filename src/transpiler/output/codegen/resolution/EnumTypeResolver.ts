@@ -16,6 +16,8 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../CodeGenState";
+import TypeResolver from "../TypeResolver";
+import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
 
 /**
  * Resolves enum types from expressions.
@@ -46,7 +48,36 @@ export default class EnumTypeResolver {
     }
 
     // Check member access patterns: EnumType.MEMBER, Scope.EnumType.MEMBER, etc.
-    return this.getEnumTypeFromMemberAccess(text.split("."));
+    const memberResult = this.getEnumTypeFromMemberAccess(text.split("."));
+    if (memberResult) {
+      return memberResult;
+    }
+
+    // Fallback: use TypeResolver to resolve the full expression type through
+    // struct member chains (e.g. global.config.inputs[0].assignedValue -> EValueId)
+    return this.resolveViaTypeResolver(ctx);
+  }
+
+  /**
+   * Fallback resolution via TypeResolver for complex expressions.
+   * Handles struct member chains like global.struct.field that resolve to enum types.
+   */
+  private static resolveViaTypeResolver(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): string | null {
+    // ExpressionContext has getPostfixExpression, RelationalExpressionContext does not
+    if (!("ternaryExpression" in ctx)) {
+      return null;
+    }
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (!postfix) {
+      return null;
+    }
+    const resolvedType = TypeResolver.getPostfixExpressionType(postfix);
+    if (resolvedType && CodeGenState.isKnownEnum(resolvedType)) {
+      return resolvedType;
+    }
+    return null;
   }
 
   /**

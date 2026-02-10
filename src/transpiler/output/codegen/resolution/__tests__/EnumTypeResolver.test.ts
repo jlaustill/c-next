@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import EnumTypeResolver from "../EnumTypeResolver";
 import CodeGenState from "../../CodeGenState";
+import SymbolTable from "../../../../logic/symbols/SymbolTable";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 
 describe("EnumTypeResolver", () => {
@@ -200,6 +201,101 @@ describe("EnumTypeResolver", () => {
 
       const mockCtx = { getText: () => "this.current" };
       expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("Motor_State");
+    });
+  });
+
+  describe("resolve() - TypeResolver fallback for struct member chains", () => {
+    /**
+     * Helper to build a mock ExpressionContext that contains a full postfix
+     * expression tree: global.input.assignedValue
+     */
+    const buildStructChainCtx = (
+      primaryToken: "GLOBAL" | "THIS" | "IDENTIFIER",
+      primaryText: string,
+      suffixes: string[],
+    ) => {
+      const primary = {
+        IDENTIFIER: () =>
+          primaryToken === "IDENTIFIER" ? { getText: () => primaryText } : null,
+        GLOBAL: () =>
+          primaryToken === "GLOBAL" ? { getText: () => "global" } : null,
+        THIS: () =>
+          primaryToken === "THIS" ? { getText: () => "this" } : null,
+        literal: () => null,
+        expression: () => null,
+        castExpression: () => null,
+      };
+      const children = [
+        { getText: () => primaryText },
+        ...suffixes.map((s) => ({ getText: () => s })),
+      ];
+      const postfix = { primaryExpression: () => primary, children };
+
+      // Build the full expression tree wrapping the postfix
+      const unary = {
+        postfixExpression: () => postfix,
+        unaryExpression: () => null,
+      };
+      const mult = { unaryExpression: () => [unary] };
+      const add = { multiplicativeExpression: () => [mult] };
+      const shift = { additiveExpression: () => [add] };
+      const bitAnd = { shiftExpression: () => [shift] };
+      const bitXor = { bitwiseAndExpression: () => [bitAnd] };
+      const bitOr = { bitwiseXorExpression: () => [bitXor] };
+      const rel = { bitwiseOrExpression: () => [bitOr] };
+      const eq = { relationalExpression: () => [rel] };
+      const and = { equalityExpression: () => [eq] };
+      const or = { andExpression: () => [and] };
+      const ternary = { orExpression: () => [or] };
+
+      return {
+        getText: () => primaryText + suffixes.join(""),
+        ternaryExpression: () => ternary,
+      } as never;
+    };
+
+    it("resolves global.struct.enumField via TypeResolver fallback", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addStructField("TInput", "assignedValue", "EValueId");
+      CodeGenState.symbolTable = symbolTable;
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["EValueId"]),
+      });
+      CodeGenState.typeRegistry.set("input", {
+        baseType: "TInput",
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+
+      const ctx = buildStructChainCtx("GLOBAL", "global", [
+        ".input",
+        ".assignedValue",
+      ]);
+      expect(EnumTypeResolver.resolve(ctx)).toBe("EValueId");
+    });
+
+    it("returns null when struct field is not an enum type", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addStructField("TInput", "count", "u32");
+      CodeGenState.symbolTable = symbolTable;
+      CodeGenState.symbols = createMockSymbols();
+      CodeGenState.typeRegistry.set("input", {
+        baseType: "TInput",
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+
+      const ctx = buildStructChainCtx("GLOBAL", "global", [".input", ".count"]);
+      expect(EnumTypeResolver.resolve(ctx)).toBeNull();
+    });
+
+    it("returns null for RelationalExpressionContext (no ternaryExpression)", () => {
+      CodeGenState.symbols = createMockSymbols();
+      // RelationalExpressionContext doesn't have ternaryExpression
+      const ctx = { getText: () => "something.weird" } as never;
+      expect(EnumTypeResolver.resolve(ctx)).toBeNull();
     });
   });
 

@@ -1,0 +1,17 @@
+// Minimal reproduction: assign struct enum field to local enum variable
+
+enum EValueId {
+    VALUE_A,
+    VALUE_B,
+    VALUE_UNASSIGNED <- 0xFF
+}
+
+struct TInput {
+    EValueId assignedValue;
+}
+
+TInput input;
+
+void main() {
+    EValueId val <- global.input.assignedValue;
+}

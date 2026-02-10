@@ -314,9 +314,6 @@ export default class CodeGenerator implements IOrchestrator {
   /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
   public symbols: ICodeGenSymbols | null = null;
 
-  /** Type validation - Issue #63: Extracted from CodeGenerator */
-  private typeValidator: TypeValidator | null = null;
-
   /** Issue #644: String length counter for strlen caching optimization */
   private stringLengthCounter: StringLengthCounter | null = null;
 
@@ -328,9 +325,6 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: String declaration helper for bounded/array/concat strings */
   private stringDeclHelper: StringDeclHelper | null = null;
-
-  /** Issue #644: Enum assignment validator for type-safe enum assignments */
-  private enumValidator: EnumAssignmentValidator | null = null;
 
   /** Issue #644: Array initialization helper for size inference and fill-all */
   private arrayInitHelper: ArrayInitHelper | null = null;
@@ -900,7 +894,7 @@ export default class CodeGenerator implements IOrchestrator {
     op: string,
     ctx: Parser.ShiftExpressionContext,
   ): void {
-    this.typeValidator!.validateShiftAmount(leftType, rightExpr, op, ctx);
+    TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx);
   }
 
   /**
@@ -908,7 +902,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeValidator.
    */
   validateTernaryCondition(condition: Parser.OrExpressionContext): void {
-    this.typeValidator!.validateTernaryCondition(condition);
+    TypeValidator.validateTernaryCondition(condition);
   }
 
   /**
@@ -919,7 +913,7 @@ export default class CodeGenerator implements IOrchestrator {
     expr: Parser.OrExpressionContext,
     branchName: string,
   ): void {
-    this.typeValidator!.validateNoNestedTernary(expr, branchName);
+    TypeValidator.validateNoNestedTernary(expr, branchName);
   }
 
   // === Function Call Helpers (ADR-053 A2 Phase 5) ===
@@ -948,7 +942,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeValidator.
    */
   isConstValue(name: string): boolean {
-    return this.typeValidator!.isConstValue(name);
+    return TypeValidator.isConstValue(name);
   }
 
   /**
@@ -1020,7 +1014,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   validateNoEarlyExits(ctx: Parser.BlockContext): void {
-    this.typeValidator!.validateNoEarlyExits(ctx);
+    TypeValidator.validateNoEarlyExits(ctx);
   }
 
   /**
@@ -1096,7 +1090,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.SwitchStatementContext,
     switchExpr: Parser.ExpressionContext,
   ): void {
-    this.typeValidator!.validateSwitchStatement(ctx, switchExpr);
+    TypeValidator.validateSwitchStatement(ctx, switchExpr);
   }
 
   /**
@@ -1104,7 +1098,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface (ADR-053 A3).
    */
   validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
-    this.typeValidator!.validateDoWhileCondition(ctx);
+    TypeValidator.validateDoWhileCondition(ctx);
   }
 
   /**
@@ -1115,7 +1109,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ExpressionContext,
     conditionType: string,
   ): void {
-    this.typeValidator!.validateConditionNoFunctionCall(ctx, conditionType);
+    TypeValidator.validateConditionNoFunctionCall(ctx, conditionType);
   }
 
   /**
@@ -1125,7 +1119,7 @@ export default class CodeGenerator implements IOrchestrator {
   validateTernaryConditionNoFunctionCall(
     ctx: Parser.OrExpressionContext,
   ): void {
-    this.typeValidator!.validateTernaryConditionNoFunctionCall(ctx);
+    TypeValidator.validateTernaryConditionNoFunctionCall(ctx);
   }
 
   /**
@@ -2247,23 +2241,6 @@ export default class CodeGenerator implements IOrchestrator {
     this.collectFunctionsAndCallbacks(tree);
     this.analyzePassByValue(tree);
 
-    // Initialize type validator
-    this.typeValidator = new TypeValidator({
-      symbols: symbols,
-      symbolTable: CodeGenState.symbolTable,
-      typeRegistry: CodeGenState.typeRegistry,
-      callbackTypes: CodeGenState.callbackTypes,
-      knownFunctions: CodeGenState.knownFunctions,
-      knownGlobals: new Set(),
-      getCurrentScope: () => CodeGenState.currentScope,
-      getScopeMembers: () => CodeGenState.scopeMembers,
-      getCurrentParameters: () => CodeGenState.currentParameters,
-      getLocalVariables: () => CodeGenState.localVariables,
-      resolveIdentifier: (name: string) => this.resolveIdentifier(name),
-      getExpressionType: (ctx: unknown) =>
-        this.getExpressionType(ctx as Parser.ExpressionContext),
-    });
-
     // Initialize remaining helpers
     this.initializeAnalysisHelpers(symbols);
   }
@@ -2326,13 +2303,6 @@ export default class CodeGenerator implements IOrchestrator {
       requireStringInclude: () => this.requireInclude("string"),
     });
 
-    this.enumValidator = new EnumAssignmentValidator({
-      knownEnums: symbols.knownEnums,
-      getCurrentScope: () => CodeGenState.currentScope,
-      getExpressionEnumType: (ctx) => this.getExpressionEnumType(ctx),
-      isIntegerExpression: (ctx) => this._isIntegerExpression(ctx),
-    });
-
     this.arrayInitHelper = new ArrayInitHelper({
       typeRegistry: CodeGenState.typeRegistry,
       localArrays: CodeGenState.localArrays,
@@ -2353,8 +2323,6 @@ export default class CodeGenerator implements IOrchestrator {
     });
 
     this.assignmentValidator = new AssignmentValidator({
-      typeValidator: this.typeValidator!,
-      enumValidator: this.enumValidator,
       typeRegistry: CodeGenState.typeRegistry,
       floatShadowCurrent: CodeGenState.floatShadowCurrent,
       registerMemberAccess: symbols.registerMemberAccess,
@@ -2377,8 +2345,6 @@ export default class CodeGenerator implements IOrchestrator {
   ): string {
     const output: string[] = [];
     const symbols = CodeGenState.symbols!;
-    const typeValidator = this.typeValidator!;
-
     // Add header comment
     output.push(
       "/**",
@@ -2399,7 +2365,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Process include directives
-    this.processIncludeDirectives(tree, output, typeValidator);
+    this.processIncludeDirectives(tree, output);
 
     // Process preprocessor directives
     this.processPreprocessorDirectives(tree, output);
@@ -2423,7 +2389,6 @@ export default class CodeGenerator implements IOrchestrator {
   private processIncludeDirectives(
     tree: Parser.ProgramContext,
     output: string[],
-    typeValidator: TypeValidator,
   ): void {
     const includePaths = CodeGenState.sourcePath
       ? IncludeDiscovery.discoverIncludePaths(CodeGenState.sourcePath)
@@ -2434,11 +2399,11 @@ export default class CodeGenerator implements IOrchestrator {
       output.push(...this.formatLeadingComments(leadingComments));
 
       const lineNumber = includeDir.start?.line ?? 0;
-      typeValidator.validateIncludeNotImplementationFile(
+      TypeValidator.validateIncludeNotImplementationFile(
         includeDir.getText(),
         lineNumber,
       );
-      typeValidator.validateIncludeNoCnxAlternative(
+      TypeValidator.validateIncludeNoCnxAlternative(
         includeDir.getText(),
         lineNumber,
         CodeGenState.sourcePath,
@@ -4052,30 +4017,7 @@ export default class CodeGenerator implements IOrchestrator {
   private _isIntegerExpression(
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): boolean {
-    const text = ctx.getText();
-
-    // Check for integer literals
-    if (
-      /^-?\d+$/.exec(text) ||
-      /^0[xX][0-9a-fA-F]+$/.exec(text) ||
-      /^0[bB][01]+$/.exec(text)
-    ) {
-      return true;
-    }
-
-    // Check if it's a variable of primitive integer type
-    if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const typeInfo = CodeGenState.typeRegistry.get(text);
-      if (
-        typeInfo &&
-        !typeInfo.isEnum &&
-        TypeCheckUtils.isInteger(typeInfo.baseType)
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return EnumAssignmentValidator.isIntegerExpression(ctx);
   }
 
   /**
@@ -5606,7 +5548,7 @@ export default class CodeGenerator implements IOrchestrator {
     CodeGenState.expectedType = typeName;
 
     // ADR-017: Validate enum type for initialization
-    this.enumValidator!.validateEnumAssignment(typeName, ctx.expression()!);
+    EnumAssignmentValidator.validateEnumAssignment(typeName, ctx.expression()!);
 
     // ADR-024: Validate integer literals and type conversions
     this._validateIntegerInitializer(ctx, typeName);
@@ -5886,11 +5828,11 @@ export default class CodeGenerator implements IOrchestrator {
       getMemberTypeInfo: (structType, memberName) =>
         this.getMemberTypeInfo(structType, memberName),
       validateBitmapFieldLiteral: (expr, width, fieldName) =>
-        this.typeValidator!.validateBitmapFieldLiteral(expr, width, fieldName),
+        TypeValidator.validateBitmapFieldLiteral(expr, width, fieldName),
       validateCrossScopeVisibility: (scopeName, memberName) =>
         this.validateCrossScopeVisibility(scopeName, memberName),
       checkArrayBounds: (arrayName, dimensions, indexExprs, line) =>
-        this.typeValidator!.checkArrayBounds(
+        TypeValidator.checkArrayBounds(
           arrayName,
           [...dimensions],
           [...indexExprs],
@@ -6040,7 +5982,7 @@ export default class CodeGenerator implements IOrchestrator {
         ),
       isLocalVariable: (name: string) => CodeGenState.localVariables.has(name),
       resolveBareIdentifier: (name: string, isLocal: boolean) =>
-        this.typeValidator!.resolveBareIdentifier(name, isLocal, (n: string) =>
+        TypeValidator.resolveBareIdentifier(name, isLocal, (n: string) =>
           this.isKnownStruct(n),
         ),
     };
@@ -6214,7 +6156,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // ADR-016: Resolve bare identifier using local -> scope -> global priority
     const isLocalVariable = CodeGenState.localVariables.has(id);
-    const resolved = this.typeValidator!.resolveBareIdentifier(
+    const resolved = TypeValidator.resolveBareIdentifier(
       id,
       isLocalVariable,
       (name: string) => this.isKnownStruct(name),

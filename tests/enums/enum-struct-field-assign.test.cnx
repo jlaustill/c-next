@@ -1,0 +1,33 @@
+// test-execution
+// Tests: assign struct enum field to local enum variable (bug fix)
+// Validates that enum-typed fields in structs can be read via global prefix
+
+enum EValueId {
+    VALUE_A,
+    VALUE_B,
+    VALUE_UNASSIGNED <- 0xFF
+}
+
+struct TInput {
+    EValueId assignedValue;
+}
+
+TInput input;
+
+u32 main() {
+    // Setup: assign a known enum value to struct field
+    input.assignedValue <- global.EValueId.VALUE_B;
+
+    // Bug fix: this used to throw "Cannot assign non-enum value to EValueId enum"
+    EValueId val <- global.input.assignedValue;
+
+    // Validate: the value should match
+    if (val != global.EValueId.VALUE_B) return 1;
+
+    // Test with another value
+    input.assignedValue <- global.EValueId.VALUE_A;
+    EValueId val2 <- global.input.assignedValue;
+    if (val2 != global.EValueId.VALUE_A) return 2;
+
+    return 0;
+}

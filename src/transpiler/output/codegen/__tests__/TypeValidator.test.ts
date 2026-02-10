@@ -3,14 +3,14 @@
  * Tests all validation methods for 100% coverage
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeValidator from "../TypeValidator";
 import TypeResolver from "../TypeResolver";
+import CodeGenState from "../CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../types/TTypeInfo";
 import type TParameterInfo from "../types/TParameterInfo";
 import type ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import type ITypeValidatorDeps from "../types/ITypeValidatorDeps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 
 // ========================================================================
@@ -51,38 +51,52 @@ function createMockSymbols(
 }
 
 // ========================================================================
-// Test Helpers - Mock Dependencies
+// Test Helpers - Setup State
 // ========================================================================
 
-interface MockDepsOptions {
+interface SetupStateOptions {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
   callbackTypes?: Map<string, ICallbackTypeInfo>;
   knownFunctions?: Set<string>;
-  knownGlobals?: Set<string>;
   currentScope?: string | null;
   scopeMembers?: Map<string, Set<string>>;
   currentParameters?: Map<string, TParameterInfo>;
   localVariables?: Set<string>;
-  resolveIdentifier?: (name: string) => string;
-  getExpressionType?: (ctx: unknown) => string | null;
 }
 
-function createMockDeps(options: MockDepsOptions = {}): ITypeValidatorDeps {
-  return {
-    symbols: options.symbols ?? createMockSymbols(),
-    symbolTable: null,
-    typeRegistry: options.typeRegistry ?? new Map(),
-    callbackTypes: options.callbackTypes ?? new Map(),
-    knownFunctions: options.knownFunctions ?? new Set(),
-    knownGlobals: options.knownGlobals ?? new Set(),
-    getCurrentScope: () => options.currentScope ?? null,
-    getScopeMembers: () => options.scopeMembers ?? new Map(),
-    getCurrentParameters: () => options.currentParameters ?? new Map(),
-    getLocalVariables: () => options.localVariables ?? new Set(),
-    resolveIdentifier: options.resolveIdentifier ?? ((name: string) => name),
-    getExpressionType: options.getExpressionType ?? (() => null),
-  };
+function setupState(options: SetupStateOptions = {}): void {
+  CodeGenState.reset();
+  if (options.symbols) {
+    CodeGenState.symbols = options.symbols;
+  } else {
+    CodeGenState.symbols = createMockSymbols();
+  }
+  if (options.typeRegistry) {
+    for (const [k, v] of options.typeRegistry) {
+      CodeGenState.typeRegistry.set(k, v);
+    }
+  }
+  if (options.callbackTypes) {
+    for (const [k, v] of options.callbackTypes) {
+      CodeGenState.callbackTypes.set(k, v);
+    }
+  }
+  if (options.knownFunctions) {
+    CodeGenState.knownFunctions = options.knownFunctions;
+  }
+  if (options.currentScope !== undefined) {
+    CodeGenState.currentScope = options.currentScope;
+  }
+  if (options.scopeMembers) {
+    CodeGenState.scopeMembers = options.scopeMembers;
+  }
+  if (options.currentParameters) {
+    CodeGenState.currentParameters = options.currentParameters;
+  }
+  if (options.localVariables) {
+    CodeGenState.localVariables = options.localVariables;
+  }
 }
 
 // ========================================================================
@@ -238,14 +252,25 @@ function createMockSwitchCase(
 // ========================================================================
 
 describe("TypeValidator", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe("validateIncludeNotImplementationFile", () => {
     it("allows header file includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile('#include "file.h"', 1),
+        TypeValidator.validateIncludeNotImplementationFile(
+          '#include "file.h"',
+          1,
+        ),
       ).not.toThrow();
       expect(() =>
-        validator.validateIncludeNotImplementationFile(
+        TypeValidator.validateIncludeNotImplementationFile(
           "#include <file.hpp>",
           1,
         ),
@@ -253,22 +278,31 @@ describe("TypeValidator", () => {
     });
 
     it("rejects .c file includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile('#include "impl.c"', 5),
+        TypeValidator.validateIncludeNotImplementationFile(
+          '#include "impl.c"',
+          5,
+        ),
       ).toThrow("E0503");
       expect(() =>
-        validator.validateIncludeNotImplementationFile('#include "impl.c"', 5),
+        TypeValidator.validateIncludeNotImplementationFile(
+          '#include "impl.c"',
+          5,
+        ),
       ).toThrow("impl.c");
       expect(() =>
-        validator.validateIncludeNotImplementationFile('#include "impl.c"', 5),
+        TypeValidator.validateIncludeNotImplementationFile(
+          '#include "impl.c"',
+          5,
+        ),
       ).toThrow("Line 5");
     });
 
     it("rejects .cpp file includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile(
+        TypeValidator.validateIncludeNotImplementationFile(
           '#include "impl.cpp"',
           1,
         ),
@@ -276,16 +310,19 @@ describe("TypeValidator", () => {
     });
 
     it("rejects .cc file includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile("#include <impl.cc>", 1),
+        TypeValidator.validateIncludeNotImplementationFile(
+          "#include <impl.cc>",
+          1,
+        ),
       ).toThrow("E0503");
     });
 
     it("rejects .cxx file includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile(
+        TypeValidator.validateIncludeNotImplementationFile(
           '#include "impl.cxx"',
           1,
         ),
@@ -293,9 +330,9 @@ describe("TypeValidator", () => {
     });
 
     it("rejects .c++ file includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile(
+        TypeValidator.validateIncludeNotImplementationFile(
           '#include "impl.c++"',
           1,
         ),
@@ -303,12 +340,15 @@ describe("TypeValidator", () => {
     });
 
     it("is case-insensitive for extensions", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile('#include "impl.C"', 1),
+        TypeValidator.validateIncludeNotImplementationFile(
+          '#include "impl.C"',
+          1,
+        ),
       ).toThrow("E0503");
       expect(() =>
-        validator.validateIncludeNotImplementationFile(
+        TypeValidator.validateIncludeNotImplementationFile(
           '#include "impl.CPP"',
           1,
         ),
@@ -316,36 +356,39 @@ describe("TypeValidator", () => {
     });
 
     it("handles malformed includes gracefully", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // No path extracted - should not throw
       expect(() =>
-        validator.validateIncludeNotImplementationFile("#include", 1),
+        TypeValidator.validateIncludeNotImplementationFile("#include", 1),
       ).not.toThrow();
       expect(() =>
-        validator.validateIncludeNotImplementationFile('#include ""', 1),
+        TypeValidator.validateIncludeNotImplementationFile('#include ""', 1),
       ).not.toThrow();
     });
 
     it("handles angle bracket includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       expect(() =>
-        validator.validateIncludeNotImplementationFile(
+        TypeValidator.validateIncludeNotImplementationFile(
           "#include <system.h>",
           1,
         ),
       ).not.toThrow();
       expect(() =>
-        validator.validateIncludeNotImplementationFile("#include <impl.c>", 1),
+        TypeValidator.validateIncludeNotImplementationFile(
+          "#include <impl.c>",
+          1,
+        ),
       ).toThrow("E0503");
     });
   });
 
   describe("validateIncludeNoCnxAlternative", () => {
     it("skips .cnx includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn(() => true);
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           '#include "file.cnx"',
           1,
           "/src/main.cnx",
@@ -357,10 +400,10 @@ describe("TypeValidator", () => {
     });
 
     it("skips non-header files", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn(() => true);
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           '#include "file.txt"',
           1,
           "/src/main.cnx",
@@ -372,10 +415,10 @@ describe("TypeValidator", () => {
     });
 
     it("throws E0504 when .cnx alternative exists for quoted include", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn(() => true);
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           '#include "utils.h"',
           10,
           "/src/main.cnx",
@@ -384,7 +427,7 @@ describe("TypeValidator", () => {
         ),
       ).toThrow("E0504");
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           '#include "utils.h"',
           10,
           "/src/main.cnx",
@@ -395,10 +438,10 @@ describe("TypeValidator", () => {
     });
 
     it("does not throw when .cnx alternative does not exist", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn(() => false);
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           '#include "utils.h"',
           1,
           "/src/main.cnx",
@@ -409,10 +452,10 @@ describe("TypeValidator", () => {
     });
 
     it("throws E0504 when .cnx alternative exists for angle bracket include", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn(() => true);
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           "#include <lib/utils.hpp>",
           5,
           "/src/main.cnx",
@@ -423,10 +466,10 @@ describe("TypeValidator", () => {
     });
 
     it("searches through all include paths for angle includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn((path: string) => path.includes("/lib2/"));
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           "#include <utils.h>",
           1,
           "/src/main.cnx",
@@ -438,11 +481,11 @@ describe("TypeValidator", () => {
     });
 
     it("handles quoted include without sourcePath", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn(() => true);
       // No source path - cannot resolve relative include
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           '#include "utils.h"',
           1,
           null,
@@ -453,10 +496,10 @@ describe("TypeValidator", () => {
     });
 
     it("handles malformed includes", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const fileExists = vi.fn(() => true);
       expect(() =>
-        validator.validateIncludeNoCnxAlternative(
+        TypeValidator.validateIncludeNoCnxAlternative(
           "#include",
           1,
           "/src/main.cnx",
@@ -473,50 +516,50 @@ describe("TypeValidator", () => {
 
   describe("validateBitmapFieldLiteral", () => {
     it("allows values within field width", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const expr = createMockExpression("7");
       expect(() =>
-        validator.validateBitmapFieldLiteral(expr, 3, "flags"),
+        TypeValidator.validateBitmapFieldLiteral(expr, 3, "flags"),
       ).not.toThrow();
     });
 
     it("throws for decimal values exceeding field width", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const expr = createMockExpression("8");
       expect(() =>
-        validator.validateBitmapFieldLiteral(expr, 3, "flags"),
+        TypeValidator.validateBitmapFieldLiteral(expr, 3, "flags"),
       ).toThrow("Value 8 exceeds 3-bit field 'flags' maximum of 7");
     });
 
     it("validates hex literals", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const expr = createMockExpression("0xFF");
       expect(() =>
-        validator.validateBitmapFieldLiteral(expr, 8, "byte"),
+        TypeValidator.validateBitmapFieldLiteral(expr, 8, "byte"),
       ).not.toThrow();
       const exprBad = createMockExpression("0x100");
       expect(() =>
-        validator.validateBitmapFieldLiteral(exprBad, 8, "byte"),
+        TypeValidator.validateBitmapFieldLiteral(exprBad, 8, "byte"),
       ).toThrow("Value 256 exceeds 8-bit field 'byte' maximum of 255");
     });
 
     it("validates binary literals", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const expr = createMockExpression("0b1111");
       expect(() =>
-        validator.validateBitmapFieldLiteral(expr, 4, "nibble"),
+        TypeValidator.validateBitmapFieldLiteral(expr, 4, "nibble"),
       ).not.toThrow();
       const exprBad = createMockExpression("0b10000");
       expect(() =>
-        validator.validateBitmapFieldLiteral(exprBad, 4, "nibble"),
+        TypeValidator.validateBitmapFieldLiteral(exprBad, 4, "nibble"),
       ).toThrow("Value 16 exceeds 4-bit field 'nibble' maximum of 15");
     });
 
     it("skips validation for non-literal expressions", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const expr = createMockExpression("someVariable");
       expect(() =>
-        validator.validateBitmapFieldLiteral(expr, 1, "bit"),
+        TypeValidator.validateBitmapFieldLiteral(expr, 1, "bit"),
       ).not.toThrow();
     });
   });
@@ -527,58 +570,64 @@ describe("TypeValidator", () => {
 
   describe("checkArrayBounds", () => {
     it("allows valid constant indices", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const indexExprs = [createMockExpression("0")];
       const tryEval = vi.fn(() => 0);
       expect(() =>
-        validator.checkArrayBounds("arr", [10], indexExprs, 1, tryEval),
+        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 1, tryEval),
       ).not.toThrow();
     });
 
     it("throws for negative indices", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const indexExprs = [createMockExpression("-1")];
       const tryEval = vi.fn(() => -1);
       expect(() =>
-        validator.checkArrayBounds("arr", [10], indexExprs, 5, tryEval),
+        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 5, tryEval),
       ).toThrow("Array index out of bounds: -1 is negative for 'arr'");
     });
 
     it("throws for index >= dimension", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const indexExprs = [createMockExpression("10")];
       const tryEval = vi.fn(() => 10);
       expect(() =>
-        validator.checkArrayBounds("arr", [10], indexExprs, 3, tryEval),
+        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 3, tryEval),
       ).toThrow("Array index out of bounds: 10 >= 10 for 'arr' dimension 1");
     });
 
     it("checks all dimensions for multi-dimensional arrays", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const indexExprs = [createMockExpression("0"), createMockExpression("5")];
       let callIdx = 0;
       const tryEval = vi.fn(() => (callIdx++ === 0 ? 0 : 5));
       expect(() =>
-        validator.checkArrayBounds("matrix", [3, 4], indexExprs, 1, tryEval),
+        TypeValidator.checkArrayBounds(
+          "matrix",
+          [3, 4],
+          indexExprs,
+          1,
+          tryEval,
+        ),
       ).toThrow("Array index out of bounds: 5 >= 4 for 'matrix' dimension 2");
     });
 
     it("skips non-constant indices", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const indexExprs = [createMockExpression("i")];
       const tryEval = vi.fn(() => undefined);
       expect(() =>
-        validator.checkArrayBounds("arr", [10], indexExprs, 1, tryEval),
+        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 1, tryEval),
       ).not.toThrow();
     });
 
     it("skips upper bound check for unsized dimensions (Issue #547)", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const indexExprs = [createMockExpression("100")];
       const tryEval = vi.fn(() => 100);
       // Dimension 0 means unsized array
       expect(() =>
-        validator.checkArrayBounds("unsized", [0], indexExprs, 1, tryEval),
+        TypeValidator.checkArrayBounds("unsized", [0], indexExprs, 1, tryEval),
       ).not.toThrow();
     });
   });
@@ -589,7 +638,7 @@ describe("TypeValidator", () => {
 
   describe("callbackSignaturesMatch", () => {
     it("returns true for matching signatures", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const a: ICallbackTypeInfo = {
         functionName: "handler",
         returnType: "void",
@@ -620,11 +669,11 @@ describe("TypeValidator", () => {
         ],
         typedefName: "other_fp",
       };
-      expect(validator.callbackSignaturesMatch(a, b)).toBe(true);
+      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(true);
     });
 
     it("returns false for different return types", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const a: ICallbackTypeInfo = {
         functionName: "a",
         returnType: "void",
@@ -637,11 +686,11 @@ describe("TypeValidator", () => {
         parameters: [],
         typedefName: "b_fp",
       };
-      expect(validator.callbackSignaturesMatch(a, b)).toBe(false);
+      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
     });
 
     it("returns false for different parameter counts", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const a: ICallbackTypeInfo = {
         functionName: "a",
         returnType: "void",
@@ -663,11 +712,11 @@ describe("TypeValidator", () => {
         parameters: [],
         typedefName: "b_fp",
       };
-      expect(validator.callbackSignaturesMatch(a, b)).toBe(false);
+      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
     });
 
     it("returns false for different parameter types", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const a: ICallbackTypeInfo = {
         functionName: "a",
         returnType: "void",
@@ -698,11 +747,11 @@ describe("TypeValidator", () => {
         ],
         typedefName: "b_fp",
       };
-      expect(validator.callbackSignaturesMatch(a, b)).toBe(false);
+      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
     });
 
     it("returns false for different const-ness", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const a: ICallbackTypeInfo = {
         functionName: "a",
         returnType: "void",
@@ -733,11 +782,11 @@ describe("TypeValidator", () => {
         ],
         typedefName: "b_fp",
       };
-      expect(validator.callbackSignaturesMatch(a, b)).toBe(false);
+      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
     });
 
     it("returns false for different pointer-ness", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const a: ICallbackTypeInfo = {
         functionName: "a",
         returnType: "void",
@@ -768,11 +817,11 @@ describe("TypeValidator", () => {
         ],
         typedefName: "b_fp",
       };
-      expect(validator.callbackSignaturesMatch(a, b)).toBe(false);
+      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
     });
 
     it("returns false for different array-ness", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const a: ICallbackTypeInfo = {
         functionName: "a",
         returnType: "void",
@@ -803,18 +852,16 @@ describe("TypeValidator", () => {
         ],
         typedefName: "b_fp",
       };
-      expect(validator.callbackSignaturesMatch(a, b)).toBe(false);
+      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
     });
   });
 
   describe("validateCallbackAssignment", () => {
     it("skips validation for non-function values", () => {
-      const validator = new TypeValidator(
-        createMockDeps({ knownFunctions: new Set(["handler"]) }),
-      );
+      setupState({ knownFunctions: new Set(["handler"]) });
       const expr = createMockExpression("notAFunction");
       expect(() =>
-        validator.validateCallbackAssignment(
+        TypeValidator.validateCallbackAssignment(
           "Handler",
           expr,
           "callback",
@@ -824,12 +871,10 @@ describe("TypeValidator", () => {
     });
 
     it("skips validation when callback types are not found", () => {
-      const validator = new TypeValidator(
-        createMockDeps({ knownFunctions: new Set(["handler"]) }),
-      );
+      setupState({ knownFunctions: new Set(["handler"]) });
       const expr = createMockExpression("handler");
       expect(() =>
-        validator.validateCallbackAssignment(
+        TypeValidator.validateCallbackAssignment(
           "Handler",
           expr,
           "callback",
@@ -859,15 +904,13 @@ describe("TypeValidator", () => {
           },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({
-          knownFunctions: new Set(["wrongFunc"]),
-          callbackTypes,
-        }),
-      );
+      setupState({
+        knownFunctions: new Set(["wrongFunc"]),
+        callbackTypes,
+      });
       const expr = createMockExpression("wrongFunc");
       expect(() =>
-        validator.validateCallbackAssignment(
+        TypeValidator.validateCallbackAssignment(
           "Handler",
           expr,
           "callback",
@@ -899,16 +942,14 @@ describe("TypeValidator", () => {
           },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({
-          knownFunctions: new Set(["TypeB"]),
-          callbackTypes,
-        }),
-      );
+      setupState({
+        knownFunctions: new Set(["TypeB"]),
+        callbackTypes,
+      });
       const expr = createMockExpression("TypeB");
       // TypeB is used as a field type, so nominal typing applies
       expect(() =>
-        validator.validateCallbackAssignment(
+        TypeValidator.validateCallbackAssignment(
           "TypeA",
           expr,
           "handler",
@@ -938,15 +979,13 @@ describe("TypeValidator", () => {
           },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({
-          knownFunctions: new Set(["myHandler"]),
-          callbackTypes,
-        }),
-      );
+      setupState({
+        knownFunctions: new Set(["myHandler"]),
+        callbackTypes,
+      });
       const expr = createMockExpression("myHandler");
       expect(() =>
-        validator.validateCallbackAssignment(
+        TypeValidator.validateCallbackAssignment(
           "Handler",
           expr,
           "callback",
@@ -968,16 +1007,16 @@ describe("TypeValidator", () => {
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
-      const validator = new TypeValidator(createMockDeps({ typeRegistry }));
-      expect(validator.checkConstAssignment("x")).toBeNull();
+      setupState({ typeRegistry });
+      expect(TypeValidator.checkConstAssignment("x")).toBeNull();
     });
 
     it("returns error for const variables", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         ["x", { baseType: "u32", bitWidth: 32, isArray: false, isConst: true }],
       ]);
-      const validator = new TypeValidator(createMockDeps({ typeRegistry }));
-      expect(validator.checkConstAssignment("x")).toContain(
+      setupState({ typeRegistry });
+      expect(TypeValidator.checkConstAssignment("x")).toContain(
         "cannot assign to const variable 'x'",
       );
     });
@@ -997,10 +1036,8 @@ describe("TypeValidator", () => {
           },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({ currentParameters }),
-      );
-      expect(validator.checkConstAssignment("param")).toContain(
+      setupState({ currentParameters });
+      expect(TypeValidator.checkConstAssignment("param")).toContain(
         "cannot assign to const parameter 'param'",
       );
     });
@@ -1012,13 +1049,12 @@ describe("TypeValidator", () => {
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: true },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({
-          typeRegistry,
-          resolveIdentifier: (name) => (name === "x" ? "Scope_x" : name),
-        }),
-      );
-      expect(validator.checkConstAssignment("x")).toContain(
+      setupState({
+        typeRegistry,
+        currentScope: "Scope",
+        scopeMembers: new Map([["Scope", new Set(["x"])]]),
+      });
+      expect(TypeValidator.checkConstAssignment("x")).toContain(
         "cannot assign to const variable",
       );
     });
@@ -1040,18 +1076,16 @@ describe("TypeValidator", () => {
           },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({ currentParameters }),
-      );
-      expect(validator.isConstValue("param")).toBe(true);
+      setupState({ currentParameters });
+      expect(TypeValidator.isConstValue("param")).toBe(true);
     });
 
     it("returns true for const variables", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         ["x", { baseType: "u32", bitWidth: 32, isArray: false, isConst: true }],
       ]);
-      const validator = new TypeValidator(createMockDeps({ typeRegistry }));
-      expect(validator.isConstValue("x")).toBe(true);
+      setupState({ typeRegistry });
+      expect(TypeValidator.isConstValue("x")).toBe(true);
     });
 
     it("returns false for mutable variables", () => {
@@ -1061,13 +1095,13 @@ describe("TypeValidator", () => {
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
-      const validator = new TypeValidator(createMockDeps({ typeRegistry }));
-      expect(validator.isConstValue("x")).toBe(false);
+      setupState({ typeRegistry });
+      expect(TypeValidator.isConstValue("x")).toBe(false);
     });
 
     it("returns false for unknown identifiers", () => {
-      const validator = new TypeValidator(createMockDeps());
-      expect(validator.isConstValue("unknown")).toBe(false);
+      setupState();
+      expect(TypeValidator.isConstValue("unknown")).toBe(false);
     });
   });
 
@@ -1077,30 +1111,36 @@ describe("TypeValidator", () => {
 
   describe("validateBareIdentifierInScope", () => {
     it("does nothing outside a scope", () => {
-      const validator = new TypeValidator(
-        createMockDeps({ currentScope: null }),
-      );
+      setupState({ currentScope: null });
       expect(() =>
-        validator.validateBareIdentifierInScope("anything", false, () => false),
+        TypeValidator.validateBareIdentifierInScope(
+          "anything",
+          false,
+          () => false,
+        ),
       ).not.toThrow();
     });
 
     it("allows local variables as bare identifiers", () => {
-      const validator = new TypeValidator(
-        createMockDeps({ currentScope: "Motor" }),
-      );
+      setupState({ currentScope: "Motor" });
       expect(() =>
-        validator.validateBareIdentifierInScope("localVar", true, () => false),
+        TypeValidator.validateBareIdentifierInScope(
+          "localVar",
+          true,
+          () => false,
+        ),
       ).not.toThrow();
     });
 
     it("throws for bare scope member access", () => {
       const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
-      const validator = new TypeValidator(
-        createMockDeps({ currentScope: "Motor", scopeMembers }),
-      );
+      setupState({ currentScope: "Motor", scopeMembers });
       expect(() =>
-        validator.validateBareIdentifierInScope("speed", false, () => false),
+        TypeValidator.validateBareIdentifierInScope(
+          "speed",
+          false,
+          () => false,
+        ),
       ).toThrow(
         "Use 'this.speed' to access scope member 'speed' inside scope 'Motor'",
       );
@@ -1108,25 +1148,21 @@ describe("TypeValidator", () => {
 
     it("throws for bare register access", () => {
       const symbols = createMockSymbols({ knownRegisters: new Set(["GPIO"]) });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, currentScope: "Motor" }),
-      );
+      setupState({ symbols, currentScope: "Motor" });
       expect(() =>
-        validator.validateBareIdentifierInScope("GPIO", false, () => false),
+        TypeValidator.validateBareIdentifierInScope("GPIO", false, () => false),
       ).toThrow(
         "Use 'global.GPIO' to access register 'GPIO' inside scope 'Motor'",
       );
     });
 
     it("throws for bare global function access", () => {
-      const validator = new TypeValidator(
-        createMockDeps({
-          currentScope: "Motor",
-          knownFunctions: new Set(["globalFunc"]),
-        }),
-      );
+      setupState({
+        currentScope: "Motor",
+        knownFunctions: new Set(["globalFunc"]),
+      });
       expect(() =>
-        validator.validateBareIdentifierInScope(
+        TypeValidator.validateBareIdentifierInScope(
           "globalFunc",
           false,
           () => false,
@@ -1137,14 +1173,12 @@ describe("TypeValidator", () => {
     });
 
     it("allows scope-prefixed functions", () => {
-      const validator = new TypeValidator(
-        createMockDeps({
-          currentScope: "Motor",
-          knownFunctions: new Set(["Motor_helper"]),
-        }),
-      );
+      setupState({
+        currentScope: "Motor",
+        knownFunctions: new Set(["Motor_helper"]),
+      });
       expect(() =>
-        validator.validateBareIdentifierInScope(
+        TypeValidator.validateBareIdentifierInScope(
           "Motor_helper",
           false,
           () => false,
@@ -1154,20 +1188,20 @@ describe("TypeValidator", () => {
 
     it("throws for bare enum access", () => {
       const symbols = createMockSymbols({ knownEnums: new Set(["State"]) });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, currentScope: "Motor" }),
-      );
+      setupState({ symbols, currentScope: "Motor" });
       expect(() =>
-        validator.validateBareIdentifierInScope("State", false, () => false),
+        TypeValidator.validateBareIdentifierInScope(
+          "State",
+          false,
+          () => false,
+        ),
       ).toThrow("Use 'global.State' to access global enum 'State'");
     });
 
     it("throws for bare struct access", () => {
-      const validator = new TypeValidator(
-        createMockDeps({ currentScope: "Motor" }),
-      );
+      setupState({ currentScope: "Motor" });
       expect(() =>
-        validator.validateBareIdentifierInScope("Point", false, () => true),
+        TypeValidator.validateBareIdentifierInScope("Point", false, () => true),
       ).toThrow("Use 'global.Point' to access global struct 'Point'");
     });
 
@@ -1178,11 +1212,13 @@ describe("TypeValidator", () => {
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({ currentScope: "Motor", typeRegistry }),
-      );
+      setupState({ currentScope: "Motor", typeRegistry });
       expect(() =>
-        validator.validateBareIdentifierInScope("counter", false, () => false),
+        TypeValidator.validateBareIdentifierInScope(
+          "counter",
+          false,
+          () => false,
+        ),
       ).toThrow("Use 'global.counter' to access global variable 'counter'");
     });
 
@@ -1193,11 +1229,9 @@ describe("TypeValidator", () => {
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
-      const validator = new TypeValidator(
-        createMockDeps({ currentScope: "Motor", typeRegistry }),
-      );
+      setupState({ currentScope: "Motor", typeRegistry });
       expect(() =>
-        validator.validateBareIdentifierInScope(
+        TypeValidator.validateBareIdentifierInScope(
           "Motor_speed",
           false,
           () => false,
@@ -1212,36 +1246,36 @@ describe("TypeValidator", () => {
 
   describe("validateNoEarlyExits", () => {
     it("allows blocks without early exits", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const block = createMockBlock([
         createMockStatement(),
         createMockStatement(),
       ]);
-      expect(() => validator.validateNoEarlyExits(block)).not.toThrow();
+      expect(() => TypeValidator.validateNoEarlyExits(block)).not.toThrow();
     });
 
     it("throws for return statement in critical block", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const block = createMockBlock([createMockStatement({ hasReturn: true })]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
-      expect(() => validator.validateNoEarlyExits(block)).toThrow(
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow(
         "Cannot use 'return' inside critical section",
       );
     });
 
     it("throws for return in nested block", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const innerBlock = createMockBlock([
         createMockStatement({ hasReturn: true }),
       ]);
       const block = createMockBlock([
         createMockStatement({ hasBlock: innerBlock }),
       ]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
 
     it("throws for return in if statement", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ifStmt = {
         statement: () => [
           {
@@ -1251,11 +1285,11 @@ describe("TypeValidator", () => {
         ],
       } as Partial<Parser.IfStatementContext>;
       const block = createMockBlock([createMockStatement({ hasIf: ifStmt })]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
 
     it("throws for return in if statement's nested block", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const innerBlock = createMockBlock([
         createMockStatement({ hasReturn: true }),
       ]);
@@ -1268,11 +1302,11 @@ describe("TypeValidator", () => {
         ],
       } as Partial<Parser.IfStatementContext>;
       const block = createMockBlock([createMockStatement({ hasIf: ifStmt })]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
 
     it("throws for return in while loop", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const whileStmt = {
         statement: () =>
           ({
@@ -1283,11 +1317,11 @@ describe("TypeValidator", () => {
       const block = createMockBlock([
         createMockStatement({ hasWhile: whileStmt }),
       ]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
 
     it("throws for return in while loop's nested block", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const innerBlock = createMockBlock([
         createMockStatement({ hasReturn: true }),
       ]);
@@ -1301,11 +1335,11 @@ describe("TypeValidator", () => {
       const block = createMockBlock([
         createMockStatement({ hasWhile: whileStmt }),
       ]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
 
     it("throws for return in for loop", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const forStmt = {
         statement: () =>
           ({
@@ -1314,11 +1348,11 @@ describe("TypeValidator", () => {
           }) as unknown as Parser.StatementContext,
       } as Partial<Parser.ForStatementContext>;
       const block = createMockBlock([createMockStatement({ hasFor: forStmt })]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
 
     it("throws for return in for loop's nested block", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const innerBlock = createMockBlock([
         createMockStatement({ hasReturn: true }),
       ]);
@@ -1330,11 +1364,11 @@ describe("TypeValidator", () => {
           }) as unknown as Parser.StatementContext,
       } as Partial<Parser.ForStatementContext>;
       const block = createMockBlock([createMockStatement({ hasFor: forStmt })]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
 
     it("throws for return in do-while loop", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const innerBlock = createMockBlock([
         createMockStatement({ hasReturn: true }),
       ]);
@@ -1344,7 +1378,7 @@ describe("TypeValidator", () => {
       const block = createMockBlock([
         createMockStatement({ hasDoWhile: doWhileStmt }),
       ]);
-      expect(() => validator.validateNoEarlyExits(block)).toThrow("E0853");
+      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
     });
   });
 
@@ -1354,33 +1388,34 @@ describe("TypeValidator", () => {
 
   describe("validateSwitchStatement", () => {
     it("throws for boolean switch expression", () => {
-      const validator = new TypeValidator(
-        createMockDeps({ getExpressionType: () => "bool" }),
-      );
+      setupState();
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue("bool");
       const ctx = createMockSwitchStatement({
         cases: [{} as Parser.SwitchCaseContext],
       });
       const expr = createMockExpression("flag");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).toThrow(
+      expect(() => TypeValidator.validateSwitchStatement(ctx, expr)).toThrow(
         "Cannot switch on boolean type (MISRA 16.7)",
       );
     });
 
     it("throws for switch with less than 2 clauses", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue(null);
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ intLiteral: "1" })]),
         ],
       });
       const expr = createMockExpression("x");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).toThrow(
+      expect(() => TypeValidator.validateSwitchStatement(ctx, expr)).toThrow(
         "Switch requires at least 2 clauses (MISRA 16.6)",
       );
     });
 
     it("allows switch with exactly 2 cases", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue(null);
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ intLiteral: "0" })]),
@@ -1388,11 +1423,14 @@ describe("TypeValidator", () => {
         ],
       });
       const expr = createMockExpression("x");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateSwitchStatement(ctx, expr),
+      ).not.toThrow();
     });
 
     it("allows switch with 1 case + default", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue(null);
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ intLiteral: "1" })]),
@@ -1400,11 +1438,14 @@ describe("TypeValidator", () => {
         defaultCase: createMockDefaultCase(),
       });
       const expr = createMockExpression("x");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateSwitchStatement(ctx, expr),
+      ).not.toThrow();
     });
 
     it("throws for duplicate case values", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue(null);
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ intLiteral: "1" })]),
@@ -1412,13 +1453,14 @@ describe("TypeValidator", () => {
         ],
       });
       const expr = createMockExpression("x");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).toThrow(
+      expect(() => TypeValidator.validateSwitchStatement(ctx, expr)).toThrow(
         "Duplicate case value '1'",
       );
     });
 
     it("throws for duplicate hex and integer case values (normalized)", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue(null);
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ intLiteral: "255" })]),
@@ -1426,7 +1468,7 @@ describe("TypeValidator", () => {
         ],
       });
       const expr = createMockExpression("x");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).toThrow(
+      expect(() => TypeValidator.validateSwitchStatement(ctx, expr)).toThrow(
         "Duplicate case value '255'",
       );
     });
@@ -1447,9 +1489,8 @@ describe("TypeValidator", () => {
           ],
         ]),
       });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, getExpressionType: () => "State" }),
-      );
+      setupState({ symbols });
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue("State");
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ identifier: "IDLE" })]),
@@ -1459,7 +1500,7 @@ describe("TypeValidator", () => {
         ],
       });
       const expr = createMockExpression("state");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).toThrow(
+      expect(() => TypeValidator.validateSwitchStatement(ctx, expr)).toThrow(
         "Non-exhaustive switch on State: covers 2 of 3 variants, missing 1",
       );
     });
@@ -1477,9 +1518,8 @@ describe("TypeValidator", () => {
           ],
         ]),
       });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, getExpressionType: () => "State" }),
-      );
+      setupState({ symbols });
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue("State");
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ identifier: "A" })]),
@@ -1487,7 +1527,9 @@ describe("TypeValidator", () => {
         ],
       });
       const expr = createMockExpression("state");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateSwitchStatement(ctx, expr),
+      ).not.toThrow();
     });
 
     it("allows non-exhaustive enum switch with plain default", () => {
@@ -1504,9 +1546,8 @@ describe("TypeValidator", () => {
           ],
         ]),
       });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, getExpressionType: () => "State" }),
-      );
+      setupState({ symbols });
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue("State");
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ identifier: "A" })]),
@@ -1514,7 +1555,9 @@ describe("TypeValidator", () => {
         defaultCase: createMockDefaultCase(),
       });
       const expr = createMockExpression("state");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateSwitchStatement(ctx, expr),
+      ).not.toThrow();
     });
 
     it("validates default(n) count matches remaining variants", () => {
@@ -1531,9 +1574,8 @@ describe("TypeValidator", () => {
           ],
         ]),
       });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, getExpressionType: () => "State" }),
-      );
+      setupState({ symbols });
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue("State");
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ identifier: "A" })]),
@@ -1541,7 +1583,9 @@ describe("TypeValidator", () => {
         defaultCase: createMockDefaultCase("2"), // default(2) - correct!
       });
       const expr = createMockExpression("state");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateSwitchStatement(ctx, expr),
+      ).not.toThrow();
     });
 
     it("throws when default(n) count is wrong", () => {
@@ -1558,9 +1602,8 @@ describe("TypeValidator", () => {
           ],
         ]),
       });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, getExpressionType: () => "State" }),
-      );
+      setupState({ symbols });
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue("State");
       const ctx = createMockSwitchStatement({
         cases: [
           createMockSwitchCase([createMockCaseLabel({ identifier: "A" })]),
@@ -1568,7 +1611,7 @@ describe("TypeValidator", () => {
         defaultCase: createMockDefaultCase("1"), // Wrong! Should be 2
       });
       const expr = createMockExpression("state");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).toThrow(
+      expect(() => TypeValidator.validateSwitchStatement(ctx, expr)).toThrow(
         "switch covers 2 of 3 State variants (1 explicit + default(1)). Expected 3",
       );
     });
@@ -1587,9 +1630,8 @@ describe("TypeValidator", () => {
           ],
         ]),
       });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, getExpressionType: () => "State" }),
-      );
+      setupState({ symbols });
+      vi.spyOn(TypeResolver, "getExpressionType").mockReturnValue("State");
       // Case with 2 labels: A || B
       const ctx = createMockSwitchStatement({
         cases: [
@@ -1601,80 +1643,82 @@ describe("TypeValidator", () => {
         ],
       });
       const expr = createMockExpression("state");
-      expect(() => validator.validateSwitchStatement(ctx, expr)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateSwitchStatement(ctx, expr),
+      ).not.toThrow();
     });
   });
 
   describe("getDefaultCount", () => {
     it("returns number for default(n)", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockDefaultCase("5");
-      expect(validator.getDefaultCount(ctx)).toBe(5);
+      expect(TypeValidator.getDefaultCount(ctx)).toBe(5);
     });
 
     it("returns null for plain default", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockDefaultCase();
-      expect(validator.getDefaultCount(ctx)).toBeNull();
+      expect(TypeValidator.getDefaultCount(ctx)).toBeNull();
     });
   });
 
   describe("getCaseLabelValue", () => {
     it("returns qualified type as dot-joined string", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({ qualifiedType: ["State", "IDLE"] });
-      expect(validator.getCaseLabelValue(ctx)).toBe("State.IDLE");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("State.IDLE");
     });
 
     it("returns identifier", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({ identifier: "MAX_VALUE" });
-      expect(validator.getCaseLabelValue(ctx)).toBe("MAX_VALUE");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("MAX_VALUE");
     });
 
     it("returns integer literal", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({ intLiteral: "42" });
-      expect(validator.getCaseLabelValue(ctx)).toBe("42");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("42");
     });
 
     it("returns negative integer literal", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({ intLiteral: "5", hasNegative: true });
-      expect(validator.getCaseLabelValue(ctx)).toBe("-5");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("-5");
     });
 
     it("normalizes hex to decimal", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({ hexLiteral: "0xFF" });
-      expect(validator.getCaseLabelValue(ctx)).toBe("255");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("255");
     });
 
     it("handles negative hex", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({
         hexLiteral: "0x10",
         hasNegative: true,
       });
-      expect(validator.getCaseLabelValue(ctx)).toBe("-16");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("-16");
     });
 
     it("normalizes binary to decimal", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({ binaryLiteral: "0b1010" });
-      expect(validator.getCaseLabelValue(ctx)).toBe("10");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("10");
     });
 
     it("returns char literal as-is", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel({ charLiteral: "'A'" });
-      expect(validator.getCaseLabelValue(ctx)).toBe("'A'");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("'A'");
     });
 
     it("returns empty string for unknown label type", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockCaseLabel();
-      expect(validator.getCaseLabelValue(ctx)).toBe("");
+      expect(TypeValidator.getCaseLabelValue(ctx)).toBe("");
     });
   });
 
@@ -1684,69 +1728,69 @@ describe("TypeValidator", () => {
 
   describe("validateTernaryCondition", () => {
     it("allows conditions with || operator", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockOrExpression("a || b", { hasOr: true });
-      expect(() => validator.validateTernaryCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).not.toThrow();
     });
 
     it("allows conditions with && operator", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockOrExpression("a && b", { hasAnd: true });
-      expect(() => validator.validateTernaryCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).not.toThrow();
     });
 
     it("allows conditions with = operator", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockOrExpression("a = b", { hasEquality: true });
-      expect(() => validator.validateTernaryCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).not.toThrow();
     });
 
     it("allows conditions with relational operators", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockOrExpression("a < b", { hasRelational: true });
-      expect(() => validator.validateTernaryCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).not.toThrow();
     });
 
     it("throws for bare value condition", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockOrExpression("flag");
-      expect(() => validator.validateTernaryCondition(ctx)).toThrow(
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
         "Ternary condition must be a boolean expression",
       );
     });
 
     it("throws when no andExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = {
         getText: () => "bad",
         andExpression: antlrArray([]),
       } as unknown as Parser.OrExpressionContext;
-      expect(() => validator.validateTernaryCondition(ctx)).toThrow(
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
         "Ternary condition must be a boolean expression",
       );
     });
 
     it("throws when no equalityExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const andExpr = { equalityExpression: antlrArray([]) };
       const ctx = {
         getText: () => "bad",
         andExpression: antlrArray([andExpr]),
       } as unknown as Parser.OrExpressionContext;
-      expect(() => validator.validateTernaryCondition(ctx)).toThrow(
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
         "Ternary condition must be a boolean expression",
       );
     });
 
     it("throws when no relationalExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const equalityExpr = { relationalExpression: antlrArray([]) };
       const andExpr = { equalityExpression: antlrArray([equalityExpr]) };
       const ctx = {
         getText: () => "bad",
         andExpression: antlrArray([andExpr]),
       } as unknown as Parser.OrExpressionContext;
-      expect(() => validator.validateTernaryCondition(ctx)).toThrow(
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
         "Ternary condition must be a boolean expression",
       );
     });
@@ -1754,18 +1798,18 @@ describe("TypeValidator", () => {
 
   describe("validateNoNestedTernary", () => {
     it("allows non-ternary expressions", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockOrExpression("x + 1");
       expect(() =>
-        validator.validateNoNestedTernary(ctx, "true branch"),
+        TypeValidator.validateNoNestedTernary(ctx, "true branch"),
       ).not.toThrow();
     });
 
     it("throws for nested ternary", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createMockOrExpression("a ? b : c");
       expect(() =>
-        validator.validateNoNestedTernary(ctx, "true branch"),
+        TypeValidator.validateNoNestedTernary(ctx, "true branch"),
       ).toThrow("Nested ternary not allowed in true branch");
     });
   });
@@ -1824,53 +1868,57 @@ describe("TypeValidator", () => {
     }
 
     it("allows conditions with comparison operators", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createFullDoWhileExpression("x < 10", {
         hasRelational: true,
       });
-      expect(() => validator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
     });
 
     it("allows conditions with equality operators", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createFullDoWhileExpression("x = 0", { hasEquality: true });
-      expect(() => validator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
     });
 
     it("allows conditions with && operator", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createFullDoWhileExpression("a && b", { hasAnd: true });
-      expect(() => validator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
     });
 
     it("allows conditions with || operator", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createFullDoWhileExpression("a || b", { hasOr: true });
-      expect(() => validator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
     });
 
     it("throws for bare value condition", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createFullDoWhileExpression("count");
-      expect(() => validator.validateDoWhileCondition(ctx)).toThrow("E0701");
-      expect(() => validator.validateDoWhileCondition(ctx)).toThrow(
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
+        "E0701",
+      );
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
         "do-while condition must be a boolean expression",
       );
     });
 
     it("throws for ternary in do-while condition", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = {
         getText: () => "a ? b : c",
         ternaryExpression: () => ({
           orExpression: () => [{}, {}], // Multiple orExpressions = ternary
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => validator.validateDoWhileCondition(ctx)).toThrow("E0701");
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
+        "E0701",
+      );
     });
 
     it("allows boolean literals", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create full mock expression tree where getText returns "true"
       const bitwiseOrExpr = {
         bitwiseXorExpression: antlrArray([]),
@@ -1898,11 +1946,11 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => validator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
     });
 
     it("allows negation expressions", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const bitwiseOrExpr = {
         bitwiseXorExpression: antlrArray([]),
         getText: () => "!flag",
@@ -1929,7 +1977,7 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => validator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
     });
 
     it("allows bool type variables", () => {
@@ -1939,7 +1987,7 @@ describe("TypeValidator", () => {
           { baseType: "bool", bitWidth: 8, isArray: false, isConst: false },
         ],
       ]);
-      const validator = new TypeValidator(createMockDeps({ typeRegistry }));
+      setupState({ typeRegistry });
       const bitwiseOrExpr = {
         bitwiseXorExpression: antlrArray([]),
         getText: () => "isReady",
@@ -1966,19 +2014,19 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => validator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
     });
 
     it("shows help message in error", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createFullDoWhileExpression("count");
-      expect(() => validator.validateDoWhileCondition(ctx)).toThrow(
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
         "help: use explicit comparison: count > 0 or count != 0",
       );
     });
 
     it("throws when no andExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const orExpr = {
         getText: () => "bad",
         andExpression: antlrArray([]),
@@ -1989,11 +2037,13 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => validator.validateDoWhileCondition(ctx)).toThrow("E0701");
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
+        "E0701",
+      );
     });
 
     it("throws when no equalityExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const andExpr = {
         equalityExpression: antlrArray([]),
       };
@@ -2007,11 +2057,13 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => validator.validateDoWhileCondition(ctx)).toThrow("E0701");
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
+        "E0701",
+      );
     });
 
     it("throws when no relationalExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const equalityExpr = {
         relationalExpression: antlrArray([]),
       };
@@ -2028,7 +2080,9 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => validator.validateDoWhileCondition(ctx)).toThrow("E0701");
+      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
+        "E0701",
+      );
     });
   });
 
@@ -2072,35 +2126,35 @@ describe("TypeValidator", () => {
     }
 
     it("allows conditions without function calls", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createExpressionWithFunctionCall("x > 0", false);
       expect(() =>
-        validator.validateConditionNoFunctionCall(ctx, "if"),
+        TypeValidator.validateConditionNoFunctionCall(ctx, "if"),
       ).not.toThrow();
     });
 
     it("throws for conditions with function calls", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createExpressionWithFunctionCall("isReady()", true);
       expect(() =>
-        validator.validateConditionNoFunctionCall(ctx, "if"),
+        TypeValidator.validateConditionNoFunctionCall(ctx, "if"),
       ).toThrow("E0702");
       expect(() =>
-        validator.validateConditionNoFunctionCall(ctx, "if"),
+        TypeValidator.validateConditionNoFunctionCall(ctx, "if"),
       ).toThrow("Function call in 'if' condition is not allowed");
       expect(() =>
-        validator.validateConditionNoFunctionCall(ctx, "if"),
+        TypeValidator.validateConditionNoFunctionCall(ctx, "if"),
       ).toThrow("MISRA C:2012 Rule 13.5");
     });
 
     it("returns when ternaryExpression is null", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = {
         getText: () => "x",
         ternaryExpression: () => null,
       } as unknown as Parser.ExpressionContext;
       expect(() =>
-        validator.validateConditionNoFunctionCall(ctx, "if"),
+        TypeValidator.validateConditionNoFunctionCall(ctx, "if"),
       ).not.toThrow();
     });
   });
@@ -2138,28 +2192,28 @@ describe("TypeValidator", () => {
     }
 
     it("allows ternary conditions without function calls", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createOrExprWithFunctionCall("x > 0", false);
       expect(() =>
-        validator.validateTernaryConditionNoFunctionCall(ctx),
+        TypeValidator.validateTernaryConditionNoFunctionCall(ctx),
       ).not.toThrow();
     });
 
     it("throws for ternary conditions with function calls", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const ctx = createOrExprWithFunctionCall("check()", true);
       expect(() =>
-        validator.validateTernaryConditionNoFunctionCall(ctx),
+        TypeValidator.validateTernaryConditionNoFunctionCall(ctx),
       ).toThrow("E0702");
       expect(() =>
-        validator.validateTernaryConditionNoFunctionCall(ctx),
+        TypeValidator.validateTernaryConditionNoFunctionCall(ctx),
       ).toThrow("ternary");
     });
   });
 
   describe("hasPostfixFunctionCallInUnary - nested unary", () => {
     it("handles nested unary operators (Issue #366)", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create nested unary: !!isReady()
       const innerPostfixOp = [
         { argumentList: () => ({}), getText: () => "()" },
@@ -2196,7 +2250,7 @@ describe("TypeValidator", () => {
       } as unknown as Parser.OrExpressionContext;
 
       expect(() =>
-        validator.validateTernaryConditionNoFunctionCall(ctx),
+        TypeValidator.validateTernaryConditionNoFunctionCall(ctx),
       ).toThrow("E0702");
     });
   });
@@ -2245,34 +2299,34 @@ describe("TypeValidator", () => {
     }
 
     it("allows valid shift amounts", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const { leftType, rightExpr, op, ctx } = createShiftExpression(
         "u8",
         "7",
         "<<",
       );
       expect(() =>
-        validator.validateShiftAmount(leftType, rightExpr, op, ctx),
+        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
       ).not.toThrow();
     });
 
     it("throws for shift amount >= type width", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const { leftType, rightExpr, op, ctx } = createShiftExpression(
         "u8",
         "8",
         "<<",
       );
       expect(() =>
-        validator.validateShiftAmount(leftType, rightExpr, op, ctx),
+        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
       ).toThrow("Shift amount (8) exceeds type width (8 bits)");
       expect(() =>
-        validator.validateShiftAmount(leftType, rightExpr, op, ctx),
+        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
       ).toThrow("MISRA C:2012 Rule 12.2");
     });
 
     it("throws for negative shift amounts", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create expression with negative value
       const literal = { getText: () => "5" };
       const primaryExpr = { literal: () => literal };
@@ -2294,17 +2348,17 @@ describe("TypeValidator", () => {
       } as unknown as Parser.ShiftExpressionContext;
 
       expect(() =>
-        validator.validateShiftAmount("u32", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u32", addExpr, "<<", ctx),
       ).toThrow("Negative shift amount (-5) is undefined behavior");
     });
 
     it("validates different type widths", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
 
       // u16 - max shift is 15
       const shift15 = createShiftExpression("u16", "15", ">>");
       expect(() =>
-        validator.validateShiftAmount(
+        TypeValidator.validateShiftAmount(
           shift15.leftType,
           shift15.rightExpr,
           shift15.op,
@@ -2314,7 +2368,7 @@ describe("TypeValidator", () => {
 
       const shift16 = createShiftExpression("u16", "16", ">>");
       expect(() =>
-        validator.validateShiftAmount(
+        TypeValidator.validateShiftAmount(
           shift16.leftType,
           shift16.rightExpr,
           shift16.op,
@@ -2325,7 +2379,7 @@ describe("TypeValidator", () => {
       // u32 - max shift is 31
       const shift31 = createShiftExpression("u32", "31", "<<");
       expect(() =>
-        validator.validateShiftAmount(
+        TypeValidator.validateShiftAmount(
           shift31.leftType,
           shift31.rightExpr,
           shift31.op,
@@ -2335,7 +2389,7 @@ describe("TypeValidator", () => {
 
       const shift32 = createShiftExpression("u32", "32", "<<");
       expect(() =>
-        validator.validateShiftAmount(
+        TypeValidator.validateShiftAmount(
           shift32.leftType,
           shift32.rightExpr,
           shift32.op,
@@ -2346,7 +2400,7 @@ describe("TypeValidator", () => {
       // u64 - max shift is 63
       const shift63 = createShiftExpression("u64", "63", "<<");
       expect(() =>
-        validator.validateShiftAmount(
+        TypeValidator.validateShiftAmount(
           shift63.leftType,
           shift63.rightExpr,
           shift63.op,
@@ -2356,7 +2410,7 @@ describe("TypeValidator", () => {
 
       const shift64 = createShiftExpression("u64", "64", "<<");
       expect(() =>
-        validator.validateShiftAmount(
+        TypeValidator.validateShiftAmount(
           shift64.leftType,
           shift64.rightExpr,
           shift64.op,
@@ -2366,31 +2420,31 @@ describe("TypeValidator", () => {
     });
 
     it("handles signed types", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const { leftType, rightExpr, op, ctx } = createShiftExpression(
         "i8",
         "8",
         "<<",
       );
       expect(() =>
-        validator.validateShiftAmount(leftType, rightExpr, op, ctx),
+        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
       ).toThrow("Shift amount (8) exceeds type width (8 bits)");
     });
 
     it("skips validation for unknown types", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const { leftType, rightExpr, op, ctx } = createShiftExpression(
         "CustomType",
         "100",
         "<<",
       );
       expect(() =>
-        validator.validateShiftAmount(leftType, rightExpr, op, ctx),
+        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
       ).not.toThrow();
     });
 
     it("skips validation for non-constant shift amounts", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create expression without literal
       const primaryExpr = { literal: () => null };
       const postfixExpr = {
@@ -2411,36 +2465,36 @@ describe("TypeValidator", () => {
       } as unknown as Parser.ShiftExpressionContext;
 
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("handles hex shift amounts", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const { leftType, rightExpr, op, ctx } = createShiftExpression(
         "u8",
         "0x08",
         "<<",
       );
       expect(() =>
-        validator.validateShiftAmount(leftType, rightExpr, op, ctx),
+        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
       ).toThrow("Shift amount (8) exceeds type width (8 bits)");
     });
 
     it("handles binary shift amounts", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const { leftType, rightExpr, op, ctx } = createShiftExpression(
         "u8",
         "0b1000",
         "<<",
       );
       expect(() =>
-        validator.validateShiftAmount(leftType, rightExpr, op, ctx),
+        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
       ).toThrow("Shift amount (8) exceeds type width (8 bits)");
     });
 
     it("handles complex multiplicative expressions gracefully", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create expression with multiple multiplicative terms
       const multExpr1 = { unaryExpression: () => [] };
       const multExpr2 = { unaryExpression: () => [] };
@@ -2452,12 +2506,12 @@ describe("TypeValidator", () => {
       } as unknown as Parser.ShiftExpressionContext;
 
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("handles nested unary expressions", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create nested unary: -(-5) = 5
       const innerLiteral = { getText: () => "5" };
       const innerPrimaryExpr = { literal: () => innerLiteral };
@@ -2490,12 +2544,12 @@ describe("TypeValidator", () => {
 
       // This should evaluate to 5, which is valid for u8
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("handles multiple unary expressions gracefully", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const unaryExpr1 = {
         postfixExpression: () => null,
         unaryExpression: () => null,
@@ -2515,12 +2569,12 @@ describe("TypeValidator", () => {
       } as unknown as Parser.ShiftExpressionContext;
 
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("handles binary literal in nested unary (coverage for evaluateUnaryExpression)", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create nested unary with binary literal: -0b100 = -4
       const innerLiteral = { getText: () => "0b100" }; // binary for 4
       const innerPrimaryExpr = { literal: () => innerLiteral };
@@ -2548,12 +2602,12 @@ describe("TypeValidator", () => {
 
       // -4 is negative, should throw
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).toThrow("Negative shift amount (-4) is undefined behavior");
     });
 
     it("handles nested unary returning null in evaluateUnaryExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create nested unary that returns null (no literal)
       const innerPrimaryExpr = { literal: () => null };
       const innerPostfixExpr = {
@@ -2580,12 +2634,12 @@ describe("TypeValidator", () => {
 
       // Cannot evaluate, should skip validation
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("handles fallthrough case in evaluateUnaryExpression when nothing returns value", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create unary expression that has neither postfix nor nested unary
       const unaryExpr = {
         postfixExpression: () => null,
@@ -2602,12 +2656,12 @@ describe("TypeValidator", () => {
 
       // Cannot evaluate, should skip validation
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("handles hex literal in evaluateUnaryExpression via nested unary path", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create nested unary with hex literal: -0x08 = -8
       const innerLiteral = { getText: () => "0x08" }; // hex for 8
       const innerPrimaryExpr = { literal: () => innerLiteral };
@@ -2635,12 +2689,12 @@ describe("TypeValidator", () => {
 
       // -8 is negative, should throw
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).toThrow("Negative shift amount (-8) is undefined behavior");
     });
 
     it("handles negative value in evaluateUnaryExpression when inner has negative getText", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create unary with postfixExpr where getText starts with "-"
       const innerLiteral = { getText: () => "5" };
       const innerPrimaryExpr = { literal: () => innerLiteral };
@@ -2670,12 +2724,12 @@ describe("TypeValidator", () => {
 
       // --5 should evaluate to 5 (double negative)
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("handles case where numMatch fails in evaluateUnaryExpression", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create unary with a literal that doesn't match any pattern
       const innerLiteral = { getText: () => "abc" }; // Not a number
       const innerPrimaryExpr = { literal: () => innerLiteral };
@@ -2703,12 +2757,12 @@ describe("TypeValidator", () => {
 
       // Cannot evaluate, should skip validation (value stays null)
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
 
     it("hits line 1168 in evaluateUnaryExpression (double-nested null return)", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       // Create deeply nested unary where inner has no postfix and no nested
       // This forces evaluateUnaryExpression to reach the final return null
       const innerInnerUnaryExpr = {
@@ -2736,7 +2790,7 @@ describe("TypeValidator", () => {
 
       // Cannot evaluate, should skip validation
       expect(() =>
-        validator.validateShiftAmount("u8", addExpr, "<<", ctx),
+        TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
     });
   });
@@ -2748,10 +2802,8 @@ describe("TypeValidator", () => {
   describe("resolveBareIdentifier - outside scope coverage", () => {
     it("returns null for enum identifier when outside scope", () => {
       const symbols = createMockSymbols({ knownEnums: new Set(["State"]) });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, currentScope: null }),
-      );
-      const result = validator.resolveBareIdentifier(
+      setupState({ symbols, currentScope: null });
+      const result = TypeValidator.resolveBareIdentifier(
         "State",
         false,
         () => false,
@@ -2760,10 +2812,8 @@ describe("TypeValidator", () => {
     });
 
     it("returns null for struct identifier when outside scope", () => {
-      const validator = new TypeValidator(
-        createMockDeps({ currentScope: null }),
-      );
-      const result = validator.resolveBareIdentifier(
+      setupState({ currentScope: null });
+      const result = TypeValidator.resolveBareIdentifier(
         "Point",
         false,
         () => true,
@@ -2773,10 +2823,8 @@ describe("TypeValidator", () => {
 
     it("returns null for register identifier when outside scope", () => {
       const symbols = createMockSymbols({ knownRegisters: new Set(["GPIO"]) });
-      const validator = new TypeValidator(
-        createMockDeps({ symbols, currentScope: null }),
-      );
-      const result = validator.resolveBareIdentifier(
+      setupState({ symbols, currentScope: null });
+      const result = TypeValidator.resolveBareIdentifier(
         "GPIO",
         false,
         () => false,
@@ -2791,98 +2839,89 @@ describe("TypeValidator", () => {
 
   describe("validateIntegerAssignment", () => {
     it("skips validation for compound assignments", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const literalSpy = vi.spyOn(TypeResolver, "validateLiteralFitsType");
       const conversionSpy = vi.spyOn(TypeResolver, "validateTypeConversion");
 
-      validator.validateIntegerAssignment("u8", "10", null, true);
+      TypeValidator.validateIntegerAssignment("u8", "10", null, true);
 
       expect(literalSpy).not.toHaveBeenCalled();
       expect(conversionSpy).not.toHaveBeenCalled();
-      literalSpy.mockRestore();
-      conversionSpy.mockRestore();
     });
 
     it("skips validation for non-integer types", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const spy = vi.spyOn(TypeResolver, "validateLiteralFitsType");
 
-      validator.validateIntegerAssignment("f32", "10", null, false);
+      TypeValidator.validateIntegerAssignment("f32", "10", null, false);
 
       expect(spy).not.toHaveBeenCalled();
-      spy.mockRestore();
     });
 
     it("validates decimal literal fits in target type", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const spy = vi
         .spyOn(TypeResolver, "validateLiteralFitsType")
         .mockImplementation(() => {});
 
-      validator.validateIntegerAssignment("u8", "100", null, false);
+      TypeValidator.validateIntegerAssignment("u8", "100", null, false);
 
       expect(spy).toHaveBeenCalledWith("100", "u8");
-      spy.mockRestore();
     });
 
     it("validates negative decimal literal fits in target type", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const spy = vi
         .spyOn(TypeResolver, "validateLiteralFitsType")
         .mockImplementation(() => {});
 
-      validator.validateIntegerAssignment("i8", "-50", null, false);
+      TypeValidator.validateIntegerAssignment("i8", "-50", null, false);
 
       expect(spy).toHaveBeenCalledWith("-50", "i8");
-      spy.mockRestore();
     });
 
     it("validates hex literal fits in target type", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const spy = vi
         .spyOn(TypeResolver, "validateLiteralFitsType")
         .mockImplementation(() => {});
 
-      validator.validateIntegerAssignment("u8", "0xFF", null, false);
+      TypeValidator.validateIntegerAssignment("u8", "0xFF", null, false);
 
       expect(spy).toHaveBeenCalledWith("0xFF", "u8");
-      spy.mockRestore();
     });
 
     it("validates binary literal fits in target type", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const spy = vi
         .spyOn(TypeResolver, "validateLiteralFitsType")
         .mockImplementation(() => {});
 
-      validator.validateIntegerAssignment("u8", "0b11111111", null, false);
+      TypeValidator.validateIntegerAssignment("u8", "0b11111111", null, false);
 
       expect(spy).toHaveBeenCalledWith("0b11111111", "u8");
-      spy.mockRestore();
     });
 
     it("validates type conversion for non-literal expressions", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const spy = vi
         .spyOn(TypeResolver, "validateTypeConversion")
         .mockImplementation(() => {});
 
-      validator.validateIntegerAssignment("u8", "myVariable", "u16", false);
+      TypeValidator.validateIntegerAssignment("u8", "myVariable", "u16", false);
 
       expect(spy).toHaveBeenCalledWith("u8", "u16");
-      spy.mockRestore();
     });
 
     it("trims whitespace from expression text", () => {
-      const validator = new TypeValidator(createMockDeps());
+      setupState();
       const spy = vi
         .spyOn(TypeResolver, "validateLiteralFitsType")
         .mockImplementation(() => {});
 
-      validator.validateIntegerAssignment("u8", "  100  ", null, false);
+      TypeValidator.validateIntegerAssignment("u8", "  100  ", null, false);
 
       expect(spy).toHaveBeenCalledWith("100", "u8");
-      spy.mockRestore();
     });
   });
 });

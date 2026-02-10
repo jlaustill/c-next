@@ -28,6 +28,11 @@ type SuffixResult =
   | { stop: false; info: InternalTypeInfo };
 
 class TypeResolver {
+  /** Sentinel value for `global` keyword in postfix expression type resolution */
+  private static readonly GLOBAL_SENTINEL = "__global__";
+  /** Sentinel value for `this` keyword in postfix expression type resolution */
+  private static readonly THIS_SENTINEL = "__this__";
+
   /**
    * ADR-024: Check if a type is any integer (signed or unsigned)
    */
@@ -249,18 +254,7 @@ class TypeResolver {
     current: InternalTypeInfo,
   ): SuffixResult {
     if (text.startsWith(".")) {
-      const memberName = text.slice(1);
-      const memberInfo = TypeResolver.getMemberTypeInfo(
-        current.baseType,
-        memberName,
-      );
-      if (!memberInfo) {
-        return { stop: true, type: null };
-      }
-      return {
-        stop: false,
-        info: { baseType: memberInfo.baseType, isArray: memberInfo.isArray },
-      };
+      return TypeResolver.processMemberSuffix(text.slice(1), current);
     }
 
     if (text.startsWith("[") && text.endsWith("]")) {
@@ -268,6 +262,55 @@ class TypeResolver {
     }
 
     return { stop: false, info: current };
+  }
+
+  /**
+   * Process a member access suffix (.name) and resolve the resulting type.
+   * Handles global/this sentinel values and regular struct member lookups.
+   */
+  private static processMemberSuffix(
+    memberName: string,
+    current: InternalTypeInfo,
+  ): SuffixResult {
+    // Handle global.X — resolve X as a global variable name
+    if (current.baseType === TypeResolver.GLOBAL_SENTINEL) {
+      return TypeResolver.resolveRegistryLookup(memberName);
+    }
+
+    // Handle this.X — resolve X as a scope member variable
+    if (
+      current.baseType === TypeResolver.THIS_SENTINEL &&
+      CodeGenState.currentScope
+    ) {
+      const scopedName = `${CodeGenState.currentScope}_${memberName}`;
+      return TypeResolver.resolveRegistryLookup(scopedName);
+    }
+
+    const memberInfo = TypeResolver.getMemberTypeInfo(
+      current.baseType,
+      memberName,
+    );
+    if (!memberInfo) {
+      return { stop: true, type: null };
+    }
+    return {
+      stop: false,
+      info: { baseType: memberInfo.baseType, isArray: memberInfo.isArray },
+    };
+  }
+
+  /**
+   * Look up a variable name in the type registry and return a SuffixResult.
+   */
+  private static resolveRegistryLookup(name: string): SuffixResult {
+    const typeInfo = CodeGenState.typeRegistry.get(name);
+    if (typeInfo) {
+      return {
+        stop: false,
+        info: { baseType: typeInfo.baseType, isArray: typeInfo.isArray },
+      };
+    }
+    return { stop: true, type: null };
   }
 
   /**
@@ -318,6 +361,16 @@ class TypeResolver {
         return { baseType: typeInfo.baseType, isArray: typeInfo.isArray };
       }
       return null;
+    }
+
+    // Handle global.X and this.X — these are scope qualifiers, not types.
+    // The actual variable name is the first .suffix after the keyword.
+    // Return a sentinel so getPostfixExpressionType knows to consume one suffix.
+    if (ctx.GLOBAL()) {
+      return { baseType: TypeResolver.GLOBAL_SENTINEL, isArray: false };
+    }
+    if (ctx.THIS()) {
+      return { baseType: TypeResolver.THIS_SENTINEL, isArray: false };
     }
 
     const literal = ctx.literal();
