@@ -60,8 +60,8 @@ function generateStringCapacityDim(typeCtx: Parser.TypeContext): string {
 }
 
 class ArrayDimensionUtils {
-  static generateArrayTypeDimension = generateArrayTypeDimension;
-  static generateStringCapacityDim = generateStringCapacityDim;
+  static readonly generateArrayTypeDimension = generateArrayTypeDimension;
+  static readonly generateStringCapacityDim = generateStringCapacityDim;
 }
 
 export default ArrayDimensionUtils;

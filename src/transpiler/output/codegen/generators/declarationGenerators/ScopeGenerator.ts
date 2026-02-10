@@ -129,10 +129,6 @@ function generateScopeVariable(
     varName,
     scopeName,
     isPrivate,
-    isConst,
-    isArray,
-    arrayTypeCtx,
-    arrayDims,
     orchestrator,
   );
 }
@@ -174,12 +170,14 @@ function generateRegularVariable(
   varName: string,
   scopeName: string,
   isPrivate: boolean,
-  isConst: boolean,
-  isArray: boolean,
-  arrayTypeCtx: Parser.ArrayTypeContext | null,
-  arrayDims: Parser.ArrayDimensionContext[],
   orchestrator: IOrchestrator,
 ): string {
+  // Derive array and const info from varDecl
+  const isConst = varDecl.constModifier() !== null;
+  const arrayDims = varDecl.arrayDimension();
+  const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
+  const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
+
   // ADR-016: All scope variables are emitted at file scope (static-like persistence)
   const type = orchestrator.generateType(varDecl.type());
   const fullName = `${scopeName}_${varName}`;
