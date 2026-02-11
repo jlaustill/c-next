@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.66] - 2026-02-11
+
+### Added
+
+- Dual-mode test infrastructure: tests now run in both C and C++ modes by default (PR #765)
+- Test mode markers: `// test-c-only`, `// test-cpp-only`, `// test-no-exec`, `// test-transpile-only`
+- C++ snapshot generation for helper `.cnx` files via `#include` directive traversal (PR #766)
+- ADR-058 explicit `.length` properties for arrays on structs (PR #761)
+- Unified variable declaration formatting for consistent output (PR #763)
+- Volta pinning for Node 24.13.1 and npm 11.8.0 in CI (PR #759)
+- 74+ new unit tests for CodeGenerator, ParameterInputAdapter, and ADR-058 edge cases
+
+### Changed
+
+- Test framework auto-detects C++ requirements from headers (class, namespace, template)
+- `generate-cpp-snapshots.ts` script now processes helper files recursively
+- Unified parameter generation pipeline with ParameterInputAdapter
+
+### Fixed
+
+- Fix enum array dimensions in generated headers (PR #761)
+- Address ADR-058 review feedback for property handlers (PR #764)
+- Reduce cognitive complexity in `_isArrayAccessStringExpression` (PR #765)
+- Remove stale `.expected.c` files from cpp-only tests
+
+## [0.1.65] - 2026-02-10
+
+### Added
+
+- Reject unbounded array parameters (`u8[] arr`) for memory safety (PR #757)
+- Require C-Next style array parameters (`u8[10] arr` not `u8 arr[10]`)
+
+### Fixed
+
+- Fix string array `.length` property returning wrong value
+- Reduce cognitive complexity for SonarCloud compliance (S3776)
+- Use nullish coalescing for simpler code (S6606)
+
 ## [0.1.64] - 2026-02-10
 
 ### Fixed
@@ -874,7 +912,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.61...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.66...HEAD
+[0.1.66]: https://github.com/jlaustill/c-next/compare/v0.1.65...v0.1.66
+[0.1.65]: https://github.com/jlaustill/c-next/compare/v0.1.64...v0.1.65
+[0.1.64]: https://github.com/jlaustill/c-next/compare/v0.1.63...v0.1.64
+[0.1.63]: https://github.com/jlaustill/c-next/compare/v0.1.62...v0.1.63
+[0.1.62]: https://github.com/jlaustill/c-next/compare/v0.1.61...v0.1.62
 [0.1.61]: https://github.com/jlaustill/c-next/compare/v0.1.60...v0.1.61
 [0.1.60]: https://github.com/jlaustill/c-next/compare/v0.1.59...v0.1.60
 [0.1.59]: https://github.com/jlaustill/c-next/compare/v0.1.58...v0.1.59
