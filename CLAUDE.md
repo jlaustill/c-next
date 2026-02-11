@@ -450,7 +450,7 @@ The test infrastructure supports running tests in **both C and C++ modes** to va
 
 | Marker                   | Meaning                                                    |
 | ------------------------ | ---------------------------------------------------------- |
-| _(no marker)_            | Run in C mode only (backward compatibility)                |
+| _(no marker)_            | Run in BOTH C and C++ modes (default)                      |
 | `// test-c-only`         | Explicitly run only in C mode (e.g., MISRA-specific tests) |
 | `// test-cpp-only`       | Run only in C++ mode (e.g., C++ template interop tests)    |
 | `// test-cpp-mode`       | Legacy marker - same as `// test-cpp-only`                 |

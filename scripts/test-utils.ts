@@ -926,13 +926,59 @@ class TestUtils {
       result.compileSuccess = true; // Skip if no gcc
     }
 
-    // Run static analysis tools (C mode only for MISRA)
-    if (mode === "c" && tools.misra) {
-      const misraResult = TestUtils.validateMisra(expectedImplPath, rootDir);
-      if (!misraResult.valid) {
-        result.error = `MISRA check failed: ${misraResult.message}`;
-        cleanupHelpers();
-        return result;
+    // Run static analysis tools (C mode only - tools are C-specific)
+    if (mode === "c") {
+      // Step 1: cppcheck static analysis
+      if (tools.cppcheck) {
+        const cppcheckResult = TestUtils.validateCppcheck(expectedImplPath);
+        if (!cppcheckResult.valid) {
+          result.error = `cppcheck failed: ${cppcheckResult.message}`;
+          cleanupHelpers();
+          return result;
+        }
+      }
+
+      // Step 2: clang-tidy analysis
+      if (tools.clangTidy) {
+        const clangTidyResult = TestUtils.validateClangTidy(expectedImplPath);
+        if (!clangTidyResult.valid) {
+          result.error = `clang-tidy failed: ${clangTidyResult.message}`;
+          cleanupHelpers();
+          return result;
+        }
+      }
+
+      // Step 3: MISRA compliance
+      if (tools.misra) {
+        const misraResult = TestUtils.validateMisra(expectedImplPath, rootDir);
+        if (!misraResult.valid) {
+          result.error = `MISRA check failed: ${misraResult.message}`;
+          cleanupHelpers();
+          return result;
+        }
+      }
+
+      // Step 4: flawfinder security analysis
+      if (tools.flawfinder) {
+        const flawfinderResult = TestUtils.validateFlawfinder(expectedImplPath);
+        if (!flawfinderResult.valid) {
+          result.error = `flawfinder failed: ${flawfinderResult.message}`;
+          cleanupHelpers();
+          return result;
+        }
+      }
+
+      // Step 5: no-warnings check (if marker present)
+      if (TestUtils.hasNoWarningsMarker(source)) {
+        const noWarningsResult = TestUtils.validateNoWarnings(
+          expectedImplPath,
+          rootDir,
+        );
+        if (!noWarningsResult.valid) {
+          result.error = `No-warnings check failed: ${noWarningsResult.message}`;
+          cleanupHelpers();
+          return result;
+        }
       }
     }
 
