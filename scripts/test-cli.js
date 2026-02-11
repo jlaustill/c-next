@@ -199,18 +199,19 @@ test("-o flag overrides output path", () => {
 // --cpp flag
 test("--cpp flag outputs .cpp extension", () => {
   const inputFile = "tests/basics/hello-world.test.cnx";
-  const expectedOutput = "tests/basics/hello-world.test.cpp";
+  // Use a temp output file to avoid deleting the expected .test.cpp file
+  const tempOutput = "tests/basics/hello-world.cli-test-temp.cpp";
 
-  cleanup([join(rootDir, expectedOutput)]);
+  cleanup([join(rootDir, tempOutput)]);
 
-  const result = runCli([inputFile, "--cpp"]);
+  const result = runCli([inputFile, "--cpp", "-o", tempOutput]);
   assert(result.success, `Command should succeed: ${result.output}`);
   assert(
-    existsSync(join(rootDir, expectedOutput)),
-    `Output file should exist: ${expectedOutput}`,
+    existsSync(join(rootDir, tempOutput)),
+    `Output file should exist: ${tempOutput}`,
   );
 
-  cleanup([join(rootDir, expectedOutput)]);
+  cleanup([join(rootDir, tempOutput)]);
 });
 
 // Invalid file path
