@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.67] - 2026-02-11
+
+### Added
+
+- Qualified enum access in array dimensions: `u8[EColor.COUNT]` generates `u8[EColor_COUNT]` (PR #772)
+- Compile error `error[E0424]` for bare enum members in non-enum contexts with helpful suggestion (Issue #770, PR #772)
+- 3 new error tests for bare enum members in comparisons, function args, and array dimensions
+
+### Changed
+
+- Bare enum members now only resolve where `expectedType` is set (assignments, returns, struct inits, switch cases)
+- Updated existing tests to use qualified enum access in comparisons and function arguments
+
+### Removed
+
+- `SymbolTable.resolveExternalEnumArrayDimensions()` and Stage 3c pipeline — replaced by qualified access
+- `TSymbolAdapter.buildEnumMemberLookup()` — auto-resolution no longer needed
+
+### Fixed
+
+- `CodeGenState` import path after architecture refactoring (PR #768)
+- Cross-file enum array dimensions in generated headers (PR #769)
+
 ## [0.1.66] - 2026-02-11
 
 ### Added
@@ -981,6 +1004,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
+[0.1.67]: https://github.com/jlaustill/c-next/compare/v0.1.66...v0.1.67
 [0.1.22]: https://github.com/jlaustill/c-next/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/jlaustill/c-next/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/jlaustill/c-next/compare/v0.1.19...v0.1.20
