@@ -1,0 +1,22 @@
+// Bug: Enum value used as array size missing prefix in header
+// cnext v0.1.65
+//
+// .cpp generates: extern const uint8_t DATA[EColor_COUNT];  (correct)
+// .h generates:   extern const uint8_t DATA[COUNT];         (wrong - missing prefix)
+//
+// Causes: error: 'COUNT' was not declared in this scope
+
+enum EColor {
+    RED,
+    GREEN,
+    BLUE,
+    COUNT
+}
+
+const u8[COUNT] DATA <- [10, 20, 30];
+
+scope Test {
+    public u8 get(u8 idx) {
+        return global.DATA[idx];
+    }
+}

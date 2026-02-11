@@ -12,6 +12,9 @@ import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import typeUtils from "./generators/mapType";
 import HeaderGeneratorUtils from "./HeaderGeneratorUtils";
+// Unified parameter generation (Phase 1)
+import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
+import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
 
 const { mapType } = typeUtils;
 
@@ -184,41 +187,24 @@ abstract class BaseHeaderGenerator {
     passByValueSet?: ReadonlySet<string>,
     allKnownEnums?: ReadonlySet<string>,
   ): string {
-    const baseType = mapType(p.type);
-    const constMod = p.isConst ? "const " : "";
-    const autoConst = p.isAutoConst ? "const " : "";
+    // Pre-compute pass-by-value (ISR, float, enum, or explicitly marked)
+    const isPassByValue =
+      p.type === "ISR" ||
+      p.type === "f32" ||
+      p.type === "f64" ||
+      allKnownEnums?.has(p.type) ||
+      passByValueSet?.has(p.name) ||
+      false;
 
-    // Array parameters - pass naturally as pointers per C semantics
-    if (p.isArray && p.arrayDimensions) {
-      const dims = p.arrayDimensions.map((d) => `[${d}]`).join("");
-      if (p.type === "string") {
-        return `${autoConst}${constMod}char* ${p.name}${dims}`;
-      }
-      return `${autoConst}${constMod}${baseType} ${p.name}${dims}`;
-    }
+    // Build normalized input using adapter
+    const input = ParameterInputAdapter.fromSymbol(p, {
+      mapType: (t) => mapType(t),
+      isPassByValue,
+      knownEnums: allKnownEnums ?? new Set(),
+    });
 
-    // ISR is a function pointer typedef - no pointer needed
-    if (p.type === "ISR") {
-      return `${constMod}${baseType} ${p.name}`;
-    }
-
-    // Float types use standard pass-by-value
-    if (p.type === "f32" || p.type === "f64") {
-      return `${constMod}${baseType} ${p.name}`;
-    }
-
-    // Enum types use pass-by-value (like primitives)
-    if (allKnownEnums?.has(p.type)) {
-      return `${constMod}${baseType} ${p.name}`;
-    }
-
-    // Check if parameter should be passed by value
-    if (passByValueSet?.has(p.name)) {
-      return `${constMod}${baseType} ${p.name}`;
-    }
-
-    // Default: pass by reference using subclass-specific semantics
-    return `${autoConst}${constMod}${baseType}${this.getRefSuffix()} ${p.name}`;
+    // Use shared builder with subclass-specific ref suffix
+    return ParameterSignatureBuilder.build(input, this.getRefSuffix());
   }
 }
 

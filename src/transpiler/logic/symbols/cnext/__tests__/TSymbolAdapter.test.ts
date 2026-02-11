@@ -463,4 +463,183 @@ describe("TSymbolAdapter", () => {
       expect(symbolTable.getStructFieldType("Point", "x")).toBe("i32");
     });
   });
+
+  describe("enum member resolution in array dimensions", () => {
+    it("resolves unqualified enum member in variable array dimension", () => {
+      const enumSym: IEnumSymbol = {
+        kind: ESymbolKind.Enum,
+        name: "EColor",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        members: new Map([
+          ["RED", 0],
+          ["GREEN", 1],
+          ["BLUE", 2],
+          ["COUNT", 3],
+        ]),
+      };
+
+      const variable: IVariableSymbol = {
+        kind: ESymbolKind.Variable,
+        name: "DATA",
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: "u8",
+        isConst: true,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: ["COUNT"], // Unqualified enum member
+      };
+
+      const result = TSymbolAdapter.toISymbols(
+        [enumSym, variable],
+        symbolTable,
+      );
+
+      // Find the variable symbol
+      const varSym = result.find(
+        (s) => s.kind === ESymbolKind.Variable && s.name === "DATA",
+      );
+      expect(varSym).toBeDefined();
+      expect(varSym!.arrayDimensions).toEqual(["EColor_COUNT"]);
+    });
+
+    it("resolves enum member in function parameter array dimension", () => {
+      const enumSym: IEnumSymbol = {
+        kind: ESymbolKind.Enum,
+        name: "Size",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        members: new Map([
+          ["SMALL", 10],
+          ["MEDIUM", 20],
+          ["LARGE", 30],
+        ]),
+      };
+
+      const funcSym: IFunctionSymbol = {
+        kind: ESymbolKind.Function,
+        name: "process",
+        sourceFile: "test.cnx",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        returnType: "void",
+        visibility: "public",
+        parameters: [
+          {
+            name: "buffer",
+            type: "u8",
+            isConst: false,
+            isArray: true,
+            arrayDimensions: ["MEDIUM"], // Unqualified enum member
+          },
+        ],
+      };
+
+      const result = TSymbolAdapter.toISymbols([enumSym, funcSym], symbolTable);
+
+      // Find the function symbol
+      const funcResult = result.find(
+        (s) => s.kind === ESymbolKind.Function && s.name === "process",
+      );
+      expect(funcResult).toBeDefined();
+      expect(funcResult!.parameters).toBeDefined();
+      expect(funcResult!.parameters![0].arrayDimensions).toEqual([
+        "Size_MEDIUM",
+      ]);
+    });
+
+    it("does not resolve ambiguous enum member (exists in multiple enums)", () => {
+      const enum1: IEnumSymbol = {
+        kind: ESymbolKind.Enum,
+        name: "EColor",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        members: new Map([["COUNT", 3]]),
+      };
+
+      const enum2: IEnumSymbol = {
+        kind: ESymbolKind.Enum,
+        name: "ESize",
+        sourceFile: "test.cnx",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        members: new Map([
+          ["COUNT", 5], // Same member name in different enum
+        ]),
+      };
+
+      const variable: IVariableSymbol = {
+        kind: ESymbolKind.Variable,
+        name: "DATA",
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: "u8",
+        isConst: true,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: ["COUNT"], // Ambiguous - exists in both enums
+      };
+
+      const result = TSymbolAdapter.toISymbols(
+        [enum1, enum2, variable],
+        symbolTable,
+      );
+
+      // Find the variable symbol - dimension should NOT be resolved
+      const varSym = result.find(
+        (s) => s.kind === ESymbolKind.Variable && s.name === "DATA",
+      );
+      expect(varSym).toBeDefined();
+      expect(varSym!.arrayDimensions).toEqual(["COUNT"]); // Left as-is
+    });
+
+    it("preserves numeric array dimensions", () => {
+      const enumSym: IEnumSymbol = {
+        kind: ESymbolKind.Enum,
+        name: "EColor",
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        members: new Map([["COUNT", 3]]),
+      };
+
+      const variable: IVariableSymbol = {
+        kind: ESymbolKind.Variable,
+        name: "DATA",
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: "u8",
+        isConst: true,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: [256], // Numeric dimension
+      };
+
+      const result = TSymbolAdapter.toISymbols(
+        [enumSym, variable],
+        symbolTable,
+      );
+
+      const varSym = result.find(
+        (s) => s.kind === ESymbolKind.Variable && s.name === "DATA",
+      );
+      expect(varSym!.arrayDimensions).toEqual(["256"]);
+    });
+  });
 });
