@@ -2390,5 +2390,482 @@ describe("PostfixExpressionGenerator", () => {
         generatePostfixExpression(ctx, input, state, orchestrator),
       ).toThrow(".char_count is only available on strings");
     });
+
+    it("throws error for args", () => {
+      const ctx = createMockPostfixExpressionContext("args", [
+        createMockPostfixOp({ identifier: "char_count" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState({ mainArgsName: "args" });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "args",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(".char_count is only available on strings");
+    });
+  });
+
+  describe("explicit length edge cases (ADR-058)", () => {
+    it("returns dynamic dimension comment for array with C macro size", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: ["BUFFER_SIZE" as unknown as number], // C macro
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("dynamic dimension BUFFER_SIZE");
+    });
+
+    it("returns C macro name for element_count with dynamic dimension", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: ["BUFFER_SIZE" as unknown as number], // C macro
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("BUFFER_SIZE");
+    });
+
+    it("throws error for bit_length on args", () => {
+      const ctx = createMockPostfixExpressionContext("args", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState({ mainArgsName: "args" });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "args",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(".bit_length is not supported on 'args'");
+    });
+
+    it("throws error for byte_length on args", () => {
+      const ctx = createMockPostfixExpressionContext("args", [
+        createMockPostfixOp({ identifier: "byte_length" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState({ mainArgsName: "args" });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "args",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(".byte_length is not supported on 'args'");
+    });
+
+    it("returns comment for unknown type bit_length", () => {
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry: new Map() });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("unknown type");
+    });
+
+    it("returns comment for unknown type byte_length", () => {
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "byte_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry: new Map() });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("unknown type");
+    });
+
+    it("returns comment for unknown type element_count", () => {
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry: new Map() });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("unknown type");
+    });
+
+    it("returns comment for string without capacity", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "str",
+          {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: false,
+            isConst: false,
+            isString: true,
+            // No stringCapacity set
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("str", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "str",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("unknown string capacity");
+    });
+
+    it("handles struct field bit_length for string member", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "obj",
+          {
+            baseType: "MyStruct",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["MyStruct"]),
+      });
+      const ctx = createMockPostfixExpressionContext("obj", [
+        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "obj",
+        isKnownStruct: (name) => name === "MyStruct",
+        getStructFieldInfo: () => ({
+          type: "string<32>",
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("264"); // (32 + 1) * 8 = 264
+    });
+
+    it("handles struct field byte_length", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "obj",
+          {
+            baseType: "MyStruct",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["MyStruct"]),
+      });
+      const ctx = createMockPostfixExpressionContext("obj", [
+        createMockPostfixOp({ identifier: "value" }),
+        createMockPostfixOp({ identifier: "byte_length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "obj",
+        isKnownStruct: (name) => name === "MyStruct",
+        getStructFieldInfo: () => ({
+          type: "u16",
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("2"); // 16 / 8 = 2
+    });
+
+    it("handles struct field element_count for array member", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "obj",
+          {
+            baseType: "MyStruct",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["MyStruct"]),
+      });
+      const ctx = createMockPostfixExpressionContext("obj", [
+        createMockPostfixOp({ identifier: "data" }),
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "obj",
+        isKnownStruct: (name) => name === "MyStruct",
+        getStructFieldInfo: () => ({
+          type: "u8",
+          dimensions: [64],
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("64");
+    });
+
+    it("throws for struct field element_count on non-array member", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "obj",
+          {
+            baseType: "MyStruct",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["MyStruct"]),
+      });
+      const ctx = createMockPostfixExpressionContext("obj", [
+        createMockPostfixOp({ identifier: "value" }),
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "obj",
+        isKnownStruct: (name) => name === "MyStruct",
+        getStructFieldInfo: () => ({
+          type: "u32",
+        }),
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(".element_count is only available on arrays");
+    });
+
+    it("handles struct field char_count for string member", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "obj",
+          {
+            baseType: "MyStruct",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["MyStruct"]),
+      });
+      const ctx = createMockPostfixExpressionContext("obj", [
+        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({ identifier: "char_count" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "obj",
+        isKnownStruct: (name) => name === "MyStruct",
+        getStructFieldInfo: () => ({
+          type: "string<32>",
+        }),
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("strlen(obj.name)");
+    });
+
+    it("throws for struct field char_count on non-string member", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "obj",
+          {
+            baseType: "MyStruct",
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const symbols = createMockSymbols({
+        knownStructs: new Set(["MyStruct"]),
+      });
+      const ctx = createMockPostfixExpressionContext("obj", [
+        createMockPostfixOp({ identifier: "value" }),
+        createMockPostfixOp({ identifier: "char_count" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "obj",
+        isKnownStruct: (name) => name === "MyStruct",
+        getStructFieldInfo: () => ({
+          type: "u32",
+        }),
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(".char_count is only available on strings");
+    });
+
+    it("handles array with unknown dimensions for element_count", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [], // Empty dimensions
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("unknown dimensions");
+    });
+
+    it("handles array with unknown dimensions for bit_length", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [], // Empty dimensions
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("unknown dimensions");
+    });
+
+    it("handles enum array bit_length", () => {
+      const symbols = createMockSymbols({
+        knownEnums: new Set(["Color"]),
+      });
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "colors",
+          {
+            baseType: "Color",
+            bitWidth: 0, // Not set, should infer from isEnum
+            isArray: true,
+            arrayDimensions: [4],
+            isConst: false,
+            isEnum: true,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("colors", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "colors",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("128"); // 4 * 32 = 128
+    });
+
+    it("returns 0 with comment for unsupported element type in array", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "void", // Unsupported type
+            bitWidth: 0,
+            isArray: true,
+            arrayDimensions: [4],
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toContain("unsupported element type void");
+    });
   });
 });
