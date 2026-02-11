@@ -82,7 +82,7 @@ class TSymbolAdapter {
 
     // Qualified enum access (e.g., "EColor.COUNT") - convert dots to underscores
     if (dim.includes(".")) {
-      return dim.replace(/\./g, "_");
+      return dim.replaceAll(".", "_");
     }
 
     // Pass through as-is (C macros, other identifiers)
