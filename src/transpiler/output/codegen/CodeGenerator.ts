@@ -805,46 +805,54 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Issue #137: Check for array element access (e.g., names[0], arr[i])
+    return this._isArrayAccessStringExpression(text);
+  }
+
+  /**
+   * Check if array access expression evaluates to a string.
+   * Extracted from isStringExpression to reduce cognitive complexity.
+   */
+  private _isArrayAccessStringExpression(text: string): boolean {
     // Pattern: identifier[expression] or identifier[expression][expression]...
     // BUT NOT if accessing .length/.capacity/.size (those return numbers, not strings)
     const arrayAccessMatch = /^([a-zA-Z_]\w*)\[/.exec(text);
-    if (arrayAccessMatch) {
-      // ADR-045: String properties return numeric values, not strings
-      if (
-        text.endsWith(".length") ||
-        text.endsWith(".capacity") ||
-        text.endsWith(".size")
-      ) {
-        return false;
-      }
-      const arrayName = arrayAccessMatch[1];
-      const typeInfo = CodeGenState.typeRegistry.get(arrayName);
-      // Check if it's an ARRAY OF STRINGS (not a single string being indexed)
-      // A single string<50> has arrayDimensions=[51] (just the char buffer)
-      // An array of strings string<50>[10] has arrayDimensions=[10, 51]
-      // Single string indexing (e.g., userName[i]) returns a char, not a string
-      // Array of strings indexing (e.g., names[0]) returns a string
-      if (typeInfo?.isString) {
-        // For strings, only treat as string expression if it's an array of strings
-        // (arrayDimensions.length > 1 means it's string<N>[M], not just string<N>)
-        const dims = typeInfo.arrayDimensions;
-        if (Array.isArray(dims) && dims.length > 1) {
-          return true;
-        }
-        // Single string indexing returns char, not string
-        return false;
-      }
-      // Non-string array with string base type
-      if (
-        typeInfo?.isArray &&
-        typeInfo.baseType &&
-        TypeCheckUtils.isString(typeInfo.baseType)
-      ) {
-        return true;
-      }
+    if (!arrayAccessMatch) {
+      return false;
     }
 
-    return false;
+    // ADR-045: String properties return numeric values, not strings
+    if (
+      text.endsWith(".length") ||
+      text.endsWith(".capacity") ||
+      text.endsWith(".size")
+    ) {
+      return false;
+    }
+
+    const arrayName = arrayAccessMatch[1];
+    const typeInfo = CodeGenState.typeRegistry.get(arrayName);
+    if (!typeInfo) {
+      return false;
+    }
+
+    // Check if it's an ARRAY OF STRINGS (not a single string being indexed)
+    // A single string<50> has arrayDimensions=[51] (just the char buffer)
+    // An array of strings string<50>[10] has arrayDimensions=[10, 51]
+    // Single string indexing (e.g., userName[i]) returns a char, not a string
+    // Array of strings indexing (e.g., names[0]) returns a string
+    if (typeInfo.isString) {
+      // For strings, only treat as string expression if it's an array of strings
+      // (arrayDimensions.length > 1 means it's string<N>[M], not just string<N>)
+      const dims = typeInfo.arrayDimensions;
+      return Array.isArray(dims) && dims.length > 1;
+    }
+
+    // Non-string array with string base type
+    return Boolean(
+      typeInfo.isArray &&
+      typeInfo.baseType &&
+      TypeCheckUtils.isString(typeInfo.baseType),
+    );
   }
 
   /**
