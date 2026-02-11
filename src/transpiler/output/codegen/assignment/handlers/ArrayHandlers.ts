@@ -8,18 +8,16 @@
  */
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
 import TAssignmentHandler from "./TAssignmentHandler";
+import CodeGenState from "../../../../state/CodeGenState";
+import TypeValidator from "../../TypeValidator";
 
 /**
  * Handle simple array element: arr[i] <- value
  */
-function handleArrayElement(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleArrayElement(ctx: IAssignmentContext): string {
   const name = ctx.identifiers[0];
-  const index = deps.generateExpression(ctx.subscripts[0]);
+  const index = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
 
   return `${name}[${index}] ${ctx.cOp} ${ctx.generatedValue};`;
 }
@@ -27,21 +25,24 @@ function handleArrayElement(
 /**
  * Handle multi-dimensional array element: matrix[i][j] <- value
  */
-function handleMultiDimArrayElement(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
   const name = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(name);
+  const typeInfo = CodeGenState.typeRegistry.get(name);
 
   // ADR-036: Compile-time bounds checking for constant indices
   if (typeInfo?.arrayDimensions) {
     const line = ctx.subscripts[0]?.start?.line ?? 0;
-    deps.checkArrayBounds(name, typeInfo.arrayDimensions, ctx.subscripts, line);
+    TypeValidator.checkArrayBounds(
+      name,
+      [...typeInfo.arrayDimensions],
+      [...ctx.subscripts],
+      line,
+      (expr) => CodeGenState.generator!.tryEvaluateConstant(expr),
+    );
   }
 
   const indices = ctx.subscripts
-    .map((e) => deps.generateExpression(e))
+    .map((e) => CodeGenState.generator!.generateExpression(e))
     .join("][");
 
   return `${name}[${indices}] ${ctx.cOp} ${ctx.generatedValue};`;
@@ -55,7 +56,7 @@ function handleMultiDimArrayElement(
  * - Only valid on 1D arrays
  * - Bounds checking at compile time
  */
-function handleArraySlice(ctx: IAssignmentContext, deps: IHandlerDeps): string {
+function handleArraySlice(ctx: IAssignmentContext): string {
   if (ctx.isCompound) {
     throw new Error(
       `Compound assignment operators not supported for slice assignment: ${ctx.cnextOp}`,
@@ -63,7 +64,7 @@ function handleArraySlice(ctx: IAssignmentContext, deps: IHandlerDeps): string {
   }
 
   const name = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(name);
+  const typeInfo = CodeGenState.typeRegistry.get(name);
 
   // Get line number for error messages
   const line = ctx.subscripts[0].start?.line ?? 0;
@@ -78,7 +79,9 @@ function handleArraySlice(ctx: IAssignmentContext, deps: IHandlerDeps): string {
   }
 
   // Validate offset is compile-time constant
-  const offsetValue = deps.tryEvaluateConstant(ctx.subscripts[0]);
+  const offsetValue = CodeGenState.generator!.tryEvaluateConstant(
+    ctx.subscripts[0],
+  );
   if (offsetValue === undefined) {
     throw new Error(
       `${line}:0 Error: Slice assignment offset must be a compile-time constant. ` +
@@ -87,7 +90,9 @@ function handleArraySlice(ctx: IAssignmentContext, deps: IHandlerDeps): string {
   }
 
   // Validate length is compile-time constant
-  const lengthValue = deps.tryEvaluateConstant(ctx.subscripts[1]);
+  const lengthValue = CodeGenState.generator!.tryEvaluateConstant(
+    ctx.subscripts[1],
+  );
   if (lengthValue === undefined) {
     throw new Error(
       `${line}:0 Error: Slice assignment length must be a compile-time constant. ` +
@@ -129,7 +134,7 @@ function handleArraySlice(ctx: IAssignmentContext, deps: IHandlerDeps): string {
   }
 
   // Mark that we need string.h for memcpy
-  deps.markNeedsString();
+  CodeGenState.needsString = true;
 
   return `memcpy(&${name}[${offsetValue}], &${ctx.generatedValue}, ${lengthValue});`;
 }

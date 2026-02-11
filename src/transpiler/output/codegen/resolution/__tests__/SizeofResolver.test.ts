@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import SizeofResolver from "../SizeofResolver";
-import CodeGenState from "../../CodeGenState";
+import CodeGenState from "../../../../state/CodeGenState";
 
 describe("SizeofResolver", () => {
   beforeEach(() => {

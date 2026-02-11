@@ -11,7 +11,7 @@
  * - Exception: global.Scope.member is allowed for explicit qualification
  */
 
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Resolves scope visibility and validates cross-scope access.

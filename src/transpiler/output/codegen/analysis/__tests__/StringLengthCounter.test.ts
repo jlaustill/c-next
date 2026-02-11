@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import StringLengthCounter from "../StringLengthCounter";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
-import CodeGenState from "../../CodeGenState";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Parse a C-Next expression and return the expression context.

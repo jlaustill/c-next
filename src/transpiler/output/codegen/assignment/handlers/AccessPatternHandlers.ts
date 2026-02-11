@@ -11,28 +11,30 @@
  */
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Common handler for global access patterns (GLOBAL_MEMBER and GLOBAL_ARRAY).
  *
  * Validates cross-scope visibility and generates standard assignment.
  */
-function handleGlobalAccess(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleGlobalAccess(ctx: IAssignmentContext): string {
   const firstId = ctx.identifiers[0];
 
   // Validate cross-scope visibility if first id is a scope
-  if (deps.isKnownScope(firstId) && ctx.identifiers.length >= 2) {
-    deps.validateCrossScopeVisibility(firstId, ctx.identifiers[1]);
+  if (CodeGenState.isKnownScope(firstId) && ctx.identifiers.length >= 2) {
+    CodeGenState.generator!.validateCrossScopeVisibility(
+      firstId,
+      ctx.identifiers[1],
+    );
   }
 
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.generator!.generateAssignmentTarget(
+    ctx.targetCtx,
+  );
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
@@ -41,22 +43,21 @@ function handleGlobalAccess(
  *
  * Validates scope context and generates standard assignment.
  */
-function handleThisAccess(ctx: IAssignmentContext, deps: IHandlerDeps): string {
-  if (!deps.currentScope) {
+function handleThisAccess(ctx: IAssignmentContext): string {
+  if (!CodeGenState.currentScope) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
 
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.generator!.generateAssignmentTarget(
+    ctx.targetCtx,
+  );
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
 /**
  * Handle global.reg[bit]: global.GPIO7.DR_SET[bit] <- true
  */
-function handleGlobalRegisterBit(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleGlobalRegisterBit(ctx: IAssignmentContext): string {
   if (ctx.isCompound) {
     throw new Error(
       `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
@@ -67,14 +68,14 @@ function handleGlobalRegisterBit(
   const regName = parts.join("_");
 
   // Check for write-only register
-  const accessMod = deps.symbols.registerMemberAccess.get(regName);
+  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   // Handle bit range vs single bit
   if (ctx.subscripts.length === 2) {
     // Bit range
-    const start = deps.generateExpression(ctx.subscripts[0]);
-    const width = deps.generateExpression(ctx.subscripts[1]);
+    const start = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
+    const width = CodeGenState.generator!.generateExpression(ctx.subscripts[1]);
     const mask = BitUtils.generateMask(width);
 
     if (isWriteOnly) {
@@ -100,7 +101,9 @@ function handleGlobalRegisterBit(
   }
 
   // Single bit
-  const bitIndex = deps.generateExpression(ctx.subscripts[0]);
+  const bitIndex = CodeGenState.generator!.generateExpression(
+    ctx.subscripts[0],
+  );
 
   if (isWriteOnly) {
     if (ctx.generatedValue === "false" || ctx.generatedValue === "0") {
@@ -124,12 +127,11 @@ function handleGlobalRegisterBit(
  * Special case: Detects bit access at the end of chain
  * (e.g., grid[2][3].flags[0] <- true) and generates RMW.
  */
-function handleMemberChain(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleMemberChain(ctx: IAssignmentContext): string {
   // Check if this is bit access on a struct member
-  const bitAnalysis = deps.analyzeMemberChainForBitAccess(ctx.targetCtx);
+  const bitAnalysis = CodeGenState.generator!.analyzeMemberChainForBitAccess(
+    ctx.targetCtx,
+  );
 
   if (bitAnalysis.isBitAccess) {
     // Validate compound operators not supported for bit access
@@ -147,7 +149,9 @@ function handleMemberChain(
   }
 
   // Normal member chain assignment
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.generator!.generateAssignmentTarget(
+    ctx.targetCtx,
+  );
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 

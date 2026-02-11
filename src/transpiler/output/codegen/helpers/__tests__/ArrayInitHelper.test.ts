@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import ArrayInitHelper from "../ArrayInitHelper.js";
-import CodeGenState from "../../CodeGenState.js";
+import CodeGenState from "../../../../state/CodeGenState.js";
 
 /**
  * Default callbacks for testing.

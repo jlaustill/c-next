@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper.js";
-import CodeGenState from "../../CodeGenState.js";
+import CodeGenState from "../../../../state/CodeGenState.js";
 
 /**
  * Default callbacks for testing.

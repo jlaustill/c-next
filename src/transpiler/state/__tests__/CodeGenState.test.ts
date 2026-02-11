@@ -4,8 +4,8 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenState from "../CodeGenState";
-import TTypeInfo from "../types/TTypeInfo";
-import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
+import TTypeInfo from "../../output/codegen/types/TTypeInfo";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 
 /**
  * Create a minimal mock ICodeGenSymbols with default empty collections.
@@ -74,6 +74,16 @@ describe("CodeGenState", () => {
       expect(CodeGenState.currentFunctionName).toBeNull();
       expect(CodeGenState.needsStdint).toBe(false);
       expect(CodeGenState.indentLevel).toBe(0);
+    });
+
+    it("resets generator reference", () => {
+      // Simulate having a generator set
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      CodeGenState.generator = {} as any;
+
+      CodeGenState.reset();
+
+      expect(CodeGenState.generator).toBeNull();
     });
 
     it("accepts custom target capabilities", () => {

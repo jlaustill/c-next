@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeValidator from "../TypeValidator";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 
 describe("TypeValidator.resolveBareIdentifier", () => {

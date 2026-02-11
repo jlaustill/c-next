@@ -9,7 +9,7 @@
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Counts .length accesses on string variables in an expression tree.

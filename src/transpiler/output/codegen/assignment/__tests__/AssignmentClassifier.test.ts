@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import CodeGenState from "../../CodeGenState";
+import CodeGenState from "../../../../state/CodeGenState";
 import TTypeInfo from "../../types/TTypeInfo";
 
 // ========================================================================

@@ -11,9 +11,10 @@
  */
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
+import CodeGenState from "../../../../state/CodeGenState";
+import TypeValidator from "../../TypeValidator";
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -31,9 +32,8 @@ function getBitmapFieldInfo(
   bitmapType: string,
   fieldName: string,
   ctx: IAssignmentContext,
-  deps: IHandlerDeps,
 ): { offset: number; width: number } {
-  const fields = deps.symbols.bitmapFields.get(bitmapType);
+  const fields = CodeGenState.symbols!.bitmapFields.get(bitmapType);
   if (!fields?.has(fieldName)) {
     throw new Error(
       `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
@@ -51,7 +51,11 @@ function getBitmapFieldInfo(
 
   // Validate compile-time literal overflow
   if (ctx.valueCtx) {
-    deps.validateBitmapFieldLiteral(ctx.valueCtx, fieldInfo.width, fieldName);
+    TypeValidator.validateBitmapFieldLiteral(
+      ctx.valueCtx,
+      fieldInfo.width,
+      fieldName,
+    );
   }
 
   return fieldInfo;
@@ -96,44 +100,35 @@ function generateWriteOnlyBitmapWrite(
 /**
  * Handle simple bitmap field: flags.Running <- true
  */
-function handleBitmapFieldSingleBit(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleBitmapFieldSingleBit(ctx: IAssignmentContext): string {
   const varName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
-  const typeInfo = deps.typeRegistry.get(varName);
+  const typeInfo = CodeGenState.typeRegistry.get(varName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx, deps);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
   return generateBitmapWrite(varName, fieldInfo, ctx.generatedValue);
 }
 
 /**
  * Handle multi-bit bitmap field: flags.Mode <- 3
  */
-function handleBitmapFieldMultiBit(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleBitmapFieldMultiBit(ctx: IAssignmentContext): string {
   // Same logic as single bit, generateBitmapWrite handles width
-  return handleBitmapFieldSingleBit(ctx, deps);
+  return handleBitmapFieldSingleBit(ctx);
 }
 
 /**
  * Handle bitmap array element field: bitmapArr[i].Field <- value
  */
-function handleBitmapArrayElementField(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const arrayName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
-  const typeInfo = deps.typeRegistry.get(arrayName);
+  const typeInfo = CodeGenState.typeRegistry.get(arrayName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx, deps);
-  const index = deps.generateExpression(ctx.subscripts[0]);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
+  const index = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
   const arrayElement = `${arrayName}[${index}]`;
 
   return generateBitmapWrite(arrayElement, fieldInfo, ctx.generatedValue);
@@ -142,22 +137,19 @@ function handleBitmapArrayElementField(
 /**
  * Handle struct member bitmap field: device.flags.Active <- true
  */
-function handleStructMemberBitmapField(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleStructMemberBitmapField(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const memberName = ctx.identifiers[1];
   const fieldName = ctx.identifiers[2];
 
-  const structTypeInfo = deps.typeRegistry.get(structName);
-  const memberInfo = deps.getMemberTypeInfo(
+  const structTypeInfo = CodeGenState.typeRegistry.get(structName);
+  const memberInfo = CodeGenState.getMemberTypeInfo(
     structTypeInfo!.baseType,
     memberName,
   );
   const bitmapType = memberInfo!.baseType;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx, deps);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
   const memberPath = `${structName}.${memberName}`;
 
   return generateBitmapWrite(memberPath, fieldInfo, ctx.generatedValue);
@@ -166,18 +158,16 @@ function handleStructMemberBitmapField(
 /**
  * Handle register member bitmap field: MOTOR.CTRL.Running <- true
  */
-function handleRegisterMemberBitmapField(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
   const regName = ctx.identifiers[0];
   const memberName = ctx.identifiers[1];
   const fieldName = ctx.identifiers[2];
 
   const fullRegMember = `${regName}_${memberName}`;
-  const bitmapType = deps.symbols.registerMemberTypes.get(fullRegMember)!;
+  const bitmapType =
+    CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx, deps);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
   return generateBitmapWrite(fullRegMember, fieldInfo, ctx.generatedValue);
 }
 
@@ -189,7 +179,6 @@ function handleRegisterMemberBitmapField(
  */
 function handleScopedRegisterMemberBitmapField(
   ctx: IAssignmentContext,
-  deps: IHandlerDeps,
 ): string {
   let scopeName: string;
   let regName: string;
@@ -198,10 +187,10 @@ function handleScopedRegisterMemberBitmapField(
 
   if (ctx.hasThis) {
     // this.REG.MEMBER.field - 3 identifiers
-    if (!deps.currentScope) {
+    if (!CodeGenState.currentScope) {
       throw new Error("Error: 'this' can only be used inside a scope");
     }
-    scopeName = deps.currentScope;
+    scopeName = CodeGenState.currentScope;
     regName = ctx.identifiers[0];
     memberName = ctx.identifiers[1];
     fieldName = ctx.identifiers[2];
@@ -213,17 +202,19 @@ function handleScopedRegisterMemberBitmapField(
     fieldName = ctx.identifiers[3];
 
     // Validate cross-scope access
-    deps.validateCrossScopeVisibility(scopeName, regName);
+    CodeGenState.generator!.validateCrossScopeVisibility(scopeName, regName);
   }
 
   const fullRegName = `${scopeName}_${regName}`;
   const fullRegMember = `${fullRegName}_${memberName}`;
-  const bitmapType = deps.symbols.registerMemberTypes.get(fullRegMember)!;
+  const bitmapType =
+    CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx, deps);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
 
   // Check for write-only register (includes w1s, w1c)
-  const accessMod = deps.symbols.registerMemberAccess.get(fullRegMember);
+  const accessMod =
+    CodeGenState.symbols!.registerMemberAccess.get(fullRegMember);
   const isWriteOnly =
     accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
 

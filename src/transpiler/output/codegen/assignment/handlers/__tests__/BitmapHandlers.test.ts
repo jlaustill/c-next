@@ -3,52 +3,53 @@
  * Tests bitmap field assignment handler functions.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock TypeValidator before imports
+vi.mock("../../../TypeValidator", () => ({
+  default: {
+    validateBitmapFieldLiteral: vi.fn(),
+  },
+}));
+
 import bitmapHandlers from "../BitmapHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
-import IHandlerDeps from "../IHandlerDeps";
+import CodeGenState from "../../../../../state/CodeGenState";
+import type CodeGenerator from "../../../CodeGenerator";
+import TypeValidator from "../../../TypeValidator";
 
 /**
- * Create mock dependencies for testing.
+ * Set up mock generator with needed methods.
  */
-function createMockDeps(overrides: Record<string, unknown> = {}): IHandlerDeps {
-  const base = {
-    typeRegistry: new Map(),
-    symbols: {
-      structFields: new Map(),
-      structFieldDimensions: new Map(),
-      bitmapFields: new Map(),
-      registerMemberAccess: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberTypes: new Map(),
-    },
-    currentScope: null,
-    currentParameters: new Map(),
-    targetCapabilities: { hasLDREX: false },
+function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
+  CodeGenState.generator = {
     generateAssignmentTarget: vi.fn().mockReturnValue("target"),
     generateExpression: vi
       .fn()
       .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    markNeedsString: vi.fn(),
-    markClampOpUsed: vi.fn(),
-    isKnownScope: vi.fn().mockReturnValue(false),
-    isKnownStruct: vi.fn().mockReturnValue(false),
-    validateCrossScopeVisibility: vi.fn(),
     validateBitmapFieldLiteral: vi.fn(),
-    checkArrayBounds: vi.fn(),
-    analyzeMemberChainForBitAccess: vi
-      .fn()
-      .mockReturnValue({ isBitAccess: false }),
-    tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
+    validateCrossScopeVisibility: vi.fn(),
     getMemberTypeInfo: vi.fn().mockReturnValue(null),
-    generateFloatBitWrite: vi.fn().mockReturnValue(null),
-    foldBooleanToInt: vi.fn().mockImplementation((expr) => expr),
-    generateAtomicRMW: vi.fn().mockReturnValue("atomic_rmw"),
     ...overrides,
-  };
-  return base as unknown as IHandlerDeps;
+  } as unknown as CodeGenerator;
+}
+
+/**
+ * Set up mock symbols.
+ */
+function setupMockSymbols(overrides: Record<string, unknown> = {}): void {
+  CodeGenState.symbols = {
+    structFields: new Map(),
+    structFieldDimensions: new Map(),
+    structFieldArrays: new Map(),
+    bitmapFields: new Map(),
+    registerMemberAccess: new Map(),
+    registerBaseAddresses: new Map(),
+    registerMemberOffsets: new Map(),
+    registerMemberTypes: new Map(),
+    ...overrides,
+  } as any;
 }
 
 /**
@@ -81,6 +82,12 @@ function createMockContext(
 }
 
 describe("BitmapHandlers", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupMockGenerator();
+    setupMockSymbols();
+  });
+
   describe("handler registration", () => {
     it("registers all expected bitmap assignment kinds", () => {
       const kinds = bitmapHandlers.map(([kind]) => kind);
@@ -107,27 +114,17 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates single-bit read-modify-write", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([
-        ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
+        ]),
       });
       const ctx = createMockContext();
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("flags =");
       expect(result).toContain("& ~(1 << 0)");
@@ -135,114 +132,73 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates single-bit write with correct offset", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([
-        ["StatusFlags", new Map([["Active", { offset: 3, width: 1 }]])],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["StatusFlags", new Map([["Active", { offset: 3, width: 1 }]])],
+        ]),
       });
       const ctx = createMockContext({
         identifiers: ["flags", "Active"],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("<< 3");
     });
 
     it("throws on unknown bitmap field", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([["StatusFlags", new Map()]]);
-      const deps = createMockDeps({
-        typeRegistry,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([["StatusFlags", new Map()]]),
       });
       const ctx = createMockContext({
         identifiers: ["flags", "Unknown"],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Unknown bitmap field 'Unknown' on type 'StatusFlags'",
       );
     });
 
     it("throws on compound assignment", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([
-        ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
+        ]),
       });
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bitmap field access",
       );
     });
 
     it("validates bitmap field literal", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([
-        ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-      ]);
-      const validateBitmapFieldLiteral = vi.fn();
-      const deps = createMockDeps({
-        typeRegistry,
-        validateBitmapFieldLiteral,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
+        ]),
       });
       const ctx = createMockContext();
+      vi.mocked(TypeValidator.validateBitmapFieldLiteral).mockClear();
 
-      getHandler()!(ctx, deps);
+      getHandler()!(ctx);
 
-      expect(validateBitmapFieldLiteral).toHaveBeenCalledWith(
+      expect(TypeValidator.validateBitmapFieldLiteral).toHaveBeenCalledWith(
         ctx.valueCtx,
         1,
         "Running",
@@ -257,30 +213,20 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates multi-bit read-modify-write with mask", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([
-        ["StatusFlags", new Map([["Mode", { offset: 4, width: 3 }]])],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["StatusFlags", new Map([["Mode", { offset: 4, width: 3 }]])],
+        ]),
       });
       const ctx = createMockContext({
         identifiers: ["flags", "Mode"],
         generatedValue: "3",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("flags =");
       expect(result).toContain("& ~(0x7 << 4)");
@@ -289,30 +235,20 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates correct mask for 2-bit field", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["config", { bitmapTypeName: "Config", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([
-        ["Config", new Map([["Priority", { offset: 0, width: 2 }]])],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["Config", new Map([["Priority", { offset: 0, width: 2 }]])],
+        ]),
       });
       const ctx = createMockContext({
         identifiers: ["config", "Priority"],
         generatedValue: "2",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("0x3");
     });
@@ -325,31 +261,23 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates array element bitmap field assignment", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["flagsArray", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      const bitmapFields = new Map([
-        ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("i"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
+        ]),
       });
       const ctx = createMockContext({
         identifiers: ["flagsArray", "Active"],
         subscripts: [{ mockValue: "i" } as never],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("flagsArray[i] =");
       expect(result).toContain("& ~(1 << 0)");
@@ -363,28 +291,23 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates struct member bitmap field assignment", () => {
-      const typeRegistry = new Map([["device", { baseType: "Device" }]]);
-      const bitmapFields = new Map([
-        ["StatusFlags", new Map([["Active", { offset: 2, width: 1 }]])],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-        getMemberTypeInfo: vi.fn().mockReturnValue({ baseType: "StatusFlags" }),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      CodeGenState.typeRegistry = new Map([
+        ["device", { baseType: "Device" }],
+      ]) as any;
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["StatusFlags", new Map([["Active", { offset: 2, width: 1 }]])],
+        ]),
+        // structFields maps struct type -> field name -> field type
+        structFields: new Map([
+          ["Device", new Map([["flags", "StatusFlags"]])],
+        ]),
       });
       const ctx = createMockContext({
         identifiers: ["device", "flags", "Active"],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("device.flags =");
       expect(result).toContain("<< 2");
@@ -398,26 +321,17 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates register member bitmap field assignment", () => {
-      const bitmapFields = new Map([
-        ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
-      ]);
-      const registerMemberTypes = new Map([["MOTOR_CTRL", "MotorCtrl"]]);
-      const deps = createMockDeps({
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes,
-        },
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
+        ]),
+        registerMemberTypes: new Map([["MOTOR_CTRL", "MotorCtrl"]]),
       });
       const ctx = createMockContext({
         identifiers: ["MOTOR", "CTRL", "Running"],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("MOTOR_CTRL =");
       expect(result).toContain("& ~(1 << 0)");
@@ -431,21 +345,12 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates this-prefixed scoped register bitmap field", () => {
-      const bitmapFields = new Map([
-        ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
-      ]);
-      const registerMemberTypes = new Map([["Motor_GPIO7_ICR1", "ICR1Bits"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes,
-        },
+      CodeGenState.currentScope = "Motor";
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
+        ]),
+        registerMemberTypes: new Map([["Motor_GPIO7_ICR1", "ICR1Bits"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1", "LED"],
@@ -453,29 +358,22 @@ describe("BitmapHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor_GPIO7_ICR1 =");
       expect(result).toContain("<< 6");
     });
 
     it("generates scope-prefixed register bitmap field", () => {
-      const bitmapFields = new Map([
-        ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
-      ]);
-      const registerMemberTypes = new Map([["Motor_GPIO7_ICR1", "ICR1Bits"]]);
       const validateCrossScopeVisibility = vi.fn();
-      const deps = createMockDeps({
+      setupMockGenerator({
         validateCrossScopeVisibility,
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess: new Map(),
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes,
-        },
+      });
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
+        ]),
+        registerMemberTypes: new Map([["Motor_GPIO7_ICR1", "ICR1Bits"]]),
       });
       const ctx = createMockContext({
         identifiers: ["Motor", "GPIO7", "ICR1", "LED"],
@@ -483,7 +381,7 @@ describe("BitmapHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor_GPIO7_ICR1 =");
       expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
@@ -493,41 +391,32 @@ describe("BitmapHandlers", () => {
     });
 
     it("throws when 'this' used outside scope", () => {
-      const deps = createMockDeps({ currentScope: null });
+      CodeGenState.currentScope = null;
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1", "LED"],
         hasThis: true,
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "'this' can only be used inside a scope",
       );
     });
 
     it("generates write-only pattern for wo register", () => {
-      const bitmapFields = new Map([
-        ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
-      ]);
-      const registerMemberTypes = new Map([["Motor_GPIO7_SET", "SetBits"]]);
-      const registerMemberAccess = new Map([["Motor_GPIO7_SET", "wo"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes,
-        },
+      CodeGenState.currentScope = "Motor";
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
+        ]),
+        registerMemberTypes: new Map([["Motor_GPIO7_SET", "SetBits"]]),
+        registerMemberAccess: new Map([["Motor_GPIO7_SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "SET", "LED"],
         hasThis: true,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       // Write-only should not use RMW pattern
       expect(result).not.toContain("& ~");
@@ -535,58 +424,40 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for w1s register", () => {
-      const bitmapFields = new Map([
-        ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
-      ]);
-      const registerMemberTypes = new Map([["Motor_GPIO7_SET", "SetBits"]]);
-      const registerMemberAccess = new Map([["Motor_GPIO7_SET", "w1s"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes,
-        },
+      CodeGenState.currentScope = "Motor";
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
+        ]),
+        registerMemberTypes: new Map([["Motor_GPIO7_SET", "SetBits"]]),
+        registerMemberAccess: new Map([["Motor_GPIO7_SET", "w1s"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "SET", "LED"],
         hasThis: true,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).not.toContain("& ~");
       expect(result).toContain("<< 3");
     });
 
     it("generates write-only pattern for w1c register", () => {
-      const bitmapFields = new Map([
-        ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
-      ]);
-      const registerMemberTypes = new Map([["Motor_GPIO7_CLR", "ClearBits"]]);
-      const registerMemberAccess = new Map([["Motor_GPIO7_CLR", "w1c"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields,
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes,
-        },
+      CodeGenState.currentScope = "Motor";
+      setupMockSymbols({
+        bitmapFields: new Map([
+          ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
+        ]),
+        registerMemberTypes: new Map([["Motor_GPIO7_CLR", "ClearBits"]]),
+        registerMemberAccess: new Map([["Motor_GPIO7_CLR", "w1c"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "CLR", "LED"],
         hasThis: true,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).not.toContain("& ~");
       expect(result).toContain("<< 5");

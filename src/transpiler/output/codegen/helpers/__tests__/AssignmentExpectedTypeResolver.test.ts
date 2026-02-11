@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
-import CodeGenState from "../../CodeGenState.js";
+import CodeGenState from "../../../../state/CodeGenState.js";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.

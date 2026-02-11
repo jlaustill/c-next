@@ -9,9 +9,9 @@
  */
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Validate compound operators are not used with bit access.
@@ -28,16 +28,18 @@ function validateNotCompound(ctx: IAssignmentContext): void {
  * Handle single bit on integer variable: flags[3] <- true
  * Also handles float bit indexing: f32Var[3] <- true
  */
-function handleIntegerBit(ctx: IAssignmentContext, deps: IHandlerDeps): string {
+function handleIntegerBit(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const name = ctx.identifiers[0];
-  const bitIndex = deps.generateExpression(ctx.subscripts[0]);
-  const typeInfo = deps.typeRegistry.get(name);
+  const bitIndex = CodeGenState.generator!.generateExpression(
+    ctx.subscripts[0],
+  );
+  const typeInfo = CodeGenState.typeRegistry.get(name);
 
   // Check for float bit indexing
   if (typeInfo) {
-    const floatResult = deps.generateFloatBitWrite(
+    const floatResult = CodeGenState.generator!.generateFloatBitWrite(
       name,
       typeInfo,
       bitIndex,
@@ -62,20 +64,17 @@ function handleIntegerBit(ctx: IAssignmentContext, deps: IHandlerDeps): string {
  * Handle bit range on integer variable: flags[0, 3] <- 5
  * Also handles float bit range: f32Var[0, 8] <- 0xFF
  */
-function handleIntegerBitRange(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleIntegerBitRange(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const name = ctx.identifiers[0];
-  const start = deps.generateExpression(ctx.subscripts[0]);
-  const width = deps.generateExpression(ctx.subscripts[1]);
-  const typeInfo = deps.typeRegistry.get(name);
+  const start = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
+  const width = CodeGenState.generator!.generateExpression(ctx.subscripts[1]);
+  const typeInfo = CodeGenState.typeRegistry.get(name);
 
   // Check for float bit indexing
   if (typeInfo) {
-    const floatResult = deps.generateFloatBitWrite(
+    const floatResult = CodeGenState.generator!.generateFloatBitWrite(
       name,
       typeInfo,
       start,
@@ -101,20 +100,21 @@ function handleIntegerBitRange(
  * Handle bit on struct member: item.byte[7] <- true
  * This is handled through MEMBER_CHAIN with bit detection.
  */
-function handleStructMemberBit(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleStructMemberBit(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   // The target up to the last subscript is the struct member path
   // The last subscript is the bit index
   // This pattern is complex - the target needs to be built from the member chain
   // For now, delegate to the existing target generator and build the bit op
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.generator!.generateAssignmentTarget(
+    ctx.targetCtx,
+  );
 
   // Extract the bit index from the last subscript
-  const bitIndex = deps.generateExpression(ctx.subscripts.at(-1)!);
+  const bitIndex = CodeGenState.generator!.generateExpression(
+    ctx.subscripts.at(-1)!,
+  );
 
   // Limitation: Uses literal "1" which works for types up to 32 bits.
   // For 64-bit struct members, would need to track member type through chain.
@@ -127,14 +127,11 @@ function handleStructMemberBit(
 /**
  * Handle bit on multi-dimensional array element: matrix[i][j][FIELD_BIT] <- false
  */
-function handleArrayElementBit(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleArrayElementBit(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const arrayName = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(arrayName);
+  const typeInfo = CodeGenState.typeRegistry.get(arrayName);
 
   if (!typeInfo?.arrayDimensions) {
     throw new Error(`Error: ${arrayName} is not an array`);
@@ -145,9 +142,11 @@ function handleArrayElementBit(
   // Array indices are subscripts[0..numDims-1], bit index is subscripts[numDims]
   const arrayIndices = ctx.subscripts
     .slice(0, numDims)
-    .map((e) => `[${deps.generateExpression(e)}]`)
+    .map((e) => `[${CodeGenState.generator!.generateExpression(e)}]`)
     .join("");
-  const bitIndex = deps.generateExpression(ctx.subscripts[numDims]);
+  const bitIndex = CodeGenState.generator!.generateExpression(
+    ctx.subscripts[numDims],
+  );
 
   const arrayElement = `${arrayName}${arrayIndices}`;
 
@@ -164,10 +163,7 @@ function handleArrayElementBit(
  * The target is a chain like array[idx].member or struct.field with a
  * bit range subscript [start, width] at the end.
  */
-function handleStructChainBitRange(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleStructChainBitRange(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   // Build the base target from postfixOps, excluding the last one (the bit range)
@@ -182,7 +178,8 @@ function handleStructChainBitRange(
     } else {
       const exprs = op.expression();
       if (exprs.length > 0) {
-        baseTarget += "[" + deps.generateExpression(exprs[0]) + "]";
+        baseTarget +=
+          "[" + CodeGenState.generator!.generateExpression(exprs[0]) + "]";
       }
     }
   }
@@ -190,8 +187,8 @@ function handleStructChainBitRange(
   // Get start and width from the last postfixOp (the bit range)
   const lastOp = ctx.postfixOps.at(-1)!;
   const bitRangeExprs = lastOp.expression();
-  const start = deps.generateExpression(bitRangeExprs[0]);
-  const width = deps.generateExpression(bitRangeExprs[1]);
+  const start = CodeGenState.generator!.generateExpression(bitRangeExprs[0]);
+  const width = CodeGenState.generator!.generateExpression(bitRangeExprs[1]);
 
   // Generate bit range write
   // Limitation: assumes 32-bit types. For 64-bit struct members,

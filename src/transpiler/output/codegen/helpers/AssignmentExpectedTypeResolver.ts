@@ -12,7 +12,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TOverflowBehavior from "../types/TOverflowBehavior.js";
 import analyzePostfixOps from "../../../../utils/PostfixAnalysisUtils.js";
-import CodeGenState from "../CodeGenState.js";
+import CodeGenState from "../../../state/CodeGenState.js";
 
 /**
  * Result of resolving expected type for an assignment target.

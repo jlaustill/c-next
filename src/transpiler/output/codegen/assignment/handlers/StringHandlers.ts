@@ -11,10 +11,10 @@
  */
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
 import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Validate compound operators are not used with strings.
@@ -32,19 +32,18 @@ function validateNotCompound(ctx: IAssignmentContext): void {
  *
  * Gets capacity from typeRegistry and generates strncpy with null terminator.
  */
-function handleSimpleStringAssignment(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const id = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(id);
+  const typeInfo = CodeGenState.typeRegistry.get(id);
   const capacity = typeInfo!.stringCapacity!;
 
-  deps.markNeedsString();
+  CodeGenState.needsString = true;
 
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.generator!.generateAssignmentTarget(
+    ctx.targetCtx,
+  );
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
 }
 
@@ -53,14 +52,10 @@ function handleSimpleStringAssignment(
  *
  * Shared helper for struct field string handlers.
  */
-function getStructFieldType(
-  structName: string,
-  fieldName: string,
-  deps: IHandlerDeps,
-): string {
-  const structTypeInfo = deps.typeRegistry.get(structName);
+function getStructFieldType(structName: string, fieldName: string): string {
+  const structTypeInfo = CodeGenState.typeRegistry.get(structName);
   const structType = structTypeInfo!.baseType;
-  const structFields = deps.symbols.structFields.get(structType);
+  const structFields = CodeGenState.symbols!.structFields.get(structType);
   return structFields!.get(fieldName)!;
 }
 
@@ -69,51 +64,47 @@ function getStructFieldType(
  *
  * Shared helper for struct field handlers.
  */
-function getStructType(structName: string, deps: IHandlerDeps): string {
-  const structTypeInfo = deps.typeRegistry.get(structName);
+function getStructType(structName: string): string {
+  const structTypeInfo = CodeGenState.typeRegistry.get(structName);
   return structTypeInfo!.baseType;
 }
 
 /**
  * Handle this.member string: this.name <- "value"
  */
-function handleStringThisMember(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
-  if (!deps.currentScope) {
+function handleStringThisMember(ctx: IAssignmentContext): string {
+  if (!CodeGenState.currentScope) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
 
   validateNotCompound(ctx);
 
   const memberName = ctx.identifiers[0];
-  const scopedName = `${deps.currentScope}_${memberName}`;
-  const typeInfo = deps.typeRegistry.get(scopedName);
+  const scopedName = `${CodeGenState.currentScope}_${memberName}`;
+  const typeInfo = CodeGenState.typeRegistry.get(scopedName);
   const capacity = typeInfo!.stringCapacity!;
 
-  deps.markNeedsString();
+  CodeGenState.needsString = true;
 
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.generator!.generateAssignmentTarget(
+    ctx.targetCtx,
+  );
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
 }
 
 /**
  * Handle struct.field string: person.name <- "Alice"
  */
-function handleStringStructField(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleStringStructField(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const fieldType = getStructFieldType(structName, fieldName, deps);
+  const fieldType = getStructFieldType(structName, fieldName);
   const capacity = TypeCheckUtils.getStringCapacity(fieldType)!;
 
-  deps.markNeedsString();
+  CodeGenState.needsString = true;
 
   return StringUtils.copyToStructField(
     structName,
@@ -126,19 +117,16 @@ function handleStringStructField(
 /**
  * Handle string array element: names[0] <- "first"
  */
-function handleStringArrayElement(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleStringArrayElement(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const name = ctx.identifiers[0];
-  const typeInfo = deps.typeRegistry.get(name);
+  const typeInfo = CodeGenState.typeRegistry.get(name);
   const capacity = typeInfo!.stringCapacity!;
 
-  deps.markNeedsString();
+  CodeGenState.needsString = true;
 
-  const index = deps.generateExpression(ctx.subscripts[0]);
+  const index = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
   return StringUtils.copyToArrayElement(
     name,
     index,
@@ -150,27 +138,23 @@ function handleStringArrayElement(
 /**
  * Handle struct field string array element: config.items[0] <- "value"
  */
-function handleStringStructArrayElement(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const structType = getStructType(structName, deps);
-  const dimensions = deps.symbols.structFieldDimensions
-    .get(structType)
-    ?.get(fieldName);
+  const structType = getStructType(structName);
+  const dimensions =
+    CodeGenState.symbols!.structFieldDimensions.get(structType)?.get(fieldName);
 
   // String arrays: dimensions are [array_size, string_capacity+1]
   // -1 because we added +1 for null terminator during symbol collection
-  const capacity = dimensions![dimensions!.length - 1] - 1;
+  const capacity = (dimensions![dimensions!.length - 1] as number) - 1;
 
-  deps.markNeedsString();
+  CodeGenState.needsString = true;
 
-  const index = deps.generateExpression(ctx.subscripts[0]);
+  const index = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
   return StringUtils.copyToStructFieldArrayElement(
     structName,
     fieldName,

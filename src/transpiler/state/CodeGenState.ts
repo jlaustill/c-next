@@ -5,26 +5,28 @@
  * Eliminates dependency injection complexity and makes debugging easier.
  *
  * Usage:
- *   import CodeGenState from "./CodeGenState";
+ *   import CodeGenState from "../state/CodeGenState";
  *   const type = CodeGenState.typeRegistry.get(name);
  *   if (CodeGenState.isKnownStruct(name)) { ... }
  *
  * Lifecycle:
  *   1. CodeGenerator.generate() calls CodeGenState.reset()
- *   2. CodeGenerator populates state during initialization
+ *   2. CodeGenerator sets CodeGenState.generator = this
  *   3. All generators/helpers read from CodeGenState directly
  *   4. State persists for the duration of one generate() call
  */
 
-import SymbolTable from "../../logic/symbols/SymbolTable";
-import ICodeGenSymbols from "../../types/ICodeGenSymbols";
-import TTypeInfo from "./types/TTypeInfo";
-import TParameterInfo from "./types/TParameterInfo";
-import IFunctionSignature from "./types/IFunctionSignature";
-import ICallbackTypeInfo from "./types/ICallbackTypeInfo";
-import ITargetCapabilities from "./types/ITargetCapabilities";
-import TOverflowBehavior from "./types/TOverflowBehavior";
-import TYPE_WIDTH from "./types/TYPE_WIDTH";
+import SymbolTable from "../logic/symbols/SymbolTable";
+import ICodeGenSymbols from "../types/ICodeGenSymbols";
+import TTypeInfo from "../output/codegen/types/TTypeInfo";
+import TParameterInfo from "../output/codegen/types/TParameterInfo";
+import IFunctionSignature from "../output/codegen/types/IFunctionSignature";
+import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
+import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
+import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
+import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
+// Import type only to avoid circular dependency - generator is set at runtime
+import type CodeGenerator from "../output/codegen/CodeGenerator";
 
 /**
  * Default target capabilities (safe fallback)
@@ -62,6 +64,13 @@ interface ICallGraphEntry {
  * during code generation.
  */
 export default class CodeGenState {
+  // ===========================================================================
+  // GENERATOR REFERENCE (for handler access)
+  // ===========================================================================
+
+  /** Reference to the CodeGenerator instance for handlers to call methods */
+  static generator: CodeGenerator | null = null;
+
   // ===========================================================================
   // SYMBOL DATA (read-only after initialization)
   // ===========================================================================
@@ -277,6 +286,9 @@ export default class CodeGenState {
    * Called at the start of CodeGenerator.generate()
    */
   static reset(targetCapabilities?: ITargetCapabilities): void {
+    // Generator reference
+    this.generator = null;
+
     // Symbol data
     this.symbols = null;
     this.symbolTable = null;

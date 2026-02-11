@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import CppModeHelper from "../CppModeHelper";
-import CodeGenState from "../../CodeGenState";
+import CodeGenState from "../../../../state/CodeGenState";
 
 describe("CppModeHelper", () => {
   beforeEach(() => {

@@ -3,52 +3,42 @@
  * Tests register bit assignment handler functions.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import registerHandlers from "../RegisterHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
-import IHandlerDeps from "../IHandlerDeps";
+import CodeGenState from "../../../../../state/CodeGenState";
+import type CodeGenerator from "../../../CodeGenerator";
 
 /**
- * Create mock dependencies for testing.
+ * Set up mock generator with needed methods.
  */
-function createMockDeps(overrides: Record<string, unknown> = {}): IHandlerDeps {
-  const base = {
-    typeRegistry: new Map(),
-    symbols: {
-      structFields: new Map(),
-      structFieldDimensions: new Map(),
-      bitmapFields: new Map(),
-      registerMemberAccess: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberTypes: new Map(),
-    },
-    currentScope: null,
-    currentParameters: new Map(),
-    targetCapabilities: { hasLDREX: false },
+function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
+  CodeGenState.generator = {
     generateAssignmentTarget: vi.fn().mockReturnValue("target"),
     generateExpression: vi
       .fn()
       .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    markNeedsString: vi.fn(),
-    markClampOpUsed: vi.fn(),
-    isKnownScope: vi.fn().mockReturnValue(false),
-    isKnownStruct: vi.fn().mockReturnValue(false),
-    validateCrossScopeVisibility: vi.fn(),
-    validateBitmapFieldLiteral: vi.fn(),
-    checkArrayBounds: vi.fn(),
-    analyzeMemberChainForBitAccess: vi
-      .fn()
-      .mockReturnValue({ isBitAccess: false }),
     tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
-    getMemberTypeInfo: vi.fn().mockReturnValue(null),
-    generateFloatBitWrite: vi.fn().mockReturnValue(null),
-    foldBooleanToInt: vi.fn().mockImplementation((expr) => expr),
-    generateAtomicRMW: vi.fn().mockReturnValue("atomic_rmw"),
     ...overrides,
-  };
-  return base as unknown as IHandlerDeps;
+  } as unknown as CodeGenerator;
+}
+
+/**
+ * Set up mock symbols.
+ */
+function setupMockSymbols(overrides: Record<string, unknown> = {}): void {
+  CodeGenState.symbols = {
+    structFields: new Map(),
+    structFieldDimensions: new Map(),
+    bitmapFields: new Map(),
+    registerMemberAccess: new Map(),
+    registerBaseAddresses: new Map(),
+    registerMemberOffsets: new Map(),
+    registerMemberTypes: new Map(),
+    knownScopes: new Set(),
+    ...overrides,
+  } as any;
 }
 
 /**
@@ -80,6 +70,12 @@ function createMockContext(
 }
 
 describe("RegisterHandlers", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupMockGenerator();
+    setupMockSymbols();
+  });
+
   describe("handler registration", () => {
     it("registers all expected register assignment kinds", () => {
       const kinds = registerHandlers.map(([kind]) => kind);
@@ -102,12 +98,12 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for read-write register", () => {
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       const ctx = createMockContext();
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("GPIO7_DR_SET");
       expect(result).toContain("& ~(1 <<");
@@ -115,87 +111,67 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only register", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "wo"]]);
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
       });
       const ctx = createMockContext();
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("GPIO7_DR_SET = (1 << LED_BIT);");
     });
 
     it("throws on write-only register with false value", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "wo"]]);
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
       });
       const ctx = createMockContext({ generatedValue: "false" });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Cannot assign false to write-only register bit",
       );
     });
 
     it("throws on write-only register with 0 value", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "w1s"]]);
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({ generatedValue: "0" });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Cannot assign false to write-only register bit",
       );
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps();
       const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
 
     it("handles scoped register prefix correctly", () => {
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("5"),
-        isKnownScope: vi.fn().mockReturnValue(true),
+      });
+      setupMockSymbols({
+        knownScopes: new Set(["Motor"]),
       });
       const ctx = createMockContext({
         identifiers: ["Motor", "GPIO7", "DR_SET"],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor_GPIO7_DR_SET");
     });
@@ -208,7 +184,7 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for bit range", () => {
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -219,7 +195,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("GPIO7_DR_SET");
       expect(result).toContain("& ~(");
@@ -227,28 +203,21 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only bit range", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "wo"]]);
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("GPIO7_DR_SET =");
       expect(result).toContain("value");
@@ -256,38 +225,27 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on write-only bit range with 0 value", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "w1c"]]);
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1c"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
         generatedValue: "0",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Cannot assign 0 to write-only register bits",
       );
     });
 
     it("generates MMIO optimization for byte-aligned access", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "wo"]]);
-      const registerBaseAddresses = new Map([["GPIO7", "0x40000000"]]);
-      const registerMemberOffsets = new Map([["GPIO7_DR_SET", "0x04"]]);
-
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -296,22 +254,18 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce(0)
           .mockReturnValueOnce(8),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses,
-          registerMemberOffsets,
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
+        registerMemberOffsets: new Map([["GPIO7_DR_SET", "0x04"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("volatile uint8_t*");
       expect(result).toContain("0x40000000");
@@ -319,11 +273,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates MMIO with byte offset for non-zero start", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "wo"]]);
-      const registerBaseAddresses = new Map([["GPIO7", "0x40000000"]]);
-      const registerMemberOffsets = new Map([["GPIO7_DR_SET", "0x04"]]);
-
-      const deps = createMockDeps({
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("8")
@@ -332,36 +282,31 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce(8)
           .mockReturnValueOnce(16),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses,
-          registerMemberOffsets,
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
+        registerMemberOffsets: new Map([["GPIO7_DR_SET", "0x04"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "8" } as never, { mockValue: "16" } as never],
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("volatile uint16_t*");
       expect(result).toContain("0x04 + 1");
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps();
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
@@ -374,8 +319,8 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit", () => {
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       const ctx = createMockContext({
@@ -383,69 +328,55 @@ describe("RegisterHandlers", () => {
         hasThis: true,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor_GPIO7_DR_SET");
       expect(result).toContain("& ~(1 <<");
     });
 
     it("generates simple write for write-only scoped register", () => {
-      const registerMemberAccess = new Map([["Motor_GPIO7_DR_SET", "wo"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["Motor_GPIO7_DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
         hasThis: true,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("Motor_GPIO7_DR_SET = (1 << LED_BIT);");
     });
 
     it("throws when used outside scope", () => {
-      const deps = createMockDeps({ currentScope: null });
+      CodeGenState.currentScope = null;
       const ctx = createMockContext({ hasThis: true });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "'this' can only be used inside a scope",
       );
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps({ currentScope: "Motor" });
+      CodeGenState.currentScope = "Motor";
       const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
 
     it("throws on write-only register with false value", () => {
-      const registerMemberAccess = new Map([["Motor_GPIO7_DR_SET", "w1s"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["Motor_GPIO7_DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -453,7 +384,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "false",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Cannot assign false to write-only register bit",
       );
     });
@@ -466,8 +397,8 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit range", () => {
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("6")
@@ -480,7 +411,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor_GPIO7_ICR1");
       expect(result).toContain("& ~(");
@@ -488,22 +419,15 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only scoped register bit range", () => {
-      const registerMemberAccess = new Map([["Motor_GPIO7_ICR1", "wo"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("6")
           .mockReturnValueOnce("2"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["Motor_GPIO7_ICR1", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
@@ -512,19 +436,15 @@ describe("RegisterHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor_GPIO7_ICR1 =");
       expect(result).not.toContain("& ~");
     });
 
     it("generates MMIO optimization for byte-aligned scoped access", () => {
-      const registerMemberAccess = new Map([["Motor_GPIO7_ICR1", "wo"]]);
-      const registerBaseAddresses = new Map([["Motor_GPIO7", "0x40000000"]]);
-      const registerMemberOffsets = new Map([["Motor_GPIO7_ICR1", "0x08"]]);
-
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -533,15 +453,11 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce(0)
           .mockReturnValueOnce(32),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses,
-          registerMemberOffsets,
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["Motor_GPIO7_ICR1", "wo"]]),
+        registerBaseAddresses: new Map([["Motor_GPIO7", "0x40000000"]]),
+        registerMemberOffsets: new Map([["Motor_GPIO7_ICR1", "0x08"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
@@ -550,54 +466,47 @@ describe("RegisterHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("volatile uint32_t*");
       expect(result).toContain("0x40000000");
     });
 
     it("throws when used outside scope", () => {
-      const deps = createMockDeps({ currentScope: null });
+      CodeGenState.currentScope = null;
       const ctx = createMockContext({
         subscripts: [{ mockValue: "6" } as never, { mockValue: "2" } as never],
         hasThis: true,
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "'this' can only be used inside a scope",
       );
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps({ currentScope: "Motor" });
+      CodeGenState.currentScope = "Motor";
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
         subscripts: [{ mockValue: "6" } as never, { mockValue: "2" } as never],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
 
     it("throws on write-only bit range with 0 value", () => {
-      const registerMemberAccess = new Map([["Motor_GPIO7_ICR1", "w1c"]]);
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("6")
           .mockReturnValueOnce("2"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      setupMockSymbols({
+        registerMemberAccess: new Map([["Motor_GPIO7_ICR1", "w1c"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
@@ -606,7 +515,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "0",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Cannot assign 0 to write-only register bits",
       );
     });

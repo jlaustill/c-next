@@ -3,7 +3,7 @@
  * Static class that reads from CodeGenState directly.
  */
 import * as Parser from "../../logic/parser/grammar/CNextParser";
-import CodeGenState from "./CodeGenState";
+import CodeGenState from "../../state/CodeGenState";
 import INTEGER_TYPES from "./types/INTEGER_TYPES";
 import FLOAT_TYPES from "./types/FLOAT_TYPES";
 import SIGNED_TYPES from "./types/SIGNED_TYPES";

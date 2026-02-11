@@ -9,7 +9,7 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Static helper class for C/C++ mode-specific code generation patterns.
