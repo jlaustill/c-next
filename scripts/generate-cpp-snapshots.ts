@@ -57,7 +57,8 @@ function isCppOnlyTest(source: string): boolean {
 // Use shared FileScanner.findTestFiles instead of local implementation
 
 /**
- * Track already-processed helper files to avoid duplicates
+ * Track already-processed helper files to avoid duplicates.
+ * Cleared at the start of main() to support multiple runs in tests.
  */
 const processedHelpers = new Set<string>();
 
@@ -87,7 +88,11 @@ function resolveIncludePath(
 }
 
 /**
- * Recursively find all helper .cnx files referenced by a source file
+ * Recursively find all helper .cnx files referenced by a source file.
+ *
+ * The `visited` parameter uses a default value of `new Set()` which creates
+ * a fresh Set on the initial call. Recursive calls pass the same Set to
+ * track visited files across the entire include tree.
  */
 function findHelperFiles(
   cnxFile: string,
@@ -119,6 +124,66 @@ function findHelperFiles(
   }
 
   return helpers;
+}
+
+/**
+ * Shared transpilation logic for both test files and helper files.
+ * Transpiles source in C++ mode and writes .expected.cpp/.expected.hpp files.
+ */
+async function transpileAndWriteCppSnapshot(
+  cnxFile: string,
+  source: string,
+  expectedCppFile: string,
+  expectedHppFile: string,
+  includeDirs: string[],
+  dryRun: boolean,
+): Promise<IGenerationResult> {
+  try {
+    const pipeline = new Transpiler({
+      inputs: [],
+      includeDirs,
+      noCache: true,
+      cppRequired: true,
+    });
+
+    const result = await pipeline.transpileSource(source, {
+      workingDir: dirname(cnxFile),
+      sourcePath: cnxFile,
+    });
+
+    if (!result.success) {
+      const errors = result.errors
+        .map((e) => `${e.line}:${e.column} ${e.message}`)
+        .join("\n");
+      return {
+        file: cnxFile,
+        generated: false,
+        skipped: false,
+        error: `Transpilation failed: ${errors}`,
+      };
+    }
+
+    if (!dryRun) {
+      writeFileSync(expectedCppFile, result.code);
+      if (result.headerCode) {
+        writeFileSync(expectedHppFile, result.headerCode);
+      }
+    }
+
+    return {
+      file: cnxFile,
+      generated: true,
+      skipped: false,
+    };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return {
+      file: cnxFile,
+      generated: false,
+      skipped: false,
+      error: err.message,
+    };
+  }
 }
 
 /**
@@ -169,53 +234,14 @@ async function generateHelperCppSnapshot(
     };
   }
 
-  // Transpile in C++ mode
-  try {
-    const pipeline = new Transpiler({
-      inputs: [],
-      includeDirs,
-      noCache: true,
-      cppRequired: true,
-    });
-
-    const result = await pipeline.transpileSource(source, {
-      workingDir: dirname(cnxFile),
-      sourcePath: cnxFile,
-    });
-
-    if (!result.success) {
-      const errors = result.errors
-        .map((e) => `${e.line}:${e.column} ${e.message}`)
-        .join("\n");
-      return {
-        file: cnxFile,
-        generated: false,
-        skipped: false,
-        error: `Transpilation failed: ${errors}`,
-      };
-    }
-
-    if (!dryRun) {
-      writeFileSync(expectedCppFile, result.code);
-      if (result.headerCode) {
-        writeFileSync(expectedHppFile, result.headerCode);
-      }
-    }
-
-    return {
-      file: cnxFile,
-      generated: true,
-      skipped: false,
-    };
-  } catch (error: unknown) {
-    const err = error as Error;
-    return {
-      file: cnxFile,
-      generated: false,
-      skipped: false,
-      error: err.message,
-    };
-  }
+  return transpileAndWriteCppSnapshot(
+    cnxFile,
+    source,
+    expectedCppFile,
+    expectedHppFile,
+    includeDirs,
+    dryRun,
+  );
 }
 
 /**
@@ -224,6 +250,7 @@ async function generateHelperCppSnapshot(
 async function generateCppSnapshot(
   cnxFile: string,
   dryRun: boolean,
+  includeDirs: string[],
 ): Promise<IGenerationResult> {
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCppFile = basePath + ".expected.cpp";
@@ -272,59 +299,23 @@ async function generateCppSnapshot(
     };
   }
 
-  // Transpile in C++ mode
-  try {
-    const pipeline = new Transpiler({
-      inputs: [],
-      includeDirs: [join(rootDir, "tests/include")],
-      noCache: true,
-      cppRequired: true,
-    });
-
-    const result = await pipeline.transpileSource(source, {
-      workingDir: dirname(cnxFile),
-      sourcePath: cnxFile,
-    });
-
-    if (!result.success) {
-      const errors = result.errors
-        .map((e) => `${e.line}:${e.column} ${e.message}`)
-        .join("\n");
-      return {
-        file: cnxFile,
-        generated: false,
-        skipped: false,
-        error: `Transpilation failed: ${errors}`,
-      };
-    }
-
-    if (!dryRun) {
-      writeFileSync(expectedCppFile, result.code);
-      if (result.headerCode) {
-        writeFileSync(expectedHppFile, result.headerCode);
-      }
-    }
-
-    return {
-      file: cnxFile,
-      generated: true,
-      skipped: false,
-    };
-  } catch (error: unknown) {
-    const err = error as Error;
-    return {
-      file: cnxFile,
-      generated: false,
-      skipped: false,
-      error: err.message,
-    };
-  }
+  return transpileAndWriteCppSnapshot(
+    cnxFile,
+    source,
+    expectedCppFile,
+    expectedHppFile,
+    includeDirs,
+    dryRun,
+  );
 }
 
 /**
  * Main function
  */
 async function main(): Promise<void> {
+  // Clear module-level state for fresh runs (supports multiple invocations in tests)
+  processedHelpers.clear();
+
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const filterPath = args.find((arg) => !arg.startsWith("-"));
@@ -369,7 +360,11 @@ async function main(): Promise<void> {
   let helpersErrors = 0;
 
   for (const cnxFile of cnxFiles) {
-    const result = await generateCppSnapshot(cnxFile, dryRun);
+    // Include source directory in search paths for test files (consistency with helpers)
+    const sourceDir = dirname(cnxFile);
+    const allIncludeDirs = [sourceDir, ...includeDirs];
+
+    const result = await generateCppSnapshot(cnxFile, dryRun, allIncludeDirs);
     const relativePath = cnxFile.replace(rootDir + "/", "");
 
     if (result.generated) {
@@ -387,8 +382,6 @@ async function main(): Promise<void> {
     }
 
     // Find and process helper files referenced by this test
-    const sourceDir = dirname(cnxFile);
-    const allIncludeDirs = [sourceDir, ...includeDirs];
     const helpers = findHelperFiles(cnxFile, allIncludeDirs);
 
     for (const helper of helpers) {
@@ -434,7 +427,8 @@ async function main(): Promise<void> {
     console.log(`    ${chalk.red("Errors:")}    ${errors}`);
   }
 
-  if (helpersGenerated > 0 || helpersErrors > 0) {
+  // Show helper files section if any helpers were processed
+  if (helpersGenerated > 0 || helpersErrors > 0 || helpersSkipped > 0) {
     console.log(chalk.bold("  Helper files:"));
     console.log(`    ${chalk.green("Generated:")} ${helpersGenerated}`);
     console.log(`    ${chalk.dim("Skipped:")}   ${helpersSkipped}`);
