@@ -451,7 +451,78 @@ const resolveStringTypeInfo = (
 };
 
 /**
- * Try handling property access (.length, .capacity, .size).
+ * Create context object for explicit length property generators.
+ */
+const createExplicitLengthContext = (
+  tracking: ITrackingState,
+  rootIdentifier: string | undefined,
+): IExplicitLengthContext => ({
+  result: tracking.result,
+  rootIdentifier,
+  resolvedIdentifier: tracking.resolvedIdentifier,
+  previousStructType: tracking.previousStructType,
+  previousMemberName: tracking.previousMemberName,
+  subscriptDepth: tracking.subscriptDepth,
+});
+
+/**
+ * Apply property result to tracking state.
+ */
+const applyPropertyResult = (
+  tracking: ITrackingState,
+  result: string,
+): void => {
+  tracking.result = result;
+  tracking.previousStructType = undefined;
+  tracking.previousMemberName = undefined;
+};
+
+/**
+ * Try handling explicit length property (ADR-058).
+ * Returns true if handled.
+ */
+const tryExplicitLengthProperty = (
+  memberName: string,
+  tracking: ITrackingState,
+  rootIdentifier: string | undefined,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+  effects: TGeneratorEffect[],
+): boolean => {
+  const ctx = createExplicitLengthContext(tracking, rootIdentifier);
+
+  let result: string | null = null;
+  switch (memberName) {
+    case "bit_length":
+      result = generateBitLengthProperty(ctx, input, state, orchestrator);
+      break;
+    case "byte_length":
+      result = generateByteLengthProperty(ctx, input, state, orchestrator);
+      break;
+    case "element_count":
+      result = generateElementCountProperty(ctx, input, state, orchestrator);
+      break;
+    case "char_count":
+      result = generateCharCountProperty(
+        ctx,
+        input,
+        state,
+        orchestrator,
+        effects,
+      );
+      break;
+  }
+
+  if (result !== null) {
+    applyPropertyResult(tracking, result);
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Try handling property access (.length, .capacity, .size, .bit_length, .byte_length, .element_count, .char_count).
  * Returns true if handled.
  */
 const tryPropertyAccess = (
@@ -464,27 +535,38 @@ const tryPropertyAccess = (
   effects: TGeneratorEffect[],
 ): boolean => {
   if (memberName === "length") {
+    const ctx = createExplicitLengthContext(tracking, rootIdentifier);
     const lengthResult = generateLengthProperty(
-      {
-        result: tracking.result,
-        rootIdentifier,
-        resolvedIdentifier: tracking.resolvedIdentifier,
-        previousStructType: tracking.previousStructType,
-        previousMemberName: tracking.previousMemberName,
-        subscriptDepth: tracking.subscriptDepth,
-      },
+      ctx,
       input,
       state,
       orchestrator,
       effects,
     );
     if (lengthResult !== null) {
-      tracking.result = lengthResult;
-      tracking.previousStructType = undefined;
-      tracking.previousMemberName = undefined;
+      applyPropertyResult(tracking, lengthResult);
       return true;
     }
     return false;
+  }
+
+  // ADR-058: Explicit length properties
+  const explicitProps = new Set([
+    "bit_length",
+    "byte_length",
+    "element_count",
+    "char_count",
+  ]);
+  if (explicitProps.has(memberName)) {
+    return tryExplicitLengthProperty(
+      memberName,
+      tracking,
+      rootIdentifier,
+      input,
+      state,
+      orchestrator,
+      effects,
+    );
   }
 
   if (memberName === "capacity") {
@@ -772,6 +854,530 @@ const getTypeBitWidth = (typeName: string, input: IGeneratorInput): string => {
   } else {
     return `/* .length: unsupported type ${typeName} */0`;
   }
+};
+
+// ========================================================================
+// ADR-058: Explicit Length Properties
+// ========================================================================
+
+/**
+ * Context for explicit length property generation.
+ */
+interface IExplicitLengthContext {
+  result: string;
+  rootIdentifier: string | undefined;
+  resolvedIdentifier: string | undefined;
+  previousStructType: string | undefined;
+  previousMemberName: string | undefined;
+  subscriptDepth: number;
+}
+
+/**
+ * Get the numeric bit width for a type (internal helper for ADR-058).
+ * Returns 0 if type is unknown.
+ *
+ * Note: This differs from getTypeBitWidth() which returns a string and is
+ * used for the legacy .length property. This function returns a number for
+ * use in calculations (e.g., array total bits = elements * element width).
+ */
+const getNumericBitWidth = (
+  typeName: string,
+  input: IGeneratorInput,
+): number => {
+  let bitWidth = TYPE_WIDTH[typeName] ?? C_TYPE_WIDTH[typeName] ?? 0;
+  if (bitWidth === 0 && input.symbolTable) {
+    const enumWidth = input.symbolTable.getEnumBitWidth(typeName);
+    if (enumWidth) bitWidth = enumWidth;
+  }
+  // Check if it's a known enum (default to 32 bits per ADR-017)
+  if (bitWidth === 0 && input.symbols?.knownEnums?.has(typeName)) {
+    bitWidth = 32;
+  }
+  // Check bitmap types
+  if (bitWidth === 0 && input.symbols?.bitmapBitWidth) {
+    const bitmapWidth = input.symbols.bitmapBitWidth.get(typeName);
+    if (bitmapWidth) bitWidth = bitmapWidth;
+  }
+  return bitWidth;
+};
+
+/**
+ * Generate .bit_length property access (ADR-058).
+ * Returns the bit width of any type.
+ */
+const generateBitLengthProperty = (
+  ctx: IExplicitLengthContext,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+): string | null => {
+  // Special case: main function's args.bit_length -> not supported
+  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
+    throw new Error(
+      `Error: .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
+    );
+  }
+
+  // Check struct member access
+  if (ctx.previousStructType && ctx.previousMemberName) {
+    const fieldInfo = orchestrator.getStructFieldInfo(
+      ctx.previousStructType,
+      ctx.previousMemberName,
+    );
+    if (fieldInfo) {
+      return generateStructFieldBitLength(fieldInfo, ctx.subscriptDepth, input);
+    }
+  }
+
+  // Get type info for the resolved identifier
+  const typeInfo = ctx.resolvedIdentifier
+    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    : undefined;
+
+  if (!typeInfo) {
+    throw new Error(
+      `Error: Cannot determine .bit_length for '${ctx.result}' - type not found in registry.`,
+    );
+  }
+
+  return generateTypeInfoBitLength(typeInfo, ctx.subscriptDepth, input);
+};
+
+/**
+ * Calculate product of remaining array dimensions from subscript depth.
+ * Returns null if a dynamic dimension (C macro) is encountered.
+ */
+const calculateRemainingDimensionsProduct = (
+  dimensions: (number | string)[],
+  subscriptDepth: number,
+): { product: number } | { dynamicDim: string } => {
+  let product = 1;
+  for (let i = subscriptDepth; i < dimensions.length; i++) {
+    const dim = dimensions[i];
+    if (typeof dim !== "number") {
+      return { dynamicDim: dim };
+    }
+    product *= dim;
+  }
+  return { product };
+};
+
+/**
+ * Generate bit length for string type from type name.
+ */
+const generateStringBitLengthFromTypeName = (
+  typeName: string,
+): string | null => {
+  if (!typeName.startsWith("string<")) {
+    return null;
+  }
+  const capacityMatch = /^string<(\d+)>$/.exec(typeName);
+  if (capacityMatch) {
+    const capacity = Number(capacityMatch[1]);
+    return String((capacity + 1) * 8);
+  }
+  return null;
+};
+
+/**
+ * Generate .bit_length for a struct field.
+ */
+const generateStructFieldBitLength = (
+  fieldInfo: { type: string; dimensions?: (number | string)[] },
+  subscriptDepth: number,
+  input: IGeneratorInput,
+): string => {
+  const memberType = fieldInfo.type;
+  const dimensions = fieldInfo.dimensions;
+
+  // String field: bit_length = (capacity + 1) * 8
+  const stringBitLength = generateStringBitLengthFromTypeName(memberType);
+  if (stringBitLength !== null) {
+    return stringBitLength;
+  }
+
+  // Array field: total bits = product of dimensions * element bit width
+  if (dimensions && dimensions.length > subscriptDepth) {
+    const elementBitWidth = getNumericBitWidth(memberType, input);
+    if (elementBitWidth > 0) {
+      const dimResult = calculateRemainingDimensionsProduct(
+        dimensions,
+        subscriptDepth,
+      );
+      if ("dynamicDim" in dimResult) {
+        return `/* .bit_length: dynamic dimension ${dimResult.dynamicDim} */0`;
+      }
+      return String(dimResult.product * elementBitWidth);
+    }
+  }
+
+  // Scalar or fully subscripted: return element bit width
+  const bitWidth = getNumericBitWidth(memberType, input);
+  if (bitWidth > 0) {
+    return String(bitWidth);
+  }
+
+  throw new Error(
+    `Error: Cannot determine .bit_length for unsupported type '${memberType}'.`,
+  );
+};
+
+/**
+ * Generate bit length for a scalar (non-array) type.
+ */
+const generateScalarBitLength = (
+  typeInfo: {
+    isEnum?: boolean;
+    baseType: string;
+    bitWidth?: number;
+  },
+  input: IGeneratorInput,
+): string => {
+  // Enum type: always 32 bits
+  if (typeInfo.isEnum) {
+    return "32";
+  }
+
+  if (typeInfo.bitWidth) {
+    return String(typeInfo.bitWidth);
+  }
+
+  // Try lookup by base type
+  const bitWidth = getNumericBitWidth(typeInfo.baseType, input);
+  if (bitWidth > 0) {
+    return String(bitWidth);
+  }
+  throw new Error(
+    `Error: Cannot determine .bit_length for unsupported type '${typeInfo.baseType}'.`,
+  );
+};
+
+/**
+ * Get element bit width for array type.
+ */
+const getArrayElementBitWidth = (
+  typeInfo: {
+    isEnum?: boolean;
+    baseType: string;
+    bitWidth?: number;
+  },
+  input: IGeneratorInput,
+): number => {
+  let elementBitWidth = typeInfo.bitWidth || 0;
+  if (elementBitWidth === 0) {
+    elementBitWidth = getNumericBitWidth(typeInfo.baseType, input);
+  }
+  if (elementBitWidth === 0 && typeInfo.isEnum) {
+    elementBitWidth = 32;
+  }
+  return elementBitWidth;
+};
+
+/**
+ * Generate bit length for an array type.
+ */
+const generateArrayBitLength = (
+  typeInfo: {
+    isEnum?: boolean;
+    arrayDimensions?: (number | string)[];
+    baseType: string;
+    bitWidth?: number;
+  },
+  subscriptDepth: number,
+  input: IGeneratorInput,
+): string => {
+  const dims = typeInfo.arrayDimensions;
+  if (!dims || dims.length === 0) {
+    throw new Error(
+      `Error: Cannot determine .bit_length for array with unknown dimensions.`,
+    );
+  }
+
+  const elementBitWidth = getArrayElementBitWidth(typeInfo, input);
+  if (elementBitWidth === 0) {
+    throw new Error(
+      `Error: Cannot determine .bit_length for array with unsupported element type '${typeInfo.baseType}'.`,
+    );
+  }
+
+  const dimResult = calculateRemainingDimensionsProduct(dims, subscriptDepth);
+  if ("dynamicDim" in dimResult) {
+    return `/* .bit_length: dynamic dimension ${dimResult.dynamicDim} */0`;
+  }
+
+  return String(dimResult.product * elementBitWidth);
+};
+
+/**
+ * Generate .bit_length from type info.
+ */
+const generateTypeInfoBitLength = (
+  typeInfo: {
+    isString?: boolean;
+    isArray?: boolean;
+    isEnum?: boolean;
+    arrayDimensions?: (number | string)[];
+    baseType: string;
+    bitWidth?: number;
+    isBitmap?: boolean;
+    bitmapTypeName?: string;
+    stringCapacity?: number;
+  },
+  subscriptDepth: number,
+  input: IGeneratorInput,
+): string => {
+  // String type: bit_length = (capacity + 1) * 8 (buffer size in bits)
+  if (typeInfo.isString) {
+    if (typeInfo.stringCapacity !== undefined) {
+      return String((typeInfo.stringCapacity + 1) * 8);
+    }
+    throw new Error(
+      `Error: Cannot determine .bit_length for string with unknown capacity.`,
+    );
+  }
+
+  // Non-array scalar: return bit width
+  if (!typeInfo.isArray) {
+    return generateScalarBitLength(typeInfo, input);
+  }
+
+  // Array: calculate total bits
+  return generateArrayBitLength(typeInfo, subscriptDepth, input);
+};
+
+/**
+ * Generate .byte_length property access (ADR-058).
+ * Returns the byte size of any type (bit_length / 8).
+ */
+const generateByteLengthProperty = (
+  ctx: IExplicitLengthContext,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+): string | null => {
+  // Special case: main function's args
+  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
+    throw new Error(
+      `Error: .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
+    );
+  }
+
+  // Check struct member access
+  if (ctx.previousStructType && ctx.previousMemberName) {
+    const fieldInfo = orchestrator.getStructFieldInfo(
+      ctx.previousStructType,
+      ctx.previousMemberName,
+    );
+    if (fieldInfo) {
+      const bitLength = generateStructFieldBitLength(
+        fieldInfo,
+        ctx.subscriptDepth,
+        input,
+      );
+      // Parse and convert to bytes
+      const bitValue = Number.parseInt(bitLength, 10);
+      if (!Number.isNaN(bitValue)) {
+        return String(bitValue / 8);
+      }
+      return bitLength.replace(".bit_length", ".byte_length");
+    }
+  }
+
+  // Get type info for the resolved identifier
+  const typeInfo = ctx.resolvedIdentifier
+    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    : undefined;
+
+  if (!typeInfo) {
+    throw new Error(
+      `Error: Cannot determine .byte_length for '${ctx.result}' - type not found in registry.`,
+    );
+  }
+
+  const bitLength = generateTypeInfoBitLength(
+    typeInfo,
+    ctx.subscriptDepth,
+    input,
+  );
+  const bitValue = Number.parseInt(bitLength, 10);
+  if (!Number.isNaN(bitValue)) {
+    return String(bitValue / 8);
+  }
+  return bitLength.replace(".bit_length", ".byte_length");
+};
+
+/**
+ * Get dimension value at subscript depth as string.
+ */
+const getDimensionAtDepth = (
+  dimensions: (number | string)[],
+  subscriptDepth: number,
+): string => {
+  const dim = dimensions[subscriptDepth];
+  return typeof dim === "number" ? String(dim) : dim;
+};
+
+/**
+ * Generate element_count for struct field.
+ */
+const generateStructFieldElementCount = (
+  ctx: IExplicitLengthContext,
+  orchestrator: IOrchestrator,
+): string | null => {
+  if (!ctx.previousStructType || !ctx.previousMemberName) {
+    return null;
+  }
+
+  const fieldInfo = orchestrator.getStructFieldInfo(
+    ctx.previousStructType,
+    ctx.previousMemberName,
+  );
+
+  if (
+    fieldInfo?.dimensions &&
+    fieldInfo.dimensions.length > ctx.subscriptDepth
+  ) {
+    return getDimensionAtDepth(fieldInfo.dimensions, ctx.subscriptDepth);
+  }
+
+  // Non-array field - element_count not applicable
+  throw new Error(
+    `Error: .element_count is only available on arrays, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
+  );
+};
+
+/**
+ * Generate element_count from type info.
+ */
+const generateTypeInfoElementCount = (
+  ctx: IExplicitLengthContext,
+  input: IGeneratorInput,
+): string => {
+  const typeInfo = ctx.resolvedIdentifier
+    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    : undefined;
+
+  if (!typeInfo) {
+    throw new Error(
+      `Error: Cannot determine .element_count for '${ctx.result}' - type not found in registry.`,
+    );
+  }
+
+  if (!typeInfo.isArray) {
+    throw new Error(
+      `Error: .element_count is only available on arrays, not on '${typeInfo.baseType}'.`,
+    );
+  }
+
+  const dims = typeInfo.arrayDimensions;
+  if (!dims || dims.length === 0) {
+    throw new Error(
+      `Error: Cannot determine .element_count for array with unknown dimensions.`,
+    );
+  }
+
+  if (ctx.subscriptDepth < dims.length) {
+    return getDimensionAtDepth(dims, ctx.subscriptDepth);
+  }
+
+  throw new Error(
+    `Error: .element_count is not available on array elements. Array is fully subscripted.`,
+  );
+};
+
+/**
+ * Generate .element_count property access (ADR-058).
+ * Returns element count for arrays or argc for args.
+ */
+const generateElementCountProperty = (
+  ctx: IExplicitLengthContext,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+): string | null => {
+  // Special case: main function's args.element_count -> argc
+  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
+    return "argc";
+  }
+
+  // Check struct member access for array fields
+  const structResult = generateStructFieldElementCount(ctx, orchestrator);
+  if (structResult !== null) {
+    return structResult;
+  }
+  if (ctx.previousStructType) {
+    // generateStructFieldElementCount threw or returned null but struct context existed
+    return null;
+  }
+
+  // Get type info for variable
+  return generateTypeInfoElementCount(ctx, input);
+};
+
+/**
+ * Generate .char_count property access (ADR-058).
+ * Returns strlen() for strings.
+ */
+const generateCharCountProperty = (
+  ctx: IExplicitLengthContext,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator,
+  effects: TGeneratorEffect[],
+): string | null => {
+  // Special case: main function's args
+  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
+    throw new Error(
+      `Error: .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
+    );
+  }
+
+  // Check struct member access for string fields
+  if (ctx.previousStructType && ctx.previousMemberName) {
+    const fieldInfo = orchestrator.getStructFieldInfo(
+      ctx.previousStructType,
+      ctx.previousMemberName,
+    );
+    if (fieldInfo?.type.startsWith("string<")) {
+      effects.push({ type: "include", header: "string" });
+      return `strlen(${ctx.result})`;
+    }
+    // Non-string field
+    throw new Error(
+      `Error: .char_count is only available on strings, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
+    );
+  }
+
+  // Get type info
+  const typeInfo = ctx.resolvedIdentifier
+    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    : undefined;
+
+  if (!typeInfo) {
+    throw new Error(
+      `Error: Cannot determine .char_count for '${ctx.result}' - type not found in registry.`,
+    );
+  }
+
+  // Must be a string type
+  if (!typeInfo.isString) {
+    throw new Error(
+      `Error: .char_count is only available on strings, not on '${typeInfo.baseType}'.`,
+    );
+  }
+
+  effects.push({ type: "include", header: "string" });
+
+  // Check length cache first
+  if (
+    ctx.resolvedIdentifier &&
+    state.lengthCache?.has(ctx.resolvedIdentifier)
+  ) {
+    return state.lengthCache.get(ctx.resolvedIdentifier)!;
+  }
+
+  const target = ctx.resolvedIdentifier ?? ctx.result;
+  return `strlen(${target})`;
 };
 
 // ========================================================================

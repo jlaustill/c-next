@@ -1,0 +1,67 @@
+// test-execution
+// Tests .bit_length property for all integer types (ADR-058)
+// Each integer type should return its bit width
+
+u8 global_u8 <- 255;
+u16 global_u16 <- 65535;
+u32 global_u32 <- 100000;
+u64 global_u64 <- 1000000000;
+i8 global_i8 <- -128;
+i16 global_i16 <- -32768;
+i32 global_i32 <- -100000;
+i64 global_i64 <- -1000000000;
+
+i32 main() {
+    // Test u8 bit_length = 8
+    if (global_u8.bit_length != 8) {
+        return 1;
+    }
+
+    // Test u16 bit_length = 16
+    if (global_u16.bit_length != 16) {
+        return 2;
+    }
+
+    // Test u32 bit_length = 32
+    if (global_u32.bit_length != 32) {
+        return 3;
+    }
+
+    // Test u64 bit_length = 64
+    if (global_u64.bit_length != 64) {
+        return 4;
+    }
+
+    // Test i8 bit_length = 8
+    if (global_i8.bit_length != 8) {
+        return 5;
+    }
+
+    // Test i16 bit_length = 16
+    if (global_i16.bit_length != 16) {
+        return 6;
+    }
+
+    // Test i32 bit_length = 32
+    if (global_i32.bit_length != 32) {
+        return 7;
+    }
+
+    // Test i64 bit_length = 64
+    if (global_i64.bit_length != 64) {
+        return 8;
+    }
+
+    // Test local variables
+    u8 local_u8 <- 255;
+    if (local_u8.bit_length != 8) {
+        return 9;
+    }
+
+    u64 local_u64 <- 1000000000;
+    if (local_u64.bit_length != 64) {
+        return 10;
+    }
+
+    return 0;
+}

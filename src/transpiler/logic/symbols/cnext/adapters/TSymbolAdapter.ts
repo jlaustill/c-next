@@ -40,6 +40,9 @@ class TSymbolAdapter {
    * @returns Array of flat ISymbol objects for Pipeline consumption
    */
   static toISymbols(symbols: TSymbol[], symbolTable: SymbolTable): ISymbol[] {
+    // First pass: Build enum member lookup for array dimension resolution
+    const enumMemberLookup = TSymbolAdapter.buildEnumMemberLookup(symbols);
+
     const result: ISymbol[] = [];
 
     for (const symbol of symbols) {
@@ -54,10 +57,12 @@ class TSymbolAdapter {
           result.push(TSymbolAdapter.convertStruct(symbol, symbolTable));
           break;
         case ESymbolKind.Function:
-          result.push(...TSymbolAdapter.convertFunction(symbol));
+          result.push(
+            ...TSymbolAdapter.convertFunction(symbol, enumMemberLookup),
+          );
           break;
         case ESymbolKind.Variable:
-          result.push(TSymbolAdapter.convertVariable(symbol));
+          result.push(TSymbolAdapter.convertVariable(symbol, enumMemberLookup));
           break;
         case ESymbolKind.Register:
           result.push(...TSymbolAdapter.convertRegister(symbol));
@@ -69,6 +74,57 @@ class TSymbolAdapter {
     }
 
     return result;
+  }
+
+  /**
+   * Build a lookup map from enum member names to their fully-qualified enum names.
+   * Used to resolve unqualified enum members in array dimensions.
+   *
+   * If a member name exists in multiple enums, it's marked as ambiguous (null value)
+   * and will not be resolved (the header will fail to compile, surfacing the issue).
+   */
+  private static buildEnumMemberLookup(
+    symbols: TSymbol[],
+  ): Map<string, string | null> {
+    const lookup = new Map<string, string | null>();
+
+    for (const symbol of symbols) {
+      if (symbol.kind !== ESymbolKind.Enum) continue;
+
+      for (const memberName of symbol.members.keys()) {
+        if (lookup.has(memberName)) {
+          // Ambiguous: member exists in multiple enums
+          lookup.set(memberName, null);
+        } else {
+          lookup.set(memberName, symbol.name);
+        }
+      }
+    }
+
+    return lookup;
+  }
+
+  /**
+   * Resolve an array dimension string, adding enum prefix if it's an unqualified enum member.
+   */
+  private static resolveArrayDimension(
+    dim: number | string,
+    enumMemberLookup: Map<string, string | null>,
+  ): string {
+    // Numeric dimensions don't need resolution
+    if (typeof dim === "number") {
+      return String(dim);
+    }
+
+    // Check if this is an unqualified enum member
+    const enumName = enumMemberLookup.get(dim);
+    if (enumName) {
+      // Found in exactly one enum - add the prefix
+      return `${enumName}_${dim}`;
+    }
+
+    // Not an enum member, or ambiguous - return as-is
+    return dim;
   }
 
   /**
@@ -180,21 +236,27 @@ class TSymbolAdapter {
 
   /**
    * Convert IFunctionSymbol to ISymbol + parameter symbols for hover support.
+   * Resolves unqualified enum members in parameter array dimensions.
    */
-  private static convertFunction(func: IFunctionSymbol): ISymbol[] {
+  private static convertFunction(
+    func: IFunctionSymbol,
+    enumMemberLookup: Map<string, string | null>,
+  ): ISymbol[] {
     const result: ISymbol[] = [];
 
     // Build parameter types for signature
     const paramTypes = func.parameters.map((p) => p.type);
     const signature = `${func.returnType} ${func.name}(${paramTypes.join(", ")})`;
 
-    // Build parameter info for header generation
+    // Build parameter info for header generation, resolving enum members in dimensions
     const parameters = func.parameters.map((p) => ({
       name: p.name,
       type: p.type,
       isConst: p.isConst,
       isArray: p.isArray,
-      arrayDimensions: p.arrayDimensions,
+      arrayDimensions: p.arrayDimensions?.map((dim) =>
+        TSymbolAdapter.resolveArrayDimension(dim, enumMemberLookup),
+      ),
       isAutoConst: p.isAutoConst,
     }));
 
@@ -233,10 +295,16 @@ class TSymbolAdapter {
 
   /**
    * Convert IVariableSymbol to ISymbol.
+   * Resolves unqualified enum members in array dimensions.
    */
-  private static convertVariable(variable: IVariableSymbol): ISymbol {
-    // Convert dimensions to string dimensions for ISymbol
-    const arrayDimensions = variable.arrayDimensions?.map(String);
+  private static convertVariable(
+    variable: IVariableSymbol,
+    enumMemberLookup: Map<string, string | null>,
+  ): ISymbol {
+    // Convert dimensions to string dimensions, resolving enum member references
+    const arrayDimensions = variable.arrayDimensions?.map((dim) =>
+      TSymbolAdapter.resolveArrayDimension(dim, enumMemberLookup),
+    );
 
     // Get first dimension for legacy size field (only if numeric)
     const firstDim = variable.arrayDimensions?.[0];

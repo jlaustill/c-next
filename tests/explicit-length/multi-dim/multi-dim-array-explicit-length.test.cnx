@@ -1,0 +1,51 @@
+// test-execution
+// Tests explicit length properties on multi-dimensional arrays (ADR-058)
+// u8[8][8] = 8 x 8 x 8 bits = 512 bits total
+
+u8[8][8] matrix;
+
+i32 main() {
+    matrix[0][0] <- 1;
+
+    // Full array: element_count = 8 (first dimension)
+    if (matrix.element_count != 8) {
+        return 1;
+    }
+
+    // Full array: bit_length = 512 (8 x 8 x 8)
+    if (matrix.bit_length != 512) {
+        return 2;
+    }
+
+    // Full array: byte_length = 64 (512 / 8)
+    if (matrix.byte_length != 64) {
+        return 3;
+    }
+
+    // One row: element_count = 8 (second dimension)
+    if (matrix[0].element_count != 8) {
+        return 4;
+    }
+
+    // One row: bit_length = 64 (8 x 8)
+    if (matrix[0].bit_length != 64) {
+        return 5;
+    }
+
+    // One row: byte_length = 8 (64 / 8)
+    if (matrix[0].byte_length != 8) {
+        return 6;
+    }
+
+    // Single element: bit_length = 8
+    if (matrix[0][0].bit_length != 8) {
+        return 7;
+    }
+
+    // Single element: byte_length = 1
+    if (matrix[0][0].byte_length != 1) {
+        return 8;
+    }
+
+    return 0;
+}

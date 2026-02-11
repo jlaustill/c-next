@@ -1,0 +1,38 @@
+// test-execution
+// Tests .byte_length property for strings (ADR-058)
+// byte_length = capacity + 1 (buffer size in bytes including null terminator)
+// string<64> = 65 bytes
+
+string<64> globalStr <- "Hello";
+
+struct TestStruct {
+    string<32> name;
+}
+
+i32 main() {
+    // Test global string byte_length = 65 (64+1)
+    if (globalStr.byte_length != 65) {
+        return 1;
+    }
+
+    // Test local string<32> = 33 bytes
+    string<32> localStr <- "World";
+    if (localStr.byte_length != 33) {
+        return 2;
+    }
+
+    // Test string<16> = 17 bytes
+    string<16> smallStr <- "";
+    if (smallStr.byte_length != 17) {
+        return 3;
+    }
+
+    // Test struct member string<32> = 33 bytes
+    TestStruct ts;
+    ts.name <- "Test";
+    if (ts.name.byte_length != 33) {
+        return 4;
+    }
+
+    return 0;
+}

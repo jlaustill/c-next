@@ -134,6 +134,9 @@ import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 import CastValidator from "./helpers/CastValidator";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import CodeGenState from "./CodeGenState";
+// Unified parameter generation (Phase 1)
+import ParameterInputAdapter from "./helpers/ParameterInputAdapter";
+import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
 // Extracted resolvers that use CodeGenState
 import SizeofResolver from "./resolution/SizeofResolver";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
@@ -5295,16 +5298,47 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private generateParameter(ctx: Parser.ParameterContext): string {
-    const constMod = ctx.constModifier() ? "const " : "";
     const typeName = this.getTypeName(ctx.type());
     const name = ctx.IDENTIFIER().getText();
-    const dims = ctx.arrayDimension();
 
-    // Reject ALL C-style array parameters - require C-Next style (dimensions in type)
-    // C-style: u8 data[8], u8 data[4][4], u8 data[]
-    // C-Next:  u8[8] data, u8[4][4] data, u8[] data
+    // Validate: Reject C-style array parameters
+    this._validateCStyleArrayParam(ctx, typeName, name);
+
+    // Validate: Reject unbounded array dimensions
+    this._validateUnboundedArrayParam(ctx);
+
+    // Pre-compute CodeGenState-dependent values
+    const isModified = this._isCurrentParameterModified(name);
+    const isPassByValue = this._isPassByValueType(typeName, name);
+
+    // Build normalized input using adapter
+    const input = ParameterInputAdapter.fromAST(ctx, {
+      getTypeName: (t) => this.getTypeName(t),
+      generateType: (t) => this.generateType(t),
+      generateExpression: (e) => this.generateExpression(e),
+      callbackTypes: CodeGenState.callbackTypes,
+      isKnownStruct: (t) => this.isKnownStruct(t),
+      typeMap: TYPE_MAP,
+      isModified,
+      isPassByValue,
+    });
+
+    // Use shared builder with C/C++ mode
+    return ParameterSignatureBuilder.build(input, CppModeHelper.refOrPtr());
+  }
+
+  /**
+   * Validate: Reject C-style array parameters
+   * C-style: u8 data[8], u8 data[4][4], u8 data[]
+   * C-Next:  u8[8] data, u8[4][4] data, u8[] data
+   */
+  private _validateCStyleArrayParam(
+    ctx: Parser.ParameterContext,
+    typeName: string,
+    name: string,
+  ): void {
+    const dims = ctx.arrayDimension();
     if (dims.length > 0) {
-      const baseType = typeName;
       const dimensions = dims
         .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
         .join("");
@@ -5312,73 +5346,28 @@ export default class CodeGenerator implements IOrchestrator {
       const col = ctx.start?.column ?? 0;
       throw new Error(
         `${line}:${col} C-style array parameter is not allowed. ` +
-          `Use '${baseType}${dimensions} ${name}' instead of '${baseType} ${name}${dimensions}'`,
+          `Use '${typeName}${dimensions} ${name}' instead of '${typeName} ${name}${dimensions}'`,
       );
     }
+  }
 
-    // ADR-029: Check if this is a callback type parameter
-    if (CodeGenState.callbackTypes.has(typeName)) {
-      const callbackInfo = CodeGenState.callbackTypes.get(typeName)!;
-      return `${callbackInfo.typedefName} ${name}`;
-    }
-
-    const type = this.generateType(ctx.type());
-
-    // Handle C-Next style array type in parameter (e.g., u8[8] param, u8[4][4] param, string<32>[5] param)
+  /**
+   * Validate: Reject unbounded array dimensions for memory safety
+   */
+  private _validateUnboundedArrayParam(ctx: Parser.ParameterContext): void {
     const arrayTypeCtx = ctx.type().arrayType();
-    if (arrayTypeCtx) {
-      // Check for unbounded dimensions - reject for memory safety
-      const allDims = arrayTypeCtx.arrayTypeDimension();
-      const hasUnboundedDim = allDims.some((d) => !d.expression());
-      if (hasUnboundedDim) {
-        const line = ctx.start?.line ?? 0;
-        const col = ctx.start?.column ?? 0;
-        throw new Error(
-          `${line}:${col} Unbounded array parameters are not allowed. ` +
-            `All dimensions must have explicit sizes for memory safety.`,
-        );
-      }
+    if (!arrayTypeCtx) return;
 
-      let dims = allDims
-        .map((d) => {
-          const expr = d.expression();
-          return expr ? `[${this.generateExpression(expr)}]` : "[]";
-        })
-        .join("");
-      // For string arrays, add the string capacity dimension (string<32>[5] -> char[5][33])
-      if (arrayTypeCtx.stringType()) {
-        const stringCtx = arrayTypeCtx.stringType()!;
-        const intLiteral = stringCtx.INTEGER_LITERAL();
-        if (intLiteral) {
-          const capacity = Number.parseInt(intLiteral.getText(), 10);
-          dims += `[${capacity + 1}]`;
-        }
-      }
-      const wasModified = this._isCurrentParameterModified(name);
-      const autoConst = !wasModified && !constMod ? "const " : "";
-      return `${autoConst}${constMod}${type} ${name}${dims}`;
+    const allDims = arrayTypeCtx.arrayTypeDimension();
+    const hasUnboundedDim = allDims.some((d) => !d.expression());
+    if (hasUnboundedDim) {
+      const line = ctx.start?.line ?? 0;
+      const col = ctx.start?.column ?? 0;
+      throw new Error(
+        `${line}:${col} Unbounded array parameters are not allowed. ` +
+          `All dimensions must have explicit sizes for memory safety.`,
+      );
     }
-
-    // Pass-by-value types
-    if (this._isPassByValueType(typeName, name)) {
-      return `${constMod}${type} ${name}`;
-    }
-
-    // Non-array string parameters
-    const stringResult = this._tryGenerateStringParam(
-      ctx,
-      constMod,
-      name,
-      dims,
-    );
-    if (stringResult) return stringResult;
-
-    // Pass-by-reference types
-    const refResult = this._tryGenerateRefParam(constMod, type, typeName, name);
-    if (refResult) return refResult;
-
-    // Unknown types use pass-by-value (standard C semantics)
-    return `${constMod}${type} ${name}`;
   }
 
   /**
@@ -5388,7 +5377,7 @@ export default class CodeGenerator implements IOrchestrator {
     // ISR, float, enum types
     if (typeName === "ISR") return true;
     if (this._isFloatType(typeName)) return true;
-    if (CodeGenState.symbols!.knownEnums.has(typeName)) return true;
+    if (CodeGenState.symbols?.knownEnums.has(typeName)) return true;
 
     // Small unmodified primitives
     if (
@@ -5399,43 +5388,6 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return false;
-  }
-
-  /**
-   * Try to generate non-array string parameter: string<N> -> char*
-   */
-  private _tryGenerateStringParam(
-    ctx: Parser.ParameterContext,
-    constMod: string,
-    name: string,
-    dims: Parser.ArrayDimensionContext[],
-  ): string | null {
-    if (!ctx.type().stringType() || dims.length !== 0) {
-      return null;
-    }
-
-    const wasModified = this._isCurrentParameterModified(name);
-    const autoConst = !wasModified && !constMod ? "const " : "";
-    return `${autoConst}${constMod}char* ${name}`;
-  }
-
-  /**
-   * Try to generate pass-by-reference parameter for known types
-   */
-  private _tryGenerateRefParam(
-    constMod: string,
-    type: string,
-    typeName: string,
-    name: string,
-  ): string | null {
-    if (!this.isKnownStruct(typeName) && !this._isKnownPrimitive(typeName)) {
-      return null;
-    }
-
-    const wasModified = this._isCurrentParameterModified(name);
-    const autoConst = !wasModified && !constMod ? "const " : "";
-    const refOrPtr = CppModeHelper.refOrPtr();
-    return `${autoConst}${constMod}${type}${refOrPtr} ${name}`;
   }
 
   // ========================================================================

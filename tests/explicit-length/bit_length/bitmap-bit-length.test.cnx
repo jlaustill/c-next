@@ -1,0 +1,61 @@
+// test-execution
+// Tests .bit_length property for bitmap types (ADR-058)
+// bitmap8 = 8 bits, bitmap16 = 16 bits, bitmap32 = 32 bits
+
+bitmap8 Flags8 {
+    Active,
+    Ready,
+    Error,
+    Reserved[5]
+}
+
+bitmap16 Flags16 {
+    Mode[4],
+    Status[4],
+    Counter[8]
+}
+
+bitmap32 Flags32 {
+    ID[16],
+    Version[8],
+    Type[8]
+}
+
+Flags8 global8 <- 0;
+Flags16 global16 <- 0;
+Flags32 global32 <- 0;
+
+i32 main() {
+    // Test bitmap8 bit_length = 8
+    if (global8.bit_length != 8) {
+        return 1;
+    }
+
+    // Test bitmap16 bit_length = 16
+    if (global16.bit_length != 16) {
+        return 2;
+    }
+
+    // Test bitmap32 bit_length = 32
+    if (global32.bit_length != 32) {
+        return 3;
+    }
+
+    // Test local bitmaps
+    Flags8 local8 <- 0;
+    if (local8.bit_length != 8) {
+        return 4;
+    }
+
+    Flags16 local16 <- 0;
+    if (local16.bit_length != 16) {
+        return 5;
+    }
+
+    Flags32 local32 <- 0;
+    if (local32.bit_length != 32) {
+        return 6;
+    }
+
+    return 0;
+}

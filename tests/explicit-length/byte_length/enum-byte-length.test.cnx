@@ -1,0 +1,34 @@
+// test-execution
+// Tests .byte_length property for enum type (ADR-058)
+// Enums are 4 bytes (32 bits) by default
+
+enum Color { Red, Green, Blue }
+enum State { IDLE, RUNNING, STOPPED }
+
+Color globalColor <- Color.Red;
+
+struct TestStruct {
+    State state;
+}
+
+i32 main() {
+    // Test enum byte_length = 4
+    if (globalColor.byte_length != 4) {
+        return 1;
+    }
+
+    // Test local enum
+    State localState <- State.IDLE;
+    if (localState.byte_length != 4) {
+        return 2;
+    }
+
+    // Test struct member enum
+    TestStruct ts;
+    ts.state <- State.RUNNING;
+    if (ts.state.byte_length != 4) {
+        return 3;
+    }
+
+    return 0;
+}
