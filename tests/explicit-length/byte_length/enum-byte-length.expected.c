@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 // test-execution
+// test-c-only
 // Tests .byte_length property for enum type (ADR-058)
 // Enums are 4 bytes (32 bits) by default
 typedef enum {

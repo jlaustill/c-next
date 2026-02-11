@@ -1,3 +1,4 @@
+// test-c-only
 u32 value <- 0;
 
 u32 badFunction() {

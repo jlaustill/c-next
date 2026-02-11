@@ -442,6 +442,47 @@ u32 main() {
 }
 ```
 
+### Dual-Mode Testing (C and C++)
+
+The test infrastructure supports running tests in **both C and C++ modes** to validate both output types.
+
+#### Test Mode Markers
+
+| Marker                   | Meaning                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| _(no marker)_            | Run in BOTH C and C++ modes (default)                      |
+| `// test-c-only`         | Explicitly run only in C mode (e.g., MISRA-specific tests) |
+| `// test-cpp-only`       | Run only in C++ mode (e.g., C++ template interop tests)    |
+| `// test-no-exec`        | Skip execution (compile only, no run)                      |
+| `// test-transpile-only` | Skip compilation entirely (legacy, for C++ interop)        |
+
+#### Expected File Patterns
+
+For full dual-mode testing, a test can have:
+
+```
+foo.test.cnx          # Source
+foo.expected.c        # Expected C implementation
+foo.expected.cpp      # Expected C++ implementation (optional, enables dual-mode)
+foo.expected.h        # Expected C header
+foo.expected.hpp      # Expected C++ header (optional)
+foo.expected.error    # Expected error (if error test)
+```
+
+**Default Behavior**: Tests run in BOTH C and C++ modes. Missing expected files cause test failure.
+
+To generate missing `.expected.cpp` and `.expected.hpp` files:
+
+```bash
+npx tsx scripts/generate-cpp-snapshots.ts                # Generate for all tests
+npx tsx scripts/generate-cpp-snapshots.ts tests/enum     # Generate for directory
+npx tsx scripts/generate-cpp-snapshots.ts --dry-run     # Preview what would be generated
+```
+
+#### Auto-Detection of C++ Requirements
+
+When compiling, tests that include C++ headers (detected by features like `class`, `namespace`, `template`) automatically use `g++` instead of `gcc`. This handles tests with `.expected.c` files that contain code including C++ headers.
+
 ### C-Next Test Gotchas
 
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.

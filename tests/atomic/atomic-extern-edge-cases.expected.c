@@ -3,6 +3,7 @@
  * A safer C for embedded systems
  */
 
+// test-c-only
 // test-coverage: atomic-extern-edge-cases
 // Tests: edge cases for atomic volatile qualifier in extern declarations
 // Bug #468: Comprehensive coverage to prevent regression

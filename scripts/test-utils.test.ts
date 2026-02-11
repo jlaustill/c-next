@@ -429,9 +429,9 @@ describe("runTest header validation", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it("should validate .expected.h even for transpile-only tests (regression)", async () => {
-    // Create a minimal transpile-only test
-    const cnxContent = `// test-transpile-only
+  it("should validate .expected.h even for c-only tests (regression)", async () => {
+    // Create a minimal c-only test
+    const cnxContent = `// test-c-only
 u32 testVar;
 `;
     const cnxFile = join(tempDir, "hdrchk.test.cnx");
@@ -445,7 +445,7 @@ u32 testVar;
 
 #include <stdint.h>
 
-// test-transpile-only
+// test-c-only
 uint32_t testVar = 0;
 `;
     writeFileSync(join(tempDir, "hdrchk.expected.c"), expectedC);
@@ -484,12 +484,12 @@ extern uint32_t WRONG_VAR_NAME;
 
     // The test MUST fail with header mismatch
     expect(result.passed).toBe(false);
-    expect(result.message).toBe("Header output mismatch");
+    expect(result.message).toBe("C header mismatch");
   });
 
-  it("should pass when .expected.h matches for transpile-only tests", async () => {
-    // Create a minimal transpile-only test
-    const cnxContent = `// test-transpile-only
+  it("should pass when .expected.h matches for c-only tests", async () => {
+    // Create a minimal c-only test
+    const cnxContent = `// test-c-only
 u32 goodVar;
 `;
     const cnxFile = join(tempDir, "hdrmatch.test.cnx");
@@ -503,7 +503,7 @@ u32 goodVar;
 
 #include <stdint.h>
 
-// test-transpile-only
+// test-c-only
 uint32_t goodVar = 0;
 `;
     writeFileSync(join(tempDir, "hdrmatch.expected.c"), expectedC);

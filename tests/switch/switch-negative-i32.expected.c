@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+// test-c-only
 // test-execution
 // Issue #107: Negative Case Labels - i32 Type
 // Tests: negative literals with i32 switch expressions

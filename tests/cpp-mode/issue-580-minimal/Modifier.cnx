@@ -1,4 +1,4 @@
-// test-cpp-mode
+// test-cpp-only
 #include "Config.cnx"
 
 scope Modifier {

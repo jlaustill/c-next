@@ -1,4 +1,4 @@
-// test-cpp-mode
+// test-cpp-only
 // Shared config struct
 struct Config {
     u32 value;

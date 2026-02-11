@@ -13,6 +13,7 @@ static inline void __cnx_disable_irq(void) { __disable_irq(); }
 static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
 static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 
+// test-c-only
 // test-execution
 // Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
 // === GLOBAL ENUM ===

@@ -1,4 +1,4 @@
-// test-cpp-mode
+// test-cpp-only
 #include "Config.cnx"
 #include "Level3.cnx"
 

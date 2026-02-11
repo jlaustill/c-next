@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// test-c-only
 // test-execution
 // Tests: Issue #579 - Array indexing on parameter should generate array access, not bit manipulation
 // When a function parameter is declared as `u8 buf` (without explicit array syntax)

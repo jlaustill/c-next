@@ -106,51 +106,51 @@ u32 main() {
     if (mod != 1) return 44;
 
     // ===== BITWISE AND (&<-) =====
-    u8 and <- 0xFF;
-    and &<- 0x0F; // Keep low nibble
-    if (and != 0x0F) return 50;
+    u8 andVal <- 0xFF;
+    andVal &<- 0x0F; // Keep low nibble
+    if (andVal != 0x0F) return 50;
 
-    and <- 0xAA;
-    and &<- 0x55; // Non-overlapping = 0
-    if (and != 0) return 51;
+    andVal <- 0xAA;
+    andVal &<- 0x55; // Non-overlapping = 0
+    if (andVal != 0) return 51;
 
-    and <- 0x55;
-    and &<- 0xFF; // AND with all 1s = identity
-    if (and != 0x55) return 52;
+    andVal <- 0x55;
+    andVal &<- 0xFF; // AND with all 1s = identity
+    if (andVal != 0x55) return 52;
 
-    and <- 0xF0;
-    and &<- 0x0F; // High/low nibble AND = 0
-    if (and != 0) return 53;
+    andVal <- 0xF0;
+    andVal &<- 0x0F; // High/low nibble AND = 0
+    if (andVal != 0) return 53;
 
     // ===== BITWISE OR (|<-) =====
-    u8 or <- 0x0F;
-    or |<- 0xF0; // Combine nibbles
-    if (or != 0xFF) return 60;
+    u8 orVal <- 0x0F;
+    orVal |<- 0xF0; // Combine nibbles
+    if (orVal != 0xFF) return 60;
 
-    or <- 0x55;
-    or |<- 0x00; // OR with zero = identity
-    if (or != 0x55) return 61;
+    orVal <- 0x55;
+    orVal |<- 0x00; // OR with zero = identity
+    if (orVal != 0x55) return 61;
 
-    or <- 0xAA;
-    or |<- 0x55; // Alternating OR = all 1s
-    if (or != 0xFF) return 62;
+    orVal <- 0xAA;
+    orVal |<- 0x55; // Alternating OR = all 1s
+    if (orVal != 0xFF) return 62;
 
     // ===== BITWISE XOR (^<-) =====
-    u8 xor <- 0xAA;
-    xor ^<- 0x55; // Alternating XOR = all 1s
-    if (xor != 0xFF) return 70;
+    u8 xorVal <- 0xAA;
+    xorVal ^<- 0x55; // Alternating XOR = all 1s
+    if (xorVal != 0xFF) return 70;
 
-    xor <- 0xFF;
-    xor ^<- 0xFF; // XOR with self = 0
-    if (xor != 0) return 71;
+    xorVal <- 0xFF;
+    xorVal ^<- 0xFF; // XOR with self = 0
+    if (xorVal != 0) return 71;
 
-    xor <- 0x55;
-    xor ^<- 0x55; // XOR with self = 0
-    if (xor != 0) return 72;
+    xorVal <- 0x55;
+    xorVal ^<- 0x55; // XOR with self = 0
+    if (xorVal != 0) return 72;
 
-    xor <- 0x0F;
-    xor ^<- 0xF0; // Non-overlapping XOR = all 1s
-    if (xor != 0xFF) return 73;
+    xorVal <- 0x0F;
+    xorVal ^<- 0xF0; // Non-overlapping XOR = all 1s
+    if (xorVal != 0xFF) return 73;
 
     // ===== LEFT SHIFT (<<<-) =====
     u8 shl <- 1;

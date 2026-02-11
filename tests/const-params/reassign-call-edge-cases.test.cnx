@@ -1,3 +1,4 @@
+// test-c-only
 // test-execution
 // Tests: Issue #565 edge cases - comprehensive coverage for reassignment const inference
 // Covers: nested conditionals, switch, do-while, critical, compound assignments,

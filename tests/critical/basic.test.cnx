@@ -1,3 +1,4 @@
+// test-c-only
 u8[64] buffer;
 
 u32 writeIdx <- 0;

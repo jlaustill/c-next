@@ -1,3 +1,4 @@
+// test-c-only
 // ADR-050: Critical section with conditional
 // Tests: if/else inside critical section
 u32 counter <- 0;

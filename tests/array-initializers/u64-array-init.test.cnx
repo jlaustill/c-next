@@ -50,11 +50,11 @@ u32 main() {
 
    
 // Test modification
-    u64[5] mutable <- [10, 20, 30, 40, 50];
-    mutable[2] <- 999;
-    if (mutable[2] != 999) return 14;
-    if (mutable[0] != 10) return 15; // Verify other elements unchanged
-    if (mutable[4] != 50) return 16;
+    u64[5] mutableArr <- [10, 20, 30, 40, 50];
+    mutableArr[2] <- 999;
+    if (mutableArr[2] != 999) return 14;
+    if (mutableArr[0] != 10) return 15; // Verify other elements unchanged
+    if (mutableArr[4] != 50) return 16;
 
    
 // Test iteration and accumulation
