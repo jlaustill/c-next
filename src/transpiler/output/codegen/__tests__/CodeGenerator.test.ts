@@ -11,7 +11,7 @@ import CNextResolver from "../../../logic/symbols/cnext/index";
 import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import TParameterInfo from "../types/TParameterInfo";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
