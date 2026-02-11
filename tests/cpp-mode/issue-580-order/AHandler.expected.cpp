@@ -5,7 +5,7 @@
 
 #include "AHandler.test.h"
 
-// test-cpp-mode
+// test-cpp-only
 // test-transpile-only
 // Issue #580 order test: AHandler comes before ZModifier alphabetically
 // Tests if file order affects const inference

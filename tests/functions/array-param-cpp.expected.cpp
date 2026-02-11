@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-// test-cpp-mode
+// test-cpp-only
 // test-execution
 // Tests: C-Next style array parameters in C++ mode
 // Bug: u8[8] param generated as uint8_t& instead of uint8_t param[8]

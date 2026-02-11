@@ -62,15 +62,6 @@ class TestUtils {
   }
 
   /**
-   * Issue #558: Check if source has test-cpp-mode marker
-   * Tests with this marker run in C++ mode (generates .cpp files with reference semantics)
-   * @deprecated Use hasCppOnlyMarker() for new tests - test-cpp-mode is being migrated
-   */
-  static hasCppModeMarker(source: string): boolean {
-    return /\/\/\s*test-cpp-mode/i.test(source);
-  }
-
-  /**
    * Check if source has test-c-only marker
    * Tests with this marker run ONLY in C mode (e.g., MISRA-specific tests)
    */
@@ -101,8 +92,6 @@ class TestUtils {
   static getTestModes(source: string): TTestMode[] {
     if (TestUtils.hasCOnlyMarker(source)) return ["c"];
     if (TestUtils.hasCppOnlyMarker(source)) return ["cpp"];
-    // Legacy support: test-cpp-mode means C++ only
-    if (TestUtils.hasCppModeMarker(source)) return ["cpp"];
     return ["c", "cpp"]; // Default: both modes
   }
 

@@ -453,7 +453,6 @@ The test infrastructure supports running tests in **both C and C++ modes** to va
 | _(no marker)_            | Run in BOTH C and C++ modes (default)                      |
 | `// test-c-only`         | Explicitly run only in C mode (e.g., MISRA-specific tests) |
 | `// test-cpp-only`       | Run only in C++ mode (e.g., C++ template interop tests)    |
-| `// test-cpp-mode`       | Legacy marker - same as `// test-cpp-only`                 |
 | `// test-no-exec`        | Skip execution (compile only, no run)                      |
 | `// test-transpile-only` | Skip compilation entirely (legacy, for C++ interop)        |
 

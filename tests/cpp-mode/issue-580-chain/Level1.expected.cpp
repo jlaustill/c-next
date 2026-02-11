@@ -5,7 +5,7 @@
 
 #include "Level1.test.h"
 
-// test-cpp-mode
+// test-cpp-only
 // test-transpile-only
 // Issue #580 chain test: 3-level deep pass-through chain
 // Level1 -> Level2 -> Level3 (modifies)

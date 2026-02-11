@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-// test-cpp-mode
+// test-cpp-only
 // Tests: C++ class array initialization uses {} instead of {0}
 // Bug: CppClass[4] items generated = {0} which fails for C++ classes
 #include "cpp-class-array-init.h"

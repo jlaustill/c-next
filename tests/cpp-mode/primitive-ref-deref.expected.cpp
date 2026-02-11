@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-// test-cpp-mode
+// test-cpp-only
 // test-transpile-only
 // Bug #558: Primitive parameter reassigned should not use pointer dereference in C++ mode
 // When a primitive is reassigned, it becomes a reference (uint32_t&)

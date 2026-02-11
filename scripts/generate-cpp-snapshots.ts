@@ -45,13 +45,11 @@ function hasCOnlyMarker(source: string): boolean {
 }
 
 /**
- * Check if source has test-cpp-only or test-cpp-mode marker
+ * Check if source has test-cpp-only marker
  * (these already run in C++ mode, don't need separate C++ snapshots)
  */
 function isCppOnlyTest(source: string): boolean {
-  return (
-    /\/\/\s*test-cpp-only/i.test(source) || /\/\/\s*test-cpp-mode/i.test(source)
-  );
+  return /\/\/\s*test-cpp-only/i.test(source);
 }
 
 // Use shared FileScanner.findTestFiles instead of local implementation
@@ -96,7 +94,7 @@ async function generateCppSnapshot(
       file: cnxFile,
       generated: false,
       skipped: true,
-      reason: "already C++ only (test-cpp-mode or test-cpp-only)",
+      reason: "already C++ only (test-cpp-only)",
     };
   }
 
