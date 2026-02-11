@@ -16,7 +16,7 @@
  * Modifier flags for variable declarations.
  * These are resolved before formatting - no CodeGenState access needed.
  */
-type IVariableModifiers = {
+interface IVariableModifiers {
   /** Explicit const modifier */
   isConst: boolean;
   /** atomic modifier (maps to volatile in C) */
@@ -25,13 +25,13 @@ type IVariableModifiers = {
   isVolatile: boolean;
   /** extern linkage (for headers or top-level const in C++) */
   isExtern: boolean;
-};
+}
 
 /**
  * Normalized input for variable declaration formatting.
  * All fields are pre-computed - the formatter is stateless.
  */
-type IVariableFormatInput = {
+interface IVariableFormatInput {
   /** Variable name */
   name: string;
 
@@ -46,6 +46,6 @@ type IVariableFormatInput = {
 
   /** Array dimensions as strings (e.g., ['10', '20']) */
   arrayDimensions?: string[];
-};
+}
 
 export default IVariableFormatInput;

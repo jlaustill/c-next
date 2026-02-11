@@ -205,39 +205,6 @@ class HeaderGeneratorUtils {
   }
 
   /**
-   * Format a variable declaration with proper C syntax
-   *
-   * In C, array dimensions follow the variable name, not the type:
-   *   char greeting[33];      // Correct
-   *   char[33] greeting;      // Wrong
-   *
-   * Handles types that include embedded dimensions (like char[33] from
-   * mapType("string<32>")) and places them correctly after the variable name.
-   */
-  static formatVariableDeclaration(
-    cnextType: string,
-    name: string,
-    additionalDims: string,
-    constPrefix: string,
-    volatilePrefix: string = "",
-  ): string {
-    const cType = mapType(cnextType);
-
-    // Check if the mapped type has embedded array dimensions (e.g., char[33])
-    // This happens for string<N> types which map to char[N+1]
-    const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
-    if (embeddedMatch) {
-      const baseType = embeddedMatch[1];
-      const embeddedDim = embeddedMatch[2];
-      // Format: volatile const char name[additionalDims][embeddedDim]
-      return `${volatilePrefix}${constPrefix}${baseType} ${name}${additionalDims}[${embeddedDim}]`;
-    }
-
-    // No embedded dimensions - standard format
-    return `${volatilePrefix}${constPrefix}${cType} ${name}${additionalDims}`;
-  }
-
-  /**
    * Build headers to include from external type header mappings
    */
   static buildExternalTypeIncludes(
