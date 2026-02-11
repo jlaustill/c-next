@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import EnumAssignmentValidator from "../EnumAssignmentValidator.js";
-import CodeGenState from "../../CodeGenState.js";
+import CodeGenState from "../../../../state/CodeGenState.js";
 import EnumTypeResolver from "../../resolution/EnumTypeResolver.js";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols.js";
 

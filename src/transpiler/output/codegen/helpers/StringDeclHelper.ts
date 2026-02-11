@@ -15,7 +15,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import FormatUtils from "../../../../utils/FormatUtils.js";
 import StringUtils from "../../../../utils/StringUtils.js";
-import CodeGenState from "../CodeGenState.js";
+import CodeGenState from "../../../state/CodeGenState.js";
 
 /** C null terminator character literal for generated code */
 const C_NULL_CHAR = String.raw`'\0'`;

@@ -10,7 +10,7 @@
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
 
 /**

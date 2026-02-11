@@ -3,53 +3,12 @@
  * Tests integer bit access assignment handler functions.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import bitAccessHandlers from "../BitAccessHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
-import IHandlerDeps from "../IHandlerDeps";
-
-/**
- * Create mock dependencies for testing.
- */
-function createMockDeps(overrides: Record<string, unknown> = {}): IHandlerDeps {
-  const base = {
-    typeRegistry: new Map(),
-    symbols: {
-      structFields: new Map(),
-      structFieldDimensions: new Map(),
-      bitmapFields: new Map(),
-      registerMemberAccess: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberTypes: new Map(),
-    },
-    currentScope: null,
-    currentParameters: new Map(),
-    targetCapabilities: { hasLDREX: false },
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi
-      .fn()
-      .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    markNeedsString: vi.fn(),
-    markClampOpUsed: vi.fn(),
-    isKnownScope: vi.fn().mockReturnValue(false),
-    isKnownStruct: vi.fn().mockReturnValue(false),
-    validateCrossScopeVisibility: vi.fn(),
-    validateBitmapFieldLiteral: vi.fn(),
-    checkArrayBounds: vi.fn(),
-    analyzeMemberChainForBitAccess: vi
-      .fn()
-      .mockReturnValue({ isBitAccess: false }),
-    tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
-    getMemberTypeInfo: vi.fn().mockReturnValue(null),
-    generateFloatBitWrite: vi.fn().mockReturnValue(null),
-    foldBooleanToInt: vi.fn().mockImplementation((expr) => expr),
-    generateAtomicRMW: vi.fn().mockReturnValue("atomic_rmw"),
-    ...overrides,
-  };
-  return base as unknown as IHandlerDeps;
-}
+import CodeGenState from "../../../../../state/CodeGenState";
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing.
@@ -80,6 +39,12 @@ function createMockContext(
 }
 
 describe("BitAccessHandlers", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
+  });
+
   describe("handler registration", () => {
     it("registers all expected bit access kinds", () => {
       const kinds = bitAccessHandlers.map(([kind]) => kind);
@@ -103,14 +68,15 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates single bit read-modify-write", () => {
-      const typeRegistry = new Map([["flags", { baseType: "u32" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["flags", { baseType: "u32" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("3"),
       });
       const ctx = createMockContext();
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("flags =");
       expect(result).toContain("& ~(1 << 3)");
@@ -118,71 +84,74 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit types", () => {
-      const typeRegistry = new Map([["flags", { baseType: "u64" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["flags", { baseType: "u64" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("32"),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "32" } as never],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("1ULL << 32");
     });
 
     it("uses 1ULL for signed 64-bit types", () => {
-      const typeRegistry = new Map([["flags", { baseType: "i64" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["flags", { baseType: "i64" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("bit"),
       });
       const ctx = createMockContext();
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       // i64 uses 1ULL for the mask and cast for the value
       expect(result).toContain("1ULL << bit");
     });
 
     it("converts true to 1", () => {
-      const typeRegistry = new Map([["flags", { baseType: "u8" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["flags", { baseType: "u8" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
         generatedValue: "true",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("| (1 << 0)");
     });
 
     it("converts false to 0", () => {
-      const typeRegistry = new Map([["flags", { baseType: "u8" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["flags", { baseType: "u8" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
         generatedValue: "false",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("| (0 << 0)");
     });
 
     it("delegates to float bit write for float types", () => {
-      const typeRegistry = new Map([["f", { baseType: "f32" }]]);
+      CodeGenState.typeRegistry = new Map([["f", { baseType: "f32" }]]) as any;
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_bit_write_result");
-      const deps = createMockDeps({
-        typeRegistry,
+      HandlerTestUtils.setupMockGenerator({
         generateFloatBitWrite,
         generateExpression: vi.fn().mockReturnValue("3"),
       });
@@ -190,20 +159,19 @@ describe("BitAccessHandlers", () => {
         identifiers: ["f"],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(generateFloatBitWrite).toHaveBeenCalled();
       expect(result).toBe("float_bit_write_result");
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps();
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
@@ -216,9 +184,10 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range read-modify-write", () => {
-      const typeRegistry = new Map([["flags", { baseType: "u32" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["flags", { baseType: "u32" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -229,7 +198,7 @@ describe("BitAccessHandlers", () => {
         generatedValue: "5",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("flags =");
       expect(result).toContain("& ~(");
@@ -237,9 +206,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses correct mask for bit range", () => {
-      const typeRegistry = new Map([["data", { baseType: "u16" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["data", { baseType: "u16" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("4")
@@ -251,7 +221,7 @@ describe("BitAccessHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       // For constant width, BitUtils generates hex mask
       expect(result).toContain("0xFFU");
@@ -259,9 +229,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses ULL suffix for 64-bit bit range mask", () => {
-      const typeRegistry = new Map([["flags", { baseType: "u64" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["flags", { baseType: "u64" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("32")
@@ -275,19 +246,18 @@ describe("BitAccessHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       // 64-bit type uses ULL suffix on the hex mask
       expect(result).toContain("0xFFFFULL");
     });
 
     it("delegates to float bit write for float types", () => {
-      const typeRegistry = new Map([["f", { baseType: "f32" }]]);
+      CodeGenState.typeRegistry = new Map([["f", { baseType: "f32" }]]) as any;
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_range_write_result");
-      const deps = createMockDeps({
-        typeRegistry,
+      HandlerTestUtils.setupMockGenerator({
         generateFloatBitWrite,
         generateExpression: vi
           .fn()
@@ -299,7 +269,7 @@ describe("BitAccessHandlers", () => {
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(generateFloatBitWrite).toHaveBeenCalledWith(
         "f",
@@ -312,14 +282,13 @@ describe("BitAccessHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps();
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
@@ -332,7 +301,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates struct member bit assignment", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("item.byte"),
         generateExpression: vi.fn().mockReturnValue("7"),
       });
@@ -341,7 +310,7 @@ describe("BitAccessHandlers", () => {
         subscripts: [{ mockValue: "7" } as never],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("item.byte =");
       expect(result).toContain("& ~(1 << 7)");
@@ -349,13 +318,12 @@ describe("BitAccessHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps();
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
@@ -368,11 +336,10 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates array element bit assignment for 1D array", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -386,18 +353,17 @@ describe("BitAccessHandlers", () => {
         ],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("arr[i] =");
       expect(result).toContain("& ~(1 << BIT)");
     });
 
     it("generates array element bit assignment for 2D array", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["matrix", { baseType: "u16", arrayDimensions: [10, 10] }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -413,18 +379,17 @@ describe("BitAccessHandlers", () => {
         ],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("matrix[i][j] =");
       expect(result).toContain("& ~(1 << FIELD_BIT)");
     });
 
     it("uses 1ULL for 64-bit array element", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["arr", { baseType: "u64", arrayDimensions: [5] }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -435,38 +400,32 @@ describe("BitAccessHandlers", () => {
         subscripts: [{ mockValue: "0" } as never, { mockValue: "40" } as never],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("1ULL << 40");
     });
 
     it("throws when variable is not an array", () => {
-      const typeRegistry = new Map([["notArray", { baseType: "u32" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
-      });
+      CodeGenState.typeRegistry = new Map([
+        ["notArray", { baseType: "u32" }],
+      ]) as any;
       const ctx = createMockContext({
         identifiers: ["notArray"],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
-        "notArray is not an array",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("notArray is not an array");
     });
 
     it("throws on compound assignment", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-      });
+      ]) as any;
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
@@ -479,7 +438,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range write through struct chain", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0") // array index
@@ -517,7 +476,7 @@ describe("BitAccessHandlers", () => {
         lastSubscriptExprCount: 2,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("devices[0].control =");
       expect(result).toContain("& ~(");
@@ -526,7 +485,6 @@ describe("BitAccessHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps();
       const mockPostfixOps = [
         {
           IDENTIFIER: () => null,
@@ -539,7 +497,7 @@ describe("BitAccessHandlers", () => {
         postfixOps: mockPostfixOps as never,
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });

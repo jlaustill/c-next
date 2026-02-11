@@ -10,56 +10,22 @@
  */
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
 import BitUtils from "../../../../../utils/BitUtils";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
+import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
 
-/**
- * Try to generate MMIO-optimized memory access for byte-aligned writes.
- * Returns null if optimization not applicable.
- */
-function tryGenerateMMIO(
-  fullName: string,
-  regName: string,
-  startExpr: ReturnType<IHandlerDeps["tryEvaluateConstant"]>,
-  widthExpr: ReturnType<IHandlerDeps["tryEvaluateConstant"]>,
-  value: string,
-  deps: IHandlerDeps,
-): string | null {
-  if (
-    startExpr === undefined ||
-    widthExpr === undefined ||
-    startExpr % 8 !== 0 ||
-    !TypeCheckUtils.isStandardWidth(widthExpr)
-  ) {
-    return null;
-  }
-
-  const baseAddr = deps.symbols.registerBaseAddresses.get(regName);
-  const memberOffset = deps.symbols.registerMemberOffsets.get(fullName);
-
-  if (baseAddr === undefined || memberOffset === undefined) {
-    return null;
-  }
-
-  const byteOffset = startExpr / 8;
-  const accessType = `uint${widthExpr}_t`;
-  const totalOffset =
-    byteOffset === 0 ? memberOffset : `${memberOffset} + ${byteOffset}`;
-
-  return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
 }
 
 /**
  * Handle register single bit: GPIO7.DR_SET[LED_BIT] <- true
  */
-function handleRegisterBit(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleRegisterBit(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utility
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
@@ -69,12 +35,12 @@ function handleRegisterBit(
   const { fullName } =
     AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
       ctx.identifiers,
-      deps.isKnownScope,
+      (name) => CodeGenState.isKnownScope(name),
     );
-  const accessMod = deps.symbols.registerMemberAccess.get(fullName);
+  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const bitIndex = deps.generateExpression(ctx.subscripts[0]);
+  const bitIndex = gen().generateExpression(ctx.subscripts[0]);
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -92,10 +58,7 @@ function handleRegisterBit(
 /**
  * Handle register bit range: GPIO7.DR_SET[0, 8] <- value
  */
-function handleRegisterBitRange(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleRegisterBitRange(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utility
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
@@ -105,14 +68,14 @@ function handleRegisterBitRange(
   const { fullName, regName } =
     AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
       ctx.identifiers,
-      deps.isKnownScope,
+      (name) => CodeGenState.isKnownScope(name),
     );
-  const accessMod = deps.symbols.registerMemberAccess.get(fullName);
+  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const start = deps.generateExpression(ctx.subscripts[0]);
-  const width = deps.generateExpression(ctx.subscripts[1]);
-  const mask = BitUtils.generateMask(width);
+  const { start, width, mask } = RegisterUtils.extractBitRangeParams(
+    ctx.subscripts,
+  );
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -123,18 +86,14 @@ function handleRegisterBitRange(
     );
 
     // Try MMIO optimization
-    const startConst = deps.tryEvaluateConstant(ctx.subscripts[0]);
-    const widthConst = deps.tryEvaluateConstant(ctx.subscripts[1]);
-    const mmio = tryGenerateMMIO(
+    const mmio = RegisterUtils.tryGenerateMMIO(
       fullName,
       regName,
-      startConst,
-      widthConst,
+      ctx.subscripts,
       ctx.generatedValue,
-      deps,
     );
-    if (mmio) {
-      return mmio;
+    if (mmio.success) {
+      return mmio.statement!;
     }
 
     // Fallback: write shifted value
@@ -158,12 +117,9 @@ function handleRegisterBitRange(
 /**
  * Handle scoped register single bit: this.GPIO7.DR_SET[bit] <- true
  */
-function handleScopedRegisterBit(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleScopedRegisterBit(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(deps.currentScope);
+  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScope);
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
     ctx.cnextOp,
@@ -171,14 +127,14 @@ function handleScopedRegisterBit(
 
   // Build scoped name: Scope_Register_Member
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    deps.currentScope!,
+    CodeGenState.currentScope!,
     ctx.identifiers,
   );
 
-  const accessMod = deps.symbols.registerMemberAccess.get(regName);
+  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const bitIndex = deps.generateExpression(ctx.subscripts[0]);
+  const bitIndex = gen().generateExpression(ctx.subscripts[0]);
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -196,18 +152,15 @@ function handleScopedRegisterBit(
 /**
  * Handle scoped register bit range: this.GPIO7.ICR1[6, 2] <- value
  */
-function handleScopedRegisterBitRange(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
+function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(deps.currentScope);
+  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScope);
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
     ctx.cnextOp,
   );
 
-  const scopeName = deps.currentScope!;
+  const scopeName = CodeGenState.currentScope!;
   const parts = ctx.identifiers;
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
     scopeName,
@@ -215,12 +168,12 @@ function handleScopedRegisterBitRange(
   );
   const scopedRegName = `${scopeName}_${parts[0]}`;
 
-  const accessMod = deps.symbols.registerMemberAccess.get(regName);
+  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const start = deps.generateExpression(ctx.subscripts[0]);
-  const width = deps.generateExpression(ctx.subscripts[1]);
-  const mask = `((1U << ${width}) - 1)`;
+  const { start, width, mask } = RegisterUtils.extractBitRangeParams(
+    ctx.subscripts,
+  );
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -231,25 +184,14 @@ function handleScopedRegisterBitRange(
     );
 
     // Try MMIO optimization
-    const startConst = deps.tryEvaluateConstant(ctx.subscripts[0]);
-    const widthConst = deps.tryEvaluateConstant(ctx.subscripts[1]);
-
-    if (
-      startConst !== undefined &&
-      widthConst !== undefined &&
-      startConst % 8 === 0 &&
-      TypeCheckUtils.isStandardWidth(widthConst)
-    ) {
-      const baseAddr = deps.symbols.registerBaseAddresses.get(scopedRegName);
-      const memberOffset = deps.symbols.registerMemberOffsets.get(regName);
-
-      if (baseAddr !== undefined && memberOffset !== undefined) {
-        const byteOffset = startConst / 8;
-        const accessType = `uint${widthConst}_t`;
-        const totalOffset =
-          byteOffset === 0 ? memberOffset : `${memberOffset} + ${byteOffset}`;
-        return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${ctx.generatedValue});`;
-      }
+    const mmio = RegisterUtils.tryGenerateMMIO(
+      regName,
+      scopedRegName,
+      ctx.subscripts,
+      ctx.generatedValue,
+    );
+    if (mmio.success) {
+      return mmio.statement!;
     }
 
     return RegisterUtils.generateWriteOnlyBitRange(

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeResolver from "../TypeResolver";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 import TTypeInfo from "../types/TTypeInfo";
 
 describe("TypeResolver", () => {

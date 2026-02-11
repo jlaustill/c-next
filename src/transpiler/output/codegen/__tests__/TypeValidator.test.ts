@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeValidator from "../TypeValidator";
 import TypeResolver from "../TypeResolver";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../types/TTypeInfo";
 import type TParameterInfo from "../types/TParameterInfo";

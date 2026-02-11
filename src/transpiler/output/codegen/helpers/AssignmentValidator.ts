@@ -17,7 +17,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TypeValidator from "../TypeValidator.js";
 import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
-import CodeGenState from "../CodeGenState.js";
+import CodeGenState from "../../../state/CodeGenState.js";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils.js";
 
 /**

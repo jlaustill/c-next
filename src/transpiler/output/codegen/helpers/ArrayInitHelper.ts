@@ -12,7 +12,7 @@
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
-import CodeGenState from "../CodeGenState.js";
+import CodeGenState from "../../../state/CodeGenState.js";
 
 /**
  * Result from processing array initialization.

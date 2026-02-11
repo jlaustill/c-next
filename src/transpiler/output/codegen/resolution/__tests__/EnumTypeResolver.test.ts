@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import EnumTypeResolver from "../EnumTypeResolver";
-import CodeGenState from "../../CodeGenState";
+import CodeGenState from "../../../../state/CodeGenState";
 import SymbolTable from "../../../../logic/symbols/SymbolTable";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 

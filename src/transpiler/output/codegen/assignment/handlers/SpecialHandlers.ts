@@ -7,9 +7,16 @@
  */
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
+import CodeGenState from "../../../../state/CodeGenState";
+import TTypeInfo from "../../types/TTypeInfo";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /** Maps C operators to clamp helper operation names */
 const CLAMP_OP_MAP: Record<string, string> = {
@@ -22,30 +29,29 @@ const CLAMP_OP_MAP: Record<string, string> = {
  * Get typeInfo for assignment target.
  * Handles simple identifiers, this.member, and global.member patterns.
  */
-function getTargetTypeInfo(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): { typeInfo: ReturnType<typeof deps.typeRegistry.get> } {
+function getTargetTypeInfo(ctx: IAssignmentContext): {
+  typeInfo: TTypeInfo | undefined;
+} {
   const id = ctx.identifiers[0];
 
   // Simple identifier
   if (ctx.isSimpleIdentifier) {
-    return { typeInfo: deps.typeRegistry.get(id) };
+    return { typeInfo: CodeGenState.typeRegistry.get(id) };
   }
 
   // this.member: lookup using scoped name
-  if (ctx.isSimpleThisAccess && deps.currentScope) {
-    const scopedName = `${deps.currentScope}_${id}`;
-    return { typeInfo: deps.typeRegistry.get(scopedName) };
+  if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
+    const scopedName = `${CodeGenState.currentScope}_${id}`;
+    return { typeInfo: CodeGenState.typeRegistry.get(scopedName) };
   }
 
   // global.member: lookup using direct name
   if (ctx.isSimpleGlobalAccess) {
-    return { typeInfo: deps.typeRegistry.get(id) };
+    return { typeInfo: CodeGenState.typeRegistry.get(id) };
   }
 
   // Fallback to direct lookup
-  return { typeInfo: deps.typeRegistry.get(id) };
+  return { typeInfo: CodeGenState.typeRegistry.get(id) };
 }
 
 /**
@@ -54,11 +60,16 @@ function getTargetTypeInfo(
  * Delegates to CodeGenerator's generateAtomicRMW which uses
  * LDREX/STREX on supported platforms or PRIMASK otherwise.
  */
-function handleAtomicRMW(ctx: IAssignmentContext, deps: IHandlerDeps): string {
-  const { typeInfo } = getTargetTypeInfo(ctx, deps);
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+function handleAtomicRMW(ctx: IAssignmentContext): string {
+  const { typeInfo } = getTargetTypeInfo(ctx);
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
 
-  return deps.generateAtomicRMW(target, ctx.cOp, ctx.generatedValue, typeInfo!);
+  return gen().generateAtomicRMW(
+    target,
+    ctx.cOp,
+    ctx.generatedValue,
+    typeInfo!,
+  );
 }
 
 /**
@@ -67,12 +78,9 @@ function handleAtomicRMW(ctx: IAssignmentContext, deps: IHandlerDeps): string {
  * Generates calls to cnx_clamp_add_u8, cnx_clamp_sub_u8, etc.
  * Only applies to integers (floats use native C arithmetic with infinity).
  */
-function handleOverflowClamp(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
-  const { typeInfo } = getTargetTypeInfo(ctx, deps);
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+function handleOverflowClamp(ctx: IAssignmentContext): string {
+  const { typeInfo } = getTargetTypeInfo(ctx);
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
 
   // Floats use native C arithmetic (overflow to infinity)
   if (TypeCheckUtils.usesNativeArithmetic(typeInfo!.baseType)) {
@@ -82,7 +90,7 @@ function handleOverflowClamp(
   const helperOp = CLAMP_OP_MAP[ctx.cOp];
 
   if (helperOp) {
-    deps.markClampOpUsed(helperOp, typeInfo!.baseType);
+    CodeGenState.markClampOpUsed(helperOp, typeInfo!.baseType);
     return `${target} = cnx_clamp_${helperOp}_${typeInfo!.baseType}(${target}, ${ctx.generatedValue});`;
   }
 

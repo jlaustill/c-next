@@ -9,7 +9,7 @@
  */
 import AssignmentKind from "./AssignmentKind";
 import IAssignmentContext from "./IAssignmentContext";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 import SubscriptClassifier from "../subscript/SubscriptClassifier";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";

@@ -6,7 +6,7 @@
 import { existsSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
-import CodeGenState from "./CodeGenState";
+import CodeGenState from "../../state/CodeGenState";
 import TypeResolver from "./TypeResolver";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity

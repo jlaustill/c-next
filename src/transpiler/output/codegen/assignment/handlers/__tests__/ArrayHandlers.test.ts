@@ -3,53 +3,24 @@
  * Tests array assignment handler functions.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock TypeValidator before imports (use vi.hoisted for hoisted mock reference)
+const { mockCheckArrayBounds } = vi.hoisted(() => ({
+  mockCheckArrayBounds: vi.fn(),
+}));
+
+vi.mock("../../../TypeValidator", () => ({
+  default: {
+    checkArrayBounds: mockCheckArrayBounds,
+  },
+}));
+
 import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
-import IHandlerDeps from "../IHandlerDeps";
-
-/**
- * Create mock dependencies for testing.
- */
-function createMockDeps(overrides: Record<string, unknown> = {}): IHandlerDeps {
-  const base = {
-    typeRegistry: new Map(),
-    symbols: {
-      structFields: new Map(),
-      structFieldDimensions: new Map(),
-      bitmapFields: new Map(),
-      registerMemberAccess: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberTypes: new Map(),
-    },
-    currentScope: null,
-    currentParameters: new Map(),
-    targetCapabilities: { hasLDREX: false },
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi
-      .fn()
-      .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    markNeedsString: vi.fn(),
-    markClampOpUsed: vi.fn(),
-    isKnownScope: vi.fn().mockReturnValue(false),
-    isKnownStruct: vi.fn().mockReturnValue(false),
-    validateCrossScopeVisibility: vi.fn(),
-    validateBitmapFieldLiteral: vi.fn(),
-    checkArrayBounds: vi.fn(),
-    analyzeMemberChainForBitAccess: vi
-      .fn()
-      .mockReturnValue({ isBitAccess: false }),
-    tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
-    getMemberTypeInfo: vi.fn().mockReturnValue(null),
-    generateFloatBitWrite: vi.fn().mockReturnValue(null),
-    foldBooleanToInt: vi.fn().mockImplementation((expr) => expr),
-    generateAtomicRMW: vi.fn().mockReturnValue("atomic_rmw"),
-    ...overrides,
-  };
-  return base as unknown as IHandlerDeps;
-}
+import CodeGenState from "../../../../../state/CodeGenState";
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing.
@@ -80,6 +51,12 @@ function createMockContext(
 }
 
 describe("ArrayHandlers", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
+  });
+
   describe("handler registration", () => {
     it("registers all expected array assignment kinds", () => {
       const kinds = arrayHandlers.map(([kind]) => kind);
@@ -101,18 +78,18 @@ describe("ArrayHandlers", () => {
       )?.[1];
 
     it("generates simple array element assignment", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("i"),
       });
       const ctx = createMockContext();
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("arr[i] = value;");
     });
 
     it("handles compound assignment", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
@@ -121,20 +98,20 @@ describe("ArrayHandlers", () => {
         cOp: "+=",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("arr[0] += value;");
     });
 
     it("uses correct identifier", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("idx"),
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("buffer[idx] = value;");
     });
@@ -147,7 +124,7 @@ describe("ArrayHandlers", () => {
       )?.[1];
 
     it("generates multi-dimensional array access", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -162,13 +139,13 @@ describe("ArrayHandlers", () => {
         subscriptDepth: 2,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("matrix[i][j] = value;");
     });
 
     it("handles 3D array access", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("x")
@@ -185,19 +162,17 @@ describe("ArrayHandlers", () => {
         subscriptDepth: 3,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("cube[x][y][z] = value;");
     });
 
     it("performs bounds checking when type info available", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["matrix", { arrayDimensions: [10, 10], baseType: "i32" }],
-      ]);
-      const checkArrayBounds = vi.fn();
-      const deps = createMockDeps({
-        typeRegistry,
-        checkArrayBounds,
+      ]) as any;
+      mockCheckArrayBounds.mockClear();
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("5")
@@ -211,18 +186,19 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      getHandler()!(ctx, deps);
+      getHandler()!(ctx);
 
-      expect(checkArrayBounds).toHaveBeenCalledWith(
+      expect(mockCheckArrayBounds).toHaveBeenCalledWith(
         "matrix",
         [10, 10],
         ctx.subscripts,
         10,
+        expect.any(Function), // tryEvaluateConstant callback
       );
     });
 
     it("handles compound assignment", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -238,7 +214,7 @@ describe("ArrayHandlers", () => {
         cOp: "-=",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("grid[0][1] -= value;");
     });
@@ -249,13 +225,10 @@ describe("ArrayHandlers", () => {
       arrayHandlers.find(([kind]) => kind === AssignmentKind.ARRAY_SLICE)?.[1];
 
     it("generates memcpy for valid slice assignment", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      const markNeedsString = vi.fn();
-      const deps = createMockDeps({
-        typeRegistry,
-        markNeedsString,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -270,14 +243,14 @@ describe("ArrayHandlers", () => {
         generatedValue: "source",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("memcpy(&buffer[0], &source, 10);");
-      expect(markNeedsString).toHaveBeenCalled();
+      expect(CodeGenState.needsString).toBe(true);
     });
 
     it("generates memcpy for string slice", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         [
           "str",
           {
@@ -287,9 +260,8 @@ describe("ArrayHandlers", () => {
             baseType: "string",
           },
         ],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(5)
@@ -304,17 +276,16 @@ describe("ArrayHandlers", () => {
         generatedValue: "data",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("memcpy(&str[5], &data, 10);");
     });
 
     it("throws on compound assignment", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -329,18 +300,15 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for slice assignment",
       );
     });
 
     it("throws on multi-dimensional array", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["matrix", { arrayDimensions: [10, 10], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
-      });
+      ]) as any;
       const ctx = createMockContext({
         identifiers: ["matrix"],
         subscripts: [
@@ -349,17 +317,16 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Slice assignment is only valid on one-dimensional arrays",
       );
     });
 
     it("throws on non-constant offset", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
       });
       const ctx = createMockContext({
@@ -369,17 +336,16 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Slice assignment offset must be a compile-time constant",
       );
     });
 
     it("throws on non-constant length", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -392,17 +358,16 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Slice assignment length must be a compile-time constant",
       );
     });
 
     it("throws on out of bounds access", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [50], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(40)
@@ -416,17 +381,16 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Slice assignment out of bounds",
       );
     });
 
     it("throws on negative offset", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(-1)
@@ -440,17 +404,16 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Slice assignment offset cannot be negative",
       );
     });
 
     it("throws on zero length", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -464,17 +427,16 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Slice assignment length must be positive",
       );
     });
 
     it("throws on negative length", () => {
-      const typeRegistry = new Map([
+      CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      const deps = createMockDeps({
-        typeRegistry,
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -488,15 +450,16 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Slice assignment length must be positive",
       );
     });
 
     it("throws when buffer size cannot be determined", () => {
-      const typeRegistry = new Map([["unknown", { baseType: "u8" }]]);
-      const deps = createMockDeps({
-        typeRegistry,
+      CodeGenState.typeRegistry = new Map([
+        ["unknown", { baseType: "u8" }],
+      ]) as any;
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -510,9 +473,7 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
-        "Cannot determine buffer size",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("Cannot determine buffer size");
     });
   });
 });

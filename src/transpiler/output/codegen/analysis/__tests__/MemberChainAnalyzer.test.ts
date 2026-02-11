@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer.js";
-import CodeGenState from "../../CodeGenState.js";
+import CodeGenState from "../../../../state/CodeGenState.js";
 import type * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
 
 /** Mock type for PostfixTargetOpContext */

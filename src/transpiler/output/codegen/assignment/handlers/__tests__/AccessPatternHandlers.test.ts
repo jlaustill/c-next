@@ -3,53 +3,12 @@
  * Tests global/this access and member chain handler functions.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import accessPatternHandlers from "../AccessPatternHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
-import IHandlerDeps from "../IHandlerDeps";
-
-/**
- * Create mock dependencies for testing.
- */
-function createMockDeps(overrides: Record<string, unknown> = {}): IHandlerDeps {
-  const base = {
-    typeRegistry: new Map(),
-    symbols: {
-      structFields: new Map(),
-      structFieldDimensions: new Map(),
-      bitmapFields: new Map(),
-      registerMemberAccess: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberTypes: new Map(),
-    },
-    currentScope: null,
-    currentParameters: new Map(),
-    targetCapabilities: { hasLDREX: false },
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi
-      .fn()
-      .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    markNeedsString: vi.fn(),
-    markClampOpUsed: vi.fn(),
-    isKnownScope: vi.fn().mockReturnValue(false),
-    isKnownStruct: vi.fn().mockReturnValue(false),
-    validateCrossScopeVisibility: vi.fn(),
-    validateBitmapFieldLiteral: vi.fn(),
-    checkArrayBounds: vi.fn(),
-    analyzeMemberChainForBitAccess: vi
-      .fn()
-      .mockReturnValue({ isBitAccess: false }),
-    tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
-    getMemberTypeInfo: vi.fn().mockReturnValue(null),
-    generateFloatBitWrite: vi.fn().mockReturnValue(null),
-    foldBooleanToInt: vi.fn().mockImplementation((expr) => expr),
-    generateAtomicRMW: vi.fn().mockReturnValue("atomic_rmw"),
-    ...overrides,
-  };
-  return base as unknown as IHandlerDeps;
-}
+import CodeGenState from "../../../../../state/CodeGenState";
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing.
@@ -80,6 +39,12 @@ function createMockContext(
 }
 
 describe("AccessPatternHandlers", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
+  });
+
   describe("handler registration", () => {
     it("registers all expected access pattern kinds", () => {
       const kinds = accessPatternHandlers.map(([kind]) => kind);
@@ -126,27 +91,30 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates standard assignment for global member", () => {
-      const generateAssignmentTarget = vi.fn().mockReturnValue("Counter_value");
-      const deps = createMockDeps({ generateAssignmentTarget });
+      HandlerTestUtils.setupMockGenerator({
+        generateAssignmentTarget: vi.fn().mockReturnValue("Counter_value"),
+      });
       const ctx = createMockContext();
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("Counter_value = 5;");
     });
 
     it("validates cross-scope visibility when first id is a scope", () => {
       const validateCrossScopeVisibility = vi.fn();
-      const deps = createMockDeps({
-        isKnownScope: vi.fn().mockReturnValue(true),
-        validateCrossScopeVisibility,
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_speed"),
+        validateCrossScopeVisibility,
+      });
+      HandlerTestUtils.setupMockSymbols({
+        knownScopes: new Set(["Motor"]),
       });
       const ctx = createMockContext({
         identifiers: ["Motor", "speed"],
       });
 
-      getHandler()!(ctx, deps);
+      getHandler()!(ctx);
 
       expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
         "Motor",
@@ -156,22 +124,24 @@ describe("AccessPatternHandlers", () => {
 
     it("does not validate when first id is not a scope", () => {
       const validateCrossScopeVisibility = vi.fn();
-      const deps = createMockDeps({
-        isKnownScope: vi.fn().mockReturnValue(false),
-        validateCrossScopeVisibility,
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("someVar"),
+        validateCrossScopeVisibility,
+      });
+      HandlerTestUtils.setupMockSymbols({
+        knownScopes: new Set(),
       });
       const ctx = createMockContext({
         identifiers: ["someVar"],
       });
 
-      getHandler()!(ctx, deps);
+      getHandler()!(ctx);
 
       expect(validateCrossScopeVisibility).not.toHaveBeenCalled();
     });
 
     it("handles compound assignment", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Counter_value"),
       });
       const ctx = createMockContext({
@@ -179,7 +149,7 @@ describe("AccessPatternHandlers", () => {
         cOp: "+=",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("Counter_value += 5;");
     });
@@ -192,7 +162,7 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates array element assignment", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Buffer_data[i]"),
       });
       const ctx = createMockContext({
@@ -201,7 +171,7 @@ describe("AccessPatternHandlers", () => {
         hasArrayAccess: true,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("Buffer_data[i] = 5;");
     });
@@ -214,8 +184,8 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates scoped member assignment", () => {
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_speed"),
       });
       const ctx = createMockContext({
@@ -224,23 +194,23 @@ describe("AccessPatternHandlers", () => {
         hasGlobal: false,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("Motor_speed = 5;");
     });
 
     it("throws when used outside scope", () => {
-      const deps = createMockDeps({ currentScope: null });
+      CodeGenState.currentScope = null;
       const ctx = createMockContext({ hasThis: true, hasGlobal: false });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "'this' can only be used inside a scope",
       );
     });
 
     it("handles compound assignment", () => {
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_count"),
       });
       const ctx = createMockContext({
@@ -251,7 +221,7 @@ describe("AccessPatternHandlers", () => {
         cOp: "-=",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("Motor_count -= 5;");
     });
@@ -264,8 +234,8 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates scoped array element assignment", () => {
-      const deps = createMockDeps({
-        currentScope: "Motor",
+      CodeGenState.currentScope = "Motor";
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_items[0]"),
       });
       const ctx = createMockContext({
@@ -276,7 +246,7 @@ describe("AccessPatternHandlers", () => {
         hasArrayAccess: true,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("Motor_items[0] = 5;");
     });
@@ -289,7 +259,7 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for single bit", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       const ctx = createMockContext({
@@ -298,7 +268,7 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "true",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("GPIO7_DR_SET =");
       expect(result).toContain("& ~(1 <<");
@@ -306,18 +276,11 @@ describe("AccessPatternHandlers", () => {
     });
 
     it("generates simple write for write-only register single bit", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "wo"]]);
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      HandlerTestUtils.setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -325,24 +288,17 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "true",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("GPIO7_DR_SET = (1 << LED_BIT);");
     });
 
     it("throws on write-only register with false value", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "wo"]]);
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      HandlerTestUtils.setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -350,13 +306,13 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "false",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Cannot assign false to write-only register bit",
       );
     });
 
     it("generates read-modify-write for bit range", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -368,7 +324,7 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("GPIO7_DR_SET =");
       expect(result).toContain("& ~(");
@@ -376,21 +332,14 @@ describe("AccessPatternHandlers", () => {
     });
 
     it("generates simple write for write-only bit range", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "w1s"]]);
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      HandlerTestUtils.setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -398,27 +347,20 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "value",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).not.toContain("& ~");
     });
 
     it("throws on write-only bit range with 0 value", () => {
-      const registerMemberAccess = new Map([["GPIO7_DR_SET", "w1c"]]);
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
-        symbols: {
-          structFields: new Map(),
-          structFieldDimensions: new Map(),
-          bitmapFields: new Map(),
-          registerMemberAccess,
-          registerBaseAddresses: new Map(),
-          registerMemberOffsets: new Map(),
-          registerMemberTypes: new Map(),
-        },
+      });
+      HandlerTestUtils.setupMockSymbols({
+        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1c"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -426,13 +368,12 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "0",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Cannot assign 0 to write-only register bits",
       );
     });
 
     it("throws on compound assignment", () => {
-      const deps = createMockDeps();
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
         subscripts: [{ mockValue: "LED_BIT" } as never],
@@ -440,7 +381,7 @@ describe("AccessPatternHandlers", () => {
         cnextOp: "+<-",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
@@ -453,23 +394,26 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates standard member chain assignment", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi
           .fn()
           .mockReturnValue("device.config.value"),
+        analyzeMemberChainForBitAccess: vi
+          .fn()
+          .mockReturnValue({ isBitAccess: false }),
       });
       const ctx = createMockContext({
         identifiers: ["device", "config", "value"],
         memberAccessDepth: 2,
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("device.config.value = 5;");
     });
 
     it("generates bit access when detected in member chain", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         analyzeMemberChainForBitAccess: vi.fn().mockReturnValue({
           isBitAccess: true,
           baseTarget: "grid[2][3].flags",
@@ -483,7 +427,7 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "true",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("grid[2][3].flags =");
       expect(result).toContain("& ~(1 << 0)");
@@ -491,7 +435,7 @@ describe("AccessPatternHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit bit access", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         analyzeMemberChainForBitAccess: vi.fn().mockReturnValue({
           isBitAccess: true,
           baseTarget: "data.flags",
@@ -505,13 +449,13 @@ describe("AccessPatternHandlers", () => {
         generatedValue: "false",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toContain("1ULL << bit");
     });
 
     it("throws on compound assignment for bit access in member chain", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         analyzeMemberChainForBitAccess: vi.fn().mockReturnValue({
           isBitAccess: true,
           baseTarget: "data.flags",
@@ -524,14 +468,17 @@ describe("AccessPatternHandlers", () => {
         cnextOp: "+<-",
       });
 
-      expect(() => getHandler()!(ctx, deps)).toThrow(
+      expect(() => getHandler()!(ctx)).toThrow(
         "Compound assignment operators not supported for bit field access",
       );
     });
 
     it("handles compound assignment for normal member chain", () => {
-      const deps = createMockDeps({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("obj.field"),
+        analyzeMemberChainForBitAccess: vi
+          .fn()
+          .mockReturnValue({ isBitAccess: false }),
       });
       const ctx = createMockContext({
         identifiers: ["obj", "field"],
@@ -539,7 +486,7 @@ describe("AccessPatternHandlers", () => {
         cOp: "*=",
       });
 
-      const result = getHandler()!(ctx, deps);
+      const result = getHandler()!(ctx);
 
       expect(result).toBe("obj.field *= 5;");
     });

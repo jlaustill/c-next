@@ -5,7 +5,13 @@
  * Used when no special handling is needed.
  */
 import IAssignmentContext from "../IAssignmentContext";
-import IHandlerDeps from "./IHandlerDeps";
+import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /**
  * Handle simple variable assignment.
@@ -14,11 +20,8 @@ import IHandlerDeps from "./IHandlerDeps";
  * x <- 5           =>  x = 5;
  * counter +<- 1    =>  counter += 1;
  */
-function handleSimpleAssignment(
-  ctx: IAssignmentContext,
-  deps: IHandlerDeps,
-): string {
-  const target = deps.generateAssignmentTarget(ctx.targetCtx);
+function handleSimpleAssignment(ctx: IAssignmentContext): string {
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 

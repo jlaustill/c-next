@@ -67,7 +67,7 @@ import memberAccessChain from "./memberAccessChain";
 import AssignmentHandlerRegistry from "./assignment/index";
 import AssignmentClassifier from "./assignment/AssignmentClassifier";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
-import IHandlerDeps from "./assignment/handlers/IHandlerDeps";
+// IHandlerDeps removed - handlers now use CodeGenState.generator directly
 // Issue #461: LiteralUtils for parsing const values from symbol table
 import LiteralUtils from "../../../utils/LiteralUtils";
 // Issue #644: Extracted string length counter for strlen caching optimization
@@ -133,7 +133,7 @@ import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability
 import CastValidator from "./helpers/CastValidator";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import CodeGenState from "./CodeGenState";
+import CodeGenState from "../../state/CodeGenState";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "./helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
@@ -2192,6 +2192,9 @@ export default class CodeGenerator implements IOrchestrator {
   private resetGeneratorState(targetCapabilities: TargetCapabilities): void {
     // Reset global state first
     CodeGenState.reset(targetCapabilities);
+
+    // Set generator reference for handlers to use
+    CodeGenState.generator = this;
 
     // Reset local context (will gradually migrate to CodeGenState)
     this.context = CodeGenerator.createDefaultContext(targetCapabilities);
@@ -6021,54 +6024,14 @@ export default class CodeGenerator implements IOrchestrator {
   // Issue #644: _generateBitMask removed, now delegating to BitUtils.generateMask
   // ========================================================================
 
-  // ADR-109: Build handler dependencies for assignment dispatch
-  private buildHandlerDeps(): IHandlerDeps {
-    return {
-      symbols: CodeGenState.symbols!,
-      typeRegistry: CodeGenState.typeRegistry,
-      currentScope: CodeGenState.currentScope,
-      currentParameters: CodeGenState.currentParameters,
-      targetCapabilities: CodeGenState.targetCapabilities,
-      generateExpression: (ctx) => this.generateExpression(ctx),
-      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-      generateAssignmentTarget: (ctx) => this.generateAssignmentTarget(ctx),
-      isKnownStruct: (name) => this.isKnownStruct(name),
-      isKnownScope: (name) => this.isKnownScope(name),
-      getMemberTypeInfo: (structType, memberName) =>
-        this.getMemberTypeInfo(structType, memberName),
-      validateBitmapFieldLiteral: (expr, width, fieldName) =>
-        TypeValidator.validateBitmapFieldLiteral(expr, width, fieldName),
-      validateCrossScopeVisibility: (scopeName, memberName) =>
-        this.validateCrossScopeVisibility(scopeName, memberName),
-      checkArrayBounds: (arrayName, dimensions, indexExprs, line) =>
-        TypeValidator.checkArrayBounds(
-          arrayName,
-          [...dimensions],
-          [...indexExprs],
-          line,
-          (expr) => this.tryEvaluateConstant(expr),
-        ),
-      analyzeMemberChainForBitAccess: (targetCtx) =>
-        this.analyzeMemberChainForBitAccess(targetCtx),
-      generateFloatBitWrite: (name, typeInfo, bitIndex, width, value) =>
-        this.generateFloatBitWrite(name, typeInfo, bitIndex, width, value),
-      foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
-      markNeedsString: () => {
-        this.requireInclude("string");
-      },
-      markClampOpUsed: (op, typeName) => this.markClampOpUsed(op, typeName),
-      generateAtomicRMW: (target, cOp, value, typeInfo) =>
-        this.generateAtomicRMW(target, cOp, value, typeInfo),
-    };
-  }
+  // ADR-109: buildHandlerDeps removed - handlers now use CodeGenState.generator directly
 
   /**
    * Analyze a member chain target to detect bit access at the end.
    * Issue #644: Delegates to MemberChainAnalyzer.
    */
-  private analyzeMemberChainForBitAccess(
-    targetCtx: Parser.AssignmentTargetContext,
-  ): {
+  /** Public for handler access via CodeGenState.generator */
+  analyzeMemberChainForBitAccess(targetCtx: Parser.AssignmentTargetContext): {
     isBitAccess: boolean;
     baseTarget?: string;
     bitIndex?: string;
@@ -6084,7 +6047,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Generate float bit write using shadow variable + memcpy.
    * Issue #644: Delegates to FloatBitHelper.
    */
-  private generateFloatBitWrite(
+  /** Public for handler access via CodeGenState.generator */
+  generateFloatBitWrite(
     name: string,
     typeInfo: TTypeInfo,
     bitIndex: string,
@@ -6157,17 +6121,18 @@ export default class CodeGenerator implements IOrchestrator {
       typeRegistry: CodeGenState.typeRegistry,
       generateExpression: () => value,
     });
-    const handlerDeps = this.buildHandlerDeps();
+    // ADR-109: Handlers access CodeGenState directly, no deps needed
     const assignmentKind = AssignmentClassifier.classify(assignCtx);
     const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
-    return handler(assignCtx, handlerDeps);
+    return handler(assignCtx);
   }
 
   /**
    * ADR-049: Generate atomic Read-Modify-Write operation
    * Uses LDREX/STREX on platforms that support it, otherwise PRIMASK
    */
-  private generateAtomicRMW(
+  /** Public for handler access via CodeGenState.generator */
+  generateAtomicRMW(
     target: string,
     cOp: string,
     value: string,

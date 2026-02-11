@@ -3,7 +3,7 @@ import AssignmentValidator from "../AssignmentValidator.js";
 import TypeValidator from "../../TypeValidator.js";
 import EnumAssignmentValidator from "../EnumAssignmentValidator.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
-import CodeGenState from "../../CodeGenState.js";
+import CodeGenState from "../../../../state/CodeGenState.js";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.

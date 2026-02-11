@@ -16,7 +16,7 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import CNextResolver from "../../../logic/symbols/cnext/index";
 import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
-import CodeGenState from "../CodeGenState";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.

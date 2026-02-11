@@ -4,11 +4,86 @@
  *
  * Extracted from AccessPatternHandlers.ts and RegisterHandlers.ts to reduce duplication.
  */
+import BitUtils from "../../../../../utils/BitUtils";
+import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
+import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
+
+/** Result from extracting bit range expressions */
+interface IBitRangeParams {
+  start: string;
+  width: string;
+  mask: string;
+}
+
+/** Result from MMIO optimization attempt */
+interface IOptimizationResult {
+  success: boolean;
+  statement?: string;
+}
 
 /**
  * Utilities for register access patterns
  */
 class RegisterUtils {
+  /**
+   * Extract start, width, and mask from bit range subscripts.
+   * Consolidates the common pattern of getting expressions and generating mask.
+   */
+  static extractBitRangeParams(
+    subscripts: readonly unknown[],
+  ): IBitRangeParams {
+    const start = gen().generateExpression(subscripts[0]);
+    const width = gen().generateExpression(subscripts[1]);
+    const mask = BitUtils.generateMask(width);
+    return { start, width, mask };
+  }
+
+  /**
+   * Try to generate MMIO-optimized memory access for byte-aligned writes.
+   * Returns success: true with statement if optimization applicable, false otherwise.
+   */
+  static tryGenerateMMIO(
+    fullName: string,
+    regName: string,
+    subscripts: readonly unknown[],
+    value: string,
+  ): IOptimizationResult {
+    const startConst = gen().tryEvaluateConstant(subscripts[0]);
+    const widthConst = gen().tryEvaluateConstant(subscripts[1]);
+
+    if (
+      startConst === undefined ||
+      widthConst === undefined ||
+      startConst % 8 !== 0 ||
+      !TypeCheckUtils.isStandardWidth(widthConst)
+    ) {
+      return { success: false };
+    }
+
+    const baseAddr = CodeGenState.symbols!.registerBaseAddresses.get(regName);
+    const memberOffset =
+      CodeGenState.symbols!.registerMemberOffsets.get(fullName);
+
+    if (baseAddr === undefined || memberOffset === undefined) {
+      return { success: false };
+    }
+
+    const byteOffset = startConst / 8;
+    const accessType = `uint${widthConst}_t`;
+    const totalOffset =
+      byteOffset === 0 ? memberOffset : `${memberOffset} + ${byteOffset}`;
+
+    return {
+      success: true,
+      statement: `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`,
+    };
+  }
   /**
    * Check if register is write-only based on access modifier.
    *

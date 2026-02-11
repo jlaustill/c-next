@@ -168,13 +168,14 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **Dead code detection**: Use TypeScript IDE diagnostics ("declared but never read") to find unused code. The `noUnusedLocals`/`noUnusedParameters` compiler options aren't practical due to ANTLR-generated parser files with unavoidable unused parameters.
 
-### 3-Layer Architecture (PR #571, #572)
+### 4-Layer Architecture (PR #571, #572, #768)
 
-The codebase is organized into three layers under `src/transpiler/`:
+The codebase is organized into four layers under `src/transpiler/`:
 
 - `src/transpiler/data/` — Discovery layer (FileDiscovery, IncludeResolver, DependencyGraph)
 - `src/transpiler/logic/` — Business logic (parser/, symbols/, analysis/, preprocessor/)
 - `src/transpiler/output/` — Generation (codegen/, headers/)
+- `src/transpiler/state/` — Global state (CodeGenState - shared by all layers)
 - `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
 - `src/utils/` — Shared utilities (constants/, cache/, types/)
 
@@ -247,6 +248,8 @@ When adding new assignment patterns:
 
 **Key context field**: `lastSubscriptExprCount` distinguishes `[0]` (1 expr = array) from `[0, 4]` (2 exprs = bit range)
 
+**Handler architecture**: Handlers access `CodeGenState` directly for state and `CodeGenState.generator!` for CodeGenerator methods. No dependency injection - signature is `(ctx: IAssignmentContext) => string`.
+
 ### Cross-Scope Visibility Rules
 
 - **Self-scope reference**: `Scope.member` inside `Scope` is an error - use `this.member`
@@ -260,7 +263,7 @@ When adding new assignment patterns:
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
 - **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access at ~7207 and ~8190 for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
 - **Struct param access helpers**: Use `memberAccessChain.ts` helpers for all struct parameter access patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for member chains. Never inline these patterns in CodeGenerator.
-- **buildHandlerDeps() delegation**: Methods in `buildHandlerDeps()` should delegate to canonical CodeGenerator methods (e.g., `this.isKnownScope(name)` not `this.symbols!.knownScopes.has(name)`) to get full SymbolTable + C-Next symbol lookup. Hand-rolling lookups bypasses C header struct/scope support.
+- **Handler state access**: Assignment handlers access state via `CodeGenState` (for properties like `typeRegistry`, `symbols`, `currentScope`) and `CodeGenState.generator!` (for methods like `generateExpression()`, `isKnownScope()`). Always use canonical CodeGenerator methods rather than hand-rolling lookups to get full SymbolTable + C-Next symbol support.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
   1. Add to `TIncludeHeader` union in `src/transpiler/output/codegen/generators/TIncludeHeader.ts`
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
