@@ -1,0 +1,16 @@
+// test-error
+// Tests: Bare enum member as function argument should error (no expectedType)
+
+enum Mode {
+    OFF <- 0,
+    ON <- 1
+}
+
+bool isOn(Mode m) {
+    return m = Mode.ON;
+}
+
+u32 main() {
+    bool result <- isOn(ON);
+    return 0;
+}

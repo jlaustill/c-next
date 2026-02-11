@@ -38,16 +38,16 @@ u32 main() {
     if (retrievedCfg.baudRate != 115200) return 1;
     if (retrievedCfg.address != 0x42) return 2;
 
-    DeviceStatus stat <- {state: STATE_ACTIVE, errorCount: 0, connected: true};
+    DeviceStatus stat <- {state: EDeviceState.STATE_ACTIVE, errorCount: 0, connected: true};
     DeviceManager.setStatus(stat);
 
     DeviceStatus retrievedStat <- DeviceManager.getStatus();
-    if (retrievedStat.state != STATE_ACTIVE) return 3;
+    if (retrievedStat.state != EDeviceState.STATE_ACTIVE) return 3;
     if (retrievedStat.errorCount != 0) return 4;
     if (retrievedStat.connected != true) return 5;
 
     EDeviceState state <- DeviceManager.getState();
-    if (state != STATE_ACTIVE) return 6;
+    if (state != EDeviceState.STATE_ACTIVE) return 6;
 
     return 0;
 }

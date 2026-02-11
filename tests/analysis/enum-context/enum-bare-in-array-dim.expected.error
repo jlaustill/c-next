@@ -1,0 +1,1 @@
+1:0 Code generation failed: error[E0424]: 'COUNT' is not defined; did you mean 'EColor.COUNT'?

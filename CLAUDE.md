@@ -204,7 +204,30 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 **Pipeline stages for array dimensions**:
 
 - Stage 3b: `CodeGenState.symbolTable.resolveExternalArrayDimensions()` — resolves const values
-- Stage 3c: `CodeGenState.symbolTable.resolveExternalEnumArrayDimensions()` — resolves cross-file enum member names (e.g., `COUNT` → `EColor_COUNT`)
+- Qualified enum dimensions (e.g., `EColor.COUNT`) are converted to C-style (`EColor_COUNT`) by `TSymbolAdapter.resolveArrayDimension()`
+- Bare enum members in non-enum contexts produce a compile error with suggestion (issue #770)
+
+**Enum `expectedType` contexts** (bare members work):
+
+- Variable declarations: `EColor c <- RED` (type from declared type)
+- Assignments to typed fields: `cfg.color <- RED` (same-file struct fields only)
+- Return statements: `return RED` (type from function return type, must be enum)
+- Struct field inits: `{color: RED}` (type from field type)
+- Switch cases: `case RED:` (type from switch expression)
+- Ternary arms when declaration type is enum
+
+**No `expectedType` (must use qualified `EnumType.MEMBER`):**
+
+- Comparisons: `cfg.pType != EPressureType.PSIA`
+- Function arguments: `isPsia(EPressureType.PSIA)`
+- Array dimensions: `u8[EColor.COUNT]`
+- Cross-file struct field assignments (deeply nested includes may not resolve field types)
+
+**Enum error locations** (E0424 "not defined; did you mean"):
+
+- `ControlFlowGenerator.rejectUnqualifiedEnumInReturn()` — return statements with non-enum return type
+- `SwitchGenerator.rejectUnqualifiedEnumInSwitch()` — switch cases with non-enum switch type
+- `CodeGenerator._resolveUnqualifiedEnumMember()` — all other contexts (comparisons, args, etc.)
 
 **Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
 

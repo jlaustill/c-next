@@ -1,0 +1,17 @@
+// test-error
+// Tests: Bare enum member in comparison should error (no expectedType)
+
+enum EPressureType {
+    PSIA <- 0,
+    PSIG <- 1
+}
+
+struct Config {
+    EPressureType pType;
+}
+
+u32 main() {
+    Config cfg <- {pType: EPressureType.PSIA};
+    if (cfg.pType != PSIA) return 1;
+    return 0;
+}

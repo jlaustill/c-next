@@ -7449,7 +7449,9 @@ describe("CodeGenerator", () => {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
-        ).toThrow("Ambiguous enum member 'RED' exists in multiple enums");
+        ).toThrow(
+          "error[E0424]: 'RED' is not defined; did you mean 'Color.RED' or 'Status.RED'?",
+        );
       });
     });
 
@@ -14107,7 +14109,7 @@ describe("CodeGenerator", () => {
           }
           void test() {
             Color[3] colors;
-            colors[0] <- RED;
+            colors[0] <- Color.RED;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);

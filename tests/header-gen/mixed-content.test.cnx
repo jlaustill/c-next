@@ -31,5 +31,5 @@ void setStatus(EStatus newStatus) {
 
 void main() {
     initConfig();
-    setStatus(STATUS_RUNNING);
+    setStatus(EStatus.STATUS_RUNNING);
 }

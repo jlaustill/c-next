@@ -3,12 +3,12 @@
  * A safer C for embedded systems
  */
 
-#include "enum-array-size-header.test.h"
+#include "enum-qualified-array-dim.test.h"
 
 #include <stdint.h>
 
-// Same-file enum value used as array size in header (fixed in v0.1.65)
-// Cross-file case tested in tests/enum-external/enum-array-dimension.test.cnx
+// Tests: Qualified enum member used as array dimension
+// EColor.COUNT should generate EColor_COUNT in both code and header
 extern const uint8_t DATA[EColor_COUNT] = {10, 20, 30};
 
 /* Scope: Test */
