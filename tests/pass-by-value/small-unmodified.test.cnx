@@ -1,3 +1,4 @@
+// test-c-only
 // test-execution
 // Issue #269: Pass-by-value for small unmodified parameters
 // Tests that unmodified small primitive types pass by value,

@@ -816,10 +816,26 @@ export default class CodeGenerator implements IOrchestrator {
       }
       const arrayName = arrayAccessMatch[1];
       const typeInfo = CodeGenState.typeRegistry.get(arrayName);
-      // Check if base type is a string type
+      // Check if it's an ARRAY OF STRINGS (not a single string being indexed)
+      // A single string<50> has arrayDimensions=[51] (just the char buffer)
+      // An array of strings string<50>[10] has arrayDimensions=[10, 51]
+      // Single string indexing (e.g., userName[i]) returns a char, not a string
+      // Array of strings indexing (e.g., names[0]) returns a string
+      if (typeInfo?.isString) {
+        // For strings, only treat as string expression if it's an array of strings
+        // (arrayDimensions.length > 1 means it's string<N>[M], not just string<N>)
+        const dims = typeInfo.arrayDimensions;
+        if (Array.isArray(dims) && dims.length > 1) {
+          return true;
+        }
+        // Single string indexing returns char, not string
+        return false;
+      }
+      // Non-string array with string base type
       if (
-        typeInfo?.isString ||
-        (typeInfo?.baseType && TypeCheckUtils.isString(typeInfo.baseType))
+        typeInfo?.isArray &&
+        typeInfo.baseType &&
+        TypeCheckUtils.isString(typeInfo.baseType)
       ) {
         return true;
       }
@@ -1505,7 +1521,9 @@ export default class CodeGenerator implements IOrchestrator {
                 return `${constMod}${p.type} ${p.name}${p.arrayDims}`;
               } else if (p.isPointer) {
                 // ADR-006: Non-array, non-callback parameters become pointers
-                return `${constMod}${p.type}*`;
+                // In C++ mode, use reference (&) instead of pointer (*)
+                const ptrOrRef = this.isCppMode() ? "&" : "*";
+                return `${constMod}${p.type}${ptrOrRef}`;
               } else {
                 // ADR-029: Callback parameters are already function pointers
                 return `${p.type}`;
@@ -2373,9 +2391,11 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private addGeneratedHelpers(output: string[]): void {
     if (CodeGenState.needsFloatStaticAssert) {
+      // Use static_assert for C++ (standard), _Static_assert for C11
+      const assertKeyword = this.isCppMode() ? "static_assert" : "_Static_assert";
       output.push(
-        '_Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");',
-        '_Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");',
+        `${assertKeyword}(sizeof(float) == 4, "Float bit indexing requires 32-bit float");`,
+        `${assertKeyword}(sizeof(double) == 8, "Float bit indexing requires 64-bit double");`,
         "",
       );
     }

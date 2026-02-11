@@ -18,6 +18,7 @@ import { randomBytes } from "node:crypto";
 import ITools from "./types/ITools";
 import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
+import type { TTestMode, IModeResult } from "./types/ITestMode";
 import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 
 // Shared patterns for distinguishing C++ constructors from C function prototypes
@@ -63,9 +64,75 @@ class TestUtils {
   /**
    * Issue #558: Check if source has test-cpp-mode marker
    * Tests with this marker run in C++ mode (generates .cpp files with reference semantics)
+   * @deprecated Use hasCppOnlyMarker() for new tests - test-cpp-mode is being migrated
    */
   static hasCppModeMarker(source: string): boolean {
     return /\/\/\s*test-cpp-mode/i.test(source);
+  }
+
+  /**
+   * Check if source has test-c-only marker
+   * Tests with this marker run ONLY in C mode (e.g., MISRA-specific tests)
+   */
+  static hasCOnlyMarker(source: string): boolean {
+    return /\/\/\s*test-c-only/i.test(source);
+  }
+
+  /**
+   * Check if source has test-cpp-only marker
+   * Tests with this marker run ONLY in C++ mode (e.g., C++ template interop tests)
+   */
+  static hasCppOnlyMarker(source: string): boolean {
+    return /\/\/\s*test-cpp-only/i.test(source);
+  }
+
+  /**
+   * Check if source has test-no-exec marker
+   * Tests with this marker skip execution (compile only, no run)
+   */
+  static hasNoExecMarker(source: string): boolean {
+    return /\/\/\s*test-no-exec/i.test(source);
+  }
+
+  /**
+   * Determine which test modes to run based on markers
+   * Default: run both C and C++ modes
+   */
+  static getTestModes(source: string): TTestMode[] {
+    if (TestUtils.hasCOnlyMarker(source)) return ["c"];
+    if (TestUtils.hasCppOnlyMarker(source)) return ["cpp"];
+    // Legacy support: test-cpp-mode means C++ only
+    if (TestUtils.hasCppModeMarker(source)) return ["cpp"];
+    return ["c", "cpp"]; // Default: both modes
+  }
+
+  /**
+   * Get expected file paths for a given mode
+   */
+  static getExpectedPaths(
+    basePath: string,
+    mode: TTestMode,
+  ): { expectedImpl: string; expectedHeader: string; tempImpl: string } {
+    const implExt = mode === "cpp" ? "cpp" : "c";
+    const headerExt = mode === "cpp" ? "hpp" : "h";
+    return {
+      expectedImpl: `${basePath}.expected.${implExt}`,
+      expectedHeader: `${basePath}.expected.${headerExt}`,
+      tempImpl: `${basePath}.test.${implExt}`,
+    };
+  }
+
+  /**
+   * Get compiler and flags for a given mode
+   */
+  static getCompilerConfig(mode: TTestMode): {
+    compiler: string;
+    stdFlag: string;
+  } {
+    if (mode === "cpp") {
+      return { compiler: "g++", stdFlag: "-std=c++14" };
+    }
+    return { compiler: "gcc", stdFlag: "-std=c99" };
   }
 
   /**
@@ -614,11 +681,338 @@ class TestUtils {
       }
     }
   }
+
   /**
-   * Run a single test file
+   * Run a test in a single mode (C or C++)
+   *
+   * This handles transpilation, snapshot comparison, header validation,
+   * compilation, and execution for ONE specific mode.
+   *
+   * @param cnxFile - Path to the .test.cnx file
+   * @param source - Source code content
+   * @param mode - The test mode ('c' or 'cpp')
+   * @param updateMode - Whether to update snapshots
+   * @param tools - Available validation tools
+   * @param rootDir - Project root directory
+   * @param shouldExec - Whether to run execution tests
+   * @param helperCnxFiles - Helper .cnx files to also transpile
+   */
+  static async runTestMode(
+    cnxFile: string,
+    source: string,
+    mode: TTestMode,
+    updateMode: boolean,
+    tools: ITools,
+    rootDir: string,
+    shouldExec: boolean,
+    helperCnxFiles: string[],
+  ): Promise<IModeResult> {
+    const basePath = cnxFile.replace(/\.test\.cnx$/, "");
+    const paths = TestUtils.getExpectedPaths(basePath, mode);
+    const testBaseName = basename(cnxFile, ".test.cnx");
+
+    // Initialize result
+    const result: IModeResult = {
+      mode,
+      transpileSuccess: false,
+      snapshotMatch: false,
+      headerMatch: false,
+      compileSuccess: false,
+      execSuccess: false,
+    };
+
+    // Transpile with mode-specific settings
+    const pipeline = new Transpiler({
+      inputs: [],
+      includeDirs: [join(rootDir, "tests/include")],
+      noCache: true,
+      cppRequired: mode === "cpp",
+    });
+
+    const transpileResult: IFileResult = await pipeline.transpileSource(
+      source,
+      {
+        workingDir: dirname(cnxFile),
+        sourcePath: cnxFile,
+      },
+    );
+
+    if (!transpileResult.success) {
+      const errors = transpileResult.errors
+        .map((e) => `${e.line}:${e.column} ${e.message}`)
+        .join("\n");
+      result.error = `Transpilation failed: ${errors}`;
+      return result;
+    }
+
+    result.transpileSuccess = true;
+
+    // Transpile helper files
+    const helperImplFiles: string[] = [];
+    const tempHelperFiles: string[] = [];
+
+    for (const helperCnx of helperCnxFiles) {
+      const helperSource = readFileSync(helperCnx, "utf-8");
+      const helperTranspiler = new Transpiler({
+        inputs: [],
+        includeDirs: [join(rootDir, "tests/include")],
+        noCache: true,
+        cppRequired: mode === "cpp",
+      });
+      const helperResult = await helperTranspiler.transpileSource(
+        helperSource,
+        {
+          workingDir: dirname(helperCnx),
+          sourcePath: helperCnx,
+        },
+      );
+      if (helperResult.success) {
+        const helperBaseName = basename(helperCnx, ".cnx");
+        const implExt = mode === "cpp" ? "cpp" : "c";
+        const tempImplFile = join(
+          dirname(helperCnx),
+          `${helperBaseName}.${testBaseName}.tmp.${implExt}`,
+        );
+        writeFileSync(tempImplFile, helperResult.code);
+        helperImplFiles.push(tempImplFile);
+        tempHelperFiles.push(tempImplFile);
+
+        // Write helper header if generated
+        if (helperResult.headerCode) {
+          const headerExt = mode === "cpp" ? "hpp" : "h";
+          const tempHFile = join(
+            dirname(helperCnx),
+            `${helperBaseName}.${headerExt}`,
+          );
+          writeFileSync(tempHFile, helperResult.headerCode);
+          // Only track for cleanup if no persistent expected file exists
+          const helperExpectedH = join(
+            dirname(helperCnx),
+            `${helperBaseName}.expected.${headerExt}`,
+          );
+          if (!existsSync(helperExpectedH)) {
+            tempHelperFiles.push(tempHFile);
+          }
+        }
+      }
+    }
+
+    // Cleanup helper for temp files
+    const cleanupHelpers = (): void => {
+      for (const f of tempHelperFiles) {
+        try {
+          if (existsSync(f)) unlinkSync(f);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    };
+
+    // Check expected file exists (no fallbacks - tests must have proper expected files)
+    const expectedImplPath = paths.expectedImpl;
+    const expectedHeaderPath = paths.expectedHeader;
+    const hasExpectedImpl = existsSync(expectedImplPath);
+    const hasExpectedHeader = existsSync(expectedHeaderPath);
+
+    // Update mode: create/update snapshots
+    if (updateMode) {
+      writeFileSync(paths.expectedImpl, transpileResult.code);
+      if (transpileResult.headerCode) {
+        writeFileSync(paths.expectedHeader, transpileResult.headerCode);
+      }
+      result.snapshotMatch = true;
+      result.headerMatch = true;
+      result.compileSuccess = true;
+      result.execSuccess = true;
+      cleanupHelpers();
+      return result;
+    }
+
+    // No expected file - skip this mode
+    if (!hasExpectedImpl) {
+      result.error = `No expected file: ${paths.expectedImpl}`;
+      cleanupHelpers();
+      return result;
+    }
+
+    // Compare implementation snapshot
+    const expectedImpl = readFileSync(expectedImplPath, "utf-8");
+    if (
+      TestUtils.normalize(transpileResult.code) !==
+      TestUtils.normalize(expectedImpl)
+    ) {
+      result.error = `${mode.toUpperCase()} output mismatch`;
+      result.expected = expectedImpl;
+      result.actual = transpileResult.code;
+      cleanupHelpers();
+      return result;
+    }
+    result.snapshotMatch = true;
+
+    // Compare header snapshot (if headers were generated)
+    if (transpileResult.headerCode) {
+      if (!hasExpectedHeader) {
+        result.error = `Missing ${expectedHeaderPath} - headers were generated but no snapshot exists`;
+        cleanupHelpers();
+        return result;
+      }
+      const expectedHeader = readFileSync(expectedHeaderPath, "utf-8");
+      if (
+        TestUtils.normalize(transpileResult.headerCode) !==
+        TestUtils.normalize(expectedHeader)
+      ) {
+        result.error = `${mode.toUpperCase()} header mismatch`;
+        result.expected = expectedHeader;
+        result.actual = transpileResult.headerCode;
+        cleanupHelpers();
+        return result;
+      }
+    }
+    result.headerMatch = true;
+
+    // Skip compilation for transpile-only tests
+    const isTranspileOnly = TestUtils.hasTranspileOnlyMarker(source);
+    if (isTranspileOnly) {
+      result.compileSuccess = true;
+      result.execSuccess = true;
+      result.skippedExec = true;
+      cleanupHelpers();
+      return result;
+    }
+
+    // Compile with mode-specific compiler
+    // Auto-detect C++ features in included headers and use g++ when needed
+    const needsCppCompiler =
+      mode === "cpp" || TestUtils.requiresCpp14(expectedImplPath);
+    const actualCompiler = needsCppCompiler ? "g++" : "gcc";
+    const actualStdFlag = needsCppCompiler ? "-std=c++14" : "-std=c99";
+
+    if (tools.gcc) {
+      try {
+        const cFileDir = dirname(expectedImplPath);
+        execFileSync(
+          actualCompiler,
+          [
+            "-fsyntax-only",
+            actualStdFlag,
+            "-Wno-unused-variable",
+            "-Wno-main",
+            "-I",
+            join(rootDir, "tests/include"),
+            "-I",
+            cFileDir,
+            expectedImplPath,
+          ],
+          { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
+        );
+        result.compileSuccess = true;
+      } catch (error: unknown) {
+        const err = error as {
+          stderr?: string;
+          stdout?: string;
+          message: string;
+        };
+        const output = err.stderr || err.stdout || err.message;
+        const errors = output
+          .split("\n")
+          .filter((line) => line.includes("error:"))
+          .slice(0, 5)
+          .join("\n");
+        result.error = `${mode.toUpperCase()} compilation failed: ${errors}`;
+        cleanupHelpers();
+        return result;
+      }
+    } else {
+      result.compileSuccess = true; // Skip if no gcc
+    }
+
+    // Run static analysis tools (C mode only for MISRA)
+    if (mode === "c" && tools.misra) {
+      const misraResult = TestUtils.validateMisra(expectedImplPath, rootDir);
+      if (!misraResult.valid) {
+        result.error = `MISRA check failed: ${misraResult.message}`;
+        cleanupHelpers();
+        return result;
+      }
+    }
+
+    // Execute if requested and not ARM-only code
+    if (shouldExec && /^\s*\/\/\s*test-execution\s*$/m.test(source)) {
+      if (TestUtils.requiresArmRuntime(transpileResult.code)) {
+        result.execSuccess = true;
+        result.skippedExec = true;
+        cleanupHelpers();
+        return result;
+      }
+
+      const execPath = TestUtils.getExecutablePath(cnxFile);
+      const sourceFiles = [expectedImplPath, ...helperImplFiles];
+
+      try {
+        // Compile to executable (reuse auto-detected compiler from above)
+        const cFileDir = dirname(expectedImplPath);
+        execFileSync(
+          actualCompiler,
+          [
+            actualStdFlag,
+            "-Wno-unused-variable",
+            "-Wno-main",
+            "-I",
+            join(rootDir, "tests/include"),
+            "-I",
+            cFileDir,
+            "-o",
+            execPath,
+            ...sourceFiles,
+          ],
+          { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
+        );
+
+        // Execute
+        try {
+          execFileSync(execPath, [], {
+            encoding: "utf-8",
+            timeout: 5000,
+            stdio: "pipe",
+          });
+          result.execSuccess = true;
+        } catch (execError: unknown) {
+          const err = execError as { status?: number };
+          const exitCode = err.status || 1;
+          result.error = `${mode.toUpperCase()} execution failed with exit code ${exitCode}`;
+          cleanupHelpers();
+          return result;
+        } finally {
+          try {
+            if (existsSync(execPath)) unlinkSync(execPath);
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+      } catch (compileError: unknown) {
+        const err = compileError as { stderr?: string; message: string };
+        result.error = `${mode.toUpperCase()} compile for execution failed: ${err.stderr || err.message}`;
+        cleanupHelpers();
+        return result;
+      }
+    } else {
+      result.execSuccess = true; // No execution requested
+    }
+
+    cleanupHelpers();
+    return result;
+  }
+
+  /**
+   * Run a single test file in dual-mode (C and C++)
    *
    * This is the core test runner logic, shared between test.ts (sequential mode)
-   * and test-worker.ts (parallel mode). Extracted to eliminate ~400 lines of duplication.
+   * and test-worker.ts (parallel mode).
+   *
+   * Default behavior: Run BOTH C and C++ modes
+   * - `// test-c-only`: Skip C++ mode (MISRA-specific tests)
+   * - `// test-cpp-only`: Skip C mode (C++ interop tests)
+   * - `// test-no-exec`: Skip execution (compile only)
    *
    * @param cnxFile - Path to the .test.cnx file
    * @param updateMode - Whether to update snapshots
@@ -634,8 +1028,6 @@ class TestUtils {
     const source = readFileSync(cnxFile, "utf-8");
 
     // Check for incorrect test-execution marker format (Issue #322)
-    // The correct format is "// test-execution" (single-line comment)
-    // Fail early if the incorrect block comment format is used
     if (/\/\*\s*test-execution\s*\*\//.test(source)) {
       return {
         passed: false,
@@ -645,471 +1037,198 @@ class TestUtils {
     }
 
     const basePath = cnxFile.replace(/\.test\.cnx$/, "");
-    const expectedCFile = basePath + ".expected.c";
     const expectedErrorFile = basePath + ".expected.error";
+
+    // Determine which modes to run (default: BOTH C and C++)
+    const modes = TestUtils.getTestModes(source);
+    const shouldExec = !TestUtils.hasNoExecMarker(source);
+    const helperCnxFiles = TestUtils.findHelperCnxFiles(cnxFile, source);
+
+    // Error tests: single-mode (transpilation error is mode-independent)
+    if (existsSync(expectedErrorFile)) {
+      return TestUtils.runErrorTest(
+        cnxFile,
+        source,
+        basePath,
+        expectedErrorFile,
+        updateMode,
+        rootDir,
+      );
+    }
+
+    // Run each enabled mode (default: both C and C++)
+    const modeResults: IModeResult[] = [];
+    for (const mode of modes as TTestMode[]) {
+      const modeResult = await TestUtils.runTestMode(
+        cnxFile,
+        source,
+        mode,
+        updateMode,
+        tools,
+        rootDir,
+        shouldExec,
+        helperCnxFiles,
+      );
+      modeResults.push(modeResult);
+    }
+
+    // Aggregate results
+    return TestUtils.aggregateModeResults(
+      modeResults,
+      modes as TTestMode[],
+      updateMode,
+    );
+  }
+
+  /**
+   * Run an error test (transpilation should fail)
+   * Error tests are mode-independent since transpilation errors happen before code generation
+   */
+  private static async runErrorTest(
+    cnxFile: string,
+    source: string,
+    basePath: string,
+    expectedErrorFile: string,
+    updateMode: boolean,
+    rootDir: string,
+  ): Promise<ITestResult> {
+    const expectedCFile = basePath + ".expected.c";
     const expectedHFile = basePath + ".expected.h";
     const headerFile = basePath + ".test.h";
 
-    // Issue #455: Check if .expected.h exists (for header validation tests)
-    const hasExpectedHFile = existsSync(expectedHFile);
+    const expectedErrors = readFileSync(expectedErrorFile, "utf-8").trim();
 
-    // Issue #558: Check for C++ mode marker
-    const cppMode = TestUtils.hasCppModeMarker(source);
-
-    // Use Transpiler for transpilation with header parsing support
-    // Issue #321: Use noCache: true to ensure tests always use fresh symbol collection
-    // Caching can cause stale symbols when Transpiler code changes
-    const pipeline = new Transpiler({
-      inputs: [],
-      includeDirs: [join(rootDir, "tests/include")],
-      noCache: true,
-      cppRequired: cppMode, // Issue #558: Enable C++ mode when marker present
-    });
-
-    // Enable header generation if:
-    // 1. .test.h file exists (legacy behavior), OR
-    // 2. .expected.c includes the header file (Issue #455)
-    const result: IFileResult = await pipeline.transpileSource(source, {
-      workingDir: dirname(cnxFile),
-      sourcePath: cnxFile,
-    });
-
-    // Issue #322: Find and transpile helper .cnx files for cross-file execution tests
-    // Use test file basename for unique temp file naming to avoid parallel test collisions
-    const testBaseName = basename(cnxFile, ".test.cnx");
-    const helperCnxFiles = TestUtils.findHelperCnxFiles(cnxFile, source);
-    const helperCFiles: string[] = [];
-    const tempHelperFiles: string[] = [];
-
-    // Cleanup helper function for temp files (defined early for use in validation)
-    const cleanupHelperFiles = (): void => {
-      for (const f of tempHelperFiles) {
+    // Clean up stale success test artifacts
+    for (const staleFile of [expectedCFile, expectedHFile, headerFile]) {
+      if (existsSync(staleFile)) {
         try {
-          if (existsSync(f)) unlinkSync(f);
+          unlinkSync(staleFile);
         } catch {
           // Ignore cleanup errors
         }
       }
-    };
-
-    for (const helperCnx of helperCnxFiles) {
-      const helperSource = readFileSync(helperCnx, "utf-8");
-      // Issue #558: Check if helper has cpp-mode marker, or inherit from main test
-      const helperCppMode = TestUtils.hasCppModeMarker(helperSource) || cppMode;
-      // Use fresh Transpiler for each helper to avoid symbol pollution from main test
-      const helperTranspiler = new Transpiler({
-        inputs: [],
-        includeDirs: [join(rootDir, "tests/include")],
-        noCache: true,
-        cppRequired: helperCppMode, // Issue #558: Inherit C++ mode
-      });
-      const helperResult = await helperTranspiler.transpileSource(
-        helperSource,
-        {
-          workingDir: dirname(helperCnx),
-          sourcePath: helperCnx,
-        },
-      );
-      if (helperResult.success) {
-        // Write to temp file with unique name per test to avoid parallel collisions
-        const helperBaseName = basename(helperCnx, ".cnx");
-        const tempCFile = join(
-          dirname(helperCnx),
-          `${helperBaseName}.${testBaseName}.tmp.c`,
-        );
-        writeFileSync(tempCFile, helperResult.code);
-        helperCFiles.push(tempCFile);
-        tempHelperFiles.push(tempCFile);
-
-        // Issue #461: Write helper header file if generated (needed for GCC to find includes)
-        // Always write to .h path for compilation, validate against .expected.h if exists
-        if (helperResult.headerCode) {
-          const tempHFile = join(dirname(helperCnx), `${helperBaseName}.h`);
-          const helperExpectedHFile = join(
-            dirname(helperCnx),
-            `${helperBaseName}.expected.h`,
-          );
-
-          writeFileSync(tempHFile, helperResult.headerCode);
-
-          // Update mode: create .expected.h if it doesn't exist
-          if (updateMode && !existsSync(helperExpectedHFile)) {
-            writeFileSync(helperExpectedHFile, helperResult.headerCode);
-          }
-
-          // Only clean up if there's no .expected.h - helpers with .expected.h are persistent
-          if (!existsSync(helperExpectedHFile)) {
-            tempHelperFiles.push(tempHFile);
-          }
-
-          // Validate against expected header if it exists
-          if (existsSync(helperExpectedHFile)) {
-            const expectedH = readFileSync(helperExpectedHFile, "utf-8");
-            if (
-              TestUtils.normalize(helperResult.headerCode) !==
-              TestUtils.normalize(expectedH)
-            ) {
-              cleanupHelperFiles();
-              return {
-                passed: false,
-                message: `Helper header mismatch: ${helperBaseName}.h`,
-                expected: expectedH,
-                actual: helperResult.headerCode,
-              };
-            }
-          }
-        }
-      }
     }
 
-    // Check if this is an error test (no validation needed for error tests)
-    if (existsSync(expectedErrorFile)) {
-      const expectedErrors = readFileSync(expectedErrorFile, "utf-8").trim();
+    // Transpile to check for errors
+    const pipeline = new Transpiler({
+      inputs: [],
+      includeDirs: [join(rootDir, "tests/include")],
+      noCache: true,
+    });
 
-      // Clean up stale success test artifacts (from when this was a success test)
-      for (const staleFile of [expectedCFile, expectedHFile, headerFile]) {
-        if (existsSync(staleFile)) {
-          try {
-            unlinkSync(staleFile);
-          } catch {
-            // Ignore cleanup errors
-          }
-        }
-      }
+    const result = await pipeline.transpileSource(source, {
+      workingDir: dirname(cnxFile),
+      sourcePath: cnxFile,
+    });
 
-      if (result.success) {
-        // In update mode, switch from error test to success test
-        if (updateMode) {
-          unlinkSync(expectedErrorFile);
-          writeFileSync(expectedCFile, result.code);
-          cleanupHelperFiles();
-          return {
-            passed: true,
-            message: "Switched from error to C snapshot",
-            updated: true,
-          };
-        }
-        cleanupHelperFiles();
-        return {
-          passed: false,
-          message: `Expected errors but transpilation succeeded`,
-          expected: expectedErrors,
-          actual: "(no errors)",
-        };
-      }
-
-      const actualErrors = result.errors
-        .map((e) => `${e.line}:${e.column} ${e.message}`)
-        .join("\n");
-
+    if (result.success) {
       if (updateMode) {
-        writeFileSync(expectedErrorFile, actualErrors + "\n");
-        cleanupHelperFiles();
+        unlinkSync(expectedErrorFile);
+        writeFileSync(expectedCFile, result.code);
         return {
           passed: true,
-          message: "Updated error snapshot",
+          message: "Switched from error to C snapshot",
           updated: true,
         };
       }
-
-      if (
-        TestUtils.normalize(actualErrors) ===
-        TestUtils.normalize(expectedErrors)
-      ) {
-        cleanupHelperFiles();
-        return { passed: true };
-      }
-
-      cleanupHelperFiles();
       return {
         passed: false,
-        message: "Error output mismatch",
+        message: "Expected errors but transpilation succeeded",
         expected: expectedErrors,
-        actual: actualErrors,
+        actual: "(no errors)",
       };
     }
 
-    // Check if this is a success test
-    if (existsSync(expectedCFile)) {
-      const expectedC = readFileSync(expectedCFile, "utf-8");
+    const actualErrors = result.errors
+      .map((e) => `${e.line}:${e.column} ${e.message}`)
+      .join("\n");
 
-      if (!result.success) {
-        const errors = result.errors
-          .map((e) => `${e.line}:${e.column} ${e.message}`)
-          .join("\n");
-        // In update mode, switch from success test to error test
-        if (updateMode) {
-          unlinkSync(expectedCFile);
-          writeFileSync(expectedErrorFile, errors + "\n");
-          cleanupHelperFiles();
-          return {
-            passed: true,
-            message: "Switched from C to error snapshot",
-            updated: true,
-          };
-        }
-        cleanupHelperFiles();
-        return {
-          passed: false,
-          message: `Transpilation failed unexpectedly`,
-          expected: "(success)",
-          actual: errors,
-        };
-      }
-
-      if (updateMode) {
-        writeFileSync(expectedCFile, result.code);
-        // Issue #424: Also update header snapshot if header was generated
-        if (result.headerCode) {
-          writeFileSync(expectedHFile, result.headerCode);
-        }
-        cleanupHelperFiles();
-        return { passed: true, message: "Updated C snapshot", updated: true };
-      }
-
-      if (TestUtils.normalize(result.code) === TestUtils.normalize(expectedC)) {
-        // Snapshot matches - now run all validation steps
-
-        // Issue #455: Write header file to disk if generated AND expected.h exists
-        // Only write headers for tests that expect header validation
-        if (result.headerCode && hasExpectedHFile) {
-          writeFileSync(headerFile, result.headerCode);
-        }
-
-        // Helper to cleanup temp files (header files are preserved for success tests)
-        const cleanupAllFiles = (): void => {
-          cleanupHelperFiles();
-        };
-
-        // Issue #461: Skip all C compilation validation for transpile-only tests (e.g., C++ interop)
-        const isTranspileOnly = TestUtils.hasTranspileOnlyMarker(source);
-
-        // Step 1: GCC compilation
-        if (tools.gcc && !isTranspileOnly) {
-          const compileResult = TestUtils.validateCompilation(
-            expectedCFile,
-            tools,
-            rootDir,
-          );
-          if (!compileResult.valid) {
-            cleanupAllFiles();
-            return {
-              passed: false,
-              message: "GCC compilation failed",
-              actual: compileResult.message,
-            };
-          }
-        }
-
-        // Step 2: Cppcheck static analysis
-        if (tools.cppcheck && !isTranspileOnly) {
-          const cppcheckResult = TestUtils.validateCppcheck(expectedCFile);
-          if (!cppcheckResult.valid) {
-            cleanupAllFiles();
-            return {
-              passed: false,
-              message: "Cppcheck failed",
-              actual: cppcheckResult.message,
-            };
-          }
-        }
-
-        // Step 3: Clang-tidy analysis
-        if (tools.clangTidy && !isTranspileOnly) {
-          const clangTidyResult = TestUtils.validateClangTidy(expectedCFile);
-          if (!clangTidyResult.valid) {
-            cleanupAllFiles();
-            return {
-              passed: false,
-              message: "Clang-tidy failed",
-              actual: clangTidyResult.message,
-            };
-          }
-        }
-
-        // Step 4: MISRA compliance check
-        if (tools.misra && !isTranspileOnly) {
-          const misraResult = TestUtils.validateMisra(expectedCFile, rootDir);
-          if (!misraResult.valid) {
-            cleanupAllFiles();
-            return {
-              passed: false,
-              message: "MISRA check failed",
-              actual: misraResult.message,
-            };
-          }
-        }
-
-        // Step 5: Flawfinder security analysis
-        if (tools.flawfinder && !isTranspileOnly) {
-          const flawfinderResult = TestUtils.validateFlawfinder(expectedCFile);
-          if (!flawfinderResult.valid) {
-            cleanupAllFiles();
-            return {
-              passed: false,
-              message: "Flawfinder security check failed",
-              actual: flawfinderResult.message,
-            };
-          }
-        }
-
-        // Step 6: No-warnings check (if /* test-no-warnings */ marker present)
-        if (TestUtils.hasNoWarningsMarker(source) && !isTranspileOnly) {
-          const noWarningsResult = TestUtils.validateNoWarnings(
-            expectedCFile,
-            rootDir,
-          );
-          if (!noWarningsResult.valid) {
-            cleanupAllFiles();
-            return {
-              passed: false,
-              message: "Warning check failed (test-no-warnings)",
-              warningError: noWarningsResult.message,
-            };
-          }
-        }
-
-        // Step 6.5: Header validation (if .expected.h file exists AND headers were generated) - Issue #424
-        // Note: Header validation runs even for transpile-only tests - snapshot comparison
-        // doesn't require compilation. Only execution/analysis tools are skipped.
-        if (hasExpectedHFile && result.headerCode) {
-          const expectedH = readFileSync(expectedHFile, "utf-8");
-          const actualH = result.headerCode;
-
-          if (TestUtils.normalize(actualH) !== TestUtils.normalize(expectedH)) {
-            cleanupAllFiles();
-            return {
-              passed: false,
-              message: "Header output mismatch",
-              expected: expectedH,
-              actual: actualH,
-            };
-          }
-        } else if (!hasExpectedHFile && result.headerCode) {
-          // Headers were generated but .expected.h is missing - this is an error
-          // Prevents forgetting to commit .expected.h files when .expected.c exists
-          // Note: This check applies regardless of isTranspileOnly - if we generate headers,
-          // we must validate them
-          cleanupAllFiles();
-          return {
-            passed: false,
-            message:
-              "Missing .expected.h file - headers were generated but no snapshot exists. Run with --update to create.",
-          };
-        }
-
-        // Step 7: Execution test (if // test-execution marker present)
-        if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
-          if (TestUtils.requiresArmRuntime(result.code)) {
-            cleanupAllFiles();
-            return { passed: true, skippedExec: true };
-          }
-
-          const execResult = TestUtils.executeTest(
-            expectedCFile,
-            rootDir,
-            0,
-            helperCFiles,
-          );
-          cleanupAllFiles();
-          if (!execResult.valid) {
-            return {
-              passed: false,
-              message: "Execution failed",
-              actual: execResult.message,
-            };
-          }
-        }
-
-        cleanupAllFiles();
-        return { passed: true };
-      }
-
-      // Snapshot mismatch - but still try to execute if marker present
-      if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
-        // Write transpiled code to temp file for execution
-        const tempCFile = expectedCFile.replace(".expected.c", ".tmp.c");
-        writeFileSync(tempCFile, result.code);
-
-        // Issue #461: Write header file if generated AND expected.h exists
-        let tempHeaderWritten = false;
-        if (result.headerCode && hasExpectedHFile) {
-          writeFileSync(headerFile, result.headerCode);
-          tempHeaderWritten = true;
-        }
-
-        try {
-          if (!TestUtils.requiresArmRuntime(result.code)) {
-            const execResult = TestUtils.executeTest(
-              tempCFile,
-              rootDir,
-              0,
-              helperCFiles,
-            );
-            if (!execResult.valid) {
-              cleanupHelperFiles();
-              return {
-                passed: false,
-                message: "C output mismatch AND execution failed",
-                expected: expectedC,
-                actual: result.code,
-                execError: execResult.message,
-              };
-            }
-          }
-        } finally {
-          try {
-            unlinkSync(tempCFile);
-          } catch {
-            // Ignore cleanup errors
-          }
-          // Clean up temp header file if we created it and no expected.h exists
-          if (tempHeaderWritten && !hasExpectedHFile) {
-            try {
-              unlinkSync(headerFile);
-            } catch {
-              // Ignore cleanup errors
-            }
-          }
-        }
-      }
-
-      cleanupHelperFiles();
-      return {
-        passed: false,
-        message: "C output mismatch",
-        expected: expectedC,
-        actual: result.code,
-      };
-    }
-
-    // No expected file - in update mode, create one
     if (updateMode) {
-      if (result.success) {
-        writeFileSync(expectedCFile, result.code);
-        cleanupHelperFiles();
-        return { passed: true, message: "Created C snapshot", updated: true };
-      } else {
-        const errors = result.errors
-          .map((e) => `${e.line}:${e.column} ${e.message}`)
-          .join("\n");
-        writeFileSync(expectedErrorFile, errors + "\n");
-        cleanupHelperFiles();
-        return {
-          passed: true,
-          message: "Created error snapshot",
-          updated: true,
-        };
-      }
+      writeFileSync(expectedErrorFile, actualErrors + "\n");
+      return {
+        passed: true,
+        message: "Updated error snapshot",
+        updated: true,
+      };
     }
 
-    // No expected file and not in update mode
-    cleanupHelperFiles();
+    if (
+      TestUtils.normalize(actualErrors) === TestUtils.normalize(expectedErrors)
+    ) {
+      return { passed: true };
+    }
+
     return {
       passed: false,
-      message: "No expected file found. Run with --update to create snapshot.",
-      noSnapshot: true,
+      message: "Error output mismatch",
+      expected: expectedErrors,
+      actual: actualErrors,
     };
+  }
+
+  /**
+   * Aggregate results from multiple mode runs into a single ITestResult
+   */
+  private static aggregateModeResults(
+    results: IModeResult[],
+    requestedModes: TTestMode[],
+    updateMode: boolean,
+  ): ITestResult {
+    const cResult = results.find((r) => r.mode === "c");
+    const cppResult = results.find((r) => r.mode === "cpp");
+
+    // Check if all modes passed
+    const allPassed = results.every(
+      (r) =>
+        r.transpileSuccess &&
+        r.snapshotMatch &&
+        r.headerMatch &&
+        r.compileSuccess &&
+        r.execSuccess,
+    );
+
+    // Find first failure for error message
+    const firstFailure = results.find(
+      (r) =>
+        !r.transpileSuccess ||
+        !r.snapshotMatch ||
+        !r.headerMatch ||
+        !r.compileSuccess ||
+        !r.execSuccess,
+    );
+
+    // Check for skipped execution
+    const anySkippedExec = results.some((r) => r.skippedExec);
+
+    // Check for missing snapshots (no expected file)
+    const noSnapshot = results.every((r) =>
+      r.error?.includes("No expected file"),
+    );
+
+    const testResult: ITestResult = {
+      passed: allPassed,
+      cResult,
+      cppResult,
+      cSkipped: !requestedModes.includes("c"),
+      cppSkipped: !requestedModes.includes("cpp"),
+      skippedExec: anySkippedExec,
+      noSnapshot,
+    };
+
+    if (!allPassed && firstFailure) {
+      testResult.message = firstFailure.error;
+      testResult.expected = firstFailure.expected;
+      testResult.actual = firstFailure.actual;
+    }
+
+    // In update mode, mark as updated if we created snapshots
+    if (updateMode && allPassed && results.length > 0) {
+      const modes = results.map((r) => r.mode.toUpperCase()).join("+");
+      testResult.updated = true;
+      testResult.message = `Updated ${modes} snapshot(s)`;
+    }
+
+    return testResult;
   }
 }
 

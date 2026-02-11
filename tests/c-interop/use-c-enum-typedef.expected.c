@@ -3,6 +3,7 @@
  * A safer C for embedded systems
  */
 
+// test-c-only
 // test-execution
 // test-coverage: 30-use-c-enum-typedef
 // Tests: Using typedef'd C enums

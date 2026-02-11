@@ -20,6 +20,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
+// test-c-only
 // Test: Critical blocks should use __cnx_ wrappers instead of direct intrinsic calls
 // This avoids macro collisions with platform headers (e.g., Teensy's imxrt.h)
 // See GitHub issue #473

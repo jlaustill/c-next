@@ -1,3 +1,4 @@
+// test-c-only
 // Test: ADR-016 + ADR-050 Critical sections inside scope methods
 // Verifies that critical { } blocks work correctly inside scope methods
 // Tests: public method with critical, private method with critical, this. inside critical, global. inside critical

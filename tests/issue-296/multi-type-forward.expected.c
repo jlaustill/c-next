@@ -5,6 +5,7 @@
 
 #include "multi-type-forward.test.h"
 
+// test-c-only
 // Issue #404: Forward declarations with multiple external types
 // test-execution
 // Tests forward declarations when multiple structs and enums are used

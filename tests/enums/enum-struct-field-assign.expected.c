@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+// test-c-only
 // test-execution
 // Tests: assign struct enum field to local enum variable (bug fix)
 // Validates that enum-typed fields in structs can be read via global prefix

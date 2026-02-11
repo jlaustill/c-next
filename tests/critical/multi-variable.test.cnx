@@ -1,3 +1,4 @@
+// test-c-only
 // ADR-050: Critical section with multiple variables
 // Tests: multiple variables protected in one critical section
 u32 readIdx <- 0;

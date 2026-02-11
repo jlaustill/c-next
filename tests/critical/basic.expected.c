@@ -20,6 +20,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
+// test-c-only
 uint8_t buffer[64] = {0};
 
 uint32_t writeIdx = 0;

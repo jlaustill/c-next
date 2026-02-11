@@ -1,3 +1,4 @@
+// test-c-only
 // Coverage: Section 7.7 - Nested critical sections
 // Tests: critical sections nested inside other critical sections
 // Note: Nested critical is valid syntax - inner critical is redundant but allowed

@@ -139,6 +139,20 @@ async function runTest(
 }
 
 /**
+ * Get mode indicator string for display
+ */
+function getModeIndicator(result: ITestResult): string {
+  const modes: string[] = [];
+  if (result.cResult && !result.cSkipped) modes.push("C");
+  if (result.cppResult && !result.cppSkipped) modes.push("C++");
+  // Only show indicator if running both modes
+  if (modes.length === 2) {
+    return chalk.dim(` [${modes.join("+")}]`);
+  }
+  return "";
+}
+
+/**
  * Print a test result
  */
 function printResult(
@@ -146,24 +160,28 @@ function printResult(
   result: ITestResult,
   quietMode: boolean,
 ): void {
+  const modeIndicator = getModeIndicator(result);
+
   if (result.passed) {
     if (result.updated) {
       if (!quietMode) {
-        console.log(`${chalk.yellow("UPDATED")} ${relativePath}`);
+        console.log(
+          `${chalk.yellow("UPDATED")} ${relativePath}${modeIndicator}`,
+        );
       }
     } else if (result.skippedExec) {
       if (!quietMode) {
         console.log(
-          `${chalk.green("PASS")}    ${relativePath} ${chalk.dim("(exec skipped: ARM)")}`,
+          `${chalk.green("PASS")}    ${relativePath}${modeIndicator} ${chalk.dim("(exec skipped: ARM)")}`,
         );
       }
     } else if (!quietMode) {
-      console.log(`${chalk.green("PASS")}    ${relativePath}`);
+      console.log(`${chalk.green("PASS")}    ${relativePath}${modeIndicator}`);
     }
   } else if (result.noSnapshot) {
     console.log(`${chalk.yellow("SKIP")}    ${relativePath} (no snapshot)`);
   } else {
-    console.log(`${chalk.red("FAIL")}    ${relativePath}`);
+    console.log(`${chalk.red("FAIL")}    ${relativePath}${modeIndicator}`);
     console.log(`        ${chalk.dim(result.message ?? "")}`);
     if (result.expected && result.actual) {
       console.log(`        ${chalk.dim("Expected:")}`);

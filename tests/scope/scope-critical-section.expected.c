@@ -37,6 +37,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
     return result;
 }
 
+// test-c-only
 // Test: ADR-016 + ADR-050 Critical sections inside scope methods
 // Verifies that critical { } blocks work correctly inside scope methods
 // Tests: public method with critical, private method with critical, this. inside critical, global. inside critical

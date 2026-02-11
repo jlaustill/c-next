@@ -1,3 +1,4 @@
+// test-c-only
 // test-execution
 // Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
 

@@ -23,6 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
+// test-c-only
 // test-execution
 // Tests: Issue #565 edge cases - comprehensive coverage for reassignment const inference
 // Covers: nested conditionals, switch, do-while, critical, compound assignments,

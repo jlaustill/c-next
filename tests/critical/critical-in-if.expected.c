@@ -28,6 +28,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
+// test-c-only
 // test-coverage: 33.2-critical-inside-if
 // Coverage: Section 7.7, 33.2 - Critical section inside if statements
 // Tests: critical sections inside if/else branches
