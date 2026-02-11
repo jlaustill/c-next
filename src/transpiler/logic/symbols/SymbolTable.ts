@@ -525,6 +525,113 @@ class SymbolTable {
       }
     }
   }
+
+  /**
+   * Resolve cross-file enum member names in array dimensions.
+   *
+   * After all symbols are collected, scan for variable and function symbols
+   * with string array dimensions that match unqualified enum member names.
+   * Replace "COUNT" with "EColor_COUNT" when COUNT belongs to enum EColor.
+   *
+   * This handles the case where an enum is defined in one .cnx file and its
+   * members are used as array dimensions in another file. The per-file
+   * TSymbolAdapter only sees local enums, so cross-file enum members remain
+   * unresolved as bare names.
+   *
+   * Skips dimensions that already contain "_" (already resolved by
+   * TSymbolAdapter for same-file enums) and numeric dimensions.
+   */
+  resolveExternalEnumArrayDimensions(): void {
+    // Build lookup: member name -> parent enum name (null if ambiguous)
+    const enumMemberLookup = new Map<string, string | null>();
+    for (const symbol of this.getAllSymbols()) {
+      if (symbol.kind !== ESymbolKind.EnumMember || !symbol.parent) {
+        continue;
+      }
+      const memberName = symbol.name.includes("_")
+        ? symbol.name.substring(symbol.parent.length + 1)
+        : symbol.name;
+      if (enumMemberLookup.has(memberName)) {
+        const existing = enumMemberLookup.get(memberName);
+        if (existing !== symbol.parent) {
+          enumMemberLookup.set(memberName, null); // Ambiguous
+        }
+      } else {
+        enumMemberLookup.set(memberName, symbol.parent);
+      }
+    }
+
+    if (enumMemberLookup.size === 0) {
+      return;
+    }
+
+    // Resolve dimensions on variable and function symbols
+    for (const symbol of this.getAllSymbols()) {
+      if (symbol.kind === ESymbolKind.Variable) {
+        this.resolveEnumDimensionsOnSymbol(symbol, enumMemberLookup);
+      } else if (symbol.kind === ESymbolKind.Function && symbol.parameters) {
+        for (const param of symbol.parameters) {
+          if (param.isArray && param.arrayDimensions) {
+            const resolved = this.resolveEnumDimensions(
+              param.arrayDimensions,
+              enumMemberLookup,
+            );
+            if (resolved) {
+              param.arrayDimensions = resolved;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Resolve enum member names in a single symbol's array dimensions.
+   */
+  private resolveEnumDimensionsOnSymbol(
+    symbol: ISymbol,
+    enumMemberLookup: Map<string, string | null>,
+  ): void {
+    if (!symbol.isArray || !symbol.arrayDimensions) {
+      return;
+    }
+    const resolved = this.resolveEnumDimensions(
+      symbol.arrayDimensions,
+      enumMemberLookup,
+    );
+    if (resolved) {
+      symbol.arrayDimensions = resolved;
+    }
+  }
+
+  /**
+   * Resolve enum member names in an array of dimension strings.
+   * Returns the resolved array if any dimension was modified, null otherwise.
+   */
+  private resolveEnumDimensions(
+    dimensions: string[],
+    enumMemberLookup: Map<string, string | null>,
+  ): string[] | null {
+    let modified = false;
+    const resolved = dimensions.map((dim) => {
+      // Skip numeric dimensions
+      if (/^\d+$/.test(dim)) {
+        return dim;
+      }
+      // Skip already-prefixed dimensions (contains "_")
+      if (dim.includes("_")) {
+        return dim;
+      }
+      // Try to resolve from enum member lookup
+      const enumName = enumMemberLookup.get(dim);
+      if (enumName) {
+        modified = true;
+        return `${enumName}_${dim}`;
+      }
+      return dim;
+    });
+    return modified ? resolved : null;
+  }
 }
 
 export default SymbolTable;
