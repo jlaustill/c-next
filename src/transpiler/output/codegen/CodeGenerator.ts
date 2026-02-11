@@ -5,7 +5,7 @@
 
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
-import SymbolTable from "../../logic/symbols/SymbolTable";
+
 import ESymbolKind from "../../../utils/types/ESymbolKind";
 import CommentExtractor from "../../logic/analysis/CommentExtractor";
 import CommentFormatter from "./CommentFormatter";
@@ -679,7 +679,7 @@ export default class CodeGenerator implements IOrchestrator {
       currentScope: CodeGenState.currentScope,
       isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
       checkNeedsStructKeyword: (name) =>
-        CodeGenState.symbolTable?.checkNeedsStructKeyword(name) ?? false,
+        CodeGenState.symbolTable.checkNeedsStructKeyword(name),
       validateCrossScopeVisibility: (scope, member) =>
         ScopeResolver.validateCrossScopeVisibility(scope, member),
     });
@@ -2117,13 +2117,11 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Generate C code from a C-Next program
    * @param tree The parsed C-Next program
-   * @param symbolTable Optional symbol table for cross-language interop
    * @param tokenStream Optional token stream for comment preservation (ADR-043)
    * @param options Optional code generator options (e.g., debugMode)
    */
   generate(
     tree: Parser.ProgramContext,
-    symbolTable?: SymbolTable,
     tokenStream?: CommonTokenStream,
     options?: ICodeGeneratorOptions,
   ): string {
@@ -2144,9 +2142,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Initialize options and configuration (after reset)
     this.initializeGenerateOptions(options, tokenStream);
-
-    // Store symbol table for function lookup (after reset)
-    CodeGenState.symbolTable = symbolTable ?? null;
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
     if (!options?.symbolInfo) {

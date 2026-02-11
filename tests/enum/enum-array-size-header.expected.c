@@ -7,13 +7,8 @@
 
 #include <stdint.h>
 
-// Bug: Enum value used as array size missing prefix in header
-// cnext v0.1.65
-//
-// .cpp generates: extern const uint8_t DATA[EColor_COUNT];  (correct)
-// .h generates:   extern const uint8_t DATA[COUNT];         (wrong - missing prefix)
-//
-// Causes: error: 'COUNT' was not declared in this scope
+// Same-file enum value used as array size in header (fixed in v0.1.65)
+// Cross-file case tested in tests/enum-external/enum-array-dimension.test.cnx
 extern const uint8_t DATA[EColor_COUNT] = {10, 20, 30};
 
 /* Scope: Test */

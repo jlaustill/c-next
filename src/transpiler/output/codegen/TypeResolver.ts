@@ -73,7 +73,7 @@ class TypeResolver {
     if (CodeGenState.symbols?.knownBitmaps.has(typeName)) {
       return true;
     }
-    if (CodeGenState.symbolTable?.getStructFields(typeName)) {
+    if (CodeGenState.symbolTable.getStructFields(typeName)) {
       return true;
     }
     return false;
