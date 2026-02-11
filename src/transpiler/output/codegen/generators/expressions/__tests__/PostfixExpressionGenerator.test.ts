@@ -2764,6 +2764,21 @@ describe("PostfixExpressionGenerator", () => {
       ).toThrow(".char_count is only available on strings");
     });
 
+    it("throws error for unknown type char_count", () => {
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "char_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry: new Map() });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("type not found in registry");
+    });
+
     it("throws error for array with unknown dimensions for element_count", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
