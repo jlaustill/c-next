@@ -12,6 +12,12 @@ import IAssignmentContext from "../IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /**
  * Validate compound operators are not used with bit access.
@@ -32,14 +38,12 @@ function handleIntegerBit(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const name = ctx.identifiers[0];
-  const bitIndex = CodeGenState.generator!.generateExpression(
-    ctx.subscripts[0],
-  );
+  const bitIndex = gen().generateExpression(ctx.subscripts[0]);
   const typeInfo = CodeGenState.typeRegistry.get(name);
 
   // Check for float bit indexing
   if (typeInfo) {
-    const floatResult = CodeGenState.generator!.generateFloatBitWrite(
+    const floatResult = gen().generateFloatBitWrite(
       name,
       typeInfo,
       bitIndex,
@@ -68,13 +72,13 @@ function handleIntegerBitRange(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const name = ctx.identifiers[0];
-  const start = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
-  const width = CodeGenState.generator!.generateExpression(ctx.subscripts[1]);
+  const start = gen().generateExpression(ctx.subscripts[0]);
+  const width = gen().generateExpression(ctx.subscripts[1]);
   const typeInfo = CodeGenState.typeRegistry.get(name);
 
   // Check for float bit indexing
   if (typeInfo) {
-    const floatResult = CodeGenState.generator!.generateFloatBitWrite(
+    const floatResult = gen().generateFloatBitWrite(
       name,
       typeInfo,
       start,
@@ -107,14 +111,10 @@ function handleStructMemberBit(ctx: IAssignmentContext): string {
   // The last subscript is the bit index
   // This pattern is complex - the target needs to be built from the member chain
   // For now, delegate to the existing target generator and build the bit op
-  const target = CodeGenState.generator!.generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
 
   // Extract the bit index from the last subscript
-  const bitIndex = CodeGenState.generator!.generateExpression(
-    ctx.subscripts.at(-1)!,
-  );
+  const bitIndex = gen().generateExpression(ctx.subscripts.at(-1)!);
 
   // Limitation: Uses literal "1" which works for types up to 32 bits.
   // For 64-bit struct members, would need to track member type through chain.
@@ -142,11 +142,9 @@ function handleArrayElementBit(ctx: IAssignmentContext): string {
   // Array indices are subscripts[0..numDims-1], bit index is subscripts[numDims]
   const arrayIndices = ctx.subscripts
     .slice(0, numDims)
-    .map((e) => `[${CodeGenState.generator!.generateExpression(e)}]`)
+    .map((e) => `[${gen().generateExpression(e)}]`)
     .join("");
-  const bitIndex = CodeGenState.generator!.generateExpression(
-    ctx.subscripts[numDims],
-  );
+  const bitIndex = gen().generateExpression(ctx.subscripts[numDims]);
 
   const arrayElement = `${arrayName}${arrayIndices}`;
 
@@ -178,8 +176,7 @@ function handleStructChainBitRange(ctx: IAssignmentContext): string {
     } else {
       const exprs = op.expression();
       if (exprs.length > 0) {
-        baseTarget +=
-          "[" + CodeGenState.generator!.generateExpression(exprs[0]) + "]";
+        baseTarget += "[" + gen().generateExpression(exprs[0]) + "]";
       }
     }
   }
@@ -187,8 +184,8 @@ function handleStructChainBitRange(ctx: IAssignmentContext): string {
   // Get start and width from the last postfixOp (the bit range)
   const lastOp = ctx.postfixOps.at(-1)!;
   const bitRangeExprs = lastOp.expression();
-  const start = CodeGenState.generator!.generateExpression(bitRangeExprs[0]);
-  const width = CodeGenState.generator!.generateExpression(bitRangeExprs[1]);
+  const start = gen().generateExpression(bitRangeExprs[0]);
+  const width = gen().generateExpression(bitRangeExprs[1]);
 
   // Generate bit range write
   // Limitation: assumes 32-bit types. For 64-bit struct members,

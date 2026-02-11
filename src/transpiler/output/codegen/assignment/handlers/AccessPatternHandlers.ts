@@ -15,6 +15,12 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /**
  * Common handler for global access patterns (GLOBAL_MEMBER and GLOBAL_ARRAY).
@@ -26,15 +32,10 @@ function handleGlobalAccess(ctx: IAssignmentContext): string {
 
   // Validate cross-scope visibility if first id is a scope
   if (CodeGenState.isKnownScope(firstId) && ctx.identifiers.length >= 2) {
-    CodeGenState.generator!.validateCrossScopeVisibility(
-      firstId,
-      ctx.identifiers[1],
-    );
+    gen().validateCrossScopeVisibility(firstId, ctx.identifiers[1]);
   }
 
-  const target = CodeGenState.generator!.generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
@@ -48,9 +49,7 @@ function handleThisAccess(ctx: IAssignmentContext): string {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
 
-  const target = CodeGenState.generator!.generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
@@ -101,9 +100,7 @@ function handleGlobalRegisterBit(ctx: IAssignmentContext): string {
   }
 
   // Single bit
-  const bitIndex = CodeGenState.generator!.generateExpression(
-    ctx.subscripts[0],
-  );
+  const bitIndex = gen().generateExpression(ctx.subscripts[0]);
 
   if (isWriteOnly) {
     if (ctx.generatedValue === "false" || ctx.generatedValue === "0") {
@@ -129,9 +126,7 @@ function handleGlobalRegisterBit(ctx: IAssignmentContext): string {
  */
 function handleMemberChain(ctx: IAssignmentContext): string {
   // Check if this is bit access on a struct member
-  const bitAnalysis = CodeGenState.generator!.analyzeMemberChainForBitAccess(
-    ctx.targetCtx,
-  );
+  const bitAnalysis = gen().analyzeMemberChainForBitAccess(ctx.targetCtx);
 
   if (bitAnalysis.isBitAccess) {
     // Validate compound operators not supported for bit access
@@ -149,9 +144,7 @@ function handleMemberChain(ctx: IAssignmentContext): string {
   }
 
   // Normal member chain assignment
-  const target = CodeGenState.generator!.generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 

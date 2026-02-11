@@ -15,6 +15,12 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /**
  * Handle register single bit: GPIO7.DR_SET[LED_BIT] <- true
@@ -34,9 +40,7 @@ function handleRegisterBit(ctx: IAssignmentContext): string {
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const bitIndex = CodeGenState.generator!.generateExpression(
-    ctx.subscripts[0],
-  );
+  const bitIndex = gen().generateExpression(ctx.subscripts[0]);
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -130,9 +134,7 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const bitIndex = CodeGenState.generator!.generateExpression(
-    ctx.subscripts[0],
-  );
+  const bitIndex = gen().generateExpression(ctx.subscripts[0]);
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(

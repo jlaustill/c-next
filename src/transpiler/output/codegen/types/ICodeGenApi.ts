@@ -1,10 +1,10 @@
 /**
  * Interface for CodeGenerator methods accessible via CodeGenState.generator.
  *
- * This interface breaks the circular dependency between CodeGenState and CodeGenerator
- * by defining only the method signatures needed by handlers and helpers.
+ * Defines the subset of CodeGenerator methods needed by assignment handlers.
+ * Handlers cast CodeGenState.generator to this interface.
  */
-import type TTypeInfo from "../output/codegen/types/TTypeInfo";
+import type TTypeInfo from "./TTypeInfo";
 
 interface ICodeGenApi {
   /** Generate C expression from AST context */

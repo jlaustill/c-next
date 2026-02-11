@@ -5,7 +5,7 @@
 
 import { vi } from "vitest";
 import CodeGenState from "../../../../../state/CodeGenState";
-import type ICodeGenApi from "../../../../../state/ICodeGenApi";
+import type ICodeGenApi from "../../../types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../types/TTypeInfo";
 

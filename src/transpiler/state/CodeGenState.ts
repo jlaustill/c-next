@@ -25,7 +25,6 @@ import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
-import ICodeGenApi from "./ICodeGenApi";
 
 /**
  * Default target capabilities (safe fallback)
@@ -67,8 +66,11 @@ export default class CodeGenState {
   // GENERATOR REFERENCE (for handler access)
   // ===========================================================================
 
-  /** Reference to the CodeGenerator instance for handlers to call methods */
-  static generator: ICodeGenApi | null = null;
+  /**
+   * Reference to the CodeGenerator instance for handlers to call methods.
+   * Typed as unknown to avoid circular dependencies - handlers cast as needed.
+   */
+  static generator: unknown = null;
 
   // ===========================================================================
   // SYMBOL DATA (read-only after initialization)

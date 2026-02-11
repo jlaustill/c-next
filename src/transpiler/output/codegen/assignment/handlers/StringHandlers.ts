@@ -15,6 +15,12 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /**
  * Validate compound operators are not used with strings.
@@ -41,9 +47,7 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
 
   CodeGenState.needsString = true;
 
-  const target = CodeGenState.generator!.generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
 }
 
@@ -86,9 +90,7 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
 
   CodeGenState.needsString = true;
 
-  const target = CodeGenState.generator!.generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
 }
 
@@ -126,7 +128,7 @@ function handleStringArrayElement(ctx: IAssignmentContext): string {
 
   CodeGenState.needsString = true;
 
-  const index = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
+  const index = gen().generateExpression(ctx.subscripts[0]);
   return StringUtils.copyToArrayElement(
     name,
     index,
@@ -160,7 +162,7 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
 
   CodeGenState.needsString = true;
 
-  const index = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
+  const index = gen().generateExpression(ctx.subscripts[0]);
   return StringUtils.copyToStructFieldArrayElement(
     structName,
     fieldName,

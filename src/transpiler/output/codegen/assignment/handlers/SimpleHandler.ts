@@ -6,6 +6,12 @@
  */
 import IAssignmentContext from "../IAssignmentContext";
 import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /**
  * Handle simple variable assignment.
@@ -15,9 +21,7 @@ import CodeGenState from "../../../../state/CodeGenState";
  * counter +<- 1    =>  counter += 1;
  */
 function handleSimpleAssignment(ctx: IAssignmentContext): string {
-  const target = CodeGenState.generator!.generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = gen().generateAssignmentTarget(ctx.targetCtx);
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 

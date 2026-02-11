@@ -15,6 +15,12 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TypeValidator from "../../TypeValidator";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -128,7 +134,7 @@ function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const bitmapType = typeInfo!.bitmapTypeName!;
 
   const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
-  const index = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
+  const index = gen().generateExpression(ctx.subscripts[0]);
   const arrayElement = `${arrayName}[${index}]`;
 
   return generateBitmapWrite(arrayElement, fieldInfo, ctx.generatedValue);
@@ -202,7 +208,7 @@ function handleScopedRegisterMemberBitmapField(
     fieldName = ctx.identifiers[3];
 
     // Validate cross-scope access
-    CodeGenState.generator!.validateCrossScopeVisibility(scopeName, regName);
+    gen().validateCrossScopeVisibility(scopeName, regName);
   }
 
   const fullRegName = `${scopeName}_${regName}`;

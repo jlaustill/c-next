@@ -7,6 +7,12 @@
 import BitUtils from "../../../../../utils/BitUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import CodeGenState from "../../../../state/CodeGenState";
+import type ICodeGenApi from "../../types/ICodeGenApi";
+
+/** Get typed generator reference */
+function gen(): ICodeGenApi {
+  return CodeGenState.generator as ICodeGenApi;
+}
 
 /** Result from extracting bit range expressions */
 interface IBitRangeParams {
@@ -32,8 +38,8 @@ class RegisterUtils {
   static extractBitRangeParams(
     subscripts: readonly unknown[],
   ): IBitRangeParams {
-    const start = CodeGenState.generator!.generateExpression(subscripts[0]);
-    const width = CodeGenState.generator!.generateExpression(subscripts[1]);
+    const start = gen().generateExpression(subscripts[0]);
+    const width = gen().generateExpression(subscripts[1]);
     const mask = BitUtils.generateMask(width);
     return { start, width, mask };
   }
@@ -48,12 +54,8 @@ class RegisterUtils {
     subscripts: readonly unknown[],
     value: string,
   ): IOptimizationResult {
-    const startConst = CodeGenState.generator!.tryEvaluateConstant(
-      subscripts[0],
-    );
-    const widthConst = CodeGenState.generator!.tryEvaluateConstant(
-      subscripts[1],
-    );
+    const startConst = gen().tryEvaluateConstant(subscripts[0]);
+    const widthConst = gen().tryEvaluateConstant(subscripts[1]);
 
     if (
       startConst === undefined ||
