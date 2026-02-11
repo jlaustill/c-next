@@ -22,5 +22,3 @@ export interface IModeResult {
   expected?: string;
   actual?: string;
 }
-
-export default IModeResult;

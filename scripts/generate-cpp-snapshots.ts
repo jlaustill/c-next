@@ -17,16 +17,12 @@
  * 4. Writes .expected.cpp and .expected.hpp files (if headers are generated)
  */
 
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../src/transpiler/Transpiler";
+import FileScanner from "./utils/FileScanner";
 import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,26 +54,7 @@ function isCppOnlyTest(source: string): boolean {
   );
 }
 
-/**
- * Find all .test.cnx files recursively
- */
-function findCnxFiles(dir: string): string[] {
-  const files: string[] = [];
-  const entries = readdirSync(dir);
-
-  for (const entry of entries) {
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
-
-    if (stat.isDirectory()) {
-      files.push(...findCnxFiles(fullPath));
-    } else if (entry.endsWith(".test.cnx")) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
+// Use shared FileScanner.findTestFiles instead of local implementation
 
 /**
  * Generate C++ snapshots for a single test file
@@ -212,7 +189,9 @@ async function main(): Promise<void> {
 
   // Find all test files
   const stat = statSync(targetPath);
-  const cnxFiles = stat.isFile() ? [targetPath] : findCnxFiles(targetPath);
+  const cnxFiles = stat.isFile()
+    ? [targetPath]
+    : FileScanner.findTestFiles(targetPath);
 
   console.log(`Found ${cnxFiles.length} test files`);
   console.log();

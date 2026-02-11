@@ -29,7 +29,7 @@
  *   npm test -- tests/enum/my.test.cnx    # Run single test file
  */
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, fork, ChildProcess } from "node:child_process";
@@ -39,6 +39,7 @@ import ITestResult from "./types/ITestResult";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
+import FileScanner from "./utils/FileScanner";
 import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,26 +52,7 @@ interface IWorkerResult {
   result?: ITestResult;
 }
 
-/**
- * Find all .test.cnx files recursively in a directory
- */
-function findCnxFiles(dir: string): string[] {
-  const files: string[] = [];
-  const entries = readdirSync(dir);
-
-  for (const entry of entries) {
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
-
-    if (stat.isDirectory()) {
-      files.push(...findCnxFiles(fullPath));
-    } else if (entry.endsWith(".test.cnx")) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
+// Use shared FileScanner.findTestFiles instead of local implementation
 
 /**
  * Check if validation tools are available
@@ -526,7 +508,9 @@ async function main(): Promise<void> {
   }
 
   // Discover test files: single file or recursive directory scan
-  const cnxFiles = isSingleFile ? [testPath] : findCnxFiles(testPath);
+  const cnxFiles = isSingleFile
+    ? [testPath]
+    : FileScanner.findTestFiles(testPath);
 
   if (cnxFiles.length === 0) {
     console.log(chalk.yellow("No .test.cnx test files found"));
