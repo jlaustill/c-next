@@ -8,37 +8,7 @@ import specialHandlers from "../SpecialHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
-import type CodeGenerator from "../../../CodeGenerator";
-
-/**
- * Set up mock generator with needed methods.
- */
-function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.generator = {
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi
-      .fn()
-      .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    generateAtomicRMW: vi.fn().mockReturnValue("atomic_rmw_result"),
-    ...overrides,
-  } as unknown as CodeGenerator;
-}
-
-/**
- * Set up mock symbols.
- */
-function setupMockSymbols(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.symbols = {
-    structFields: new Map(),
-    structFieldDimensions: new Map(),
-    bitmapFields: new Map(),
-    registerMemberAccess: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberTypes: new Map(),
-    ...overrides,
-  } as any;
-}
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing.
@@ -71,8 +41,8 @@ function createMockContext(
 describe("SpecialHandlers", () => {
   beforeEach(() => {
     CodeGenState.reset();
-    setupMockGenerator();
-    setupMockSymbols();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
   });
 
   describe("handler registration", () => {
@@ -98,7 +68,7 @@ describe("SpecialHandlers", () => {
       ]) as any;
       const generateAtomicRMW = vi.fn().mockReturnValue("LDREX/STREX pattern");
       const generateAssignmentTarget = vi.fn().mockReturnValue("counter");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAtomicRMW,
         generateAssignmentTarget,
       });
@@ -120,7 +90,7 @@ describe("SpecialHandlers", () => {
       ]) as any;
       const generateAtomicRMW = vi.fn().mockReturnValue("atomic result");
       const generateAssignmentTarget = vi.fn().mockReturnValue("Motor_count");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAtomicRMW,
         generateAssignmentTarget,
       });
@@ -145,7 +115,7 @@ describe("SpecialHandlers", () => {
       ]) as any;
       const generateAtomicRMW = vi.fn().mockReturnValue("global atomic result");
       const generateAssignmentTarget = vi.fn().mockReturnValue("globalCounter");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAtomicRMW,
         generateAssignmentTarget,
       });
@@ -166,7 +136,7 @@ describe("SpecialHandlers", () => {
       ]) as any;
       const generateAtomicRMW = vi.fn().mockReturnValue("atomic sub");
       const generateAssignmentTarget = vi.fn().mockReturnValue("counter");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAtomicRMW,
         generateAssignmentTarget,
       });
@@ -197,7 +167,7 @@ describe("SpecialHandlers", () => {
         ["saturated", { baseType: "u8", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("saturated");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
@@ -216,7 +186,7 @@ describe("SpecialHandlers", () => {
         ["value", { baseType: "u16", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("value");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
@@ -237,7 +207,7 @@ describe("SpecialHandlers", () => {
         ["result", { baseType: "u32", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("result");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
@@ -258,7 +228,7 @@ describe("SpecialHandlers", () => {
         ["f", { baseType: "f32", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("f");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
@@ -277,7 +247,7 @@ describe("SpecialHandlers", () => {
         ["d", { baseType: "f64", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("d");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
@@ -296,7 +266,7 @@ describe("SpecialHandlers", () => {
         ["value", { baseType: "u32", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("value");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
@@ -318,7 +288,7 @@ describe("SpecialHandlers", () => {
         ["Motor_speed", { baseType: "u8", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("Motor_speed");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
@@ -339,7 +309,7 @@ describe("SpecialHandlers", () => {
         ["globalValue", { baseType: "i16", overflowBehavior: "clamp" }],
       ]) as any;
       const generateAssignmentTarget = vi.fn().mockReturnValue("globalValue");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
       });
       const ctx = createMockContext({

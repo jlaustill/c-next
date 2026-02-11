@@ -148,9 +148,15 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   const dimensions =
     CodeGenState.symbols!.structFieldDimensions.get(structType)?.get(fieldName);
 
+  if (!dimensions || dimensions.length === 0) {
+    throw new Error(
+      `Error: Cannot determine string capacity for struct field '${structType}.${fieldName}'`,
+    );
+  }
+
   // String arrays: dimensions are [array_size, string_capacity+1]
   // -1 because we added +1 for null terminator during symbol collection
-  const capacity = (dimensions![dimensions!.length - 1] as number) - 1;
+  const capacity = dimensions[dimensions.length - 1] - 1;
 
   CodeGenState.needsString = true;
 

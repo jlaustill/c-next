@@ -73,10 +73,10 @@ function handleGlobalRegisterBit(ctx: IAssignmentContext): string {
 
   // Handle bit range vs single bit
   if (ctx.subscripts.length === 2) {
-    // Bit range
-    const start = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
-    const width = CodeGenState.generator!.generateExpression(ctx.subscripts[1]);
-    const mask = BitUtils.generateMask(width);
+    // Bit range - use shared utility
+    const { start, width, mask } = RegisterUtils.extractBitRangeParams(
+      ctx.subscripts,
+    );
 
     if (isWriteOnly) {
       if (ctx.generatedValue === "0") {

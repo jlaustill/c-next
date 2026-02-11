@@ -8,37 +8,7 @@ import bitAccessHandlers from "../BitAccessHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
-import type CodeGenerator from "../../../CodeGenerator";
-
-/**
- * Set up mock generator with needed methods.
- */
-function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.generator = {
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi
-      .fn()
-      .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    generateFloatBitWrite: vi.fn().mockReturnValue(null),
-    ...overrides,
-  } as unknown as CodeGenerator;
-}
-
-/**
- * Set up mock symbols.
- */
-function setupMockSymbols(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.symbols = {
-    structFields: new Map(),
-    structFieldDimensions: new Map(),
-    bitmapFields: new Map(),
-    registerMemberAccess: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberTypes: new Map(),
-    ...overrides,
-  } as any;
-}
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing.
@@ -71,8 +41,8 @@ function createMockContext(
 describe("BitAccessHandlers", () => {
   beforeEach(() => {
     CodeGenState.reset();
-    setupMockGenerator();
-    setupMockSymbols();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
   });
 
   describe("handler registration", () => {
@@ -101,7 +71,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { baseType: "u32" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("3"),
       });
       const ctx = createMockContext();
@@ -117,7 +87,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { baseType: "u64" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("32"),
       });
       const ctx = createMockContext({
@@ -133,7 +103,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { baseType: "i64" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("bit"),
       });
       const ctx = createMockContext();
@@ -148,7 +118,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
@@ -164,7 +134,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
@@ -181,7 +151,7 @@ describe("BitAccessHandlers", () => {
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_bit_write_result");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateFloatBitWrite,
         generateExpression: vi.fn().mockReturnValue("3"),
       });
@@ -217,7 +187,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { baseType: "u32" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -239,7 +209,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["data", { baseType: "u16" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("4")
@@ -262,7 +232,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { baseType: "u64" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("32")
@@ -287,7 +257,7 @@ describe("BitAccessHandlers", () => {
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_range_write_result");
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateFloatBitWrite,
         generateExpression: vi
           .fn()
@@ -331,7 +301,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates struct member bit assignment", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("item.byte"),
         generateExpression: vi.fn().mockReturnValue("7"),
       });
@@ -369,7 +339,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -393,7 +363,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["matrix", { baseType: "u16", arrayDimensions: [10, 10] }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -419,7 +389,7 @@ describe("BitAccessHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["arr", { baseType: "u64", arrayDimensions: [5] }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -468,7 +438,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range write through struct chain", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0") // array index

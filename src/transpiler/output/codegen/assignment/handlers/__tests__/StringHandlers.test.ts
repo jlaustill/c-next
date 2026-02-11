@@ -3,37 +3,12 @@
  * Tests the string assignment handler functions.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import stringHandlers from "../StringHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
-import type CodeGenerator from "../../../CodeGenerator";
-
-/**
- * Set up mock generator with needed methods.
- */
-function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.generator = {
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi.fn().mockReturnValue("0"),
-    ...overrides,
-  } as unknown as CodeGenerator;
-}
-
-/**
- * Set up mock symbols.
- */
-function setupMockSymbols(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.symbols = {
-    structFields: new Map(),
-    structFieldDimensions: new Map(),
-    registerMemberAccess: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    ...overrides,
-  } as any;
-}
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing
@@ -56,8 +31,8 @@ function createMockContext(
 describe("StringHandlers", () => {
   beforeEach(() => {
     CodeGenState.reset();
-    setupMockGenerator();
-    setupMockSymbols();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
   });
 
   describe("handler registration", () => {
@@ -86,9 +61,9 @@ describe("StringHandlers", () => {
 
   describe("handleSimpleStringAssignment (STRING_SIMPLE)", () => {
     it("generates strncpy with null terminator", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["testVar", { stringCapacity: 32, baseType: "string" }],
-      ]) as any;
+      ]);
       const ctx = createMockContext();
 
       const handler = stringHandlers.find(
@@ -103,9 +78,9 @@ describe("StringHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["testVar", { stringCapacity: 32, baseType: "string" }],
-      ]) as any;
+      ]);
       const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
 
       const handler = stringHandlers.find(
@@ -121,9 +96,9 @@ describe("StringHandlers", () => {
   describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
     it("generates strncpy for scoped member", () => {
       CodeGenState.currentScope = "TestScope";
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["TestScope_memberName", { stringCapacity: 64, baseType: "string" }],
-      ]) as any;
+      ]);
       const ctx = createMockContext({ identifiers: ["memberName"] });
 
       const handler = stringHandlers.find(
@@ -152,10 +127,10 @@ describe("StringHandlers", () => {
 
   describe("handleStringStructField (STRING_STRUCT_FIELD)", () => {
     it("generates strncpy for struct field", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["person", { baseType: "Person", stringCapacity: undefined }],
-      ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["person", { baseType: "Person" }],
+      ]);
+      HandlerTestUtils.setupMockSymbols({
         structFields: new Map([["Person", new Map([["name", "string<50>"]])]]),
       });
       const ctx = createMockContext({ identifiers: ["person", "name"] });
@@ -174,9 +149,9 @@ describe("StringHandlers", () => {
 
   describe("handleStringArrayElement (STRING_ARRAY_ELEMENT)", () => {
     it("generates strncpy for array element", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["names", { stringCapacity: 20, baseType: "string" }],
-      ]) as any;
+      ]);
       const ctx = createMockContext({
         identifiers: ["names"],
         subscripts: [{} as never],
@@ -196,10 +171,10 @@ describe("StringHandlers", () => {
 
   describe("handleStringStructArrayElement (STRING_STRUCT_ARRAY_ELEMENT)", () => {
     it("generates strncpy for struct field array element", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["config", { baseType: "Config", stringCapacity: undefined }],
-      ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["config", { baseType: "Config" }],
+      ]);
+      HandlerTestUtils.setupMockSymbols({
         structFieldDimensions: new Map([
           ["Config", new Map([["items", [10, 33]]])], // 10 items, capacity 32+1
         ]),

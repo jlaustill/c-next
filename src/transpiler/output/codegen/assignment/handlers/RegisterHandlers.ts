@@ -11,47 +11,10 @@
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import CodeGenState from "../../../../state/CodeGenState";
-
-/**
- * Try to generate MMIO-optimized memory access for byte-aligned writes.
- * Returns null if optimization not applicable.
- */
-function tryGenerateMMIO(
-  fullName: string,
-  regName: string,
-  startExpr: number | undefined,
-  widthExpr: number | undefined,
-  value: string,
-): string | null {
-  if (
-    startExpr === undefined ||
-    widthExpr === undefined ||
-    startExpr % 8 !== 0 ||
-    !TypeCheckUtils.isStandardWidth(widthExpr)
-  ) {
-    return null;
-  }
-
-  const baseAddr = CodeGenState.symbols!.registerBaseAddresses.get(regName);
-  const memberOffset =
-    CodeGenState.symbols!.registerMemberOffsets.get(fullName);
-
-  if (baseAddr === undefined || memberOffset === undefined) {
-    return null;
-  }
-
-  const byteOffset = startExpr / 8;
-  const accessType = `uint${widthExpr}_t`;
-  const totalOffset =
-    byteOffset === 0 ? memberOffset : `${memberOffset} + ${byteOffset}`;
-
-  return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${value});`;
-}
 
 /**
  * Handle register single bit: GPIO7.DR_SET[LED_BIT] <- true
@@ -106,9 +69,9 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const start = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
-  const width = CodeGenState.generator!.generateExpression(ctx.subscripts[1]);
-  const mask = BitUtils.generateMask(width);
+  const { start, width, mask } = RegisterUtils.extractBitRangeParams(
+    ctx.subscripts,
+  );
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -119,21 +82,14 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
     );
 
     // Try MMIO optimization
-    const startConst = CodeGenState.generator!.tryEvaluateConstant(
-      ctx.subscripts[0],
-    );
-    const widthConst = CodeGenState.generator!.tryEvaluateConstant(
-      ctx.subscripts[1],
-    );
-    const mmio = tryGenerateMMIO(
+    const mmio = RegisterUtils.tryGenerateMMIO(
       fullName,
       regName,
-      startConst,
-      widthConst,
+      ctx.subscripts,
       ctx.generatedValue,
     );
-    if (mmio) {
-      return mmio;
+    if (mmio.success) {
+      return mmio.statement!;
     }
 
     // Fallback: write shifted value
@@ -213,9 +169,9 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const start = CodeGenState.generator!.generateExpression(ctx.subscripts[0]);
-  const width = CodeGenState.generator!.generateExpression(ctx.subscripts[1]);
-  const mask = `((1U << ${width}) - 1)`;
+  const { start, width, mask } = RegisterUtils.extractBitRangeParams(
+    ctx.subscripts,
+  );
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -226,31 +182,14 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
     );
 
     // Try MMIO optimization
-    const startConst = CodeGenState.generator!.tryEvaluateConstant(
-      ctx.subscripts[0],
+    const mmio = RegisterUtils.tryGenerateMMIO(
+      regName,
+      scopedRegName,
+      ctx.subscripts,
+      ctx.generatedValue,
     );
-    const widthConst = CodeGenState.generator!.tryEvaluateConstant(
-      ctx.subscripts[1],
-    );
-
-    if (
-      startConst !== undefined &&
-      widthConst !== undefined &&
-      startConst % 8 === 0 &&
-      TypeCheckUtils.isStandardWidth(widthConst)
-    ) {
-      const baseAddr =
-        CodeGenState.symbols!.registerBaseAddresses.get(scopedRegName);
-      const memberOffset =
-        CodeGenState.symbols!.registerMemberOffsets.get(regName);
-
-      if (baseAddr !== undefined && memberOffset !== undefined) {
-        const byteOffset = startConst / 8;
-        const accessType = `uint${widthConst}_t`;
-        const totalOffset =
-          byteOffset === 0 ? memberOffset : `${memberOffset} + ${byteOffset}`;
-        return `*((volatile ${accessType}*)(${baseAddr} + ${totalOffset})) = (${ctx.generatedValue});`;
-      }
+    if (mmio.success) {
+      return mmio.statement!;
     }
 
     return RegisterUtils.generateWriteOnlyBitRange(

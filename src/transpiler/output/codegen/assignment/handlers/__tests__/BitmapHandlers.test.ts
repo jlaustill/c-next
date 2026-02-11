@@ -16,41 +16,8 @@ import bitmapHandlers from "../BitmapHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
-import type CodeGenerator from "../../../CodeGenerator";
 import TypeValidator from "../../../TypeValidator";
-
-/**
- * Set up mock generator with needed methods.
- */
-function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.generator = {
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi
-      .fn()
-      .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    validateBitmapFieldLiteral: vi.fn(),
-    validateCrossScopeVisibility: vi.fn(),
-    getMemberTypeInfo: vi.fn().mockReturnValue(null),
-    ...overrides,
-  } as unknown as CodeGenerator;
-}
-
-/**
- * Set up mock symbols.
- */
-function setupMockSymbols(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.symbols = {
-    structFields: new Map(),
-    structFieldDimensions: new Map(),
-    structFieldArrays: new Map(),
-    bitmapFields: new Map(),
-    registerMemberAccess: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberTypes: new Map(),
-    ...overrides,
-  } as any;
-}
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing.
@@ -84,8 +51,8 @@ function createMockContext(
 describe("BitmapHandlers", () => {
   beforeEach(() => {
     CodeGenState.reset();
-    setupMockGenerator();
-    setupMockSymbols();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
   });
 
   describe("handler registration", () => {
@@ -117,7 +84,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -135,7 +102,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 3, width: 1 }]])],
         ]),
@@ -153,7 +120,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([["StatusFlags", new Map()]]),
       });
       const ctx = createMockContext({
@@ -169,7 +136,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -188,7 +155,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -216,7 +183,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Mode", { offset: 4, width: 3 }]])],
         ]),
@@ -238,7 +205,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["config", { bitmapTypeName: "Config", baseType: "u8" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["Config", new Map([["Priority", { offset: 0, width: 2 }]])],
         ]),
@@ -264,10 +231,10 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["flagsArray", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("i"),
       });
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
         ]),
@@ -294,7 +261,7 @@ describe("BitmapHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["device", { baseType: "Device" }],
       ]) as any;
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 2, width: 1 }]])],
         ]),
@@ -321,7 +288,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates register member bitmap field assignment", () => {
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -346,7 +313,7 @@ describe("BitmapHandlers", () => {
 
     it("generates this-prefixed scoped register bitmap field", () => {
       CodeGenState.currentScope = "Motor";
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -366,10 +333,10 @@ describe("BitmapHandlers", () => {
 
     it("generates scope-prefixed register bitmap field", () => {
       const validateCrossScopeVisibility = vi.fn();
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         validateCrossScopeVisibility,
       });
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -404,7 +371,7 @@ describe("BitmapHandlers", () => {
 
     it("generates write-only pattern for wo register", () => {
       CodeGenState.currentScope = "Motor";
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
         ]),
@@ -425,7 +392,7 @@ describe("BitmapHandlers", () => {
 
     it("generates write-only pattern for w1s register", () => {
       CodeGenState.currentScope = "Motor";
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
         ]),
@@ -445,7 +412,7 @@ describe("BitmapHandlers", () => {
 
     it("generates write-only pattern for w1c register", () => {
       CodeGenState.currentScope = "Motor";
-      setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
         ]),

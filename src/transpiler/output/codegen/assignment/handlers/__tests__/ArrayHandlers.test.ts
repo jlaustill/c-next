@@ -20,38 +20,7 @@ import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
-import type CodeGenerator from "../../../CodeGenerator";
-
-/**
- * Set up mock generator with needed methods.
- */
-function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.generator = {
-    generateAssignmentTarget: vi.fn().mockReturnValue("target"),
-    generateExpression: vi
-      .fn()
-      .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
-    checkArrayBounds: vi.fn(),
-    tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
-    ...overrides,
-  } as unknown as CodeGenerator;
-}
-
-/**
- * Set up mock symbols.
- */
-function setupMockSymbols(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.symbols = {
-    structFields: new Map(),
-    structFieldDimensions: new Map(),
-    bitmapFields: new Map(),
-    registerMemberAccess: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberTypes: new Map(),
-    ...overrides,
-  } as any;
-}
+import HandlerTestUtils from "./handlerTestUtils";
 
 /**
  * Create mock context for testing.
@@ -84,8 +53,8 @@ function createMockContext(
 describe("ArrayHandlers", () => {
   beforeEach(() => {
     CodeGenState.reset();
-    setupMockGenerator();
-    setupMockSymbols();
+    HandlerTestUtils.setupMockGenerator();
+    HandlerTestUtils.setupMockSymbols();
   });
 
   describe("handler registration", () => {
@@ -109,7 +78,7 @@ describe("ArrayHandlers", () => {
       )?.[1];
 
     it("generates simple array element assignment", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("i"),
       });
       const ctx = createMockContext();
@@ -120,7 +89,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("handles compound assignment", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
@@ -135,7 +104,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("uses correct identifier", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("idx"),
       });
       const ctx = createMockContext({
@@ -155,7 +124,7 @@ describe("ArrayHandlers", () => {
       )?.[1];
 
     it("generates multi-dimensional array access", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -176,7 +145,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("handles 3D array access", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("x")
@@ -203,7 +172,7 @@ describe("ArrayHandlers", () => {
         ["matrix", { arrayDimensions: [10, 10], baseType: "i32" }],
       ]) as any;
       mockCheckArrayBounds.mockClear();
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("5")
@@ -229,7 +198,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("handles compound assignment", () => {
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -259,7 +228,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -292,7 +261,7 @@ describe("ArrayHandlers", () => {
           },
         ],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(5)
@@ -316,7 +285,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -357,7 +326,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
       });
       const ctx = createMockContext({
@@ -376,7 +345,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -398,7 +367,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [50], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(40)
@@ -421,7 +390,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(-1)
@@ -444,7 +413,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -467,7 +436,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -490,7 +459,7 @@ describe("ArrayHandlers", () => {
       CodeGenState.typeRegistry = new Map([
         ["unknown", { baseType: "u8" }],
       ]) as any;
-      setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
