@@ -14,6 +14,11 @@
  *   2. CodeGenerator sets CodeGenState.generator = this
  *   3. All generators/helpers read from CodeGenState directly
  *   4. State persists for the duration of one generate() call
+ *
+ * SymbolTable ownership:
+ *   CodeGenState owns the single SymbolTable instance. It persists across
+ *   reset() calls (which are per-file). The Transpiler clears it via
+ *   CodeGenState.symbolTable.clear() at the start of each run().
  */
 
 import SymbolTable from "../logic/symbols/SymbolTable";
@@ -79,8 +84,11 @@ export default class CodeGenState {
   /** ADR-055: Pre-collected symbol info from CNextResolver + TSymbolInfoAdapter */
   static symbols: ICodeGenSymbols | null = null;
 
-  /** External symbol table for cross-language interop (C headers) */
-  static symbolTable: SymbolTable | null = null;
+  /** External symbol table for cross-language interop (C headers).
+   * Owned by CodeGenState; persists across per-file reset() calls.
+   * Cleared via symbolTable.clear() at the start of each Transpiler run.
+   */
+  static symbolTable: SymbolTable = new SymbolTable();
 
   // ===========================================================================
   // TYPE TRACKING
@@ -292,7 +300,8 @@ export default class CodeGenState {
 
     // Symbol data
     this.symbols = null;
-    this.symbolTable = null;
+    // Note: symbolTable is NOT reset here — it persists across per-file generates.
+    // It is cleared via symbolTable.clear() at the start of each Transpiler run.
 
     // Type tracking
     this.typeRegistry = new Map();
@@ -401,7 +410,7 @@ export default class CodeGenState {
   static isKnownStruct(name: string): boolean {
     if (this.symbols?.knownStructs.has(name)) return true;
     if (this.symbols?.knownBitmaps.has(name)) return true;
-    if (this.symbolTable?.getStructFields?.(name)) return true;
+    if (this.symbolTable.getStructFields(name)) return true;
     return false;
   }
 
@@ -566,17 +575,15 @@ export default class CodeGenState {
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | null {
     // First check SymbolTable (C header structs)
-    if (this.symbolTable) {
-      const fieldInfo = this.symbolTable.getStructFieldInfo(
-        structType,
-        fieldName,
-      );
-      if (fieldInfo) {
-        return {
-          type: fieldInfo.type,
-          dimensions: fieldInfo.arrayDimensions,
-        };
-      }
+    const fieldInfo = this.symbolTable.getStructFieldInfo(
+      structType,
+      fieldName,
+    );
+    if (fieldInfo) {
+      return {
+        type: fieldInfo.type,
+        dimensions: fieldInfo.arrayDimensions,
+      };
     }
 
     // Fall back to local C-Next struct fields

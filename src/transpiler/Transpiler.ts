@@ -65,7 +65,6 @@ import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
  */
 class Transpiler {
   private readonly config: Required<ITranspilerConfig>;
-  private readonly symbolTable: SymbolTable;
   private readonly preprocessor: Preprocessor;
   private readonly codeGenerator: CodeGenerator;
   private readonly headerGenerator: HeaderGenerator;
@@ -108,7 +107,6 @@ class Transpiler {
     // Issue #211: Initialize cppDetected from config (--cpp flag sets this)
     this.cppDetected = this.config.cppRequired;
 
-    this.symbolTable = new SymbolTable();
     this.preprocessor = new Preprocessor();
     this.codeGenerator = new CodeGenerator();
     this.headerGenerator = new HeaderGenerator();
@@ -269,7 +267,10 @@ class Transpiler {
     }
 
     // Stage 3b: Resolve external const array dimensions
-    this.symbolTable.resolveExternalArrayDimensions();
+    CodeGenState.symbolTable.resolveExternalArrayDimensions();
+
+    // Stage 3c: Resolve cross-file enum member names in array dimensions
+    CodeGenState.symbolTable.resolveExternalEnumArrayDimensions();
 
     // Stage 4: Check for symbol conflicts (skipped in standalone mode)
     if (!input.skipConflictCheck && !this._checkSymbolConflicts(result)) {
@@ -337,8 +338,11 @@ class Transpiler {
     try {
       // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter
       const tSymbols = CNextResolver.resolve(tree, file.path);
-      const iSymbols = TSymbolAdapter.toISymbols(tSymbols, this.symbolTable);
-      this.symbolTable.addSymbols(iSymbols);
+      const iSymbols = TSymbolAdapter.toISymbols(
+        tSymbols,
+        CodeGenState.symbolTable,
+      );
+      CodeGenState.symbolTable.addSymbols(iSymbols);
 
       // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
       const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
@@ -396,11 +400,13 @@ class Transpiler {
 
       // Run analyzers
       const externalStructFields =
-        AnalyzerContextBuilder.buildExternalStructFields(this.symbolTable);
+        AnalyzerContextBuilder.buildExternalStructFields(
+          CodeGenState.symbolTable,
+        );
 
       const analyzerErrors = runAnalyzers(tree, tokenStream, {
         externalStructFields,
-        symbolTable: this.symbolTable,
+        symbolTable: CodeGenState.symbolTable,
       });
       if (analyzerErrors.length > 0) {
         return this.buildErrorResult(
@@ -430,18 +436,13 @@ class Transpiler {
       this._setupCrossFileModifications();
 
       // Generate code
-      const code = this.codeGenerator.generate(
-        tree,
-        this.symbolTable,
-        tokenStream,
-        {
-          debugMode: this.config.debugMode,
-          target: this.config.target,
-          sourcePath,
-          cppMode: this.cppDetected,
-          symbolInfo,
-        },
-      );
+      const code = this.codeGenerator.generate(tree, tokenStream, {
+        debugMode: this.config.debugMode,
+        target: this.config.target,
+        sourcePath,
+        cppMode: this.cppDetected,
+        symbolInfo,
+      });
 
       // Collect user includes
       const userIncludes = IncludeExtractor.collectUserIncludes(tree);
@@ -461,7 +462,7 @@ class Transpiler {
       }
 
       // Update symbol parameters with auto-const info
-      const symbols = this.symbolTable.getSymbolsByFile(sourcePath);
+      const symbols = CodeGenState.symbolTable.getSymbolsByFile(sourcePath);
       const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
       const knownEnums =
         this.state.getSymbolInfo(sourcePath)?.knownEnums ?? new Set<string>();
@@ -471,7 +472,6 @@ class Transpiler {
       const headerCode = this.generateHeaderContent(
         symbols,
         sourcePath,
-        this.symbolTable,
         this.cppDetected,
         userIncludes,
         passByValueCopy,
@@ -631,7 +631,7 @@ class Transpiler {
     // Issue #587: Reset accumulated state for new run
     this.state.reset();
     // Issue #634: Reset symbol table for new run
-    this.symbolTable.clear();
+    CodeGenState.symbolTable.clear();
   }
 
   /**
@@ -668,7 +668,7 @@ class Transpiler {
    * @returns true if no blocking conflicts, false otherwise
    */
   private _checkSymbolConflicts(result: ITranspilerResult): boolean {
-    const conflicts = this.symbolTable.getConflicts();
+    const conflicts = CodeGenState.symbolTable.getConflicts();
     for (const conflict of conflicts) {
       result.conflicts.push(conflict.message);
       if (conflict.severity === "error") {
@@ -751,7 +751,7 @@ class Transpiler {
     if (warning) {
       result.warnings.push(warning);
     }
-    result.symbolsCollected = this.symbolTable.size;
+    result.symbolsCollected = CodeGenState.symbolTable.size;
     result.warnings = [...result.warnings, ...this.warnings];
 
     if (this.cacheManager) {
@@ -1040,13 +1040,16 @@ class Transpiler {
 
     // Debug: Show symbols found
     if (this.config.debugMode) {
-      const symbols = this.symbolTable.getSymbolsByFile(file.path);
+      const symbols = CodeGenState.symbolTable.getSymbolsByFile(file.path);
       console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
     // Issue #590: Cache the results using simplified API
     if (this.cacheManager) {
-      this.cacheManager.setSymbolsFromTable(file.path, this.symbolTable);
+      this.cacheManager.setSymbolsFromTable(
+        file.path,
+        CodeGenState.symbolTable,
+      );
     }
   }
 
@@ -1065,10 +1068,12 @@ class Transpiler {
     }
 
     // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
-    this.symbolTable.addSymbols(cached.symbols);
-    this.symbolTable.restoreStructFields(cached.structFields);
-    this.symbolTable.restoreNeedsStructKeyword(cached.needsStructKeyword);
-    this.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
+    CodeGenState.symbolTable.addSymbols(cached.symbols);
+    CodeGenState.symbolTable.restoreStructFields(cached.structFields);
+    CodeGenState.symbolTable.restoreNeedsStructKeyword(
+      cached.needsStructKeyword,
+    );
+    CodeGenState.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
 
     // Issue #211: Still check for C++ syntax even on cache hit
     this.detectCppFromFileType(file);
@@ -1140,10 +1145,13 @@ class Transpiler {
   private parsePureCHeader(content: string, filePath: string): void {
     const { tree } = HeaderParser.parseC(content);
     if (tree) {
-      const collector = new CSymbolCollector(filePath, this.symbolTable);
+      const collector = new CSymbolCollector(
+        filePath,
+        CodeGenState.symbolTable,
+      );
       const symbols = collector.collect(tree);
       if (symbols.length > 0) {
-        this.symbolTable.addSymbols(symbols);
+        CodeGenState.symbolTable.addSymbols(symbols);
       }
     }
   }
@@ -1154,9 +1162,12 @@ class Transpiler {
   private parseCppHeader(content: string, filePath: string): void {
     const { tree } = HeaderParser.parseCpp(content);
     if (tree) {
-      const collector = new CppSymbolCollector(filePath, this.symbolTable);
+      const collector = new CppSymbolCollector(
+        filePath,
+        CodeGenState.symbolTable,
+      );
       const symbols = collector.collect(tree);
-      this.symbolTable.addSymbols(symbols);
+      CodeGenState.symbolTable.addSymbols(symbols);
     }
   }
 
@@ -1168,7 +1179,7 @@ class Transpiler {
    * Stage 6: Generate header file for a C-Next file
    */
   private generateHeader(file: IDiscoveredFile): string | null {
-    const symbols = this.symbolTable.getSymbolsByFile(file.path);
+    const symbols = CodeGenState.symbolTable.getSymbolsByFile(file.path);
     const exportedSymbols = symbols.filter((s) => s.isExported);
 
     if (exportedSymbols.length === 0) {
@@ -1199,12 +1210,12 @@ class Transpiler {
     // Issue #497: Build mapping from external types to their C header includes
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this.state.getAllHeaderDirectives(),
-      this.symbolTable,
+      CodeGenState.symbolTable,
     );
 
     // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
     const typeInputWithSymbolTable = typeInput
-      ? { ...typeInput, symbolTable: this.symbolTable }
+      ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
       : undefined;
 
     const headerContent = this.headerGenerator.generate(
@@ -1274,7 +1285,6 @@ class Transpiler {
   private generateHeaderContent(
     symbols: ISymbol[],
     sourcePath: string,
-    symbolTable: SymbolTable,
     cppMode: boolean,
     userIncludes: string[],
     passByValueParams: Map<string, Set<string>>,
@@ -1318,12 +1328,12 @@ class Transpiler {
     // Issue #497: Build mapping from external types to their C header includes
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this.state.getAllHeaderDirectives(),
-      symbolTable,
+      CodeGenState.symbolTable,
     );
 
     // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
     const typeInputWithSymbolTable = typeInput
-      ? { ...typeInput, symbolTable }
+      ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
       : undefined;
 
     // Issue #478: Pass all known enums for cross-file type handling
@@ -1429,7 +1439,7 @@ class Transpiler {
    * Get the symbol table (for testing/inspection)
    */
   getSymbolTable(): SymbolTable {
-    return this.symbolTable;
+    return CodeGenState.symbolTable;
   }
 
   /**

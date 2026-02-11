@@ -39,7 +39,8 @@ function setupGenerator(
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
   const generator = new CodeGenerator();
-  const code = generator.generate(tree, symbolTable, tokenStream, {
+  CodeGenState.symbolTable = symbolTable;
+  const code = generator.generate(tree, tokenStream, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
     cppMode: options.cppMode ?? false,

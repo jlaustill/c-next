@@ -11,6 +11,7 @@ import CNextResolver from "../../../logic/symbols/cnext/index";
 import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import TParameterInfo from "../types/TParameterInfo";
+import CodeGenState from "../CodeGenState";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
@@ -30,8 +31,10 @@ function setupGenerator(source: string): {
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
   const generator = new CodeGenerator();
+  // Set symbolTable in CodeGenState before generate (CodeGenState owns SymbolTable)
+  CodeGenState.symbolTable = symbolTable;
   // Generate to initialize the generator state
-  generator.generate(tree, symbolTable, tokenStream, {
+  generator.generate(tree, tokenStream, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
   });
@@ -53,11 +56,10 @@ describe("CodeGenerator", () => {
       const source = "";
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -71,11 +73,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -87,10 +88,9 @@ describe("CodeGenerator", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           sourcePath: "test.cnx",
         } as never),
       ).toThrow("symbolInfo is required");
@@ -105,11 +105,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         debugMode: true,
@@ -125,11 +124,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: true,
@@ -146,11 +144,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         includeDirs: ["/usr/include"],
@@ -939,11 +936,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -972,11 +968,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -998,11 +993,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1024,11 +1018,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1044,11 +1037,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1070,11 +1062,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1098,11 +1089,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1131,11 +1121,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1155,11 +1144,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1238,11 +1226,10 @@ describe("CodeGenerator", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      generator.generate(tree, symbolTable, tokenStream, {
+      generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1255,11 +1242,10 @@ describe("CodeGenerator", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      generator.generate(tree, symbolTable, tokenStream, {
+      generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         target: "teensy41",
@@ -1274,12 +1260,11 @@ describe("CodeGenerator", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // Should not throw, just warn and use default
-      generator.generate(tree, symbolTable, tokenStream, {
+      generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         target: "unknown-target",
@@ -1302,11 +1287,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1328,11 +1312,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1352,11 +1335,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1375,11 +1357,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1399,11 +1380,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1426,11 +1406,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1450,11 +1429,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1471,11 +1449,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1490,11 +1467,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1510,11 +1486,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1530,11 +1505,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1553,11 +1527,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1572,11 +1545,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1597,11 +1569,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1623,11 +1594,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1651,11 +1621,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1679,11 +1648,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1705,11 +1673,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1729,11 +1696,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1752,11 +1718,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1778,11 +1743,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1799,11 +1763,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1824,11 +1787,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1845,11 +1807,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1868,11 +1829,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1894,11 +1854,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1920,11 +1879,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1943,11 +1901,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1965,11 +1922,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1987,11 +1943,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2007,12 +1962,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -2030,11 +1984,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
         sourceRelativePath: "myfile.cnx",
@@ -2054,12 +2007,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -2079,11 +2031,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2180,11 +2131,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2204,11 +2154,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2231,11 +2180,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2257,11 +2205,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2286,11 +2233,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2313,11 +2259,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2337,11 +2282,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2366,11 +2310,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2392,11 +2335,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2416,11 +2358,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2438,11 +2379,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2461,11 +2401,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2483,11 +2422,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2502,11 +2440,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2523,11 +2460,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2543,11 +2479,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2570,11 +2505,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2594,11 +2528,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2619,11 +2552,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2642,11 +2574,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2667,11 +2598,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2692,11 +2622,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2717,11 +2646,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2740,11 +2668,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2764,11 +2691,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2786,11 +2712,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2808,11 +2733,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2834,11 +2758,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2857,11 +2780,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2882,11 +2804,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2907,11 +2828,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2932,11 +2852,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2956,11 +2875,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2984,11 +2902,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3008,11 +2925,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3030,11 +2946,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3053,11 +2968,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3078,12 +2992,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -3101,11 +3014,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3135,11 +3047,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3158,11 +3069,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3186,11 +3096,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3212,11 +3121,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3237,12 +3145,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -3256,11 +3163,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3280,11 +3186,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3306,11 +3211,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3331,11 +3235,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3355,11 +3258,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3381,11 +3283,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3411,11 +3312,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3432,11 +3332,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3455,11 +3354,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3480,11 +3378,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3504,11 +3401,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3529,11 +3425,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3556,11 +3451,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3585,11 +3479,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3614,11 +3507,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3639,11 +3531,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3662,11 +3553,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3701,12 +3591,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // Should not throw
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3723,11 +3612,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3743,11 +3631,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3767,11 +3654,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3789,11 +3675,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3812,11 +3697,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3836,11 +3720,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3857,11 +3740,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3876,11 +3758,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3897,11 +3778,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3918,11 +3798,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3937,11 +3816,10 @@ describe("CodeGenerator", () => {
       const source = `bool flag;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3953,11 +3831,10 @@ describe("CodeGenerator", () => {
       const source = `f32 value;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3969,11 +3846,10 @@ describe("CodeGenerator", () => {
       const source = `f64 value;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3994,11 +3870,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4020,11 +3895,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4043,11 +3917,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4063,11 +3936,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4084,11 +3956,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4105,12 +3976,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -4135,11 +4005,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4165,11 +4034,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4188,11 +4056,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4209,11 +4076,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4232,11 +4098,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4258,11 +4123,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4280,11 +4144,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4299,11 +4162,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4318,11 +4180,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4340,11 +4201,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4360,11 +4220,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4380,11 +4239,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4399,11 +4257,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4418,11 +4275,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4440,11 +4296,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4460,11 +4315,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4482,11 +4336,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4502,11 +4355,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4522,11 +4374,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4543,11 +4394,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4568,7 +4418,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, undefined, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -4586,7 +4436,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, undefined, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -4600,11 +4450,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4621,11 +4470,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4645,11 +4493,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4670,11 +4517,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4694,11 +4540,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4718,11 +4563,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4736,11 +4580,10 @@ describe("CodeGenerator", () => {
       const source = `string<32> name <- "hello";`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4755,11 +4598,10 @@ describe("CodeGenerator", () => {
       const source = `volatile u32 hwReg;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4776,11 +4618,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4801,11 +4642,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4821,11 +4661,10 @@ describe("CodeGenerator", () => {
       const source = `atomic u32 counter <- 0;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4842,11 +4681,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4861,11 +4699,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4882,11 +4719,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4901,11 +4737,10 @@ describe("CodeGenerator", () => {
       const source = `u32 mask <- 0xFF00;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4917,11 +4752,10 @@ describe("CodeGenerator", () => {
       const source = `u8 pattern <- 0b10101010;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4936,11 +4770,10 @@ describe("CodeGenerator", () => {
       const source = `u8 ch <- 'A';`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4959,11 +4792,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4985,11 +4817,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5007,11 +4838,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5029,11 +4859,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5052,11 +4881,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5073,11 +4901,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5094,11 +4921,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5115,11 +4941,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5136,11 +4961,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5157,11 +4981,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5178,11 +5001,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5199,11 +5021,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5222,11 +5043,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5245,11 +5065,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5268,11 +5087,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5292,11 +5110,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5316,11 +5133,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5341,11 +5157,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5360,11 +5175,10 @@ describe("CodeGenerator", () => {
       const source = `string<20> msg <- "Hello World";`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5383,11 +5197,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5407,11 +5220,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5428,11 +5240,10 @@ describe("CodeGenerator", () => {
       const source = `i32 val <- -42;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5446,11 +5257,10 @@ describe("CodeGenerator", () => {
       const source = `f32 val <- 3.14;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5462,11 +5272,10 @@ describe("CodeGenerator", () => {
       const source = `f64 val <- 2.718281828;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5480,11 +5289,10 @@ describe("CodeGenerator", () => {
       const source = `bool flag <- true;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5496,11 +5304,10 @@ describe("CodeGenerator", () => {
       const source = `bool flag <- false;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5518,11 +5325,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5539,11 +5345,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5560,11 +5365,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5582,12 +5386,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -5605,12 +5408,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -5630,12 +5432,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -5654,11 +5455,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5676,11 +5476,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5701,12 +5500,11 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -5724,11 +5522,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5748,11 +5545,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5772,11 +5568,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5791,11 +5586,10 @@ describe("CodeGenerator", () => {
       const source = `const u32 VERSION <- 1;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5809,11 +5603,10 @@ describe("CodeGenerator", () => {
       const source = `void noop() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5831,11 +5624,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5858,11 +5650,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5883,11 +5674,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5904,11 +5694,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5925,11 +5714,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5949,11 +5737,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5973,11 +5760,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5997,11 +5783,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6019,11 +5804,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6039,11 +5823,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6066,11 +5849,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6090,11 +5872,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6120,11 +5901,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6147,11 +5927,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6171,11 +5950,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6196,11 +5974,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6216,11 +5993,10 @@ describe("CodeGenerator", () => {
       const source = `u64 big <- 0xFFFFFFFFFFFFFFFF;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6242,11 +6018,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6269,11 +6044,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6291,11 +6065,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6310,11 +6083,10 @@ describe("CodeGenerator", () => {
       const source = `string<10> newline <- "\\n";`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6333,11 +6105,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6355,11 +6126,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6377,11 +6147,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6401,11 +6170,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6421,11 +6189,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6444,11 +6211,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6467,11 +6233,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6488,11 +6253,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6511,11 +6275,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6533,11 +6296,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6557,11 +6319,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6582,11 +6343,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6605,11 +6365,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6628,11 +6387,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6652,11 +6410,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6670,11 +6427,10 @@ describe("CodeGenerator", () => {
       const source = `u32[100] buffer;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6698,11 +6454,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6725,11 +6480,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6743,11 +6497,10 @@ describe("CodeGenerator", () => {
       const source = `void main() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6761,11 +6514,10 @@ describe("CodeGenerator", () => {
       const source = `u32 val <- 0;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6779,11 +6531,10 @@ describe("CodeGenerator", () => {
       const source = `bool flag <- false;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6797,11 +6548,10 @@ describe("CodeGenerator", () => {
       const source = `u8[4] data <- [1, 2, 3, 4];`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6821,11 +6571,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6845,11 +6594,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6865,11 +6613,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6885,11 +6632,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6905,11 +6651,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6928,11 +6673,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6951,11 +6695,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6974,11 +6717,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6995,11 +6737,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7019,11 +6760,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7042,11 +6782,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7065,11 +6804,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7087,11 +6825,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7108,11 +6845,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7130,11 +6866,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7153,11 +6888,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7178,11 +6912,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7202,11 +6935,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7225,11 +6957,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7247,11 +6978,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7269,11 +6999,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7292,11 +7021,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7321,11 +7049,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7345,11 +7072,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7370,11 +7096,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7393,11 +7118,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7420,11 +7144,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7443,12 +7166,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -7467,11 +7189,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7491,11 +7212,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7516,12 +7236,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -7541,11 +7260,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7566,11 +7284,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7589,11 +7306,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7615,12 +7331,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -7638,11 +7353,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7663,11 +7377,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7684,11 +7397,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7706,12 +7418,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -7730,12 +7441,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -7756,11 +7466,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7780,11 +7489,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7804,11 +7512,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7827,11 +7534,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7854,11 +7560,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7880,11 +7585,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7906,11 +7610,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7929,11 +7632,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7953,11 +7655,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7977,11 +7678,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8000,11 +7700,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8026,11 +7725,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8053,11 +7751,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8075,11 +7772,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8097,11 +7793,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8119,11 +7814,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8143,11 +7837,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8166,11 +7859,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8188,11 +7880,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8209,11 +7900,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8231,11 +7921,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8254,11 +7943,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8275,11 +7963,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8297,11 +7984,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8318,11 +8004,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8340,11 +8025,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8363,11 +8047,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8383,11 +8066,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8404,11 +8086,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8424,11 +8105,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8444,11 +8124,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8464,11 +8143,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8484,11 +8162,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8505,11 +8182,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8527,11 +8203,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8548,11 +8223,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8569,11 +8243,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8589,12 +8262,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -8611,11 +8283,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8634,11 +8305,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8655,11 +8325,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8676,11 +8345,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8697,11 +8365,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8718,11 +8385,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8740,11 +8406,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8762,11 +8427,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8782,11 +8446,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8806,11 +8469,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8830,11 +8492,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8854,11 +8515,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8875,11 +8535,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8898,11 +8557,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8921,11 +8579,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8943,11 +8600,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8965,11 +8621,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8985,11 +8640,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9005,11 +8659,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9025,11 +8678,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9045,11 +8697,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9069,11 +8720,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9092,11 +8742,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9116,11 +8765,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9137,11 +8785,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9160,11 +8807,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9181,11 +8827,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9203,11 +8848,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9230,11 +8874,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9259,11 +8902,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9282,11 +8924,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9306,11 +8947,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9332,11 +8972,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9353,11 +8992,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9375,12 +9013,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         // Generate to initialize state
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9400,11 +9037,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9425,11 +9061,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9449,11 +9084,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9471,11 +9105,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9495,11 +9128,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9519,11 +9151,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9546,11 +9177,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9572,11 +9202,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9598,11 +9227,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9622,11 +9250,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9649,11 +9276,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9675,11 +9301,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9699,11 +9324,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9723,11 +9347,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9745,11 +9368,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9769,11 +9391,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9791,11 +9412,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9815,11 +9435,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9836,11 +9455,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9860,11 +9478,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9884,11 +9501,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9902,11 +9518,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9930,11 +9545,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9952,11 +9566,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9975,11 +9588,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9997,11 +9609,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10018,11 +9629,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10038,11 +9648,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10058,11 +9667,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10078,11 +9686,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10100,11 +9707,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10123,11 +9729,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10151,11 +9756,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10176,11 +9780,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10199,11 +9802,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10224,11 +9826,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10245,11 +9846,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10269,11 +9869,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -10292,11 +9891,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -10317,11 +9915,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10341,11 +9938,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10362,11 +9958,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10385,11 +9980,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10407,11 +10001,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10429,11 +10022,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10449,11 +10041,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10475,11 +10066,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10499,11 +10089,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10522,11 +10111,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10553,11 +10141,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10579,11 +10166,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10605,11 +10191,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10628,11 +10213,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10651,11 +10235,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10677,11 +10260,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10700,11 +10282,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -10729,11 +10310,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10751,11 +10331,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10771,11 +10350,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10798,11 +10376,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10820,11 +10397,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10841,11 +10417,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10865,11 +10440,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10890,11 +10464,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -10914,11 +10487,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10935,11 +10507,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10958,11 +10529,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10979,11 +10549,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10999,11 +10568,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11020,12 +10588,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -11041,11 +10608,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11063,11 +10629,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11084,11 +10649,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11106,11 +10670,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11128,11 +10691,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11152,11 +10714,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11174,11 +10735,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11199,11 +10759,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11221,11 +10780,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11247,11 +10805,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11273,11 +10830,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11301,11 +10857,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11326,11 +10881,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11351,11 +10905,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11381,11 +10934,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11407,11 +10959,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11428,11 +10979,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11452,11 +11002,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11479,11 +11028,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11504,11 +11052,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11530,11 +11077,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11556,11 +11102,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11579,11 +11124,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11601,11 +11145,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11621,12 +11164,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -11644,12 +11186,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -11664,11 +11205,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11685,11 +11225,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11708,11 +11247,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11730,11 +11268,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11754,11 +11291,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11778,11 +11314,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11807,11 +11342,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11830,11 +11364,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11854,11 +11387,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11876,11 +11408,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11902,11 +11433,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11927,11 +11457,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11950,11 +11479,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11973,11 +11501,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11995,11 +11522,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12021,11 +11547,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12047,11 +11572,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12073,11 +11597,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12096,11 +11619,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12119,11 +11641,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12140,11 +11661,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12160,11 +11680,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12187,11 +11706,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12211,11 +11729,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12234,11 +11751,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12260,11 +11776,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12284,11 +11799,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12307,11 +11821,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12329,12 +11842,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -12349,12 +11861,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -12369,12 +11880,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -12389,12 +11899,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -12412,11 +11921,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12433,11 +11941,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12456,11 +11963,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12476,11 +11982,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12496,12 +12001,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -12516,12 +12020,11 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() => {
-          generator.generate(tree, symbolTable, tokenStream, {
+          generator.generate(tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           });
@@ -12538,11 +12041,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12559,11 +12061,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12581,11 +12082,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12602,11 +12102,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12625,11 +12124,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12646,11 +12144,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12667,11 +12164,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12690,11 +12186,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12713,11 +12208,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12734,11 +12228,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12758,11 +12251,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12781,11 +12273,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12804,11 +12295,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12827,11 +12317,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12849,11 +12338,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12871,11 +12359,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12898,11 +12385,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12926,11 +12412,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12950,11 +12435,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12974,11 +12458,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13000,11 +12483,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13024,11 +12506,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13048,11 +12529,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -13072,11 +12552,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -13099,11 +12578,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13125,11 +12603,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13151,11 +12628,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13173,11 +12649,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13193,11 +12668,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13213,11 +12687,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13236,11 +12709,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13261,11 +12733,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13290,11 +12761,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13318,11 +12788,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13341,11 +12810,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13366,11 +12834,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13390,11 +12857,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13415,11 +12881,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13440,11 +12905,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13465,11 +12929,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13487,11 +12950,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13509,11 +12971,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13528,11 +12989,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13547,11 +13007,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13573,11 +13032,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13595,11 +13053,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13619,11 +13076,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13643,11 +13099,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13671,11 +13126,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13694,11 +13148,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13716,11 +13169,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13737,11 +13189,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13761,11 +13212,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13782,11 +13232,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13803,11 +13252,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13826,11 +13274,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13846,11 +13293,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13870,11 +13316,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13893,11 +13338,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13915,11 +13359,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13940,11 +13383,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13963,11 +13405,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13985,11 +13426,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14006,11 +13446,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14027,11 +13466,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14050,11 +13488,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14072,11 +13509,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14100,11 +13536,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14124,11 +13559,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14147,11 +13581,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14170,11 +13603,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14195,11 +13627,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14222,11 +13653,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14245,11 +13675,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14267,11 +13696,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14296,11 +13724,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14322,11 +13749,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14347,11 +13773,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14375,11 +13800,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14399,11 +13823,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14421,11 +13844,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14442,11 +13864,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14465,11 +13886,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14487,11 +13907,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14510,11 +13929,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14533,11 +13951,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14557,11 +13974,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14578,11 +13994,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14599,11 +14014,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14619,11 +14033,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14644,11 +14057,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14673,11 +14085,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14701,11 +14112,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14723,11 +14133,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14749,11 +14158,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -14775,11 +14183,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -14800,11 +14207,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: false,
@@ -14826,11 +14232,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -14852,11 +14257,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14877,11 +14281,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14900,11 +14303,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14923,11 +14325,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14949,11 +14350,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14974,11 +14374,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14998,11 +14397,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15022,11 +14420,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15043,11 +14440,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15064,11 +14460,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15083,11 +14478,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15106,11 +14500,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15129,11 +14522,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15151,11 +14543,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15174,11 +14565,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15195,11 +14585,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15217,11 +14606,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15243,11 +14631,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15266,11 +14653,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15293,11 +14679,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15321,11 +14706,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15347,11 +14731,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15371,11 +14754,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15398,11 +14780,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15423,11 +14804,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15449,11 +14829,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15471,11 +14850,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15492,11 +14870,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15512,11 +14889,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15531,11 +14907,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15555,11 +14930,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15579,11 +14953,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15604,11 +14977,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15630,11 +15002,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15652,11 +15023,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15675,11 +15045,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15701,11 +15070,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15722,11 +15090,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15755,11 +15122,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15780,11 +15146,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15805,11 +15170,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15827,11 +15191,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15851,11 +15214,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15874,11 +15236,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15900,11 +15261,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15926,11 +15286,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15949,11 +15308,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15970,11 +15328,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15991,11 +15348,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16013,11 +15369,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16035,11 +15390,10 @@ describe("CodeGenerator", () => {
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
-        const symbolTable = new SymbolTable();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, symbolTable, tokenStream, {
+        const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16063,11 +15417,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -16090,11 +15443,10 @@ describe("CodeGenerator", () => {
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, symbolTable, tokenStream, {
+      const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -16112,10 +15464,9 @@ describe("CodeGenerator", () => {
       const { tree: initTree, tokenStream: initTokenStream } =
         CNextSourceParser.parse(initSource);
       const generator = new CodeGenerator();
-      const initSymbolTable = new SymbolTable();
       const initTSymbols = CNextResolver.resolve(initTree, "init.cnx");
       const initSymbols = TSymbolInfoAdapter.convert(initTSymbols);
-      generator.generate(initTree, initSymbolTable, initTokenStream, {
+      generator.generate(initTree, initTokenStream, {
         symbolInfo: initSymbols,
         sourcePath: "init.cnx",
       });
@@ -16131,12 +15482,11 @@ describe("CodeGenerator", () => {
       // Second call should throw because struct generator is now missing
       const source = `struct Point { i32 x; i32 y; }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() => {
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16149,10 +15499,9 @@ describe("CodeGenerator", () => {
       const { tree: initTree, tokenStream: initTokenStream } =
         CNextSourceParser.parse(initSource);
       const generator = new CodeGenerator();
-      const initSymbolTable = new SymbolTable();
       const initTSymbols = CNextResolver.resolve(initTree, "init.cnx");
       const initSymbols = TSymbolInfoAdapter.convert(initTSymbols);
-      generator.generate(initTree, initSymbolTable, initTokenStream, {
+      generator.generate(initTree, initTokenStream, {
         symbolInfo: initSymbols,
         sourcePath: "init.cnx",
       });
@@ -16168,12 +15517,11 @@ describe("CodeGenerator", () => {
       // Second call should throw because enum generator is now missing
       const source = `enum State { IDLE, RUNNING }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const symbolTable = new SymbolTable();
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() => {
-        generator.generate(tree, symbolTable, tokenStream, {
+        generator.generate(tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
