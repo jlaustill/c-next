@@ -7,6 +7,62 @@
 import { describe, it, expect } from "vitest";
 import ParameterInputAdapter from "../ParameterInputAdapter";
 import IParameterSymbol from "../../../../../utils/types/IParameterSymbol";
+import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
+import * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
+import ICallbackTypeInfo from "../../types/ICallbackTypeInfo";
+
+/**
+ * Extract the first parameter context from a function declaration.
+ */
+function getParameterContext(source: string): Parser.ParameterContext {
+  const result = CNextSourceParser.parse(source);
+  const decl = result.tree.declaration(0);
+  const funcDecl = decl?.functionDeclaration();
+  const paramList = funcDecl?.parameterList();
+  const params = paramList?.parameter();
+  if (!params || params.length === 0) {
+    throw new Error("No parameters found in parsed source");
+  }
+  return params[0];
+}
+
+/**
+ * Build default IFromASTDeps for testing.
+ */
+function createDefaultASTDeps(overrides?: {
+  isModified?: boolean;
+  isPassByValue?: boolean;
+  isKnownStruct?: boolean;
+  callbackTypes?: ReadonlyMap<string, ICallbackTypeInfo>;
+}) {
+  const typeMap: Record<string, string> = {
+    u8: "uint8_t",
+    u16: "uint16_t",
+    u32: "uint32_t",
+    u64: "uint64_t",
+    i32: "int32_t",
+    f32: "float",
+    f64: "double",
+    bool: "bool",
+  };
+
+  return {
+    getTypeName: (type: Parser.TypeContext) => type.getText(),
+    generateType: (type: Parser.TypeContext) => {
+      const text = type.getText();
+      // Strip array dimensions for mapped type
+      const baseName = text.replace(/\[.*$/, "");
+      return typeMap[baseName] ?? baseName;
+    },
+    generateExpression: (expr: Parser.ExpressionContext) => expr.getText(),
+    callbackTypes:
+      overrides?.callbackTypes ?? new Map<string, ICallbackTypeInfo>(),
+    isKnownStruct: () => overrides?.isKnownStruct ?? false,
+    typeMap,
+    isModified: overrides?.isModified ?? false,
+    isPassByValue: overrides?.isPassByValue ?? false,
+  };
+}
 
 describe("ParameterInputAdapter", () => {
   describe("fromSymbol", () => {
@@ -227,6 +283,144 @@ describe("ParameterInputAdapter", () => {
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
 
       expect(result.isAutoConst).toBe(false);
+    });
+  });
+
+  describe("fromAST", () => {
+    it("converts basic primitive parameter", () => {
+      const ctx = getParameterContext("void foo(u32 value) {}");
+      const deps = createDefaultASTDeps();
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.name).toBe("value");
+      expect(result.baseType).toBe("u32");
+      expect(result.mappedType).toBe("uint32_t");
+      expect(result.isConst).toBe(false);
+      expect(result.isArray).toBe(false);
+      expect(result.isString).toBe(false);
+      expect(result.isCallback).toBe(false);
+      expect(result.isPassByValue).toBe(false);
+      expect(result.isPassByReference).toBe(true);
+    });
+
+    it("converts const parameter", () => {
+      const ctx = getParameterContext("void foo(const u32 value) {}");
+      const deps = createDefaultASTDeps();
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isConst).toBe(true);
+      expect(result.isAutoConst).toBe(false);
+    });
+
+    it("sets auto-const for unmodified non-const parameter", () => {
+      const ctx = getParameterContext("void foo(u32 value) {}");
+      const deps = createDefaultASTDeps({ isModified: false });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isAutoConst).toBe(true);
+    });
+
+    it("does not set auto-const for modified parameter", () => {
+      const ctx = getParameterContext("void foo(u32 value) {}");
+      const deps = createDefaultASTDeps({ isModified: true });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isAutoConst).toBe(false);
+    });
+
+    it("converts array parameter with dimension", () => {
+      const ctx = getParameterContext("void foo(u32[10] arr) {}");
+      const deps = createDefaultASTDeps();
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isArray).toBe(true);
+      expect(result.arrayDimensions).toEqual(["10"]);
+      expect(result.isPassByValue).toBe(false);
+      expect(result.isPassByReference).toBe(false);
+    });
+
+    it("converts multi-dimensional array parameter", () => {
+      const ctx = getParameterContext("void foo(u8[4][4] matrix) {}");
+      const deps = createDefaultASTDeps();
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isArray).toBe(true);
+      expect(result.arrayDimensions).toEqual(["4", "4"]);
+    });
+
+    it("converts non-array string parameter", () => {
+      const ctx = getParameterContext("void foo(string<32> name) {}");
+      const deps = createDefaultASTDeps();
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isString).toBe(true);
+      expect(result.isArray).toBe(false);
+      expect(result.mappedType).toBe("char");
+      expect(result.stringCapacity).toBe(32);
+      expect(result.isPassByValue).toBe(false);
+      expect(result.isPassByReference).toBe(false);
+    });
+
+    it("converts callback parameter", () => {
+      const callbackTypes = new Map<string, ICallbackTypeInfo>([
+        [
+          "handleClick",
+          {
+            functionName: "handleClick",
+            returnType: "void",
+            parameters: [],
+            typedefName: "handleClick_fp",
+          },
+        ],
+      ]);
+      const ctx = getParameterContext("void foo(handleClick onClick) {}");
+      const deps = createDefaultASTDeps({ callbackTypes });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isCallback).toBe(true);
+      expect(result.callbackTypedefName).toBe("handleClick_fp");
+      expect(result.isPassByValue).toBe(true);
+      expect(result.isPassByReference).toBe(false);
+    });
+
+    it("sets isPassByReference for known struct", () => {
+      const ctx = getParameterContext("void foo(Point p) {}");
+      const deps = createDefaultASTDeps({ isKnownStruct: true });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isPassByReference).toBe(true);
+      expect(result.isPassByValue).toBe(false);
+    });
+
+    it("sets isPassByValue when pre-computed", () => {
+      const ctx = getParameterContext("void foo(f32 value) {}");
+      const deps = createDefaultASTDeps({ isPassByValue: true });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isPassByValue).toBe(true);
+    });
+
+    it("converts string array with capacity (string<N>[M])", () => {
+      const ctx = getParameterContext("void foo(string<32>[5] names) {}");
+      const deps = createDefaultASTDeps();
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isArray).toBe(true);
+      expect(result.isString).toBe(true);
+      // Capacity + 1 for null terminator appended as extra dimension
+      expect(result.arrayDimensions).toEqual(["5", "33"]);
+      expect(result.isPassByReference).toBe(false);
     });
   });
 });
