@@ -15,13 +15,15 @@
  * 2. Skips tests with // test-c-only marker
  * 3. Transpiles each in C++ mode (cppRequired: true)
  * 4. Writes .expected.cpp and .expected.hpp files (if headers are generated)
+ * 5. Finds and processes helper .cnx files referenced via #include directives
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { statSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../src/transpiler/Transpiler";
+import IncludeDiscovery from "../src/transpiler/data/IncludeDiscovery";
 import FileScanner from "./utils/FileScanner";
 import chalk from "chalk";
 
@@ -55,11 +57,200 @@ function isCppOnlyTest(source: string): boolean {
 // Use shared FileScanner.findTestFiles instead of local implementation
 
 /**
+ * Track already-processed helper files to avoid duplicates.
+ * Cleared at the start of main() to support multiple runs in tests.
+ */
+const processedHelpers = new Set<string>();
+
+/**
+ * Extract .cnx includes from source content
+ * Returns array of include paths (e.g., ["Config.cnx", "Utils.cnx"])
+ */
+function extractCnxIncludes(
+  source: string,
+): Array<{ path: string; isLocal: boolean }> {
+  return IncludeDiscovery.extractIncludesWithInfo(source).filter((inc) =>
+    inc.path.endsWith(".cnx"),
+  );
+}
+
+/**
+ * Resolve an include path to an absolute file path
+ * Returns null if not found
+ */
+function resolveIncludePath(
+  includePath: string,
+  sourceDir: string,
+  includeDirs: string[],
+): string | null {
+  const searchPaths = [sourceDir, ...includeDirs];
+  return IncludeDiscovery.resolveInclude(includePath, searchPaths);
+}
+
+/**
+ * Recursively find all helper .cnx files referenced by a source file.
+ *
+ * The `visited` parameter uses a default value of `new Set()` which creates
+ * a fresh Set on the initial call. Recursive calls pass the same Set to
+ * track visited files across the entire include tree.
+ */
+function findHelperFiles(
+  cnxFile: string,
+  includeDirs: string[],
+  visited: Set<string> = new Set(),
+): string[] {
+  const absolutePath = resolve(cnxFile);
+  if (visited.has(absolutePath)) {
+    return [];
+  }
+  visited.add(absolutePath);
+
+  if (!existsSync(cnxFile)) {
+    return [];
+  }
+
+  const source = readFileSync(cnxFile, "utf-8");
+  const includes = extractCnxIncludes(source);
+  const helpers: string[] = [];
+  const sourceDir = dirname(cnxFile);
+
+  for (const inc of includes) {
+    const resolved = resolveIncludePath(inc.path, sourceDir, includeDirs);
+    if (resolved && !visited.has(resolve(resolved))) {
+      helpers.push(resolved);
+      // Recursively find helpers of this helper
+      helpers.push(...findHelperFiles(resolved, includeDirs, visited));
+    }
+  }
+
+  return helpers;
+}
+
+/**
+ * Shared transpilation logic for both test files and helper files.
+ * Transpiles source in C++ mode and writes .expected.cpp/.expected.hpp files.
+ */
+async function transpileAndWriteCppSnapshot(
+  cnxFile: string,
+  source: string,
+  expectedCppFile: string,
+  expectedHppFile: string,
+  includeDirs: string[],
+  dryRun: boolean,
+): Promise<IGenerationResult> {
+  try {
+    const pipeline = new Transpiler({
+      inputs: [],
+      includeDirs,
+      noCache: true,
+      cppRequired: true,
+    });
+
+    const result = await pipeline.transpileSource(source, {
+      workingDir: dirname(cnxFile),
+      sourcePath: cnxFile,
+    });
+
+    if (!result.success) {
+      const errors = result.errors
+        .map((e) => `${e.line}:${e.column} ${e.message}`)
+        .join("\n");
+      return {
+        file: cnxFile,
+        generated: false,
+        skipped: false,
+        error: `Transpilation failed: ${errors}`,
+      };
+    }
+
+    if (!dryRun) {
+      writeFileSync(expectedCppFile, result.code);
+      if (result.headerCode) {
+        writeFileSync(expectedHppFile, result.headerCode);
+      }
+    }
+
+    return {
+      file: cnxFile,
+      generated: true,
+      skipped: false,
+    };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return {
+      file: cnxFile,
+      generated: false,
+      skipped: false,
+      error: err.message,
+    };
+  }
+}
+
+/**
+ * Generate C++ snapshots for a helper .cnx file (non-test file)
+ */
+async function generateHelperCppSnapshot(
+  cnxFile: string,
+  dryRun: boolean,
+  includeDirs: string[],
+): Promise<IGenerationResult> {
+  const absolutePath = resolve(cnxFile);
+
+  // Skip if already processed
+  if (processedHelpers.has(absolutePath)) {
+    return {
+      file: cnxFile,
+      generated: false,
+      skipped: true,
+      reason: "already processed",
+    };
+  }
+  processedHelpers.add(absolutePath);
+
+  // Helper files use .expected.cpp/.expected.hpp (no .test. prefix)
+  const basePath = cnxFile.replace(/\.cnx$/, "");
+  const expectedCppFile = basePath + ".expected.cpp";
+  const expectedHppFile = basePath + ".expected.hpp";
+
+  // Skip if .expected.cpp already exists
+  if (existsSync(expectedCppFile)) {
+    return {
+      file: cnxFile,
+      generated: false,
+      skipped: true,
+      reason: ".expected.cpp already exists",
+    };
+  }
+
+  const source = readFileSync(cnxFile, "utf-8");
+
+  // Skip helpers with C-only marker
+  if (hasCOnlyMarker(source)) {
+    return {
+      file: cnxFile,
+      generated: false,
+      skipped: true,
+      reason: "test-c-only marker",
+    };
+  }
+
+  return transpileAndWriteCppSnapshot(
+    cnxFile,
+    source,
+    expectedCppFile,
+    expectedHppFile,
+    includeDirs,
+    dryRun,
+  );
+}
+
+/**
  * Generate C++ snapshots for a single test file
  */
 async function generateCppSnapshot(
   cnxFile: string,
   dryRun: boolean,
+  includeDirs: string[],
 ): Promise<IGenerationResult> {
   const basePath = cnxFile.replace(/\.test\.cnx$/, "");
   const expectedCppFile = basePath + ".expected.cpp";
@@ -108,59 +299,23 @@ async function generateCppSnapshot(
     };
   }
 
-  // Transpile in C++ mode
-  try {
-    const pipeline = new Transpiler({
-      inputs: [],
-      includeDirs: [join(rootDir, "tests/include")],
-      noCache: true,
-      cppRequired: true,
-    });
-
-    const result = await pipeline.transpileSource(source, {
-      workingDir: dirname(cnxFile),
-      sourcePath: cnxFile,
-    });
-
-    if (!result.success) {
-      const errors = result.errors
-        .map((e) => `${e.line}:${e.column} ${e.message}`)
-        .join("\n");
-      return {
-        file: cnxFile,
-        generated: false,
-        skipped: false,
-        error: `Transpilation failed: ${errors}`,
-      };
-    }
-
-    if (!dryRun) {
-      writeFileSync(expectedCppFile, result.code);
-      if (result.headerCode) {
-        writeFileSync(expectedHppFile, result.headerCode);
-      }
-    }
-
-    return {
-      file: cnxFile,
-      generated: true,
-      skipped: false,
-    };
-  } catch (error: unknown) {
-    const err = error as Error;
-    return {
-      file: cnxFile,
-      generated: false,
-      skipped: false,
-      error: err.message,
-    };
-  }
+  return transpileAndWriteCppSnapshot(
+    cnxFile,
+    source,
+    expectedCppFile,
+    expectedHppFile,
+    includeDirs,
+    dryRun,
+  );
 }
 
 /**
  * Main function
  */
 async function main(): Promise<void> {
+  // Clear module-level state for fresh runs (supports multiple invocations in tests)
+  processedHelpers.clear();
+
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const filterPath = args.find((arg) => !arg.startsWith("-"));
@@ -194,12 +349,22 @@ async function main(): Promise<void> {
   console.log(`Found ${cnxFiles.length} test files`);
   console.log();
 
+  // Build include dirs from target path (include tests/include for common includes)
+  const includeDirs = [join(rootDir, "tests/include")];
+
   let generated = 0;
   let skipped = 0;
   let errors = 0;
+  let helpersGenerated = 0;
+  let helpersSkipped = 0;
+  let helpersErrors = 0;
 
   for (const cnxFile of cnxFiles) {
-    const result = await generateCppSnapshot(cnxFile, dryRun);
+    // Include source directory in search paths for test files (consistency with helpers)
+    const sourceDir = dirname(cnxFile);
+    const allIncludeDirs = [sourceDir, ...includeDirs];
+
+    const result = await generateCppSnapshot(cnxFile, dryRun, allIncludeDirs);
     const relativePath = cnxFile.replace(rootDir + "/", "");
 
     if (result.generated) {
@@ -215,24 +380,74 @@ async function main(): Promise<void> {
       console.log(`        ${chalk.dim(result.error)}`);
       errors++;
     }
+
+    // Find and process helper files referenced by this test
+    const helpers = findHelperFiles(cnxFile, allIncludeDirs);
+
+    for (const helper of helpers) {
+      const helperResult = await generateHelperCppSnapshot(
+        helper,
+        dryRun,
+        allIncludeDirs,
+      );
+      const helperRelativePath = helper.replace(rootDir + "/", "");
+
+      if (helperResult.generated) {
+        console.log(
+          `${chalk.green("GEN")}     ${helperRelativePath} ${chalk.cyan("(helper)")}`,
+        );
+        helpersGenerated++;
+      } else if (helperResult.skipped) {
+        // Only show skipped helpers if verbose (they're expected to be skipped often)
+        if (
+          helperResult.reason !== "already processed" &&
+          helperResult.reason !== ".expected.cpp already exists"
+        ) {
+          console.log(
+            `${chalk.dim("SKIP")}    ${helperRelativePath} ${chalk.cyan("(helper)")} ${chalk.dim(`(${helperResult.reason})`)}`,
+          );
+        }
+        helpersSkipped++;
+      } else if (helperResult.error) {
+        console.log(
+          `${chalk.red("ERROR")}   ${helperRelativePath} ${chalk.cyan("(helper)")}`,
+        );
+        console.log(`        ${chalk.dim(helperResult.error)}`);
+        helpersErrors++;
+      }
+    }
   }
 
   console.log();
   console.log(chalk.cyan("Summary:"));
-  console.log(`  ${chalk.green("Generated:")} ${generated}`);
-  console.log(`  ${chalk.dim("Skipped:")}   ${skipped}`);
+  console.log(chalk.bold("  Test files:"));
+  console.log(`    ${chalk.green("Generated:")} ${generated}`);
+  console.log(`    ${chalk.dim("Skipped:")}   ${skipped}`);
   if (errors > 0) {
-    console.log(`  ${chalk.red("Errors:")}    ${errors}`);
+    console.log(`    ${chalk.red("Errors:")}    ${errors}`);
   }
 
-  if (dryRun && generated > 0) {
+  // Show helper files section if any helpers were processed
+  if (helpersGenerated > 0 || helpersErrors > 0 || helpersSkipped > 0) {
+    console.log(chalk.bold("  Helper files:"));
+    console.log(`    ${chalk.green("Generated:")} ${helpersGenerated}`);
+    console.log(`    ${chalk.dim("Skipped:")}   ${helpersSkipped}`);
+    if (helpersErrors > 0) {
+      console.log(`    ${chalk.red("Errors:")}    ${helpersErrors}`);
+    }
+  }
+
+  const totalGenerated = generated + helpersGenerated;
+  const totalErrors = errors + helpersErrors;
+
+  if (dryRun && totalGenerated > 0) {
     console.log();
     console.log(
       chalk.yellow("Run without --dry-run to actually generate files"),
     );
   }
 
-  process.exit(errors > 0 ? 1 : 0);
+  process.exit(totalErrors > 0 ? 1 : 0);
 }
 
 main();
