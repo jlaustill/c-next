@@ -196,6 +196,15 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 
 ### Symbol Resolution Architecture (ADR-055)
 
+**SymbolTable ownership**: `CodeGenState.symbolTable` is the single owner (non-null, persists across `reset()`). Transpiler accesses it via `CodeGenState.symbolTable`. Tests set `CodeGenState.symbolTable = symbolTable` before calling `generate()`.
+
+**CodeGenerator.generate() signature**: `generate(tree, tokenStream?, options?)` — no symbolTable parameter.
+
+**Pipeline stages for array dimensions**:
+
+- Stage 3b: `CodeGenState.symbolTable.resolveExternalArrayDimensions()` — resolves const values
+- Stage 3c: `CodeGenState.symbolTable.resolveExternalEnumArrayDimensions()` — resolves cross-file enum member names (e.g., `COUNT` → `EColor_COUNT`)
+
 **Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
 
 - `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
