@@ -2392,7 +2392,9 @@ export default class CodeGenerator implements IOrchestrator {
   private addGeneratedHelpers(output: string[]): void {
     if (CodeGenState.needsFloatStaticAssert) {
       // Use static_assert for C++ (standard), _Static_assert for C11
-      const assertKeyword = this.isCppMode() ? "static_assert" : "_Static_assert";
+      const assertKeyword = this.isCppMode()
+        ? "static_assert"
+        : "_Static_assert";
       output.push(
         `${assertKeyword}(sizeof(float) == 4, "Float bit indexing requires 32-bit float");`,
         `${assertKeyword}(sizeof(double) == 8, "Float bit indexing requires 64-bit double");`,
