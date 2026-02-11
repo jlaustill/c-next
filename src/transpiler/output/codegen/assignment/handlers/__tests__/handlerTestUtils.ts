@@ -153,10 +153,10 @@ function setupMockTypeRegistry(
 }
 
 export default class HandlerTestUtils {
-  static setupMockSymbols = setupMockSymbols;
-  static setupMockGenerator = setupMockGenerator;
-  static setupMockState = setupMockState;
-  static createDefaultMockSymbols = createDefaultMockSymbols;
-  static createTypeInfo = createTypeInfo;
-  static setupMockTypeRegistry = setupMockTypeRegistry;
+  static readonly setupMockSymbols = setupMockSymbols;
+  static readonly setupMockGenerator = setupMockGenerator;
+  static readonly setupMockState = setupMockState;
+  static readonly createDefaultMockSymbols = createDefaultMockSymbols;
+  static readonly createTypeInfo = createTypeInfo;
+  static readonly setupMockTypeRegistry = setupMockTypeRegistry;
 }

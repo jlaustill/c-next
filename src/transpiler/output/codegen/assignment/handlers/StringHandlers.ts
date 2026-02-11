@@ -158,7 +158,7 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
 
   // String arrays: dimensions are [array_size, string_capacity+1]
   // -1 because we added +1 for null terminator during symbol collection
-  const capacity = dimensions[dimensions.length - 1] - 1;
+  const capacity = dimensions.at(-1)! - 1;
 
   CodeGenState.needsString = true;
 
