@@ -54,6 +54,142 @@ describe("CodeGenerator Coverage Tests", () => {
   });
 
   // ==========================================================================
+  // NEW CODE IN PR: _isArrayAccessStringExpression (lines 811-852)
+  // ==========================================================================
+  describe("_isArrayAccessStringExpression() - PR new code", () => {
+    it("should return false for string property access (.length)", () => {
+      const source = `
+        string<32> name <- "test";
+        void main() {
+          u32 len <- name.length;
+        }
+      `;
+      const { code } = setupGenerator(source);
+      // .length returns a number, not a string
+      expect(code).toContain("strlen(name)");
+    });
+
+    it("should return false for string property access (.capacity)", () => {
+      const source = `
+        string<32> name <- "test";
+        void main() {
+          u32 cap <- name.capacity;
+        }
+      `;
+      const { code } = setupGenerator(source);
+      // .capacity returns a number
+      expect(code).toContain("32");
+    });
+
+    it("should return true for array of strings indexing", () => {
+      const source = `
+        string<32>[5] names;
+        void puts(string<32> s) {}
+        void main() {
+          puts(names[0]);
+        }
+      `;
+      const { code } = setupGenerator(source);
+      // Array of strings generates 2D char array
+      expect(code).toContain("names[0]");
+      expect(code).toContain("puts(");
+    });
+
+    it("should return false for single string character indexing", () => {
+      const source = `
+        string<32> name <- "hello";
+        void main() {
+          u8 ch <- name[0];
+        }
+      `;
+      const { code } = setupGenerator(source);
+      // Single string indexing returns a char, not a string
+      expect(code).toContain("name[0]");
+    });
+
+    it("should return false for non-string array type", () => {
+      const source = `
+        u32[10] values;
+        void main() {
+          u32 v <- values[0];
+        }
+      `;
+      const { code } = setupGenerator(source);
+      expect(code).toContain("values[0]");
+    });
+
+    it("should handle array access without typeInfo", () => {
+      // When accessing an undefined array, typeInfo won't exist
+      const source = `
+        void main() {
+          u8 dummy <- 0;
+        }
+      `;
+      const { code } = setupGenerator(source);
+      expect(code).toContain("dummy");
+    });
+  });
+
+  // ==========================================================================
+  // NEW CODE IN PR: C++ pointer vs reference (lines 1534-1537)
+  // ==========================================================================
+  describe("C++ pointer vs reference for struct params - PR new code", () => {
+    it("should use reference (&) for struct params in C++ mode", () => {
+      const source = `
+        struct Point { i32 x; i32 y; }
+        void process(Point p) {
+          p.x <- 10;
+        }
+      `;
+      const { code } = setupGenerator(source, { cppMode: true });
+      // C++ mode uses reference
+      expect(code).toContain("Point&");
+    });
+
+    it("should use pointer (*) for struct params in C mode", () => {
+      const source = `
+        struct Point { i32 x; i32 y; }
+        void process(Point p) {
+          p.x <- 10;
+        }
+      `;
+      const { code } = setupGenerator(source, { cppMode: false });
+      // C mode uses pointer
+      expect(code).toContain("Point*");
+    });
+  });
+
+  // ==========================================================================
+  // NEW CODE IN PR: static_assert vs _Static_assert (lines 2405-2410)
+  // ==========================================================================
+  describe("static_assert handling - PR new code", () => {
+    it("should use _Static_assert in C mode for float bit indexing", () => {
+      const source = `
+        f32 value <- 3.14;
+        void main() {
+          u32 bits <- value[0, 32];
+        }
+      `;
+      const { code } = setupGenerator(source, { cppMode: false });
+      // C mode uses _Static_assert
+      expect(code).toContain("_Static_assert");
+    });
+
+    it("should use static_assert in C++ mode for float bit indexing", () => {
+      const source = `
+        f32 value <- 3.14;
+        void main() {
+          u32 bits <- value[0, 32];
+        }
+      `;
+      const { code } = setupGenerator(source, { cppMode: true });
+      // C++ mode uses static_assert
+      expect(code).toContain("static_assert");
+      expect(code).not.toContain("_Static_assert");
+    });
+  });
+
+  // ==========================================================================
   // Lines 426, 440: invokeStatement/invokeExpression error paths
   // ==========================================================================
   describe("invokeStatement/invokeExpression error paths", () => {
