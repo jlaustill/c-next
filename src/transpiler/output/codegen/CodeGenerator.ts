@@ -6382,7 +6382,7 @@ export default class CodeGenerator implements IOrchestrator {
       return null;
     }
 
-    // No expected enum type - search all enums but error on ambiguity
+    // No expected enum type - bare enum members are not allowed without context
     const matchingEnums: string[] = [];
     for (const [enumName, members] of CodeGenState.symbols!.enumMembers) {
       if (members.has(id)) {
@@ -6391,11 +6391,14 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     if (matchingEnums.length === 1) {
-      return `${matchingEnums[0]}${this.getScopeSeparator(false)}${id}`;
+      throw new Error(
+        `error[E0424]: '${id}' is not defined; did you mean '${matchingEnums[0]}.${id}'?`,
+      );
     }
     if (matchingEnums.length > 1) {
+      const suggestions = matchingEnums.map((e) => `'${e}.${id}'`).join(" or ");
       throw new Error(
-        `Error: Ambiguous enum member '${id}' exists in multiple enums: ${matchingEnums.join(", ")}. Use qualified access (e.g., ${matchingEnums[0]}.${id})`,
+        `error[E0424]: '${id}' is not defined; did you mean ${suggestions}?`,
       );
     }
 

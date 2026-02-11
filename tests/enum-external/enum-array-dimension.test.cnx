@@ -3,7 +3,7 @@
 
 #include "array-types.cnx"
 
-const u8[COUNT] DATA <- [10, 20, 30];
+const u8[EColor.COUNT] DATA <- [10, 20, 30];
 
 u32 main() {
     if (DATA[0] != 10) return 1;

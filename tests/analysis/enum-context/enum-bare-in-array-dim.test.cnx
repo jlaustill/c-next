@@ -1,0 +1,14 @@
+// test-error
+// Tests: Bare enum member in array dimension should error
+
+enum EColor {
+    RED,
+    GREEN,
+    BLUE,
+    COUNT
+}
+
+u8[COUNT] DATA <- [10, 20, 30];
+
+void main() {
+}

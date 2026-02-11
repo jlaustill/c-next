@@ -21,15 +21,15 @@ u32 main() {
     Config cfg <- {pType: PRESSURE_TYPE_PSIA};
 
     // Test 1: Initial value via struct initializer
-    if (cfg.pType != PRESSURE_TYPE_PSIA) return 1;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 1;
 
     // Test 2: Assignment via function (unqualified access)
     setDefault(cfg);
-    if (cfg.pType != PRESSURE_TYPE_PSIG) return 2;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIG) return 2;
 
     // Test 3: Assignment via function (qualified access)
     setExplicit(cfg);
-    if (cfg.pType != PRESSURE_TYPE_PSIA) return 3;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 3;
 
     return 0;
 }

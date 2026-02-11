@@ -9,8 +9,8 @@ enum ECategory {
 }
 
 u32 categorize(ECategory cat) {
-    // If statement - should resolve to ECategory_CAT_A
-    if (cat = CAT_A) {
+    // If statement - qualified access for comparison
+    if (cat = ECategory.CAT_A) {
         return 100;
     }
 

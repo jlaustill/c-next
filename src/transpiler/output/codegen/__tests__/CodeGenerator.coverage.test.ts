@@ -513,7 +513,7 @@ describe("CodeGenerator Coverage Tests", () => {
         scope Config {
           public enum State { IDLE, RUNNING, STOPPED }
           public void init() {
-            State s <- IDLE;
+            State s <- State.IDLE;
           }
         }
       `;
@@ -1036,7 +1036,7 @@ describe("CodeGenerator Coverage Tests", () => {
           public void increment() { counter +<- 1; }
           public enum State { INIT, RUN }
           public void setState() {
-            State s <- INIT;
+            State s <- State.INIT;
           }
         }
       `;

@@ -6,22 +6,22 @@
 #include "level1.cnx"
 
 void setHigh(Config cfg) {
-    cfg.level <- LEVEL_HIGH;
+    cfg.level <- ELevel.LEVEL_HIGH;
 }
 
 u32 main() {
-    Config cfg <- {level: LEVEL_LOW};
+    Config cfg <- {level: ELevel.LEVEL_LOW};
 
     // Test 1: Initial value from deeply nested enum
-    if (cfg.level != LEVEL_LOW) return 1;
+    if (cfg.level != ELevel.LEVEL_LOW) return 1;
 
     // Test 2: Direct assignment using deeply nested enum
-    cfg.level <- LEVEL_MEDIUM;
-    if (cfg.level != LEVEL_MEDIUM) return 2;
+    cfg.level <- ELevel.LEVEL_MEDIUM;
+    if (cfg.level != ELevel.LEVEL_MEDIUM) return 2;
 
     // Test 3: Assignment via local function using nested enum
     setHigh(cfg);
-    if (cfg.level != LEVEL_HIGH) return 3;
+    if (cfg.level != ELevel.LEVEL_HIGH) return 3;
 
     return 0;
 }

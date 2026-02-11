@@ -35,8 +35,8 @@ u32 main() {
     cfg.pType <- PRESSURE_TYPE_PSIA;
     if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 3;
 
-    // Test 5: Unqualified in comparison
-    if (cfg.pType != PRESSURE_TYPE_PSIA) return 4;
+    // Test 5: Qualified in comparison
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 4;
 
     return 0;  // All tests passed
 }

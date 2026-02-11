@@ -22,19 +22,19 @@ u32 main() {
     };
 
     // Test 1: Initial values from different external enums
-    if (dev.pressure != PRESSURE_TYPE_PSIA) return 1;
-    if (dev.status != STATUS_IDLE) return 2;
+    if (dev.pressure != EPressureType.PRESSURE_TYPE_PSIA) return 1;
+    if (dev.status != EStatus.STATUS_IDLE) return 2;
 
     // Test 2: Assignment via function
     configure(dev);
-    if (dev.pressure != PRESSURE_TYPE_PSIG) return 3;
-    if (dev.status != STATUS_ACTIVE) return 4;
+    if (dev.pressure != EPressureType.PRESSURE_TYPE_PSIG) return 3;
+    if (dev.status != EStatus.STATUS_ACTIVE) return 4;
 
     // Test 3: Direct assignment mixing both enums
     dev.pressure <- PRESSURE_TYPE_PSIA;
     dev.status <- STATUS_ERROR;
-    if (dev.pressure != PRESSURE_TYPE_PSIA) return 5;
-    if (dev.status != STATUS_ERROR) return 6;
+    if (dev.pressure != EPressureType.PRESSURE_TYPE_PSIA) return 5;
+    if (dev.status != EStatus.STATUS_ERROR) return 6;
 
     return 0;
 }

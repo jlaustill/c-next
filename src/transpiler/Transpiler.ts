@@ -269,9 +269,6 @@ class Transpiler {
     // Stage 3b: Resolve external const array dimensions
     CodeGenState.symbolTable.resolveExternalArrayDimensions();
 
-    // Stage 3c: Resolve cross-file enum member names in array dimensions
-    CodeGenState.symbolTable.resolveExternalEnumArrayDimensions();
-
     // Stage 4: Check for symbol conflicts (skipped in standalone mode)
     if (!input.skipConflictCheck && !this._checkSymbolConflicts(result)) {
       return;
