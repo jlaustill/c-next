@@ -16,6 +16,8 @@ import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import generateEnumHeader from "./generators/generateEnumHeader";
 import generateStructHeader from "./generators/generateStructHeader";
 import generateBitmapHeader from "./generators/generateBitmapHeader";
+import VariableDeclarationFormatter from "../codegen/helpers/VariableDeclarationFormatter";
+import type IVariableFormatInput from "../codegen/types/IVariableFormatInput";
 
 const { mapType, isBuiltInType } = typeUtils;
 
@@ -200,39 +202,6 @@ class HeaderGeneratorUtils {
         !HeaderGeneratorUtils.isCppTemplateType(v.type) &&
         !CppNamespaceUtils.isCppNamespaceType(v.type ?? "", symbolTable),
     );
-  }
-
-  /**
-   * Format a variable declaration with proper C syntax
-   *
-   * In C, array dimensions follow the variable name, not the type:
-   *   char greeting[33];      // Correct
-   *   char[33] greeting;      // Wrong
-   *
-   * Handles types that include embedded dimensions (like char[33] from
-   * mapType("string<32>")) and places them correctly after the variable name.
-   */
-  static formatVariableDeclaration(
-    cnextType: string,
-    name: string,
-    additionalDims: string,
-    constPrefix: string,
-    volatilePrefix: string = "",
-  ): string {
-    const cType = mapType(cnextType);
-
-    // Check if the mapped type has embedded array dimensions (e.g., char[33])
-    // This happens for string<N> types which map to char[N+1]
-    const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
-    if (embeddedMatch) {
-      const baseType = embeddedMatch[1];
-      const embeddedDim = embeddedMatch[2];
-      // Format: volatile const char name[additionalDims][embeddedDim]
-      return `${volatilePrefix}${constPrefix}${baseType} ${name}${additionalDims}[${embeddedDim}]`;
-    }
-
-    // No embedded dimensions - standard format
-    return `${volatilePrefix}${constPrefix}${cType} ${name}${additionalDims}`;
   }
 
   /**
@@ -460,6 +429,8 @@ class HeaderGeneratorUtils {
 
   /**
    * Generate extern variable declarations section
+   *
+   * Uses VariableDeclarationFormatter for consistent formatting with CodeGenerator.
    */
   static generateVariableSection(variables: ISymbol[]): string[] {
     if (variables.length === 0) {
@@ -468,21 +439,23 @@ class HeaderGeneratorUtils {
 
     const lines: string[] = ["/* External variables */"];
     for (const sym of variables) {
-      const constPrefix = sym.isConst ? "const " : "";
-      const volatilePrefix = sym.isAtomic ? "volatile " : "";
-      const arrayDims =
-        sym.isArray && sym.arrayDimensions
-          ? sym.arrayDimensions.map((d) => `[${d}]`).join("")
-          : "";
+      // Build normalized input for the unified formatter
+      const input: IVariableFormatInput = {
+        name: sym.name,
+        cnextType: sym.type || "int",
+        mappedType: mapType(sym.type || "int"),
+        modifiers: {
+          isConst: sym.isConst ?? false,
+          isAtomic: sym.isAtomic ?? false,
+          isVolatile: false, // C-Next uses atomic, not volatile directly
+          isExtern: true, // Headers always use extern
+        },
+        arrayDimensions:
+          sym.isArray && sym.arrayDimensions ? sym.arrayDimensions : undefined,
+      };
 
-      const declaration = HeaderGeneratorUtils.formatVariableDeclaration(
-        sym.type || "int",
-        sym.name,
-        arrayDims,
-        constPrefix,
-        volatilePrefix,
-      );
-      lines.push(`extern ${declaration};`);
+      const declaration = VariableDeclarationFormatter.format(input);
+      lines.push(`${declaration};`);
     }
     lines.push("");
     return lines;
