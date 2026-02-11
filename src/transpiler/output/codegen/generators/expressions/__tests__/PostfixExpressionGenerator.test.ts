@@ -2490,7 +2490,7 @@ describe("PostfixExpressionGenerator", () => {
       ).toThrow(".byte_length is not supported on 'args'");
     });
 
-    it("returns comment for unknown type bit_length", () => {
+    it("throws error for unknown type bit_length", () => {
       const ctx = createMockPostfixExpressionContext("val", [
         createMockPostfixOp({ identifier: "bit_length" }),
       ]);
@@ -2500,11 +2500,12 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("unknown type");
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("type not found in registry");
     });
 
-    it("returns comment for unknown type byte_length", () => {
+    it("throws error for unknown type byte_length", () => {
       const ctx = createMockPostfixExpressionContext("val", [
         createMockPostfixOp({ identifier: "byte_length" }),
       ]);
@@ -2514,11 +2515,12 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("unknown type");
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("type not found in registry");
     });
 
-    it("returns comment for unknown type element_count", () => {
+    it("throws error for unknown type element_count", () => {
       const ctx = createMockPostfixExpressionContext("val", [
         createMockPostfixOp({ identifier: "element_count" }),
       ]);
@@ -2528,11 +2530,12 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("unknown type");
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("type not found in registry");
     });
 
-    it("returns comment for string without capacity", () => {
+    it("throws error for string without capacity", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "str",
@@ -2555,8 +2558,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "str",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("unknown string capacity");
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("unknown capacity");
     });
 
     it("handles struct field bit_length for string member", () => {
@@ -2760,7 +2764,7 @@ describe("PostfixExpressionGenerator", () => {
       ).toThrow(".char_count is only available on strings");
     });
 
-    it("handles array with unknown dimensions for element_count", () => {
+    it("throws error for array with unknown dimensions for element_count", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "arr",
@@ -2782,11 +2786,12 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("unknown dimensions");
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("unknown dimensions");
     });
 
-    it("handles array with unknown dimensions for bit_length", () => {
+    it("throws error for array with unknown dimensions for bit_length", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "arr",
@@ -2808,8 +2813,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("unknown dimensions");
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("unknown dimensions");
     });
 
     it("handles enum array bit_length", () => {
@@ -2842,7 +2848,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("128"); // 4 * 32 = 128
     });
 
-    it("returns 0 with comment for unsupported element type in array", () => {
+    it("throws error for unsupported element type in array", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "arr",
@@ -2864,8 +2870,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("unsupported element type void");
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow("unsupported element type");
     });
   });
 });

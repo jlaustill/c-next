@@ -873,14 +873,18 @@ interface IExplicitLengthContext {
 }
 
 /**
- * Get the numeric bit width for a type (internal helper).
+ * Get the numeric bit width for a type (internal helper for ADR-058).
  * Returns 0 if type is unknown.
+ *
+ * Note: This differs from getTypeBitWidth() which returns a string and is
+ * used for the legacy .length property. This function returns a number for
+ * use in calculations (e.g., array total bits = elements * element width).
  */
 const getNumericBitWidth = (
   typeName: string,
   input: IGeneratorInput,
 ): number => {
-  let bitWidth = TYPE_WIDTH[typeName] || C_TYPE_WIDTH[typeName] || 0;
+  let bitWidth = TYPE_WIDTH[typeName] ?? C_TYPE_WIDTH[typeName] ?? 0;
   if (bitWidth === 0 && input.symbolTable) {
     const enumWidth = input.symbolTable.getEnumBitWidth(typeName);
     if (enumWidth) bitWidth = enumWidth;
@@ -931,7 +935,9 @@ const generateBitLengthProperty = (
     : undefined;
 
   if (!typeInfo) {
-    return `/* .bit_length: unknown type for ${ctx.result} */0`;
+    throw new Error(
+      `Error: Cannot determine .bit_length for '${ctx.result}' - type not found in registry.`,
+    );
   }
 
   return generateTypeInfoBitLength(typeInfo, ctx.subscriptDepth, input);
@@ -1011,7 +1017,9 @@ const generateStructFieldBitLength = (
     return String(bitWidth);
   }
 
-  return `/* .bit_length: unsupported type ${memberType} */0`;
+  throw new Error(
+    `Error: Cannot determine .bit_length for unsupported type '${memberType}'.`,
+  );
 };
 
 /**
@@ -1039,7 +1047,9 @@ const generateScalarBitLength = (
   if (bitWidth > 0) {
     return String(bitWidth);
   }
-  return `/* .bit_length: unsupported type ${typeInfo.baseType} */0`;
+  throw new Error(
+    `Error: Cannot determine .bit_length for unsupported type '${typeInfo.baseType}'.`,
+  );
 };
 
 /**
@@ -1078,12 +1088,16 @@ const generateArrayBitLength = (
 ): string => {
   const dims = typeInfo.arrayDimensions;
   if (!dims || dims.length === 0) {
-    return `/* .bit_length: unknown dimensions */0`;
+    throw new Error(
+      `Error: Cannot determine .bit_length for array with unknown dimensions.`,
+    );
   }
 
   const elementBitWidth = getArrayElementBitWidth(typeInfo, input);
   if (elementBitWidth === 0) {
-    return `/* .bit_length: unsupported element type ${typeInfo.baseType} */0`;
+    throw new Error(
+      `Error: Cannot determine .bit_length for array with unsupported element type '${typeInfo.baseType}'.`,
+    );
   }
 
   const dimResult = calculateRemainingDimensionsProduct(dims, subscriptDepth);
@@ -1117,7 +1131,9 @@ const generateTypeInfoBitLength = (
     if (typeInfo.stringCapacity !== undefined) {
       return String((typeInfo.stringCapacity + 1) * 8);
     }
-    return `/* .bit_length: unknown string capacity */0`;
+    throw new Error(
+      `Error: Cannot determine .bit_length for string with unknown capacity.`,
+    );
   }
 
   // Non-array scalar: return bit width
@@ -1173,7 +1189,9 @@ const generateByteLengthProperty = (
     : undefined;
 
   if (!typeInfo) {
-    return `/* .byte_length: unknown type for ${ctx.result} */0`;
+    throw new Error(
+      `Error: Cannot determine .byte_length for '${ctx.result}' - type not found in registry.`,
+    );
   }
 
   const bitLength = generateTypeInfoBitLength(
@@ -1240,7 +1258,9 @@ const generateTypeInfoElementCount = (
     : undefined;
 
   if (!typeInfo) {
-    return `/* .element_count: unknown type for ${ctx.result} */0`;
+    throw new Error(
+      `Error: Cannot determine .element_count for '${ctx.result}' - type not found in registry.`,
+    );
   }
 
   if (!typeInfo.isArray) {
@@ -1251,7 +1271,9 @@ const generateTypeInfoElementCount = (
 
   const dims = typeInfo.arrayDimensions;
   if (!dims || dims.length === 0) {
-    return `/* .element_count: unknown dimensions */0`;
+    throw new Error(
+      `Error: Cannot determine .element_count for array with unknown dimensions.`,
+    );
   }
 
   if (ctx.subscriptDepth < dims.length) {
@@ -1332,7 +1354,9 @@ const generateCharCountProperty = (
     : undefined;
 
   if (!typeInfo) {
-    return `/* .char_count: unknown type for ${ctx.result} */0`;
+    throw new Error(
+      `Error: Cannot determine .char_count for '${ctx.result}' - type not found in registry.`,
+    );
   }
 
   // Must be a string type
