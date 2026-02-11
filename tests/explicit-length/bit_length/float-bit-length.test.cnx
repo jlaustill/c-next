@@ -1,0 +1,47 @@
+// test-execution
+// Tests .bit_length property for float types (ADR-058)
+// f32 = 32 bits, f64 = 64 bits
+
+f32 globalF32 <- 3.14;
+f64 globalF64 <- 3.14159265359;
+
+struct TestStruct {
+    f32 x;
+    f64 y;
+}
+
+i32 main() {
+    // Test f32 bit_length = 32
+    if (globalF32.bit_length != 32) {
+        return 1;
+    }
+
+    // Test f64 bit_length = 64
+    if (globalF64.bit_length != 64) {
+        return 2;
+    }
+
+    // Test local floats
+    f32 localF32 <- 1.5;
+    if (localF32.bit_length != 32) {
+        return 3;
+    }
+
+    f64 localF64 <- 2.5;
+    if (localF64.bit_length != 64) {
+        return 4;
+    }
+
+    // Test struct members
+    TestStruct ts;
+    ts.x <- 1.0;
+    ts.y <- 2.0;
+    if (ts.x.bit_length != 32) {
+        return 5;
+    }
+    if (ts.y.bit_length != 64) {
+        return 6;
+    }
+
+    return 0;
+}

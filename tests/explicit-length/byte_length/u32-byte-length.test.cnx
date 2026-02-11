@@ -1,0 +1,68 @@
+// test-execution
+// Comprehensive .byte_length test for u32 type across all contexts (ADR-058)
+// Tests: .byte_length returns 4 for u32 in every possible scope and access pattern
+u32 globalVar <- 100000;
+
+scope TestScope {
+    public u32 getGlobalByteLength() {
+        return global.globalVar.byte_length;
+    }
+    u32 scopeMember <- 100000;
+    public u32 getMemberByteLength() {
+        return this.scopeMember.byte_length;
+    }
+    public u32 publicMember <- 100000;
+}
+
+u32 checkParamByteLength(u32 param) {
+    return param.byte_length;
+}
+
+struct TestStruct {
+    u32 member;
+}
+
+i32 main() {
+    if (globalVar.byte_length != 4) {
+        return 1;
+    }
+
+    u32 result <- TestScope.getGlobalByteLength();
+    if (result != 4) {
+        return 2;
+    }
+
+    result <- TestScope.getMemberByteLength();
+    if (result != 4) {
+        return 3;
+    }
+
+    if (TestScope.publicMember.byte_length != 4) {
+        return 4;
+    }
+
+    u32 localVar <- 100000;
+    if (localVar.byte_length != 4) {
+        return 5;
+    }
+
+    u32 testVal <- 100000;
+    result <- checkParamByteLength(testVal);
+    if (result != 4) {
+        return 6;
+    }
+
+    TestStruct ts;
+    ts.member <- 100000;
+    if (ts.member.byte_length != 4) {
+        return 7;
+    }
+
+    u32[4] arr;
+    arr[0] <- 100000;
+    if (arr[0].byte_length != 4) {
+        return 8;
+    }
+
+    return 0;
+}

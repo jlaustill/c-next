@@ -1,0 +1,79 @@
+// test-execution
+// Tests .byte_length property for arrays (ADR-058)
+// byte_length returns total bytes of storage
+// u32[16] = 16 elements x 4 bytes = 64 bytes
+
+u32[16] globalArr;
+
+scope TestScope {
+    public u32 getGlobalArrayByteLength() {
+        return global.globalArr.byte_length;
+    }
+    u32[16] scopeArr;
+    public u32 getScopeArrayByteLength() {
+        return this.scopeArr.byte_length;
+    }
+    public u32 publicArr[16];
+}
+
+u32 checkArrayByteLength(u32[16] arr) {
+    return arr.byte_length;
+}
+
+struct TestStruct {
+    u32[16] arr;
+}
+
+i32 main() {
+    globalArr[0] <- 100000;
+
+    // Test global array byte_length = 64 (16 x 4)
+    if (globalArr.byte_length != 64) {
+        return 1;
+    }
+
+    // Test via scope function
+    u32 result <- TestScope.getGlobalArrayByteLength();
+    if (result != 64) {
+        return 2;
+    }
+
+    result <- TestScope.getScopeArrayByteLength();
+    if (result != 64) {
+        return 3;
+    }
+
+    // Test public scope array
+    if (TestScope.publicArr.byte_length != 64) {
+        return 4;
+    }
+
+    // Test local array
+    u32[16] localArr;
+    localArr[0] <- 100000;
+    if (localArr.byte_length != 64) {
+        return 5;
+    }
+
+    // Test parameter
+    u32[16] testArr;
+    testArr[0] <- 100000;
+    result <- checkArrayByteLength(testArr);
+    if (result != 64) {
+        return 6;
+    }
+
+    // Test struct member array
+    TestStruct ts;
+    ts.arr[0] <- 100000;
+    if (ts.arr.byte_length != 64) {
+        return 7;
+    }
+
+    // Test element byte_length (single element = 4 bytes)
+    if (globalArr[0].byte_length != 4) {
+        return 8;
+    }
+
+    return 0;
+}

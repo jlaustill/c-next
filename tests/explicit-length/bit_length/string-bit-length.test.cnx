@@ -1,0 +1,38 @@
+// test-execution
+// Tests .bit_length property for strings (ADR-058)
+// bit_length = (capacity + 1) x 8 (buffer size in bits including null terminator)
+// string<64> = 65 x 8 = 520 bits
+
+string<64> globalStr <- "Hello";
+
+struct TestStruct {
+    string<32> name;
+}
+
+i32 main() {
+    // Test global string bit_length = 520 ((64+1) x 8)
+    if (globalStr.bit_length != 520) {
+        return 1;
+    }
+
+    // Test local string<32> = 264 bits ((32+1) x 8)
+    string<32> localStr <- "World";
+    if (localStr.bit_length != 264) {
+        return 2;
+    }
+
+    // Test string<16> = 136 bits ((16+1) x 8)
+    string<16> smallStr <- "";
+    if (smallStr.bit_length != 136) {
+        return 3;
+    }
+
+    // Test struct member string<32> = 264 bits
+    TestStruct ts;
+    ts.name <- "Test";
+    if (ts.name.bit_length != 264) {
+        return 4;
+    }
+
+    return 0;
+}

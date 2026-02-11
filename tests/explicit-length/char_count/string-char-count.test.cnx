@@ -1,0 +1,37 @@
+// test-execution
+// Tests .char_count property for strings (ADR-058)
+// char_count returns the current character count (strlen)
+
+string<64> globalStr <- "Hello";
+
+struct TestStruct {
+    string<32> name;
+}
+
+i32 main() {
+    // Test global string char_count = 5
+    if (globalStr.char_count != 5) {
+        return 1;
+    }
+
+    // Test local string
+    string<32> localStr <- "World";
+    if (localStr.char_count != 5) {
+        return 2;
+    }
+
+    // Test empty string
+    string<16> emptyStr <- "";
+    if (emptyStr.char_count != 0) {
+        return 3;
+    }
+
+    // Test struct member
+    TestStruct ts;
+    ts.name <- "Test";
+    if (ts.name.char_count != 4) {
+        return 4;
+    }
+
+    return 0;
+}

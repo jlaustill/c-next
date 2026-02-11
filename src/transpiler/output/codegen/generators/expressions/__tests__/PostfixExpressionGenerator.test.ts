@@ -2071,4 +2071,324 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("matrix[0][1]");
     });
   });
+
+  // ========================================================================
+  // ADR-058: Explicit Length Properties
+  // ========================================================================
+
+  describe(".bit_length property (ADR-058)", () => {
+    it("returns bit width for integer type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "val",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("32");
+    });
+
+    it("returns 32 for enum type", () => {
+      const symbols = createMockSymbols({
+        knownEnums: new Set(["Color"]),
+      });
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "color",
+          {
+            baseType: "Color",
+            bitWidth: 32,
+            isArray: false,
+            isConst: false,
+            isEnum: true,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("color", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ symbols, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "color",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("32");
+    });
+
+    it("returns total bits for array type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [16],
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("512"); // 16 * 32 = 512
+    });
+
+    it("returns buffer bits for string type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "str",
+          {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: false,
+            isConst: false,
+            isString: true,
+            stringCapacity: 64,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("str", [
+        createMockPostfixOp({ identifier: "bit_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "str",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("520"); // (64 + 1) * 8 = 520
+    });
+  });
+
+  describe(".byte_length property (ADR-058)", () => {
+    it("returns byte size for integer type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "val",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "byte_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("4"); // 32 / 8 = 4
+    });
+
+    it("returns total bytes for array type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [16],
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "byte_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("64"); // 16 * 4 = 64
+    });
+
+    it("returns buffer bytes for string type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "str",
+          {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: false,
+            isConst: false,
+            isString: true,
+            stringCapacity: 64,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("str", [
+        createMockPostfixOp({ identifier: "byte_length" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "str",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("65"); // 64 + 1 = 65
+    });
+  });
+
+  describe(".element_count property (ADR-058)", () => {
+    it("returns element count for array type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "arr",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: true,
+            arrayDimensions: [16],
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("arr", [
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "arr",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("16");
+    });
+
+    it("returns argc for main args", () => {
+      const ctx = createMockPostfixExpressionContext("args", [
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput();
+      const state = createMockState({ mainArgsName: "args" });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "args",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("argc");
+    });
+
+    it("throws error for non-array type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "val",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "element_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(".element_count is only available on arrays");
+    });
+  });
+
+  describe(".char_count property (ADR-058)", () => {
+    it("returns strlen for string type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "str",
+          {
+            baseType: "char",
+            bitWidth: 8,
+            isArray: false,
+            isConst: false,
+            isString: true,
+            stringCapacity: 64,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("str", [
+        createMockPostfixOp({ identifier: "char_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "str",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("strlen(str)");
+      expect(result.effects).toContainEqual({
+        type: "include",
+        header: "string",
+      });
+    });
+
+    it("throws error for non-string type", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "val",
+          {
+            baseType: "u32",
+            bitWidth: 32,
+            isArray: false,
+            isConst: false,
+          },
+        ],
+      ]);
+      const ctx = createMockPostfixExpressionContext("val", [
+        createMockPostfixOp({ identifier: "char_count" }),
+      ]);
+      const input = createMockInput({ typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "val",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(".char_count is only available on strings");
+    });
+  });
 });
