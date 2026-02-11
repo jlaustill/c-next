@@ -1148,6 +1148,33 @@ describe("SymbolTable", () => {
       expect(symbol?.arrayDimensions).toEqual(["10"]);
     });
 
+    it("skips function symbols without parameters", () => {
+      symbolTable.addSymbol({
+        name: "EColor_COUNT",
+        kind: ESymbolKind.EnumMember,
+        sourceFile: "colors.cnx",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        parent: "EColor",
+      });
+
+      symbolTable.addSymbol({
+        name: "doWork",
+        kind: ESymbolKind.Function,
+        sourceFile: "main.cnx",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        // No parameters field
+      });
+
+      symbolTable.resolveExternalEnumArrayDimensions();
+
+      const symbol = symbolTable.getSymbol("doWork");
+      expect(symbol?.parameters).toBeUndefined();
+    });
+
     it("is a no-op when no enum members exist", () => {
       symbolTable.addSymbol({
         name: "DATA",

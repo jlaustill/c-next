@@ -542,8 +542,27 @@ class SymbolTable {
    * TSymbolAdapter for same-file enums) and numeric dimensions.
    */
   resolveExternalEnumArrayDimensions(): void {
-    // Build lookup: member name -> parent enum name (null if ambiguous)
-    const enumMemberLookup = new Map<string, string | null>();
+    const enumMemberLookup = this.buildEnumMemberLookup();
+
+    if (enumMemberLookup.size === 0) {
+      return;
+    }
+
+    for (const symbol of this.getAllSymbols()) {
+      if (symbol.kind === ESymbolKind.Variable) {
+        this.resolveEnumDimensionsOnSymbol(symbol, enumMemberLookup);
+      } else if (symbol.kind === ESymbolKind.Function) {
+        this.resolveEnumDimensionsOnParams(symbol, enumMemberLookup);
+      }
+    }
+  }
+
+  /**
+   * Build a lookup from bare enum member names to their parent enum.
+   * If a member name exists in multiple enums, it's marked ambiguous (null).
+   */
+  private buildEnumMemberLookup(): Map<string, string | null> {
+    const lookup = new Map<string, string | null>();
     for (const symbol of this.getAllSymbols()) {
       if (symbol.kind !== ESymbolKind.EnumMember || !symbol.parent) {
         continue;
@@ -551,35 +570,46 @@ class SymbolTable {
       const memberName = symbol.name.includes("_")
         ? symbol.name.substring(symbol.parent.length + 1)
         : symbol.name;
-      if (enumMemberLookup.has(memberName)) {
-        const existing = enumMemberLookup.get(memberName);
-        if (existing !== symbol.parent) {
-          enumMemberLookup.set(memberName, null); // Ambiguous
-        }
-      } else {
-        enumMemberLookup.set(memberName, symbol.parent);
-      }
+      this.addToEnumMemberLookup(lookup, memberName, symbol.parent);
     }
+    return lookup;
+  }
 
-    if (enumMemberLookup.size === 0) {
+  /**
+   * Add a member to the enum lookup, marking as ambiguous if already present
+   * from a different enum.
+   */
+  private addToEnumMemberLookup(
+    lookup: Map<string, string | null>,
+    memberName: string,
+    parentEnum: string,
+  ): void {
+    const existing = lookup.get(memberName);
+    if (existing === undefined) {
+      lookup.set(memberName, parentEnum);
+    } else if (existing !== parentEnum) {
+      lookup.set(memberName, null); // Ambiguous
+    }
+  }
+
+  /**
+   * Resolve enum member names in a function symbol's parameter array dimensions.
+   */
+  private resolveEnumDimensionsOnParams(
+    symbol: ISymbol,
+    enumMemberLookup: Map<string, string | null>,
+  ): void {
+    if (!symbol.parameters) {
       return;
     }
-
-    // Resolve dimensions on variable and function symbols
-    for (const symbol of this.getAllSymbols()) {
-      if (symbol.kind === ESymbolKind.Variable) {
-        this.resolveEnumDimensionsOnSymbol(symbol, enumMemberLookup);
-      } else if (symbol.kind === ESymbolKind.Function && symbol.parameters) {
-        for (const param of symbol.parameters) {
-          if (param.isArray && param.arrayDimensions) {
-            const resolved = this.resolveEnumDimensions(
-              param.arrayDimensions,
-              enumMemberLookup,
-            );
-            if (resolved) {
-              param.arrayDimensions = resolved;
-            }
-          }
+    for (const param of symbol.parameters) {
+      if (param.isArray && param.arrayDimensions) {
+        const resolved = this.resolveEnumDimensions(
+          param.arrayDimensions,
+          enumMemberLookup,
+        );
+        if (resolved) {
+          param.arrayDimensions = resolved;
         }
       }
     }
