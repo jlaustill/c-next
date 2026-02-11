@@ -1,0 +1,47 @@
+// test-execution
+// Tests .byte_length property for float types (ADR-058)
+// f32 = 4 bytes, f64 = 8 bytes
+
+f32 globalF32 <- 3.14;
+f64 globalF64 <- 3.14159265359;
+
+struct TestStruct {
+    f32 x;
+    f64 y;
+}
+
+i32 main() {
+    // Test f32 byte_length = 4
+    if (globalF32.byte_length != 4) {
+        return 1;
+    }
+
+    // Test f64 byte_length = 8
+    if (globalF64.byte_length != 8) {
+        return 2;
+    }
+
+    // Test local floats
+    f32 localF32 <- 1.5;
+    if (localF32.byte_length != 4) {
+        return 3;
+    }
+
+    f64 localF64 <- 2.5;
+    if (localF64.byte_length != 8) {
+        return 4;
+    }
+
+    // Test struct members
+    TestStruct ts;
+    ts.x <- 1.0;
+    ts.y <- 2.0;
+    if (ts.x.byte_length != 4) {
+        return 5;
+    }
+    if (ts.y.byte_length != 8) {
+        return 6;
+    }
+
+    return 0;
+}

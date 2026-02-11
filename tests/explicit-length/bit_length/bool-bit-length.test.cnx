@@ -1,0 +1,31 @@
+// test-execution
+// Tests .bit_length property for bool type (ADR-058)
+// Bool storage size is 8 bits (1 byte)
+
+bool globalBool <- true;
+
+struct TestStruct {
+    bool flag;
+}
+
+i32 main() {
+    // Test global bool bit_length = 8 (storage size)
+    if (globalBool.bit_length != 8) {
+        return 1;
+    }
+
+    // Test local bool
+    bool localBool <- false;
+    if (localBool.bit_length != 8) {
+        return 2;
+    }
+
+    // Test struct member
+    TestStruct ts;
+    ts.flag <- true;
+    if (ts.flag.bit_length != 8) {
+        return 3;
+    }
+
+    return 0;
+}

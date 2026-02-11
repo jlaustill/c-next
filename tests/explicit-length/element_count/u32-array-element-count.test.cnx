@@ -1,0 +1,73 @@
+// test-execution
+// Tests .element_count property for arrays (ADR-058)
+// element_count returns the number of elements in an array
+
+u32[16] globalArr;
+
+scope TestScope {
+    public u32 getGlobalArrayElementCount() {
+        return global.globalArr.element_count;
+    }
+    u32[16] scopeArr;
+    public u32 getScopeArrayElementCount() {
+        return this.scopeArr.element_count;
+    }
+    public u32 publicArr[16];
+}
+
+u32 checkArrayElementCount(u32[16] arr) {
+    return arr.element_count;
+}
+
+struct TestStruct {
+    u32[16] arr;
+}
+
+i32 main() {
+    globalArr[0] <- 100000;
+
+    // Test global array element_count = 16
+    if (globalArr.element_count != 16) {
+        return 1;
+    }
+
+    // Test via scope function
+    u32 result <- TestScope.getGlobalArrayElementCount();
+    if (result != 16) {
+        return 2;
+    }
+
+    result <- TestScope.getScopeArrayElementCount();
+    if (result != 16) {
+        return 3;
+    }
+
+    // Test public scope array
+    if (TestScope.publicArr.element_count != 16) {
+        return 4;
+    }
+
+    // Test local array
+    u32[16] localArr;
+    localArr[0] <- 100000;
+    if (localArr.element_count != 16) {
+        return 5;
+    }
+
+    // Test parameter
+    u32[16] testArr;
+    testArr[0] <- 100000;
+    result <- checkArrayElementCount(testArr);
+    if (result != 16) {
+        return 6;
+    }
+
+    // Test struct member array
+    TestStruct ts;
+    ts.arr[0] <- 100000;
+    if (ts.arr.element_count != 16) {
+        return 7;
+    }
+
+    return 0;
+}
