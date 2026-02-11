@@ -29,6 +29,7 @@
     "bitfields",
     "bitwidth",
     "REGNAME",
+    "PORTA",
     "struct",
     "structs",
     "enum",
