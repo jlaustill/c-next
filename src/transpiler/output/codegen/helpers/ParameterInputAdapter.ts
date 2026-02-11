@@ -47,16 +47,16 @@ interface IFromASTDeps {
 /**
  * Dependencies required by fromSymbol() to resolve types.
  * Simpler than AST deps since IParameterSymbol already contains most info.
+ *
+ * The caller (BaseHeaderGenerator) pre-computes isPassByValue including
+ * ISR/float/enum/passByValueSet checks. The adapter trusts this decision.
  */
 interface IFromSymbolDeps {
   /** Map C-Next type to C type */
   mapType: (type: string) => string;
 
-  /** Whether the parameter should use pass-by-value */
+  /** Whether the parameter should use pass-by-value (pre-computed by caller) */
   isPassByValue: boolean;
-
-  /** Set of known enum names (for pass-by-value detection) */
-  knownEnums: ReadonlySet<string>;
 }
 
 /**
@@ -134,14 +134,16 @@ class ParameterInputAdapter {
       isCallback: false,
       isString: false,
       isPassByValue: deps.isPassByValue,
-      isKnownStruct,
-      isKnownPrimitive,
+      isPassByReference: isKnownStruct || isKnownPrimitive,
     };
   }
 
   /**
    * Convert IParameterSymbol to normalized IParameterInput.
    * Used by BaseHeaderGenerator.generateParameter().
+   *
+   * The caller pre-computes isPassByValue (ISR, float, enum, passByValueSet).
+   * Non-PBV, non-array, non-string types use pass-by-reference.
    *
    * @param param - The parameter symbol
    * @param deps - Dependencies for type mapping
@@ -178,19 +180,9 @@ class ParameterInputAdapter {
         isCallback: false,
         isString: true,
         isPassByValue: false,
-        isKnownStruct: false,
-        isKnownPrimitive: false,
+        isPassByReference: false,
       };
     }
-
-    // Determine if pass-by-value
-    // ISR, float, enum, or explicitly marked
-    const isPassByValue =
-      param.type === "ISR" ||
-      param.type === "f32" ||
-      param.type === "f64" ||
-      deps.knownEnums.has(param.type) ||
-      deps.isPassByValue;
 
     return {
       name: param.name,
@@ -201,11 +193,8 @@ class ParameterInputAdapter {
       isArray: false,
       isCallback: false,
       isString: false,
-      isPassByValue,
-      // For symbol-based, we need to pass by reference for non-pass-by-value types
-      // The builder will handle this via the refSuffix parameter
-      isKnownStruct: !isPassByValue,
-      isKnownPrimitive: !isPassByValue,
+      isPassByValue: deps.isPassByValue,
+      isPassByReference: !deps.isPassByValue,
     };
   }
 
@@ -229,8 +218,7 @@ class ParameterInputAdapter {
       callbackTypedefName: typedefName,
       isString: false,
       isPassByValue: true, // Callbacks are function pointers, pass by value
-      isKnownStruct: false,
-      isKnownPrimitive: false,
+      isPassByReference: false,
     };
   }
 
@@ -280,8 +268,7 @@ class ParameterInputAdapter {
       isCallback: false,
       isString,
       isPassByValue: false, // Arrays are always passed by pointer
-      isKnownStruct: false,
-      isKnownPrimitive: false,
+      isPassByReference: false,
     };
   }
 
@@ -311,8 +298,7 @@ class ParameterInputAdapter {
       isString,
       isUnboundedString,
       isPassByValue: false,
-      isKnownStruct: false,
-      isKnownPrimitive: false,
+      isPassByReference: false,
     };
   }
 
@@ -343,8 +329,7 @@ class ParameterInputAdapter {
       isString: true,
       stringCapacity: capacity,
       isPassByValue: false,
-      isKnownStruct: false,
-      isKnownPrimitive: false,
+      isPassByReference: false,
     };
   }
 }

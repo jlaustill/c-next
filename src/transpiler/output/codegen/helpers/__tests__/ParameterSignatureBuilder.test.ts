@@ -23,8 +23,7 @@ function createInput(overrides: Partial<IParameterInput>): IParameterInput {
     isCallback: false,
     isString: false,
     isPassByValue: false,
-    isKnownStruct: false,
-    isKnownPrimitive: true,
+    isPassByReference: true,
     ...overrides,
   };
 }
@@ -216,8 +215,7 @@ describe("ParameterSignatureBuilder", () => {
         name: "point",
         baseType: "Point",
         mappedType: "Point",
-        isKnownStruct: true,
-        isKnownPrimitive: false,
+        isPassByReference: true,
         isAutoConst: true,
       });
 
@@ -231,8 +229,7 @@ describe("ParameterSignatureBuilder", () => {
         name: "point",
         baseType: "Point",
         mappedType: "Point",
-        isKnownStruct: true,
-        isKnownPrimitive: false,
+        isPassByReference: true,
         isAutoConst: true,
       });
 
@@ -246,8 +243,7 @@ describe("ParameterSignatureBuilder", () => {
         name: "point",
         baseType: "Point",
         mappedType: "Point",
-        isKnownStruct: true,
-        isKnownPrimitive: false,
+        isPassByReference: true,
         isAutoConst: false, // parameter is modified
       });
 
@@ -261,7 +257,7 @@ describe("ParameterSignatureBuilder", () => {
         name: "value",
         baseType: "u32",
         mappedType: "uint32_t",
-        isKnownPrimitive: true,
+        isPassByReference: true,
         isAutoConst: true,
       });
 
@@ -277,8 +273,7 @@ describe("ParameterSignatureBuilder", () => {
         mappedType: "Point",
         isConst: true,
         isAutoConst: false, // explicit const already set
-        isKnownStruct: true,
-        isKnownPrimitive: false,
+        isPassByReference: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -293,8 +288,7 @@ describe("ParameterSignatureBuilder", () => {
         name: "data",
         baseType: "UnknownType",
         mappedType: "UnknownType",
-        isKnownStruct: false,
-        isKnownPrimitive: false,
+        isPassByReference: false,
         isPassByValue: false,
       });
 
@@ -309,8 +303,7 @@ describe("ParameterSignatureBuilder", () => {
         baseType: "UnknownType",
         mappedType: "UnknownType",
         isConst: true,
-        isKnownStruct: false,
-        isKnownPrimitive: false,
+        isPassByReference: false,
         isPassByValue: false,
       });
 

@@ -26,7 +26,6 @@ describe("ParameterInputAdapter", () => {
         return map[t] ?? t;
       },
       isPassByValue: false,
-      knownEnums: new Set<string>(),
     };
 
     it("converts basic primitive parameter", () => {
@@ -130,7 +129,7 @@ describe("ParameterInputAdapter", () => {
       expect(result.mappedType).toBe("char");
     });
 
-    it("detects ISR as pass-by-value", () => {
+    it("uses pass-by-value from deps for ISR", () => {
       const param: IParameterSymbol = {
         name: "handler",
         type: "ISR",
@@ -138,34 +137,29 @@ describe("ParameterInputAdapter", () => {
         isArray: false,
       };
 
-      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
+      const deps = { ...defaultDeps, isPassByValue: true };
+      const result = ParameterInputAdapter.fromSymbol(param, deps);
 
       expect(result.isPassByValue).toBe(true);
+      expect(result.isPassByReference).toBe(false);
     });
 
-    it("detects float types as pass-by-value", () => {
-      const paramF32: IParameterSymbol = {
+    it("uses pass-by-value from deps for float types", () => {
+      const param: IParameterSymbol = {
         name: "value",
         type: "f32",
         isConst: false,
         isArray: false,
       };
 
-      const resultF32 = ParameterInputAdapter.fromSymbol(paramF32, defaultDeps);
-      expect(resultF32.isPassByValue).toBe(true);
+      const deps = { ...defaultDeps, isPassByValue: true };
+      const result = ParameterInputAdapter.fromSymbol(param, deps);
 
-      const paramF64: IParameterSymbol = {
-        name: "value",
-        type: "f64",
-        isConst: false,
-        isArray: false,
-      };
-
-      const resultF64 = ParameterInputAdapter.fromSymbol(paramF64, defaultDeps);
-      expect(resultF64.isPassByValue).toBe(true);
+      expect(result.isPassByValue).toBe(true);
+      expect(result.isPassByReference).toBe(false);
     });
 
-    it("detects enum as pass-by-value", () => {
+    it("uses pass-by-value from deps for enums", () => {
       const param: IParameterSymbol = {
         name: "status",
         type: "Status",
@@ -173,17 +167,14 @@ describe("ParameterInputAdapter", () => {
         isArray: false,
       };
 
-      const deps = {
-        ...defaultDeps,
-        knownEnums: new Set(["Status"]),
-      };
-
+      const deps = { ...defaultDeps, isPassByValue: true };
       const result = ParameterInputAdapter.fromSymbol(param, deps);
 
       expect(result.isPassByValue).toBe(true);
+      expect(result.isPassByReference).toBe(false);
     });
 
-    it("uses explicit pass-by-value from deps", () => {
+    it("sets isPassByReference when not pass-by-value", () => {
       const param: IParameterSymbol = {
         name: "count",
         type: "u32",
@@ -191,14 +182,10 @@ describe("ParameterInputAdapter", () => {
         isArray: false,
       };
 
-      const deps = {
-        ...defaultDeps,
-        isPassByValue: true,
-      };
+      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
 
-      const result = ParameterInputAdapter.fromSymbol(param, deps);
-
-      expect(result.isPassByValue).toBe(true);
+      expect(result.isPassByValue).toBe(false);
+      expect(result.isPassByReference).toBe(true);
     });
 
     it("preserves const modifier", () => {

@@ -48,7 +48,7 @@ class ParameterSignatureBuilder {
     }
 
     // Known struct or known primitive: pass by reference
-    if (param.isKnownStruct || param.isKnownPrimitive) {
+    if (param.isPassByReference) {
       return this._buildRefParam(param, refSuffix);
     }
 

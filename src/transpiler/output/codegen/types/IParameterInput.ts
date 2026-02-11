@@ -6,7 +6,7 @@
  * (which generates the final C/C++ parameter string).
  *
  * All decisions are pre-computed before reaching the builder:
- * - Type classification (struct, primitive, callback, string, etc.)
+ * - Type classification (callback, string, array, etc.)
  * - Const qualifiers (explicit and auto-inferred)
  * - Pass-by-value vs pass-by-reference
  * - Array dimensions
@@ -51,11 +51,8 @@ interface IParameterInput {
   /** Whether to use pass-by-value semantics (ISR, float, enum, small primitive) */
   isPassByValue: boolean;
 
-  /** Whether this is a known struct type (from CodeGenState.symbols.knownStructs/knownBitmaps) */
-  isKnownStruct: boolean;
-
-  /** Whether this is a primitive type in TYPE_MAP */
-  isKnownPrimitive: boolean;
+  /** Whether to use pass-by-reference semantics (known struct or known primitive) */
+  isPassByReference: boolean;
 }
 
 export default IParameterInput;

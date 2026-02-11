@@ -91,13 +91,12 @@ class TSymbolAdapter {
     for (const symbol of symbols) {
       if (symbol.kind !== ESymbolKind.Enum) continue;
 
-      const enumSym = symbol as IEnumSymbol;
-      for (const memberName of enumSym.members.keys()) {
+      for (const memberName of symbol.members.keys()) {
         if (lookup.has(memberName)) {
           // Ambiguous: member exists in multiple enums
           lookup.set(memberName, null);
         } else {
-          lookup.set(memberName, enumSym.name);
+          lookup.set(memberName, symbol.name);
         }
       }
     }

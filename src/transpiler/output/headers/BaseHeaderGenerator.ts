@@ -200,7 +200,6 @@ abstract class BaseHeaderGenerator {
     const input = ParameterInputAdapter.fromSymbol(p, {
       mapType: (t) => mapType(t),
       isPassByValue,
-      knownEnums: allKnownEnums ?? new Set(),
     });
 
     // Use shared builder with subclass-specific ref suffix
