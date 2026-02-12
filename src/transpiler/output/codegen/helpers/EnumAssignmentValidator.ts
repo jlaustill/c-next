@@ -78,7 +78,7 @@ class EnumAssignmentValidator {
 
     // Check if it's a variable of primitive integer type
     if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const typeInfo = CodeGenState.typeRegistry.get(text);
+      const typeInfo = CodeGenState.getVariableTypeInfo(text);
       if (
         typeInfo &&
         !typeInfo.isEnum &&

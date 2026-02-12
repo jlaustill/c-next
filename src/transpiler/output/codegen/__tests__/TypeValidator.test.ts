@@ -74,7 +74,7 @@ function setupState(options: SetupStateOptions = {}): void {
   }
   if (options.typeRegistry) {
     for (const [k, v] of options.typeRegistry) {
-      CodeGenState.typeRegistry.set(k, v);
+      CodeGenState.setVariableTypeInfo(k, v);
     }
   }
   if (options.callbackTypes) {

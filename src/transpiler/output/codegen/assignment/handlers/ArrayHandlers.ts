@@ -37,7 +37,7 @@ function handleArrayElement(ctx: IAssignmentContext): string {
 function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
   // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
   // e.g., "ArrayBug_data" instead of "data"
-  const typeInfo = CodeGenState.typeRegistry.get(ctx.resolvedBaseIdentifier);
+  const typeInfo = CodeGenState.getVariableTypeInfo(ctx.resolvedBaseIdentifier);
 
   // ADR-036: Compile-time bounds checking for constant indices
   if (typeInfo?.arrayDimensions) {
@@ -71,7 +71,7 @@ function handleArraySlice(ctx: IAssignmentContext): string {
 
   // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
   const name = ctx.resolvedBaseIdentifier;
-  const typeInfo = CodeGenState.typeRegistry.get(name);
+  const typeInfo = CodeGenState.getVariableTypeInfo(name);
 
   // Get line number for error messages
   const line = ctx.subscripts[0].start?.line ?? 0;

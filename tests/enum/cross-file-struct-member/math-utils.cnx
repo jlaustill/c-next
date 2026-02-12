@@ -1,0 +1,9 @@
+// Helper file: math utilities for cross-file function test
+
+u32 add(u32 a, u32 b) {
+    return a + b;
+}
+
+u32 multiply(u32 a, u32 b) {
+    return a * b;
+}

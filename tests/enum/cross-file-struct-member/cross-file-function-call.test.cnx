@@ -1,0 +1,21 @@
+// test-c-only
+// test-execution
+// Tests: cross-file function calls with parameter validation
+
+#include "math-utils.cnx"
+
+u32 main() {
+    // Call cross-file function with const params
+    u32 sum <- add(10, 20);
+    if (sum != 30) return 1;
+
+    // Call cross-file function with non-const params
+    u32 product <- multiply(5, 6);
+    if (product != 30) return 2;
+
+    // Use results in expressions
+    u32 combined <- add(sum, product);
+    if (combined != 60) return 3;
+
+    return 0;
+}

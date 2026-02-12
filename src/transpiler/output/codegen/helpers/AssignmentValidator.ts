@@ -120,7 +120,7 @@ class AssignmentValidator {
     const shadowName = `__bits_${id}`;
     CodeGenState.floatShadowCurrent.delete(shadowName);
 
-    const targetTypeInfo = CodeGenState.typeRegistry.get(id);
+    const targetTypeInfo = CodeGenState.getVariableTypeInfo(id);
     if (!targetTypeInfo) {
       return;
     }
@@ -172,7 +172,7 @@ class AssignmentValidator {
     }
 
     // ADR-036: Compile-time bounds checking
-    const typeInfo = CodeGenState.typeRegistry.get(arrayName);
+    const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
     if (typeInfo?.isArray && typeInfo.arrayDimensions) {
       TypeValidator.checkArrayBounds(
         arrayName,
@@ -217,7 +217,7 @@ class AssignmentValidator {
     }
 
     // ADR-029: Validate callback field assignments with nominal typing
-    const rootTypeInfo = CodeGenState.typeRegistry.get(rootName);
+    const rootTypeInfo = CodeGenState.getVariableTypeInfo(rootName);
     if (rootTypeInfo && CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
       const structType = rootTypeInfo.baseType;
       const callbackFieldKey = `${structType}.${memberName}`;

@@ -121,7 +121,7 @@ describe("EnumTypeResolver", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["State"]),
       });
-      CodeGenState.typeRegistry.set("currentState", {
+      CodeGenState.setVariableTypeInfo("currentState", {
         baseType: "State",
         bitWidth: 0,
         isArray: false,
@@ -135,7 +135,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("returns null for non-enum variable", () => {
-      CodeGenState.typeRegistry.set("count", {
+      CodeGenState.setVariableTypeInfo("count", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -190,7 +190,7 @@ describe("EnumTypeResolver", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["Motor_State"]),
       });
-      CodeGenState.typeRegistry.set("Motor_current", {
+      CodeGenState.setVariableTypeInfo("Motor_current", {
         baseType: "Motor_State",
         bitWidth: 0,
         isArray: false,
@@ -261,7 +261,7 @@ describe("EnumTypeResolver", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["EValueId"]),
       });
-      CodeGenState.typeRegistry.set("input", {
+      CodeGenState.setVariableTypeInfo("input", {
         baseType: "TInput",
         bitWidth: 0,
         isArray: false,
@@ -280,7 +280,7 @@ describe("EnumTypeResolver", () => {
       symbolTable.addStructField("TInput", "count", "u32");
       CodeGenState.symbolTable = symbolTable;
       CodeGenState.symbols = createMockSymbols();
-      CodeGenState.typeRegistry.set("input", {
+      CodeGenState.setVariableTypeInfo("input", {
         baseType: "TInput",
         bitWidth: 0,
         isArray: false,

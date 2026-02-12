@@ -148,7 +148,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
     ]);
     setupSymbols({ bitmapFields });
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "flags",
       createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
     );
@@ -169,7 +169,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["StatusFlags", new Map([["Mode", { offset: 4, width: 4 }]])],
     ]);
     setupSymbols({ bitmapFields });
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "flags",
       createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
     );
@@ -213,7 +213,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["Device", new Map([["flags", "DeviceFlags"]])],
     ]);
     setupSymbols({ bitmapFields, knownStructs, structFields });
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "device",
       createTypeInfo({ baseType: "Device" }),
     );
@@ -240,7 +240,10 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
   });
 
   it("classifies single bit access on integer", () => {
-    CodeGenState.typeRegistry.set("flags", createTypeInfo({ baseType: "u8" }));
+    CodeGenState.setVariableTypeInfo(
+      "flags",
+      createTypeInfo({ baseType: "u8" }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["flags"],
@@ -253,7 +256,10 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
   });
 
   it("classifies bit range access on integer", () => {
-    CodeGenState.typeRegistry.set("flags", createTypeInfo({ baseType: "u32" }));
+    CodeGenState.setVariableTypeInfo(
+      "flags",
+      createTypeInfo({ baseType: "u32" }),
+    );
 
     const ctx = createMockContext({
       identifiers: ["flags"],
@@ -282,7 +288,7 @@ describe("AssignmentClassifier - Array Access", () => {
   });
 
   it("classifies simple array element", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "arr",
       createTypeInfo({
         isArray: true,
@@ -303,7 +309,7 @@ describe("AssignmentClassifier - Array Access", () => {
   });
 
   it("classifies array slice", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "buffer",
       createTypeInfo({
         isArray: true,
@@ -336,7 +342,7 @@ describe("AssignmentClassifier - String Assignments", () => {
   });
 
   it("classifies simple string variable", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "name",
       createTypeInfo({
         baseType: "string<32>",
@@ -348,7 +354,7 @@ describe("AssignmentClassifier - String Assignments", () => {
     const ctx = createMockContext({
       identifiers: ["name"],
       isSimpleIdentifier: true,
-      firstIdTypeInfo: CodeGenState.typeRegistry.get("name")!,
+      firstIdTypeInfo: CodeGenState.getVariableTypeInfo("name")!,
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(
@@ -362,7 +368,7 @@ describe("AssignmentClassifier - String Assignments", () => {
       ["Person", new Map([["name", "string<64>"]])],
     ]);
     setupSymbols({ knownStructs, structFields });
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "person",
       createTypeInfo({ baseType: "Person" }),
     );
@@ -389,7 +395,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   });
 
   it("classifies atomic RMW", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "counter",
       createTypeInfo({
         baseType: "u32",
@@ -408,7 +414,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   });
 
   it("classifies overflow clamp", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "saturated",
       createTypeInfo({
         baseType: "u8",
@@ -429,7 +435,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   });
 
   it("does not classify float as overflow clamp", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "value",
       createTypeInfo({
         baseType: "f32",
@@ -648,7 +654,7 @@ describe("AssignmentClassifier - Bitmap Array Element Field", () => {
       ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
     ]);
     setupSymbols({ bitmapFields });
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "flagsArr",
       createTypeInfo({
         isBitmap: true,
@@ -682,7 +688,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
   });
 
   it("classifies matrix[i][j][bit] as ARRAY_ELEMENT_BIT", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "matrix",
       createTypeInfo({
         baseType: "u32",
@@ -709,7 +715,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
   });
 
   it("classifies matrix[i][j] as MULTI_DIM_ARRAY_ELEMENT", () => {
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "matrix",
       createTypeInfo({
         baseType: "u32",
@@ -875,7 +881,7 @@ describe("AssignmentClassifier - Member Chain", () => {
     const knownStructs = new Set(["Config"]);
     const structFields = new Map([["Config", new Map([["items", "Item"]])]]);
     setupSymbols({ knownStructs, structFields });
-    CodeGenState.typeRegistry.set(
+    CodeGenState.setVariableTypeInfo(
       "config",
       createTypeInfo({ baseType: "Config" }),
     );

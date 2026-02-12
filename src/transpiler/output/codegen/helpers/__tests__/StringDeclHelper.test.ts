@@ -246,7 +246,7 @@ describe("StringDeclHelper", () => {
       expect(result.handled).toBe(true);
       expect(result.code).toBe('const char greeting[6] = "Hello";');
       expect(requireStringInclude).toHaveBeenCalled();
-      expect(CodeGenState.typeRegistry.get("greeting")).toMatchObject({
+      expect(CodeGenState.getVariableTypeInfo("greeting")).toMatchObject({
         baseType: "char",
         isString: true,
         stringCapacity: 5,
@@ -821,9 +821,9 @@ describe("StringDeclHelper", () => {
       expect(result.handled).toBe(true);
       expect(result.code).toContain("[2]"); // Inferred size
       expect(result.code).toContain("[11]"); // capacity + 1
-      expect(CodeGenState.typeRegistry.get("labels")?.arrayDimensions).toEqual([
-        2, 11,
-      ]);
+      expect(
+        CodeGenState.getVariableTypeInfo("labels")?.arrayDimensions,
+      ).toEqual([2, 11]);
     });
 
     it("generates string array without initializer (zero-init)", () => {

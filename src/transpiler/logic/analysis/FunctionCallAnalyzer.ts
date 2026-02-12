@@ -11,7 +11,6 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import SymbolTable from "../symbols/SymbolTable";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
@@ -424,6 +423,9 @@ class FunctionCallAnalyzer {
   /** Functions that have been defined (in order of appearance) */
   private definedFunctions: Set<string> = new Set();
 
+  /** All functions that will be defined in this file (for distinguishing local vs cross-file) */
+  private allLocalFunctions: Set<string> = new Set();
+
   /** Known scopes (for Scope.member -> Scope_member resolution) */
   private knownScopes: Set<string> = new Set();
 
@@ -454,6 +456,7 @@ class FunctionCallAnalyzer {
   ): IFunctionCallError[] {
     this.errors = [];
     this.definedFunctions = new Set();
+    this.allLocalFunctions = new Set();
     this.knownScopes = new Set();
     this.includedHeaders = new Set();
     this.symbolTable = symbolTable ?? null;
@@ -461,10 +464,11 @@ class FunctionCallAnalyzer {
     this.callableVariables = new Set();
     this.callbackTypes = new Set();
 
-    // First pass: collect scope names, includes, and callback types
+    // First pass: collect scope names, includes, callback types, and all local functions
     this.collectScopes(tree);
     this.collectIncludes(tree);
     this.collectCallbackTypes(tree);
+    this.collectAllLocalFunctions(tree);
 
     // Second pass: walk tree in order, tracking definitions and checking calls
     const listener = new FunctionCallListener(this);
@@ -521,6 +525,35 @@ class FunctionCallAnalyzer {
       if (decl.functionDeclaration()) {
         const name = decl.functionDeclaration()!.IDENTIFIER().getText();
         this.callbackTypes.add(name);
+      }
+    }
+  }
+
+  /**
+   * Issue #786: Pre-collect all function names defined in this file.
+   * Used to distinguish between local functions (subject to define-before-use)
+   * and cross-file functions from includes (allowed without local definition).
+   */
+  private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
+    for (const decl of tree.declaration()) {
+      // Standalone functions
+      if (decl.functionDeclaration()) {
+        const name = decl.functionDeclaration()!.IDENTIFIER().getText();
+        this.allLocalFunctions.add(name);
+      }
+      // Scope member functions
+      if (decl.scopeDeclaration()) {
+        const scopeDecl = decl.scopeDeclaration()!;
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+        for (const member of scopeDecl.scopeMember()) {
+          if (member.functionDeclaration()) {
+            const funcName = member
+              .functionDeclaration()!
+              .IDENTIFIER()
+              .getText();
+            this.allLocalFunctions.add(`${scopeName}_${funcName}`);
+          }
+        }
       }
     }
   }
@@ -638,20 +671,30 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * Check if a function is defined externally (C/C++ interop)
+   * Check if a function is defined externally (from included files)
+   * This includes C/C++ headers AND C-Next includes.
+   *
+   * Issue #786: Only considers a function "external" if it's NOT defined
+   * in the current file. Functions defined locally are subject to
+   * define-before-use checking, even if they exist in the SymbolTable.
    */
   private isExternalFunction(name: string): boolean {
+    // If the function is defined in this file, it's not external
+    // (even if it's also in the SymbolTable from symbol collection)
+    if (this.allLocalFunctions.has(name)) {
+      return false;
+    }
+
     if (!this.symbolTable) {
       return false;
     }
 
     const symbols = this.symbolTable.getOverloads(name);
     for (const sym of symbols) {
-      if (
-        (sym.sourceLanguage === ESourceLanguage.C ||
-          sym.sourceLanguage === ESourceLanguage.Cpp) &&
-        sym.kind === ESymbolKind.Function
-      ) {
+      // Accept functions from any source language:
+      // - C/C++ functions from header includes
+      // - C-Next functions from .cnx file includes
+      if (sym.kind === ESymbolKind.Function) {
         return true;
       }
     }

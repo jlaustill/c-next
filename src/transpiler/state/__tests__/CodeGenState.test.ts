@@ -281,7 +281,7 @@ describe("CodeGenState", () => {
 
       CodeGenState.registerType("myVar", typeInfo);
 
-      expect(CodeGenState.typeRegistry.get("myVar")).toBe(typeInfo);
+      expect(CodeGenState.getVariableTypeInfo("myVar")).toBe(typeInfo);
     });
 
     it("registerConstValue adds to constValues", () => {

@@ -36,22 +36,22 @@ function getTargetTypeInfo(ctx: IAssignmentContext): {
 
   // Simple identifier
   if (ctx.isSimpleIdentifier) {
-    return { typeInfo: CodeGenState.typeRegistry.get(id) };
+    return { typeInfo: CodeGenState.getVariableTypeInfo(id) };
   }
 
   // this.member: lookup using scoped name
   if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
     const scopedName = `${CodeGenState.currentScope}_${id}`;
-    return { typeInfo: CodeGenState.typeRegistry.get(scopedName) };
+    return { typeInfo: CodeGenState.getVariableTypeInfo(scopedName) };
   }
 
   // global.member: lookup using direct name
   if (ctx.isSimpleGlobalAccess) {
-    return { typeInfo: CodeGenState.typeRegistry.get(id) };
+    return { typeInfo: CodeGenState.getVariableTypeInfo(id) };
   }
 
   // Fallback to direct lookup
-  return { typeInfo: CodeGenState.typeRegistry.get(id) };
+  return { typeInfo: CodeGenState.getVariableTypeInfo(id) };
 }
 
 /**

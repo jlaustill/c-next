@@ -1,0 +1,25 @@
+// test-c-only
+// test-execution
+// Tests: cross-file const value in expression (not just array dimension)
+
+#include "types.cnx"
+
+u32 main() {
+    // COUNT is defined in types.cnx as const u8 COUNT <- 4
+
+    // Use const in expression (not array dimension)
+    u8 doubled <- COUNT * 2;
+    if (doubled != 8) return 1;
+
+    // Use const in comparison
+    if (COUNT != 4) return 2;
+
+    // Use const in loop bound (already tested but verify)
+    u8 sum <- 0;
+    for (u8 i <- 0; i < COUNT; i +<- 1) {
+        sum +<- 1;
+    }
+    if (sum != 4) return 3;
+
+    return 0;
+}

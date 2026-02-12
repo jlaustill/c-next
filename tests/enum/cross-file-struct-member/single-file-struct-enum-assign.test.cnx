@@ -1,0 +1,48 @@
+// test-c-only
+// test-execution
+// Tests: single-file version of struct member enum assignment
+
+enum MyEnum {
+    A <- 0,
+    B <- 1,
+    NONE <- 0xFF
+}
+
+struct TItem {
+    MyEnum assigned;
+    u8 padding;
+}
+
+struct Config {
+    TItem[4] items;
+}
+
+const u8 COUNT <- 4;
+
+Config config;
+
+u32 main() {
+    // Initialize config
+    config.items[0].assigned <- MyEnum.A;
+    config.items[1].assigned <- MyEnum.B;
+    config.items[2].assigned <- MyEnum.NONE;
+    config.items[3].assigned <- MyEnum.A;
+
+    // This should work in single-file
+    MyEnum val <- config.items[0].assigned;
+    if (val != MyEnum.A) return 1;
+
+    // Test in a loop
+    u8 countAssigned <- 0;
+    for (u8 i <- 0; i < COUNT; i +<- 1) {
+        MyEnum current <- config.items[i].assigned;
+        if (current != MyEnum.NONE) {
+            countAssigned +<- 1;
+        }
+    }
+
+    // Should have found 3 assigned (A, B, A - not NONE)
+    if (countAssigned != 3) return 2;
+
+    return 0;
+}

@@ -76,9 +76,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates single bit read-modify-write", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["flags", { baseType: "u32" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u32" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("3"),
       });
@@ -92,9 +90,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit types", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["flags", { baseType: "u64" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("32"),
       });
@@ -108,9 +104,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for signed 64-bit types", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["flags", { baseType: "i64" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "i64" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("bit"),
       });
@@ -123,9 +117,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("converts true to 1", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["flags", { baseType: "u8" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
@@ -139,9 +131,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("converts false to 0", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["flags", { baseType: "u8" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("0"),
       });
@@ -155,7 +145,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("delegates to float bit write for float types", () => {
-      CodeGenState.typeRegistry = new Map([["f", { baseType: "f32" }]]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["f", { baseType: "f32" }]]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_bit_write_result");
@@ -192,9 +182,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range read-modify-write", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["flags", { baseType: "u32" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u32" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -214,9 +202,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses correct mask for bit range", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["data", { baseType: "u16" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["data", { baseType: "u16" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -237,9 +223,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses ULL suffix for 64-bit bit range mask", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["flags", { baseType: "u64" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -261,7 +245,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("delegates to float bit write for float types", () => {
-      CodeGenState.typeRegistry = new Map([["f", { baseType: "f32" }]]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["f", { baseType: "f32" }]]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_range_write_result");
@@ -344,9 +328,9 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates array element bit assignment for 1D array", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -368,9 +352,9 @@ describe("BitAccessHandlers", () => {
     });
 
     it("generates array element bit assignment for 2D array", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["matrix", { baseType: "u16", arrayDimensions: [10, 10] }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -394,9 +378,9 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit array element", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["arr", { baseType: "u64", arrayDimensions: [5] }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -414,9 +398,9 @@ describe("BitAccessHandlers", () => {
     });
 
     it("throws when variable is not an array", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["notArray", { baseType: "u32" }],
-      ]) as any;
+      ]);
       const ctx = createMockContext({
         identifiers: ["notArray"],
       });
@@ -425,9 +409,9 @@ describe("BitAccessHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
-      ]) as any;
+      ]);
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",

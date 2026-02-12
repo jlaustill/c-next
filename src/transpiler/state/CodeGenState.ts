@@ -30,6 +30,8 @@ import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
+import ESymbolKind from "../../utils/types/ESymbolKind";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
 
 /**
  * Default target capabilities (safe fallback)
@@ -101,8 +103,12 @@ export default class CodeGenState {
   // TYPE TRACKING
   // ===========================================================================
 
-  /** Track variable types for bit access, .length, and type inference */
-  static typeRegistry: Map<string, TTypeInfo> = new Map();
+  /**
+   * Track variable types for bit access, .length, and type inference.
+   * PRIVATE: Use getVariableTypeInfo()/setVariableTypeInfo() instead.
+   * This ensures cross-file variables from SymbolTable are also found.
+   */
+  private static typeRegistry: Map<string, TTypeInfo> = new Map();
 
   /** Bug #8: Compile-time const values for array size resolution */
   static constValues: Map<string, number> = new Map();
@@ -451,9 +457,122 @@ export default class CodeGenState {
 
   /**
    * Get type info for a variable.
+   * Checks local typeRegistry first, then falls back to SymbolTable
+   * for cross-file variables from included .cnx files.
+   *
+   * Issue #786: This unified lookup ensures cross-file variables
+   * (defined in included files) are found even before code generation
+   * registers them locally.
+   */
+  static getVariableTypeInfo(name: string): TTypeInfo | undefined {
+    // First check the local type registry (current file's variables)
+    const localInfo = this.typeRegistry.get(name);
+    if (localInfo) {
+      return localInfo;
+    }
+
+    // Fall back to SymbolTable for cross-file C-Next variables only.
+    // C/C++ header symbols don't have complete type info (e.g., isArray),
+    // so we only use C-Next symbols from SymbolTable.
+    const symbol = this.symbolTable.getSymbol(name);
+    if (
+      symbol &&
+      symbol.kind === ESymbolKind.Variable &&
+      symbol.type &&
+      symbol.sourceLanguage === ESourceLanguage.CNext
+    ) {
+      return this.convertSymbolToTypeInfo(symbol);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Legacy alias for getVariableTypeInfo.
+   * @deprecated Use getVariableTypeInfo() instead
    */
   static getTypeInfo(name: string): TTypeInfo | undefined {
-    return this.typeRegistry.get(name);
+    return this.getVariableTypeInfo(name);
+  }
+
+  /**
+   * Check if a variable type is registered (locally or in SymbolTable).
+   */
+  static hasVariableTypeInfo(name: string): boolean {
+    if (this.typeRegistry.has(name)) {
+      return true;
+    }
+    const symbol = this.symbolTable.getSymbol(name);
+    return (
+      symbol?.kind === ESymbolKind.Variable &&
+      symbol.type !== undefined &&
+      symbol.sourceLanguage === ESourceLanguage.CNext
+    );
+  }
+
+  /**
+   * Set variable type info in the local registry.
+   */
+  static setVariableTypeInfo(name: string, info: TTypeInfo): void {
+    this.typeRegistry.set(name, info);
+  }
+
+  /**
+   * Delete variable type info from the local registry.
+   */
+  static deleteVariableTypeInfo(name: string): void {
+    this.typeRegistry.delete(name);
+  }
+
+  /**
+   * Get a read-only view of the local type registry.
+   * Used for passing to helper functions that need to iterate over types.
+   * Note: This only returns locally registered types, not cross-file symbols.
+   */
+  static getTypeRegistryView(): ReadonlyMap<string, TTypeInfo> {
+    return this.typeRegistry;
+  }
+
+  /**
+   * Convert an ISymbol to TTypeInfo for unified type lookups.
+   * Used when looking up cross-file variables from SymbolTable.
+   */
+  private static convertSymbolToTypeInfo(symbol: {
+    type?: string;
+    isArray?: boolean;
+    arrayDimensions?: string[];
+    isConst?: boolean;
+    isAtomic?: boolean;
+  }): TTypeInfo {
+    const rawType = symbol.type || "unknown";
+
+    // Parse string<N> type pattern
+    const stringPattern = /^string<(\d+)>$/;
+    const stringMatch = stringPattern.test(rawType)
+      ? rawType.match(stringPattern)
+      : null;
+    const isString = stringMatch !== null;
+    const stringCapacity = stringMatch
+      ? parseInt(stringMatch[1], 10)
+      : undefined;
+    const baseType = isString ? "string" : rawType;
+
+    const isEnum = this.isKnownEnum(baseType);
+
+    return {
+      baseType,
+      bitWidth: TYPE_WIDTH[baseType] || 0,
+      isArray: symbol.isArray || false,
+      arrayDimensions: symbol.arrayDimensions
+        ?.map((d) => parseInt(d, 10))
+        .filter((n) => !isNaN(n)),
+      isConst: symbol.isConst || false,
+      isAtomic: symbol.isAtomic || false,
+      isEnum,
+      enumTypeName: isEnum ? baseType : undefined,
+      isString,
+      stringCapacity,
+    };
   }
 
   /**
@@ -785,7 +904,7 @@ export default class CodeGenState {
    * Register a variable type.
    */
   static registerType(name: string, info: TTypeInfo): void {
-    this.typeRegistry.set(name, info);
+    this.setVariableTypeInfo(name, info);
   }
 
   /**

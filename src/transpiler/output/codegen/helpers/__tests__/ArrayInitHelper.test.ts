@@ -56,7 +56,7 @@ describe("ArrayInitHelper", () => {
 
     it("handles size inference with array initializer", () => {
       // Add existing type to registry
-      CodeGenState.typeRegistry.set("arr", {
+      CodeGenState.setVariableTypeInfo("arr", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,

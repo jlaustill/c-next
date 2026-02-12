@@ -77,7 +77,7 @@ class AssignmentExpectedTypeResolver {
    * Resolve expected type for a simple identifier target.
    */
   private static resolveForSimpleIdentifier(id: string): IExpectedTypeResult {
-    const typeInfo = CodeGenState.typeRegistry.get(id);
+    const typeInfo = CodeGenState.getVariableTypeInfo(id);
     if (!typeInfo) {
       return { expectedType: null, assignmentContext: null };
     }
@@ -107,7 +107,7 @@ class AssignmentExpectedTypeResolver {
     }
 
     const rootName = identifiers[0];
-    const rootTypeInfo = CodeGenState.typeRegistry.get(rootName);
+    const rootTypeInfo = CodeGenState.getVariableTypeInfo(rootName);
 
     if (!rootTypeInfo || !CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
       return { expectedType: null, assignmentContext: null };

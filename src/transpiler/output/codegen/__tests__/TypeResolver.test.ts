@@ -10,14 +10,17 @@ import TTypeInfo from "../types/TTypeInfo";
 
 describe("TypeResolver", () => {
   let symbolTable: SymbolTable;
-  let typeRegistry: Map<string, TTypeInfo>;
 
   beforeEach(() => {
     CodeGenState.reset();
     symbolTable = new SymbolTable();
-    typeRegistry = CodeGenState.typeRegistry;
     CodeGenState.symbolTable = symbolTable;
   });
+
+  /** Helper function to set type info in the registry */
+  function setTypeInfo(name: string, info: TTypeInfo): void {
+    CodeGenState.setVariableTypeInfo(name, info);
+  }
 
   // ========================================================================
   // Type Classification Methods
@@ -400,7 +403,7 @@ describe("TypeResolver", () => {
     };
 
     it("should return type for identifier in registry", () => {
-      typeRegistry.set("myVar", {
+      setTypeInfo("myVar", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -612,7 +615,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return type from simple identifier", () => {
-      typeRegistry.set("counter", {
+      setTypeInfo("counter", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -651,7 +654,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return member type for struct member access", () => {
-      typeRegistry.set("point", {
+      setTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -675,7 +678,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return null for unknown member", () => {
-      typeRegistry.set("point", {
+      setTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -699,7 +702,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return null for range bit indexing", () => {
-      typeRegistry.set("flags", {
+      setTypeInfo("flags", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -722,7 +725,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return bool for single bit indexing on integer", () => {
-      typeRegistry.set("flags", {
+      setTypeInfo("flags", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -745,7 +748,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return element type for struct array member indexing", () => {
-      typeRegistry.set("data", {
+      setTypeInfo("data", {
         baseType: "Data",
         bitWidth: 0,
         isArray: false,
@@ -774,7 +777,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return element type for direct array variable indexing", () => {
-      typeRegistry.set("arr", {
+      setTypeInfo("arr", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -798,7 +801,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return bool for bit indexing on plain integer variable", () => {
-      typeRegistry.set("val", {
+      setTypeInfo("val", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
@@ -828,7 +831,7 @@ describe("TypeResolver", () => {
 
   describe("getPostfixExpressionType with global/this", () => {
     it("should resolve global.structVar.field type", () => {
-      typeRegistry.set("config", {
+      setTypeInfo("config", {
         baseType: "TConfig",
         bitWidth: 0,
         isArray: false,
@@ -858,7 +861,7 @@ describe("TypeResolver", () => {
     });
 
     it("should resolve global.arrayVar[0] element type", () => {
-      typeRegistry.set("inputs", {
+      setTypeInfo("inputs", {
         baseType: "TInput",
         bitWidth: 0,
         isArray: true,
@@ -888,7 +891,7 @@ describe("TypeResolver", () => {
 
     it("should resolve this.scopeVar type", () => {
       CodeGenState.currentScope = "Motor";
-      typeRegistry.set("Motor_speed", {
+      setTypeInfo("Motor_speed", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -951,7 +954,7 @@ describe("TypeResolver", () => {
     });
 
     it("should resolve global.struct.enumField for enum type", () => {
-      typeRegistry.set("input", {
+      setTypeInfo("input", {
         baseType: "TInput",
         bitWidth: 0,
         isArray: false,
@@ -987,7 +990,7 @@ describe("TypeResolver", () => {
 
   describe("getUnaryExpressionType", () => {
     it("should return type from postfix expression", () => {
-      typeRegistry.set("value", {
+      setTypeInfo("value", {
         baseType: "i32",
         bitWidth: 32,
         isArray: false,
@@ -1020,7 +1023,7 @@ describe("TypeResolver", () => {
     });
 
     it("should recurse through unary expression chain", () => {
-      typeRegistry.set("x", {
+      setTypeInfo("x", {
         baseType: "i32",
         bitWidth: 32,
         isArray: false,

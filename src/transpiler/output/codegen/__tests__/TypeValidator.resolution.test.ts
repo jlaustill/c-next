@@ -39,13 +39,13 @@ describe("TypeValidator.resolveBareIdentifier", () => {
   beforeEach(() => {
     CodeGenState.reset();
     CodeGenState.setScopeMembers("Motor", new Set(["speed", "maxSpeed"]));
-    CodeGenState.typeRegistry.set("globalCounter", {
+    CodeGenState.setVariableTypeInfo("globalCounter", {
       baseType: "u32",
       bitWidth: 32,
       isArray: false,
       isConst: false,
     });
-    CodeGenState.typeRegistry.set("Motor_speed", {
+    CodeGenState.setVariableTypeInfo("Motor_speed", {
       baseType: "u32",
       bitWidth: 32,
       isArray: false,
@@ -146,7 +146,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
   describe("resolveForMemberAccess", () => {
     it("prefers scope name over global variable for member access", () => {
       // Setup: global variable 'LED' exists AND scope 'LED' exists
-      CodeGenState.typeRegistry.set("LED", {
+      CodeGenState.setVariableTypeInfo("LED", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,

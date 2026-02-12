@@ -42,7 +42,7 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const id = ctx.identifiers[0];
-  const typeInfo = CodeGenState.typeRegistry.get(id);
+  const typeInfo = CodeGenState.getVariableTypeInfo(id);
   const capacity = typeInfo!.stringCapacity!;
 
   CodeGenState.needsString = true;
@@ -57,7 +57,7 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
  * Shared helper for struct field string handlers.
  */
 function getStructFieldType(structName: string, fieldName: string): string {
-  const structTypeInfo = CodeGenState.typeRegistry.get(structName);
+  const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
   const structType = structTypeInfo!.baseType;
   const structFields = CodeGenState.symbols!.structFields.get(structType);
   return structFields!.get(fieldName)!;
@@ -69,7 +69,7 @@ function getStructFieldType(structName: string, fieldName: string): string {
  * Shared helper for struct field handlers.
  */
 function getStructType(structName: string): string {
-  const structTypeInfo = CodeGenState.typeRegistry.get(structName);
+  const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
   return structTypeInfo!.baseType;
 }
 
@@ -85,7 +85,7 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
 
   const memberName = ctx.identifiers[0];
   const scopedName = `${CodeGenState.currentScope}_${memberName}`;
-  const typeInfo = CodeGenState.typeRegistry.get(scopedName);
+  const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
   const capacity = typeInfo!.stringCapacity!;
 
   CodeGenState.needsString = true;
@@ -123,7 +123,7 @@ function handleStringArrayElement(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const name = ctx.identifiers[0];
-  const typeInfo = CodeGenState.typeRegistry.get(name);
+  const typeInfo = CodeGenState.getVariableTypeInfo(name);
   const capacity = typeInfo!.stringCapacity!;
 
   CodeGenState.needsString = true;

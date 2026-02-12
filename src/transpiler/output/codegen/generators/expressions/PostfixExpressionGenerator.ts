@@ -27,6 +27,7 @@ import SubscriptClassifier from "../../subscript/SubscriptClassifier";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../types/TTypeInfo";
+import CodeGenState from "../../../../state/CodeGenState";
 
 // ========================================================================
 // Tracking State
@@ -67,7 +68,7 @@ const initializeTrackingState = (
     : false;
 
   const primaryBaseType = rootIdentifier
-    ? input.typeRegistry.get(rootIdentifier)?.baseType
+    ? CodeGenState.getVariableTypeInfo(rootIdentifier)?.baseType
     : undefined;
   const currentStructType =
     primaryBaseType && orchestrator.isKnownStruct(primaryBaseType)
@@ -162,7 +163,7 @@ const generatePostfixExpression = (
   }
 
   const primaryTypeInfo = rootIdentifier
-    ? input.typeRegistry.get(rootIdentifier)
+    ? CodeGenState.getVariableTypeInfo(rootIdentifier)
     : undefined;
 
   const tracking = initializeTrackingState(
@@ -364,7 +365,7 @@ const handleGlobalPrefix = (
   }
 
   // Issue #612: Set currentStructType for global struct variables
-  const globalTypeInfo = input.typeRegistry.get(memberName);
+  const globalTypeInfo = CodeGenState.getVariableTypeInfo(memberName);
   if (globalTypeInfo && orchestrator.isKnownStruct(globalTypeInfo.baseType)) {
     tracking.currentStructType = globalTypeInfo.baseType;
   }
@@ -396,7 +397,7 @@ const handleThisScopeLength = (
 
   tracking.result = `${state.currentScope}_${memberName}`;
   tracking.resolvedIdentifier = tracking.result;
-  const resolvedTypeInfo = input.typeRegistry.get(tracking.result);
+  const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(tracking.result);
   if (
     resolvedTypeInfo &&
     orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -422,7 +423,9 @@ const resolveStringTypeInfo = (
   orchestrator: IOrchestrator,
 ): TTypeInfo | undefined => {
   const identifier = tracking.resolvedIdentifier ?? rootIdentifier;
-  const typeInfo = identifier ? input.typeRegistry.get(identifier) : undefined;
+  const typeInfo = identifier
+    ? CodeGenState.getVariableTypeInfo(identifier)
+    : undefined;
   if (typeInfo?.isString) {
     return typeInfo;
   }
@@ -650,7 +653,7 @@ const generateLengthProperty = (
 
   // Fall back to checking the current resolved identifier's type
   const typeInfo = ctx.resolvedIdentifier
-    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -931,7 +934,7 @@ const generateBitLengthProperty = (
 
   // Get type info for the resolved identifier
   const typeInfo = ctx.resolvedIdentifier
-    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1185,7 +1188,7 @@ const generateByteLengthProperty = (
 
   // Get type info for the resolved identifier
   const typeInfo = ctx.resolvedIdentifier
-    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1251,10 +1254,10 @@ const generateStructFieldElementCount = (
  */
 const generateTypeInfoElementCount = (
   ctx: IExplicitLengthContext,
-  input: IGeneratorInput,
+  _input: IGeneratorInput,
 ): string => {
   const typeInfo = ctx.resolvedIdentifier
-    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1350,7 +1353,7 @@ const generateCharCountProperty = (
 
   // Get type info
   const typeInfo = ctx.resolvedIdentifier
-    ? input.typeRegistry.get(ctx.resolvedIdentifier)
+    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1484,7 +1487,7 @@ const tryBitmapFieldAccess = (
   if (!ctx.rootIdentifier) {
     return null;
   }
-  const typeInfo = input.typeRegistry.get(ctx.rootIdentifier);
+  const typeInfo = CodeGenState.getVariableTypeInfo(ctx.rootIdentifier);
   if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
     return null;
   }
@@ -1525,7 +1528,7 @@ const tryScopeMemberAccess = (
     output.result = fullName;
     output.resolvedIdentifier = fullName;
     if (!input.symbols!.knownEnums.has(fullName)) {
-      const resolvedTypeInfo = input.typeRegistry.get(fullName);
+      const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(fullName);
       if (
         resolvedTypeInfo &&
         orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -1569,7 +1572,7 @@ const tryKnownScopeAccess = (
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
   output.resolvedIdentifier = output.result;
-  const resolvedTypeInfo = input.typeRegistry.get(output.result);
+  const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(output.result);
   if (
     resolvedTypeInfo &&
     orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -1920,11 +1923,11 @@ const checkRegisterAccess = (
  */
 const getIdentifierTypeInfo = (
   ctx: ISubscriptAccessContext,
-  input: IGeneratorInput,
+  _input: IGeneratorInput,
 ): TTypeInfo | undefined => {
   const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
   return identifierToCheck
-    ? input.typeRegistry.get(identifierToCheck)
+    ? CodeGenState.getVariableTypeInfo(identifierToCheck)
     : undefined;
 };
 

@@ -71,9 +71,9 @@ describe("SpecialHandlers", () => {
       specialHandlers.find(([kind]) => kind === AssignmentKind.ATOMIC_RMW)?.[1];
 
     it("delegates to generateAtomicRMW for simple identifier", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["counter", { baseType: "u32", isAtomic: true }],
-      ]) as any;
+      ]);
       const generateAtomicRMW = vi.fn().mockReturnValue("LDREX/STREX pattern");
       const generateAssignmentTarget = vi.fn().mockReturnValue("counter");
       HandlerTestUtils.setupMockGenerator({
@@ -84,18 +84,23 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(generateAtomicRMW).toHaveBeenCalledWith("counter", "+=", "1", {
-        baseType: "u32",
-        isAtomic: true,
-      });
+      expect(generateAtomicRMW).toHaveBeenCalledWith(
+        "counter",
+        "+=",
+        "1",
+        expect.objectContaining({
+          baseType: "u32",
+          isAtomic: true,
+        }),
+      );
       expect(result).toBe("LDREX/STREX pattern");
     });
 
     it("handles this.member atomic variable", () => {
       CodeGenState.currentScope = "Motor";
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["Motor_count", { baseType: "u32", isAtomic: true }],
-      ]) as any;
+      ]);
       const generateAtomicRMW = vi.fn().mockReturnValue("atomic result");
       const generateAssignmentTarget = vi.fn().mockReturnValue("Motor_count");
       HandlerTestUtils.setupMockGenerator({
@@ -110,17 +115,22 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(generateAtomicRMW).toHaveBeenCalledWith("Motor_count", "+=", "1", {
-        baseType: "u32",
-        isAtomic: true,
-      });
+      expect(generateAtomicRMW).toHaveBeenCalledWith(
+        "Motor_count",
+        "+=",
+        "1",
+        expect.objectContaining({
+          baseType: "u32",
+          isAtomic: true,
+        }),
+      );
       expect(result).toBe("atomic result");
     });
 
     it("handles global.member atomic variable", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["globalCounter", { baseType: "u32", isAtomic: true }],
-      ]) as any;
+      ]);
       const generateAtomicRMW = vi.fn().mockReturnValue("global atomic result");
       const generateAssignmentTarget = vi.fn().mockReturnValue("globalCounter");
       HandlerTestUtils.setupMockGenerator({
@@ -139,9 +149,9 @@ describe("SpecialHandlers", () => {
     });
 
     it("handles subtract operation", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["counter", { baseType: "u32", isAtomic: true }],
-      ]) as any;
+      ]);
       const generateAtomicRMW = vi.fn().mockReturnValue("atomic sub");
       const generateAssignmentTarget = vi.fn().mockReturnValue("counter");
       HandlerTestUtils.setupMockGenerator({
@@ -171,9 +181,9 @@ describe("SpecialHandlers", () => {
       )?.[1];
 
     it("generates clamp add helper for u8", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["saturated", { baseType: "u8", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("saturated");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
@@ -190,9 +200,9 @@ describe("SpecialHandlers", () => {
     });
 
     it("generates clamp sub helper for u16", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["value", { baseType: "u16", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("value");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
@@ -211,9 +221,9 @@ describe("SpecialHandlers", () => {
     });
 
     it("generates clamp mul helper for u32", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["result", { baseType: "u32", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("result");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
@@ -232,9 +242,9 @@ describe("SpecialHandlers", () => {
     });
 
     it("uses native arithmetic for float types", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["f", { baseType: "f32", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("f");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
@@ -251,9 +261,9 @@ describe("SpecialHandlers", () => {
     });
 
     it("uses native arithmetic for f64 type", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["d", { baseType: "f64", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("d");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
@@ -270,9 +280,9 @@ describe("SpecialHandlers", () => {
     });
 
     it("falls back to native for unsupported operators", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["value", { baseType: "u32", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("value");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
@@ -292,9 +302,9 @@ describe("SpecialHandlers", () => {
 
     it("handles this.member with clamp", () => {
       CodeGenState.currentScope = "Motor";
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["Motor_speed", { baseType: "u8", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("Motor_speed");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,
@@ -313,9 +323,9 @@ describe("SpecialHandlers", () => {
     });
 
     it("handles global.member with clamp", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["globalValue", { baseType: "i16", overflowBehavior: "clamp" }],
-      ]) as any;
+      ]);
       const generateAssignmentTarget = vi.fn().mockReturnValue("globalValue");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget,

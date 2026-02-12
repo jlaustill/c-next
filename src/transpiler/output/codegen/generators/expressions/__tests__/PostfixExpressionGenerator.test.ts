@@ -9,7 +9,7 @@
  * - Property access (.length, .capacity, .size)
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import generatePostfixExpression from "../PostfixExpressionGenerator";
 import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
@@ -18,6 +18,7 @@ import type ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../types/TTypeInfo";
 import type TParameterInfo from "../../../types/TParameterInfo";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
+import CodeGenState from "../../../../../state/CodeGenState";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -64,10 +65,17 @@ function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
 }): IGeneratorInput {
+  // Also populate CodeGenState with the type registry entries
+  // This is needed because PostfixExpressionGenerator now uses CodeGenState directly
+  const typeRegistry = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
+  for (const [name, info] of typeRegistry) {
+    CodeGenState.setVariableTypeInfo(name, info);
+  }
+
   return {
     symbolTable: null,
     symbols: overrides?.symbols ?? createMockSymbols(),
-    typeRegistry: overrides?.typeRegistry ?? new Map(),
+    typeRegistry,
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
@@ -290,6 +298,11 @@ function createMockPostfixExpressionContext(
 // ========================================================================
 
 describe("PostfixExpressionGenerator", () => {
+  // Reset CodeGenState before each test to avoid state pollution
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   describe("basic expression generation", () => {
     it("generates simple identifier", () => {
       const ctx = createMockPostfixExpressionContext("x", []);

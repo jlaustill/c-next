@@ -193,7 +193,7 @@ class StringLengthCounter {
         const memberName = op.IDENTIFIER()?.getText();
         if (memberName === "length") {
           // Check if this is a string type
-          const typeInfo = CodeGenState.typeRegistry.get(primaryId);
+          const typeInfo = CodeGenState.getVariableTypeInfo(primaryId);
           if (typeInfo?.isString) {
             const currentCount = counts.get(primaryId) || 0;
             counts.set(primaryId, currentCount + 1);

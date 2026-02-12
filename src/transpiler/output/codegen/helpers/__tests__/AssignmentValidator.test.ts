@@ -141,7 +141,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should validate enum assignment for enum-typed variable", () => {
-      CodeGenState.typeRegistry.set("status", {
+      CodeGenState.setVariableTypeInfo("status", {
         baseType: "Status",
         bitWidth: 8,
         isArray: false,
@@ -165,7 +165,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should validate integer assignment for integer-typed variable", () => {
-      CodeGenState.typeRegistry.set("counter", {
+      CodeGenState.setVariableTypeInfo("counter", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -190,7 +190,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should pass isCompound flag to integer validation", () => {
-      CodeGenState.typeRegistry.set("counter", {
+      CodeGenState.setVariableTypeInfo("counter", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -215,7 +215,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should rethrow validation error with line:column prefix", () => {
-      CodeGenState.typeRegistry.set("counter", {
+      CodeGenState.setVariableTypeInfo("counter", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
@@ -240,7 +240,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should handle non-Error validation exceptions", () => {
-      CodeGenState.typeRegistry.set("counter", {
+      CodeGenState.setVariableTypeInfo("counter", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
@@ -298,7 +298,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should check array bounds for array with dimensions", () => {
-      CodeGenState.typeRegistry.set("arr", {
+      CodeGenState.setVariableTypeInfo("arr", {
         baseType: "u8",
         bitWidth: 8,
         isConst: false,
@@ -374,7 +374,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should validate callback assignment for callback field", () => {
-      CodeGenState.typeRegistry.set("handler", {
+      CodeGenState.setVariableTypeInfo("handler", {
         baseType: "Handler",
         bitWidth: 0,
         isArray: false,

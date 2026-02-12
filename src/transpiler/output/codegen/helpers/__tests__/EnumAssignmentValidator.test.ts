@@ -275,7 +275,7 @@ describe("EnumAssignmentValidator", () => {
     });
 
     it("returns true for integer-typed variable", () => {
-      CodeGenState.typeRegistry.set("count", {
+      CodeGenState.setVariableTypeInfo("count", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -290,7 +290,7 @@ describe("EnumAssignmentValidator", () => {
     });
 
     it("returns false for enum-typed variable", () => {
-      CodeGenState.typeRegistry.set("state", {
+      CodeGenState.setVariableTypeInfo("state", {
         baseType: "State",
         bitWidth: 0,
         isArray: false,

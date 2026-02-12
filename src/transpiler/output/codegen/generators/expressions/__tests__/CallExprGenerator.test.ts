@@ -1,10 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import generateFunctionCall from "../CallExprGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import ESymbolKind from "../../../../../../utils/types/ESymbolKind";
+import CodeGenState from "../../../../../state/CodeGenState";
+import TTypeInfo from "../../../types/TTypeInfo";
 
 // ========================================================================
 // Test Helpers
@@ -27,10 +29,18 @@ function createMockArgListContext(
 function createMockInput(
   overrides: Partial<IGeneratorInput> = {},
 ): IGeneratorInput {
+  // Also populate CodeGenState with the type registry entries
+  // This is needed because CallExprGenerator now uses CodeGenState directly
+  const typeRegistry =
+    (overrides.typeRegistry as Map<string, TTypeInfo>) ?? new Map();
+  for (const [name, info] of typeRegistry) {
+    CodeGenState.setVariableTypeInfo(name, info);
+  }
+
   return {
     symbols: null,
     symbolTable: null,
-    typeRegistry: new Map(),
+    typeRegistry,
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
@@ -94,6 +104,11 @@ function createMockOrchestrator(
 // ========================================================================
 
 describe("CallExprGenerator", () => {
+  // Reset CodeGenState before each test to avoid state pollution
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   describe("empty function call", () => {
     it("generates call with no arguments when argCtx is null", () => {
       const input = createMockInput();
@@ -756,7 +771,7 @@ describe("CallExprGenerator", () => {
   });
 
   describe("cross-file function calls (Issue #315)", () => {
-    it("looks up parameter info from SymbolTable when no local signature", () => {
+    it("looks up parameter info from SymbolTable and passes primitives by value (Issue #786)", () => {
       const argExprs = [createMockExpressionContext("myVal")];
       const argCtx = createMockArgListContext(argExprs);
       const symbolTable = {
@@ -777,6 +792,7 @@ describe("CallExprGenerator", () => {
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
+        isStructType: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
@@ -788,7 +804,8 @@ describe("CallExprGenerator", () => {
       );
 
       expect(symbolTable.getOverloads).toHaveBeenCalledWith("crossFileFunc");
-      expect(result.code).toBe("crossFileFunc(&myVal)");
+      // Issue #786: Primitive types like u32 are now passed by value for cross-file calls
+      expect(result.code).toBe("crossFileFunc(myVal)");
     });
 
     it("passes small primitive by value for cross-file functions", () => {

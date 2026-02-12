@@ -303,7 +303,7 @@ class TypeResolver {
    * Look up a variable name in the type registry and return a SuffixResult.
    */
   private static resolveRegistryLookup(name: string): SuffixResult {
-    const typeInfo = CodeGenState.typeRegistry.get(name);
+    const typeInfo = CodeGenState.getVariableTypeInfo(name);
     if (typeInfo) {
       return {
         stop: false,
@@ -356,7 +356,7 @@ class TypeResolver {
     if (id) {
       const name = id.getText();
       const scopedName = CodeGenState.resolveIdentifier(name);
-      const typeInfo = CodeGenState.typeRegistry.get(scopedName);
+      const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
       if (typeInfo) {
         return { baseType: typeInfo.baseType, isArray: typeInfo.isArray };
       }
