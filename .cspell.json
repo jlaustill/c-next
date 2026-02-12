@@ -334,7 +334,9 @@
     "Unwrapper",
     "dval",
     "fval",
-    "multicriteria"
+    "multicriteria",
+    "SREG",
+    "cpsid"
   ],
   "ignorePaths": [
     "node_modules/**",

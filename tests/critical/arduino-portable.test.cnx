@@ -1,0 +1,18 @@
+// test-c-only
+// test-transpile-only
+// Test: Critical blocks should generate platform-portable IRQ wrappers
+// When Arduino.h is included, the generated code must work on Arduino platforms
+// See GitHub issue #778
+#include <Arduino.h>
+
+scope CriticalTest {
+    atomic bool flag <- false;
+    u8 value <- 0;
+
+    public void safeWrite(u8 newValue) {
+        critical {
+            value <- newValue;
+            flag <- true;
+        }
+    }
+}

@@ -3,7 +3,17 @@
  * A safer C for embedded systems
  */
 
+#include "arduino-portable.test.h"
+
+// test-c-only
+// test-transpile-only
+// Test: Critical blocks should generate platform-portable IRQ wrappers
+// When Arduino.h is included, the generated code must work on Arduino platforms
+// See GitHub issue #778
+#include <Arduino.h>
+
 #include <stdint.h>
+#include <stdbool.h>
 
 // ADR-050: Platform-portable IRQ wrappers for critical sections
 #if defined(__arm__) || defined(__ARM_ARCH)
@@ -38,33 +48,16 @@ static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
 static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 #endif
 
-// ADR-044: Overflow helper functions
-#include <limits.h>
+/* Scope: CriticalTest */
+static bool CriticalTest_flag = false;
+static uint8_t CriticalTest_value = 0;
 
-static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
-    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
-    uint32_t result;
-    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
-    return result;
-}
-
-// test-c-only
-// ADR-050: Critical section with multiple variables
-// Tests: multiple variables protected in one critical section
-uint32_t readIdx = 0;
-
-uint32_t writeIdx = 0;
-
-uint8_t buffer[64] = {0};
-
-void transfer(void) {
+void CriticalTest_safeWrite(uint8_t newValue) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        uint8_t data = buffer[readIdx];
-        readIdx = cnx_clamp_add_u32(readIdx, 1);
-        buffer[writeIdx] = data;
-        writeIdx = cnx_clamp_add_u32(writeIdx, 1);
+        CriticalTest_value = newValue;
+        CriticalTest_flag = true;
         __cnx_set_PRIMASK(__primask);
     }
 }

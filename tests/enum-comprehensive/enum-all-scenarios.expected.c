@@ -8,10 +8,38 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// ADR-050: IRQ wrappers to avoid macro collisions with platform headers
+// ADR-050: Platform-portable IRQ wrappers for critical sections
+#if defined(__arm__) || defined(__ARM_ARCH)
+// ARM platforms (including ARM Arduino like Teensy 4.x, Due, Zero)
+// Provide inline assembly PRIMASK access to avoid CMSIS header dependencies
+__attribute__((always_inline)) static inline uint32_t __cnx_get_PRIMASK(void) {
+    uint32_t result;
+    __asm volatile ("MRS %0, primask" : "=r" (result));
+    return result;
+}
+__attribute__((always_inline)) static inline void __cnx_set_PRIMASK(uint32_t mask) {
+    __asm volatile ("MSR primask, %0" :: "r" (mask) : "memory");
+}
+#if defined(ARDUINO)
+static inline void __cnx_disable_irq(void) { noInterrupts(); }
+#else
+__attribute__((always_inline)) static inline void __cnx_disable_irq(void) {
+    __asm volatile ("cpsid i" ::: "memory");
+}
+#endif
+#elif defined(__AVR__)
+// AVR Arduino: use SREG for interrupt state
+// Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)
+// Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional
+static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
+static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }
+static inline void __cnx_disable_irq(void) { cli(); }
+#else
+// Fallback: assume CMSIS is available
 static inline void __cnx_disable_irq(void) { __disable_irq(); }
 static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
 static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
+#endif
 
 // test-c-only
 // test-execution
