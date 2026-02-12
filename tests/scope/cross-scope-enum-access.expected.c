@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cross-scope-enum-bare-error.test.h"
+#include "cross-scope-enum-access.test.h"
 
 #include <stdint.h>
 
