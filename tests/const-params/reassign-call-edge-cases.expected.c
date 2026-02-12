@@ -29,6 +29,8 @@ __attribute__((always_inline)) static inline void __cnx_disable_irq(void) {
 #endif
 #elif defined(__AVR__)
 // AVR Arduino: use SREG for interrupt state
+// Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)
+// Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional
 static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
 static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }
 static inline void __cnx_disable_irq(void) { cli(); }
