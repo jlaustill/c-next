@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.68] - 2026-02-12
+
+### Fixed
+
+- Allow enum access inside scopes without `global.` prefix when unambiguous (Issue #774, PR #775)
+- Improved error message for enum shadowing conflicts suggests using `global.EnumName.Member`
+
+### Changed
+
+- Consolidate logic layer state into `CodeGenState` — external struct fields now built once per run (PR #776)
+- Remove `AnalyzerContextBuilder` class — logic moved to `CodeGenState.buildExternalStructFields()`
+- Simplify `runAnalyzers()` API — reads state from `CodeGenState` by default
+
 ## [0.1.67] - 2026-02-11
 
 ### Added
@@ -1004,6 +1017,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
+[0.1.68]: https://github.com/jlaustill/c-next/compare/v0.1.67...v0.1.68
 [0.1.67]: https://github.com/jlaustill/c-next/compare/v0.1.66...v0.1.67
 [0.1.22]: https://github.com/jlaustill/c-next/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/jlaustill/c-next/compare/v0.1.20...v0.1.21
