@@ -17,20 +17,16 @@ import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
 import SymbolTable from "../symbols/SymbolTable";
+import CodeGenState from "../../state/CodeGenState";
 
 /**
  * Options for running analyzers
  */
 interface IAnalyzerOptions {
   /**
-   * External struct field information from C/C++ headers
-   * Maps struct name -> Set of field names
-   */
-  externalStructFields?: Map<string, Set<string>>;
-
-  /**
    * Symbol table containing external function definitions from C/C++ headers
-   * Used by FunctionCallAnalyzer to recognize external functions
+   * Used by FunctionCallAnalyzer to recognize external functions.
+   * Falls back to CodeGenState.symbolTable if not provided.
    */
   symbolTable?: SymbolTable;
 }
@@ -100,13 +96,11 @@ function runAnalyzers(
 
   // 3. Initialization analysis (Rust-style use-before-init detection)
   const initAnalyzer = new InitializationAnalyzer();
-  if (options?.externalStructFields) {
-    initAnalyzer.registerExternalStructFields(options.externalStructFields);
-  }
-  // Issue #503: Pass symbol table so C++ classes with default constructors are recognized
+  // External struct fields and symbolTable are read from CodeGenState directly
+  const symbolTable = options?.symbolTable ?? CodeGenState.symbolTable;
   if (
     collectErrors(
-      initAnalyzer.analyze(tree, options?.symbolTable),
+      initAnalyzer.analyze(tree, symbolTable),
       errors,
       formatWithCode,
     )
@@ -115,10 +109,10 @@ function runAnalyzers(
   }
 
   // 4. Call analysis (ADR-030: define-before-use)
-  const funcAnalyzer = new FunctionCallAnalyzer();
+  const callAnalyzer = new FunctionCallAnalyzer();
   if (
     collectErrors(
-      funcAnalyzer.analyze(tree, options?.symbolTable),
+      callAnalyzer.analyze(tree, symbolTable),
       errors,
       formatWithCode,
     )

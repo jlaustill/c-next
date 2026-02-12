@@ -12,6 +12,12 @@
 
 Check if work was already done: `git log --oneline --grep="<issue-number>"` — Issues may have been completed in PRs referencing different issue numbers.
 
+### Before Implementing Plan Findings
+
+- **Verify findings are current** - Plans may reference code patterns that no longer exist or were misidentified
+- **Search for actual usage** before removing "unused" code - grep for the function/variable name first
+- **Check if Sets/Maps are file-specific** - Per-file state should be rebuilt each analyze() call, not cached globally
+
 ### GitHub CLI Workaround
 
 `gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
@@ -168,6 +174,12 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 **Dead code detection**: Use TypeScript IDE diagnostics ("declared but never read") to find unused code. The `noUnusedLocals`/`noUnusedParameters` compiler options aren't practical due to ANTLR-generated parser files with unavoidable unused parameters.
 
+### Deprecating Public APIs
+
+- When marking a method as deprecated/no-op, update all test files that call it
+- Tests often use the old API directly - search `__tests__/` directories for usages
+- Consider keeping backward-compatible signatures while changing implementation
+
 ### 4-Layer Architecture (PR #571, #572, #768)
 
 The codebase is organized into four layers under `src/transpiler/`:
@@ -241,6 +253,12 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 - ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
+
+### Analyzer State Management
+
+- **External struct fields**: `CodeGenState.buildExternalStructFields()` builds from symbolTable in Stage 2b, analyzers read via `getExternalStructFields()`
+- **runAnalyzers() state**: Reads `symbolTable` and `externalStructFields` from CodeGenState by default - no need to pass options
+- **InitializationAnalyzer**: Uses `cnextStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
 
 ### Symbol Resolution Type Patterns
 

@@ -53,7 +53,6 @@ import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./types/TranspilerState";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
-import AnalyzerContextBuilder from "./logic/analysis/AnalyzerContextBuilder";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
@@ -248,6 +247,7 @@ class Transpiler {
    * Both run() and transpileSource() delegate here after file discovery.
    *
    * Stage 2: Collect symbols from C/C++ headers
+   * Stage 2b: Build external struct fields for analyzers
    * Stage 3: Collect symbols from C-Next files
    * Stage 3b: Resolve external const array dimensions
    * Stage 4: Check for symbol conflicts
@@ -260,6 +260,9 @@ class Transpiler {
   ): Promise<void> {
     // Stage 2: Collect symbols from C/C++ headers
     this._collectAllHeaderSymbols(input.headerFiles, result);
+
+    // Stage 2b: Build external struct fields once for all analyzers
+    CodeGenState.buildExternalStructFields();
 
     // Stage 3: Collect symbols from C-Next files
     if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
@@ -395,16 +398,8 @@ class Transpiler {
         return this.buildParseOnlyResult(sourcePath, declarationCount);
       }
 
-      // Run analyzers
-      const externalStructFields =
-        AnalyzerContextBuilder.buildExternalStructFields(
-          CodeGenState.symbolTable,
-        );
-
-      const analyzerErrors = runAnalyzers(tree, tokenStream, {
-        externalStructFields,
-        symbolTable: CodeGenState.symbolTable,
-      });
+      // Run analyzers (reads externalStructFields and symbolTable from CodeGenState)
+      const analyzerErrors = runAnalyzers(tree, tokenStream);
       if (analyzerErrors.length > 0) {
         return this.buildErrorResult(
           sourcePath,
