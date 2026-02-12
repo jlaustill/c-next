@@ -327,6 +327,11 @@ When adding new assignment patterns:
   4. Remove unused `symbols` variables after migration (oxlint will flag them)
 - **CodeGenState encapsulation**: When making fields private, add `get<Field>()`, `set<Field>()`, and `getAll<Field>()` (if `IGeneratorState` needs full collection). Update tests to use setters.
 - **Register check pattern**: Use `CodeGenState.symbols!.knownRegisters.has(name)` — no wrapper method exists on CodeGenerator
+- **State consolidation to CodeGenState**: When auditing for local state that should be centralized:
+  1. Grep for `this.<field>.` with zero matches to find dead instance variables from prior migrations
+  2. Prefer on-demand computation (e.g., `getUnmodifiedParameters()`) over maintaining cached inverses of existing state
+  3. Keep method signatures as no-ops when removing functionality that's part of `IOrchestrator` interface
+  4. `GeneratorContext` has been removed - all context fields are now in CodeGenState; don't add new instance state to CodeGenerator
 
 ### Adding CLI Flags
 

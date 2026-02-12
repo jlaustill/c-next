@@ -221,41 +221,6 @@ const DEFAULT_TARGET: TargetCapabilities = {
 };
 
 /**
- * ADR-044: Assignment context for overflow behavior tracking
- */
-interface AssignmentContext {
-  targetName: string | null;
-  targetType: string | null;
-  overflowBehavior: TOverflowBehavior;
-}
-
-/**
- * Context for tracking current scope during code generation
- */
-interface GeneratorContext {
-  currentScope: string | null; // ADR-016: renamed from currentNamespace
-  currentFunctionName: string | null; // Issue #269: track current function for pass-by-value lookup
-  currentFunctionReturnType: string | null; // Issue #477: track return type for enum inference
-  indentLevel: number;
-  scopeMembers: Map<string, Set<string>>; // scope -> member names (ADR-016)
-  currentParameters: Map<string, TParameterInfo>; // ADR-006: track params for pointer semantics
-  // Issue #558: modifiedParameters removed - now uses analysis-phase results from CodeGenState.modifiedParameters
-  localArrays: Set<string>; // ADR-006: track local array variables (no & needed)
-  localVariables: Set<string>; // ADR-016: track local variables (allowed as bare identifiers)
-  floatBitShadows: Set<string>; // Track declared shadow variables for float bit indexing
-  floatShadowCurrent: Set<string>; // Track which shadows have current value (skip redundant memcpy reads)
-  inFunctionBody: boolean; // ADR-016: track if we're inside a function body
-  typeRegistry: Map<string, TTypeInfo>; // Track variable types for bit access and .length
-  expectedType: string | null; // For inferred struct initializers
-  mainArgsName: string | null; // Track the args parameter name for main() translation
-  assignmentContext: AssignmentContext; // ADR-044: Track current assignment for overflow
-  lastArrayInitCount: number; // ADR-035: Track element count for size inference
-  lastArrayFillValue: string | undefined; // ADR-035: Track fill-all value
-  lengthCache: Map<string, string> | null; // Cache: variable name -> temp variable name for strlen optimization
-  targetCapabilities: TargetCapabilities; // ADR-049: Target platform for atomic code generation
-}
-
-/**
  * Code Generator - Transpiles C-Next to C
  *
  * Implements IOrchestrator to support modular generator extraction (ADR-053).
@@ -268,42 +233,6 @@ export default class CodeGenerator implements IOrchestrator {
       ["f32", "0.0f"],
       ["f64", "0.0"],
     ]);
-
-  private context: GeneratorContext =
-    CodeGenerator.createDefaultContext(DEFAULT_TARGET);
-
-  /**
-   * Create a fresh GeneratorContext with default values.
-   */
-  private static createDefaultContext(
-    targetCapabilities: TargetCapabilities,
-  ): GeneratorContext {
-    return {
-      currentScope: null,
-      currentFunctionName: null,
-      currentFunctionReturnType: null,
-      indentLevel: 0,
-      scopeMembers: new Map(),
-      currentParameters: new Map(),
-      localArrays: new Set(),
-      localVariables: new Set(),
-      floatBitShadows: new Set(),
-      floatShadowCurrent: new Set(),
-      inFunctionBody: false,
-      typeRegistry: new Map(),
-      expectedType: null,
-      mainArgsName: null,
-      assignmentContext: {
-        targetName: null,
-        targetType: null,
-        overflowBehavior: "clamp",
-      },
-      lastArrayInitCount: 0,
-      lastArrayFillValue: undefined,
-      lengthCache: null,
-      targetCapabilities,
-    };
-  }
 
   /** Token stream for comment extraction (ADR-043) */
   private tokenStream: CommonTokenStream | null = null;
@@ -1571,35 +1500,23 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #268: Store unmodified parameters for a function.
-   * Maps function name -> Set of parameter names that were NOT modified.
-   * Used by Pipeline to update symbol info before header generation.
-   */
-  private readonly functionUnmodifiedParams: Map<string, Set<string>> =
-    new Map();
-
-  /**
    * Issue #268: Get unmodified parameters info for all functions.
    * Returns map of function name -> Set of unmodified parameter names.
+   * Computed on-demand from functionSignatures and modifiedParameters.
    */
   getFunctionUnmodifiedParams(): ReadonlyMap<string, Set<string>> {
-    return this.functionUnmodifiedParams;
+    return CodeGenState.getUnmodifiedParameters();
   }
 
   /**
    * Issue #268: Update symbol parameters with auto-const info.
-   * Issue #558: Now uses analysis-phase results for modification tracking.
+   * Now a no-op - unmodified params are computed on-demand from CodeGenState.
+   * Kept for IOrchestrator interface compatibility.
    */
-  updateFunctionParamsAutoConst(functionName: string): void {
-    // Collect unmodified parameters for this function using analysis results
-    const unmodifiedParams = new Set<string>();
-    const modifiedSet = CodeGenState.modifiedParameters.get(functionName);
-    for (const [paramName] of CodeGenState.currentParameters) {
-      if (!modifiedSet?.has(paramName)) {
-        unmodifiedParams.add(paramName);
-      }
-    }
-    this.functionUnmodifiedParams.set(functionName, unmodifiedParams);
+  updateFunctionParamsAutoConst(_functionName: string): void {
+    // No-op: Unmodified parameters are now computed on-demand from
+    // CodeGenState.functionSignatures and CodeGenState.modifiedParameters
+    // via CodeGenState.getUnmodifiedParameters().
   }
 
   /**
@@ -1797,23 +1714,16 @@ export default class CodeGenerator implements IOrchestrator {
    * Returns true if the callee modifies that parameter (should not have const).
    */
   isCalleeParameterModified(funcName: string, paramIndex: number): boolean {
-    const unmodifiedParams = this.functionUnmodifiedParams.get(funcName);
-    if (!unmodifiedParams) {
-      // Callee not yet processed - conservatively return false (assume unmodified)
-      // This means we won't mark our param as modified, which may cause a C compiler error
-      // if the callee actually modifies the param. The C compiler will catch this.
-      return false;
-    }
-
     // Get the parameter name at the given index from the function signature
     const sig = CodeGenState.functionSignatures.get(funcName);
     if (!sig || paramIndex >= sig.parameters.length) {
+      // Callee not yet processed - conservatively return false (assume unmodified)
       return false;
     }
 
     const paramName = sig.parameters[paramIndex].name;
-    // If the param is NOT in the unmodified set, it was modified
-    return !unmodifiedParams.has(paramName);
+    // Check directly if the parameter is in the modified set
+    return CodeGenState.isParameterModified(funcName, paramName);
   }
 
   /**
@@ -2242,30 +2152,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Reset all generator state for a fresh generation pass.
    */
   private resetGeneratorState(targetCapabilities: TargetCapabilities): void {
-    // Reset global state first
+    // Reset global state (CodeGenState.reset() handles all field initialization)
     CodeGenState.reset(targetCapabilities);
 
     // Set generator reference for handlers to use
     CodeGenState.generator = this;
-
-    // Reset local context (will gradually migrate to CodeGenState)
-    this.context = CodeGenerator.createDefaultContext(targetCapabilities);
-
-    CodeGenState.knownFunctions = new Set();
-    CodeGenState.functionSignatures = new Map();
-    CodeGenState.callbackTypes = new Map();
-    CodeGenState.callbackFieldTypes = new Map();
-    CodeGenState.usedClampOps = new Set();
-    CodeGenState.usedSafeDivOps = new Set();
-    CodeGenState.needsStdint = false;
-    CodeGenState.needsStdbool = false;
-    CodeGenState.needsString = false;
-    CodeGenState.needsFloatStaticAssert = false;
-    CodeGenState.needsISR = false;
-    CodeGenState.needsCMSIS = false;
-    CodeGenState.needsLimits = false;
-    CodeGenState.needsIrqWrappers = false;
-    CodeGenState.selfIncludeAdded = false;
   }
 
   /**

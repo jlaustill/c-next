@@ -464,6 +464,26 @@ export default class CodeGenState {
   }
 
   /**
+   * Compute unmodified parameters for all functions on-demand.
+   * Returns a map of function name -> Set of parameter names NOT modified.
+   * Computed from functionSignatures and modifiedParameters (no cached state).
+   */
+  static getUnmodifiedParameters(): Map<string, Set<string>> {
+    const result = new Map<string, Set<string>>();
+    for (const [funcName, signature] of this.functionSignatures) {
+      const modifiedSet = this.modifiedParameters.get(funcName);
+      const unmodified = new Set<string>();
+      for (const param of signature.parameters) {
+        if (!modifiedSet?.has(param.name)) {
+          unmodified.add(param.name);
+        }
+      }
+      result.set(funcName, unmodified);
+    }
+    return result;
+  }
+
+  /**
    * Check if a parameter should pass by value.
    */
   static isPassByValue(funcName: string, paramName: string): boolean {
