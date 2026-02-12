@@ -1356,6 +1356,29 @@ describe("PostfixExpressionGenerator", () => {
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("Color_Red");
     });
+
+    it("throws when scope member shadows global enum (resolved identifier differs)", () => {
+      const symbols = createMockSymbols({
+        knownEnums: new Set(["Color"]),
+      });
+      const ctx = createMockPostfixExpressionContext("Color", [
+        createMockPostfixOp({ identifier: "Red" }),
+      ]);
+      const input = createMockInput({ symbols });
+      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
+      const state = createMockState({ currentScope: "Motor", scopeMembers });
+      const orchestrator = createMockOrchestrator({
+        // Simulates identifier resolution: Color -> Motor_Color (scope member)
+        generatePrimaryExpr: () => "Motor_Color",
+        getScopeSeparator: () => "_",
+      });
+
+      expect(() =>
+        generatePostfixExpression(ctx, input, state, orchestrator),
+      ).toThrow(
+        "Use 'global.Color.Red' to access enum 'Color' from inside scope 'Motor' (scope member 'Color' shadows the global enum)",
+      );
+    });
   });
 
   describe("register member access", () => {

@@ -1,0 +1,1 @@
+1:0 Code generation failed: Error: Use 'global.EColor.RED' to access enum 'EColor' from inside scope 'Test' (scope member 'EColor' shadows the global enum)

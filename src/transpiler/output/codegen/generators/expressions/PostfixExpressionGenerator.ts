@@ -1432,6 +1432,36 @@ const initializeMemberOutput = (
 });
 
 /**
+ * Check if a scope member is shadowing a global enum.
+ * This produces invalid C code, so we must error early with a helpful message.
+ */
+const checkEnumShadowingConflict = (
+  ctx: IMemberAccessContext,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+): void => {
+  if (!state.currentScope || !ctx.rootIdentifier) {
+    return;
+  }
+  // Check if the original identifier is a known global enum
+  if (!input.symbols!.knownEnums.has(ctx.rootIdentifier)) {
+    return;
+  }
+  // Check if it was resolved to something different (scope member)
+  if (ctx.result === ctx.rootIdentifier) {
+    return;
+  }
+  // Check if the resolved name is NOT an enum (scope member shadows global enum)
+  if (input.symbols!.knownEnums.has(ctx.result)) {
+    return;
+  }
+  // Conflict: scope member shadows global enum
+  throw new Error(
+    `Error: Use 'global.${ctx.rootIdentifier}.${ctx.memberName}' to access enum '${ctx.rootIdentifier}' from inside scope '${state.currentScope}' (scope member '${ctx.rootIdentifier}' shadows the global enum)`,
+  );
+};
+
+/**
  * Generate member access (obj.field).
  * Dispatches to specialized handlers via null-coalescing chain.
  */
@@ -1441,16 +1471,22 @@ const generateMemberAccess = (
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
-): MemberAccessResult =>
-  tryBitmapFieldAccess(ctx, input, effects) ??
-  tryScopeMemberAccess(ctx, input, state, orchestrator) ??
-  tryKnownScopeAccess(ctx, input, state, orchestrator) ??
-  tryEnumMemberAccess(ctx, input, state, orchestrator) ??
-  tryRegisterMemberAccess(ctx, input, state) ??
-  tryStructParamAccess(ctx, orchestrator) ??
-  tryRegisterBitmapAccess(ctx, input, effects) ??
-  tryStructBitmapAccess(ctx, input, effects) ??
-  generateDefaultAccess(ctx, orchestrator);
+): MemberAccessResult => {
+  // Check for enum shadowing conflict before dispatch
+  checkEnumShadowingConflict(ctx, input, state);
+
+  return (
+    tryBitmapFieldAccess(ctx, input, effects) ??
+    tryScopeMemberAccess(ctx, input, state, orchestrator) ??
+    tryKnownScopeAccess(ctx, input, state, orchestrator) ??
+    tryEnumMemberAccess(ctx, input, state, orchestrator) ??
+    tryRegisterMemberAccess(ctx, input, state) ??
+    tryStructParamAccess(ctx, orchestrator) ??
+    tryRegisterBitmapAccess(ctx, input, effects) ??
+    tryStructBitmapAccess(ctx, input, effects) ??
+    generateDefaultAccess(ctx, orchestrator)
+  );
+};
 
 // ========================================================================
 // Member Access Handlers

@@ -1,0 +1,19 @@
+// test-error
+// Tests: Enum access requires global. when scope has member with same name
+// Issue #774: This is the ambiguous case - must error with helpful message
+
+enum EColor { RED, GREEN, BLUE }
+
+scope Test {
+    // Scope has a member named 'EColor' - creates naming conflict with global enum
+    u32 EColor <- 42;
+
+    public u32 getValue() {
+        // EColor.RED is ambiguous - could mean scope member or enum
+        // Must error and suggest using global.EColor.RED
+        return EColor.RED;
+    }
+}
+
+void main() {
+}
