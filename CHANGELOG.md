@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.69] - 2026-02-12
+
+### Fixed
+
+- Platform-portable IRQ wrappers for critical sections - fixes Teensy 4.0 compilation (Issue #778, PR #782)
+- Array member access without `this.` now resolves to scope prefix (Issue #779, PR #780)
+
+### Changed
+
+- Remove dead `GeneratorContext` class and compute unmodified params on-demand (PR #781)
+- Make `CodeGenState.scopeMembers` private with accessor methods for encapsulation
+
 ## [0.1.68] - 2026-02-12
 
 ### Fixed
@@ -1017,6 +1029,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
+[0.1.69]: https://github.com/jlaustill/c-next/compare/v0.1.68...v0.1.69
 [0.1.68]: https://github.com/jlaustill/c-next/compare/v0.1.67...v0.1.68
 [0.1.67]: https://github.com/jlaustill/c-next/compare/v0.1.66...v0.1.67
 [0.1.22]: https://github.com/jlaustill/c-next/compare/v0.1.21...v0.1.22
