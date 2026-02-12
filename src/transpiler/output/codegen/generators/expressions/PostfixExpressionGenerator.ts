@@ -1581,6 +1581,7 @@ const tryEnumMemberAccess = (
     "enum",
     state.currentScope,
     ctx.isGlobalAccess,
+    state.scopeMembers,
   );
 
   const output = initializeMemberOutput(ctx);
@@ -1606,6 +1607,7 @@ const tryRegisterMemberAccess = (
     "register",
     state.currentScope,
     ctx.isGlobalAccess,
+    state.scopeMembers,
   );
 
   MemberAccessValidator.validateRegisterReadAccess(

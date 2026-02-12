@@ -1318,7 +1318,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("Color_Red");
     });
 
-    it("throws when accessing enum without global prefix inside scope", () => {
+    it("throws when accessing enum with naming conflict inside scope", () => {
       const symbols = createMockSymbols({
         knownEnums: new Set(["Color"]),
       });
@@ -1326,7 +1326,8 @@ describe("PostfixExpressionGenerator", () => {
         createMockPostfixOp({ identifier: "Red" }),
       ]);
       const input = createMockInput({ symbols });
-      const state = createMockState({ currentScope: "Motor" });
+      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
+      const state = createMockState({ currentScope: "Motor", scopeMembers });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "Color",
         getScopeSeparator: () => "_",
@@ -1335,6 +1336,25 @@ describe("PostfixExpressionGenerator", () => {
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
       ).toThrow("Use 'global.Color.Red' to access enum 'Color'");
+    });
+
+    it("allows enum access without global prefix when no naming conflict", () => {
+      const symbols = createMockSymbols({
+        knownEnums: new Set(["Color"]),
+      });
+      const ctx = createMockPostfixExpressionContext("Color", [
+        createMockPostfixOp({ identifier: "Red" }),
+      ]);
+      const input = createMockInput({ symbols });
+      const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
+      const state = createMockState({ currentScope: "Motor", scopeMembers });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "Color",
+        getScopeSeparator: () => "_",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("Color_Red");
     });
   });
 
@@ -1375,7 +1395,7 @@ describe("PostfixExpressionGenerator", () => {
       ).toThrow("cannot read from write-only register member 'DATA'");
     });
 
-    it("throws when accessing register without global prefix inside scope", () => {
+    it("throws when accessing register with naming conflict inside scope", () => {
       const symbols = createMockSymbols({
         knownRegisters: new Set(["GPIO"]),
       });
@@ -1383,7 +1403,8 @@ describe("PostfixExpressionGenerator", () => {
         createMockPostfixOp({ identifier: "PIN0" }),
       ]);
       const input = createMockInput({ symbols });
-      const state = createMockState({ currentScope: "Motor" });
+      const scopeMembers = new Map([["Motor", new Set(["GPIO"])]]);
+      const state = createMockState({ currentScope: "Motor", scopeMembers });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "GPIO",
       });
@@ -1391,6 +1412,24 @@ describe("PostfixExpressionGenerator", () => {
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
       ).toThrow("Use 'global.GPIO.PIN0' to access register 'GPIO'");
+    });
+
+    it("allows register access without global prefix when no naming conflict", () => {
+      const symbols = createMockSymbols({
+        knownRegisters: new Set(["GPIO"]),
+      });
+      const ctx = createMockPostfixExpressionContext("GPIO", [
+        createMockPostfixOp({ identifier: "PIN0" }),
+      ]);
+      const input = createMockInput({ symbols });
+      const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
+      const state = createMockState({ currentScope: "Motor", scopeMembers });
+      const orchestrator = createMockOrchestrator({
+        generatePrimaryExpr: () => "GPIO",
+      });
+
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      expect(result.code).toBe("GPIO_PIN0");
     });
   });
 

@@ -118,7 +118,8 @@ describe("MemberAccessValidator", () => {
   });
 
   describe("validateGlobalEntityAccess", () => {
-    it("throws when in scope and entity does not belong to current scope", () => {
+    it("throws when in scope and entity name conflicts with scope member", () => {
+      const scopeMembers = new Map([["Motor", new Set(["Color", "speed"])]]);
       expect(() =>
         MemberAccessValidator.validateGlobalEntityAccess(
           "Color",
@@ -126,13 +127,29 @@ describe("MemberAccessValidator", () => {
           "enum",
           "Motor",
           false,
+          scopeMembers,
         ),
       ).toThrow(
         "Use 'global.Color.Red' to access enum 'Color' from inside scope 'Motor'",
       );
     });
 
-    it("does NOT throw when isGlobalAccess is true", () => {
+    it("does NOT throw when in scope but no naming conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Color",
+          "Red",
+          "enum",
+          "Motor",
+          false,
+          scopeMembers,
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when isGlobalAccess is true even with conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
       expect(() =>
         MemberAccessValidator.validateGlobalEntityAccess(
           "Color",
@@ -140,6 +157,7 @@ describe("MemberAccessValidator", () => {
           "enum",
           "Motor",
           true,
+          scopeMembers,
         ),
       ).not.toThrow();
     });
@@ -168,7 +186,8 @@ describe("MemberAccessValidator", () => {
       ).not.toThrow();
     });
 
-    it("works with register entity type", () => {
+    it("throws for register with naming conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["GPIO"])]]);
       expect(() =>
         MemberAccessValidator.validateGlobalEntityAccess(
           "GPIO",
@@ -176,10 +195,38 @@ describe("MemberAccessValidator", () => {
           "register",
           "Motor",
           false,
+          scopeMembers,
         ),
       ).toThrow(
         "Use 'global.GPIO.PIN0' to access register 'GPIO' from inside scope 'Motor'",
       );
+    });
+
+    it("does NOT throw for register without naming conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "GPIO",
+          "PIN0",
+          "register",
+          "Motor",
+          false,
+          scopeMembers,
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when scopeMembers is undefined", () => {
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Color",
+          "Red",
+          "enum",
+          "Motor",
+          false,
+          undefined,
+        ),
+      ).not.toThrow();
     });
   });
 });

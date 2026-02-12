@@ -55,13 +55,14 @@ class MemberAccessValidator {
 
   /**
    * ADR-016/057: Validate that a global entity (enum or register) is accessed
-   * with 'global.' prefix when inside a scope that doesn't own the entity.
+   * with 'global.' prefix when inside a scope that has a naming conflict.
    *
    * @param entityName - The entity being accessed (e.g., "Color", "GPIO")
    * @param memberName - The member after the entity (e.g., "Red", "PIN0")
    * @param entityType - "enum" or "register" (for error message)
    * @param currentScope - Active scope context (null = not in a scope)
    * @param isGlobalAccess - Whether the access used 'global.' prefix
+   * @param scopeMembers - Map of scope names to their member names (for conflict detection)
    */
   static validateGlobalEntityAccess(
     entityName: string,
@@ -69,13 +70,21 @@ class MemberAccessValidator {
     entityType: string,
     currentScope: string | null,
     isGlobalAccess: boolean,
+    scopeMembers?: ReadonlyMap<string, ReadonlySet<string>>,
   ): void {
     if (isGlobalAccess) {
       return;
     }
     if (currentScope) {
       const belongsToCurrentScope = entityName.startsWith(currentScope + "_");
-      if (!belongsToCurrentScope) {
+      if (belongsToCurrentScope) {
+        return;
+      }
+      // Only require global. prefix when there's a naming conflict
+      // (scope has a member with the same name as the entity)
+      const scopeMemberNames = scopeMembers?.get(currentScope);
+      const hasConflict = scopeMemberNames?.has(entityName) ?? false;
+      if (hasConflict) {
         throw new Error(
           `Error: Use 'global.${entityName}.${memberName}' to access ${entityType} '${entityName}' from inside scope '${currentScope}'`,
         );

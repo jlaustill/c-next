@@ -1,14 +1,19 @@
-// Test: Bare enum access from inside a scope should error
-// ADR-016: Must use global. prefix for cross-scope enum access
+// test-execution
+// Test: Enum access from inside a scope works without global. when unambiguous
+// Issue #774: global. prefix only required when there's a naming conflict
 
 enum GlobalState { IDLE, RUNNING, STOPPED }
 
 scope Motor {
-    void test() {
-        // ERROR: Must use global.GlobalState.IDLE instead of GlobalState.IDLE
+    public GlobalState test() {
+        // No conflict - GlobalState is unambiguous (no scope member named GlobalState)
         GlobalState current <- GlobalState.IDLE;
+        return current;
     }
 }
 
-void main() {
+u32 main() {
+    GlobalState result <- Motor.test();
+    if (result != GlobalState.IDLE) { return 1; }
+    return 0;
 }
