@@ -476,8 +476,7 @@ export default class CodeGenState {
     // so we only use C-Next symbols from SymbolTable.
     const symbol = this.symbolTable.getSymbol(name);
     if (
-      symbol &&
-      symbol.kind === ESymbolKind.Variable &&
+      symbol?.kind === ESymbolKind.Variable &&
       symbol.type &&
       symbol.sourceLanguage === ESourceLanguage.CNext
     ) {
@@ -548,24 +547,24 @@ export default class CodeGenState {
 
     // Parse string<N> type pattern
     const stringPattern = /^string<(\d+)>$/;
-    const stringMatch = stringPattern.test(rawType)
-      ? rawType.match(stringPattern)
-      : null;
+    const stringMatch = stringPattern.exec(rawType);
     const isString = stringMatch !== null;
     const stringCapacity = stringMatch
-      ? parseInt(stringMatch[1], 10)
+      ? Number.parseInt(stringMatch[1], 10)
       : undefined;
-    const baseType = isString ? "string" : rawType;
+    // Use "char" for string types to match local convention (StringDeclHelper.ts)
+    const baseType = isString ? "char" : rawType;
 
     const isEnum = this.isKnownEnum(baseType);
 
     return {
       baseType,
-      bitWidth: TYPE_WIDTH[baseType] || 0,
+      // Use bitWidth 8 for strings (char), otherwise lookup from TYPE_WIDTH
+      bitWidth: isString ? 8 : TYPE_WIDTH[baseType] || 0,
       isArray: symbol.isArray || false,
       arrayDimensions: symbol.arrayDimensions
-        ?.map((d) => parseInt(d, 10))
-        .filter((n) => !isNaN(n)),
+        ?.map((d) => Number.parseInt(d, 10))
+        .filter((n) => !Number.isNaN(n)),
       isConst: symbol.isConst || false,
       isAtomic: symbol.isAtomic || false,
       isEnum,
