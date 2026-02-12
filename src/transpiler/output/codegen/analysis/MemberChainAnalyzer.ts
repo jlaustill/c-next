@@ -127,7 +127,7 @@ class MemberChainAnalyzer {
     ops: Parser.PostfixTargetOpContext[],
     _subscriptsSoFar: number,
   ): { type: string; isArray: boolean } | undefined {
-    const baseTypeInfo = CodeGenState.typeRegistry.get(baseId);
+    const baseTypeInfo = CodeGenState.getVariableTypeInfo(baseId);
     if (!baseTypeInfo) {
       return undefined;
     }

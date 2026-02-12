@@ -68,7 +68,7 @@ describe("AssignmentExpectedTypeResolver", () => {
   describe("resolve()", () => {
     describe("simple identifier", () => {
       it("should resolve expected type for known variable", () => {
-        CodeGenState.typeRegistry.set("counter", {
+        CodeGenState.setVariableTypeInfo("counter", {
           baseType: "u32",
           bitWidth: 32,
           isArray: false,
@@ -87,7 +87,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should use specified overflow behavior", () => {
-        CodeGenState.typeRegistry.set("counter", {
+        CodeGenState.setVariableTypeInfo("counter", {
           baseType: "u8",
           bitWidth: 8,
           isArray: false,
@@ -113,7 +113,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
     describe("member access", () => {
       it("should resolve expected type for struct field", () => {
-        CodeGenState.typeRegistry.set("config", {
+        CodeGenState.setVariableTypeInfo("config", {
           baseType: "Config",
           bitWidth: 0,
           isArray: false,
@@ -128,7 +128,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should walk nested struct chain", () => {
-        CodeGenState.typeRegistry.set("app", {
+        CodeGenState.setVariableTypeInfo("app", {
           baseType: "App",
           bitWidth: 0,
           isArray: false,
@@ -144,7 +144,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should return null for non-struct root", () => {
-        CodeGenState.typeRegistry.set("counter", {
+        CodeGenState.setVariableTypeInfo("counter", {
           baseType: "u32",
           bitWidth: 32,
           isArray: false,
@@ -158,7 +158,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should return null for unknown field", () => {
-        CodeGenState.typeRegistry.set("config", {
+        CodeGenState.setVariableTypeInfo("config", {
           baseType: "Config",
           bitWidth: 0,
           isArray: false,
@@ -175,7 +175,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
     describe("array access", () => {
       it("should return null for array access target", () => {
-        CodeGenState.typeRegistry.set("arr", {
+        CodeGenState.setVariableTypeInfo("arr", {
           baseType: "u32",
           bitWidth: 32,
           isArray: true,

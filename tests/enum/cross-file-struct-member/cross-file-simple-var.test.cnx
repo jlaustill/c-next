@@ -1,0 +1,16 @@
+// test-c-only
+// test-execution
+// Tests: simple cross-file variable access (no struct chain) (#786 related)
+
+#include "types.cnx"
+
+u32 main() {
+    // Simple cross-file const access (should work)
+    if (COUNT != 4) return 1;
+
+    // Simple cross-file struct variable assignment (no enum)
+    config.items[0].padding <- 42;
+    if (config.items[0].padding != 42) return 2;
+
+    return 0;
+}

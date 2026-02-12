@@ -89,9 +89,9 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates single-bit read-modify-write", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
@@ -107,9 +107,9 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates single-bit write with correct offset", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 3, width: 1 }]])],
@@ -125,9 +125,9 @@ describe("BitmapHandlers", () => {
     });
 
     it("throws on unknown bitmap field", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([["StatusFlags", new Map()]]),
       });
@@ -141,9 +141,9 @@ describe("BitmapHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
@@ -160,9 +160,9 @@ describe("BitmapHandlers", () => {
     });
 
     it("validates bitmap field literal", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
@@ -188,9 +188,9 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates multi-bit read-modify-write with mask", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Mode", { offset: 4, width: 3 }]])],
@@ -210,9 +210,9 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates correct mask for 2-bit field", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["config", { bitmapTypeName: "Config", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["Config", new Map([["Priority", { offset: 0, width: 2 }]])],
@@ -236,9 +236,9 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates array element bitmap field assignment", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["flagsArray", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("i"),
       });
@@ -266,9 +266,9 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates struct member bitmap field assignment", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["device", { baseType: "Device" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 2, width: 1 }]])],

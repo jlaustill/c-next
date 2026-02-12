@@ -141,15 +141,16 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
 }
 
 /**
- * Set up CodeGenState.typeRegistry with typed entries.
+ * Set up CodeGenState type registry with typed entries.
  * Entries only need to specify the fields relevant to the test.
+ * Uses setVariableTypeInfo to properly populate the registry.
  */
 function setupMockTypeRegistry(
   entries: Array<[string, Partial<TTypeInfo>]>,
 ): void {
-  CodeGenState.typeRegistry = new Map(
-    entries.map(([name, partial]) => [name, createTypeInfo(partial)]),
-  );
+  for (const [name, partial] of entries) {
+    CodeGenState.setVariableTypeInfo(name, createTypeInfo(partial));
+  }
 }
 
 export default class HandlerTestUtils {

@@ -291,7 +291,7 @@ class TypeValidator {
 
     const scopedName = CodeGenState.resolveIdentifier(identifier);
 
-    const typeInfo = CodeGenState.typeRegistry.get(scopedName);
+    const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
     if (typeInfo?.isConst) {
       return `cannot assign to const variable '${identifier}'`;
     }
@@ -305,7 +305,7 @@ class TypeValidator {
       return true;
     }
 
-    const typeInfo = CodeGenState.typeRegistry.get(identifier);
+    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
     if (typeInfo?.isConst) {
       return true;
     }
@@ -366,7 +366,7 @@ class TypeValidator {
       );
     }
 
-    const typeInfo = CodeGenState.typeRegistry.get(identifier);
+    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
     if (typeInfo && !identifier.includes("_")) {
       throw new Error(
         `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScope}'`,
@@ -428,7 +428,7 @@ class TypeValidator {
     currentScope: string | null,
     isKnownStruct: (name: string) => boolean,
   ): boolean {
-    const typeInfo = CodeGenState.typeRegistry.get(identifier);
+    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
     if (typeInfo && !identifier.includes("_")) {
       return true;
     }
@@ -790,7 +790,7 @@ class TypeValidator {
       return true;
     }
 
-    const typeInfo = CodeGenState.typeRegistry.get(text);
+    const typeInfo = CodeGenState.getVariableTypeInfo(text);
     if (typeInfo?.baseType === "bool") {
       return true;
     }

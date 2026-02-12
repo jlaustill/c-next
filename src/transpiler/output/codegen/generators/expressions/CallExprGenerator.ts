@@ -17,6 +17,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import CallExprUtils from "./CallExprUtils";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Issue #304: Wrap argument with static_cast if it's a C++ enum class
@@ -80,7 +81,7 @@ const _generateCFunctionArg = (
   // Issue #322: If getExpressionType returns null (e.g., for this.member),
   // fall back to looking up the generated code in the type registry
   if (!argType && !argCode.startsWith("&")) {
-    const typeInfo = input.typeRegistry.get(argCode);
+    const typeInfo = CodeGenState.getVariableTypeInfo(argCode);
     if (typeInfo) {
       argType = typeInfo.baseType;
     }
@@ -119,8 +120,15 @@ const _shouldPassByValue = (
     funcExpr,
     idx,
   );
-  const isSmallPrimitive =
-    isCrossFile && CallExprUtils.isSmallPrimitiveType(targetParam.baseType);
+
+  // Issue #786: For cross-file calls, check if parameter is a known primitive type.
+  // Known primitives (u8-u64, i8-i64, bool) should always be pass-by-value.
+  // This handles the case where local passByValueParams isn't populated for cross-file functions.
+  const isCrossFilePrimitive =
+    isCrossFile &&
+    CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
+    !orchestrator.isStructType(targetParam.baseType) &&
+    !CallExprUtils.isStringType(targetParam.baseType);
 
   // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
   const isUnknownType =
@@ -129,13 +137,13 @@ const _shouldPassByValue = (
     !CallExprUtils.isStringType(targetParam.baseType) &&
     !isFloatParam &&
     !isEnumParam &&
-    !isSmallPrimitive;
+    !isCrossFilePrimitive;
 
   return (
     isFloatParam ||
     isEnumParam ||
     isPrimitivePassByValue ||
-    isSmallPrimitive ||
+    isCrossFilePrimitive ||
     isUnknownType
   );
 };
@@ -259,7 +267,7 @@ const generateSafeDivMod = (
   }
 
   // Look up the type of the output parameter
-  const typeInfo = input.typeRegistry.get(outputArgId);
+  const typeInfo = CodeGenState.getVariableTypeInfo(outputArgId);
   if (!typeInfo) {
     throw new Error(
       `Cannot determine type of output parameter '${outputArgId}' for ${funcName}`,

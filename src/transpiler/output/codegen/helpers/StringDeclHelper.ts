@@ -325,7 +325,7 @@ class StringDeclHelper {
     const arraySize = CodeGenState.lastArrayInitCount;
 
     // Update type registry with inferred size
-    CodeGenState.typeRegistry.set(name, {
+    CodeGenState.setVariableTypeInfo(name, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,
@@ -531,7 +531,7 @@ class StringDeclHelper {
     callbacks.requireStringInclude();
 
     // Register in type registry with inferred capacity
-    CodeGenState.typeRegistry.set(name, {
+    CodeGenState.setVariableTypeInfo(name, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,

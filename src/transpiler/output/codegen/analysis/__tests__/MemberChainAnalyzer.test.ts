@@ -139,7 +139,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns isBitAccess false when last op is member access", () => {
       // point.flags (no subscript at end)
-      CodeGenState.typeRegistry.set("point", {
+      CodeGenState.setVariableTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -159,7 +159,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns isBitAccess false when last subscript has 2 expressions (bit range)", () => {
       // flags[0, 8] - bit range, not single bit access
-      CodeGenState.typeRegistry.set("flags", {
+      CodeGenState.setVariableTypeInfo("flags", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -180,7 +180,7 @@ describe("MemberChainAnalyzer", () => {
       pointFields.set("flags", "u8");
       setupStructFields("Point", pointFields);
 
-      CodeGenState.typeRegistry.set("point", {
+      CodeGenState.setVariableTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -209,7 +209,7 @@ describe("MemberChainAnalyzer", () => {
       gridFields.set("items", "u8");
       setupStructFields("Grid", gridFields, new Set(["items"]));
 
-      CodeGenState.typeRegistry.set("grid", {
+      CodeGenState.setVariableTypeInfo("grid", {
         baseType: "Grid",
         bitWidth: 0,
         isArray: false,
@@ -236,7 +236,7 @@ describe("MemberChainAnalyzer", () => {
       pointFields.set("name", "string");
       setupStructFields("Point", pointFields);
 
-      CodeGenState.typeRegistry.set("point", {
+      CodeGenState.setVariableTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -263,7 +263,7 @@ describe("MemberChainAnalyzer", () => {
       deviceFields.set("flags", "u8");
       setupStructFields("Device", deviceFields);
 
-      CodeGenState.typeRegistry.set("devices", {
+      CodeGenState.setVariableTypeInfo("devices", {
         baseType: "Device",
         bitWidth: 0,
         isArray: true,
@@ -290,7 +290,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for 2D array element: matrix[0][1]", () => {
       // matrix[0][1] is array access, not bit access
-      CodeGenState.typeRegistry.set("matrix", {
+      CodeGenState.setVariableTypeInfo("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -315,7 +315,7 @@ describe("MemberChainAnalyzer", () => {
     it("detects bit access on 2D array element: matrix[0][1][3]", () => {
       // matrix[0][1][3] where matrix is u8[4][4]
       // The third subscript [3] is bit access on the u8 element
-      CodeGenState.typeRegistry.set("matrix", {
+      CodeGenState.setVariableTypeInfo("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -357,7 +357,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for member access on non-struct", () => {
       // x.field[0] where x is a primitive
-      CodeGenState.typeRegistry.set("x", {
+      CodeGenState.setVariableTypeInfo("x", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,

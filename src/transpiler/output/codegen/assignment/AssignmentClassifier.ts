@@ -144,7 +144,7 @@ class AssignmentClassifier {
     varName: string,
     fieldName: string,
   ): AssignmentKind | null {
-    const typeInfo = CodeGenState.typeRegistry.get(varName);
+    const typeInfo = CodeGenState.getVariableTypeInfo(varName);
     if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
       return null;
     }
@@ -189,7 +189,7 @@ class AssignmentClassifier {
     }
 
     // Check if struct member bitmap field: struct.bitmapMember.field
-    const structTypeInfo = CodeGenState.typeRegistry.get(firstName);
+    const structTypeInfo = CodeGenState.getVariableTypeInfo(firstName);
     if (
       !structTypeInfo ||
       !CodeGenState.isKnownStruct(structTypeInfo.baseType)
@@ -270,7 +270,7 @@ class AssignmentClassifier {
 
     const ids = ctx.identifiers;
     const firstId = ids[0];
-    const typeInfo = CodeGenState.typeRegistry.get(firstId);
+    const typeInfo = CodeGenState.getVariableTypeInfo(firstId);
 
     // Check for bit range through struct chain: devices[0].control[0, 4]
     // Detected by last subscript having 2 expressions (start, width)
@@ -494,7 +494,7 @@ class AssignmentClassifier {
     }
 
     const name = ctx.identifiers[0];
-    const typeInfo = CodeGenState.typeRegistry.get(name) ?? null;
+    const typeInfo = CodeGenState.getVariableTypeInfo(name) ?? null;
 
     // Use shared classifier for array vs bit access decision
     // Use lastSubscriptExprCount to distinguish [0][0] (two ops, each 1 expr)
@@ -558,16 +558,16 @@ class AssignmentClassifier {
     let typeInfo;
     if (ctx.isSimpleIdentifier) {
       const id = ctx.identifiers[0];
-      typeInfo = CodeGenState.typeRegistry.get(id);
+      typeInfo = CodeGenState.getVariableTypeInfo(id);
     } else if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
       // this.member pattern: lookup using scoped name
       const memberName = ctx.identifiers[0];
       const scopedName = `${CodeGenState.currentScope}_${memberName}`;
-      typeInfo = CodeGenState.typeRegistry.get(scopedName);
+      typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
     } else if (ctx.isSimpleGlobalAccess) {
       // global.member pattern: lookup using direct name
       const memberName = ctx.identifiers[0];
-      typeInfo = CodeGenState.typeRegistry.get(memberName);
+      typeInfo = CodeGenState.getVariableTypeInfo(memberName);
     } else {
       return null;
     }
@@ -604,7 +604,7 @@ class AssignmentClassifier {
   ): AssignmentKind | null {
     if (!ctx.isSimpleIdentifier) return null;
     const id = ctx.identifiers[0];
-    const typeInfo = CodeGenState.typeRegistry.get(id);
+    const typeInfo = CodeGenState.getVariableTypeInfo(id);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_SIMPLE
       : null;
@@ -619,7 +619,7 @@ class AssignmentClassifier {
     if (!ctx.isSimpleThisAccess || !CodeGenState.currentScope) return null;
     const memberName = ctx.identifiers[0];
     const scopedName = `${CodeGenState.currentScope}_${memberName}`;
-    const typeInfo = CodeGenState.typeRegistry.get(scopedName);
+    const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_THIS_MEMBER
       : null;
@@ -633,7 +633,7 @@ class AssignmentClassifier {
   ): AssignmentKind | null {
     if (!ctx.isSimpleGlobalAccess) return null;
     const id = ctx.identifiers[0];
-    const typeInfo = CodeGenState.typeRegistry.get(id);
+    const typeInfo = CodeGenState.getVariableTypeInfo(id);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_GLOBAL
       : null;
@@ -644,7 +644,7 @@ class AssignmentClassifier {
    * Returns the base struct type if valid, null if not a known struct.
    */
   private static _resolveStructType(structName: string): string | null {
-    const structTypeInfo = CodeGenState.typeRegistry.get(structName);
+    const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
     if (
       !structTypeInfo ||
       !CodeGenState.isKnownStruct(structTypeInfo.baseType)

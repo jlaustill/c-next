@@ -387,7 +387,7 @@ export default class CodeGenerator implements IOrchestrator {
     return {
       symbolTable: CodeGenState.symbolTable,
       symbols: CodeGenState.symbols,
-      typeRegistry: CodeGenState.typeRegistry,
+      typeRegistry: CodeGenState.getTypeRegistryView(),
       functionSignatures: CodeGenState.functionSignatures,
       knownFunctions: CodeGenState.knownFunctions,
       knownStructs: CodeGenState.symbols?.knownStructs ?? new Set(),
@@ -451,7 +451,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Type registration effects
         case "register-type":
-          CodeGenState.typeRegistry.set(effect.name, effect.info);
+          CodeGenState.setVariableTypeInfo(effect.name, effect.info);
           break;
         case "register-local":
           CodeGenState.localVariables.add(effect.name);
@@ -727,7 +727,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check if it's a simple variable of string type
     if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const typeInfo = CodeGenState.typeRegistry.get(text);
+      const typeInfo = CodeGenState.getVariableTypeInfo(text);
       if (typeInfo?.isString) {
         return true;
       }
@@ -759,7 +759,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     const arrayName = arrayAccessMatch[1];
-    const typeInfo = CodeGenState.typeRegistry.get(arrayName);
+    const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
     if (!typeInfo) {
       return false;
     }
@@ -1368,7 +1368,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Variable - check type registry
     const identifierRegex = /^[a-zA-Z_]\w*$/;
     if (identifierRegex.test(exprCode)) {
-      const typeInfo = CodeGenState.typeRegistry.get(exprCode);
+      const typeInfo = CodeGenState.getVariableTypeInfo(exprCode);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
       }
@@ -3256,7 +3256,6 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-017: Check if this is an enum type
     if (
       TypeRegistrationUtils.tryRegisterEnumType(
-        CodeGenState.typeRegistry,
         CodeGenState.symbols!,
         registrationOptions,
       )
@@ -3268,7 +3267,6 @@ export default class CodeGenerator implements IOrchestrator {
     const bitmapDimensions = this._evaluateArrayDimensions(arrayDim);
     if (
       TypeRegistrationUtils.tryRegisterBitmapType(
-        CodeGenState.typeRegistry,
         CodeGenState.symbols!,
         registrationOptions,
         bitmapDimensions,
@@ -3335,7 +3333,7 @@ export default class CodeGenerator implements IOrchestrator {
     const allDims =
       additionalDims.length > 0 ? [...additionalDims, stringDim] : [stringDim];
 
-    CodeGenState.typeRegistry.set(registryName, {
+    CodeGenState.setVariableTypeInfo(registryName, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,
@@ -3501,14 +3499,14 @@ export default class CodeGenerator implements IOrchestrator {
         )
       ) {
         // Enum/bitmap was registered, but we need to update with arrayType dimension
-        const existingInfo = CodeGenState.typeRegistry.get(registryName);
+        const existingInfo = CodeGenState.getVariableTypeInfo(registryName);
         if (existingInfo) {
           const arrayTypeDim =
             this._parseArrayTypeDimensionFromCtx(arrayTypeCtx);
           const allDims = arrayTypeDim
             ? [arrayTypeDim, ...(existingInfo.arrayDimensions ?? [])]
             : existingInfo.arrayDimensions;
-          CodeGenState.typeRegistry.set(registryName, {
+          CodeGenState.setVariableTypeInfo(registryName, {
             ...existingInfo,
             isArray: true,
             arrayDimensions: allDims,
@@ -3530,7 +3528,7 @@ export default class CodeGenerator implements IOrchestrator {
       arrayDim,
     );
 
-    CodeGenState.typeRegistry.set(registryName, {
+    CodeGenState.setVariableTypeInfo(registryName, {
       baseType,
       bitWidth,
       isArray: true,
@@ -3609,7 +3607,7 @@ export default class CodeGenerator implements IOrchestrator {
       ? this._evaluateArrayDimensions(arrayDim)
       : undefined;
 
-    CodeGenState.typeRegistry.set(registryName, {
+    CodeGenState.setVariableTypeInfo(registryName, {
       baseType,
       bitWidth,
       isArray,
@@ -3862,7 +3860,7 @@ export default class CodeGenerator implements IOrchestrator {
       stringCapacity,
       isParameter: true,
     };
-    CodeGenState.typeRegistry.set(name, registeredType);
+    CodeGenState.setVariableTypeInfo(name, registeredType);
   }
 
   /**
@@ -3899,11 +3897,8 @@ export default class CodeGenerator implements IOrchestrator {
   private _clearParameters(): void {
     // ADR-025: Remove parameter types from typeRegistry
     for (const name of CodeGenState.currentParameters.keys()) {
-      CodeGenState.typeRegistry.delete(name);
-      CodeGenState.typeRegistry.delete(name);
+      CodeGenState.deleteVariableTypeInfo(name);
     }
-    CodeGenState.currentParameters.clear();
-    CodeGenState.localArrays.clear();
     CodeGenState.currentParameters.clear();
     CodeGenState.localArrays.clear();
   }
@@ -4120,7 +4115,7 @@ export default class CodeGenerator implements IOrchestrator {
     const sourceName = sourceId.getText();
 
     // Check if source is a string type
-    const typeInfo = CodeGenState.typeRegistry.get(sourceName);
+    const typeInfo = CodeGenState.getVariableTypeInfo(sourceName);
     if (!typeInfo?.isString || typeInfo.stringCapacity === undefined) {
       return null;
     }
@@ -4307,7 +4302,7 @@ export default class CodeGenerator implements IOrchestrator {
     baseId: string,
     targetParamBaseType: string,
   ): boolean {
-    const typeInfo = CodeGenState.typeRegistry.get(baseId);
+    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
     return CppMemberHelper.needsComplexMemberConversion(
       this._toPostfixOps(ops),
       typeInfo,
@@ -4334,7 +4329,7 @@ export default class CodeGenerator implements IOrchestrator {
     const baseId = primary.IDENTIFIER()?.getText();
     if (!baseId) return false;
 
-    const typeInfo = CodeGenState.typeRegistry.get(baseId);
+    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
     const paramInfo = CodeGenState.currentParameters.get(baseId);
 
     return CppMemberHelper.isStringSubscriptPattern(
@@ -4388,7 +4383,7 @@ export default class CodeGenerator implements IOrchestrator {
     // 2. Parameter: currentParameters.get(baseId).baseType
     let structType: string | undefined;
 
-    const typeInfo = CodeGenState.typeRegistry.get(baseId);
+    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
     if (typeInfo) {
       structType = typeInfo.baseType;
     } else {
@@ -4455,7 +4450,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Global arrays also decay to pointers (check typeRegistry)
     // But NOT strings - strings need & (they're char arrays but passed by reference)
-    const typeInfo = CodeGenState.typeRegistry.get(id);
+    const typeInfo = CodeGenState.getVariableTypeInfo(id);
     if (typeInfo?.isArray && !typeInfo.isString) {
       return id;
     }
@@ -5784,14 +5779,14 @@ export default class CodeGenerator implements IOrchestrator {
       const argName = argNode.getText();
 
       // Check if it exists in type registry
-      const typeInfo = CodeGenState.typeRegistry.get(argName);
+      const typeInfo = CodeGenState.getVariableTypeInfo(argName);
 
       // Also check scoped variables if inside a scope
       let scopedArgName = argName;
       let scopedTypeInfo = typeInfo;
       if (!typeInfo && CodeGenState.currentScope) {
         scopedArgName = `${CodeGenState.currentScope}_${argName}`;
-        scopedTypeInfo = CodeGenState.typeRegistry.get(scopedArgName);
+        scopedTypeInfo = CodeGenState.getVariableTypeInfo(scopedArgName);
       }
 
       if (!typeInfo && !scopedTypeInfo) {
@@ -5815,7 +5810,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Track the variable in type registry (as an external C++ type)
-    CodeGenState.typeRegistry.set(name, {
+    CodeGenState.setVariableTypeInfo(name, {
       baseType: type,
       bitWidth: 0, // Unknown for C++ types
       isArray: false,
@@ -6055,7 +6050,7 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-109: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(ctx, {
-      typeRegistry: CodeGenState.typeRegistry,
+      typeRegistry: CodeGenState.getTypeRegistryView(),
       generateExpression: () => value,
       generateAssignmentTarget: (targetCtx) =>
         this.generateAssignmentTarget(targetCtx),

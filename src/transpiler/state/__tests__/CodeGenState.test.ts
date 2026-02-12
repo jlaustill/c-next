@@ -6,6 +6,27 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenState from "../CodeGenState";
 import TTypeInfo from "../../output/codegen/types/TTypeInfo";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import ESymbolKind from "../../../utils/types/ESymbolKind";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import ISymbol from "../../../utils/types/ISymbol";
+
+/**
+ * Create a minimal ISymbol for testing with required fields.
+ */
+function createTestSymbol(
+  overrides: Partial<ISymbol> & {
+    name: string;
+    kind: ESymbolKind;
+    sourceLanguage: ESourceLanguage;
+  },
+): ISymbol {
+  return {
+    sourceFile: "test.cnx",
+    sourceLine: 1,
+    isExported: false,
+    ...overrides,
+  };
+}
 
 /**
  * Create a minimal mock ICodeGenSymbols with default empty collections.
@@ -281,7 +302,7 @@ describe("CodeGenState", () => {
 
       CodeGenState.registerType("myVar", typeInfo);
 
-      expect(CodeGenState.typeRegistry.get("myVar")).toBe(typeInfo);
+      expect(CodeGenState.getVariableTypeInfo("myVar")).toBe(typeInfo);
     });
 
     it("registerConstValue adds to constValues", () => {
@@ -345,6 +366,253 @@ describe("CodeGenState", () => {
       expect(CodeGenState.callbackFieldTypes.get("MyStruct_onClick")).toBe(
         "ClickHandler",
       );
+    });
+  });
+
+  describe("Variable Type Info API (Issue #786)", () => {
+    it("getVariableTypeInfo returns local type info from registry", () => {
+      const typeInfo: TTypeInfo = {
+        baseType: "u32",
+        bitWidth: 32,
+        isArray: false,
+        isConst: false,
+      };
+
+      CodeGenState.setVariableTypeInfo("localVar", typeInfo);
+
+      expect(CodeGenState.getVariableTypeInfo("localVar")).toBe(typeInfo);
+    });
+
+    it("getVariableTypeInfo returns undefined for unknown variable", () => {
+      expect(CodeGenState.getVariableTypeInfo("unknownVar")).toBeUndefined();
+    });
+
+    it("getVariableTypeInfo falls back to SymbolTable for C-Next variables", () => {
+      // Add a C-Next variable to SymbolTable (simulating cross-file include)
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "crossFileVar",
+          kind: ESymbolKind.Variable,
+          type: "u16",
+          sourceLanguage: ESourceLanguage.CNext,
+          isArray: true,
+          arrayDimensions: ["10"],
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("crossFileVar");
+
+      expect(result).toBeDefined();
+      expect(result?.baseType).toBe("u16");
+      expect(result?.bitWidth).toBe(16);
+      expect(result?.isArray).toBe(true);
+      expect(result?.arrayDimensions).toEqual([10]);
+    });
+
+    it("getVariableTypeInfo does not use C header symbols", () => {
+      // Add a C header variable (should NOT be used)
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "cHeaderVar",
+          kind: ESymbolKind.Variable,
+          type: "uint32_t",
+          sourceLanguage: ESourceLanguage.C,
+        }),
+      );
+
+      expect(CodeGenState.getVariableTypeInfo("cHeaderVar")).toBeUndefined();
+    });
+
+    it("getVariableTypeInfo prefers local registry over SymbolTable", () => {
+      // Add both local and SymbolTable version
+      const localInfo: TTypeInfo = {
+        baseType: "i32",
+        bitWidth: 32,
+        isArray: false,
+        isConst: true,
+      };
+      CodeGenState.setVariableTypeInfo("mixedVar", localInfo);
+
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "mixedVar",
+          kind: ESymbolKind.Variable,
+          type: "u8",
+          sourceLanguage: ESourceLanguage.CNext,
+        }),
+      );
+
+      // Should return local info, not SymbolTable info
+      const result = CodeGenState.getVariableTypeInfo("mixedVar");
+      expect(result?.baseType).toBe("i32");
+      expect(result?.isConst).toBe(true);
+    });
+
+    it("hasVariableTypeInfo returns true for local registry", () => {
+      CodeGenState.setVariableTypeInfo("localVar", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: false,
+        isConst: false,
+      });
+
+      expect(CodeGenState.hasVariableTypeInfo("localVar")).toBe(true);
+    });
+
+    it("hasVariableTypeInfo returns true for C-Next SymbolTable variable", () => {
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "crossFileVar",
+          kind: ESymbolKind.Variable,
+          type: "u32",
+          sourceLanguage: ESourceLanguage.CNext,
+        }),
+      );
+
+      expect(CodeGenState.hasVariableTypeInfo("crossFileVar")).toBe(true);
+    });
+
+    it("hasVariableTypeInfo returns false for unknown variable", () => {
+      expect(CodeGenState.hasVariableTypeInfo("unknownVar")).toBe(false);
+    });
+
+    it("hasVariableTypeInfo returns false for C header variable", () => {
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "cVar",
+          kind: ESymbolKind.Variable,
+          type: "int",
+          sourceLanguage: ESourceLanguage.C,
+        }),
+      );
+
+      expect(CodeGenState.hasVariableTypeInfo("cVar")).toBe(false);
+    });
+
+    it("setVariableTypeInfo and deleteVariableTypeInfo work correctly", () => {
+      const typeInfo: TTypeInfo = {
+        baseType: "f32",
+        bitWidth: 32,
+        isArray: false,
+        isConst: false,
+      };
+
+      CodeGenState.setVariableTypeInfo("tempVar", typeInfo);
+      expect(CodeGenState.getVariableTypeInfo("tempVar")).toBe(typeInfo);
+
+      CodeGenState.deleteVariableTypeInfo("tempVar");
+      expect(CodeGenState.getVariableTypeInfo("tempVar")).toBeUndefined();
+    });
+
+    it("getTypeRegistryView returns readonly view", () => {
+      CodeGenState.setVariableTypeInfo("var1", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: false,
+        isConst: false,
+      });
+      CodeGenState.setVariableTypeInfo("var2", {
+        baseType: "u16",
+        bitWidth: 16,
+        isArray: false,
+        isConst: false,
+      });
+
+      const view = CodeGenState.getTypeRegistryView();
+
+      expect(view.size).toBe(2);
+      expect(view.has("var1")).toBe(true);
+      expect(view.has("var2")).toBe(true);
+    });
+
+    it("getTypeInfo is deprecated alias for getVariableTypeInfo", () => {
+      const typeInfo: TTypeInfo = {
+        baseType: "u64",
+        bitWidth: 64,
+        isArray: false,
+        isConst: false,
+      };
+
+      CodeGenState.setVariableTypeInfo("aliasVar", typeInfo);
+
+      // getTypeInfo should return same result
+      expect(CodeGenState.getTypeInfo("aliasVar")).toBe(typeInfo);
+    });
+
+    it("convertSymbolToTypeInfo handles string<N> types", () => {
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "myString",
+          kind: ESymbolKind.Variable,
+          type: "string<32>",
+          sourceLanguage: ESourceLanguage.CNext,
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("myString");
+
+      expect(result?.baseType).toBe("char");
+      expect(result?.bitWidth).toBe(8);
+      expect(result?.isString).toBe(true);
+      expect(result?.stringCapacity).toBe(32);
+    });
+
+    it("convertSymbolToTypeInfo handles enum types", () => {
+      // Register an enum
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["EColor"]),
+      });
+
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "color",
+          kind: ESymbolKind.Variable,
+          type: "EColor",
+          sourceLanguage: ESourceLanguage.CNext,
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("color");
+
+      expect(result?.baseType).toBe("EColor");
+      expect(result?.isEnum).toBe(true);
+      expect(result?.enumTypeName).toBe("EColor");
+    });
+
+    it("convertSymbolToTypeInfo handles const and atomic", () => {
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "constAtomicVar",
+          kind: ESymbolKind.Variable,
+          type: "u32",
+          sourceLanguage: ESourceLanguage.CNext,
+          isConst: true,
+          isAtomic: true,
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("constAtomicVar");
+
+      expect(result?.isConst).toBe(true);
+      expect(result?.isAtomic).toBe(true);
+    });
+
+    it("convertSymbolToTypeInfo filters invalid array dimensions", () => {
+      CodeGenState.symbolTable.addSymbol(
+        createTestSymbol({
+          name: "arrayVar",
+          kind: ESymbolKind.Variable,
+          type: "u8",
+          sourceLanguage: ESourceLanguage.CNext,
+          isArray: true,
+          arrayDimensions: ["10", "invalid", "20"],
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("arrayVar");
+
+      // Should only include valid numeric dimensions
+      expect(result?.arrayDimensions).toEqual([10, 20]);
     });
   });
 

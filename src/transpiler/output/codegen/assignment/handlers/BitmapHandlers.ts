@@ -109,7 +109,7 @@ function generateWriteOnlyBitmapWrite(
 function handleBitmapFieldSingleBit(ctx: IAssignmentContext): string {
   const varName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
-  const typeInfo = CodeGenState.typeRegistry.get(varName);
+  const typeInfo = CodeGenState.getVariableTypeInfo(varName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
   const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
@@ -130,7 +130,7 @@ function handleBitmapFieldMultiBit(ctx: IAssignmentContext): string {
 function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const arrayName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
-  const typeInfo = CodeGenState.typeRegistry.get(arrayName);
+  const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
   const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
@@ -148,7 +148,7 @@ function handleStructMemberBitmapField(ctx: IAssignmentContext): string {
   const memberName = ctx.identifiers[1];
   const fieldName = ctx.identifiers[2];
 
-  const structTypeInfo = CodeGenState.typeRegistry.get(structName);
+  const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
   const memberInfo = CodeGenState.getMemberTypeInfo(
     structTypeInfo!.baseType,
     memberName,

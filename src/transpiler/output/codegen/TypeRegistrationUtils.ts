@@ -6,7 +6,7 @@
  * qualifiedType, userType) that each had identical enum/bitmap handling.
  */
 
-import TTypeInfo from "./types/TTypeInfo";
+import CodeGenState from "../../state/CodeGenState";
 import TOverflowBehavior from "./types/TOverflowBehavior";
 
 /**
@@ -40,7 +40,6 @@ class TypeRegistrationUtils {
    * Returns true if the type was a known enum and was registered.
    */
   static tryRegisterEnumType(
-    typeRegistry: Map<string, TTypeInfo>,
     symbols: ITypeSymbols,
     options: ITypeRegistrationOptions,
   ): boolean {
@@ -48,7 +47,7 @@ class TypeRegistrationUtils {
       return false;
     }
 
-    typeRegistry.set(options.name, {
+    CodeGenState.setVariableTypeInfo(options.name, {
       baseType: options.baseType,
       bitWidth: 0,
       isArray: false,
@@ -69,7 +68,6 @@ class TypeRegistrationUtils {
    * Handles both array and non-array bitmap types.
    */
   static tryRegisterBitmapType(
-    typeRegistry: Map<string, TTypeInfo>,
     symbols: ITypeSymbols,
     options: ITypeRegistrationOptions,
     arrayDimensions: number[] | undefined,
@@ -82,7 +80,7 @@ class TypeRegistrationUtils {
 
     if (arrayDimensions && arrayDimensions.length > 0) {
       // Bitmap array
-      typeRegistry.set(options.name, {
+      CodeGenState.setVariableTypeInfo(options.name, {
         baseType: options.baseType,
         bitWidth,
         isArray: true,
@@ -95,7 +93,7 @@ class TypeRegistrationUtils {
       });
     } else {
       // Non-array bitmap
-      typeRegistry.set(options.name, {
+      CodeGenState.setVariableTypeInfo(options.name, {
         baseType: options.baseType,
         bitWidth,
         isArray: false,

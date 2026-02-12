@@ -536,7 +536,7 @@ describe("FunctionCallAnalyzer", () => {
       expect(doSomethingErrors).toHaveLength(0);
     });
 
-    it("should still flag E0422 for C-Next functions in symbol table", () => {
+    it("allows cross-file C-Next functions from SymbolTable (Issue #786)", () => {
       const code = `
         void main() {
           cnextFunc();
@@ -557,10 +557,9 @@ describe("FunctionCallAnalyzer", () => {
       const analyzer = new FunctionCallAnalyzer();
       const errors = analyzer.analyze(tree, symbolTable);
 
-      // C-Next function in symbol table is not treated as external C/C++
-      // so it still gets E0422
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe("E0422");
+      // Issue #786: Cross-file C-Next functions from includes are now allowed
+      // without E0422 since they're defined in an included file
+      expect(errors).toHaveLength(0);
     });
   });
 });

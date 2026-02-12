@@ -183,9 +183,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("performs bounds checking when type info available", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["matrix", { arrayDimensions: [10, 10], baseType: "i32" }],
-      ]) as any;
+      ]);
       mockCheckArrayBounds.mockClear();
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
@@ -242,9 +242,9 @@ describe("ArrayHandlers", () => {
       arrayHandlers.find(([kind]) => kind === AssignmentKind.ARRAY_SLICE)?.[1];
 
     it("generates memcpy for valid slice assignment", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -267,7 +267,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("generates memcpy for string slice", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         [
           "str",
           {
@@ -277,7 +277,7 @@ describe("ArrayHandlers", () => {
             baseType: "string",
           },
         ],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -299,9 +299,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -323,9 +323,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on multi-dimensional array", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["matrix", { arrayDimensions: [10, 10], baseType: "u8" }],
-      ]) as any;
+      ]);
       const ctx = createMockContext({
         identifiers: ["matrix"],
         subscripts: [
@@ -340,9 +340,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on non-constant offset", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
       });
@@ -359,9 +359,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on non-constant length", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -381,9 +381,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on out of bounds access", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [50], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -404,9 +404,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on negative offset", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -427,9 +427,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on zero length", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -450,9 +450,9 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws on negative length", () => {
-      CodeGenState.typeRegistry = new Map([
+      HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]) as any;
+      ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
@@ -473,9 +473,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("throws when buffer size cannot be determined", () => {
-      CodeGenState.typeRegistry = new Map([
-        ["unknown", { baseType: "u8" }],
-      ]) as any;
+      HandlerTestUtils.setupMockTypeRegistry([["unknown", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()

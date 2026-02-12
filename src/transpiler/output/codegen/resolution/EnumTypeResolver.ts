@@ -41,7 +41,7 @@ export default class EnumTypeResolver {
 
     // Check if it's a simple identifier that's an enum variable
     if (/^[a-zA-Z_]\w*$/.exec(text)) {
-      const typeInfo = CodeGenState.typeRegistry.get(text);
+      const typeInfo = CodeGenState.getVariableTypeInfo(text);
       if (typeInfo?.isEnum && typeInfo.enumTypeName) {
         return typeInfo.enumTypeName;
       }
@@ -146,7 +146,7 @@ export default class EnumTypeResolver {
     }
     const varName = parts[1];
     const scopedVarName = `${CodeGenState.currentScope}_${varName}`;
-    const typeInfo = CodeGenState.typeRegistry.get(scopedVarName);
+    const typeInfo = CodeGenState.getVariableTypeInfo(scopedVarName);
     if (typeInfo?.isEnum && typeInfo.enumTypeName) {
       return typeInfo.enumTypeName;
     }

@@ -3,9 +3,9 @@
  * Tests the extracted enum/bitmap type registration helpers.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
-import TTypeInfo from "../types/TTypeInfo";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Create mock symbols for testing
@@ -20,49 +20,43 @@ function createMockSymbols(overrides: Record<string, unknown> = {}) {
 }
 
 describe("TypeRegistrationUtils", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
   describe("tryRegisterEnumType", () => {
     it("returns false if type is not a known enum", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols();
 
-      const result = TypeRegistrationUtils.tryRegisterEnumType(
-        typeRegistry,
-        symbols,
-        {
-          name: "myVar",
-          baseType: "UnknownType",
-          isConst: false,
-          overflowBehavior: "clamp",
-          isAtomic: false,
-        },
-      );
+      const result = TypeRegistrationUtils.tryRegisterEnumType(symbols, {
+        name: "myVar",
+        baseType: "UnknownType",
+        isConst: false,
+        overflowBehavior: "clamp",
+        isAtomic: false,
+      });
 
       expect(result).toBe(false);
-      expect(typeRegistry.size).toBe(0);
+      expect(CodeGenState.getVariableTypeInfo("myVar")).toBeUndefined();
     });
 
     it("registers enum type and returns true", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
-      const result = TypeRegistrationUtils.tryRegisterEnumType(
-        typeRegistry,
-        symbols,
-        {
-          name: "myVar",
-          baseType: "MyEnum",
-          isConst: false,
-          overflowBehavior: "clamp",
-          isAtomic: false,
-        },
-      );
+      const result = TypeRegistrationUtils.tryRegisterEnumType(symbols, {
+        name: "myVar",
+        baseType: "MyEnum",
+        isConst: false,
+        overflowBehavior: "clamp",
+        isAtomic: false,
+      });
 
       expect(result).toBe(true);
-      expect(typeRegistry.has("myVar")).toBe(true);
+      expect(CodeGenState.hasVariableTypeInfo("myVar")).toBe(true);
 
-      const info = typeRegistry.get("myVar")!;
+      const info = CodeGenState.getVariableTypeInfo("myVar")!;
       expect(info.baseType).toBe("MyEnum");
       expect(info.isEnum).toBe(true);
       expect(info.enumTypeName).toBe("MyEnum");
@@ -70,12 +64,11 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("respects isConst flag", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
-      TypeRegistrationUtils.tryRegisterEnumType(typeRegistry, symbols, {
+      TypeRegistrationUtils.tryRegisterEnumType(symbols, {
         name: "myVar",
         baseType: "MyEnum",
         isConst: true,
@@ -83,16 +76,15 @@ describe("TypeRegistrationUtils", () => {
         isAtomic: false,
       });
 
-      expect(typeRegistry.get("myVar")!.isConst).toBe(true);
+      expect(CodeGenState.getVariableTypeInfo("myVar")!.isConst).toBe(true);
     });
 
     it("respects overflowBehavior", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
-      TypeRegistrationUtils.tryRegisterEnumType(typeRegistry, symbols, {
+      TypeRegistrationUtils.tryRegisterEnumType(symbols, {
         name: "myVar",
         baseType: "MyEnum",
         isConst: false,
@@ -100,16 +92,17 @@ describe("TypeRegistrationUtils", () => {
         isAtomic: false,
       });
 
-      expect(typeRegistry.get("myVar")!.overflowBehavior).toBe("wrap");
+      expect(CodeGenState.getVariableTypeInfo("myVar")!.overflowBehavior).toBe(
+        "wrap",
+      );
     });
 
     it("respects isAtomic flag", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
-      TypeRegistrationUtils.tryRegisterEnumType(typeRegistry, symbols, {
+      TypeRegistrationUtils.tryRegisterEnumType(symbols, {
         name: "myVar",
         baseType: "MyEnum",
         isConst: false,
@@ -117,17 +110,15 @@ describe("TypeRegistrationUtils", () => {
         isAtomic: true,
       });
 
-      expect(typeRegistry.get("myVar")!.isAtomic).toBe(true);
+      expect(CodeGenState.getVariableTypeInfo("myVar")!.isAtomic).toBe(true);
     });
   });
 
   describe("tryRegisterBitmapType", () => {
     it("returns false if type is not a known bitmap", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols();
 
       const result = TypeRegistrationUtils.tryRegisterBitmapType(
-        typeRegistry,
         symbols,
         {
           name: "myVar",
@@ -140,18 +131,16 @@ describe("TypeRegistrationUtils", () => {
       );
 
       expect(result).toBe(false);
-      expect(typeRegistry.size).toBe(0);
+      expect(CodeGenState.getVariableTypeInfo("myVar")).toBeUndefined();
     });
 
     it("registers non-array bitmap type", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols({
         knownBitmaps: new Set(["MyFlags"]),
         bitmapBitWidth: new Map([["MyFlags", 8]]),
       });
 
       const result = TypeRegistrationUtils.tryRegisterBitmapType(
-        typeRegistry,
         symbols,
         {
           name: "flags",
@@ -164,9 +153,9 @@ describe("TypeRegistrationUtils", () => {
       );
 
       expect(result).toBe(true);
-      expect(typeRegistry.has("flags")).toBe(true);
+      expect(CodeGenState.hasVariableTypeInfo("flags")).toBe(true);
 
-      const info = typeRegistry.get("flags")!;
+      const info = CodeGenState.getVariableTypeInfo("flags")!;
       expect(info.baseType).toBe("MyFlags");
       expect(info.isBitmap).toBe(true);
       expect(info.bitmapTypeName).toBe("MyFlags");
@@ -175,14 +164,12 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("registers bitmap array type with dimensions", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols({
         knownBitmaps: new Set(["MyFlags"]),
         bitmapBitWidth: new Map([["MyFlags", 16]]),
       });
 
       const result = TypeRegistrationUtils.tryRegisterBitmapType(
-        typeRegistry,
         symbols,
         {
           name: "flagsArray",
@@ -196,21 +183,19 @@ describe("TypeRegistrationUtils", () => {
 
       expect(result).toBe(true);
 
-      const info = typeRegistry.get("flagsArray")!;
+      const info = CodeGenState.getVariableTypeInfo("flagsArray")!;
       expect(info.isArray).toBe(true);
       expect(info.arrayDimensions).toEqual([10, 5]);
       expect(info.bitWidth).toBe(16);
     });
 
     it("defaults bitWidth to 0 if not found", () => {
-      const typeRegistry = new Map<string, TTypeInfo>();
       const symbols = createMockSymbols({
         knownBitmaps: new Set(["MyFlags"]),
         // No bitWidth entry
       });
 
       TypeRegistrationUtils.tryRegisterBitmapType(
-        typeRegistry,
         symbols,
         {
           name: "flags",
@@ -222,7 +207,7 @@ describe("TypeRegistrationUtils", () => {
         undefined,
       );
 
-      expect(typeRegistry.get("flags")!.bitWidth).toBe(0);
+      expect(CodeGenState.getVariableTypeInfo("flags")!.bitWidth).toBe(0);
     });
   });
 });

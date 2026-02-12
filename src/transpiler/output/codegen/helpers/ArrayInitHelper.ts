@@ -134,9 +134,10 @@ class ArrayInitHelper {
     }
 
     // Update type registry with inferred size for .length support
-    const existingType = CodeGenState.typeRegistry.get(name);
+    const existingType = CodeGenState.getVariableTypeInfo(name);
     if (existingType) {
       existingType.arrayDimensions = [CodeGenState.lastArrayInitCount];
+      CodeGenState.setVariableTypeInfo(name, existingType);
     }
 
     return `[${CodeGenState.lastArrayInitCount}]`;

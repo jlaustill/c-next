@@ -38,7 +38,7 @@ describe("StringLengthCounter", () => {
 
   describe("countExpression", () => {
     it("counts single .length access on string variable", () => {
-      CodeGenState.typeRegistry.set("myStr", {
+      CodeGenState.setVariableTypeInfo("myStr", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -54,7 +54,7 @@ describe("StringLengthCounter", () => {
     });
 
     it("counts multiple .length accesses on same variable", () => {
-      CodeGenState.typeRegistry.set("str", {
+      CodeGenState.setVariableTypeInfo("str", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -71,7 +71,7 @@ describe("StringLengthCounter", () => {
     });
 
     it("counts .length accesses on different string variables", () => {
-      CodeGenState.typeRegistry.set("a", {
+      CodeGenState.setVariableTypeInfo("a", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -79,7 +79,7 @@ describe("StringLengthCounter", () => {
         isString: true,
         stringCapacity: 16,
       });
-      CodeGenState.typeRegistry.set("b", {
+      CodeGenState.setVariableTypeInfo("b", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -96,7 +96,7 @@ describe("StringLengthCounter", () => {
     });
 
     it("ignores .length on non-string variables", () => {
-      CodeGenState.typeRegistry.set("arr", {
+      CodeGenState.setVariableTypeInfo("arr", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -111,7 +111,7 @@ describe("StringLengthCounter", () => {
     });
 
     it("ignores other member accesses", () => {
-      CodeGenState.typeRegistry.set("obj", {
+      CodeGenState.setVariableTypeInfo("obj", {
         baseType: "MyStruct",
         bitWidth: 32,
         isArray: false,
@@ -135,7 +135,7 @@ describe("StringLengthCounter", () => {
 
   describe("countBlock", () => {
     it("counts .length accesses across multiple statements", () => {
-      CodeGenState.typeRegistry.set("msg", {
+      CodeGenState.setVariableTypeInfo("msg", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -154,7 +154,7 @@ describe("StringLengthCounter", () => {
     });
 
     it("counts .length in assignment statements", () => {
-      CodeGenState.typeRegistry.set("text", {
+      CodeGenState.setVariableTypeInfo("text", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -175,7 +175,7 @@ describe("StringLengthCounter", () => {
 
   describe("countBlockInto", () => {
     it("adds counts to existing map", () => {
-      CodeGenState.typeRegistry.set("s1", {
+      CodeGenState.setVariableTypeInfo("s1", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -183,7 +183,7 @@ describe("StringLengthCounter", () => {
         isString: true,
         stringCapacity: 32,
       });
-      CodeGenState.typeRegistry.set("s2", {
+      CodeGenState.setVariableTypeInfo("s2", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -209,7 +209,7 @@ describe("StringLengthCounter", () => {
 
   describe("nested expressions", () => {
     it("counts .length in ternary expressions", () => {
-      CodeGenState.typeRegistry.set("str", {
+      CodeGenState.setVariableTypeInfo("str", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,
@@ -225,7 +225,7 @@ describe("StringLengthCounter", () => {
     });
 
     it("counts .length in comparison expressions", () => {
-      CodeGenState.typeRegistry.set("name", {
+      CodeGenState.setVariableTypeInfo("name", {
         baseType: "char",
         bitWidth: 8,
         isArray: false,

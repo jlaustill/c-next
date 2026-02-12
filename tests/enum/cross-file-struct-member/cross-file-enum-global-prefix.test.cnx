@@ -1,0 +1,16 @@
+// test-c-only
+// test-execution
+// Tests: cross-file enum assignment WITH global. prefix (#786 workaround)
+
+#include "types.cnx"
+
+u32 main() {
+    // Initialize using global prefix
+    global.config.items[0].assigned <- MyEnum.A;
+
+    // Does using global. prefix work for assignment to local?
+    MyEnum val <- global.config.items[0].assigned;
+    if (val != MyEnum.A) return 1;
+
+    return 0;
+}
