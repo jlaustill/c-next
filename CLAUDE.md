@@ -324,6 +324,11 @@ When adding new assignment patterns:
   2. For callbacks needing CodeGenerator context (e.g., `generateExpression`), pass as method parameter
   3. Update tests: `CodeGenState.reset()` in `beforeEach`, create `setupSymbols()` helper for state setup
   4. Remove unused `symbols` variables after migration (oxlint will flag them)
+- **State consolidation to CodeGenState**: When auditing for local state that should be centralized:
+  1. Grep for `this.<field>.` with zero matches to find dead instance variables from prior migrations
+  2. Prefer on-demand computation (e.g., `getUnmodifiedParameters()`) over maintaining cached inverses of existing state
+  3. Keep method signatures as no-ops when removing functionality that's part of `IOrchestrator` interface
+  4. `GeneratorContext` has been removed - all context fields are now in CodeGenState; don't add new instance state to CodeGenerator
 
 ### Adding CLI Flags
 
