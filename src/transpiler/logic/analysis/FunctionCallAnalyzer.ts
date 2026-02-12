@@ -156,6 +156,16 @@ const STDLIB_FUNCTIONS: Map<string, Set<string>> = new Map([
       "ldexp",
       "frexp",
       "modf",
+      // C99 classification macros (also functions in C++)
+      "isnan",
+      "isinf",
+      "isfinite",
+      "isnormal",
+      "signbit",
+      "fpclassify",
+      "nan",
+      "nanf",
+      "nanl",
     ]),
   ],
   [
@@ -517,6 +527,20 @@ class FunctionCallAnalyzer {
   }
 
   /**
+   * Issue #787: Find which header a stdlib function belongs to (if any).
+   * Returns the header name if found, or null if not a known stdlib function.
+   * Checks ALL stdlib functions, not just from included headers.
+   */
+  private findStdlibHeader(name: string): string | null {
+    for (const [header, funcs] of STDLIB_FUNCTIONS) {
+      if (funcs.has(name)) {
+        return header;
+      }
+    }
+    return null;
+  }
+
+  /**
    * ADR-029: Collect callback types (function-as-type pattern)
    * Any function definition creates a type that can be used for callback fields/parameters
    */
@@ -660,13 +684,19 @@ class FunctionCallAnalyzer {
       }
     }
 
-    // Not defined - report error
+    // Not defined - report error with optional hint
+    const header = this.findStdlibHeader(name);
+    let message = `function '${name}' called before definition`;
+    if (header) {
+      message += `; hint: '${name}' is available from ${header} — try global.${name}()`;
+    }
+
     this.errors.push({
       code: "E0422",
       functionName: name,
       line,
       column,
-      message: `function '${name}' called before definition`,
+      message,
     });
   }
 

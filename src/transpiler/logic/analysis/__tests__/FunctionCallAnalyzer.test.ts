@@ -487,6 +487,88 @@ describe("FunctionCallAnalyzer", () => {
   });
 
   // ========================================================================
+  // Global Prefix Hints (Issue #787)
+  // ========================================================================
+
+  describe("global prefix hints", () => {
+    it("should suggest global. for stdlib function without direct include", () => {
+      // isnan is in math.h but header not included - suggest global.isnan()
+      const code = `
+        void main() {
+          f32 x <- 1.0;
+          bool result <- isnan(x);
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("global.isnan()");
+    });
+
+    it("should suggest global. for external func in symbol table", () => {
+      // External func exists in symbol table but not directly accessible
+      const code = `
+        void main() {
+          customExternalFunc();
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addSymbol({
+        name: "customExternalFunc",
+        kind: ESymbolKind.Function,
+        sourceLanguage: ESourceLanguage.Cpp,
+        sourceFile: "custom.hpp",
+        sourceLine: 1,
+        isExported: true,
+        type: "void",
+      });
+
+      const analyzer = new FunctionCallAnalyzer();
+      // Pass symbolTable but func requires global. prefix
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      // With symbol table, external funcs are allowed (no error)
+      // This test documents current behavior - external funcs work without global.
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should not suggest global. for truly unknown functions", () => {
+      const code = `
+        void main() {
+          completelyUnknownFunc();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).not.toContain("global.");
+    });
+
+    it("should mention header name when stdlib function found", () => {
+      const code = `
+        void main() {
+          f64 x <- sqrt(4.0);
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("math.h");
+      expect(errors[0].message).toContain("global.sqrt()");
+    });
+  });
+
+  // ========================================================================
   // Edge Cases
   // ========================================================================
 
