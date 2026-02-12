@@ -110,7 +110,7 @@ describe("CodeGenState", () => {
 
     it("getScopeMembers returns members for known scope", () => {
       const members = new Set(["member1", "member2"]);
-      CodeGenState.scopeMembers.set("TestScope", members);
+      CodeGenState.setScopeMembers("TestScope", members);
 
       expect(CodeGenState.getScopeMembers("TestScope")).toBe(members);
     });
@@ -122,14 +122,14 @@ describe("CodeGenState", () => {
 
     it("isCurrentScopeMember returns false for non-member", () => {
       CodeGenState.currentScope = "TestScope";
-      CodeGenState.scopeMembers.set("TestScope", new Set(["member1"]));
+      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("nonMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns true for member", () => {
       CodeGenState.currentScope = "TestScope";
-      CodeGenState.scopeMembers.set("TestScope", new Set(["member1"]));
+      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("member1")).toBe(true);
     });
@@ -143,14 +143,14 @@ describe("CodeGenState", () => {
 
     it("returns identifier unchanged when not a scope member", () => {
       CodeGenState.currentScope = "TestScope";
-      CodeGenState.scopeMembers.set("TestScope", new Set(["member1"]));
+      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns scoped name for scope member", () => {
       CodeGenState.currentScope = "TestScope";
-      CodeGenState.scopeMembers.set("TestScope", new Set(["member1"]));
+      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("member1")).toBe(
         "TestScope_member1",

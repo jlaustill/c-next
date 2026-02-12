@@ -332,7 +332,7 @@ class TypeValidator {
       return;
     }
 
-    const scopeMembers = CodeGenState.scopeMembers.get(currentScope);
+    const scopeMembers = CodeGenState.getScopeMembers(currentScope);
     if (scopeMembers?.has(identifier)) {
       throw new Error(
         `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScope}'`,
@@ -410,7 +410,7 @@ class TypeValidator {
     identifier: string,
     currentScope: string,
   ): string | null {
-    const scopeMembers = CodeGenState.scopeMembers.get(currentScope);
+    const scopeMembers = CodeGenState.getScopeMembers(currentScope);
     if (scopeMembers?.has(identifier)) {
       return `${currentScope}_${identifier}`;
     }

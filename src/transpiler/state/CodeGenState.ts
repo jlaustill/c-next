@@ -187,7 +187,7 @@ export default class CodeGenState {
   static localArrays: Set<string> = new Set();
 
   /** Scope member names: scope -> Set of member names */
-  static scopeMembers: Map<string, Set<string>> = new Map();
+  private static scopeMembers: Map<string, Set<string>> = new Map();
 
   /** Float bit indexing: declared shadow variables */
   static floatBitShadows: Set<string> = new Set();
@@ -540,6 +540,20 @@ export default class CodeGenState {
    */
   static getScopeMembers(scopeName: string): Set<string> | undefined {
     return this.scopeMembers.get(scopeName);
+  }
+
+  /**
+   * Set members of a scope.
+   */
+  static setScopeMembers(scopeName: string, members: Set<string>): void {
+    this.scopeMembers.set(scopeName, members);
+  }
+
+  /**
+   * Get all scope members (for IGeneratorState).
+   */
+  static getAllScopeMembers(): ReadonlyMap<string, ReadonlySet<string>> {
+    return this.scopeMembers;
   }
 
   /**

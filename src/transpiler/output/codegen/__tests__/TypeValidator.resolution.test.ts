@@ -38,9 +38,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
 
   beforeEach(() => {
     CodeGenState.reset();
-    CodeGenState.scopeMembers = new Map([
-      ["Motor", new Set(["speed", "maxSpeed"])],
-    ]);
+    CodeGenState.setScopeMembers("Motor", new Set(["speed", "maxSpeed"]));
     CodeGenState.typeRegistry.set("globalCounter", {
       baseType: "u32",
       bitWidth: 32,

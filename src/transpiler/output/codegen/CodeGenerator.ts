@@ -485,7 +485,7 @@ export default class CodeGenerator implements IOrchestrator {
       expectedType: CodeGenState.expectedType,
       selfIncludeAdded: CodeGenState.selfIncludeAdded, // Issue #369
       // Issue #644: Postfix expression state
-      scopeMembers: CodeGenState.scopeMembers,
+      scopeMembers: CodeGenState.getAllScopeMembers(),
       mainArgsName: CodeGenState.mainArgsName,
       floatBitShadows: CodeGenState.floatBitShadows,
       floatShadowCurrent: CodeGenState.floatShadowCurrent,
@@ -628,7 +628,7 @@ export default class CodeGenerator implements IOrchestrator {
   resolveIdentifier(identifier: string): string {
     // Check current scope first (inner scope shadows outer)
     if (CodeGenState.currentScope) {
-      const members = CodeGenState.scopeMembers.get(CodeGenState.currentScope);
+      const members = CodeGenState.getScopeMembers(CodeGenState.currentScope);
       if (members?.has(identifier)) {
         return `${CodeGenState.currentScope}_${identifier}`;
       }
@@ -2276,7 +2276,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Copy symbol data to CodeGenState.scopeMembers
     for (const [scopeName, members] of symbols.scopeMembers) {
-      CodeGenState.scopeMembers.set(scopeName, new Set(members));
+      CodeGenState.setScopeMembers(scopeName, new Set(members));
     }
 
     // Issue #461: Initialize constValues from symbol table
@@ -4577,7 +4577,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Scope member - may need prefixing
     if (CodeGenState.currentScope) {
-      const members = CodeGenState.scopeMembers.get(CodeGenState.currentScope);
+      const members = CodeGenState.getScopeMembers(CodeGenState.currentScope);
       if (members?.has(id)) {
         const scopedName = `${CodeGenState.currentScope}_${id}`;
         return CppModeHelper.maybeAddressOf(scopedName);
