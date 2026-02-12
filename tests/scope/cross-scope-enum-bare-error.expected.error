@@ -1,1 +1,0 @@
-1:0 Code generation failed: Error: Use 'global.GlobalState.IDLE' to access enum 'GlobalState' from inside scope 'Motor'

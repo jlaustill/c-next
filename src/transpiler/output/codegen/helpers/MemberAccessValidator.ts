@@ -55,13 +55,22 @@ class MemberAccessValidator {
 
   /**
    * ADR-016/057: Validate that a global entity (enum or register) is accessed
-   * with 'global.' prefix when inside a scope that doesn't own the entity.
+   * with 'global.' prefix when inside a scope that has a naming conflict.
    *
-   * @param entityName - The entity being accessed (e.g., "Color", "GPIO")
+   * Detects two types of conflicts:
+   * 1. Scope member with same name as entity (via scopeMembers lookup)
+   * 2. Identifier was resolved to scope member, shadowing a global enum
+   *    (via rootIdentifier != resolvedName comparison)
+   *
+   * @param entityName - The resolved entity name (e.g., "Color" or "Motor_Color")
    * @param memberName - The member after the entity (e.g., "Red", "PIN0")
    * @param entityType - "enum" or "register" (for error message)
    * @param currentScope - Active scope context (null = not in a scope)
    * @param isGlobalAccess - Whether the access used 'global.' prefix
+   * @param options - Optional conflict detection parameters
+   * @param options.scopeMembers - Map of scope names to their member names
+   * @param options.rootIdentifier - Original identifier before resolution (for shadowing detection)
+   * @param options.knownEnums - Set of known enum names (for shadowing detection)
    */
   static validateGlobalEntityAccess(
     entityName: string,
@@ -69,17 +78,49 @@ class MemberAccessValidator {
     entityType: string,
     currentScope: string | null,
     isGlobalAccess: boolean,
+    options?: {
+      scopeMembers?: ReadonlyMap<string, ReadonlySet<string>>;
+      rootIdentifier?: string;
+      knownEnums?: ReadonlySet<string>;
+    },
   ): void {
     if (isGlobalAccess) {
       return;
     }
-    if (currentScope) {
-      const belongsToCurrentScope = entityName.startsWith(currentScope + "_");
-      if (!belongsToCurrentScope) {
+    if (!currentScope) {
+      return;
+    }
+
+    const { scopeMembers, rootIdentifier, knownEnums } = options ?? {};
+
+    // Check 1: Shadowing detection - identifier was resolved to a scope member
+    // that shadows a global enum. This produces invalid C (e.g., Motor_Color.RED).
+    // This check must run BEFORE the belongsToCurrentScope check because
+    // the resolved name (e.g., Motor_Color) will start with the scope prefix.
+    if (rootIdentifier && knownEnums) {
+      const wasResolved = entityName !== rootIdentifier;
+      const rootIsEnum = knownEnums.has(rootIdentifier);
+      const resolvedIsNotEnum = !knownEnums.has(entityName);
+      if (wasResolved && rootIsEnum && resolvedIsNotEnum) {
         throw new Error(
-          `Error: Use 'global.${entityName}.${memberName}' to access ${entityType} '${entityName}' from inside scope '${currentScope}'`,
+          `Error: Use 'global.${rootIdentifier}.${memberName}' to access enum '${rootIdentifier}' from inside scope '${currentScope}' (scope member '${rootIdentifier}' shadows the global enum)`,
         );
       }
+    }
+
+    // Skip check if entity belongs to current scope (e.g., Motor_State in scope Motor)
+    const belongsToCurrentScope = entityName.startsWith(currentScope + "_");
+    if (belongsToCurrentScope) {
+      return;
+    }
+
+    // Check 2: Direct conflict - scope has a member with the same name as the entity
+    const scopeMemberNames = scopeMembers?.get(currentScope);
+    const hasConflict = scopeMemberNames?.has(entityName) ?? false;
+    if (hasConflict) {
+      throw new Error(
+        `Error: Use 'global.${entityName}.${memberName}' to access ${entityType} '${entityName}' from inside scope '${currentScope}'`,
+      );
     }
   }
 }

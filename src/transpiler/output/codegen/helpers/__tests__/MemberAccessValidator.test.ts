@@ -118,7 +118,8 @@ describe("MemberAccessValidator", () => {
   });
 
   describe("validateGlobalEntityAccess", () => {
-    it("throws when in scope and entity does not belong to current scope", () => {
+    it("throws when in scope and entity name conflicts with scope member", () => {
+      const scopeMembers = new Map([["Motor", new Set(["Color", "speed"])]]);
       expect(() =>
         MemberAccessValidator.validateGlobalEntityAccess(
           "Color",
@@ -126,13 +127,29 @@ describe("MemberAccessValidator", () => {
           "enum",
           "Motor",
           false,
+          { scopeMembers },
         ),
       ).toThrow(
         "Use 'global.Color.Red' to access enum 'Color' from inside scope 'Motor'",
       );
     });
 
-    it("does NOT throw when isGlobalAccess is true", () => {
+    it("does NOT throw when in scope but no naming conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Color",
+          "Red",
+          "enum",
+          "Motor",
+          false,
+          { scopeMembers },
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when isGlobalAccess is true even with conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
       expect(() =>
         MemberAccessValidator.validateGlobalEntityAccess(
           "Color",
@@ -140,6 +157,7 @@ describe("MemberAccessValidator", () => {
           "enum",
           "Motor",
           true,
+          { scopeMembers },
         ),
       ).not.toThrow();
     });
@@ -168,7 +186,8 @@ describe("MemberAccessValidator", () => {
       ).not.toThrow();
     });
 
-    it("works with register entity type", () => {
+    it("throws for register with naming conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["GPIO"])]]);
       expect(() =>
         MemberAccessValidator.validateGlobalEntityAccess(
           "GPIO",
@@ -176,10 +195,97 @@ describe("MemberAccessValidator", () => {
           "register",
           "Motor",
           false,
+          { scopeMembers },
         ),
       ).toThrow(
         "Use 'global.GPIO.PIN0' to access register 'GPIO' from inside scope 'Motor'",
       );
+    });
+
+    it("does NOT throw for register without naming conflict", () => {
+      const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "GPIO",
+          "PIN0",
+          "register",
+          "Motor",
+          false,
+          { scopeMembers },
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when options is undefined", () => {
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Color",
+          "Red",
+          "enum",
+          "Motor",
+          false,
+          undefined,
+        ),
+      ).not.toThrow();
+    });
+
+    // Shadowing detection tests (using rootIdentifier and knownEnums)
+    it("throws when scope member shadows global enum (resolved identifier differs)", () => {
+      const knownEnums = new Set(["Color"]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Motor_Color", // resolved to scope member
+          "Red",
+          "enum",
+          "Motor",
+          false,
+          { rootIdentifier: "Color", knownEnums },
+        ),
+      ).toThrow(
+        "Use 'global.Color.Red' to access enum 'Color' from inside scope 'Motor' (scope member 'Color' shadows the global enum)",
+      );
+    });
+
+    it("does NOT throw for shadowing when isGlobalAccess is true", () => {
+      const knownEnums = new Set(["Color"]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Motor_Color",
+          "Red",
+          "enum",
+          "Motor",
+          true,
+          { rootIdentifier: "Color", knownEnums },
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when root is not a known enum", () => {
+      const knownEnums = new Set(["OtherEnum"]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Motor_Color",
+          "Red",
+          "enum",
+          "Motor",
+          false,
+          { rootIdentifier: "Color", knownEnums },
+        ),
+      ).not.toThrow();
+    });
+
+    it("does NOT throw when resolved name IS a known enum", () => {
+      const knownEnums = new Set(["Color", "Motor_Color"]);
+      expect(() =>
+        MemberAccessValidator.validateGlobalEntityAccess(
+          "Motor_Color",
+          "Red",
+          "enum",
+          "Motor",
+          false,
+          { rootIdentifier: "Color", knownEnums },
+        ),
+      ).not.toThrow();
     });
   });
 });

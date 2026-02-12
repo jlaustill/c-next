@@ -1441,16 +1441,33 @@ const generateMemberAccess = (
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
-): MemberAccessResult =>
-  tryBitmapFieldAccess(ctx, input, effects) ??
-  tryScopeMemberAccess(ctx, input, state, orchestrator) ??
-  tryKnownScopeAccess(ctx, input, state, orchestrator) ??
-  tryEnumMemberAccess(ctx, input, state, orchestrator) ??
-  tryRegisterMemberAccess(ctx, input, state) ??
-  tryStructParamAccess(ctx, orchestrator) ??
-  tryRegisterBitmapAccess(ctx, input, effects) ??
-  tryStructBitmapAccess(ctx, input, effects) ??
-  generateDefaultAccess(ctx, orchestrator);
+): MemberAccessResult => {
+  // Check for enum shadowing before dispatch - catches case where identifier
+  // was resolved to a scope member that shadows a global enum
+  MemberAccessValidator.validateGlobalEntityAccess(
+    ctx.result,
+    ctx.memberName,
+    "enum",
+    state.currentScope,
+    ctx.isGlobalAccess,
+    {
+      rootIdentifier: ctx.rootIdentifier,
+      knownEnums: input.symbols!.knownEnums,
+    },
+  );
+
+  return (
+    tryBitmapFieldAccess(ctx, input, effects) ??
+    tryScopeMemberAccess(ctx, input, state, orchestrator) ??
+    tryKnownScopeAccess(ctx, input, state, orchestrator) ??
+    tryEnumMemberAccess(ctx, input, state, orchestrator) ??
+    tryRegisterMemberAccess(ctx, input, state) ??
+    tryStructParamAccess(ctx, orchestrator) ??
+    tryRegisterBitmapAccess(ctx, input, effects) ??
+    tryStructBitmapAccess(ctx, input, effects) ??
+    generateDefaultAccess(ctx, orchestrator)
+  );
+};
 
 // ========================================================================
 // Member Access Handlers
@@ -1575,12 +1592,15 @@ const tryEnumMemberAccess = (
     return null;
   }
 
+  // Shadowing check already done in generateMemberAccess; this catches
+  // direct conflicts where ctx.result is the enum name (no resolution happened)
   MemberAccessValidator.validateGlobalEntityAccess(
     ctx.result,
     ctx.memberName,
     "enum",
     state.currentScope,
     ctx.isGlobalAccess,
+    { scopeMembers: state.scopeMembers },
   );
 
   const output = initializeMemberOutput(ctx);
@@ -1606,6 +1626,7 @@ const tryRegisterMemberAccess = (
     "register",
     state.currentScope,
     ctx.isGlobalAccess,
+    { scopeMembers: state.scopeMembers },
   );
 
   MemberAccessValidator.validateRegisterReadAccess(
