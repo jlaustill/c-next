@@ -21,6 +21,7 @@ import ExpressionUtils from "../../../utils/ExpressionUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 import analyzePostfixOps from "../../../utils/PostfixAnalysisUtils";
 import SymbolTable from "../symbols/SymbolTable";
+import CodeGenState from "../../state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
 
@@ -408,8 +409,11 @@ class InitializationAnalyzer {
 
   private scopeStack: ScopeStack<IVariableState> = new ScopeStack();
 
-  /** Known struct types and their fields */
-  private readonly structFields: Map<string, Set<string>> = new Map();
+  /**
+   * C-Next struct fields from current file (collected at analysis time).
+   * External struct fields from C/C++ headers are accessed via CodeGenState.
+   */
+  private cnextStructFields: Map<string, Set<string>> = new Map();
 
   /** Track if we're processing a write target (left side of assignment) */
   private inWriteContext: boolean = false;
@@ -418,17 +422,25 @@ class InitializationAnalyzer {
   private symbolTable: SymbolTable | null = null;
 
   /**
-   * Register external struct fields from C/C++ headers
-   * This allows the analyzer to recognize types defined in headers
-   *
-   * @param externalFields Map of struct name -> Set of field names
+   * Get struct fields for a given struct type.
+   * Checks C-Next structs first, then falls back to CodeGenState for external structs.
    */
-  public registerExternalStructFields(
-    externalFields: Map<string, Set<string>>,
-  ): void {
-    for (const [structName, fields] of externalFields) {
-      this.structFields.set(structName, fields);
+  private getStructFields(structName: string): Set<string> | undefined {
+    // Check C-Next structs from current file first
+    const cnextFields = this.cnextStructFields.get(structName);
+    if (cnextFields) {
+      return cnextFields;
     }
+
+    // Check external structs from CodeGenState
+    return CodeGenState.getExternalStructFields().get(structName);
+  }
+
+  /**
+   * Check if a type name is a known struct.
+   */
+  private isKnownStruct(typeName: string): boolean {
+    return this.getStructFields(typeName) !== undefined;
   }
 
   /**
@@ -469,9 +481,10 @@ class InitializationAnalyzer {
     this.errors = [];
     this.scopeStack = new ScopeStack();
     this.symbolTable = symbolTable ?? null;
-    // Don't clear structFields - external fields may have been registered
+    // Clear C-Next struct fields from previous analysis (external fields come from CodeGenState)
+    this.cnextStructFields = new Map();
 
-    // First pass: collect struct definitions
+    // First pass: collect struct definitions from current file
     this.collectStructDefinitions(tree);
 
     // Create global scope with all global/namespace variable declarations
@@ -553,7 +566,8 @@ class InitializationAnalyzer {
   }
 
   /**
-   * Collect struct definitions to know their fields
+   * Collect struct definitions from current file to know their fields.
+   * This supplements the external struct fields from CodeGenState.
    */
   private collectStructDefinitions(tree: Parser.ProgramContext): void {
     for (const decl of tree.declaration()) {
@@ -567,7 +581,7 @@ class InitializationAnalyzer {
           fields.add(fieldName);
         }
 
-        this.structFields.set(structName, fields);
+        this.cnextStructFields.set(structName, fields);
       }
     }
   }
@@ -610,9 +624,9 @@ class InitializationAnalyzer {
       this.enterScope();
     }
 
-    const isStruct = typeName !== null && this.structFields.has(typeName);
+    const isStruct = typeName !== null && this.isKnownStruct(typeName);
     const fields = isStruct
-      ? this.structFields.get(typeName)!
+      ? this.getStructFields(typeName)!
       : new Set<string>();
 
     // Issue #503: C++ classes with default constructors are automatically initialized
@@ -637,13 +651,11 @@ class InitializationAnalyzer {
    * SonarCloud S3776: Refactored to use helper methods.
    */
   public recordAssignment(name: string, field?: string): void {
-    const structFields = this.structFields;
-
     this.scopeStack.update(name, (state) => {
       if (field) {
-        this.recordFieldAssignment(state, field, structFields);
+        this.recordFieldAssignment(state, field);
       } else {
-        this.recordWholeAssignment(state, structFields);
+        this.recordWholeAssignment(state);
       }
       return state;
     });
@@ -652,16 +664,12 @@ class InitializationAnalyzer {
   /**
    * Handle field-level assignment.
    */
-  private recordFieldAssignment(
-    state: IVariableState,
-    field: string,
-    structFields: Map<string, Set<string>>,
-  ): void {
+  private recordFieldAssignment(state: IVariableState, field: string): void {
     state.initializedFields.add(field);
     // Check if all fields are now initialized
     if (!state.isStruct || !state.typeName) return;
 
-    const allFields = structFields.get(state.typeName);
+    const allFields = this.getStructFields(state.typeName);
     if (!allFields) return;
 
     const allInitialized = [...allFields].every((f) =>
@@ -675,15 +683,12 @@ class InitializationAnalyzer {
   /**
    * Handle whole-variable assignment.
    */
-  private recordWholeAssignment(
-    state: IVariableState,
-    structFields: Map<string, Set<string>>,
-  ): void {
+  private recordWholeAssignment(state: IVariableState): void {
     state.initialized = true;
     // Mark all fields as initialized too
     if (!state.isStruct || !state.typeName) return;
 
-    const fields = structFields.get(state.typeName);
+    const fields = this.getStructFields(state.typeName);
     if (fields) {
       state.initializedFields = new Set(fields);
     }
@@ -745,8 +750,8 @@ class InitializationAnalyzer {
     field: string,
     state: IVariableState,
   ): void {
-    const structFields = this.structFields.get(state.typeName!);
-    if (!structFields?.has(field)) return;
+    const structFieldSet = this.getStructFields(state.typeName!);
+    if (!structFieldSet?.has(field)) return;
 
     if (!state.initializedFields.has(field)) {
       this.addError(`${name}.${field}`, line, column, state.declaration, false);
@@ -874,9 +879,9 @@ class InitializationAnalyzer {
       this.enterScope();
     }
 
-    const isStruct = typeName !== null && this.structFields.has(typeName);
+    const isStruct = typeName !== null && this.isKnownStruct(typeName);
     const fields = isStruct
-      ? this.structFields.get(typeName)!
+      ? this.getStructFields(typeName)!
       : new Set<string>();
 
     const state: IVariableState = {

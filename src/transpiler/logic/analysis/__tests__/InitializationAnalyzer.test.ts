@@ -4,11 +4,12 @@
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import { CNextLexer } from "../../parser/grammar/CNextLexer";
 import { CNextParser } from "../../parser/grammar/CNextParser";
 import InitializationAnalyzer from "../InitializationAnalyzer";
 import SymbolTable from "../../symbols/SymbolTable";
+import CodeGenState from "../../../state/CodeGenState";
 import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
@@ -24,6 +25,12 @@ function parse(source: string) {
 }
 
 describe("InitializationAnalyzer", () => {
+  // Reset CodeGenState before each test
+  beforeEach(() => {
+    CodeGenState.reset();
+    CodeGenState.symbolTable.clear();
+  });
+
   // ========================================================================
   // Issue #503: C++ Class Initialization
   // ========================================================================
@@ -38,9 +45,8 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // Create symbol table with C++ class
-      const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      // Set up CodeGenState with C++ class
+      CodeGenState.symbolTable.addSymbol({
         name: "CppMessage",
         kind: ESymbolKind.Class,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -49,14 +55,13 @@ describe("InitializationAnalyzer", () => {
         isExported: true,
       });
       // Add the field so the analyzer knows about it
-      symbolTable.addStructField("CppMessage", "pgn", "u16");
+      CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
+
+      // Build external struct fields from symbol table
+      CodeGenState.buildExternalStructFields();
 
       const analyzer = new InitializationAnalyzer();
-      analyzer.registerExternalStructFields(
-        new Map([["CppMessage", new Set(["pgn"])]]),
-      );
-
-      const errors = analyzer.analyze(tree, symbolTable);
+      const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
 
       // Should have NO errors - C++ class is initialized by constructor
       expect(errors).toHaveLength(0);
@@ -95,9 +100,8 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // Create symbol table with C++ struct (not class)
-      const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      // Set up CodeGenState with C++ struct (not class)
+      CodeGenState.symbolTable.addSymbol({
         name: "CppStruct",
         kind: ESymbolKind.Struct,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -105,14 +109,13 @@ describe("InitializationAnalyzer", () => {
         sourceLine: 1,
         isExported: true,
       });
-      symbolTable.addStructField("CppStruct", "value", "u32");
+      CodeGenState.symbolTable.addStructField("CppStruct", "value", "u32");
+
+      // Build external struct fields from symbol table
+      CodeGenState.buildExternalStructFields();
 
       const analyzer = new InitializationAnalyzer();
-      analyzer.registerExternalStructFields(
-        new Map([["CppStruct", new Set(["value"])]]),
-      );
-
-      const errors = analyzer.analyze(tree, symbolTable);
+      const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
 
       // Should have NO errors - C++ structs also have default constructors
       expect(errors).toHaveLength(0);
@@ -127,9 +130,8 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // Create symbol table with C struct (not C++)
-      const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      // Set up CodeGenState with C struct (not C++)
+      CodeGenState.symbolTable.addSymbol({
         name: "CStruct",
         kind: ESymbolKind.Struct,
         sourceLanguage: ESourceLanguage.C,
@@ -137,14 +139,13 @@ describe("InitializationAnalyzer", () => {
         sourceLine: 1,
         isExported: true,
       });
-      symbolTable.addStructField("CStruct", "value", "u32");
+      CodeGenState.symbolTable.addStructField("CStruct", "value", "u32");
+
+      // Build external struct fields from symbol table (as pipeline does)
+      CodeGenState.buildExternalStructFields();
 
       const analyzer = new InitializationAnalyzer();
-      analyzer.registerExternalStructFields(
-        new Map([["CStruct", new Set(["value"])]]),
-      );
-
-      const errors = analyzer.analyze(tree, symbolTable);
+      const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
 
       // SHOULD have an error - C structs don't have constructors
       expect(errors.length).toBeGreaterThan(0);

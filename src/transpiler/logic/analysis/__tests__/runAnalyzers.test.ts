@@ -2,12 +2,13 @@
  * Unit tests for runAnalyzers
  * Tests that all 8 analyzers run in sequence with early returns on errors
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../parser/grammar/CNextLexer";
 import { CNextParser } from "../../parser/grammar/CNextParser";
 import runAnalyzers from "../runAnalyzers";
 import SymbolTable from "../../symbols/SymbolTable";
+import CodeGenState from "../../../state/CodeGenState";
 import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
@@ -24,6 +25,12 @@ function parseWithStream(source: string) {
 }
 
 describe("runAnalyzers", () => {
+  // Reset CodeGenState before each test
+  beforeEach(() => {
+    CodeGenState.reset();
+    CodeGenState.symbolTable.clear();
+  });
+
   // ========================================================================
   // Happy Path
   // ========================================================================
@@ -206,24 +213,33 @@ describe("runAnalyzers", () => {
   });
 
   // ========================================================================
-  // Options: externalStructFields and symbolTable
+  // Options: CodeGenState integration and symbolTable
   // ========================================================================
 
   describe("options", () => {
-    it("should pass externalStructFields to InitializationAnalyzer", () => {
-      // Code that uses a field from an external struct - the externalStructFields
-      // option tells the analyzer about external struct types
+    it("should read externalStructFields from CodeGenState", () => {
+      // Code that uses a field from an external struct - externalStructFields
+      // are now read from CodeGenState
       const { tree, tokenStream } = parseWithStream(`
         void main() {
           u32 x <- 5;
         }
       `);
 
-      const externalStructFields = new Map<string, Set<string>>([
-        ["ExternalStruct", new Set(["field1", "field2"])],
-      ]);
+      // Set up external struct fields in CodeGenState
+      CodeGenState.symbolTable.addStructField(
+        "ExternalStruct",
+        "field1",
+        "u32",
+      );
+      CodeGenState.symbolTable.addStructField(
+        "ExternalStruct",
+        "field2",
+        "u32",
+      );
+      CodeGenState.buildExternalStructFields();
 
-      const errors = runAnalyzers(tree, tokenStream, { externalStructFields });
+      const errors = runAnalyzers(tree, tokenStream);
       expect(errors).toHaveLength(0);
     });
 
@@ -248,18 +264,15 @@ describe("runAnalyzers", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should pass both options together", () => {
+    it("should use CodeGenState.symbolTable by default", () => {
       const { tree, tokenStream } = parseWithStream(`
         void main() {
           u32 x <- 5;
         }
       `);
 
-      const externalStructFields = new Map<string, Set<string>>([
-        ["CppMessage", new Set(["pgn"])],
-      ]);
-      const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      // Set up C++ class in CodeGenState.symbolTable
+      CodeGenState.symbolTable.addSymbol({
         name: "CppMessage",
         kind: ESymbolKind.Class,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -267,11 +280,11 @@ describe("runAnalyzers", () => {
         sourceLine: 1,
         isExported: true,
       });
+      CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
+      CodeGenState.buildExternalStructFields();
 
-      const errors = runAnalyzers(tree, tokenStream, {
-        externalStructFields,
-        symbolTable,
-      });
+      // No options passed - should use CodeGenState.symbolTable
+      const errors = runAnalyzers(tree, tokenStream);
       expect(errors).toHaveLength(0);
     });
   });
