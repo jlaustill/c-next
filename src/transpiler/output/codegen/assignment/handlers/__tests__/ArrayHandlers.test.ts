@@ -28,8 +28,14 @@ import HandlerTestUtils from "./handlerTestUtils";
 function createMockContext(
   overrides: Partial<IAssignmentContext> = {},
 ): IAssignmentContext {
+  // Default resolved values based on first identifier
+  const identifiers = overrides.identifiers ?? ["arr"];
+  const resolvedTarget = overrides.resolvedTarget ?? `${identifiers[0]}[i]`;
+  const resolvedBaseIdentifier =
+    overrides.resolvedBaseIdentifier ?? identifiers[0];
+
   return {
-    identifiers: ["arr"],
+    identifiers,
     subscripts: [{ mockValue: "i", start: { line: 1 } } as never],
     isCompound: false,
     cnextOp: "<-",
@@ -46,6 +52,8 @@ function createMockContext(
     isSimpleIdentifier: false,
     isSimpleThisAccess: false,
     isSimpleGlobalAccess: false,
+    resolvedTarget,
+    resolvedBaseIdentifier,
     ...overrides,
   } as IAssignmentContext;
 }
@@ -96,6 +104,7 @@ describe("ArrayHandlers", () => {
         isCompound: true,
         cnextOp: "+<-",
         cOp: "+=",
+        resolvedTarget: "arr[0]",
       });
 
       const result = getHandler()!(ctx);
@@ -109,6 +118,8 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
+        resolvedTarget: "buffer[idx]",
+        resolvedBaseIdentifier: "buffer",
       });
 
       const result = getHandler()!(ctx);
@@ -137,6 +148,8 @@ describe("ArrayHandlers", () => {
           { mockValue: "j", start: { line: 1 } } as never,
         ],
         subscriptDepth: 2,
+        resolvedTarget: "matrix[i][j]",
+        resolvedBaseIdentifier: "matrix",
       });
 
       const result = getHandler()!(ctx);
@@ -160,6 +173,8 @@ describe("ArrayHandlers", () => {
           { mockValue: "z", start: { line: 1 } } as never,
         ],
         subscriptDepth: 3,
+        resolvedTarget: "cube[x][y][z]",
+        resolvedBaseIdentifier: "cube",
       });
 
       const result = getHandler()!(ctx);
@@ -212,6 +227,8 @@ describe("ArrayHandlers", () => {
         ],
         isCompound: true,
         cOp: "-=",
+        resolvedTarget: "grid[0][1]",
+        resolvedBaseIdentifier: "grid",
       });
 
       const result = getHandler()!(ctx);

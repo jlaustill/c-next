@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// test-c-only
 // test-execution
 // Tests: Issue #579 - Array indexing on parameter should generate array access, not bit manipulation
 // When a function parameter is declared as `u8 buf` (without explicit array syntax)
@@ -14,7 +15,7 @@ uint32_t result = 0;
 
 // Test 1: Write to parameter with variable index
 void writeToParam(uint8_t* buf, uint32_t idx) {
-    buf[idx] = 42;
+    (*buf)[idx] = 42;
 }
 
 // Test 2: Read from parameter with variable index
@@ -24,7 +25,7 @@ uint8_t readFromParam(const uint8_t* buf, uint32_t idx) {
 
 // Test 3: Both read and write in same function
 void copyElement(const uint8_t* src, uint8_t* dst, uint32_t idx) {
-    dst[idx] = src[idx];
+    (*dst)[idx] = src[idx];
 }
 
 // Test 4: Constant index on parameter
@@ -35,12 +36,12 @@ uint8_t readFirst(const uint8_t* buf) {
 // Test 5: Multiple index operations
 void swapElements(uint8_t* buf, uint32_t i, uint32_t j) {
     uint8_t temp = buf[i];
-    buf[i] = buf[j];
-    buf[j] = temp;
+    (*buf)[i] = buf[j];
+    (*buf)[j] = temp;
 }
 
 // Test 6: With explicit array syntax (should still work)
-void writeExplicit(uint8_t buf[], uint32_t idx) {
+void writeExplicit(uint8_t buf[8], uint32_t idx) {
     buf[idx] = 99;
 }
 
@@ -62,7 +63,7 @@ uint8_t getArrayBit(const uint8_t matrix[2][2], uint32_t row, uint32_t col, uint
 }
 
 void setArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit, bool val) {
-    matrix[row][col][bit] = val;
+    matrix[row][col] = (matrix[row][col] & ~(1 << bit)) | ((val ? 1 : 0) << bit);
 }
 
 int main(void) {

@@ -7318,12 +7318,15 @@ describe("CodeGenerator", () => {
         expect(code).toContain("cfg.enabled = true");
       });
 
-      it("should throw when writing register from inside scope without global prefix", () => {
+      it("should throw when writing register from inside scope when SHADOWED without global prefix", () => {
+        // Issue #779: Ambiguity-aware validation - only require global. when shadowed
         const source = `
           register GPIO @ 0x40000000 {
               DR: u32 rw @ 0x00,
           }
           scope Motor {
+              // Shadow the register name with a scope member
+              u32 GPIO <- 0;
               public void init() {
                   GPIO.DR <- 0xFF;
               }
@@ -7340,6 +7343,31 @@ describe("CodeGenerator", () => {
             sourcePath: "test.cnx",
           }),
         ).toThrow("Use 'global.GPIO.DR' to access register");
+      });
+
+      it("should allow bare register access from inside scope when NOT shadowed", () => {
+        // Issue #779: Ambiguity-aware validation - allow unambiguous access
+        const source = `
+          register GPIO @ 0x40000000 {
+              DR: u32 rw @ 0x00,
+          }
+          scope Motor {
+              public void init() {
+                  GPIO.DR <- 0xFF;
+              }
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+        const code = generator.generate(tree, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        // Should generate GPIO_DR without error since GPIO is unambiguous
+        expect(code).toContain("GPIO_DR = 0xFF");
       });
 
       it("should generate scope member write from outside any scope", () => {

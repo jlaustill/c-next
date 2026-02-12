@@ -1148,10 +1148,34 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
+    // Issue #779: Resolve bare scope member identifiers before postfix chain processing
+    // This ensures scope members get their prefix even with array/member access.
+    // Skip parameters - they don't need scope resolution and shouldn't be dereferenced
+    // when used with array indexing (buf[idx] is valid C for pointer params).
+    // Also skip known registers - they should be handled by the postfix chain builder
+    // to enable proper register validation (requiring global. when shadowed).
+    let resolvedIdentifier = identifier ?? "";
+    if (!hasGlobal && !hasThis && identifier) {
+      const isParameter = CodeGenState.currentParameters.has(identifier);
+      const isLocalVariable = CodeGenState.localVariables.has(identifier);
+      const isKnownRegister =
+        CodeGenState.symbols?.knownRegisters.has(identifier);
+      if (!isParameter && !isLocalVariable && !isKnownRegister) {
+        const resolved = TypeValidator.resolveBareIdentifier(
+          identifier,
+          false, // not local
+          (name: string) => this.isKnownStruct(name),
+        );
+        if (resolved !== null) {
+          resolvedIdentifier = resolved;
+        }
+      }
+    }
+
     // SonarCloud S3776: Use BaseIdentifierBuilder for base identifier
     const safeIdentifier = identifier ?? "";
     const { result: baseResult, firstId } = BaseIdentifierBuilder.build(
-      safeIdentifier,
+      hasGlobal || hasThis ? safeIdentifier : resolvedIdentifier,
       hasGlobal,
       hasThis,
       CodeGenState.currentScope,
@@ -2047,7 +2071,14 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Validate register access from inside a scope requires global. prefix
+   * Validate register access from inside a scope requires global. prefix.
+   *
+   * Issue #779: Use ambiguity-aware validation - only require global. when
+   * the register name is ACTUALLY shadowed by a local or scope member.
+   *
+   * Exceptions (no global. required):
+   * 1. Scoped registers defined within the current scope
+   * 2. Unambiguous access - no local/scope member with the same name
    */
   private _validateRegisterAccess(
     registerName: string,
@@ -2056,6 +2087,27 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     // Only validate when inside a scope and accessing without global. prefix
     if (CodeGenState.currentScope && !hasGlobal) {
+      // Check if this is a scoped register (defined within the current scope)
+      // The registerName may already be the fully qualified name (e.g., "GPIO_PORTA")
+      // if accessed as PORTA from inside scope GPIO
+      const scopePrefix = `${CodeGenState.currentScope}_`;
+      if (registerName.startsWith(scopePrefix)) {
+        // This is a scoped register - allow bare access
+        return;
+      }
+
+      // Issue #779: Ambiguity-aware validation
+      // Only require global. if the register name is shadowed by:
+      // 1. A local variable in the current function
+      // 2. A member of the current scope
+      const isShadowedByLocal = CodeGenState.localVariables.has(registerName);
+      const isShadowedByScope = CodeGenState.isCurrentScopeMember(registerName);
+
+      if (!isShadowedByLocal && !isShadowedByScope) {
+        // Unambiguous - allow bare access
+        return;
+      }
+
       throw new Error(
         `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
           `from inside scope '${CodeGenState.currentScope}'`,
@@ -6120,6 +6172,10 @@ export default class CodeGenerator implements IOrchestrator {
     const assignCtx = buildAssignmentContext(ctx, {
       typeRegistry: CodeGenState.typeRegistry,
       generateExpression: () => value,
+      generateAssignmentTarget: (targetCtx) =>
+        this.generateAssignmentTarget(targetCtx),
+      isKnownRegister: (name) => CodeGenState.symbols!.knownRegisters.has(name),
+      currentScope: CodeGenState.currentScope,
     });
     // ADR-109: Handlers access CodeGenState directly, no deps needed
     const assignmentKind = AssignmentClassifier.classify(assignCtx);

@@ -16,8 +16,15 @@ import HandlerTestUtils from "./handlerTestUtils";
 function createMockContext(
   overrides: Partial<IAssignmentContext> = {},
 ): IAssignmentContext {
+  // Default resolved values based on first identifier
+  const identifiers = overrides.identifiers ?? ["GPIO7", "DR_SET"];
+  const resolvedTarget =
+    overrides.resolvedTarget ?? `${identifiers.join("_")}[LED_BIT]`;
+  const resolvedBaseIdentifier =
+    overrides.resolvedBaseIdentifier ?? identifiers[0];
+
   return {
-    identifiers: ["GPIO7", "DR_SET"],
+    identifiers,
     subscripts: [{ mockValue: "LED_BIT" } as never],
     isCompound: false,
     cnextOp: "<-",
@@ -34,6 +41,8 @@ function createMockContext(
     isSimpleIdentifier: false,
     isSimpleThisAccess: false,
     isSimpleGlobalAccess: false,
+    resolvedTarget,
+    resolvedBaseIdentifier,
     ...overrides,
   } as IAssignmentContext;
 }

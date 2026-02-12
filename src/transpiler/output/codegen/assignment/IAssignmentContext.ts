@@ -67,6 +67,21 @@ interface IAssignmentContext {
   /** Generated C expression for the value (right-hand side) */
   readonly generatedValue: string;
 
+  /**
+   * Fully-resolved assignment target with scope prefixes applied.
+   * Use this instead of raw identifiers to ensure proper scope resolution.
+   * Example: "data" inside scope ArrayBug -> "ArrayBug_data"
+   */
+  readonly resolvedTarget: string;
+
+  /**
+   * Resolved base identifier for type lookups.
+   * Extracted from resolvedTarget by removing subscripts and member access.
+   * Example: "ArrayBug_data[0]" -> "ArrayBug_data"
+   * Use this for CodeGenState.typeRegistry lookups instead of identifiers[0].
+   */
+  readonly resolvedBaseIdentifier: string;
+
   // === Type info (looked up from registry) ===
 
   /** First identifier's type info, if found */

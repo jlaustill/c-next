@@ -33,11 +33,14 @@ function validateNotCompound(ctx: IAssignmentContext): void {
 /**
  * Handle single bit on integer variable: flags[3] <- true
  * Also handles float bit indexing: f32Var[3] <- true
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleIntegerBit(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
-  const name = ctx.identifiers[0];
+  // Use resolvedBaseIdentifier for type lookup and code generation
+  // e.g., "ArrayBug_flags" instead of "flags"
+  const name = ctx.resolvedBaseIdentifier;
   const bitIndex = gen().generateExpression(ctx.subscripts[0]);
   const typeInfo = CodeGenState.typeRegistry.get(name);
 
@@ -67,11 +70,13 @@ function handleIntegerBit(ctx: IAssignmentContext): string {
 /**
  * Handle bit range on integer variable: flags[0, 3] <- 5
  * Also handles float bit range: f32Var[0, 8] <- 0xFF
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleIntegerBitRange(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
-  const name = ctx.identifiers[0];
+  // Use resolvedBaseIdentifier for type lookup and code generation
+  const name = ctx.resolvedBaseIdentifier;
   const start = gen().generateExpression(ctx.subscripts[0]);
   const width = gen().generateExpression(ctx.subscripts[1]);
   const typeInfo = CodeGenState.typeRegistry.get(name);
@@ -126,15 +131,19 @@ function handleStructMemberBit(ctx: IAssignmentContext): string {
 
 /**
  * Handle bit on multi-dimensional array element: matrix[i][j][FIELD_BIT] <- false
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleArrayElementBit(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
-  const arrayName = ctx.identifiers[0];
+  // Use resolvedBaseIdentifier for type lookup and code generation
+  const arrayName = ctx.resolvedBaseIdentifier;
   const typeInfo = CodeGenState.typeRegistry.get(arrayName);
 
   if (!typeInfo?.arrayDimensions) {
-    throw new Error(`Error: ${arrayName} is not an array`);
+    // Use raw identifier in error message for clarity
+    const rawName = ctx.identifiers[0];
+    throw new Error(`Error: ${rawName} is not an array`);
   }
 
   const numDims = typeInfo.arrayDimensions.length;
@@ -160,12 +169,14 @@ function handleArrayElementBit(ctx: IAssignmentContext): string {
  *
  * The target is a chain like array[idx].member or struct.field with a
  * bit range subscript [start, width] at the end.
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleStructChainBitRange(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   // Build the base target from postfixOps, excluding the last one (the bit range)
-  const baseId = ctx.identifiers[0];
+  // Use resolvedBaseIdentifier for the base to include scope prefix
+  const baseId = ctx.resolvedBaseIdentifier;
   const opsBeforeLast = ctx.postfixOps.slice(0, -1);
 
   let baseTarget = baseId;
