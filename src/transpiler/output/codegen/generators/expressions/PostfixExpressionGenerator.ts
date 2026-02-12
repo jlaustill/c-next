@@ -1432,36 +1432,6 @@ const initializeMemberOutput = (
 });
 
 /**
- * Check if a scope member is shadowing a global enum.
- * This produces invalid C code, so we must error early with a helpful message.
- */
-const checkEnumShadowingConflict = (
-  ctx: IMemberAccessContext,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-): void => {
-  if (!state.currentScope || !ctx.rootIdentifier) {
-    return;
-  }
-  // Check if the original identifier is a known global enum
-  if (!input.symbols!.knownEnums.has(ctx.rootIdentifier)) {
-    return;
-  }
-  // Check if it was resolved to something different (scope member)
-  if (ctx.result === ctx.rootIdentifier) {
-    return;
-  }
-  // Check if the resolved name is NOT an enum (scope member shadows global enum)
-  if (input.symbols!.knownEnums.has(ctx.result)) {
-    return;
-  }
-  // Conflict: scope member shadows global enum
-  throw new Error(
-    `Error: Use 'global.${ctx.rootIdentifier}.${ctx.memberName}' to access enum '${ctx.rootIdentifier}' from inside scope '${state.currentScope}' (scope member '${ctx.rootIdentifier}' shadows the global enum)`,
-  );
-};
-
-/**
  * Generate member access (obj.field).
  * Dispatches to specialized handlers via null-coalescing chain.
  */
@@ -1472,8 +1442,19 @@ const generateMemberAccess = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): MemberAccessResult => {
-  // Check for enum shadowing conflict before dispatch
-  checkEnumShadowingConflict(ctx, input, state);
+  // Check for enum shadowing before dispatch - catches case where identifier
+  // was resolved to a scope member that shadows a global enum
+  MemberAccessValidator.validateGlobalEntityAccess(
+    ctx.result,
+    ctx.memberName,
+    "enum",
+    state.currentScope,
+    ctx.isGlobalAccess,
+    {
+      rootIdentifier: ctx.rootIdentifier,
+      knownEnums: input.symbols!.knownEnums,
+    },
+  );
 
   return (
     tryBitmapFieldAccess(ctx, input, effects) ??
@@ -1611,13 +1592,15 @@ const tryEnumMemberAccess = (
     return null;
   }
 
+  // Shadowing check already done in generateMemberAccess; this catches
+  // direct conflicts where ctx.result is the enum name (no resolution happened)
   MemberAccessValidator.validateGlobalEntityAccess(
     ctx.result,
     ctx.memberName,
     "enum",
     state.currentScope,
     ctx.isGlobalAccess,
-    state.scopeMembers,
+    { scopeMembers: state.scopeMembers },
   );
 
   const output = initializeMemberOutput(ctx);
@@ -1643,7 +1626,7 @@ const tryRegisterMemberAccess = (
     "register",
     state.currentScope,
     ctx.isGlobalAccess,
-    state.scopeMembers,
+    { scopeMembers: state.scopeMembers },
   );
 
   MemberAccessValidator.validateRegisterReadAccess(
