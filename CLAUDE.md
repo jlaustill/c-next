@@ -259,7 +259,7 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 - **External struct fields**: `CodeGenState.buildExternalStructFields()` builds from symbolTable in Stage 2b, analyzers read via `getExternalStructFields()`
 - **runAnalyzers() state**: Reads `symbolTable` and `externalStructFields` from CodeGenState by default - no need to pass options
 - **InitializationAnalyzer**: Uses `cnextStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
-- **Scope member checks**: Use `CodeGenState.scopeMembers.get(scope)` or `CodeGenState.isCurrentScopeMember(id)` - NOT `CodeGenState.symbols?.scopeMembers`
+- **Scope member checks**: Use `CodeGenState.getScopeMembers(scope)` or `CodeGenState.isCurrentScopeMember(id)` - `scopeMembers` is private
 
 ### Symbol Resolution Type Patterns
 
@@ -325,6 +325,8 @@ When adding new assignment patterns:
   2. For callbacks needing CodeGenerator context (e.g., `generateExpression`), pass as method parameter
   3. Update tests: `CodeGenState.reset()` in `beforeEach`, create `setupSymbols()` helper for state setup
   4. Remove unused `symbols` variables after migration (oxlint will flag them)
+- **CodeGenState encapsulation**: When making fields private, add `get<Field>()`, `set<Field>()`, and `getAll<Field>()` (if `IGeneratorState` needs full collection). Update tests to use setters.
+- **Register check pattern**: Use `CodeGenState.symbols!.knownRegisters.has(name)` — no wrapper method exists on CodeGenerator
 
 ### Adding CLI Flags
 
