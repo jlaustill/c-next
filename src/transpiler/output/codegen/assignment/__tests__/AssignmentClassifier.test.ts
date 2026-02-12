@@ -15,6 +15,11 @@ import TTypeInfo from "../../types/TTypeInfo";
 function createMockContext(
   overrides: Partial<IAssignmentContext> = {},
 ): IAssignmentContext {
+  // Compute resolvedBaseIdentifier from resolvedTarget if not explicitly provided
+  const resolvedTarget = overrides.resolvedTarget ?? "x";
+  const resolvedBaseIdentifier =
+    overrides.resolvedBaseIdentifier ?? resolvedTarget.split(/[[.]/)[0];
+
   return {
     statementCtx: {} as IAssignmentContext["statementCtx"],
     targetCtx: {} as IAssignmentContext["targetCtx"],
@@ -31,6 +36,8 @@ function createMockContext(
     cOp: "=",
     isCompound: false,
     generatedValue: "5",
+    resolvedTarget,
+    resolvedBaseIdentifier,
     firstIdTypeInfo: null,
     memberAccessDepth: 0,
     subscriptDepth: 0,

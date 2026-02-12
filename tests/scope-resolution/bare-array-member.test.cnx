@@ -1,0 +1,33 @@
+// test-execution
+// Test bare array identifier resolves to scope member
+// Issue #779: Array member access without this. should still get scope prefix
+
+scope ArrayBug {
+    u8[4] data <- [0, 0, 0, 0];
+    bool flag <- false;
+
+    public void callback() {
+        data[0] <- 42;   // BUG: missing prefix
+        flag <- true;     // OK: prefix generated
+    }
+
+    public u8 getData0() {
+        return data[0];
+    }
+
+    public bool getFlag() {
+        return flag;
+    }
+}
+
+u32 main() {
+    ArrayBug.callback();
+
+    // Verify both were set correctly
+    u8 data0 <- ArrayBug.getData0();
+    bool flag <- ArrayBug.getFlag();
+    if (data0 != 42) return 1;
+    if (flag != true) return 2;
+
+    return 0;
+}

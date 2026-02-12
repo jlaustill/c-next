@@ -242,7 +242,7 @@ describe("CodeGenerator Coverage Tests", () => {
 
       // Manually set up scope context to test the resolution path
       CodeGenState.currentScope = "Motor";
-      CodeGenState.scopeMembers.set("Motor", new Set(["speed", "setSpeed"]));
+      CodeGenState.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
 
       // Now resolve should return prefixed name (line 633)
       const resolved = generator.resolveIdentifier("speed");
@@ -253,7 +253,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const { generator } = setupGenerator("u32 globalVar; void main() {}");
 
       CodeGenState.currentScope = "Motor";
-      CodeGenState.scopeMembers.set("Motor", new Set(["speed"]));
+      CodeGenState.setScopeMembers("Motor", new Set(["speed"]));
 
       // globalVar is not in Motor scope members
       const resolved = generator.resolveIdentifier("globalVar");

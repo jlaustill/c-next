@@ -89,7 +89,12 @@ class MemberSeparatorResolver {
     // Scope member access: Sensor.buffer -> Sensor_buffer
     // Works with or without global. prefix (both are valid syntax)
     if (deps.isKnownScope(identifierChain[0])) {
-      deps.validateCrossScopeVisibility(identifierChain[0], memberName);
+      // Issue #779: Skip cross-scope validation for scoped register access
+      // Board.GPIO where Board_GPIO is a known register is valid
+      const scopedRegisterName = `${identifierChain[0]}_${memberName}`;
+      if (!deps.isKnownRegister(scopedRegisterName)) {
+        deps.validateCrossScopeVisibility(identifierChain[0], memberName);
+      }
       return "_";
     }
 

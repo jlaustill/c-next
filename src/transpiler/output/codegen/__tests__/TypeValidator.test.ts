@@ -89,7 +89,9 @@ function setupState(options: SetupStateOptions = {}): void {
     CodeGenState.currentScope = options.currentScope;
   }
   if (options.scopeMembers) {
-    CodeGenState.scopeMembers = options.scopeMembers;
+    for (const [scope, members] of options.scopeMembers) {
+      CodeGenState.setScopeMembers(scope, members);
+    }
   }
   if (options.currentParameters) {
     CodeGenState.currentParameters = options.currentParameters;

@@ -20,26 +20,30 @@ function gen(): ICodeGenApi {
 
 /**
  * Handle simple array element: arr[i] <- value
+ *
+ * Uses resolvedTarget which includes scope prefix and subscript,
+ * e.g., "data[0]" inside scope ArrayBug -> "ArrayBug_data[0]"
  */
 function handleArrayElement(ctx: IAssignmentContext): string {
-  const name = ctx.identifiers[0];
-  const index = gen().generateExpression(ctx.subscripts[0]);
-
-  return `${name}[${index}] ${ctx.cOp} ${ctx.generatedValue};`;
+  return `${ctx.resolvedTarget} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
 /**
  * Handle multi-dimensional array element: matrix[i][j] <- value
+ *
+ * Uses resolvedTarget which includes scope prefix and all subscripts.
+ * Uses resolvedBaseIdentifier for type lookups to support scoped arrays.
  */
 function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
-  const name = ctx.identifiers[0];
-  const typeInfo = CodeGenState.typeRegistry.get(name);
+  // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
+  // e.g., "ArrayBug_data" instead of "data"
+  const typeInfo = CodeGenState.typeRegistry.get(ctx.resolvedBaseIdentifier);
 
   // ADR-036: Compile-time bounds checking for constant indices
   if (typeInfo?.arrayDimensions) {
     const line = ctx.subscripts[0]?.start?.line ?? 0;
     TypeValidator.checkArrayBounds(
-      name,
+      ctx.resolvedBaseIdentifier,
       [...typeInfo.arrayDimensions],
       [...ctx.subscripts],
       line,
@@ -47,11 +51,7 @@ function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
     );
   }
 
-  const indices = ctx.subscripts
-    .map((e) => gen().generateExpression(e))
-    .join("][");
-
-  return `${name}[${indices}] ${ctx.cOp} ${ctx.generatedValue};`;
+  return `${ctx.resolvedTarget} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
 /**
@@ -69,7 +69,8 @@ function handleArraySlice(ctx: IAssignmentContext): string {
     );
   }
 
-  const name = ctx.identifiers[0];
+  // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
+  const name = ctx.resolvedBaseIdentifier;
   const typeInfo = CodeGenState.typeRegistry.get(name);
 
   // Get line number for error messages
@@ -77,10 +78,12 @@ function handleArraySlice(ctx: IAssignmentContext): string {
 
   // Validate 1D array only
   if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
+    // Use raw identifier in error message for clarity
+    const rawName = ctx.identifiers[0];
     throw new Error(
       `${line}:0 Error: Slice assignment is only valid on one-dimensional arrays. ` +
-        `'${name}' has ${typeInfo.arrayDimensions.length} dimensions. ` +
-        `Access the innermost dimension first (e.g., ${name}[index][offset, length]).`,
+        `'${rawName}' has ${typeInfo.arrayDimensions.length} dimensions. ` +
+        `Access the innermost dimension first (e.g., ${rawName}[index][offset, length]).`,
     );
   }
 
@@ -109,17 +112,21 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   } else if (typeInfo?.arrayDimensions?.[0]) {
     capacity = typeInfo.arrayDimensions[0];
   } else {
+    // Use raw identifier in error message for clarity
+    const rawName = ctx.identifiers[0];
     throw new Error(
-      `${line}:0 Error: Cannot determine buffer size for '${name}' at compile time.`,
+      `${line}:0 Error: Cannot determine buffer size for '${rawName}' at compile time.`,
     );
   }
 
   // Bounds validation
   if (offsetValue + lengthValue > capacity) {
+    // Use raw identifier in error message for clarity
+    const rawName = ctx.identifiers[0];
     throw new Error(
       `${line}:0 Error: Slice assignment out of bounds: ` +
         `offset(${offsetValue}) + length(${lengthValue}) = ${offsetValue + lengthValue} ` +
-        `exceeds buffer capacity(${capacity}) for '${name}'.`,
+        `exceeds buffer capacity(${capacity}) for '${rawName}'.`,
     );
   }
 

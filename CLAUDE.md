@@ -259,6 +259,7 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 - **External struct fields**: `CodeGenState.buildExternalStructFields()` builds from symbolTable in Stage 2b, analyzers read via `getExternalStructFields()`
 - **runAnalyzers() state**: Reads `symbolTable` and `externalStructFields` from CodeGenState by default - no need to pass options
 - **InitializationAnalyzer**: Uses `cnextStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
+- **Scope member checks**: Use `CodeGenState.getScopeMembers(scope)` or `CodeGenState.isCurrentScopeMember(id)` - `scopeMembers` is private
 
 ### Symbol Resolution Type Patterns
 
@@ -324,6 +325,8 @@ When adding new assignment patterns:
   2. For callbacks needing CodeGenerator context (e.g., `generateExpression`), pass as method parameter
   3. Update tests: `CodeGenState.reset()` in `beforeEach`, create `setupSymbols()` helper for state setup
   4. Remove unused `symbols` variables after migration (oxlint will flag them)
+- **CodeGenState encapsulation**: When making fields private, add `get<Field>()`, `set<Field>()`, and `getAll<Field>()` (if `IGeneratorState` needs full collection). Update tests to use setters.
+- **Register check pattern**: Use `CodeGenState.symbols!.knownRegisters.has(name)` — no wrapper method exists on CodeGenerator
 - **State consolidation to CodeGenState**: When auditing for local state that should be centralized:
   1. Grep for `this.<field>.` with zero matches to find dead instance variables from prior migrations
   2. Prefer on-demand computation (e.g., `getUnmodifiedParameters()`) over maintaining cached inverses of existing state
@@ -381,6 +384,11 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 - **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
 - **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
+
+### Assignment Handler Test Patterns
+
+- **`IAssignmentContext` field additions**: When adding fields to `IAssignmentContext`, update `createMockContext` in ALL handler test files: `ArrayHandlers.test.ts`, `BitAccessHandlers.test.ts`, `StringHandlers.test.ts`, `RegisterHandlers.test.ts`, `AccessPatternHandlers.test.ts`, `SpecialHandlers.test.ts`, `BitmapHandlers.test.ts`, `AssignmentClassifier.test.ts`
+- **`CodeGenerator.generate()` returns string**: Use `const code = generator.generate(...)` not `const { code } = generator.generate(...)` - it returns a string directly
 
 ### Vitest Mocking for ESM Modules
 
@@ -570,6 +578,7 @@ For compile-time error tests in `tests/analysis/`:
 - Error format: `line:column error[CODE]: message` (no "Error: " prefix)
 - Code generation errors: `1:0 Code generation failed: Error[CODE]: message`
 - **Gotcha**: Avoid `/*` or `//` in test description comments - triggers MISRA 3.1 validation
+- **Converting to error test**: Remove `.expected.c`, `.expected.cpp`, `.expected.h`, `.expected.hpp` files when converting a passing test to an error test
 
 ## Header Generation
 

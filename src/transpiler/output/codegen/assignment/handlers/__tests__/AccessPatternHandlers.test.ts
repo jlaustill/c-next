@@ -16,8 +16,14 @@ import HandlerTestUtils from "./handlerTestUtils";
 function createMockContext(
   overrides: Partial<IAssignmentContext> = {},
 ): IAssignmentContext {
+  // Default resolved values based on first identifier
+  const identifiers = overrides.identifiers ?? ["Counter", "value"];
+  const resolvedTarget = overrides.resolvedTarget ?? `${identifiers.join("_")}`;
+  const resolvedBaseIdentifier =
+    overrides.resolvedBaseIdentifier ?? identifiers[0];
+
   return {
-    identifiers: ["Counter", "value"],
+    identifiers,
     subscripts: [],
     isCompound: false,
     cnextOp: "<-",
@@ -34,6 +40,8 @@ function createMockContext(
     isSimpleIdentifier: false,
     isSimpleThisAccess: false,
     isSimpleGlobalAccess: false,
+    resolvedTarget,
+    resolvedBaseIdentifier,
     ...overrides,
   } as IAssignmentContext;
 }
