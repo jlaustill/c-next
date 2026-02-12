@@ -422,18 +422,6 @@ class InitializationAnalyzer {
   private symbolTable: SymbolTable | null = null;
 
   /**
-   * @deprecated Use CodeGenState.getExternalStructFields() instead.
-   * This method is kept for backwards compatibility but is now a no-op
-   * since external struct fields are read directly from CodeGenState.
-   */
-  public registerExternalStructFields(
-    _externalFields: Map<string, Set<string>>,
-  ): void {
-    // External struct fields are now read from CodeGenState.getExternalStructFields()
-    // This method is kept for API compatibility but does nothing.
-  }
-
-  /**
    * Get struct fields for a given struct type.
    * Checks C-Next structs first, then falls back to CodeGenState for external structs.
    */

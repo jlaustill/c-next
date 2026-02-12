@@ -246,8 +246,7 @@ class Transpiler {
    *
    * Both run() and transpileSource() delegate here after file discovery.
    *
-   * Stage 2: Collect symbols from C/C++ headers
-   * Stage 2b: Build external struct fields for analyzers
+   * Stage 2: Collect symbols from C/C++ headers (includes building analyzer context)
    * Stage 3: Collect symbols from C-Next files
    * Stage 3b: Resolve external const array dimensions
    * Stage 4: Check for symbol conflicts
@@ -258,10 +257,8 @@ class Transpiler {
     input: IPipelineInput,
     result: ITranspilerResult,
   ): Promise<void> {
-    // Stage 2: Collect symbols from C/C++ headers
+    // Stage 2: Collect symbols from C/C++ headers and build analyzer context
     this._collectAllHeaderSymbols(input.headerFiles, result);
-
-    // Stage 2b: Build external struct fields once for all analyzers
     CodeGenState.buildExternalStructFields();
 
     // Stage 3: Collect symbols from C-Next files
