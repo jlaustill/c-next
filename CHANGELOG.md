@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.70] - 2026-02-13
+
+### Fixed
+
+- Cross-file enum and function resolution bugs (Issue #786, PR #788)
+
+### Added
+
+- Suggest `global.` prefix when E0422 error would resolve with it (Issue #787, PR #788)
+
+### Changed
+
+- Extract PassByValueAnalyzer from CodeGenerator (-570 lines) (PR #789)
+- Move analysis helpers to logic layer for architecture compliance (PR #789)
+- Flatten STDLIB_FUNCTIONS to eliminate SonarCloud duplication (PR #790)
+
 ## [0.1.69] - 2026-02-12
 
 ### Fixed
@@ -1029,6 +1045,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.25]: https://github.com/jlaustill/c-next/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/jlaustill/c-next/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/jlaustill/c-next/compare/v0.1.22...v0.1.23
+[0.1.70]: https://github.com/jlaustill/c-next/compare/v0.1.69...v0.1.70
 [0.1.69]: https://github.com/jlaustill/c-next/compare/v0.1.68...v0.1.69
 [0.1.68]: https://github.com/jlaustill/c-next/compare/v0.1.67...v0.1.68
 [0.1.67]: https://github.com/jlaustill/c-next/compare/v0.1.66...v0.1.67
