@@ -1,5 +1,26 @@
 # C-Next Project Instructions
 
+## Correctness Over Convenience — ZERO EXCEPTIONS
+
+**NEVER take a shortcut, workaround, or "easy way" instead of the RIGHT way without explicit user permission.** This is non-negotiable.
+
+Examples of violations:
+
+- Deleting or skipping a failing test instead of fixing the root cause
+- Using `--no-verify`, `--force`, or similar flags to bypass checks
+- Commenting out code that causes errors instead of fixing the error
+- Using `any` type to silence TypeScript errors instead of fixing the types
+- Disabling or weakening a lint rule instead of fixing the code
+- Adding a `// @ts-ignore` or `// eslint-disable` instead of resolving the issue
+- Stubbing out a function with a no-op instead of implementing it properly
+- Replacing a correct but complex solution with a simpler but incorrect one
+- Skipping validation, error handling, or edge cases because "it probably won't happen"
+- Using deprecated APIs because they're easier than migrating to the current ones
+
+**If the right approach is unclear, blocked, or significantly more complex — ASK the user.** Do not silently choose the easy path. The user must explicitly approve any deviation from doing things correctly.
+
+**"It works" is not the same as "it's right."** Code that passes tests via workarounds, suppressed warnings, or bypassed checks is not acceptable.
+
 ## Project Hygiene
 
 - **No root-level analysis artifacts**: Don't create/commit one-time audit files (`test-inventory.csv`, `*-report.md`, etc.) in the project root. Keep analysis output in the terminal or in `docs/` if it needs to persist
@@ -589,7 +610,7 @@ The Transpiler has two entry points with unified behavior:
 - **`run()`** — CLI entry point, processes files with full symbol resolution across includes
 - **`transpileSource()`** — Test framework entry point, single-file transpilation (or called by `run()` with context)
 
-When `run()` calls `transpileSource()` with a context, it passes a pre-populated symbol table. When `transpileSource()` is called standalone (no context), it builds its own context via `StandaloneContextBuilder`.
+When `run()` calls `transpileSource()` with a context, it passes a pre-populated symbol table. When `transpileSource()` is called standalone (no context), it builds its own context via `Transpiler._discoverFromSource()`.
 
 **Testing cross-file features**: Both paths should produce identical output for the same input. The `DualCodePaths.test.ts` suite verifies this parity.
 
