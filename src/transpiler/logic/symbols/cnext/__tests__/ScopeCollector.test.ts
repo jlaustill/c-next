@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
 import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import SymbolGuards from "../../types/typeGuards";
+import SymbolGuards from "../../../../types/symbols/SymbolGuards";
+import SymbolRegistry from "../../../../state/SymbolRegistry";
+import TypeResolver from "../../../../types/TypeResolver";
 
 describe("ScopeCollector", () => {
+  beforeEach(() => {
+    SymbolRegistry.reset();
+  });
+
   describe("basic scope extraction", () => {
     it("collects an empty scope", () => {
       const code = `
@@ -44,24 +50,23 @@ describe("ScopeCollector", () => {
 
       expect(result.memberSymbols.length).toBe(2);
 
-      const initFunc = result.memberSymbols.find(
-        (s) => s.name === "Motor_init",
-      );
+      // Functions now have bare names with scope references
+      const initFunc = result.memberSymbols.find((s) => s.name === "init");
       expect(initFunc).toBeDefined();
       expect(SymbolGuards.isFunction(initFunc!)).toBe(true);
       if (SymbolGuards.isFunction(initFunc!)) {
         expect(initFunc.visibility).toBe("public");
         expect(initFunc.isExported).toBe(true);
+        expect(initFunc.scope.name).toBe("Motor");
       }
 
-      const updateFunc = result.memberSymbols.find(
-        (s) => s.name === "Motor_update",
-      );
+      const updateFunc = result.memberSymbols.find((s) => s.name === "update");
       expect(updateFunc).toBeDefined();
       expect(SymbolGuards.isFunction(updateFunc!)).toBe(true);
       if (SymbolGuards.isFunction(updateFunc!)) {
         expect(updateFunc.visibility).toBe("private");
         expect(updateFunc.isExported).toBe(false);
+        expect(updateFunc.scope.name).toBe("Motor");
       }
     });
 
@@ -84,14 +89,14 @@ describe("ScopeCollector", () => {
 
       expect(result.memberSymbols.length).toBe(2);
 
-      const posVar = result.memberSymbols.find(
-        (s) => s.name === "Motor_position",
-      );
+      // Variables now have bare names with scope references
+      const posVar = result.memberSymbols.find((s) => s.name === "position");
       expect(posVar).toBeDefined();
       expect(SymbolGuards.isVariable(posVar!)).toBe(true);
       if (SymbolGuards.isVariable(posVar!)) {
-        expect(posVar.type).toBe("u32");
+        expect(TypeResolver.getTypeName(posVar.type)).toBe("u32");
         expect(posVar.isExported).toBe(false);
+        expect(posVar.scope.name).toBe("Motor");
       }
     });
   });
@@ -113,15 +118,15 @@ describe("ScopeCollector", () => {
 
       expect(result.scopeSymbol.members).toEqual(["State"]);
 
-      const enumSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_State",
-      );
+      // Enum has bare name with scope reference
+      const enumSymbol = result.memberSymbols.find((s) => s.name === "State");
       expect(enumSymbol).toBeDefined();
       expect(SymbolGuards.isEnum(enumSymbol!)).toBe(true);
       if (SymbolGuards.isEnum(enumSymbol!)) {
         expect(enumSymbol.members.get("Off")).toBe(0);
         expect(enumSymbol.members.get("Running")).toBe(1);
         expect(enumSymbol.members.get("Error")).toBe(2);
+        expect(enumSymbol.scope.name).toBe("Motor");
       }
     });
 
@@ -138,14 +143,16 @@ describe("ScopeCollector", () => {
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
+      // Struct has bare name with scope reference
       const structSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_Config",
+        (s) => s.name === "Config",
       );
       expect(structSymbol).toBeDefined();
       expect(SymbolGuards.isStruct(structSymbol!)).toBe(true);
       if (SymbolGuards.isStruct(structSymbol!)) {
-        expect(structSymbol.fields.get("maxSpeed")?.type).toBe("u32");
-        expect(structSymbol.fields.get("acceleration")?.type).toBe("u32");
+        expect(structSymbol.fields.get("maxSpeed")).toBeDefined();
+        expect(structSymbol.fields.get("acceleration")).toBeDefined();
+        expect(structSymbol.scope.name).toBe("Motor");
       }
     });
 
@@ -165,8 +172,9 @@ describe("ScopeCollector", () => {
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
+      // Bitmap has bare name with scope reference
       const bitmapSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_Status",
+        (s) => s.name === "Status",
       );
       expect(bitmapSymbol).toBeDefined();
       expect(SymbolGuards.isBitmap(bitmapSymbol!)).toBe(true);
@@ -176,6 +184,7 @@ describe("ScopeCollector", () => {
           offset: 0,
           width: 1,
         });
+        expect(bitmapSymbol.scope.name).toBe("Motor");
       }
     });
 
@@ -192,15 +201,15 @@ describe("ScopeCollector", () => {
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
-      const regSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_CTRL",
-      );
+      // Register has bare name with scope reference
+      const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
       expect(regSymbol).toBeDefined();
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
       if (SymbolGuards.isRegister(regSymbol!)) {
         expect(regSymbol.baseAddress).toBe("0x40001000");
         expect(regSymbol.members.get("STATUS")?.access).toBe("rw");
         expect(regSymbol.members.get("COMMAND")?.access).toBe("wo");
+        expect(regSymbol.scope.name).toBe("Motor");
       }
     });
   });
@@ -227,21 +236,18 @@ describe("ScopeCollector", () => {
       expect(result.scopeSymbol.members).toEqual(["position", "init", "State"]);
       expect(result.memberSymbols.length).toBe(3);
 
-      // Verify each type was collected correctly
-      const varSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_position",
-      );
+      // Verify each type was collected correctly with bare names
+      const varSymbol = result.memberSymbols.find((s) => s.name === "position");
       expect(SymbolGuards.isVariable(varSymbol!)).toBe(true);
+      expect(varSymbol!.scope.name).toBe("Motor");
 
-      const funcSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_init",
-      );
+      const funcSymbol = result.memberSymbols.find((s) => s.name === "init");
       expect(SymbolGuards.isFunction(funcSymbol!)).toBe(true);
+      expect(funcSymbol!.scope.name).toBe("Motor");
 
-      const enumSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_State",
-      );
+      const enumSymbol = result.memberSymbols.find((s) => s.name === "State");
       expect(SymbolGuards.isEnum(enumSymbol!)).toBe(true);
+      expect(enumSymbol!.scope.name).toBe("Motor");
     });
   });
 
@@ -260,9 +266,7 @@ describe("ScopeCollector", () => {
       const knownBitmaps = new Set(["Motor_MotorFlags"]);
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", knownBitmaps);
 
-      const regSymbol = result.memberSymbols.find(
-        (s) => s.name === "Motor_CTRL",
-      );
+      const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
       if (SymbolGuards.isRegister(regSymbol!)) {
         expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe(

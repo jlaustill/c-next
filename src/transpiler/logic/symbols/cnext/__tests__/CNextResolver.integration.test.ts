@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CNextResolver from "../index";
-import SymbolGuards from "../../types/typeGuards";
+import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 
 describe("CNextResolver Integration", () => {
   describe("single declaration types", () => {
@@ -116,20 +116,24 @@ describe("CNextResolver Integration", () => {
       expect(scope).toBeDefined();
       expect(SymbolGuards.isScope(scope!)).toBe(true);
 
-      const positionVar = symbols.find((s) => s.name === "Motor_position");
+      // Members now have bare names with scope references
+      const positionVar = symbols.find((s) => s.name === "position");
       expect(positionVar).toBeDefined();
       expect(SymbolGuards.isVariable(positionVar!)).toBe(true);
+      expect(positionVar!.scope.name).toBe("Motor");
 
-      const initFunc = symbols.find((s) => s.name === "Motor_init");
+      const initFunc = symbols.find((s) => s.name === "init");
       expect(initFunc).toBeDefined();
       if (SymbolGuards.isFunction(initFunc!)) {
         expect(initFunc.visibility).toBe("public");
+        expect(initFunc.scope.name).toBe("Motor");
       }
 
-      const updateFunc = symbols.find((s) => s.name === "Motor_update");
+      const updateFunc = symbols.find((s) => s.name === "update");
       expect(updateFunc).toBeDefined();
       if (SymbolGuards.isFunction(updateFunc!)) {
         expect(updateFunc.visibility).toBe("private");
+        expect(updateFunc.scope.name).toBe("Motor");
       }
     });
 
@@ -152,13 +156,16 @@ describe("CNextResolver Integration", () => {
       // Scope + enum + struct
       expect(symbols.length).toBe(3);
 
-      const enumSym = symbols.find((s) => s.name === "Motor_State");
+      // Nested types have bare names with scope references
+      const enumSym = symbols.find((s) => s.name === "State");
       expect(enumSym).toBeDefined();
       expect(SymbolGuards.isEnum(enumSym!)).toBe(true);
+      expect(enumSym!.scope.name).toBe("Motor");
 
-      const structSym = symbols.find((s) => s.name === "Motor_Config");
+      const structSym = symbols.find((s) => s.name === "Config");
       expect(structSym).toBeDefined();
       expect(SymbolGuards.isStruct(structSym!)).toBe(true);
+      expect(structSym!.scope.name).toBe("Motor");
     });
   });
 
@@ -209,8 +216,10 @@ describe("CNextResolver Integration", () => {
       // Scope + bitmap + register
       expect(symbols.length).toBe(3);
 
-      const regSymbol = symbols.find((s) => s.name === "Motor_CTRL");
+      // Both bitmap and register have bare names with scope references
+      const regSymbol = symbols.find((s) => s.name === "CTRL");
       expect(regSymbol).toBeDefined();
+      expect(regSymbol!.scope.name).toBe("Motor");
       if (SymbolGuards.isRegister(regSymbol!)) {
         expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe(
           "Motor_CtrlFlags",
@@ -269,8 +278,8 @@ describe("CNextResolver Integration", () => {
       // 1 bitmap (Status)
       // 1 register (GPIO)
       // 1 scope (Motor)
-      // 2 scope variables (Motor_position, Motor_direction)
-      // 2 scope functions (Motor_init, Motor_move)
+      // 2 scope variables (position, direction)
+      // 2 scope functions (init, move)
       // 1 top-level function (main)
       // Total: 10
       expect(symbols.length).toBe(10);
@@ -327,10 +336,22 @@ describe("CNextResolver Integration", () => {
       expect(ledScope).toBeDefined();
       expect(motorScope).toBeDefined();
 
-      expect(symbols.find((s) => s.name === "LED_on")).toBeDefined();
-      expect(symbols.find((s) => s.name === "LED_off")).toBeDefined();
-      expect(symbols.find((s) => s.name === "Motor_start")).toBeDefined();
-      expect(symbols.find((s) => s.name === "Motor_stop")).toBeDefined();
+      // Functions have bare names with scope references
+      const onFunc = symbols.find((s) => s.name === "on");
+      expect(onFunc).toBeDefined();
+      expect(onFunc!.scope.name).toBe("LED");
+
+      const offFunc = symbols.find((s) => s.name === "off");
+      expect(offFunc).toBeDefined();
+      expect(offFunc!.scope.name).toBe("LED");
+
+      const startFunc = symbols.find((s) => s.name === "start");
+      expect(startFunc).toBeDefined();
+      expect(startFunc!.scope.name).toBe("Motor");
+
+      const stopFunc = symbols.find((s) => s.name === "stop");
+      expect(stopFunc).toBeDefined();
+      expect(stopFunc!.scope.name).toBe("Motor");
     });
   });
 
@@ -373,7 +394,10 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      const bufferSymbol = symbols.find((s) => s.name === "Device_buffer");
+      // Find buffer by bare name with scope reference
+      const bufferSymbol = symbols.find(
+        (s) => s.name === "buffer" && s.scope?.name === "Device",
+      );
       expect(bufferSymbol).toBeDefined();
       if (SymbolGuards.isVariable(bufferSymbol!)) {
         expect(bufferSymbol.isArray).toBe(true);

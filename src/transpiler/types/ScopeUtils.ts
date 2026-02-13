@@ -26,6 +26,7 @@ class ScopeUtils {
       name: "",
       parent: null as unknown as IScopeSymbol, // Temporary, will be set below
       scope: null as unknown as IScopeSymbol, // Temporary, will be set below
+      members: [],
       functions: [],
       variables: [],
       memberVisibility: new Map(),
@@ -51,6 +52,7 @@ class ScopeUtils {
       name,
       parent,
       scope: parent, // Scope's containing scope is its parent
+      members: [],
       functions: [],
       variables: [],
       memberVisibility: new Map(),

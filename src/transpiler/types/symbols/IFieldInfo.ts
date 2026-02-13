@@ -16,8 +16,11 @@ interface IFieldInfo {
   /** Whether this field is atomic (volatile in C) */
   readonly isAtomic: boolean;
 
-  /** Array dimensions if this field is an array */
-  readonly arrayDimensions?: ReadonlyArray<number | string>;
+  /** Whether this field is an array */
+  readonly isArray: boolean;
+
+  /** Array dimensions if isArray is true */
+  readonly dimensions?: ReadonlyArray<number | string>;
 }
 
 export default IFieldInfo;

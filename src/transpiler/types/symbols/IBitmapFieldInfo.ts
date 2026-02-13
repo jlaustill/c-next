@@ -4,10 +4,10 @@
  */
 interface IBitmapFieldInfo {
   /** Bit offset from LSB */
-  readonly bitOffset: number;
+  readonly offset: number;
 
   /** Width in bits */
-  readonly bitWidth: number;
+  readonly width: number;
 }
 
 export default IBitmapFieldInfo;

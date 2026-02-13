@@ -1,13 +1,17 @@
 /**
  * ScopeCollector - Extracts scope declarations and their nested members.
  * ADR-016: Scopes group related functions and control member visibility.
+ *
+ * Produces TType-based symbols with proper IScopeSymbol references.
+ * Uses SymbolRegistry for scope management.
  */
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import IScopeSymbol from "../../types/IScopeSymbol";
-import TSymbol from "../../types/TSymbol";
+import TSymbol from "../../../../types/symbols/TSymbol";
+import TVisibility from "../../../../types/TVisibility";
 import IScopeCollectorResult from "../types/IScopeCollectorResult";
+import SymbolRegistry from "../../../../state/SymbolRegistry";
 import BitmapCollector from "./BitmapCollector";
 import EnumCollector from "./EnumCollector";
 import StructCollector from "./StructCollector";
@@ -18,6 +22,9 @@ import RegisterCollector from "./RegisterCollector";
 class ScopeCollector {
   /**
    * Collect a scope declaration and all its nested members.
+   *
+   * Uses SymbolRegistry to get/create the scope, ensuring proper scope
+   * references in all member symbols.
    *
    * @param ctx The scope declaration context
    * @param sourceFile Source file path
@@ -34,28 +41,43 @@ class ScopeCollector {
     const scopeName = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
 
-    const memberNames: string[] = [];
-    const memberVisibility = new Map<string, "public" | "private">();
+    // Get or create the scope via SymbolRegistry
+    const scope = SymbolRegistry.getOrCreateScope(scopeName);
+
+    // Update scope metadata
+    const mutableScope = scope as {
+      sourceFile: string;
+      sourceLine: number;
+      sourceLanguage: ESourceLanguage;
+      isExported: boolean;
+    };
+    mutableScope.sourceFile = sourceFile;
+    mutableScope.sourceLine = line;
+    mutableScope.sourceLanguage = ESourceLanguage.CNext;
+    mutableScope.isExported = true;
+
+    const memberVisibility = scope.memberVisibility as Map<string, TVisibility>;
+    const members = scope.members as string[];
     const memberSymbols: TSymbol[] = [];
 
     for (const member of ctx.scopeMember()) {
       // ADR-016: Extract visibility (private by default)
       const visibilityMod = member.visibilityModifier();
-      const visibility: "public" | "private" =
-        (visibilityMod?.getText() as "public" | "private") ?? "private";
+      const visibility: TVisibility =
+        (visibilityMod?.getText() as TVisibility) ?? "private";
       const isPublic = visibility === "public";
 
       // Handle variable declarations
       if (member.variableDeclaration()) {
         const varDecl = member.variableDeclaration()!;
         const varName = varDecl.IDENTIFIER().getText();
-        memberNames.push(varName);
         memberVisibility.set(varName, visibility);
+        members.push(varName);
 
         const varSymbol = VariableCollector.collect(
           varDecl,
           sourceFile,
-          scopeName,
+          scope,
           isPublic,
           constValues,
         );
@@ -66,10 +88,10 @@ class ScopeCollector {
       if (member.functionDeclaration()) {
         const funcDecl = member.functionDeclaration()!;
         const funcName = funcDecl.IDENTIFIER().getText();
-        memberNames.push(funcName);
         memberVisibility.set(funcName, visibility);
+        members.push(funcName);
 
-        // Use collectAndRegister to populate both old symbols and SymbolRegistry
+        // Use collectAndRegister to populate both memberSymbols and SymbolRegistry
         const body = funcDecl.block();
         const funcSymbol = FunctionCollector.collectAndRegister(
           funcDecl,
@@ -85,14 +107,10 @@ class ScopeCollector {
       if (member.enumDeclaration()) {
         const enumDecl = member.enumDeclaration()!;
         const enumName = enumDecl.IDENTIFIER().getText();
-        memberNames.push(enumName);
         memberVisibility.set(enumName, visibility);
+        members.push(enumName);
 
-        const enumSymbol = EnumCollector.collect(
-          enumDecl,
-          sourceFile,
-          scopeName,
-        );
+        const enumSymbol = EnumCollector.collect(enumDecl, sourceFile, scope);
         memberSymbols.push(enumSymbol);
       }
 
@@ -100,13 +118,13 @@ class ScopeCollector {
       if (member.bitmapDeclaration()) {
         const bitmapDecl = member.bitmapDeclaration()!;
         const bitmapName = bitmapDecl.IDENTIFIER().getText();
-        memberNames.push(bitmapName);
         memberVisibility.set(bitmapName, visibility);
+        members.push(bitmapName);
 
         const bitmapSymbol = BitmapCollector.collect(
           bitmapDecl,
           sourceFile,
-          scopeName,
+          scope,
         );
         memberSymbols.push(bitmapSymbol);
       }
@@ -115,13 +133,14 @@ class ScopeCollector {
       if (member.structDeclaration()) {
         const structDecl = member.structDeclaration()!;
         const structName = structDecl.IDENTIFIER().getText();
-        memberNames.push(structName);
         memberVisibility.set(structName, visibility);
+        members.push(structName);
 
         const structSymbol = StructCollector.collect(
           structDecl,
           sourceFile,
-          scopeName,
+          scope,
+          constValues,
         );
         memberSymbols.push(structSymbol);
       }
@@ -130,31 +149,20 @@ class ScopeCollector {
       if (member.registerDeclaration()) {
         const regDecl = member.registerDeclaration()!;
         const regName = regDecl.IDENTIFIER().getText();
-        memberNames.push(regName);
         memberVisibility.set(regName, visibility);
+        members.push(regName);
 
         const regSymbol = RegisterCollector.collect(
           regDecl,
           sourceFile,
           knownBitmaps,
-          scopeName,
+          scope,
         );
         memberSymbols.push(regSymbol);
       }
     }
 
-    const scopeSymbol: IScopeSymbol = {
-      name: scopeName,
-      sourceFile,
-      sourceLine: line,
-      sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
-      kind: "scope",
-      members: memberNames,
-      memberVisibility,
-    };
-
-    return { scopeSymbol, memberSymbols };
+    return { scopeSymbol: scope, memberSymbols };
   }
 }
 

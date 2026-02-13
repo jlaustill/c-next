@@ -8,6 +8,9 @@ interface IBitmapSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "bitmap" */
   readonly kind: "bitmap";
 
+  /** Backing integer type (e.g., "u8", "u32") */
+  readonly backingType: string;
+
   /** Total bit width of the bitmap */
   readonly bitWidth: number;
 

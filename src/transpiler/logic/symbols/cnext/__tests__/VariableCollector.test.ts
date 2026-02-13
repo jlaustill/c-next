@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
+import TestScopeUtils from "./testUtils";
 import VariableCollector from "../collectors/VariableCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import TypeResolver from "../../../../types/TypeResolver";
 
 describe("VariableCollector", () => {
   describe("basic variable extraction", () => {
@@ -11,11 +13,15 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.kind).toBe("variable");
       expect(symbol.name).toBe("counter");
-      expect(symbol.type).toBe("u32");
+      expect(TypeResolver.getTypeName(symbol.type)).toBe("u32");
       expect(symbol.isConst).toBe(false);
       expect(symbol.isArray).toBe(false);
       expect(symbol.sourceFile).toBe("test.cnx");
@@ -29,9 +35,13 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
-      expect(symbol.type).toBe("i64");
+      expect(TypeResolver.getTypeName(symbol.type)).toBe("i64");
     });
 
     it("collects variable with initial value", () => {
@@ -40,7 +50,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.initialValue).toBe("0");
     });
@@ -53,7 +67,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.isConst).toBe(true);
       expect(symbol.initialValue).toBe("1024");
@@ -65,7 +83,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.initialValue).toBe("0xDEADBEEF");
     });
@@ -78,7 +100,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.isArray).toBe(true);
       expect(symbol.arrayDimensions).toEqual([256]);
@@ -90,7 +116,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.isArray).toBe(true);
       expect(symbol.arrayDimensions).toEqual([4, 4]);
@@ -106,7 +136,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        undefined,
+        TestScopeUtils.getGlobalScope(),
         true,
         constValues,
       );
@@ -125,7 +155,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        undefined,
+        TestScopeUtils.getGlobalScope(),
         true,
         constValues,
       );
@@ -147,7 +177,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        undefined,
+        TestScopeUtils.getGlobalScope(),
         true,
         constValues,
       );
@@ -162,7 +192,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.isArray).toBe(true);
       expect(symbol.arrayDimensions).toEqual([8]);
@@ -174,7 +208,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.isArray).toBe(true);
       expect(symbol.arrayDimensions).toEqual([4, 4]);
@@ -190,7 +228,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        undefined,
+        TestScopeUtils.getGlobalScope(),
         true,
         constValues,
       );
@@ -205,7 +243,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.isArray).toBe(true);
       expect(symbol.arrayDimensions).toEqual(["BUFFER_SIZE"]);
@@ -213,15 +255,19 @@ describe("VariableCollector", () => {
   });
 
   describe("scoped variables", () => {
-    it("prefixes name with scope when scopeName is provided", () => {
+    it("stores scope reference when scope is provided", () => {
       const code = `
         u32 position;
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "motor.cnx", "Motor");
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      const symbol = VariableCollector.collect(varCtx, "motor.cnx", motorScope);
 
-      expect(symbol.name).toBe("Motor_position");
+      // With new IScopeSymbol-based design, name is just "position" (not prefixed)
+      // The prefixing happens in TSymbolAdapter for backwards compatibility
+      expect(symbol.name).toBe("position");
+      expect(symbol.scope.name).toBe("Motor");
     });
 
     it("respects isPublic parameter", () => {
@@ -230,10 +276,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = VariableCollector.collect(
         varCtx,
         "motor.cnx",
-        "Motor",
+        motorScope,
         false,
       );
 
@@ -248,9 +295,13 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
-      expect(symbol.type).toBe("Point");
+      expect(TypeResolver.getTypeName(symbol.type)).toBe("Point");
     });
   });
 
@@ -262,7 +313,11 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const symbol = VariableCollector.collect(varCtx, "test.cnx");
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.sourceLine).toBe(3);
     });

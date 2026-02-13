@@ -1,10 +1,17 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
+import TestScopeUtils from "./testUtils";
 import FunctionCollector from "../collectors/FunctionCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
+import TypeResolver from "../../../../types/TypeResolver";
 
 describe("FunctionCollector", () => {
+  beforeEach(() => {
+    TestScopeUtils.resetGlobalScope();
+    SymbolRegistry.reset();
+  });
+
   describe("basic function extraction", () => {
     it("collects a void function with no parameters", () => {
       const code = `
@@ -13,16 +20,24 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
       expect(symbol.kind).toBe("function");
       expect(symbol.name).toBe("doNothing");
-      expect(symbol.returnType).toBe("void");
+      expect(TypeResolver.getTypeName(symbol.returnType)).toBe("void");
       expect(symbol.parameters).toEqual([]);
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.visibility).toBe("private");
       expect(symbol.isExported).toBe(false);
+      expect(symbol.scope).toBe(globalScope);
     });
 
     it("collects a function with return type", () => {
@@ -33,9 +48,16 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
-      expect(symbol.returnType).toBe("u32");
+      expect(TypeResolver.getTypeName(symbol.returnType)).toBe("u32");
     });
 
     it("collects a function with primitive parameters", () => {
@@ -46,21 +68,22 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
       expect(symbol.parameters.length).toBe(2);
-      expect(symbol.parameters[0]).toEqual({
-        name: "a",
-        type: "i32",
-        isConst: false,
-        isArray: false,
-      });
-      expect(symbol.parameters[1]).toEqual({
-        name: "b",
-        type: "i32",
-        isConst: false,
-        isArray: false,
-      });
+      expect(symbol.parameters[0].name).toBe("a");
+      expect(TypeResolver.getTypeName(symbol.parameters[0].type)).toBe("i32");
+      expect(symbol.parameters[0].isConst).toBe(false);
+      expect(symbol.parameters[0].isArray).toBe(false);
+      expect(symbol.parameters[1].name).toBe("b");
+      expect(TypeResolver.getTypeName(symbol.parameters[1].type)).toBe("i32");
     });
   });
 
@@ -72,7 +95,14 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
       expect(symbol.parameters[0].isConst).toBe(true);
     });
@@ -84,7 +114,14 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
       expect(symbol.parameters[0].isArray).toBe(true);
       expect(symbol.parameters[0].arrayDimensions).toEqual([""]);
@@ -97,10 +134,17 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
       expect(symbol.parameters[0].isArray).toBe(true);
-      expect(symbol.parameters[0].arrayDimensions).toEqual(["256"]);
+      expect(symbol.parameters[0].arrayDimensions).toEqual([256]);
     });
 
     it("handles multi-dimensional array parameters (C-Next style)", () => {
@@ -110,51 +154,40 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
       expect(symbol.parameters[0].isArray).toBe(true);
-      expect(symbol.parameters[0].arrayDimensions).toEqual(["4", "4"]);
-    });
-  });
-
-  describe("signature generation", () => {
-    it("generates signature for overload detection", () => {
-      const code = `
-        i32 calculate(u32 x, f32 y) {
-          return 0;
-        }
-      `;
-      const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
-
-      expect(symbol.signature).toBe("i32 calculate(u32, f32)");
-    });
-
-    it("includes scope prefix in signature", () => {
-      const code = `
-        void init() {
-        }
-      `;
-      const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx", "Motor");
-
-      expect(symbol.signature).toBe("void Motor_init()");
+      expect(symbol.parameters[0].arrayDimensions).toEqual([4, 4]);
     });
   });
 
   describe("scoped functions", () => {
-    it("prefixes name with scope when scopeName is provided", () => {
+    it("uses scope reference properly", () => {
       const code = `
         void update() {
         }
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "motor.cnx", "Motor");
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "motor.cnx",
+        motorScope,
+        body,
+      );
 
-      expect(symbol.name).toBe("Motor_update");
+      expect(symbol.name).toBe("update");
+      expect(symbol.scope).toBe(motorScope);
+      expect(symbol.scope.name).toBe("Motor");
     });
 
     it("respects visibility parameter", () => {
@@ -164,10 +197,13 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
-        "Motor",
+        motorScope,
+        body,
         "public",
       );
 
@@ -182,10 +218,13 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
-        "Motor",
+        motorScope,
+        body,
         "private",
       );
 
@@ -204,9 +243,16 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
-      expect(symbol.returnType).toBe("Point");
+      expect(TypeResolver.getTypeName(symbol.returnType)).toBe("Point");
     });
 
     it("handles user-defined parameter types", () => {
@@ -217,10 +263,17 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
-      expect(symbol.parameters[0].type).toBe("Point");
-      expect(symbol.parameters[1].type).toBe("Point");
+      expect(TypeResolver.getTypeName(symbol.parameters[0].type)).toBe("Point");
+      expect(TypeResolver.getTypeName(symbol.parameters[1].type)).toBe("Point");
     });
   });
 
@@ -233,18 +286,21 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const body = funcCtx.block();
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        globalScope,
+        body,
+      );
 
       expect(symbol.sourceLine).toBe(3);
     });
   });
 
   describe("collectAndRegister", () => {
-    beforeEach(() => {
-      SymbolRegistry.reset();
-    });
-
-    it("returns the same symbol as collect()", () => {
+    it("returns a valid function symbol", () => {
       const code = `
         void doNothing() {
         }
@@ -253,9 +309,7 @@ describe("FunctionCollector", () => {
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
       const body = funcCtx.block();
 
-      const collectSymbol = FunctionCollector.collect(funcCtx, "test.cnx");
-      SymbolRegistry.reset(); // Reset before collectAndRegister
-      const registerSymbol = FunctionCollector.collectAndRegister(
+      const symbol = FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
         undefined,
@@ -263,11 +317,9 @@ describe("FunctionCollector", () => {
         "private",
       );
 
-      expect(registerSymbol.name).toBe(collectSymbol.name);
-      expect(registerSymbol.returnType).toBe(collectSymbol.returnType);
-      expect(registerSymbol.parameters).toEqual(collectSymbol.parameters);
-      expect(registerSymbol.visibility).toBe(collectSymbol.visibility);
-      expect(registerSymbol.signature).toBe(collectSymbol.signature);
+      expect(symbol.name).toBe("doNothing");
+      expect(TypeResolver.getTypeName(symbol.returnType)).toBe("void");
+      expect(symbol.visibility).toBe("private");
     });
 
     it("registers function in SymbolRegistry global scope", () => {

@@ -2,7 +2,7 @@
  * Cached entry for a single header file
  */
 
-import IStructFieldInfo from "../logic/symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "./symbols/IStructFieldInfo";
 import ISerializedSymbol from "./ISerializedSymbol";
 
 interface ICachedFileEntry {

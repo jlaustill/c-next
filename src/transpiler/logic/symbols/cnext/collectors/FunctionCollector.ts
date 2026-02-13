@@ -1,15 +1,18 @@
 /**
  * FunctionCollector - Extracts function declarations from parse trees.
  * Handles return types, parameters, visibility, and signature generation.
+ *
+ * Produces TType-based IFunctionSymbol with proper IScopeSymbol references.
  */
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import IFunctionSymbol from "../../types/IFunctionSymbol";
-import IParameterInfo from "../../types/IParameterInfo";
+import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
+import IParameterInfo from "../../../../types/symbols/IParameterInfo";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import TypeResolver from "../../../../types/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
-import FunctionSymbolAdapter from "../../../../types/FunctionSymbolAdapter";
 
 class FunctionCollector {
   /**
@@ -17,44 +20,43 @@ class FunctionCollector {
    *
    * @param ctx The function declaration context
    * @param sourceFile Source file path
-   * @param scopeName Optional scope name for nested functions
+   * @param scope The scope this function belongs to (IScopeSymbol)
+   * @param body AST reference for the function body
    * @param visibility Visibility for scope functions (default "private")
-   * @returns The function symbol
+   * @returns The function symbol with TType-based types and scope reference
    */
   static collect(
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
-    scopeName?: string,
+    scope: IScopeSymbol,
+    body: Parser.BlockContext | null,
     visibility: "public" | "private" = "private",
   ): IFunctionSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const fullName = scopeName ? `${scopeName}_${name}` : name;
     const line = ctx.start?.line ?? 0;
 
-    // Get return type
+    // Get return type string and convert to TType
     const returnTypeCtx = ctx.type();
-    const returnType = TypeUtils.getTypeName(returnTypeCtx, scopeName);
+    const scopeName = scope.name === "" ? undefined : scope.name;
+    const returnTypeStr = TypeUtils.getTypeName(returnTypeCtx, scopeName);
+    const returnType = TypeResolver.resolve(returnTypeStr);
 
-    // Collect parameters
+    // Collect parameters with TType
     const params = ctx.parameterList()?.parameter() ?? [];
     const parameters = FunctionCollector.collectParameters(params, scopeName);
 
-    // Generate signature for overload detection
-    const paramTypes = parameters.map((p) => p.type);
-    const signature = `${returnType} ${fullName}(${paramTypes.join(", ")})`;
-
     return {
-      name: fullName,
-      parent: scopeName,
+      kind: "function",
+      name,
+      scope,
+      parameters,
+      returnType,
+      visibility,
+      body,
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: visibility === "public",
-      kind: "function",
-      returnType,
-      parameters,
-      visibility,
-      signature,
     };
   }
 
@@ -62,17 +64,16 @@ class FunctionCollector {
    * Collect a function declaration and register it in SymbolRegistry.
    *
    * This method:
-   * 1. Calls existing collect() to get old-style symbol
-   * 2. Converts to new-style symbol via FunctionSymbolAdapter
-   * 3. Gets or creates the appropriate scope in SymbolRegistry
-   * 4. Registers the function in that scope
+   * 1. Gets or creates the appropriate scope in SymbolRegistry
+   * 2. Collects the function with TType-based types
+   * 3. Registers the function in that scope
    *
    * @param ctx The function declaration context
    * @param sourceFile Source file path
    * @param scopeName Optional scope name for nested functions
-   * @param visibility Visibility for scope functions (default "private")
    * @param body AST reference for the function body
-   * @returns The old-style function symbol for backward compatibility
+   * @param visibility Visibility for scope functions (default "private")
+   * @returns The function symbol
    */
   static collectAndRegister(
     ctx: Parser.FunctionDeclarationContext,
@@ -81,29 +82,27 @@ class FunctionCollector {
     body: Parser.BlockContext,
     visibility: "public" | "private" = "private",
   ): IFunctionSymbol {
-    // 1. Get old-style symbol via existing collect()
-    const oldSymbol = FunctionCollector.collect(
+    // 1. Get or create the scope in SymbolRegistry
+    const scope = SymbolRegistry.getOrCreateScope(scopeName ?? "");
+
+    // 2. Collect function with TType-based types and scope reference
+    const symbol = FunctionCollector.collect(
       ctx,
       sourceFile,
-      scopeName,
+      scope,
+      body,
       visibility,
     );
 
-    // 2. Get or create the scope in SymbolRegistry
-    const scope = SymbolRegistry.getOrCreateScope(scopeName ?? "");
+    // 3. Register in SymbolRegistry
+    SymbolRegistry.registerFunction(symbol);
 
-    // 3. Convert to new-style symbol
-    const newSymbol = FunctionSymbolAdapter.toNew(oldSymbol, scope, body);
-
-    // 4. Register in SymbolRegistry
-    SymbolRegistry.registerFunction(newSymbol);
-
-    // Return old-style symbol for backward compatibility
-    return oldSymbol;
+    return symbol;
   }
 
   /**
    * Extract parameter information from parameter contexts.
+   * Converts type strings to TType.
    */
   private static collectParameters(
     params: Parser.ParameterContext[],
@@ -112,34 +111,39 @@ class FunctionCollector {
     return params.map((p) => {
       const name = p.IDENTIFIER().getText();
       const typeCtx = p.type();
-      const type = TypeUtils.getTypeName(typeCtx, scopeName);
+      const typeStr = TypeUtils.getTypeName(typeCtx, scopeName);
+      const type = TypeResolver.resolve(typeStr);
       const isConst = p.constModifier() !== null;
 
       // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
       const arrayTypeCtx = typeCtx.arrayType();
-      const hasArrayType = arrayTypeCtx !== null;
+      const isArray = arrayTypeCtx !== null;
 
       // Extract array dimensions from arrayType syntax (supports multi-dimensional)
-      const arrayDimensions: string[] = [];
-      if (hasArrayType) {
+      const arrayDimensions: (number | string)[] = [];
+      if (isArray) {
         for (const dim of arrayTypeCtx.arrayTypeDimension()) {
           const sizeExpr = dim.expression();
-          arrayDimensions.push(sizeExpr ? sizeExpr.getText() : "");
+          if (sizeExpr) {
+            const dimStr = sizeExpr.getText();
+            const dimNum = Number.parseInt(dimStr, 10);
+            // Convert numeric strings to numbers, keep others as strings
+            arrayDimensions.push(Number.isNaN(dimNum) ? dimStr : dimNum);
+          } else {
+            // Unbounded array dimension
+            arrayDimensions.push("");
+          }
         }
       }
 
-      const paramInfo: IParameterInfo = {
+      return {
         name,
         type,
         isConst,
-        isArray: hasArrayType,
+        isArray,
+        arrayDimensions:
+          arrayDimensions.length > 0 ? arrayDimensions : undefined,
       };
-
-      if (arrayDimensions.length > 0) {
-        paramInfo.arrayDimensions = arrayDimensions;
-      }
-
-      return paramInfo;
     });
   }
 }

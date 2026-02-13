@@ -1,10 +1,13 @@
 /**
  * CNextResolver - Orchestrates symbol collection from C-Next parse trees.
  * Uses two-pass collection to handle forward references (bitmaps before registers).
+ *
+ * Produces TType-based symbols with proper IScopeSymbol references.
  */
 
 import * as Parser from "../../parser/grammar/CNextParser";
-import TSymbol from "../types/TSymbol";
+import TSymbol from "../../../types/symbols/TSymbol";
+import SymbolRegistry from "../../../state/SymbolRegistry";
 import LiteralUtils from "../../../../utils/LiteralUtils";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";
@@ -149,12 +152,19 @@ class CNextResolver {
     knownBitmaps: Set<string>,
     constValues: Map<string, number>,
   ): void {
+    const globalScope = SymbolRegistry.getGlobalScope();
+
     for (const decl of tree.declaration()) {
       // Top-level bitmaps
       if (decl.bitmapDeclaration()) {
         const bitmapCtx = decl.bitmapDeclaration()!;
-        const symbol = BitmapCollector.collect(bitmapCtx, sourceFile);
+        const symbol = BitmapCollector.collect(
+          bitmapCtx,
+          sourceFile,
+          globalScope,
+        );
         symbols.push(symbol);
+        // Use mangled name (global bitmaps have no scope prefix)
         knownBitmaps.add(symbol.name);
       }
 
@@ -183,17 +193,16 @@ class CNextResolver {
     constValues: Map<string, number>,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
+    const scope = SymbolRegistry.getOrCreateScope(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
       if (member.bitmapDeclaration()) {
         const bitmapCtx = member.bitmapDeclaration()!;
-        const symbol = BitmapCollector.collect(
-          bitmapCtx,
-          sourceFile,
-          scopeName,
-        );
+        const symbol = BitmapCollector.collect(bitmapCtx, sourceFile, scope);
         symbols.push(symbol);
-        knownBitmaps.add(symbol.name);
+        // Use mangled name (e.g., "Timer_ControlBits") for scoped bitmaps
+        const mangledName = `${scopeName}_${symbol.name}`;
+        knownBitmaps.add(mangledName);
       }
 
       // Collect structs early so they're available as types
@@ -202,7 +211,7 @@ class CNextResolver {
         const symbol = StructCollector.collect(
           structCtx,
           sourceFile,
-          scopeName,
+          scope,
           constValues,
         );
         symbols.push(symbol);
@@ -247,6 +256,8 @@ class CNextResolver {
     knownBitmaps: Set<string>,
     constValues: Map<string, number>,
   ): void {
+    const globalScope = SymbolRegistry.getGlobalScope();
+
     // Scopes (ScopeCollector handles nested members)
     if (decl.scopeDeclaration()) {
       CNextResolver._collectScopeDeclaration(
@@ -264,7 +275,7 @@ class CNextResolver {
       const symbol = StructCollector.collect(
         decl.structDeclaration()!,
         sourceFile,
-        undefined,
+        globalScope,
         constValues,
       );
       symbols.push(symbol);
@@ -273,7 +284,11 @@ class CNextResolver {
 
     // Top-level enums
     if (decl.enumDeclaration()) {
-      const symbol = EnumCollector.collect(decl.enumDeclaration()!, sourceFile);
+      const symbol = EnumCollector.collect(
+        decl.enumDeclaration()!,
+        sourceFile,
+        globalScope,
+      );
       symbols.push(symbol);
       return;
     }
@@ -284,6 +299,7 @@ class CNextResolver {
         decl.registerDeclaration()!,
         sourceFile,
         knownBitmaps,
+        globalScope,
       );
       symbols.push(symbol);
       return;
@@ -297,7 +313,7 @@ class CNextResolver {
       const symbol = FunctionCollector.collectAndRegister(
         funcDecl,
         sourceFile,
-        undefined, // global scope
+        undefined, // global scope name (empty string)
         body,
         "private", // default visibility for global functions
       );
@@ -310,7 +326,7 @@ class CNextResolver {
       const symbol = VariableCollector.collect(
         decl.variableDeclaration()!,
         sourceFile,
-        undefined,
+        globalScope,
         true,
         constValues,
       );

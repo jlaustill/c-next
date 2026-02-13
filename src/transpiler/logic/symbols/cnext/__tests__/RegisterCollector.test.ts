@@ -1,9 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
+import TestScopeUtils from "./testUtils";
 import RegisterCollector from "../collectors/RegisterCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 
 describe("RegisterCollector", () => {
+  beforeEach(() => {
+    TestScopeUtils.resetGlobalScope();
+  });
+
   describe("basic register extraction", () => {
     it("collects a simple register with primitive members", () => {
       const code = `
@@ -14,7 +19,13 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const symbol = RegisterCollector.collect(regCtx, "test.cnx", new Set());
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const symbol = RegisterCollector.collect(
+        regCtx,
+        "test.cnx",
+        new Set(),
+        globalScope,
+      );
 
       expect(symbol.kind).toBe("register");
       expect(symbol.name).toBe("GPIO");
@@ -22,6 +33,7 @@ describe("RegisterCollector", () => {
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.isExported).toBe(true);
+      expect(symbol.scope).toBe(globalScope);
 
       expect(symbol.members.size).toBe(2);
       expect(symbol.members.get("DATA")).toEqual({
@@ -48,7 +60,13 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const symbol = RegisterCollector.collect(regCtx, "test.cnx", new Set());
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const symbol = RegisterCollector.collect(
+        regCtx,
+        "test.cnx",
+        new Set(),
+        globalScope,
+      );
 
       expect(symbol.members.get("RX")?.access).toBe("ro");
       expect(symbol.members.get("TX")?.access).toBe("wo");
@@ -69,7 +87,13 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const symbol = RegisterCollector.collect(regCtx, "test.cnx", new Set());
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const symbol = RegisterCollector.collect(
+        regCtx,
+        "test.cnx",
+        new Set(),
+        globalScope,
+      );
 
       expect(symbol.members.get("COUNT8")?.cType).toBe("uint8_t");
       expect(symbol.members.get("COUNT16")?.cType).toBe("uint16_t");
@@ -89,10 +113,12 @@ describe("RegisterCollector", () => {
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
       const knownBitmaps = new Set(["StatusFlags"]);
+      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         knownBitmaps,
+        globalScope,
       );
 
       const member = symbol.members.get("FLAGS");
@@ -108,14 +134,20 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const symbol = RegisterCollector.collect(regCtx, "test.cnx", new Set());
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const symbol = RegisterCollector.collect(
+        regCtx,
+        "test.cnx",
+        new Set(),
+        globalScope,
+      );
 
       expect(symbol.members.get("VALUE")?.bitmapType).toBeUndefined();
     });
   });
 
   describe("scoped registers", () => {
-    it("prefixes name with scope when scopeName is provided", () => {
+    it("uses scope reference properly", () => {
       const code = `
         register CTRL @ 0x40005000 {
           STATUS: u32 rw @ 0x00,
@@ -123,14 +155,17 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
         new Set(),
-        "Motor",
+        motorScope,
       );
 
-      expect(symbol.name).toBe("Motor_CTRL");
+      expect(symbol.name).toBe("CTRL");
+      expect(symbol.scope).toBe(motorScope);
+      expect(symbol.scope.name).toBe("Motor");
     });
 
     it("resolves scoped bitmap types", () => {
@@ -143,11 +178,12 @@ describe("RegisterCollector", () => {
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
       // Bitmap would be collected as Motor_MotorFlags in a scope
       const knownBitmaps = new Set(["Motor_MotorFlags"]);
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
         knownBitmaps,
-        "Motor",
+        motorScope,
       );
 
       // The collector checks both scoped and unscoped names
@@ -164,7 +200,13 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const symbol = RegisterCollector.collect(regCtx, "test.cnx", new Set());
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const symbol = RegisterCollector.collect(
+        regCtx,
+        "test.cnx",
+        new Set(),
+        globalScope,
+      );
 
       expect(symbol.baseAddress).toBe("BASE_ADDR");
     });
@@ -180,7 +222,13 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const symbol = RegisterCollector.collect(regCtx, "test.cnx", new Set());
+      const globalScope = TestScopeUtils.getGlobalScope();
+      const symbol = RegisterCollector.collect(
+        regCtx,
+        "test.cnx",
+        new Set(),
+        globalScope,
+      );
 
       expect(symbol.sourceLine).toBe(3);
     });

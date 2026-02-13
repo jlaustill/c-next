@@ -10,20 +10,48 @@
 
 import ISymbol from "../../../../../utils/types/ISymbol";
 import SymbolTable from "../../SymbolTable";
-import TSymbol from "../../types/TSymbol";
-import IBitmapSymbol from "../../types/IBitmapSymbol";
-import IEnumSymbol from "../../types/IEnumSymbol";
-import IStructSymbol from "../../types/IStructSymbol";
-import IFunctionSymbol from "../../types/IFunctionSymbol";
-import IVariableSymbol from "../../types/IVariableSymbol";
-import IRegisterSymbol from "../../types/IRegisterSymbol";
-import IScopeSymbol from "../../types/IScopeSymbol";
+import TSymbol from "../../../../types/symbols/TSymbol";
+import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
+import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
+import IStructSymbol from "../../../../types/symbols/IStructSymbol";
+import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
+import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
+import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import TypeResolver from "../../../../types/TypeResolver";
+import ScopeUtils from "../../../../types/ScopeUtils";
 
 /** Get minimum unsigned type width for a bit count */
 function getMinBitWidth(width: number): number {
   if (width <= 8) return 8;
   if (width <= 16) return 16;
   return 32;
+}
+
+/**
+ * Extract the parent scope name from an IBaseSymbol.
+ * Returns undefined for global scope (empty name).
+ */
+function getParentName(symbol: {
+  scope: { name: string };
+}): string | undefined {
+  const scopeName = symbol.scope.name;
+  return scopeName === "" ? undefined : scopeName;
+}
+
+/**
+ * Get the C-mangled name for a symbol (e.g., "Geometry_Point" for Point in Geometry scope).
+ * Works with any symbol that has a name and scope reference.
+ */
+function getMangledName(symbol: {
+  name: string;
+  scope: { name: string };
+}): string {
+  const scopeName = symbol.scope.name;
+  if (scopeName === "") {
+    return symbol.name;
+  }
+  return `${scopeName}_${symbol.name}`;
 }
 
 /**
@@ -93,17 +121,19 @@ class TSymbolAdapter {
    */
   private static convertBitmap(bitmap: IBitmapSymbol): ISymbol[] {
     const result: ISymbol[] = [];
+    // Use mangled name for C output (e.g., "Motor_Flags")
+    const mangledName = getMangledName(bitmap);
 
     // Main bitmap symbol
     result.push({
-      name: bitmap.name,
+      name: mangledName,
       kind: "bitmap",
       type: bitmap.backingType,
       sourceFile: bitmap.sourceFile,
       sourceLine: bitmap.sourceLine,
       sourceLanguage: bitmap.sourceLanguage,
       isExported: bitmap.isExported,
-      parent: bitmap.parent,
+      parent: getParentName(bitmap),
     });
 
     // Expand fields to BitmapField symbols
@@ -116,14 +146,14 @@ class TSymbolAdapter {
           : `bits ${fieldInfo.offset}-${bitEnd}`;
 
       result.push({
-        name: `${bitmap.name}_${fieldName}`,
+        name: `${mangledName}_${fieldName}`,
         kind: "bitmap_field",
         type: width === 1 ? "bool" : `u${getMinBitWidth(width)}`,
         sourceFile: bitmap.sourceFile,
         sourceLine: bitmap.sourceLine,
         sourceLanguage: bitmap.sourceLanguage,
         isExported: bitmap.isExported,
-        parent: bitmap.name,
+        parent: mangledName,
         signature: `${bitRange} (${width} bit${width > 1 ? "s" : ""})`,
       });
     }
@@ -136,16 +166,18 @@ class TSymbolAdapter {
    */
   private static convertEnum(enumSym: IEnumSymbol): ISymbol[] {
     const result: ISymbol[] = [];
+    // Use mangled name for C output (e.g., "Motor_EMode")
+    const mangledName = getMangledName(enumSym);
 
     // Main enum symbol
     result.push({
-      name: enumSym.name,
+      name: mangledName,
       kind: "enum",
       sourceFile: enumSym.sourceFile,
       sourceLine: enumSym.sourceLine,
       sourceLanguage: enumSym.sourceLanguage,
       isExported: enumSym.isExported,
-      parent: enumSym.parent,
+      parent: getParentName(enumSym),
     });
 
     // Create EnumMember symbols for hover/autocomplete
@@ -160,7 +192,7 @@ class TSymbolAdapter {
         sourceLine: enumSym.sourceLine,
         sourceLanguage: enumSym.sourceLanguage,
         isExported: enumSym.isExported,
-        parent: enumSym.name,
+        parent: mangledName,
       });
     }
 
@@ -174,42 +206,60 @@ class TSymbolAdapter {
     struct: IStructSymbol,
     symbolTable: SymbolTable,
   ): ISymbol {
+    // Use mangled name for C output (e.g., "Geometry_Point")
+    const mangledName = getMangledName(struct);
+
     // Register struct fields in SymbolTable for TypeResolver.isStructType()
     for (const [fieldName, fieldInfo] of struct.fields) {
+      // Convert TType to string for SymbolTable
+      const typeString = TypeResolver.getTypeName(fieldInfo.type);
+      // Filter to only numeric dimensions (SymbolTable doesn't support string dims)
+      const numericDims = fieldInfo.dimensions?.filter(
+        (d): d is number => typeof d === "number",
+      );
       symbolTable.addStructField(
-        struct.name,
+        mangledName,
         fieldName,
-        fieldInfo.type,
-        fieldInfo.dimensions,
+        typeString,
+        numericDims && numericDims.length > 0 ? numericDims : undefined,
       );
     }
 
     return {
-      name: struct.name,
+      name: mangledName,
       kind: "struct",
       sourceFile: struct.sourceFile,
       sourceLine: struct.sourceLine,
       sourceLanguage: struct.sourceLanguage,
       isExported: struct.isExported,
-      parent: struct.parent,
+      parent: getParentName(struct),
     };
   }
 
   /**
    * Convert IFunctionSymbol to ISymbol + parameter symbols for hover support.
-   * Converts qualified enum names in parameter array dimensions.
+   * Converts TType to string for legacy ISymbol format.
    */
   private static convertFunction(func: IFunctionSymbol): ISymbol[] {
     const result: ISymbol[] = [];
 
-    // Build parameter types for signature
-    const paramTypes = func.parameters.map((p) => p.type);
-    const signature = `${func.returnType} ${func.name}(${paramTypes.join(", ")})`;
+    // Convert TType to string for signature
+    const returnTypeStr = TypeResolver.getTypeName(func.returnType);
+    const paramTypes = func.parameters.map((p) =>
+      TypeResolver.getTypeName(p.type),
+    );
+
+    // Get mangled name for signature
+    const mangledName = ScopeUtils.isGlobalScope(func.scope)
+      ? func.name
+      : `${ScopeUtils.getScopePath(func.scope).join("_")}_${func.name}`;
+
+    const signature = `${returnTypeStr} ${mangledName}(${paramTypes.join(", ")})`;
 
     // Build parameter info for header generation
     const parameters = func.parameters.map((p) => ({
       name: p.name,
-      type: p.type,
+      type: TypeResolver.getTypeName(p.type),
       isConst: p.isConst,
       isArray: p.isArray,
       arrayDimensions: p.arrayDimensions?.map((dim) =>
@@ -218,23 +268,24 @@ class TSymbolAdapter {
       isAutoConst: p.isAutoConst,
     }));
 
-    // Main function symbol
+    // Main function symbol - use mangled name for ISymbol.name
     result.push({
-      name: func.name,
+      name: mangledName,
       kind: "function",
-      type: func.returnType,
+      type: returnTypeStr,
       sourceFile: func.sourceFile,
       sourceLine: func.sourceLine,
       sourceLanguage: func.sourceLanguage,
       isExported: func.isExported,
-      parent: func.parent,
+      parent: getParentName(func),
       signature,
       parameters,
     });
 
     // Create parameter symbols for hover support
     for (const param of func.parameters) {
-      const displayType = param.isArray ? `${param.type}[]` : param.type;
+      const paramTypeStr = TypeResolver.getTypeName(param.type);
+      const displayType = param.isArray ? `${paramTypeStr}[]` : paramTypeStr;
 
       result.push({
         name: param.name,
@@ -244,7 +295,7 @@ class TSymbolAdapter {
         sourceLine: func.sourceLine,
         sourceLanguage: func.sourceLanguage,
         isExported: false,
-        parent: func.name,
+        parent: mangledName,
       });
     }
 
@@ -253,9 +304,15 @@ class TSymbolAdapter {
 
   /**
    * Convert IVariableSymbol to ISymbol.
-   * Converts qualified enum names in array dimensions.
+   * Converts TType to string and qualified enum names in array dimensions.
    */
   private static convertVariable(variable: IVariableSymbol): ISymbol {
+    // Use mangled name for C output (e.g., "Motor_speed")
+    const mangledName = getMangledName(variable);
+
+    // Convert TType to string
+    const typeStr = TypeResolver.getTypeName(variable.type);
+
     // Convert dimensions to string dimensions
     const arrayDimensions = variable.arrayDimensions?.map((dim) =>
       TSymbolAdapter.resolveArrayDimension(dim),
@@ -266,14 +323,14 @@ class TSymbolAdapter {
     const size = typeof firstDim === "number" ? firstDim : undefined;
 
     const result: ISymbol = {
-      name: variable.name,
+      name: mangledName,
       kind: "variable",
-      type: variable.type,
+      type: typeStr,
       sourceFile: variable.sourceFile,
       sourceLine: variable.sourceLine,
       sourceLanguage: variable.sourceLanguage,
       isExported: variable.isExported,
-      parent: variable.parent,
+      parent: getParentName(variable),
       isConst: variable.isConst,
       isAtomic: variable.isAtomic,
       isArray: variable.isArray,
@@ -294,29 +351,31 @@ class TSymbolAdapter {
    */
   private static convertRegister(register: IRegisterSymbol): ISymbol[] {
     const result: ISymbol[] = [];
+    // Use mangled name for C output (e.g., "Motor_CTRL")
+    const mangledName = getMangledName(register);
 
     // Main register symbol
     result.push({
-      name: register.name,
+      name: mangledName,
       kind: "register",
       sourceFile: register.sourceFile,
       sourceLine: register.sourceLine,
       sourceLanguage: register.sourceLanguage,
       isExported: register.isExported,
-      parent: register.parent,
+      parent: getParentName(register),
     });
 
     // Expand members to RegisterMember symbols
     for (const [memberName, memberInfo] of register.members) {
       result.push({
-        name: `${register.name}_${memberName}`,
+        name: `${mangledName}_${memberName}`,
         kind: "register_member",
         type: memberInfo.cType,
         sourceFile: register.sourceFile,
         sourceLine: register.sourceLine,
         sourceLanguage: register.sourceLanguage,
         isExported: register.isExported,
-        parent: register.name,
+        parent: mangledName,
         accessModifier: memberInfo.access,
       });
     }

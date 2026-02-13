@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import ISymbol from "../types/ISymbol";
-import IStructFieldInfo from "../../transpiler/logic/symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
 import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";

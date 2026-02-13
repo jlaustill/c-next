@@ -17,6 +17,12 @@ interface IVariableSymbol extends IBaseSymbol {
   /** Whether this variable is atomic (volatile in C) */
   readonly isAtomic: boolean;
 
+  /** Whether this variable is an array */
+  readonly isArray: boolean;
+
+  /** Array dimensions if isArray is true - numbers for resolved, strings for macros */
+  readonly arrayDimensions?: ReadonlyArray<number | string>;
+
   /** Initial value expression (as string) */
   readonly initialValue?: string;
 }

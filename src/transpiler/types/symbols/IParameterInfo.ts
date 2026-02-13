@@ -13,8 +13,14 @@ interface IParameterInfo {
   /** Whether this parameter is const */
   readonly isConst: boolean;
 
-  /** Array dimensions if this parameter is an array */
+  /** Whether this parameter is an array */
+  readonly isArray: boolean;
+
+  /** Array dimensions if isArray is true */
   readonly arrayDimensions?: ReadonlyArray<number | string>;
+
+  /** Issue #268: true if parameter should get auto-const (unmodified pointer) */
+  readonly isAutoConst?: boolean;
 }
 
 export default IParameterInfo;
