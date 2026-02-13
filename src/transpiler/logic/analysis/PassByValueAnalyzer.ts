@@ -19,10 +19,10 @@
 
 import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
-import TransitiveModificationPropagator from "../../output/codegen/helpers/TransitiveModificationPropagator";
-import StatementExpressionCollector from "../../output/codegen/helpers/StatementExpressionCollector";
-import ChildStatementCollector from "../../output/codegen/helpers/ChildStatementCollector";
-import AssignmentTargetExtractor from "../../output/codegen/helpers/AssignmentTargetExtractor";
+import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
+import StatementExpressionCollector from "./helpers/StatementExpressionCollector";
+import ChildStatementCollector from "./helpers/ChildStatementCollector";
+import AssignmentTargetExtractor from "./helpers/AssignmentTargetExtractor";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 
 /**

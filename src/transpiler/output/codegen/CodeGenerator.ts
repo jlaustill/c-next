@@ -121,7 +121,7 @@ import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
 import ISeparatorContext from "./types/ISeparatorContext";
 // Issue #269: Transitive modification propagation for const inference (used by analyzeModificationsOnly)
-import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
+import TransitiveModificationPropagator from "../../logic/analysis/helpers/TransitiveModificationPropagator";
 // Phase 3: Type generation helper for improved testability
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability

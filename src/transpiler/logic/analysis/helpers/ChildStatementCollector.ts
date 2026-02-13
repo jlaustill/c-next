@@ -7,7 +7,7 @@
  * Issue #566: Extracted from CodeGenerator for improved testability.
  */
 
-import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
+import * as Parser from "../../parser/grammar/CNextParser.js";
 
 /**
  * Result of collecting child statements and blocks from a statement.

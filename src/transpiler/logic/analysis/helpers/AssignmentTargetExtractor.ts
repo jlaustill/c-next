@@ -2,7 +2,7 @@
  * Helper for extracting base identifier from assignment targets.
  * SonarCloud S3776: Extracted from walkStatementForModifications().
  */
-import * as Parser from "../../../logic/parser/grammar/CNextParser";
+import * as Parser from "../../parser/grammar/CNextParser";
 
 /**
  * Result from extracting assignment target base identifier.
