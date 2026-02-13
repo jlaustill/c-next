@@ -82,6 +82,8 @@ import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #644: String declaration helper for bounded/array/concat strings
 import StringDeclHelper from "./helpers/StringDeclHelper";
+// Issue #794: Argument generation helper for ADR-006 semantics
+import ArgumentGenerator from "./helpers/ArgumentGenerator";
 // Issue #644: Enum assignment validator for type-safe enum assignments
 import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 // Issue #644: Array initialization helper for size inference and fill-all
@@ -864,13 +866,20 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate function argument with pass-by-reference handling.
-   * Part of IOrchestrator interface - delegates to private implementation.
+   * Part of IOrchestrator interface - delegates to ArgumentGenerator.
    */
   generateFunctionArg(
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
-    return this._generateFunctionArg(ctx, targetParamBaseType);
+    const simpleId = CodegenParserUtils.getSimpleIdentifier(ctx);
+    return ArgumentGenerator.generateArg(ctx, simpleId, targetParamBaseType, {
+      getLvalueType: (c) => this.getLvalueType(c),
+      getMemberAccessArrayStatus: (c) => this.getMemberAccessArrayStatus(c),
+      needsCppMemberConversion: (c, t) => this.needsCppMemberConversion(c, t),
+      isStringSubscriptAccess: (c) => this.isStringSubscriptAccess(c),
+      generateExpression: (c) => this.generateExpression(c),
+    });
   }
 
   /**
@@ -4405,185 +4414,6 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return memberInfo.isArray ? "array" : "not-array";
-  }
-
-  /**
-   * Generate a function argument with proper ADR-006 semantics.
-   * - Local variables get & (address-of)
-   * - Member access (cursor.x) gets & (address-of)
-   * - Array access (arr[i]) gets & (address-of)
-   * - Parameters are passed as-is (already pointers)
-   * - Arrays are passed as-is (naturally decay to pointers)
-   * - Literals use compound literals for pointer params: &(type){value}
-   * - Complex expressions are passed as-is
-   */
-  private _generateFunctionArg(
-    ctx: Parser.ExpressionContext,
-    targetParamBaseType?: string,
-  ): string {
-    const id = CodegenParserUtils.getSimpleIdentifier(ctx);
-    if (id) {
-      return this._handleIdentifierArg(id);
-    }
-
-    const lvalueType = this.getLvalueType(ctx);
-    if (lvalueType) {
-      return this._handleLvalueArg(ctx, lvalueType, targetParamBaseType);
-    }
-
-    return this._handleRvalueArg(ctx, targetParamBaseType);
-  }
-
-  /**
-   * Handle simple identifier argument (parameter, local array, scope member, or variable)
-   */
-  private _handleIdentifierArg(id: string): string {
-    // Parameters are already pointers
-    if (CodeGenState.currentParameters.get(id)) {
-      return id;
-    }
-
-    // Local arrays decay to pointers
-    if (CodeGenState.localArrays.has(id)) {
-      return id;
-    }
-
-    // Global arrays also decay to pointers (check typeRegistry)
-    // But NOT strings - strings need & (they're char arrays but passed by reference)
-    const typeInfo = CodeGenState.getVariableTypeInfo(id);
-    if (typeInfo?.isArray && !typeInfo.isString) {
-      return id;
-    }
-
-    // Scope member - may need prefixing
-    if (CodeGenState.currentScope) {
-      const members = CodeGenState.getScopeMembers(CodeGenState.currentScope);
-      if (members?.has(id)) {
-        const scopedName = `${CodeGenState.currentScope}_${id}`;
-        return CppModeHelper.maybeAddressOf(scopedName);
-      }
-    }
-
-    // Local variable - add & (except in C++ mode)
-    return CppModeHelper.maybeAddressOf(id);
-  }
-
-  /**
-   * Handle lvalue argument (member access or array access)
-   */
-  private _handleLvalueArg(
-    ctx: Parser.ExpressionContext,
-    lvalueType: string,
-    targetParamBaseType?: string,
-  ): string {
-    // Member access to array field - arrays decay to pointers
-    if (lvalueType === "member") {
-      const memberResult = this._handleMemberAccessArg(
-        ctx,
-        targetParamBaseType,
-      );
-      if (memberResult) return memberResult;
-    }
-
-    // Generate expression with address-of
-    const generatedExpr = this.generateExpression(ctx);
-    const expr = CppModeHelper.maybeAddressOf(generatedExpr);
-
-    // String subscript access may need cast
-    if (lvalueType === "array") {
-      return this._maybeCastStringSubscript(ctx, expr, targetParamBaseType);
-    }
-
-    return expr;
-  }
-
-  /**
-   * Handle member access argument - may need special handling for arrays or C++ conversions
-   */
-  private _handleMemberAccessArg(
-    ctx: Parser.ExpressionContext,
-    targetParamBaseType?: string,
-  ): string | null {
-    const arrayStatus = this.getMemberAccessArrayStatus(ctx);
-
-    // Array member - no address-of needed
-    if (arrayStatus === "array") {
-      return this.generateExpression(ctx);
-    }
-
-    // C++ mode may need temp variable for type conversion
-    if (
-      arrayStatus === "not-array" &&
-      this.needsCppMemberConversion(ctx, targetParamBaseType)
-    ) {
-      return this._createCppMemberConversionTemp(ctx, targetParamBaseType!);
-    }
-
-    return null; // Fall through to default lvalue handling
-  }
-
-  /**
-   * Create temp variable for C++ member conversion
-   */
-  private _createCppMemberConversionTemp(
-    ctx: Parser.ExpressionContext,
-    targetParamBaseType: string,
-  ): string {
-    const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
-    const value = this.generateExpression(ctx);
-    const tempName = `_cnx_tmp_${CodeGenState.tempVarCounter++}`;
-    const castExpr = CppModeHelper.cast(cType, value);
-    CodeGenState.pendingTempDeclarations.push(
-      `${cType} ${tempName} = ${castExpr};`,
-    );
-    return CppModeHelper.maybeAddressOf(tempName);
-  }
-
-  /**
-   * Maybe cast string subscript access for integer pointer parameters
-   */
-  private _maybeCastStringSubscript(
-    ctx: Parser.ExpressionContext,
-    expr: string,
-    targetParamBaseType?: string,
-  ): string {
-    if (!targetParamBaseType || !this.isStringSubscriptAccess(ctx)) {
-      return expr;
-    }
-
-    const cType = TYPE_MAP[targetParamBaseType];
-    if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-      return CppModeHelper.reinterpretCast(`${cType}*`, expr);
-    }
-
-    return expr;
-  }
-
-  /**
-   * Handle rvalue argument (literals or complex expressions)
-   */
-  private _handleRvalueArg(
-    ctx: Parser.ExpressionContext,
-    targetParamBaseType?: string,
-  ): string {
-    if (!targetParamBaseType) {
-      return this.generateExpression(ctx);
-    }
-
-    const cType = TYPE_MAP[targetParamBaseType];
-    if (!cType || cType === "void") {
-      return this.generateExpression(ctx);
-    }
-
-    const value = this.generateExpression(ctx);
-
-    // C++ mode: rvalues can bind to const T&
-    if (CodeGenState.cppMode) {
-      return value;
-    }
-
-    // C mode: Use compound literal syntax
-    return `&(${cType}){${value}}`;
   }
 
   // ========================================================================
