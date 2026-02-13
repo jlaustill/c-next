@@ -8,7 +8,6 @@
  */
 
 import ISymbol from "../../../utils/types/ISymbol";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 
 /**
  * Utility class for updating symbol parameters with auto-const information.
@@ -34,7 +33,7 @@ class AutoConstUpdater {
     knownEnums: ReadonlySet<string>,
   ): void {
     for (const symbol of symbols) {
-      if (symbol.kind !== ESymbolKind.Function || !symbol.parameters) {
+      if (symbol.kind !== "function" || !symbol.parameters) {
         continue;
       }
 

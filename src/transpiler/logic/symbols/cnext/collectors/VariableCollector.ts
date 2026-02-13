@@ -5,7 +5,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IVariableSymbol from "../../types/IVariableSymbol";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
@@ -167,7 +166,7 @@ class VariableCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: isPublic,
-      kind: ESymbolKind.Variable,
+      kind: "variable",
       type,
       isConst,
       isAtomic,

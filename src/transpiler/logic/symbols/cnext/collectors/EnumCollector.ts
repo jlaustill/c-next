@@ -5,7 +5,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IEnumSymbol from "../../types/IEnumSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 
@@ -60,7 +59,7 @@ class EnumCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
-      kind: ESymbolKind.Enum,
+      kind: "enum",
       members,
     };
   }

@@ -11,7 +11,7 @@ import IVariableSymbol from "./IVariableSymbol";
  *
  * Use the `kind` field to narrow to a specific symbol type:
  * ```typescript
- * if (symbol.kind === ESymbolKind.Struct) {
+ * if (symbol.kind === "struct") {
  *   // TypeScript knows symbol is IStructSymbol here
  *   for (const [fieldName, fieldInfo] of symbol.fields) { ... }
  * }

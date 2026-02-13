@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import CppConstructorHelper from "../CppConstructorHelper.js";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind.js";
 
 describe("CppConstructorHelper", () => {
   describe("toQualifiedName", () => {
@@ -87,7 +86,7 @@ describe("CppConstructorHelper", () => {
 
     it("returns false when symbol is not a function", () => {
       const mockSymbolTable = {
-        getSymbol: () => ({ kind: ESymbolKind.Variable }),
+        getSymbol: () => ({ kind: "variable" as const }),
       };
       expect(
         CppConstructorHelper.hasConstructor("MyClass", mockSymbolTable),
@@ -98,7 +97,7 @@ describe("CppConstructorHelper", () => {
       const mockSymbolTable = {
         getSymbol: (name: string) => {
           if (name === "MyClass::MyClass") {
-            return { kind: ESymbolKind.Function };
+            return { kind: "function" as const };
           }
           return undefined;
         },
@@ -112,7 +111,7 @@ describe("CppConstructorHelper", () => {
       const mockSymbolTable = {
         getSymbol: (name: string) => {
           if (name === "TestNS::MyClass::MyClass") {
-            return { kind: ESymbolKind.Function };
+            return { kind: "function" as const };
           }
           return undefined;
         },
@@ -126,7 +125,7 @@ describe("CppConstructorHelper", () => {
       const mockSymbolTable = {
         getSymbol: (name: string) => {
           if (name === "TestNS::MyClass::MyClass") {
-            return { kind: ESymbolKind.Function };
+            return { kind: "function" as const };
           }
           return undefined;
         },

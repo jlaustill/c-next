@@ -7,7 +7,6 @@
  * generating conflicting forward declarations for types like anonymous struct typedefs.
  */
 
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import ISymbol from "../../../utils/types/ISymbol";
 
 /**
@@ -45,10 +44,10 @@ class ExternalTypeHeaderBuilder {
       // Map each struct/type/enum name to the include directive
       for (const sym of symbols) {
         if (
-          sym.kind === ESymbolKind.Struct ||
-          sym.kind === ESymbolKind.Type ||
-          sym.kind === ESymbolKind.Enum ||
-          sym.kind === ESymbolKind.Class
+          sym.kind === "struct" ||
+          sym.kind === "type" ||
+          sym.kind === "enum" ||
+          sym.kind === "class"
         ) {
           // Only add if we don't already have a mapping (first include wins)
           if (!typeHeaders.has(sym.name)) {

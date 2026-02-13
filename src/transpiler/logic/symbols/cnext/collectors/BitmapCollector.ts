@@ -5,7 +5,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IBitmapSymbol from "../../types/IBitmapSymbol";
 import IBitmapFieldInfo from "../../types/IBitmapFieldInfo";
 import BITMAP_SIZE from "../../../../types/BITMAP_SIZE";
@@ -62,7 +61,7 @@ class BitmapCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
-      kind: ESymbolKind.Bitmap,
+      kind: "bitmap",
       backingType,
       bitWidth: expectedBits,
       fields,

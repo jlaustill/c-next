@@ -9,7 +9,6 @@ import { CNextParser } from "../../parser/grammar/CNextParser";
 import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
 import SymbolTable from "../../symbols/SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -369,7 +368,7 @@ describe("FunctionCallAnalyzer", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "myExternalFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
         sourceLine: 1,
@@ -393,7 +392,7 @@ describe("FunctionCallAnalyzer", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "cppHelper",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "helper.hpp",
         sourceLine: 1,
@@ -519,7 +518,7 @@ describe("FunctionCallAnalyzer", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "customExternalFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "custom.hpp",
         sourceLine: 1,
@@ -628,7 +627,7 @@ describe("FunctionCallAnalyzer", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "cnextFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceLanguage: ESourceLanguage.CNext,
         sourceFile: "module.cnx",
         sourceLine: 1,

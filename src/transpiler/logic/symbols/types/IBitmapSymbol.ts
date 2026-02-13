@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBaseSymbol from "./IBaseSymbol";
 import IBitmapFieldInfo from "./IBitmapFieldInfo";
 
@@ -8,7 +7,7 @@ import IBitmapFieldInfo from "./IBitmapFieldInfo";
  */
 interface IBitmapSymbol extends IBaseSymbol {
   /** Discriminant for type narrowing */
-  kind: ESymbolKind.Bitmap;
+  kind: "bitmap";
 
   /** Backing integer type (e.g., "u8", "u32") */
   backingType: string;

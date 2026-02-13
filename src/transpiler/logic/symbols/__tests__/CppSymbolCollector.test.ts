@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import parseCpp from "./cppTestHelpers";
 import CppSymbolCollector from "../CppSymbolCollector";
 import SymbolTable from "../SymbolTable";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 describe("CppSymbolCollector - Basic Functionality", () => {
@@ -52,7 +51,7 @@ describe("CppSymbolCollector - Namespace Handling", () => {
     const symbols = collector.collect(tree);
 
     const ns = symbols.find((s) => s.name === "hw");
-    expect(ns?.kind).toBe(ESymbolKind.Namespace);
+    expect(ns?.kind).toBe("namespace");
     expect(ns?.sourceLanguage).toBe(ESourceLanguage.Cpp);
     expect(ns?.isExported).toBe(true);
   });
@@ -69,7 +68,7 @@ describe("CppSymbolCollector - Namespace Handling", () => {
 
     expect(symbols).toHaveLength(2);
     const func = symbols.find((s) => s.name === "hw::init");
-    expect(func?.kind).toBe(ESymbolKind.Function);
+    expect(func?.kind).toBe("function");
     expect(func?.parent).toBe("hw");
   });
 
@@ -109,7 +108,7 @@ describe("CppSymbolCollector - Namespace Handling", () => {
     const symbols = collector.collect(tree);
 
     const varSymbol = symbols.find((s) => s.name === "A::B::C::value");
-    expect(varSymbol?.kind).toBe(ESymbolKind.Variable);
+    expect(varSymbol?.kind).toBe("variable");
     expect(varSymbol?.parent).toBe("A::B::C");
   });
 
@@ -143,7 +142,7 @@ describe("CppSymbolCollector - Namespace Handling", () => {
     const symbols = collector.collect(tree);
 
     // Anonymous namespace should NOT create a namespace symbol
-    const ns = symbols.find((s) => s.kind === ESymbolKind.Namespace);
+    const ns = symbols.find((s) => s.kind === "namespace");
     expect(ns).toBeUndefined();
   });
 });
@@ -156,7 +155,7 @@ describe("CppSymbolCollector - Function Definitions", () => {
     const symbols = collector.collect(tree);
 
     const func = symbols[0];
-    expect(func.kind).toBe(ESymbolKind.Function);
+    expect(func.kind).toBe("function");
     expect(func.name).toBe("add");
     expect(func.type).toBe("int");
     expect(func.sourceLanguage).toBe(ESourceLanguage.Cpp);
@@ -173,7 +172,7 @@ describe("CppSymbolCollector - Function Definitions", () => {
     const symbols = collector.collect(tree);
 
     const func = symbols.find((s) => s.name === "utils::clamp");
-    expect(func?.kind).toBe(ESymbolKind.Function);
+    expect(func?.kind).toBe("function");
     expect(func?.type).toBe("int");
     expect(func?.parent).toBe("utils");
   });
@@ -247,7 +246,7 @@ describe("CppSymbolCollector - Class/Struct Definitions", () => {
     const symbols = collector.collect(tree);
 
     const cls = symbols[0];
-    expect(cls.kind).toBe(ESymbolKind.Class);
+    expect(cls.kind).toBe("class");
     expect(cls.name).toBe("MyClass");
     expect(cls.sourceLanguage).toBe(ESourceLanguage.Cpp);
   });
@@ -260,7 +259,7 @@ describe("CppSymbolCollector - Class/Struct Definitions", () => {
     const symbols = collector.collect(tree);
 
     const struct = symbols[0];
-    expect(struct.kind).toBe(ESymbolKind.Class);
+    expect(struct.kind).toBe("class");
     expect(struct.name).toBe("Point");
   });
 
@@ -275,7 +274,7 @@ describe("CppSymbolCollector - Class/Struct Definitions", () => {
     const symbols = collector.collect(tree);
 
     const cls = symbols.find((s) => s.name === "hw::Device");
-    expect(cls?.kind).toBe(ESymbolKind.Class);
+    expect(cls?.kind).toBe("class");
     expect(cls?.parent).toBe("hw");
   });
 
@@ -304,7 +303,7 @@ describe("CppSymbolCollector - Class Member Functions", () => {
     const symbols = collector.collect(tree);
 
     const method = symbols.find((s) => s.name === "MyClass::doSomething");
-    expect(method?.kind).toBe(ESymbolKind.Function);
+    expect(method?.kind).toBe("function");
     expect(method?.parent).toBe("MyClass");
     expect(method?.isDeclaration).toBe(true);
   });
@@ -322,7 +321,7 @@ describe("CppSymbolCollector - Class Member Functions", () => {
     const symbols = collector.collect(tree);
 
     const method = symbols.find((s) => s.name === "MyClass::doSomething");
-    expect(method?.kind).toBe(ESymbolKind.Function);
+    expect(method?.kind).toBe("function");
     expect(method?.type).toBe("void");
   });
 
@@ -372,7 +371,7 @@ describe("CppSymbolCollector - Class Member Functions", () => {
     const symbols = collector.collect(tree);
 
     const method = symbols.find((s) => s.name === "Utils::abs");
-    expect(method?.kind).toBe(ESymbolKind.Function);
+    expect(method?.kind).toBe("function");
   });
 
   it("collects inline function with explicit return type", () => {
@@ -390,7 +389,7 @@ describe("CppSymbolCollector - Class Member Functions", () => {
     const symbols = collector.collect(tree);
 
     const method = symbols.find((s) => s.name === "Counter::getValue");
-    expect(method?.kind).toBe(ESymbolKind.Function);
+    expect(method?.kind).toBe("function");
     expect(method?.type).toBe("int");
     expect(method?.isDeclaration).toBeUndefined(); // inline def, not declaration
   });
@@ -430,9 +429,9 @@ describe("CppSymbolCollector - Class Member Functions", () => {
     const inline = symbols.find((s) => s.name === "Mixed::inlineMethod");
     const declared = symbols.find((s) => s.name === "Mixed::declaredMethod");
 
-    expect(inline?.kind).toBe(ESymbolKind.Function);
+    expect(inline?.kind).toBe("function");
     expect(inline?.isDeclaration).toBeUndefined();
-    expect(declared?.kind).toBe(ESymbolKind.Function);
+    expect(declared?.kind).toBe("function");
     expect(declared?.isDeclaration).toBe(true);
 
     // Data field should be in symbol table
@@ -542,7 +541,7 @@ describe("CppSymbolCollector - Struct Field Collection", () => {
 
     // Should collect struct symbol but not register fields
     expect(symbols).toHaveLength(1);
-    expect(symbols[0].kind).toBe(ESymbolKind.Class);
+    expect(symbols[0].kind).toBe("class");
   });
 });
 
@@ -554,7 +553,7 @@ describe("CppSymbolCollector - Enum Handling", () => {
     const symbols = collector.collect(tree);
 
     const enumSymbol = symbols[0];
-    expect(enumSymbol.kind).toBe(ESymbolKind.Enum);
+    expect(enumSymbol.kind).toBe("enum");
     expect(enumSymbol.name).toBe("EMode");
     expect(enumSymbol.sourceLanguage).toBe(ESourceLanguage.Cpp);
   });
@@ -566,7 +565,7 @@ describe("CppSymbolCollector - Enum Handling", () => {
     const symbols = collector.collect(tree);
 
     const enumSymbol = symbols[0];
-    expect(enumSymbol.kind).toBe(ESymbolKind.Enum);
+    expect(enumSymbol.kind).toBe("enum");
     expect(enumSymbol.name).toBe("EColor");
   });
 
@@ -577,7 +576,7 @@ describe("CppSymbolCollector - Enum Handling", () => {
     const symbols = collector.collect(tree);
 
     const enumSymbol = symbols[0];
-    expect(enumSymbol.kind).toBe(ESymbolKind.Enum);
+    expect(enumSymbol.kind).toBe("enum");
     expect(enumSymbol.name).toBe("EFlags");
   });
 
@@ -588,7 +587,7 @@ describe("CppSymbolCollector - Enum Handling", () => {
     const symbols = collector.collect(tree);
 
     const enumSymbol = symbols[0];
-    expect(enumSymbol.kind).toBe(ESymbolKind.Enum);
+    expect(enumSymbol.kind).toBe("enum");
     expect(enumSymbol.name).toBe("ELegacy");
   });
 
@@ -603,7 +602,7 @@ describe("CppSymbolCollector - Enum Handling", () => {
     const symbols = collector.collect(tree);
 
     const enumSymbol = symbols.find((s) => s.name === "hw::EStatus");
-    expect(enumSymbol?.kind).toBe(ESymbolKind.Enum);
+    expect(enumSymbol?.kind).toBe("enum");
     expect(enumSymbol?.parent).toBe("hw");
   });
 
@@ -784,7 +783,7 @@ describe("CppSymbolCollector - Type Aliases", () => {
     const symbols = collector.collect(tree);
 
     const alias = symbols[0];
-    expect(alias.kind).toBe(ESymbolKind.Type);
+    expect(alias.kind).toBe("type");
     expect(alias.name).toBe("MyInt");
   });
 
@@ -803,7 +802,7 @@ describe("CppSymbolCollector - Type Aliases", () => {
       (s) => s.name === "Counter" || s.name === "utils::Counter",
     );
     expect(alias).toBeDefined();
-    expect(alias?.kind).toBe(ESymbolKind.Type);
+    expect(alias?.kind).toBe("type");
   });
 
   it("skips using directives (not declarations)", () => {
@@ -833,7 +832,7 @@ describe("CppSymbolCollector - Anonymous Struct Typedef (Issue #342)", () => {
 
     // Should create symbol for typedef name
     const typeSymbol = symbols.find((s) => s.name === "Point");
-    expect(typeSymbol?.kind).toBe(ESymbolKind.Class);
+    expect(typeSymbol?.kind).toBe("class");
   });
 
   it("registers anonymous struct fields using typedef name", () => {
@@ -962,7 +961,7 @@ describe("CppSymbolCollector - Edge Cases", () => {
     const symbols = collector.collect(tree);
 
     const varSymbol = symbols[0];
-    expect(varSymbol.kind).toBe(ESymbolKind.Variable);
+    expect(varSymbol.kind).toBe("variable");
     expect(varSymbol.name).toBe("globalVar");
     // Note: CppSymbolCollector doesn't currently set isDeclaration for extern variables
     // This is acceptable as it's primarily used for functions
@@ -1036,11 +1035,11 @@ describe("CppSymbolCollector - Real C++ Header Integration", () => {
 
     // Check namespace
     const hwNs = symbols.find((s) => s.name === "hw");
-    expect(hwNs?.kind).toBe(ESymbolKind.Namespace);
+    expect(hwNs?.kind).toBe("namespace");
 
     // Check enum class
     const emode = symbols.find((s) => s.name === "EMode");
-    expect(emode?.kind).toBe(ESymbolKind.Enum);
+    expect(emode?.kind).toBe("enum");
 
     // Check bit width extraction
     const bitWidth = symbolTable.getEnumBitWidth("EMode");
@@ -1060,7 +1059,7 @@ describe("CppSymbolCollector - Real C++ Header Integration", () => {
     const collector = new CppSymbolCollector("comprehensive-cpp.hpp");
     const symbols = collector.collect(tree);
 
-    const namespaces = symbols.filter((s) => s.kind === ESymbolKind.Namespace);
+    const namespaces = symbols.filter((s) => s.kind === "namespace");
     expect(namespaces.length).toBeGreaterThan(0);
 
     // hw and utils namespaces should be present
@@ -1082,7 +1081,7 @@ describe("CppSymbolCollector - Real C++ Header Integration", () => {
     const collector = new CppSymbolCollector("comprehensive-cpp.hpp");
     const symbols = collector.collect(tree);
 
-    const enums = symbols.filter((s) => s.kind === ESymbolKind.Enum);
+    const enums = symbols.filter((s) => s.kind === "enum");
     expect(enums.length).toBeGreaterThan(3); // Multiple enum types
 
     const enumNames = enums.map((e) => e.name);
@@ -1108,7 +1107,7 @@ describe("CppSymbolCollector - Real C++ Header Integration", () => {
     );
     const symbols = collector.collect(tree);
 
-    const classes = symbols.filter((s) => s.kind === ESymbolKind.Class);
+    const classes = symbols.filter((s) => s.kind === "class");
     expect(classes.length).toBeGreaterThan(5);
 
     const classNames = classes.map((c) => c.name);

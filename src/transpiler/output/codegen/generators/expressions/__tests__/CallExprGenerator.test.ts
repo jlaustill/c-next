@@ -4,7 +4,6 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
-import ESymbolKind from "../../../../../../utils/types/ESymbolKind";
 import CodeGenState from "../../../../../state/CodeGenState";
 import TTypeInfo from "../../../types/TTypeInfo";
 
@@ -777,7 +776,7 @@ describe("CallExprGenerator", () => {
       const symbolTable = {
         getOverloads: vi.fn(() => [
           {
-            kind: ESymbolKind.Function,
+            kind: "function",
             parameters: [
               { name: "val", type: "u32", isConst: false, isArray: false },
             ],
@@ -814,7 +813,7 @@ describe("CallExprGenerator", () => {
       const symbolTable = {
         getOverloads: vi.fn(() => [
           {
-            kind: ESymbolKind.Function,
+            kind: "function",
             parameters: [
               { name: "f", type: "u8", isConst: false, isArray: false },
             ],
@@ -848,7 +847,7 @@ describe("CallExprGenerator", () => {
       const argCtx = createMockArgListContext(argExprs);
       const symbolTable = {
         getOverloads: vi.fn(() => [
-          { kind: ESymbolKind.Variable, parameters: undefined },
+          { kind: "variable", parameters: undefined },
         ]),
       };
       const input = createMockInput({

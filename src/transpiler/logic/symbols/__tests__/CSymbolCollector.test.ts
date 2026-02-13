@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import parseC from "./cTestHelpers";
 import CSymbolCollector from "../CSymbolCollector";
 import SymbolTable from "../SymbolTable";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 describe("CSymbolCollector - Basic Functionality", () => {
@@ -60,7 +59,7 @@ describe("CSymbolCollector - Function Definitions", () => {
 
     expect(symbols).toHaveLength(1);
     expect(symbols[0].name).toBe("foo");
-    expect(symbols[0].kind).toBe(ESymbolKind.Function);
+    expect(symbols[0].kind).toBe("function");
     expect(symbols[0].type).toBe("void");
     expect(symbols[0].isExported).toBe(true);
     expect(symbols[0].isDeclaration).toBe(false);
@@ -119,7 +118,7 @@ describe("CSymbolCollector - Function Prototypes", () => {
 
     expect(symbols).toHaveLength(1);
     expect(symbols[0].name).toBe("bar");
-    expect(symbols[0].kind).toBe(ESymbolKind.Function);
+    expect(symbols[0].kind).toBe("function");
     expect(symbols[0].isDeclaration).toBe(true);
     expect(symbols[0].isExported).toBe(true);
   });
@@ -155,7 +154,7 @@ describe("CSymbolCollector - Variable Declarations", () => {
 
     expect(symbols).toHaveLength(1);
     expect(symbols[0].name).toBe("counter");
-    expect(symbols[0].kind).toBe(ESymbolKind.Variable);
+    expect(symbols[0].kind).toBe("variable");
     expect(symbols[0].type).toBe("int");
     expect(symbols[0].isExported).toBe(true);
   });
@@ -167,7 +166,7 @@ describe("CSymbolCollector - Variable Declarations", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols[0].name).toBe("globalValue");
-    expect(symbols[0].kind).toBe(ESymbolKind.Variable);
+    expect(symbols[0].kind).toBe("variable");
     expect(symbols[0].isExported).toBe(false);
     expect(symbols[0].isDeclaration).toBe(true);
   });
@@ -181,7 +180,7 @@ describe("CSymbolCollector - Variable Declarations", () => {
     expect(symbols).toHaveLength(3);
     expect(symbols.map((s) => s.name)).toEqual(["x", "y", "z"]);
     symbols.forEach((s) => {
-      expect(s.kind).toBe(ESymbolKind.Variable);
+      expect(s.kind).toBe("variable");
       expect(s.type).toBe("int");
     });
   });
@@ -196,7 +195,7 @@ describe("CSymbolCollector - Typedefs", () => {
 
     expect(symbols).toHaveLength(1);
     expect(symbols[0].name).toBe("MyInt");
-    expect(symbols[0].kind).toBe(ESymbolKind.Type);
+    expect(symbols[0].kind).toBe("type");
     expect(symbols[0].type).toBe("int");
     expect(symbols[0].isExported).toBe(true);
   });
@@ -208,7 +207,7 @@ describe("CSymbolCollector - Typedefs", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols[0].name).toBe("uint8_t");
-    expect(symbols[0].kind).toBe(ESymbolKind.Type);
+    expect(symbols[0].kind).toBe("type");
   });
 
   it("collects multiple typedefs", () => {
@@ -235,7 +234,7 @@ describe("CSymbolCollector - Structs", () => {
 
     const structSym = symbols.find((s) => s.name === "Point");
     expect(structSym).toBeDefined();
-    expect(structSym?.kind).toBe(ESymbolKind.Struct);
+    expect(structSym?.kind).toBe("struct");
     expect(structSym?.type).toBe("struct");
     expect(structSym?.isExported).toBe(true);
   });
@@ -258,7 +257,7 @@ describe("CSymbolCollector - Structs", () => {
 
     // Anonymous typedef struct creates a struct symbol with the typedef name
     const structSym = symbols.find(
-      (s) => s.name === "Point" && s.kind === ESymbolKind.Struct,
+      (s) => s.name === "Point" && s.kind === "struct",
     );
     expect(structSym).toBeDefined();
   });
@@ -281,7 +280,7 @@ describe("CSymbolCollector - Structs", () => {
 
     // Should have struct with tag name
     const structSym = symbols.find(
-      (s) => s.name === "_Point" && s.kind === ESymbolKind.Struct,
+      (s) => s.name === "_Point" && s.kind === "struct",
     );
     expect(structSym).toBeDefined();
   });
@@ -294,7 +293,7 @@ describe("CSymbolCollector - Structs", () => {
 
     const unionSym = symbols.find((s) => s.name === "Data");
     expect(unionSym).toBeDefined();
-    expect(unionSym?.kind).toBe(ESymbolKind.Struct);
+    expect(unionSym?.kind).toBe("struct");
     expect(unionSym?.type).toBe("union");
   });
 
@@ -307,7 +306,7 @@ describe("CSymbolCollector - Structs", () => {
     // Should only have the variable, no struct symbol
     expect(symbols).toHaveLength(1);
     expect(symbols[0].name).toBe("point");
-    expect(symbols[0].kind).toBe(ESymbolKind.Variable);
+    expect(symbols[0].kind).toBe("variable");
   });
 });
 
@@ -399,7 +398,7 @@ describe("CSymbolCollector - Enums", () => {
     const symbols = collector.collect(tree);
 
     const enumSym = symbols.find(
-      (s) => s.name === "Color" && s.kind === ESymbolKind.Enum,
+      (s) => s.name === "Color" && s.kind === "enum",
     );
     expect(enumSym).toBeDefined();
     expect(enumSym?.isExported).toBe(true);
@@ -411,7 +410,7 @@ describe("CSymbolCollector - Enums", () => {
     const collector = new CSymbolCollector("test.h");
     const symbols = collector.collect(tree);
 
-    const members = symbols.filter((s) => s.kind === ESymbolKind.EnumMember);
+    const members = symbols.filter((s) => s.kind === "enum_member");
     expect(members).toHaveLength(3);
     expect(members.map((m) => m.name)).toEqual(["RED", "GREEN", "BLUE"]);
     members.forEach((m) => {
@@ -430,7 +429,7 @@ describe("CSymbolCollector - Enums", () => {
     const collector = new CSymbolCollector("test.h");
     const symbols = collector.collect(tree);
 
-    const members = symbols.filter((s) => s.kind === ESymbolKind.EnumMember);
+    const members = symbols.filter((s) => s.kind === "enum_member");
     expect(members[0].sourceLine).toBe(2);
     expect(members[1].sourceLine).toBe(3);
     expect(members[2].sourceLine).toBe(4);
@@ -443,7 +442,7 @@ describe("CSymbolCollector - Enums", () => {
     const symbols = collector.collect(tree);
 
     // Anonymous enums don't create an Enum symbol
-    const enumSym = symbols.find((s) => s.kind === ESymbolKind.Enum);
+    const enumSym = symbols.find((s) => s.kind === "enum");
     expect(enumSym).toBeUndefined();
   });
 });
@@ -456,7 +455,7 @@ describe("CSymbolCollector - Complex Declarators", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols[0].name).toBe("values");
-    expect(symbols[0].kind).toBe(ESymbolKind.Variable);
+    expect(symbols[0].kind).toBe("variable");
   });
 
   it("handles function pointer typedef", () => {
@@ -466,7 +465,7 @@ describe("CSymbolCollector - Complex Declarators", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols[0].name).toBe("Callback");
-    expect(symbols[0].kind).toBe(ESymbolKind.Type);
+    expect(symbols[0].kind).toBe("type");
   });
 
   it("handles pointer variable", () => {
@@ -476,7 +475,7 @@ describe("CSymbolCollector - Complex Declarators", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols[0].name).toBe("ptr");
-    expect(symbols[0].kind).toBe(ESymbolKind.Variable);
+    expect(symbols[0].kind).toBe("variable");
   });
 
   it("handles array field declarator (Issue #355)", () => {
@@ -552,7 +551,7 @@ describe("CSymbolCollector - Edge Cases", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols).toHaveLength(1);
-    expect(symbols[0].kind).toBe(ESymbolKind.Struct);
+    expect(symbols[0].kind).toBe("struct");
   });
 
   it("handles static storage class", () => {
@@ -572,7 +571,7 @@ describe("CSymbolCollector - Edge Cases", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols[0].name).toBe("MAX_VALUE");
-    expect(symbols[0].kind).toBe(ESymbolKind.Variable);
+    expect(symbols[0].kind).toBe("variable");
   });
 
   it("handles mixed declarations", () => {
@@ -590,16 +589,16 @@ describe("CSymbolCollector - Edge Cases", () => {
     const typedef = symbols.find((s) => s.name === "Int");
     const struct = symbols.find((s) => s.name === "Point");
     const enumSym = symbols.find(
-      (s) => s.name === "Status" && s.kind === ESymbolKind.Enum,
+      (s) => s.name === "Status" && s.kind === "enum",
     );
     const func = symbols.find((s) => s.name === "init");
     const variable = symbols.find((s) => s.name === "counter");
 
-    expect(typedef?.kind).toBe(ESymbolKind.Type);
-    expect(struct?.kind).toBe(ESymbolKind.Struct);
-    expect(enumSym?.kind).toBe(ESymbolKind.Enum);
-    expect(func?.kind).toBe(ESymbolKind.Function);
-    expect(variable?.kind).toBe(ESymbolKind.Variable);
+    expect(typedef?.kind).toBe("type");
+    expect(struct?.kind).toBe("struct");
+    expect(enumSym?.kind).toBe("enum");
+    expect(func?.kind).toBe("function");
+    expect(variable?.kind).toBe("variable");
   });
 });
 
@@ -613,7 +612,7 @@ describe("CSymbolCollector - Additional Edge Cases", () => {
 
     const enumSymbols = symbols.filter((s) => s.name === "Status");
     expect(enumSymbols).toHaveLength(1);
-    expect(enumSymbols[0].kind).toBe(ESymbolKind.Enum);
+    expect(enumSymbols[0].kind).toBe("enum");
   });
 
   it("handles typedef struct forward declaration pattern", () => {
@@ -636,10 +635,8 @@ describe("CSymbolCollector - Additional Edge Cases", () => {
     // - Struct from definition (struct Point { ... })
     expect(pointSymbols.length).toBe(4);
 
-    const structSymbol = pointSymbols.find(
-      (s) => s.kind === ESymbolKind.Struct,
-    );
-    const typeSymbol = pointSymbols.find((s) => s.kind === ESymbolKind.Type);
+    const structSymbol = pointSymbols.find((s) => s.kind === "struct");
+    const typeSymbol = pointSymbols.find((s) => s.kind === "type");
     expect(structSymbol).toBeDefined();
     expect(typeSymbol).toBeDefined();
   });
@@ -662,7 +659,7 @@ describe("CSymbolCollector - Additional Edge Cases", () => {
     const symbols = collector.collect(tree);
 
     expect(symbols[0].name).toBe("getPtr");
-    expect(symbols[0].kind).toBe(ESymbolKind.Function);
+    expect(symbols[0].kind).toBe("function");
   });
 });
 

@@ -10,7 +10,6 @@
 
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import TSymbol from "../../types/TSymbol";
 import IBitmapSymbol from "../../types/IBitmapSymbol";
 import IEnumSymbol from "../../types/IEnumSymbol";
@@ -94,7 +93,7 @@ class TSymbolInfoAdapter {
     // Process each symbol
     for (const symbol of symbols) {
       switch (symbol.kind) {
-        case ESymbolKind.Struct:
+        case "struct":
           TSymbolInfoAdapter.processStruct(
             symbol,
             knownStructs,
@@ -104,11 +103,11 @@ class TSymbolInfoAdapter {
           );
           break;
 
-        case ESymbolKind.Enum:
+        case "enum":
           TSymbolInfoAdapter.processEnum(symbol, knownEnums, enumMembers);
           break;
 
-        case ESymbolKind.Bitmap:
+        case "bitmap":
           TSymbolInfoAdapter.processBitmap(
             symbol,
             knownBitmaps,
@@ -118,7 +117,7 @@ class TSymbolInfoAdapter {
           );
           break;
 
-        case ESymbolKind.Namespace:
+        case "scope":
           TSymbolInfoAdapter.processScope(
             symbol,
             knownScopes,
@@ -127,7 +126,7 @@ class TSymbolInfoAdapter {
           );
           break;
 
-        case ESymbolKind.Register:
+        case "register":
           TSymbolInfoAdapter.processRegister(symbol, knownBitmaps, {
             knownRegisters,
             scopedRegisters,
@@ -139,13 +138,13 @@ class TSymbolInfoAdapter {
           });
           break;
 
-        case ESymbolKind.Variable:
+        case "variable":
           // Issue #282: Track private const values for inlining
           TSymbolInfoAdapter.processVariable(symbol, scopePrivateConstValues);
           break;
 
         // Track function return types for enum validation
-        case ESymbolKind.Function:
+        case "function":
           TSymbolInfoAdapter.processFunction(symbol, functionReturnTypes);
           break;
       }

@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBaseSymbol from "./IBaseSymbol";
 import IRegisterMemberInfo from "./IRegisterMemberInfo";
 
@@ -8,7 +7,7 @@ import IRegisterMemberInfo from "./IRegisterMemberInfo";
  */
 interface IRegisterSymbol extends IBaseSymbol {
   /** Discriminant for type narrowing */
-  kind: ESymbolKind.Register;
+  kind: "register";
 
   /** Base address expression (as string, e.g., "0x40000000") */
   baseAddress: string;

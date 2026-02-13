@@ -25,7 +25,6 @@ import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilde
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
-import ESymbolKind from "../utils/types/ESymbolKind";
 import ISymbol from "../utils/types/ISymbol";
 import CNextResolver from "./logic/symbols/cnext";
 import SymbolRegistry from "./state/SymbolRegistry";
@@ -1298,7 +1297,7 @@ class Transpiler {
     // Update auto-const info on symbol parameters
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
     for (const symbol of symbols) {
-      if (symbol.kind !== ESymbolKind.Function || !symbol.parameters) {
+      if (symbol.kind !== "function" || !symbol.parameters) {
         continue;
       }
       const unmodified = unmodifiedParams.get(symbol.name);

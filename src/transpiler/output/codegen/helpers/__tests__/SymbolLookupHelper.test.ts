@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import SymbolLookupHelper from "../SymbolLookupHelper.js";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind.js";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage.js";
 
 describe("SymbolLookupHelper", () => {
@@ -10,7 +9,7 @@ describe("SymbolLookupHelper", () => {
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           null,
           "test",
-          ESymbolKind.Function,
+          "function",
           [ESourceLanguage.C],
         ),
       ).toBe(false);
@@ -21,7 +20,7 @@ describe("SymbolLookupHelper", () => {
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           undefined,
           "test",
-          ESymbolKind.Function,
+          "function",
           [ESourceLanguage.C],
         ),
       ).toBe(false);
@@ -35,7 +34,7 @@ describe("SymbolLookupHelper", () => {
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
           "test",
-          ESymbolKind.Function,
+          "function",
           [ESourceLanguage.C],
         ),
       ).toBe(false);
@@ -44,14 +43,14 @@ describe("SymbolLookupHelper", () => {
     it("returns false when kind doesn't match", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Variable, sourceLanguage: ESourceLanguage.C },
+          { kind: "variable" as const, sourceLanguage: ESourceLanguage.C },
         ],
       };
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
           "test",
-          ESymbolKind.Function,
+          "function",
           [ESourceLanguage.C],
         ),
       ).toBe(false);
@@ -60,14 +59,14 @@ describe("SymbolLookupHelper", () => {
     it("returns false when language doesn't match", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.CNext },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
         ],
       };
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
           "test",
-          ESymbolKind.Function,
+          "function",
           [ESourceLanguage.C],
         ),
       ).toBe(false);
@@ -76,14 +75,14 @@ describe("SymbolLookupHelper", () => {
     it("returns true when matching symbol found", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.C },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
         ],
       };
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
           "test",
-          ESymbolKind.Function,
+          "function",
           [ESourceLanguage.C],
         ),
       ).toBe(true);
@@ -92,14 +91,14 @@ describe("SymbolLookupHelper", () => {
     it("returns true when any language in list matches", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
           "test",
-          ESymbolKind.Function,
+          "function",
           [ESourceLanguage.C, ESourceLanguage.Cpp],
         ),
       ).toBe(true);
@@ -114,7 +113,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true for C++ enum", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Enum, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "enum" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isCppEnumClass(mockTable, "MyEnum")).toBe(true);
@@ -123,7 +122,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C enum", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Enum, sourceLanguage: ESourceLanguage.C },
+          { kind: "enum" as const, sourceLanguage: ESourceLanguage.C },
         ],
       };
       expect(SymbolLookupHelper.isCppEnumClass(mockTable, "MyEnum")).toBe(
@@ -142,7 +141,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true for C function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.C },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
         ],
       };
       expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
@@ -153,7 +152,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true for C++ function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
@@ -164,7 +163,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C-Next function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.CNext },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
         ],
       };
       expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
@@ -186,7 +185,7 @@ describe("SymbolLookupHelper", () => {
       const mockTable = {
         getOverloads: () => [
           {
-            kind: ESymbolKind.Namespace,
+            kind: "namespace" as const,
             sourceLanguage: ESourceLanguage.CNext,
           },
         ],
@@ -197,7 +196,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false when no namespace symbol", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.CNext },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
         ],
       };
       expect(SymbolLookupHelper.isNamespace(mockTable, "MyNS")).toBe(false);
@@ -216,7 +215,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true for C++ struct", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Struct, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "struct" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isCppType(mockTable, "MyStruct")).toBe(true);
@@ -225,7 +224,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true for C++ class", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Class, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "class" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isCppType(mockTable, "MyClass")).toBe(true);
@@ -234,7 +233,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true for C++ type alias", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Type, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "type" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isCppType(mockTable, "MyType")).toBe(true);
@@ -243,7 +242,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C struct", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Struct, sourceLanguage: ESourceLanguage.C },
+          { kind: "struct" as const, sourceLanguage: ESourceLanguage.C },
         ],
       };
       expect(SymbolLookupHelper.isCppType(mockTable, "MyStruct")).toBe(false);
@@ -252,7 +251,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C++ function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isCppType(mockTable, "myFunc")).toBe(false);
@@ -261,7 +260,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C++ enum", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Enum, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "enum" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isCppType(mockTable, "MyEnum")).toBe(false);
@@ -282,7 +281,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true for C-Next function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.CNext },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
         ],
       };
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
@@ -293,7 +292,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.C },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
         ],
       };
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
@@ -304,7 +303,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C++ function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.Cpp },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
         ],
       };
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
@@ -315,7 +314,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false for C-Next struct", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Struct, sourceLanguage: ESourceLanguage.CNext },
+          { kind: "struct" as const, sourceLanguage: ESourceLanguage.CNext },
         ],
       };
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "MyStruct")).toBe(
@@ -339,7 +338,7 @@ describe("SymbolLookupHelper", () => {
     it("returns true when in symbol table as C-Next function", () => {
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.CNext },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
         ],
       };
       expect(
@@ -374,7 +373,7 @@ describe("SymbolLookupHelper", () => {
       const knownFunctions = new Set(["myFunc"]);
       const mockTable = {
         getOverloads: () => [
-          { kind: ESymbolKind.Function, sourceLanguage: ESourceLanguage.C },
+          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
         ],
       };
       expect(
@@ -399,7 +398,7 @@ describe("SymbolLookupHelper", () => {
       const mockTable = {
         getOverloads: () => [
           {
-            kind: ESymbolKind.Namespace,
+            kind: "namespace" as const,
             sourceLanguage: ESourceLanguage.CNext,
           },
         ],

@@ -5,7 +5,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IScopeSymbol from "../../types/IScopeSymbol";
 import TSymbol from "../../types/TSymbol";
 import IScopeCollectorResult from "../types/IScopeCollectorResult";
@@ -150,7 +149,7 @@ class ScopeCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
-      kind: ESymbolKind.Namespace,
+      kind: "scope",
       members: memberNames,
       memberVisibility,
     };

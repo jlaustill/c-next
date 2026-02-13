@@ -4,16 +4,16 @@
 
 import { describe, it, expect } from "vitest";
 import ExternalTypeHeaderBuilder from "../ExternalTypeHeaderBuilder";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ISymbol from "../../../../utils/types/ISymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
 
 /**
  * Create a minimal test symbol
  */
 function createSymbol(
   name: string,
-  kind: ESymbolKind,
+  kind: TSymbolKind,
   sourceFile: string,
 ): ISymbol {
   return {
@@ -46,7 +46,7 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("maps struct types to their include directives", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/types.h", [
-        createSymbol("MyStruct", ESymbolKind.Struct, "/path/to/types.h"),
+        createSymbol("MyStruct", "struct", "/path/to/types.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -61,7 +61,7 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("maps enum types to their include directives", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/enums.h", [
-        createSymbol("Status", ESymbolKind.Enum, "/path/to/enums.h"),
+        createSymbol("Status", "enum", "/path/to/enums.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -76,7 +76,7 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("maps typedef types to their include directives", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/types.h", [
-        createSymbol("size_t", ESymbolKind.Type, "/path/to/types.h"),
+        createSymbol("size_t", "type", "/path/to/types.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -91,7 +91,7 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("maps class types to their include directives", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/serial.hpp", [
-        createSymbol("Serial", ESymbolKind.Class, "/path/to/serial.hpp"),
+        createSymbol("Serial", "class", "/path/to/serial.hpp"),
       ]);
 
       const headerDirectives = new Map([
@@ -106,7 +106,7 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("ignores function symbols", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/funcs.h", [
-        createSymbol("doSomething", ESymbolKind.Function, "/path/to/funcs.h"),
+        createSymbol("doSomething", "function", "/path/to/funcs.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -121,7 +121,7 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("ignores variable symbols", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/vars.h", [
-        createSymbol("globalVar", ESymbolKind.Variable, "/path/to/vars.h"),
+        createSymbol("globalVar", "variable", "/path/to/vars.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -136,10 +136,10 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("first include wins for duplicate type names", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/first.h", [
-        createSymbol("DuplicateType", ESymbolKind.Struct, "/path/to/first.h"),
+        createSymbol("DuplicateType", "struct", "/path/to/first.h"),
       ]);
       source.addSymbols("/path/to/second.h", [
-        createSymbol("DuplicateType", ESymbolKind.Struct, "/path/to/second.h"),
+        createSymbol("DuplicateType", "struct", "/path/to/second.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -155,9 +155,9 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("handles multiple types from same header", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/types.h", [
-        createSymbol("StructA", ESymbolKind.Struct, "/path/to/types.h"),
-        createSymbol("EnumB", ESymbolKind.Enum, "/path/to/types.h"),
-        createSymbol("TypeC", ESymbolKind.Type, "/path/to/types.h"),
+        createSymbol("StructA", "struct", "/path/to/types.h"),
+        createSymbol("EnumB", "enum", "/path/to/types.h"),
+        createSymbol("TypeC", "type", "/path/to/types.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -174,10 +174,10 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("handles multiple headers", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/a.h", [
-        createSymbol("TypeA", ESymbolKind.Struct, "/path/to/a.h"),
+        createSymbol("TypeA", "struct", "/path/to/a.h"),
       ]);
       source.addSymbols("/path/to/b.h", [
-        createSymbol("TypeB", ESymbolKind.Enum, "/path/to/b.h"),
+        createSymbol("TypeB", "enum", "/path/to/b.h"),
       ]);
 
       const headerDirectives = new Map([
@@ -203,8 +203,8 @@ describe("ExternalTypeHeaderBuilder", () => {
     it("returns empty map when headers have no type symbols", () => {
       const source = new MockSymbolSource();
       source.addSymbols("/path/to/funcs.h", [
-        createSymbol("func1", ESymbolKind.Function, "/path/to/funcs.h"),
-        createSymbol("func2", ESymbolKind.Function, "/path/to/funcs.h"),
+        createSymbol("func1", "function", "/path/to/funcs.h"),
+        createSymbol("func2", "function", "/path/to/funcs.h"),
       ]);
 
       const headerDirectives = new Map([

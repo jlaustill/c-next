@@ -6,9 +6,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenState from "../CodeGenState";
 import TTypeInfo from "../../output/codegen/types/TTypeInfo";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../utils/types/ISymbol";
+import TSymbolKind from "../../types/symbol-kinds/TSymbolKind";
 
 /**
  * Create a minimal ISymbol for testing with required fields.
@@ -16,7 +16,7 @@ import ISymbol from "../../../utils/types/ISymbol";
 function createTestSymbol(
   overrides: Partial<ISymbol> & {
     name: string;
-    kind: ESymbolKind;
+    kind: TSymbolKind;
     sourceLanguage: ESourceLanguage;
   },
 ): ISymbol {
@@ -392,7 +392,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "crossFileVar",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u16",
           sourceLanguage: ESourceLanguage.CNext,
           isArray: true,
@@ -414,7 +414,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "cHeaderVar",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "uint32_t",
           sourceLanguage: ESourceLanguage.C,
         }),
@@ -436,7 +436,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "mixedVar",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u8",
           sourceLanguage: ESourceLanguage.CNext,
         }),
@@ -463,7 +463,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "crossFileVar",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u32",
           sourceLanguage: ESourceLanguage.CNext,
         }),
@@ -480,7 +480,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "cVar",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "int",
           sourceLanguage: ESourceLanguage.C,
         }),
@@ -543,7 +543,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "myString",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "string<32>",
           sourceLanguage: ESourceLanguage.CNext,
         }),
@@ -566,7 +566,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "color",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "EColor",
           sourceLanguage: ESourceLanguage.CNext,
         }),
@@ -583,7 +583,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "constAtomicVar",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u32",
           sourceLanguage: ESourceLanguage.CNext,
           isConst: true,
@@ -601,7 +601,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbolTable.addSymbol(
         createTestSymbol({
           name: "arrayVar",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u8",
           sourceLanguage: ESourceLanguage.CNext,
           isArray: true,

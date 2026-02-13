@@ -23,7 +23,6 @@ import analyzePostfixOps from "../../../utils/PostfixAnalysisUtils";
 import SymbolTable from "../symbols/SymbolTable";
 import CodeGenState from "../../state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 
 /**
  * Tracks the initialization state of a variable
@@ -459,7 +458,7 @@ class InitializationAnalyzer {
     for (const sym of symbols) {
       if (sym.sourceLanguage === ESourceLanguage.Cpp) {
         // C++ classes and structs have default constructors
-        if (sym.kind === ESymbolKind.Struct || sym.kind === ESymbolKind.Class) {
+        if (sym.kind === "struct" || sym.kind === "class") {
           return true;
         }
       }

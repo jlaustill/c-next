@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import BitmapCollector from "../collectors/BitmapCollector";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 
 describe("BitmapCollector", () => {
@@ -20,7 +19,7 @@ describe("BitmapCollector", () => {
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
       const symbol = BitmapCollector.collect(bitmapCtx, "test.cnx");
 
-      expect(symbol.kind).toBe(ESymbolKind.Bitmap);
+      expect(symbol.kind).toBe("bitmap");
       expect(symbol.name).toBe("Status");
       expect(symbol.backingType).toBe("uint8_t");
       expect(symbol.bitWidth).toBe(8);

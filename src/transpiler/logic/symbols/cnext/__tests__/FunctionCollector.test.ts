@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
 import FunctionCollector from "../collectors/FunctionCollector";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 
@@ -16,7 +15,7 @@ describe("FunctionCollector", () => {
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
       const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
 
-      expect(symbol.kind).toBe(ESymbolKind.Function);
+      expect(symbol.kind).toBe("function");
       expect(symbol.name).toBe("doNothing");
       expect(symbol.returnType).toBe("void");
       expect(symbol.parameters).toEqual([]);

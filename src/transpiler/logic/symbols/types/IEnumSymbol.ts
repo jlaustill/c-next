@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBaseSymbol from "./IBaseSymbol";
 
 /**
@@ -6,7 +5,7 @@ import IBaseSymbol from "./IBaseSymbol";
  */
 interface IEnumSymbol extends IBaseSymbol {
   /** Discriminant for type narrowing */
-  kind: ESymbolKind.Enum;
+  kind: "enum";
 
   /** Map of member name to numeric value */
   members: Map<string, number>;

@@ -6,7 +6,6 @@
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import CommentExtractor from "../../logic/analysis/CommentExtractor";
 import CommentFormatter from "./CommentFormatter";
 import IncludeDiscovery from "../../data/IncludeDiscovery";
@@ -2173,7 +2172,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (CodeGenState.symbolTable) {
       for (const symbol of CodeGenState.symbolTable.getAllSymbols()) {
         if (
-          symbol.kind === ESymbolKind.Variable &&
+          symbol.kind === "variable" &&
           symbol.isConst &&
           symbol.initialValue !== undefined
         ) {

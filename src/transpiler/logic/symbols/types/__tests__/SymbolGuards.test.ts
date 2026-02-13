@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IBitmapSymbol from "../IBitmapSymbol";
 import IEnumSymbol from "../IEnumSymbol";
 import IFunctionSymbol from "../IFunctionSymbol";
@@ -22,13 +21,13 @@ const baseFields = {
 describe("SymbolGuards", () => {
   const structSymbol: IStructSymbol = {
     ...baseFields,
-    kind: ESymbolKind.Struct,
+    kind: "struct",
     fields: new Map([["x", { type: "u32", isArray: false, isConst: false }]]),
   };
 
   const enumSymbol: IEnumSymbol = {
     ...baseFields,
-    kind: ESymbolKind.Enum,
+    kind: "enum",
     members: new Map([
       ["A", 0],
       ["B", 1],
@@ -37,7 +36,7 @@ describe("SymbolGuards", () => {
 
   const bitmapSymbol: IBitmapSymbol = {
     ...baseFields,
-    kind: ESymbolKind.Bitmap,
+    kind: "bitmap",
     backingType: "u8",
     bitWidth: 8,
     fields: new Map([["flag", { offset: 0, width: 1 }]]),
@@ -45,7 +44,7 @@ describe("SymbolGuards", () => {
 
   const functionSymbol: IFunctionSymbol = {
     ...baseFields,
-    kind: ESymbolKind.Function,
+    kind: "function",
     returnType: "void",
     parameters: [],
     visibility: "public",
@@ -53,7 +52,7 @@ describe("SymbolGuards", () => {
 
   const variableSymbol: IVariableSymbol = {
     ...baseFields,
-    kind: ESymbolKind.Variable,
+    kind: "variable",
     type: "u32",
     isConst: false,
     isAtomic: false,
@@ -62,7 +61,7 @@ describe("SymbolGuards", () => {
 
   const scopeSymbol: IScopeSymbol = {
     ...baseFields,
-    kind: ESymbolKind.Namespace,
+    kind: "scope",
     members: ["init", "update"],
     memberVisibility: new Map([
       ["init", "public"],
@@ -72,7 +71,7 @@ describe("SymbolGuards", () => {
 
   const registerSymbol: IRegisterSymbol = {
     ...baseFields,
-    kind: ESymbolKind.Register,
+    kind: "register",
     baseAddress: "0x40000000",
     members: new Map([
       ["DATA", { offset: "0x00", cType: "uint32_t", access: "rw" }],
@@ -96,7 +95,7 @@ describe("SymbolGuards", () => {
 
     it("returns false for non-struct symbols", () => {
       for (const symbol of allSymbols) {
-        if (symbol.kind !== ESymbolKind.Struct) {
+        if (symbol.kind !== "struct") {
           expect(SymbolGuards.isStruct(symbol)).toBe(false);
         }
       }
@@ -118,7 +117,7 @@ describe("SymbolGuards", () => {
 
     it("returns false for non-enum symbols", () => {
       for (const symbol of allSymbols) {
-        if (symbol.kind !== ESymbolKind.Enum) {
+        if (symbol.kind !== "enum") {
           expect(SymbolGuards.isEnum(symbol)).toBe(false);
         }
       }
@@ -139,7 +138,7 @@ describe("SymbolGuards", () => {
 
     it("returns false for non-bitmap symbols", () => {
       for (const symbol of allSymbols) {
-        if (symbol.kind !== ESymbolKind.Bitmap) {
+        if (symbol.kind !== "bitmap") {
           expect(SymbolGuards.isBitmap(symbol)).toBe(false);
         }
       }
@@ -161,7 +160,7 @@ describe("SymbolGuards", () => {
 
     it("returns false for non-function symbols", () => {
       for (const symbol of allSymbols) {
-        if (symbol.kind !== ESymbolKind.Function) {
+        if (symbol.kind !== "function") {
           expect(SymbolGuards.isFunction(symbol)).toBe(false);
         }
       }
@@ -183,7 +182,7 @@ describe("SymbolGuards", () => {
 
     it("returns false for non-variable symbols", () => {
       for (const symbol of allSymbols) {
-        if (symbol.kind !== ESymbolKind.Variable) {
+        if (symbol.kind !== "variable") {
           expect(SymbolGuards.isVariable(symbol)).toBe(false);
         }
       }
@@ -205,7 +204,7 @@ describe("SymbolGuards", () => {
 
     it("returns false for non-scope symbols", () => {
       for (const symbol of allSymbols) {
-        if (symbol.kind !== ESymbolKind.Namespace) {
+        if (symbol.kind !== "scope") {
           expect(SymbolGuards.isScope(symbol)).toBe(false);
         }
       }
@@ -227,7 +226,7 @@ describe("SymbolGuards", () => {
 
     it("returns false for non-register symbols", () => {
       for (const symbol of allSymbols) {
-        if (symbol.kind !== ESymbolKind.Register) {
+        if (symbol.kind !== "register") {
           expect(SymbolGuards.isRegister(symbol)).toBe(false);
         }
       }

@@ -6,7 +6,6 @@
  */
 
 import ISymbol from "../../../utils/types/ISymbol";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import SymbolTable from "../../logic/symbols/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import typeUtils from "./generators/mapType";
@@ -47,13 +46,13 @@ class HeaderGeneratorUtils {
    */
   static groupSymbolsByKind(symbols: ISymbol[]): IGroupedSymbols {
     return {
-      structs: symbols.filter((s) => s.kind === ESymbolKind.Struct),
-      classes: symbols.filter((s) => s.kind === ESymbolKind.Class),
-      functions: symbols.filter((s) => s.kind === ESymbolKind.Function),
-      variables: symbols.filter((s) => s.kind === ESymbolKind.Variable),
-      enums: symbols.filter((s) => s.kind === ESymbolKind.Enum),
-      types: symbols.filter((s) => s.kind === ESymbolKind.Type),
-      bitmaps: symbols.filter((s) => s.kind === ESymbolKind.Bitmap),
+      structs: symbols.filter((s) => s.kind === "struct"),
+      classes: symbols.filter((s) => s.kind === "class"),
+      functions: symbols.filter((s) => s.kind === "function"),
+      variables: symbols.filter((s) => s.kind === "variable"),
+      enums: symbols.filter((s) => s.kind === "enum"),
+      types: symbols.filter((s) => s.kind === "type"),
+      bitmaps: symbols.filter((s) => s.kind === "bitmap"),
     };
   }
 

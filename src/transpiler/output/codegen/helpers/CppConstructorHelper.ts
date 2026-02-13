@@ -6,13 +6,13 @@
  * so designated initializers { .field = value } don't work with them.
  */
 
-import ESymbolKind from "../../../../utils/types/ESymbolKind.js";
+import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind.js";
 
 /**
  * Symbol lookup interface for constructor detection
  */
 interface ISymbolLookup {
-  getSymbol(name: string): { kind: ESymbolKind } | undefined;
+  getSymbol(name: string): { kind: TSymbolKind } | undefined;
 }
 
 class CppConstructorHelper {
@@ -68,7 +68,7 @@ class CppConstructorHelper {
     );
 
     const constructorSymbol = symbolTable.getSymbol(constructorName);
-    return constructorSymbol?.kind === ESymbolKind.Function;
+    return constructorSymbol?.kind === "function";
   }
 }
 

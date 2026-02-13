@@ -30,7 +30,6 @@ import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
-import ESymbolKind from "../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 
 /**
@@ -476,7 +475,7 @@ export default class CodeGenState {
     // so we only use C-Next symbols from SymbolTable.
     const symbol = this.symbolTable.getSymbol(name);
     if (
-      symbol?.kind === ESymbolKind.Variable &&
+      symbol?.kind === "variable" &&
       symbol.type &&
       symbol.sourceLanguage === ESourceLanguage.CNext
     ) {
@@ -503,7 +502,7 @@ export default class CodeGenState {
     }
     const symbol = this.symbolTable.getSymbol(name);
     return (
-      symbol?.kind === ESymbolKind.Variable &&
+      symbol?.kind === "variable" &&
       symbol.type !== undefined &&
       symbol.sourceLanguage === ESourceLanguage.CNext
     );

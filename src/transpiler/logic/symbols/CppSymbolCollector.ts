@@ -10,7 +10,6 @@ import {
   ClassSpecifierContext,
 } from "../parser/cpp/grammar/CPP14Parser";
 import ISymbol from "../../../utils/types/ISymbol";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import SymbolTable from "./SymbolTable";
 import SymbolUtils from "./SymbolUtils";
@@ -49,7 +48,7 @@ class CppSymbolCollector {
   private _addClassSymbol(fullName: string, line: number): void {
     SymbolCollectorContext.addSymbol(this.ctx, {
       name: fullName,
-      kind: ESymbolKind.Class,
+      kind: "class",
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
@@ -76,7 +75,7 @@ class CppSymbolCollector {
   ): void {
     SymbolCollectorContext.addSymbol(this.ctx, {
       name: `${className}::${funcName}`,
-      kind: ESymbolKind.Function,
+      kind: "function",
       type: returnType,
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
@@ -164,7 +163,7 @@ class CppSymbolCollector {
 
     SymbolCollectorContext.addSymbol(this.ctx, {
       name: fullName,
-      kind: ESymbolKind.Function,
+      kind: "function",
       type: returnType,
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
@@ -184,7 +183,7 @@ class CppSymbolCollector {
 
     SymbolCollectorContext.addSymbol(this.ctx, {
       name,
-      kind: ESymbolKind.Namespace,
+      kind: "namespace",
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
@@ -227,7 +226,7 @@ class CppSymbolCollector {
       if (identifier) {
         SymbolCollectorContext.addSymbol(this.ctx, {
           name: identifier.getText(),
-          kind: ESymbolKind.Type,
+          kind: "type",
           sourceFile: this.ctx.sourceFile,
           sourceLine: line,
           sourceLanguage: ESourceLanguage.Cpp,
@@ -340,7 +339,7 @@ class CppSymbolCollector {
 
     SymbolCollectorContext.addSymbol(this.ctx, {
       name: fullName,
-      kind: isFunction ? ESymbolKind.Function : ESymbolKind.Variable,
+      kind: isFunction ? "function" : "variable",
       type: baseType,
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
@@ -597,7 +596,7 @@ class CppSymbolCollector {
 
     SymbolCollectorContext.addSymbol(this.ctx, {
       name: fullName,
-      kind: ESymbolKind.Enum,
+      kind: "enum",
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,

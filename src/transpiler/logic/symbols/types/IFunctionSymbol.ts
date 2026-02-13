@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBaseSymbol from "./IBaseSymbol";
 import IParameterInfo from "./IParameterInfo";
 
@@ -7,7 +6,7 @@ import IParameterInfo from "./IParameterInfo";
  */
 interface IFunctionSymbol extends IBaseSymbol {
   /** Discriminant for type narrowing */
-  kind: ESymbolKind.Function;
+  kind: "function";
 
   /** Return type (e.g., "void", "u32", "Point") */
   returnType: string;

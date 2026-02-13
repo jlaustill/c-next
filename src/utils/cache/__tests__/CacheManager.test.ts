@@ -15,7 +15,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import CacheManager from "../CacheManager";
 import ISymbol from "../../types/ISymbol";
-import ESymbolKind from "../../types/ESymbolKind";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/logic/symbols/types/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
@@ -29,7 +28,7 @@ describe("CacheManager", () => {
   function createTestSymbol(overrides: Partial<ISymbol> = {}): ISymbol {
     return {
       name: "testFunc",
-      kind: ESymbolKind.Function,
+      kind: "function",
       sourceFile: "/test/file.h",
       sourceLine: 10,
       sourceLanguage: ESourceLanguage.C,
@@ -186,7 +185,7 @@ describe("CacheManager", () => {
       expect(cached!.symbols).toHaveLength(1);
       expect(cached!.symbols[0]).toMatchObject({
         name: "testFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
@@ -239,17 +238,17 @@ describe("CacheManager", () => {
         createTestSymbol({
           sourceFile: testFile,
           name: "func1",
-          kind: ESymbolKind.Function,
+          kind: "function",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "var1",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "MyStruct",
-          kind: ESymbolKind.Struct,
+          kind: "struct",
         }),
       ];
       cacheManager.setSymbols(testFile, symbols, new Map());
@@ -681,7 +680,7 @@ describe("CacheManager", () => {
       await cacheManager.initialize();
     });
 
-    it("should handle all ESymbolKind values", async () => {
+    it("should handle all TSymbolKind values", async () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -689,62 +688,62 @@ describe("CacheManager", () => {
         createTestSymbol({
           sourceFile: testFile,
           name: "func",
-          kind: ESymbolKind.Function,
+          kind: "function",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "var",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "MyType",
-          kind: ESymbolKind.Type,
+          kind: "type",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "ns",
-          kind: ESymbolKind.Namespace,
+          kind: "namespace",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "MyClass",
-          kind: ESymbolKind.Class,
+          kind: "class",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "MyStruct",
-          kind: ESymbolKind.Struct,
+          kind: "struct",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "MyEnum",
-          kind: ESymbolKind.Enum,
+          kind: "enum",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "VALUE",
-          kind: ESymbolKind.EnumMember,
+          kind: "enum_member",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "Flags",
-          kind: ESymbolKind.Bitmap,
+          kind: "bitmap",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "FLAG_A",
-          kind: ESymbolKind.BitmapField,
+          kind: "bitmap_field",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "REG",
-          kind: ESymbolKind.Register,
+          kind: "register",
         }),
         createTestSymbol({
           sourceFile: testFile,
           name: "FIELD",
-          kind: ESymbolKind.RegisterMember,
+          kind: "register_member",
         }),
       ];
 
@@ -758,18 +757,18 @@ describe("CacheManager", () => {
       const cached = newManager.getSymbols(testFile);
       expect(cached!.symbols).toHaveLength(12);
       expect(cached!.symbols.map((s) => s.kind)).toEqual([
-        ESymbolKind.Function,
-        ESymbolKind.Variable,
-        ESymbolKind.Type,
-        ESymbolKind.Namespace,
-        ESymbolKind.Class,
-        ESymbolKind.Struct,
-        ESymbolKind.Enum,
-        ESymbolKind.EnumMember,
-        ESymbolKind.Bitmap,
-        ESymbolKind.BitmapField,
-        ESymbolKind.Register,
-        ESymbolKind.RegisterMember,
+        "function",
+        "variable",
+        "type",
+        "namespace",
+        "class",
+        "struct",
+        "enum",
+        "enum_member",
+        "bitmap",
+        "bitmap_field",
+        "register",
+        "register_member",
       ]);
     });
   });
@@ -832,7 +831,7 @@ describe("CacheManager", () => {
       // Add symbols to SymbolTable
       const symbol: ISymbol = {
         name: "myFunction",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -850,7 +849,7 @@ describe("CacheManager", () => {
       expect(cached!.symbols).toHaveLength(1);
       expect(cached!.symbols[0]).toMatchObject({
         name: "myFunction",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -866,7 +865,7 @@ describe("CacheManager", () => {
       // Add struct symbol to SymbolTable
       const structSymbol: ISymbol = {
         name: "Point",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -905,7 +904,7 @@ describe("CacheManager", () => {
       // Add struct in file1
       symbolTable.addSymbol({
         name: "PointA",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -916,7 +915,7 @@ describe("CacheManager", () => {
       // Add struct in file2
       symbolTable.addSymbol({
         name: "PointB",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -941,7 +940,7 @@ describe("CacheManager", () => {
       // Add struct symbols
       symbolTable.addSymbol({
         name: "TypedefStruct",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -949,7 +948,7 @@ describe("CacheManager", () => {
       });
       symbolTable.addSymbol({
         name: "NamedStruct",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -981,7 +980,7 @@ describe("CacheManager", () => {
       // Add structs in different files
       symbolTable.addSymbol({
         name: "StructA",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -989,7 +988,7 @@ describe("CacheManager", () => {
       });
       symbolTable.addSymbol({
         name: "StructB",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1021,7 +1020,7 @@ describe("CacheManager", () => {
       // Add enum symbols
       symbolTable.addSymbol({
         name: "Status",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1029,7 +1028,7 @@ describe("CacheManager", () => {
       });
       symbolTable.addSymbol({
         name: "Priority",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1059,7 +1058,7 @@ describe("CacheManager", () => {
       // Add enums in different files
       symbolTable.addSymbol({
         name: "EnumA",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1067,7 +1066,7 @@ describe("CacheManager", () => {
       });
       symbolTable.addSymbol({
         name: "EnumB",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1095,7 +1094,7 @@ describe("CacheManager", () => {
       // Add function symbol
       symbolTable.addSymbol({
         name: "processData",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1106,7 +1105,7 @@ describe("CacheManager", () => {
       // Add struct symbol and fields
       symbolTable.addSymbol({
         name: "DataPacket",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1119,7 +1118,7 @@ describe("CacheManager", () => {
       // Add enum symbol and bit width
       symbolTable.addSymbol({
         name: "DataType",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: testFile,
         sourceLine: 20,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1165,7 +1164,7 @@ describe("CacheManager", () => {
       // Add data to SymbolTable
       symbolTable.addSymbol({
         name: "MyStruct",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1176,7 +1175,7 @@ describe("CacheManager", () => {
 
       symbolTable.addSymbol({
         name: "MyEnum",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1209,7 +1208,7 @@ describe("CacheManager", () => {
       // Add symbol for non-existent file
       symbolTable.addSymbol({
         name: "orphanFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: nonExistent,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1245,7 +1244,7 @@ describe("CacheManager", () => {
       // Add struct symbol without adding any fields
       symbolTable.addSymbol({
         name: "EmptyStruct",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1270,7 +1269,7 @@ describe("CacheManager", () => {
       // Add enum symbol without adding bit width
       symbolTable.addSymbol({
         name: "SimpleEnum",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1293,7 +1292,7 @@ describe("CacheManager", () => {
       // Add multiple functions
       symbolTable.addSymbol({
         name: "func1",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1301,7 +1300,7 @@ describe("CacheManager", () => {
       });
       symbolTable.addSymbol({
         name: "func2",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1309,7 +1308,7 @@ describe("CacheManager", () => {
       });
       symbolTable.addSymbol({
         name: "func3",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.CNext,
@@ -1378,7 +1377,7 @@ describe("CacheManager", () => {
 
       const symbol: ISymbol = {
         name: "testFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: "/project/test.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
@@ -1438,7 +1437,7 @@ describe("CacheManager", () => {
         [
           {
             name: "func",
-            kind: ESymbolKind.Function,
+            kind: "function",
             sourceFile: "/project/nonexistent.h",
             sourceLine: 1,
             sourceLanguage: ESourceLanguage.C,

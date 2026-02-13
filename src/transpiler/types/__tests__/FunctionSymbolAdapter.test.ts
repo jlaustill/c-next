@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import FunctionSymbolAdapter from "../FunctionSymbolAdapter";
 import ScopeUtils from "../ScopeUtils";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type OldIFunctionSymbol from "../../logic/symbols/types/IFunctionSymbol";
 import type OldIParameterInfo from "../../logic/symbols/types/IParameterInfo";
@@ -12,7 +11,7 @@ describe("FunctionSymbolAdapter", () => {
     overrides: Partial<OldIFunctionSymbol> = {},
   ): OldIFunctionSymbol {
     return {
-      kind: ESymbolKind.Function,
+      kind: "function",
       name: "test_func",
       sourceFile: "test.cnx",
       sourceLine: 10,

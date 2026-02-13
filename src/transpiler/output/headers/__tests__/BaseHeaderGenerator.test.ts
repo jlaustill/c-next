@@ -6,7 +6,6 @@ import { describe, it, expect } from "vitest";
 import CHeaderGenerator from "../CHeaderGenerator";
 import CppHeaderGenerator from "../CppHeaderGenerator";
 import ISymbol from "../../../../utils/types/ISymbol";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 /**
@@ -26,7 +25,7 @@ function createFunctionSymbol(
 ): ISymbol {
   return {
     name,
-    kind: ESymbolKind.Function,
+    kind: "function",
     type,
     sourceFile: "test.cnx",
     sourceLine: 1,

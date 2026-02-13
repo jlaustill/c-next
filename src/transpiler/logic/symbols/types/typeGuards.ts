@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBitmapSymbol from "./IBitmapSymbol";
 import IEnumSymbol from "./IEnumSymbol";
 import IFunctionSymbol from "./IFunctionSymbol";
@@ -13,31 +12,31 @@ import TSymbol from "./TSymbol";
  */
 class SymbolGuards {
   static isStruct(symbol: TSymbol): symbol is IStructSymbol {
-    return symbol.kind === ESymbolKind.Struct;
+    return symbol.kind === "struct";
   }
 
   static isEnum(symbol: TSymbol): symbol is IEnumSymbol {
-    return symbol.kind === ESymbolKind.Enum;
+    return symbol.kind === "enum";
   }
 
   static isBitmap(symbol: TSymbol): symbol is IBitmapSymbol {
-    return symbol.kind === ESymbolKind.Bitmap;
+    return symbol.kind === "bitmap";
   }
 
   static isFunction(symbol: TSymbol): symbol is IFunctionSymbol {
-    return symbol.kind === ESymbolKind.Function;
+    return symbol.kind === "function";
   }
 
   static isVariable(symbol: TSymbol): symbol is IVariableSymbol {
-    return symbol.kind === ESymbolKind.Variable;
+    return symbol.kind === "variable";
   }
 
   static isScope(symbol: TSymbol): symbol is IScopeSymbol {
-    return symbol.kind === ESymbolKind.Namespace;
+    return symbol.kind === "scope";
   }
 
   static isRegister(symbol: TSymbol): symbol is IRegisterSymbol {
-    return symbol.kind === ESymbolKind.Register;
+    return symbol.kind === "register";
   }
 }
 

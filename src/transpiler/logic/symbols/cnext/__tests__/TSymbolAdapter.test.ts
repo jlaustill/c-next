@@ -6,7 +6,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import TSymbolAdapter from "../adapters/TSymbolAdapter";
 import SymbolTable from "../../SymbolTable";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../types/IBitmapSymbol";
 import IEnumSymbol from "../../types/IEnumSymbol";
@@ -26,7 +25,7 @@ describe("TSymbolAdapter", () => {
   describe("convertBitmap", () => {
     it("converts IBitmapSymbol to ISymbol + BitmapField symbols", () => {
       const bitmap: IBitmapSymbol = {
-        kind: ESymbolKind.Bitmap,
+        kind: "bitmap",
         name: "Status",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -50,14 +49,14 @@ describe("TSymbolAdapter", () => {
       // Main bitmap symbol
       const bitmapSym = result[0];
       expect(bitmapSym.name).toBe("Status");
-      expect(bitmapSym.kind).toBe(ESymbolKind.Bitmap);
+      expect(bitmapSym.kind).toBe("bitmap");
       expect(bitmapSym.type).toBe("uint8_t");
       expect(bitmapSym.isExported).toBe(true);
 
       // Field symbols
       const enabledField = result.find((s) => s.name === "Status_enabled");
       expect(enabledField).toBeDefined();
-      expect(enabledField!.kind).toBe(ESymbolKind.BitmapField);
+      expect(enabledField!.kind).toBe("bitmap_field");
       expect(enabledField!.type).toBe("bool");
       expect(enabledField!.parent).toBe("Status");
       expect(enabledField!.signature).toBe("bit 0 (1 bit)");
@@ -70,7 +69,7 @@ describe("TSymbolAdapter", () => {
 
     it("uses correct type for multi-bit fields", () => {
       const bitmap: IBitmapSymbol = {
-        kind: ESymbolKind.Bitmap,
+        kind: "bitmap",
         name: "Control",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -101,7 +100,7 @@ describe("TSymbolAdapter", () => {
   describe("convertEnum", () => {
     it("converts IEnumSymbol to ISymbol", () => {
       const enumSym: IEnumSymbol = {
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         name: "Color",
         sourceFile: "test.cnx",
         sourceLine: 5,
@@ -119,23 +118,23 @@ describe("TSymbolAdapter", () => {
       // 1 enum + 3 members
       expect(result).toHaveLength(4);
       expect(result[0].name).toBe("Color");
-      expect(result[0].kind).toBe(ESymbolKind.Enum);
+      expect(result[0].kind).toBe("enum");
       expect(result[0].sourceFile).toBe("test.cnx");
       expect(result[0].sourceLine).toBe(5);
       expect(result[0].isExported).toBe(true);
 
       // Enum members
       expect(result[1].name).toBe("Red");
-      expect(result[1].kind).toBe(ESymbolKind.EnumMember);
+      expect(result[1].kind).toBe("enum_member");
       expect(result[1].type).toBe("0");
       expect(result[1].parent).toBe("Color");
 
       expect(result[2].name).toBe("Green");
-      expect(result[2].kind).toBe(ESymbolKind.EnumMember);
+      expect(result[2].kind).toBe("enum_member");
       expect(result[2].type).toBe("1");
 
       expect(result[3].name).toBe("Blue");
-      expect(result[3].kind).toBe(ESymbolKind.EnumMember);
+      expect(result[3].kind).toBe("enum_member");
       expect(result[3].type).toBe("2");
     });
   });
@@ -143,7 +142,7 @@ describe("TSymbolAdapter", () => {
   describe("convertStruct", () => {
     it("converts IStructSymbol to ISymbol and registers fields", () => {
       const struct: IStructSymbol = {
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         name: "Point",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -159,7 +158,7 @@ describe("TSymbolAdapter", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Point");
-      expect(result[0].kind).toBe(ESymbolKind.Struct);
+      expect(result[0].kind).toBe("struct");
 
       // Verify fields were registered in SymbolTable
       expect(symbolTable.getStructFieldType("Point", "x")).toBe("i32");
@@ -168,7 +167,7 @@ describe("TSymbolAdapter", () => {
 
     it("registers array fields with dimensions", () => {
       const struct: IStructSymbol = {
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         name: "Buffer",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -196,7 +195,7 @@ describe("TSymbolAdapter", () => {
   describe("convertFunction", () => {
     it("converts IFunctionSymbol to ISymbol + parameter symbols", () => {
       const func: IFunctionSymbol = {
-        kind: ESymbolKind.Function,
+        kind: "function",
         name: "calculate",
         sourceFile: "test.cnx",
         sourceLine: 10,
@@ -218,7 +217,7 @@ describe("TSymbolAdapter", () => {
       // Function symbol
       const funcSym = result[0];
       expect(funcSym.name).toBe("calculate");
-      expect(funcSym.kind).toBe(ESymbolKind.Function);
+      expect(funcSym.kind).toBe("function");
       expect(funcSym.type).toBe("i32");
       expect(funcSym.signature).toBe("i32 calculate(i32, i32)");
       expect(funcSym.parameters).toHaveLength(2);
@@ -234,7 +233,7 @@ describe("TSymbolAdapter", () => {
       // Parameter symbols
       const paramA = result.find((s) => s.name === "a");
       expect(paramA).toBeDefined();
-      expect(paramA!.kind).toBe(ESymbolKind.Variable);
+      expect(paramA!.kind).toBe("variable");
       expect(paramA!.type).toBe("i32");
       expect(paramA!.parent).toBe("calculate");
       expect(paramA!.isExported).toBe(false);
@@ -245,7 +244,7 @@ describe("TSymbolAdapter", () => {
 
     it("handles array parameters with [] type suffix", () => {
       const func: IFunctionSymbol = {
-        kind: ESymbolKind.Function,
+        kind: "function",
         name: "processArray",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -274,7 +273,7 @@ describe("TSymbolAdapter", () => {
   describe("convertVariable", () => {
     it("converts simple variable", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "counter",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -290,7 +289,7 @@ describe("TSymbolAdapter", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("counter");
-      expect(result[0].kind).toBe(ESymbolKind.Variable);
+      expect(result[0].kind).toBe("variable");
       expect(result[0].type).toBe("u32");
       expect(result[0].isConst).toBe(false);
       expect(result[0].isArray).toBe(false);
@@ -298,7 +297,7 @@ describe("TSymbolAdapter", () => {
 
     it("converts array variable with dimensions", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "buffer",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -321,7 +320,7 @@ describe("TSymbolAdapter", () => {
 
     it("converts const variable", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "MAX_SIZE",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -342,7 +341,7 @@ describe("TSymbolAdapter", () => {
   describe("convertRegister", () => {
     it("converts IRegisterSymbol to ISymbol + RegisterMember symbols", () => {
       const register: IRegisterSymbol = {
-        kind: ESymbolKind.Register,
+        kind: "register",
         name: "GPIO",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -364,13 +363,13 @@ describe("TSymbolAdapter", () => {
       // Register symbol
       const regSym = result[0];
       expect(regSym.name).toBe("GPIO");
-      expect(regSym.kind).toBe(ESymbolKind.Register);
+      expect(regSym.kind).toBe("register");
       expect(regSym.isExported).toBe(true);
 
       // Member symbols
       const dataMember = result.find((s) => s.name === "GPIO_DATA");
       expect(dataMember).toBeDefined();
-      expect(dataMember!.kind).toBe(ESymbolKind.RegisterMember);
+      expect(dataMember!.kind).toBe("register_member");
       expect(dataMember!.type).toBe("uint32_t");
       expect(dataMember!.parent).toBe("GPIO");
       expect(dataMember!.accessModifier).toBe("rw");
@@ -383,7 +382,7 @@ describe("TSymbolAdapter", () => {
   describe("convertScope", () => {
     it("converts IScopeSymbol to ISymbol", () => {
       const scope: IScopeSymbol = {
-        kind: ESymbolKind.Namespace,
+        kind: "scope",
         name: "Motor",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -401,7 +400,7 @@ describe("TSymbolAdapter", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Motor");
-      expect(result[0].kind).toBe(ESymbolKind.Namespace);
+      expect(result[0].kind).toBe("scope");
       expect(result[0].isExported).toBe(true);
     });
   });
@@ -410,7 +409,7 @@ describe("TSymbolAdapter", () => {
     it("handles array of different symbol types", () => {
       const symbols = [
         {
-          kind: ESymbolKind.Struct,
+          kind: "struct",
           name: "Point",
           sourceFile: "test.cnx",
           sourceLine: 1,
@@ -421,7 +420,7 @@ describe("TSymbolAdapter", () => {
           ]),
         } as IStructSymbol,
         {
-          kind: ESymbolKind.Function,
+          kind: "function",
           name: "main",
           sourceFile: "test.cnx",
           sourceLine: 5,
@@ -432,7 +431,7 @@ describe("TSymbolAdapter", () => {
           parameters: [],
         } as IFunctionSymbol,
         {
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           name: "counter",
           sourceFile: "test.cnx",
           sourceLine: 10,
@@ -451,13 +450,13 @@ describe("TSymbolAdapter", () => {
       expect(result).toHaveLength(3);
 
       const structSym = result.find((s) => s.name === "Point");
-      expect(structSym!.kind).toBe(ESymbolKind.Struct);
+      expect(structSym!.kind).toBe("struct");
 
       const funcSym = result.find((s) => s.name === "main");
-      expect(funcSym!.kind).toBe(ESymbolKind.Function);
+      expect(funcSym!.kind).toBe("function");
 
       const varSym = result.find((s) => s.name === "counter");
-      expect(varSym!.kind).toBe(ESymbolKind.Variable);
+      expect(varSym!.kind).toBe("variable");
 
       // Struct field should be registered
       expect(symbolTable.getStructFieldType("Point", "x")).toBe("i32");
@@ -467,7 +466,7 @@ describe("TSymbolAdapter", () => {
   describe("array dimension conversion", () => {
     it("converts qualified enum access (dots to underscores) in variable dimensions", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "DATA",
         sourceFile: "test.cnx",
         sourceLine: 10,
@@ -483,7 +482,7 @@ describe("TSymbolAdapter", () => {
       const result = TSymbolAdapter.toISymbols([variable], symbolTable);
 
       const varSym = result.find(
-        (s) => s.kind === ESymbolKind.Variable && s.name === "DATA",
+        (s) => s.kind === "variable" && s.name === "DATA",
       );
       expect(varSym).toBeDefined();
       expect(varSym!.arrayDimensions).toEqual(["EColor_COUNT"]);
@@ -491,7 +490,7 @@ describe("TSymbolAdapter", () => {
 
     it("converts qualified enum access in function parameter dimensions", () => {
       const funcSym: IFunctionSymbol = {
-        kind: ESymbolKind.Function,
+        kind: "function",
         name: "process",
         sourceFile: "test.cnx",
         sourceLine: 5,
@@ -513,7 +512,7 @@ describe("TSymbolAdapter", () => {
       const result = TSymbolAdapter.toISymbols([funcSym], symbolTable);
 
       const funcResult = result.find(
-        (s) => s.kind === ESymbolKind.Function && s.name === "process",
+        (s) => s.kind === "function" && s.name === "process",
       );
       expect(funcResult).toBeDefined();
       expect(funcResult!.parameters).toBeDefined();
@@ -524,7 +523,7 @@ describe("TSymbolAdapter", () => {
 
     it("passes through unqualified string dimensions as-is", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "DATA",
         sourceFile: "test.cnx",
         sourceLine: 10,
@@ -540,7 +539,7 @@ describe("TSymbolAdapter", () => {
       const result = TSymbolAdapter.toISymbols([variable], symbolTable);
 
       const varSym = result.find(
-        (s) => s.kind === ESymbolKind.Variable && s.name === "DATA",
+        (s) => s.kind === "variable" && s.name === "DATA",
       );
       expect(varSym).toBeDefined();
       expect(varSym!.arrayDimensions).toEqual(["DEVICE_COUNT"]);
@@ -548,7 +547,7 @@ describe("TSymbolAdapter", () => {
 
     it("preserves numeric array dimensions", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "DATA",
         sourceFile: "test.cnx",
         sourceLine: 10,
@@ -564,14 +563,14 @@ describe("TSymbolAdapter", () => {
       const result = TSymbolAdapter.toISymbols([variable], symbolTable);
 
       const varSym = result.find(
-        (s) => s.kind === ESymbolKind.Variable && s.name === "DATA",
+        (s) => s.kind === "variable" && s.name === "DATA",
       );
       expect(varSym!.arrayDimensions).toEqual(["256"]);
     });
 
     it("handles multi-dot qualified access (Motor.State.IDLE)", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "DATA",
         sourceFile: "test.cnx",
         sourceLine: 10,
@@ -587,7 +586,7 @@ describe("TSymbolAdapter", () => {
       const result = TSymbolAdapter.toISymbols([variable], symbolTable);
 
       const varSym = result.find(
-        (s) => s.kind === ESymbolKind.Variable && s.name === "DATA",
+        (s) => s.kind === "variable" && s.name === "DATA",
       );
       expect(varSym!.arrayDimensions).toEqual(["Motor_State_COUNT"]);
     });

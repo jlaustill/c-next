@@ -5,7 +5,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IFunctionSymbol from "../../types/IFunctionSymbol";
 import IParameterInfo from "../../types/IParameterInfo";
 import TypeUtils from "../utils/TypeUtils";
@@ -51,7 +50,7 @@ class FunctionCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: visibility === "public",
-      kind: ESymbolKind.Function,
+      kind: "function",
       returnType,
       parameters,
       visibility,

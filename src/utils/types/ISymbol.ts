@@ -1,4 +1,4 @@
-import ESymbolKind from "./ESymbolKind";
+import TSymbolKind from "../../transpiler/types/symbol-kinds/TSymbolKind";
 import ESourceLanguage from "./ESourceLanguage";
 import IParameterSymbol from "./IParameterSymbol";
 
@@ -10,7 +10,7 @@ interface ISymbol {
   name: string;
 
   /** Kind of symbol */
-  kind: ESymbolKind;
+  kind: TSymbolKind;
 
   /** Type of the symbol (e.g., "void", "u32", "int*") */
   type?: string;

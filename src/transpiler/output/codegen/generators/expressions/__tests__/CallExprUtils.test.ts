@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import CallExprUtils from "../CallExprUtils";
-import ESymbolKind from "../../../../../../utils/types/ESymbolKind";
 
 describe("CallExprUtils", () => {
   describe("mapTypeToCType", () => {
@@ -166,7 +165,7 @@ describe("CallExprUtils", () => {
       const symbolTable = {
         getOverloads: vi.fn(() => [
           {
-            kind: ESymbolKind.Function,
+            kind: "function",
             parameters: [
               { name: "val", type: "i32", isConst: true, isArray: false },
             ],
@@ -193,10 +192,7 @@ describe("CallExprUtils", () => {
 
     it("skips non-function symbols in SymbolTable", () => {
       const symbolTable = {
-        getOverloads: vi.fn(() => [
-          { kind: ESymbolKind.Variable },
-          { kind: ESymbolKind.Struct },
-        ]),
+        getOverloads: vi.fn(() => [{ kind: "variable" }, { kind: "struct" }]),
       };
 
       const result = CallExprUtils.resolveTargetParam(
@@ -214,7 +210,7 @@ describe("CallExprUtils", () => {
       const symbolTable = {
         getOverloads: vi.fn(() => [
           {
-            kind: ESymbolKind.Function,
+            kind: "function",
             parameters: [
               { name: "a", type: "u8", isConst: false, isArray: false },
             ],
@@ -243,7 +239,7 @@ describe("CallExprUtils", () => {
       const symbolTable = {
         getOverloads: vi.fn(() => [
           {
-            kind: ESymbolKind.Function,
+            kind: "function",
             parameters: [
               { name: "remote", type: "i64", isConst: true, isArray: false },
             ],
