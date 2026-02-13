@@ -10,7 +10,6 @@ import { CNextParser } from "../../parser/grammar/CNextParser";
 import InitializationAnalyzer from "../InitializationAnalyzer";
 import SymbolTable from "../../symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 /**
@@ -48,7 +47,7 @@ describe("InitializationAnalyzer", () => {
       // Set up CodeGenState with C++ class
       CodeGenState.symbolTable.addSymbol({
         name: "CppMessage",
-        kind: ESymbolKind.Class,
+        kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "CppMessage.hpp",
         sourceLine: 1,
@@ -103,7 +102,7 @@ describe("InitializationAnalyzer", () => {
       // Set up CodeGenState with C++ struct (not class)
       CodeGenState.symbolTable.addSymbol({
         name: "CppStruct",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "types.hpp",
         sourceLine: 1,
@@ -133,7 +132,7 @@ describe("InitializationAnalyzer", () => {
       // Set up CodeGenState with C struct (not C++)
       CodeGenState.symbolTable.addSymbol({
         name: "CStruct",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
         sourceLine: 1,
@@ -838,7 +837,7 @@ describe("InitializationAnalyzer", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "CppEnum",
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "types.hpp",
         sourceLine: 1,

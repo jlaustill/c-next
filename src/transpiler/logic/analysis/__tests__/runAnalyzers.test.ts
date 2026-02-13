@@ -9,7 +9,6 @@ import { CNextParser } from "../../parser/grammar/CNextParser";
 import runAnalyzers from "../runAnalyzers";
 import SymbolTable from "../../symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 /**
@@ -253,7 +252,7 @@ describe("runAnalyzers", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "ExternalFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
         sourceLine: 1,
@@ -274,7 +273,7 @@ describe("runAnalyzers", () => {
       // Set up C++ class in CodeGenState.symbolTable
       CodeGenState.symbolTable.addSymbol({
         name: "CppMessage",
-        kind: ESymbolKind.Class,
+        kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "CppMessage.hpp",
         sourceLine: 1,
