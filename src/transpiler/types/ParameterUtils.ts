@@ -3,7 +3,7 @@
  *
  * Provides utilities for creating and inspecting C-Next function parameters.
  */
-import type IParameterInfo from "./IParameterInfo";
+import type IParameterInfo from "./symbols/IParameterInfo";
 import type TType from "./TType";
 
 class ParameterUtils {

@@ -10,8 +10,8 @@
  * - String keys in Maps for lookup, but values are proper symbol objects
  */
 import ScopeUtils from "../types/ScopeUtils";
-import type IScopeSymbol from "../types/IScopeSymbol";
-import type IFunctionSymbol from "../types/IFunctionSymbol";
+import type IScopeSymbol from "../types/symbols/IScopeSymbol";
+import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
 
 class SymbolRegistry {
   /** The global scope singleton (recreated on reset) */

@@ -6,9 +6,9 @@
  */
 import type OldIFunctionSymbol from "../logic/symbols/types/IFunctionSymbol";
 import type OldIParameterInfo from "../logic/symbols/types/IParameterInfo";
-import type NewIFunctionSymbol from "./IFunctionSymbol";
-import type NewIParameterInfo from "./IParameterInfo";
-import type IScopeSymbol from "./IScopeSymbol";
+import type NewIFunctionSymbol from "./symbols/IFunctionSymbol";
+import type NewIParameterInfo from "./symbols/IParameterInfo";
+import type IScopeSymbol from "./symbols/IScopeSymbol";
 import TypeResolver from "./TypeResolver";
 import FunctionUtils from "./FunctionUtils";
 import ParameterUtils from "./ParameterUtils";

@@ -3,11 +3,12 @@
  *
  * Provides utilities for creating, inspecting, and name-mangling C-Next functions.
  */
-import type IFunctionSymbol from "./IFunctionSymbol";
+import type IFunctionSymbol from "./symbols/IFunctionSymbol";
 import type TVisibility from "./TVisibility";
-import type IScopeSymbol from "./IScopeSymbol";
-import type IParameterInfo from "./IParameterInfo";
+import type IScopeSymbol from "./symbols/IScopeSymbol";
+import type IParameterInfo from "./symbols/IParameterInfo";
 import type TType from "./TType";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "./ScopeUtils";
 
 /**
@@ -45,6 +46,8 @@ class FunctionUtils {
       body: options.body,
       sourceFile: options.sourceFile,
       sourceLine: options.sourceLine,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: options.visibility === "public",
     };
   }
 

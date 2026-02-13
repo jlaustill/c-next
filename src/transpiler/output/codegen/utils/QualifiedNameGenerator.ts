@@ -12,8 +12,8 @@
  * - Handles nested scopes: Outer.Inner.func -> Outer_Inner_func
  * - Global scope functions keep their bare names
  */
-import type IFunctionSymbol from "../../../types/IFunctionSymbol";
-import type IScopeSymbol from "../../../types/IScopeSymbol";
+import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
+import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 import FunctionUtils from "../../../types/FunctionUtils";
 import ScopeUtils from "../../../types/ScopeUtils";

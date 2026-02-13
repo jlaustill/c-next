@@ -1,4 +1,5 @@
 import type IBaseSymbol from "./IBaseSymbol";
+import type IFunctionSymbol from "./IFunctionSymbol";
 import type TVisibility from "../TVisibility";
 
 /**
@@ -12,11 +13,14 @@ interface IScopeSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "scope" */
   readonly kind: "scope";
 
-  /** Functions in this scope (forward declaration to avoid circular import) */
-  readonly functions: ReadonlyArray<IBaseSymbol>;
+  /** Parent scope (global scope's parent is itself) */
+  readonly parent: IScopeSymbol;
+
+  /** Functions in this scope */
+  readonly functions: IFunctionSymbol[];
 
   /** Variables in this scope */
-  readonly variables: ReadonlyArray<unknown>;
+  readonly variables: unknown[];
 
   /** Visibility of each member */
   readonly memberVisibility: ReadonlyMap<string, TVisibility>;
