@@ -5,7 +5,7 @@
  * Extracts common lookup patterns for improved testability.
  */
 
-import TSymbolKind from "../../../../utils/types/TSymbolKind.js";
+import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind.js";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage.js";
 
 /**

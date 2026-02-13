@@ -6,7 +6,7 @@
  * so designated initializers { .field = value } don't work with them.
  */
 
-import TSymbolKind from "../../../../utils/types/TSymbolKind.js";
+import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind.js";
 
 /**
  * Symbol lookup interface for constructor detection

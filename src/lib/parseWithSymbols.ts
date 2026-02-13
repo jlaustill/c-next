@@ -6,35 +6,36 @@ import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
 import CNextResolver from "../transpiler/logic/symbols/cnext/index";
 import TSymbolAdapter from "../transpiler/logic/symbols/cnext/adapters/TSymbolAdapter";
 import SymbolTable from "../transpiler/logic/symbols/SymbolTable";
-import ESymbolKind from "../utils/types/ESymbolKind";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
+import TInternalSymbolKind from "../transpiler/types/symbol-kinds/TSymbolKind";
 
 /**
- * Map ESymbolKind to TSymbolKind for extension use
+ * Map internal TSymbolKind (snake_case) to library TSymbolKind (camelCase) for extension use
  */
-function mapSymbolKind(kind: ESymbolKind): TSymbolKind {
+function mapSymbolKind(kind: TInternalSymbolKind): TSymbolKind {
   switch (kind) {
-    case ESymbolKind.Namespace:
+    case "namespace":
+    case "scope":
       return "namespace";
-    case ESymbolKind.Struct:
+    case "struct":
       return "struct";
-    case ESymbolKind.Register:
+    case "register":
       return "register";
-    case ESymbolKind.Function:
+    case "function":
       return "function";
-    case ESymbolKind.Variable:
+    case "variable":
       return "variable";
-    case ESymbolKind.RegisterMember:
+    case "register_member":
       return "registerMember";
-    case ESymbolKind.Enum:
+    case "enum":
       return "enum";
-    case ESymbolKind.EnumMember:
+    case "enum_member":
       return "enumMember";
-    case ESymbolKind.Bitmap:
+    case "bitmap":
       return "bitmap";
-    case ESymbolKind.BitmapField:
+    case "bitmap_field":
       return "bitmapField";
     default:
       return "variable";
