@@ -137,6 +137,8 @@ import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
 import SizeofResolver from "./resolution/SizeofResolver";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
 import ScopeResolver from "./resolution/ScopeResolver";
+// Issue #797: Centralized C-style name generation
+import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -2487,7 +2489,10 @@ export default class CodeGenerator implements IOrchestrator {
         const funcDecl = member.functionDeclaration()!;
         const funcName = funcDecl.IDENTIFIER().getText();
         // Track fully qualified function name: Scope_function
-        const fullName = `${scopeName}_${funcName}`;
+        const fullName = QualifiedNameGenerator.forFunctionStrings(
+          scopeName,
+          funcName,
+        );
         CodeGenState.knownFunctions.add(fullName);
         // ADR-013: Track function signature for const checking
         const sig = this.extractFunctionSignature(
@@ -2604,7 +2609,7 @@ export default class CodeGenerator implements IOrchestrator {
       if (member.variableDeclaration()) {
         const varDecl = member.variableDeclaration()!;
         const varName = varDecl.IDENTIFIER().getText();
-        const fullName = `${scopeName}_${varName}`;
+        const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
         // Register with mangled name (Scope_variable)
         this.trackVariableTypeWithName(varDecl, fullName);
       }
@@ -4136,7 +4141,7 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     const type = this.generateType(varDecl.type());
     const varName = varDecl.IDENTIFIER().getText();
-    const fullName = `${scopeName}_${varName}`;
+    const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
     const prefix = isPrivate ? "static " : "";
 
     const arrayDims = varDecl.arrayDimension();
@@ -4189,7 +4194,10 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     const returnType = this.generateType(funcDecl.type());
     const funcName = funcDecl.IDENTIFIER().getText();
-    const fullName = `${scopeName}_${funcName}`;
+    const fullName = QualifiedNameGenerator.forFunctionStrings(
+      scopeName,
+      funcName,
+    );
     const prefix = isPrivate ? "static " : "";
 
     // Issue #269: Set current function name for pass-by-value lookup

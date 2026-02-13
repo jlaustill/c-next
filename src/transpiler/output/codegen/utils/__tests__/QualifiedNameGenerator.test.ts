@@ -112,4 +112,72 @@ describe("QualifiedNameGenerator", () => {
       ]);
     });
   });
+
+  describe("forFunctionStrings", () => {
+    it("returns bare name for undefined scope", () => {
+      expect(QualifiedNameGenerator.forFunctionStrings(undefined, "main")).toBe(
+        "main",
+      );
+    });
+
+    it("returns mangled name for simple scope", () => {
+      expect(
+        QualifiedNameGenerator.forFunctionStrings("Test", "fillData"),
+      ).toBe("Test_fillData");
+    });
+
+    it("converts dotted scope to underscores", () => {
+      expect(
+        QualifiedNameGenerator.forFunctionStrings("Outer.Inner", "func"),
+      ).toBe("Outer_Inner_func");
+    });
+
+    it("uses SymbolRegistry when function is registered", () => {
+      // Register a function in SymbolRegistry
+      const scope = SymbolRegistry.getOrCreateScope("Motor");
+      const func = FunctionUtils.create({
+        name: "init",
+        scope,
+        parameters: [],
+        returnType: TTypeUtils.createPrimitive("void"),
+        visibility: "public",
+        body: null,
+        sourceFile: "motor.cnx",
+        sourceLine: 1,
+      });
+      SymbolRegistry.registerFunction(func);
+
+      // forFunctionStrings should find it via SymbolRegistry
+      expect(QualifiedNameGenerator.forFunctionStrings("Motor", "init")).toBe(
+        "Motor_init",
+      );
+    });
+
+    it("falls back to string concat when function not in registry", () => {
+      // Don't register the function - should fall back to string concat
+      expect(QualifiedNameGenerator.forFunctionStrings("Unknown", "func")).toBe(
+        "Unknown_func",
+      );
+    });
+  });
+
+  describe("forMember", () => {
+    it("returns bare name for undefined scope", () => {
+      expect(QualifiedNameGenerator.forMember(undefined, "value")).toBe(
+        "value",
+      );
+    });
+
+    it("returns mangled name for simple scope", () => {
+      expect(QualifiedNameGenerator.forMember("Test", "counter")).toBe(
+        "Test_counter",
+      );
+    });
+
+    it("converts dotted scope to underscores", () => {
+      expect(QualifiedNameGenerator.forMember("Outer.Inner", "data")).toBe(
+        "Outer_Inner_data",
+      );
+    });
+  });
 });

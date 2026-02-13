@@ -16,6 +16,7 @@ import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import CodeGenState from "../../../../state/CodeGenState";
 import type ICodeGenApi from "../../types/ICodeGenApi";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /** Get typed generator reference */
 function gen(): ICodeGenApi {
@@ -166,7 +167,7 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
     scopeName,
     parts,
   );
-  const scopedRegName = `${scopeName}_${parts[0]}`;
+  const scopedRegName = QualifiedNameGenerator.forMember(scopeName, parts[0]);
 
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);

@@ -13,6 +13,7 @@ import CodeGenState from "../../../state/CodeGenState";
 import SubscriptClassifier from "../subscript/SubscriptClassifier";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Classifies assignment statements by analyzing their structure.
@@ -227,7 +228,7 @@ class AssignmentClassifier {
       return null;
     }
 
-    const fullRegName = `${scopeName}_${ids[1]}`;
+    const fullRegName = QualifiedNameGenerator.forMember(scopeName, ids[1]);
     if (!CodeGenState.symbols!.knownRegisters.has(fullRegName)) {
       return null;
     }

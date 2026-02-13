@@ -11,8 +11,13 @@
  */
 import type IFunctionSymbol from "../../../types/IFunctionSymbol";
 import type IScopeSymbol from "../../../types/IScopeSymbol";
+import SymbolRegistry from "../../../state/SymbolRegistry";
 
 class QualifiedNameGenerator {
+  // ============================================================================
+  // Symbol-based methods (preferred)
+  // ============================================================================
+
   /**
    * Generate the C-style mangled name for a function.
    *
@@ -41,6 +46,65 @@ class QualifiedNameGenerator {
       return [];
     }
     return [...this.getScopePath(scope.parent), scope.name];
+  }
+
+  // ============================================================================
+  // String-based methods (for transition - use symbol-based when possible)
+  // ============================================================================
+
+  /**
+   * Generate a qualified function name from strings.
+   *
+   * Tries to look up the function in SymbolRegistry first.
+   * Falls back to simple string concatenation if not found.
+   *
+   * @param scopeName Scope name (e.g., "Test", "Outer.Inner") or undefined for global
+   * @param funcName Bare function name (e.g., "fillData")
+   * @returns C-mangled name (e.g., "Test_fillData")
+   */
+  static forFunctionStrings(
+    scopeName: string | undefined,
+    funcName: string,
+  ): string {
+    // Try SymbolRegistry first
+    if (scopeName) {
+      const scope = SymbolRegistry.getOrCreateScope(scopeName);
+      const func = SymbolRegistry.resolveFunction(funcName, scope);
+      if (func) {
+        return this.forFunction(func);
+      }
+    } else {
+      const global = SymbolRegistry.getGlobalScope();
+      const func = SymbolRegistry.resolveFunction(funcName, global);
+      if (func) {
+        return this.forFunction(func);
+      }
+    }
+
+    // Fallback to string concatenation
+    if (!scopeName) {
+      return funcName;
+    }
+    // Convert dotted scope path to underscores
+    const scopePrefix = scopeName.replace(/\./g, "_");
+    return `${scopePrefix}_${funcName}`;
+  }
+
+  /**
+   * Generate a qualified name for any scoped member (variable, enum, etc.).
+   *
+   * This is a simple string concatenation helper for non-function members.
+   *
+   * @param scopeName Scope name or undefined for global
+   * @param memberName Member name
+   * @returns C-mangled name
+   */
+  static forMember(scopeName: string | undefined, memberName: string): string {
+    if (!scopeName) {
+      return memberName;
+    }
+    const scopePrefix = scopeName.replace(/\./g, "_");
+    return `${scopePrefix}_${memberName}`;
   }
 }
 
