@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import FunctionSymbolAdapter from "../FunctionSymbolAdapter";
 import ScopeUtils from "../ScopeUtils";
 import ESymbolKind from "../../../utils/types/ESymbolKind";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type OldIFunctionSymbol from "../../logic/symbols/types/IFunctionSymbol";
 import type OldIParameterInfo from "../../logic/symbols/types/IParameterInfo";
 
@@ -13,9 +14,10 @@ describe("FunctionSymbolAdapter", () => {
     return {
       kind: ESymbolKind.Function,
       name: "test_func",
-      file: "test.cnx",
-      line: 10,
-      column: 1,
+      sourceFile: "test.cnx",
+      sourceLine: 10,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: true,
       returnType: "void",
       parameters: [],
       visibility: "public",
@@ -200,8 +202,8 @@ describe("FunctionSymbolAdapter", () => {
         returnType: "u32",
         parameters: [],
         visibility: "public",
-        file: "main.cnx",
-        line: 5,
+        sourceFile: "main.cnx",
+        sourceLine: 5,
       });
       const body = { type: "FunctionBody" };
 
@@ -228,8 +230,8 @@ describe("FunctionSymbolAdapter", () => {
         name: "Test_fillData",
         returnType: "void",
         visibility: "private",
-        file: "test.cnx",
-        line: 20,
+        sourceFile: "test.cnx",
+        sourceLine: 20,
       });
       const body = null;
 
@@ -290,8 +292,8 @@ describe("FunctionSymbolAdapter", () => {
       const oldSymbol = createOldSymbol({
         name: "Outer_Inner_helper",
         returnType: "void",
-        file: "nested.cnx",
-        line: 100,
+        sourceFile: "nested.cnx",
+        sourceLine: 100,
       });
 
       const result = FunctionSymbolAdapter.toNew(

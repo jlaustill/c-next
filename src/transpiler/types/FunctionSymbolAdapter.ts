@@ -44,8 +44,8 @@ class FunctionSymbolAdapter {
       returnType,
       visibility: oldSymbol.visibility,
       body,
-      sourceFile: oldSymbol.file,
-      sourceLine: oldSymbol.line,
+      sourceFile: oldSymbol.sourceFile,
+      sourceLine: oldSymbol.sourceLine,
     });
   }
 

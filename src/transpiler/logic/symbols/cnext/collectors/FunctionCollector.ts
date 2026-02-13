@@ -9,6 +9,8 @@ import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IFunctionSymbol from "../../types/IFunctionSymbol";
 import IParameterInfo from "../../types/IParameterInfo";
 import TypeUtils from "../utils/TypeUtils";
+import SymbolRegistry from "../../../../state/SymbolRegistry";
+import FunctionSymbolAdapter from "../../../../types/FunctionSymbolAdapter";
 
 class FunctionCollector {
   /**
@@ -55,6 +57,50 @@ class FunctionCollector {
       visibility,
       signature,
     };
+  }
+
+  /**
+   * Collect a function declaration and register it in SymbolRegistry.
+   *
+   * This method:
+   * 1. Calls existing collect() to get old-style symbol
+   * 2. Converts to new-style symbol via FunctionSymbolAdapter
+   * 3. Gets or creates the appropriate scope in SymbolRegistry
+   * 4. Registers the function in that scope
+   *
+   * @param ctx The function declaration context
+   * @param sourceFile Source file path
+   * @param scopeName Optional scope name for nested functions
+   * @param visibility Visibility for scope functions (default "private")
+   * @param body AST reference for the function body
+   * @returns The old-style function symbol for backward compatibility
+   */
+  static collectAndRegister(
+    ctx: Parser.FunctionDeclarationContext,
+    sourceFile: string,
+    scopeName: string | undefined,
+    visibility: "public" | "private" = "private",
+    body: Parser.BlockContext,
+  ): IFunctionSymbol {
+    // 1. Get old-style symbol via existing collect()
+    const oldSymbol = FunctionCollector.collect(
+      ctx,
+      sourceFile,
+      scopeName,
+      visibility,
+    );
+
+    // 2. Get or create the scope in SymbolRegistry
+    const scope = SymbolRegistry.getOrCreateScope(scopeName ?? "");
+
+    // 3. Convert to new-style symbol
+    const newSymbol = FunctionSymbolAdapter.toNew(oldSymbol, scope, body);
+
+    // 4. Register in SymbolRegistry
+    SymbolRegistry.registerFunction(newSymbol);
+
+    // Return old-style symbol for backward compatibility
+    return oldSymbol;
   }
 
   /**

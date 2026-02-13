@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
 import FunctionCollector from "../collectors/FunctionCollector";
 import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import SymbolRegistry from "../../../../state/SymbolRegistry";
 
 describe("FunctionCollector", () => {
   describe("basic function extraction", () => {
@@ -236,6 +237,169 @@ describe("FunctionCollector", () => {
       const symbol = FunctionCollector.collect(funcCtx, "test.cnx");
 
       expect(symbol.sourceLine).toBe(3);
+    });
+  });
+
+  describe("collectAndRegister", () => {
+    beforeEach(() => {
+      SymbolRegistry.reset();
+    });
+
+    it("returns the same symbol as collect()", () => {
+      const code = `
+        void doNothing() {
+        }
+      `;
+      const tree = parse(code);
+      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const body = funcCtx.block();
+
+      const collectSymbol = FunctionCollector.collect(funcCtx, "test.cnx");
+      SymbolRegistry.reset(); // Reset before collectAndRegister
+      const registerSymbol = FunctionCollector.collectAndRegister(
+        funcCtx,
+        "test.cnx",
+        undefined,
+        "private",
+        body,
+      );
+
+      expect(registerSymbol.name).toBe(collectSymbol.name);
+      expect(registerSymbol.returnType).toBe(collectSymbol.returnType);
+      expect(registerSymbol.parameters).toEqual(collectSymbol.parameters);
+      expect(registerSymbol.visibility).toBe(collectSymbol.visibility);
+      expect(registerSymbol.signature).toBe(collectSymbol.signature);
+    });
+
+    it("registers function in SymbolRegistry global scope", () => {
+      const code = `
+        u32 getValue() {
+          return 42;
+        }
+      `;
+      const tree = parse(code);
+      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const body = funcCtx.block();
+
+      FunctionCollector.collectAndRegister(
+        funcCtx,
+        "test.cnx",
+        undefined,
+        "private",
+        body,
+      );
+
+      const globalScope = SymbolRegistry.getGlobalScope();
+      expect(globalScope.functions.length).toBe(1);
+      expect(globalScope.functions[0].name).toBe("getValue");
+    });
+
+    it("creates scope and registers scoped functions", () => {
+      const code = `
+        void init() {
+        }
+      `;
+      const tree = parse(code);
+      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const body = funcCtx.block();
+
+      FunctionCollector.collectAndRegister(
+        funcCtx,
+        "motor.cnx",
+        "Motor",
+        "public",
+        body,
+      );
+
+      const motorScope = SymbolRegistry.getOrCreateScope("Motor");
+      expect(motorScope.functions.length).toBe(1);
+      expect(motorScope.functions[0].name).toBe("init");
+      expect(motorScope.functions[0].visibility).toBe("public");
+    });
+
+    it("reuses existing scope when registering multiple functions", () => {
+      const code = `
+        void funcA() {
+        }
+        void funcB() {
+        }
+      `;
+      const tree = parse(code);
+      const funcACtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcBCtx = tree.declaration(1)!.functionDeclaration()!;
+
+      FunctionCollector.collectAndRegister(
+        funcACtx,
+        "test.cnx",
+        "Test",
+        "public",
+        funcACtx.block(),
+      );
+      FunctionCollector.collectAndRegister(
+        funcBCtx,
+        "test.cnx",
+        "Test",
+        "private",
+        funcBCtx.block(),
+      );
+
+      const testScope = SymbolRegistry.getOrCreateScope("Test");
+      expect(testScope.functions.length).toBe(2);
+      expect(testScope.functions[0].name).toBe("funcA");
+      expect(testScope.functions[1].name).toBe("funcB");
+    });
+
+    it("stores body AST reference in registered function", () => {
+      const code = `
+        void testFunc() {
+          u32 x <- 1;
+        }
+      `;
+      const tree = parse(code);
+      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const body = funcCtx.block();
+
+      FunctionCollector.collectAndRegister(
+        funcCtx,
+        "test.cnx",
+        undefined,
+        "private",
+        body,
+      );
+
+      const globalScope = SymbolRegistry.getGlobalScope();
+      const registeredFunc = globalScope.functions[0];
+      expect(registeredFunc.body).toBe(body);
+    });
+
+    it("resolves function via SymbolRegistry.resolveFunction", () => {
+      const code = `
+        i32 calculate(u32 x) {
+          return x * 2;
+        }
+      `;
+      const tree = parse(code);
+      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+
+      FunctionCollector.collectAndRegister(
+        funcCtx,
+        "test.cnx",
+        undefined,
+        "private",
+        funcCtx.block(),
+      );
+
+      const globalScope = SymbolRegistry.getGlobalScope();
+      const resolved = SymbolRegistry.resolveFunction("calculate", globalScope);
+      expect(resolved).not.toBeNull();
+      expect(resolved!.name).toBe("calculate");
+      expect(resolved!.returnType.kind).toBe("primitive");
+      // Cast to primitive type to access primitive property
+      const returnType = resolved!.returnType as {
+        kind: "primitive";
+        primitive: string;
+      };
+      expect(returnType.primitive).toBe("i32");
     });
   });
 });
