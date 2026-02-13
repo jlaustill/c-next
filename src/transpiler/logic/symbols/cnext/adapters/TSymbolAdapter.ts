@@ -9,7 +9,6 @@
  */
 
 import ISymbol from "../../../../../utils/types/ISymbol";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import SymbolTable from "../../SymbolTable";
 import TSymbol from "../../types/TSymbol";
 import IBitmapSymbol from "../../types/IBitmapSymbol";
@@ -44,25 +43,25 @@ class TSymbolAdapter {
 
     for (const symbol of symbols) {
       switch (symbol.kind) {
-        case ESymbolKind.Bitmap:
+        case "bitmap":
           result.push(...TSymbolAdapter.convertBitmap(symbol));
           break;
-        case ESymbolKind.Enum:
+        case "enum":
           result.push(...TSymbolAdapter.convertEnum(symbol));
           break;
-        case ESymbolKind.Struct:
+        case "struct":
           result.push(TSymbolAdapter.convertStruct(symbol, symbolTable));
           break;
-        case ESymbolKind.Function:
+        case "function":
           result.push(...TSymbolAdapter.convertFunction(symbol));
           break;
-        case ESymbolKind.Variable:
+        case "variable":
           result.push(TSymbolAdapter.convertVariable(symbol));
           break;
-        case ESymbolKind.Register:
+        case "register":
           result.push(...TSymbolAdapter.convertRegister(symbol));
           break;
-        case ESymbolKind.Namespace:
+        case "scope":
           result.push(TSymbolAdapter.convertScope(symbol));
           break;
       }
@@ -98,7 +97,7 @@ class TSymbolAdapter {
     // Main bitmap symbol
     result.push({
       name: bitmap.name,
-      kind: ESymbolKind.Bitmap,
+      kind: "bitmap",
       type: bitmap.backingType,
       sourceFile: bitmap.sourceFile,
       sourceLine: bitmap.sourceLine,
@@ -118,7 +117,7 @@ class TSymbolAdapter {
 
       result.push({
         name: `${bitmap.name}_${fieldName}`,
-        kind: ESymbolKind.BitmapField,
+        kind: "bitmapField",
         type: width === 1 ? "bool" : `u${getMinBitWidth(width)}`,
         sourceFile: bitmap.sourceFile,
         sourceLine: bitmap.sourceLine,
@@ -141,7 +140,7 @@ class TSymbolAdapter {
     // Main enum symbol
     result.push({
       name: enumSym.name,
-      kind: ESymbolKind.Enum,
+      kind: "enum",
       sourceFile: enumSym.sourceFile,
       sourceLine: enumSym.sourceLine,
       sourceLanguage: enumSym.sourceLanguage,
@@ -155,7 +154,7 @@ class TSymbolAdapter {
     for (const [memberName, memberValue] of enumSym.members) {
       result.push({
         name: memberName,
-        kind: ESymbolKind.EnumMember,
+        kind: "enumMember",
         type: String(memberValue),
         sourceFile: enumSym.sourceFile,
         sourceLine: enumSym.sourceLine,
@@ -187,7 +186,7 @@ class TSymbolAdapter {
 
     return {
       name: struct.name,
-      kind: ESymbolKind.Struct,
+      kind: "struct",
       sourceFile: struct.sourceFile,
       sourceLine: struct.sourceLine,
       sourceLanguage: struct.sourceLanguage,
@@ -222,7 +221,7 @@ class TSymbolAdapter {
     // Main function symbol
     result.push({
       name: func.name,
-      kind: ESymbolKind.Function,
+      kind: "function",
       type: func.returnType,
       sourceFile: func.sourceFile,
       sourceLine: func.sourceLine,
@@ -239,7 +238,7 @@ class TSymbolAdapter {
 
       result.push({
         name: param.name,
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         type: displayType,
         sourceFile: func.sourceFile,
         sourceLine: func.sourceLine,
@@ -268,7 +267,7 @@ class TSymbolAdapter {
 
     const result: ISymbol = {
       name: variable.name,
-      kind: ESymbolKind.Variable,
+      kind: "variable",
       type: variable.type,
       sourceFile: variable.sourceFile,
       sourceLine: variable.sourceLine,
@@ -299,7 +298,7 @@ class TSymbolAdapter {
     // Main register symbol
     result.push({
       name: register.name,
-      kind: ESymbolKind.Register,
+      kind: "register",
       sourceFile: register.sourceFile,
       sourceLine: register.sourceLine,
       sourceLanguage: register.sourceLanguage,
@@ -311,7 +310,7 @@ class TSymbolAdapter {
     for (const [memberName, memberInfo] of register.members) {
       result.push({
         name: `${register.name}_${memberName}`,
-        kind: ESymbolKind.RegisterMember,
+        kind: "registerMember",
         type: memberInfo.cType,
         sourceFile: register.sourceFile,
         sourceLine: register.sourceLine,
@@ -333,7 +332,7 @@ class TSymbolAdapter {
   private static convertScope(scope: IScopeSymbol): ISymbol {
     return {
       name: scope.name,
-      kind: ESymbolKind.Namespace,
+      kind: "scope",
       sourceFile: scope.sourceFile,
       sourceLine: scope.sourceLine,
       sourceLanguage: scope.sourceLanguage,
