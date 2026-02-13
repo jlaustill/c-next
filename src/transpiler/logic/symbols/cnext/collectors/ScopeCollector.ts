@@ -48,7 +48,7 @@ class ScopeCollector {
     // Get or create the scope via SymbolRegistry
     const scope = SymbolRegistry.getOrCreateScope(scopeName);
 
-    // Update scope metadata
+    // Update scope metadata (cast to mutable for initialization)
     const mutableScope = scope as {
       sourceFile: string;
       sourceLine: number;
@@ -60,8 +60,12 @@ class ScopeCollector {
     mutableScope.sourceLanguage = ESourceLanguage.CNext;
     mutableScope.isExported = true;
 
-    const memberVisibility = scope.memberVisibility as Map<string, TVisibility>;
-    const members = scope.members as string[];
+    // Cast readonly collections to mutable (scope is being populated)
+    const memberVisibility = scope.memberVisibility as unknown as Map<
+      string,
+      TVisibility
+    >;
+    const members = scope.members as unknown as string[];
     const memberSymbols: TSymbol[] = [];
 
     for (const member of ctx.scopeMember()) {

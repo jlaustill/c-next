@@ -21,7 +21,7 @@ function getMangledName(symbol: {
 }
 
 class SymbolNameUtils {
-  static getMangledName = getMangledName;
+  static readonly getMangledName = getMangledName;
 }
 
 export default SymbolNameUtils;

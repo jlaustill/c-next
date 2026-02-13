@@ -232,7 +232,7 @@ class TSymbolInfoAdapter {
   // === Private Processing Methods ===
 
   // Use shared utility for name mangling
-  private static getMangledName = SymbolNameUtils.getMangledName;
+  private static readonly getMangledName = SymbolNameUtils.getMangledName;
 
   private static processStruct(
     struct: IStructSymbol,
