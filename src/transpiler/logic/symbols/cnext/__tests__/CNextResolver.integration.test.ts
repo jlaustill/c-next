@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CNextResolver from "../index";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import SymbolGuards from "../../types/typeGuards";
 
 describe("CNextResolver Integration", () => {
@@ -277,37 +276,25 @@ describe("CNextResolver Integration", () => {
       expect(symbols.length).toBe(10);
 
       // Verify each type is present
-      const structSymbols = symbols.filter(
-        (s) => s.kind === ESymbolKind.Struct,
-      );
+      const structSymbols = symbols.filter((s) => s.kind === "struct");
       expect(structSymbols.length).toBe(1);
 
-      const enumSymbols = symbols.filter((s) => s.kind === ESymbolKind.Enum);
+      const enumSymbols = symbols.filter((s) => s.kind === "enum");
       expect(enumSymbols.length).toBe(1);
 
-      const bitmapSymbols = symbols.filter(
-        (s) => s.kind === ESymbolKind.Bitmap,
-      );
+      const bitmapSymbols = symbols.filter((s) => s.kind === "bitmap");
       expect(bitmapSymbols.length).toBe(1);
 
-      const registerSymbols = symbols.filter(
-        (s) => s.kind === ESymbolKind.Register,
-      );
+      const registerSymbols = symbols.filter((s) => s.kind === "register");
       expect(registerSymbols.length).toBe(1);
 
-      const scopeSymbols = symbols.filter(
-        (s) => s.kind === ESymbolKind.Namespace,
-      );
+      const scopeSymbols = symbols.filter((s) => s.kind === "scope");
       expect(scopeSymbols.length).toBe(1);
 
-      const functionSymbols = symbols.filter(
-        (s) => s.kind === ESymbolKind.Function,
-      );
+      const functionSymbols = symbols.filter((s) => s.kind === "function");
       expect(functionSymbols.length).toBe(3);
 
-      const variableSymbols = symbols.filter(
-        (s) => s.kind === ESymbolKind.Variable,
-      );
+      const variableSymbols = symbols.filter((s) => s.kind === "variable");
       expect(variableSymbols.length).toBe(2);
     });
 

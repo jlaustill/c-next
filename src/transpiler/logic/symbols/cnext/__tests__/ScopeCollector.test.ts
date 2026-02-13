@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import ScopeCollector from "../collectors/ScopeCollector";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import SymbolGuards from "../../types/typeGuards";
 
@@ -16,7 +15,7 @@ describe("ScopeCollector", () => {
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
-      expect(result.scopeSymbol.kind).toBe(ESymbolKind.Namespace);
+      expect(result.scopeSymbol.kind).toBe("scope");
       expect(result.scopeSymbol.name).toBe("Motor");
       expect(result.scopeSymbol.members).toEqual([]);
       expect(result.scopeSymbol.sourceFile).toBe("test.cnx");

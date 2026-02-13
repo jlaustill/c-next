@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import VariableCollector from "../collectors/VariableCollector";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 
 describe("VariableCollector", () => {
@@ -14,7 +13,7 @@ describe("VariableCollector", () => {
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
       const symbol = VariableCollector.collect(varCtx, "test.cnx");
 
-      expect(symbol.kind).toBe(ESymbolKind.Variable);
+      expect(symbol.kind).toBe("variable");
       expect(symbol.name).toBe("counter");
       expect(symbol.type).toBe("u32");
       expect(symbol.isConst).toBe(false);

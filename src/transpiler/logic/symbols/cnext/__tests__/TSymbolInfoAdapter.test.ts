@@ -8,7 +8,6 @@
 
 import { describe, expect, it } from "vitest";
 import TSymbolInfoAdapter from "../adapters/TSymbolInfoAdapter";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../types/IBitmapSymbol";
 import IEnumSymbol from "../../types/IEnumSymbol";
@@ -22,7 +21,7 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert structs", () => {
     it("should populate knownStructs set", () => {
       const struct: IStructSymbol = {
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         name: "Point",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -41,7 +40,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate structFields map", () => {
       const struct: IStructSymbol = {
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         name: "Point",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -61,7 +60,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate structFieldArrays for array fields", () => {
       const struct: IStructSymbol = {
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         name: "Buffer",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -84,7 +83,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate structFieldDimensions for array fields", () => {
       const struct: IStructSymbol = {
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         name: "Matrix",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -109,7 +108,7 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert enums", () => {
     it("should populate knownEnums set", () => {
       const enumSym: IEnumSymbol = {
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         name: "Color",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -129,7 +128,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate enumMembers map", () => {
       const enumSym: IEnumSymbol = {
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         name: "Priority",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -153,7 +152,7 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert bitmaps", () => {
     it("should populate knownBitmaps set", () => {
       const bitmap: IBitmapSymbol = {
-        kind: ESymbolKind.Bitmap,
+        kind: "bitmap",
         name: "Status",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -171,7 +170,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate bitmapBackingType and bitmapBitWidth", () => {
       const bitmap: IBitmapSymbol = {
-        kind: ESymbolKind.Bitmap,
+        kind: "bitmap",
         name: "Control",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -194,7 +193,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate bitmapFields with offset and width", () => {
       const bitmap: IBitmapSymbol = {
-        kind: ESymbolKind.Bitmap,
+        kind: "bitmap",
         name: "Flags",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -221,7 +220,7 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert scopes", () => {
     it("should populate knownScopes set", () => {
       const scope: IScopeSymbol = {
-        kind: ESymbolKind.Namespace,
+        kind: "scope",
         name: "Motor",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -241,7 +240,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate scopeMembers with member names", () => {
       const scope: IScopeSymbol = {
-        kind: ESymbolKind.Namespace,
+        kind: "scope",
         name: "LED",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -265,7 +264,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate scopeMemberVisibility", () => {
       const scope: IScopeSymbol = {
-        kind: ESymbolKind.Namespace,
+        kind: "scope",
         name: "Timer",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -291,7 +290,7 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert registers", () => {
     it("should populate knownRegisters set", () => {
       const register: IRegisterSymbol = {
-        kind: ESymbolKind.Register,
+        kind: "register",
         name: "GPIO",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -310,7 +309,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate registerBaseAddresses", () => {
       const register: IRegisterSymbol = {
-        kind: ESymbolKind.Register,
+        kind: "register",
         name: "UART",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -329,7 +328,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate register member info maps", () => {
       const register: IRegisterSymbol = {
-        kind: ESymbolKind.Register,
+        kind: "register",
         name: "SPI",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -354,7 +353,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should track bitmap types for register members", () => {
       const bitmap: IBitmapSymbol = {
-        kind: ESymbolKind.Bitmap,
+        kind: "bitmap",
         name: "StatusFlags",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -366,7 +365,7 @@ describe("TSymbolInfoAdapter", () => {
       };
 
       const register: IRegisterSymbol = {
-        kind: ESymbolKind.Register,
+        kind: "register",
         name: "CTRL",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -397,7 +396,7 @@ describe("TSymbolInfoAdapter", () => {
     it("should track private scope const values for inlining", () => {
       // Variable with scope prefix (scoped variable)
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "Motor_MAX_SPEED",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -417,7 +416,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should not track public const values", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "Motor_PUBLIC_CONST",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -439,7 +438,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should not track non-const private values", () => {
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "Motor_counter",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -459,7 +458,7 @@ describe("TSymbolInfoAdapter", () => {
     it("should NOT track private const array values for inlining", () => {
       // Issue #500: Array consts must be emitted, not inlined
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "Motor_LOOKUP_TABLE",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -484,7 +483,7 @@ describe("TSymbolInfoAdapter", () => {
     it("should NOT track private const multi-dimensional array values", () => {
       // Issue #500: Multi-dimensional arrays must also be emitted
       const variable: IVariableSymbol = {
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         name: "Motor_MATRIX",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -507,7 +506,7 @@ describe("TSymbolInfoAdapter", () => {
   describe("hasPublicSymbols", () => {
     it("should return true when scope has public members", () => {
       const scope: IScopeSymbol = {
-        kind: ESymbolKind.Namespace,
+        kind: "scope",
         name: "LED",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -524,7 +523,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should return false when all scope members are private", () => {
       const scope: IScopeSymbol = {
-        kind: ESymbolKind.Namespace,
+        kind: "scope",
         name: "Internal",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -541,7 +540,7 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should return false when there are no scopes", () => {
       const struct: IStructSymbol = {
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         name: "Point",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -569,7 +568,7 @@ describe("TSymbolInfoAdapter", () => {
     // which isn't done by the current collectors
     it("should return null for unknown variables", () => {
       const scope: IScopeSymbol = {
-        kind: ESymbolKind.Namespace,
+        kind: "scope",
         name: "Motor",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -589,7 +588,7 @@ describe("TSymbolInfoAdapter", () => {
     it("should handle array of different symbol types", () => {
       const symbols = [
         {
-          kind: ESymbolKind.Struct,
+          kind: "struct",
           name: "Point",
           sourceFile: "test.cnx",
           sourceLine: 1,
@@ -600,7 +599,7 @@ describe("TSymbolInfoAdapter", () => {
           ]),
         } as IStructSymbol,
         {
-          kind: ESymbolKind.Enum,
+          kind: "enum",
           name: "Color",
           sourceFile: "test.cnx",
           sourceLine: 5,
@@ -612,7 +611,7 @@ describe("TSymbolInfoAdapter", () => {
           ]),
         } as IEnumSymbol,
         {
-          kind: ESymbolKind.Namespace,
+          kind: "scope",
           name: "Motor",
           sourceFile: "test.cnx",
           sourceLine: 10,
@@ -622,7 +621,7 @@ describe("TSymbolInfoAdapter", () => {
           memberVisibility: new Map([["init", "public"]]),
         } as IScopeSymbol,
         {
-          kind: ESymbolKind.Function,
+          kind: "function",
           name: "main",
           sourceFile: "test.cnx",
           sourceLine: 15,

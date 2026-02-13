@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import EnumCollector from "../collectors/EnumCollector";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 
 describe("EnumCollector", () => {
@@ -18,7 +17,7 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx");
 
-      expect(symbol.kind).toBe(ESymbolKind.Enum);
+      expect(symbol.kind).toBe("enum");
       expect(symbol.name).toBe("Color");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);

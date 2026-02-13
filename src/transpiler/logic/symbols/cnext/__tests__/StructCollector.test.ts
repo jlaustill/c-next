@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import StructCollector from "../collectors/StructCollector";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 
 describe("StructCollector", () => {
@@ -17,7 +16,7 @@ describe("StructCollector", () => {
       const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(structCtx, "test.cnx");
 
-      expect(symbol.kind).toBe(ESymbolKind.Struct);
+      expect(symbol.kind).toBe("struct");
       expect(symbol.name).toBe("Point");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);

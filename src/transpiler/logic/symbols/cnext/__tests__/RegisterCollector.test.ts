@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import RegisterCollector from "../collectors/RegisterCollector";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 
 describe("RegisterCollector", () => {
@@ -17,7 +16,7 @@ describe("RegisterCollector", () => {
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
       const symbol = RegisterCollector.collect(regCtx, "test.cnx", new Set());
 
-      expect(symbol.kind).toBe(ESymbolKind.Register);
+      expect(symbol.kind).toBe("register");
       expect(symbol.name).toBe("GPIO");
       expect(symbol.baseAddress).toBe("0x40000000");
       expect(symbol.sourceFile).toBe("test.cnx");
