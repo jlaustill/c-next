@@ -4,16 +4,16 @@
 
 import { describe, it, expect } from "vitest";
 import HeaderGeneratorUtils from "../HeaderGeneratorUtils";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../../utils/types/ISymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
+import TSymbolKind from "../../../../utils/types/TSymbolKind";
 
 /**
  * Helper to create test symbols with required properties
  */
 function makeSymbol(
-  partial: Partial<ISymbol> & { name: string; kind: ESymbolKind },
+  partial: Partial<ISymbol> & { name: string; kind: TSymbolKind },
 ): ISymbol {
   return {
     sourceFile: "test.cnx",
@@ -69,13 +69,13 @@ describe("HeaderGeneratorUtils", () => {
   describe("groupSymbolsByKind", () => {
     it("groups symbols correctly", () => {
       const symbols: ISymbol[] = [
-        makeSymbol({ name: "MyStruct", kind: ESymbolKind.Struct }),
-        makeSymbol({ name: "MyEnum", kind: ESymbolKind.Enum }),
-        makeSymbol({ name: "myFunc", kind: ESymbolKind.Function }),
-        makeSymbol({ name: "myVar", kind: ESymbolKind.Variable }),
-        makeSymbol({ name: "MyClass", kind: ESymbolKind.Class }),
-        makeSymbol({ name: "MyType", kind: ESymbolKind.Type }),
-        makeSymbol({ name: "MyBitmap", kind: ESymbolKind.Bitmap }),
+        makeSymbol({ name: "MyStruct", kind: "struct" }),
+        makeSymbol({ name: "MyEnum", kind: "enum" }),
+        makeSymbol({ name: "myFunc", kind: "function" }),
+        makeSymbol({ name: "myVar", kind: "variable" }),
+        makeSymbol({ name: "MyClass", kind: "class" }),
+        makeSymbol({ name: "MyType", kind: "type" }),
+        makeSymbol({ name: "MyBitmap", kind: "bitmap" }),
       ];
 
       const groups = HeaderGeneratorUtils.groupSymbolsByKind(symbols);
@@ -185,15 +185,15 @@ describe("HeaderGeneratorUtils", () => {
     it("extracts local type names from grouped symbols", () => {
       const groups = {
         structs: [
-          makeSymbol({ name: "Point", kind: ESymbolKind.Struct }),
-          makeSymbol({ name: "Rect", kind: ESymbolKind.Struct }),
+          makeSymbol({ name: "Point", kind: "struct" }),
+          makeSymbol({ name: "Rect", kind: "struct" }),
         ],
         classes: [] as ISymbol[],
         functions: [] as ISymbol[],
         variables: [] as ISymbol[],
-        enums: [makeSymbol({ name: "Color", kind: ESymbolKind.Enum })],
-        types: [makeSymbol({ name: "Size", kind: ESymbolKind.Type })],
-        bitmaps: [makeSymbol({ name: "Flags", kind: ESymbolKind.Bitmap })],
+        enums: [makeSymbol({ name: "Color", kind: "enum" })],
+        types: [makeSymbol({ name: "Size", kind: "type" })],
+        bitmaps: [makeSymbol({ name: "Flags", kind: "bitmap" })],
       };
 
       const localTypes = HeaderGeneratorUtils.getLocalTypeNames(groups);
@@ -243,7 +243,7 @@ describe("HeaderGeneratorUtils", () => {
       const functions: ISymbol[] = [
         makeSymbol({
           name: "getConfig",
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: "Config",
         }),
       ];
@@ -264,7 +264,7 @@ describe("HeaderGeneratorUtils", () => {
       const functions: ISymbol[] = [
         makeSymbol({
           name: "process",
-          kind: ESymbolKind.Function,
+          kind: "function",
           parameters: [makeParam({ name: "data", type: "DataPacket" })],
         }),
       ];
@@ -285,7 +285,7 @@ describe("HeaderGeneratorUtils", () => {
       const variables: ISymbol[] = [
         makeSymbol({
           name: "state",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "SystemState",
         }),
       ];
@@ -306,7 +306,7 @@ describe("HeaderGeneratorUtils", () => {
       const functions: ISymbol[] = [
         makeSymbol({
           name: "getPoint",
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: "Point",
         }),
       ];
@@ -327,7 +327,7 @@ describe("HeaderGeneratorUtils", () => {
       const functions: ISymbol[] = [
         makeSymbol({
           name: "getValue",
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: "u32",
         }),
       ];
@@ -348,7 +348,7 @@ describe("HeaderGeneratorUtils", () => {
       const functions: ISymbol[] = [
         makeSymbol({
           name: "parse",
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: "std::string",
         }),
       ];
@@ -369,7 +369,7 @@ describe("HeaderGeneratorUtils", () => {
       const functions: ISymbol[] = [
         makeSymbol({
           name: "getColor",
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: "Color",
         }),
       ];
@@ -447,10 +447,10 @@ describe("HeaderGeneratorUtils", () => {
       const variables: ISymbol[] = [
         makeSymbol({
           name: "a",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "std::string",
         }),
-        makeSymbol({ name: "b", kind: ESymbolKind.Variable, type: "int" }),
+        makeSymbol({ name: "b", kind: "variable", type: "int" }),
       ];
 
       const result = HeaderGeneratorUtils.filterCCompatibleVariables(variables);
@@ -463,10 +463,10 @@ describe("HeaderGeneratorUtils", () => {
       const variables: ISymbol[] = [
         makeSymbol({
           name: "a",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "vector<int>",
         }),
-        makeSymbol({ name: "b", kind: ESymbolKind.Variable, type: "u32" }),
+        makeSymbol({ name: "b", kind: "variable", type: "u32" }),
       ];
 
       const result = HeaderGeneratorUtils.filterCCompatibleVariables(variables);
@@ -479,7 +479,7 @@ describe("HeaderGeneratorUtils", () => {
       const variables: ISymbol[] = [
         makeSymbol({
           name: "name",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "string<32>",
         }),
       ];
@@ -589,14 +589,14 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("generates placeholder when no typeInput", () => {
-      const enums = [makeSymbol({ name: "Color", kind: ESymbolKind.Enum })];
+      const enums = [makeSymbol({ name: "Color", kind: "enum" })];
       const lines = HeaderGeneratorUtils.generateEnumSection(enums);
 
       expect(lines.some((l) => l.includes("/* Enum: Color"))).toBe(true);
     });
 
     it("includes section comment", () => {
-      const enums = [makeSymbol({ name: "Color", kind: ESymbolKind.Enum })];
+      const enums = [makeSymbol({ name: "Color", kind: "enum" })];
       const lines = HeaderGeneratorUtils.generateEnumSection(enums);
 
       expect(lines).toContain("/* Enumerations */");
@@ -611,14 +611,14 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("generates placeholder when no typeInput", () => {
-      const bitmaps = [makeSymbol({ name: "Flags", kind: ESymbolKind.Bitmap })];
+      const bitmaps = [makeSymbol({ name: "Flags", kind: "bitmap" })];
       const lines = HeaderGeneratorUtils.generateBitmapSection(bitmaps);
 
       expect(lines.some((l) => l.includes("/* Bitmap: Flags"))).toBe(true);
     });
 
     it("includes section comment", () => {
-      const bitmaps = [makeSymbol({ name: "Flags", kind: ESymbolKind.Bitmap })];
+      const bitmaps = [makeSymbol({ name: "Flags", kind: "bitmap" })];
       const lines = HeaderGeneratorUtils.generateBitmapSection(bitmaps);
 
       expect(lines).toContain("/* Bitmaps */");
@@ -634,8 +634,8 @@ describe("HeaderGeneratorUtils", () => {
 
     it("generates typedef for each type alias", () => {
       const types = [
-        makeSymbol({ name: "Size", kind: ESymbolKind.Type, type: "u32" }),
-        makeSymbol({ name: "Handle", kind: ESymbolKind.Type, type: "u64" }),
+        makeSymbol({ name: "Size", kind: "type", type: "u32" }),
+        makeSymbol({ name: "Handle", kind: "type", type: "u64" }),
       ];
       const lines = HeaderGeneratorUtils.generateTypeAliasSection(types);
 
@@ -645,8 +645,8 @@ describe("HeaderGeneratorUtils", () => {
 
     it("skips types without type property", () => {
       const types = [
-        makeSymbol({ name: "NoType", kind: ESymbolKind.Type }),
-        makeSymbol({ name: "WithType", kind: ESymbolKind.Type, type: "i32" }),
+        makeSymbol({ name: "NoType", kind: "type" }),
+        makeSymbol({ name: "WithType", kind: "type", type: "i32" }),
       ];
       const lines = HeaderGeneratorUtils.generateTypeAliasSection(types);
 
@@ -663,8 +663,8 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("generates forward declarations when no typeInput", () => {
-      const structs = [makeSymbol({ name: "Point", kind: ESymbolKind.Struct })];
-      const classes = [makeSymbol({ name: "Shape", kind: ESymbolKind.Class })];
+      const structs = [makeSymbol({ name: "Point", kind: "struct" })];
+      const classes = [makeSymbol({ name: "Shape", kind: "class" })];
       const lines = HeaderGeneratorUtils.generateStructSection(
         structs,
         classes,
@@ -687,7 +687,7 @@ describe("HeaderGeneratorUtils", () => {
       const variables = [
         makeSymbol({
           name: "counter",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u32",
         }),
       ];
@@ -700,7 +700,7 @@ describe("HeaderGeneratorUtils", () => {
       const variables = [
         makeSymbol({
           name: "VERSION",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u32",
           isConst: true,
         }),
@@ -714,7 +714,7 @@ describe("HeaderGeneratorUtils", () => {
       const variables = [
         makeSymbol({
           name: "flag",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "bool",
           isAtomic: true,
         }),
@@ -728,7 +728,7 @@ describe("HeaderGeneratorUtils", () => {
       const variables = [
         makeSymbol({
           name: "buffer",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           type: "u8",
           isArray: true,
           arrayDimensions: ["64"],

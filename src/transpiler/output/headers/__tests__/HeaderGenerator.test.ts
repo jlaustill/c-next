@@ -5,7 +5,6 @@
  */
 
 import HeaderGenerator from "../HeaderGenerator";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../../utils/types/ISymbol";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
@@ -27,7 +26,7 @@ describe("HeaderGenerator", () => {
     return {
       name,
       type,
-      kind: ESymbolKind.Variable,
+      kind: "variable",
       sourceFile: "test.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,
@@ -109,7 +108,7 @@ describe("HeaderGenerator", () => {
     function makeEnumSymbol(name: string): ISymbol {
       return {
         name,
-        kind: ESymbolKind.Enum,
+        kind: "enum",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -121,7 +120,7 @@ describe("HeaderGenerator", () => {
     function makeStructSymbol(name: string): ISymbol {
       return {
         name,
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -203,7 +202,7 @@ describe("HeaderGenerator", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: namespaceName,
-        kind: ESymbolKind.Namespace,
+        kind: "namespace",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: `${namespaceName}.hpp`,
         sourceLine: 1,
@@ -270,7 +269,7 @@ describe("HeaderGenerator", () => {
         return {
           name,
           type: "void",
-          kind: ESymbolKind.Function,
+          kind: "function",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -359,7 +358,7 @@ describe("HeaderGenerator", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "myFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "module.cnx",
         sourceLine: 1,
@@ -368,7 +367,7 @@ describe("HeaderGenerator", () => {
       });
       symbolTable.addSymbol({
         name: "otherFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "other.cnx",
         sourceLine: 1,
@@ -391,7 +390,7 @@ describe("HeaderGenerator", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "testFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "src/utils/helper.cnx",
         sourceLine: 1,
@@ -415,7 +414,7 @@ describe("HeaderGenerator", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "cnextFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "module.cnx",
         sourceLine: 1,
@@ -424,7 +423,7 @@ describe("HeaderGenerator", () => {
       });
       symbolTable.addSymbol({
         name: "cppFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "module.hpp",
         sourceLine: 1,
@@ -433,7 +432,7 @@ describe("HeaderGenerator", () => {
       });
       symbolTable.addSymbol({
         name: "cFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "module.h",
         sourceLine: 1,
@@ -452,7 +451,7 @@ describe("HeaderGenerator", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "testFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -470,7 +469,7 @@ describe("HeaderGenerator", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addSymbol({
         name: "exportedFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -479,7 +478,7 @@ describe("HeaderGenerator", () => {
       });
       symbolTable.addSymbol({
         name: "internalFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "void",
         sourceFile: "test.cnx",
         sourceLine: 1,

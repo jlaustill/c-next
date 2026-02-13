@@ -7,7 +7,6 @@
 import { describe, it, expect } from "vitest";
 import CppHeaderGenerator from "../CppHeaderGenerator";
 import ISymbol from "../../../../utils/types/ISymbol";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 
@@ -23,7 +22,7 @@ function createFunctionSymbol(
 ): ISymbol {
   return {
     name,
-    kind: ESymbolKind.Function,
+    kind: "function",
     type: returnType,
     parameters,
     isExported,

@@ -7,7 +7,6 @@
 import { describe, it, expect } from "vitest";
 import CHeaderGenerator from "../CHeaderGenerator";
 import ISymbol from "../../../../utils/types/ISymbol";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
@@ -24,7 +23,7 @@ function createFunctionSymbol(
 ): ISymbol {
   return {
     name,
-    kind: ESymbolKind.Function,
+    kind: "function",
     type: returnType,
     parameters,
     isExported,
@@ -37,7 +36,7 @@ function createFunctionSymbol(
 function createStructSymbol(name: string, isExported = true): ISymbol {
   return {
     name,
-    kind: ESymbolKind.Struct,
+    kind: "struct",
     type: name,
     isExported,
     sourceFile: "test.cnx",
@@ -49,7 +48,7 @@ function createStructSymbol(name: string, isExported = true): ISymbol {
 function createEnumSymbol(name: string, isExported = true): ISymbol {
   return {
     name,
-    kind: ESymbolKind.Enum,
+    kind: "enum",
     type: name,
     isExported,
     sourceFile: "test.cnx",
@@ -65,7 +64,7 @@ function createVariableSymbol(
 ): ISymbol {
   return {
     name,
-    kind: ESymbolKind.Variable,
+    kind: "variable",
     type,
     isExported,
     sourceFile: "test.cnx",
@@ -408,7 +407,7 @@ describe("CHeaderGenerator", () => {
       const symbols: ISymbol[] = [
         {
           name: "noReturn",
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: undefined,
           isExported: true,
           sourceFile: "test.cnx",
@@ -555,7 +554,7 @@ describe("CHeaderGenerator", () => {
       // Register a C++ namespace symbol to make MyLib_MyClass appear as namespace type
       symbolTable.addSymbol({
         name: "MyLib",
-        kind: ESymbolKind.Namespace,
+        kind: "namespace",
         type: "namespace",
         isExported: true,
         sourceFile: "MyLib.hpp",
@@ -588,7 +587,7 @@ describe("CHeaderGenerator", () => {
       // Register a C++ namespace symbol
       symbolTable.addSymbol({
         name: "LibName",
-        kind: ESymbolKind.Namespace,
+        kind: "namespace",
         type: "namespace",
         isExported: true,
         sourceFile: "LibName.hpp",
