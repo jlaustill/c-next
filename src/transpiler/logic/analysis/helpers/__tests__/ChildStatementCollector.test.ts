@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
+import CNextSourceParser from "../../../parser/CNextSourceParser.js";
 import ChildStatementCollector from "../ChildStatementCollector.js";
-import * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
+import * as Parser from "../../../parser/grammar/CNextParser.js";
 
 describe("ChildStatementCollector", () => {
   /**
