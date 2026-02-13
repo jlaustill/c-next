@@ -13,6 +13,7 @@
 ## Task 1: Create TSymbolKind Type Files
 
 **Files:**
+
 - Create: `src/transpiler/types/symbol-kinds/TSymbolKindCNext.ts`
 - Create: `src/transpiler/types/symbol-kinds/TSymbolKindC.ts`
 - Create: `src/transpiler/types/symbol-kinds/TSymbolKindCpp.ts`
@@ -111,6 +112,7 @@ git commit -m "feat: add TSymbolKind string union types"
 ## Task 2: Update Symbol Interface Definitions
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/types/IFunctionSymbol.ts`
 - Modify: `src/transpiler/logic/symbols/types/IVariableSymbol.ts`
 - Modify: `src/transpiler/logic/symbols/types/IStructSymbol.ts`
@@ -191,6 +193,7 @@ git commit -m "refactor: update symbol interfaces to use string literal kinds"
 ## Task 3: Update ISymbol and Type Guards
 
 **Files:**
+
 - Modify: `src/utils/types/ISymbol.ts`
 - Modify: `src/transpiler/logic/symbols/types/typeGuards.ts`
 
@@ -281,6 +284,7 @@ git commit -m "refactor: update ISymbol and type guards to use string literals"
 These files create C-Next symbols - all use `"scope"` for scopes.
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/cnext/collectors/FunctionCollector.ts`
 - Modify: `src/transpiler/logic/symbols/cnext/collectors/VariableCollector.ts`
 - Modify: `src/transpiler/logic/symbols/cnext/collectors/StructCollector.ts`
@@ -292,23 +296,30 @@ These files create C-Next symbols - all use `"scope"` for scopes.
 **Step 1: Update each collector**
 
 For each file:
+
 1. Remove `import ESymbolKind from "../../../../../utils/types/ESymbolKind";`
 2. Replace `ESymbolKind.X` with string literal `"x"`
 
 Example for FunctionCollector.ts - change:
+
 ```typescript
 kind: ESymbolKind.Function,
 ```
+
 to:
+
 ```typescript
 kind: "function",
 ```
 
 For ScopeCollector.ts specifically - change:
+
 ```typescript
 kind: ESymbolKind.Namespace,
 ```
+
 to:
+
 ```typescript
 kind: "scope",
 ```
@@ -325,12 +336,14 @@ git commit -m "refactor: update C-Next collectors to use string literal kinds"
 ## Task 5: Update C-Next Symbol Adapters
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/cnext/adapters/TSymbolAdapter.ts`
 - Modify: `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`
 
 **Step 1: Update TSymbolAdapter.ts**
 
 Remove ESymbolKind import. Update switch cases:
+
 - `case ESymbolKind.Bitmap:` → `case "bitmap":`
 - `case ESymbolKind.Enum:` → `case "enum":`
 - `case ESymbolKind.Struct:` → `case "struct":`
@@ -340,6 +353,7 @@ Remove ESymbolKind import. Update switch cases:
 - `case ESymbolKind.Namespace:` → `case "scope":` (C-Next scopes)
 
 Also update object literals:
+
 - `kind: ESymbolKind.Namespace,` → `kind: "scope",`
 
 **Step 2: Update TSymbolInfoAdapter.ts**
@@ -360,12 +374,14 @@ git commit -m "refactor: update C-Next adapters to use string literal kinds"
 These files handle C and C++ symbols - use `"namespace"` for C++ namespaces.
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/CSymbolCollector.ts`
 - Modify: `src/transpiler/logic/symbols/CppSymbolCollector.ts`
 
 **Step 1: Update CSymbolCollector.ts**
 
 Remove ESymbolKind import. Replace:
+
 - `ESymbolKind.Function` → `"function"`
 - `ESymbolKind.Variable` → `"variable"`
 - `ESymbolKind.Struct` → `"struct"`
@@ -376,6 +392,7 @@ Remove ESymbolKind import. Replace:
 **Step 2: Update CppSymbolCollector.ts**
 
 Remove ESymbolKind import. Replace:
+
 - `ESymbolKind.Namespace` → `"namespace"` (C++ namespaces)
 - `ESymbolKind.Class` → `"class"`
 - Other kinds same as CSymbolCollector
@@ -392,6 +409,7 @@ git commit -m "refactor: update C/C++ collectors to use string literal kinds"
 ## Task 7: Update Symbol Table and AutoConstUpdater
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/SymbolTable.ts`
 - Modify: `src/transpiler/logic/symbols/AutoConstUpdater.ts`
 
@@ -415,6 +433,7 @@ git commit -m "refactor: update SymbolTable and AutoConstUpdater to use string l
 ## Task 8: Update Analyzers
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/FunctionCallAnalyzer.ts`
 - Modify: `src/transpiler/logic/analysis/InitializationAnalyzer.ts`
 
@@ -438,6 +457,7 @@ git commit -m "refactor: update analyzers to use string literal kinds"
 ## Task 9: Update Code Generation Files
 
 **Files:**
+
 - Modify: `src/transpiler/output/codegen/CodeGenerator.ts`
 - Modify: `src/transpiler/output/codegen/generators/expressions/CallExprUtils.ts`
 - Modify: `src/transpiler/output/codegen/helpers/CppConstructorHelper.ts`
@@ -471,6 +491,7 @@ git commit -m "refactor: update codegen files to use string literal kinds"
 ## Task 10: Update Header Generation Files
 
 **Files:**
+
 - Modify: `src/transpiler/output/headers/HeaderGeneratorUtils.ts`
 - Modify: `src/transpiler/output/headers/ExternalTypeHeaderBuilder.ts`
 
@@ -494,6 +515,7 @@ git commit -m "refactor: update header generation to use string literal kinds"
 ## Task 11: Update State and Transpiler
 
 **Files:**
+
 - Modify: `src/transpiler/state/CodeGenState.ts`
 - Modify: `src/transpiler/Transpiler.ts`
 
@@ -517,12 +539,14 @@ git commit -m "refactor: update state and transpiler to use string literal kinds
 ## Task 12: Update Library Files
 
 **Files:**
+
 - Modify: `src/lib/parseWithSymbols.ts`
 - Modify: `src/lib/parseCHeader.ts`
 
 **Step 1: Update parseWithSymbols.ts**
 
 Remove ESymbolKind import. Update switch cases:
+
 - `case ESymbolKind.Namespace:` → `case "namespace":` and add `case "scope":` (handles both)
 
 ```typescript
@@ -552,12 +576,14 @@ git commit -m "refactor: update lib files to use string literal kinds"
 ## Task 13: Update Utility Files
 
 **Files:**
+
 - Modify: `src/utils/CppNamespaceUtils.ts`
 - Modify: `src/transpiler/types/__tests__/FunctionSymbolAdapter.test.ts`
 
 **Step 1: Update CppNamespaceUtils.ts**
 
 Remove ESymbolKind import. Replace:
+
 - `ESymbolKind.Namespace` → `"namespace"` (C++ namespaces)
 - `ESymbolKind.Class` → `"class"`
 - `ESymbolKind.Enum` → `"enum"`
@@ -578,6 +604,7 @@ git commit -m "refactor: update utility files to use string literal kinds"
 ## Task 14: Update Test Files - Symbol Types
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/types/__tests__/SymbolGuards.test.ts`
 - Modify: `src/transpiler/logic/symbols/__tests__/SymbolTable.test.ts`
 - Modify: `src/transpiler/logic/symbols/__tests__/SymbolCollectorContext.test.ts`
@@ -586,6 +613,7 @@ git commit -m "refactor: update utility files to use string literal kinds"
 **Step 1: Update each test file**
 
 For each file:
+
 1. Remove `import ESymbolKind from "...";`
 2. Replace all `ESymbolKind.X` with `"x"` string literals
 3. For SymbolGuards.test.ts, change `ESymbolKind.Namespace` to `"scope"` for C-Next scope tests
@@ -602,6 +630,7 @@ git commit -m "test: update symbol type tests to use string literal kinds"
 ## Task 15: Update Test Files - C-Next Collectors
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/cnext/__tests__/FunctionCollector.test.ts`
 - Modify: `src/transpiler/logic/symbols/cnext/__tests__/VariableCollector.test.ts`
 - Modify: `src/transpiler/logic/symbols/cnext/__tests__/StructCollector.test.ts`
@@ -627,6 +656,7 @@ git commit -m "test: update C-Next collector tests to use string literal kinds"
 ## Task 16: Update Test Files - C-Next Adapters
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/cnext/__tests__/TSymbolAdapter.test.ts`
 - Modify: `src/transpiler/logic/symbols/cnext/__tests__/TSymbolInfoAdapter.test.ts`
 - Modify: `src/transpiler/logic/symbols/cnext/__tests__/CNextResolver.integration.test.ts`
@@ -648,6 +678,7 @@ git commit -m "test: update C-Next adapter tests to use string literal kinds"
 ## Task 17: Update Test Files - C/C++ Collectors
 
 **Files:**
+
 - Modify: `src/transpiler/logic/symbols/__tests__/CSymbolCollector.test.ts`
 - Modify: `src/transpiler/logic/symbols/__tests__/CppSymbolCollector.test.ts`
 
@@ -671,6 +702,7 @@ git commit -m "test: update C/C++ collector tests to use string literal kinds"
 ## Task 18: Update Test Files - Analysis
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/__tests__/FunctionCallAnalyzer.test.ts`
 - Modify: `src/transpiler/logic/analysis/__tests__/InitializationAnalyzer.test.ts`
 - Modify: `src/transpiler/logic/analysis/__tests__/runAnalyzers.test.ts`
@@ -691,6 +723,7 @@ git commit -m "test: update analyzer tests to use string literal kinds"
 ## Task 19: Update Test Files - CodeGen
 
 **Files:**
+
 - Modify: `src/transpiler/output/codegen/generators/expressions/__tests__/CallExprUtils.test.ts`
 - Modify: `src/transpiler/output/codegen/generators/expressions/__tests__/CallExprGenerator.test.ts`
 - Modify: `src/transpiler/output/codegen/helpers/__tests__/CppConstructorHelper.test.ts`
@@ -713,6 +746,7 @@ git commit -m "test: update codegen tests to use string literal kinds"
 ## Task 20: Update Test Files - Headers
 
 **Files:**
+
 - Modify: `src/transpiler/output/headers/__tests__/BaseHeaderGenerator.test.ts`
 - Modify: `src/transpiler/output/headers/__tests__/CHeaderGenerator.test.ts`
 - Modify: `src/transpiler/output/headers/__tests__/CppHeaderGenerator.test.ts`
@@ -736,6 +770,7 @@ git commit -m "test: update header generator tests to use string literal kinds"
 ## Task 21: Update Test Files - State and Cache
 
 **Files:**
+
 - Modify: `src/transpiler/state/__tests__/CodeGenState.test.ts`
 - Modify: `src/utils/cache/__tests__/CacheManager.test.ts`
 
@@ -760,6 +795,7 @@ git commit -m "test: update state and cache tests to use string literal kinds"
 ## Task 22: Update Test Files - Lib and Utils
 
 **Files:**
+
 - Modify: `src/lib/__tests__/parseCHeader.mocked.test.ts`
 - Modify: `src/utils/__tests__/CppNamespaceUtils.test.ts`
 
@@ -783,6 +819,7 @@ git commit -m "test: update lib and utils tests to use string literal kinds"
 ## Task 23: Delete ESymbolKind Enum
 
 **Files:**
+
 - Delete: `src/utils/types/ESymbolKind.ts`
 
 **Step 1: Verify no remaining imports**
@@ -844,6 +881,7 @@ Expected: All tests pass
 **Step 3: Summarize changes**
 
 Total files changed: ~71
+
 - 4 new type files created
 - 1 enum file deleted
 - ~66 files updated to use string literals

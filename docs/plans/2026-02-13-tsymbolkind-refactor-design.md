@@ -26,6 +26,7 @@ src/transpiler/types/symbol-kinds/
 ```
 
 **Deleted:**
+
 - `src/utils/types/ESymbolKind.ts`
 
 ## Type Definitions
@@ -82,21 +83,21 @@ type TSymbolKind = TSymbolKindCNext | TSymbolKindC | TSymbolKindCpp;
 
 ### Change Patterns
 
-| Before | After |
-|--------|-------|
-| `import ESymbolKind from "..."` | Remove or replace with `TSymbolKind` |
-| `ESymbolKind.Function` | `"function"` |
-| `ESymbolKind.Variable` | `"variable"` |
-| `ESymbolKind.Struct` | `"struct"` |
-| `ESymbolKind.Enum` | `"enum"` |
-| `ESymbolKind.EnumMember` | `"enum_member"` |
-| `ESymbolKind.Bitmap` | `"bitmap"` |
-| `ESymbolKind.BitmapField` | `"bitmap_field"` |
-| `ESymbolKind.Register` | `"register"` |
-| `ESymbolKind.RegisterMember` | `"register_member"` |
-| `ESymbolKind.Namespace` | `"scope"` (C-Next) or `"namespace"` (C++) |
-| `ESymbolKind.Type` | `"type"` |
-| `ESymbolKind.Class` | `"class"` |
+| Before                          | After                                     |
+| ------------------------------- | ----------------------------------------- |
+| `import ESymbolKind from "..."` | Remove or replace with `TSymbolKind`      |
+| `ESymbolKind.Function`          | `"function"`                              |
+| `ESymbolKind.Variable`          | `"variable"`                              |
+| `ESymbolKind.Struct`            | `"struct"`                                |
+| `ESymbolKind.Enum`              | `"enum"`                                  |
+| `ESymbolKind.EnumMember`        | `"enum_member"`                           |
+| `ESymbolKind.Bitmap`            | `"bitmap"`                                |
+| `ESymbolKind.BitmapField`       | `"bitmap_field"`                          |
+| `ESymbolKind.Register`          | `"register"`                              |
+| `ESymbolKind.RegisterMember`    | `"register_member"`                       |
+| `ESymbolKind.Namespace`         | `"scope"` (C-Next) or `"namespace"` (C++) |
+| `ESymbolKind.Type`              | `"type"`                                  |
+| `ESymbolKind.Class`             | `"class"`                                 |
 
 ### Special Case: Namespace vs Scope
 
@@ -108,6 +109,7 @@ type TSymbolKind = TSymbolKindCNext | TSymbolKindC | TSymbolKindCpp;
 ### Files Affected
 
 ~71 files across:
+
 - Interface definitions in `src/transpiler/logic/symbols/types/`
 - Type guards in `typeGuards.ts`
 - Symbol collectors and adapters
