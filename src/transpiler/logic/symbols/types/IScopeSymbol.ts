@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBaseSymbol from "./IBaseSymbol";
 
 /**
@@ -7,7 +6,7 @@ import IBaseSymbol from "./IBaseSymbol";
  */
 interface IScopeSymbol extends IBaseSymbol {
   /** Discriminant for type narrowing */
-  kind: ESymbolKind.Namespace;
+  kind: "scope";
 
   /** List of member names within this scope */
   members: string[];

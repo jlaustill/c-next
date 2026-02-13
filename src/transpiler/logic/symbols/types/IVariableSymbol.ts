@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBaseSymbol from "./IBaseSymbol";
 
 /**
@@ -6,7 +5,7 @@ import IBaseSymbol from "./IBaseSymbol";
  */
 interface IVariableSymbol extends IBaseSymbol {
   /** Discriminant for type narrowing */
-  kind: ESymbolKind.Variable;
+  kind: "variable";
 
   /** C-Next type (e.g., "u32", "Point") */
   type: string;

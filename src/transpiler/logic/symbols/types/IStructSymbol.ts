@@ -1,4 +1,3 @@
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import IBaseSymbol from "./IBaseSymbol";
 import IFieldInfo from "./IFieldInfo";
 
@@ -7,7 +6,7 @@ import IFieldInfo from "./IFieldInfo";
  */
 interface IStructSymbol extends IBaseSymbol {
   /** Discriminant for type narrowing */
-  kind: ESymbolKind.Struct;
+  kind: "struct";
 
   /** Map of field name to field metadata */
   fields: Map<string, IFieldInfo>;
