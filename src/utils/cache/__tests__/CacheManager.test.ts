@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import CacheManager from "../CacheManager";
 import ISymbol from "../../types/ISymbol";
 import ESourceLanguage from "../../types/ESourceLanguage";
-import IStructFieldInfo from "../../../transpiler/logic/symbols/types/IStructFieldInfo";
+import IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 
