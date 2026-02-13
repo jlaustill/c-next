@@ -5,7 +5,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IRegisterSymbol from "../../types/IRegisterSymbol";
 import IRegisterMemberInfo from "../../types/IRegisterMemberInfo";
 import TypeUtils from "../utils/TypeUtils";
@@ -73,7 +72,7 @@ class RegisterCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
-      kind: ESymbolKind.Register,
+      kind: "register",
       baseAddress,
       members,
     };

@@ -5,7 +5,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 import IStructSymbol from "../../types/IStructSymbol";
 import IFieldInfo from "../../types/IFieldInfo";
 import TypeUtils from "../utils/TypeUtils";
@@ -146,7 +145,7 @@ class StructCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
-      kind: ESymbolKind.Struct,
+      kind: "struct",
       fields,
     };
   }
