@@ -23,6 +23,7 @@ import TGeneratorFn from "../TGeneratorFn";
 import generateScopedRegister from "./ScopedRegisterGenerator";
 import BitmapCommentUtils from "./BitmapCommentUtils";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
  * Generate initializer expression for a variable declaration.
@@ -48,7 +49,7 @@ function getScopedName(
   scopeName: string,
 ): { name: string; fullName: string } {
   const name = node.IDENTIFIER().getText();
-  return { name, fullName: `${scopeName}_${name}` };
+  return { name, fullName: QualifiedNameGenerator.forMember(scopeName, name) };
 }
 
 /**
@@ -66,7 +67,7 @@ function resolveConstructorArgs(
   for (const argNode of argIdentifiers) {
     const argName = argNode.getText();
     // Arguments must be resolved with scope prefix
-    const scopedArgName = `${scopeName}_${argName}`;
+    const scopedArgName = QualifiedNameGenerator.forMember(scopeName, argName);
 
     // Check if it's const using orchestrator
     if (!orchestrator.isConstValue(scopedArgName)) {
@@ -146,7 +147,7 @@ function generateConstructorVariable(
 ): string {
   // ADR-016: All scope variables are emitted at file scope
   const type = orchestrator.generateType(varDecl.type());
-  const fullName = `${scopeName}_${varName}`;
+  const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
   const prefix = isPrivate ? "static " : "";
 
   // Validate and resolve constructor arguments
@@ -180,7 +181,7 @@ function generateRegularVariable(
 
   // ADR-016: All scope variables are emitted at file scope (static-like persistence)
   const type = orchestrator.generateType(varDecl.type());
-  const fullName = `${scopeName}_${varName}`;
+  const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
   // Issue #282: Add 'const' modifier for const variables
   const constPrefix = isConst ? "const " : "";
   const prefix = isPrivate ? "static " : "";
@@ -216,7 +217,11 @@ function generateScopeFunction(
 ): string[] {
   const returnType = orchestrator.generateType(funcDecl.type());
   const funcName = funcDecl.IDENTIFIER().getText();
-  const fullName = `${scopeName}_${funcName}`;
+  // Use QualifiedNameGenerator for consistent C-style name generation
+  const fullName = QualifiedNameGenerator.forFunctionStrings(
+    scopeName,
+    funcName,
+  );
   const prefix = isPrivate ? "static " : "";
 
   // Issue #269: Set current function name for pass-by-value lookup
@@ -274,7 +279,11 @@ function generateEnumMembersFromAST(
   for (let i = 0; i < members.length; i++) {
     const member = members[i];
     const memberName = member.IDENTIFIER().getText();
-    const fullMemberName = `${fullName}_${memberName}`;
+    // Enum members use the full enum name as their "scope"
+    const fullMemberName = QualifiedNameGenerator.forMember(
+      fullName,
+      memberName,
+    );
 
     if (member.expression()) {
       const constValue = orchestrator.tryEvaluateConstant(member.expression()!);
@@ -421,7 +430,11 @@ function generateScopedEnumInline(
     const memberEntries = Array.from(symbolMembers.entries());
     for (let i = 0; i < memberEntries.length; i++) {
       const [memberName, value] = memberEntries[i];
-      const fullMemberName = `${fullName}_${memberName}`;
+      // Enum members use the full enum name as their "scope"
+      const fullMemberName = QualifiedNameGenerator.forMember(
+        fullName,
+        memberName,
+      );
       const comma = i < memberEntries.length - 1 ? "," : "";
       lines.push(`    ${fullMemberName} = ${value}${comma}`);
     }
@@ -500,7 +513,7 @@ function generateScopedBitmapInline(
   input: IGeneratorInput,
 ): string {
   const name = node.IDENTIFIER().getText();
-  const fullName = `${scopeName}_${name}`;
+  const fullName = QualifiedNameGenerator.forMember(scopeName, name);
   const backingType = _getBitmapBackingType(fullName, node, input);
 
   const lines: string[] = [];

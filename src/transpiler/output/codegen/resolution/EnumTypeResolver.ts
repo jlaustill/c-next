@@ -18,6 +18,7 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Resolves enum types from expressions.
@@ -162,7 +163,10 @@ export default class EnumTypeResolver {
     }
     const scopeName = parts[0];
     const enumName = parts[1];
-    const scopedEnumName = `${scopeName}_${enumName}`;
+    const scopedEnumName = QualifiedNameGenerator.forMember(
+      scopeName,
+      enumName,
+    );
     return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
   }
 

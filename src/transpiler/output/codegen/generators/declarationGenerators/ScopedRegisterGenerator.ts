@@ -14,6 +14,7 @@ import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import generateRegisterMacros from "./RegisterMacroGenerator";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
  * Generate register macros with scope prefix.
@@ -26,12 +27,12 @@ const generateScopedRegister = (
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const name = node.IDENTIFIER().getText();
-  const fullName = `${scopeName}_${name}`; // Teensy4_GPIO7
+  const fullName = QualifiedNameGenerator.forMember(scopeName, name); // Teensy4_GPIO7
   const baseAddress = orchestrator.generateExpression(node.expression());
 
   // Type resolver for scoped bitmaps (e.g., GPIO7Pins -> Teensy4_GPIO7Pins)
   const resolveType = (regType: string): string | undefined => {
-    const scopedTypeName = `${scopeName}_${regType}`;
+    const scopedTypeName = QualifiedNameGenerator.forMember(scopeName, regType);
     return input.symbols?.knownBitmaps.has(scopedTypeName)
       ? scopedTypeName
       : undefined;

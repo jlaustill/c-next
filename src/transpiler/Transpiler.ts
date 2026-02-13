@@ -28,6 +28,7 @@ import SymbolTable from "./logic/symbols/SymbolTable";
 import ESymbolKind from "../utils/types/ESymbolKind";
 import ISymbol from "../utils/types/ISymbol";
 import CNextResolver from "./logic/symbols/cnext";
+import SymbolRegistry from "./state/SymbolRegistry";
 import TSymbolAdapter from "./logic/symbols/cnext/adapters/TSymbolAdapter";
 import TSymbolInfoAdapter from "./logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import CSymbolCollector from "./logic/symbols/CSymbolCollector";
@@ -621,6 +622,8 @@ class Transpiler {
     this.state.reset();
     // Issue #634: Reset symbol table for new run
     CodeGenState.symbolTable.clear();
+    // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
+    SymbolRegistry.reset();
   }
 
   /**

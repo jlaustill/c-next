@@ -16,6 +16,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TypeValidator from "../../TypeValidator";
 import type ICodeGenApi from "../../types/ICodeGenApi";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /** Get typed generator reference */
 function gen(): ICodeGenApi {
@@ -211,8 +212,11 @@ function handleScopedRegisterMemberBitmapField(
     gen().validateCrossScopeVisibility(scopeName, regName);
   }
 
-  const fullRegName = `${scopeName}_${regName}`;
-  const fullRegMember = `${fullRegName}_${memberName}`;
+  const fullRegName = QualifiedNameGenerator.forMember(scopeName, regName);
+  const fullRegMember = QualifiedNameGenerator.forMember(
+    fullRegName,
+    memberName,
+  );
   const bitmapType =
     CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 

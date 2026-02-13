@@ -19,6 +19,8 @@
 
 import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
+import SymbolRegistry from "../../state/SymbolRegistry";
+import FunctionUtils from "../../types/FunctionUtils";
 import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
 import StatementExpressionCollector from "./helpers/StatementExpressionCollector";
 import ChildStatementCollector from "./helpers/ChildStatementCollector";
@@ -480,6 +482,7 @@ class PassByValueAnalyzer {
 
   /**
    * Handle simple function calls: IDENTIFIER followed by '(' ... ')'
+   * Issue #797: Resolve bare function names to scope-qualified names when inside a scope.
    */
   private static handleSimpleFunctionCall(
     funcName: string,
@@ -492,13 +495,59 @@ class PassByValueAnalyzer {
     const firstOp = postfixOps[0];
     if (!firstOp.LPAREN()) return;
 
-    const calleeName = primary.IDENTIFIER()!.getText();
+    const bareCalleeName = primary.IDENTIFIER()!.getText();
+    const resolvedCalleeName = PassByValueAnalyzer.resolveCalleeNameInScope(
+      funcName,
+      bareCalleeName,
+    );
     PassByValueAnalyzer.recordCallsFromArgList(
       funcName,
       paramSet,
-      calleeName,
+      resolvedCalleeName,
       firstOp,
     );
+  }
+
+  /**
+   * Issue #797: Resolve a bare function name to its scope-qualified name.
+   * When inside a scope, bare calls like `fillData()` should resolve to `Scope_fillData`.
+   *
+   * Uses SymbolRegistry for proper scope-aware resolution instead of string parsing.
+   */
+  private static resolveCalleeNameInScope(
+    callerFuncName: string,
+    bareCalleeName: string,
+  ): string {
+    // Try to resolve using SymbolRegistry (new type system)
+    const callerScope =
+      SymbolRegistry.getScopeByMangledFunctionName(callerFuncName);
+    if (callerScope) {
+      // Use SymbolRegistry.resolveFunction to find the callee in scope chain
+      const callee = SymbolRegistry.resolveFunction(
+        bareCalleeName,
+        callerScope,
+      );
+      if (callee) {
+        // Use FunctionUtils to get the C-mangled name (types layer, not output layer)
+        return FunctionUtils.getCMangledName(callee);
+      }
+    }
+
+    // Fallback to legacy string-based lookup for backward compatibility
+    // (handles functions from C headers, external functions, etc.)
+    const underscoreIndex = callerFuncName.indexOf("_");
+    if (underscoreIndex === -1) {
+      return bareCalleeName;
+    }
+
+    const scopePrefix = callerFuncName.substring(0, underscoreIndex + 1);
+    const qualifiedName = scopePrefix + bareCalleeName;
+
+    if (CodeGenState.functionParamLists.has(qualifiedName)) {
+      return qualifiedName;
+    }
+
+    return bareCalleeName;
   }
 
   /**

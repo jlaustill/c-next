@@ -70,10 +70,13 @@ class ScopeCollector {
         memberNames.push(funcName);
         memberVisibility.set(funcName, visibility);
 
-        const funcSymbol = FunctionCollector.collect(
+        // Use collectAndRegister to populate both old symbols and SymbolRegistry
+        const body = funcDecl.block();
+        const funcSymbol = FunctionCollector.collectAndRegister(
           funcDecl,
           sourceFile,
           scopeName,
+          body,
           visibility,
         );
         memberSymbols.push(funcSymbol);
