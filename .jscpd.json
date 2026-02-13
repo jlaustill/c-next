@@ -12,7 +12,7 @@
     "**/coverage/**",
     "**/docs/**"
   ],
-  "minLines": 5,
+  "minLines": 6,
   "minTokens": 50,
   "format": ["typescript", "javascript"]
 }
