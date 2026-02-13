@@ -26,6 +26,10 @@ class ScopeCollector {
    * Uses SymbolRegistry to get/create the scope, ensuring proper scope
    * references in all member symbols.
    *
+   * **Side-effect**: This method calls SymbolRegistry.getOrCreateScope(),
+   * which creates the scope in global state if it doesn't exist. Tests
+   * should call SymbolRegistry.reset() in beforeEach to ensure isolation.
+   *
    * @param ctx The scope declaration context
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for register resolution

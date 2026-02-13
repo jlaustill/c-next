@@ -20,6 +20,7 @@ import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../types/TypeResolver";
 import ScopeUtils from "../../../../types/ScopeUtils";
+import SymbolNameUtils from "../utils/SymbolNameUtils";
 
 /** Get minimum unsigned type width for a bit count */
 function getMinBitWidth(width: number): number {
@@ -39,20 +40,8 @@ function getParentName(symbol: {
   return scopeName === "" ? undefined : scopeName;
 }
 
-/**
- * Get the C-mangled name for a symbol (e.g., "Geometry_Point" for Point in Geometry scope).
- * Works with any symbol that has a name and scope reference.
- */
-function getMangledName(symbol: {
-  name: string;
-  scope: { name: string };
-}): string {
-  const scopeName = symbol.scope.name;
-  if (scopeName === "") {
-    return symbol.name;
-  }
-  return `${scopeName}_${symbol.name}`;
-}
+// Use shared utility for name mangling
+const getMangledName = SymbolNameUtils.getMangledName;
 
 /**
  * Adapts TSymbol[] to ISymbol[] and registers struct fields in SymbolTable.

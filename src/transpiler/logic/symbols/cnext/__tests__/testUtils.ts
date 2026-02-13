@@ -8,11 +8,11 @@
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
-/** Cached global scope for reuse */
-let cachedGlobalScope: IScopeSymbol | null = null;
-
 /**
  * Static utility class for creating mock scopes in tests.
+ *
+ * Note: Each call creates a fresh scope instance to avoid test pollution.
+ * Tests should use SymbolRegistry.reset() in beforeEach for state isolation.
  */
 class TestScopeUtils {
   /**
@@ -61,20 +61,19 @@ class TestScopeUtils {
   }
 
   /**
-   * Get the global scope singleton (cached for efficiency).
+   * Get a fresh global scope instance.
+   * Returns a new instance each time to avoid test pollution.
    */
   static getGlobalScope(): IScopeSymbol {
-    if (!cachedGlobalScope) {
-      cachedGlobalScope = TestScopeUtils.createMockGlobalScope();
-    }
-    return cachedGlobalScope;
+    return TestScopeUtils.createMockGlobalScope();
   }
 
   /**
-   * Reset the cached global scope (call before each test if needed).
+   * Reset global scope (no-op, kept for backwards compatibility).
+   * @deprecated Use SymbolRegistry.reset() instead for test isolation.
    */
   static resetGlobalScope(): void {
-    cachedGlobalScope = null;
+    // No-op - each call to getGlobalScope() now returns a fresh instance
   }
 }
 

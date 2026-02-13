@@ -19,6 +19,7 @@ import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../../types/TypeResolver";
+import SymbolNameUtils from "../utils/SymbolNameUtils";
 
 /**
  * Groups register-related maps for processRegister method.
@@ -230,20 +231,8 @@ class TSymbolInfoAdapter {
 
   // === Private Processing Methods ===
 
-  /**
-   * Get the C-mangled name for a symbol (e.g., "Geometry_Point" for Point in Geometry scope).
-   * Works with any symbol that has a scope reference.
-   */
-  private static getMangledName(symbol: {
-    name: string;
-    scope: { name: string };
-  }): string {
-    const scopeName = symbol.scope.name;
-    if (scopeName === "") {
-      return symbol.name;
-    }
-    return `${scopeName}_${symbol.name}`;
-  }
+  // Use shared utility for name mangling
+  private static getMangledName = SymbolNameUtils.getMangledName;
 
   private static processStruct(
     struct: IStructSymbol,
