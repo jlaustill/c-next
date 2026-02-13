@@ -55,6 +55,9 @@ class TypeResolver {
     }
 
     // Check for enum (E prefix convention)
+    // LIMITATION: This heuristic assumes enums start with 'E' followed by uppercase.
+    // It may misclassify: enums without 'E' prefix, or structs named like 'EFoo'.
+    // For accurate resolution, use SymbolRegistry to check against known types.
     if (ENUM_PREFIX_PATTERN.test(trimmed)) {
       return TTypeUtils.createEnum(trimmed);
     }

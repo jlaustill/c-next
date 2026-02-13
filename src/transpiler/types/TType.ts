@@ -18,7 +18,6 @@ interface TPrimitiveType {
 
 /**
  * Struct type reference
- * Note: In Phase 2, this will include resolved symbol reference
  */
 interface TStructType {
   readonly kind: "struct";
@@ -27,7 +26,6 @@ interface TStructType {
 
 /**
  * Enum type reference
- * Note: In Phase 2, this will include resolved symbol reference
  */
 interface TEnumType {
   readonly kind: "enum";

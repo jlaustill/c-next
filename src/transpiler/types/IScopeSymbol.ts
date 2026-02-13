@@ -11,6 +11,10 @@
  * - Functions and variables arrays hold references to symbols in this scope
  *
  * Use ScopeUtils for factory functions and type guards.
+ *
+ * Note: IScopeSymbol and IFunctionSymbol have a mutual reference (scope contains
+ * functions, functions have a scope). This is intentional and type-only imports
+ * are used to minimize runtime coupling.
  */
 import type IFunctionSymbol from "./IFunctionSymbol";
 

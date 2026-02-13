@@ -36,6 +36,17 @@ class SymbolRegistry {
   }
 
   /**
+   * Get a scope by its dotted path without creating it.
+   *
+   * Use this for read-only lookups where you don't want to create
+   * orphaned scopes. Returns null if the scope doesn't exist.
+   */
+  static getScope(path: string): IScopeSymbol | null {
+    if (path === "") return this.globalScope;
+    return this.scopes.get(path) ?? null;
+  }
+
+  /**
    * Get or create a scope by its dotted path.
    *
    * For simple names (e.g., "Test"), creates scope with global parent.
@@ -43,6 +54,9 @@ class SymbolRegistry {
    *
    * If the scope already exists, returns the existing scope.
    * This enables scope merging across files.
+   *
+   * Note: This creates scopes that don't exist. For read-only lookups,
+   * use getScope() instead to avoid creating orphaned scopes.
    */
   static getOrCreateScope(path: string): IScopeSymbol {
     if (path === "") return this.globalScope;

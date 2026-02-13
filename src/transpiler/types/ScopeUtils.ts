@@ -67,6 +67,28 @@ class ScopeUtils {
   static isGlobalScope(scope: IScopeSymbol): boolean {
     return scope.name === "" && scope.parent === scope;
   }
+
+  // ============================================================================
+  // Path Utilities
+  // ============================================================================
+
+  /**
+   * Get the scope path from outermost to innermost (excluding global scope).
+   *
+   * For scope "Outer.Inner", returns ["Outer", "Inner"].
+   * For global scope, returns [].
+   */
+  static getScopePath(scope: IScopeSymbol): string[] {
+    const path: string[] = [];
+    let current = scope;
+
+    while (!ScopeUtils.isGlobalScope(current)) {
+      path.unshift(current.name);
+      current = current.parent;
+    }
+
+    return path;
+  }
 }
 
 export default ScopeUtils;

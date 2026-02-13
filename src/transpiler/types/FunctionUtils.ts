@@ -60,27 +60,11 @@ class FunctionUtils {
    * For nested scopes, returns "Outer_Inner_name".
    */
   static getCMangledName(func: IFunctionSymbol): string {
-    const scopePath = FunctionUtils._getScopePath(func.scope);
+    const scopePath = ScopeUtils.getScopePath(func.scope);
     if (scopePath.length === 0) {
       return func.name;
     }
     return `${scopePath.join("_")}_${func.name}`;
-  }
-
-  /**
-   * Build the scope path from innermost to outermost (excluding global scope).
-   * Returns array in order from outermost to innermost.
-   */
-  private static _getScopePath(scope: IScopeSymbol): string[] {
-    const path: string[] = [];
-    let current = scope;
-
-    while (!ScopeUtils.isGlobalScope(current)) {
-      path.unshift(current.name);
-      current = current.parent;
-    }
-
-    return path;
   }
 
   // ============================================================================

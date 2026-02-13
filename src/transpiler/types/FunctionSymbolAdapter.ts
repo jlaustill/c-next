@@ -66,8 +66,8 @@ class FunctionSymbolAdapter {
       return mangledName;
     }
 
-    // Build scope prefix from innermost to outermost
-    const scopePath = FunctionSymbolAdapter._getScopePath(scope);
+    // Build scope prefix from outermost to innermost
+    const scopePath = ScopeUtils.getScopePath(scope);
     const prefix = scopePath.join("_") + "_";
 
     // If the mangled name starts with the prefix, strip it
@@ -99,22 +99,6 @@ class FunctionSymbolAdapter {
       oldParam.isConst,
       arrayDimensions,
     );
-  }
-
-  /**
-   * Build the scope path from innermost to outermost (excluding global scope).
-   * Returns array in order from outermost to innermost.
-   */
-  private static _getScopePath(scope: IScopeSymbol): string[] {
-    const path: string[] = [];
-    let current = scope;
-
-    while (!ScopeUtils.isGlobalScope(current)) {
-      path.unshift(current.name);
-      current = current.parent;
-    }
-
-    return path;
   }
 
   /**

@@ -1,17 +1,22 @@
 /**
  * QualifiedNameGenerator - C-style name generation for C-Next symbols
  *
- * This is the ONLY place that constructs C-style mangled names like "Test_fillData".
+ * Provides C-style mangled name generation for use in the output layer.
+ * Delegates to FunctionUtils.getCMangledName() for the actual implementation
+ * to avoid duplication with the types layer.
  *
  * Design decisions:
  * - Lives in output layer (codegen) since it generates C output
- * - Takes symbol objects and generates C-style names
+ * - Delegates to FunctionUtils for symbol-based name generation
+ * - Provides string-based methods for backward compatibility
  * - Handles nested scopes: Outer.Inner.func -> Outer_Inner_func
  * - Global scope functions keep their bare names
  */
 import type IFunctionSymbol from "../../../types/IFunctionSymbol";
 import type IScopeSymbol from "../../../types/IScopeSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
+import FunctionUtils from "../../../types/FunctionUtils";
+import ScopeUtils from "../../../types/ScopeUtils";
 
 class QualifiedNameGenerator {
   // ============================================================================
@@ -24,13 +29,11 @@ class QualifiedNameGenerator {
    * For global scope functions, returns the bare name (e.g., "main").
    * For scoped functions, returns "Scope_name" (e.g., "Test_fillData").
    * For nested scopes, returns "Outer_Inner_name" (e.g., "Outer_Inner_deepFunc").
+   *
+   * Delegates to FunctionUtils.getCMangledName() to avoid duplication.
    */
   static forFunction(func: IFunctionSymbol): string {
-    const scopePath = this.getScopePath(func.scope);
-    if (scopePath.length === 0) {
-      return func.name;
-    }
-    return [...scopePath, func.name].join("_");
+    return FunctionUtils.getCMangledName(func);
   }
 
   /**
@@ -39,13 +42,11 @@ class QualifiedNameGenerator {
    * Returns empty array for global scope.
    * Returns ["Test"] for scope "Test".
    * Returns ["Outer", "Inner"] for scope "Outer.Inner".
+   *
+   * Delegates to ScopeUtils.getScopePath() to avoid duplication.
    */
   static getScopePath(scope: IScopeSymbol): string[] {
-    // Global scope: name is "" and parent is self
-    if (scope.name === "" || scope.parent === scope) {
-      return [];
-    }
-    return [...this.getScopePath(scope.parent), scope.name];
+    return ScopeUtils.getScopePath(scope);
   }
 
   // ============================================================================
@@ -66,12 +67,14 @@ class QualifiedNameGenerator {
     scopeName: string | undefined,
     funcName: string,
   ): string {
-    // Try SymbolRegistry first
+    // Try SymbolRegistry first (using getScope to avoid creating orphaned scopes)
     if (scopeName) {
-      const scope = SymbolRegistry.getOrCreateScope(scopeName);
-      const func = SymbolRegistry.resolveFunction(funcName, scope);
-      if (func) {
-        return this.forFunction(func);
+      const scope = SymbolRegistry.getScope(scopeName);
+      if (scope) {
+        const func = SymbolRegistry.resolveFunction(funcName, scope);
+        if (func) {
+          return this.forFunction(func);
+        }
       }
     } else {
       const global = SymbolRegistry.getGlobalScope();
