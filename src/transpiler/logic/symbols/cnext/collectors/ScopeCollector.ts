@@ -76,8 +76,8 @@ class ScopeCollector {
           funcDecl,
           sourceFile,
           scopeName,
-          visibility,
           body,
+          visibility,
         );
         memberSymbols.push(funcSymbol);
       }

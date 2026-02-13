@@ -5,7 +5,6 @@
  * (e.g., "u32", "string<32>", "u8[10]") to the new TType discriminated union.
  */
 import type TType from "./TType";
-import type TPrimitiveKind from "./TPrimitiveKind";
 import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
 
@@ -34,7 +33,7 @@ class TypeResolver {
     // Check for string type: string<N>
     const stringMatch = STRING_TYPE_PATTERN.exec(trimmed);
     if (stringMatch) {
-      const capacity = parseInt(stringMatch[1], 10);
+      const capacity = Number.parseInt(stringMatch[1], 10);
       return TTypeUtils.createString(capacity);
     }
 
@@ -51,7 +50,7 @@ class TypeResolver {
 
     // Check for primitive type
     if (PrimitiveKindUtils.isPrimitive(trimmed)) {
-      return TTypeUtils.createPrimitive(trimmed as TPrimitiveKind);
+      return TTypeUtils.createPrimitive(trimmed);
     }
 
     // Check for enum (E prefix convention)
@@ -79,9 +78,9 @@ class TypeResolver {
 
     while ((match = ARRAY_DIMENSION_PATTERN.exec(fullType)) !== null) {
       const dimStr = match[1].trim();
-      const dimNum = parseInt(dimStr, 10);
+      const dimNum = Number.parseInt(dimStr, 10);
 
-      if (isNaN(dimNum)) {
+      if (Number.isNaN(dimNum)) {
         // String dimension (C macro)
         dimensions.push(dimStr);
       } else {

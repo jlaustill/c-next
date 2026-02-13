@@ -18,7 +18,7 @@ class SymbolRegistry {
   private static globalScope: IScopeSymbol = ScopeUtils.createGlobalScope();
 
   /** Map from scope path (e.g., "Outer.Inner") to scope object */
-  private static scopes: Map<string, IScopeSymbol> = new Map();
+  private static readonly scopes: Map<string, IScopeSymbol> = new Map();
 
   // ============================================================================
   // Scope Management
@@ -102,9 +102,7 @@ class SymbolRegistry {
     fromScope: IScopeSymbol,
   ): IFunctionSymbol | null {
     // Search in current scope
-    const found = fromScope.functions.find(
-      (f) => (f as IFunctionSymbol).name === name,
-    ) as IFunctionSymbol | undefined;
+    const found = fromScope.functions.find((f) => f.name === name);
     if (found) return found;
 
     // Walk up the scope chain (stop when we reach global scope's self-reference)
@@ -153,7 +151,7 @@ class SymbolRegistry {
 
     // Check all scopes - the mangled name should match scope_name pattern
     for (const [scopePath, scope] of this.scopes) {
-      const prefix = scopePath.replace(/\./g, "_") + "_";
+      const prefix = scopePath.replaceAll(".", "_") + "_";
       for (const func of scope.functions) {
         if (prefix + func.name === mangledName) {
           return func;

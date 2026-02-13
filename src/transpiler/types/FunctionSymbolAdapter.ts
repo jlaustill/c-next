@@ -109,8 +109,8 @@ class FunctionSymbolAdapter {
     dimensions: string[],
   ): (number | string)[] {
     return dimensions.map((dim) => {
-      const num = parseInt(dim, 10);
-      return isNaN(num) ? dim : num;
+      const num = Number.parseInt(dim, 10);
+      return Number.isNaN(num) ? dim : num;
     });
   }
 }

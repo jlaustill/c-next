@@ -79,8 +79,8 @@ class FunctionCollector {
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
     scopeName: string | undefined,
-    visibility: "public" | "private" = "private",
     body: Parser.BlockContext,
+    visibility: "public" | "private" = "private",
   ): IFunctionSymbol {
     // 1. Get old-style symbol via existing collect()
     const oldSymbol = FunctionCollector.collect(

@@ -89,7 +89,7 @@ class QualifiedNameGenerator {
       return funcName;
     }
     // Convert dotted scope path to underscores
-    const scopePrefix = scopeName.replace(/\./g, "_");
+    const scopePrefix = scopeName.replaceAll(".", "_");
     return `${scopePrefix}_${funcName}`;
   }
 
@@ -106,7 +106,7 @@ class QualifiedNameGenerator {
     if (!scopeName) {
       return memberName;
     }
-    const scopePrefix = scopeName.replace(/\./g, "_");
+    const scopePrefix = scopeName.replaceAll(".", "_");
     return `${scopePrefix}_${memberName}`;
   }
 }

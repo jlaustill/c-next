@@ -298,8 +298,8 @@ class CNextResolver {
         funcDecl,
         sourceFile,
         undefined, // global scope
-        "private", // default visibility for global functions
         body,
+        "private", // default visibility for global functions
       );
       symbols.push(symbol);
       return;

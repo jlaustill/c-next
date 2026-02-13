@@ -260,8 +260,8 @@ describe("FunctionCollector", () => {
         funcCtx,
         "test.cnx",
         undefined,
-        "private",
         body,
+        "private",
       );
 
       expect(registerSymbol.name).toBe(collectSymbol.name);
@@ -285,8 +285,8 @@ describe("FunctionCollector", () => {
         funcCtx,
         "test.cnx",
         undefined,
-        "private",
         body,
+        "private",
       );
 
       const globalScope = SymbolRegistry.getGlobalScope();
@@ -307,8 +307,8 @@ describe("FunctionCollector", () => {
         funcCtx,
         "motor.cnx",
         "Motor",
-        "public",
         body,
+        "public",
       );
 
       const motorScope = SymbolRegistry.getOrCreateScope("Motor");
@@ -332,15 +332,15 @@ describe("FunctionCollector", () => {
         funcACtx,
         "test.cnx",
         "Test",
-        "public",
         funcACtx.block(),
+        "public",
       );
       FunctionCollector.collectAndRegister(
         funcBCtx,
         "test.cnx",
         "Test",
-        "private",
         funcBCtx.block(),
+        "private",
       );
 
       const testScope = SymbolRegistry.getOrCreateScope("Test");
@@ -363,8 +363,8 @@ describe("FunctionCollector", () => {
         funcCtx,
         "test.cnx",
         undefined,
-        "private",
         body,
+        "private",
       );
 
       const globalScope = SymbolRegistry.getGlobalScope();
@@ -385,8 +385,8 @@ describe("FunctionCollector", () => {
         funcCtx,
         "test.cnx",
         undefined,
-        "private",
         funcCtx.block(),
+        "private",
       );
 
       const globalScope = SymbolRegistry.getGlobalScope();
