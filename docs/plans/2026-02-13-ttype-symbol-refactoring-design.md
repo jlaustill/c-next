@@ -387,10 +387,10 @@ All files in `src/transpiler/logic/symbols/types/` are deleted:
 
 ### Other Deletions
 
-| Current                                                      | Replacement       |
-| ------------------------------------------------------------ | ----------------- |
-| `src/transpiler/output/codegen/types/IFunctionSignature.ts`  | `IFunctionSymbol` |
-| `src/transpiler/output/codegen/types/TTypeInfo.ts`           | `TType`           |
+| Current                                                     | Replacement       |
+| ----------------------------------------------------------- | ----------------- |
+| `src/transpiler/output/codegen/types/IFunctionSignature.ts` | `IFunctionSymbol` |
+| `src/transpiler/output/codegen/types/TTypeInfo.ts`          | `TType`           |
 
 ## Implementation Phases
 

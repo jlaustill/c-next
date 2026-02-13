@@ -17,6 +17,7 @@
 ### Task 2.1: Create IBaseSymbol
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/IBaseSymbol.ts`
 - Test: `src/transpiler/types/symbols/__tests__/IBaseSymbol.test.ts`
 
@@ -138,6 +139,7 @@ git commit -m "feat(symbols): add IBaseSymbol with TSymbolKindCNext kind"
 ### Task 2.2: Create IBitmapFieldInfo and IRegisterMemberInfo
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/IBitmapFieldInfo.ts`
 - Create: `src/transpiler/types/symbols/IRegisterMemberInfo.ts`
 
@@ -196,6 +198,7 @@ git commit -m "feat(symbols): add IBitmapFieldInfo and IRegisterMemberInfo"
 ### Task 2.3: Create IFieldInfo and IParameterInfo
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/IFieldInfo.ts`
 - Create: `src/transpiler/types/symbols/IParameterInfo.ts`
 
@@ -266,6 +269,7 @@ git commit -m "feat(symbols): add IFieldInfo and IParameterInfo with TType"
 ### Task 2.4: Create IScopeSymbol
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/IScopeSymbol.ts`
 
 **Step 1: Write IScopeSymbol**
@@ -311,6 +315,7 @@ git commit -m "feat(symbols): add IScopeSymbol extending IBaseSymbol"
 ### Task 2.5: Create IFunctionSymbol
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/IFunctionSymbol.ts`
 
 **Step 1: Write IFunctionSymbol**
@@ -357,6 +362,7 @@ git commit -m "feat(symbols): add IFunctionSymbol extending IBaseSymbol"
 ### Task 2.6: Create Remaining Symbol Interfaces
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/IStructSymbol.ts`
 - Create: `src/transpiler/types/symbols/IEnumSymbol.ts`
 - Create: `src/transpiler/types/symbols/IVariableSymbol.ts`
@@ -497,11 +503,12 @@ git commit -m "feat(symbols): add IStructSymbol, IEnumSymbol, IVariableSymbol, I
 ### Task 2.7: Create TSymbol Discriminated Union
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/TSymbol.ts`
 
 **Step 1: Write TSymbol**
 
-```typescript
+````typescript
 // src/transpiler/types/symbols/TSymbol.ts
 import type IFunctionSymbol from "./IFunctionSymbol";
 import type IScopeSymbol from "./IScopeSymbol";
@@ -531,7 +538,7 @@ type TSymbol =
   | IRegisterSymbol;
 
 export default TSymbol;
-```
+````
 
 **Step 2: Commit**
 
@@ -545,6 +552,7 @@ git commit -m "feat(symbols): add TSymbol discriminated union"
 ### Task 2.8: Create SymbolGuards Static Class
 
 **Files:**
+
 - Create: `src/transpiler/types/symbols/SymbolGuards.ts`
 - Test: `src/transpiler/types/symbols/__tests__/SymbolGuards.test.ts`
 
@@ -706,6 +714,7 @@ Create a checklist of files that need import updates. Group by directory.
 ### Task 3.2: Update Imports in logic/symbols/cnext/
 
 **Files to modify:**
+
 - `src/transpiler/logic/symbols/cnext/adapters/TSymbolAdapter.ts`
 - `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`
 - `src/transpiler/logic/symbols/cnext/collectors/FunctionCollector.ts`
@@ -713,11 +722,13 @@ Create a checklist of files that need import updates. Group by directory.
 **Step 1: Update TSymbolAdapter.ts imports**
 
 Change:
+
 ```typescript
 import IFunctionSymbol from "../../types/IFunctionSymbol";
 ```
 
 To:
+
 ```typescript
 import type IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 ```
@@ -748,6 +759,7 @@ git commit -m "refactor(symbols): update imports in logic/symbols/cnext to use t
 ### Task 3.3: Update Imports in transpiler/state/
 
 **Files to modify:**
+
 - `src/transpiler/state/SymbolRegistry.ts`
 
 **Step 1: Update imports**
@@ -771,6 +783,7 @@ git commit -m "refactor(symbols): update imports in state/ to use types/symbols"
 ### Task 3.4: Update Imports in transpiler/output/
 
 **Files to modify:**
+
 - `src/transpiler/output/codegen/utils/QualifiedNameGenerator.ts`
 - Any other files importing old symbol types
 
@@ -792,6 +805,7 @@ git commit -m "refactor(symbols): update imports in output/ to use types/symbols
 ### Task 3.5: Update Remaining Imports
 
 **Files to modify:**
+
 - `src/transpiler/types/FunctionUtils.ts`
 - `src/transpiler/types/ScopeUtils.ts`
 - Any test files
@@ -817,6 +831,7 @@ git commit -m "refactor(symbols): update all remaining imports to use types/symb
 ### Task 4.1: Delete Duplicate Types in transpiler/types/
 
 **Files to delete:**
+
 - `src/transpiler/types/IFunctionSymbol.ts`
 - `src/transpiler/types/IScopeSymbol.ts`
 - `src/transpiler/types/IParameterInfo.ts`
@@ -859,6 +874,7 @@ git commit -m "refactor(symbols): delete duplicate symbol types from transpiler/
 ### Task 4.2: Delete Old Types in logic/symbols/types/
 
 **Files to delete:**
+
 - `src/transpiler/logic/symbols/types/IBaseSymbol.ts`
 - `src/transpiler/logic/symbols/types/IFunctionSymbol.ts`
 - `src/transpiler/logic/symbols/types/IScopeSymbol.ts`
