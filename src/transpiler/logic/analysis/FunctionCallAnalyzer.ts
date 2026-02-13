@@ -11,7 +11,6 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import SymbolTable from "../symbols/SymbolTable";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
 
@@ -687,7 +686,7 @@ class FunctionCallAnalyzer {
       // Accept functions from any source language:
       // - C/C++ functions from header includes
       // - C-Next functions from .cnx file includes
-      if (sym.kind === ESymbolKind.Function) {
+      if (sym.kind === "function") {
         return true;
       }
     }
