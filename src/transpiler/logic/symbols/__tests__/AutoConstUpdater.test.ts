@@ -6,7 +6,6 @@
 import { describe, expect, it } from "vitest";
 import AutoConstUpdater from "../AutoConstUpdater";
 import ISymbol from "../../../../utils/types/ISymbol";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 describe("AutoConstUpdater", () => {
@@ -17,7 +16,7 @@ describe("AutoConstUpdater", () => {
   ): ISymbol {
     return {
       name,
-      kind: ESymbolKind.Function,
+      kind: "function",
       sourceFile: "/test/file.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,
@@ -177,7 +176,7 @@ describe("AutoConstUpdater", () => {
       const symbols: ISymbol[] = [
         {
           name: "counter",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           sourceFile: "/test/file.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -189,14 +188,14 @@ describe("AutoConstUpdater", () => {
 
       // Should not throw - symbol remains unchanged
       AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
-      expect(symbols[0].kind).toBe(ESymbolKind.Variable);
+      expect(symbols[0].kind).toBe("variable");
     });
 
     it("should skip functions without parameters", () => {
       const symbols: ISymbol[] = [
         {
           name: "init",
-          kind: ESymbolKind.Function,
+          kind: "function",
           sourceFile: "/test/file.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,

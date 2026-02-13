@@ -4,7 +4,6 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import SymbolTable from "../SymbolTable";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../../utils/types/ISymbol";
 
@@ -23,7 +22,7 @@ describe("SymbolTable", () => {
     it("should add and retrieve a symbol by name", () => {
       const symbol: ISymbol = {
         name: "myVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -35,7 +34,7 @@ describe("SymbolTable", () => {
 
       expect(retrieved).toBeDefined();
       expect(retrieved?.name).toBe("myVar");
-      expect(retrieved?.kind).toBe(ESymbolKind.Variable);
+      expect(retrieved?.kind).toBe("variable");
     });
 
     it("should return undefined for non-existent symbol", () => {
@@ -46,7 +45,7 @@ describe("SymbolTable", () => {
     it("should return first symbol when multiple exist with same name", () => {
       symbolTable.addSymbol({
         name: "duplicate",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "first.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -55,7 +54,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "duplicate",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "second.cnx",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -72,7 +71,7 @@ describe("SymbolTable", () => {
       const symbols: ISymbol[] = [
         {
           name: "var1",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -80,7 +79,7 @@ describe("SymbolTable", () => {
         },
         {
           name: "var2",
-          kind: ESymbolKind.Variable,
+          kind: "variable",
           sourceFile: "test.cnx",
           sourceLine: 2,
           sourceLanguage: ESourceLanguage.CNext,
@@ -88,7 +87,7 @@ describe("SymbolTable", () => {
         },
         {
           name: "func1",
-          kind: ESymbolKind.Function,
+          kind: "function",
           sourceFile: "test.cnx",
           sourceLine: 3,
           sourceLanguage: ESourceLanguage.CNext,
@@ -109,7 +108,7 @@ describe("SymbolTable", () => {
     it("should return true for existing symbol", () => {
       symbolTable.addSymbol({
         name: "exists",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -128,7 +127,7 @@ describe("SymbolTable", () => {
     it("should return all symbols with same name", () => {
       symbolTable.addSymbol({
         name: "overloaded",
-        kind: ESymbolKind.Function,
+        kind: "function",
         signature: "int(int)",
         sourceFile: "test.cpp",
         sourceLine: 1,
@@ -138,7 +137,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "overloaded",
-        kind: ESymbolKind.Function,
+        kind: "function",
         signature: "int(int, int)",
         sourceFile: "test.cpp",
         sourceLine: 5,
@@ -162,7 +161,7 @@ describe("SymbolTable", () => {
     it("should return all symbols in the table", () => {
       symbolTable.addSymbol({
         name: "a",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -171,7 +170,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "b",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: "test.cnx",
         sourceLine: 2,
         sourceLanguage: ESourceLanguage.CNext,
@@ -196,7 +195,7 @@ describe("SymbolTable", () => {
     it("should return correct count including duplicates", () => {
       symbolTable.addSymbol({
         name: "sym1",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -205,7 +204,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "sym1",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test2.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -214,7 +213,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "sym2",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: "test.cnx",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -229,7 +228,7 @@ describe("SymbolTable", () => {
     it("should remove all symbols", () => {
       symbolTable.addSymbol({
         name: "toBeCleared",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -260,7 +259,7 @@ describe("SymbolTable", () => {
     it("should return symbols from a specific file", () => {
       symbolTable.addSymbol({
         name: "inFile1",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file1.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -269,7 +268,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "alsoInFile1",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: "file1.cnx",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -278,7 +277,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "inFile2",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file2.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -302,7 +301,7 @@ describe("SymbolTable", () => {
     it("should return symbols from a specific language", () => {
       symbolTable.addSymbol({
         name: "cnextVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -311,7 +310,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "cVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.c",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
@@ -320,7 +319,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "cppVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cpp",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -341,7 +340,7 @@ describe("SymbolTable", () => {
     it("should return empty array when no symbols match language", () => {
       symbolTable.addSymbol({
         name: "cnextOnly",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -450,7 +449,7 @@ describe("SymbolTable", () => {
       // Add a symbol for the struct
       symbolTable.addSymbol({
         name: "Point",
-        kind: ESymbolKind.Struct,
+        kind: "struct",
         sourceFile: "geometry.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
@@ -468,7 +467,7 @@ describe("SymbolTable", () => {
     it("should return empty array for file with no structs", () => {
       symbolTable.addSymbol({
         name: "someVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "vars.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -561,7 +560,7 @@ describe("SymbolTable", () => {
     it("should return true when symbol has conflicts", () => {
       symbolTable.addSymbol({
         name: "conflicted",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file1.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -570,7 +569,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "conflicted",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file2.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -583,7 +582,7 @@ describe("SymbolTable", () => {
     it("should return false when symbol has no conflicts", () => {
       symbolTable.addSymbol({
         name: "unique",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file1.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -607,7 +606,7 @@ describe("SymbolTable", () => {
       // Two global variables with same name = conflict
       symbolTable.addSymbol({
         name: "counter",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file1.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -616,7 +615,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "counter",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file2.cnx",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -634,7 +633,7 @@ describe("SymbolTable", () => {
       // Add function Math_add
       symbolTable.addSymbol({
         name: "Math_add",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 1,
@@ -646,7 +645,7 @@ describe("SymbolTable", () => {
       // Add parameter 'x' for Math_add
       symbolTable.addSymbol({
         name: "x",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 1,
@@ -658,7 +657,7 @@ describe("SymbolTable", () => {
       // Add parameter 'y' for Math_add
       symbolTable.addSymbol({
         name: "y",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 1,
@@ -670,7 +669,7 @@ describe("SymbolTable", () => {
       // Add function Math_multiply
       symbolTable.addSymbol({
         name: "Math_multiply",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 5,
@@ -682,7 +681,7 @@ describe("SymbolTable", () => {
       // Add parameter 'x' for Math_multiply - same name as Math_add's x
       symbolTable.addSymbol({
         name: "x",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 5,
@@ -694,7 +693,7 @@ describe("SymbolTable", () => {
       // Add parameter 'y' for Math_multiply
       symbolTable.addSymbol({
         name: "y",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 5,
@@ -712,7 +711,7 @@ describe("SymbolTable", () => {
       // Two scope-level variables with same qualified name = conflict
       symbolTable.addSymbol({
         name: "Math_counter",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file1.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -722,7 +721,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "Math_counter",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file2.cnx",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
@@ -739,7 +738,7 @@ describe("SymbolTable", () => {
       // Global function 'divide' with parameter 'x'
       symbolTable.addSymbol({
         name: "divide",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 10,
@@ -749,7 +748,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "x",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 10,
@@ -761,7 +760,7 @@ describe("SymbolTable", () => {
       // Scope function 'Math_add' with parameter 'x'
       symbolTable.addSymbol({
         name: "Math_add",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 1,
@@ -772,7 +771,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "x",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         type: "f32",
         sourceFile: "math.cnx",
         sourceLine: 1,
@@ -790,7 +789,7 @@ describe("SymbolTable", () => {
       // Same symbol in C-Next and C = ERROR
       symbolTable.addSymbol({
         name: "sharedVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "module.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -799,7 +798,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "sharedVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "legacy.c",
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
@@ -817,7 +816,7 @@ describe("SymbolTable", () => {
       // Same symbol in C-Next and C++ = ERROR
       symbolTable.addSymbol({
         name: "sharedFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: "module.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -826,7 +825,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "sharedFunc",
-        kind: ESymbolKind.Function,
+        kind: "function",
         sourceFile: "driver.cpp",
         sourceLine: 20,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -843,7 +842,7 @@ describe("SymbolTable", () => {
       // Same symbol in C and C++ is typically OK (e.g., header included by both)
       symbolTable.addSymbol({
         name: "commonSymbol",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "shared.c",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
@@ -852,7 +851,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "commonSymbol",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "wrapper.cpp",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -866,7 +865,7 @@ describe("SymbolTable", () => {
     it("should allow C++ function overloads with different signatures", () => {
       symbolTable.addSymbol({
         name: "process",
-        kind: ESymbolKind.Function,
+        kind: "function",
         signature: "void(int)",
         sourceFile: "utils.cpp",
         sourceLine: 1,
@@ -876,7 +875,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "process",
-        kind: ESymbolKind.Function,
+        kind: "function",
         signature: "void(int, int)",
         sourceFile: "utils.cpp",
         sourceLine: 10,
@@ -886,7 +885,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "process",
-        kind: ESymbolKind.Function,
+        kind: "function",
         signature: "void(float)",
         sourceFile: "utils.cpp",
         sourceLine: 20,
@@ -902,7 +901,7 @@ describe("SymbolTable", () => {
       // extern declarations are not definitions
       symbolTable.addSymbol({
         name: "externVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "header.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
@@ -912,7 +911,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "externVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "impl.c",
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
@@ -928,7 +927,7 @@ describe("SymbolTable", () => {
       // Two scope functions (non-variable with parent) with same name = conflict
       symbolTable.addSymbol({
         name: "Math_calculate",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "i32",
         sourceFile: "math1.cnx",
         sourceLine: 1,
@@ -939,7 +938,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "Math_calculate",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "i32",
         sourceFile: "math2.cnx",
         sourceLine: 5,
@@ -957,7 +956,7 @@ describe("SymbolTable", () => {
       // Multiple C definitions - no conflict detection for C-only (handled by C compiler)
       symbolTable.addSymbol({
         name: "cOnlyVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file1.c",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
@@ -966,7 +965,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addSymbol({
         name: "cOnlyVar",
-        kind: ESymbolKind.Variable,
+        kind: "variable",
         sourceFile: "file2.c",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,

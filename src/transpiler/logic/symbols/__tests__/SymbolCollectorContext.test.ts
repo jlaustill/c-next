@@ -6,7 +6,6 @@
 import { describe, expect, it } from "vitest";
 import SymbolCollectorContext from "../SymbolCollectorContext";
 import SymbolTable from "../SymbolTable";
-import ESymbolKind from "../../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../../utils/types/ISymbol";
 
@@ -206,7 +205,7 @@ describe("SymbolCollectorContext", () => {
       // Simulate C collector adding symbols
       ctx.symbols.push({
         name: "main",
-        kind: ESymbolKind.Function,
+        kind: "function",
         type: "int",
         sourceFile: ctx.sourceFile,
         sourceLine: 10,
@@ -228,7 +227,7 @@ describe("SymbolCollectorContext", () => {
       // Simulate C++ collector adding namespace and class
       ctx.symbols.push({
         name: "MyNamespace",
-        kind: ESymbolKind.Namespace,
+        kind: "namespace",
         sourceFile: ctx.sourceFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -237,7 +236,7 @@ describe("SymbolCollectorContext", () => {
 
       ctx.symbols.push({
         name: "MyNamespace::MyClass",
-        kind: ESymbolKind.Class,
+        kind: "class",
         sourceFile: ctx.sourceFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -281,7 +280,7 @@ describe("SymbolCollectorContext", () => {
 function createMockSymbol(name: string): ISymbol {
   return {
     name,
-    kind: ESymbolKind.Function,
+    kind: "function",
     sourceFile: "/path/to/file.h",
     sourceLine: 1,
     sourceLanguage: ESourceLanguage.C,
