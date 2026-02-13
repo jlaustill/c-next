@@ -291,9 +291,15 @@ class CNextResolver {
 
     // Top-level functions
     if (decl.functionDeclaration()) {
-      const symbol = FunctionCollector.collect(
-        decl.functionDeclaration()!,
+      const funcDecl = decl.functionDeclaration()!;
+      const body = funcDecl.block();
+      // Use collectAndRegister to populate both old symbols and SymbolRegistry
+      const symbol = FunctionCollector.collectAndRegister(
+        funcDecl,
         sourceFile,
+        undefined, // global scope
+        "private", // default visibility for global functions
+        body,
       );
       symbols.push(symbol);
       return;
