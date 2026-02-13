@@ -12,18 +12,18 @@
  *
  * Use ScopeUtils for factory functions and type guards.
  */
+import type IFunctionSymbol from "./IFunctionSymbol";
 
 /**
  * Scope symbol representing a C-Next scope or the global scope.
- *
- * Note: functions and variables arrays use `unknown[]` as placeholders.
- * In Phase 2, these will be typed as `IFunctionSymbol[]` and `IVariableSymbol[]`.
  */
 interface IScopeSymbol {
   readonly kind: "scope";
   readonly name: string;
   readonly parent: IScopeSymbol;
-  readonly functions: unknown[];
+  /** Functions registered in this scope */
+  readonly functions: IFunctionSymbol[];
+  /** Variables registered in this scope (typed as unknown for now) */
   readonly variables: unknown[];
 }
 

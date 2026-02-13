@@ -4,6 +4,7 @@
  * Provides utilities for creating and inspecting C-Next scopes.
  */
 import type IScopeSymbol from "./IScopeSymbol";
+import type IFunctionSymbol from "./IFunctionSymbol";
 
 class ScopeUtils {
   // ============================================================================
@@ -23,7 +24,7 @@ class ScopeUtils {
       kind: "scope";
       name: string;
       parent: IScopeSymbol;
-      functions: unknown[];
+      functions: IFunctionSymbol[];
       variables: unknown[];
     } = {
       kind: "scope",
