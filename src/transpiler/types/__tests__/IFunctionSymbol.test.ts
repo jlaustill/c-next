@@ -17,7 +17,12 @@ describe("IFunctionSymbol", () => {
         name: "fillData", // Bare name, NOT "Test_fillData"
         scope: testScope,
         parameters: [
-          ParameterUtils.create("d", TTypeUtils.createPrimitive("u32"), false),
+          ParameterUtils.create({
+            name: "d",
+            type: TTypeUtils.createPrimitive("u32"),
+            isConst: false,
+            isArray: false,
+          }),
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -64,13 +69,24 @@ describe("IFunctionSymbol", () => {
         name: "calculate",
         scope: global,
         parameters: [
-          ParameterUtils.create("a", TTypeUtils.createPrimitive("i32"), true),
-          ParameterUtils.create("b", TTypeUtils.createPrimitive("i32"), true),
-          ParameterUtils.create(
-            "result",
-            TTypeUtils.createPrimitive("i32"),
-            false,
-          ),
+          ParameterUtils.create({
+            name: "a",
+            type: TTypeUtils.createPrimitive("i32"),
+            isConst: true,
+            isArray: false,
+          }),
+          ParameterUtils.create({
+            name: "b",
+            type: TTypeUtils.createPrimitive("i32"),
+            isConst: true,
+            isArray: false,
+          }),
+          ParameterUtils.create({
+            name: "result",
+            type: TTypeUtils.createPrimitive("i32"),
+            isConst: false,
+            isArray: false,
+          }),
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -92,8 +108,18 @@ describe("IFunctionSymbol", () => {
         name: "createPoint",
         scope: global,
         parameters: [
-          ParameterUtils.create("x", TTypeUtils.createPrimitive("i32"), false),
-          ParameterUtils.create("y", TTypeUtils.createPrimitive("i32"), false),
+          ParameterUtils.create({
+            name: "x",
+            type: TTypeUtils.createPrimitive("i32"),
+            isConst: false,
+            isArray: false,
+          }),
+          ParameterUtils.create({
+            name: "y",
+            type: TTypeUtils.createPrimitive("i32"),
+            isConst: false,
+            isArray: false,
+          }),
         ],
         returnType: TTypeUtils.createStruct("Point"),
         visibility: "public",

@@ -1,12 +1,16 @@
 /**
  * StructCollector - Extracts struct type declarations from parse trees.
  * Handles fields with types, arrays, and const modifiers.
+ *
+ * Produces TType-based IStructSymbol with proper IScopeSymbol references.
  */
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import IStructSymbol from "../../types/IStructSymbol";
-import IFieldInfo from "../../types/IFieldInfo";
+import IStructSymbol from "../../../../types/symbols/IStructSymbol";
+import IFieldInfo from "../../../../types/symbols/IFieldInfo";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import TypeResolver from "../../../../types/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import LiteralUtils from "../../../../../utils/LiteralUtils";
 
@@ -50,7 +54,7 @@ function processArrayTypeSyntax(
 function processStringField(
   stringCtx: Parser.StringTypeContext,
   arrayDims: Parser.ArrayDimensionContext[],
-  dimensions: number[],
+  dimensions: (number | string)[],
   constValues?: Map<string, number>,
 ): boolean {
   const intLiteral = stringCtx.INTEGER_LITERAL();
@@ -93,7 +97,7 @@ function tryResolveExpressionDimension(
  */
 function parseArrayDimensions(
   arrayDims: Parser.ArrayDimensionContext[],
-  dimensions: number[],
+  dimensions: (number | string)[],
   constValues?: Map<string, number>,
 ): void {
   for (const dim of arrayDims) {
@@ -113,58 +117,65 @@ class StructCollector {
    *
    * @param ctx The struct declaration context
    * @param sourceFile Source file path
-   * @param scopeName Optional scope name for nested structs
+   * @param scope The scope this struct belongs to (IScopeSymbol)
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
-   * @returns The struct symbol
+   * @returns The struct symbol with TType-based types and scope reference
    */
   static collect(
     ctx: Parser.StructDeclarationContext,
     sourceFile: string,
-    scopeName?: string,
+    scope: IScopeSymbol,
     constValues?: Map<string, number>,
   ): IStructSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const fullName = scopeName ? `${scopeName}_${name}` : name;
     const line = ctx.start?.line ?? 0;
+    const scopeName = scope.name === "" ? undefined : scope.name;
 
     const fields = new Map<string, IFieldInfo>();
 
     for (const member of ctx.structMember()) {
+      const fieldName = member.IDENTIFIER().getText();
       const fieldInfo = StructCollector.collectField(
         member,
+        fieldName,
         scopeName,
         constValues,
       );
-      fields.set(member.IDENTIFIER().getText(), fieldInfo);
+      fields.set(fieldName, fieldInfo);
     }
 
     return {
-      name: fullName,
-      parent: scopeName,
+      kind: "struct",
+      name,
+      scope,
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
-      kind: "struct",
       fields,
     };
   }
 
   /**
    * Collect a single struct field and return its IFieldInfo.
+   * Now includes name and TType-based type.
    */
   private static collectField(
     member: Parser.StructMemberContext,
+    fieldName: string,
     scopeName?: string,
     constValues?: Map<string, number>,
   ): IFieldInfo {
     const typeCtx = member.type();
-    const fieldType = TypeUtils.getTypeName(typeCtx, scopeName);
+    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopeName);
+    const fieldType = TypeResolver.resolve(fieldTypeStr);
     // Note: C-Next struct members don't have const modifier in grammar
     const isConst = false;
+    // C-Next struct members don't have atomic modifier
+    const isAtomic = false;
 
     const arrayDims = member.arrayDimension();
-    const dimensions: number[] = [];
+    const dimensions: (number | string)[] = [];
     let isArray = false;
 
     // Check for C-Next style arrayType syntax: Item[3] items -> typeCtx.arrayType()
@@ -199,17 +210,14 @@ class StructCollector {
       parseArrayDimensions(arrayDims, dimensions, constValues);
     }
 
-    const fieldInfo: IFieldInfo = {
+    return {
+      name: fieldName,
       type: fieldType,
-      isArray,
       isConst,
+      isAtomic,
+      isArray,
+      dimensions: dimensions.length > 0 ? dimensions : undefined,
     };
-
-    if (dimensions.length > 0) {
-      fieldInfo.dimensions = dimensions;
-    }
-
-    return fieldInfo;
   }
 }
 

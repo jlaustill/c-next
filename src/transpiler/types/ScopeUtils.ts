@@ -3,8 +3,8 @@
  *
  * Provides utilities for creating and inspecting C-Next scopes.
  */
-import type IScopeSymbol from "./IScopeSymbol";
-import type IFunctionSymbol from "./IFunctionSymbol";
+import type IScopeSymbol from "./symbols/IScopeSymbol";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
 
 class ScopeUtils {
   // ============================================================================
@@ -17,24 +17,27 @@ class ScopeUtils {
    * Global scope has:
    * - name: "" (empty string)
    * - parent: points to itself (self-reference)
+   * - scope: points to itself (self-reference)
    */
   static createGlobalScope(): IScopeSymbol {
-    // Create a mutable object first to establish self-reference
-    const global: {
-      kind: "scope";
-      name: string;
-      parent: IScopeSymbol;
-      functions: IFunctionSymbol[];
-      variables: unknown[];
-    } = {
+    // Create a mutable object first to establish self-references
+    const global: IScopeSymbol = {
       kind: "scope",
       name: "",
       parent: null as unknown as IScopeSymbol, // Temporary, will be set below
+      scope: null as unknown as IScopeSymbol, // Temporary, will be set below
+      members: [],
       functions: [],
       variables: [],
+      memberVisibility: new Map(),
+      sourceFile: "",
+      sourceLine: 0,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: true,
     };
-    // Set self-reference
-    global.parent = global;
+    // Set self-references for global scope
+    (global as unknown as { parent: IScopeSymbol }).parent = global;
+    (global as unknown as { scope: IScopeSymbol }).scope = global;
     return global;
   }
 
@@ -44,13 +47,21 @@ class ScopeUtils {
    * Named scopes can be nested (e.g., Outer.Inner).
    */
   static createScope(name: string, parent: IScopeSymbol): IScopeSymbol {
-    return {
+    const scope: IScopeSymbol = {
       kind: "scope",
       name,
       parent,
+      scope: parent, // Scope's containing scope is its parent
+      members: [],
       functions: [],
       variables: [],
+      memberVisibility: new Map(),
+      sourceFile: "",
+      sourceLine: 0,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: true,
     };
+    return scope;
   }
 
   // ============================================================================

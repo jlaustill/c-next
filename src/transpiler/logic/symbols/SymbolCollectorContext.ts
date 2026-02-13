@@ -5,7 +5,7 @@
  * Extracted from CSymbolCollector and CppSymbolCollector to reduce duplication.
  */
 
-import ICollectorContext from "./types/ICollectorContext";
+import ICollectorContext from "../../types/ICollectorContext";
 import ISymbol from "../../../utils/types/ISymbol";
 import SymbolTable from "./SymbolTable";
 

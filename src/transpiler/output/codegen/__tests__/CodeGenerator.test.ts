@@ -2,7 +2,7 @@
  * Unit tests for CodeGenerator - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenerator from "../CodeGenerator";
 import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
@@ -12,6 +12,7 @@ import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInf
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import TParameterInfo from "../types/TParameterInfo";
 import CodeGenState from "../../../state/CodeGenState";
+import SymbolRegistry from "../../../state/SymbolRegistry";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
@@ -51,6 +52,11 @@ function createMinimalGenerator(source: string): CodeGenerator {
 }
 
 describe("CodeGenerator", () => {
+  // Reset SymbolRegistry before each test to prevent state pollution
+  beforeEach(() => {
+    SymbolRegistry.reset();
+  });
+
   describe("generate()", () => {
     it("should generate basic C code from empty program", () => {
       const source = "";

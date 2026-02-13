@@ -10,14 +10,16 @@
 
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
-import TSymbol from "../../types/TSymbol";
-import IBitmapSymbol from "../../types/IBitmapSymbol";
-import IEnumSymbol from "../../types/IEnumSymbol";
-import IFunctionSymbol from "../../types/IFunctionSymbol";
-import IStructSymbol from "../../types/IStructSymbol";
-import IRegisterSymbol from "../../types/IRegisterSymbol";
-import IScopeSymbol from "../../types/IScopeSymbol";
-import IVariableSymbol from "../../types/IVariableSymbol";
+import TSymbol from "../../../../types/symbols/TSymbol";
+import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
+import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
+import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
+import IStructSymbol from "../../../../types/symbols/IStructSymbol";
+import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
+import TypeResolver from "../../../../types/TypeResolver";
+import SymbolNameUtils from "../utils/SymbolNameUtils";
 
 /**
  * Groups register-related maps for processRegister method.
@@ -139,8 +141,12 @@ class TSymbolInfoAdapter {
           break;
 
         case "variable":
-          // Issue #282: Track private const values for inlining
-          TSymbolInfoAdapter.processVariable(symbol, scopePrivateConstValues);
+          // Track scope membership and private const values
+          TSymbolInfoAdapter.processVariable(
+            symbol,
+            scopeMembers,
+            scopePrivateConstValues,
+          );
           break;
 
         // Track function return types for enum validation
@@ -225,6 +231,9 @@ class TSymbolInfoAdapter {
 
   // === Private Processing Methods ===
 
+  // Use shared utility for name mangling
+  private static readonly getMangledName = SymbolNameUtils.getMangledName;
+
   private static processStruct(
     struct: IStructSymbol,
     knownStructs: Set<string>,
@@ -232,28 +241,38 @@ class TSymbolInfoAdapter {
     structFieldArrays: Map<string, Set<string>>,
     structFieldDimensions: Map<string, Map<string, number[]>>,
   ): void {
-    knownStructs.add(struct.name);
+    // Use mangled name for lookups (e.g., "Geometry_Point")
+    const mangledName = TSymbolInfoAdapter.getMangledName(struct);
+    knownStructs.add(mangledName);
 
     const fields = new Map<string, string>();
     const arrayFields = new Set<string>();
     const dimensions = new Map<string, number[]>();
 
     for (const [fieldName, fieldInfo] of struct.fields) {
-      fields.set(fieldName, fieldInfo.type);
+      // Convert TType to string for legacy ISymbolInfo format
+      const typeStr = TypeResolver.getTypeName(fieldInfo.type);
+      fields.set(fieldName, typeStr);
 
       if (fieldInfo.isArray) {
         arrayFields.add(fieldName);
 
         if (fieldInfo.dimensions && fieldInfo.dimensions.length > 0) {
-          dimensions.set(fieldName, fieldInfo.dimensions);
+          // Filter to only include numeric dimensions
+          const numericDims = fieldInfo.dimensions.filter(
+            (d): d is number => typeof d === "number",
+          );
+          if (numericDims.length > 0) {
+            dimensions.set(fieldName, numericDims);
+          }
         }
       }
     }
 
-    structFields.set(struct.name, fields);
-    structFieldArrays.set(struct.name, arrayFields);
+    structFields.set(mangledName, fields);
+    structFieldArrays.set(mangledName, arrayFields);
     if (dimensions.size > 0) {
-      structFieldDimensions.set(struct.name, dimensions);
+      structFieldDimensions.set(mangledName, dimensions);
     }
   }
 
@@ -262,8 +281,9 @@ class TSymbolInfoAdapter {
     knownEnums: Set<string>,
     enumMembers: Map<string, Map<string, number>>,
   ): void {
-    knownEnums.add(enumSym.name);
-    enumMembers.set(enumSym.name, new Map(enumSym.members));
+    const mangledName = TSymbolInfoAdapter.getMangledName(enumSym);
+    knownEnums.add(mangledName);
+    enumMembers.set(mangledName, new Map(enumSym.members));
   }
 
   private static processBitmap(
@@ -273,9 +293,10 @@ class TSymbolInfoAdapter {
     bitmapBackingType: Map<string, string>,
     bitmapBitWidth: Map<string, number>,
   ): void {
-    knownBitmaps.add(bitmap.name);
-    bitmapBackingType.set(bitmap.name, bitmap.backingType);
-    bitmapBitWidth.set(bitmap.name, bitmap.bitWidth);
+    const mangledName = TSymbolInfoAdapter.getMangledName(bitmap);
+    knownBitmaps.add(mangledName);
+    bitmapBackingType.set(mangledName, bitmap.backingType);
+    bitmapBitWidth.set(mangledName, bitmap.bitWidth);
 
     const fields = new Map<string, { offset: number; width: number }>();
     for (const [fieldName, fieldInfo] of bitmap.fields) {
@@ -284,7 +305,7 @@ class TSymbolInfoAdapter {
         width: fieldInfo.width,
       });
     }
-    bitmapFields.set(bitmap.name, fields);
+    bitmapFields.set(mangledName, fields);
   }
 
   private static processScope(
@@ -295,8 +316,10 @@ class TSymbolInfoAdapter {
   ): void {
     knownScopes.add(scope.name);
 
-    // Convert members array to Set
-    scopeMembers.set(scope.name, new Set(scope.members));
+    // Use scope.members as the authoritative list of member names
+    // This includes functions, variables, enums, structs, etc.
+    const members = new Set<string>(scope.members);
+    scopeMembers.set(scope.name, members);
 
     // Copy visibility map
     scopeMemberVisibility.set(scope.name, new Map(scope.memberVisibility));
@@ -307,16 +330,18 @@ class TSymbolInfoAdapter {
     knownBitmaps: Set<string>,
     maps: IRegisterMaps,
   ): void {
-    maps.knownRegisters.add(register.name);
-    maps.registerBaseAddresses.set(register.name, register.baseAddress);
+    const mangledName = TSymbolInfoAdapter.getMangledName(register);
+    maps.knownRegisters.add(mangledName);
+    maps.registerBaseAddresses.set(mangledName, register.baseAddress);
 
-    // Check if this is a scoped register (name contains underscore)
-    if (register.name.includes("_")) {
-      maps.scopedRegisters.set(register.name, register.baseAddress);
+    // Check if this is a scoped register (has non-global scope)
+    const isScoped = register.scope.name !== "";
+    if (isScoped) {
+      maps.scopedRegisters.set(mangledName, register.baseAddress);
     }
 
     for (const [memberName, memberInfo] of register.members) {
-      const fullName = `${register.name}_${memberName}`;
+      const fullName = `${mangledName}_${memberName}`;
 
       maps.registerMemberAccess.set(fullName, memberInfo.access);
       maps.registerMemberOffsets.set(fullName, memberInfo.offset);
@@ -334,11 +359,24 @@ class TSymbolInfoAdapter {
 
   private static processVariable(
     variable: IVariableSymbol,
+    scopeMembers: Map<string, Set<string>>,
     scopePrivateConstValues: Map<string, string>,
   ): void {
+    const mangledName = TSymbolInfoAdapter.getMangledName(variable);
+    const scopeName = variable.scope.name;
+    const isScoped = scopeName !== "";
+
+    // Track scoped variables as scope members (needed for name resolution)
+    if (isScoped) {
+      let members = scopeMembers.get(scopeName);
+      if (!members) {
+        members = new Set<string>();
+        scopeMembers.set(scopeName, members);
+      }
+      members.add(variable.name); // Add local name (e.g., "value"), not mangled
+    }
+
     // Issue #282: Track private const values for inlining
-    // A scoped variable has an underscore in its name (e.g., "Motor_MAX_SPEED")
-    const isScoped = variable.name.includes("_");
     const isPrivate = !variable.isExported;
 
     // Issue #500: Only inline SCALAR consts, not arrays - arrays must be emitted
@@ -349,7 +387,7 @@ class TSymbolInfoAdapter {
       variable.initialValue &&
       !variable.isArray
     ) {
-      scopePrivateConstValues.set(variable.name, variable.initialValue);
+      scopePrivateConstValues.set(mangledName, variable.initialValue);
     }
   }
 
@@ -359,7 +397,10 @@ class TSymbolInfoAdapter {
   ): void {
     // Track function return types for enum validation in assignments
     // This enables recognizing that Motor.getMode() returns Motor_EMode
-    functionReturnTypes.set(func.name, func.returnType);
+    // Use mangled name (e.g., "Motor_getMode") for lookup consistency
+    const mangledName = TSymbolInfoAdapter.getMangledName(func);
+    const returnTypeStr = TypeResolver.getTypeName(func.returnType);
+    functionReturnTypes.set(mangledName, returnTypeStr);
   }
 
   private static cnextTypeToCType(typeName: string): string {

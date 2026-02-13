@@ -280,6 +280,17 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
+### Test Isolation with SymbolRegistry
+
+- **CNextResolver tests need SymbolRegistry.reset()**: Tests using `CNextResolver.resolve()` must call `SymbolRegistry.reset()` in `beforeEach` - SymbolRegistry is static and scopes persist across parallel tests
+- **Symptom of state pollution**: Tests pass individually (`npm run unit -- -t "test name"`) but fail when run together
+
+### TSymbol Naming Convention
+
+- **TSymbols use bare names**: `name: "init"` with `scope: IScopeSymbol` reference (NOT `name: "Motor_init"`)
+- **Mangled names computed on demand**: Use `getMangledName(symbol)` when converting TSymbol → ISymbol
+- **TypeResolver pattern**: `TypeResolver.resolve(str)` → TType; `TypeResolver.getTypeName(type)` → string
+
 ### Analyzer State Management
 
 - **External struct fields**: `CodeGenState.buildExternalStructFields()` builds from symbolTable in Stage 2b, analyzers read via `getExternalStructFields()`

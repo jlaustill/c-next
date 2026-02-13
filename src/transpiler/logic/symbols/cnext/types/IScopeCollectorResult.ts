@@ -3,8 +3,8 @@
  * Contains both the scope symbol itself and all nested member symbols.
  */
 
-import IScopeSymbol from "../../types/IScopeSymbol";
-import TSymbol from "../../types/TSymbol";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import TSymbol from "../../../../types/symbols/TSymbol";
 
 interface IScopeCollectorResult {
   scopeSymbol: IScopeSymbol;

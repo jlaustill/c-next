@@ -14,7 +14,7 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import SymbolTable from "./SymbolTable";
 import SymbolUtils from "./SymbolUtils";
 import SymbolCollectorContext from "./SymbolCollectorContext";
-import ICollectorContext from "./types/ICollectorContext";
+import ICollectorContext from "../../types/ICollectorContext";
 
 // Import context types
 type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;

@@ -1,17 +1,17 @@
-import IBaseSymbol from "./IBaseSymbol";
+import type IBaseSymbol from "./IBaseSymbol";
 
 /**
  * Symbol representing an enum type definition.
  */
 interface IEnumSymbol extends IBaseSymbol {
-  /** Discriminant for type narrowing */
-  kind: "enum";
+  /** Discriminator narrowed to "enum" */
+  readonly kind: "enum";
 
   /** Map of member name to numeric value */
-  members: Map<string, number>;
+  readonly members: ReadonlyMap<string, number>;
 
   /** Optional explicit bit width (e.g., 8 for u8 backing type) */
-  bitWidth?: number;
+  readonly bitWidth?: number;
 }
 
 export default IEnumSymbol;

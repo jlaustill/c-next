@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import BitmapCollector from "../collectors/BitmapCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import TestScopeUtils from "./testUtils";
 
 describe("BitmapCollector", () => {
   describe("basic bitmap extraction", () => {
@@ -17,7 +18,11 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "test.cnx");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.kind).toBe("bitmap");
       expect(symbol.name).toBe("Status");
@@ -46,7 +51,11 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "control.cnx");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "control.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.name).toBe("Control");
       expect(symbol.backingType).toBe("uint16_t");
@@ -67,7 +76,11 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "config.cnx");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "config.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.name).toBe("Config");
       expect(symbol.backingType).toBe("uint32_t");
@@ -84,7 +97,11 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "rgb.cnx");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "rgb.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.name).toBe("RGB");
       expect(symbol.backingType).toBe("uint32_t"); // 24-bit uses 32-bit backing
@@ -105,9 +122,16 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "motor.cnx", "Motor");
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "motor.cnx",
+        motorScope,
+      );
 
-      expect(symbol.name).toBe("Motor_Flags");
+      // With the new IScopeSymbol-based design, name is just "Flags" (not prefixed)
+      // The prefixing happens in TSymbolAdapter for backwards compatibility
+      expect(symbol.name).toBe("Flags");
     });
   });
 
@@ -122,7 +146,13 @@ describe("BitmapCollector", () => {
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
-      expect(() => BitmapCollector.collect(bitmapCtx, "test.cnx")).toThrow(
+      expect(() =>
+        BitmapCollector.collect(
+          bitmapCtx,
+          "test.cnx",
+          TestScopeUtils.getGlobalScope(),
+        ),
+      ).toThrow(
         "Error: Bitmap 'TooMany' has 10 bits but bitmap8 requires exactly 8 bits",
       );
     });
@@ -137,7 +167,13 @@ describe("BitmapCollector", () => {
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
-      expect(() => BitmapCollector.collect(bitmapCtx, "test.cnx")).toThrow(
+      expect(() =>
+        BitmapCollector.collect(
+          bitmapCtx,
+          "test.cnx",
+          TestScopeUtils.getGlobalScope(),
+        ),
+      ).toThrow(
         "Error: Bitmap 'TooFew' has 4 bits but bitmap8 requires exactly 8 bits",
       );
     });
@@ -153,7 +189,11 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "test.cnx");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+      );
 
       expect(symbol.sourceLine).toBe(3);
     });

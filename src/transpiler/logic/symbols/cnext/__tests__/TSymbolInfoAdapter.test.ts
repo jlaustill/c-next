@@ -9,27 +9,50 @@
 import { describe, expect, it } from "vitest";
 import TSymbolInfoAdapter from "../adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import IBitmapSymbol from "../../types/IBitmapSymbol";
-import IEnumSymbol from "../../types/IEnumSymbol";
-import IStructSymbol from "../../types/IStructSymbol";
-import IRegisterSymbol from "../../types/IRegisterSymbol";
-import IScopeSymbol from "../../types/IScopeSymbol";
-import IVariableSymbol from "../../types/IVariableSymbol";
-import IFunctionSymbol from "../../types/IFunctionSymbol";
+import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
+import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
+import IStructSymbol from "../../../../types/symbols/IStructSymbol";
+import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
+import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
+import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
+import TypeResolver from "../../../../types/TypeResolver";
+import TestScopeUtils from "./testUtils";
 
 describe("TSymbolInfoAdapter", () => {
+  // Reset global scope between tests to avoid state pollution
+  const globalScope = TestScopeUtils.getGlobalScope();
+
   describe("convert structs", () => {
     it("should populate knownStructs set", () => {
       const struct: IStructSymbol = {
         kind: "struct",
         name: "Point",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         fields: new Map([
-          ["x", { type: "i32", isArray: false, isConst: false }],
-          ["y", { type: "i32", isArray: false, isConst: false }],
+          [
+            "x",
+            {
+              name: "x",
+              type: TypeResolver.resolve("i32"),
+              isArray: false,
+              isConst: false,
+              isAtomic: false,
+            },
+          ],
+          [
+            "y",
+            {
+              name: "y",
+              type: TypeResolver.resolve("i32"),
+              isArray: false,
+              isConst: false,
+              isAtomic: false,
+            },
+          ],
         ]),
       };
 
@@ -42,13 +65,32 @@ describe("TSymbolInfoAdapter", () => {
       const struct: IStructSymbol = {
         kind: "struct",
         name: "Point",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         fields: new Map([
-          ["x", { type: "i32", isArray: false, isConst: false }],
-          ["y", { type: "f32", isArray: false, isConst: false }],
+          [
+            "x",
+            {
+              name: "x",
+              type: TypeResolver.resolve("i32"),
+              isArray: false,
+              isConst: false,
+              isAtomic: false,
+            },
+          ],
+          [
+            "y",
+            {
+              name: "y",
+              type: TypeResolver.resolve("f32"),
+              isArray: false,
+              isConst: false,
+              isAtomic: false,
+            },
+          ],
         ]),
       };
 
@@ -62,6 +104,7 @@ describe("TSymbolInfoAdapter", () => {
       const struct: IStructSymbol = {
         kind: "struct",
         name: "Buffer",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -69,9 +112,25 @@ describe("TSymbolInfoAdapter", () => {
         fields: new Map([
           [
             "data",
-            { type: "u8", isArray: true, isConst: false, dimensions: [256] },
+            {
+              name: "data",
+              type: TypeResolver.resolve("u8"),
+              isArray: true,
+              isConst: false,
+              isAtomic: false,
+              dimensions: [256],
+            },
           ],
-          ["size", { type: "u32", isArray: false, isConst: false }],
+          [
+            "size",
+            {
+              name: "size",
+              type: TypeResolver.resolve("u32"),
+              isArray: false,
+              isConst: false,
+              isAtomic: false,
+            },
+          ],
         ]),
       };
 
@@ -85,6 +144,7 @@ describe("TSymbolInfoAdapter", () => {
       const struct: IStructSymbol = {
         kind: "struct",
         name: "Matrix",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -92,7 +152,14 @@ describe("TSymbolInfoAdapter", () => {
         fields: new Map([
           [
             "values",
-            { type: "f32", isArray: true, isConst: false, dimensions: [4, 4] },
+            {
+              name: "values",
+              type: TypeResolver.resolve("f32"),
+              isArray: true,
+              isConst: false,
+              isAtomic: false,
+              dimensions: [4, 4],
+            },
           ],
         ]),
       };
@@ -110,6 +177,7 @@ describe("TSymbolInfoAdapter", () => {
       const enumSym: IEnumSymbol = {
         kind: "enum",
         name: "Color",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -130,6 +198,7 @@ describe("TSymbolInfoAdapter", () => {
       const enumSym: IEnumSymbol = {
         kind: "enum",
         name: "Priority",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -154,6 +223,7 @@ describe("TSymbolInfoAdapter", () => {
       const bitmap: IBitmapSymbol = {
         kind: "bitmap",
         name: "Status",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -172,6 +242,7 @@ describe("TSymbolInfoAdapter", () => {
       const bitmap: IBitmapSymbol = {
         kind: "bitmap",
         name: "Control",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -195,6 +266,7 @@ describe("TSymbolInfoAdapter", () => {
       const bitmap: IBitmapSymbol = {
         kind: "bitmap",
         name: "Flags",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -219,42 +291,33 @@ describe("TSymbolInfoAdapter", () => {
 
   describe("convert scopes", () => {
     it("should populate knownScopes set", () => {
-      const scope: IScopeSymbol = {
-        kind: "scope",
-        name: "Motor",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        members: ["init", "run"],
-        memberVisibility: new Map([
-          ["init", "public"],
-          ["run", "private"],
-        ]),
-      };
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      (motorScope.members as string[]).push("init", "run");
+      (motorScope.memberVisibility as Map<string, string>).set(
+        "init",
+        "public",
+      );
+      (motorScope.memberVisibility as Map<string, string>).set(
+        "run",
+        "private",
+      );
 
-      const info = TSymbolInfoAdapter.convert([scope]);
+      const info = TSymbolInfoAdapter.convert([motorScope]);
 
       expect(info.knownScopes.has("Motor")).toBe(true);
     });
 
     it("should populate scopeMembers with member names", () => {
-      const scope: IScopeSymbol = {
-        kind: "scope",
-        name: "LED",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        members: ["on", "off", "toggle"],
-        memberVisibility: new Map([
-          ["on", "public"],
-          ["off", "public"],
-          ["toggle", "private"],
-        ]),
-      };
+      const ledScope = TestScopeUtils.createMockScope("LED");
+      (ledScope.members as string[]).push("on", "off", "toggle");
+      (ledScope.memberVisibility as Map<string, string>).set("on", "public");
+      (ledScope.memberVisibility as Map<string, string>).set("off", "public");
+      (ledScope.memberVisibility as Map<string, string>).set(
+        "toggle",
+        "private",
+      );
 
-      const info = TSymbolInfoAdapter.convert([scope]);
+      const info = TSymbolInfoAdapter.convert([ledScope]);
 
       const members = info.scopeMembers.get("LED");
       expect(members?.has("on")).toBe(true);
@@ -263,22 +326,22 @@ describe("TSymbolInfoAdapter", () => {
     });
 
     it("should populate scopeMemberVisibility", () => {
-      const scope: IScopeSymbol = {
-        kind: "scope",
-        name: "Timer",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        members: ["start", "stop", "reset"],
-        memberVisibility: new Map([
-          ["start", "public"],
-          ["stop", "public"],
-          ["reset", "private"],
-        ]),
-      };
+      const timerScope = TestScopeUtils.createMockScope("Timer");
+      (timerScope.members as string[]).push("start", "stop", "reset");
+      (timerScope.memberVisibility as Map<string, string>).set(
+        "start",
+        "public",
+      );
+      (timerScope.memberVisibility as Map<string, string>).set(
+        "stop",
+        "public",
+      );
+      (timerScope.memberVisibility as Map<string, string>).set(
+        "reset",
+        "private",
+      );
 
-      const info = TSymbolInfoAdapter.convert([scope]);
+      const info = TSymbolInfoAdapter.convert([timerScope]);
 
       const visibility = info.scopeMemberVisibility.get("Timer");
       expect(visibility?.get("start")).toBe("public");
@@ -292,6 +355,7 @@ describe("TSymbolInfoAdapter", () => {
       const register: IRegisterSymbol = {
         kind: "register",
         name: "GPIO",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -311,6 +375,7 @@ describe("TSymbolInfoAdapter", () => {
       const register: IRegisterSymbol = {
         kind: "register",
         name: "UART",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -330,6 +395,7 @@ describe("TSymbolInfoAdapter", () => {
       const register: IRegisterSymbol = {
         kind: "register",
         name: "SPI",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -355,6 +421,7 @@ describe("TSymbolInfoAdapter", () => {
       const bitmap: IBitmapSymbol = {
         kind: "bitmap",
         name: "StatusFlags",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -367,6 +434,7 @@ describe("TSymbolInfoAdapter", () => {
       const register: IRegisterSymbol = {
         kind: "register",
         name: "CTRL",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -394,15 +462,17 @@ describe("TSymbolInfoAdapter", () => {
 
   describe("convert variables", () => {
     it("should track private scope const values for inlining", () => {
-      // Variable with scope prefix (scoped variable)
+      // Create a scoped variable with bare name and scope reference
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "Motor_MAX_SPEED",
+        name: "MAX_SPEED", // Bare name - adapter computes mangled name
+        scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: false, // private
-        type: "u32",
+        type: TypeResolver.resolve("u32"),
         isConst: true,
         isAtomic: false,
         isArray: false,
@@ -411,18 +481,21 @@ describe("TSymbolInfoAdapter", () => {
 
       const info = TSymbolInfoAdapter.convert([variable]);
 
+      // Adapter stores using mangled name (scope + bare name)
       expect(info.scopePrivateConstValues.get("Motor_MAX_SPEED")).toBe("255");
     });
 
     it("should not track public const values", () => {
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "Motor_PUBLIC_CONST",
+        name: "PUBLIC_CONST", // Bare name - adapter computes mangled name
+        scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true, // public
-        type: "u32",
+        type: TypeResolver.resolve("u32"),
         isConst: true,
         isAtomic: false,
         isArray: false,
@@ -437,14 +510,16 @@ describe("TSymbolInfoAdapter", () => {
     });
 
     it("should not track non-const private values", () => {
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "Motor_counter",
+        name: "counter", // Bare name - adapter computes mangled name
+        scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: false,
-        type: "u32",
+        type: TypeResolver.resolve("u32"),
         isConst: false, // not const
         isAtomic: false,
         isArray: false,
@@ -457,14 +532,16 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should NOT track private const array values for inlining", () => {
       // Issue #500: Array consts must be emitted, not inlined
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "Motor_LOOKUP_TABLE",
+        name: "LOOKUP_TABLE", // Bare name - adapter computes mangled name
+        scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: false,
-        type: "u16",
+        type: TypeResolver.resolve("u16"),
         isConst: true,
         isAtomic: false,
         isArray: true,
@@ -482,14 +559,16 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should NOT track private const multi-dimensional array values", () => {
       // Issue #500: Multi-dimensional arrays must also be emitted
+      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "Motor_MATRIX",
+        name: "MATRIX", // Bare name - adapter computes mangled name
+        scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: false,
-        type: "u8",
+        type: TypeResolver.resolve("u8"),
         isConst: true,
         isAtomic: false,
         isArray: true,
@@ -505,35 +584,24 @@ describe("TSymbolInfoAdapter", () => {
 
   describe("hasPublicSymbols", () => {
     it("should return true when scope has public members", () => {
-      const scope: IScopeSymbol = {
-        kind: "scope",
-        name: "LED",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        members: ["on"],
-        memberVisibility: new Map([["on", "public"]]),
-      };
+      const ledScope = TestScopeUtils.createMockScope("LED");
+      (ledScope.members as string[]).push("on");
+      (ledScope.memberVisibility as Map<string, string>).set("on", "public");
 
-      const info = TSymbolInfoAdapter.convert([scope]);
+      const info = TSymbolInfoAdapter.convert([ledScope]);
 
       expect(info.hasPublicSymbols()).toBe(true);
     });
 
     it("should return false when all scope members are private", () => {
-      const scope: IScopeSymbol = {
-        kind: "scope",
-        name: "Internal",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        members: ["helper"],
-        memberVisibility: new Map([["helper", "private"]]),
-      };
+      const internalScope = TestScopeUtils.createMockScope("Internal");
+      (internalScope.members as string[]).push("helper");
+      (internalScope.memberVisibility as Map<string, string>).set(
+        "helper",
+        "private",
+      );
 
-      const info = TSymbolInfoAdapter.convert([scope]);
+      const info = TSymbolInfoAdapter.convert([internalScope]);
 
       expect(info.hasPublicSymbols()).toBe(false);
     });
@@ -542,12 +610,22 @@ describe("TSymbolInfoAdapter", () => {
       const struct: IStructSymbol = {
         kind: "struct",
         name: "Point",
+        scope: globalScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         fields: new Map([
-          ["x", { type: "i32", isArray: false, isConst: false }],
+          [
+            "x",
+            {
+              name: "x",
+              type: TypeResolver.resolve("i32"),
+              isArray: false,
+              isConst: false,
+              isAtomic: false,
+            },
+          ],
         ]),
       };
 
@@ -567,18 +645,14 @@ describe("TSymbolInfoAdapter", () => {
     // Note: scopeVariableUsage requires function body analysis
     // which isn't done by the current collectors
     it("should return null for unknown variables", () => {
-      const scope: IScopeSymbol = {
-        kind: "scope",
-        name: "Motor",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        members: ["counter"],
-        memberVisibility: new Map([["counter", "private"]]),
-      };
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      (motorScope.members as string[]).push("counter");
+      (motorScope.memberVisibility as Map<string, string>).set(
+        "counter",
+        "private",
+      );
 
-      const info = TSymbolInfoAdapter.convert([scope]);
+      const info = TSymbolInfoAdapter.convert([motorScope]);
 
       expect(info.getSingleFunctionForVariable("Motor", "counter")).toBeNull();
     });
@@ -586,21 +660,39 @@ describe("TSymbolInfoAdapter", () => {
 
   describe("mixed symbols", () => {
     it("should handle array of different symbol types", () => {
+      const motorScope = TestScopeUtils.createMockScope("Motor");
+      (motorScope.members as string[]).push("init");
+      (motorScope.memberVisibility as Map<string, string>).set(
+        "init",
+        "public",
+      );
+
       const symbols = [
         {
           kind: "struct",
           name: "Point",
+          scope: globalScope,
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
           isExported: true,
           fields: new Map([
-            ["x", { type: "i32", isArray: false, isConst: false }],
+            [
+              "x",
+              {
+                name: "x",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+              },
+            ],
           ]),
         } as IStructSymbol,
         {
           kind: "enum",
           name: "Color",
+          scope: globalScope,
           sourceFile: "test.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
@@ -610,24 +702,17 @@ describe("TSymbolInfoAdapter", () => {
             ["Green", 1],
           ]),
         } as IEnumSymbol,
-        {
-          kind: "scope",
-          name: "Motor",
-          sourceFile: "test.cnx",
-          sourceLine: 10,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
-          members: ["init"],
-          memberVisibility: new Map([["init", "public"]]),
-        } as IScopeSymbol,
+        motorScope,
         {
           kind: "function",
           name: "main",
+          scope: globalScope,
+          body: null,
           sourceFile: "test.cnx",
           sourceLine: 15,
           sourceLanguage: ESourceLanguage.CNext,
           isExported: true,
-          returnType: "void",
+          returnType: TypeResolver.resolve("void"),
           visibility: "public",
           parameters: [],
         } as IFunctionSymbol,

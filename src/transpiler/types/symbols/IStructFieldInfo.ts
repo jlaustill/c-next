@@ -1,5 +1,6 @@
 /**
- * Struct field information
+ * Serialized struct field information for caching.
+ * Uses string types instead of TType for JSON serialization.
  */
 interface IStructFieldInfo {
   /** Field type (e.g., "uint32_t", "uint16_t") */

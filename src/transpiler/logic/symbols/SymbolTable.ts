@@ -6,8 +6,8 @@
 import ISymbol from "../../../utils/types/ISymbol";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
-import IConflict from "./types/IConflict";
-import IStructFieldInfo from "./types/IStructFieldInfo";
+import IConflict from "../../types/IConflict";
+import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
 
 /**
  * Central symbol table for cross-language interoperability

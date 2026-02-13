@@ -1,11 +1,15 @@
 /**
  * VariableCollector - Extracts variable declarations from parse trees.
  * Handles types, const modifier, arrays, and initial values.
+ *
+ * Produces TType-based IVariableSymbol with proper IScopeSymbol references.
  */
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import IVariableSymbol from "../../types/IVariableSymbol";
+import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import TypeResolver from "../../../../types/TypeResolver";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
 import LiteralUtils from "../../../../../utils/LiteralUtils";
@@ -101,25 +105,26 @@ class VariableCollector {
    *
    * @param ctx The variable declaration context
    * @param sourceFile Source file path
-   * @param scopeName Optional scope name for scoped variables
+   * @param scope The scope this variable belongs to (IScopeSymbol)
    * @param isPublic Whether this variable is public (default true for top-level)
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
-   * @returns The variable symbol
+   * @returns The variable symbol with TType-based types and scope reference
    */
   static collect(
     ctx: Parser.VariableDeclarationContext,
     sourceFile: string,
-    scopeName?: string,
+    scope: IScopeSymbol,
     isPublic: boolean = true,
     constValues?: Map<string, number>,
   ): IVariableSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const fullName = scopeName ? `${scopeName}_${name}` : name;
     const line = ctx.start?.line ?? 0;
 
-    // Get type
+    // Get type string and convert to TType
     const typeCtx = ctx.type();
-    const type = TypeUtils.getTypeName(typeCtx, scopeName);
+    const scopeName = scope.name === "" ? undefined : scope.name;
+    const typeStr = TypeUtils.getTypeName(typeCtx, scopeName);
+    const type = TypeResolver.resolve(typeStr);
 
     // Check for const modifier
     const isConst = ctx.constModifier() !== null;
@@ -159,27 +164,22 @@ class VariableCollector {
     // Issue #282: Capture initial value for const inlining
     const initialValue = initExpr?.getText();
 
+    // Build base symbol
     const symbol: IVariableSymbol = {
-      name: fullName,
-      parent: scopeName,
+      kind: "variable",
+      name,
+      scope,
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: isPublic,
-      kind: "variable",
       type,
       isConst,
       isAtomic,
       isArray,
+      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      initialValue,
     };
-
-    if (arrayDimensions.length > 0) {
-      symbol.arrayDimensions = arrayDimensions;
-    }
-
-    if (initialValue !== undefined) {
-      symbol.initialValue = initialValue;
-    }
 
     return symbol;
   }
