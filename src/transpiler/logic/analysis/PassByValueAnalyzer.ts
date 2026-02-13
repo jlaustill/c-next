@@ -19,6 +19,8 @@
 
 import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
+import SymbolRegistry from "../../state/SymbolRegistry";
+import QualifiedNameGenerator from "../../output/codegen/utils/QualifiedNameGenerator";
 import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
 import StatementExpressionCollector from "./helpers/StatementExpressionCollector";
 import ChildStatementCollector from "./helpers/ChildStatementCollector";
@@ -509,27 +511,42 @@ class PassByValueAnalyzer {
   /**
    * Issue #797: Resolve a bare function name to its scope-qualified name.
    * When inside a scope, bare calls like `fillData()` should resolve to `Scope_fillData`.
+   *
+   * Uses SymbolRegistry for proper scope-aware resolution instead of string parsing.
    */
   private static resolveCalleeNameInScope(
     callerFuncName: string,
     bareCalleeName: string,
   ): string {
-    // Extract scope prefix from caller (e.g., "Test_" from "Test_loadData")
+    // Try to resolve using SymbolRegistry (new type system)
+    const callerScope =
+      SymbolRegistry.getScopeByMangledFunctionName(callerFuncName);
+    if (callerScope) {
+      // Use SymbolRegistry.resolveFunction to find the callee in scope chain
+      const callee = SymbolRegistry.resolveFunction(
+        bareCalleeName,
+        callerScope,
+      );
+      if (callee) {
+        // Use QualifiedNameGenerator to get the C-mangled name
+        return QualifiedNameGenerator.forFunction(callee);
+      }
+    }
+
+    // Fallback to legacy string-based lookup for backward compatibility
+    // (handles functions from C headers, external functions, etc.)
     const underscoreIndex = callerFuncName.indexOf("_");
     if (underscoreIndex === -1) {
-      // Caller is not in a scope, use bare name
       return bareCalleeName;
     }
 
     const scopePrefix = callerFuncName.substring(0, underscoreIndex + 1);
     const qualifiedName = scopePrefix + bareCalleeName;
 
-    // Check if the scope-qualified name exists in functionParamLists
     if (CodeGenState.functionParamLists.has(qualifiedName)) {
       return qualifiedName;
     }
 
-    // Fall back to bare name (might be a top-level or external function)
     return bareCalleeName;
   }
 
