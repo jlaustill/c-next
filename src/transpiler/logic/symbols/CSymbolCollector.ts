@@ -15,7 +15,6 @@ import {
   EnumSpecifierContext,
 } from "../parser/c/grammar/CParser";
 import ISymbol from "../../../utils/types/ISymbol";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import SymbolTable from "./SymbolTable";
 import SymbolUtils from "./SymbolUtils";
@@ -92,7 +91,7 @@ class CSymbolCollector {
 
     SymbolCollectorContext.addSymbol(this.ctx, {
       name,
-      kind: ESymbolKind.Function,
+      kind: "function",
       type: returnType,
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
@@ -279,7 +278,7 @@ class CSymbolCollector {
   private _addTypeSymbol(name: string, baseType: string, line: number): void {
     SymbolCollectorContext.addSymbol(this.ctx, {
       name,
-      kind: ESymbolKind.Type,
+      kind: "type",
       type: baseType,
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
@@ -299,7 +298,7 @@ class CSymbolCollector {
   ): void {
     SymbolCollectorContext.addSymbol(this.ctx, {
       name,
-      kind: ESymbolKind.Variable,
+      kind: "variable",
       type: baseType,
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
@@ -329,7 +328,7 @@ class CSymbolCollector {
       if (isTypedef) {
         SymbolCollectorContext.addSymbol(this.ctx, {
           name,
-          kind: ESymbolKind.Type,
+          kind: "type",
           type: baseType,
           sourceFile: this.ctx.sourceFile,
           sourceLine: line,
@@ -339,7 +338,7 @@ class CSymbolCollector {
       } else if (isFunction) {
         SymbolCollectorContext.addSymbol(this.ctx, {
           name,
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: baseType,
           sourceFile: this.ctx.sourceFile,
           sourceLine: line,
@@ -369,7 +368,7 @@ class CSymbolCollector {
 
     SymbolCollectorContext.addSymbol(this.ctx, {
       name,
-      kind: ESymbolKind.Struct,
+      kind: "struct",
       type: isUnion ? "union" : "struct",
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
@@ -404,7 +403,7 @@ class CSymbolCollector {
 
     SymbolCollectorContext.addSymbol(this.ctx, {
       name,
-      kind: ESymbolKind.Enum,
+      kind: "enum",
       sourceFile: this.ctx.sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
@@ -421,7 +420,7 @@ class CSymbolCollector {
           if (memberName) {
             SymbolCollectorContext.addSymbol(this.ctx, {
               name: memberName,
-              kind: ESymbolKind.EnumMember,
+              kind: "enum_member",
               sourceFile: this.ctx.sourceFile,
               sourceLine: enumeratorDef.start?.line ?? line,
               sourceLanguage: ESourceLanguage.C,
