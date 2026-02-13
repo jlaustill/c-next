@@ -30,6 +30,7 @@
     "bitwidth",
     "REGNAME",
     "PORTA",
+    "PORTB",
     "struct",
     "structs",
     "enum",
