@@ -6,6 +6,7 @@
  */
 
 import IRegisterNameResult from "./IRegisterNameResult";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
  * Validate that 'this' is being used within a scope context.
@@ -79,7 +80,12 @@ function buildScopedRegisterName(
   scopeName: string,
   parts: readonly string[],
 ): string {
-  return `${scopeName}_${parts.join("_")}`;
+  // Build the name progressively: Scope_Part1_Part2_...
+  let result = scopeName;
+  for (const part of parts) {
+    result = QualifiedNameGenerator.forMember(result, part);
+  }
+  return result;
 }
 
 /**

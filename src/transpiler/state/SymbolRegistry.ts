@@ -18,7 +18,7 @@ class SymbolRegistry {
   private static globalScope: IScopeSymbol = ScopeUtils.createGlobalScope();
 
   /** Map from scope path (e.g., "Outer.Inner") to scope object */
-  private static scopes: Map<string, IScopeSymbol> = new Map();
+  private static readonly scopes: Map<string, IScopeSymbol> = new Map();
 
   // ============================================================================
   // Scope Management
@@ -36,6 +36,17 @@ class SymbolRegistry {
   }
 
   /**
+   * Get a scope by its dotted path without creating it.
+   *
+   * Use this for read-only lookups where you don't want to create
+   * orphaned scopes. Returns null if the scope doesn't exist.
+   */
+  static getScope(path: string): IScopeSymbol | null {
+    if (path === "") return this.globalScope;
+    return this.scopes.get(path) ?? null;
+  }
+
+  /**
    * Get or create a scope by its dotted path.
    *
    * For simple names (e.g., "Test"), creates scope with global parent.
@@ -43,6 +54,9 @@ class SymbolRegistry {
    *
    * If the scope already exists, returns the existing scope.
    * This enables scope merging across files.
+   *
+   * Note: This creates scopes that don't exist. For read-only lookups,
+   * use getScope() instead to avoid creating orphaned scopes.
    */
   static getOrCreateScope(path: string): IScopeSymbol {
     if (path === "") return this.globalScope;
@@ -88,9 +102,7 @@ class SymbolRegistry {
     fromScope: IScopeSymbol,
   ): IFunctionSymbol | null {
     // Search in current scope
-    const found = fromScope.functions.find(
-      (f) => (f as IFunctionSymbol).name === name,
-    ) as IFunctionSymbol | undefined;
+    const found = fromScope.functions.find((f) => f.name === name);
     if (found) return found;
 
     // Walk up the scope chain (stop when we reach global scope's self-reference)
@@ -114,6 +126,55 @@ class SymbolRegistry {
   static reset(): void {
     this.globalScope = ScopeUtils.createGlobalScope();
     this.scopes.clear();
+  }
+
+  // ============================================================================
+  // Bridge Methods (for gradual migration from string-based lookups)
+  // ============================================================================
+
+  /**
+   * Find a function by its C-mangled name (e.g., "Test_fillData").
+   *
+   * This is a bridge method for gradual migration. New code should use
+   * resolveFunction() with bare names and scope references instead.
+   *
+   * @param mangledName C-mangled function name (e.g., "Test_fillData", "main")
+   * @returns The function symbol, or null if not found
+   */
+  static findByMangledName(mangledName: string): IFunctionSymbol | null {
+    // Check global scope first (no underscore = global function)
+    for (const func of this.globalScope.functions) {
+      if (func.name === mangledName) {
+        return func;
+      }
+    }
+
+    // Check all scopes - the mangled name should match scope_name pattern
+    for (const [scopePath, scope] of this.scopes) {
+      const prefix = scopePath.replaceAll(".", "_") + "_";
+      for (const func of scope.functions) {
+        if (prefix + func.name === mangledName) {
+          return func;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get the scope of a function given its C-mangled name.
+   *
+   * This is a bridge method for gradual migration.
+   *
+   * @param mangledName C-mangled function name
+   * @returns The scope the function belongs to, or null if not found
+   */
+  static getScopeByMangledFunctionName(
+    mangledName: string,
+  ): IScopeSymbol | null {
+    const func = this.findByMangledName(mangledName);
+    return func?.scope ?? null;
   }
 }
 

@@ -1118,45 +1118,122 @@ git commit -m "feat: add QualifiedNameGenerator for C-style name generation"
 
 ---
 
-## Phase 5-6: Integration and Cleanup
+## Phase 5: Integration (COMPLETED)
 
-> **Note:** Phases 5 and 6 involve modifying existing code (symbol collectors, PassByValueAnalyzer, CodeGenerator) to use the new types. These require careful incremental changes with integration tests at each step.
->
-> Due to the complexity and number of files involved, these phases should be broken down further during implementation based on actual code dependencies discovered.
+Phase 5 integrates the new types into the existing codebase.
 
-### Task 5.1: Plan Integration Strategy
+### Task 5.1: Add Bridge Methods to SymbolRegistry (COMPLETED)
 
-Before modifying existing code:
+Added methods to allow gradual migration from string-based lookups:
 
-1. **Identify all consumers** of old types:
-   - `grep -r "IFunctionSignature" src/`
-   - `grep -r "functionParamLists" src/`
-   - `grep -r "modifiedParameters" src/`
+```typescript
+// SymbolRegistry.ts - new methods
+static findByMangledName(mangledName: string): IFunctionSymbol | null
+static getScopeByMangledFunctionName(mangledName: string): IScopeSymbol | null
+```
 
-2. **Create adapter layer** (if needed):
-   - Temporary functions that convert between old and new types
-   - Allows incremental migration
+### Task 5.2: Update PassByValueAnalyzer (COMPLETED)
 
-3. **Modify one consumer at a time**:
-   - Update symbol collectors first
-   - Then PassByValueAnalyzer
-   - Then CodeGenerator
-   - Run integration tests after each change
+Updated `resolveCalleeNameInScope()` to use SymbolRegistry bridge methods:
 
-4. **Delete old types only after all consumers migrated**
+- Try SymbolRegistry.getScopeByMangledFunctionName() first
+- Fall back to legacy string parsing if not found
+
+### Task 5.3: Update Output Layer to Use QualifiedNameGenerator (COMPLETED)
+
+Added helper methods to QualifiedNameGenerator for string-based inputs:
+
+```typescript
+// QualifiedNameGenerator.ts - new methods
+static forFunctionStrings(scopeName: string | undefined, funcName: string): string
+static forMember(scopeName: string | undefined, memberName: string): string
+```
+
+Updated all output layer files to use QualifiedNameGenerator:
+
+| File                       | Occurrences Updated |
+| -------------------------- | ------------------- |
+| CodeGenerator.ts           | 4                   |
+| ScopeGenerator.ts          | 5                   |
+| ScopedRegisterGenerator.ts | 2                   |
+| AssignmentClassifier.ts    | 1                   |
+| BitmapHandlers.ts          | 2                   |
+| RegisterHandlers.ts        | 1                   |
+| AssignmentHandlerUtils.ts  | 1                   |
+| EnumTypeResolver.ts        | 1                   |
+
+---
+
+## Phase 6: Deprecate Legacy Maps (TODO - Future Work)
+
+> **Status:** Deferred for future implementation. The current architecture works correctly with the hybrid approach.
+
+### Background
+
+The legacy maps `functionParamLists` and `modifiedParameters` in `CodeGenState` are deeply integrated into:
+
+- `PassByValueAnalyzer` - tracks which parameters are modified
+- `TransitiveModificationPropagator` - propagates modifications across call chains
+- `CodeGenerator` - uses modification info for auto-const inference
+
+### Task 6.1: Store Parameter Modification on IFunctionSymbol
+
+**Goal:** Move parameter modification tracking from Maps to IFunctionSymbol.
+
+**Files to modify:**
+
+- `src/transpiler/types/IFunctionSymbol.ts` - Add `modifiedParameters: Set<string>` field
+- `src/transpiler/state/SymbolRegistry.ts` - Add method to update function's modified params
+
+**Approach:**
+
+1. Add `modifiedParameters?: Set<string>` to IFunctionSymbol
+2. Update PassByValueAnalyzer to write to IFunctionSymbol instead of Map
+3. Update TransitiveModificationPropagator to work with IFunctionSymbol
+4. Update CodeGenerator consumers to read from IFunctionSymbol
+
+### Task 6.2: Migrate PassByValueAnalyzer
+
+**Files:**
+
+- `src/transpiler/logic/analysis/PassByValueAnalyzer.ts`
+- `src/transpiler/logic/analysis/helpers/TransitiveModificationPropagator.ts`
+
+**Steps:**
+
+1. Update `registerFunction()` to store params on IFunctionSymbol
+2. Update `trackModification()` to update IFunctionSymbol.modifiedParameters
+3. Update `propagate()` to traverse IFunctionSymbol graph
+4. Remove dependency on CodeGenState.functionParamLists/modifiedParameters
+
+### Task 6.3: Remove Legacy Maps
+
+After all consumers are migrated:
+
+1. Remove `CodeGenState.functionParamLists`
+2. Remove `CodeGenState.modifiedParameters`
+3. Update tests that mock these Maps
+
+### Estimated Scope
+
+- ~20 files to modify
+- ~500 lines of code changes
+- Requires careful migration with integration tests at each step
 
 ---
 
 ## Summary
 
-| Phase | Tasks   | New Files         | Key Deliverables                              |
-| ----- | ------- | ----------------- | --------------------------------------------- |
-| 1     | 1.1-1.3 | 4                 | TPrimitiveKind, TType                         |
-| 2     | 2.1-2.4 | 6                 | IScopeSymbol, IParameterInfo, IFunctionSymbol |
-| 3     | 3.1-3.2 | 2                 | SymbolRegistry                                |
-| 4     | 4.1     | 2                 | QualifiedNameGenerator                        |
-| 5-6   | TBD     | 0 (modifications) | Integration, cleanup                          |
+| Phase | Tasks   | Status      | Key Deliverables                              |
+| ----- | ------- | ----------- | --------------------------------------------- |
+| 1     | 1.1-1.3 | ✅ Done     | TPrimitiveKind, TType, TTypeUtils             |
+| 2     | 2.1-2.4 | ✅ Done     | IScopeSymbol, IParameterInfo, IFunctionSymbol |
+| 3     | 3.1-3.2 | ✅ Done     | SymbolRegistry                                |
+| 4     | 4.1     | ✅ Done     | QualifiedNameGenerator                        |
+| 5     | 5.1-5.3 | ✅ Done     | Bridge methods, output layer migration        |
+| 6     | 6.1-6.3 | ⏸️ Deferred | Deprecate legacy Maps                         |
 
-**Total new files:** 14 (7 implementation + 7 test files)
+**Files created:** 14 (7 implementation + 7 test files)
+**Files modified:** 10+ (output layer using QualifiedNameGenerator)
 
-Each phase is a mergeable PR. Phases 1-4 are additive (no breaking changes). Phases 5-6 require careful migration.
+Phases 1-5 are complete. Phase 6 is deferred as the hybrid approach works correctly and the full migration requires significant refactoring of the pass-by-value analysis system.

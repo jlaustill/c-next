@@ -49,7 +49,11 @@ module.exports = {
       name: "no-circular",
       comment: "No circular dependencies allowed",
       severity: "error",
-      from: {},
+      from: {
+        // Allow circular type-only imports in types/ folder
+        // IScopeSymbol ↔ IFunctionSymbol is intentional mutual reference
+        pathNot: "^src/transpiler/types/I(Scope|Function)Symbol\\.ts$",
+      },
       to: { circular: true },
     },
     {
