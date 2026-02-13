@@ -480,6 +480,7 @@ class PassByValueAnalyzer {
 
   /**
    * Handle simple function calls: IDENTIFIER followed by '(' ... ')'
+   * Issue #797: Resolve bare function names to scope-qualified names when inside a scope.
    */
   private static handleSimpleFunctionCall(
     funcName: string,
@@ -492,13 +493,44 @@ class PassByValueAnalyzer {
     const firstOp = postfixOps[0];
     if (!firstOp.LPAREN()) return;
 
-    const calleeName = primary.IDENTIFIER()!.getText();
+    const bareCalleeName = primary.IDENTIFIER()!.getText();
+    const resolvedCalleeName = PassByValueAnalyzer.resolveCalleeNameInScope(
+      funcName,
+      bareCalleeName,
+    );
     PassByValueAnalyzer.recordCallsFromArgList(
       funcName,
       paramSet,
-      calleeName,
+      resolvedCalleeName,
       firstOp,
     );
+  }
+
+  /**
+   * Issue #797: Resolve a bare function name to its scope-qualified name.
+   * When inside a scope, bare calls like `fillData()` should resolve to `Scope_fillData`.
+   */
+  private static resolveCalleeNameInScope(
+    callerFuncName: string,
+    bareCalleeName: string,
+  ): string {
+    // Extract scope prefix from caller (e.g., "Test_" from "Test_loadData")
+    const underscoreIndex = callerFuncName.indexOf("_");
+    if (underscoreIndex === -1) {
+      // Caller is not in a scope, use bare name
+      return bareCalleeName;
+    }
+
+    const scopePrefix = callerFuncName.substring(0, underscoreIndex + 1);
+    const qualifiedName = scopePrefix + bareCalleeName;
+
+    // Check if the scope-qualified name exists in functionParamLists
+    if (CodeGenState.functionParamLists.has(qualifiedName)) {
+      return qualifiedName;
+    }
+
+    // Fall back to bare name (might be a top-level or external function)
+    return bareCalleeName;
   }
 
   /**

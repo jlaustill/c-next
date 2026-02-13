@@ -1,0 +1,18 @@
+// test-transpile-only
+// Issue #797: Transpiler incorrectly infers const when function delegates mutation
+
+struct Data {
+    u8 value;
+}
+
+scope Test {
+    // Directly mutates — transpiler correctly generates non-const
+    void fillData(Data d) {
+        d.value <- 42;
+    }
+
+    // Delegates mutation — transpiler should generate non-const
+    public void loadData(Data d) {
+        fillData(d);  // passes to non-const function, so d must be non-const
+    }
+}
