@@ -56,7 +56,7 @@ describe("TSymbolAdapter", () => {
       // Field symbols
       const enabledField = result.find((s) => s.name === "Status_enabled");
       expect(enabledField).toBeDefined();
-      expect(enabledField!.kind).toBe(bitmapField);
+      expect(enabledField!.kind).toBe("bitmap_field");
       expect(enabledField!.type).toBe("bool");
       expect(enabledField!.parent).toBe("Status");
       expect(enabledField!.signature).toBe("bit 0 (1 bit)");
@@ -125,16 +125,16 @@ describe("TSymbolAdapter", () => {
 
       // Enum members
       expect(result[1].name).toBe("Red");
-      expect(result[1].kind).toBe(enumMember);
+      expect(result[1].kind).toBe("enum_member");
       expect(result[1].type).toBe("0");
       expect(result[1].parent).toBe("Color");
 
       expect(result[2].name).toBe("Green");
-      expect(result[2].kind).toBe(enumMember);
+      expect(result[2].kind).toBe("enum_member");
       expect(result[2].type).toBe("1");
 
       expect(result[3].name).toBe("Blue");
-      expect(result[3].kind).toBe(enumMember);
+      expect(result[3].kind).toBe("enum_member");
       expect(result[3].type).toBe("2");
     });
   });
@@ -369,7 +369,7 @@ describe("TSymbolAdapter", () => {
       // Member symbols
       const dataMember = result.find((s) => s.name === "GPIO_DATA");
       expect(dataMember).toBeDefined();
-      expect(dataMember!.kind).toBe(registerMember);
+      expect(dataMember!.kind).toBe("register_member");
       expect(dataMember!.type).toBe("uint32_t");
       expect(dataMember!.parent).toBe("GPIO");
       expect(dataMember!.accessModifier).toBe("rw");

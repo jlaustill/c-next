@@ -8,7 +8,7 @@ import TTypeInfo from "../../output/codegen/types/TTypeInfo";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../utils/types/ISymbol";
-import TSymbolKind from "../../../utils/types/TSymbolKind";
+import TSymbolKind from "../../types/symbol-kinds/TSymbolKind";
 
 /**
  * Create a minimal ISymbol for testing with required fields.

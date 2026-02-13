@@ -6,7 +6,7 @@ import { describe, it, expect } from "vitest";
 import ExternalTypeHeaderBuilder from "../ExternalTypeHeaderBuilder";
 import ISymbol from "../../../../utils/types/ISymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import TSymbolKind from "../../../../utils/types/TSymbolKind";
+import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
 
 /**
  * Create a minimal test symbol

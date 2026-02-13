@@ -7,7 +7,7 @@ import CppNamespaceUtils from "../CppNamespaceUtils";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ISymbol from "../types/ISymbol";
-import TSymbolKind from "../types/TSymbolKind";
+import TSymbolKind from "../../transpiler/types/symbol-kinds/TSymbolKind";
 
 describe("CppNamespaceUtils", () => {
   let symbolTable: SymbolTable;

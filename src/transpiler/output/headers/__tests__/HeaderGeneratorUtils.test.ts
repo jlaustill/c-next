@@ -7,7 +7,7 @@ import HeaderGeneratorUtils from "../HeaderGeneratorUtils";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../../utils/types/ISymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
-import TSymbolKind from "../../../../utils/types/TSymbolKind";
+import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
 
 /**
  * Helper to create test symbols with required properties
