@@ -336,7 +336,15 @@
     "fval",
     "multicriteria",
     "SREG",
-    "cpsid"
+    "cpsid",
+    "isnan",
+    "isinf",
+    "isfinite",
+    "isnormal",
+    "signbit",
+    "fpclassify",
+    "nanf",
+    "nanl"
   ],
   "ignorePaths": [
     "node_modules/**",

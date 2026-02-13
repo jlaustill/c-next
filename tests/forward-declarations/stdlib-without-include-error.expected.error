@@ -1,1 +1,1 @@
-4:4 error[E0422]: function 'printf' called before definition
+4:4 error[E0422]: function 'printf' called before definition; hint: 'printf' is available from stdio.h — try global.printf()
