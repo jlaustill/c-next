@@ -11,7 +11,6 @@
 
 import SymbolTable from "../transpiler/logic/symbols/SymbolTable";
 import ESourceLanguage from "./types/ESourceLanguage";
-import ESymbolKind from "./types/ESymbolKind";
 
 /**
  * Static utility methods for C++ namespace operations
@@ -42,9 +41,9 @@ class CppNamespaceUtils {
 
       // C++ namespaces, classes, and enums (enum class) need :: syntax
       if (
-        sym.kind === ESymbolKind.Namespace ||
-        sym.kind === ESymbolKind.Class ||
-        sym.kind === ESymbolKind.Enum
+        sym.kind === "namespace" ||
+        sym.kind === "class" ||
+        sym.kind === "enum"
       ) {
         return true;
       }
