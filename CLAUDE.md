@@ -1,5 +1,10 @@
 # C-Next Project Instructions
 
+## Project Hygiene
+
+- **No root-level analysis artifacts**: Don't create/commit one-time audit files (`test-inventory.csv`, `*-report.md`, etc.) in the project root. Keep analysis output in the terminal or in `docs/` if it needs to persist
+- `.auto-claude-status` is gitignored — don't commit Claude session state files
+
 ## Git Worktrees
 
 **NEVER use git worktrees. ZERO EXCEPTIONS.** This repo is always unique per session and won't be touched by anyone else. Work directly on the main repo.
@@ -238,7 +243,7 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 **Enum error locations** (E0424 "not defined; did you mean"):
 
 - `ControlFlowGenerator.rejectUnqualifiedEnumInReturn()` — return statements with non-enum return type
-- `SwitchGenerator.rejectUnqualifiedEnumInSwitch()` — switch cases with non-enum switch type
+- `SwitchGenerator.rejectUnqualifiedEnumMember()` — switch cases with non-enum switch type
 - `CodeGenerator._resolveUnqualifiedEnumMember()` — all other contexts (comparisons, args, etc.)
 
 **Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
@@ -312,7 +317,7 @@ When adding new assignment patterns:
 
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
-- **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access at ~7207 and ~8190 for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
+- **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
 - **Struct param access helpers**: Use `memberAccessChain.ts` helpers for all struct parameter access patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for member chains. Never inline these patterns in CodeGenerator.
 - **Handler state access**: Assignment handlers access state via `CodeGenState` (for properties like `typeRegistry`, `symbols`, `currentScope`) and `CodeGenState.generator!` (for methods like `generateExpression()`, `isKnownScope()`). Always use canonical CodeGenerator methods rather than hand-rolling lookups to get full SymbolTable + C-Next symbol support.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
@@ -320,18 +325,9 @@ When adding new assignment patterns:
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
   3. Handle effect in `processEffects()` switch statement
   4. Generate output in `assembleOutput()` where other effects are emitted
-- **DI to CodeGenState migration**: When converting helpers from constructor DI to static methods:
-  1. Replace `this.deps.property` with `CodeGenState.property`
-  2. For callbacks needing CodeGenerator context (e.g., `generateExpression`), pass as method parameter
-  3. Update tests: `CodeGenState.reset()` in `beforeEach`, create `setupSymbols()` helper for state setup
-  4. Remove unused `symbols` variables after migration (oxlint will flag them)
 - **CodeGenState encapsulation**: When making fields private, add `get<Field>()`, `set<Field>()`, and `getAll<Field>()` (if `IGeneratorState` needs full collection). Update tests to use setters.
 - **Register check pattern**: Use `CodeGenState.symbols!.knownRegisters.has(name)` — no wrapper method exists on CodeGenerator
-- **State consolidation to CodeGenState**: When auditing for local state that should be centralized:
-  1. Grep for `this.<field>.` with zero matches to find dead instance variables from prior migrations
-  2. Prefer on-demand computation (e.g., `getUnmodifiedParameters()`) over maintaining cached inverses of existing state
-  3. Keep method signatures as no-ops when removing functionality that's part of `IOrchestrator` interface
-  4. `GeneratorContext` has been removed - all context fields are now in CodeGenState; don't add new instance state to CodeGenerator
+- **CodeGenState is the sole state container**: All context fields live in CodeGenState; don't add new instance state to CodeGenerator
 
 ### Adding CLI Flags
 
