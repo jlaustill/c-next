@@ -117,7 +117,7 @@ class TSymbolAdapter {
 
       result.push({
         name: `${bitmap.name}_${fieldName}`,
-        kind: "bitmapField",
+        kind: "bitmap_field",
         type: width === 1 ? "bool" : `u${getMinBitWidth(width)}`,
         sourceFile: bitmap.sourceFile,
         sourceLine: bitmap.sourceLine,
@@ -154,7 +154,7 @@ class TSymbolAdapter {
     for (const [memberName, memberValue] of enumSym.members) {
       result.push({
         name: memberName,
-        kind: "enumMember",
+        kind: "enum_member",
         type: String(memberValue),
         sourceFile: enumSym.sourceFile,
         sourceLine: enumSym.sourceLine,
@@ -310,7 +310,7 @@ class TSymbolAdapter {
     for (const [memberName, memberInfo] of register.members) {
       result.push({
         name: `${register.name}_${memberName}`,
-        kind: "registerMember",
+        kind: "register_member",
         type: memberInfo.cType,
         sourceFile: register.sourceFile,
         sourceLine: register.sourceLine,
