@@ -4,7 +4,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import ESymbolKind from "../../utils/types/ESymbolKind";
 
 // Create mock collect function that we can control per test
 const mockCollect = vi.fn();
@@ -36,7 +35,7 @@ describe("parseCHeader mocked scenarios", () => {
       mockCollect.mockReturnValue([
         {
           name: "TestNamespace",
-          kind: ESymbolKind.Namespace,
+          kind: "namespace",
           type: undefined,
           parent: undefined,
           sourceLine: 1,
@@ -55,7 +54,7 @@ describe("parseCHeader mocked scenarios", () => {
       mockCollect.mockReturnValue([
         {
           name: "TestClass",
-          kind: ESymbolKind.Class,
+          kind: "class",
           type: "class",
           parent: undefined,
           sourceLine: 5,
@@ -72,7 +71,7 @@ describe("parseCHeader mocked scenarios", () => {
       mockCollect.mockReturnValue([
         {
           name: "TestBitmap",
-          kind: ESymbolKind.Bitmap,
+          kind: "bitmap",
           type: undefined,
           parent: undefined,
           sourceLine: 1,
@@ -89,7 +88,7 @@ describe("parseCHeader mocked scenarios", () => {
       mockCollect.mockReturnValue([
         {
           name: "NoLineSymbol",
-          kind: ESymbolKind.Function,
+          kind: "function",
           type: "void",
           parent: undefined,
           sourceLine: undefined, // No source line info
