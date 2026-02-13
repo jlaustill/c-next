@@ -5,7 +5,6 @@
 
 import ISymbol from "../../../utils/types/ISymbol";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import ESymbolKind from "../../../utils/types/ESymbolKind";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "./types/IConflict";
 import IStructFieldInfo from "./types/IStructFieldInfo";
@@ -382,7 +381,7 @@ class SymbolTable {
       if (!def.parent) return true;
 
       // Variables with a parent need special handling
-      if (def.kind === ESymbolKind.Variable) {
+      if (def.kind === "variable") {
         // Scope-level variables have qualified names (e.g., "Math_counter" with parent "Math")
         // Function parameters have unqualified names (e.g., "x" with parent "Math_add")
         // If the name starts with parent_, it's a scope-level variable - keep it
@@ -476,7 +475,7 @@ class SymbolTable {
     const constValues = new Map<string, number>();
     for (const symbol of this.getAllSymbols()) {
       if (
-        symbol.kind === ESymbolKind.Variable &&
+        symbol.kind === "variable" &&
         symbol.isConst &&
         symbol.initialValue !== undefined
       ) {
@@ -495,7 +494,7 @@ class SymbolTable {
     // Scan all variable symbols for unresolved array dimensions
     for (const symbol of this.getAllSymbols()) {
       if (
-        symbol.kind === ESymbolKind.Variable &&
+        symbol.kind === "variable" &&
         symbol.isArray &&
         symbol.arrayDimensions
       ) {
