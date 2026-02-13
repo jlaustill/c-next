@@ -5,14 +5,14 @@
  * Extracts common lookup patterns for improved testability.
  */
 
-import ESymbolKind from "../../../../utils/types/ESymbolKind.js";
+import TSymbolKind from "../../../../utils/types/TSymbolKind.js";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage.js";
 
 /**
  * Symbol interface for lookups
  */
 interface ISymbol {
-  kind: ESymbolKind;
+  kind: TSymbolKind;
   sourceLanguage: ESourceLanguage;
 }
 
@@ -31,7 +31,7 @@ class SymbolLookupHelper {
   static hasSymbolWithKindAndLanguage(
     symbolTable: ISymbolTable | null | undefined,
     name: string,
-    kind: ESymbolKind,
+    kind: TSymbolKind,
     languages: ESourceLanguage[],
   ): boolean {
     if (!symbolTable) return false;
@@ -53,7 +53,7 @@ class SymbolLookupHelper {
     return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
       symbolTable,
       typeName,
-      ESymbolKind.Enum,
+      "enum",
       [ESourceLanguage.Cpp],
     );
   }
@@ -69,7 +69,7 @@ class SymbolLookupHelper {
     return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
       symbolTable,
       name,
-      ESymbolKind.Function,
+      "function",
       [ESourceLanguage.C, ESourceLanguage.Cpp],
     );
   }
@@ -84,7 +84,7 @@ class SymbolLookupHelper {
     if (!symbolTable) return false;
 
     const symbols = symbolTable.getOverloads(name);
-    return symbols.some((sym) => sym.kind === ESymbolKind.Namespace);
+    return symbols.some((sym) => sym.kind === "namespace");
   }
 
   /**
@@ -99,11 +99,7 @@ class SymbolLookupHelper {
     if (!symbolTable) return false;
 
     const symbols = symbolTable.getOverloads(typeName);
-    const cppTypeKinds = new Set([
-      ESymbolKind.Struct,
-      ESymbolKind.Class,
-      ESymbolKind.Type,
-    ]);
+    const cppTypeKinds = new Set<TSymbolKind>(["struct", "class", "type"]);
 
     return symbols.some(
       (sym) =>
@@ -123,7 +119,7 @@ class SymbolLookupHelper {
     return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
       symbolTable,
       name,
-      ESymbolKind.Function,
+      "function",
       [ESourceLanguage.CNext],
     );
   }

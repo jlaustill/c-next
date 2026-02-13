@@ -5,7 +5,6 @@
 import TYPE_MAP from "../../types/TYPE_MAP";
 import IFunctionSignature from "../../types/IFunctionSignature";
 import SymbolTable from "../../../../logic/symbols/SymbolTable";
-import ESymbolKind from "../../../../../utils/types/ESymbolKind";
 
 /**
  * Issue #315: Small primitive types that are always passed by value.
@@ -88,7 +87,7 @@ class CallExprUtils {
     if (symbolTable) {
       const symbols = symbolTable.getOverloads(funcName);
       for (const sym of symbols) {
-        if (sym.kind === ESymbolKind.Function && sym.parameters?.[paramIndex]) {
+        if (sym.kind === "function" && sym.parameters?.[paramIndex]) {
           const p = sym.parameters[paramIndex];
           return {
             param: {
