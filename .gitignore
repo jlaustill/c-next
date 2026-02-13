@@ -1,5 +1,8 @@
 opencode.json
 
+# Claude agent session state
+.auto-claude-status
+
 # Node.js
 node_modules/
 dist/
