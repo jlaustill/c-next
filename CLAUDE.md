@@ -1,772 +1,366 @@
 # C-Next Project Instructions
 
-## Correctness Over Convenience — ZERO EXCEPTIONS
+## Critical Rules
 
-**NEVER take a shortcut, workaround, or "easy way" instead of the RIGHT way without explicit user permission.** This is non-negotiable.
+### Correctness Over Convenience — ZERO EXCEPTIONS
 
-Examples of violations:
+**NEVER take shortcuts without explicit user permission.** This is non-negotiable.
 
-- Deleting or skipping a failing test instead of fixing the root cause
-- Using `--no-verify`, `--force`, or similar flags to bypass checks
-- Commenting out code that causes errors instead of fixing the error
-- Using `any` type to silence TypeScript errors instead of fixing the types
-- Disabling or weakening a lint rule instead of fixing the code
-- Adding a `// @ts-ignore` or `// eslint-disable` instead of resolving the issue
-- Stubbing out a function with a no-op instead of implementing it properly
-- Replacing a correct but complex solution with a simpler but incorrect one
-- Skipping validation, error handling, or edge cases because "it probably won't happen"
-- Using deprecated APIs because they're easier than migrating to the current ones
+Violations include: deleting/skipping failing tests, `--no-verify`/`--force` flags, `any` types, `@ts-ignore`, disabling lints, stubbing with no-ops, skipping validation. **If unclear or blocked — ASK the user.**
 
-**If the right approach is unclear, blocked, or significantly more complex — ASK the user.** Do not silently choose the easy path. The user must explicitly approve any deviation from doing things correctly.
+### Project Hygiene
 
-**"It works" is not the same as "it's right."** Code that passes tests via workarounds, suppressed warnings, or bypassed checks is not acceptable.
+- No root-level analysis artifacts (`*.csv`, `*-report.md`) — use terminal or `docs/`
+- `.auto-claude-status` is gitignored
+- **NEVER use git worktrees** — work directly on the repo
 
-## Project Hygiene
+### Starting a Task
 
-- **No root-level analysis artifacts**: Don't create/commit one-time audit files (`test-inventory.csv`, `*-report.md`, etc.) in the project root. Keep analysis output in the terminal or in `docs/` if it needs to persist
-- `.auto-claude-status` is gitignored — don't commit Claude session state files
+**Always ask the user what to work on.** Check if issue was already done: `git log --oneline --grep="<issue-number>"`
 
-## Git Worktrees
+**Before implementing plan findings**: Verify findings are current, search before removing "unused" code, check if state is file-specific.
 
-**NEVER use git worktrees. ZERO EXCEPTIONS.** This repo is always unique per session and won't be touched by anyone else. Work directly on the main repo.
-
-## Starting a Task
-
-**Always ask the user what they want to work on.** Do not assume based on the roadmap or queue.
-
-## Before Starting an Issue
-
-Check if work was already done: `git log --oneline --grep="<issue-number>"` — Issues may have been completed in PRs referencing different issue numbers.
-
-### Before Implementing Plan Findings
-
-- **Verify findings are current** - Plans may reference code patterns that no longer exist or were misidentified
-- **Search for actual usage** before removing "unused" code - grep for the function/variable name first
-- **Check if Sets/Maps are file-specific** - Per-file state should be rebuilt each analyze() call, not cached globally
-
-### GitHub CLI Workaround
-
-`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
-
-### ts-morph MCP Tools
-
-- **Move files with import updates**: `rename_filesystem_entry_by_tsmorph` — moves files/folders and updates all imports. Always use `dryRun: true` first.
-- **Move symbols between files**: `move_symbol_to_file_by_tsmorph` — extracts a function/class to a different file
-- **Find references**: `find_references_by_tsmorph` — finds all usages of a symbol
-
-## Workflow: Research First
+### Workflow: Research First
 
 1. **Always start with research/planning** before implementation
 2. If unsure about approach, **ask the user**
 3. Update the relevant ADR with research findings, links, and context as you go
 4. **Never update ADR status or decisions without user direction**
 
-## Code Quality Requirements
+---
 
-**All new and modified TypeScript code must pass linting:**
+## Quick Reference
 
-- **Automated**: Pre-commit hooks automatically run prettier and eslint on staged files
-- **Manual** (if needed): `npm run prettier:fix` and `npm run oxlint:check`
-- **Spell check**: When adding new packages or tools, add their names to `.cspell.json` words list
-- Fix any oxlint errors in code you write or modify
-- Legacy errors in untouched files can be ignored (fix as you go)
-- Pre-commit hooks use `lint-staged` to only check files you're committing
-- **Lint scope**: `npm run oxlint:check` only covers `src/`, not `scripts/`
+| Task               | Command                                 |
+| ------------------ | --------------------------------------- |
+| Integration tests  | `npm test` or `npm run test:q` (quiet)  |
+| Single test        | `npm test -- tests/dir/file.test.cnx`   |
+| Unit tests         | `npm run unit`                          |
+| Coverage           | `npm run unit:coverage`                 |
+| Local transpiler   | `npx tsx src/index.ts <file.cnx>`       |
+| C++ mode           | `npx tsx src/index.ts <file.cnx> --cpp` |
+| Generate snapshots | `npm test -- <path> --update`           |
+| ANTLR regenerate   | `npm run antlr`                         |
 
-### Git Merge Commits
+**GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead.
 
-- **Pre-commit hooks during merges**: Hooks run on ALL files from both branches, not just conflict-resolved files. If unrelated files have lint issues, use `--no-verify` for the merge commit (tests must still pass).
+**ts-morph MCP tools**: `rename_filesystem_entry_by_tsmorph` (move files), `move_symbol_to_file_by_tsmorph` (extract symbols), `find_references_by_tsmorph` (find usages). Always use `dryRun: true` first.
 
-### SonarCloud
+---
 
-SonarCloud runs as a required PR check. **PRs cannot merge until the SonarCloud quality gate passes.**
+## Code Quality
 
-**Quality gate requirements for new code:**
+**Pre-commit hooks handle formatting automatically.** Manual if needed: `npm run prettier:fix && npm run oxlint:check`
 
-- **Code coverage >= 80%** on new code (unit tests via vitest)
-- **No new bugs** (reliability)
-- **No new vulnerabilities** (security)
-- **No new security issues** reviewed as unsafe
-- **Duplicated lines <= 3%** on new code
-- **Cognitive complexity per method <= 15** — extract sub-methods with early returns to reduce nesting
+### SonarCloud Quality Gate
 
-**Reducing cognitive complexity:** Extract nested logic into private helper methods with early returns. Keep helpers in the same class when they need many instance dependencies. Name helpers descriptively (e.g., `_resolveIdentifierExpression`, `_resolveUnqualifiedEnumMember`).
+| Requirement          | Threshold        |
+| -------------------- | ---------------- |
+| Coverage (new code)  | >= 80%           |
+| Duplicated lines     | <= 3%            |
+| Cognitive complexity | <= 15 per method |
+| Bugs/vulnerabilities | 0 new            |
 
-**Loops add +1 complexity:** Extract `for`/`while` loops to static utility methods in `src/utils/` when the loop is self-contained (e.g., `MapUtils.deepCopyStringSetMap()`). Use `ReadonlyMap`/`ReadonlySet` in utility signatures for flexibility with immutable sources.
+**Before PRs**: Run `npm run unit:coverage` and check new/modified files.
 
-**Before refactoring complexity issues:**
+**Reducing complexity**: Extract nested logic to private helpers with early returns. Check `src/utils/ExpressionUtils.ts` for existing patterns first.
 
-1. **Check ExpressionUtils first** - `src/utils/ExpressionUtils.ts` has expression tree traversal helpers (`extractIdentifier`, `hasFunctionCall`, `extractUnaryExpression`) - don't duplicate this logic
-2. **Search for existing patterns** - grep for similar helper methods before writing new code
-3. **Verify file exists** - SonarCloud issues can be stale (file renamed/deleted). Use `find` to confirm before refactoring
+**API queries**: See `https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED`
 
-**After extracting helpers:** Error throw paths in extracted methods often need unit tests - integration tests may not cover them. Check `npm run unit:coverage` for uncovered lines.
+### Other Tools
 
-**Before opening a PR**, verify coverage on new/modified files:
+| Tool          | Command                       |
+| ------------- | ----------------------------- |
+| Spelling      | `npm run cspell:check`        |
+| Duplication   | `npm run analyze:duplication` |
+| Dead code     | `npx knip`                    |
+| Circular deps | `npm run analyze:madge`       |
+| All analysis  | `npm run analyze:all`         |
 
-```bash
-npm run unit:coverage
-```
+---
 
-- **SonarCloud coverage on new code**: The quality gate requires >= 80% on new lines. Even 1 uncovered line in a small PR can fail the gate. Run `npm run unit:coverage` and check new/modified methods before pushing.
-- **New code vs file coverage**: SonarCloud measures coverage on _new code_ in the PR, not total file coverage. A file at 70% can pass if the new lines have 80%+ coverage.
-- **Widening interface return types**: When changing a return type (e.g., `{ baseType, isArray }` → `TTypeInfo`), search for ALL test mocks of that method and update them to include newly required fields. Use `Grep` for the method name across `__tests__/` directories.
+## TypeScript Standards
 
-Check the terminal report for files you changed — any new code below 80% coverage will fail the quality gate.
+**See `CONTRIBUTING.md` for full guide.** Key rules:
 
-**Improving coverage on new code:**
+- **Default exports only** (oxlint `no-named-export` rule)
+- **Static classes** for utilities, not object literals or singletons
+- **No destructuring** — use `ClassName.method()` for self-documenting code
+- **No re-exports/barrel files** — import directly from source
+- **Composition over inheritance** — never use class inheritance
+- **Shared types** in `/types` directories, one interface per file
 
-1. **Extract private methods to testable helper classes** — Move logic to `src/transpiler/output/codegen/helpers/` with static methods and 100% test coverage
-2. **Remove dead code** — TypeScript diagnostics show "declared but never read" warnings; remove unused private methods and imports
-3. **SonarCloud S7776** — Use `Set.has()` instead of `array.includes()` for membership checks
-
-**Coverage analysis tips:**
-
-- **Focused coverage check**: `npm run unit:coverage -- --coverage.include=src/path/to/File.ts` — Run coverage for a specific file
-- **Type-only files (interfaces)**: Show 0% coverage but don't need tests — no executable code
-- **Prioritize coverage improvements**: Balance effort vs impact — small files with few uncovered lines are quick wins
-
-**Useful API queries:**
-
-- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
-- **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
-- **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
-- **Get complexity sorted by severity**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '[.issues[] | {file: (.component | split(":")[1]), line, complexity: (.message | capture("from (?<from>[0-9]+)") | .from | tonumber)}] | sort_by(.complexity) | reverse'`
-
-### CSpell (Spelling Check)
-
-- **Run manually**: `npm run cspell:check` (runs automatically on push)
-- **Naming convention**: Use camelCase for compound words (e.g., `SubDirs` instead of lowercase) - cspell may flag all-lowercase compounds
-
-### jscpd (Copy-Paste Detection)
-
-- `npm run analyze:duplication` — Find code clones with token counts and file locations
-- Common extraction patterns: type resolution helpers, validation helpers, code generation utilities
-- Focus on clones >100 tokens for meaningful reduction
-- **Inline interface duplication**: When the same inline interface appears in multiple method signatures, extract to a named interface type
-
-### TypeScript Coding Standards
-
-**Default exports only** - The project uses oxlint's `no-named-export` rule.
-
-**No re-exports/barrel files** - Don't create `index.ts` files that re-export (violates `no-named-export` rule). Import directly from source files.
-
-**Helper extraction pattern** - When extracting methods to helper classes:
-
-1. Use callback interfaces for CodeGenerator dependencies (not the whole generator)
-2. Extract in tiers: pure utilities → simple state operations → complex with callbacks → orchestrators
-3. Keep interfaces internal to helper files (don't export types due to `no-named-export` rule)
-4. Follow existing patterns: `StringDeclHelper`, `ArrayInitHelper`, `VariableDeclHelper`
-
-**Static classes for utilities** - Use static classes (not object literals) for modules with multiple related functions:
+### Static Class Pattern
 
 ```typescript
-// ✅ Correct
+// ✅ Correct - static class
 class TestUtils {
   static normalize(str: string): string { ... }
   static validate(file: string): IResult { ... }
 }
 export default TestUtils;
-```
 
-**No singleton instance exports** - Don't instantiate and export class instances:
-
-```typescript
 // ❌ Wrong - singleton (knip can't detect unused methods)
 class Registry { private map = new Map(); register() { ... } }
 export default new Registry();
-
-// ✅ Correct - static class
-class Registry { private static map = new Map(); static register() { ... } }
-export default Registry;
 ```
 
-**No private instance members** - Prefer static utility classes over private instance state. When state is needed, use centralized state containers (like `CodeGenState`) with public static properties. This makes testing easier and avoids hidden dependencies.
+### Common Gotchas
 
-**No getters/setters** - Avoid `get`/`set` accessors unless needed for a one-way state switch (e.g., `set initialized()`). Direct property access is clearer and more debuggable.
+- **`replace_all` tool**: Iterative replacement can cause double-substitution
+- **Readonly Map restore**: Use `map.clear()` + loop, not reassignment
+- **Dead code**: Use TypeScript "declared but never read" diagnostics
 
-**Composition over inheritance** - Never use class inheritance. Use static utility classes, helper functions, and composition patterns instead. This keeps code flat and testable.
+---
 
-**Helper extraction pattern** - When extracting logic from CodeGenerator to helper classes: use **callback interfaces** for CodeGenerator dependencies (e.g., `IFunctionContextCallbacks`), keep helpers as static classes with no instance state. Follow existing patterns: `StringDeclHelper`, `FunctionContextManager`. Test with mock callbacks using `vi.fn()` and parser contexts with `as never` casts.
+## Architecture
 
-**Readonly Map restoration** - Can't reassign `readonly` Map properties. Use `map.clear()` then `for (const [k, v] of saved) map.set(k, v)` to restore state.
+### 4-Layer Structure (`src/transpiler/`)
 
-**Edit tool `replace_all` gotcha** - When using `replace_all: true`, the replacement happens iteratively. If your `new_string` contains text that matches `old_string`, you'll get double-replacement (e.g., replacing `Foo` with `Bar.Foo` using `replace_all` results in `Bar.Bar.Foo`). Use targeted single replacements instead.
+| Layer        | Path            | Purpose                                                      |
+| ------------ | --------------- | ------------------------------------------------------------ |
+| Data         | `data/`         | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)  |
+| Logic        | `logic/`        | Business logic (parser/, symbols/, analysis/, preprocessor/) |
+| Output       | `output/`       | Generation (codegen/, headers/)                              |
+| State        | `state/`        | Global state (CodeGenState, SymbolRegistry)                  |
+| Constants    | `constants/`    | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)           |
+| Orchestrator | `Transpiler.ts` | Coordinates all layers                                       |
 
-**No destructuring** - Always use the class name prefix for self-documenting code:
+### Utility Locations
 
-```typescript
-// ✅ Correct - self-documenting
-TestUtils.normalize(actualErrors) === TestUtils.normalize(expectedErrors);
+| Type                                                        | Location                    |
+| ----------------------------------------------------------- | --------------------------- |
+| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                |
+| Type definitions (interfaces, enums)                        | `src/transpiler/types/`     |
+| Stateful classes (`CodeGenState`)                           | `src/transpiler/state/`     |
+| Runtime lookups                                             | `src/transpiler/constants/` |
 
-// ❌ Wrong - obscures origin
-const { normalize } = TestUtils;
-normalize(actualErrors) === normalize(expectedErrors);
-```
+---
 
-**Shared types in `/types` directories** - One interface per file with default export:
+## Symbol Resolution (ADR-055)
 
-```
-src/transpiler/types/IFileResult.ts
-scripts/types/ITools.ts
-```
+### Symbol Types
 
-See `CONTRIBUTING.md` for complete TypeScript coding standards.
+| Type             | Purpose                        | Status           |
+| ---------------- | ------------------------------ | ---------------- |
+| `TSymbol`        | New discriminated union        | Use for new code |
+| `ISymbol`        | Legacy flat interface          | Being phased out |
+| `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Backwards compat |
 
-**Dead code detection**: Use TypeScript IDE diagnostics ("declared but never read") to find unused code. The `noUnusedLocals`/`noUnusedParameters` compiler options aren't practical due to ANTLR-generated parser files with unavoidable unused parameters.
+**Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
+**Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
-### Deprecating Public APIs
+### C/C++ Resolvers (ADR-055 Phase 6)
 
-- When marking a method as deprecated/no-op, update all test files that call it
-- Tests often use the old API directly - search `__tests__/` directories for usages
-- Consider keeping backward-compatible signatures while changing implementation
+| Resolver      | Location                     | Returns        |
+| ------------- | ---------------------------- | -------------- |
+| `CResolver`   | `logic/symbols/c/index.ts`   | `TCSymbol[]`   |
+| `CppResolver` | `logic/symbols/cpp/index.ts` | `TCppSymbol[]` |
 
-### 4-Layer Architecture (PR #571, #572, #768)
-
-The codebase is organized into four layers under `src/transpiler/`:
-
-- `src/transpiler/data/` — Discovery layer (FileDiscovery, IncludeResolver, DependencyGraph)
-- `src/transpiler/logic/` — Business logic (parser/, symbols/, analysis/, preprocessor/)
-- `src/transpiler/output/` — Generation (codegen/, headers/)
-- `src/transpiler/state/` — Global state (CodeGenState - shared by all layers)
-- `src/transpiler/constants/` — Runtime lookup tables (BITMAP_SIZE, BITMAP_BACKING_TYPE)
-- `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
-- `src/utils/` — Shared utilities (constants/, cache/, types/, and type utilities like `ScopeUtils`, `TTypeUtils`, `TypeResolver`)
-
-### Utility File Locations
-
-- **Type utilities** (`ScopeUtils`, `TTypeUtils`, `ParameterUtils`, `TypeResolver`, etc.) live in `src/utils/`, NOT `src/transpiler/types/`
-- `src/transpiler/types/` is for type definitions only (interfaces, type aliases, enums)
-- `src/transpiler/state/` is for stateful classes (`CodeGenState`, `SymbolRegistry`, `TranspilerState`)
-- `src/transpiler/constants/` is for runtime lookup tables (`BITMAP_SIZE`, `BITMAP_BACKING_TYPE`)
-
-### ANTLR Parser Generation
-
-- ANTLR preserves input path structure: `-o src/transpiler/logic/parser grammar/CNext.g4` → `src/transpiler/logic/parser/grammar/`
-- Grammar directories excluded from prettier/oxlint via ignore patterns
-- `npm run antlr` — C-Next grammar, `npm run antlr:all` — All grammars (C-Next, C, C++)
-
-### After Grammar Rule Changes
-
-When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
-
-1. Regenerate parser: `npm run antlr`
-2. Update code that references old `Parser.*Context` types
-3. Remove dead methods that used removed contexts (TypeScript will flag as "never read")
-4. Remove unused imports
-5. Update unit test mocks for changed interfaces (add new required fields with defaults)
-
-### Symbol Resolution Architecture (ADR-055)
-
-**Symbol type system (two generations)**:
-
-- **`TSymbol`** (`src/transpiler/types/symbols/TSymbol.ts`): New discriminated union with type narrowing — use for new code
-- **`ISymbol`** (`src/utils/types/ISymbol.ts`): Legacy flat interface — being phased out
-- **`TSymbolAdapter`**: Converts `TSymbol[]` → `ISymbol[]` for backwards compatibility
+- **Composable collector pattern**: Static classes with `collect()` (StructCollector, EnumCollector, etc.)
+- **C/C++ symbols use string types**: Unlike C-Next's `TType`, pass through unchanged
+- **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`)
+- **Adapters**: `CTSymbolAdapter`, `CppTSymbolAdapter` convert to legacy `ISymbol[]`
 - **Remaining work**: #803 (Phase 5 - migrate consumers), #804 (Phase 6 - C++/C resolvers), #805 (Phase 7 - remove legacy)
 
-**C/C++ Resolvers (ADR-055 Phase 6)**:
-
-- **CResolver** (`logic/symbols/c/index.ts`): Static `resolve()` method returning `TCSymbol[]`
-- **CppResolver** (`logic/symbols/cpp/index.ts`): Static `resolve()` method returning `TCppSymbol[]`
-- **Composable collector pattern**: Each collector is a static class with `collect()` method (StructCollector, EnumCollector, etc.)
-- **C/C++ symbols use string types**: Unlike C-Next's `TType`, C/C++ symbols store types as strings since they pass through unchanged
-- **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`); TSymbol remains C-Next only
-- **Adapters**: `CTSymbolAdapter` and `CppTSymbolAdapter` convert typed symbols to legacy `ISymbol[]`
-
-**SymbolTable ownership**: `CodeGenState.symbolTable` is the single owner (non-null, persists across `reset()`). Transpiler accesses it via `CodeGenState.symbolTable`. Tests set `CodeGenState.symbolTable = symbolTable` before calling `generate()`.
-
-**CodeGenerator.generate() signature**: `generate(tree, tokenStream?, options?)` — no symbolTable parameter.
-
-**Pipeline stages for array dimensions**:
-
-- Stage 3b: `CodeGenState.symbolTable.resolveExternalArrayDimensions()` — resolves const values
-- Qualified enum dimensions (e.g., `EColor.COUNT`) are converted to C-style (`EColor_COUNT`) by `TSymbolAdapter.resolveArrayDimension()`
-- Bare enum members in non-enum contexts produce a compile error with suggestion (issue #770)
-
-**Enum `expectedType` contexts** (bare members work):
-
-- Variable declarations: `EColor c <- RED` (type from declared type)
-- Assignments to typed fields: `cfg.color <- RED` (same-file struct fields only)
-- Return statements: `return RED` (type from function return type, must be enum)
-- Struct field inits: `{color: RED}` (type from field type)
-- Switch cases: `case RED:` (type from switch expression)
-- Ternary arms when declaration type is enum
-
-**No `expectedType` (must use qualified `EnumType.MEMBER`):**
-
-- Comparisons: `cfg.pType != EPressureType.PSIA`
-- Function arguments: `isPsia(EPressureType.PSIA)`
-- Array dimensions: `u8[EColor.COUNT]`
-- Cross-file struct field assignments (deeply nested includes may not resolve field types)
-
-**Enum error locations** (E0424 "not defined; did you mean"):
-
-- `ControlFlowGenerator.rejectUnqualifiedEnumInReturn()` — return statements with non-enum return type
-- `SwitchGenerator.rejectUnqualifiedEnumMember()` — switch cases with non-enum switch type
-- `CodeGenerator._resolveUnqualifiedEnumMember()` — all other contexts (comparisons, args, etc.)
-
-**Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
-
-- `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
-- `TSymbolAdapter.toISymbols(tSymbols, symbolTable)` → `ISymbol[]` (for SymbolTable)
-- `TSymbolInfoAdapter.convert(tSymbols)` → `ISymbolInfo` (for CodeGenerator)
-
-**Do NOT use** the deleted legacy collectors:
-
-- ~~`SymbolCollector`~~ (was in transpiler/output/codegen/)
-- ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
-
-**TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
-
-### Test Isolation with SymbolRegistry
-
-- **CNextResolver tests need SymbolRegistry.reset()**: Tests using `CNextResolver.resolve()` must call `SymbolRegistry.reset()` in `beforeEach` - SymbolRegistry is static and scopes persist across parallel tests
-- **Symptom of state pollution**: Tests pass individually (`npm run unit -- -t "test name"`) but fail when run together
-
-### TSymbol Naming Convention
-
-- **TSymbols use bare names**: `name: "init"` with `scope: IScopeSymbol` reference (NOT `name: "Motor_init"`)
-- **Mangled names computed on demand**: Use `getMangledName(symbol)` when converting TSymbol → ISymbol
-- **TypeResolver pattern**: `TypeResolver.resolve(str)` → TType; `TypeResolver.getTypeName(type)` → string
-
-### Analyzer State Management
-
-- **External struct fields**: `CodeGenState.buildExternalStructFields()` builds from symbolTable in Stage 2b, analyzers read via `getExternalStructFields()`
-- **runAnalyzers() state**: Reads `symbolTable` and `externalStructFields` from CodeGenState by default - no need to pass options
-- **InitializationAnalyzer**: Uses `cnextStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
-- **Scope member checks**: Use `CodeGenState.getScopeMembers(scope)` or `CodeGenState.isCurrentScopeMember(id)` - `scopeMembers` is private
-
-### Symbol Resolution Type Patterns
-
-- **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` - numbers for resolved constants, strings for C macros from headers
-- **C macro pass-through**: Unresolved array dimension identifiers (e.g., `DEVICE_COUNT` from included C headers) pass through as strings to generated headers
-
-### Const Inference Architecture
-
-- **walkStatementForModifications()** uses two helper methods (issue #566 refactoring):
-  - `collectExpressionsFromStatement()` - returns all expressions from any statement type
-  - `getChildStatementsAndBlocks()` - returns child statements/blocks for recursion
-- **Adding new statement types**: Update both helpers - they serve as checklists for expression contexts and child statements
-
-### Parser Keyword Tokens
-
-- **Keyword tokens vs IDENTIFIER**: Keywords like `this`, `global` are separate tokens, not IDENTIFIERs. Use `ctx.THIS()` not `ctx.IDENTIFIER()?.getText() === "this"` - the latter returns undefined.
-
-### Grammar Type Patterns
-
-- **arrayType in type position**: `u8[10] arr;` uses `arrayType` grammar (distinct from `u8 arr[10]` with `arrayDimension` after identifier)
-- **templateType for C++ interop**: `FlexCAN_T4<CAN1>` parses as `templateType` and passes through unchanged to C++ output
-
-### AST Navigation Patterns
-
-- **Function declarations**: Use `functionDeclaration()` not `functionDefinition()` — the C-Next grammar uses "declaration" terminology
-- **Expression unwrapping**: Use `ExpressionUnwrapper` utility in `src/transpiler/output/codegen/utils/` for drilling through expression hierarchy (ternary → or → and → ... → postfix)
-
-### Assignment Classification (ADR-109)
-
-When adding new assignment patterns:
-
-1. Add new `AssignmentKind` enum value in `assignment/AssignmentKind.ts`
-2. Update `AssignmentClassifier.ts` to detect the pattern
-3. Create handler function in appropriate `*Handlers.ts` file
-4. Register handler in the handlers export array
-5. Update handler count in unit tests (e.g., "exports exactly N handlers")
-
-**Key context field**: `lastSubscriptExprCount` distinguishes `[0]` (1 expr = array) from `[0, 4]` (2 exprs = bit range)
-
-**Handler architecture**: Handlers access `CodeGenState` directly for state and `CodeGenState.generator!` for CodeGenerator methods. No dependency injection - signature is `(ctx: IAssignmentContext) => string`.
-
-### Cross-Scope Visibility Rules
-
-- **Self-scope reference**: `Scope.member` inside `Scope` is an error - use `this.member`
-- **Global prefix exception**: `global.Scope.member` inside `Scope` is allowed (explicit qualification)
-- **Private access in own scope**: A scope can access its own private members via `this.` or `global.Scope.`
-- Validation method: `_validateCrossScopeVisibility(scope, member, isGlobalAccess)`
-
-### Code Generation Patterns
-
-- **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
-- **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
-- **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
-- **Struct param access helpers**: Use `memberAccessChain.ts` helpers for all struct parameter access patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for member chains. Never inline these patterns in CodeGenerator.
-- **Handler state access**: Assignment handlers access state via `CodeGenState` (for properties like `typeRegistry`, `symbols`, `currentScope`) and `CodeGenState.generator!` (for methods like `generateExpression()`, `isKnownScope()`). Always use canonical CodeGenerator methods rather than hand-rolling lookups to get full SymbolTable + C-Next symbol support.
-- **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
-  1. Add to `TIncludeHeader` union in `src/transpiler/output/codegen/generators/TIncludeHeader.ts`
-  2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
-  3. Handle effect in `processEffects()` switch statement
-  4. Generate output in `assembleOutput()` where other effects are emitted
-- **CodeGenState encapsulation**: When making fields private, add `get<Field>()`, `set<Field>()`, and `getAll<Field>()` (if `IGeneratorState` needs full collection). Update tests to use setters.
-- **Register check pattern**: Use `CodeGenState.symbols!.knownRegisters.has(name)` — no wrapper method exists on CodeGenerator
-- **CodeGenState is the sole state container**: All context fields live in CodeGenState; don't add new instance state to CodeGenerator
-
-### Adding CLI Flags
-
-When adding a new CLI flag that affects code generation, update all layers:
-
-1. `src/index.ts` — Parse the argument and compute `final<Flag>` value
-2. `src/index.ts` — Pass to `Transpiler` constructor
-3. `src/transpiler/types/ITranspilerConfig.ts` — Add to interface
-
-### Error Messages
-
-- Use simple `Error: message` format (not `Error[EXXX]`) — matches 111/114 existing errors.
-
-## Testing Requirements
-
-**Tests are mandatory for all feature work:**
-
-1. Create test files in `tests/` directory as you implement
-2. Verify transpiled output compiles cleanly with `npm run analyze`
-3. Run tests before considering a task complete
-
-**Test Commands:**
-
-- `npm test` — Run C-Next integration tests (.test.cnx files)
-- `npm run test:q` — Quiet mode (errors + summary only, ideal for AI)
-- `npm test -- tests/enum` — Run specific directory
-- `npm test -- tests/enum/my.test.cnx` — Run single test file (multiple files: use directory pattern instead)
-- `npm run unit` — Run TypeScript unit tests (vitest)
-- `npm run unit -- <path>` — Run specific unit test file
-- `npm run unit:coverage` — Run unit tests with coverage report
-- `npm run test:all` — Run both test suites
-- `npm test -- <path> --update` — Generate/update `.expected.c` snapshots for new tests
-- Tests without `.expected.c` snapshots are **skipped** (not failed) — use `--update` to generate initial snapshot
-
-### Test Architecture
-
-- **`npm test`** — Tests transpilation via `Transpiler.transpileSource()` API (parallelized, fast)
-- **`npm run test:cli`** — Tests CLI behavior via subprocess in `scripts/test-cli.js` (flags, exit codes, file I/O)
-- CLI-specific features (PlatformIO detection, `--target` flag) need `test:cli` tests, not `npm test`
-- **Single file test**: `npm test -- tests/dir/file.test.cnx` (full filename required, bare directory only works for multiple tests)
-
-### Unit Test File Location
-
-Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
-
-- `src/utils/cache/CacheManager.ts` → `src/utils/cache/__tests__/CacheManager.test.ts`
-- `src/utils/cache/CacheKeyGenerator.ts` → `src/utils/cache/__tests__/CacheKeyGenerator.test.ts`
-
-### Unit Test Parser Imports
-
-- **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
-- **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
-- **Parser result structure**: `CNextSourceParser.parse(source)` returns `{ tree, ... }` - access AST via `result.tree.declaration(0)`, not `tree as Parser.ProgramContext`
-
-### Assignment Handler Test Patterns
-
-- **`IAssignmentContext` field additions**: When adding fields to `IAssignmentContext`, update `createMockContext` in ALL handler test files: `ArrayHandlers.test.ts`, `BitAccessHandlers.test.ts`, `StringHandlers.test.ts`, `RegisterHandlers.test.ts`, `AccessPatternHandlers.test.ts`, `SpecialHandlers.test.ts`, `BitmapHandlers.test.ts`, `AssignmentClassifier.test.ts`
-- **`CodeGenerator.generate()` returns string**: Use `const code = generator.generate(...)` not `const { code } = generator.generate(...)` - it returns a string directly
-
-### Vitest Mocking for ESM Modules
-
-- **Module-level mocks**: Use `vi.mock()` at top of file with class pattern, not `vi.doMock()` with dynamic imports
-- **Separate mock test files**: Create `*.mocked.test.ts` files to avoid mock pollution with main test file
-- **Mock class pattern**: `vi.mock("path", () => ({ default: class Mock { method() { return mockFn(); } } }))`
-- **Mock static resolver pattern**: For static resolvers like CResolver, mock the object: `vi.mock("path", () => ({ default: { resolve: () => mockFn() } }))`
-
-### Test Type Requirements
-
-When mocking types in CodeGenerator tests:
-
-- **TTypeInfo**: requires `baseType`, `bitWidth`, `isArray`, `isConst` fields
-- **TParameterInfo**: requires `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString` fields
-- Use `new Map<string, TParameterInfo>([...])` for typed parameter maps
-
-### Cross-File Testing
-
-- **Symbol resolution features** (enums, structs, types): Always test with symbols defined in included files, not just same-file
-- Create helper `.cnx` files (e.g., `test-types.cnx`) alongside test files for cross-file scenarios
-- The original bug scenario often involves `#include` - reproduce that exactly
-
-### Bug Reproduction Files
-
-- `bugs/issue-<name>/` directories contain minimal reproduction cases from GitHub issues
-- **Commit these with fixes** - they serve as additional regression prevention
-- Regenerate after fix to show corrected output
-
-### Test File Patterns
-
-There are **two types of tests** in C-Next:
-
-#### 1. Compilation Tests (No Validation)
-
-Tests that verify code transpiles and compiles correctly. **NO** result validation needed.
-
-```cnx
-// Test all operations (NO test-execution comment)
-// Note: No // test-execution marker
-
-f32 result;
-
-void test_operations() {
-    f32 a <- 10.5;
-    result <- a + 5.0;  // Just assign, no validation
-    result <- a * 2.0;
-}
-
-void main() {
-    test_operations();
-}
-```
-
-**Examples**: `tests/floats/float-arithmetic.test.cnx`, `tests/floats/float-comparison.test.cnx`
-
-#### 2. Execution Tests (With Validation) ⭐ **MOST TESTS**
-
-Tests marked with `// test-execution` that **execute and validate results**. These **MUST validate every operation**.
-
-```cnx
-// test-execution
-// Tests: description of what is being validated
-
-u32 main() {
-    // Perform operation
-    u64 result <- 1000 + 500;
-
-    // ALWAYS validate result
-    if (result != 1500) return 1;  // Return error code on failure
-
-    // Test another operation
-    result <- 1000 - 200;
-    if (result != 800) return 2;   // Different error code
-
-    // ... more tests with incrementing error codes ...
-
-    return 0;  // Success - ALL validations passed
-}
-```
-
-**Key Requirements for Execution Tests**:
-
-- **MUST** include `// test-execution` comment at top
-- **MUST** validate EVERY result with `if (result != expected) return N;`
-- **MUST** use unique return codes (1, 2, 3, ...) for each validation
-- Return 0 **ONLY** if all validations pass
-- Include comments explaining what each test validates
-
-**Examples**:
-
-- `tests/arithmetic/u64-arithmetic.test.cnx` (34 validations)
-- `tests/comparison/u64-comparison.test.cnx` (50 validations)
-- `tests/ternary/ternary-u64.test.cnx`
-- `tests/array-initializers/u64-array-init.test.cnx` (31 validations)
-
-### Common Mistakes to Avoid
-
-- **Removing source comments**: When removing a comment from `.test.cnx` (e.g., `// test-transpile-only`), also update `.expected.c` — the transpiler echoes source comments into generated output
-
-❌ **WRONG** - Execution test without validation:
-
-```cnx
-// test-execution
-u32 main() {
-    u64 result <- 1000 + 500;
-    return 0;  // BUG: Always passes, never validates!
-}
-```
-
-✅ **CORRECT** - Execution test with validation:
-
-```cnx
-// test-execution
-u32 main() {
-    u64 result <- 1000 + 500;
-    if (result != 1500) return 1;  // Validation required!
-    return 0;
-}
-```
-
-### Dual-Mode Testing (C and C++)
-
-The test infrastructure supports running tests in **both C and C++ modes** to validate both output types.
-
-#### Test Mode Markers
-
-| Marker                   | Meaning                                                    |
-| ------------------------ | ---------------------------------------------------------- |
-| _(no marker)_            | Run in BOTH C and C++ modes (default)                      |
-| `// test-c-only`         | Explicitly run only in C mode (e.g., MISRA-specific tests) |
-| `// test-cpp-only`       | Run only in C++ mode (e.g., C++ template interop tests)    |
-| `// test-no-exec`        | Skip execution (compile only, no run)                      |
-| `// test-transpile-only` | Skip compilation entirely (legacy, for C++ interop)        |
-
-#### Expected File Patterns
-
-For full dual-mode testing, a test can have:
+### Enum `expectedType` Contexts
+
+| Works (bare members)                     | Requires qualified (`EnumType.MEMBER`)         |
+| ---------------------------------------- | ---------------------------------------------- |
+| Variable declarations: `EColor c <- RED` | Comparisons: `cfg.pType != EPressureType.PSIA` |
+| Same-file struct field assignments       | Function arguments                             |
+| Return statements (enum return type)     | Array dimensions: `u8[EColor.COUNT]`           |
+| Struct field inits: `{color: RED}`       | Cross-file struct assignments                  |
+| Switch cases, ternary arms               |                                                |
+
+### Enum Error Locations (E0424 "not defined; did you mean")
+
+| Location                                               | Context                                     |
+| ------------------------------------------------------ | ------------------------------------------- |
+| `ControlFlowGenerator.rejectUnqualifiedEnumInReturn()` | Return statements with non-enum return type |
+| `SwitchGenerator.rejectUnqualifiedEnumMember()`        | Switch cases with non-enum switch type      |
+| `CodeGenerator._resolveUnqualifiedEnumMember()`        | All other contexts (comparisons, args)      |
+
+### Key Patterns
+
+- **SymbolTable ownership**: `CodeGenState.symbolTable` is single owner
+- **TSymbols use bare names**: `name: "init"` with `scope: IScopeSymbol` reference
+- **Test isolation**: Call `SymbolRegistry.reset()` in `beforeEach` for CNextResolver tests
+- **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
+- **Analyzer state**: `CodeGenState.buildExternalStructFields()` in Stage 2b; analyzers read via `getExternalStructFields()`
+
+---
+
+## Testing
+
+### Test Types
+
+| Marker                   | Behavior                                                |
+| ------------------------ | ------------------------------------------------------- |
+| _(none)_                 | Run in BOTH C and C++ modes                             |
+| `// test-c-only`         | C mode only                                             |
+| `// test-cpp-only`       | C++ mode only                                           |
+| `// test-execution`      | Execute and validate (MUST use `if (x != y) return N;`) |
+| `// test-error`          | Expect compile error (create `.expected.error`)         |
+| `// test-no-exec`        | Compile only, no execution                              |
+| `// test-transpile-only` | Skip compilation entirely                               |
+
+**Execution tests MUST validate every result** with unique return codes (1, 2, 3...). Return 0 only if ALL pass.
+
+### File Patterns
 
 ```
 foo.test.cnx          # Source
-foo.expected.c        # Expected C implementation
-foo.expected.cpp      # Expected C++ implementation (optional, enables dual-mode)
+foo.expected.c        # Expected C output
+foo.expected.cpp      # Expected C++ output (optional)
 foo.expected.h        # Expected C header
-foo.expected.hpp      # Expected C++ header (optional)
-foo.expected.error    # Expected error (if error test)
+foo.expected.error    # Expected error (if test-error)
 ```
 
-**Default Behavior**: Tests run in BOTH C and C++ modes. Missing expected files cause test failure.
+**Generate C++ snapshots**: `npx tsx scripts/generate-cpp-snapshots.ts [path] [--dry-run]`
 
-To generate missing `.expected.cpp` and `.expected.hpp` files:
+### Unit Tests
 
-```bash
-npx tsx scripts/generate-cpp-snapshots.ts                # Generate for all tests
-npx tsx scripts/generate-cpp-snapshots.ts tests/enum     # Generate for directory
-npx tsx scripts/generate-cpp-snapshots.ts --dry-run     # Preview what would be generated
-```
+- Location: `__tests__/` adjacent to module (e.g., `src/utils/cache/__tests__/CacheManager.test.ts`)
+- Parser imports: `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"`
+- Direct parsing: `CNextSourceParser.parse(source)` when you just need AST
+- **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`
+- **IAssignmentContext changes**: Update `createMockContext` in ALL handler test files when adding fields
+- **Vitest ESM mocks**: Use `vi.mock()` at top with class pattern; create `*.mocked.test.ts` for mock isolation
+- **Mock static resolver**: For CResolver, use `vi.mock("path", () => ({ default: { resolve: () => mockFn() } }))`
 
-#### Auto-Detection of C++ Requirements
+### Gotchas
 
-When compiling, tests that include C++ headers (detected by features like `class`, `namespace`, `template`) automatically use `g++` instead of `gcc`. This handles tests with `.expected.c` files that contain code including C++ headers.
+- **Cross-file testing**: Always test with symbols in included files, not just same-file
+- **String indexing**: Avoid `str[0] != 'H'` — transpiler generates `strcmp()`. Use `u8` arrays
+- **Const array sizes**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails (C VLA). Use literals with initializers
+- **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)
+- **Helper files**: Create `.expected.h` to prevent test framework cleanup
+- **Struct tests**: Need `.expected.h` alongside `.expected.c`
+- **Bug reproduction**: `bugs/issue-<name>/` directories — commit with fixes for regression prevention
 
-### C-Next Test Gotchas
+### Transpiler Entry Points
 
-- **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
-- **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
-- **C++ mode uses references**: In C++ mode, `const T` struct params become `const T&` (reference) with `.` member access and direct argument passing. In C mode, they become `const T*` (pointer) with `->` and `&` prefix.
-- **Struct tests need expected headers**: Tests using struct types require `.expected.h` files alongside `.expected.c` to prevent header deletion by test framework.
-- **String capacity output**: `string<32>` generates `char name[33]` (capacity + 1 for null terminator)
-- **String concatenation**: Uses `strncpy`/`strncat`, not `snprintf`
-- **Callback struct syntax**: Use function name as type (`handleClick onClick;`), not C-style pointers
+| Entry Point         | Purpose                                                         |
+| ------------------- | --------------------------------------------------------------- |
+| `run()`             | CLI, full symbol resolution across includes                     |
+| `transpileSource()` | Test framework, single-file (or called by `run()` with context) |
 
-### Test Framework Internals
+Both use same symbol collection timing. `DualCodePaths.test.ts` verifies parity.
 
-- **Fresh Transpiler per helper**: When transpiling helper .cnx files in tests, use a fresh `new Transpiler()` instance for each to avoid symbol pollution from accumulated symbols
-- **Helper header validation**: Helper .cnx files can have `.expected.h` files for header validation (same pattern as `.expected.c`)
-- **Prevent helper cleanup**: Create `.expected.h` for helper `.cnx` files to prevent test framework from deleting generated `.h` files needed by other tests
-- **Auto-generating helper snapshots**: `npm test -- <path> --update` creates `.expected.h` for helper `.cnx` files; helper `.h` files must also be committed for CI
-- **Worker debug output**: `console.log` in `test-worker.ts` doesn't appear (forked process). Use `--jobs 1` for sequential mode, but note `test.ts` has duplicated logic
-- **Assignment handler imports**: Import `AssignmentHandlerRegistry` from `assignment/index` (not `handlers/index`) to ensure handlers are registered
-- **Testing error paths with enums**: Use fake values (e.g., `9999 as AssignmentKind`) to test unregistered handler errors
+---
 
-### Error Validation Tests (test-error pattern)
+## Code Generation
 
-For compile-time error tests in `tests/analysis/`:
+### Essential Patterns
 
-- Use `// test-error` marker at top of `.test.cnx` file
-- Create matching `.expected.error` file with exact error output
-- Error format: `line:column error[CODE]: message` (no "Error: " prefix)
-- Code generation errors: `1:0 Code generation failed: Error[CODE]: message`
-- **Gotcha**: Avoid `/*` or `//` in test description comments - triggers MISRA 3.1 validation
-- **Converting to error test**: Remove `.expected.c`, `.expected.cpp`, `.expected.h`, `.expected.hpp` files when converting a passing test to an error test
+- **expectedType**: Use `this.context.expectedType` to disambiguate (e.g., enum members)
+- **Struct access**: Track `currentStructType` through member chains
+- **C++ mode**: Coordinate changes in `generateParameter()`, member access, `_generateFunctionArg()`, and HeaderGenerator
+- **Handler state**: Access via `CodeGenState` (properties) and `CodeGenState.generator!` (methods)
+- **CodeGenState**: Sole state container — don't add instance state to CodeGenerator
 
-## Header Generation
+### Assignment Classification (ADR-109)
 
-**Test `.expected.h` files**: The test framework validates `.expected.h` files when present. Create one alongside `.expected.c` for header generation tests.
+To add new patterns: (1) Add `AssignmentKind` enum, (2) Update `AssignmentClassifier`, (3) Create handler, (4) Register handler, (5) Update test count.
 
-### Transpiler Code Paths
+### Adding CLI Flags
 
-**Issue #634 Consolidation**: The dual code paths have been consolidated. Both `run()` and `transpileSource()` standalone now use the same symbol collection timing (symbols collected BEFORE code generation).
+Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.ts` (interface).
 
-The Transpiler has two entry points with unified behavior:
+### Adding Generator Effects
 
-- **`run()`** — CLI entry point, processes files with full symbol resolution across includes
-- **`transpileSource()`** — Test framework entry point, single-file transpilation (or called by `run()` with context)
+1. Add to `TIncludeHeader` union
+2. Add `needs<Effect>` field in CodeGenerator (reset in `generate()`)
+3. Handle in `processEffects()` switch
+4. Generate in `assembleOutput()`
 
-When `run()` calls `transpileSource()` with a context, it passes a pre-populated symbol table. When `transpileSource()` is called standalone (no context), it builds its own context via `Transpiler._discoverFromSource()`.
+### Struct Param Access Helpers
 
-**Testing cross-file features**: Both paths should produce identical output for the same input. The `DualCodePaths.test.ts` suite verifies this parity.
+Use `memberAccessChain.ts` helpers for all patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for chains. Never inline these.
 
-## Task Completion Requirements
+---
 
-**A task is NOT complete until all relevant documentation is updated:**
+## Parser & Grammar
 
-- `README.md` — Must reflect any new features, syntax, or ADR status changes
-- `docs/decisions/adr-*.md` — Relevant ADR must be created/updated
-- `docs/learn-cnext-in-y-minutes.md` — Must include examples of new syntax/features
-- Memory bank is updated
+### Key Patterns
 
-If implementing a feature, all documents must be current and memory must be updated before the task is done.
+- **Keywords are separate tokens**: Use `ctx.THIS()` not `ctx.IDENTIFIER()?.getText() === "this"`
+- **Grammar rules**: `arrayType` vs `arrayDimension`, `templateType` for C++ interop
+- **AST navigation**: Use `functionDeclaration()` not `functionDefinition()`
+- **Expression unwrapping**: Use `ExpressionUnwrapper` utility
 
-## ADR Status Rules
+### After Grammar Changes
 
-**CRITICAL: NEVER change an ADR status without explicit user confirmation.**
+1. `npm run antlr`
+2. Update `Parser.*Context` references
+3. Remove dead methods (TypeScript flags "never read")
+4. Update unit test mocks
 
-- ADR status values: Research, Accepted, Implemented, Rejected
-- An ADR is not "Accepted" until the user explicitly accepts it
-- An ADR is not "Implemented" until the user confirms implementation is complete
-- Always ask before changing status, no exceptions
-- **DO** update ADRs with research, context, links, and findings
-- **DO NOT** change Status or Decision sections without explicit approval
+### Const Inference
 
-**Documentation Sync Order:**
+`walkStatementForModifications()` uses two helpers:
 
-- When moving an ADR to "Implemented", update the ADR file FIRST, then update README.md
-- Never move an ADR to "Implemented" in README.md before updating the ADR file itself
-- This prevents README and ADR files from getting out of sync
+- `collectExpressionsFromStatement()` — returns all expressions from any statement type
+- `getChildStatementsAndBlocks()` — returns child statements/blocks for recursion
 
-## ADR Reference Rules
+Update both when adding new statement types.
 
-**Only use Implemented or Accepted ADRs as examples of C-Next syntax/patterns.**
+---
 
-- **Research** ADRs are proposals under investigation — NOT established syntax
-- **Rejected** ADRs document decisions NOT to implement something
-- Never cite Research ADRs as examples of "how C-Next does X"
-- When exploring syntax patterns, check the ADR status first
+## Cross-Scope Rules
 
-## Generated Test Files
+- **Self-scope reference**: `Scope.member` inside `Scope` → error, use `this.member`
+- **Global prefix**: `global.Scope.member` inside `Scope` → allowed
+- **Private access**: Own scope can access via `this.` or `global.Scope.`
 
-**Always commit generated test output files.** When running tests or the transpiler on `.test.cnx` files:
+---
 
-- `.test.c` and `.test.h` files are generated alongside `.test.cnx` files
-- These generated files **MUST be committed** to the repository
-- They serve as additional validation that the transpiler output is correct
-- **NEVER delete generated test files** - they are part of the test suite
-- **NEVER run `git restore tests/`** to revert generated files
+## ADR Rules
 
-## Pull Request Workflow
+**CRITICAL: NEVER change ADR status without explicit user confirmation.**
 
-**All changes to main MUST go through Pull Requests. NEVER push directly to the main branch.**
+| Status      | Meaning                                               |
+| ----------- | ----------------------------------------------------- |
+| Research    | Proposal under investigation — NOT established syntax |
+| Accepted    | User-approved decision                                |
+| Implemented | User-confirmed complete                               |
+| Rejected    | Decision NOT to implement                             |
 
-- **NEVER work directly on the main branch** - always create/checkout a feature branch before starting work
-- Check current branch with `git branch --show-current` before making changes
-- Create feature branches with descriptive names (e.g., `feature/add-loop-tests`, `fix/parser-bug`)
-- After committing to a feature branch, push the branch and create a PR
-- All merges to main must be reviewed via Pull Request
-- Use the `/commit-push-pr` skill or `git push` + `gh pr create` to push and create PRs
-- If the user says "commit this", only commit - ask before pushing
+- **DO**: Update ADRs with research, context, links, findings
+- **DO NOT**: Change Status or Decision without explicit approval
+- **Sync order**: Update ADR file FIRST, then README.md
 
-## Development Tips
+---
 
-**Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnext` binary to test uncommitted transpiler changes.
+## Git Workflow
 
-**Testing C++ mode**: Use `npx tsx src/index.ts <file.cnx> --cpp` to test C++ output mode (generates `.cpp` files with reference semantics for struct params).
+**All changes MUST go through Pull Requests.** See `CONTRIBUTING.md` for full workflow.
 
-## Code Analysis Tools
+- Never work directly on main — create feature branch first
+- Check branch: `git branch --show-current`
+- Branch naming: `feature/`, `fix/`, `docs/`, `test/` + descriptive name
+- Commit generated `.test.c`/`.test.h` files — they're part of the test suite
+- **Never delete generated test files** or run `git restore tests/`
 
-**Dead code and unused exports:**
+---
 
-- `npx knip` — Find unused files, exports, and dependencies (config: `knip.json`)
-- `npx knip --include classMembers` — Find unused class methods (many false positives from generated parser files)
-- `npm run analyze:prune` — Find exported functions/classes not imported anywhere (ts-prune)
-- `parseWithSymbols.ts` is a public API entry point (used by server mode)
-- **Singleton limitation**: knip can't detect unused methods on exported class instances — use static classes instead
+## Documentation Checklist
 
-**Code duplication:**
+A task is NOT complete until:
 
-- `npm run analyze:duplication` — Find copy-paste code with jscpd (config: `.jscpd.json`). Output shows "duplicated lines" (percentage) and "duplicated tokens" (percentage) — both metrics matter for SonarCloud
-- `npm run duplication:sonar` — Query SonarCloud for duplication metrics
-- `npm run analyze:cpd` — PMD Copy-Paste Detector (requires Java 11+)
+- [ ] `README.md` updated (if feature-visible)
+- [ ] ADR updated with implementation details
+- [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
+- [ ] Memory bank updated
 
-**Dependency analysis:**
+---
 
-- `npm run analyze:madge` — Check for circular dependencies
-- `npm run analyze:madge:graph` — Generate dependency visualization (requires Graphviz)
-- `npm run depcruise` — Validate architecture rules with dependency-cruiser
+## Release
 
-**Run all analysis:**
+See [`releasing.md`](releasing.md) for complete process.
 
-- `npm run analyze:all` — Run duplication, prune, and madge checks together
+VS Code extension updates (if grammar changed):
 
-**Note:** Circular dependencies in `parser/grammar/` are expected (ANTLR-generated code)
-
-## Release Checklist
-
-**See [`releasing.md`](releasing.md) for the complete release process.**
-
-Quick reference for VS Code extension updates (if grammar changed):
-
-1. **Regenerate parser** if grammar changed: `npm run antlr`
-2. **Update VS Code extension** (separate repo: [vscode-c-next](https://github.com/jlaustill/vscode-c-next)):
-   - Sync `tmLanguage.json` with any new keywords, types, or syntax
-   - Sync `completionProvider.ts` keywords with actual C-Next keywords
-   - Tag a new version to publish to marketplace
+1. `npm run antlr`
+2. Update [vscode-c-next](https://github.com/jlaustill/vscode-c-next): `tmLanguage.json`, `completionProvider.ts`
