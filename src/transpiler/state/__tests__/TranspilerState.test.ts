@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import TranspilerState from "../TranspilerState";
-import ICodeGenSymbols from "../ICodeGenSymbols";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 
 /** Create a minimal ICodeGenSymbols for testing */
 function createMockSymbolInfo(enumName?: string): ICodeGenSymbols {
