@@ -494,7 +494,7 @@ class SymbolTable {
   /**
    * Get TSymbol count
    */
-  get tSize(): number {
+  getTSize(): number {
     let count = 0;
     for (const symbols of this.tSymbols.values()) {
       count += symbols.length;

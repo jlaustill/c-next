@@ -1054,7 +1054,7 @@ describe("SymbolTable", () => {
 
       expect(symbolTable.getTSymbol("tVar1")).toBeDefined();
       expect(symbolTable.getTSymbol("tVar2")).toBeDefined();
-      expect(symbolTable.tSize).toBe(2);
+      expect(symbolTable.getTSize()).toBe(2);
     });
 
     it("should get TOverloads for same name", () => {
@@ -1206,7 +1206,7 @@ describe("SymbolTable", () => {
 
       symbolTable.clear();
 
-      expect(symbolTable.tSize).toBe(0);
+      expect(symbolTable.getTSize()).toBe(0);
       expect(symbolTable.getTSymbol("toBeCleared")).toBeUndefined();
     });
   });

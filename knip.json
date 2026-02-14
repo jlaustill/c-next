@@ -10,7 +10,6 @@
     "src/transpiler/output/codegen/generators/expressions/PostfixExpressionGenerator.ts",
     "src/transpiler/output/codegen/helpers/CppModeHelper.ts",
     "src/transpiler/output/codegen/analysis/StringLengthCounter.ts",
-    "src/transpiler/output/headers/adapters/HeaderSymbolAdapter.ts",
     "src/transpiler/output/headers/types/IHeaderSymbol.ts"
   ],
   "ignoreBinaries": ["jscpd", "jq", "dot", "madge", "ts-prune"],
