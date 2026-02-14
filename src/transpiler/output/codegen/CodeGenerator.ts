@@ -7,6 +7,7 @@ import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 
 import CommentExtractor from "../../logic/analysis/CommentExtractor";
+import TypeRegistrationEngine from "../../logic/analysis/TypeRegistrationEngine.js";
 import CommentFormatter from "./CommentFormatter";
 import IncludeDiscovery from "../../data/IncludeDiscovery";
 import IComment from "../../types/IComment";
@@ -2553,20 +2554,10 @@ export default class CodeGenerator implements IOrchestrator {
    * SonarCloud S3776: Refactored to use helper methods.
    */
   private registerAllVariableTypes(tree: Parser.ProgramContext): void {
-    for (const decl of tree.declaration()) {
-      // Register global variable types
-      if (decl.variableDeclaration()) {
-        this.registerGlobalVariableType(decl.variableDeclaration()!);
-      }
-
-      // Register scope member variable types
-      if (decl.scopeDeclaration()) {
-        this.registerScopeMemberTypes(decl.scopeDeclaration()!);
-      }
-
-      // Note: Function parameters are registered per-function during generation
-      // since they're scoped to the function body
-    }
+    TypeRegistrationEngine.register(tree, {
+      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
+      requireInclude: (header) => this.requireInclude(header),
+    });
   }
 
   /**
