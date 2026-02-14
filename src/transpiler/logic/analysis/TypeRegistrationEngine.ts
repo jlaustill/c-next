@@ -25,6 +25,8 @@ interface ITypeRegistrationCallbacks {
   tryEvaluateConstant: (ctx: Parser.ExpressionContext) => number | undefined;
   /** Request an include header */
   requireInclude: (header: TIncludeHeader) => void;
+  /** Resolve qualified type names (optional, for C++ namespace support) */
+  resolveQualifiedType?: (identifiers: string[]) => string;
 }
 
 /**
@@ -135,6 +137,22 @@ class TypeRegistrationEngine {
     typeCtx: Parser.TypeContext,
     currentScope: string | null,
   ): string | null {
+    return TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
+      typeCtx,
+      currentScope,
+      undefined,
+    );
+  }
+
+  /**
+   * Internal: Resolve base type with optional callback for qualified types.
+   * When resolveQualifiedType callback is provided, uses it for C++ namespace support.
+   */
+  private static _resolveBaseTypeWithCallbacks(
+    typeCtx: Parser.TypeContext,
+    currentScope: string | null,
+    callbacks?: ITypeRegistrationCallbacks,
+  ): string | null {
     if (typeCtx.primitiveType()) {
       return typeCtx.primitiveType()!.getText();
     }
@@ -152,8 +170,15 @@ class TypeRegistrationEngine {
 
     if (typeCtx.qualifiedType()) {
       // ADR-016: Handle Scope.Type from outside scope
+      // Issue #388: Also handles C++ namespace types when callback is provided
       const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-      return identifiers.map((id) => id.getText()).join("_");
+      const identifierNames = identifiers.map((id) => id.getText());
+
+      // Use callback if provided for C++ namespace support
+      if (callbacks?.resolveQualifiedType) {
+        return callbacks.resolveQualifiedType(identifierNames);
+      }
+      return identifierNames.join("_");
     }
 
     if (typeCtx.userType()) {
@@ -165,8 +190,19 @@ class TypeRegistrationEngine {
   }
 
   // ============================================================================
-  // Private tracking methods
+  // Variable tracking methods
   // ============================================================================
+
+  /**
+   * Track a single variable declaration.
+   * Used for local variable tracking during code generation.
+   */
+  static trackVariable(
+    varDecl: Parser.VariableDeclarationContext,
+    callbacks: ITypeRegistrationCallbacks,
+  ): void {
+    TypeRegistrationEngine._trackVariableType(varDecl, callbacks);
+  }
 
   private static _trackVariableType(
     varDecl: Parser.VariableDeclarationContext,
@@ -218,9 +254,10 @@ class TypeRegistrationEngine {
       return;
     }
 
-    const baseType = TypeRegistrationEngine.resolveBaseType(
+    const baseType = TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
       CodeGenState.currentScope,
+      callbacks,
     );
     if (!baseType) {
       return;
