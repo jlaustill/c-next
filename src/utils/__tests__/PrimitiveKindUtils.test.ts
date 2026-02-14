@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import TPrimitiveKind from "../TPrimitiveKind";
+import TPrimitiveKind from "../../transpiler/types/TPrimitiveKind";
 import PrimitiveKindUtils from "../PrimitiveKindUtils";
 
 describe("TPrimitiveKind", () => {

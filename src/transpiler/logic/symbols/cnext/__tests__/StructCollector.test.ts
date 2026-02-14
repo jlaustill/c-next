@@ -3,7 +3,7 @@ import parse from "./testHelpers";
 import TestScopeUtils from "./testUtils";
 import StructCollector from "../collectors/StructCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 
 describe("StructCollector", () => {
   beforeEach(() => {

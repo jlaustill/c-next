@@ -18,7 +18,7 @@ import IStructSymbol from "../../../../types/symbols/IStructSymbol";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 import SymbolNameUtils from "../utils/SymbolNameUtils";
 
 /**

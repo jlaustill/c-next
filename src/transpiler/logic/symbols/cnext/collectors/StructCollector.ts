@@ -10,7 +10,7 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IStructSymbol from "../../../../types/symbols/IStructSymbol";
 import IFieldInfo from "../../../../types/symbols/IFieldInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import LiteralUtils from "../../../../../utils/LiteralUtils";
 

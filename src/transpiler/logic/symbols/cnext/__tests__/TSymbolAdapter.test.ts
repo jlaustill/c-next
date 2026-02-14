@@ -14,7 +14,7 @@ import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 import TestScopeUtils from "./testUtils";
 
 describe("TSymbolAdapter", () => {

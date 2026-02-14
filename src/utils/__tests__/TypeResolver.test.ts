@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import TypeResolver from "../TypeResolver";
-import type TType from "../TType";
+import type TType from "../../transpiler/types/TType";
 
 describe("TypeResolver", () => {
   describe("resolve - primitive types", () => {

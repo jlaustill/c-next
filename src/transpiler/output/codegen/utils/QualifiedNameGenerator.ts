@@ -15,8 +15,8 @@
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
-import FunctionUtils from "../../../types/FunctionUtils";
-import ScopeUtils from "../../../types/ScopeUtils";
+import FunctionUtils from "../../../../utils/FunctionUtils";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 class QualifiedNameGenerator {
   // ============================================================================

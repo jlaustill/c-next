@@ -18,8 +18,8 @@ import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
-import TypeResolver from "../../../../types/TypeResolver";
-import ScopeUtils from "../../../../types/ScopeUtils";
+import TypeResolver from "../../../../../utils/TypeResolver";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 import SymbolNameUtils from "../utils/SymbolNameUtils";
 
 /** Get minimum unsigned type width for a bit count */

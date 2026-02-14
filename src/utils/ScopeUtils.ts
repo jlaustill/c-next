@@ -3,8 +3,8 @@
  *
  * Provides utilities for creating and inspecting C-Next scopes.
  */
-import type IScopeSymbol from "./symbols/IScopeSymbol";
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import type IScopeSymbol from "../transpiler/types/symbols/IScopeSymbol";
+import ESourceLanguage from "./types/ESourceLanguage";
 
 class ScopeUtils {
   // ============================================================================
