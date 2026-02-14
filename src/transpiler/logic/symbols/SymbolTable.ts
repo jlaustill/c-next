@@ -557,9 +557,10 @@ class SymbolTable {
         def.sourceLanguage === ESourceLanguage.CNext &&
         def.kind === "variable"
       ) {
-        const variable = def as IVariableSymbol;
+        // After sourceLanguage check, def is narrowed to TSymbol
+        // After kind check, def is narrowed to IVariableSymbol
         // Global scope means no conflict filtering needed
-        if (variable.scope.name === "") return true;
+        if (def.scope.name === "") return true;
         // Scope-level variables vs function parameters:
         // We can't easily distinguish here, so keep all for now
         return true;
@@ -846,56 +847,75 @@ class SymbolTable {
    * external .cnx files that were not available during initial symbol collection.
    */
   resolveExternalArrayDimensions(): void {
-    // Build a map of all const values from C-Next symbols
+    const constValues = this.buildConstValuesMap();
+    if (constValues.size === 0) {
+      return;
+    }
+    this.resolveArrayDimensionsWithConstants(constValues);
+  }
+
+  /**
+   * Build a map of const variable names to their integer values.
+   */
+  private buildConstValuesMap(): Map<string, number> {
     const constValues = new Map<string, number>();
     for (const symbol of this.getAllTSymbols()) {
       if (symbol.kind === "variable" && symbol.isConst) {
-        const variable = symbol as IVariableSymbol;
-        if (variable.initialValue !== undefined) {
-          const value = LiteralUtils.parseIntegerLiteral(variable.initialValue);
+        // After kind check, symbol is narrowed to IVariableSymbol
+        if (symbol.initialValue !== undefined) {
+          const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
           if (value !== undefined) {
             constValues.set(symbol.name, value);
           }
         }
       }
     }
+    return constValues;
+  }
 
-    // If no const values found, nothing to resolve
-    if (constValues.size === 0) {
-      return;
-    }
-
-    // Scan all C-Next variable symbols for unresolved array dimensions
+  /**
+   * Resolve string array dimensions using const values lookup.
+   */
+  private resolveArrayDimensionsWithConstants(
+    constValues: Map<string, number>,
+  ): void {
     for (const symbol of this.getAllTSymbols()) {
-      if (symbol.kind === "variable") {
-        const variable = symbol as IVariableSymbol;
-        if (variable.isArray && variable.arrayDimensions) {
-          let modified = false;
-          const resolvedDimensions = variable.arrayDimensions.map((dim) => {
-            // If dimension is numeric, keep it
-            if (typeof dim === "number") {
-              return dim;
-            }
-
-            // Try to resolve from const values
-            const constValue = constValues.get(dim);
-            if (constValue !== undefined) {
-              modified = true;
-              return constValue;
-            }
-
-            // Keep original (unresolved macro reference)
-            return dim;
-          });
-
-          if (modified) {
-            // Update the symbol's array dimensions (cast to mutable via unknown)
-            (
-              variable as unknown as { arrayDimensions: (number | string)[] }
-            ).arrayDimensions = resolvedDimensions;
-          }
-        }
+      if (
+        symbol.kind === "variable" &&
+        symbol.isArray &&
+        symbol.arrayDimensions
+      ) {
+        // After kind check, symbol is narrowed to IVariableSymbol
+        this.resolveVariableArrayDimensions(symbol, constValues);
       }
+    }
+  }
+
+  /**
+   * Resolve array dimensions for a single variable symbol.
+   */
+  private resolveVariableArrayDimensions(
+    variable: IVariableSymbol,
+    constValues: Map<string, number>,
+  ): void {
+    let modified = false;
+    const resolvedDimensions = variable.arrayDimensions!.map((dim) => {
+      if (typeof dim === "number") {
+        return dim;
+      }
+      const constValue = constValues.get(dim);
+      if (constValue !== undefined) {
+        modified = true;
+        return constValue;
+      }
+      return dim;
+    });
+
+    if (modified) {
+      // Update the symbol's array dimensions (cast to mutable via unknown)
+      (
+        variable as unknown as { arrayDimensions: (number | string)[] }
+      ).arrayDimensions = resolvedDimensions;
     }
   }
 

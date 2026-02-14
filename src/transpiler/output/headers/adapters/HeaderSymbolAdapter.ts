@@ -209,7 +209,7 @@ class HeaderSymbolAdapter {
   private static resolveArrayDimension(dim: string): string {
     // Qualified enum access (e.g., "EColor.COUNT") - convert dots to underscores
     if (dim.includes(".")) {
-      return dim.replace(/\./g, "_");
+      return dim.replaceAll(".", "_");
     }
     return dim;
   }

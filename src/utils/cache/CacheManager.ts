@@ -540,7 +540,6 @@ class CacheManager {
    * This bridges the typed symbols with the legacy cache format.
    */
   private convertToISymbol(symbol: TAnySymbol): ISymbol {
-    // Common fields all symbols share
     const base: ISymbol = {
       name: symbol.name,
       kind: symbol.kind,
@@ -550,46 +549,65 @@ class CacheManager {
       isExported: symbol.isExported,
     };
 
-    // Add type field - convert TType to string for C-Next
-    if ("type" in symbol && symbol.type !== undefined) {
-      base.type =
-        symbol.sourceLanguage === ESourceLanguage.CNext &&
-        typeof symbol.type !== "string"
-          ? TypeResolver.getTypeName(symbol.type)
-          : (symbol.type as string);
-    }
-
-    // Add variable-specific fields
-    if (symbol.kind === "variable") {
-      if ("isConst" in symbol) base.isConst = symbol.isConst;
-      if ("isAtomic" in symbol) base.isAtomic = symbol.isAtomic;
-      if ("isArray" in symbol) base.isArray = symbol.isArray;
-      if ("arrayDimensions" in symbol && symbol.arrayDimensions) {
-        base.arrayDimensions = symbol.arrayDimensions.map((d) => String(d));
-      }
-      if ("initialValue" in symbol) base.initialValue = symbol.initialValue;
-    }
-
-    // Add function-specific fields
-    if (symbol.kind === "function") {
-      // For C-Next functions, returnType is a TType - convert to string for ISymbol.type
-      if ("returnType" in symbol && symbol.returnType !== undefined) {
-        base.type = TypeResolver.getTypeName(symbol.returnType);
-      }
-      if ("parameters" in symbol && symbol.parameters) {
-        base.parameters = symbol.parameters.map((p) => ({
-          name: p.name,
-          type:
-            typeof p.type === "string"
-              ? p.type
-              : TypeResolver.getTypeName(p.type),
-          isConst: p.isConst,
-          isArray: p.isArray,
-        }));
-      }
-    }
+    this.addTypeField(symbol, base);
+    this.addVariableFields(symbol, base);
+    this.addFunctionFields(symbol, base);
 
     return base;
+  }
+
+  /**
+   * Add type field to ISymbol, converting TType to string for C-Next symbols.
+   */
+  private addTypeField(symbol: TAnySymbol, base: ISymbol): void {
+    if (!("type" in symbol) || symbol.type === undefined) {
+      return;
+    }
+    const isCNextWithTType =
+      symbol.sourceLanguage === ESourceLanguage.CNext &&
+      typeof symbol.type !== "string";
+    base.type = isCNextWithTType
+      ? TypeResolver.getTypeName(symbol.type)
+      : (symbol.type as string);
+  }
+
+  /**
+   * Add variable-specific fields to ISymbol.
+   */
+  private addVariableFields(symbol: TAnySymbol, base: ISymbol): void {
+    if (symbol.kind !== "variable") {
+      return;
+    }
+    if ("isConst" in symbol) base.isConst = symbol.isConst;
+    if ("isAtomic" in symbol) base.isAtomic = symbol.isAtomic;
+    if ("isArray" in symbol) base.isArray = symbol.isArray;
+    if ("arrayDimensions" in symbol && symbol.arrayDimensions) {
+      base.arrayDimensions = symbol.arrayDimensions.map(String);
+    }
+    if ("initialValue" in symbol) base.initialValue = symbol.initialValue;
+  }
+
+  /**
+   * Add function-specific fields to ISymbol.
+   */
+  private addFunctionFields(symbol: TAnySymbol, base: ISymbol): void {
+    if (symbol.kind !== "function") {
+      return;
+    }
+    if ("returnType" in symbol && symbol.returnType !== undefined) {
+      base.type = TypeResolver.getTypeName(symbol.returnType);
+    }
+    if ("parameters" in symbol && symbol.parameters) {
+      base.parameters = symbol.parameters.map((p) => ({
+        name: p.name,
+        type:
+          typeof p.type === "string"
+            ? p.type
+            : TypeResolver.getTypeName(p.type),
+        isConst: p.isConst,
+        isArray: p.isArray,
+      }));
+    }
   }
 }
 

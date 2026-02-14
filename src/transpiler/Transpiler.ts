@@ -1056,8 +1056,7 @@ class Transpiler {
     }
 
     // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
-    // ADR-055 Phase 7: Cache still returns ISymbol[], convert to typed symbols
-    // TODO: Update CacheManager to store/return typed symbols directly
+    // ADR-055 Phase 7: Cache returns ISymbol[], converted to typed symbols via bridge
     this.restoreCachedSymbols(cached.symbols, file);
     CodeGenState.symbolTable.restoreStructFields(cached.structFields);
     CodeGenState.symbolTable.restoreNeedsStructKeyword(
@@ -1073,8 +1072,7 @@ class Transpiler {
 
   /**
    * Restore cached symbols to the symbol table.
-   * ADR-055 Phase 7: Temporary bridge while cache still stores ISymbol[].
-   * TODO: Update CacheManager to store typed symbols directly.
+   * ADR-055 Phase 7: Bridge layer converts ISymbol[] from cache to typed symbols.
    */
   private restoreCachedSymbols(
     symbols: ISymbol[],
