@@ -5,10 +5,10 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
-import CNextSourceParser from "../../parser/CNextSourceParser";
-import CodeGenState from "../../../state/CodeGenState";
-import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
-import * as Parser from "../../parser/grammar/CNextParser";
+import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
+import CodeGenState from "../../../../state/CodeGenState";
+import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
+import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 
 /**
  * Create a minimal mock ICodeGenSymbols with default empty collections.

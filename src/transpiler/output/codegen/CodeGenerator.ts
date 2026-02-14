@@ -7,7 +7,7 @@ import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 
 import CommentExtractor from "../../logic/analysis/CommentExtractor";
-import TypeRegistrationEngine from "../../logic/analysis/TypeRegistrationEngine.js";
+import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
 import CommentFormatter from "./CommentFormatter";
 import IncludeDiscovery from "../../data/IncludeDiscovery";
 import IComment from "../../types/IComment";

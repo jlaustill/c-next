@@ -7,14 +7,14 @@
  * other type-dependent operations regardless of declaration order.
  */
 
-import * as Parser from "../parser/grammar/CNextParser.js";
-import TIncludeHeader from "../../output/codegen/generators/TIncludeHeader.js";
-import TOverflowBehavior from "../../output/codegen/types/TOverflowBehavior.js";
-import TYPE_WIDTH from "../../output/codegen/types/TYPE_WIDTH.js";
-import CodeGenState from "../../state/CodeGenState.js";
-import TypeRegistrationUtils from "../../output/codegen/TypeRegistrationUtils.js";
-import QualifiedNameGenerator from "../../output/codegen/utils/QualifiedNameGenerator.js";
-import ArrayDimensionParser from "../../output/codegen/helpers/ArrayDimensionParser.js";
+import * as Parser from "../../../logic/parser/grammar/CNextParser";
+import TIncludeHeader from "../generators/TIncludeHeader";
+import TOverflowBehavior from "../types/TOverflowBehavior";
+import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import CodeGenState from "../../../state/CodeGenState";
+import TypeRegistrationUtils from "../TypeRegistrationUtils";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import ArrayDimensionParser from "./ArrayDimensionParser";
 
 /**
  * Callbacks required for type registration.
