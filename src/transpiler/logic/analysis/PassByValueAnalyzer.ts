@@ -20,7 +20,7 @@
 import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import SymbolRegistry from "../../state/SymbolRegistry";
-import FunctionUtils from "../../types/FunctionUtils";
+import FunctionUtils from "../../../utils/FunctionUtils";
 import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
 import StatementExpressionCollector from "./helpers/StatementExpressionCollector";
 import ChildStatementCollector from "./helpers/ChildStatementCollector";

@@ -4,7 +4,7 @@ import TestScopeUtils from "./testUtils";
 import FunctionCollector from "../collectors/FunctionCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 
 describe("FunctionCollector", () => {
   beforeEach(() => {

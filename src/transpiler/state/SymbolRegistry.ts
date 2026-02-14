@@ -9,7 +9,7 @@
  * - `resolveFunction` walks scope chain (current -> parent -> global)
  * - String keys in Maps for lookup, but values are proper symbol objects
  */
-import ScopeUtils from "../types/ScopeUtils";
+import ScopeUtils from "../../utils/ScopeUtils";
 import type IScopeSymbol from "../types/symbols/IScopeSymbol";
 import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
 

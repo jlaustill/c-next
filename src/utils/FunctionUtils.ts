@@ -3,12 +3,12 @@
  *
  * Provides utilities for creating, inspecting, and name-mangling C-Next functions.
  */
-import type IFunctionSymbol from "./symbols/IFunctionSymbol";
-import type TVisibility from "./TVisibility";
-import type IScopeSymbol from "./symbols/IScopeSymbol";
-import type IParameterInfo from "./symbols/IParameterInfo";
-import type TType from "./TType";
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import type IFunctionSymbol from "../transpiler/types/symbols/IFunctionSymbol";
+import type TVisibility from "../transpiler/types/TVisibility";
+import type IScopeSymbol from "../transpiler/types/symbols/IScopeSymbol";
+import type IParameterInfo from "../transpiler/types/symbols/IParameterInfo";
+import type TType from "../transpiler/types/TType";
+import ESourceLanguage from "./types/ESourceLanguage";
 import ScopeUtils from "./ScopeUtils";
 
 /**

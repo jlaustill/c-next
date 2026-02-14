@@ -4,7 +4,7 @@
  * This utility handles the conversion from the old string-based type system
  * (e.g., "u32", "string<32>", "u8[10]") to the new TType discriminated union.
  */
-import type TType from "./TType";
+import type TType from "../transpiler/types/TType";
 import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
 

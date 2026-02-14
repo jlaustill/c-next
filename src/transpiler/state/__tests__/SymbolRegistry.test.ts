@@ -3,8 +3,8 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import SymbolRegistry from "../SymbolRegistry";
-import FunctionUtils from "../../types/FunctionUtils";
-import TTypeUtils from "../../types/TTypeUtils";
+import FunctionUtils from "../../../utils/FunctionUtils";
+import TTypeUtils from "../../../utils/TTypeUtils";
 
 describe("SymbolRegistry", () => {
   beforeEach(() => {

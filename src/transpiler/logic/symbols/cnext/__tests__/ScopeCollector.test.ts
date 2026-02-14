@@ -4,7 +4,7 @@ import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 
 describe("ScopeCollector", () => {
   beforeEach(() => {

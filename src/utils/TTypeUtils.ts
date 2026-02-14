@@ -3,8 +3,8 @@
  *
  * Provides utilities for creating and inspecting C-Next types.
  */
-import type TType from "./TType";
-import type TPrimitiveKind from "./TPrimitiveKind";
+import type TType from "../transpiler/types/TType";
+import type TPrimitiveKind from "../transpiler/types/TPrimitiveKind";
 
 // Extract variant types from the discriminated union
 type TPrimitiveType = Extract<TType, { kind: "primitive" }>;

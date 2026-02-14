@@ -2,7 +2,20 @@
 
 ## Status
 
-**Research**
+**Accepted** (Phases 0-3 implemented, Phase 5 in progress)
+
+### Implementation Progress
+
+| Phase | Description                                                   | Status         | Issue                                                  |
+| ----- | ------------------------------------------------------------- | -------------- | ------------------------------------------------------ |
+| 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)          | ✅ Complete    | -                                                      |
+| 1     | Directory Restructure (`src/transpiler/logic/symbols/cnext/`) | ✅ Complete    | -                                                      |
+| 2     | Build Composable Collectors (7 collectors with tests)         | ✅ Complete    | -                                                      |
+| 3     | Create Orchestrator (`CNextResolver`)                         | ✅ Complete    | -                                                      |
+| 4     | Add CacheKeyGenerator                                         | ⚠️ To verify   | -                                                      |
+| 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)          | 🔄 In Progress | [#803](https://github.com/jlaustill/c-next/issues/803) |
+| 6     | Repeat for C++/C                                              | ❌ Not started | [#804](https://github.com/jlaustill/c-next/issues/804) |
+| 7     | Remove Legacy Types                                           | ❌ Not started | [#805](https://github.com/jlaustill/c-next/issues/805) |
 
 ## Context
 
@@ -665,6 +678,14 @@ describe("Regression: symbol resolution matches legacy collectors", () => {
 ```
 
 ## Related Issues
+
+### Active (Remaining Phases)
+
+- [#803](https://github.com/jlaustill/c-next/issues/803): Phase 5 - Migrate consumers to TSymbol system
+- [#804](https://github.com/jlaustill/c-next/issues/804): Phase 6 - Create CppResolver and CResolver
+- [#805](https://github.com/jlaustill/c-next/issues/805): Phase 7 - Remove legacy ISymbol type system
+
+### Historical (Superseded)
 
 - #417: Add unit tests for SymbolCollector.ts (superseded by this ADR)
 - #418: Add unit tests for CppSymbolCollector.ts (will follow this pattern)

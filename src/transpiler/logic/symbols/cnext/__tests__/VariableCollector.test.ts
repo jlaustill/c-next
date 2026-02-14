@@ -3,7 +3,7 @@ import parse from "./testHelpers";
 import TestScopeUtils from "./testUtils";
 import VariableCollector from "../collectors/VariableCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 
 describe("VariableCollector", () => {
   describe("basic variable extraction", () => {

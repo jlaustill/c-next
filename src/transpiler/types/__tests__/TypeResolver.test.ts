@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import TypeResolver from "../TypeResolver";
+import TypeResolver from "../../../utils/TypeResolver";
 import type TType from "../TType";
 
 describe("TypeResolver", () => {

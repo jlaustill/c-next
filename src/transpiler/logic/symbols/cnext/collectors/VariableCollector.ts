@@ -9,7 +9,7 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
 import LiteralUtils from "../../../../../utils/LiteralUtils";

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import TPrimitiveKind from "../TPrimitiveKind";
-import PrimitiveKindUtils from "../PrimitiveKindUtils";
+import PrimitiveKindUtils from "../../../utils/PrimitiveKindUtils";
 
 describe("TPrimitiveKind", () => {
   it("includes all C-Next primitive types", () => {

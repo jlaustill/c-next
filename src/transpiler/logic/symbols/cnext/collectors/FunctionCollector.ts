@@ -10,7 +10,7 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import IParameterInfo from "../../../../types/symbols/IParameterInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
-import TypeResolver from "../../../../types/TypeResolver";
+import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 

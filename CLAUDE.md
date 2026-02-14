@@ -48,6 +48,12 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 `gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
 
+### ts-morph MCP Tools
+
+- **Move files with import updates**: `rename_filesystem_entry_by_tsmorph` — moves files/folders and updates all imports. Always use `dryRun: true` first.
+- **Move symbols between files**: `move_symbol_to_file_by_tsmorph` — extracts a function/class to a different file
+- **Find references**: `find_references_by_tsmorph` — finds all usages of a symbol
+
 ## Workflow: Research First
 
 1. **Always start with research/planning** before implementation
@@ -215,7 +221,12 @@ The codebase is organized into four layers under `src/transpiler/`:
 - `src/transpiler/output/` — Generation (codegen/, headers/)
 - `src/transpiler/state/` — Global state (CodeGenState - shared by all layers)
 - `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
-- `src/utils/` — Shared utilities (constants/, cache/, types/)
+- `src/utils/` — Shared utilities (constants/, cache/, types/, and type utilities like `ScopeUtils`, `TTypeUtils`, `TypeResolver`)
+
+### Utility File Locations
+
+- **Type utilities** (`ScopeUtils`, `TTypeUtils`, `ParameterUtils`, `TypeResolver`, etc.) live in `src/utils/`, NOT `src/transpiler/types/`
+- `src/transpiler/types/` is for type definitions only (interfaces, type aliases)
 
 ### ANTLR Parser Generation
 
@@ -234,6 +245,13 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 5. Update unit test mocks for changed interfaces (add new required fields with defaults)
 
 ### Symbol Resolution Architecture (ADR-055)
+
+**Symbol type system (two generations)**:
+
+- **`TSymbol`** (`src/transpiler/types/symbols/TSymbol.ts`): New discriminated union with type narrowing — use for new code
+- **`ISymbol`** (`src/utils/types/ISymbol.ts`): Legacy flat interface — being phased out
+- **`TSymbolAdapter`**: Converts `TSymbol[]` → `ISymbol[]` for backwards compatibility
+- **Remaining work**: #803 (Phase 5 - migrate consumers), #804 (Phase 6 - C++/C resolvers), #805 (Phase 7 - remove legacy)
 
 **SymbolTable ownership**: `CodeGenState.symbolTable` is the single owner (non-null, persists across `reset()`). Transpiler accesses it via `CodeGenState.symbolTable`. Tests set `CodeGenState.symbolTable = symbolTable` before calling `generate()`.
 
