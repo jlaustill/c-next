@@ -25,6 +25,18 @@ interface IClassCollectorResult {
   warnings: string[];
 }
 
+/**
+ * Internal context for member collection.
+ */
+interface IMemberCollectionContext {
+  readonly className: string;
+  readonly sourceFile: string;
+  readonly symbolTable: SymbolTable | null;
+  readonly fields: Map<string, ICppFieldInfo> | undefined;
+  readonly memberFunctions: ICppFunctionSymbol[];
+  readonly warnings: string[];
+}
+
 class ClassCollector {
   /**
    * Collect a class specifier and return an ICppClassSymbol with member functions.
@@ -60,32 +72,22 @@ class ClassCollector {
 
     const memberFunctions: ICppFunctionSymbol[] = [];
     const warnings: string[] = [];
-    let fields: Map<string, ICppFieldInfo> | undefined;
+    const fields: Map<string, ICppFieldInfo> | undefined = symbolTable
+      ? new Map()
+      : undefined;
 
-    // Extract class members if symbolTable is provided
+    // Extract class members
     const memberSpec = classSpec.memberSpecification?.();
-    if (memberSpec && symbolTable) {
-      fields = new Map();
-      ClassCollector._collectClassMembers(
-        fullName,
-        memberSpec,
+    if (memberSpec) {
+      const ctx: IMemberCollectionContext = {
+        className: fullName,
         sourceFile,
-        symbolTable,
+        symbolTable: symbolTable ?? null,
         fields,
         memberFunctions,
         warnings,
-      );
-    } else if (memberSpec) {
-      // Still collect member functions even without symbolTable
-      ClassCollector._collectClassMembers(
-        fullName,
-        memberSpec,
-        sourceFile,
-        null,
-        undefined,
-        memberFunctions,
-        warnings,
-      );
+      };
+      ClassCollector._collectClassMembers(ctx, memberSpec);
     }
 
     const classSymbol: ICppClassSymbol = {
@@ -126,15 +128,15 @@ class ClassCollector {
     const warnings: string[] = [];
     const fields = new Map<string, ICppFieldInfo>();
 
-    ClassCollector._collectClassMembers(
-      typedefName,
-      memberSpec,
+    const ctx: IMemberCollectionContext = {
+      className: typedefName,
       sourceFile,
       symbolTable,
       fields,
       memberFunctions,
       warnings,
-    );
+    };
+    ClassCollector._collectClassMembers(ctx, memberSpec);
 
     const classSymbol: ICppClassSymbol = {
       kind: "class",
@@ -153,24 +155,11 @@ class ClassCollector {
    * Collect class members (data fields and member functions).
    */
   private static _collectClassMembers(
-    className: string,
+    ctx: IMemberCollectionContext,
     memberSpec: any,
-    sourceFile: string,
-    symbolTable: SymbolTable | null,
-    fields: Map<string, ICppFieldInfo> | undefined,
-    memberFunctions: ICppFunctionSymbol[],
-    warnings: string[],
   ): void {
     for (const memberDecl of memberSpec.memberdeclaration?.() ?? []) {
-      ClassCollector._collectMemberDeclaration(
-        className,
-        memberDecl,
-        sourceFile,
-        symbolTable,
-        fields,
-        memberFunctions,
-        warnings,
-      );
+      ClassCollector._collectMemberDeclaration(memberDecl, ctx);
     }
   }
 
@@ -178,13 +167,8 @@ class ClassCollector {
    * Collect a single member declaration.
    */
   private static _collectMemberDeclaration(
-    className: string,
     memberDecl: any,
-    sourceFile: string,
-    symbolTable: SymbolTable | null,
-    fields: Map<string, ICppFieldInfo> | undefined,
-    memberFunctions: ICppFunctionSymbol[],
-    warnings: string[],
+    ctx: IMemberCollectionContext,
   ): void {
     const line = memberDecl.start?.line ?? 0;
 
@@ -192,11 +176,11 @@ class ClassCollector {
     const funcDef = memberDecl.functionDefinition?.();
     if (funcDef) {
       ClassCollector._collectInlineFunctionDef(
-        className,
+        ctx.className,
         funcDef,
-        sourceFile,
+        ctx.sourceFile,
         line,
-        memberFunctions,
+        ctx.memberFunctions,
       );
       return;
     }
@@ -213,15 +197,10 @@ class ClassCollector {
 
     for (const memberDeclarator of memberDeclList.memberDeclarator?.() ?? []) {
       ClassCollector._collectMemberDeclarator(
-        className,
         memberDeclarator,
         fieldType,
-        sourceFile,
         line,
-        symbolTable,
-        fields,
-        memberFunctions,
-        warnings,
+        ctx,
       );
     }
   }
@@ -263,15 +242,10 @@ class ClassCollector {
    * Collect a single member declarator (function or data field).
    */
   private static _collectMemberDeclarator(
-    className: string,
     memberDeclarator: any,
     fieldType: string,
-    sourceFile: string,
     line: number,
-    symbolTable: SymbolTable | null,
-    fields: Map<string, ICppFieldInfo> | undefined,
-    memberFunctions: ICppFunctionSymbol[],
-    warnings: string[],
+    ctx: IMemberCollectionContext,
   ): void {
     const declarator = memberDeclarator.declarator?.();
     if (!declarator) return;
@@ -282,46 +256,35 @@ class ClassCollector {
     // Check if this is a member function
     if (DeclaratorUtils.declaratorIsFunction(declarator)) {
       const symbol = FunctionCollector.collectMemberFunction(
-        className,
+        ctx.className,
         fieldName,
         declarator,
         fieldType,
-        sourceFile,
+        ctx.sourceFile,
         line,
         true, // declaration
       );
-      memberFunctions.push(symbol);
+      ctx.memberFunctions.push(symbol);
       return;
     }
 
     // Data field
-    ClassCollector._collectDataField(
-      className,
-      fieldName,
-      declarator,
-      fieldType,
-      symbolTable,
-      fields,
-      warnings,
-    );
+    ClassCollector._collectDataField(fieldName, declarator, fieldType, ctx);
   }
 
   /**
    * Collect a data field declaration.
    */
   private static _collectDataField(
-    className: string,
     fieldName: string,
     declarator: any,
     fieldType: string,
-    symbolTable: SymbolTable | null,
-    fields: Map<string, ICppFieldInfo> | undefined,
-    warnings: string[],
+    ctx: IMemberCollectionContext,
   ): void {
     // Warn if field name conflicts with C-Next reserved property names
     if (SymbolUtils.isReservedFieldName(fieldName)) {
-      warnings.push(
-        SymbolUtils.getReservedFieldWarning("C++", className, fieldName),
+      ctx.warnings.push(
+        SymbolUtils.getReservedFieldWarning("C++", ctx.className, fieldName),
       );
     }
 
@@ -329,9 +292,9 @@ class ClassCollector {
     const arrayDimensions = DeclaratorUtils.extractArrayDimensions(declarator);
 
     // Add to SymbolTable if provided
-    if (symbolTable) {
-      symbolTable.addStructField(
-        className,
+    if (ctx.symbolTable) {
+      ctx.symbolTable.addStructField(
+        ctx.className,
         fieldName,
         fieldType,
         arrayDimensions.length > 0 ? arrayDimensions : undefined,
@@ -339,14 +302,14 @@ class ClassCollector {
     }
 
     // Add to fields map if provided
-    if (fields) {
+    if (ctx.fields) {
       const fieldInfo: ICppFieldInfo = {
         name: fieldName,
         type: fieldType,
         arrayDimensions:
           arrayDimensions.length > 0 ? arrayDimensions : undefined,
       };
-      fields.set(fieldName, fieldInfo);
+      ctx.fields.set(fieldName, fieldInfo);
     }
   }
 }

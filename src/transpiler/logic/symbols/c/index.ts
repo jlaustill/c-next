@@ -33,6 +33,17 @@ interface ICResolverResult {
   readonly warnings: string[];
 }
 
+/**
+ * Internal context for declaration processing.
+ */
+interface IDeclarationContext {
+  readonly sourceFile: string;
+  readonly line: number;
+  readonly isTypedef: boolean;
+  readonly isExtern: boolean;
+  readonly symbols: TCSymbol[];
+}
+
 class CResolver {
   /**
    * Resolve all symbols from a C compilation unit.
@@ -139,29 +150,25 @@ class CResolver {
     }
 
     // Collect declarators (variables, function prototypes, typedefs)
+    const ctx: IDeclarationContext = {
+      sourceFile,
+      line,
+      isTypedef,
+      isExtern,
+      symbols,
+    };
+
     const initDeclList = decl.initDeclaratorList();
     if (initDeclList) {
       const baseType = DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs);
-      CResolver.collectInitDeclaratorList(
-        initDeclList,
-        baseType,
-        isTypedef,
-        isExtern,
-        line,
-        sourceFile,
-        symbols,
-      );
+      CResolver.collectInitDeclaratorList(initDeclList, baseType, ctx);
     } else {
       // Handle case where identifier is parsed as typedefName in declarationSpecifiers
       CResolver.collectFromDeclSpecsTypedefName(
         declSpecs,
-        isTypedef,
-        isExtern,
-        line,
-        sourceFile,
         structSpec,
         enumSpec,
-        symbols,
+        ctx,
       );
     }
   }
@@ -172,11 +179,7 @@ class CResolver {
   private static collectInitDeclaratorList(
     initDeclList: any,
     baseType: string,
-    isTypedef: boolean,
-    isExtern: boolean,
-    line: number,
-    sourceFile: string,
-    symbols: TCSymbol[],
+    ctx: IDeclarationContext,
   ): void {
     for (const initDecl of initDeclList.initDeclarator()) {
       const declarator = initDecl.declarator();
@@ -188,30 +191,30 @@ class CResolver {
       // Check if this is a function declaration (has parameter list)
       const isFunction = DeclaratorUtils.declaratorIsFunction(declarator);
 
-      if (isTypedef) {
-        symbols.push(
-          TypedefCollector.collect(name, baseType, sourceFile, line),
+      if (ctx.isTypedef) {
+        ctx.symbols.push(
+          TypedefCollector.collect(name, baseType, ctx.sourceFile, ctx.line),
         );
       } else if (isFunction) {
-        symbols.push(
+        ctx.symbols.push(
           FunctionCollector.collectFromDeclaration(
             name,
             baseType,
             declarator,
-            sourceFile,
-            line,
-            isExtern,
+            ctx.sourceFile,
+            ctx.line,
+            ctx.isExtern,
           ),
         );
       } else {
-        symbols.push(
+        ctx.symbols.push(
           VariableCollector.collect(
             name,
             baseType,
             declarator,
-            sourceFile,
-            line,
-            isExtern,
+            ctx.sourceFile,
+            ctx.line,
+            ctx.isExtern,
           ),
         );
       }
@@ -224,13 +227,9 @@ class CResolver {
    */
   private static collectFromDeclSpecsTypedefName(
     declSpecs: DeclarationSpecifiersContext,
-    isTypedef: boolean,
-    isExtern: boolean,
-    line: number,
-    sourceFile: string,
     structSpec: any,
     enumSpec: any,
-    symbols: TCSymbol[],
+    ctx: IDeclarationContext,
   ): void {
     const specs = declSpecs.declarationSpecifier();
     const { name: lastTypedefName, index: lastTypedefIndex } =
@@ -240,7 +239,7 @@ class CResolver {
 
     // Skip duplicates for non-typedef declarations
     if (
-      !isTypedef &&
+      !ctx.isTypedef &&
       CResolver.shouldSkipDuplicateTypedefName(
         lastTypedefName,
         structSpec,
@@ -252,18 +251,23 @@ class CResolver {
 
     const baseType = CResolver.buildBaseTypeFromSpecs(specs, lastTypedefIndex);
 
-    if (isTypedef) {
-      symbols.push(
-        TypedefCollector.collect(lastTypedefName, baseType, sourceFile, line),
+    if (ctx.isTypedef) {
+      ctx.symbols.push(
+        TypedefCollector.collect(
+          lastTypedefName,
+          baseType,
+          ctx.sourceFile,
+          ctx.line,
+        ),
       );
     } else {
-      symbols.push(
+      ctx.symbols.push(
         VariableCollector.collectFromDeclSpecs(
           lastTypedefName,
           baseType,
-          sourceFile,
-          line,
-          isExtern,
+          ctx.sourceFile,
+          ctx.line,
+          ctx.isExtern,
         ),
       );
     }

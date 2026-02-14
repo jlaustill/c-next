@@ -111,49 +111,61 @@ class StructCollector {
     const specQualList = structDecl.specifierQualifierList?.();
     if (!specQualList) return;
 
-    // Extract the field type from specifierQualifierList
     const fieldType = DeclaratorUtils.extractTypeFromSpecQualList(specQualList);
-
-    // Extract field names from structDeclaratorList
     const structDeclList = structDecl.structDeclaratorList?.();
     if (!structDeclList) return;
 
     for (const structDeclarator of structDeclList.structDeclarator()) {
-      const declarator = structDeclarator.declarator?.();
-      if (!declarator) continue;
+      StructCollector.processFieldDeclarator(
+        structDeclarator,
+        structName,
+        fieldType,
+        fields,
+        symbolTable,
+        warnings,
+      );
+    }
+  }
 
-      const fieldName = DeclaratorUtils.extractDeclaratorName(declarator);
-      if (!fieldName) continue;
+  /**
+   * Process a single field declarator and add to fields map.
+   */
+  private static processFieldDeclarator(
+    structDeclarator: any,
+    structName: string,
+    fieldType: string,
+    fields: Map<string, ICFieldInfo>,
+    symbolTable: SymbolTable | null,
+    warnings?: string[],
+  ): void {
+    const declarator = structDeclarator.declarator?.();
+    if (!declarator) return;
 
-      // Warn if field name conflicts with C-Next reserved property names
-      if (warnings && SymbolUtils.isReservedFieldName(fieldName)) {
-        warnings.push(
-          SymbolUtils.getReservedFieldWarning("C", structName, fieldName),
-        );
-      }
+    const fieldName = DeclaratorUtils.extractDeclaratorName(declarator);
+    if (!fieldName) return;
 
-      // Check if this field is an array and extract dimensions
-      const arrayDimensions =
-        DeclaratorUtils.extractArrayDimensions(declarator);
+    if (warnings && SymbolUtils.isReservedFieldName(fieldName)) {
+      warnings.push(
+        SymbolUtils.getReservedFieldWarning("C", structName, fieldName),
+      );
+    }
 
-      const fieldInfo: ICFieldInfo = {
-        name: fieldName,
-        type: fieldType,
-        arrayDimensions:
-          arrayDimensions.length > 0 ? arrayDimensions : undefined,
-      };
+    const arrayDimensions = DeclaratorUtils.extractArrayDimensions(declarator);
+    const fieldInfo: ICFieldInfo = {
+      name: fieldName,
+      type: fieldType,
+      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
+    };
 
-      fields.set(fieldName, fieldInfo);
+    fields.set(fieldName, fieldInfo);
 
-      // Add to SymbolTable if provided
-      if (symbolTable) {
-        symbolTable.addStructField(
-          structName,
-          fieldName,
-          fieldType,
-          arrayDimensions.length > 0 ? arrayDimensions : undefined,
-        );
-      }
+    if (symbolTable) {
+      symbolTable.addStructField(
+        structName,
+        fieldName,
+        fieldType,
+        arrayDimensions.length > 0 ? arrayDimensions : undefined,
+      );
     }
   }
 }

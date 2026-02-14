@@ -29,6 +29,17 @@ interface ICppResolverResult {
   warnings: string[];
 }
 
+/**
+ * Internal context for declaration processing.
+ */
+interface ICppDeclarationContext {
+  readonly sourceFile: string;
+  readonly currentNamespace: string | undefined;
+  readonly symbolTable: SymbolTable | undefined;
+  readonly symbols: TCppSymbol[];
+  readonly warnings: string[];
+}
+
 class CppResolver {
   /**
    * Resolve all symbols from a C++ translation unit.
@@ -55,15 +66,16 @@ class CppResolver {
       return { symbols, warnings };
     }
 
+    const ctx: ICppDeclarationContext = {
+      sourceFile,
+      currentNamespace: undefined,
+      symbolTable,
+      symbols,
+      warnings,
+    };
+
     for (const decl of declSeq.declaration()) {
-      CppResolver._collectDeclaration(
-        decl,
-        sourceFile,
-        undefined, // currentNamespace
-        symbolTable,
-        symbols,
-        warnings,
-      );
+      CppResolver._collectDeclaration(decl, ctx);
     }
 
     return { symbols, warnings };
@@ -74,11 +86,7 @@ class CppResolver {
    */
   private static _collectDeclaration(
     decl: any,
-    sourceFile: string,
-    currentNamespace: string | undefined,
-    symbolTable: SymbolTable | undefined,
-    symbols: TCppSymbol[],
-    warnings: string[],
+    ctx: ICppDeclarationContext,
   ): void {
     const line = decl.start?.line ?? 0;
 
@@ -87,12 +95,12 @@ class CppResolver {
     if (funcDef) {
       const symbol = FunctionCollector.collectDefinition(
         funcDef,
-        sourceFile,
+        ctx.sourceFile,
         line,
-        currentNamespace,
+        ctx.currentNamespace,
       );
       if (symbol) {
-        symbols.push(symbol);
+        ctx.symbols.push(symbol);
       }
       return;
     }
@@ -100,15 +108,7 @@ class CppResolver {
     // Namespace definition
     const nsDef = decl.namespaceDefinition?.();
     if (nsDef) {
-      CppResolver._collectNamespaceDefinition(
-        nsDef,
-        sourceFile,
-        line,
-        currentNamespace,
-        symbolTable,
-        symbols,
-        warnings,
-      );
+      CppResolver._collectNamespaceDefinition(nsDef, line, ctx);
       return;
     }
 
@@ -121,15 +121,7 @@ class CppResolver {
     // Block declaration (simpleDeclaration, etc.)
     const blockDecl = decl.blockDeclaration?.();
     if (blockDecl) {
-      CppResolver._collectBlockDeclaration(
-        blockDecl,
-        sourceFile,
-        line,
-        currentNamespace,
-        symbolTable,
-        symbols,
-        warnings,
-      );
+      CppResolver._collectBlockDeclaration(blockDecl, line, ctx);
     }
   }
 
@@ -138,40 +130,33 @@ class CppResolver {
    */
   private static _collectNamespaceDefinition(
     nsDef: any,
-    sourceFile: string,
     line: number,
-    currentNamespace: string | undefined,
-    symbolTable: SymbolTable | undefined,
-    symbols: TCppSymbol[],
-    warnings: string[],
+    ctx: ICppDeclarationContext,
   ): void {
     const nsSymbol = NamespaceCollector.collect(
       nsDef,
-      sourceFile,
+      ctx.sourceFile,
       line,
-      currentNamespace,
+      ctx.currentNamespace,
     );
     if (nsSymbol) {
-      symbols.push(nsSymbol);
+      ctx.symbols.push(nsSymbol);
     }
 
-    // Process namespace body
+    // Process namespace body with updated namespace
     const newNamespace = NamespaceCollector.getFullNamespaceName(
       nsDef,
-      currentNamespace,
+      ctx.currentNamespace,
     );
 
     const body = nsDef.declarationseq?.();
     if (body) {
+      const nestedCtx: ICppDeclarationContext = {
+        ...ctx,
+        currentNamespace: newNamespace,
+      };
       for (const decl of body.declaration()) {
-        CppResolver._collectDeclaration(
-          decl,
-          sourceFile,
-          newNamespace,
-          symbolTable,
-          symbols,
-          warnings,
-        );
+        CppResolver._collectDeclaration(decl, nestedCtx);
       }
     }
   }
@@ -181,25 +166,13 @@ class CppResolver {
    */
   private static _collectBlockDeclaration(
     blockDecl: any,
-    sourceFile: string,
     line: number,
-    currentNamespace: string | undefined,
-    symbolTable: SymbolTable | undefined,
-    symbols: TCppSymbol[],
-    warnings: string[],
+    ctx: ICppDeclarationContext,
   ): void {
     // Simple declaration (variables, typedefs, class declarations)
     const simpleDecl = blockDecl.simpleDeclaration?.();
     if (simpleDecl) {
-      CppResolver._collectSimpleDeclaration(
-        simpleDecl,
-        sourceFile,
-        line,
-        currentNamespace,
-        symbolTable,
-        symbols,
-        warnings,
-      );
+      CppResolver._collectSimpleDeclaration(simpleDecl, line, ctx);
     }
 
     // Alias declaration (using X = Y)
@@ -207,12 +180,12 @@ class CppResolver {
     if (aliasDecl) {
       const symbol = TypeAliasCollector.collect(
         aliasDecl,
-        sourceFile,
+        ctx.sourceFile,
         line,
-        currentNamespace,
+        ctx.currentNamespace,
       );
       if (symbol) {
-        symbols.push(symbol);
+        ctx.symbols.push(symbol);
       }
     }
   }
@@ -222,28 +195,19 @@ class CppResolver {
    */
   private static _collectSimpleDeclaration(
     simpleDecl: any,
-    sourceFile: string,
     line: number,
-    currentNamespace: string | undefined,
-    symbolTable: SymbolTable | undefined,
-    symbols: TCppSymbol[],
-    warnings: string[],
+    ctx: ICppDeclarationContext,
   ): void {
     const declSpecSeq = simpleDecl.declSpecifierSeq?.();
     if (!declSpecSeq) return;
 
     const baseType = DeclaratorUtils.extractTypeFromDeclSpecSeq(declSpecSeq);
-    let anonymousClassSpec: any = null;
 
     // Process type specifiers (classes, enums)
-    anonymousClassSpec = CppResolver._processTypeSpecifiers(
+    const anonymousClassSpec = CppResolver._processTypeSpecifiers(
       declSpecSeq,
-      sourceFile,
       line,
-      currentNamespace,
-      symbolTable,
-      symbols,
-      warnings,
+      ctx,
     );
 
     // Collect declarators (variables, function prototypes)
@@ -256,12 +220,8 @@ class CppResolver {
         CppResolver._collectDeclarator(
           declarator,
           baseType,
-          sourceFile,
           line,
-          currentNamespace,
-          symbolTable,
-          symbols,
-          warnings,
+          ctx,
           anonymousClassSpec,
         );
       }
@@ -274,12 +234,8 @@ class CppResolver {
    */
   private static _processTypeSpecifiers(
     declSpecSeq: any,
-    sourceFile: string,
     line: number,
-    currentNamespace: string | undefined,
-    symbolTable: SymbolTable | undefined,
-    symbols: TCppSymbol[],
-    warnings: string[],
+    ctx: ICppDeclarationContext,
   ): any {
     let anonymousClassSpec: any = null;
 
@@ -289,15 +245,7 @@ class CppResolver {
 
       const classSpec = typeSpec.classSpecifier?.();
       if (classSpec) {
-        const result = CppResolver._handleClassSpecInDecl(
-          classSpec,
-          sourceFile,
-          line,
-          currentNamespace,
-          symbolTable,
-          symbols,
-          warnings,
-        );
+        const result = CppResolver._handleClassSpecInDecl(classSpec, line, ctx);
         if (result) {
           anonymousClassSpec = result;
         }
@@ -307,13 +255,13 @@ class CppResolver {
       if (enumSpec) {
         const enumSymbol = EnumCollector.collect(
           enumSpec,
-          sourceFile,
+          ctx.sourceFile,
           line,
-          currentNamespace,
-          symbolTable,
+          ctx.currentNamespace,
+          ctx.symbolTable,
         );
         if (enumSymbol) {
-          symbols.push(enumSymbol);
+          ctx.symbols.push(enumSymbol);
         }
       }
     }
@@ -327,12 +275,8 @@ class CppResolver {
    */
   private static _handleClassSpecInDecl(
     classSpec: any,
-    sourceFile: string,
     line: number,
-    currentNamespace: string | undefined,
-    symbolTable: SymbolTable | undefined,
-    symbols: TCppSymbol[],
-    warnings: string[],
+    ctx: ICppDeclarationContext,
   ): any {
     const classHead = classSpec.classHead?.();
     const classHeadName = classHead?.classHeadName?.();
@@ -343,15 +287,14 @@ class CppResolver {
       // Named struct - collect normally
       const result = ClassCollector.collect(
         classSpec,
-        sourceFile,
+        ctx.sourceFile,
         line,
-        currentNamespace,
-        symbolTable,
+        ctx.currentNamespace,
+        ctx.symbolTable,
       );
       if (result) {
-        symbols.push(result.classSymbol);
-        symbols.push(...result.memberFunctions);
-        warnings.push(...result.warnings);
+        ctx.symbols.push(result.classSymbol, ...result.memberFunctions);
+        ctx.warnings.push(...result.warnings);
       }
       return null;
     }
@@ -366,33 +309,30 @@ class CppResolver {
   private static _collectDeclarator(
     declarator: any,
     baseType: string,
-    sourceFile: string,
     line: number,
-    currentNamespace: string | undefined,
-    symbolTable: SymbolTable | undefined,
-    symbols: TCppSymbol[],
-    warnings: string[],
+    ctx: ICppDeclarationContext,
     anonymousClassSpec: any,
   ): void {
     const name = DeclaratorUtils.extractDeclaratorName(declarator);
     if (!name) return;
 
     const isFunction = DeclaratorUtils.declaratorIsFunction(declarator);
-    const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
+    const fullName = ctx.currentNamespace
+      ? `${ctx.currentNamespace}::${name}`
+      : name;
 
     // Handle anonymous struct typedef
-    if (anonymousClassSpec && symbolTable) {
+    if (anonymousClassSpec && ctx.symbolTable) {
       const result = ClassCollector.collectAnonymousTypedef(
         anonymousClassSpec,
         fullName,
-        sourceFile,
+        ctx.sourceFile,
         line,
-        symbolTable,
+        ctx.symbolTable,
       );
       if (result) {
-        symbols.push(result.classSymbol);
-        symbols.push(...result.memberFunctions);
-        warnings.push(...result.warnings);
+        ctx.symbols.push(result.classSymbol, ...result.memberFunctions);
+        ctx.warnings.push(...result.warnings);
         return;
       }
     }
@@ -401,23 +341,23 @@ class CppResolver {
       const funcSymbol = FunctionCollector.collectDeclaration(
         declarator,
         baseType,
-        sourceFile,
+        ctx.sourceFile,
         line,
-        currentNamespace,
+        ctx.currentNamespace,
       );
       if (funcSymbol) {
-        symbols.push(funcSymbol);
+        ctx.symbols.push(funcSymbol);
       }
     } else {
       const varSymbol = VariableCollector.collect(
         declarator,
         baseType,
-        sourceFile,
+        ctx.sourceFile,
         line,
-        currentNamespace,
+        ctx.currentNamespace,
       );
       if (varSymbol) {
-        symbols.push(varSymbol);
+        ctx.symbols.push(varSymbol);
       }
     }
   }
