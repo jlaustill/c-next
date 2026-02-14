@@ -16,10 +16,10 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
-import LiteralUtils from "../../../../utils/LiteralUtils.js";
 import TypeResolver from "../TypeResolver.js";
 import ArrayInitHelper from "./ArrayInitHelper.js";
 import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
+import IntegerLiteralValidator from "./IntegerLiteralValidator.js";
 import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 
@@ -313,6 +313,8 @@ class VariableDeclHelper {
    * Validate integer initializer using type validation helpers.
    * Checks that literal values fit in target type and validates type conversions.
    *
+   * Delegates to IntegerLiteralValidator for the actual validation logic.
+   *
    * @param ctx - Variable declaration context (must have expression)
    * @param typeName - Target type name
    * @param callbacks - Callbacks for expression type resolution
@@ -323,31 +325,21 @@ class VariableDeclHelper {
     typeName: string,
     callbacks: IIntegerValidationCallbacks,
   ): void {
-    if (!TypeResolver.isIntegerType(typeName)) {
-      return;
-    }
-
-    const exprText = ctx.expression()!.getText().trim();
+    const exprText = ctx.expression()!.getText();
     const line = ctx.start?.line ?? 0;
     const col = ctx.start?.column ?? 0;
-    const isLiteral = LiteralUtils.parseIntegerLiteral(exprText) !== undefined;
 
-    try {
-      if (isLiteral) {
-        // Direct literal - validate it fits in the target type
-        TypeResolver.validateLiteralFitsType(exprText, typeName);
-      } else {
-        // Not a literal - check for narrowing/sign conversions
-        const sourceType = callbacks.getExpressionType(ctx.expression()!);
-        TypeResolver.validateTypeConversion(typeName, sourceType);
-      }
-    } catch (validationError) {
-      const msg =
-        validationError instanceof Error
-          ? validationError.message
-          : String(validationError);
-      throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
-    }
+    const validator = new IntegerLiteralValidator({
+      isIntegerType: TypeResolver.isIntegerType,
+      validateLiteralFitsType: TypeResolver.validateLiteralFitsType,
+      getExpressionType: (_text: string) => {
+        // IntegerLiteralValidator passes text, but our callback uses the context
+        return callbacks.getExpressionType(ctx.expression()!);
+      },
+      validateTypeConversion: TypeResolver.validateTypeConversion,
+    });
+
+    validator.validateIntegerAssignment(typeName, exprText, line, col);
   }
 
   /**
