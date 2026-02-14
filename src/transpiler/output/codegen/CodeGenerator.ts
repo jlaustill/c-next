@@ -127,6 +127,9 @@ import TransitiveModificationPropagator from "../../logic/analysis/helpers/Trans
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability
 import CastValidator from "./helpers/CastValidator";
+// Issue #793: Function context lifecycle and parameter processing helper
+import FunctionContextManager from "./helpers/FunctionContextManager";
+import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import CodeGenState from "../../state/CodeGenState";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
@@ -1439,25 +1442,20 @@ export default class CodeGenerator implements IOrchestrator {
 
   // === Function Body Management (A4) ===
 
+  /**
+   * Enter function body - clears local variables and sets inFunctionBody flag.
+   * Issue #793: Delegates to FunctionContextManager.
+   */
   enterFunctionBody(): void {
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
-    // Issue #558: modifiedParameters tracking removed - uses analysis-phase results
-    CodeGenState.inFunctionBody = true;
-    // Sync with CodeGenState
-    CodeGenState.enterFunctionBody();
+    FunctionContextManager.enterFunctionBody();
   }
 
+  /**
+   * Exit function body - clears local variables and inFunctionBody flag.
+   * Issue #793: Delegates to FunctionContextManager.
+   */
   exitFunctionBody(): void {
-    CodeGenState.inFunctionBody = false;
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
-    CodeGenState.mainArgsName = null;
-    // Sync with CodeGenState
-    CodeGenState.exitFunctionBody();
-    CodeGenState.mainArgsName = null;
+    FunctionContextManager.exitFunctionBody();
   }
 
   setMainArgsName(name: string | null): void {
@@ -3070,280 +3068,22 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Set up parameter tracking for a function
+   * Set up parameter tracking for a function.
+   * Issue #793: Delegates to FunctionContextManager.
    */
   private _setParameters(params: Parser.ParameterListContext | null): void {
-    CodeGenState.currentParameters.clear();
-    CodeGenState.currentParameters.clear();
-    if (!params) return;
-
-    for (const param of params.parameter()) {
-      this._processParameter(param);
-    }
-  }
-
-  /**
-   * Process a single parameter declaration
-   */
-  private _processParameter(param: Parser.ParameterContext): void {
-    const name = param.IDENTIFIER().getText();
-    // Check both C-Next style (u8[8] param) and legacy style (u8 param[8])
-    const isArray =
-      param.arrayDimension().length > 0 || param.type().arrayType() !== null;
-    const isConst = param.constModifier() !== null;
-    const typeCtx = param.type();
-
-    // Resolve type information
-    const typeInfo = this._resolveParameterTypeInfo(typeCtx);
-
-    // Register in currentParameters
-    const paramInfo = {
-      name,
-      baseType: typeInfo.typeName,
-      isArray,
-      isStruct: typeInfo.isStruct,
-      isConst,
-      isCallback: typeInfo.isCallback,
-      isString: typeInfo.isString,
-    };
-    CodeGenState.currentParameters.set(name, paramInfo);
-
-    // Register in typeRegistry
-    this._registerParameterType(name, typeInfo, param, isArray, isConst);
-  }
-
-  /**
-   * Resolve type name and flags from a type context
-   */
-  private _resolveParameterTypeInfo(typeCtx: Parser.TypeContext): {
-    typeName: string;
-    isStruct: boolean;
-    isCallback: boolean;
-    isString: boolean;
-  } {
-    if (typeCtx.primitiveType()) {
-      return {
-        typeName: typeCtx.primitiveType()!.getText(),
-        isStruct: false,
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.userType()) {
-      const typeName = typeCtx.userType()!.getText();
-      return {
-        typeName,
-        isStruct: this.isStructType(typeName),
-        isCallback: CodeGenState.callbackTypes.has(typeName),
-        isString: false,
-      };
-    }
-
-    if (typeCtx.qualifiedType()) {
-      const identifierNames = typeCtx
-        .qualifiedType()!
-        .IDENTIFIER()
-        .map((id) => id.getText());
-      const typeName = this.resolveQualifiedType(identifierNames);
-      return {
-        typeName,
-        isStruct: this.isStructType(typeName),
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.scopedType()) {
-      const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      const typeName = CodeGenState.currentScope
-        ? `${CodeGenState.currentScope}_${localTypeName}`
-        : localTypeName;
-      return {
-        typeName,
-        isStruct: this.isStructType(typeName),
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.globalType()) {
-      const typeName = typeCtx.globalType()!.IDENTIFIER().getText();
-      return {
-        typeName,
-        isStruct: this.isStructType(typeName),
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.stringType()) {
-      return {
-        typeName: "string",
-        isStruct: false,
-        isCallback: false,
-        isString: true,
-      };
-    }
-
-    // Handle C-Next style array type (u8[8] param) - extract base type
-    if (typeCtx.arrayType()) {
-      const arrayTypeCtx = typeCtx.arrayType()!;
-      if (arrayTypeCtx.primitiveType()) {
-        return {
-          typeName: arrayTypeCtx.primitiveType()!.getText(),
-          isStruct: false,
-          isCallback: false,
-          isString: false,
-        };
-      }
-      if (arrayTypeCtx.userType()) {
-        const typeName = arrayTypeCtx.userType()!.getText();
-        return {
-          typeName,
-          isStruct: this.isStructType(typeName),
-          isCallback: CodeGenState.callbackTypes.has(typeName),
-          isString: false,
-        };
-      }
-      // Handle string array type (string<32>[5] param)
-      if (arrayTypeCtx.stringType()) {
-        const stringCtx = arrayTypeCtx.stringType()!;
-        return {
-          typeName: stringCtx.getText(), // "string<32>"
-          isStruct: false,
-          isCallback: false,
-          isString: true,
-        };
-      }
-    }
-
-    // Fallback
-    return {
-      typeName: typeCtx.getText(),
-      isStruct: false,
-      isCallback: false,
-      isString: false,
-    };
-  }
-
-  /**
-   * Extract array dimensions from parameter (C-style or C-Next style).
-   */
-  private _extractParamArrayDimensions(
-    param: Parser.ParameterContext,
-    typeCtx: Parser.TypeContext,
-    isArray: boolean,
-  ): number[] {
-    if (!isArray) return [];
-
-    // Try C-style first (param.arrayDimension())
-    if (param.arrayDimension().length > 0) {
-      return ArrayDimensionParser.parseForParameters(param.arrayDimension());
-    }
-
-    // C-Next style: get dimensions from arrayType
-    const arrayTypeCtx = typeCtx.arrayType();
-    if (!arrayTypeCtx) return [];
-
-    const dimensions: number[] = [];
-    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-      const expr = dim.expression();
-      if (!expr) continue;
-      const size = Number.parseInt(expr.getText(), 10);
-      if (!Number.isNaN(size)) {
-        dimensions.push(size);
-      }
-    }
-    return dimensions;
-  }
-
-  /**
-   * Register a parameter in the type registry
-   */
-  private _registerParameterType(
-    name: string,
-    typeInfo: { typeName: string; isString: boolean },
-    param: Parser.ParameterContext,
-    isArray: boolean,
-    isConst: boolean,
-  ): void {
-    const { typeName, isString } = typeInfo;
-    const typeCtx = param.type();
-
-    const isEnum = CodeGenState.symbols!.knownEnums.has(typeName);
-    const isBitmap = CodeGenState.symbols!.knownBitmaps.has(typeName);
-
-    // Extract array dimensions
-    const arrayDimensions = this._extractParamArrayDimensions(
-      param,
-      typeCtx,
-      isArray,
+    FunctionContextManager.processParameterList(
+      params,
+      this._getFunctionContextCallbacks(),
     );
-
-    // Add string capacity dimension if applicable
-    const stringCapacity = this._getStringCapacity(typeCtx, isString);
-    if (isArray && stringCapacity !== undefined) {
-      arrayDimensions.push(stringCapacity + 1);
-    }
-
-    const registeredType = {
-      baseType: typeName,
-      bitWidth: isBitmap
-        ? CodeGenState.symbols!.bitmapBitWidth.get(typeName) || 0
-        : TYPE_WIDTH[typeName] || 0,
-      isArray,
-      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
-      isConst,
-      isEnum,
-      enumTypeName: isEnum ? typeName : undefined,
-      isBitmap,
-      bitmapTypeName: isBitmap ? typeName : undefined,
-      isString,
-      stringCapacity,
-      isParameter: true,
-    };
-    CodeGenState.setVariableTypeInfo(name, registeredType);
   }
 
   /**
-   * Extract string capacity from a string type context
-   */
-  private _getStringCapacity(
-    typeCtx: Parser.TypeContext,
-    isString: boolean,
-  ): number | undefined {
-    if (!isString) return undefined;
-
-    // Check direct stringType (e.g., string<32> param)
-    if (typeCtx.stringType()) {
-      const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
-      if (intLiteral) {
-        return Number.parseInt(intLiteral.getText(), 10);
-      }
-    }
-
-    // Check arrayType with stringType (e.g., string<32>[5] param)
-    if (typeCtx.arrayType()?.stringType()) {
-      const intLiteral = typeCtx.arrayType()!.stringType()!.INTEGER_LITERAL();
-      if (intLiteral) {
-        return Number.parseInt(intLiteral.getText(), 10);
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Clear parameter tracking when leaving a function
+   * Clear parameter tracking when leaving a function.
+   * Issue #793: Delegates to FunctionContextManager.
    */
   private _clearParameters(): void {
-    // ADR-025: Remove parameter types from typeRegistry
-    for (const name of CodeGenState.currentParameters.keys()) {
-      CodeGenState.deleteVariableTypeInfo(name);
-    }
-    CodeGenState.currentParameters.clear();
-    CodeGenState.localArrays.clear();
+    FunctionContextManager.clearParameters();
   }
 
   /**
@@ -4421,32 +4161,34 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Set up context for function generation
+   * Set up context for function generation.
+   * Issue #793: Delegates to FunctionContextManager.
    */
   private _setupFunctionContext(
     name: string,
     ctx: Parser.FunctionDeclarationContext,
   ): void {
-    // Issue #269: Set current function name for pass-by-value lookup
-    const fullFuncName = CodeGenState.currentScope
-      ? `${CodeGenState.currentScope}_${name}`
-      : name;
-    CodeGenState.currentFunctionName = fullFuncName;
-    // Issue #477: Set return type for enum inference in return statements
-    CodeGenState.currentFunctionReturnType = ctx.type().getText();
-
-    // Track parameters for ADR-006 pointer semantics
-    this._setParameters(ctx.parameterList() ?? null);
-
-    // ADR-016: Clear local variables and mark that we're in a function body
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
-    CodeGenState.inFunctionBody = true;
+    FunctionContextManager.setupFunctionContext(
+      name,
+      ctx,
+      this._getFunctionContextCallbacks(),
+    );
   }
 
   /**
-   * Resolve return type and initial params for function
+   * Issue #793: Create callbacks for FunctionContextManager.
+   */
+  private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
+    return {
+      isStructType: (typeName: string) => this.isStructType(typeName),
+      resolveQualifiedType: (identifiers: string[]) =>
+        this.resolveQualifiedType(identifiers),
+    };
+  }
+
+  /**
+   * Resolve return type and initial params for function.
+   * Issue #793: Delegates to FunctionContextManager.
    */
   private _resolveReturnTypeAndParams(
     name: string,
@@ -4454,33 +4196,20 @@ export default class CodeGenerator implements IOrchestrator {
     isMainWithArgs: boolean,
     ctx: Parser.FunctionDeclarationContext,
   ): { actualReturnType: string; initialParams: string } {
-    if (isMainWithArgs) {
-      // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
-      const argsParam = ctx.parameterList()!.parameter()[0];
-      CodeGenState.mainArgsName = argsParam.IDENTIFIER().getText();
-      return {
-        actualReturnType: "int",
-        initialParams: "int argc, char *argv[]",
-      };
-    }
-
-    // For main() without args, always use int return type for C++ compatibility
-    const actualReturnType = name === "main" ? "int" : returnType;
-    return { actualReturnType, initialParams: "" };
+    return FunctionContextManager.resolveReturnTypeAndParams(
+      name,
+      returnType,
+      isMainWithArgs,
+      ctx,
+    );
   }
 
   /**
-   * Clean up context after function generation
+   * Clean up context after function generation.
+   * Issue #793: Delegates to FunctionContextManager.
    */
   private _cleanupFunctionContext(): void {
-    CodeGenState.inFunctionBody = false;
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
-    CodeGenState.mainArgsName = null;
-    CodeGenState.currentFunctionName = null;
-    CodeGenState.currentFunctionReturnType = null;
-    this._clearParameters();
+    FunctionContextManager.cleanupFunctionContext();
   }
 
   /**
