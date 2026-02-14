@@ -265,6 +265,15 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 - **`TSymbolAdapter`**: Converts `TSymbol[]` → `ISymbol[]` for backwards compatibility
 - **Remaining work**: #803 (Phase 5 - migrate consumers), #804 (Phase 6 - C++/C resolvers), #805 (Phase 7 - remove legacy)
 
+**C/C++ Resolvers (ADR-055 Phase 6)**:
+
+- **CResolver** (`logic/symbols/c/index.ts`): Static `resolve()` method returning `TCSymbol[]`
+- **CppResolver** (`logic/symbols/cpp/index.ts`): Static `resolve()` method returning `TCppSymbol[]`
+- **Composable collector pattern**: Each collector is a static class with `collect()` method (StructCollector, EnumCollector, etc.)
+- **C/C++ symbols use string types**: Unlike C-Next's `TType`, C/C++ symbols store types as strings since they pass through unchanged
+- **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`); TSymbol remains C-Next only
+- **Adapters**: `CTSymbolAdapter` and `CppTSymbolAdapter` convert typed symbols to legacy `ISymbol[]`
+
 **SymbolTable ownership**: `CodeGenState.symbolTable` is the single owner (non-null, persists across `reset()`). Transpiler accesses it via `CodeGenState.symbolTable`. Tests set `CodeGenState.symbolTable = symbolTable` before calling `generate()`.
 
 **CodeGenerator.generate() signature**: `generate(tree, tokenStream?, options?)` — no symbolTable parameter.
@@ -454,6 +463,7 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 - **Module-level mocks**: Use `vi.mock()` at top of file with class pattern, not `vi.doMock()` with dynamic imports
 - **Separate mock test files**: Create `*.mocked.test.ts` files to avoid mock pollution with main test file
 - **Mock class pattern**: `vi.mock("path", () => ({ default: class Mock { method() { return mockFn(); } } }))`
+- **Mock static resolver pattern**: For static resolvers like CResolver, mock the object: `vi.mock("path", () => ({ default: { resolve: () => mockFn() } }))`
 
 ### Test Type Requirements
 

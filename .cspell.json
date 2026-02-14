@@ -42,6 +42,8 @@
     "adrs",
     "teensy",
     "platformio",
+    "PSIA",
+    "PSIG",
     "jscpd",
     "vsix",
     "vsce",

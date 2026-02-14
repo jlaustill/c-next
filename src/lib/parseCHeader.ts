@@ -5,7 +5,8 @@
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CLexer } from "../transpiler/logic/parser/c/grammar/CLexer";
 import { CParser } from "../transpiler/logic/parser/c/grammar/CParser";
-import CSymbolCollector from "../transpiler/logic/symbols/CSymbolCollector";
+import CResolver from "../transpiler/logic/symbols/c";
+import CTSymbolAdapter from "../transpiler/logic/symbols/c/adapters/CTSymbolAdapter";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
@@ -75,8 +76,8 @@ function parseCHeader(
     parser.removeErrorListeners();
 
     const tree = parser.compilationUnit();
-    const collector = new CSymbolCollector(filePath ?? "<header>");
-    const rawSymbols = collector.collect(tree);
+    const result = CResolver.resolve(tree, filePath ?? "<header>");
+    const rawSymbols = CTSymbolAdapter.toISymbols(result.symbols);
 
     // Transform ISymbol[] to ISymbolInfo[]
     const symbols: ISymbolInfo[] = rawSymbols.map((sym) => ({

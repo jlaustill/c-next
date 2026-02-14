@@ -5,16 +5,14 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Create mock collect function that we can control per test
-const mockCollect = vi.fn();
+// Create mock resolve function that we can control per test
+const mockResolve = vi.fn();
 
-// Mock CSymbolCollector before importing parseCHeader
-vi.mock("../../transpiler/logic/symbols/CSymbolCollector", () => {
+// Mock CResolver before importing parseCHeader
+vi.mock("../../transpiler/logic/symbols/c", () => {
   return {
-    default: class MockCSymbolCollector {
-      collect() {
-        return mockCollect();
-      }
+    default: {
+      resolve: () => mockResolve(),
     },
   };
 });
@@ -24,23 +22,28 @@ import parseCHeader from "../parseCHeader";
 
 describe("parseCHeader mocked scenarios", () => {
   beforeEach(() => {
-    mockCollect.mockReset();
-    // Default to returning empty array
-    mockCollect.mockReturnValue([]);
+    mockResolve.mockReset();
+    // Default to returning empty result
+    mockResolve.mockReturnValue({ symbols: [], warnings: [] });
   });
 
   describe("mapSymbolKind default case", () => {
     it("maps Namespace kind to variable (default case)", () => {
       // Return a symbol with Namespace kind (not explicitly handled in switch)
-      mockCollect.mockReturnValue([
-        {
-          name: "TestNamespace",
-          kind: "namespace",
-          type: undefined,
-          parent: undefined,
-          sourceLine: 1,
-        },
-      ]);
+      // Use TCSymbol format which then gets converted by CTSymbolAdapter
+      mockResolve.mockReturnValue({
+        symbols: [
+          {
+            name: "TestNamespace",
+            kind: "namespace",
+            sourceFile: "<header>",
+            sourceLine: 1,
+            sourceLanguage: 0,
+            isExported: true,
+          },
+        ],
+        warnings: [],
+      });
 
       const result = parseCHeader("// any valid C");
 
@@ -51,15 +54,19 @@ describe("parseCHeader mocked scenarios", () => {
     });
 
     it("maps Class kind to variable (default case)", () => {
-      mockCollect.mockReturnValue([
-        {
-          name: "TestClass",
-          kind: "class",
-          type: "class",
-          parent: undefined,
-          sourceLine: 5,
-        },
-      ]);
+      mockResolve.mockReturnValue({
+        symbols: [
+          {
+            name: "TestClass",
+            kind: "class",
+            sourceFile: "<header>",
+            sourceLine: 5,
+            sourceLanguage: 0,
+            isExported: true,
+          },
+        ],
+        warnings: [],
+      });
 
       const result = parseCHeader("// any valid C");
 
@@ -68,15 +75,19 @@ describe("parseCHeader mocked scenarios", () => {
     });
 
     it("maps Bitmap kind to variable (default case)", () => {
-      mockCollect.mockReturnValue([
-        {
-          name: "TestBitmap",
-          kind: "bitmap",
-          type: undefined,
-          parent: undefined,
-          sourceLine: 1,
-        },
-      ]);
+      mockResolve.mockReturnValue({
+        symbols: [
+          {
+            name: "TestBitmap",
+            kind: "bitmap",
+            sourceFile: "<header>",
+            sourceLine: 1,
+            sourceLanguage: 0,
+            isExported: true,
+          },
+        ],
+        warnings: [],
+      });
 
       const result = parseCHeader("// any valid C");
 
@@ -85,15 +96,20 @@ describe("parseCHeader mocked scenarios", () => {
     });
 
     it("defaults line to 0 when sourceLine is undefined", () => {
-      mockCollect.mockReturnValue([
-        {
-          name: "NoLineSymbol",
-          kind: "function",
-          type: "void",
-          parent: undefined,
-          sourceLine: undefined, // No source line info
-        },
-      ]);
+      mockResolve.mockReturnValue({
+        symbols: [
+          {
+            name: "NoLineSymbol",
+            kind: "function",
+            type: "void",
+            sourceFile: "<header>",
+            sourceLine: undefined,
+            sourceLanguage: 0,
+            isExported: true,
+          },
+        ],
+        warnings: [],
+      });
 
       const result = parseCHeader("// any valid C");
 
@@ -103,9 +119,9 @@ describe("parseCHeader mocked scenarios", () => {
   });
 
   describe("error handling catch block", () => {
-    it("returns error result when collector throws Error", () => {
-      mockCollect.mockImplementation(() => {
-        throw new Error("Collector failed");
+    it("returns error result when resolver throws Error", () => {
+      mockResolve.mockImplementation(() => {
+        throw new Error("Resolver failed");
       });
 
       const result = parseCHeader("int x;");
@@ -113,14 +129,14 @@ describe("parseCHeader mocked scenarios", () => {
       expect(result.success).toBe(false);
       expect(result.symbols).toHaveLength(0);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].message).toBe("Collector failed");
+      expect(result.errors[0].message).toBe("Resolver failed");
       expect(result.errors[0].severity).toBe("error");
       expect(result.errors[0].line).toBe(1);
       expect(result.errors[0].column).toBe(0);
     });
 
     it("handles non-Error exceptions (string throw)", () => {
-      mockCollect.mockImplementation(() => {
+      mockResolve.mockImplementation(() => {
         throw "String error message";
       });
 
@@ -131,7 +147,7 @@ describe("parseCHeader mocked scenarios", () => {
     });
 
     it("handles non-Error exceptions (number throw)", () => {
-      mockCollect.mockImplementation(() => {
+      mockResolve.mockImplementation(() => {
         throw 42;
       });
 

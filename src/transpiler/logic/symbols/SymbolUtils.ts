@@ -1,6 +1,6 @@
 /**
- * Shared utilities for C and C++ symbol collectors
- * Extracted from CSymbolCollector and CppSymbolCollector to reduce duplication
+ * Shared utilities for C and C++ symbol collectors.
+ * Used by the C collectors in logic/symbols/c/ and C++ collectors in logic/symbols/cpp/.
  */
 
 /**
