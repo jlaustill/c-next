@@ -429,7 +429,6 @@ class FunctionContextManager {
     CodeGenState.floatShadowCurrent.clear();
     CodeGenState.mainArgsName = null;
     CodeGenState.exitFunctionBody();
-    CodeGenState.mainArgsName = null;
   }
 }
 

@@ -565,6 +565,113 @@ describe("FunctionContextManager", () => {
       expect(result.typeName).toBe("string");
       expect(result.isString).toBe(true);
     });
+
+    it("resolves array type with primitive base", () => {
+      const callbacks = createMockCallbacks();
+      const typeCtx = {
+        primitiveType: () => null,
+        userType: () => null,
+        qualifiedType: () => null,
+        scopedType: () => null,
+        globalType: () => null,
+        stringType: () => null,
+        arrayType: () => ({
+          primitiveType: () => ({ getText: () => "u8" }),
+          userType: () => null,
+          stringType: () => null,
+        }),
+        getText: () => "u8[10]",
+      } as never;
+
+      const result = FunctionContextManager.resolveParameterTypeInfo(
+        typeCtx,
+        callbacks,
+      );
+
+      expect(result.typeName).toBe("u8");
+      expect(result.isStruct).toBe(false);
+    });
+
+    it("resolves array type with user type base", () => {
+      const callbacks = createMockCallbacks();
+      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+        true,
+      );
+      const typeCtx = {
+        primitiveType: () => null,
+        userType: () => null,
+        qualifiedType: () => null,
+        scopedType: () => null,
+        globalType: () => null,
+        stringType: () => null,
+        arrayType: () => ({
+          primitiveType: () => null,
+          userType: () => ({ getText: () => "Point" }),
+          stringType: () => null,
+        }),
+        getText: () => "Point[5]",
+      } as never;
+
+      const result = FunctionContextManager.resolveParameterTypeInfo(
+        typeCtx,
+        callbacks,
+      );
+
+      expect(result.typeName).toBe("Point");
+      expect(result.isStruct).toBe(true);
+    });
+
+    it("resolves array type with string base", () => {
+      const callbacks = createMockCallbacks();
+      const typeCtx = {
+        primitiveType: () => null,
+        userType: () => null,
+        qualifiedType: () => null,
+        scopedType: () => null,
+        globalType: () => null,
+        stringType: () => null,
+        arrayType: () => ({
+          primitiveType: () => null,
+          userType: () => null,
+          stringType: () => ({
+            getText: () => "string<32>",
+          }),
+        }),
+        getText: () => "string<32>[5]",
+      } as never;
+
+      const result = FunctionContextManager.resolveParameterTypeInfo(
+        typeCtx,
+        callbacks,
+      );
+
+      expect(result.typeName).toBe("string<32>");
+      expect(result.isString).toBe(true);
+    });
+
+    it("returns fallback for unknown type", () => {
+      const callbacks = createMockCallbacks();
+      const typeCtx = {
+        primitiveType: () => null,
+        userType: () => null,
+        qualifiedType: () => null,
+        scopedType: () => null,
+        globalType: () => null,
+        stringType: () => null,
+        arrayType: () => null,
+        getText: () => "SomeUnknownType",
+      } as never;
+
+      const result = FunctionContextManager.resolveParameterTypeInfo(
+        typeCtx,
+        callbacks,
+      );
+
+      expect(result.typeName).toBe("SomeUnknownType");
+      expect(result.isStruct).toBe(false);
+      expect(result.isCallback).toBe(false);
+      expect(result.isString).toBe(false);
+    });
   });
 
   describe("registerParameterType", () => {
@@ -786,6 +893,88 @@ describe("FunctionContextManager", () => {
         param,
         typeCtx,
         false,
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it("returns empty array when arrayType is null for array parameter", () => {
+      const param = {
+        arrayDimension: () => [],
+      } as never;
+      const typeCtx = {
+        arrayType: () => null,
+      } as never;
+
+      const result = FunctionContextManager.extractParamArrayDimensions(
+        param,
+        typeCtx,
+        true,
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it("parses C-Next style array dimensions from arrayType", () => {
+      const param = {
+        arrayDimension: () => [],
+      } as never;
+      const typeCtx = {
+        arrayType: () => ({
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "10" }) },
+            { expression: () => ({ getText: () => "20" }) },
+          ],
+        }),
+      } as never;
+
+      const result = FunctionContextManager.extractParamArrayDimensions(
+        param,
+        typeCtx,
+        true,
+      );
+
+      expect(result).toEqual([10, 20]);
+    });
+
+    it("skips dimensions without expression", () => {
+      const param = {
+        arrayDimension: () => [],
+      } as never;
+      const typeCtx = {
+        arrayType: () => ({
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "10" }) },
+            { expression: () => null },
+          ],
+        }),
+      } as never;
+
+      const result = FunctionContextManager.extractParamArrayDimensions(
+        param,
+        typeCtx,
+        true,
+      );
+
+      expect(result).toEqual([10]);
+    });
+
+    it("skips non-numeric dimension values", () => {
+      const param = {
+        arrayDimension: () => [],
+      } as never;
+      const typeCtx = {
+        arrayType: () => ({
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "SIZE" }) },
+          ],
+        }),
+      } as never;
+
+      const result = FunctionContextManager.extractParamArrayDimensions(
+        param,
+        typeCtx,
+        true,
       );
 
       expect(result).toEqual([]);
