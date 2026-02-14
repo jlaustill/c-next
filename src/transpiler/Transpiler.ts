@@ -30,8 +30,10 @@ import CNextResolver from "./logic/symbols/cnext";
 import SymbolRegistry from "./state/SymbolRegistry";
 import TSymbolAdapter from "./logic/symbols/cnext/adapters/TSymbolAdapter";
 import TSymbolInfoAdapter from "./logic/symbols/cnext/adapters/TSymbolInfoAdapter";
-import CSymbolCollector from "./logic/symbols/CSymbolCollector";
-import CppSymbolCollector from "./logic/symbols/CppSymbolCollector";
+import CResolver from "./logic/symbols/c";
+import CTSymbolAdapter from "./logic/symbols/c/adapters/CTSymbolAdapter";
+import CppResolver from "./logic/symbols/cpp";
+import CppTSymbolAdapter from "./logic/symbols/cpp/adapters/CppTSymbolAdapter";
 import Preprocessor from "./logic/preprocessor/Preprocessor";
 
 import FileDiscovery from "./data/FileDiscovery";
@@ -1137,32 +1139,35 @@ class Transpiler {
 
   /**
    * Issue #208: Parse a pure C header (no C++ syntax detected)
+   * Uses CResolver for symbol collection
    */
   private parsePureCHeader(content: string, filePath: string): void {
     const { tree } = HeaderParser.parseC(content);
     if (tree) {
-      const collector = new CSymbolCollector(
+      const result = CResolver.resolve(
+        tree,
         filePath,
         CodeGenState.symbolTable,
       );
-      const symbols = collector.collect(tree);
-      if (symbols.length > 0) {
-        CodeGenState.symbolTable.addSymbols(symbols);
-      }
+      // Convert TCSymbol[] to ISymbol[] for backwards compatibility
+      const symbols = CTSymbolAdapter.toISymbols(result.symbols);
+      CodeGenState.symbolTable.addSymbols(symbols);
     }
   }
 
   /**
-   * Parse a C++ header
+   * Parse a C++ header using CppResolver
    */
   private parseCppHeader(content: string, filePath: string): void {
     const { tree } = HeaderParser.parseCpp(content);
     if (tree) {
-      const collector = new CppSymbolCollector(
+      const result = CppResolver.resolve(
+        tree,
         filePath,
         CodeGenState.symbolTable,
       );
-      const symbols = collector.collect(tree);
+      // Convert TCppSymbol[] to ISymbol[] for backwards compatibility
+      const symbols = CppTSymbolAdapter.toISymbols(result.symbols);
       CodeGenState.symbolTable.addSymbols(symbols);
     }
   }

@@ -135,6 +135,18 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 **Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
+### C/C++ Resolvers (ADR-055 Phase 6)
+
+| Resolver | Location | Returns |
+|----------|----------|---------|
+| `CResolver` | `logic/symbols/c/index.ts` | `TCSymbol[]` |
+| `CppResolver` | `logic/symbols/cpp/index.ts` | `TCppSymbol[]` |
+
+- **Composable collector pattern**: Static classes with `collect()` (StructCollector, EnumCollector, etc.)
+- **C/C++ symbols use string types**: Unlike C-Next's `TType`, pass through unchanged
+- **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`)
+- **Adapters**: `CTSymbolAdapter`, `CppTSymbolAdapter` convert to legacy `ISymbol[]`
+
 ### Enum `expectedType` Contexts
 
 | Works (bare members) | Requires qualified (`EnumType.MEMBER`) |
@@ -191,6 +203,7 @@ foo.expected.error    # Expected error (if test-error)
 - **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`
 - **IAssignmentContext changes**: Update `createMockContext` in ALL handler test files when adding fields
 - **Vitest ESM mocks**: Use `vi.mock()` at top with class pattern; create `*.mocked.test.ts` for mock isolation
+- **Mock static resolver**: For CResolver, use `vi.mock("path", () => ({ default: { resolve: () => mockFn() } }))`
 
 ### Gotchas
 

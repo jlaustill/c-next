@@ -7,7 +7,7 @@ import type IBitmapSymbol from "./IBitmapSymbol";
 import type IRegisterSymbol from "./IRegisterSymbol";
 
 /**
- * Discriminated union of all symbol types.
+ * Discriminated union of all C-Next symbol types.
  *
  * Use the `kind` field to narrow to a specific symbol type:
  * ```typescript
@@ -15,6 +15,10 @@ import type IRegisterSymbol from "./IRegisterSymbol";
  *   // TypeScript knows symbol is IStructSymbol here
  * }
  * ```
+ *
+ * Note: For C and C++ symbols, use TCSymbol and TCppSymbol respectively.
+ * These are kept separate because C/C++ symbols have different properties
+ * (e.g., no scope reference, string types instead of TType).
  */
 type TSymbol =
   | IFunctionSymbol
