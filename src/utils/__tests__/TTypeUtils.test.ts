@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import TTypeUtils from "../../../utils/TTypeUtils";
+import TTypeUtils from "../TTypeUtils";
 
 describe("TType", () => {
   describe("createPrimitive", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import ScopeUtils from "../../../utils/ScopeUtils";
+import ScopeUtils from "../ScopeUtils";
 
 describe("IScopeSymbol", () => {
   describe("createGlobalScope", () => {

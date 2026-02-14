@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import ParameterUtils from "../../../utils/ParameterUtils";
-import TTypeUtils from "../../../utils/TTypeUtils";
+import ParameterUtils from "../ParameterUtils";
+import TTypeUtils from "../TTypeUtils";
 
 describe("IParameterInfo", () => {
   describe("create", () => {
