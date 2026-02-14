@@ -31,16 +31,16 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Integration tests | `npm test` or `npm run test:q` (quiet) |
-| Single test | `npm test -- tests/dir/file.test.cnx` |
-| Unit tests | `npm run unit` |
-| Coverage | `npm run unit:coverage` |
-| Local transpiler | `npx tsx src/index.ts <file.cnx>` |
-| C++ mode | `npx tsx src/index.ts <file.cnx> --cpp` |
-| Generate snapshots | `npm test -- <path> --update` |
-| ANTLR regenerate | `npm run antlr` |
+| Task               | Command                                 |
+| ------------------ | --------------------------------------- |
+| Integration tests  | `npm test` or `npm run test:q` (quiet)  |
+| Single test        | `npm test -- tests/dir/file.test.cnx`   |
+| Unit tests         | `npm run unit`                          |
+| Coverage           | `npm run unit:coverage`                 |
+| Local transpiler   | `npx tsx src/index.ts <file.cnx>`       |
+| C++ mode           | `npx tsx src/index.ts <file.cnx> --cpp` |
+| Generate snapshots | `npm test -- <path> --update`           |
+| ANTLR regenerate   | `npm run antlr`                         |
 
 **GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead.
 
@@ -54,12 +54,12 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 ### SonarCloud Quality Gate
 
-| Requirement | Threshold |
-|-------------|-----------|
-| Coverage (new code) | >= 80% |
-| Duplicated lines | <= 3% |
+| Requirement          | Threshold        |
+| -------------------- | ---------------- |
+| Coverage (new code)  | >= 80%           |
+| Duplicated lines     | <= 3%            |
 | Cognitive complexity | <= 15 per method |
-| Bugs/vulnerabilities | 0 new |
+| Bugs/vulnerabilities | 0 new            |
 
 **Before PRs**: Run `npm run unit:coverage` and check new/modified files.
 
@@ -69,13 +69,13 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 ### Other Tools
 
-| Tool | Command |
-|------|---------|
-| Spelling | `npm run cspell:check` |
-| Duplication | `npm run analyze:duplication` |
-| Dead code | `npx knip` |
-| Circular deps | `npm run analyze:madge` |
-| All analysis | `npm run analyze:all` |
+| Tool          | Command                       |
+| ------------- | ----------------------------- |
+| Spelling      | `npm run cspell:check`        |
+| Duplication   | `npm run analyze:duplication` |
+| Dead code     | `npx knip`                    |
+| Circular deps | `npm run analyze:madge`       |
+| All analysis  | `npm run analyze:all`         |
 
 ---
 
@@ -90,6 +90,21 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 - **Composition over inheritance** — never use class inheritance
 - **Shared types** in `/types` directories, one interface per file
 
+### Static Class Pattern
+
+```typescript
+// ✅ Correct - static class
+class TestUtils {
+  static normalize(str: string): string { ... }
+  static validate(file: string): IResult { ... }
+}
+export default TestUtils;
+
+// ❌ Wrong - singleton (knip can't detect unused methods)
+class Registry { private map = new Map(); register() { ... } }
+export default new Registry();
+```
+
 ### Common Gotchas
 
 - **`replace_all` tool**: Iterative replacement can cause double-substitution
@@ -102,23 +117,23 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 ### 4-Layer Structure (`src/transpiler/`)
 
-| Layer | Path | Purpose |
-|-------|------|---------|
-| Data | `data/` | Discovery (FileDiscovery, IncludeResolver, DependencyGraph) |
-| Logic | `logic/` | Business logic (parser/, symbols/, analysis/, preprocessor/) |
-| Output | `output/` | Generation (codegen/, headers/) |
-| State | `state/` | Global state (CodeGenState, SymbolRegistry) |
-| Constants | `constants/` | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE) |
-| Orchestrator | `Transpiler.ts` | Coordinates all layers |
+| Layer        | Path            | Purpose                                                      |
+| ------------ | --------------- | ------------------------------------------------------------ |
+| Data         | `data/`         | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)  |
+| Logic        | `logic/`        | Business logic (parser/, symbols/, analysis/, preprocessor/) |
+| Output       | `output/`       | Generation (codegen/, headers/)                              |
+| State        | `state/`        | Global state (CodeGenState, SymbolRegistry)                  |
+| Constants    | `constants/`    | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)           |
+| Orchestrator | `Transpiler.ts` | Coordinates all layers                                       |
 
 ### Utility Locations
 
-| Type | Location |
-|------|----------|
-| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/` |
-| Type definitions (interfaces, enums) | `src/transpiler/types/` |
-| Stateful classes (`CodeGenState`) | `src/transpiler/state/` |
-| Runtime lookups | `src/transpiler/constants/` |
+| Type                                                        | Location                    |
+| ----------------------------------------------------------- | --------------------------- |
+| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                |
+| Type definitions (interfaces, enums)                        | `src/transpiler/types/`     |
+| Stateful classes (`CodeGenState`)                           | `src/transpiler/state/`     |
+| Runtime lookups                                             | `src/transpiler/constants/` |
 
 ---
 
@@ -126,10 +141,10 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 ### Symbol Types
 
-| Type | Purpose | Status |
-|------|---------|--------|
-| `TSymbol` | New discriminated union | Use for new code |
-| `ISymbol` | Legacy flat interface | Being phased out |
+| Type             | Purpose                        | Status           |
+| ---------------- | ------------------------------ | ---------------- |
+| `TSymbol`        | New discriminated union        | Use for new code |
+| `ISymbol`        | Legacy flat interface          | Being phased out |
 | `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Backwards compat |
 
 **Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
@@ -137,25 +152,34 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 ### C/C++ Resolvers (ADR-055 Phase 6)
 
-| Resolver | Location | Returns |
-|----------|----------|---------|
-| `CResolver` | `logic/symbols/c/index.ts` | `TCSymbol[]` |
+| Resolver      | Location                     | Returns        |
+| ------------- | ---------------------------- | -------------- |
+| `CResolver`   | `logic/symbols/c/index.ts`   | `TCSymbol[]`   |
 | `CppResolver` | `logic/symbols/cpp/index.ts` | `TCppSymbol[]` |
 
 - **Composable collector pattern**: Static classes with `collect()` (StructCollector, EnumCollector, etc.)
 - **C/C++ symbols use string types**: Unlike C-Next's `TType`, pass through unchanged
 - **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`)
 - **Adapters**: `CTSymbolAdapter`, `CppTSymbolAdapter` convert to legacy `ISymbol[]`
+- **Remaining work**: #803 (Phase 5 - migrate consumers), #804 (Phase 6 - C++/C resolvers), #805 (Phase 7 - remove legacy)
 
 ### Enum `expectedType` Contexts
 
-| Works (bare members) | Requires qualified (`EnumType.MEMBER`) |
-|---------------------|----------------------------------------|
+| Works (bare members)                     | Requires qualified (`EnumType.MEMBER`)         |
+| ---------------------------------------- | ---------------------------------------------- |
 | Variable declarations: `EColor c <- RED` | Comparisons: `cfg.pType != EPressureType.PSIA` |
-| Same-file struct field assignments | Function arguments |
-| Return statements (enum return type) | Array dimensions: `u8[EColor.COUNT]` |
-| Struct field inits: `{color: RED}` | Cross-file struct assignments |
-| Switch cases, ternary arms | |
+| Same-file struct field assignments       | Function arguments                             |
+| Return statements (enum return type)     | Array dimensions: `u8[EColor.COUNT]`           |
+| Struct field inits: `{color: RED}`       | Cross-file struct assignments                  |
+| Switch cases, ternary arms               |                                                |
+
+### Enum Error Locations (E0424 "not defined; did you mean")
+
+| Location                                               | Context                                     |
+| ------------------------------------------------------ | ------------------------------------------- |
+| `ControlFlowGenerator.rejectUnqualifiedEnumInReturn()` | Return statements with non-enum return type |
+| `SwitchGenerator.rejectUnqualifiedEnumMember()`        | Switch cases with non-enum switch type      |
+| `CodeGenerator._resolveUnqualifiedEnumMember()`        | All other contexts (comparisons, args)      |
 
 ### Key Patterns
 
@@ -171,15 +195,15 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 ### Test Types
 
-| Marker | Behavior |
-|--------|----------|
-| _(none)_ | Run in BOTH C and C++ modes |
-| `// test-c-only` | C mode only |
-| `// test-cpp-only` | C++ mode only |
-| `// test-execution` | Execute and validate (MUST use `if (x != y) return N;`) |
-| `// test-error` | Expect compile error (create `.expected.error`) |
-| `// test-no-exec` | Compile only, no execution |
-| `// test-transpile-only` | Skip compilation entirely |
+| Marker                   | Behavior                                                |
+| ------------------------ | ------------------------------------------------------- |
+| _(none)_                 | Run in BOTH C and C++ modes                             |
+| `// test-c-only`         | C mode only                                             |
+| `// test-cpp-only`       | C++ mode only                                           |
+| `// test-execution`      | Execute and validate (MUST use `if (x != y) return N;`) |
+| `// test-error`          | Expect compile error (create `.expected.error`)         |
+| `// test-no-exec`        | Compile only, no execution                              |
+| `// test-transpile-only` | Skip compilation entirely                               |
 
 **Execution tests MUST validate every result** with unique return codes (1, 2, 3...). Return 0 only if ALL pass.
 
@@ -217,9 +241,9 @@ foo.expected.error    # Expected error (if test-error)
 
 ### Transpiler Entry Points
 
-| Entry Point | Purpose |
-|-------------|---------|
-| `run()` | CLI, full symbol resolution across includes |
+| Entry Point         | Purpose                                                         |
+| ------------------- | --------------------------------------------------------------- |
+| `run()`             | CLI, full symbol resolution across includes                     |
 | `transpileSource()` | Test framework, single-file (or called by `run()` with context) |
 
 Both use same symbol collection timing. `DualCodePaths.test.ts` verifies parity.
@@ -276,6 +300,7 @@ Use `memberAccessChain.ts` helpers for all patterns: `getStructParamSeparator()`
 ### Const Inference
 
 `walkStatementForModifications()` uses two helpers:
+
 - `collectExpressionsFromStatement()` — returns all expressions from any statement type
 - `getChildStatementsAndBlocks()` — returns child statements/blocks for recursion
 
@@ -295,12 +320,12 @@ Update both when adding new statement types.
 
 **CRITICAL: NEVER change ADR status without explicit user confirmation.**
 
-| Status | Meaning |
-|--------|---------|
-| Research | Proposal under investigation — NOT established syntax |
-| Accepted | User-approved decision |
-| Implemented | User-confirmed complete |
-| Rejected | Decision NOT to implement |
+| Status      | Meaning                                               |
+| ----------- | ----------------------------------------------------- |
+| Research    | Proposal under investigation — NOT established syntax |
+| Accepted    | User-approved decision                                |
+| Implemented | User-confirmed complete                               |
+| Rejected    | Decision NOT to implement                             |
 
 - **DO**: Update ADRs with research, context, links, findings
 - **DO NOT**: Change Status or Decision without explicit approval
@@ -336,5 +361,6 @@ A task is NOT complete until:
 See [`releasing.md`](releasing.md) for complete process.
 
 VS Code extension updates (if grammar changed):
+
 1. `npm run antlr`
 2. Update [vscode-c-next](https://github.com/jlaustill/vscode-c-next): `tmLanguage.json`, `completionProvider.ts`
