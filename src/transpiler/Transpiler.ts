@@ -335,6 +335,11 @@ class Transpiler {
     try {
       // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter
       const tSymbols = CNextResolver.resolve(tree, file.path);
+
+      // ADR-055 Phase 5: Store TSymbol directly in SymbolTable
+      CodeGenState.symbolTable.addTSymbols(tSymbols);
+
+      // Backwards compatibility: Convert to ISymbol for existing consumers
       const iSymbols = TSymbolAdapter.toISymbols(
         tSymbols,
         CodeGenState.symbolTable,

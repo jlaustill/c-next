@@ -1,6 +1,10 @@
 /**
  * Unified Symbol Table
  * Stores symbols from all source languages and detects conflicts
+ *
+ * ADR-055 Phase 5: Supports both legacy ISymbol and new TSymbol storage.
+ * - TSymbol: Discriminated union for C-Next symbols (type-safe)
+ * - ISymbol: Flat interface for C/C++ backwards compatibility
  */
 
 import ISymbol from "../../../utils/types/ISymbol";
@@ -8,6 +12,12 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "../../types/IConflict";
 import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
+import TSymbol from "../../types/symbols/TSymbol";
+import IStructSymbol from "../../types/symbols/IStructSymbol";
+import IEnumSymbol from "../../types/symbols/IEnumSymbol";
+import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
+import IVariableSymbol from "../../types/symbols/IVariableSymbol";
+import TypeResolver from "../../../utils/TypeResolver";
 
 /**
  * Central symbol table for cross-language interoperability
@@ -40,6 +50,16 @@ class SymbolTable {
    * C++14 typed enums: enum Name : uint8_t { ... } have explicit bit widths
    */
   private readonly enumBitWidth: Map<string, number> = new Map();
+
+  // ========================================================================
+  // ADR-055 Phase 5: TSymbol storage (parallel to ISymbol for migration)
+  // ========================================================================
+
+  /** All TSymbols indexed by name */
+  private readonly tSymbols: Map<string, TSymbol[]> = new Map();
+
+  /** TSymbols indexed by source file */
+  private readonly tSymbolsByFile: Map<string, TSymbol[]> = new Map();
 
   /**
    * Add a symbol to the table
@@ -338,6 +358,150 @@ class SymbolTable {
     return symbolNames.filter((name) => this.structFields.has(name));
   }
 
+  // ========================================================================
+  // ADR-055 Phase 5: TSymbol Methods
+  // ========================================================================
+
+  /**
+   * Add a TSymbol to the table
+   */
+  addTSymbol(symbol: TSymbol): void {
+    // Add to name index
+    const existing = this.tSymbols.get(symbol.name);
+    if (existing) {
+      existing.push(symbol);
+    } else {
+      this.tSymbols.set(symbol.name, [symbol]);
+    }
+
+    // Add to file index
+    const fileSymbols = this.tSymbolsByFile.get(symbol.sourceFile);
+    if (fileSymbols) {
+      fileSymbols.push(symbol);
+    } else {
+      this.tSymbolsByFile.set(symbol.sourceFile, [symbol]);
+    }
+  }
+
+  /**
+   * Add multiple TSymbols at once
+   */
+  addTSymbols(symbols: TSymbol[]): void {
+    for (const symbol of symbols) {
+      this.addTSymbol(symbol);
+    }
+  }
+
+  /**
+   * Get a TSymbol by name (returns first match, or undefined)
+   */
+  getTSymbol(name: string): TSymbol | undefined {
+    const symbols = this.tSymbols.get(name);
+    return symbols?.[0];
+  }
+
+  /**
+   * Get all TSymbols with a given name (for overload detection)
+   */
+  getTOverloads(name: string): TSymbol[] {
+    return this.tSymbols.get(name) ?? [];
+  }
+
+  /**
+   * Get TSymbols by source file
+   */
+  getTSymbolsByFile(file: string): TSymbol[] {
+    return this.tSymbolsByFile.get(file) ?? [];
+  }
+
+  /**
+   * Get all TSymbols
+   */
+  getAllTSymbols(): TSymbol[] {
+    const result: TSymbol[] = [];
+    for (const symbols of this.tSymbols.values()) {
+      result.push(...symbols);
+    }
+    return result;
+  }
+
+  /**
+   * Get all struct symbols (type-safe filtering)
+   */
+  getStructSymbols(): IStructSymbol[] {
+    return this.getAllTSymbols().filter(
+      (s): s is IStructSymbol => s.kind === "struct",
+    );
+  }
+
+  /**
+   * Get all enum symbols (type-safe filtering)
+   */
+  getEnumSymbols(): IEnumSymbol[] {
+    return this.getAllTSymbols().filter(
+      (s): s is IEnumSymbol => s.kind === "enum",
+    );
+  }
+
+  /**
+   * Get all function symbols (type-safe filtering)
+   */
+  getFunctionSymbols(): IFunctionSymbol[] {
+    return this.getAllTSymbols().filter(
+      (s): s is IFunctionSymbol => s.kind === "function",
+    );
+  }
+
+  /**
+   * Get all variable symbols (type-safe filtering)
+   */
+  getVariableSymbols(): IVariableSymbol[] {
+    return this.getAllTSymbols().filter(
+      (s): s is IVariableSymbol => s.kind === "variable",
+    );
+  }
+
+  /**
+   * ADR-055 Phase 5: Get struct field type directly from TSymbol storage.
+   * This method queries IStructSymbol.fields directly, eliminating the need
+   * for the separate structFields Map for C-Next symbols.
+   *
+   * @param structName Name of the struct
+   * @param fieldName Name of the field
+   * @returns Field type string or undefined if not found
+   */
+  getTStructFieldType(
+    structName: string,
+    fieldName: string,
+  ): string | undefined {
+    const struct = this.getTOverloads(structName).find(
+      (s): s is IStructSymbol => s.kind === "struct",
+    );
+    if (!struct) {
+      return undefined;
+    }
+    const field = struct.fields.get(fieldName);
+    return field ? TypeResolver.getTypeName(field.type) : undefined;
+  }
+
+  /**
+   * Check if a TSymbol exists by name
+   */
+  hasTSymbol(name: string): boolean {
+    return this.tSymbols.has(name);
+  }
+
+  /**
+   * Get TSymbol count
+   */
+  getTSize(): number {
+    let count = 0;
+    for (const symbols of this.tSymbols.values()) {
+      count += symbols.length;
+    }
+    return count;
+  }
+
   /**
    * Clear all symbols
    */
@@ -347,6 +511,9 @@ class SymbolTable {
     this.structFields.clear();
     this.needsStructKeyword.clear();
     this.enumBitWidth.clear();
+    // ADR-055 Phase 5: Clear TSymbol storage
+    this.tSymbols.clear();
+    this.tSymbolsByFile.clear();
   }
 
   /**
