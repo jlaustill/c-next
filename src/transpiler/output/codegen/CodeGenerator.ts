@@ -106,6 +106,8 @@ import AssignmentValidator from "./helpers/AssignmentValidator";
 // Note: VariableModifierBuilder is now used via VariableDeclHelper
 // Issue #792: Variable declaration helper
 import VariableDeclHelper from "./helpers/VariableDeclHelper";
+// String operation detection and extraction
+import StringOperationsHelper from "./helpers/StringOperationsHelper";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
@@ -1371,21 +1373,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Get the capacity of a string expression */
   getStringExprCapacity(exprCode: string): number | null {
-    // String literal - capacity equals content length
-    if (exprCode.startsWith('"') && exprCode.endsWith('"')) {
-      return StringUtils.literalLength(exprCode);
-    }
-
-    // Variable - check type registry
-    const identifierRegex = /^[a-zA-Z_]\w*$/;
-    if (identifierRegex.test(exprCode)) {
-      const typeInfo = CodeGenState.getVariableTypeInfo(exprCode);
-      if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-        return typeInfo.stringCapacity;
-      }
-    }
-
-    return null;
+    return StringOperationsHelper.getStringExprCapacity(exprCode);
   }
 
   // === Parameter Management (IOrchestrator A4) ===
@@ -3217,8 +3205,8 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-045: Check if an expression is a string concatenation (contains + with string operands).
-   * Returns the operand expressions if it is, null otherwise.
+   * ADR-045: Check if an expression is a string concatenation.
+   * Delegates to StringOperationsHelper.
    */
   private _getStringConcatOperands(ctx: Parser.ExpressionContext): {
     left: string;
@@ -3226,53 +3214,12 @@ export default class CodeGenerator implements IOrchestrator {
     leftCapacity: number;
     rightCapacity: number;
   } | null {
-    // Navigate to the additive expression level using ExpressionUnwrapper
-    // Issue #707: Deduplicated expression tree navigation
-    const add = ExpressionUnwrapper.getAdditiveExpression(ctx);
-    if (!add) return null;
-    const multExprs = add.multiplicativeExpression();
-
-    // Need exactly 2 operands for simple concatenation
-    if (multExprs.length !== 2) return null;
-
-    // Check if this is addition (not subtraction)
-    const text = add.getText();
-    if (text.includes("-")) return null;
-
-    // Get the operand texts
-    const leftText = multExprs[0].getText();
-    const rightText = multExprs[1].getText();
-
-    // Check if at least one operand is a string
-    const leftCapacity = this.getStringExprCapacity(leftText);
-    const rightCapacity = this.getStringExprCapacity(rightText);
-
-    if (leftCapacity === null && rightCapacity === null) {
-      return null; // Neither is a string
-    }
-
-    // If one is null, it's not a valid string concatenation
-    if (leftCapacity === null || rightCapacity === null) {
-      return null;
-    }
-
-    return {
-      left: leftText,
-      right: rightText,
-      leftCapacity,
-      rightCapacity,
-    };
+    return StringOperationsHelper.getStringConcatOperands(ctx);
   }
 
   /**
-   * ADR-045: Get the capacity of a string expression.
-   * For string literals, capacity is the literal length.
-   * For string variables, capacity is from the type registry.
-   */
-  /**
-   * ADR-045: Check if an expression is a substring extraction (string[start, length]).
-   * Returns the source string, start, length, and source capacity if it is.
-   * Issue #707: Uses ExpressionUnwrapper for tree navigation.
+   * ADR-045: Check if an expression is a substring extraction.
+   * Delegates to StringOperationsHelper.
    */
   private _getSubstringOperands(ctx: Parser.ExpressionContext): {
     source: string;
@@ -3280,51 +3227,9 @@ export default class CodeGenerator implements IOrchestrator {
     length: string;
     sourceCapacity: number;
   } | null {
-    // Navigate to the postfix expression level using shared utility
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (!postfix) return null;
-
-    const primary = postfix.primaryExpression();
-    const ops = postfix.postfixOp();
-
-    // Need exactly one postfix operation (the [start, length])
-    if (ops.length !== 1) return null;
-
-    const op = ops[0];
-    const exprs = op.expression();
-
-    // Get the source variable name first
-    const sourceId = primary.IDENTIFIER();
-    if (!sourceId) return null;
-
-    const sourceName = sourceId.getText();
-
-    // Check if source is a string type
-    const typeInfo = CodeGenState.getVariableTypeInfo(sourceName);
-    if (!typeInfo?.isString || typeInfo.stringCapacity === undefined) {
-      return null;
-    }
-
-    // Issue #140: Handle both [start, length] pattern (2 expressions)
-    // and single-character access [index] pattern (1 expression, treated as [index, 1])
-    if (exprs.length === 2) {
-      return {
-        source: sourceName,
-        start: this.generateExpression(exprs[0]),
-        length: this.generateExpression(exprs[1]),
-        sourceCapacity: typeInfo.stringCapacity,
-      };
-    } else if (exprs.length === 1) {
-      // Single-character access: source[i] is sugar for source[i, 1]
-      return {
-        source: sourceName,
-        start: this.generateExpression(exprs[0]),
-        length: "1",
-        sourceCapacity: typeInfo.stringCapacity,
-      };
-    }
-
-    return null;
+    return StringOperationsHelper.getSubstringOperands(ctx, {
+      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+    });
   }
 
   // ========================================================================
