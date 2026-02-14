@@ -54,6 +54,44 @@ class TypeRegistrationEngine {
     const size = Number.parseInt(sizeExpr.getText(), 10);
     return Number.isNaN(size) ? undefined : size;
   }
+
+  /**
+   * Resolve base type name from a type context.
+   * Handles primitive, scoped (this.Type), global, qualified, and user types.
+   * Returns null for special types like string<N> that need separate handling.
+   */
+  static resolveBaseType(
+    typeCtx: Parser.TypeContext,
+    currentScope: string | null,
+  ): string | null {
+    if (typeCtx.primitiveType()) {
+      return typeCtx.primitiveType()!.getText();
+    }
+
+    if (typeCtx.scopedType()) {
+      // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+      const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
+      return currentScope ? `${currentScope}_${typeName}` : typeName;
+    }
+
+    if (typeCtx.globalType()) {
+      // Issue #478: Handle global.Type for global types inside scope
+      return typeCtx.globalType()!.IDENTIFIER().getText();
+    }
+
+    if (typeCtx.qualifiedType()) {
+      // ADR-016: Handle Scope.Type from outside scope
+      const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
+      return identifiers.map((id) => id.getText()).join("_");
+    }
+
+    if (typeCtx.userType()) {
+      return typeCtx.userType()!.getText();
+    }
+
+    // String types and array types are handled separately
+    return null;
+  }
 }
 
 export default TypeRegistrationEngine;
