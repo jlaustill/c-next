@@ -3,10 +3,45 @@
  * Issue #791: Tests for extracted type registration logic
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
 import CNextSourceParser from "../../parser/CNextSourceParser";
+import CodeGenState from "../../../state/CodeGenState";
+import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import * as Parser from "../../parser/grammar/CNextParser";
+
+/**
+ * Create a minimal mock ICodeGenSymbols with default empty collections.
+ */
+function createMockSymbols(): ICodeGenSymbols {
+  return {
+    knownScopes: new Set(),
+    knownEnums: new Set(),
+    knownBitmaps: new Set(),
+    knownStructs: new Set(),
+    knownRegisters: new Set(),
+    scopeMembers: new Map(),
+    scopeMemberVisibility: new Map(),
+    structFields: new Map(),
+    structFieldArrays: new Map(),
+    structFieldDimensions: new Map(),
+    enumMembers: new Map(),
+    bitmapFields: new Map(),
+    bitmapBackingType: new Map(),
+    bitmapBitWidth: new Map(),
+    scopedRegisters: new Map(),
+    registerMemberAccess: new Map(),
+    registerMemberTypes: new Map(),
+    registerBaseAddresses: new Map(),
+    registerMemberOffsets: new Map(),
+    registerMemberCTypes: new Map(),
+    scopeVariableUsage: new Map(),
+    scopePrivateConstValues: new Map(),
+    functionReturnTypes: new Map(),
+    getSingleFunctionForVariable: () => null,
+    hasPublicSymbols: () => false,
+  };
+}
 
 /**
  * Helper to parse a variable declaration and get its arrayType context
@@ -98,6 +133,54 @@ describe("TypeRegistrationEngine", () => {
       expect(ctx).not.toBeNull();
       const result = TypeRegistrationEngine.resolveBaseType(ctx!, null);
       expect(result).toBeNull();
+    });
+  });
+
+  describe("register orchestration", () => {
+    const mockCallbacks = {
+      tryEvaluateConstant: vi.fn(),
+      requireInclude: vi.fn(),
+    };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      CodeGenState.reset();
+      CodeGenState.symbols = createMockSymbols();
+    });
+
+    afterEach(() => {
+      CodeGenState.reset();
+    });
+
+    it("registers global variable types", () => {
+      const source = `u32 counter;`;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      const info = CodeGenState.getVariableTypeInfo("counter");
+      expect(info).not.toBeNull();
+      expect(info?.baseType).toBe("u32");
+      expect(info?.bitWidth).toBe(32);
+    });
+
+    it("tracks const values", () => {
+      mockCallbacks.tryEvaluateConstant.mockReturnValue(10);
+      const source = `const u32 SIZE <- 10;`;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      expect(CodeGenState.constValues.get("SIZE")).toBe(10);
+    });
+
+    it("requires string include for string types", () => {
+      const source = `string<64> message;`;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      expect(mockCallbacks.requireInclude).toHaveBeenCalledWith("string");
     });
   });
 });
