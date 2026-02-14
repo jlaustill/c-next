@@ -3,9 +3,11 @@
  *
  * Provides mock IScopeSymbol instances for testing collectors
  * that now require proper scope references.
+ *
+ * Note: Delegates to ScopeUtils to avoid code duplication.
  */
 
-import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
 /**
@@ -20,44 +22,15 @@ class TestScopeUtils {
    * The global scope has a self-reference for parent.
    */
   static createMockGlobalScope(): IScopeSymbol {
-    const global: IScopeSymbol = {
-      kind: "scope",
-      name: "",
-      parent: null as unknown as IScopeSymbol,
-      scope: null as unknown as IScopeSymbol,
-      members: [],
-      functions: [],
-      variables: [],
-      memberVisibility: new Map(),
-      sourceFile: "",
-      sourceLine: 0,
-      sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
-    };
-    (global as unknown as { parent: IScopeSymbol }).parent = global;
-    (global as unknown as { scope: IScopeSymbol }).scope = global;
-    return global;
+    return ScopeUtils.createGlobalScope();
   }
 
   /**
    * Create a named scope for tests.
    */
   static createMockScope(name: string, parent?: IScopeSymbol): IScopeSymbol {
-    const actualParent = parent ?? TestScopeUtils.createMockGlobalScope();
-    return {
-      kind: "scope",
-      name,
-      parent: actualParent,
-      scope: actualParent,
-      members: [],
-      functions: [],
-      variables: [],
-      memberVisibility: new Map(),
-      sourceFile: "",
-      sourceLine: 0,
-      sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
-    };
+    const actualParent = parent ?? ScopeUtils.createGlobalScope();
+    return ScopeUtils.createScope(name, actualParent);
   }
 
   /**
@@ -65,7 +38,7 @@ class TestScopeUtils {
    * Returns a new instance each time to avoid test pollution.
    */
   static getGlobalScope(): IScopeSymbol {
-    return TestScopeUtils.createMockGlobalScope();
+    return ScopeUtils.createGlobalScope();
   }
 
   /**
