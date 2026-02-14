@@ -10,8 +10,23 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
 import ICppParameterInfo from "../../../../types/symbols/cpp/ICppParameterInfo";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
+import IExtractedParameter from "../../shared/IExtractedParameter";
 
 class FunctionCollector {
+  /**
+   * Map extracted parameters to ICppParameterInfo array.
+   */
+  private static _mapParameters(
+    extracted: IExtractedParameter[],
+  ): ICppParameterInfo[] {
+    return extracted.map((p) => ({
+      name: p.name,
+      type: p.type,
+      isConst: p.isConst,
+      isArray: p.isArray,
+    }));
+  }
+
   /**
    * Collect a function definition and return an ICppFunctionSymbol.
    *
@@ -40,16 +55,9 @@ class FunctionCollector {
       : "void";
 
     const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
-
-    // Extract function parameters
-    const extractedParams =
-      DeclaratorUtils.extractFunctionParameters(declarator);
-    const params: ICppParameterInfo[] = extractedParams.map((p) => ({
-      name: p.name,
-      type: p.type,
-      isConst: p.isConst,
-      isArray: p.isArray,
-    }));
+    const params = FunctionCollector._mapParameters(
+      DeclaratorUtils.extractFunctionParameters(declarator),
+    );
 
     return {
       kind: "function",
@@ -86,16 +94,9 @@ class FunctionCollector {
     if (!name) return null;
 
     const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
-
-    // Extract function parameters
-    const extractedParams =
-      DeclaratorUtils.extractFunctionParameters(declarator);
-    const params: ICppParameterInfo[] = extractedParams.map((p) => ({
-      name: p.name,
-      type: p.type,
-      isConst: p.isConst,
-      isArray: p.isArray,
-    }));
+    const params = FunctionCollector._mapParameters(
+      DeclaratorUtils.extractFunctionParameters(declarator),
+    );
 
     return {
       kind: "function",
@@ -132,15 +133,9 @@ class FunctionCollector {
     line: number,
     isDeclaration: boolean,
   ): ICppFunctionSymbol {
-    // Extract function parameters
-    const extractedParams =
-      DeclaratorUtils.extractFunctionParameters(declarator);
-    const params: ICppParameterInfo[] = extractedParams.map((p) => ({
-      name: p.name,
-      type: p.type,
-      isConst: p.isConst,
-      isArray: p.isArray,
-    }));
+    const params = FunctionCollector._mapParameters(
+      DeclaratorUtils.extractFunctionParameters(declarator),
+    );
 
     return {
       kind: "function",

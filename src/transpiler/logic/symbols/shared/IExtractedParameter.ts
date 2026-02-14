@@ -1,5 +1,5 @@
 /**
- * Information extracted from a C parameter declaration.
+ * Information extracted from a C/C++ parameter declaration.
  */
 interface IExtractedParameter {
   /** Parameter name (may be empty for abstract declarators) */

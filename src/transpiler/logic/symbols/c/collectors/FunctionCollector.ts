@@ -9,8 +9,23 @@ import type ICFunctionSymbol from "../../../../types/symbols/c/ICFunctionSymbol"
 import type ICParameterInfo from "../../../../types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
+import type IExtractedParameter from "../../shared/IExtractedParameter";
 
 class FunctionCollector {
+  /**
+   * Map extracted parameters to ICParameterInfo array.
+   */
+  private static _mapParameters(
+    extracted: IExtractedParameter[],
+  ): ICParameterInfo[] {
+    return extracted.map((p) => ({
+      name: p.name,
+      type: p.type,
+      isConst: p.isConst,
+      isArray: p.isArray,
+    }));
+  }
+
   /**
    * Collect a function symbol from a function definition.
    *
@@ -35,15 +50,9 @@ class FunctionCollector {
       ? DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs)
       : "int";
 
-    // Extract parameters
-    const extractedParams =
-      DeclaratorUtils.extractFunctionParameters(declarator);
-    const parameters: ICParameterInfo[] = extractedParams.map((p) => ({
-      name: p.name,
-      type: p.type,
-      isConst: p.isConst,
-      isArray: p.isArray,
-    }));
+    const parameters = FunctionCollector._mapParameters(
+      DeclaratorUtils.extractFunctionParameters(declarator),
+    );
 
     return {
       kind: "function",
@@ -76,15 +85,9 @@ class FunctionCollector {
     line: number,
     isExtern: boolean,
   ): ICFunctionSymbol {
-    // Extract parameters
-    const extractedParams =
-      DeclaratorUtils.extractFunctionParameters(declarator);
-    const parameters: ICParameterInfo[] = extractedParams.map((p) => ({
-      name: p.name,
-      type: p.type,
-      isConst: p.isConst,
-      isArray: p.isArray,
-    }));
+    const parameters = FunctionCollector._mapParameters(
+      DeclaratorUtils.extractFunctionParameters(declarator),
+    );
 
     return {
       kind: "function",

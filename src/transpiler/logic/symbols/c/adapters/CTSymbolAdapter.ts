@@ -8,6 +8,7 @@
 import ISymbol from "../../../../../utils/types/ISymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TCSymbol from "../../../../types/symbols/c/TCSymbol";
+import SymbolAdapterUtils from "../../adapters/SymbolAdapterUtils";
 
 class CTSymbolAdapter {
   /**
@@ -36,27 +37,11 @@ class CTSymbolAdapter {
     // Add kind-specific properties
     switch (symbol.kind) {
       case "function":
-        base.type = symbol.type;
-        base.isDeclaration = symbol.isDeclaration;
-        if (symbol.parameters) {
-          base.parameters = symbol.parameters.map((p) => ({
-            name: p.name,
-            type: p.type,
-            isConst: p.isConst,
-            isArray: p.isArray,
-          }));
-        }
+        SymbolAdapterUtils.applyFunctionProperties(base, symbol);
         break;
 
       case "variable":
-        base.type = symbol.type;
-        base.isConst = symbol.isConst;
-        base.isArray = symbol.isArray;
-        if (symbol.arrayDimensions) {
-          base.arrayDimensions = symbol.arrayDimensions.map((d) =>
-            typeof d === "number" ? d.toString() : d,
-          );
-        }
+        SymbolAdapterUtils.applyVariableProperties(base, symbol);
         break;
 
       case "struct":

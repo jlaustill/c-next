@@ -8,7 +8,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import SymbolUtils from "../../SymbolUtils";
-import IExtractedParameter from "./IExtractedParameter";
+import IExtractedParameter from "../../shared/IExtractedParameter";
+import ParameterExtractorUtils from "../../shared/ParameterExtractorUtils";
 
 class DeclaratorUtils {
   /**
@@ -113,15 +114,10 @@ class DeclaratorUtils {
       return params;
     }
 
-    // Iterate over parameterDeclaration entries
-    for (const paramDecl of paramList.parameterDeclaration?.() ?? []) {
-      const paramInfo = DeclaratorUtils.extractParameterInfo(paramDecl);
-      if (paramInfo) {
-        params.push(paramInfo);
-      }
-    }
-
-    return params;
+    return ParameterExtractorUtils.processParameterList(
+      paramList,
+      DeclaratorUtils.extractParameterInfo,
+    );
   }
 
   /**
@@ -134,51 +130,26 @@ class DeclaratorUtils {
       return null;
     }
 
-    let baseType = DeclaratorUtils.extractTypeFromDeclSpecSeq(declSpecSeq);
-    let isConst = false;
-    let isPointer = false;
-
-    // Check for const qualifier
-    const declText = declSpecSeq.getText();
-    if (declText.includes("const")) {
-      isConst = true;
-    }
+    const baseType = DeclaratorUtils.extractTypeFromDeclSpecSeq(declSpecSeq);
+    const isConst = declSpecSeq.getText().includes("const");
 
     // Check for pointer in declarator or abstractDeclarator
     const declarator = paramDecl.declarator?.();
     const abstractDecl = paramDecl.abstractDeclarator?.();
 
-    if (declarator) {
-      if (DeclaratorUtils.declaratorHasPointer(declarator)) {
-        isPointer = true;
-      }
-    }
-    if (abstractDecl) {
-      if (DeclaratorUtils.abstractDeclaratorHasPointer(abstractDecl)) {
-        isPointer = true;
-      }
-    }
+    const isPointer =
+      (declarator && DeclaratorUtils.declaratorHasPointer(declarator)) ||
+      (abstractDecl &&
+        DeclaratorUtils.abstractDeclaratorHasPointer(abstractDecl));
 
-    // If pointer, append * to the type
-    if (isPointer) {
-      baseType = baseType + "*";
-    }
-
-    // Get parameter name (may be empty for abstract declarators)
-    let paramName = "";
-    if (declarator) {
-      const name = DeclaratorUtils.extractDeclaratorName(declarator);
-      if (name) {
-        paramName = name;
-      }
-    }
-
-    return {
-      name: paramName,
-      type: baseType,
+    return ParameterExtractorUtils.buildParameterInfo(
+      declarator,
+      baseType,
       isConst,
-      isArray: false, // Could be enhanced to detect arrays
-    };
+      isPointer ?? false,
+      false, // isArray - could be enhanced
+      DeclaratorUtils.extractDeclaratorName,
+    );
   }
 
   /**

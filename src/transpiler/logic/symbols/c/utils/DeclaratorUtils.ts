@@ -13,7 +13,8 @@ import type {
   EnumSpecifierContext,
 } from "../../../parser/c/grammar/CParser";
 import SymbolUtils from "../../SymbolUtils";
-import IExtractedParameter from "./IExtractedParameter";
+import IExtractedParameter from "../../shared/IExtractedParameter";
+import ParameterExtractorUtils from "../../shared/ParameterExtractorUtils";
 
 class DeclaratorUtils {
   /**
@@ -75,25 +76,19 @@ class DeclaratorUtils {
    * Extract function parameters from a declarator.
    */
   static extractFunctionParameters(declarator: any): IExtractedParameter[] {
-    const params: IExtractedParameter[] = [];
-
     const directDecl = declarator.directDeclarator?.();
-    if (!directDecl) return params;
+    if (!directDecl) return [];
 
     const paramTypeList = directDecl.parameterTypeList?.();
-    if (!paramTypeList) return params;
+    if (!paramTypeList) return [];
 
     const paramList = paramTypeList.parameterList?.();
-    if (!paramList) return params;
+    if (!paramList) return [];
 
-    for (const paramDecl of paramList.parameterDeclaration?.() ?? []) {
-      const paramInfo = DeclaratorUtils.extractParameterInfo(paramDecl);
-      if (paramInfo) {
-        params.push(paramInfo);
-      }
-    }
-
-    return params;
+    return ParameterExtractorUtils.processParameterList(
+      paramList,
+      DeclaratorUtils.extractParameterInfo,
+    );
   }
 
   /**
@@ -103,54 +98,31 @@ class DeclaratorUtils {
     const declSpecs = paramDecl.declarationSpecifiers?.();
     if (!declSpecs) return null;
 
-    let baseType = DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs);
-    let isConst = false;
+    const baseType = DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs);
+    const isConst = declSpecs.getText().includes("const");
+
+    // Check for pointer and array in declarator
+    const declarator = paramDecl.declarator?.();
     let isPointer = false;
     let isArray = false;
 
-    // Check for const qualifier
-    const declText = declSpecs.getText();
-    if (declText.includes("const")) {
-      isConst = true;
-    }
-
-    // Check for pointer in declarator
-    const declarator = paramDecl.declarator?.();
     if (declarator) {
-      // Check for pointer operator
-      if (declarator.pointer?.()) {
-        isPointer = true;
-      }
-      // Check for array
+      isPointer = Boolean(declarator.pointer?.());
       const directDecl = declarator.directDeclarator?.();
       if (directDecl) {
         const text = directDecl.getText();
-        if (text.includes("[") && text.includes("]")) {
-          isArray = true;
-        }
+        isArray = text.includes("[") && text.includes("]");
       }
     }
 
-    // If pointer, append * to the type
-    if (isPointer) {
-      baseType = baseType + "*";
-    }
-
-    // Get parameter name (may be empty for abstract declarators)
-    let paramName = "";
-    if (declarator) {
-      const name = DeclaratorUtils.extractDeclaratorName(declarator);
-      if (name) {
-        paramName = name;
-      }
-    }
-
-    return {
-      name: paramName,
-      type: baseType,
+    return ParameterExtractorUtils.buildParameterInfo(
+      declarator,
+      baseType,
       isConst,
+      isPointer,
       isArray,
-    };
+      DeclaratorUtils.extractDeclaratorName,
+    );
   }
 
   /**
