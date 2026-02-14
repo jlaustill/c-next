@@ -44,7 +44,9 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 **GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead.
 
-**ts-morph MCP tools**: `rename_filesystem_entry_by_tsmorph` (move files), `move_symbol_to_file_by_tsmorph` (extract symbols), `find_references_by_tsmorph` (find usages). Always use `dryRun: true` first.
+**ts-morph MCP tools**: `rename_filesystem_entry_by_tsmorph` (move files), `move_symbol_to_file_by_tsmorph` (extract symbols), `find_references_by_tsmorph` (find usages). Always use `dryRun: true` first. **Gotcha**: Adds `.ts` extensions to imports — remove them manually after moves.
+
+**Layer constraints (depcruise)**: `logic/` cannot import from `output/`. Check import dependencies before choosing extraction location.
 
 ---
 
