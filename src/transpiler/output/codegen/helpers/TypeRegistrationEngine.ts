@@ -140,7 +140,6 @@ class TypeRegistrationEngine {
     return TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
       currentScope,
-      undefined,
     );
   }
 
