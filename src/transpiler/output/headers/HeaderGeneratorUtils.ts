@@ -5,7 +5,7 @@
  * CHeaderGenerator and CppHeaderGenerator.
  */
 
-import ISymbol from "../../../utils/types/ISymbol";
+import IHeaderSymbol from "./types/IHeaderSymbol";
 import SymbolTable from "../../logic/symbols/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import typeUtils from "./generators/mapType";
@@ -44,7 +44,7 @@ class HeaderGeneratorUtils {
   /**
    * Group symbols by their kind for organized header output
    */
-  static groupSymbolsByKind(symbols: ISymbol[]): IGroupedSymbols {
+  static groupSymbolsByKind(symbols: IHeaderSymbol[]): IGroupedSymbols {
     return {
       structs: symbols.filter((s) => s.kind === "struct"),
       classes: symbols.filter((s) => s.kind === "class"),
@@ -111,8 +111,8 @@ class HeaderGeneratorUtils {
    * - Not cross-file enums (which can't be forward-declared as structs)
    */
   static collectExternalTypes(
-    functions: ISymbol[],
-    variables: ISymbol[],
+    functions: IHeaderSymbol[],
+    variables: IHeaderSymbol[],
     localStructs: Set<string>,
     localEnums: Set<string>,
     localTypes: Set<string>,
@@ -191,9 +191,9 @@ class HeaderGeneratorUtils {
    * Excludes C++ namespace types, templates, and underscore-format namespace types
    */
   static filterCCompatibleVariables(
-    variables: ISymbol[],
+    variables: IHeaderSymbol[],
     symbolTable?: SymbolTable,
-  ): ISymbol[] {
+  ): IHeaderSymbol[] {
     return variables.filter(
       (v) =>
         !v.type?.includes("::") &&
@@ -330,7 +330,7 @@ class HeaderGeneratorUtils {
    * Generate enum section
    */
   static generateEnumSection(
-    enums: ISymbol[],
+    enums: IHeaderSymbol[],
     typeInput?: IHeaderTypeInput,
   ): string[] {
     if (enums.length === 0) {
@@ -353,7 +353,7 @@ class HeaderGeneratorUtils {
    * Generate bitmap section
    */
   static generateBitmapSection(
-    bitmaps: ISymbol[],
+    bitmaps: IHeaderSymbol[],
     typeInput?: IHeaderTypeInput,
   ): string[] {
     if (bitmaps.length === 0) {
@@ -375,7 +375,7 @@ class HeaderGeneratorUtils {
   /**
    * Generate type alias section
    */
-  static generateTypeAliasSection(types: ISymbol[]): string[] {
+  static generateTypeAliasSection(types: IHeaderSymbol[]): string[] {
     if (types.length === 0) {
       return [];
     }
@@ -395,8 +395,8 @@ class HeaderGeneratorUtils {
    * Generate struct and class definitions section
    */
   static generateStructSection(
-    structs: ISymbol[],
-    classes: ISymbol[],
+    structs: IHeaderSymbol[],
+    classes: IHeaderSymbol[],
     typeInput?: IHeaderTypeInput,
   ): string[] {
     if (structs.length === 0 && classes.length === 0) {
@@ -431,7 +431,7 @@ class HeaderGeneratorUtils {
    *
    * Uses VariableDeclarationFormatter for consistent formatting with CodeGenerator.
    */
-  static generateVariableSection(variables: ISymbol[]): string[] {
+  static generateVariableSection(variables: IHeaderSymbol[]): string[] {
     if (variables.length === 0) {
       return [];
     }

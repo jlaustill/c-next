@@ -15,7 +15,7 @@ import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
-import ISymbol from "../types/ISymbol";
+// ADR-055 Phase 7: ISymbol removed - using ISerializedSymbol directly
 import IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
@@ -24,12 +24,15 @@ import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
 import IFileSystem from "../../transpiler/types/IFileSystem";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
+import TAnySymbol from "../../transpiler/types/symbols/TAnySymbol";
+import TypeResolver from "../TypeResolver";
+import ESourceLanguage from "../types/ESourceLanguage";
 
 /** Default file system instance (singleton for performance) */
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime
+const CACHE_VERSION = 4; // ADR-055 Phase 7: TAnySymbol replaces ISymbol
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -124,9 +127,10 @@ class CacheManager {
 
   /**
    * Get cached symbols and struct fields for a file
+   * ADR-055 Phase 7: Returns ISerializedSymbol[] directly (no ISymbol intermediate)
    */
   getSymbols(filePath: string): {
-    symbols: ISymbol[];
+    symbols: ISerializedSymbol[];
     structFields: Map<string, Map<string, IStructFieldInfo>>;
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
@@ -139,8 +143,8 @@ class CacheManager {
     }
     const cachedEntry = entry as ICachedFileEntry;
 
-    // Deserialize symbols
-    const symbols = cachedEntry.symbols.map((s) => this.deserializeSymbol(s));
+    // ADR-055 Phase 7: Return serialized symbols directly
+    const symbols = cachedEntry.symbols;
 
     // Convert struct fields from plain objects to Maps
     const structFields = new Map<string, Map<string, IStructFieldInfo>>();
@@ -174,10 +178,11 @@ class CacheManager {
 
   /**
    * Store symbols and struct fields for a file
+   * ADR-055 Phase 7: Takes ISerializedSymbol[] directly
    */
   setSymbols(
     filePath: string,
-    symbols: ISymbol[],
+    symbols: ISerializedSymbol[],
     structFields: Map<string, Map<string, IStructFieldInfo>>,
     needsStructKeyword?: string[],
     enumBitWidth?: Map<string, number>,
@@ -193,8 +198,8 @@ class CacheManager {
       return;
     }
 
-    // Serialize symbols
-    const serializedSymbols = symbols.map((s) => this.serializeSymbol(s));
+    // ADR-055 Phase 7: symbols are already serialized
+    const serializedSymbols = symbols;
 
     // Convert struct fields from Maps to plain objects
     const serializedFields: Record<
@@ -242,8 +247,9 @@ class CacheManager {
    * @param symbolTable - SymbolTable containing all parsed symbols
    */
   setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
-    // Extract symbols for this file
-    const symbols = symbolTable.getSymbolsByFile(filePath);
+    // ADR-055 Phase 7: Serialize TAnySymbol directly to ISerializedSymbol
+    const typedSymbols = symbolTable.getSymbolsByFile(filePath);
+    const symbols = typedSymbols.map((s) => this.serializeTypedSymbol(s));
 
     // Extract struct fields for structs defined in this file
     const structFields = this.extractStructFieldsForFile(filePath, symbolTable);
@@ -475,60 +481,95 @@ class CacheManager {
   }
 
   /**
-   * Serialize an ISymbol to JSON-safe format
+   * ADR-055 Phase 7: Serialize TAnySymbol directly to ISerializedSymbol.
+   * No intermediate ISymbol format.
    */
-  private serializeSymbol(symbol: ISymbol): ISerializedSymbol {
+  private serializeTypedSymbol(symbol: TAnySymbol): ISerializedSymbol {
     const serialized: ISerializedSymbol = {
       name: symbol.name,
-      kind: symbol.kind, // Already a string from enum
+      kind: symbol.kind,
       sourceFile: symbol.sourceFile,
       sourceLine: symbol.sourceLine,
-      sourceLanguage: symbol.sourceLanguage, // Already a string from enum
+      sourceLanguage: symbol.sourceLanguage,
       isExported: symbol.isExported,
     };
 
-    // Add optional fields only if present
-    if (symbol.type !== undefined) serialized.type = symbol.type;
-    if (symbol.isDeclaration !== undefined)
-      serialized.isDeclaration = symbol.isDeclaration;
-    if (symbol.signature !== undefined) serialized.signature = symbol.signature;
-    if (symbol.parent !== undefined) serialized.parent = symbol.parent;
-    if (symbol.accessModifier !== undefined)
-      serialized.accessModifier = symbol.accessModifier;
-    if (symbol.size !== undefined) serialized.size = symbol.size;
-    if (symbol.parameters !== undefined)
-      serialized.parameters = symbol.parameters;
+    this.addTypeFieldToSerialized(symbol, serialized);
+    this.addVariableFieldsToSerialized(symbol, serialized);
+    this.addFunctionFieldsToSerialized(symbol, serialized);
 
     return serialized;
   }
 
   /**
-   * Deserialize a symbol from JSON format back to ISymbol
+   * Add type field to ISerializedSymbol, converting TType to string for C-Next symbols.
    */
-  private deserializeSymbol(serialized: ISerializedSymbol): ISymbol {
-    const symbol: ISymbol = {
-      name: serialized.name,
-      kind: serialized.kind as ISymbol["kind"], // Cast string back to enum
-      sourceFile: serialized.sourceFile,
-      sourceLine: serialized.sourceLine,
-      sourceLanguage: serialized.sourceLanguage as ISymbol["sourceLanguage"],
-      isExported: serialized.isExported,
-    };
+  private addTypeFieldToSerialized(
+    symbol: TAnySymbol,
+    serialized: ISerializedSymbol,
+  ): void {
+    if (!("type" in symbol) || symbol.type === undefined) {
+      return;
+    }
+    const isCNextWithTType =
+      symbol.sourceLanguage === ESourceLanguage.CNext &&
+      typeof symbol.type !== "string";
+    serialized.type = isCNextWithTType
+      ? TypeResolver.getTypeName(symbol.type)
+      : (symbol.type as string);
+  }
 
-    // Add optional fields only if present
-    if (serialized.type !== undefined) symbol.type = serialized.type;
-    if (serialized.isDeclaration !== undefined)
-      symbol.isDeclaration = serialized.isDeclaration;
-    if (serialized.signature !== undefined)
-      symbol.signature = serialized.signature;
-    if (serialized.parent !== undefined) symbol.parent = serialized.parent;
-    if (serialized.accessModifier !== undefined)
-      symbol.accessModifier = serialized.accessModifier;
-    if (serialized.size !== undefined) symbol.size = serialized.size;
-    if (serialized.parameters !== undefined)
-      symbol.parameters = serialized.parameters;
+  /**
+   * Add variable-specific fields to ISerializedSymbol.
+   */
+  private addVariableFieldsToSerialized(
+    symbol: TAnySymbol,
+    serialized: ISerializedSymbol,
+  ): void {
+    if (symbol.kind !== "variable") {
+      return;
+    }
+    if ("isConst" in symbol && symbol.isConst !== undefined) {
+      serialized.isConst = symbol.isConst;
+    }
+    if ("isAtomic" in symbol && symbol.isAtomic !== undefined) {
+      serialized.isAtomic = symbol.isAtomic;
+    }
+    if ("isArray" in symbol && symbol.isArray !== undefined) {
+      serialized.isArray = symbol.isArray;
+    }
+    if ("arrayDimensions" in symbol && symbol.arrayDimensions) {
+      serialized.arrayDimensions = symbol.arrayDimensions.map(String);
+    }
+    if ("initialValue" in symbol && symbol.initialValue !== undefined) {
+      serialized.initialValue = symbol.initialValue;
+    }
+  }
 
-    return symbol;
+  /**
+   * Add function-specific fields to ISerializedSymbol.
+   */
+  private addFunctionFieldsToSerialized(
+    symbol: TAnySymbol,
+    serialized: ISerializedSymbol,
+  ): void {
+    if (symbol.kind !== "function") {
+      return;
+    }
+    if ("returnType" in symbol && symbol.returnType !== undefined) {
+      serialized.type = TypeResolver.getTypeName(symbol.returnType);
+    }
+    if ("parameters" in symbol && symbol.parameters) {
+      serialized.parameters = symbol.parameters.map((p) => ({
+        name: p.name,
+        type:
+          typeof p.type === "string"
+            ? p.type
+            : TypeResolver.getTypeName(p.type),
+        isConst: p.isConst,
+        isArray: p.isArray,
+      }));
+    }
   }
 }
 

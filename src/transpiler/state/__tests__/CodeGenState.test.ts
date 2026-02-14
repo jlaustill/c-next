@@ -7,24 +7,50 @@ import CodeGenState from "../CodeGenState";
 import TTypeInfo from "../../output/codegen/types/TTypeInfo";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import ISymbol from "../../../utils/types/ISymbol";
-import TSymbolKind from "../../types/symbol-kinds/TSymbolKind";
+import IVariableSymbol from "../../types/symbols/IVariableSymbol";
+import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
+import TestScopeUtils from "../../logic/symbols/cnext/__tests__/testUtils";
+import TTypeUtils from "../../../utils/TTypeUtils";
 
 /**
- * Create a minimal ISymbol for testing with required fields.
+ * Create a minimal C-Next IVariableSymbol for testing.
  */
-function createTestSymbol(
-  overrides: Partial<ISymbol> & {
-    name: string;
-    kind: TSymbolKind;
-    sourceLanguage: ESourceLanguage;
-  },
-): ISymbol {
+function createCNextVariableSymbol(
+  overrides: Partial<IVariableSymbol> & { name: string },
+): IVariableSymbol {
   return {
-    sourceFile: "test.cnx",
-    sourceLine: 1,
-    isExported: false,
-    ...overrides,
+    kind: "variable",
+    name: overrides.name,
+    sourceFile: overrides.sourceFile ?? "test.cnx",
+    sourceLine: overrides.sourceLine ?? 1,
+    sourceLanguage: ESourceLanguage.CNext,
+    isExported: overrides.isExported ?? false,
+    scope: overrides.scope ?? TestScopeUtils.createMockGlobalScope(),
+    type: overrides.type ?? TTypeUtils.createPrimitive("u32"),
+    isConst: overrides.isConst ?? false,
+    isAtomic: overrides.isAtomic ?? false,
+    isArray: overrides.isArray ?? false,
+    arrayDimensions: overrides.arrayDimensions,
+  };
+}
+
+/**
+ * Create a minimal C ICVariableSymbol for testing.
+ */
+function createCVariableSymbol(
+  overrides: Partial<ICVariableSymbol> & { name: string; type: string },
+): ICVariableSymbol {
+  return {
+    kind: "variable",
+    name: overrides.name,
+    sourceFile: overrides.sourceFile ?? "test.h",
+    sourceLine: overrides.sourceLine ?? 1,
+    sourceLanguage: ESourceLanguage.C,
+    isExported: overrides.isExported ?? false,
+    type: overrides.type,
+    isConst: overrides.isConst,
+    isArray: overrides.isArray,
+    arrayDimensions: overrides.arrayDimensions,
   };
 }
 
@@ -389,14 +415,12 @@ describe("CodeGenState", () => {
 
     it("getVariableTypeInfo falls back to SymbolTable for C-Next variables", () => {
       // Add a C-Next variable to SymbolTable (simulating cross-file include)
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
           name: "crossFileVar",
-          kind: "variable",
-          type: "u16",
-          sourceLanguage: ESourceLanguage.CNext,
+          type: TTypeUtils.createPrimitive("u16"),
           isArray: true,
-          arrayDimensions: ["10"],
+          arrayDimensions: [10],
         }),
       );
 
@@ -411,12 +435,10 @@ describe("CodeGenState", () => {
 
     it("getVariableTypeInfo does not use C header symbols", () => {
       // Add a C header variable (should NOT be used)
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
           name: "cHeaderVar",
-          kind: "variable",
           type: "uint32_t",
-          sourceLanguage: ESourceLanguage.C,
         }),
       );
 
@@ -433,12 +455,10 @@ describe("CodeGenState", () => {
       };
       CodeGenState.setVariableTypeInfo("mixedVar", localInfo);
 
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
           name: "mixedVar",
-          kind: "variable",
-          type: "u8",
-          sourceLanguage: ESourceLanguage.CNext,
+          type: TTypeUtils.createPrimitive("u8"),
         }),
       );
 
@@ -460,12 +480,10 @@ describe("CodeGenState", () => {
     });
 
     it("hasVariableTypeInfo returns true for C-Next SymbolTable variable", () => {
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
           name: "crossFileVar",
-          kind: "variable",
-          type: "u32",
-          sourceLanguage: ESourceLanguage.CNext,
+          type: TTypeUtils.createPrimitive("u32"),
         }),
       );
 
@@ -477,12 +495,10 @@ describe("CodeGenState", () => {
     });
 
     it("hasVariableTypeInfo returns false for C header variable", () => {
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
           name: "cVar",
-          kind: "variable",
           type: "int",
-          sourceLanguage: ESourceLanguage.C,
         }),
       );
 
@@ -540,12 +556,10 @@ describe("CodeGenState", () => {
     });
 
     it("convertSymbolToTypeInfo handles string<N> types", () => {
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
           name: "myString",
-          kind: "variable",
-          type: "string<32>",
-          sourceLanguage: ESourceLanguage.CNext,
+          type: TTypeUtils.createString(32),
         }),
       );
 
@@ -563,12 +577,10 @@ describe("CodeGenState", () => {
         knownEnums: new Set(["EColor"]),
       });
 
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
           name: "color",
-          kind: "variable",
-          type: "EColor",
-          sourceLanguage: ESourceLanguage.CNext,
+          type: TTypeUtils.createEnum("EColor"),
         }),
       );
 
@@ -580,12 +592,10 @@ describe("CodeGenState", () => {
     });
 
     it("convertSymbolToTypeInfo handles const and atomic", () => {
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
           name: "constAtomicVar",
-          kind: "variable",
-          type: "u32",
-          sourceLanguage: ESourceLanguage.CNext,
+          type: TTypeUtils.createPrimitive("u32"),
           isConst: true,
           isAtomic: true,
         }),
@@ -598,14 +608,12 @@ describe("CodeGenState", () => {
     });
 
     it("convertSymbolToTypeInfo filters invalid array dimensions", () => {
-      CodeGenState.symbolTable.addSymbol(
-        createTestSymbol({
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
           name: "arrayVar",
-          kind: "variable",
-          type: "u8",
-          sourceLanguage: ESourceLanguage.CNext,
+          type: TTypeUtils.createPrimitive("u8"),
           isArray: true,
-          arrayDimensions: ["10", "invalid", "20"],
+          arrayDimensions: [10, "invalid", 20],
         }),
       );
 

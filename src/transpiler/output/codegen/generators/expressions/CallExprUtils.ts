@@ -5,6 +5,7 @@
 import TYPE_MAP from "../../types/TYPE_MAP";
 import IFunctionSignature from "../../types/IFunctionSignature";
 import SymbolTable from "../../../../logic/symbols/SymbolTable";
+import TypeResolver from "../../../../../utils/TypeResolver";
 
 /**
  * Issue #315: Small primitive types that are always passed by value.
@@ -89,10 +90,16 @@ class CallExprUtils {
       for (const sym of symbols) {
         if (sym.kind === "function" && sym.parameters?.[paramIndex]) {
           const p = sym.parameters[paramIndex];
+          // Convert TType to string for C-Next symbols, use string directly for C/C++
+          const paramType = p.type;
+          const baseType =
+            typeof paramType === "string"
+              ? paramType
+              : TypeResolver.getTypeName(paramType);
           return {
             param: {
               name: p.name,
-              baseType: p.type,
+              baseType,
               isConst: p.isConst,
               isArray: p.isArray,
             },

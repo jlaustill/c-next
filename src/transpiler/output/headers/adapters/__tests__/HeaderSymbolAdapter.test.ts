@@ -1,10 +1,9 @@
 /**
  * Unit tests for HeaderSymbolAdapter
- * ADR-055 Phase 5: Converts TSymbol and ISymbol to IHeaderSymbol
+ * ADR-055 Phase 5/7: Converts TSymbol to IHeaderSymbol (ISymbol methods removed in Phase 7)
  */
 import { describe, it, expect } from "vitest";
 import HeaderSymbolAdapter from "../HeaderSymbolAdapter";
-import ISymbol from "../../../../../utils/types/ISymbol";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import IStructSymbol from "../../../../types/symbols/IStructSymbol";
@@ -19,112 +18,6 @@ import ScopeUtils from "../../../../../utils/ScopeUtils";
 describe("HeaderSymbolAdapter", () => {
   const globalScope = ScopeUtils.createGlobalScope();
   const motorScope = ScopeUtils.createScope("Motor", globalScope);
-
-  // ========================================================================
-  // fromISymbol - Passthrough Conversion
-  // ========================================================================
-
-  describe("fromISymbol", () => {
-    it("should convert ISymbol to IHeaderSymbol", () => {
-      const iSymbol: ISymbol = {
-        name: "counter",
-        kind: "variable",
-        type: "u32",
-        sourceFile: "test.cnx",
-        sourceLine: 10,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        isConst: true,
-        isAtomic: false,
-        isArray: false,
-      };
-
-      const result = HeaderSymbolAdapter.fromISymbol(iSymbol);
-
-      expect(result.name).toBe("counter");
-      expect(result.kind).toBe("variable");
-      expect(result.type).toBe("u32");
-      expect(result.isExported).toBe(true);
-      expect(result.isConst).toBe(true);
-      expect(result.isAtomic).toBe(false);
-      expect(result.isArray).toBe(false);
-      expect(result.sourceFile).toBe("test.cnx");
-      expect(result.sourceLine).toBe(10);
-    });
-
-    it("should preserve function parameters", () => {
-      const iSymbol: ISymbol = {
-        name: "calculate",
-        kind: "function",
-        type: "i32",
-        sourceFile: "math.cnx",
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        signature: "i32 calculate(i32, i32)",
-        parameters: [
-          { name: "a", type: "i32", isConst: false, isArray: false },
-          { name: "b", type: "i32", isConst: false, isArray: false },
-        ],
-      };
-
-      const result = HeaderSymbolAdapter.fromISymbol(iSymbol);
-
-      expect(result.parameters).toHaveLength(2);
-      expect(result.parameters?.[0].name).toBe("a");
-      expect(result.signature).toBe("i32 calculate(i32, i32)");
-    });
-
-    it("should preserve array dimensions", () => {
-      const iSymbol: ISymbol = {
-        name: "buffer",
-        kind: "variable",
-        type: "u8",
-        sourceFile: "data.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        isArray: true,
-        arrayDimensions: ["256"],
-      };
-
-      const result = HeaderSymbolAdapter.fromISymbol(iSymbol);
-
-      expect(result.isArray).toBe(true);
-      expect(result.arrayDimensions).toEqual(["256"]);
-    });
-  });
-
-  describe("fromISymbols", () => {
-    it("should convert array of ISymbols", () => {
-      const iSymbols: ISymbol[] = [
-        {
-          name: "var1",
-          kind: "variable",
-          type: "u32",
-          sourceFile: "test.cnx",
-          sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
-        },
-        {
-          name: "var2",
-          kind: "variable",
-          type: "i32",
-          sourceFile: "test.cnx",
-          sourceLine: 2,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
-        },
-      ];
-
-      const results = HeaderSymbolAdapter.fromISymbols(iSymbols);
-
-      expect(results).toHaveLength(2);
-      expect(results[0].name).toBe("var1");
-      expect(results[1].name).toBe("var2");
-    });
-  });
 
   // ========================================================================
   // fromTSymbol - TSymbol to IHeaderSymbol Conversion
@@ -592,6 +485,28 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
     });
 
+    it("should resolve qualified enum array dimensions", () => {
+      const tSymbol: IVariableSymbol = {
+        kind: "variable",
+        name: "DATA",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u8"),
+        isConst: true,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: ["EColor.COUNT"],
+      };
+
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+
+      // Qualified enum access should be converted to C-style underscore notation
+      expect(result.arrayDimensions).toEqual(["EColor_COUNT"]);
+    });
+
     it("should handle autoConst parameter flag", () => {
       const tSymbol: IFunctionSymbol = {
         kind: "function",
@@ -618,23 +533,6 @@ describe("HeaderSymbolAdapter", () => {
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
       expect(result.parameters?.[0].isAutoConst).toBe(true);
-    });
-
-    it("should handle ISymbol with accessModifier", () => {
-      const iSymbol: ISymbol = {
-        name: "CTRL_DATA",
-        kind: "register_member",
-        type: "u32",
-        sourceFile: "gpio.cnx",
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        accessModifier: "rw",
-      };
-
-      const result = HeaderSymbolAdapter.fromISymbol(iSymbol);
-
-      expect(result.accessModifier).toBe("rw");
     });
   });
 });

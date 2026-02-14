@@ -30,7 +30,7 @@ import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import TypeResolver from "../../utils/TypeResolver";
 
 /**
  * Default target capabilities (safe fallback)
@@ -470,16 +470,12 @@ export default class CodeGenState {
       return localInfo;
     }
 
-    // Fall back to SymbolTable for cross-file C-Next variables only.
+    // ADR-055 Phase 7: Fall back to SymbolTable for cross-file C-Next variables only.
     // C/C++ header symbols don't have complete type info (e.g., isArray),
-    // so we only use C-Next symbols from SymbolTable.
-    const symbol = this.symbolTable.getSymbol(name);
-    if (
-      symbol?.kind === "variable" &&
-      symbol.type &&
-      symbol.sourceLanguage === ESourceLanguage.CNext
-    ) {
-      return this.convertSymbolToTypeInfo(symbol);
+    // so we only use C-Next TSymbols from SymbolTable.
+    const symbol = this.symbolTable.getTSymbol(name);
+    if (symbol?.kind === "variable" && symbol.type) {
+      return this.convertTSymbolToTypeInfo(symbol);
     }
 
     return undefined;
@@ -495,17 +491,14 @@ export default class CodeGenState {
 
   /**
    * Check if a variable type is registered (locally or in SymbolTable).
+   * ADR-055 Phase 7: Uses getTSymbol for typed symbol lookup.
    */
   static hasVariableTypeInfo(name: string): boolean {
     if (this.typeRegistry.has(name)) {
       return true;
     }
-    const symbol = this.symbolTable.getSymbol(name);
-    return (
-      symbol?.kind === "variable" &&
-      symbol.type !== undefined &&
-      symbol.sourceLanguage === ESourceLanguage.CNext
-    );
+    const symbol = this.symbolTable.getTSymbol(name);
+    return symbol?.kind === "variable" && symbol.type !== undefined;
   }
 
   /**
@@ -532,37 +525,32 @@ export default class CodeGenState {
   }
 
   /**
-   * Convert an ISymbol to TTypeInfo for unified type lookups.
-   * Used when looking up cross-file variables from SymbolTable.
+   * Convert a TSymbol IVariableSymbol to TTypeInfo for unified type lookups.
+   * ADR-055 Phase 7: Works with typed TSymbol instead of ISymbol.
    */
-  private static convertSymbolToTypeInfo(symbol: {
-    type?: string;
-    isArray?: boolean;
-    arrayDimensions?: string[];
-    isConst?: boolean;
-    isAtomic?: boolean;
-  }): TTypeInfo {
-    const rawType = symbol.type || "unknown";
+  private static convertTSymbolToTypeInfo(
+    symbol: import("../types/symbols/IVariableSymbol").default,
+  ): TTypeInfo {
+    const typeName = TypeResolver.getTypeName(symbol.type);
 
-    // Parse string<N> type pattern
+    // Parse string capacity using regex
     const stringPattern = /^string<(\d+)>$/;
-    const stringMatch = stringPattern.exec(rawType);
+    const stringMatch = stringPattern.exec(typeName);
     const isString = stringMatch !== null;
     const stringCapacity = stringMatch
       ? Number.parseInt(stringMatch[1], 10)
       : undefined;
-    // Use "char" for string types to match local convention (StringDeclHelper.ts)
-    const baseType = isString ? "char" : rawType;
+    // Use char for string types to match local convention
+    const baseType = isString ? "char" : typeName;
 
     const isEnum = this.isKnownEnum(baseType);
 
     return {
       baseType,
-      // Use bitWidth 8 for strings (char), otherwise lookup from TYPE_WIDTH
       bitWidth: isString ? 8 : TYPE_WIDTH[baseType] || 0,
       isArray: symbol.isArray || false,
       arrayDimensions: symbol.arrayDimensions
-        ?.map((d) => Number.parseInt(d, 10))
+        ?.map((d) => (typeof d === "number" ? d : Number.parseInt(d, 10)))
         .filter((n) => !Number.isNaN(n)),
       isConst: symbol.isConst || false,
       isAtomic: symbol.isAtomic || false,

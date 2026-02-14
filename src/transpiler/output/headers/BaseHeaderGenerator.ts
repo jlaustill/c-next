@@ -6,7 +6,7 @@
  * determine pointer (*) vs reference (&) semantics.
  */
 
-import ISymbol from "../../../utils/types/ISymbol";
+import IHeaderSymbol from "./types/IHeaderSymbol";
 import IParameterSymbol from "../../../utils/types/IParameterSymbol";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
@@ -40,7 +40,7 @@ abstract class BaseHeaderGenerator {
    * Generate a header file from symbols
    */
   generate(
-    symbols: ISymbol[],
+    symbols: IHeaderSymbol[],
     filename: string,
     options: IHeaderOptions = {},
     typeInput?: IHeaderTypeInput,
@@ -128,7 +128,7 @@ abstract class BaseHeaderGenerator {
    * Generate function prototypes section
    */
   private generateFunctionSection(
-    functions: ISymbol[],
+    functions: IHeaderSymbol[],
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
   ): string[] {
@@ -155,7 +155,7 @@ abstract class BaseHeaderGenerator {
    * Generate a function prototype
    */
   private generateFunctionPrototype(
-    sym: ISymbol,
+    sym: IHeaderSymbol,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
   ): string | null {

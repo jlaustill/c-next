@@ -25,15 +25,16 @@ import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilde
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
-import ISymbol from "../utils/types/ISymbol";
+import ISerializedSymbol from "./types/ISerializedSymbol";
+import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "./logic/symbols/cnext";
 import SymbolRegistry from "./state/SymbolRegistry";
-import TSymbolAdapter from "./logic/symbols/cnext/adapters/TSymbolAdapter";
 import TSymbolInfoAdapter from "./logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import CResolver from "./logic/symbols/c";
-import CTSymbolAdapter from "./logic/symbols/c/adapters/CTSymbolAdapter";
 import CppResolver from "./logic/symbols/cpp";
-import CppTSymbolAdapter from "./logic/symbols/cpp/adapters/CppTSymbolAdapter";
+import HeaderSymbolAdapter from "./output/headers/adapters/HeaderSymbolAdapter";
+import IHeaderSymbol from "./output/headers/types/IHeaderSymbol";
+import TSymbol from "./types/symbols/TSymbol";
 import Preprocessor from "./logic/preprocessor/Preprocessor";
 
 import FileDiscovery from "./data/FileDiscovery";
@@ -58,7 +59,6 @@ import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
-import AutoConstUpdater from "./logic/symbols/AutoConstUpdater";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 
 /**
@@ -335,18 +335,11 @@ class Transpiler {
     }
 
     try {
-      // ADR-055: Use composable collectors via CNextResolver + TSymbolAdapter
+      // ADR-055 Phase 7: Use composable collectors via CNextResolver
       const tSymbols = CNextResolver.resolve(tree, file.path);
 
-      // ADR-055 Phase 5: Store TSymbol directly in SymbolTable
+      // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       CodeGenState.symbolTable.addTSymbols(tSymbols);
-
-      // Backwards compatibility: Convert to ISymbol for existing consumers
-      const iSymbols = TSymbolAdapter.toISymbols(
-        tSymbols,
-        CodeGenState.symbolTable,
-      );
-      CodeGenState.symbolTable.addSymbols(iSymbols);
 
       // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
       const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
@@ -457,16 +450,13 @@ class Transpiler {
         this._accumulateFileModifications();
       }
 
-      // Update symbol parameters with auto-const info
-      const symbols = CodeGenState.symbolTable.getSymbolsByFile(sourcePath);
-      const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
-      const knownEnums =
-        this.state.getSymbolInfo(sourcePath)?.knownEnums ?? new Set<string>();
-      AutoConstUpdater.update(symbols, unmodifiedParams, knownEnums);
+      // ADR-055 Phase 7: Get TSymbols for header generation (auto-const applied during conversion)
+      const fileSymbols =
+        CodeGenState.symbolTable.getTSymbolsByFile(sourcePath);
 
       // Generate header content
       const headerCode = this.generateHeaderContent(
-        symbols,
+        fileSymbols,
         sourcePath,
         this.cppDetected,
         userIncludes,
@@ -1066,7 +1056,8 @@ class Transpiler {
     }
 
     // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
-    CodeGenState.symbolTable.addSymbols(cached.symbols);
+    // ADR-055 Phase 7: Cache returns ISerializedSymbol[], converted to typed symbols
+    this.restoreCachedSymbols(cached.symbols, file);
     CodeGenState.symbolTable.restoreStructFields(cached.structFields);
     CodeGenState.symbolTable.restoreNeedsStructKeyword(
       cached.needsStructKeyword,
@@ -1077,6 +1068,78 @@ class Transpiler {
     this.detectCppFromFileType(file);
 
     return true;
+  }
+
+  /**
+   * Restore cached symbols to the symbol table.
+   * ADR-055 Phase 7: Converts ISerializedSymbol[] from cache to typed symbols.
+   */
+  private restoreCachedSymbols(
+    symbols: ISerializedSymbol[],
+    _file: IDiscoveredFile,
+  ): void {
+    for (const symbol of symbols) {
+      // Determine which storage to use based on source language
+      if (symbol.sourceLanguage === ESourceLanguage.CNext) {
+        // C-Next symbols are never cached (they use TSymbol format).
+        // If we see one here, it indicates a cache format issue - skip silently
+        // since C-Next symbols are always re-parsed from source anyway.
+        continue;
+      } else if (symbol.sourceLanguage === ESourceLanguage.C) {
+        // Convert ISymbol to TCSymbol (simplified conversion)
+        CodeGenState.symbolTable.addCSymbol({
+          kind: symbol.kind as
+            | "struct"
+            | "enum"
+            | "function"
+            | "variable"
+            | "enum_member"
+            | "typedef",
+          name: symbol.name,
+          sourceFile: symbol.sourceFile,
+          sourceLine: symbol.sourceLine,
+          sourceLanguage: ESourceLanguage.C,
+          type: symbol.type,
+          isExported: symbol.isExported ?? true,
+          isDeclaration: symbol.isDeclaration,
+          parameters: symbol.parameters?.map((p) => ({
+            name: p.name,
+            type: p.type,
+            isArray: p.isArray,
+          })),
+          arrayDimensions: symbol.arrayDimensions?.map(String),
+          members: undefined,
+          isUnion: false,
+        } as import("./types/symbols/c/TCSymbol").default);
+      } else if (symbol.sourceLanguage === ESourceLanguage.Cpp) {
+        // Convert ISymbol to TCppSymbol (simplified conversion)
+        CodeGenState.symbolTable.addCppSymbol({
+          kind: symbol.kind as
+            | "class"
+            | "struct"
+            | "namespace"
+            | "enum"
+            | "function"
+            | "variable"
+            | "enum_member"
+            | "type_alias",
+          name: symbol.name,
+          sourceFile: symbol.sourceFile,
+          sourceLine: symbol.sourceLine,
+          sourceLanguage: ESourceLanguage.Cpp,
+          type: symbol.type,
+          isExported: symbol.isExported ?? true,
+          isDeclaration: symbol.isDeclaration,
+          parent: symbol.parent,
+          parameters: symbol.parameters?.map((p) => ({
+            name: p.name,
+            type: p.type,
+            isArray: p.isArray,
+          })),
+          arrayDimensions: symbol.arrayDimensions?.map(String),
+        } as import("./types/symbols/cpp/TCppSymbol").default);
+      }
+    }
   }
 
   /**
@@ -1140,6 +1203,7 @@ class Transpiler {
   /**
    * Issue #208: Parse a pure C header (no C++ syntax detected)
    * Uses CResolver for symbol collection
+   * ADR-055 Phase 7: Direct TCSymbol storage (no adapter conversion)
    */
   private parsePureCHeader(content: string, filePath: string): void {
     const { tree } = HeaderParser.parseC(content);
@@ -1149,14 +1213,14 @@ class Transpiler {
         filePath,
         CodeGenState.symbolTable,
       );
-      // Convert TCSymbol[] to ISymbol[] for backwards compatibility
-      const symbols = CTSymbolAdapter.toISymbols(result.symbols);
-      CodeGenState.symbolTable.addSymbols(symbols);
+      // ADR-055 Phase 7: Store TCSymbol directly
+      CodeGenState.symbolTable.addCSymbols(result.symbols);
     }
   }
 
   /**
    * Parse a C++ header using CppResolver
+   * ADR-055 Phase 7: Direct TCppSymbol storage (no adapter conversion)
    */
   private parseCppHeader(content: string, filePath: string): void {
     const { tree } = HeaderParser.parseCpp(content);
@@ -1166,9 +1230,8 @@ class Transpiler {
         filePath,
         CodeGenState.symbolTable,
       );
-      // Convert TCppSymbol[] to ISymbol[] for backwards compatibility
-      const symbols = CppTSymbolAdapter.toISymbols(result.symbols);
-      CodeGenState.symbolTable.addSymbols(symbols);
+      // ADR-055 Phase 7: Store TCppSymbol directly
+      CodeGenState.symbolTable.addCppSymbols(result.symbols);
     }
   }
 
@@ -1178,10 +1241,11 @@ class Transpiler {
 
   /**
    * Stage 6: Generate header file for a C-Next file
+   * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
    */
   private generateHeader(file: IDiscoveredFile): string | null {
-    const symbols = CodeGenState.symbolTable.getSymbolsByFile(file.path);
-    const exportedSymbols = symbols.filter((s) => s.isExported);
+    const tSymbols = CodeGenState.symbolTable.getTSymbolsByFile(file.path);
+    const exportedSymbols = tSymbols.filter((s) => s.isExported);
 
     if (exportedSymbols.length === 0) {
       return null;
@@ -1219,8 +1283,12 @@ class Transpiler {
       ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
       : undefined;
 
+    // ADR-055 Phase 7: Convert TSymbol to IHeaderSymbol
+    // Note: In multi-file run() path, auto-const is already applied during transpilation
+    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(exportedSymbols);
+
     const headerContent = this.headerGenerator.generate(
-      exportedSymbols,
+      headerSymbols,
       headerName,
       {
         exportedOnly: true,
@@ -1282,49 +1350,34 @@ class Transpiler {
   /**
    * Generate header content for exported symbols.
    * Issue #591: Extracted from transpileSource() for reduced complexity.
+   * ADR-055 Phase 7: Works with TSymbol[], converts to IHeaderSymbol for generation.
    */
   private generateHeaderContent(
-    symbols: ISymbol[],
+    tSymbols: TSymbol[],
     sourcePath: string,
     cppMode: boolean,
     userIncludes: string[],
     passByValueParams: Map<string, Set<string>>,
     symbolInfo: ICodeGenSymbols,
   ): string | undefined {
-    const exportedSymbols = symbols.filter(
-      (s: { isExported?: boolean }) => s.isExported,
-    );
+    const exportedSymbols = tSymbols.filter((s) => s.isExported);
 
     if (exportedSymbols.length === 0) {
       return undefined;
     }
 
+    // Convert to IHeaderSymbol with auto-const info
+    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
+    const headerSymbols = this.convertToHeaderSymbols(
+      exportedSymbols,
+      unmodifiedParams,
+      symbolInfo.knownEnums,
+    );
+
     const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
 
     // Get type input from CodeGenState (for struct/enum definitions)
     const typeInput = CodeGenState.symbols;
-
-    // Update auto-const info on symbol parameters
-    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
-    for (const symbol of symbols) {
-      if (symbol.kind !== "function" || !symbol.parameters) {
-        continue;
-      }
-      const unmodified = unmodifiedParams.get(symbol.name);
-      if (!unmodified) continue;
-
-      for (const param of symbol.parameters) {
-        const isPointerParam =
-          !param.isConst &&
-          !param.isArray &&
-          param.type !== "f32" &&
-          param.type !== "f64" &&
-          param.type !== "ISR";
-        if (isPointerParam && unmodified.has(param.name)) {
-          param.isAutoConst = true;
-        }
-      }
-    }
 
     // Issue #497: Build mapping from external types to their C header includes
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
@@ -1339,7 +1392,7 @@ class Transpiler {
 
     // Issue #478: Pass all known enums for cross-file type handling
     return this.headerGenerator.generate(
-      exportedSymbols,
+      headerSymbols,
       headerName,
       {
         exportedOnly: true,
@@ -1351,6 +1404,54 @@ class Transpiler {
       passByValueParams,
       symbolInfo.knownEnums,
     );
+  }
+
+  /**
+   * Convert TSymbols to IHeaderSymbols with auto-const information applied.
+   * ADR-055 Phase 7: Replaces mutation-based auto-const updating.
+   */
+  private convertToHeaderSymbols(
+    symbols: TSymbol[],
+    unmodifiedParams: ReadonlyMap<string, ReadonlySet<string>>,
+    knownEnums: ReadonlySet<string>,
+  ): IHeaderSymbol[] {
+    return symbols.map((symbol) => {
+      const headerSymbol = HeaderSymbolAdapter.fromTSymbol(symbol);
+
+      // Apply auto-const to function parameters
+      if (
+        symbol.kind === "function" &&
+        headerSymbol.parameters &&
+        headerSymbol.parameters.length > 0
+      ) {
+        const unmodified = unmodifiedParams.get(headerSymbol.name);
+        if (unmodified) {
+          // Create a mutable copy of parameters with auto-const applied
+          const updatedParams = headerSymbol.parameters.map((param) => {
+            const isPointerParam =
+              !param.isConst &&
+              !param.isArray &&
+              param.type !== "f32" &&
+              param.type !== "f64" &&
+              param.type !== "ISR" &&
+              !knownEnums.has(param.type ?? "");
+            const isArrayParam = param.isArray && !param.isConst;
+
+            if (
+              (isPointerParam || isArrayParam) &&
+              unmodified.has(param.name)
+            ) {
+              return { ...param, isAutoConst: true };
+            }
+            return param;
+          });
+
+          return { ...headerSymbol, parameters: updatedParams };
+        }
+      }
+
+      return headerSymbol;
+    });
   }
 
   // ===========================================================================

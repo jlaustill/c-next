@@ -6,8 +6,8 @@
 
 import { describe, it, expect } from "vitest";
 import CppHeaderGenerator from "../CppHeaderGenerator";
-import ISymbol from "../../../../utils/types/ISymbol";
-import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import IHeaderSymbol from "../types/IHeaderSymbol";
+
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 
 // ============================================================================
@@ -19,7 +19,7 @@ function createFunctionSymbol(
   returnType: string,
   parameters: IParameterSymbol[] = [],
   isExported = true,
-): ISymbol {
+): IHeaderSymbol {
   return {
     name,
     kind: "function",
@@ -28,7 +28,6 @@ function createFunctionSymbol(
     isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
-    sourceLanguage: ESourceLanguage.CNext,
   };
 }
 
@@ -55,7 +54,7 @@ describe("CppHeaderGenerator", () => {
   describe("generate", () => {
     it("generates header with include guard", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -66,7 +65,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates header with custom guard prefix", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "module.h", {
         guardPrefix: "MY_PROJECT",
@@ -78,7 +77,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates extern C wrapper for C++ compatibility", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -89,7 +88,9 @@ describe("CppHeaderGenerator", () => {
 
     it("generates function prototypes", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("doSomething", "void")];
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("doSomething", "void"),
+      ];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -98,7 +99,7 @@ describe("CppHeaderGenerator", () => {
 
     it("filters to exported symbols when exportedOnly is true", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("publicFunc", "void", [], true),
         createFunctionSymbol("privateFunc", "void", [], false),
       ];
@@ -113,7 +114,7 @@ describe("CppHeaderGenerator", () => {
 
     it("includes all symbols when exportedOnly is false", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("publicFunc", "void", [], true),
         createFunctionSymbol("privateFunc", "void", [], false),
       ];
@@ -130,7 +131,7 @@ describe("CppHeaderGenerator", () => {
   describe("function prototype generation", () => {
     it("generates void function with no parameters", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("init", "void")];
+      const symbols: IHeaderSymbol[] = [createFunctionSymbol("init", "void")];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -139,7 +140,9 @@ describe("CppHeaderGenerator", () => {
 
     it("generates function with return type", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("getValue", "u32")];
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("getValue", "u32"),
+      ];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -148,7 +151,7 @@ describe("CppHeaderGenerator", () => {
 
     it("forces main to return int", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("main", "u32")];
+      const symbols: IHeaderSymbol[] = [createFunctionSymbol("main", "u32")];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -157,7 +160,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates function with single parameter using reference", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [createParam("value", "u32")]),
       ];
 
@@ -168,7 +171,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates function with const parameter", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
           createParam("value", "u32", { isConst: true }),
         ]),
@@ -181,7 +184,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates function with auto-const parameter", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
           createParam("value", "u32", { isAutoConst: true }),
         ]),
@@ -194,7 +197,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates function with multiple parameters", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("add", "u32", [
           createParam("a", "u32"),
           createParam("b", "u32"),
@@ -208,7 +211,7 @@ describe("CppHeaderGenerator", () => {
 
     it("uses pass-by-value for parameters in passByValueParams", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [createParam("value", "u32")]),
       ];
       const passByValueParams = new Map([["process", new Set(["value"])]]);
@@ -226,7 +229,7 @@ describe("CppHeaderGenerator", () => {
 
     it("uses pass-by-value for float types (f32)", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setFloat", "void", [createParam("value", "f32")]),
       ];
 
@@ -237,7 +240,7 @@ describe("CppHeaderGenerator", () => {
 
     it("uses pass-by-value for float types (f64)", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setDouble", "void", [
           createParam("value", "f64"),
         ]),
@@ -250,7 +253,7 @@ describe("CppHeaderGenerator", () => {
 
     it("uses pass-by-value for enum types", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setState", "void", [
           createParam("state", "State"),
         ]),
@@ -271,7 +274,7 @@ describe("CppHeaderGenerator", () => {
 
     it("uses pass-by-value for ISR type (function pointer)", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setHandler", "void", [
           createParam("handler", "ISR"),
         ]),
@@ -284,7 +287,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates array parameter with pointer syntax", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processArray", "void", [
           createParam("data", "u8", { isArray: true, arrayDimensions: ["10"] }),
         ]),
@@ -297,7 +300,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates const array parameter", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("readArray", "void", [
           createParam("data", "u8", {
             isConst: true,
@@ -314,7 +317,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates string array parameter as char*", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processStrings", "void", [
           createParam("strings", "string", {
             isArray: true,
@@ -330,7 +333,7 @@ describe("CppHeaderGenerator", () => {
 
     it("generates multi-dimensional array parameter", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processMatrix", "void", [
           createParam("matrix", "u32", {
             isArray: true,
@@ -360,7 +363,7 @@ describe("CppHeaderGenerator", () => {
       ];
 
       for (const { cnx, c } of types) {
-        const symbols: ISymbol[] = [createFunctionSymbol("get", cnx)];
+        const symbols: IHeaderSymbol[] = [createFunctionSymbol("get", cnx)];
         const result = generator.generate(symbols, "test.h");
         expect(result).toContain(`${c} get(void);`);
       }
@@ -368,7 +371,9 @@ describe("CppHeaderGenerator", () => {
 
     it("maps bool type", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("isReady", "bool")];
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("isReady", "bool"),
+      ];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -377,7 +382,7 @@ describe("CppHeaderGenerator", () => {
 
     it("maps float types", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("getF32", "f32"),
         createFunctionSymbol("getF64", "f64"),
       ];
@@ -392,7 +397,7 @@ describe("CppHeaderGenerator", () => {
   describe("empty inputs", () => {
     it("generates valid header with no functions", () => {
       const generator = new CppHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "empty.h");
 

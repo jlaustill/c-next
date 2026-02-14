@@ -5,9 +5,9 @@
  * Maintains backward-compatible API.
  */
 
-import ISymbol from "../../../utils/types/ISymbol";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import IHeaderSymbol from "./types/IHeaderSymbol";
 import SymbolTable from "../../logic/symbols/SymbolTable";
+import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import CHeaderGenerator from "./CHeaderGenerator";
@@ -39,7 +39,7 @@ class HeaderGenerator {
    * @param allKnownEnums - All known enum names from entire compilation
    */
   generate(
-    symbols: ISymbol[],
+    symbols: IHeaderSymbol[],
     filename: string,
     options: IHeaderOptions = {},
     typeInput?: IHeaderTypeInput,
@@ -66,11 +66,12 @@ class HeaderGenerator {
     sourceFile: string,
     options: IHeaderOptions = {},
   ): string {
-    const symbols = symbolTable.getSymbolsByFile(sourceFile);
+    const tSymbols = symbolTable.getTSymbolsByFile(sourceFile);
+    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols);
     const basename = sourceFile.replace(/\.[^.]+$/, "");
     const headerName = `${basename}.h`;
 
-    return this.generate(symbols, headerName, options);
+    return this.generate(headerSymbols, headerName, options);
   }
 
   /**
@@ -81,8 +82,9 @@ class HeaderGenerator {
     filename: string,
     options: IHeaderOptions = {},
   ): string {
-    const symbols = symbolTable.getSymbolsByLanguage(ESourceLanguage.CNext);
-    return this.generate(symbols, filename, options);
+    const tSymbols = symbolTable.getAllTSymbols();
+    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols);
+    return this.generate(headerSymbols, filename, options);
   }
 }
 

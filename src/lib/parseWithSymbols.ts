@@ -1,56 +1,211 @@
 /**
  * Parse C-Next source and extract symbols for IDE features
+ * ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
 import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
 import CNextResolver from "../transpiler/logic/symbols/cnext/index";
-import TSymbolAdapter from "../transpiler/logic/symbols/cnext/adapters/TSymbolAdapter";
-import SymbolTable from "../transpiler/logic/symbols/SymbolTable";
+import SymbolNameUtils from "../transpiler/logic/symbols/cnext/utils/SymbolNameUtils";
+import TypeResolver from "../utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
-import TSymbolKind from "./types/TSymbolKind";
-import TInternalSymbolKind from "../transpiler/types/symbol-kinds/TSymbolKind";
+import TSymbol from "../transpiler/types/symbols/TSymbol";
 
 /**
- * Map internal TSymbolKind (snake_case) to library TSymbolKind (camelCase) for extension use
+ * ADR-055 Phase 7: Convert TSymbol directly to ISymbolInfo array.
+ * Expands compound symbols (bitmaps, enums, registers) into multiple ISymbolInfo entries.
  */
-function mapSymbolKind(kind: TInternalSymbolKind): TSymbolKind {
-  switch (kind) {
-    case "namespace":
-    case "scope":
-      return "namespace";
-    case "struct":
-      return "struct";
-    case "register":
-      return "register";
-    case "function":
-      return "function";
-    case "variable":
-      return "variable";
-    case "register_member":
-      return "registerMember";
-    case "enum":
-      return "enum";
-    case "enum_member":
-      return "enumMember";
-    case "bitmap":
-      return "bitmap";
-    case "bitmap_field":
-      return "bitmapField";
-    default:
-      return "variable";
+function convertTSymbolsToISymbolInfo(symbols: TSymbol[]): ISymbolInfo[] {
+  const result: ISymbolInfo[] = [];
+
+  for (const symbol of symbols) {
+    switch (symbol.kind) {
+      case "bitmap":
+        result.push(...convertBitmap(symbol));
+        break;
+      case "enum":
+        result.push(...convertEnum(symbol));
+        break;
+      case "struct":
+        result.push(convertStruct(symbol));
+        break;
+      case "function":
+        result.push(...convertFunction(symbol));
+        break;
+      case "variable":
+        result.push(convertVariable(symbol));
+        break;
+      case "register":
+        result.push(...convertRegister(symbol));
+        break;
+      case "scope":
+        result.push(convertScope(symbol));
+        break;
+    }
   }
+
+  return result;
 }
 
-/**
- * Extract local name from full qualified name
- * e.g., "LED_toggle" with parent "LED" -> "toggle"
- */
-function extractLocalName(fullName: string, parent?: string): string {
-  if (parent && fullName.startsWith(parent + "_")) {
-    return fullName.substring(parent.length + 1);
+function convertBitmap(
+  bitmap: import("../transpiler/types/symbols/IBitmapSymbol").default,
+): ISymbolInfo[] {
+  const result: ISymbolInfo[] = [];
+  const mangledName = SymbolNameUtils.getMangledName(bitmap);
+  const parent = bitmap.scope.name || undefined;
+
+  result.push({
+    name: bitmap.name,
+    fullName: mangledName,
+    kind: "bitmap",
+    type: bitmap.backingType,
+    parent,
+    line: bitmap.sourceLine,
+  });
+
+  // Add bitmap fields
+  for (const [fieldName, fieldInfo] of bitmap.fields) {
+    result.push({
+      name: fieldName,
+      fullName: `${mangledName}.${fieldName}`,
+      kind: "bitmapField",
+      parent: mangledName,
+      line: bitmap.sourceLine,
+      size: fieldInfo.width,
+    });
   }
-  return fullName;
+
+  return result;
+}
+
+function convertEnum(
+  enumSym: import("../transpiler/types/symbols/IEnumSymbol").default,
+): ISymbolInfo[] {
+  const result: ISymbolInfo[] = [];
+  const mangledName = SymbolNameUtils.getMangledName(enumSym);
+  const parent = enumSym.scope.name || undefined;
+
+  result.push({
+    name: enumSym.name,
+    fullName: mangledName,
+    kind: "enum",
+    parent,
+    line: enumSym.sourceLine,
+  });
+
+  // Add enum members
+  for (const [memberName] of enumSym.members) {
+    result.push({
+      name: memberName,
+      fullName: `${mangledName}_${memberName}`,
+      kind: "enumMember",
+      parent: mangledName,
+      line: enumSym.sourceLine,
+    });
+  }
+
+  return result;
+}
+
+function convertStruct(
+  struct: import("../transpiler/types/symbols/IStructSymbol").default,
+): ISymbolInfo {
+  const mangledName = SymbolNameUtils.getMangledName(struct);
+  const parent = struct.scope.name || undefined;
+
+  return {
+    name: struct.name,
+    fullName: mangledName,
+    kind: "struct",
+    parent,
+    line: struct.sourceLine,
+  };
+}
+
+function convertFunction(
+  func: import("../transpiler/types/symbols/IFunctionSymbol").default,
+): ISymbolInfo[] {
+  const result: ISymbolInfo[] = [];
+  const mangledName = SymbolNameUtils.getMangledName(func);
+  const parent = func.scope.name || undefined;
+  const returnType = TypeResolver.getTypeName(func.returnType);
+
+  // Build signature
+  const paramTypes = func.parameters.map((p) =>
+    TypeResolver.getTypeName(p.type),
+  );
+  const signature = `${returnType} ${mangledName}(${paramTypes.join(", ")})`;
+
+  result.push({
+    name: func.name,
+    fullName: mangledName,
+    kind: "function",
+    type: returnType,
+    parent,
+    signature,
+    accessModifier: func.isExported ? "public" : "private",
+    line: func.sourceLine,
+  });
+
+  return result;
+}
+
+function convertVariable(
+  variable: import("../transpiler/types/symbols/IVariableSymbol").default,
+): ISymbolInfo {
+  const mangledName = SymbolNameUtils.getMangledName(variable);
+  const parent = variable.scope.name || undefined;
+  const typeStr = TypeResolver.getTypeName(variable.type);
+
+  return {
+    name: variable.name,
+    fullName: mangledName,
+    kind: "variable",
+    type: typeStr,
+    parent,
+    line: variable.sourceLine,
+  };
+}
+
+function convertRegister(
+  register: import("../transpiler/types/symbols/IRegisterSymbol").default,
+): ISymbolInfo[] {
+  const result: ISymbolInfo[] = [];
+  const mangledName = SymbolNameUtils.getMangledName(register);
+  const parent = register.scope.name || undefined;
+
+  result.push({
+    name: register.name,
+    fullName: mangledName,
+    kind: "register",
+    parent,
+    line: register.sourceLine,
+  });
+
+  // Add register members
+  for (const [memberName, memberInfo] of register.members) {
+    result.push({
+      name: memberName,
+      fullName: `${mangledName}.${memberName}`,
+      kind: "registerMember",
+      parent: mangledName,
+      accessModifier: memberInfo.access,
+      line: register.sourceLine,
+    });
+  }
+
+  return result;
+}
+
+function convertScope(
+  scope: import("../transpiler/types/symbols/IScopeSymbol").default,
+): ISymbolInfo {
+  return {
+    name: scope.name,
+    fullName: scope.name,
+    kind: "namespace",
+    line: scope.sourceLine,
+  };
 }
 
 /**
@@ -75,23 +230,9 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
   // Parse C-Next source
   const { tree, errors } = CNextSourceParser.parse(source);
 
-  // Collect symbols from the parse tree (ADR-055: use CNextResolver + TSymbolAdapter)
+  // ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
   const tSymbols = CNextResolver.resolve(tree, "<source>");
-  const symbolTable = new SymbolTable();
-  const rawSymbols = TSymbolAdapter.toISymbols(tSymbols, symbolTable);
-
-  // Transform ISymbol[] to ISymbolInfo[]
-  const symbols: ISymbolInfo[] = rawSymbols.map((sym) => ({
-    name: extractLocalName(sym.name, sym.parent),
-    fullName: sym.name,
-    kind: mapSymbolKind(sym.kind),
-    type: sym.type,
-    parent: sym.parent,
-    signature: sym.signature,
-    accessModifier: sym.accessModifier,
-    line: sym.sourceLine,
-    size: sym.size,
-  }));
+  const symbols = convertTSymbolsToISymbolInfo(tSymbols);
 
   return {
     success: errors.length === 0,

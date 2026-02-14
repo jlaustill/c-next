@@ -2,20 +2,31 @@
 
 ## Status
 
-**Accepted** (Phases 0-3 implemented, Phase 5 in progress)
+**Implemented** (All phases complete)
 
 ### Implementation Progress
 
-| Phase | Description                                                   | Status         | Issue                                                  |
-| ----- | ------------------------------------------------------------- | -------------- | ------------------------------------------------------ |
-| 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)          | ✅ Complete    | -                                                      |
-| 1     | Directory Restructure (`src/transpiler/logic/symbols/cnext/`) | ✅ Complete    | -                                                      |
-| 2     | Build Composable Collectors (7 collectors with tests)         | ✅ Complete    | -                                                      |
-| 3     | Create Orchestrator (`CNextResolver`)                         | ✅ Complete    | -                                                      |
-| 4     | Add CacheKeyGenerator                                         | ⚠️ To verify   | -                                                      |
-| 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)          | 🔄 In Progress | [#803](https://github.com/jlaustill/c-next/issues/803) |
-| 6     | Repeat for C++/C                                              | ❌ Not started | [#804](https://github.com/jlaustill/c-next/issues/804) |
-| 7     | Remove Legacy Types                                           | ❌ Not started | [#805](https://github.com/jlaustill/c-next/issues/805) |
+| Phase | Description                                                   | Status      | Issue                                                  |
+| ----- | ------------------------------------------------------------- | ----------- | ------------------------------------------------------ |
+| 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)          | ✅ Complete | -                                                      |
+| 1     | Directory Restructure (`src/transpiler/logic/symbols/cnext/`) | ✅ Complete | -                                                      |
+| 2     | Build Composable Collectors (7 collectors with tests)         | ✅ Complete | -                                                      |
+| 3     | Create Orchestrator (`CNextResolver`)                         | ✅ Complete | -                                                      |
+| 4     | Add CacheKeyGenerator                                         | ✅ Complete | -                                                      |
+| 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)          | ✅ Complete | [#803](https://github.com/jlaustill/c-next/issues/803) |
+| 6     | Repeat for C++/C (`CResolver`, `CppResolver`)                 | ✅ Complete | [#804](https://github.com/jlaustill/c-next/issues/804) |
+| 7     | Typed Symbol Storage in SymbolTable                           | ✅ Complete | [#805](https://github.com/jlaustill/c-next/issues/805) |
+
+### Phase 7 Implementation Notes
+
+Phase 7 implemented typed symbol storage with backwards compatibility:
+
+- **TAnySymbol**: Union type `TSymbol | TCSymbol | TCppSymbol` for cross-language operations
+- **SymbolTable**: Separate typed storage per language (`tSymbols`, `cSymbols`, `cppSymbols`)
+- **Auto-registration**: Struct fields automatically registered when adding struct symbols
+- **IHeaderSymbol**: Narrow interface for header generation (decoupled from full symbols)
+- **Cache bridge**: Cache still stores ISymbol format with conversion layer for typed symbols
+- **Public API**: `TSymbolAdapter` and `CTSymbolAdapter` retained for `parseWithSymbols` and `parseCHeader`
 
 ## Context
 

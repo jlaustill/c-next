@@ -6,27 +6,97 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CppNamespaceUtils from "../CppNamespaceUtils";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
-import ISymbol from "../types/ISymbol";
-import TSymbolKind from "../../transpiler/types/symbol-kinds/TSymbolKind";
+import type TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
+import type TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
+import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 
 describe("CppNamespaceUtils", () => {
   let symbolTable: SymbolTable;
 
-  // Helper to create a minimal valid ISymbol
-  function makeSymbol(
-    name: string,
-    kind: TSymbolKind,
-    sourceLanguage: ESourceLanguage,
-    sourceFile: string,
-  ): ISymbol {
+  // Helper to create a C++ namespace symbol
+  function makeCppNamespace(name: string, sourceFile: string): TCppSymbol {
     return {
+      kind: "namespace",
       name,
-      kind,
-      sourceLanguage,
       sourceFile,
       sourceLine: 1,
+      sourceLanguage: ESourceLanguage.Cpp,
       isExported: false,
     };
+  }
+
+  // Helper to create a C++ class symbol
+  function makeCppClass(name: string, sourceFile: string): TCppSymbol {
+    return {
+      kind: "class",
+      name,
+      sourceFile,
+      sourceLine: 1,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: false,
+    };
+  }
+
+  // Helper to create a C++ enum symbol
+  function makeCppEnum(name: string, sourceFile: string): TCppSymbol {
+    return {
+      kind: "enum",
+      name,
+      sourceFile,
+      sourceLine: 1,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: false,
+    };
+  }
+
+  // Helper to create a C++ function symbol
+  function makeCppFunction(name: string, sourceFile: string): TCppSymbol {
+    return {
+      kind: "function",
+      name,
+      sourceFile,
+      sourceLine: 1,
+      sourceLanguage: ESourceLanguage.Cpp,
+      isExported: false,
+      type: "void",
+    };
+  }
+
+  // Helper to create a C struct symbol
+  function makeCStruct(name: string, sourceFile: string): TCSymbol {
+    return {
+      kind: "struct",
+      name,
+      sourceFile,
+      sourceLine: 1,
+      sourceLanguage: ESourceLanguage.C,
+      isExported: false,
+      isUnion: false,
+    };
+  }
+
+  // Helper to create a C-Next scope symbol (minimal)
+  function makeCNextScope(name: string, sourceFile: string): IScopeSymbol {
+    const scope: IScopeSymbol = {
+      kind: "scope",
+      name,
+      sourceFile,
+      sourceLine: 1,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: false,
+      members: [],
+      functions: [],
+      variables: [],
+      memberVisibility: new Map(),
+      // Self-referencing for global scope
+      get parent(): IScopeSymbol {
+        return scope;
+      },
+      get scope(): IScopeSymbol {
+        return scope;
+      },
+    } as IScopeSymbol;
+    return scope;
   }
 
   beforeEach(() => {
@@ -51,54 +121,42 @@ describe("CppNamespaceUtils", () => {
     });
 
     it("should return true for C++ namespace", () => {
-      symbolTable.addSymbol(
-        makeSymbol("SeaDash", "namespace", ESourceLanguage.Cpp, "SeaDash.hpp"),
-      );
+      symbolTable.addCppSymbol(makeCppNamespace("SeaDash", "SeaDash.hpp"));
       expect(CppNamespaceUtils.isCppNamespace("SeaDash", symbolTable)).toBe(
         true,
       );
     });
 
     it("should return true for C++ class", () => {
-      symbolTable.addSymbol(
-        makeSymbol("MyClass", "class", ESourceLanguage.Cpp, "MyClass.hpp"),
-      );
+      symbolTable.addCppSymbol(makeCppClass("MyClass", "MyClass.hpp"));
       expect(CppNamespaceUtils.isCppNamespace("MyClass", symbolTable)).toBe(
         true,
       );
     });
 
     it("should return true for C++ enum (scoped enum)", () => {
-      symbolTable.addSymbol(
-        makeSymbol("MyEnum", "enum", ESourceLanguage.Cpp, "MyEnum.hpp"),
-      );
+      symbolTable.addCppSymbol(makeCppEnum("MyEnum", "MyEnum.hpp"));
       expect(CppNamespaceUtils.isCppNamespace("MyEnum", symbolTable)).toBe(
         true,
       );
     });
 
     it("should return false for C-Next namespace (scope)", () => {
-      symbolTable.addSymbol(
-        makeSymbol("MyScope", "scope", ESourceLanguage.CNext, "MyScope.cnx"),
-      );
+      symbolTable.addTSymbol(makeCNextScope("MyScope", "MyScope.cnx"));
       expect(CppNamespaceUtils.isCppNamespace("MyScope", symbolTable)).toBe(
         false,
       );
     });
 
     it("should return false for C struct", () => {
-      symbolTable.addSymbol(
-        makeSymbol("MyStruct", "struct", ESourceLanguage.C, "MyStruct.h"),
-      );
+      symbolTable.addCSymbol(makeCStruct("MyStruct", "MyStruct.h"));
       expect(CppNamespaceUtils.isCppNamespace("MyStruct", symbolTable)).toBe(
         false,
       );
     });
 
     it("should return false for C++ function", () => {
-      symbolTable.addSymbol(
-        makeSymbol("myFunction", "function", ESourceLanguage.Cpp, "funcs.hpp"),
-      );
+      symbolTable.addCppSymbol(makeCppFunction("myFunction", "funcs.hpp"));
       expect(CppNamespaceUtils.isCppNamespace("myFunction", symbolTable)).toBe(
         false,
       );
@@ -132,9 +190,7 @@ describe("CppNamespaceUtils", () => {
     });
 
     it("should return true for underscore type with C++ namespace prefix", () => {
-      symbolTable.addSymbol(
-        makeSymbol("SeaDash", "namespace", ESourceLanguage.Cpp, "SeaDash.hpp"),
-      );
+      symbolTable.addCppSymbol(makeCppNamespace("SeaDash", "SeaDash.hpp"));
       expect(
         CppNamespaceUtils.isCppNamespaceType(
           "SeaDash_Parse_ParseResult",
@@ -151,9 +207,7 @@ describe("CppNamespaceUtils", () => {
     });
 
     it("should return false for C-Next scope underscore type", () => {
-      symbolTable.addSymbol(
-        makeSymbol("MyScope", "scope", ESourceLanguage.CNext, "MyScope.cnx"),
-      );
+      symbolTable.addTSymbol(makeCNextScope("MyScope", "MyScope.cnx"));
       expect(
         CppNamespaceUtils.isCppNamespaceType("MyScope_MyType", symbolTable),
       ).toBe(false);
@@ -190,9 +244,7 @@ describe("CppNamespaceUtils", () => {
     });
 
     it("should convert underscore type with C++ namespace prefix", () => {
-      symbolTable.addSymbol(
-        makeSymbol("SeaDash", "namespace", ESourceLanguage.Cpp, "SeaDash.hpp"),
-      );
+      symbolTable.addCppSymbol(makeCppNamespace("SeaDash", "SeaDash.hpp"));
       expect(
         CppNamespaceUtils.convertToCppNamespace(
           "SeaDash_Parse_ParseResult",
@@ -209,18 +261,14 @@ describe("CppNamespaceUtils", () => {
     });
 
     it("should NOT convert C-Next scope underscore type", () => {
-      symbolTable.addSymbol(
-        makeSymbol("MyScope", "scope", ESourceLanguage.CNext, "MyScope.cnx"),
-      );
+      symbolTable.addTSymbol(makeCNextScope("MyScope", "MyScope.cnx"));
       expect(
         CppNamespaceUtils.convertToCppNamespace("MyScope_MyType", symbolTable),
       ).toBe("MyScope_MyType");
     });
 
     it("should handle deeply nested namespace", () => {
-      symbolTable.addSymbol(
-        makeSymbol("Lib", "namespace", ESourceLanguage.Cpp, "Lib.hpp"),
-      );
+      symbolTable.addCppSymbol(makeCppNamespace("Lib", "Lib.hpp"));
       expect(
         CppNamespaceUtils.convertToCppNamespace(
           "Lib_Sub_Deep_Type",
