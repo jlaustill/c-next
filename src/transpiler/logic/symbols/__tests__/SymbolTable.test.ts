@@ -1,11 +1,19 @@
 /**
  * Unit tests for SymbolTable
  * Issue #221: Function parameters should not cause conflicts
+ * ADR-055 Phase 5: TSymbol storage and query methods
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import SymbolTable from "../SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ISymbol from "../../../../utils/types/ISymbol";
+import TSymbol from "../../../types/symbols/TSymbol";
+import IVariableSymbol from "../../../types/symbols/IVariableSymbol";
+import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
+import IStructSymbol from "../../../types/symbols/IStructSymbol";
+import IEnumSymbol from "../../../types/symbols/IEnumSymbol";
+import TestScopeUtils from "../cnext/__tests__/testUtils";
+import TTypeUtils from "../../../../utils/TTypeUtils";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
@@ -975,6 +983,499 @@ describe("SymbolTable", () => {
       // C-only conflicts are left to the C compiler to detect
       const conflicts = symbolTable.getConflicts();
       expect(conflicts.length).toBe(0);
+    });
+  });
+
+  // ========================================================================
+  // ADR-055 Phase 5: TSymbol Storage and Query Methods
+  // ========================================================================
+
+  describe("TSymbol storage (ADR-055)", () => {
+    const globalScope = TestScopeUtils.createMockGlobalScope();
+
+    it("should add and retrieve a TSymbol by name", () => {
+      const tSymbol: IVariableSymbol = {
+        kind: "variable",
+        name: "myTVar",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      };
+
+      symbolTable.addTSymbol(tSymbol);
+      const retrieved = symbolTable.getTSymbol("myTVar");
+
+      expect(retrieved).toBeDefined();
+      expect(retrieved?.name).toBe("myTVar");
+      expect(retrieved?.kind).toBe("variable");
+    });
+
+    it("should return undefined for non-existent TSymbol", () => {
+      expect(symbolTable.getTSymbol("nonExistent")).toBeUndefined();
+    });
+
+    it("should add multiple TSymbols at once", () => {
+      const tSymbols: TSymbol[] = [
+        {
+          kind: "variable",
+          name: "tVar1",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+          type: TTypeUtils.createPrimitive("u32"),
+          isConst: false,
+          isAtomic: false,
+          isArray: false,
+        },
+        {
+          kind: "variable",
+          name: "tVar2",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 2,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+          type: TTypeUtils.createPrimitive("i32"),
+          isConst: true,
+          isAtomic: false,
+          isArray: false,
+        },
+      ];
+
+      symbolTable.addTSymbols(tSymbols);
+
+      expect(symbolTable.getTSymbol("tVar1")).toBeDefined();
+      expect(symbolTable.getTSymbol("tVar2")).toBeDefined();
+      expect(symbolTable.tSize).toBe(2);
+    });
+
+    it("should get TOverloads for same name", () => {
+      const func1: IFunctionSymbol = {
+        kind: "function",
+        name: "process",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        parameters: [],
+        returnType: TTypeUtils.createPrimitive("void"),
+        visibility: "public",
+        body: null,
+      };
+
+      const func2: IFunctionSymbol = {
+        kind: "function",
+        name: "process",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        parameters: [
+          {
+            name: "x",
+            type: TTypeUtils.createPrimitive("i32"),
+            isConst: false,
+            isArray: false,
+          },
+        ],
+        returnType: TTypeUtils.createPrimitive("i32"),
+        visibility: "public",
+        body: null,
+      };
+
+      symbolTable.addTSymbol(func1);
+      symbolTable.addTSymbol(func2);
+
+      const overloads = symbolTable.getTOverloads("process");
+      expect(overloads.length).toBe(2);
+    });
+
+    it("should get TSymbols by file", () => {
+      const var1: IVariableSymbol = {
+        kind: "variable",
+        name: "fileVar1",
+        scope: globalScope,
+        sourceFile: "file1.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      };
+
+      const var2: IVariableSymbol = {
+        kind: "variable",
+        name: "fileVar2",
+        scope: globalScope,
+        sourceFile: "file2.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("i32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      };
+
+      symbolTable.addTSymbol(var1);
+      symbolTable.addTSymbol(var2);
+
+      const file1Symbols = symbolTable.getTSymbolsByFile("file1.cnx");
+      expect(file1Symbols.length).toBe(1);
+      expect(file1Symbols[0].name).toBe("fileVar1");
+    });
+
+    it("should get all TSymbols", () => {
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "allVar1",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      });
+
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "allVar2",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 2,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("i32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      });
+
+      const all = symbolTable.getAllTSymbols();
+      expect(all.length).toBe(2);
+    });
+
+    it("should check hasTSymbol", () => {
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "existsVar",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      });
+
+      expect(symbolTable.hasTSymbol("existsVar")).toBe(true);
+      expect(symbolTable.hasTSymbol("notExists")).toBe(false);
+    });
+
+    it("should clear TSymbols along with ISymbols", () => {
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "toBeCleared",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      });
+
+      symbolTable.clear();
+
+      expect(symbolTable.tSize).toBe(0);
+      expect(symbolTable.getTSymbol("toBeCleared")).toBeUndefined();
+    });
+  });
+
+  describe("type-safe TSymbol queries (ADR-055)", () => {
+    const globalScope = TestScopeUtils.createMockGlobalScope();
+
+    it("should get struct symbols only", () => {
+      const struct: IStructSymbol = {
+        kind: "struct",
+        name: "Point",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        fields: new Map([
+          [
+            "x",
+            {
+              name: "x",
+              type: TTypeUtils.createPrimitive("i32"),
+              isConst: false,
+              isAtomic: false,
+              isArray: false,
+            },
+          ],
+        ]),
+      };
+
+      const variable: IVariableSymbol = {
+        kind: "variable",
+        name: "count",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      };
+
+      symbolTable.addTSymbols([struct, variable]);
+
+      const structs = symbolTable.getStructSymbols();
+      expect(structs.length).toBe(1);
+      expect(structs[0].name).toBe("Point");
+      expect(structs[0].kind).toBe("struct");
+    });
+
+    it("should get enum symbols only", () => {
+      const enumSym: IEnumSymbol = {
+        kind: "enum",
+        name: "EColor",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        members: new Map([
+          ["RED", 0],
+          ["GREEN", 1],
+          ["BLUE", 2],
+        ]),
+      };
+
+      const variable: IVariableSymbol = {
+        kind: "variable",
+        name: "color",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createEnum("EColor"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      };
+
+      symbolTable.addTSymbols([enumSym, variable]);
+
+      const enums = symbolTable.getEnumSymbols();
+      expect(enums.length).toBe(1);
+      expect(enums[0].name).toBe("EColor");
+      expect(enums[0].members.get("RED")).toBe(0);
+    });
+
+    it("should get function symbols only", () => {
+      const func: IFunctionSymbol = {
+        kind: "function",
+        name: "calculate",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        parameters: [],
+        returnType: TTypeUtils.createPrimitive("i32"),
+        visibility: "public",
+        body: null,
+      };
+
+      const variable: IVariableSymbol = {
+        kind: "variable",
+        name: "result",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("i32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      };
+
+      symbolTable.addTSymbols([func, variable]);
+
+      const functions = symbolTable.getFunctionSymbols();
+      expect(functions.length).toBe(1);
+      expect(functions[0].name).toBe("calculate");
+    });
+
+    it("should get variable symbols only", () => {
+      const func: IFunctionSymbol = {
+        kind: "function",
+        name: "init",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        parameters: [],
+        returnType: TTypeUtils.createPrimitive("void"),
+        visibility: "public",
+        body: null,
+      };
+
+      const variable: IVariableSymbol = {
+        kind: "variable",
+        name: "counter",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isConst: false,
+        isAtomic: false,
+        isArray: false,
+      };
+
+      symbolTable.addTSymbols([func, variable]);
+
+      const variables = symbolTable.getVariableSymbols();
+      expect(variables.length).toBe(1);
+      expect(variables[0].name).toBe("counter");
+    });
+  });
+
+  describe("getTStructFieldType (ADR-055)", () => {
+    const globalScope = TestScopeUtils.createMockGlobalScope();
+
+    it("should get struct field type from TSymbol storage", () => {
+      const struct: IStructSymbol = {
+        kind: "struct",
+        name: "Point",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        fields: new Map([
+          [
+            "x",
+            {
+              name: "x",
+              type: TTypeUtils.createPrimitive("i32"),
+              isConst: false,
+              isAtomic: false,
+              isArray: false,
+            },
+          ],
+          [
+            "y",
+            {
+              name: "y",
+              type: TTypeUtils.createPrimitive("f32"),
+              isConst: false,
+              isAtomic: false,
+              isArray: false,
+            },
+          ],
+        ]),
+      };
+
+      symbolTable.addTSymbol(struct);
+
+      expect(symbolTable.getTStructFieldType("Point", "x")).toBe("i32");
+      expect(symbolTable.getTStructFieldType("Point", "y")).toBe("f32");
+    });
+
+    it("should return undefined for unknown struct", () => {
+      expect(
+        symbolTable.getTStructFieldType("NonExistent", "field"),
+      ).toBeUndefined();
+    });
+
+    it("should return undefined for unknown field", () => {
+      const struct: IStructSymbol = {
+        kind: "struct",
+        name: "MyStruct",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        fields: new Map([
+          [
+            "knownField",
+            {
+              name: "knownField",
+              type: TTypeUtils.createPrimitive("u32"),
+              isConst: false,
+              isAtomic: false,
+              isArray: false,
+            },
+          ],
+        ]),
+      };
+
+      symbolTable.addTSymbol(struct);
+
+      expect(
+        symbolTable.getTStructFieldType("MyStruct", "unknownField"),
+      ).toBeUndefined();
+    });
+
+    it("should handle struct with string type field", () => {
+      const struct: IStructSymbol = {
+        kind: "struct",
+        name: "Person",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        fields: new Map([
+          [
+            "name",
+            {
+              name: "name",
+              type: TTypeUtils.createString(32),
+              isConst: false,
+              isAtomic: false,
+              isArray: false,
+            },
+          ],
+        ]),
+      };
+
+      symbolTable.addTSymbol(struct);
+
+      expect(symbolTable.getTStructFieldType("Person", "name")).toBe(
+        "string<32>",
+      );
     });
   });
 });
