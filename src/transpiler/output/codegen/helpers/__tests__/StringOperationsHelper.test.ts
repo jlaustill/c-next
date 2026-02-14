@@ -165,6 +165,19 @@ describe("StringOperationsHelper", () => {
       // With 3 operands, it should return null (simple concat only)
       expect(result).toBeNull();
     });
+
+    it("handles string literal containing hyphen correctly", () => {
+      // Regression test: ensure hyphen in string literal doesn't
+      // falsely trigger subtraction detection
+      const expr = parseExpression('str1 + "hello-world"');
+      const result = StringOperationsHelper.getStringConcatOperands(expr);
+
+      expect(result).not.toBeNull();
+      expect(result!.left).toBe("str1");
+      expect(result!.right).toBe('"hello-world"');
+      expect(result!.leftCapacity).toBe(32);
+      expect(result!.rightCapacity).toBe(11); // "hello-world" is 11 chars
+    });
   });
 
   // ========================================================================

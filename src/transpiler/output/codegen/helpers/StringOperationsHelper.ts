@@ -13,6 +13,9 @@ import CodeGenState from "../../../state/CodeGenState.js";
 import StringUtils from "../../../../utils/StringUtils.js";
 import ExpressionUnwrapper from "../utils/ExpressionUnwrapper.js";
 
+/** Regex for identifying valid C/C++ identifiers */
+const IDENTIFIER_REGEX = /^[a-zA-Z_]\w*$/;
+
 /**
  * String concatenation operands extracted from expression.
  */
@@ -67,8 +70,7 @@ class StringOperationsHelper {
     }
 
     // Variable - check type registry
-    const identifierRegex = /^[a-zA-Z_]\w*$/;
-    if (identifierRegex.test(exprCode)) {
+    if (IDENTIFIER_REGEX.test(exprCode)) {
       const typeInfo = CodeGenState.getVariableTypeInfo(exprCode);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
@@ -100,8 +102,9 @@ class StringOperationsHelper {
     if (multExprs.length !== 2) return null;
 
     // Check if this is addition (not subtraction)
-    const text = add.getText();
-    if (text.includes("-")) return null;
+    // Use MINUS() token check instead of text.includes("-") to avoid
+    // false positives from identifiers/literals containing hyphens
+    if (add.MINUS().length > 0) return null;
 
     // Get the operand texts
     const leftText = multExprs[0].getText();
