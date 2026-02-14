@@ -19,6 +19,7 @@ From PR #789 analysis, the Type Registration Engine was identified as an extract
 **Pattern:** Static class with minimal callback interface (2 callbacks only).
 
 **Callback Interface:**
+
 ```typescript
 interface ITypeRegistrationCallbacks {
   tryEvaluateConstant: (ctx: Parser.ExpressionContext) => number | undefined;
@@ -27,6 +28,7 @@ interface ITypeRegistrationCallbacks {
 ```
 
 **State Access:** Direct `CodeGenState` access for:
+
 - `constValues` - const value tracking
 - `currentScope` - scope context (read/temporarily set)
 - `setVariableTypeInfo()` - type registry writes
@@ -41,19 +43,19 @@ class TypeRegistrationEngine {
   /** Entry point: Register all variable types from the program tree. */
   static register(
     tree: Parser.ProgramContext,
-    callbacks: ITypeRegistrationCallbacks
+    callbacks: ITypeRegistrationCallbacks,
   ): void;
 
   /** Register a single global variable's type. */
   static registerGlobalVariable(
     varDecl: Parser.VariableDeclarationContext,
-    callbacks: ITypeRegistrationCallbacks
+    callbacks: ITypeRegistrationCallbacks,
   ): void;
 
   /** Register all member variable types within a scope. */
   static registerScopeMemberTypes(
     scopeDecl: Parser.ScopeDeclarationContext,
-    callbacks: ITypeRegistrationCallbacks
+    callbacks: ITypeRegistrationCallbacks,
   ): void;
 }
 ```
@@ -93,11 +95,11 @@ CodeGenerator.generate()
 
 ## Callback Usage
 
-| Callback | Used By | Purpose |
-|----------|---------|---------|
-| `tryEvaluateConstant` | `registerGlobalVariable()` | Const value tracking |
-| `tryEvaluateConstant` | `_evaluateArrayDimensions()` | Dimension resolution |
-| `requireInclude("string")` | `tryRegisterStringType()` | Include string.h |
+| Callback                   | Used By                      | Purpose              |
+| -------------------------- | ---------------------------- | -------------------- |
+| `tryEvaluateConstant`      | `registerGlobalVariable()`   | Const value tracking |
+| `tryEvaluateConstant`      | `_evaluateArrayDimensions()` | Dimension resolution |
+| `requireInclude("string")` | `tryRegisterStringType()`    | Include string.h     |
 
 ## Testing Strategy
 
@@ -106,10 +108,12 @@ CodeGenerator.generate()
 Location: `src/transpiler/logic/analysis/__tests__/TypeRegistrationEngine.test.ts`
 
 **Pure helper tests (no mocking):**
+
 - `parseArrayTypeDimension()` - integer literals, empty dimensions
 - `resolveBaseType()` - primitive, scoped, global, qualified, user types
 
 **Orchestration tests (mock callbacks):**
+
 - `register()` - global variables, scope members
 - Const value tracking
 - String include requirement

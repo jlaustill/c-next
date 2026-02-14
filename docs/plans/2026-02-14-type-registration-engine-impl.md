@@ -13,6 +13,7 @@
 ## Task 1: Create TypeRegistrationEngine Skeleton
 
 **Files:**
+
 - Create: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 
 **Step 1: Create the file with interface and class skeleton**
@@ -78,6 +79,7 @@ git commit -m "feat(#791): add TypeRegistrationEngine skeleton"
 ## Task 2: Add Pure Helper - parseArrayTypeDimension
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 - Create: `src/transpiler/logic/analysis/__tests__/TypeRegistrationEngine.test.ts`
 
@@ -176,6 +178,7 @@ git commit -m "feat(#791): add parseArrayTypeDimension pure helper"
 ## Task 3: Add Pure Helper - resolveBaseType
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 - Modify: `src/transpiler/logic/analysis/__tests__/TypeRegistrationEngine.test.ts`
 
@@ -300,6 +303,7 @@ git commit -m "feat(#791): add resolveBaseType pure helper"
 ## Task 4: Add Imports and Dependencies
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 
 **Step 1: Add all required imports**
@@ -334,6 +338,7 @@ git commit -m "feat(#791): add TypeRegistrationEngine imports"
 ## Task 5: Implement Core Registration Methods
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 
 **Step 1: Implement register() entry point**
@@ -441,9 +446,10 @@ git commit -m "feat(#791): add core registration methods"
 ## Task 6: Implement Private Tracking Methods
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 
-**Step 1: Add _trackVariableType**
+**Step 1: Add \_trackVariableType**
 
 ```typescript
   /**
@@ -459,7 +465,7 @@ git commit -m "feat(#791): add core registration methods"
   }
 ```
 
-**Step 2: Add _trackVariableTypeWithName**
+**Step 2: Add \_trackVariableTypeWithName**
 
 ```typescript
   /**
@@ -566,9 +572,10 @@ git commit -m "feat(#791): add private tracking methods"
 ## Task 7: Implement String Type Registration
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 
-**Step 1: Add _tryRegisterStringType**
+**Step 1: Add \_tryRegisterStringType**
 
 ```typescript
   /**
@@ -635,9 +642,10 @@ git commit -m "feat(#791): add string type registration"
 ## Task 8: Implement Array Type and Standard Registration
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 
-**Step 1: Add _registerArrayTypeVariable**
+**Step 1: Add \_registerArrayTypeVariable**
 
 ```typescript
   /**
@@ -715,7 +723,7 @@ git commit -m "feat(#791): add string type registration"
   }
 ```
 
-**Step 2: Add _collectArrayDimensions**
+**Step 2: Add \_collectArrayDimensions**
 
 ```typescript
   /**
@@ -752,7 +760,7 @@ git commit -m "feat(#791): add string type registration"
   }
 ```
 
-**Step 3: Add _evaluateArrayDimensions**
+**Step 3: Add \_evaluateArrayDimensions**
 
 ```typescript
   /**
@@ -770,7 +778,7 @@ git commit -m "feat(#791): add string type registration"
   }
 ```
 
-**Step 4: Add _registerStandardType**
+**Step 4: Add \_registerStandardType**
 
 ```typescript
   /**
@@ -821,9 +829,10 @@ git commit -m "feat(#791): add array and standard type registration"
 ## Task 9: Implement Enum/Bitmap Registration
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
 
-**Step 1: Add _tryRegisterEnumOrBitmapType**
+**Step 1: Add \_tryRegisterEnumOrBitmapType**
 
 ```typescript
   /**
@@ -893,6 +902,7 @@ git commit -m "feat(#791): add enum/bitmap type registration"
 ## Task 10: Wire Up CodeGenerator to Use Engine
 
 **Files:**
+
 - Modify: `src/transpiler/output/codegen/CodeGenerator.ts`
 
 **Step 1: Add import for TypeRegistrationEngine**
@@ -933,6 +943,7 @@ git commit -m "feat(#791): wire CodeGenerator to use TypeRegistrationEngine"
 ## Task 11: Run Full Test Suite
 
 **Files:**
+
 - None (verification only)
 
 **Step 1: Run all unit tests**
@@ -961,11 +972,13 @@ git commit --allow-empty -m "test(#791): verify all tests pass after extraction"
 ## Task 12: Remove Dead Code from CodeGenerator
 
 **Files:**
+
 - Modify: `src/transpiler/output/codegen/CodeGenerator.ts`
 
 **Step 1: Identify dead methods**
 
 The following methods can now be removed from CodeGenerator (they were moved to TypeRegistrationEngine):
+
 - `registerGlobalVariableType` (private)
 - `registerScopeMemberTypes` (private)
 - `trackVariableType` (private)
@@ -1000,6 +1013,7 @@ git commit -m "refactor(#791): remove dead type registration methods from CodeGe
 ## Task 13: Add Unit Tests for Orchestration
 
 **Files:**
+
 - Modify: `src/transpiler/logic/analysis/__tests__/TypeRegistrationEngine.test.ts`
 
 **Step 1: Add orchestration tests with mocks**
@@ -1073,6 +1087,7 @@ git commit -m "test(#791): add orchestration unit tests for TypeRegistrationEngi
 ## Task 14: Final Verification and PR
 
 **Files:**
+
 - None (verification only)
 
 **Step 1: Run all quality checks**
@@ -1127,21 +1142,21 @@ EOF
 
 ## Summary
 
-| Task | Description | Est. Steps |
-|------|-------------|------------|
-| 1 | Create skeleton | 3 |
-| 2 | parseArrayTypeDimension helper | 5 |
-| 3 | resolveBaseType helper | 5 |
-| 4 | Add imports | 3 |
-| 5 | Core registration methods | 5 |
-| 6 | Private tracking methods | 4 |
-| 7 | String type registration | 3 |
-| 8 | Array and standard registration | 6 |
-| 9 | Enum/bitmap registration | 3 |
-| 10 | Wire CodeGenerator | 4 |
-| 11 | Full test suite | 4 |
-| 12 | Remove dead code | 4 |
-| 13 | Orchestration tests | 3 |
-| 14 | Final verification and PR | 5 |
+| Task | Description                     | Est. Steps |
+| ---- | ------------------------------- | ---------- |
+| 1    | Create skeleton                 | 3          |
+| 2    | parseArrayTypeDimension helper  | 5          |
+| 3    | resolveBaseType helper          | 5          |
+| 4    | Add imports                     | 3          |
+| 5    | Core registration methods       | 5          |
+| 6    | Private tracking methods        | 4          |
+| 7    | String type registration        | 3          |
+| 8    | Array and standard registration | 6          |
+| 9    | Enum/bitmap registration        | 3          |
+| 10   | Wire CodeGenerator              | 4          |
+| 11   | Full test suite                 | 4          |
+| 12   | Remove dead code                | 4          |
+| 13   | Orchestration tests             | 3          |
+| 14   | Final verification and PR       | 5          |
 
 **Total: 14 tasks, ~57 steps**
