@@ -1081,8 +1081,9 @@ class Transpiler {
     for (const symbol of symbols) {
       // Determine which storage to use based on source language
       if (symbol.sourceLanguage === ESourceLanguage.CNext) {
-        // C-Next symbols shouldn't be in cache, but handle anyway
-        // Skip - these need full TSymbol conversion which is complex
+        // C-Next symbols are never cached (they use TSymbol format, not ISymbol).
+        // If we see one here, it indicates a cache format issue - skip silently
+        // since C-Next symbols are always re-parsed from source anyway.
         continue;
       } else if (symbol.sourceLanguage === ESourceLanguage.C) {
         // Convert ISymbol to TCSymbol (simplified conversion)

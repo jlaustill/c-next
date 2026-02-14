@@ -912,7 +912,9 @@ class SymbolTable {
     });
 
     if (modified) {
-      // Update the symbol's array dimensions (cast to mutable via unknown)
+      // Mutate in place - symbol is already in storage, cloning would require
+      // updating all maps. The readonly typing prevents accidental mutations
+      // elsewhere; this controlled mutation is intentional during resolution.
       (
         variable as unknown as { arrayDimensions: (number | string)[] }
       ).arrayDimensions = resolvedDimensions;

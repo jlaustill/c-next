@@ -205,6 +205,10 @@ class HeaderSymbolAdapter {
   /**
    * Convert an array dimension string to C-compatible format.
    * Converts qualified enum access (e.g., "EColor.COUNT") to C-style ("EColor_COUNT").
+   * @param dim - The dimension string, may contain qualified enum access
+   * @returns C-compatible dimension string with dots replaced by underscores
+   * @example resolveArrayDimension("EColor.COUNT") => "EColor_COUNT"
+   * @example resolveArrayDimension("10") => "10"
    */
   private static resolveArrayDimension(dim: string): string {
     // Qualified enum access (e.g., "EColor.COUNT") - convert dots to underscores
