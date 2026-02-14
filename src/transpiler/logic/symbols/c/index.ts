@@ -1,0 +1,329 @@
+/**
+ * CResolver - Orchestrates C symbol collection using composable collectors.
+ *
+ * This resolver collects symbols from C header parse trees and returns
+ * typed TCSymbol[] discriminated unions.
+ */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import type {
+  CompilationUnitContext,
+  DeclarationContext,
+  DeclarationSpecifiersContext,
+  DeclarationSpecifierContext,
+} from "../../parser/c/grammar/CParser";
+import type TCSymbol from "../../../types/symbols/c/TCSymbol";
+import SymbolTable from "../SymbolTable";
+import DeclaratorUtils from "./utils/DeclaratorUtils";
+import StructCollector from "./collectors/StructCollector";
+import EnumCollector from "./collectors/EnumCollector";
+import FunctionCollector from "./collectors/FunctionCollector";
+import TypedefCollector from "./collectors/TypedefCollector";
+import VariableCollector from "./collectors/VariableCollector";
+
+/**
+ * Result of resolving C symbols.
+ */
+interface ICResolverResult {
+  /** Collected symbols */
+  readonly symbols: TCSymbol[];
+
+  /** Warnings generated during collection */
+  readonly warnings: string[];
+}
+
+class CResolver {
+  /**
+   * Resolve all symbols from a C compilation unit.
+   *
+   * @param tree The parsed compilation unit context
+   * @param sourceFile Source file path
+   * @param symbolTable Optional symbol table for field tracking
+   */
+  static resolve(
+    tree: CompilationUnitContext,
+    sourceFile: string,
+    symbolTable?: SymbolTable | null,
+  ): ICResolverResult {
+    const symbols: TCSymbol[] = [];
+    const warnings: string[] = [];
+
+    const translationUnit = tree.translationUnit();
+    if (!translationUnit) {
+      return { symbols, warnings };
+    }
+
+    for (const extDecl of translationUnit.externalDeclaration()) {
+      // Function definition
+      const funcDef = extDecl.functionDefinition();
+      if (funcDef) {
+        const funcSymbol = FunctionCollector.collectFromDefinition(
+          funcDef,
+          sourceFile,
+        );
+        if (funcSymbol) {
+          symbols.push(funcSymbol);
+        }
+        continue;
+      }
+
+      // Declaration (typedef, struct, variable, function prototype)
+      const decl = extDecl.declaration();
+      if (decl) {
+        CResolver.collectDeclaration(
+          decl,
+          sourceFile,
+          symbolTable ?? null,
+          symbols,
+          warnings,
+        );
+      }
+    }
+
+    return { symbols, warnings };
+  }
+
+  /**
+   * Collect symbols from a declaration.
+   */
+  private static collectDeclaration(
+    decl: DeclarationContext,
+    sourceFile: string,
+    symbolTable: SymbolTable | null,
+    symbols: TCSymbol[],
+    warnings: string[],
+  ): void {
+    const declSpecs = decl.declarationSpecifiers();
+    if (!declSpecs) return;
+
+    const line = decl.start?.line ?? 0;
+
+    // Check for storage class specifiers
+    const isTypedef = DeclaratorUtils.hasStorageClass(declSpecs, "typedef");
+    const isExtern = DeclaratorUtils.hasStorageClass(declSpecs, "extern");
+
+    // Check for struct/union
+    const structSpec = DeclaratorUtils.findStructOrUnionSpecifier(declSpecs);
+    if (structSpec) {
+      // For typedef struct, extract the typedef name from declarationSpecifiers
+      const typedefName = isTypedef
+        ? DeclaratorUtils.extractTypedefNameFromSpecs(declSpecs)
+        : undefined;
+
+      const structSymbol = StructCollector.collect(
+        structSpec,
+        sourceFile,
+        line,
+        symbolTable,
+        typedefName,
+        isTypedef,
+        warnings,
+      );
+      if (structSymbol) {
+        symbols.push(structSymbol);
+      }
+    }
+
+    // Check for enum
+    const enumSpec = DeclaratorUtils.findEnumSpecifier(declSpecs);
+    if (enumSpec) {
+      const enumResult = EnumCollector.collect(enumSpec, sourceFile, line);
+      if (enumResult) {
+        symbols.push(enumResult.enum);
+        // Also add enum member symbols
+        for (const member of enumResult.members) {
+          symbols.push(member);
+        }
+      }
+    }
+
+    // Collect declarators (variables, function prototypes, typedefs)
+    const initDeclList = decl.initDeclaratorList();
+    if (initDeclList) {
+      const baseType = DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs);
+      CResolver.collectInitDeclaratorList(
+        initDeclList,
+        baseType,
+        isTypedef,
+        isExtern,
+        line,
+        sourceFile,
+        symbols,
+      );
+    } else {
+      // Handle case where identifier is parsed as typedefName in declarationSpecifiers
+      CResolver.collectFromDeclSpecsTypedefName(
+        declSpecs,
+        isTypedef,
+        isExtern,
+        line,
+        sourceFile,
+        structSpec,
+        enumSpec,
+        symbols,
+      );
+    }
+  }
+
+  /**
+   * Collect symbols from init declarator list.
+   */
+  private static collectInitDeclaratorList(
+    initDeclList: any,
+    baseType: string,
+    isTypedef: boolean,
+    isExtern: boolean,
+    line: number,
+    sourceFile: string,
+    symbols: TCSymbol[],
+  ): void {
+    for (const initDecl of initDeclList.initDeclarator()) {
+      const declarator = initDecl.declarator();
+      if (!declarator) continue;
+
+      const name = DeclaratorUtils.extractDeclaratorName(declarator);
+      if (!name) continue;
+
+      // Check if this is a function declaration (has parameter list)
+      const isFunction = DeclaratorUtils.declaratorIsFunction(declarator);
+
+      if (isTypedef) {
+        symbols.push(
+          TypedefCollector.collect(name, baseType, sourceFile, line),
+        );
+      } else if (isFunction) {
+        symbols.push(
+          FunctionCollector.collectFromDeclaration(
+            name,
+            baseType,
+            declarator,
+            sourceFile,
+            line,
+            isExtern,
+          ),
+        );
+      } else {
+        symbols.push(
+          VariableCollector.collect(
+            name,
+            baseType,
+            declarator,
+            sourceFile,
+            line,
+            isExtern,
+          ),
+        );
+      }
+    }
+  }
+
+  /**
+   * Collect symbols when identifier appears as typedefName in declarationSpecifiers.
+   * This handles the C grammar ambiguity where variable names can be parsed as typedef names.
+   */
+  private static collectFromDeclSpecsTypedefName(
+    declSpecs: DeclarationSpecifiersContext,
+    isTypedef: boolean,
+    isExtern: boolean,
+    line: number,
+    sourceFile: string,
+    structSpec: any,
+    enumSpec: any,
+    symbols: TCSymbol[],
+  ): void {
+    const specs = declSpecs.declarationSpecifier();
+    const { name: lastTypedefName, index: lastTypedefIndex } =
+      CResolver.findLastTypedefName(specs);
+
+    if (!lastTypedefName || lastTypedefIndex < 0) return;
+
+    // Skip duplicates for non-typedef declarations
+    if (
+      !isTypedef &&
+      CResolver.shouldSkipDuplicateTypedefName(
+        lastTypedefName,
+        structSpec,
+        enumSpec,
+      )
+    ) {
+      return;
+    }
+
+    const baseType = CResolver.buildBaseTypeFromSpecs(specs, lastTypedefIndex);
+
+    if (isTypedef) {
+      symbols.push(
+        TypedefCollector.collect(lastTypedefName, baseType, sourceFile, line),
+      );
+    } else {
+      symbols.push(
+        VariableCollector.collectFromDeclSpecs(
+          lastTypedefName,
+          baseType,
+          sourceFile,
+          line,
+          isExtern,
+        ),
+      );
+    }
+  }
+
+  /**
+   * Find the last typedefName in declaration specifiers.
+   */
+  private static findLastTypedefName(specs: DeclarationSpecifierContext[]): {
+    name: string | undefined;
+    index: number;
+  } {
+    let name: string | undefined;
+    let index = -1;
+
+    for (let i = 0; i < specs.length; i++) {
+      const typeSpec = specs[i].typeSpecifier();
+      const typedefName = typeSpec?.typedefName?.();
+      if (typedefName) {
+        name = typedefName.getText();
+        index = i;
+      }
+    }
+
+    return { name, index };
+  }
+
+  /**
+   * Check if typedef name should be skipped to avoid duplicates.
+   */
+  private static shouldSkipDuplicateTypedefName(
+    typedefName: string,
+    structSpec: any,
+    enumSpec: any,
+  ): boolean {
+    const structName = structSpec?.Identifier?.()?.getText();
+    if (structName === typedefName) return true;
+
+    const enumName = enumSpec?.Identifier?.()?.getText();
+    if (enumName === typedefName) return true;
+
+    return false;
+  }
+
+  /**
+   * Build base type string from specifiers before the typedef name.
+   */
+  private static buildBaseTypeFromSpecs(
+    specs: DeclarationSpecifierContext[],
+    endIndex: number,
+  ): string {
+    const typeParts: string[] = [];
+    for (let i = 0; i < endIndex; i++) {
+      const typeSpec = specs[i].typeSpecifier();
+      if (typeSpec) {
+        typeParts.push(typeSpec.getText());
+      }
+    }
+    return typeParts.join(" ") || "int";
+  }
+}
+
+export default CResolver;

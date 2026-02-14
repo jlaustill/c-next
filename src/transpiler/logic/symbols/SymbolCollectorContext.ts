@@ -1,8 +1,8 @@
 /**
  * SymbolCollectorContext
- * Shared context for C and C++ symbol collectors using composition.
+ * Shared context for C symbol collector using composition.
  *
- * Extracted from CSymbolCollector and CppSymbolCollector to reduce duplication.
+ * Note: C++ symbols are now collected via CppResolver in logic/symbols/cpp/.
  */
 
 import ICollectorContext from "../../types/ICollectorContext";
