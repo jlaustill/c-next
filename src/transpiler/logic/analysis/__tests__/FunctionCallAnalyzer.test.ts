@@ -9,6 +9,9 @@ import { CNextParser } from "../../parser/grammar/CNextParser";
 import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
 import SymbolTable from "../../symbols/SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TestScopeUtils from "../../symbols/cnext/__tests__/testUtils";
+import TTypeUtils from "../../../../utils/TTypeUtils";
+import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -366,7 +369,7 @@ describe("FunctionCallAnalyzer", () => {
       `;
       const tree = parse(code);
       const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      symbolTable.addCSymbol({
         name: "myExternalFunc",
         kind: "function",
         sourceLanguage: ESourceLanguage.C,
@@ -390,7 +393,7 @@ describe("FunctionCallAnalyzer", () => {
       `;
       const tree = parse(code);
       const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      symbolTable.addCppSymbol({
         name: "cppHelper",
         kind: "function",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -516,7 +519,7 @@ describe("FunctionCallAnalyzer", () => {
       `;
       const tree = parse(code);
       const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      symbolTable.addCppSymbol({
         name: "customExternalFunc",
         kind: "function",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -625,15 +628,19 @@ describe("FunctionCallAnalyzer", () => {
       `;
       const tree = parse(code);
       const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
-        name: "cnextFunc",
+      symbolTable.addTSymbol({
         kind: "function",
-        sourceLanguage: ESourceLanguage.CNext,
+        name: "cnextFunc",
         sourceFile: "module.cnx",
         sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-        type: "void",
-      });
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: TestScopeUtils.createMockGlobalScope(),
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
 
       const analyzer = new FunctionCallAnalyzer();
       const errors = analyzer.analyze(tree, symbolTable);

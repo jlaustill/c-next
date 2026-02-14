@@ -2177,9 +2177,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Issue #461: Initialize constValues from symbol table
+    // Only C-Next TSymbols have initialValue property
     CodeGenState.constValues = new Map();
     if (CodeGenState.symbolTable) {
-      for (const symbol of CodeGenState.symbolTable.getAllSymbols()) {
+      for (const symbol of CodeGenState.symbolTable.getAllTSymbols()) {
         if (
           symbol.kind === "variable" &&
           symbol.isConst &&
@@ -2187,8 +2188,6 @@ export default class CodeGenerator implements IOrchestrator {
         ) {
           const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
           if (value !== undefined) {
-            CodeGenState.constValues.set(symbol.name, value);
-            // Also populate CodeGenState
             CodeGenState.constValues.set(symbol.name, value);
           }
         }

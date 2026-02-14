@@ -4,18 +4,19 @@
 
 import { describe, it, expect } from "vitest";
 import ExternalTypeHeaderBuilder from "../ExternalTypeHeaderBuilder";
-import ISymbol from "../../../../utils/types/ISymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
+import TAnySymbol from "../../../types/symbols/TAnySymbol";
+import TCSymbol from "../../../types/symbols/c/TCSymbol";
 
 /**
- * Create a minimal test symbol
+ * Create a minimal test symbol (using C symbol for simplicity)
  */
 function createSymbol(
   name: string,
   kind: TSymbolKind,
   sourceFile: string,
-): ISymbol {
+): TCSymbol {
   return {
     name,
     kind,
@@ -23,20 +24,20 @@ function createSymbol(
     sourceLine: 1,
     sourceLanguage: ESourceLanguage.C,
     isExported: false,
-  };
+  } as TCSymbol;
 }
 
 /**
  * Mock symbol source for testing
  */
 class MockSymbolSource {
-  private symbolsByFile: Map<string, ISymbol[]> = new Map();
+  private symbolsByFile: Map<string, TAnySymbol[]> = new Map();
 
-  addSymbols(filePath: string, symbols: ISymbol[]): void {
+  addSymbols(filePath: string, symbols: TAnySymbol[]): void {
     this.symbolsByFile.set(filePath, symbols);
   }
 
-  getSymbolsByFile(filePath: string): ISymbol[] {
+  getSymbolsByFile(filePath: string): TAnySymbol[] {
     return this.symbolsByFile.get(filePath) ?? [];
   }
 }

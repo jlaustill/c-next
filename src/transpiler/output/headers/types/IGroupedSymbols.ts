@@ -2,16 +2,16 @@
  * Grouped symbols by kind for header generation
  */
 
-import ISymbol from "../../../../utils/types/ISymbol";
+import IHeaderSymbol from "./IHeaderSymbol";
 
 interface IGroupedSymbols {
-  structs: ISymbol[];
-  classes: ISymbol[];
-  functions: ISymbol[];
-  variables: ISymbol[];
-  enums: ISymbol[];
-  types: ISymbol[];
-  bitmaps: ISymbol[];
+  structs: IHeaderSymbol[];
+  classes: IHeaderSymbol[];
+  functions: IHeaderSymbol[];
+  variables: IHeaderSymbol[];
+  enums: IHeaderSymbol[];
+  types: IHeaderSymbol[];
+  bitmaps: IHeaderSymbol[];
 }
 
 export default IGroupedSymbols;

@@ -45,7 +45,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up CodeGenState with C++ class
-      CodeGenState.symbolTable.addSymbol({
+      CodeGenState.symbolTable.addCppSymbol({
         name: "CppMessage",
         kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -100,7 +100,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up CodeGenState with C++ struct (not class)
-      CodeGenState.symbolTable.addSymbol({
+      CodeGenState.symbolTable.addCppSymbol({
         name: "CppStruct",
         kind: "struct",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -130,13 +130,14 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up CodeGenState with C struct (not C++)
-      CodeGenState.symbolTable.addSymbol({
+      CodeGenState.symbolTable.addCSymbol({
         name: "CStruct",
         kind: "struct",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
         sourceLine: 1,
         isExported: true,
+        isUnion: false,
       });
       CodeGenState.symbolTable.addStructField("CStruct", "value", "u32");
 
@@ -835,7 +836,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      symbolTable.addCppSymbol({
         name: "CppEnum",
         kind: "enum",
         sourceLanguage: ESourceLanguage.Cpp,

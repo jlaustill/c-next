@@ -5,15 +5,16 @@
  * Issue #589: Extracted from Transpiler.buildExternalTypeHeaders()
  * Issue #497: Enables header generation to include original C headers instead of
  * generating conflicting forward declarations for types like anonymous struct typedefs.
+ * ADR-055 Phase 7: Uses TAnySymbol instead of ISymbol.
  */
 
-import ISymbol from "../../../utils/types/ISymbol";
+import TAnySymbol from "../../types/symbols/TAnySymbol";
 
 /**
  * Interface for accessing symbols by file path
  */
 interface ISymbolSource {
-  getSymbolsByFile(filePath: string): ISymbol[];
+  getSymbolsByFile(filePath: string): TAnySymbol[];
 }
 
 /**

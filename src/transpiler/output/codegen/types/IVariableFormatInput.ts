@@ -45,7 +45,7 @@ interface IVariableFormatInput {
   modifiers: IVariableModifiers;
 
   /** Array dimensions as strings (e.g., ['10', '20']) */
-  arrayDimensions?: string[];
+  arrayDimensions?: readonly string[];
 }
 
 export default IVariableFormatInput;

@@ -1,20 +1,18 @@
 /**
- * HeaderSymbolAdapter - Converts TSymbol and ISymbol to IHeaderSymbol.
+ * HeaderSymbolAdapter - Converts TSymbol to IHeaderSymbol.
  *
- * ADR-055 Phase 5: This adapter bridges the gap between the new TSymbol
- * discriminated union and the legacy ISymbol flat interface, providing
- * a unified IHeaderSymbol for header generation.
+ * ADR-055 Phase 7: This adapter converts the TSymbol discriminated union
+ * to IHeaderSymbol for header generation.
  */
 
 import TSymbol from "../../../types/symbols/TSymbol";
-import ISymbol from "../../../../utils/types/ISymbol";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import SymbolNameUtils from "../../../logic/symbols/cnext/utils/SymbolNameUtils";
 
 /**
- * Adapter to convert TSymbol and ISymbol to IHeaderSymbol
+ * Adapter to convert TSymbol to IHeaderSymbol
  */
 class HeaderSymbolAdapter {
   /**
@@ -40,39 +38,10 @@ class HeaderSymbolAdapter {
   }
 
   /**
-   * Convert an ISymbol to IHeaderSymbol (passthrough with type adjustment)
-   */
-  static fromISymbol(symbol: ISymbol): IHeaderSymbol {
-    return {
-      name: symbol.name,
-      kind: symbol.kind,
-      type: symbol.type,
-      isExported: symbol.isExported,
-      isConst: symbol.isConst,
-      isAtomic: symbol.isAtomic,
-      isArray: symbol.isArray,
-      arrayDimensions: symbol.arrayDimensions,
-      parameters: symbol.parameters,
-      signature: symbol.signature,
-      parent: symbol.parent,
-      accessModifier: symbol.accessModifier,
-      sourceFile: symbol.sourceFile,
-      sourceLine: symbol.sourceLine,
-    };
-  }
-
-  /**
    * Convert an array of TSymbols to IHeaderSymbols
    */
   static fromTSymbols(symbols: TSymbol[]): IHeaderSymbol[] {
     return symbols.map((s) => HeaderSymbolAdapter.fromTSymbol(s));
-  }
-
-  /**
-   * Convert an array of ISymbols to IHeaderSymbols
-   */
-  static fromISymbols(symbols: ISymbol[]): IHeaderSymbol[] {
-    return symbols.map((s) => HeaderSymbolAdapter.fromISymbol(s));
   }
 
   // ========================================================================
@@ -130,9 +99,11 @@ class HeaderSymbolAdapter {
     // Convert TType to string
     const typeStr = TypeResolver.getTypeName(variable.type);
 
-    // Convert dimensions to strings
+    // Convert dimensions to strings and resolve qualified enum access
     const arrayDimensions = variable.arrayDimensions?.map((d) =>
-      typeof d === "number" ? String(d) : d,
+      typeof d === "number"
+        ? String(d)
+        : HeaderSymbolAdapter.resolveArrayDimension(d),
     );
 
     return {
@@ -229,6 +200,18 @@ class HeaderSymbolAdapter {
       sourceFile: scope.sourceFile,
       sourceLine: scope.sourceLine,
     };
+  }
+
+  /**
+   * Convert an array dimension string to C-compatible format.
+   * Converts qualified enum access (e.g., "EColor.COUNT") to C-style ("EColor_COUNT").
+   */
+  private static resolveArrayDimension(dim: string): string {
+    // Qualified enum access (e.g., "EColor.COUNT") - convert dots to underscores
+    if (dim.includes(".")) {
+      return dim.replace(/\./g, "_");
+    }
+    return dim;
   }
 }
 

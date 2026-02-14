@@ -552,10 +552,9 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbolTable = new SymbolTable();
       // Register a C++ namespace symbol to make MyLib_MyClass appear as namespace type
-      symbolTable.addSymbol({
+      symbolTable.addCppSymbol({
         name: "MyLib",
         kind: "namespace",
-        type: "namespace",
         isExported: true,
         sourceFile: "MyLib.hpp",
         sourceLine: 1,
@@ -585,10 +584,9 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbolTable = new SymbolTable();
       // Register a C++ namespace symbol
-      symbolTable.addSymbol({
+      symbolTable.addCppSymbol({
         name: "LibName",
         kind: "namespace",
-        type: "namespace",
         isExported: true,
         sourceFile: "LibName.hpp",
         sourceLine: 1,

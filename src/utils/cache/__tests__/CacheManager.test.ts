@@ -19,6 +19,11 @@ import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
+import TestScopeUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testUtils";
+import TTypeUtils from "../../TTypeUtils";
+import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import type IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
+import type IEnumSymbol from "../../../transpiler/types/symbols/IEnumSymbol";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -829,16 +834,19 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add symbols to SymbolTable
-      const symbol: ISymbol = {
+      symbolTable.addTSymbol({
         name: "myFunction",
         kind: "function",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-        type: "void",
-      };
-      symbolTable.addSymbol(symbol);
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: TestScopeUtils.createMockGlobalScope(),
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
 
       // Cache via setSymbolsFromTable
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
@@ -863,15 +871,16 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add struct symbol to SymbolTable
-      const structSymbol: ISymbol = {
+      symbolTable.addTSymbol({
         name: "Point",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      };
-      symbolTable.addSymbol(structSymbol);
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
 
       // Add struct fields
       symbolTable.addStructField("Point", "x", "int32_t");
@@ -902,25 +911,29 @@ describe("CacheManager", () => {
       writeFileSync(file2, "// file2");
 
       // Add struct in file1
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "PointA",
         kind: "struct",
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
       symbolTable.addStructField("PointA", "x", "int32_t");
 
       // Add struct in file2
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "PointB",
         kind: "struct",
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
       symbolTable.addStructField("PointB", "y", "int32_t");
 
       // Cache file1 only
@@ -938,22 +951,26 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add struct symbols
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "TypedefStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
-      symbolTable.addSymbol({
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
+      symbolTable.addTSymbol({
         name: "NamedStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
 
       // Add struct fields (required for getStructNamesByFile)
       symbolTable.addStructField("TypedefStruct", "a", "int32_t");
@@ -978,22 +995,26 @@ describe("CacheManager", () => {
       writeFileSync(file2, "// file2");
 
       // Add structs in different files
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "StructA",
         kind: "struct",
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
-      symbolTable.addSymbol({
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
+      symbolTable.addTSymbol({
         name: "StructB",
         kind: "struct",
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
 
       // Add struct fields
       symbolTable.addStructField("StructA", "a", "int32_t");
@@ -1018,22 +1039,26 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add enum symbols
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "Status",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
-      symbolTable.addSymbol({
+        members: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IEnumSymbol);
+      symbolTable.addTSymbol({
         name: "Priority",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        members: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IEnumSymbol);
 
       // Add enum bit widths
       symbolTable.addEnumBitWidth("Status", 8);
@@ -1056,22 +1081,26 @@ describe("CacheManager", () => {
       writeFileSync(file2, "// file2");
 
       // Add enums in different files
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "EnumA",
         kind: "enum",
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
-      symbolTable.addSymbol({
+        members: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IEnumSymbol);
+      symbolTable.addTSymbol({
         name: "EnumB",
         kind: "enum",
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        members: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IEnumSymbol);
 
       // Add bit widths for both
       symbolTable.addEnumBitWidth("EnumA", 8);
@@ -1092,38 +1121,46 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add function symbol
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "processData",
         kind: "function",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-        type: "void",
-      });
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: TestScopeUtils.createMockGlobalScope(),
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
 
       // Add struct symbol and fields
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "DataPacket",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
       symbolTable.addStructField("DataPacket", "id", "uint32_t");
       symbolTable.addStructField("DataPacket", "buffer", "uint8_t", [256]);
       symbolTable.markNeedsStructKeyword("DataPacket");
 
       // Add enum symbol and bit width
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "DataType",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 20,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        members: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IEnumSymbol);
       symbolTable.addEnumBitWidth("DataType", 8);
 
       // Cache via setSymbolsFromTable
@@ -1162,25 +1199,29 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add data to SymbolTable
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "MyStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
       symbolTable.addStructField("MyStruct", "value", "int32_t");
       symbolTable.markNeedsStructKeyword("MyStruct");
 
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "MyEnum",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        members: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IEnumSymbol);
       symbolTable.addEnumBitWidth("MyEnum", 16);
 
       // Cache and flush
@@ -1206,14 +1247,19 @@ describe("CacheManager", () => {
       const nonExistent = join(testDir, "does-not-exist.cnx");
 
       // Add symbol for non-existent file
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "orphanFunc",
         kind: "function",
         sourceFile: nonExistent,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: TestScopeUtils.createMockGlobalScope(),
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
 
       // Should not throw, but should not cache
       cacheManager.setSymbolsFromTable(nonExistent, symbolTable);
@@ -1242,14 +1288,16 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add struct symbol without adding any fields
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "EmptyStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        fields: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IStructSymbol);
       // Note: not adding fields, so getStructNamesByFile won't include it
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
@@ -1267,14 +1315,16 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add enum symbol without adding bit width
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "SimpleEnum",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
+        members: new Map(),
+        scope: TestScopeUtils.createMockGlobalScope(),
+      } as IEnumSymbol);
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
 
@@ -1290,30 +1340,45 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add multiple functions
-      symbolTable.addSymbol({
+      symbolTable.addTSymbol({
         name: "func1",
         kind: "function",
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
-      symbolTable.addSymbol({
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: TestScopeUtils.createMockGlobalScope(),
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
+      symbolTable.addTSymbol({
         name: "func2",
         kind: "function",
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
-      });
-      symbolTable.addSymbol({
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: TestScopeUtils.createMockGlobalScope(),
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
+      symbolTable.addTSymbol({
         name: "func3",
         kind: "function",
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: false,
-      });
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: TestScopeUtils.createMockGlobalScope(),
+        visibility: "private",
+        body: null,
+      } as IFunctionSymbol);
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
 
@@ -1425,7 +1490,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(3); // Current CACHE_VERSION
+      expect(newConfig.version).toBe(4); // Current CACHE_VERSION (ADR-055 Phase 7)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {

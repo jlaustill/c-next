@@ -250,13 +250,14 @@ describe("runAnalyzers", () => {
       `);
 
       const symbolTable = new SymbolTable();
-      symbolTable.addSymbol({
+      symbolTable.addCSymbol({
         name: "ExternalFunc",
         kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
         sourceLine: 1,
         isExported: true,
+        type: "void",
       });
 
       const errors = runAnalyzers(tree, tokenStream, { symbolTable });
@@ -271,7 +272,7 @@ describe("runAnalyzers", () => {
       `);
 
       // Set up C++ class in CodeGenState.symbolTable
-      CodeGenState.symbolTable.addSymbol({
+      CodeGenState.symbolTable.addCppSymbol({
         name: "CppMessage",
         kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,

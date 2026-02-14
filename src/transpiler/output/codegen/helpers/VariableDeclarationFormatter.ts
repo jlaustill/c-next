@@ -75,7 +75,7 @@ class VariableDeclarationFormatter {
    * @param dimensions - Array of dimension strings (e.g., ['10', '20'])
    * @returns Formatted dimensions (e.g., '[10][20]')
    */
-  static buildArrayDimensions(dimensions?: string[]): string {
+  static buildArrayDimensions(dimensions?: readonly string[]): string {
     if (!dimensions || dimensions.length === 0) {
       return "";
     }

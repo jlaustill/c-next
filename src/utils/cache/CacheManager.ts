@@ -24,12 +24,15 @@ import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
 import IFileSystem from "../../transpiler/types/IFileSystem";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
+import TAnySymbol from "../../transpiler/types/symbols/TAnySymbol";
+import TypeResolver from "../TypeResolver";
+import ESourceLanguage from "../types/ESourceLanguage";
 
 /** Default file system instance (singleton for performance) */
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 3; // ADR-055 Phase 4: cacheKey replaces mtime
+const CACHE_VERSION = 4; // ADR-055 Phase 7: TAnySymbol replaces ISymbol
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -242,8 +245,9 @@ class CacheManager {
    * @param symbolTable - SymbolTable containing all parsed symbols
    */
   setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
-    // Extract symbols for this file
-    const symbols = symbolTable.getSymbolsByFile(filePath);
+    // Extract symbols for this file and convert to legacy ISymbol format
+    const typedSymbols = symbolTable.getSymbolsByFile(filePath);
+    const symbols = typedSymbols.map((s) => this.convertToISymbol(s));
 
     // Extract struct fields for structs defined in this file
     const structFields = this.extractStructFieldsForFile(filePath, symbolTable);
@@ -529,6 +533,63 @@ class CacheManager {
       symbol.parameters = serialized.parameters;
 
     return symbol;
+  }
+
+  /**
+   * ADR-055 Phase 7: Convert TAnySymbol to ISymbol for cache storage.
+   * This bridges the typed symbols with the legacy cache format.
+   */
+  private convertToISymbol(symbol: TAnySymbol): ISymbol {
+    // Common fields all symbols share
+    const base: ISymbol = {
+      name: symbol.name,
+      kind: symbol.kind,
+      sourceFile: symbol.sourceFile,
+      sourceLine: symbol.sourceLine,
+      sourceLanguage: symbol.sourceLanguage,
+      isExported: symbol.isExported,
+    };
+
+    // Add type field - convert TType to string for C-Next
+    if ("type" in symbol && symbol.type !== undefined) {
+      base.type =
+        symbol.sourceLanguage === ESourceLanguage.CNext &&
+        typeof symbol.type !== "string"
+          ? TypeResolver.getTypeName(symbol.type)
+          : (symbol.type as string);
+    }
+
+    // Add variable-specific fields
+    if (symbol.kind === "variable") {
+      if ("isConst" in symbol) base.isConst = symbol.isConst;
+      if ("isAtomic" in symbol) base.isAtomic = symbol.isAtomic;
+      if ("isArray" in symbol) base.isArray = symbol.isArray;
+      if ("arrayDimensions" in symbol && symbol.arrayDimensions) {
+        base.arrayDimensions = symbol.arrayDimensions.map((d) => String(d));
+      }
+      if ("initialValue" in symbol) base.initialValue = symbol.initialValue;
+    }
+
+    // Add function-specific fields
+    if (symbol.kind === "function") {
+      // For C-Next functions, returnType is a TType - convert to string for ISymbol.type
+      if ("returnType" in symbol && symbol.returnType !== undefined) {
+        base.type = TypeResolver.getTypeName(symbol.returnType);
+      }
+      if ("parameters" in symbol && symbol.parameters) {
+        base.parameters = symbol.parameters.map((p) => ({
+          name: p.name,
+          type:
+            typeof p.type === "string"
+              ? p.type
+              : TypeResolver.getTypeName(p.type),
+          isConst: p.isConst,
+          isArray: p.isArray,
+        }));
+      }
+    }
+
+    return base;
   }
 }
 

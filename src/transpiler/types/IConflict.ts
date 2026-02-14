@@ -2,11 +2,11 @@
  * Symbol conflict information for cross-language symbol detection.
  */
 
-import ISymbol from "../../utils/types/ISymbol";
+import TAnySymbol from "./symbols/TAnySymbol";
 
 interface IConflict {
   symbolName: string;
-  definitions: ISymbol[];
+  definitions: TAnySymbol[];
   severity: "error" | "warning";
   message: string;
 }
