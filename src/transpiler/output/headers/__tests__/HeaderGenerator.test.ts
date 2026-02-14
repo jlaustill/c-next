@@ -6,13 +6,14 @@
 
 import { describe, it, expect } from "vitest";
 import HeaderGenerator from "../HeaderGenerator";
-import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ISymbol from "../../../../utils/types/ISymbol";
+
+import IHeaderSymbol from "../types/IHeaderSymbol";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 import TestScopeUtils from "../../../logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
+import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 describe("HeaderGenerator", () => {
   const generator = new HeaderGenerator();
@@ -26,14 +27,13 @@ describe("HeaderGenerator", () => {
       arrayDimensions?: string[];
       isConst?: boolean;
     } = {},
-  ): ISymbol {
+  ): IHeaderSymbol {
     return {
       name,
       type,
       kind: "variable",
       sourceFile: "test.cnx",
       sourceLine: 1,
-      sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
       isArray: options.isArray,
       arrayDimensions: options.arrayDimensions,
@@ -109,25 +109,23 @@ describe("HeaderGenerator", () => {
 
   describe("Issue #449: declaration ordering", () => {
     // Helper to create an enum symbol
-    function makeEnumSymbol(name: string): ISymbol {
+    function makeEnumSymbol(name: string): IHeaderSymbol {
       return {
         name,
         kind: "enum",
         sourceFile: "test.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
       };
     }
 
     // Helper to create a struct symbol
-    function makeStructSymbol(name: string): ISymbol {
+    function makeStructSymbol(name: string): IHeaderSymbol {
       return {
         name,
         kind: "struct",
         sourceFile: "test.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
       };
     }
@@ -207,10 +205,10 @@ describe("HeaderGenerator", () => {
       symbolTable.addCppSymbol({
         name: namespaceName,
         kind: "namespace",
-        sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: `${namespaceName}.hpp`,
         sourceLine: 1,
         isExported: false,
+        sourceLanguage: ESourceLanguage.Cpp,
       });
       return {
         symbolTable,
@@ -269,14 +267,13 @@ describe("HeaderGenerator", () => {
 
     describe("forward declaration filtering", () => {
       // Helper to create a function symbol that references an external type
-      function makeFuncSymbol(name: string, paramType: string): ISymbol {
+      function makeFuncSymbol(name: string, paramType: string): IHeaderSymbol {
         return {
           name,
           type: "void",
           kind: "function",
           sourceFile: "test.cnx",
           sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
           isExported: true,
           parameters: [
             { name: "param", type: paramType, isConst: false, isArray: false },
@@ -365,26 +362,26 @@ describe("HeaderGenerator", () => {
         name: "myFunc",
         sourceFile: "module.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
+        sourceLanguage: ESourceLanguage.CNext,
       } as IFunctionSymbol);
       symbolTable.addTSymbol({
         kind: "function",
         name: "otherFunc",
         sourceFile: "other.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
+        sourceLanguage: ESourceLanguage.CNext,
       } as IFunctionSymbol);
 
       const header = generator.generateFromSymbolTable(
@@ -405,13 +402,13 @@ describe("HeaderGenerator", () => {
         name: "testFunc",
         sourceFile: "src/utils/helper.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
+        sourceLanguage: ESourceLanguage.CNext,
       } as IFunctionSymbol);
 
       const header = generator.generateFromSymbolTable(
@@ -433,13 +430,13 @@ describe("HeaderGenerator", () => {
         name: "cnextFunc",
         sourceFile: "module.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
+        sourceLanguage: ESourceLanguage.CNext,
       } as IFunctionSymbol);
       symbolTable.addCppSymbol({
         kind: "function",
@@ -447,8 +444,8 @@ describe("HeaderGenerator", () => {
         type: "void",
         sourceFile: "module.hpp",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.Cpp,
         isExported: true,
+        sourceLanguage: ESourceLanguage.Cpp,
       });
       symbolTable.addCSymbol({
         kind: "function",
@@ -456,8 +453,8 @@ describe("HeaderGenerator", () => {
         type: "void",
         sourceFile: "module.h",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.C,
         isExported: true,
+        sourceLanguage: ESourceLanguage.C,
       });
 
       const header = generator.generateCNextHeader(symbolTable, "output.h");
@@ -474,13 +471,13 @@ describe("HeaderGenerator", () => {
         name: "testFunc",
         sourceFile: "test.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
+        sourceLanguage: ESourceLanguage.CNext,
       } as IFunctionSymbol);
 
       const header = generator.generateCNextHeader(symbolTable, "custom_api.h");
@@ -496,26 +493,26 @@ describe("HeaderGenerator", () => {
         name: "exportedFunc",
         sourceFile: "test.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
+        sourceLanguage: ESourceLanguage.CNext,
       } as IFunctionSymbol);
       symbolTable.addTSymbol({
         kind: "function",
         name: "internalFunc",
         sourceFile: "test.cnx",
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
         isExported: false,
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "private",
         body: null,
+        sourceLanguage: ESourceLanguage.CNext,
       } as IFunctionSymbol);
 
       const header = generator.generateCNextHeader(symbolTable, "api.h", {

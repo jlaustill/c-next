@@ -1,6 +1,7 @@
 /**
  * Serialized symbol for JSON storage
  * Uses string values for enums to ensure clean JSON serialization
+ * ADR-055 Phase 7: Canonical format for cache storage (no ISymbol intermediate)
  */
 interface ISerializedSymbol {
   /** Symbol name */
@@ -27,6 +28,16 @@ interface ISerializedSymbol {
   accessModifier?: string;
   /** For arrays: element count. For integers: bit width */
   size?: number;
+  /** Whether this variable is an array */
+  isArray?: boolean;
+  /** Array dimensions for extern declarations */
+  arrayDimensions?: string[];
+  /** Whether this variable is const */
+  isConst?: boolean;
+  /** Whether this variable is atomic (volatile in C) */
+  isAtomic?: boolean;
+  /** Initial value for const variables */
+  initialValue?: string;
   /** Function parameters for header generation */
   parameters?: Array<{
     name: string;

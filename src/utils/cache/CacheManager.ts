@@ -15,7 +15,7 @@ import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
-import ISymbol from "../types/ISymbol";
+// ADR-055 Phase 7: ISymbol removed - using ISerializedSymbol directly
 import IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
@@ -127,9 +127,10 @@ class CacheManager {
 
   /**
    * Get cached symbols and struct fields for a file
+   * ADR-055 Phase 7: Returns ISerializedSymbol[] directly (no ISymbol intermediate)
    */
   getSymbols(filePath: string): {
-    symbols: ISymbol[];
+    symbols: ISerializedSymbol[];
     structFields: Map<string, Map<string, IStructFieldInfo>>;
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
@@ -142,8 +143,8 @@ class CacheManager {
     }
     const cachedEntry = entry as ICachedFileEntry;
 
-    // Deserialize symbols
-    const symbols = cachedEntry.symbols.map((s) => this.deserializeSymbol(s));
+    // ADR-055 Phase 7: Return serialized symbols directly
+    const symbols = cachedEntry.symbols;
 
     // Convert struct fields from plain objects to Maps
     const structFields = new Map<string, Map<string, IStructFieldInfo>>();
@@ -177,10 +178,11 @@ class CacheManager {
 
   /**
    * Store symbols and struct fields for a file
+   * ADR-055 Phase 7: Takes ISerializedSymbol[] directly
    */
   setSymbols(
     filePath: string,
-    symbols: ISymbol[],
+    symbols: ISerializedSymbol[],
     structFields: Map<string, Map<string, IStructFieldInfo>>,
     needsStructKeyword?: string[],
     enumBitWidth?: Map<string, number>,
@@ -196,8 +198,8 @@ class CacheManager {
       return;
     }
 
-    // Serialize symbols
-    const serializedSymbols = symbols.map((s) => this.serializeSymbol(s));
+    // ADR-055 Phase 7: symbols are already serialized
+    const serializedSymbols = symbols;
 
     // Convert struct fields from Maps to plain objects
     const serializedFields: Record<
@@ -245,9 +247,9 @@ class CacheManager {
    * @param symbolTable - SymbolTable containing all parsed symbols
    */
   setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
-    // Extract symbols for this file and convert to legacy ISymbol format
+    // ADR-055 Phase 7: Serialize TAnySymbol directly to ISerializedSymbol
     const typedSymbols = symbolTable.getSymbolsByFile(filePath);
-    const symbols = typedSymbols.map((s) => this.convertToISymbol(s));
+    const symbols = typedSymbols.map((s) => this.serializeTypedSymbol(s));
 
     // Extract struct fields for structs defined in this file
     const structFields = this.extractStructFieldsForFile(filePath, symbolTable);
@@ -479,68 +481,11 @@ class CacheManager {
   }
 
   /**
-   * Serialize an ISymbol to JSON-safe format
+   * ADR-055 Phase 7: Serialize TAnySymbol directly to ISerializedSymbol.
+   * No intermediate ISymbol format.
    */
-  private serializeSymbol(symbol: ISymbol): ISerializedSymbol {
+  private serializeTypedSymbol(symbol: TAnySymbol): ISerializedSymbol {
     const serialized: ISerializedSymbol = {
-      name: symbol.name,
-      kind: symbol.kind, // Already a string from enum
-      sourceFile: symbol.sourceFile,
-      sourceLine: symbol.sourceLine,
-      sourceLanguage: symbol.sourceLanguage, // Already a string from enum
-      isExported: symbol.isExported,
-    };
-
-    // Add optional fields only if present
-    if (symbol.type !== undefined) serialized.type = symbol.type;
-    if (symbol.isDeclaration !== undefined)
-      serialized.isDeclaration = symbol.isDeclaration;
-    if (symbol.signature !== undefined) serialized.signature = symbol.signature;
-    if (symbol.parent !== undefined) serialized.parent = symbol.parent;
-    if (symbol.accessModifier !== undefined)
-      serialized.accessModifier = symbol.accessModifier;
-    if (symbol.size !== undefined) serialized.size = symbol.size;
-    if (symbol.parameters !== undefined)
-      serialized.parameters = symbol.parameters;
-
-    return serialized;
-  }
-
-  /**
-   * Deserialize a symbol from JSON format back to ISymbol
-   */
-  private deserializeSymbol(serialized: ISerializedSymbol): ISymbol {
-    const symbol: ISymbol = {
-      name: serialized.name,
-      kind: serialized.kind as ISymbol["kind"], // Cast string back to enum
-      sourceFile: serialized.sourceFile,
-      sourceLine: serialized.sourceLine,
-      sourceLanguage: serialized.sourceLanguage as ISymbol["sourceLanguage"],
-      isExported: serialized.isExported,
-    };
-
-    // Add optional fields only if present
-    if (serialized.type !== undefined) symbol.type = serialized.type;
-    if (serialized.isDeclaration !== undefined)
-      symbol.isDeclaration = serialized.isDeclaration;
-    if (serialized.signature !== undefined)
-      symbol.signature = serialized.signature;
-    if (serialized.parent !== undefined) symbol.parent = serialized.parent;
-    if (serialized.accessModifier !== undefined)
-      symbol.accessModifier = serialized.accessModifier;
-    if (serialized.size !== undefined) symbol.size = serialized.size;
-    if (serialized.parameters !== undefined)
-      symbol.parameters = serialized.parameters;
-
-    return symbol;
-  }
-
-  /**
-   * ADR-055 Phase 7: Convert TAnySymbol to ISymbol for cache storage.
-   * This bridges the typed symbols with the legacy cache format.
-   */
-  private convertToISymbol(symbol: TAnySymbol): ISymbol {
-    const base: ISymbol = {
       name: symbol.name,
       kind: symbol.kind,
       sourceFile: symbol.sourceFile,
@@ -549,56 +494,73 @@ class CacheManager {
       isExported: symbol.isExported,
     };
 
-    this.addTypeField(symbol, base);
-    this.addVariableFields(symbol, base);
-    this.addFunctionFields(symbol, base);
+    this.addTypeFieldToSerialized(symbol, serialized);
+    this.addVariableFieldsToSerialized(symbol, serialized);
+    this.addFunctionFieldsToSerialized(symbol, serialized);
 
-    return base;
+    return serialized;
   }
 
   /**
-   * Add type field to ISymbol, converting TType to string for C-Next symbols.
+   * Add type field to ISerializedSymbol, converting TType to string for C-Next symbols.
    */
-  private addTypeField(symbol: TAnySymbol, base: ISymbol): void {
+  private addTypeFieldToSerialized(
+    symbol: TAnySymbol,
+    serialized: ISerializedSymbol,
+  ): void {
     if (!("type" in symbol) || symbol.type === undefined) {
       return;
     }
     const isCNextWithTType =
       symbol.sourceLanguage === ESourceLanguage.CNext &&
       typeof symbol.type !== "string";
-    base.type = isCNextWithTType
+    serialized.type = isCNextWithTType
       ? TypeResolver.getTypeName(symbol.type)
       : (symbol.type as string);
   }
 
   /**
-   * Add variable-specific fields to ISymbol.
+   * Add variable-specific fields to ISerializedSymbol.
    */
-  private addVariableFields(symbol: TAnySymbol, base: ISymbol): void {
+  private addVariableFieldsToSerialized(
+    symbol: TAnySymbol,
+    serialized: ISerializedSymbol,
+  ): void {
     if (symbol.kind !== "variable") {
       return;
     }
-    if ("isConst" in symbol) base.isConst = symbol.isConst;
-    if ("isAtomic" in symbol) base.isAtomic = symbol.isAtomic;
-    if ("isArray" in symbol) base.isArray = symbol.isArray;
-    if ("arrayDimensions" in symbol && symbol.arrayDimensions) {
-      base.arrayDimensions = symbol.arrayDimensions.map(String);
+    if ("isConst" in symbol && symbol.isConst !== undefined) {
+      serialized.isConst = symbol.isConst;
     }
-    if ("initialValue" in symbol) base.initialValue = symbol.initialValue;
+    if ("isAtomic" in symbol && symbol.isAtomic !== undefined) {
+      serialized.isAtomic = symbol.isAtomic;
+    }
+    if ("isArray" in symbol && symbol.isArray !== undefined) {
+      serialized.isArray = symbol.isArray;
+    }
+    if ("arrayDimensions" in symbol && symbol.arrayDimensions) {
+      serialized.arrayDimensions = symbol.arrayDimensions.map(String);
+    }
+    if ("initialValue" in symbol && symbol.initialValue !== undefined) {
+      serialized.initialValue = symbol.initialValue;
+    }
   }
 
   /**
-   * Add function-specific fields to ISymbol.
+   * Add function-specific fields to ISerializedSymbol.
    */
-  private addFunctionFields(symbol: TAnySymbol, base: ISymbol): void {
+  private addFunctionFieldsToSerialized(
+    symbol: TAnySymbol,
+    serialized: ISerializedSymbol,
+  ): void {
     if (symbol.kind !== "function") {
       return;
     }
     if ("returnType" in symbol && symbol.returnType !== undefined) {
-      base.type = TypeResolver.getTypeName(symbol.returnType);
+      serialized.type = TypeResolver.getTypeName(symbol.returnType);
     }
     if ("parameters" in symbol && symbol.parameters) {
-      base.parameters = symbol.parameters.map((p) => ({
+      serialized.parameters = symbol.parameters.map((p) => ({
         name: p.name,
         type:
           typeof p.type === "string"

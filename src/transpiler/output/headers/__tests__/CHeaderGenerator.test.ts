@@ -6,10 +6,11 @@
 
 import { describe, it, expect } from "vitest";
 import CHeaderGenerator from "../CHeaderGenerator";
-import ISymbol from "../../../../utils/types/ISymbol";
-import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import IHeaderSymbol from "../types/IHeaderSymbol";
+
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
+import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 // ============================================================================
 // Test Helpers
@@ -20,7 +21,7 @@ function createFunctionSymbol(
   returnType: string,
   parameters: IParameterSymbol[] = [],
   isExported = true,
-): ISymbol {
+): IHeaderSymbol {
   return {
     name,
     kind: "function",
@@ -29,11 +30,10 @@ function createFunctionSymbol(
     isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
-    sourceLanguage: ESourceLanguage.CNext,
   };
 }
 
-function createStructSymbol(name: string, isExported = true): ISymbol {
+function createStructSymbol(name: string, isExported = true): IHeaderSymbol {
   return {
     name,
     kind: "struct",
@@ -41,11 +41,10 @@ function createStructSymbol(name: string, isExported = true): ISymbol {
     isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
-    sourceLanguage: ESourceLanguage.CNext,
   };
 }
 
-function createEnumSymbol(name: string, isExported = true): ISymbol {
+function createEnumSymbol(name: string, isExported = true): IHeaderSymbol {
   return {
     name,
     kind: "enum",
@@ -53,7 +52,6 @@ function createEnumSymbol(name: string, isExported = true): ISymbol {
     isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
-    sourceLanguage: ESourceLanguage.CNext,
   };
 }
 
@@ -61,7 +59,7 @@ function createVariableSymbol(
   name: string,
   type: string,
   isExported = true,
-): ISymbol {
+): IHeaderSymbol {
   return {
     name,
     kind: "variable",
@@ -69,7 +67,6 @@ function createVariableSymbol(
     isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
-    sourceLanguage: ESourceLanguage.CNext,
   };
 }
 
@@ -96,7 +93,7 @@ describe("CHeaderGenerator", () => {
   describe("generate", () => {
     it("generates header with include guard", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -107,7 +104,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates header with custom guard prefix", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "module.h", {
         guardPrefix: "MY_PROJECT",
@@ -119,7 +116,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates extern C wrapper for C++ compatibility", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -130,7 +127,9 @@ describe("CHeaderGenerator", () => {
 
     it("generates function prototypes", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("doSomething", "void")];
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("doSomething", "void"),
+      ];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -139,7 +138,7 @@ describe("CHeaderGenerator", () => {
 
     it("filters to exported symbols when exportedOnly is true", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("publicFunc", "void", [], true),
         createFunctionSymbol("privateFunc", "void", [], false),
       ];
@@ -154,7 +153,7 @@ describe("CHeaderGenerator", () => {
 
     it("includes all symbols when exportedOnly is false", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("publicFunc", "void", [], true),
         createFunctionSymbol("privateFunc", "void", [], false),
       ];
@@ -171,7 +170,7 @@ describe("CHeaderGenerator", () => {
   describe("function prototype generation", () => {
     it("generates void function with no parameters", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("init", "void")];
+      const symbols: IHeaderSymbol[] = [createFunctionSymbol("init", "void")];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -180,7 +179,9 @@ describe("CHeaderGenerator", () => {
 
     it("generates function with return type", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("getValue", "u32")];
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("getValue", "u32"),
+      ];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -189,7 +190,7 @@ describe("CHeaderGenerator", () => {
 
     it("forces main to return int", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("main", "u32")];
+      const symbols: IHeaderSymbol[] = [createFunctionSymbol("main", "u32")];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -198,7 +199,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates function with single parameter using pointer (C semantics)", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [createParam("value", "u32")]),
       ];
 
@@ -209,7 +210,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates function with const parameter", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
           createParam("value", "u32", { isConst: true }),
         ]),
@@ -222,7 +223,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates function with auto-const parameter", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
           createParam("value", "u32", { isAutoConst: true }),
         ]),
@@ -235,7 +236,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates function with multiple parameters", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("add", "u32", [
           createParam("a", "u32"),
           createParam("b", "u32"),
@@ -249,7 +250,7 @@ describe("CHeaderGenerator", () => {
 
     it("uses pass-by-value for parameters in passByValueParams", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [createParam("value", "u32")]),
       ];
       const passByValueParams = new Map([["process", new Set(["value"])]]);
@@ -267,7 +268,7 @@ describe("CHeaderGenerator", () => {
 
     it("uses pass-by-value for float types (f32)", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setFloat", "void", [createParam("value", "f32")]),
       ];
 
@@ -278,7 +279,7 @@ describe("CHeaderGenerator", () => {
 
     it("uses pass-by-value for float types (f64)", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setDouble", "void", [
           createParam("value", "f64"),
         ]),
@@ -291,7 +292,7 @@ describe("CHeaderGenerator", () => {
 
     it("uses pass-by-value for enum types", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setState", "void", [
           createParam("state", "State"),
         ]),
@@ -312,7 +313,7 @@ describe("CHeaderGenerator", () => {
 
     it("uses pass-by-value for ISR type (function pointer)", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setHandler", "void", [
           createParam("handler", "ISR"),
         ]),
@@ -325,7 +326,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates array parameter with dimensions", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processArray", "void", [
           createParam("data", "u8", { isArray: true, arrayDimensions: ["10"] }),
         ]),
@@ -338,7 +339,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates const array parameter", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("readArray", "void", [
           createParam("data", "u8", {
             isConst: true,
@@ -355,7 +356,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates auto-const array parameter", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("readArray", "void", [
           createParam("data", "u8", {
             isAutoConst: true,
@@ -372,7 +373,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates string array parameter as char*", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processStrings", "void", [
           createParam("strings", "string", {
             isArray: true,
@@ -388,7 +389,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates multi-dimensional array parameter", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processMatrix", "void", [
           createParam("matrix", "u32", {
             isArray: true,
@@ -404,7 +405,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates function with no return type as void", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         {
           name: "noReturn",
           kind: "function",
@@ -412,7 +413,6 @@ describe("CHeaderGenerator", () => {
           isExported: true,
           sourceFile: "test.cnx",
           sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
         },
       ];
 
@@ -437,7 +437,7 @@ describe("CHeaderGenerator", () => {
       ];
 
       for (const { cnx, c } of types) {
-        const symbols: ISymbol[] = [createFunctionSymbol("get", cnx)];
+        const symbols: IHeaderSymbol[] = [createFunctionSymbol("get", cnx)];
         const result = generator.generate(symbols, "test.h");
         expect(result).toContain(`${c} get(void);`);
       }
@@ -445,7 +445,9 @@ describe("CHeaderGenerator", () => {
 
     it("maps bool type", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createFunctionSymbol("isReady", "bool")];
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("isReady", "bool"),
+      ];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -454,7 +456,7 @@ describe("CHeaderGenerator", () => {
 
     it("maps float types", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("getF32", "f32"),
         createFunctionSymbol("getF64", "f64"),
       ];
@@ -469,7 +471,7 @@ describe("CHeaderGenerator", () => {
   describe("C-compatible filtering", () => {
     it("filters out C++ namespace types from forward declarations", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
           createParam("result", "MockLib::Parse::ParseResult"),
         ]),
@@ -486,7 +488,7 @@ describe("CHeaderGenerator", () => {
 
     it("filters out C++ template types from variables", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createVariableSymbol("myVector", "std::vector<int>"),
       ];
 
@@ -498,7 +500,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates forward declarations for C-compatible external types", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("getConfig", "void", [
           createParam("config", "ExternalConfig"),
         ]),
@@ -511,7 +513,7 @@ describe("CHeaderGenerator", () => {
 
     it("does not forward-declare locally defined structs", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createStructSymbol("LocalStruct"),
         createFunctionSymbol("getStruct", "void", [
           createParam("s", "LocalStruct"),
@@ -526,7 +528,7 @@ describe("CHeaderGenerator", () => {
 
     it("does not forward-declare cross-file enums", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setState", "void", [
           createParam("state", "CrossFileState"),
         ]),
@@ -561,7 +563,7 @@ describe("CHeaderGenerator", () => {
         sourceLanguage: ESourceLanguage.Cpp,
       });
 
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createVariableSymbol("instance", "MyLib_MyClass"),
       ];
 
@@ -593,7 +595,7 @@ describe("CHeaderGenerator", () => {
         sourceLanguage: ESourceLanguage.Cpp,
       });
 
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
           createParam("obj", "LibName_Object"),
         ]),
@@ -616,7 +618,7 @@ describe("CHeaderGenerator", () => {
 
     it("includes external type headers when specified", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("getConfig", "void", [
           createParam("config", "ExternalConfig"),
         ]),
@@ -640,7 +642,7 @@ describe("CHeaderGenerator", () => {
   describe("empty inputs", () => {
     it("generates valid header with no functions", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [];
+      const symbols: IHeaderSymbol[] = [];
 
       const result = generator.generate(symbols, "empty.h");
 
@@ -654,7 +656,7 @@ describe("CHeaderGenerator", () => {
   describe("variable declarations", () => {
     it("generates extern variable declarations", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createVariableSymbol("counter", "u32")];
+      const symbols: IHeaderSymbol[] = [createVariableSymbol("counter", "u32")];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -665,7 +667,7 @@ describe("CHeaderGenerator", () => {
 
     it("filters out variables with dot notation types", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         createVariableSymbol("instance", "MyModule.Config"),
       ];
 
@@ -678,7 +680,7 @@ describe("CHeaderGenerator", () => {
   describe("struct and enum sections", () => {
     it("generates struct section with typeInput", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createStructSymbol("Point")];
+      const symbols: IHeaderSymbol[] = [createStructSymbol("Point")];
 
       // Create field maps in the correct format
       const pointFieldTypes = new Map<string, string>([
@@ -703,7 +705,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates forward declarations without typeInput", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createStructSymbol("Point")];
+      const symbols: IHeaderSymbol[] = [createStructSymbol("Point")];
 
       const result = generator.generate(symbols, "test.h");
 
@@ -712,7 +714,7 @@ describe("CHeaderGenerator", () => {
 
     it("generates enum section", () => {
       const generator = new CHeaderGenerator();
-      const symbols: ISymbol[] = [createEnumSymbol("Status")];
+      const symbols: IHeaderSymbol[] = [createEnumSymbol("Status")];
 
       const result = generator.generate(symbols, "test.h");
 

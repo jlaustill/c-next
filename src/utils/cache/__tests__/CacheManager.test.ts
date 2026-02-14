@@ -14,7 +14,7 @@ import {
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import CacheManager from "../CacheManager";
-import ISymbol from "../../types/ISymbol";
+import ISerializedSymbol from "../../../transpiler/types/ISerializedSymbol";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
@@ -30,7 +30,9 @@ describe("CacheManager", () => {
   let cacheManager: CacheManager;
 
   // Helper to create a test symbol
-  function createTestSymbol(overrides: Partial<ISymbol> = {}): ISymbol {
+  function createTestSymbol(
+    overrides: Partial<ISerializedSymbol> = {},
+  ): ISerializedSymbol {
     return {
       name: "testFunc",
       kind: "function",
@@ -689,7 +691,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      const symbols: ISymbol[] = [
+      const symbols: ISerializedSymbol[] = [
         createTestSymbol({
           sourceFile: testFile,
           name: "func",
@@ -787,7 +789,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      const symbols: ISymbol[] = [
+      const symbols: ISerializedSymbol[] = [
         createTestSymbol({
           sourceFile: testFile,
           name: "cFunc",
@@ -1440,7 +1442,7 @@ describe("CacheManager", () => {
       // Add a virtual test file
       mockFs.addFile("/project/test.h", "// test header");
 
-      const symbol: ISymbol = {
+      const symbol: ISerializedSymbol = {
         name: "testFunc",
         kind: "function",
         sourceFile: "/project/test.h",

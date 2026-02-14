@@ -25,7 +25,7 @@ import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilde
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
-import ISymbol from "../utils/types/ISymbol";
+import ISerializedSymbol from "./types/ISerializedSymbol";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "./logic/symbols/cnext";
 import SymbolRegistry from "./state/SymbolRegistry";
@@ -1056,7 +1056,7 @@ class Transpiler {
     }
 
     // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
-    // ADR-055 Phase 7: Cache returns ISymbol[], converted to typed symbols via bridge
+    // ADR-055 Phase 7: Cache returns ISerializedSymbol[], converted to typed symbols
     this.restoreCachedSymbols(cached.symbols, file);
     CodeGenState.symbolTable.restoreStructFields(cached.structFields);
     CodeGenState.symbolTable.restoreNeedsStructKeyword(
@@ -1072,16 +1072,16 @@ class Transpiler {
 
   /**
    * Restore cached symbols to the symbol table.
-   * ADR-055 Phase 7: Bridge layer converts ISymbol[] from cache to typed symbols.
+   * ADR-055 Phase 7: Converts ISerializedSymbol[] from cache to typed symbols.
    */
   private restoreCachedSymbols(
-    symbols: ISymbol[],
+    symbols: ISerializedSymbol[],
     _file: IDiscoveredFile,
   ): void {
     for (const symbol of symbols) {
       // Determine which storage to use based on source language
       if (symbol.sourceLanguage === ESourceLanguage.CNext) {
-        // C-Next symbols are never cached (they use TSymbol format, not ISymbol).
+        // C-Next symbols are never cached (they use TSymbol format).
         // If we see one here, it indicates a cache format issue - skip silently
         // since C-Next symbols are always re-parsed from source anyway.
         continue;

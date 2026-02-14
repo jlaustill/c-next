@@ -5,7 +5,6 @@
 
 import { describe, expect, it } from "vitest";
 import CResolver from "../index";
-import CTSymbolAdapter from "../adapters/CTSymbolAdapter";
 import TestHelpers from "./testHelpers";
 import SymbolTable from "../../SymbolTable";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
@@ -571,40 +570,4 @@ describe("CResolver - Without SymbolTable", () => {
   });
 });
 
-describe("CTSymbolAdapter - Conversion", () => {
-  it("converts TCSymbol to ISymbol correctly", () => {
-    const tree = TestHelpers.parseC(`
-      void foo();
-      struct Point { int x; };
-      enum Color { RED };
-    `);
-    const result = CResolver.resolve(tree!, "test.h");
-    const iSymbols = CTSymbolAdapter.toISymbols(result.symbols);
-
-    expect(iSymbols.length).toBe(result.symbols.length);
-
-    const funcSymbol = iSymbols.find((s) => s.name === "foo");
-    expect(funcSymbol?.kind).toBe("function");
-    expect(funcSymbol?.sourceLanguage).toBe(ESourceLanguage.C);
-
-    const structSymbol = iSymbols.find((s) => s.name === "Point");
-    expect(structSymbol?.kind).toBe("struct");
-    expect(structSymbol?.type).toBe("struct");
-
-    const enumSymbol = iSymbols.find((s) => s.name === "Color");
-    expect(enumSymbol?.kind).toBe("enum");
-
-    const memberSymbol = iSymbols.find((s) => s.name === "RED");
-    expect(memberSymbol?.kind).toBe("enum_member");
-    expect(memberSymbol?.parent).toBe("Color");
-  });
-
-  it("converts union correctly", () => {
-    const tree = TestHelpers.parseC(`union Data { int i; float f; };`);
-    const result = CResolver.resolve(tree!, "test.h");
-    const iSymbols = CTSymbolAdapter.toISymbols(result.symbols);
-
-    const unionSymbol = iSymbols.find((s) => s.name === "Data");
-    expect(unionSymbol?.type).toBe("union");
-  });
-});
+// ADR-055 Phase 7: CTSymbolAdapter tests removed - adapter deleted

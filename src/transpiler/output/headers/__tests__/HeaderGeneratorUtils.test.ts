@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from "vitest";
 import HeaderGeneratorUtils from "../HeaderGeneratorUtils";
-import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ISymbol from "../../../../utils/types/ISymbol";
+
+import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
 
@@ -13,12 +13,11 @@ import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
  * Helper to create test symbols with required properties
  */
 function makeSymbol(
-  partial: Partial<ISymbol> & { name: string; kind: TSymbolKind },
-): ISymbol {
+  partial: Partial<IHeaderSymbol> & { name: string; kind: TSymbolKind },
+): IHeaderSymbol {
   return {
     sourceFile: "test.cnx",
     sourceLine: 1,
-    sourceLanguage: ESourceLanguage.CNext,
     isExported: true,
     ...partial,
   };
@@ -68,7 +67,7 @@ describe("HeaderGeneratorUtils", () => {
 
   describe("groupSymbolsByKind", () => {
     it("groups symbols correctly", () => {
-      const symbols: ISymbol[] = [
+      const symbols: IHeaderSymbol[] = [
         makeSymbol({ name: "MyStruct", kind: "struct" }),
         makeSymbol({ name: "MyEnum", kind: "enum" }),
         makeSymbol({ name: "myFunc", kind: "function" }),
@@ -188,9 +187,9 @@ describe("HeaderGeneratorUtils", () => {
           makeSymbol({ name: "Point", kind: "struct" }),
           makeSymbol({ name: "Rect", kind: "struct" }),
         ],
-        classes: [] as ISymbol[],
-        functions: [] as ISymbol[],
-        variables: [] as ISymbol[],
+        classes: [] as IHeaderSymbol[],
+        functions: [] as IHeaderSymbol[],
+        variables: [] as IHeaderSymbol[],
         enums: [makeSymbol({ name: "Color", kind: "enum" })],
         types: [makeSymbol({ name: "Size", kind: "type" })],
         bitmaps: [makeSymbol({ name: "Flags", kind: "bitmap" })],
@@ -240,7 +239,7 @@ describe("HeaderGeneratorUtils", () => {
 
   describe("collectExternalTypes", () => {
     it("collects types from function return types", () => {
-      const functions: ISymbol[] = [
+      const functions: IHeaderSymbol[] = [
         makeSymbol({
           name: "getConfig",
           kind: "function",
@@ -261,7 +260,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("collects types from function parameters", () => {
-      const functions: ISymbol[] = [
+      const functions: IHeaderSymbol[] = [
         makeSymbol({
           name: "process",
           kind: "function",
@@ -282,7 +281,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("collects types from variables", () => {
-      const variables: ISymbol[] = [
+      const variables: IHeaderSymbol[] = [
         makeSymbol({
           name: "state",
           kind: "variable",
@@ -303,7 +302,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("excludes local structs", () => {
-      const functions: ISymbol[] = [
+      const functions: IHeaderSymbol[] = [
         makeSymbol({
           name: "getPoint",
           kind: "function",
@@ -324,7 +323,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("excludes built-in types", () => {
-      const functions: ISymbol[] = [
+      const functions: IHeaderSymbol[] = [
         makeSymbol({
           name: "getValue",
           kind: "function",
@@ -345,7 +344,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("excludes C++ namespace types", () => {
-      const functions: ISymbol[] = [
+      const functions: IHeaderSymbol[] = [
         makeSymbol({
           name: "parse",
           kind: "function",
@@ -366,7 +365,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("excludes known enums", () => {
-      const functions: ISymbol[] = [
+      const functions: IHeaderSymbol[] = [
         makeSymbol({
           name: "getColor",
           kind: "function",
@@ -444,7 +443,7 @@ describe("HeaderGeneratorUtils", () => {
 
   describe("filterCCompatibleVariables", () => {
     it("filters out C++ namespace types", () => {
-      const variables: ISymbol[] = [
+      const variables: IHeaderSymbol[] = [
         makeSymbol({
           name: "a",
           kind: "variable",
@@ -460,7 +459,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("filters out C++ template types", () => {
-      const variables: ISymbol[] = [
+      const variables: IHeaderSymbol[] = [
         makeSymbol({
           name: "a",
           kind: "variable",
@@ -476,7 +475,7 @@ describe("HeaderGeneratorUtils", () => {
     });
 
     it("keeps C-Next string<N> types", () => {
-      const variables: ISymbol[] = [
+      const variables: IHeaderSymbol[] = [
         makeSymbol({
           name: "name",
           kind: "variable",

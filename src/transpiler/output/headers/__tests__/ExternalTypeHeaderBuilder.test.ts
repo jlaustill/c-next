@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import ExternalTypeHeaderBuilder from "../ExternalTypeHeaderBuilder";
-import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+
 import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
 import TAnySymbol from "../../../types/symbols/TAnySymbol";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
@@ -22,7 +22,6 @@ function createSymbol(
     kind,
     sourceFile,
     sourceLine: 1,
-    sourceLanguage: ESourceLanguage.C,
     isExported: false,
   } as TCSymbol;
 }

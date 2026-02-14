@@ -1,21 +1,21 @@
 /**
  * Parse C/C++ header source and extract symbols for IDE features
+ * ADR-055 Phase 7: Direct TCSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CLexer } from "../transpiler/logic/parser/c/grammar/CLexer";
 import { CParser } from "../transpiler/logic/parser/c/grammar/CParser";
 import CResolver from "../transpiler/logic/symbols/c";
-import CTSymbolAdapter from "../transpiler/logic/symbols/c/adapters/CTSymbolAdapter";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
-import TInternalSymbolKind from "../transpiler/types/symbol-kinds/TSymbolKind";
+import TCSymbol from "../transpiler/types/symbols/c/TCSymbol";
 
 /**
- * Map internal TSymbolKind (snake_case) to library TSymbolKind (camelCase) for extension use
+ * Map TCSymbol kind to library TSymbolKind
  */
-function mapSymbolKind(kind: TInternalSymbolKind): TSymbolKind {
+function mapCSymbolKind(kind: TCSymbol["kind"]): TSymbolKind {
   switch (kind) {
     case "struct":
       return "struct";
@@ -32,6 +32,48 @@ function mapSymbolKind(kind: TInternalSymbolKind): TSymbolKind {
     default:
       return "variable";
   }
+}
+
+/**
+ * ADR-055 Phase 7: Convert TCSymbol directly to ISymbolInfo.
+ * Handles the discriminated union by extracting common fields and type-specific fields.
+ */
+function convertTCSymbolsToISymbolInfo(
+  symbols: TCSymbol[],
+  filePath?: string,
+): ISymbolInfo[] {
+  return symbols.map((sym) => {
+    // Extract type and parent based on symbol kind
+    let type: string | undefined;
+    let parent: string | undefined;
+
+    switch (sym.kind) {
+      case "function":
+        type = sym.type;
+        break;
+      case "variable":
+        type = sym.type;
+        break;
+      case "enum_member":
+        parent = sym.parent;
+        break;
+      case "type":
+        type = sym.type;
+        break;
+      // struct and enum have no type field
+    }
+
+    return {
+      name: sym.name,
+      fullName: parent ? `${parent}.${sym.name}` : sym.name,
+      kind: mapCSymbolKind(sym.kind),
+      type,
+      parent,
+      line: sym.sourceLine ?? 0,
+      sourceFile: filePath,
+      language: "c",
+    };
+  });
 }
 
 /**
@@ -77,19 +119,9 @@ function parseCHeader(
 
     const tree = parser.compilationUnit();
     const result = CResolver.resolve(tree, filePath ?? "<header>");
-    const rawSymbols = CTSymbolAdapter.toISymbols(result.symbols);
 
-    // Transform ISymbol[] to ISymbolInfo[]
-    const symbols: ISymbolInfo[] = rawSymbols.map((sym) => ({
-      name: sym.name,
-      fullName: sym.parent ? `${sym.parent}.${sym.name}` : sym.name,
-      kind: mapSymbolKind(sym.kind),
-      type: sym.type,
-      parent: sym.parent,
-      line: sym.sourceLine ?? 0,
-      sourceFile: filePath,
-      language: "c",
-    }));
+    // ADR-055 Phase 7: Direct TCSymbol → ISymbolInfo conversion
+    const symbols = convertTCSymbolsToISymbolInfo(result.symbols, filePath);
 
     return {
       success: true,
