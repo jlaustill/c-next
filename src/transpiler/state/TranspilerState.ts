@@ -6,7 +6,7 @@
  * and typed accessors for all accumulated data.
  */
 
-import ICodeGenSymbols from "./ICodeGenSymbols";
+import ICodeGenSymbols from "../types/ICodeGenSymbols";
 
 /**
  * Encapsulates the 6 accumulated state fields from Transpiler.

@@ -10,8 +10,8 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
 import IBitmapFieldInfo from "../../../../types/symbols/IBitmapFieldInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
-import BITMAP_SIZE from "../../../../types/BITMAP_SIZE";
-import BITMAP_BACKING_TYPE from "../../../../types/BITMAP_BACKING_TYPE";
+import BITMAP_SIZE from "../../../../constants/BITMAP_SIZE";
+import BITMAP_BACKING_TYPE from "../../../../constants/BITMAP_BACKING_TYPE";
 
 class BitmapCollector {
   /**

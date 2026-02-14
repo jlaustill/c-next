@@ -222,13 +222,16 @@ The codebase is organized into four layers under `src/transpiler/`:
 - `src/transpiler/logic/` — Business logic (parser/, symbols/, analysis/, preprocessor/)
 - `src/transpiler/output/` — Generation (codegen/, headers/)
 - `src/transpiler/state/` — Global state (CodeGenState - shared by all layers)
+- `src/transpiler/constants/` — Runtime lookup tables (BITMAP_SIZE, BITMAP_BACKING_TYPE)
 - `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
 - `src/utils/` — Shared utilities (constants/, cache/, types/, and type utilities like `ScopeUtils`, `TTypeUtils`, `TypeResolver`)
 
 ### Utility File Locations
 
 - **Type utilities** (`ScopeUtils`, `TTypeUtils`, `ParameterUtils`, `TypeResolver`, etc.) live in `src/utils/`, NOT `src/transpiler/types/`
-- `src/transpiler/types/` is for type definitions only (interfaces, type aliases)
+- `src/transpiler/types/` is for type definitions only (interfaces, type aliases, enums)
+- `src/transpiler/state/` is for stateful classes (`CodeGenState`, `SymbolRegistry`, `TranspilerState`)
+- `src/transpiler/constants/` is for runtime lookup tables (`BITMAP_SIZE`, `BITMAP_BACKING_TYPE`)
 
 ### ANTLR Parser Generation
 

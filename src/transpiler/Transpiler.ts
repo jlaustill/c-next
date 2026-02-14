@@ -50,7 +50,7 @@ import IFileResult from "./types/IFileResult";
 import IPipelineFile from "./types/IPipelineFile";
 import IPipelineInput from "./types/IPipelineInput";
 import ITranspileError from "../lib/types/ITranspileError";
-import TranspilerState from "./types/TranspilerState";
+import TranspilerState from "./state/TranspilerState";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
 import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
