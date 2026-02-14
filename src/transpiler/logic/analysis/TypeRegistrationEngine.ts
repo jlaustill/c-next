@@ -35,6 +35,25 @@ class TypeRegistrationEngine {
   ): void {
     // TODO: Implement
   }
+
+  /**
+   * Parse array dimension from arrayType context.
+   * Returns the numeric size, or undefined if not a simple integer literal.
+   */
+  static parseArrayTypeDimension(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+  ): number | undefined {
+    const dims = arrayTypeCtx.arrayTypeDimension();
+    if (dims.length === 0) {
+      return undefined;
+    }
+    const sizeExpr = dims[0].expression();
+    if (!sizeExpr) {
+      return undefined;
+    }
+    const size = Number.parseInt(sizeExpr.getText(), 10);
+    return Number.isNaN(size) ? undefined : size;
+  }
 }
 
 export default TypeRegistrationEngine;
