@@ -80,13 +80,13 @@ import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 // Issue #644: Float bit write helper for shadow variable pattern
 import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #644: String declaration helper for bounded/array/concat strings
-import StringDeclHelper from "./helpers/StringDeclHelper";
+// Note: StringDeclHelper is now used via VariableDeclHelper
 // Issue #794: Argument generation helper for ADR-006 semantics
 import ArgumentGenerator from "./helpers/ArgumentGenerator";
 // Issue #644: Enum assignment validator for type-safe enum assignments
 import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 // Issue #644: Array initialization helper for size inference and fill-all
-import ArrayInitHelper from "./helpers/ArrayInitHelper";
+// Note: ArrayInitHelper is now used via VariableDeclHelper
 // Issue #644: Assignment expected type resolution helper
 import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
 // PR #715: C++ member conversion helper for improved testability
@@ -103,7 +103,9 @@ import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
 import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
-import VariableModifierBuilder from "./helpers/VariableModifierBuilder";
+// Note: VariableModifierBuilder is now used via VariableDeclHelper
+// Issue #792: Variable declaration helper
+import VariableDeclHelper from "./helpers/VariableDeclHelper";
 // PR #681: Extracted separator and dereference resolution utilities
 import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
@@ -3721,7 +3723,10 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Handle arrayType dimension (C-Next style: u8[16] data)
     if (hasArrayTypeSyntax) {
-      decl += this._getArrayTypeDimension(varDecl.type());
+      decl += VariableDeclHelper.getArrayTypeDimension(varDecl.type(), {
+        tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
+        generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+      });
     }
 
     // Handle arrayDimension (C-style or additional dimensions)
@@ -4332,74 +4337,27 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
-    // Issue #375: Check for C++ constructor syntax - early return
-    const constructorArgList = ctx.constructorArgumentList();
-    if (constructorArgList) {
-      return this._generateConstructorDecl(ctx, constructorArgList);
-    }
-
-    // Issue #696: Use helper for modifier extraction and validation
-    const modifiers = VariableModifierBuilder.build(
-      ctx,
-      CodeGenState.inFunctionBody,
-    );
-
-    const name = ctx.IDENTIFIER().getText();
-    const typeCtx = ctx.type();
-
-    // Reject C-style array declarations (u16 arr[8]) - require C-Next style (u16[8] arr)
-    this._validateArrayDeclarationSyntax(ctx, typeCtx, name);
-
-    const type = this._inferVariableType(ctx, name);
-
-    // Track local variable metadata
-    this._trackLocalVariable(ctx, name);
-
-    // ADR-045: Handle bounded string type specially - early return
-    const stringResult = StringDeclHelper.generateStringDecl(
-      typeCtx,
-      name,
-      ctx.expression() ?? null,
-      ctx.arrayDimension(),
-      modifiers,
-      ctx.constModifier() !== null,
-      {
-        generateExpression: (exprCtx) => this.generateExpression(exprCtx),
-        generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-        getStringConcatOperands: (concatCtx) =>
-          this._getStringConcatOperands(concatCtx),
-        getSubstringOperands: (substrCtx) =>
-          this._getSubstringOperands(substrCtx),
-        getStringExprCapacity: (exprCode) =>
-          this.getStringExprCapacity(exprCode),
-        requireStringInclude: () => this.requireInclude("string"),
-      },
-    );
-    if (stringResult.handled) {
-      return stringResult.code;
-    }
-
-    // Build base declaration
-    const modifierPrefix = VariableModifierBuilder.toPrefix(modifiers);
-    let decl = `${modifierPrefix}${type} ${name}`;
-
-    // Handle array declarations - early return if array init handled
-    const arrayResult = this._handleArrayDeclaration(ctx, typeCtx, name, decl);
-    if (arrayResult.handled) {
-      return arrayResult.code;
-    }
-    decl = arrayResult.decl;
-
-    // Handle initialization
-    decl = this._generateVariableInitializer(
-      ctx,
-      typeCtx,
-      decl,
-      arrayResult.isArray,
-    );
-
-    // Handle pending C++ class field assignments
-    return this._finalizeCppClassAssignments(ctx, typeCtx, name, decl);
+    // Issue #792: Delegate to VariableDeclHelper
+    return VariableDeclHelper.generateVariableDecl(ctx, {
+      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+      generateType: (typeCtx) => this.generateType(typeCtx),
+      getTypeName: (typeCtx) => this.getTypeName(typeCtx),
+      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
+      tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
+      getZeroInitializer: (typeCtx, isArray) =>
+        this.getZeroInitializer(typeCtx, isArray),
+      getExpressionType: (exprCtx) => this.getExpressionType(exprCtx),
+      inferVariableType: (varCtx, name) =>
+        this._inferVariableType(varCtx, name),
+      trackLocalVariable: (varCtx, name) =>
+        this._trackLocalVariable(varCtx, name),
+      getStringConcatOperands: (concatCtx) =>
+        this._getStringConcatOperands(concatCtx),
+      getSubstringOperands: (substrCtx) =>
+        this._getSubstringOperands(substrCtx),
+      getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
+      requireStringInclude: () => this.requireInclude("string"),
+    });
   }
 
   /**
@@ -4448,383 +4406,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
   }
 
-  /**
-   * Issue #696: Handle array declaration with dimension parsing and init.
-   * Bug fix: Also handles C-Next style arrayType syntax (u16[8] myArray).
-   */
-  private _handleArrayDeclaration(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    name: string,
-    decl: string,
-  ): { handled: boolean; code: string; decl: string; isArray: boolean } {
-    const arrayDims = ctx.arrayDimension();
-    const hasArrayTypeSyntax = typeCtx.arrayType() !== null;
-    const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
-
-    if (!isArray) {
-      return { handled: false, code: "", decl, isArray: false };
-    }
-
-    // Generate dimension string from arrayType syntax (u16[8] myArray)
-    const arrayTypeDimStr = this._getArrayTypeDimension(typeCtx);
-
-    const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
-    const declaredSize =
-      this._parseArrayTypeDimension(typeCtx) ??
-      this._parseFirstArrayDimension(arrayDims);
-
-    // ADR-035: Handle array initializers with size inference
-    if (ctx.expression()) {
-      const arrayInitResult = ArrayInitHelper.processArrayInit(
-        name,
-        typeCtx,
-        ctx.expression()!,
-        arrayDims,
-        hasEmptyArrayDim,
-        declaredSize,
-        {
-          generateExpression: (exprCtx) => this.generateExpression(exprCtx),
-          getTypeName: (typeCtxParam) => this.getTypeName(typeCtxParam),
-          generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-        },
-      );
-      if (arrayInitResult) {
-        // Track as local array for type resolution
-        CodeGenState.localArrays.add(name);
-        // Include arrayType dimension before arrayDimension dimensions
-        const fullDimSuffix = arrayTypeDimStr + arrayInitResult.dimensionSuffix;
-        return {
-          handled: true,
-          code: `${decl}${fullDimSuffix} = ${arrayInitResult.initValue};`,
-          decl,
-          isArray: true,
-        };
-      }
-    }
-
-    // Generate dimensions: arrayType dimension first, then arrayDimension dimensions
-    const newDecl =
-      decl + arrayTypeDimStr + this.generateArrayDimensions(arrayDims);
-    CodeGenState.localArrays.add(name);
-
-    return { handled: false, code: "", decl: newDecl, isArray: true };
-  }
-
-  /**
-   * Get array dimension string from arrayType syntax (u16[8] -> "[8]", u16[4][4] -> "[4][4]").
-   * Evaluates const expressions to their numeric values for C compatibility.
-   */
-  private _getArrayTypeDimension(typeCtx: Parser.TypeContext): string {
-    if (!typeCtx.arrayType()) {
-      return "";
-    }
-    const dims = typeCtx.arrayType()!.arrayTypeDimension();
-    let result = "";
-    for (const dim of dims) {
-      const sizeExpr = dim.expression();
-      if (!sizeExpr) {
-        result += "[]";
-        continue;
-      }
-      // Try to evaluate as constant first (required for C file-scope arrays)
-      // Fall back to expression text for macros, enums, etc.
-      const dimValue =
-        this.tryEvaluateConstant(sizeExpr) ?? this.generateExpression(sizeExpr);
-      result += `[${dimValue}]`;
-    }
-    return result;
-  }
-
-  /**
-   * Parse first array dimension from arrayType syntax for size validation.
-   */
-  private _parseArrayTypeDimension(typeCtx: Parser.TypeContext): number | null {
-    if (!typeCtx.arrayType()) {
-      return null;
-    }
-    const dims = typeCtx.arrayType()!.arrayTypeDimension();
-    if (dims.length === 0) {
-      return null;
-    }
-    const sizeExpr = dims[0].expression();
-    if (!sizeExpr) {
-      return null;
-    }
-    const sizeText = sizeExpr.getText();
-    const digitRegex = /^\d+$/;
-    if (digitRegex.exec(sizeText)) {
-      return Number.parseInt(sizeText, 10);
-    }
-    return null;
-  }
-
-  /**
-   * Issue #696: Parse first array dimension for validation.
-   */
-  private _parseFirstArrayDimension(
-    arrayDims: Parser.ArrayDimensionContext[],
-  ): number | null {
-    if (arrayDims.length === 0 || !arrayDims[0].expression()) {
-      return null;
-    }
-    const sizeText = arrayDims[0].expression()!.getText();
-    if (/^\d+$/.exec(sizeText)) {
-      return Number.parseInt(sizeText, 10);
-    }
-    return null;
-  }
-
-  /**
-   * Validate array declaration syntax - reject C-style, require C-Next style.
-   * C-style: u16 arr[8] (all dimensions after identifier) - REJECTED
-   * C-Next style: u16[8] arr (first dimension in type) - REQUIRED
-   * Multi-dim C-Next: u16[4] arr[2] (first in type, rest after) - ALLOWED
-   * Exceptions (grammar limitations):
-   *   - Empty dimensions for size inference: u8 arr[] <- [...]
-   *   - Qualified types: SeaDash.Parse.Result arr[3] (no arrayType support)
-   *   - Scoped/global types: this.Type arr[3], global.Type arr[3]
-   *   - String types: string<N> arr[3]
-   */
-  private _validateArrayDeclarationSyntax(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    name: string,
-  ): void {
-    const arrayDims = ctx.arrayDimension();
-    if (arrayDims.length === 0) {
-      return; // Not an array declaration
-    }
-
-    // If type already has arrayType, additional dimensions are allowed (multi-dim)
-    if (typeCtx.arrayType()) {
-      return; // Valid C-Next style: u16[4] arr[2] → uint16_t arr[4][2]
-    }
-
-    // Allow empty first dimension for size inference: u8 arr[] <- [1, 2, 3]
-    // The grammar doesn't support u8[] arr syntax, so this is the only way
-    if (arrayDims.length === 1 && !arrayDims[0].expression()) {
-      return; // Size inference pattern allowed
-    }
-
-    // Allow C-style for multi-dimensional arrays: u8 matrix[4][4]
-    // The arrayType grammar only supports single dimension, so multi-dim needs C-style
-    if (arrayDims.length > 1) {
-      return; // Multi-dimensional arrays need C-style
-    }
-
-    // Allow C-style for types that don't support arrayType syntax:
-    // - Qualified types (Scope.Type, Namespace::Type)
-    // - Scoped types (this.Type)
-    // - Global types (global.Type)
-    // - String types (string<N>)
-    // - Bitmap types (code generator doesn't yet handle arrayType for bitmaps)
-    if (
-      typeCtx.qualifiedType() ||
-      typeCtx.scopedType() ||
-      typeCtx.globalType() ||
-      typeCtx.stringType()
-    ) {
-      return; // Grammar limitation - these can't use arrayType
-    }
-
-    // C-style array declaration detected - reject with helpful error
-    const baseType = this._extractBaseTypeName(typeCtx);
-    const dimensions = arrayDims
-      .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
-      .join("");
-    const line = ctx.start?.line ?? 0;
-    const col = ctx.start?.column ?? 0;
-
-    throw new Error(
-      `${line}:${col} C-style array declaration is not allowed. ` +
-        `Use '${baseType}${dimensions} ${name}' instead of '${baseType} ${name}${dimensions}'`,
-    );
-  }
-
-  /**
-   * Extract base type name from type context for error messages.
-   */
-  private _extractBaseTypeName(typeCtx: Parser.TypeContext): string {
-    if (typeCtx.primitiveType()) {
-      return typeCtx.primitiveType()!.getText();
-    }
-    if (typeCtx.userType()) {
-      return typeCtx.userType()!.getText();
-    }
-    if (typeCtx.arrayType()) {
-      const arrCtx = typeCtx.arrayType()!;
-      if (arrCtx.primitiveType()) {
-        return arrCtx.primitiveType()!.getText();
-      }
-      if (arrCtx.userType()) {
-        return arrCtx.userType()!.getText();
-      }
-    }
-    return typeCtx.getText();
-  }
-
-  /**
-   * Issue #696: Generate variable initializer with validation.
-   */
-  private _generateVariableInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    decl: string,
-    isArray: boolean,
-  ): string {
-    if (!ctx.expression()) {
-      // ADR-015: Zero initialization for uninitialized variables
-      return `${decl} = ${this.getZeroInitializer(typeCtx, isArray)}`;
-    }
-
-    const typeName = this.getTypeName(typeCtx);
-    const savedExpectedType = CodeGenState.expectedType;
-    CodeGenState.expectedType = typeName;
-
-    // ADR-017: Validate enum type for initialization
-    EnumAssignmentValidator.validateEnumAssignment(typeName, ctx.expression()!);
-
-    // ADR-024: Validate integer literals and type conversions
-    this._validateIntegerInitializer(ctx, typeName);
-
-    const result = `${decl} = ${this.generateExpression(ctx.expression()!)}`;
-    CodeGenState.expectedType = savedExpectedType;
-
-    return result;
-  }
-
-  /**
-   * Issue #696: Validate integer initializer using helper.
-   */
-  private _validateIntegerInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    typeName: string,
-  ): void {
-    if (!this._isIntegerType(typeName)) {
-      return;
-    }
-
-    const exprText = ctx.expression()!.getText().trim();
-    const line = ctx.start?.line ?? 0;
-    const col = ctx.start?.column ?? 0;
-    const isLiteral = LiteralUtils.parseIntegerLiteral(exprText) !== undefined;
-
-    try {
-      if (isLiteral) {
-        // Direct literal - validate it fits in the target type
-        this._validateLiteralFitsType(exprText, typeName);
-      } else {
-        // Not a literal - check for narrowing/sign conversions
-        const sourceType = this.getExpressionType(ctx.expression()!);
-        this._validateTypeConversion(typeName, sourceType);
-      }
-    } catch (validationError) {
-      const msg =
-        validationError instanceof Error
-          ? validationError.message
-          : String(validationError);
-      throw new Error(`${line}:${col} ${msg}`, { cause: validationError });
-    }
-  }
-
-  /**
-   * Issue #696: Handle pending C++ class field assignments.
-   */
-  private _finalizeCppClassAssignments(
-    _ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    name: string,
-    decl: string,
-  ): string {
-    if (CodeGenState.pendingCppClassAssignments.length === 0) {
-      return `${decl};`;
-    }
-
-    if (CodeGenState.inFunctionBody) {
-      const assignments = CodeGenState.pendingCppClassAssignments
-        .map((a) => `${name}.${a}`)
-        .join("\n");
-      CodeGenState.pendingCppClassAssignments = [];
-      return `${decl};\n${assignments}`;
-    }
-
-    // At global scope, we can't emit assignment statements.
-    CodeGenState.pendingCppClassAssignments = [];
-    throw new Error(
-      `Error: C++ class '${this.getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
-        `syntax at global scope. Use constructor syntax or initialize fields separately.`,
-    );
-  }
-
-  /**
-   * Issue #375: Generate C++ constructor-style declaration
-   * Validates that all arguments are const variables.
-   * Example: `Adafruit_MAX31856 thermocouple(pinConst);` -> `Adafruit_MAX31856 thermocouple(pinConst);`
-   */
-  private _generateConstructorDecl(
-    ctx: Parser.VariableDeclarationContext,
-    argListCtx: Parser.ConstructorArgumentListContext,
-  ): string {
-    const type = this.generateType(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
-
-    // Collect and validate all arguments
-    const argIdentifiers = argListCtx.IDENTIFIER();
-    const resolvedArgs: string[] = [];
-
-    for (const argNode of argIdentifiers) {
-      const argName = argNode.getText();
-
-      // Check if it exists in type registry
-      const typeInfo = CodeGenState.getVariableTypeInfo(argName);
-
-      // Also check scoped variables if inside a scope
-      let scopedArgName = argName;
-      let scopedTypeInfo = typeInfo;
-      if (!typeInfo && CodeGenState.currentScope) {
-        scopedArgName = `${CodeGenState.currentScope}_${argName}`;
-        scopedTypeInfo = CodeGenState.getVariableTypeInfo(scopedArgName);
-      }
-
-      if (!typeInfo && !scopedTypeInfo) {
-        throw new Error(
-          `Error at line ${line}: Constructor argument '${argName}' is not declared`,
-        );
-      }
-
-      const finalTypeInfo = typeInfo ?? scopedTypeInfo!;
-      const finalArgName = typeInfo ? argName : scopedArgName;
-
-      // Check if it's const
-      if (!finalTypeInfo.isConst) {
-        throw new Error(
-          `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
-            `C++ constructors in C-Next only accept const variables.`,
-        );
-      }
-
-      resolvedArgs.push(finalArgName);
-    }
-
-    // Track the variable in type registry (as an external C++ type)
-    CodeGenState.setVariableTypeInfo(name, {
-      baseType: type,
-      bitWidth: 0, // Unknown for C++ types
-      isArray: false,
-      arrayDimensions: [],
-      isConst: false,
-      isExternalCppType: true,
-    });
-
-    // Track as local variable if inside function body
-    if (CodeGenState.inFunctionBody) {
-      CodeGenState.localVariables.add(name);
-    }
-
-    return `${type} ${name}(${resolvedArgs.join(", ")});`;
-  }
+  // Issue #792: Methods _handleArrayDeclaration, _getArrayTypeDimension, _parseArrayTypeDimension,
+  // _parseFirstArrayDimension, _validateArrayDeclarationSyntax, _extractBaseTypeName,
+  // _generateVariableInitializer, _validateIntegerInitializer, _finalizeCppClassAssignments,
+  // and _generateConstructorDecl have been extracted to VariableDeclHelper.ts
 
   /**
    * Get zero initializer for array types.
