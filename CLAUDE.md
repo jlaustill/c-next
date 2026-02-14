@@ -151,6 +151,13 @@ Check the terminal report for files you changed — any new code below 80% cover
 
 **No re-exports/barrel files** - Don't create `index.ts` files that re-export (violates `no-named-export` rule). Import directly from source files.
 
+**Helper extraction pattern** - When extracting methods to helper classes:
+
+1. Use callback interfaces for CodeGenerator dependencies (not the whole generator)
+2. Extract in tiers: pure utilities → simple state operations → complex with callbacks → orchestrators
+3. Keep interfaces internal to helper files (don't export types due to `no-named-export` rule)
+4. Follow existing patterns: `StringDeclHelper`, `ArrayInitHelper`, `VariableDeclHelper`
+
 **Static classes for utilities** - Use static classes (not object literals) for modules with multiple related functions:
 
 ```typescript
@@ -432,6 +439,7 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 - **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
 - **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
+- **Parser result structure**: `CNextSourceParser.parse(source)` returns `{ tree, ... }` - access AST via `result.tree.declaration(0)`, not `tree as Parser.ProgramContext`
 
 ### Assignment Handler Test Patterns
 
