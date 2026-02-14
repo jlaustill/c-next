@@ -2,11 +2,13 @@
 
 **Issue:** #791
 **Date:** 2026-02-14
-**Status:** Approved
+**Status:** Implemented
 
 ## Summary
 
-Extract the Type Registration Engine (~330 lines across 11 methods) from `CodeGenerator.ts` to a dedicated static class in `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`.
+Extract the Type Registration Engine (~330 lines across 11 methods) from `CodeGenerator.ts` to a dedicated static class in `src/transpiler/output/codegen/helpers/TypeRegistrationEngine.ts`.
+
+> **Note:** Originally planned for `logic/analysis/` but moved to `output/codegen/helpers/` due to architecture constraints (engine imports from output layer types).
 
 ## Motivation
 
@@ -14,7 +16,7 @@ From PR #789 analysis, the Type Registration Engine was identified as an extract
 
 ## Architecture
 
-**Location:** `src/transpiler/logic/analysis/TypeRegistrationEngine.ts`
+**Location:** `src/transpiler/output/codegen/helpers/TypeRegistrationEngine.ts`
 
 **Pattern:** Static class with minimal callback interface (2 callbacks only).
 
@@ -105,7 +107,7 @@ CodeGenerator.generate()
 
 ### Unit Tests
 
-Location: `src/transpiler/logic/analysis/__tests__/TypeRegistrationEngine.test.ts`
+Location: `src/transpiler/output/codegen/helpers/__tests__/TypeRegistrationEngine.test.ts`
 
 **Pure helper tests (no mocking):**
 
@@ -138,8 +140,8 @@ Location: `src/transpiler/logic/analysis/__tests__/TypeRegistrationEngine.test.t
 
 ## Acceptance Criteria
 
-- [ ] Type registration logic extracted to dedicated class
-- [ ] CodeGenerator delegates to new class
-- [ ] All existing tests pass
-- [ ] Unit tests for extracted class with ≥80% coverage
-- [ ] No new SonarCloud issues
+- [x] Type registration logic extracted to dedicated class
+- [x] CodeGenerator delegates to new class
+- [x] All existing tests pass
+- [x] Unit tests for extracted class with ≥80% coverage
+- [x] No new SonarCloud issues
