@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.71] - 2026-02-14
+
+### Changed
+
+- Complete ADR-055 Phase 7: Remove legacy ISymbol type system (PR #814, #815)
+- Extract TypeRegistrationEngine from CodeGenerator for cleaner architecture (Issue #791)
+
+### Fixed
+
+- Remove redundant undefined argument in resolveBaseType (PR #815)
+- Move TypeRegistrationEngine to output/codegen/helpers for architecture compliance (PR #814)
+
 ## [0.1.70] - 2026-02-13
 
 ### Fixed
@@ -976,7 +988,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.66...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.71...HEAD
+[0.1.71]: https://github.com/jlaustill/c-next/compare/v0.1.70...v0.1.71
+[0.1.70]: https://github.com/jlaustill/c-next/compare/v0.1.69...v0.1.70
+[0.1.69]: https://github.com/jlaustill/c-next/compare/v0.1.68...v0.1.69
+[0.1.68]: https://github.com/jlaustill/c-next/compare/v0.1.67...v0.1.68
+[0.1.67]: https://github.com/jlaustill/c-next/compare/v0.1.66...v0.1.67
 [0.1.66]: https://github.com/jlaustill/c-next/compare/v0.1.65...v0.1.66
 [0.1.65]: https://github.com/jlaustill/c-next/compare/v0.1.64...v0.1.65
 [0.1.64]: https://github.com/jlaustill/c-next/compare/v0.1.63...v0.1.64
