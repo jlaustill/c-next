@@ -630,22 +630,7 @@ class SymbolTable {
     // Issue #817: Group by scope AND kind - symbols in different scopes don't conflict,
     // and symbols with different kinds (variable vs scope) don't conflict either
     if (cnextDefs.length > 1) {
-      // Group C-Next symbols by their scope name AND kind
-      // - Symbols in different scopes (Foo.enabled vs Bar.enabled) don't conflict
-      // - Symbols with different kinds (variable LED vs scope LED) don't conflict
-      const byScopeAndKind = new Map<string, TSymbol[]>();
-      for (const def of cnextDefs) {
-        // def is TSymbol since sourceLanguage is CNext
-        const tSymbol = def as TSymbol;
-        const scopeName = tSymbol.scope.name;
-        const key = `${scopeName}:${tSymbol.kind}`;
-        const existing = byScopeAndKind.get(key);
-        if (existing) {
-          existing.push(tSymbol);
-        } else {
-          byScopeAndKind.set(key, [tSymbol]);
-        }
-      }
+      const byScopeAndKind = this.groupCNextSymbolsByScopeAndKind(cnextDefs);
 
       // Check each scope+kind group for conflicts (multiple symbols in same scope with same kind)
       for (const symbols of byScopeAndKind.values()) {
@@ -674,6 +659,36 @@ class SymbolTable {
     }
 
     return null;
+  }
+
+  /**
+   * Issue #817: Group C-Next symbols by scope name and kind.
+   *
+   * Symbols in different scopes don't conflict (Foo.enabled vs Bar.enabled
+   * generate Foo_enabled and Bar_enabled). Symbols with different kinds also
+   * don't conflict (variable LED vs scope LED are distinct).
+   *
+   * @param symbols C-Next symbols to group (must all be TSymbol)
+   * @returns Map from "scopeName:kind" key to array of symbols
+   */
+  private groupCNextSymbolsByScopeAndKind(
+    symbols: TAnySymbol[],
+  ): Map<string, TSymbol[]> {
+    const byScopeAndKind = new Map<string, TSymbol[]>();
+
+    for (const def of symbols) {
+      const tSymbol = def as TSymbol;
+      const scopeName = tSymbol.scope.name;
+      const key = `${scopeName}:${tSymbol.kind}`;
+      const existing = byScopeAndKind.get(key);
+      if (existing) {
+        existing.push(tSymbol);
+      } else {
+        byScopeAndKind.set(key, [tSymbol]);
+      }
+    }
+
+    return byScopeAndKind;
   }
 
   // ========================================================================
