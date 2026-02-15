@@ -878,7 +878,6 @@ class TestUtils {
   ): Promise<IModeResult> {
     const basePath = cnxFile.replace(/\.test\.cnx$/, "");
     const paths = TestUtils.getExpectedPaths(basePath, mode);
-    const testBaseName = basename(cnxFile, ".test.cnx");
 
     // Initialize result
     const result: IModeResult = {
@@ -904,58 +903,30 @@ class TestUtils {
     result.transpileSuccess = true;
 
     // Transpile helper files via CLI
+    // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
+    // that would move tracked helper files to temp locations. Instead, let
+    // helpers generate in place (they're tracked in git anyway).
     const helperImplFiles: string[] = [];
-    const tempHelperFiles: string[] = [];
 
     for (const helperCnx of helperCnxFiles) {
       const helperBaseName = basename(helperCnx, ".cnx");
       const implExt = mode === "cpp" ? "cpp" : "c";
-      const headerExt = mode === "cpp" ? "hpp" : "h";
 
-      // Use unique temp file name to avoid conflicts in parallel test runs
-      const tempImplFile = join(
+      // The helper file will be generated at the default location
+      const helperImplFile = join(
         dirname(helperCnx),
-        `${helperBaseName}.${testBaseName}.tmp.${implExt}`,
+        `${helperBaseName}.${implExt}`,
       );
 
-      const helperResult = transpileViaCli(
-        helperCnx,
-        rootDir,
-        mode === "cpp",
-        tempImplFile,
-      );
+      // Transpile WITHOUT -o to avoid renaming tracked files
+      const helperResult = transpileViaCli(helperCnx, rootDir, mode === "cpp");
 
       if (helperResult.success) {
-        helperImplFiles.push(tempImplFile);
-        tempHelperFiles.push(tempImplFile);
-
-        // Track header for cleanup if generated and no persistent expected file exists
-        const tempHFile = join(
-          dirname(helperCnx),
-          `${helperBaseName}.${headerExt}`,
-        );
-        if (helperResult.headerCode) {
-          const helperExpectedH = join(
-            dirname(helperCnx),
-            `${helperBaseName}.expected.${headerExt}`,
-          );
-          if (!existsSync(helperExpectedH)) {
-            tempHelperFiles.push(tempHFile);
-          }
-        }
+        helperImplFiles.push(helperImplFile);
       }
     }
 
-    // Cleanup helper for temp files
-    const cleanupHelpers = (): void => {
-      for (const f of tempHelperFiles) {
-        try {
-          if (existsSync(f)) unlinkSync(f);
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-    };
+    // No cleanup needed - helper files are tracked in git and should persist
 
     // Check expected file exists (no fallbacks - tests must have proper expected files)
     const expectedImplPath = paths.expectedImpl;
@@ -973,14 +944,14 @@ class TestUtils {
       result.headerMatch = true;
       result.compileSuccess = true;
       result.execSuccess = true;
-      cleanupHelpers();
+      // No cleanup needed for helper files
       return result;
     }
 
     // No expected file - skip this mode
     if (!hasExpectedImpl) {
       result.error = `No expected file: ${paths.expectedImpl}`;
-      cleanupHelpers();
+      // No cleanup needed for helper files
       return result;
     }
 
@@ -993,7 +964,7 @@ class TestUtils {
       result.error = `${mode.toUpperCase()} output mismatch`;
       result.expected = expectedImpl;
       result.actual = transpileResult.code;
-      cleanupHelpers();
+      // No cleanup needed for helper files
       return result;
     }
     result.snapshotMatch = true;
@@ -1002,7 +973,7 @@ class TestUtils {
     if (transpileResult.headerCode) {
       if (!hasExpectedHeader) {
         result.error = `Missing ${expectedHeaderPath} - headers were generated but no snapshot exists`;
-        cleanupHelpers();
+        // No cleanup needed for helper files
         return result;
       }
       const expectedHeader = readFileSync(expectedHeaderPath, "utf-8");
@@ -1013,7 +984,7 @@ class TestUtils {
         result.error = `${mode.toUpperCase()} header mismatch`;
         result.expected = expectedHeader;
         result.actual = transpileResult.headerCode;
-        cleanupHelpers();
+        // No cleanup needed for helper files
         return result;
       }
     }
@@ -1025,7 +996,7 @@ class TestUtils {
       result.compileSuccess = true;
       result.execSuccess = true;
       result.skippedExec = true;
-      cleanupHelpers();
+      // No cleanup needed for helper files
       return result;
     }
 
@@ -1068,7 +1039,7 @@ class TestUtils {
           .slice(0, 5)
           .join("\n");
         result.error = `${mode.toUpperCase()} compilation failed: ${errors}`;
-        cleanupHelpers();
+        // No cleanup needed for helper files
         return result;
       }
     } else {
@@ -1082,7 +1053,7 @@ class TestUtils {
         const cppcheckResult = TestUtils.validateCppcheck(expectedImplPath);
         if (!cppcheckResult.valid) {
           result.error = `cppcheck failed: ${cppcheckResult.message}`;
-          cleanupHelpers();
+          // No cleanup needed for helper files
           return result;
         }
       }
@@ -1092,7 +1063,7 @@ class TestUtils {
         const clangTidyResult = TestUtils.validateClangTidy(expectedImplPath);
         if (!clangTidyResult.valid) {
           result.error = `clang-tidy failed: ${clangTidyResult.message}`;
-          cleanupHelpers();
+          // No cleanup needed for helper files
           return result;
         }
       }
@@ -1102,7 +1073,7 @@ class TestUtils {
         const misraResult = TestUtils.validateMisra(expectedImplPath, rootDir);
         if (!misraResult.valid) {
           result.error = `MISRA check failed: ${misraResult.message}`;
-          cleanupHelpers();
+          // No cleanup needed for helper files
           return result;
         }
       }
@@ -1112,7 +1083,7 @@ class TestUtils {
         const flawfinderResult = TestUtils.validateFlawfinder(expectedImplPath);
         if (!flawfinderResult.valid) {
           result.error = `flawfinder failed: ${flawfinderResult.message}`;
-          cleanupHelpers();
+          // No cleanup needed for helper files
           return result;
         }
       }
@@ -1125,7 +1096,7 @@ class TestUtils {
         );
         if (!noWarningsResult.valid) {
           result.error = `No-warnings check failed: ${noWarningsResult.message}`;
-          cleanupHelpers();
+          // No cleanup needed for helper files
           return result;
         }
       }
@@ -1136,7 +1107,7 @@ class TestUtils {
       if (TestUtils.requiresArmRuntime(transpileResult.code)) {
         result.execSuccess = true;
         result.skippedExec = true;
-        cleanupHelpers();
+        // No cleanup needed for helper files
         return result;
       }
 
@@ -1175,7 +1146,7 @@ class TestUtils {
           const err = execError as { status?: number };
           const exitCode = err.status || 1;
           result.error = `${mode.toUpperCase()} execution failed with exit code ${exitCode}`;
-          cleanupHelpers();
+          // No cleanup needed for helper files
           return result;
         } finally {
           try {
@@ -1187,14 +1158,14 @@ class TestUtils {
       } catch (compileError: unknown) {
         const err = compileError as { stderr?: string; message: string };
         result.error = `${mode.toUpperCase()} compile for execution failed: ${err.stderr || err.message}`;
-        cleanupHelpers();
+        // No cleanup needed for helper files
         return result;
       }
     } else {
       result.execSuccess = true; // No execution requested
     }
 
-    cleanupHelpers();
+    // No cleanup needed for helper files
     return result;
   }
 
