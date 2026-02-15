@@ -20,7 +20,7 @@ typedef struct MyData {
 } MyData;
 
 /* Function prototypes */
-uint8_t Handler_process(const MyData* data);
+uint8_t Handler_process(const MyData& data);
 
 #ifdef __cplusplus
 }
