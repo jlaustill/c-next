@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.72] - 2026-02-14
+
+### Fixed
+
+- Make symbol conflict detector scope-aware so symbols in different scopes don't trigger false positive conflicts (Issue #817, PR #818)
+
+### Changed
+
+- Extract `groupCNextSymbolsByScopeAndKind` helper method for cleaner conflict detection logic
+- Remove unused `skipConflictCheck` field from `IPipelineInput`
+
 ## [0.1.71] - 2026-02-14
 
 ### Changed
@@ -989,6 +1000,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.71...HEAD
+[0.1.72]: https://github.com/jlaustill/c-next/compare/v0.1.71...v0.1.72
 [0.1.71]: https://github.com/jlaustill/c-next/compare/v0.1.70...v0.1.71
 [0.1.70]: https://github.com/jlaustill/c-next/compare/v0.1.69...v0.1.70
 [0.1.69]: https://github.com/jlaustill/c-next/compare/v0.1.68...v0.1.69
