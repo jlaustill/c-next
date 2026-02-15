@@ -9,8 +9,7 @@
 #include "CppTestClass.hpp"
 
 void test(void) {
-    CppTestClass obj = {};
-    obj.value = 42;
+    CppTestClass obj = (CppTestClass){ .value = 42 };
 }
 
 int main(void) {

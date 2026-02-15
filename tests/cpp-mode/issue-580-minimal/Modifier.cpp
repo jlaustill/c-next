@@ -5,7 +5,7 @@
 
 #include "Modifier.h"
 
-// test-cpp-mode
+// test-cpp-only
 #include "Config.h"
 
 /* Scope: Modifier */

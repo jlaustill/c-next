@@ -164,54 +164,81 @@ test("no arguments shows help and exits 0", () => {
 });
 
 // Default output path (alongside input)
+// Note: The CLI writes to input dir then renames to -o path.
+// Using a copy of the input file in /tmp/ avoids affecting tracked files.
 test("single file transpiles to .c alongside input", () => {
-  const inputFile = "tests/basics/hello-world.test.cnx";
-  const expectedOutput = "tests/basics/hello-world.test.c";
+  const tempInputDir = mkdtempSync(join(tmpdir(), "cnext-test-"));
+  const tempInputFile = join(tempInputDir, "test.cnx");
+  const tempOutputFile = join(tempInputDir, "test.c");
 
-  // Clean up first
-  cleanup([expectedOutput]);
+  try {
+    // Copy the test file to a temp location
+    writeFileSync(
+      tempInputFile,
+      readFileSync("tests/basics/hello-world.test.cnx", "utf-8"),
+    );
 
-  const result = runCli([inputFile]);
-  assert(result.success, `Command should succeed: ${result.output}`);
-  assert(
-    existsSync(join(rootDir, expectedOutput)),
-    `Output file should exist: ${expectedOutput}`,
-  );
-
-  // Clean up
-  cleanup([join(rootDir, expectedOutput)]);
+    const result = runCliInDir(tempInputDir, [tempInputFile]);
+    assert(result.success, `Command should succeed: ${result.output}`);
+    assert(
+      existsSync(tempOutputFile),
+      `Output file should exist: ${tempOutputFile}`,
+    );
+  } finally {
+    cleanupTempDir(tempInputDir);
+  }
 });
 
 // Explicit -o flag
+// Note: Using temp copy of input to avoid renaming tracked files
 test("-o flag overrides output path", () => {
-  const inputFile = "tests/basics/hello-world.test.cnx";
-  const customOutput = "/tmp/cnext-test-output.c";
+  const tempInputDir = mkdtempSync(join(tmpdir(), "cnext-test-"));
+  const tempInputFile = join(tempInputDir, "test.cnx");
+  const customOutput = join(tempInputDir, "custom-output.c");
 
-  cleanup([customOutput]);
+  try {
+    writeFileSync(
+      tempInputFile,
+      readFileSync("tests/basics/hello-world.test.cnx", "utf-8"),
+    );
 
-  const result = runCli([inputFile, "-o", customOutput]);
-  assert(result.success, `Command should succeed: ${result.output}`);
-  assert(existsSync(customOutput), `Output file should exist: ${customOutput}`);
-
-  cleanup([customOutput]);
+    const result = runCliInDir(tempInputDir, [
+      tempInputFile,
+      "-o",
+      customOutput,
+    ]);
+    assert(result.success, `Command should succeed: ${result.output}`);
+    assert(
+      existsSync(customOutput),
+      `Output file should exist: ${customOutput}`,
+    );
+  } finally {
+    cleanupTempDir(tempInputDir);
+  }
 });
 
 // --cpp flag
+// Note: Using temp copy of input to avoid renaming tracked files
 test("--cpp flag outputs .cpp extension", () => {
-  const inputFile = "tests/basics/hello-world.test.cnx";
-  // Use a temp output file to avoid deleting the expected .test.cpp file
-  const tempOutput = "tests/basics/hello-world.cli-test-temp.cpp";
+  const tempInputDir = mkdtempSync(join(tmpdir(), "cnext-test-"));
+  const tempInputFile = join(tempInputDir, "test.cnx");
+  const tempOutputFile = join(tempInputDir, "test.cpp");
 
-  cleanup([join(rootDir, tempOutput)]);
+  try {
+    writeFileSync(
+      tempInputFile,
+      readFileSync("tests/basics/hello-world.test.cnx", "utf-8"),
+    );
 
-  const result = runCli([inputFile, "--cpp", "-o", tempOutput]);
-  assert(result.success, `Command should succeed: ${result.output}`);
-  assert(
-    existsSync(join(rootDir, tempOutput)),
-    `Output file should exist: ${tempOutput}`,
-  );
-
-  cleanup([join(rootDir, tempOutput)]);
+    const result = runCliInDir(tempInputDir, [tempInputFile, "--cpp"]);
+    assert(result.success, `Command should succeed: ${result.output}`);
+    assert(
+      existsSync(tempOutputFile),
+      `Output file should exist: ${tempOutputFile}`,
+    );
+  } finally {
+    cleanupTempDir(tempInputDir);
+  }
 });
 
 // Invalid file path

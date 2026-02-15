@@ -17,9 +17,9 @@ extern "C" {
 /* Function prototypes */
 uint32_t Handler_processBuffer(const uint8_t data[8], uint8_t len);
 uint32_t Handler_processData(const uint8_t data[16], uint8_t len);
-uint32_t Handler_handleMessage(const CAN_message_t* msg);
-uint32_t Handler_processMultiArray(const MultiArray_t* multi);
-uint32_t Handler_handleMutableMessage(const CAN_message_t* msg);
+uint32_t Handler_handleMessage(const CAN_message_t& msg);
+uint32_t Handler_processMultiArray(const MultiArray_t& multi);
+uint32_t Handler_handleMutableMessage(const CAN_message_t& msg);
 
 #ifdef __cplusplus
 }

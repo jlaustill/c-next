@@ -5,7 +5,7 @@
 
 #include "CommandHandler.h"
 
-// test-cpp-mode
+// test-cpp-only
 #include "Config.h"
 
 #include <stdint.h>

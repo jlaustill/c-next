@@ -19,8 +19,8 @@ typedef struct Config {
 } Config;
 
 /* Function prototypes */
-uint8_t Handler_setValue(Config* cfg, uint32_t val);
-uint32_t Handler_getNext(Config* cfg, uint32_t current);
+uint8_t Handler_setValue(Config& cfg, uint32_t val);
+uint32_t Handler_getNext(Config& cfg, uint32_t current);
 
 #ifdef __cplusplus
 }

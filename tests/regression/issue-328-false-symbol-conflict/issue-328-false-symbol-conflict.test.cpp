@@ -20,7 +20,7 @@
 #include <stdint.h>
 
 // Use the struct from the included .cnx file
-AppData sensorData = {};
+AppData sensorData = {0};
 
 int main(void) {
     sensorData.humidity = 65.5;

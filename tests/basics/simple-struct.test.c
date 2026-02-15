@@ -24,7 +24,7 @@ typedef struct Sensor {
 
 // Function that reads struct fields (pass-by-reference, ADR-006)
 int32_t getPointX(const Point* p) {
-    return (*p).x;
+    return p->x;
 }
 
 // Function that modifies struct (pass-by-reference modifies original)
@@ -35,11 +35,11 @@ void setPointOrigin(Point* p) {
 
 // Function that uses struct values
 int32_t manhattanDistance(const Point* p) {
-    int32_t absX = (*p).x;
+    int32_t absX = p->x;
     if (absX < 0) {
         absX = 0 - absX;
     }
-    int32_t absY = (*p).y;
+    int32_t absY = p->y;
     if (absY < 0) {
         absY = 0 - absY;
     }

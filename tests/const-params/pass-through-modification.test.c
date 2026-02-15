@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-execution */
+// test-execution
 // Tests: Issue #268 - pass-through modification tracking for auto-const
 // When a parameter is passed to a function that modifies it,
 // the parameter should NOT get const (since it's effectively modified).
@@ -22,13 +22,13 @@ void passesThroughToModifier(uint32_t* value) {
 }
 
 // Function that only reads its parameter - SHOULD get const
-uint32_t readOnly(const uint32_t* value) {
-    return (*value) + 1;
+uint32_t readOnly(uint32_t value) {
+    return value + 1;
 }
 
 // Function that passes to readOnly - parameter is NOT modified
 // SHOULD get const since readOnly doesn't modify it
-uint32_t passesThroughToReader(const uint32_t* value) {
+uint32_t passesThroughToReader(uint32_t value) {
     return readOnly(value);
 }
 
@@ -47,11 +47,11 @@ int main(void) {
     passesThroughToModifier(&x);
     if (x != 42) return 2;
     x = 5;
-    uint32_t result = readOnly(&x);
+    uint32_t result = readOnly(x);
     if (result != 6) return 3;
     if (x != 5) return 4;
     x = 7;
-    result = passesThroughToReader(&x);
+    result = passesThroughToReader(x);
     if (result != 8) return 5;
     if (x != 7) return 6;
     x = 200;

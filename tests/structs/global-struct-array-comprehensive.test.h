@@ -38,8 +38,8 @@ uint8_t ArrayTests_testNestedDirect(void);
 uint8_t ArrayTests_testThisExternal(void);
 uint8_t ArrayTests_testThisCNext(void);
 uint8_t ArrayTests_testMultipleIndex(void);
-uint8_t ArrayTests_testParameter(const ExternalStruct* param);
-uint8_t ArrayTests_testParameterCNext(const CNextStruct* param);
+uint8_t ArrayTests_testParameter(const ExternalStruct& param);
+uint8_t ArrayTests_testParameterCNext(const CNextStruct& param);
 
 #ifdef __cplusplus
 }

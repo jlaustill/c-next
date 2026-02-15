@@ -10,16 +10,196 @@
 
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
-import { execFileSync } from "node:child_process";
-import Transpiler from "../src/transpiler/Transpiler";
-import IFileResult from "../src/transpiler/types/IFileResult";
+import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import ITools from "./types/ITools";
 import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
 import type { TTestMode, IModeResult } from "./types/ITestMode";
 import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
+
+// Project root for CLI invocation (this file is in /workspace/scripts/)
+const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+
+/**
+ * Result from CLI transpilation
+ */
+interface ICliTranspileResult {
+  success: boolean;
+  code: string;
+  headerCode: string;
+  errors: Array<{ line: number; column: number; message: string }>;
+  stderr: string;
+}
+
+/**
+ * Transpile a C-Next file using the CLI (not library imports).
+ *
+ * This ensures tests exercise the exact same code path as real users.
+ * Previously tests imported Transpiler directly, which bypassed conflict
+ * detection and other CLI-only features.
+ *
+ * @param cnxFile - Path to the .cnx file to transpile
+ * @param _rootDir - Project root directory (unused, kept for API compatibility)
+ * @param cppMode - Whether to use C++ mode (--cpp flag)
+ * @param outputPath - Optional output path for the generated code file
+ */
+function transpileViaCli(
+  cnxFile: string,
+  _rootDir: string,
+  cppMode: boolean,
+  outputPath?: string,
+): ICliTranspileResult {
+  // Build CLI args - use PROJECT_ROOT for CLI/includes, but cnxFile is the actual test file path
+  // Note: We don't clean up stale files - the CLI overwrites them and they're tracked in git
+  const args = [
+    "tsx",
+    join(PROJECT_ROOT, "src/index.ts"),
+    cnxFile,
+    "--include",
+    join(PROJECT_ROOT, "tests/include"),
+  ];
+
+  if (cppMode) {
+    args.push("--cpp");
+  }
+
+  // Determine output paths
+  let codePath: string;
+  let headerPath: string;
+  const codeExt = cppMode ? ".cpp" : ".c";
+  const headerExt = cppMode ? ".hpp" : ".h";
+
+  if (outputPath) {
+    args.push("-o", outputPath);
+    codePath = outputPath;
+    // Header goes next to the code file with matching extension
+    headerPath = outputPath.replace(/\.(c|cpp)$/, headerExt);
+  } else {
+    const basePath = cnxFile.replace(/\.cnx$/, "");
+    codePath = basePath + codeExt;
+    headerPath = basePath + headerExt;
+  }
+
+  // Run CLI from project root (where src/index.ts exists)
+  // Clear VITEST env so the CLI's main() function runs
+  // (src/index.ts checks VITEST to skip auto-execution during unit tests)
+  const cleanEnv = { ...process.env };
+  delete cleanEnv.VITEST;
+
+  const result = spawnSync("npx", args, {
+    cwd: PROJECT_ROOT,
+    encoding: "utf-8",
+    timeout: 30000,
+    env: cleanEnv,
+  });
+
+  // Parse errors from stderr
+  // CLI format: "Error: /path/file.cnx:line:column message" followed by optional indented continuation lines
+  const errors: Array<{ line: number; column: number; message: string }> = [];
+  if (result.stderr) {
+    const lines = result.stderr.split("\n");
+    let currentError: {
+      line: number;
+      column: number;
+      messageParts: string[];
+    } | null = null;
+
+    for (const line of lines) {
+      // Skip empty lines and "Compilation failed" message
+      if (!line.trim() || line === "Compilation failed") continue;
+
+      // Match: "Error: /path/file.cnx:line:column message"
+      const fullMatch = line.match(/^Error:\s*[^:]+:(\d+):(\d+)\s+(.+)$/);
+      if (fullMatch) {
+        // Save previous error if any
+        if (currentError) {
+          errors.push({
+            line: currentError.line,
+            column: currentError.column,
+            message: currentError.messageParts.join("\n"),
+          });
+        }
+        currentError = {
+          line: parseInt(fullMatch[1], 10),
+          column: parseInt(fullMatch[2], 10),
+          messageParts: [fullMatch[3]],
+        };
+        continue;
+      }
+
+      // Continuation line (starts with spaces)
+      if (currentError && /^\s+/.test(line)) {
+        currentError.messageParts.push(line);
+        continue;
+      }
+
+      // Fallback: simple "line:column message"
+      const simpleMatch = line.match(/^(?:Error:\s*)?(\d+):(\d+)\s+(.+)$/);
+      if (simpleMatch) {
+        if (currentError) {
+          errors.push({
+            line: currentError.line,
+            column: currentError.column,
+            message: currentError.messageParts.join("\n"),
+          });
+          currentError = null;
+        }
+        errors.push({
+          line: parseInt(simpleMatch[1], 10),
+          column: parseInt(simpleMatch[2], 10),
+          message: simpleMatch[3],
+        });
+      }
+    }
+
+    // Don't forget the last error
+    if (currentError) {
+      errors.push({
+        line: currentError.line,
+        column: currentError.column,
+        message: currentError.messageParts.join("\n"),
+      });
+    }
+  }
+
+  // Read generated files if they exist
+  // Handle CLI auto-detection: if we asked for C but got C++ (due to .hpp includes), use C++ paths
+  let code = "";
+  let headerCode = "";
+  let actualCodePath = codePath;
+  let actualHeaderPath = headerPath;
+
+  if (result.status === 0) {
+    // Check if the expected file exists, or if CLI auto-detected a different mode
+    if (!existsSync(codePath)) {
+      // CLI may have auto-detected C++ mode from .hpp includes
+      const altCodePath = codePath.replace(/\.c$/, ".cpp");
+      const altHeaderPath = headerPath.replace(/\.h$/, ".hpp");
+      if (existsSync(altCodePath)) {
+        actualCodePath = altCodePath;
+        actualHeaderPath = altHeaderPath;
+      }
+    }
+
+    if (existsSync(actualCodePath)) {
+      code = readFileSync(actualCodePath, "utf-8");
+    }
+    if (existsSync(actualHeaderPath)) {
+      headerCode = readFileSync(actualHeaderPath, "utf-8");
+    }
+  }
+
+  return {
+    success: result.status === 0,
+    code,
+    headerCode,
+    errors,
+    stderr: result.stderr || "",
+  };
+}
 
 // Shared patterns for distinguishing C++ constructors from C function prototypes
 const C_KEYWORDS =
@@ -710,71 +890,51 @@ class TestUtils {
       execSuccess: false,
     };
 
-    // Transpile with mode-specific settings
-    const pipeline = new Transpiler({
-      inputs: [],
-      includeDirs: [join(rootDir, "tests/include")],
-      noCache: true,
-      cppRequired: mode === "cpp",
-    });
-
-    const transpileResult: IFileResult = await pipeline.transpileSource(
-      source,
-      {
-        workingDir: dirname(cnxFile),
-        sourcePath: cnxFile,
-      },
-    );
+    // Transpile via CLI (not library import) to ensure tests use same code path as users
+    const transpileResult = transpileViaCli(cnxFile, rootDir, mode === "cpp");
 
     if (!transpileResult.success) {
       const errors = transpileResult.errors
         .map((e) => `${e.line}:${e.column} ${e.message}`)
         .join("\n");
-      result.error = `Transpilation failed: ${errors}`;
+      result.error = `Transpilation failed: ${errors || transpileResult.stderr}`;
       return result;
     }
 
     result.transpileSuccess = true;
 
-    // Transpile helper files
+    // Transpile helper files via CLI
     const helperImplFiles: string[] = [];
     const tempHelperFiles: string[] = [];
 
     for (const helperCnx of helperCnxFiles) {
-      const helperSource = readFileSync(helperCnx, "utf-8");
-      const helperTranspiler = new Transpiler({
-        inputs: [],
-        includeDirs: [join(rootDir, "tests/include")],
-        noCache: true,
-        cppRequired: mode === "cpp",
-      });
-      const helperResult = await helperTranspiler.transpileSource(
-        helperSource,
-        {
-          workingDir: dirname(helperCnx),
-          sourcePath: helperCnx,
-        },
+      const helperBaseName = basename(helperCnx, ".cnx");
+      const implExt = mode === "cpp" ? "cpp" : "c";
+      const headerExt = mode === "cpp" ? "hpp" : "h";
+
+      // Use unique temp file name to avoid conflicts in parallel test runs
+      const tempImplFile = join(
+        dirname(helperCnx),
+        `${helperBaseName}.${testBaseName}.tmp.${implExt}`,
       );
+
+      const helperResult = transpileViaCli(
+        helperCnx,
+        rootDir,
+        mode === "cpp",
+        tempImplFile,
+      );
+
       if (helperResult.success) {
-        const helperBaseName = basename(helperCnx, ".cnx");
-        const implExt = mode === "cpp" ? "cpp" : "c";
-        const tempImplFile = join(
-          dirname(helperCnx),
-          `${helperBaseName}.${testBaseName}.tmp.${implExt}`,
-        );
-        writeFileSync(tempImplFile, helperResult.code);
         helperImplFiles.push(tempImplFile);
         tempHelperFiles.push(tempImplFile);
 
-        // Write helper header if generated
+        // Track header for cleanup if generated and no persistent expected file exists
+        const tempHFile = join(
+          dirname(helperCnx),
+          `${helperBaseName}.${headerExt}`,
+        );
         if (helperResult.headerCode) {
-          const headerExt = mode === "cpp" ? "hpp" : "h";
-          const tempHFile = join(
-            dirname(helperCnx),
-            `${helperBaseName}.${headerExt}`,
-          );
-          writeFileSync(tempHFile, helperResult.headerCode);
-          // Only track for cleanup if no persistent expected file exists
           const helperExpectedH = join(
             dirname(helperCnx),
             `${helperBaseName}.expected.${headerExt}`,
@@ -1083,7 +1243,6 @@ class TestUtils {
     if (existsSync(expectedErrorFile)) {
       return TestUtils.runErrorTest(
         cnxFile,
-        source,
         basePath,
         expectedErrorFile,
         updateMode,
@@ -1121,7 +1280,6 @@ class TestUtils {
    */
   private static async runErrorTest(
     cnxFile: string,
-    source: string,
     basePath: string,
     expectedErrorFile: string,
     updateMode: boolean,
@@ -1144,17 +1302,8 @@ class TestUtils {
       }
     }
 
-    // Transpile to check for errors
-    const pipeline = new Transpiler({
-      inputs: [],
-      includeDirs: [join(rootDir, "tests/include")],
-      noCache: true,
-    });
-
-    const result = await pipeline.transpileSource(source, {
-      workingDir: dirname(cnxFile),
-      sourcePath: cnxFile,
-    });
+    // Transpile via CLI to check for errors
+    const result = transpileViaCli(cnxFile, rootDir, false);
 
     if (result.success) {
       if (updateMode) {
@@ -1175,7 +1324,10 @@ class TestUtils {
     }
 
     const actualErrors = result.errors
-      .map((e) => `${e.line}:${e.column} ${e.message}`)
+      .map(
+        (e: { line: number; column: number; message: string }) =>
+          `${e.line}:${e.column} ${e.message}`,
+      )
       .join("\n");
 
     if (updateMode) {

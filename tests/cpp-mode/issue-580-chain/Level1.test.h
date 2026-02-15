@@ -19,7 +19,7 @@ extern "C" {
 typedef struct Config Config;
 
 /* Function prototypes */
-void Level1_entry(const Config& config);
+void Level1_entry(Config& config);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 
 #include "Level2.h"
 
-// test-cpp-mode
+// test-cpp-only
 #include "Config.h"
 #include "Level3.h"
 
