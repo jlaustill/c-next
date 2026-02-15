@@ -14,7 +14,7 @@
 
 /* Scope: Level1 */
 
-void Level1_entry(const Config& config) {
+void Level1_entry(Config& config) {
     Level2_passToLevel3(config);
 }
 

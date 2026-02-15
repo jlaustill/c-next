@@ -13,5 +13,5 @@ void increment(int32_t* value) {
 
 int main(void) {
     int32_t x = 5;
-    increment(x);
+    increment(&x);
 }

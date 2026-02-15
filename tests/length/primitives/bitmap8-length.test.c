@@ -53,7 +53,7 @@ int main(void) {
     }
     StatusFlags testVal = {0};
     testVal = (testVal & ~(1 << 0)) | (1 << 0);
-    result = checkParamLength(testVal);
+    result = checkParamLength(&testVal);
     if (result != 8) {
         return 6;
     }

@@ -3,32 +3,20 @@
  * A safer C for embedded systems
  */
 
+#include "struct-member-all-types-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
-/* test-execution */
+// test-execution
 // Comprehensive .length test for struct members of all primitive types
 // Tests: .length returns correct bit width for each struct member type
-typedef struct {
-    uint8_t u8Field;
-    uint16_t u16Field;
-    uint32_t u32Field;
-    uint64_t u64Field;
-    int8_t i8Field;
-    int16_t i16Field;
-    int32_t i32Field;
-    int64_t i64Field;
-    float f32Field;
-    double f64Field;
-    bool boolField;
-} AllTypes;
-
 // Test in global context
 AllTypes globalStruct = {0};
 
 // Test in scope context
 /* Scope: TestScope */
-AllTypes TestScope_scopeStruct = {0};
+static AllTypes TestScope_scopeStruct = {0};
 
 uint32_t TestScope_checkScopeStructMember(void) {
     if (32 != 32) {
@@ -38,7 +26,7 @@ uint32_t TestScope_checkScopeStructMember(void) {
 }
 
 // Test as function parameter
-uint32_t checkParamStructMembers(AllTypes* param) {
+uint32_t checkParamStructMembers(const AllTypes* param) {
     if (8 != 8) {
         return 1;
     }
@@ -69,13 +57,13 @@ uint32_t checkParamStructMembers(AllTypes* param) {
     if (64 != 64) {
         return 10;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 11;
     }
     return 0;
 }
 
-int32_t main(void) {
+int main(void) {
     globalStruct.u8Field = 42;
     globalStruct.u16Field = 1000;
     globalStruct.u32Field = 100000;
@@ -117,10 +105,11 @@ int32_t main(void) {
     if (64 != 64) {
         return 10;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 11;
     }
-    if (TestScope_checkScopeStructMember() != 0) {
+    uint32_t scopeResult = TestScope_checkScopeStructMember();
+    if (scopeResult != 0) {
         return 12;
     }
     AllTypes localStruct = {0};
@@ -165,7 +154,7 @@ int32_t main(void) {
     if (64 != 64) {
         return 22;
     }
-    if (1 != 1) {
+    if (8 != 8) {
         return 23;
     }
     AllTypes paramStruct = {0};

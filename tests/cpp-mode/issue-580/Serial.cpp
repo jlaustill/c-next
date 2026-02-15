@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-// test-cpp-mode
+// test-cpp-only
 // Mock Serial for logging - does NOT modify Config
 /* Scope: Serial */
 

@@ -5,7 +5,7 @@
 
 #include "ZModifier.h"
 
-// test-cpp-mode
+// test-cpp-only
 // Named with Z prefix to come AFTER AHandler alphabetically
 #include "Config.h"
 

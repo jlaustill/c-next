@@ -63,11 +63,11 @@ int main(void) {
     if (Sensor_buffer[0].value != 0) return 11;
     i = 0;
     while (i < 2) {
-        Sensor.buffer[i].value = (uint16_t)(200 + i);
-        Sensor.buffer[i].channel = i;
+        Sensor_buffer[i].value = (uint16_t)(200 + i);
+        Sensor_buffer[i].channel = i;
         i = i + 1;
     }
-    Sensor.count = 2;
+    Sensor_count = 2;
     if (Sensor_buffer[0].value != 200) return 12;
     if (Sensor_buffer[1].value != 201) return 13;
     return 0;

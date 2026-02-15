@@ -15,9 +15,6 @@ interface IPipelineInput {
 
   /** Whether to write generated output to disk */
   readonly writeOutputToDisk: boolean;
-
-  /** Skip Stage 4 (symbol conflict check) — standalone mode doesn't need it */
-  readonly skipConflictCheck?: boolean;
 }
 
 export default IPipelineInput;

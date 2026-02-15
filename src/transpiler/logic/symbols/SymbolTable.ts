@@ -627,14 +627,30 @@ class SymbolTable {
     }
 
     // Multiple definitions in same language (excluding overloads) = ERROR
+    // Issue #817: Group by scope AND kind - symbols in different scopes don't conflict,
+    // and symbols with different kinds (variable vs scope) don't conflict either
     if (cnextDefs.length > 1) {
-      const locations = cnextDefs.map((s) => `${s.sourceFile}:${s.sourceLine}`);
-      return {
-        symbolName: cnextDefs[0].name,
-        definitions: cnextDefs,
-        severity: "error",
-        message: `Symbol conflict: '${cnextDefs[0].name}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}`,
-      };
+      const byScopeAndKind = this.groupCNextSymbolsByScopeAndKind(cnextDefs);
+
+      // Check each scope+kind group for conflicts (multiple symbols in same scope with same kind)
+      for (const symbols of byScopeAndKind.values()) {
+        if (symbols.length > 1) {
+          const locations = symbols.map(
+            (s) => `${s.sourceFile}:${s.sourceLine}`,
+          );
+          const scopeName = symbols[0].scope.name;
+          const displayName =
+            scopeName === ""
+              ? symbols[0].name
+              : `${scopeName}.${symbols[0].name}`;
+          return {
+            symbolName: displayName,
+            definitions: symbols,
+            severity: "error",
+            message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}`,
+          };
+        }
+      }
     }
 
     // Same symbol in C and C++ - typically OK (same symbol)
@@ -643,6 +659,36 @@ class SymbolTable {
     }
 
     return null;
+  }
+
+  /**
+   * Issue #817: Group C-Next symbols by scope name and kind.
+   *
+   * Symbols in different scopes don't conflict (Foo.enabled vs Bar.enabled
+   * generate Foo_enabled and Bar_enabled). Symbols with different kinds also
+   * don't conflict (variable LED vs scope LED are distinct).
+   *
+   * @param symbols C-Next symbols to group (must all be TSymbol)
+   * @returns Map from "scopeName:kind" key to array of symbols
+   */
+  private groupCNextSymbolsByScopeAndKind(
+    symbols: TAnySymbol[],
+  ): Map<string, TSymbol[]> {
+    const byScopeAndKind = new Map<string, TSymbol[]>();
+
+    for (const def of symbols) {
+      const tSymbol = def as TSymbol;
+      const scopeName = tSymbol.scope.name;
+      const key = `${scopeName}:${tSymbol.kind}`;
+      const existing = byScopeAndKind.get(key);
+      if (existing) {
+        existing.push(tSymbol);
+      } else {
+        byScopeAndKind.set(key, [tSymbol]);
+      }
+    }
+
+    return byScopeAndKind;
   }
 
   // ========================================================================

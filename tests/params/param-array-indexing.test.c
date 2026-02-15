@@ -15,7 +15,7 @@ uint32_t result = 0;
 
 // Test 1: Write to parameter with variable index
 void writeToParam(uint8_t* buf, uint32_t idx) {
-    (*buf)[idx] = 42;
+    buf[idx] = 42;
 }
 
 // Test 2: Read from parameter with variable index
@@ -25,7 +25,7 @@ uint8_t readFromParam(const uint8_t* buf, uint32_t idx) {
 
 // Test 3: Both read and write in same function
 void copyElement(const uint8_t* src, uint8_t* dst, uint32_t idx) {
-    (*dst)[idx] = src[idx];
+    dst[idx] = src[idx];
 }
 
 // Test 4: Constant index on parameter
@@ -36,8 +36,8 @@ uint8_t readFirst(const uint8_t* buf) {
 // Test 5: Multiple index operations
 void swapElements(uint8_t* buf, uint32_t i, uint32_t j) {
     uint8_t temp = buf[i];
-    (*buf)[i] = buf[j];
-    (*buf)[j] = temp;
+    buf[i] = buf[j];
+    buf[j] = temp;
 }
 
 // Test 6: With explicit array syntax (should still work)

@@ -29,7 +29,7 @@ void test_explicit_cast(void) {
     double b = 99.99;
     uint32_t unsigned_val = ((b) > ((double)UINT32_MAX) ? UINT32_MAX : (b) < 0.0 ? 0 : (uint32_t)(b));
     double big = 3.141592653589793;
-    float small = (float)(big);
+    float small = (float)big;
 }
 
 int main(void) {

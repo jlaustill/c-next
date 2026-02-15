@@ -3,9 +3,15 @@
  * A safer C for embedded systems
  */
 
+#include "string-array-length.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
+// test-execution
+// Comprehensive .length test for string arrays across all contexts
+// Tests: array.length returns 4 (element count), string.length returns strlen (runtime)
+// C-style allowed for string arrays (grammar limitation)
 char globalArr[4][65] = {0};
 
 /* Scope: TestScope */
@@ -13,22 +19,18 @@ char globalArr[4][65] = {0};
 uint32_t TestScope_getGlobalArrayLength(void) {
     return 4;
 }
-char TestScope_scopeArr[4][65] = {0};
+static char TestScope_scopeArr[4][65] = {0};
 
 uint32_t TestScope_getScopeArrayLength(void) {
     return 4;
 }
 char TestScope_publicArr[4][65] = {0};
 
-uint32_t checkArrayLength(char* arr[4]) {
+uint32_t checkArrayLength(const char arr[4][65]) {
     return 4;
 }
 
-typedef struct {
-    char arr[4][65];
-} TestStruct;
-
-int32_t main(void) {
+int main(void) {
     strncpy(globalArr[0], "Hello", 64);
     strncpy(globalArr[1], "World", 64);
     if (4 != 4) {
@@ -37,10 +39,12 @@ int32_t main(void) {
     if (strlen(globalArr[0]) != 5) {
         return 2;
     }
-    if (TestScope_getGlobalArrayLength() != 4) {
+    uint32_t result = TestScope_getGlobalArrayLength();
+    if (result != 4) {
         return 3;
     }
-    if (TestScope_getScopeArrayLength() != 4) {
+    result = TestScope_getScopeArrayLength();
+    if (result != 4) {
         return 4;
     }
     if (4 != 4) {
@@ -56,7 +60,8 @@ int32_t main(void) {
     }
     char testArr[4][65] = {0};
     strncpy(testArr[0], "Param", 64);
-    if (checkArrayLength(&testArr) != 4) {
+    result = checkArrayLength(&testArr);
+    if (result != 4) {
         return 8;
     }
     TestStruct ts = {0};

@@ -27,7 +27,7 @@ uint8_t CommandHandler_enable(Config* cfg) {
 
 // BUG: Declaration first, reassignment with modifying call inside if
 // This pattern triggers issue #565 - the reassignment's RHS isn't walked for calls
-void handleEnableSpn(const Config* config) {
+void handleEnableSpn(Config* config) {
     bool enable = true;
     uint8_t errorCode = 0;
     if (enable) {
@@ -38,7 +38,7 @@ void handleEnableSpn(const Config* config) {
 }
 
 // Variant: reassignment inside else branch
-void handleElseBranch(const Config* config) {
+void handleElseBranch(Config* config) {
     bool enable = false;
     uint8_t errorCode = 0;
     if (enable) {
@@ -49,7 +49,7 @@ void handleElseBranch(const Config* config) {
 }
 
 // Variant: reassignment inside while loop
-void handleWhileLoop(const Config* config) {
+void handleWhileLoop(Config* config) {
     uint8_t errorCode = 0;
     uint32_t count = 0;
     while (count < 1) {
@@ -59,7 +59,7 @@ void handleWhileLoop(const Config* config) {
 }
 
 // Variant: reassignment inside for loop
-void handleForLoop(const Config* config) {
+void handleForLoop(Config* config) {
     uint8_t errorCode = 0;
     for (uint32_t i = 0; i < 1; i = i + 1) {
         errorCode = CommandHandler_setValue(config, 200);
@@ -75,7 +75,7 @@ void handleDeclaration(Config* config) {
 }
 
 // Control case: top-level reassignment (outside conditional)
-void handleTopLevel(const Config* config) {
+void handleTopLevel(Config* config) {
     uint8_t errorCode = 0;
     errorCode = CommandHandler_setValue(config, 300);
 }

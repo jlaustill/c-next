@@ -21,7 +21,7 @@ typedef struct Vec2 Vec2;
 EPriority TaskManager_getPriority(void);
 int32_t TaskManager_priorityToInt(EPriority p);
 Vec2 TaskManager_getPosition(void);
-int32_t TaskManager_sumVec(const Vec2* v);
+int32_t TaskManager_sumVec(const Vec2& v);
 
 #ifdef __cplusplus
 }

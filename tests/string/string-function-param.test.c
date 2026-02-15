@@ -14,5 +14,5 @@ void printMessage(const char* msg) {
 
 int main(void) {
     char greeting[65] = "Hello, World!";
-    printMessage(greeting);
+    printMessage(&greeting);
 }

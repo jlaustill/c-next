@@ -322,6 +322,162 @@ describe("SymbolTable", () => {
 
       expect(symbolTable.hasConflict("overloaded")).toBe(false);
     });
+
+    // Issue #817: Scope-private members should NOT conflict across scopes
+    it("should NOT detect conflict for same-named members in different scopes", () => {
+      // Create two different named scopes
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+      const fooScope = TestScopeUtils.createMockScope("Foo", globalScope);
+      const barScope = TestScopeUtils.createMockScope("Bar", globalScope);
+
+      // Add 'enabled' variable in scope Foo
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "enabled",
+        sourceFile: "test.cnx",
+        sourceLine: 2,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+        type: TTypeUtils.createPrimitive("bool"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        scope: fooScope,
+      });
+
+      // Add 'enabled' variable in scope Bar
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "enabled",
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+        type: TTypeUtils.createPrimitive("bool"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        scope: barScope,
+      });
+
+      // These are NOT conflicts - they generate Foo_enabled and Bar_enabled
+      expect(symbolTable.hasConflict("enabled")).toBe(false);
+    });
+
+    // Issue #817: Same-named functions in different scopes are not conflicts
+    it("should NOT detect conflict for same-named functions in different scopes", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+      const fooScope = TestScopeUtils.createMockScope("Foo", globalScope);
+      const barScope = TestScopeUtils.createMockScope("Bar", globalScope);
+
+      // Add 'initialize' function in scope Foo
+      symbolTable.addTSymbol({
+        kind: "function",
+        name: "initialize",
+        sourceFile: "test.cnx",
+        sourceLine: 4,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: fooScope,
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
+
+      // Add 'initialize' function in scope Bar
+      symbolTable.addTSymbol({
+        kind: "function",
+        name: "initialize",
+        sourceFile: "test.cnx",
+        sourceLine: 12,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        returnType: TTypeUtils.createPrimitive("void"),
+        parameters: [],
+        scope: barScope,
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
+
+      // These generate Foo_initialize and Bar_initialize - no conflict
+      expect(symbolTable.hasConflict("initialize")).toBe(false);
+    });
+
+    // True conflicts: same name in same scope should still be detected
+    it("should detect conflict for same-named symbols in same scope", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+      const fooScope = TestScopeUtils.createMockScope("Foo", globalScope);
+
+      // Add 'duplicate' variable in scope Foo twice
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "duplicate",
+        sourceFile: "test.cnx",
+        sourceLine: 2,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+        type: TTypeUtils.createPrimitive("bool"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        scope: fooScope,
+      });
+
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "duplicate",
+        sourceFile: "test.cnx",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: false,
+        type: TTypeUtils.createPrimitive("bool"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        scope: fooScope,
+      });
+
+      // Same name in SAME scope IS a conflict
+      expect(symbolTable.hasConflict("duplicate")).toBe(true);
+    });
+
+    // Global scope conflicts should still be detected
+    it("should detect conflict for same-named globals", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+
+      // Add two global variables with same name
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "globalVar",
+        sourceFile: "first.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        scope: globalScope,
+      });
+
+      symbolTable.addTSymbol({
+        kind: "variable",
+        name: "globalVar",
+        sourceFile: "second.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u32"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        scope: globalScope,
+      });
+
+      // Two globals with same name IS a conflict
+      expect(symbolTable.hasConflict("globalVar")).toBe(true);
+    });
   });
 
   // ========================================================================

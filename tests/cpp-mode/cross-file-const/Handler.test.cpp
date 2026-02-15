@@ -5,7 +5,7 @@
 
 #include "Handler.test.h"
 
-// test-cpp-mode
+// test-cpp-only
 // test-transpile-only
 // Bug #558: Cross-file const inference
 // Handler.reset passes cfg to Storage.loadDefaults which modifies it

@@ -271,8 +271,8 @@ class Transpiler {
     // Stage 3b: Resolve external const array dimensions
     CodeGenState.symbolTable.resolveExternalArrayDimensions();
 
-    // Stage 4: Check for symbol conflicts (skipped in standalone mode)
-    if (!input.skipConflictCheck && !this._checkSymbolConflicts(result)) {
+    // Stage 4: Check for symbol conflicts
+    if (!this._checkSymbolConflicts(result)) {
       return;
     }
 
@@ -581,7 +581,6 @@ class Transpiler {
       cnextFiles: [...cnextIncludeFiles, mainFile],
       headerFiles: allHeaders,
       writeOutputToDisk: false,
-      skipConflictCheck: true,
     };
   }
 
@@ -1283,9 +1282,14 @@ class Transpiler {
       ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
       : undefined;
 
-    // ADR-055 Phase 7: Convert TSymbol to IHeaderSymbol
-    // Note: In multi-file run() path, auto-const is already applied during transpilation
-    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(exportedSymbols);
+    // ADR-055 Phase 7: Convert TSymbol to IHeaderSymbol with auto-const info
+    // Issue #817: Apply auto-const info same as generateHeaderContent() does
+    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
+    const headerSymbols = this.convertToHeaderSymbols(
+      exportedSymbols,
+      unmodifiedParams,
+      allKnownEnums,
+    );
 
     const headerContent = this.headerGenerator.generate(
       headerSymbols,
