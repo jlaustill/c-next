@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-16
+
+### Changed
+
+- **Milestone**: OSSM (Open Source Syringe Manager) completely rewritten in C-Next and working
+- Extend ADR-105 with automatic filename-based namespacing documentation
+
 ## [0.1.72] - 2026-02-14
 
 ### Fixed
@@ -999,7 +1006,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.1.71...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jlaustill/c-next/compare/v0.1.72...v0.2.0
 [0.1.72]: https://github.com/jlaustill/c-next/compare/v0.1.71...v0.1.72
 [0.1.71]: https://github.com/jlaustill/c-next/compare/v0.1.70...v0.1.71
 [0.1.70]: https://github.com/jlaustill/c-next/compare/v0.1.69...v0.1.70
