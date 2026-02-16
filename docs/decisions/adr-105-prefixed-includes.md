@@ -140,18 +140,21 @@ void main() {
 ```
 
 **Key behavior:**
+
 - `global.Serial` still works for unqualified access (backwards compatible)
 - Filename prefix is automatic — no new syntax needed
 - Enables disambiguation when two headers export the same symbol name
 - Prefix is stripped from filename: `<path/Arduino.h>` → `Arduino`
 
 **Transpilation rules:**
+
 1. `Arduino.Serial.begin()` → `Arduino_Serial_begin()`
 2. `Arduino.config.baudRate` → `Arduino_config.baudRate` (struct member access preserved)
 3. `Arduino.LED_PIN` → `Arduino_LED_PIN` (constant)
 4. `Arduino.ServoState` → `Arduino_ServoState` (type)
 
 **Open questions specific to this approach:**
+
 1. How to handle structs? Does `Arduino.Point p` become `Arduino_Point p`?
 2. What about `typedef`s that reference other types in the same header?
 3. Should `global.Serial` continue to work, or require qualification when ambiguous?
@@ -160,12 +163,14 @@ void main() {
 6. How to handle headers with no `.h` extension or unusual names like `Arduino.hpp`?
 
 **Pros:**
+
 - No new syntax — works with existing `#include`
 - Familiar to developers from Python/JavaScript module patterns
 - Enables same-name symbols from different libraries
 - Backwards compatible via `global.` prefix
 
 **Cons:**
+
 - Filename may not be ideal prefix (e.g., `some_vendor_lib_v2.h`)
 - Requires tracking symbol provenance through the transpiler
 - Generated C code has longer symbol names
