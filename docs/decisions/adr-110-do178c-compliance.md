@@ -16,25 +16,25 @@ Aviation software requires DO-178C certification. This ADR captures initial rese
 
 ## DO-178C vs MISRA: Key Differences
 
-| Aspect | MISRA C:2012 | DO-178C |
-|--------|--------------|---------|
-| **Focus** | Coding rules to prevent bugs | Full software lifecycle certification |
-| **Scope** | Source code only | Requirements → Design → Code → Testing → Deployment |
-| **Output** | Clean code | Documentation artifacts proving correctness |
-| **Verification** | Static analysis | MC/DC coverage, requirements traceability |
-| **Levels** | One standard | 5 Design Assurance Levels (DAL A-E) |
+| Aspect           | MISRA C:2012                 | DO-178C                                             |
+| ---------------- | ---------------------------- | --------------------------------------------------- |
+| **Focus**        | Coding rules to prevent bugs | Full software lifecycle certification               |
+| **Scope**        | Source code only             | Requirements → Design → Code → Testing → Deployment |
+| **Output**       | Clean code                   | Documentation artifacts proving correctness         |
+| **Verification** | Static analysis              | MC/DC coverage, requirements traceability           |
+| **Levels**       | One standard                 | 5 Design Assurance Levels (DAL A-E)                 |
 
 **Key insight**: MISRA says "don't do X", DO-178C says "prove you did Y correctly and document everything."
 
 ## DO-178C Coverage Requirements by DAL
 
-| DAL Level | Failure Impact | Coverage Requirement |
-|-----------|----------------|---------------------|
-| A | Catastrophic | MC/DC (Modified Condition/Decision Coverage) |
-| B | Hazardous | Decision + Statement Coverage |
-| C | Major | Statement Coverage |
-| D | Minor | Less stringent |
-| E | No effect | Minimal |
+| DAL Level | Failure Impact | Coverage Requirement                         |
+| --------- | -------------- | -------------------------------------------- |
+| A         | Catastrophic   | MC/DC (Modified Condition/Decision Coverage) |
+| B         | Hazardous      | Decision + Statement Coverage                |
+| C         | Major          | Statement Coverage                           |
+| D         | Minor          | Less stringent                               |
+| E         | No effect      | Minimal                                      |
 
 ## Potential Transpiler Features
 
