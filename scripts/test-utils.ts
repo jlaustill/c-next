@@ -1190,6 +1190,7 @@ class TestUtils {
     updateMode: boolean,
     tools: ITools,
     rootDir: string,
+    modeFilter?: TTestMode,
   ): Promise<ITestResult> {
     const source = readFileSync(cnxFile, "utf-8");
 
@@ -1206,7 +1207,17 @@ class TestUtils {
     const expectedErrorFile = basePath + ".expected.error";
 
     // Determine which modes to run (default: BOTH C and C++)
-    const modes = TestUtils.getTestModes(source);
+    let modes = TestUtils.getTestModes(source);
+
+    // Apply mode filter if specified (for CI parallelization)
+    if (modeFilter) {
+      if (!modes.includes(modeFilter)) {
+        // Test doesn't support this mode (e.g., test-c-only with --mode cpp)
+        // Skip silently - this is expected in matrix CI
+        return { passed: true, skipped: true };
+      }
+      modes = [modeFilter];
+    }
     const shouldExec = !TestUtils.hasNoExecMarker(source);
     const helperCnxFiles = TestUtils.findHelperCnxFiles(cnxFile, source);
 

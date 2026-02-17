@@ -36,6 +36,7 @@ import { execFileSync, fork, ChildProcess } from "node:child_process";
 import { cpus } from "node:os";
 import ITools from "./types/ITools";
 import ITestResult from "./types/ITestResult";
+import type { TTestMode } from "./types/ITestMode";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
@@ -116,8 +117,9 @@ async function runTest(
   cnxFile: string,
   updateMode: boolean,
   tools: ITools,
+  modeFilter?: TTestMode,
 ): Promise<ITestResult> {
-  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir);
+  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir, modeFilter);
 }
 
 /**
@@ -142,6 +144,11 @@ function printResult(
   result: ITestResult,
   quietMode: boolean,
 ): void {
+  // Skip printing for tests filtered out by mode (silently counted as skipped)
+  if (result.skipped) {
+    return;
+  }
+
   const modeIndicator = getModeIndicator(result);
 
   if (result.passed) {
@@ -196,6 +203,7 @@ interface ICounterUpdates {
   failed: number;
   updated: number;
   noSnapshot: number;
+  skipped: number;
 }
 
 /**
@@ -207,7 +215,14 @@ function getCounterUpdates(result: ITestResult): ICounterUpdates {
     failed: 0,
     updated: 0,
     noSnapshot: 0,
+    skipped: 0,
   };
+
+  // Skipped tests (mode filter doesn't match test markers)
+  if (result.skipped) {
+    updates.skipped++;
+    return updates;
+  }
 
   if (result.passed) {
     if (result.updated) {
@@ -233,17 +248,20 @@ async function runTestsParallel(
   quietMode: boolean,
   tools: ITools,
   numWorkers: number,
+  modeFilter?: TTestMode,
 ): Promise<{
   passed: number;
   failed: number;
   updated: number;
   noSnapshot: number;
+  skipped: number;
 }> {
   return new Promise((resolve) => {
     let passed = 0;
     let failed = 0;
     let updated = 0;
     let noSnapshot = 0;
+    let skipped = 0;
 
     const pendingTests = [...cnxFiles];
     const activeWorkers = new Map<ChildProcess, string>();
@@ -272,6 +290,7 @@ async function runTestsParallel(
         failed += updates.failed;
         updated += updates.updated;
         noSnapshot += updates.noSnapshot;
+        skipped += updates.skipped;
 
         nextToPrint++;
       }
@@ -287,7 +306,7 @@ async function runTestsParallel(
       worker.on("message", (message: IWorkerResult) => {
         if (message.type === "loaded") {
           // Worker is loaded, send init message
-          worker.send({ type: "init", rootDir, tools });
+          worker.send({ type: "init", rootDir, tools, modeFilter });
         } else if (message.type === "ready") {
           // Worker is initialized, assign work
           assignWork(worker);
@@ -308,7 +327,7 @@ async function runTestsParallel(
           if (completedCount === cnxFiles.length) {
             // Terminate all workers
             workers.forEach((w) => w.send({ type: "exit" }));
-            resolve({ passed, failed, updated, noSnapshot });
+            resolve({ passed, failed, updated, noSnapshot, skipped });
           } else {
             // Assign more work
             assignWork(worker);
@@ -342,7 +361,7 @@ async function runTestsParallel(
               // Worker may already be terminated
             }
           });
-          resolve({ passed, failed, updated, noSnapshot });
+          resolve({ passed, failed, updated, noSnapshot, skipped });
         }
       });
 
@@ -360,7 +379,7 @@ async function runTestsParallel(
         activeWorkers.delete(worker);
 
         if (completedCount === cnxFiles.length) {
-          resolve({ passed, failed, updated, noSnapshot });
+          resolve({ passed, failed, updated, noSnapshot, skipped });
         }
       });
 
@@ -392,20 +411,23 @@ async function runTestsSequential(
   updateMode: boolean,
   quietMode: boolean,
   tools: ITools,
+  modeFilter?: TTestMode,
 ): Promise<{
   passed: number;
   failed: number;
   updated: number;
   noSnapshot: number;
+  skipped: number;
 }> {
   let passed = 0;
   let failed = 0;
   let updated = 0;
   let noSnapshot = 0;
+  let skipped = 0;
 
   for (const cnxFile of cnxFiles) {
     const relativePath = cnxFile.replace(rootDir + "/", "");
-    const result = await runTest(cnxFile, updateMode, tools);
+    const result = await runTest(cnxFile, updateMode, tools, modeFilter);
 
     printResult(relativePath, result, quietMode);
 
@@ -414,9 +436,10 @@ async function runTestsSequential(
     failed += updates.failed;
     updated += updates.updated;
     noSnapshot += updates.noSnapshot;
+    skipped += updates.skipped;
   }
 
-  return { passed, failed, updated, noSnapshot };
+  return { passed, failed, updated, noSnapshot, skipped };
 }
 
 /**
@@ -437,9 +460,30 @@ async function main(): Promise<void> {
     }
   }
 
+  // Parse --mode argument (for CI parallelization: run only c or cpp mode)
+  let modeFilter: TTestMode | undefined;
+  const modeIndex = args.findIndex((arg) => arg === "--mode" || arg === "-m");
+  if (modeIndex !== -1 && args[modeIndex + 1]) {
+    const modeArg = args[modeIndex + 1].toLowerCase();
+    if (modeArg === "c" || modeArg === "cpp") {
+      modeFilter = modeArg;
+    } else {
+      console.error(
+        chalk.red(`Error: Invalid mode '${modeArg}'. Use 'c' or 'cpp'.`),
+      );
+      process.exit(1);
+    }
+  }
+
+  // Find non-flag argument that isn't a value for --jobs or --mode
+  const argValuesSet = new Set<string>();
+  if (jobsIndex !== -1 && args[jobsIndex + 1])
+    argValuesSet.add(args[jobsIndex + 1]);
+  if (modeIndex !== -1 && args[modeIndex + 1])
+    argValuesSet.add(args[modeIndex + 1]);
+
   const filterPath = args.find(
-    (arg) =>
-      !arg.startsWith("-") && (jobsIndex === -1 || arg !== args[jobsIndex + 1]), // Exclude the number after --jobs
+    (arg) => !arg.startsWith("-") && !argValuesSet.has(arg),
   );
 
   // Determine test path (file or directory)
@@ -504,6 +548,11 @@ async function main(): Promise<void> {
     } else {
       console.log(chalk.dim("Mode: sequential"));
     }
+
+    // Show mode filter if specified
+    if (modeFilter) {
+      console.log(chalk.cyan(`Test mode: ${modeFilter.toUpperCase()} only`));
+    }
     console.log();
   }
 
@@ -523,6 +572,7 @@ async function main(): Promise<void> {
     failed: number;
     updated: number;
     noSnapshot: number;
+    skipped: number;
   };
 
   if (numJobs > 1 && cnxFiles.length > 1) {
@@ -532,22 +582,33 @@ async function main(): Promise<void> {
       quietMode,
       tools,
       numJobs,
+      modeFilter,
     );
   } else {
-    results = await runTestsSequential(cnxFiles, updateMode, quietMode, tools);
+    results = await runTestsSequential(
+      cnxFiles,
+      updateMode,
+      quietMode,
+      tools,
+      modeFilter,
+    );
   }
 
-  const { passed, failed, updated, noSnapshot } = results;
+  const { passed, failed, updated, noSnapshot, skipped } = results;
+
+  // Calculate actual tests run (excluding skipped due to mode filter)
+  const testsRun = cnxFiles.length - skipped;
 
   if (quietMode) {
     // Single-line summary for AI-friendly output
     if (failed > 0) {
       const failedMsg = chalk.red(failed + " failed");
-      console.log(`${passed}/${cnxFiles.length} tests passed, ${failedMsg}`);
+      console.log(`${passed}/${testsRun} tests passed, ${failedMsg}`);
     } else {
-      console.log(
-        chalk.green(`${cnxFiles.length}/${cnxFiles.length} tests passed`),
-      );
+      console.log(chalk.green(`${testsRun}/${testsRun} tests passed`));
+    }
+    if (skipped > 0) {
+      console.log(chalk.dim(`(${skipped} skipped - mode filter)`));
     }
   } else {
     console.log();
@@ -560,7 +621,10 @@ async function main(): Promise<void> {
       console.log(`  ${chalk.yellow("Updated:")} ${updated}`);
     }
     if (noSnapshot > 0) {
-      console.log(`  ${chalk.yellow("Skipped:")} ${noSnapshot} (no snapshot)`);
+      console.log(`  ${chalk.yellow("No snapshot:")} ${noSnapshot}`);
+    }
+    if (skipped > 0) {
+      console.log(`  ${chalk.dim("Skipped:")}  ${skipped} (mode filter)`);
     }
   }
 

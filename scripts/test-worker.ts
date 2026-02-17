@@ -8,6 +8,7 @@
 // Import shared types
 import ITools from "./types/ITools";
 import ITestResult from "./types/ITestResult";
+import type { TTestMode } from "./types/ITestMode";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
@@ -16,6 +17,7 @@ interface IInitMessage {
   type: "init";
   rootDir: string;
   tools: ITools;
+  modeFilter?: TTestMode;
 }
 
 interface ITestMessage {
@@ -32,6 +34,7 @@ type TWorkerMessage = IInitMessage | ITestMessage | IExitMessage;
 
 let rootDir: string;
 let tools: ITools;
+let modeFilter: TTestMode | undefined;
 
 /**
  * Run a single test
@@ -41,7 +44,7 @@ async function runTest(
   cnxFile: string,
   updateMode: boolean,
 ): Promise<ITestResult> {
-  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir);
+  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir, modeFilter);
 }
 
 // Listen for messages from parent process via IPC
@@ -49,6 +52,7 @@ process.on("message", async (message: TWorkerMessage) => {
   if (message.type === "init") {
     rootDir = message.rootDir;
     tools = message.tools;
+    modeFilter = message.modeFilter;
     process.send!({ type: "ready" });
   } else if (message.type === "test") {
     const { cnxFile, updateMode } = message;

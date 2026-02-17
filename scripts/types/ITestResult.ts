@@ -16,6 +16,8 @@ interface ITestResult {
   noSnapshot?: boolean;
   execError?: string;
   warningError?: string;
+  /** Test was skipped entirely (e.g., mode filter doesn't match test markers) */
+  skipped?: boolean;
 
   // Dual-mode result tracking
   /** Results for C mode (if run) */
