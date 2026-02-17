@@ -412,5 +412,56 @@ describe("parseWithSymbols", () => {
       expect(struct?.id).toBe("Point");
       expect(struct?.parentId).toBeUndefined();
     });
+
+    it("struct field has id=Struct.field, parentId=Struct", () => {
+      const source = `
+        struct Point {
+          i32 x;
+          i32 y;
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const fieldX = result.symbols.find(
+        (s) => s.name === "x" && s.kind === "field",
+      );
+      expect(fieldX?.id).toBe("Point.x");
+      expect(fieldX?.parentId).toBe("Point");
+      expect(fieldX?.type).toBe("i32");
+
+      const fieldY = result.symbols.find(
+        (s) => s.name === "y" && s.kind === "field",
+      );
+      expect(fieldY?.id).toBe("Point.y");
+      expect(fieldY?.parentId).toBe("Point");
+    });
+
+    it("struct field in scope has nested id path", () => {
+      const source = `
+        scope Geometry {
+          struct Vector {
+            f32 x;
+            f32 y;
+            f32 z;
+          }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const struct = result.symbols.find(
+        (s) => s.name === "Vector" && s.kind === "struct",
+      );
+      expect(struct?.id).toBe("Geometry.Vector");
+      expect(struct?.parentId).toBe("Geometry");
+
+      const fieldX = result.symbols.find(
+        (s) => s.name === "x" && s.kind === "field",
+      );
+      expect(fieldX?.id).toBe("Geometry.Vector.x");
+      expect(fieldX?.parentId).toBe("Geometry.Vector");
+      expect(fieldX?.type).toBe("f32");
+    });
   });
 });

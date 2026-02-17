@@ -10,57 +10,16 @@ import TypeResolver from "../utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbol from "../transpiler/types/symbols/TSymbol";
-import IScopeSymbol from "../transpiler/types/symbols/IScopeSymbol";
+import SymbolPathUtils from "./utils/SymbolPathUtils";
 
-/**
- * Build the dot-path for a scope by walking up the parent chain.
- * Returns empty string for global scope.
- */
-function buildScopePath(scope: { name: string; parent?: unknown }): string {
-  if (scope.name === "") {
-    return "";
-  }
-
-  const parts: string[] = [scope.name];
-  let current = scope.parent as IScopeSymbol | undefined;
-
-  while (current && current.name !== "" && current !== current.parent) {
-    parts.unshift(current.name);
-    current = current.parent as IScopeSymbol | undefined;
-  }
-
-  return parts.join(".");
-}
-
-/**
- * Get the dot-path ID for a symbol (e.g., "LED.toggle", "Color.Red").
- */
-function getDotPathId(symbol: {
-  name: string;
-  scope: { name: string; parent?: unknown };
-}): string {
-  const scopePath = buildScopePath(symbol.scope);
-  if (scopePath === "") {
-    return symbol.name;
-  }
-  return `${scopePath}.${symbol.name}`;
-}
-
-/**
- * Get the parentId for a symbol (the dot-path of its parent scope).
- * Returns undefined for top-level symbols.
- */
-function getParentId(scope: {
-  name: string;
-  parent?: unknown;
-}): string | undefined {
-  const scopePath = buildScopePath(scope);
-  return scopePath === "" ? undefined : scopePath;
-}
+// Re-export helpers for use in this module
+const buildScopePath = SymbolPathUtils.buildScopePath;
+const getDotPathId = SymbolPathUtils.getDotPathId;
+const getParentId = SymbolPathUtils.getParentId;
 
 /**
  * ADR-055 Phase 7: Convert TSymbol directly to ISymbolInfo array.
- * Expands compound symbols (bitmaps, enums, registers) into multiple ISymbolInfo entries.
+ * Expands compound symbols (bitmaps, enums, structs, registers) into multiple ISymbolInfo entries.
  */
 function convertTSymbolsToISymbolInfo(symbols: TSymbol[]): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
@@ -74,7 +33,7 @@ function convertTSymbolsToISymbolInfo(symbols: TSymbol[]): ISymbolInfo[] {
         result.push(...convertEnum(symbol));
         break;
       case "struct":
-        result.push(convertStruct(symbol));
+        result.push(...convertStruct(symbol));
         break;
       case "function":
         result.push(...convertFunction(symbol));
@@ -168,19 +127,38 @@ function convertEnum(
 
 function convertStruct(
   struct: import("../transpiler/types/symbols/IStructSymbol").default,
-): ISymbolInfo {
+): ISymbolInfo[] {
+  const result: ISymbolInfo[] = [];
   const mangledName = SymbolNameUtils.getMangledName(struct);
   const parent = struct.scope.name || undefined;
+  const structId = getDotPathId(struct);
+  const structParentId = getParentId(struct.scope);
 
-  return {
+  result.push({
     name: struct.name,
     fullName: mangledName,
     kind: "struct",
     parent,
-    id: getDotPathId(struct),
-    parentId: getParentId(struct.scope),
+    id: structId,
+    parentId: structParentId,
     line: struct.sourceLine,
-  };
+  });
+
+  // Add struct fields
+  for (const [fieldName, fieldInfo] of struct.fields) {
+    result.push({
+      name: fieldName,
+      fullName: `${mangledName}.${fieldName}`,
+      kind: "field",
+      type: TypeResolver.getTypeName(fieldInfo.type),
+      parent: mangledName,
+      id: `${structId}.${fieldName}`,
+      parentId: structId,
+      line: struct.sourceLine,
+    });
+  }
+
+  return result;
 }
 
 function convertFunction(

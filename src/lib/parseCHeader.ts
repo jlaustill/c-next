@@ -11,6 +11,7 @@ import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
 import TCSymbol from "../transpiler/types/symbols/c/TCSymbol";
+import SymbolPathUtils from "./utils/SymbolPathUtils";
 
 /**
  * Map TCSymbol kind to library TSymbolKind
@@ -63,10 +64,10 @@ function convertTCSymbolsToISymbolInfo(
       // struct and enum have no type field
     }
 
-    const id = parent ? `${parent}.${sym.name}` : sym.name;
+    const id = SymbolPathUtils.buildSimpleDotPath(parent, sym.name);
     return {
       name: sym.name,
-      fullName: parent ? `${parent}.${sym.name}` : sym.name,
+      fullName: SymbolPathUtils.buildSimpleDotPath(parent, sym.name),
       kind: mapCSymbolKind(sym.kind),
       id,
       parentId: parent,
