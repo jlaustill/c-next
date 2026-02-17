@@ -63,10 +63,13 @@ function convertTCSymbolsToISymbolInfo(
       // struct and enum have no type field
     }
 
+    const id = parent ? `${parent}.${sym.name}` : sym.name;
     return {
       name: sym.name,
       fullName: parent ? `${parent}.${sym.name}` : sym.name,
       kind: mapCSymbolKind(sym.kind),
+      id,
+      parentId: parent,
       type,
       parent,
       line: sym.sourceLine ?? 0,
