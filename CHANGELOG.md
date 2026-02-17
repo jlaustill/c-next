@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-02-17
+
+### Added
+
+- Add `id` and `parentId` fields to `parseSymbols` JSON-RPC response for unambiguous symbol resolution (Issue #823, PR #824)
+- Emit struct fields as separate symbols in `parseSymbols` output (matching enum/bitmap/register behavior)
+- Extract `SymbolPathUtils` utility with `buildScopePath`, `getDotPathId`, `getParentId` helpers
+
 ## [0.2.0] - 2026-02-16
 
 ### Changed
@@ -1007,6 +1015,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.0...HEAD
+[0.2.1]: https://github.com/jlaustill/c-next/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jlaustill/c-next/compare/v0.1.72...v0.2.0
 [0.1.72]: https://github.com/jlaustill/c-next/compare/v0.1.71...v0.1.72
 [0.1.71]: https://github.com/jlaustill/c-next/compare/v0.1.70...v0.1.71
