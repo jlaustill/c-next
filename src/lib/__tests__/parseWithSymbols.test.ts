@@ -236,4 +236,232 @@ describe("parseWithSymbols", () => {
       expect(bitmap).toBeDefined();
     });
   });
+
+  describe("id and parentId fields (Issue #823)", () => {
+    it("top-level function has id=name, no parentId", () => {
+      const source = `void setup() { }`;
+
+      const result = parseWithSymbols(source);
+
+      const func = result.symbols.find((s) => s.name === "setup");
+      expect(func?.id).toBe("setup");
+      expect(func?.parentId).toBeUndefined();
+    });
+
+    it("top-level variable has id=name, no parentId", () => {
+      const source = `u32 counter <- 0;`;
+
+      const result = parseWithSymbols(source);
+
+      const variable = result.symbols.find((s) => s.name === "counter");
+      expect(variable?.id).toBe("counter");
+      expect(variable?.parentId).toBeUndefined();
+    });
+
+    it("scope has id=name, no parentId", () => {
+      const source = `scope LED { }`;
+
+      const result = parseWithSymbols(source);
+
+      const scope = result.symbols.find((s) => s.name === "LED");
+      expect(scope?.id).toBe("LED");
+      expect(scope?.parentId).toBeUndefined();
+    });
+
+    it("scope method has id=Scope.method, parentId=Scope", () => {
+      const source = `
+        scope LED {
+          public void toggle() { }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const func = result.symbols.find((s) => s.name === "toggle");
+      expect(func?.id).toBe("LED.toggle");
+      expect(func?.parentId).toBe("LED");
+    });
+
+    it("scope variable has id=Scope.varName, parentId=Scope", () => {
+      const source = `
+        scope LED {
+          u8 pin <- 13;
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const variable = result.symbols.find((s) => s.name === "pin");
+      expect(variable?.id).toBe("LED.pin");
+      expect(variable?.parentId).toBe("LED");
+    });
+
+    it("enum has id=name, no parentId", () => {
+      const source = `
+        enum Color {
+          RED,
+          GREEN
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const enumSym = result.symbols.find(
+        (s) => s.name === "Color" && s.kind === "enum",
+      );
+      expect(enumSym?.id).toBe("Color");
+      expect(enumSym?.parentId).toBeUndefined();
+    });
+
+    it("enum member has id=Enum.member, parentId=Enum", () => {
+      const source = `
+        enum Color {
+          RED,
+          GREEN
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const member = result.symbols.find(
+        (s) => s.name === "RED" && s.kind === "enumMember",
+      );
+      expect(member?.id).toBe("Color.RED");
+      expect(member?.parentId).toBe("Color");
+    });
+
+    it("bitmap has id=name, no parentId", () => {
+      const source = `
+        bitmap8 Flags {
+          a, b, c, d, e, f, g, h
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const bitmap = result.symbols.find(
+        (s) => s.name === "Flags" && s.kind === "bitmap",
+      );
+      expect(bitmap?.id).toBe("Flags");
+      expect(bitmap?.parentId).toBeUndefined();
+    });
+
+    it("bitmap field has id=Bitmap.field, parentId=Bitmap", () => {
+      const source = `
+        bitmap8 Flags {
+          a, b, c, d, e, f, g, h
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const field = result.symbols.find(
+        (s) => s.name === "a" && s.kind === "bitmapField",
+      );
+      expect(field?.id).toBe("Flags.a");
+      expect(field?.parentId).toBe("Flags");
+    });
+
+    it("register in scope has nested id path", () => {
+      const source = `
+        scope Board {
+          register GPIO @ 0x40000000 {
+            DR: u32 rw @ 0x00,
+          }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const register = result.symbols.find(
+        (s) => s.name === "GPIO" && s.kind === "register",
+      );
+      expect(register?.id).toBe("Board.GPIO");
+      expect(register?.parentId).toBe("Board");
+    });
+
+    it("register member has id=Scope.Register.member", () => {
+      const source = `
+        scope Board {
+          register GPIO @ 0x40000000 {
+            DR: u32 rw @ 0x00,
+          }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const member = result.symbols.find(
+        (s) => s.name === "DR" && s.kind === "registerMember",
+      );
+      expect(member?.id).toBe("Board.GPIO.DR");
+      expect(member?.parentId).toBe("Board.GPIO");
+    });
+
+    it("struct has correct id and parentId", () => {
+      const source = `
+        struct Point {
+          i32 x;
+          i32 y;
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const struct = result.symbols.find((s) => s.name === "Point");
+      expect(struct?.id).toBe("Point");
+      expect(struct?.parentId).toBeUndefined();
+    });
+
+    it("struct field has id=Struct.field, parentId=Struct", () => {
+      const source = `
+        struct Point {
+          i32 x;
+          i32 y;
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const fieldX = result.symbols.find(
+        (s) => s.name === "x" && s.kind === "field",
+      );
+      expect(fieldX?.id).toBe("Point.x");
+      expect(fieldX?.parentId).toBe("Point");
+      expect(fieldX?.type).toBe("i32");
+
+      const fieldY = result.symbols.find(
+        (s) => s.name === "y" && s.kind === "field",
+      );
+      expect(fieldY?.id).toBe("Point.y");
+      expect(fieldY?.parentId).toBe("Point");
+    });
+
+    it("struct field in scope has nested id path", () => {
+      const source = `
+        scope Geometry {
+          struct Vector {
+            f32 x;
+            f32 y;
+            f32 z;
+          }
+        }
+      `;
+
+      const result = parseWithSymbols(source);
+
+      const struct = result.symbols.find(
+        (s) => s.name === "Vector" && s.kind === "struct",
+      );
+      expect(struct?.id).toBe("Geometry.Vector");
+      expect(struct?.parentId).toBe("Geometry");
+
+      const fieldX = result.symbols.find(
+        (s) => s.name === "x" && s.kind === "field",
+      );
+      expect(fieldX?.id).toBe("Geometry.Vector.x");
+      expect(fieldX?.parentId).toBe("Geometry.Vector");
+      expect(fieldX?.type).toBe("f32");
+    });
+  });
 });

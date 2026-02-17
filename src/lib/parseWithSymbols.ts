@@ -10,10 +10,16 @@ import TypeResolver from "../utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbol from "../transpiler/types/symbols/TSymbol";
+import SymbolPathUtils from "./utils/SymbolPathUtils";
+
+// Re-export helpers for use in this module
+const buildScopePath = SymbolPathUtils.buildScopePath;
+const getDotPathId = SymbolPathUtils.getDotPathId;
+const getParentId = SymbolPathUtils.getParentId;
 
 /**
  * ADR-055 Phase 7: Convert TSymbol directly to ISymbolInfo array.
- * Expands compound symbols (bitmaps, enums, registers) into multiple ISymbolInfo entries.
+ * Expands compound symbols (bitmaps, enums, structs, registers) into multiple ISymbolInfo entries.
  */
 function convertTSymbolsToISymbolInfo(symbols: TSymbol[]): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
@@ -27,7 +33,7 @@ function convertTSymbolsToISymbolInfo(symbols: TSymbol[]): ISymbolInfo[] {
         result.push(...convertEnum(symbol));
         break;
       case "struct":
-        result.push(convertStruct(symbol));
+        result.push(...convertStruct(symbol));
         break;
       case "function":
         result.push(...convertFunction(symbol));
@@ -53,6 +59,8 @@ function convertBitmap(
   const result: ISymbolInfo[] = [];
   const mangledName = SymbolNameUtils.getMangledName(bitmap);
   const parent = bitmap.scope.name || undefined;
+  const bitmapId = getDotPathId(bitmap);
+  const bitmapParentId = getParentId(bitmap.scope);
 
   result.push({
     name: bitmap.name,
@@ -60,6 +68,8 @@ function convertBitmap(
     kind: "bitmap",
     type: bitmap.backingType,
     parent,
+    id: bitmapId,
+    parentId: bitmapParentId,
     line: bitmap.sourceLine,
   });
 
@@ -70,6 +80,8 @@ function convertBitmap(
       fullName: `${mangledName}.${fieldName}`,
       kind: "bitmapField",
       parent: mangledName,
+      id: `${bitmapId}.${fieldName}`,
+      parentId: bitmapId,
       line: bitmap.sourceLine,
       size: fieldInfo.width,
     });
@@ -84,12 +96,16 @@ function convertEnum(
   const result: ISymbolInfo[] = [];
   const mangledName = SymbolNameUtils.getMangledName(enumSym);
   const parent = enumSym.scope.name || undefined;
+  const enumId = getDotPathId(enumSym);
+  const enumParentId = getParentId(enumSym.scope);
 
   result.push({
     name: enumSym.name,
     fullName: mangledName,
     kind: "enum",
     parent,
+    id: enumId,
+    parentId: enumParentId,
     line: enumSym.sourceLine,
   });
 
@@ -100,6 +116,8 @@ function convertEnum(
       fullName: `${mangledName}_${memberName}`,
       kind: "enumMember",
       parent: mangledName,
+      id: `${enumId}.${memberName}`,
+      parentId: enumId,
       line: enumSym.sourceLine,
     });
   }
@@ -109,17 +127,38 @@ function convertEnum(
 
 function convertStruct(
   struct: import("../transpiler/types/symbols/IStructSymbol").default,
-): ISymbolInfo {
+): ISymbolInfo[] {
+  const result: ISymbolInfo[] = [];
   const mangledName = SymbolNameUtils.getMangledName(struct);
   const parent = struct.scope.name || undefined;
+  const structId = getDotPathId(struct);
+  const structParentId = getParentId(struct.scope);
 
-  return {
+  result.push({
     name: struct.name,
     fullName: mangledName,
     kind: "struct",
     parent,
+    id: structId,
+    parentId: structParentId,
     line: struct.sourceLine,
-  };
+  });
+
+  // Add struct fields
+  for (const [fieldName, fieldInfo] of struct.fields) {
+    result.push({
+      name: fieldName,
+      fullName: `${mangledName}.${fieldName}`,
+      kind: "field",
+      type: TypeResolver.getTypeName(fieldInfo.type),
+      parent: mangledName,
+      id: `${structId}.${fieldName}`,
+      parentId: structId,
+      line: struct.sourceLine,
+    });
+  }
+
+  return result;
 }
 
 function convertFunction(
@@ -142,6 +181,8 @@ function convertFunction(
     kind: "function",
     type: returnType,
     parent,
+    id: getDotPathId(func),
+    parentId: getParentId(func.scope),
     signature,
     accessModifier: func.isExported ? "public" : "private",
     line: func.sourceLine,
@@ -163,6 +204,8 @@ function convertVariable(
     kind: "variable",
     type: typeStr,
     parent,
+    id: getDotPathId(variable),
+    parentId: getParentId(variable.scope),
     line: variable.sourceLine,
   };
 }
@@ -173,12 +216,16 @@ function convertRegister(
   const result: ISymbolInfo[] = [];
   const mangledName = SymbolNameUtils.getMangledName(register);
   const parent = register.scope.name || undefined;
+  const registerId = getDotPathId(register);
+  const registerParentId = getParentId(register.scope);
 
   result.push({
     name: register.name,
     fullName: mangledName,
     kind: "register",
     parent,
+    id: registerId,
+    parentId: registerParentId,
     line: register.sourceLine,
   });
 
@@ -189,6 +236,8 @@ function convertRegister(
       fullName: `${mangledName}.${memberName}`,
       kind: "registerMember",
       parent: mangledName,
+      id: `${registerId}.${memberName}`,
+      parentId: registerId,
       accessModifier: memberInfo.access,
       line: register.sourceLine,
     });
@@ -200,10 +249,18 @@ function convertRegister(
 function convertScope(
   scope: import("../transpiler/types/symbols/IScopeSymbol").default,
 ): ISymbolInfo {
+  const scopeId = buildScopePath(scope);
+  const scopeParentId =
+    scope.parent && scope.parent.name !== ""
+      ? buildScopePath(scope.parent)
+      : undefined;
+
   return {
     name: scope.name,
     fullName: scope.name,
     kind: "namespace",
+    id: scopeId,
+    parentId: scopeParentId,
     line: scope.sourceLine,
   };
 }

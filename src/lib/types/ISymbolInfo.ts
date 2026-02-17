@@ -12,6 +12,10 @@ interface ISymbolInfo {
   fullName: string;
   /** Kind of symbol */
   kind: TSymbolKind;
+  /** Dot-path identifier matching C-Next syntax (e.g., "LED.toggle", "Color.Red") */
+  id: string;
+  /** Parent's dot-path identifier (e.g., "LED" for "LED.toggle"), absent for top-level */
+  parentId?: string;
   /** Type of the symbol (e.g., "void", "u32") */
   type?: string;
   /** Parent namespace/class/register name */
