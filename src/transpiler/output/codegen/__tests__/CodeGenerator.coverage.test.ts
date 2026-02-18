@@ -641,6 +641,71 @@ describe("CodeGenerator Coverage Tests", () => {
   });
 
   // ==========================================================================
+  // Issue #834: generateStructInitializer with named struct tags
+  // ==========================================================================
+  describe("generateStructInitializer() with named struct tags", () => {
+    it("should include struct keyword in compound literal for named struct tags", () => {
+      // Test the fix for issue #834: named struct tags need 'struct' prefix in cast
+      const source = `
+        struct NamedPoint { i32 x; i32 y; }
+        void test() {
+          NamedPoint p <- {x: 10, y: 20};
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+
+      const symbolTable = new SymbolTable();
+      // Mark NamedPoint as requiring 'struct' keyword (simulates C header import)
+      symbolTable.markNeedsStructKeyword("NamedPoint");
+
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const generator = new CodeGenerator();
+      CodeGenState.symbolTable = symbolTable;
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        cppMode: false,
+      });
+
+      // The compound literal cast should include 'struct' keyword
+      expect(code).toContain("(struct NamedPoint)");
+      expect(code).toContain(".x = 10");
+      expect(code).toContain(".y = 20");
+    });
+
+    it("should NOT include struct keyword in C++ mode", () => {
+      const source = `
+        struct CppPoint { i32 x; i32 y; }
+        void test() {
+          CppPoint p <- {x: 5, y: 10};
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+
+      const symbolTable = new SymbolTable();
+      // Even if marked, C++ mode should not use struct keyword
+      symbolTable.markNeedsStructKeyword("CppPoint");
+
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const generator = new CodeGenerator();
+      CodeGenState.symbolTable = symbolTable;
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        cppMode: true,
+      });
+
+      // In C++ mode, struct keyword should NOT be in the cast
+      expect(code).not.toContain("(struct CppPoint)");
+      expect(code).toContain("(CppPoint)");
+    });
+  });
+
+  // ==========================================================================
   // Lines 5175-5218: generateFunction with registry
   // ==========================================================================
   describe("generateFunction()", () => {
