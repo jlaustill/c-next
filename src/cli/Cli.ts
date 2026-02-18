@@ -100,7 +100,7 @@ class Cli {
       defines: args.defines,
       preprocess: args.preprocess,
       verbose: args.verbose,
-      cppRequired: args.cppRequired ?? fileConfig.cppRequired ?? false,
+      cppRequired: args.cppRequired || fileConfig.cppRequired || false,
       noCache: args.noCache || fileConfig.noCache === true,
       parseOnly: args.parseOnly,
       headerOutDir: args.headerOutDir ?? fileConfig.headerOut,
