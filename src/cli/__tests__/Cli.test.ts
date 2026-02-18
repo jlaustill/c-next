@@ -180,40 +180,39 @@ describe("Cli", () => {
       expect(result.config?.includeDirs).toContain("lib/");
     });
 
-    it("uses file config cppRequired when CLI is undefined", () => {
-      // This test documents that with yargs, cppRequired is always defined,
-      // so file config cppRequired only applies if we explicitly set CLI to undefined
+    it("honors config file cppRequired when CLI does not specify --cpp (issue #827)", () => {
+      // Issue #827: When user doesn't pass --cpp, config file cppRequired should be used
+      // yargs returns cppRequired: false as the default, but config file should override
       const fileConfig: IFileConfig = {
         cppRequired: true,
       };
       vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
-      // Simulate undefined cppRequired (not possible with real yargs, but tests the merge logic)
-      mockParsedArgs.cppRequired = undefined as unknown as boolean;
+      // CLI has cppRequired: false (yargs default when --cpp not specified)
+      mockParsedArgs.cppRequired = false;
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 
       const result = Cli.run();
 
+      // Config file's cppRequired: true should be honored
       expect(result.config?.cppRequired).toBe(true);
     });
 
-    it("CLI args take precedence over file config", () => {
-      mockParsedArgs.cppRequired = false;
+    it("CLI --cpp flag takes precedence over file config", () => {
+      mockParsedArgs.cppRequired = true;
       mockParsedArgs.target = "cortex-m0";
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 
       const fileConfig: IFileConfig = {
-        cppRequired: true,
+        cppRequired: false,
         target: "teensy41",
       };
       vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
       const result = Cli.run();
 
-      // CLI explicitly set cppRequired to false, but the merge uses ?? so undefined would fall through
-      // Actually, looking at the code: args.cppRequired ?? fileConfig.cppRequired ?? false
-      // So if args.cppRequired is false (not undefined), it should use false
-      expect(result.config?.cppRequired).toBe(false);
+      // CLI --cpp flag should take precedence
+      expect(result.config?.cppRequired).toBe(true);
       expect(result.config?.target).toBe("cortex-m0");
     });
 
