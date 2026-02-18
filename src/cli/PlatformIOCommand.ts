@@ -141,9 +141,10 @@ env.AddPreAction("buildprog", transpile_cnext)
       try {
         const content = readFileSync(configPath, "utf-8");
         config = JSON.parse(content) as IFileConfig;
-      } catch {
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         console.log(
-          "⚠ Could not parse existing cnext.config.json, creating new one",
+          `⚠ Could not parse existing cnext.config.json (${msg}), creating new one`,
         );
         config = {};
       }
