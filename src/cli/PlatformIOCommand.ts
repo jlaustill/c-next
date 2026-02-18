@@ -5,6 +5,7 @@
 
 import { resolve } from "node:path";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import IFileConfig from "./types/IFileConfig";
 
 /**
  * Resolved paths for PlatformIO project.
@@ -107,6 +108,9 @@ env.AddPreAction("buildprog", transpile_cnext)
     writeFileSync(pioIniPath, pioIni, "utf-8");
     console.log(`✓ Modified: ${pioIniPath}`);
 
+    // Setup cnext.config.json for PlatformIO
+    this.setupConfig();
+
     console.log("");
     console.log("✓ PlatformIO integration configured!");
     console.log("");
@@ -120,6 +124,46 @@ env.AddPreAction("buildprog", transpile_cnext)
       "The transpiler will automatically convert .cnx → .c before each build.",
     );
     console.log("Commit both .cnx and generated .c files to version control.");
+  }
+
+  /**
+   * Setup cnext.config.json with PlatformIO-appropriate defaults
+   * - Appends .pio/libdeps to include array
+   * - Sets headerOut to "include" if not already set
+   */
+  private static setupConfig(): void {
+    const configPath = resolve(process.cwd(), "cnext.config.json");
+    const pioInclude = ".pio/libdeps";
+
+    let config: IFileConfig = {};
+
+    if (existsSync(configPath)) {
+      try {
+        const content = readFileSync(configPath, "utf-8");
+        config = JSON.parse(content) as IFileConfig;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.log(
+          `⚠ Could not parse existing cnext.config.json (${msg}), creating new one`,
+        );
+        config = {};
+      }
+    }
+
+    // Append .pio/libdeps to include array if not already present
+    const includes = config.include ?? [];
+    if (!includes.includes(pioInclude)) {
+      config.include = [...includes, pioInclude];
+    }
+
+    // Set headerOut only if not already set
+    if (!config.headerOut) {
+      config.headerOut = "include";
+    }
+
+    // Write config (with pretty formatting)
+    writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+    console.log(`✓ Updated: ${configPath}`);
   }
 
   /**
