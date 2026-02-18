@@ -44,11 +44,14 @@ class PlatformIOCommand {
     const { pioIniPath, scriptPath } = getPioProjectPaths();
 
     // Create cnext_build.py script
+    // Issue #833: Run transpilation at import time (before compilation),
+    // not as a pre-action on buildprog (which runs after compilation)
     const buildScript = `Import("env")
 import subprocess
+import sys
 from pathlib import Path
 
-def transpile_cnext(source, target, env):
+def transpile_cnext():
     """Transpile all .cnx files before build"""
     # Find all .cnx files in src directory
     src_dir = Path("src")
@@ -73,9 +76,10 @@ def transpile_cnext(source, target, env):
         except subprocess.CalledProcessError as e:
             print(f"  ✗ Error: {cnx_file.name}")
             print(e.stderr)
-            env.Exit(1)
+            sys.exit(1)
 
-env.AddPreAction("buildprog", transpile_cnext)
+# Run transpilation at import time (before compilation starts)
+transpile_cnext()
 `;
 
     writeFileSync(scriptPath, buildScript, "utf-8");

@@ -68,6 +68,30 @@ describe("PlatformIOCommand", () => {
       expect(scriptCall?.[1]).toContain("transpile_cnext");
     });
 
+    it("generates script that runs at import time, not as buildprog pre-action (issue #833)", () => {
+      // Issue #833: buildprog fires AFTER compilation, so transpile runs too late
+      // The script should run transpilation at import time (before compilation)
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+
+      PlatformIOCommand.install();
+
+      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+      const scriptCall = writeCalls.find((call) =>
+        (call[0] as string).includes("cnext_build.py"),
+      );
+
+      expect(scriptCall).toBeDefined();
+      const scriptContent = scriptCall?.[1] as string;
+
+      // Should NOT use AddPreAction (runs too late)
+      expect(scriptContent).not.toContain("AddPreAction");
+      expect(scriptContent).not.toContain("buildprog");
+
+      // Should call transpile_cnext() at top level (import time)
+      expect(scriptContent).toContain("transpile_cnext()");
+    });
+
     it("adds extra_scripts to platformio.ini when not present", () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
