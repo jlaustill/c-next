@@ -18,6 +18,7 @@ interface IInitMessage {
   rootDir: string;
   tools: ITools;
   modeFilter?: TTestMode;
+  transpileOnly?: boolean;
 }
 
 interface ITestMessage {
@@ -35,6 +36,7 @@ type TWorkerMessage = IInitMessage | ITestMessage | IExitMessage;
 let rootDir: string;
 let tools: ITools;
 let modeFilter: TTestMode | undefined;
+let transpileOnly: boolean | undefined;
 
 /**
  * Run a single test
@@ -44,7 +46,14 @@ async function runTest(
   cnxFile: string,
   updateMode: boolean,
 ): Promise<ITestResult> {
-  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir, modeFilter);
+  return TestUtils.runTest(
+    cnxFile,
+    updateMode,
+    tools,
+    rootDir,
+    modeFilter,
+    transpileOnly,
+  );
 }
 
 // Listen for messages from parent process via IPC
@@ -53,6 +62,7 @@ process.on("message", async (message: TWorkerMessage) => {
     rootDir = message.rootDir;
     tools = message.tools;
     modeFilter = message.modeFilter;
+    transpileOnly = message.transpileOnly;
     process.send!({ type: "ready" });
   } else if (message.type === "test") {
     const { cnxFile, updateMode } = message;

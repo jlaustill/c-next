@@ -118,8 +118,16 @@ async function runTest(
   updateMode: boolean,
   tools: ITools,
   modeFilter?: TTestMode,
+  transpileOnly?: boolean,
 ): Promise<ITestResult> {
-  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir, modeFilter);
+  return TestUtils.runTest(
+    cnxFile,
+    updateMode,
+    tools,
+    rootDir,
+    modeFilter,
+    transpileOnly,
+  );
 }
 
 /**
@@ -249,6 +257,7 @@ async function runTestsParallel(
   tools: ITools,
   numWorkers: number,
   modeFilter?: TTestMode,
+  transpileOnly?: boolean,
 ): Promise<{
   passed: number;
   failed: number;
@@ -306,7 +315,13 @@ async function runTestsParallel(
       worker.on("message", (message: IWorkerResult) => {
         if (message.type === "loaded") {
           // Worker is loaded, send init message
-          worker.send({ type: "init", rootDir, tools, modeFilter });
+          worker.send({
+            type: "init",
+            rootDir,
+            tools,
+            modeFilter,
+            transpileOnly,
+          });
         } else if (message.type === "ready") {
           // Worker is initialized, assign work
           assignWork(worker);
@@ -412,6 +427,7 @@ async function runTestsSequential(
   quietMode: boolean,
   tools: ITools,
   modeFilter?: TTestMode,
+  transpileOnly?: boolean,
 ): Promise<{
   passed: number;
   failed: number;
@@ -427,7 +443,13 @@ async function runTestsSequential(
 
   for (const cnxFile of cnxFiles) {
     const relativePath = cnxFile.replace(rootDir + "/", "");
-    const result = await runTest(cnxFile, updateMode, tools, modeFilter);
+    const result = await runTest(
+      cnxFile,
+      updateMode,
+      tools,
+      modeFilter,
+      transpileOnly,
+    );
 
     printResult(relativePath, result, quietMode);
 
@@ -449,6 +471,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const updateMode = args.includes("--update") || args.includes("-u");
   const quietMode = args.includes("--quiet") || args.includes("-q");
+  const transpileOnly = args.includes("--transpile-only");
 
   // Parse --jobs argument
   let numJobs = cpus().length; // Default to CPU count
@@ -583,6 +606,7 @@ async function main(): Promise<void> {
       tools,
       numJobs,
       modeFilter,
+      transpileOnly,
     );
   } else {
     results = await runTestsSequential(
@@ -591,6 +615,7 @@ async function main(): Promise<void> {
       quietMode,
       tools,
       modeFilter,
+      transpileOnly,
     );
   }
 

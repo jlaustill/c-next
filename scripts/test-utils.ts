@@ -875,6 +875,7 @@ class TestUtils {
     rootDir: string,
     shouldExec: boolean,
     helperCnxFiles: string[],
+    transpileOnly?: boolean,
   ): Promise<IModeResult> {
     const basePath = cnxFile.replace(/\.test\.cnx$/, "");
     const paths = TestUtils.getExpectedPaths(basePath, mode);
@@ -990,7 +991,15 @@ class TestUtils {
     }
     result.headerMatch = true;
 
-    // Skip compilation for transpile-only tests
+    // Skip validation when --transpile-only flag is set (for verify-clean job)
+    if (transpileOnly) {
+      result.compileSuccess = true;
+      result.execSuccess = true;
+      result.skippedExec = true;
+      return result;
+    }
+
+    // Skip compilation for transpile-only tests (test marker)
     const isTranspileOnly = TestUtils.hasTranspileOnlyMarker(source);
     if (isTranspileOnly) {
       result.compileSuccess = true;
@@ -1191,6 +1200,7 @@ class TestUtils {
     tools: ITools,
     rootDir: string,
     modeFilter?: TTestMode,
+    transpileOnly?: boolean,
   ): Promise<ITestResult> {
     const source = readFileSync(cnxFile, "utf-8");
 
@@ -1244,6 +1254,7 @@ class TestUtils {
         rootDir,
         shouldExec,
         helperCnxFiles,
+        transpileOnly,
       );
       modeResults.push(modeResult);
     }

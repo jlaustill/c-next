@@ -332,7 +332,7 @@ jobs:
         run: npm run antlr:all
 
       - name: Run tests (generates output files)
-        run: npm test
+        run: npm test -- --transpile-only
 
       - name: Check for uncommitted changes
         run: |
