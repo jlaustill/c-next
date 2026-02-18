@@ -1,0 +1,35 @@
+// test-execution
+// test-cpp-only
+// Issue #832: Auto-reference (&) not added for typedef pointer output parameters
+//
+// When a typedef is defined as a pointer (typedef struct_t* handle_t), and a function
+// expects handle_t* as an output parameter, the transpiler should add & when passing
+// a handle_t variable.
+//
+// Example: create_handle expects (handle_t*), my_handle is handle_t
+// Correct:   create_handle(&my_handle)
+// Bug:       create_handle(my_handle)   <- missing &
+
+#include "issue-832-typedef-pointer-output-params.hpp"
+
+handle_t my_handle;
+
+u32 main() {
+    // create_handle expects handle_t* (out param), my_handle is handle_t
+    // Should generate: create_handle(&my_handle)
+    global.create_handle(my_handle);
+
+    // use_handle expects handle_t directly - no & needed
+    // Should generate: use_handle(my_handle)
+    i32 val <- global.use_handle(my_handle);
+    if (val != 42) return 1;
+
+    // replace_handle expects handle_t* (out param), my_handle is handle_t
+    // Should generate: replace_handle(&my_handle)
+    global.replace_handle(my_handle);
+
+    val <- global.use_handle(my_handle);
+    if (val != 100) return 2;
+
+    return 0;
+}
