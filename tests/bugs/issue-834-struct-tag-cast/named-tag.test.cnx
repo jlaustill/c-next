@@ -1,0 +1,15 @@
+// test-c-only
+// test-transpile-only
+// Issue #834: Compound literal cast missing struct keyword for named struct tags
+// When a struct is defined as 'struct my_type_t' (no typedef), the compound
+// literal cast must also use 'struct my_type_t', not just 'my_type_t'
+
+#include "bugs/issue-834-struct-tag-cast/named-tag.h"
+
+void test() {
+    // This should generate: struct my_type_t val = (struct my_type_t){ .value = 42, .extra = 0 };
+    // Bug: generates: struct my_type_t val = (my_type_t){ .value = 42, .extra = 0 };
+    my_type_t val <- { value: 42, extra: 0 };
+
+    global.consume(val);
+}
