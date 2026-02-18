@@ -675,6 +675,35 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain(".y = 20");
     });
 
+    it("should include struct keyword in empty initializer via return statement", () => {
+      // Test the empty initializer path (line 3465) via return statement
+      // This is the only way to use explicit type syntax without expectedType context
+      const source = `
+        struct ReturnStruct { i32 value; }
+        ReturnStruct getEmpty() {
+          return ReturnStruct {};
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+
+      const symbolTable = new SymbolTable();
+      symbolTable.markNeedsStructKeyword("ReturnStruct");
+
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const generator = new CodeGenerator();
+      CodeGenState.symbolTable = symbolTable;
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        cppMode: false,
+      });
+
+      // Empty initializer should have struct keyword: (struct ReturnStruct){ 0 }
+      expect(code).toContain("(struct ReturnStruct){ 0 }");
+    });
+
     it("should NOT include struct keyword for typedef'd structs in C mode", () => {
       // This tests the branch where checkNeedsStructKeyword returns false
       const source = `
