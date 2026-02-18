@@ -3451,9 +3451,18 @@ export default class CodeGenerator implements IOrchestrator {
     const isCppClass =
       CodeGenState.cppMode && this._isCppClassWithConstructor(typeName);
 
+    // Issue #834: For named struct tags (no typedef), we need 'struct' prefix in C mode
+    const needsStructKeyword =
+      !CodeGenState.cppMode &&
+      CodeGenState.symbolTable.checkNeedsStructKeyword(typeName);
+    const castType = TypeGenerationHelper.generateUserType(
+      typeName,
+      needsStructKeyword,
+    );
+
     if (!fieldList) {
       // Empty initializer: Point {} -> (Point){ 0 } or {} for C++ classes
-      return isCppClass ? "{}" : `(${typeName}){ 0 }`;
+      return isCppClass ? "{}" : `(${castType}){ 0 }`;
     }
 
     // Get field type info for nested initializers
@@ -3501,7 +3510,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // For C-Next/C structs, generate designated initializer
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
-    return `(${typeName}){ ${fieldInits.join(", ")} }`;
+    return `(${castType}){ ${fieldInits.join(", ")} }`;
   }
 
   /**
