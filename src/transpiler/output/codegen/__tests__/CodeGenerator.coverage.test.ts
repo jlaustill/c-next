@@ -675,6 +675,35 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain(".y = 20");
     });
 
+    it("should NOT include struct keyword for typedef'd structs in C mode", () => {
+      // This tests the branch where checkNeedsStructKeyword returns false
+      const source = `
+        struct TypedefPoint { i32 x; i32 y; }
+        void test() {
+          TypedefPoint p <- {x: 1, y: 2};
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+
+      const symbolTable = new SymbolTable();
+      // Do NOT mark as needing struct keyword (simulates typedef'd struct)
+
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const generator = new CodeGenerator();
+      CodeGenState.symbolTable = symbolTable;
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        cppMode: false,
+      });
+
+      // Should NOT have 'struct' keyword since it's not marked
+      expect(code).not.toContain("(struct TypedefPoint)");
+      expect(code).toContain("(TypedefPoint)");
+    });
+
     it("should NOT include struct keyword in C++ mode", () => {
       const source = `
         struct CppPoint { i32 x; i32 y; }
