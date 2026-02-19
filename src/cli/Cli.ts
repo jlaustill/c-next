@@ -10,6 +10,7 @@ import ConfigLoader from "./ConfigLoader";
 import ConfigPrinter from "./ConfigPrinter";
 import PlatformIOCommand from "./PlatformIOCommand";
 import CleanCommand from "./CleanCommand";
+import PathNormalizer from "./PathNormalizer";
 import ICliResult from "./types/ICliResult";
 import ICliConfig from "./types/ICliConfig";
 import IParsedArgs from "./types/IParsedArgs";
@@ -92,7 +93,7 @@ class Cli {
     args: IParsedArgs,
     fileConfig: IFileConfig,
   ): ICliConfig {
-    return {
+    const rawConfig: ICliConfig = {
       inputs: args.inputFiles,
       outputPath: args.outputPath || fileConfig.output || "",
       // Merge include dirs: config includes come first, CLI includes override/append
@@ -108,6 +109,8 @@ class Cli {
       target: args.target ?? fileConfig.target,
       debugMode: args.debugMode || fileConfig.debugMode,
     };
+
+    return PathNormalizer.normalizeConfig(rawConfig);
   }
 }
 

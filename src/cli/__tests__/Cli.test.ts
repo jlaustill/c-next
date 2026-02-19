@@ -25,6 +25,12 @@ vi.mock("../ConfigLoader");
 vi.mock("../ConfigPrinter");
 vi.mock("../PlatformIOCommand");
 vi.mock("../CleanCommand");
+vi.mock("../PathNormalizer", () => ({
+  default: {
+    // Pass through the config unchanged for unit tests
+    normalizeConfig: (config: unknown) => config,
+  },
+}));
 
 describe("Cli", () => {
   let mockParsedArgs: IParsedArgs;

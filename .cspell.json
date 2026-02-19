@@ -348,7 +348,9 @@
     "signbit",
     "fpclassify",
     "nanf",
-    "nanl"
+    "nanl",
+    "testuser",
+    "pathnorm"
   ],
   "ignorePaths": [
     "node_modules/**",
