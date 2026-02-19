@@ -18,6 +18,7 @@ import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import CallExprUtils from "./CallExprUtils";
 import CodeGenState from "../../../../state/CodeGenState";
+import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 
 /**
  * Issue #304: Wrap argument with static_cast if it's a C++ enum class
@@ -59,6 +60,51 @@ interface IResolvedParam {
 }
 
 /**
+ * Issue #832: Check if parameter expects address-of for typedef'd pointer types.
+ *
+ * When a parameter type is `T*` and the argument type is `T`, we need to add `&`.
+ * This handles cases like `handle_t` (typedef'd pointer) passed to `handle_t*`.
+ *
+ * IMPORTANT: This should NOT match primitive types like uint8_t, because arrays
+ * of primitives decay to pointers naturally (uint8_t[] → uint8_t*).
+ * It SHOULD match typedef'd pointer types like handle_t → handle_t*.
+ *
+ * @param paramType - The parameter's base type (e.g., "handle_t*")
+ * @param argType - The argument's type (e.g., "handle_t")
+ * @param orchestrator - For type checking (isIntegerType, isFloatType)
+ * @returns true if parameter expects `argType*` (address-of needed)
+ */
+const _parameterExpectsAddressOf = (
+  paramType: string,
+  argType: string,
+  orchestrator: IOrchestrator,
+): boolean => {
+  // Don't add & for primitive types - arrays decay to pointers naturally
+  // e.g., uint8_t[] passed to uint8_t* should NOT get &
+  // Check C-Next primitives (u8, i8, etc.)
+  if (
+    orchestrator.isIntegerType(argType) ||
+    orchestrator.isFloatType(argType) ||
+    CallExprUtils.isKnownPrimitiveType(argType)
+  ) {
+    return false;
+  }
+
+  // Check C standard types (uint8_t, int32_t, etc.)
+  if (argType in C_TYPE_WIDTH) {
+    return false;
+  }
+
+  // paramType should end with * (already checked by caller)
+  // Remove trailing pointer markers to get the base type
+  // Use indexOf/slice instead of regex to avoid ReDoS concerns (SonarCloud S5852)
+  const starIndex = paramType.indexOf("*");
+  const paramBaseType =
+    starIndex >= 0 ? paramType.slice(0, starIndex).trim() : paramType.trim();
+  return paramBaseType === argType;
+};
+
+/**
  * Generate argument code for a C/C++ function call.
  * Handles automatic address-of (&) for struct arguments passed to pointer params.
  */
@@ -87,13 +133,16 @@ const _generateCFunctionArg = (
     }
   }
 
-  // Add & if argument is a struct type (not already a pointer)
+  // Add & if argument needs address-of to match parameter type.
+  // Issue #322: struct types passed to pointer params.
+  // Issue #832: typedef'd pointer types (e.g., handle_t passed to handle_t*).
   const needsAddressOf =
     argType &&
     !argType.endsWith("*") &&
     !argCode.startsWith("&") &&
     !targetParam.isArray &&
-    orchestrator.isStructType(argType);
+    (orchestrator.isStructType(argType) ||
+      _parameterExpectsAddressOf(targetParam.baseType, argType, orchestrator));
 
   if (needsAddressOf) {
     argCode = `&${argCode}`;

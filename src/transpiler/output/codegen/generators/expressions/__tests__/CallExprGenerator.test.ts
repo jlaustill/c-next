@@ -1270,4 +1270,151 @@ describe("CallExprGenerator", () => {
       expect(markParameterModified).not.toHaveBeenCalled();
     });
   });
+
+  // ========================================================================
+  // Issue #832: Auto-reference for typedef pointer output parameters
+  // ========================================================================
+  describe("Issue #832: typedef pointer output parameters", () => {
+    it("adds & when typedef pointer type is passed to pointer-to-typedef param", () => {
+      // handle_t is typedef'd pointer, create_handle expects handle_t*
+      const argExprs = [createMockExpressionContext("my_handle")];
+      const argCtx = createMockArgListContext(argExprs);
+      const sigs = new Map([
+        [
+          "create_handle",
+          {
+            name: "create_handle",
+            parameters: [
+              {
+                name: "out",
+                baseType: "handle_t*",
+                isConst: false,
+                isArray: false,
+              },
+            ],
+          },
+        ],
+      ]);
+      const typeRegistry = new Map([
+        [
+          "my_handle",
+          { baseType: "handle_t", bitWidth: 0, isArray: false, isConst: false },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => false),
+        getExpressionType: vi.fn(() => "handle_t"),
+        isStructType: vi.fn(() => false), // typedef pointer is not a struct
+        isIntegerType: vi.fn(() => false),
+        isFloatType: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "create_handle",
+        argCtx,
+        input,
+        state,
+        orchestrator,
+      );
+
+      expect(result.code).toBe("create_handle(&my_handle)");
+    });
+
+    it("does not add & for primitive types passed to pointer params (array decay)", () => {
+      // uint8_t[] passed to uint8_t* should NOT get &
+      const argExprs = [createMockExpressionContext("data")];
+      const argCtx = createMockArgListContext(argExprs);
+      const sigs = new Map([
+        [
+          "send_data",
+          {
+            name: "send_data",
+            parameters: [
+              {
+                name: "buf",
+                baseType: "uint8_t*",
+                isConst: false,
+                isArray: false,
+              },
+            ],
+          },
+        ],
+      ]);
+      const typeRegistry = new Map([
+        [
+          "data",
+          { baseType: "uint8_t", bitWidth: 8, isArray: true, isConst: false },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => false),
+        getExpressionType: vi.fn(() => "uint8_t"),
+        isStructType: vi.fn(() => false),
+        isIntegerType: vi.fn(() => false), // uint8_t is C type, not in INTEGER_TYPES
+        isFloatType: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "send_data",
+        argCtx,
+        input,
+        state,
+        orchestrator,
+      );
+
+      // Should NOT add & because uint8_t is in C_TYPE_WIDTH (primitive)
+      expect(result.code).toBe("send_data(data)");
+    });
+
+    it("does not add & when typedef type is passed directly (not to pointer)", () => {
+      // use_handle expects handle_t, not handle_t*
+      const argExprs = [createMockExpressionContext("my_handle")];
+      const argCtx = createMockArgListContext(argExprs);
+      const sigs = new Map([
+        [
+          "use_handle",
+          {
+            name: "use_handle",
+            parameters: [
+              {
+                name: "h",
+                baseType: "handle_t", // NOT a pointer
+                isConst: false,
+                isArray: false,
+              },
+            ],
+          },
+        ],
+      ]);
+      const typeRegistry = new Map([
+        [
+          "my_handle",
+          { baseType: "handle_t", bitWidth: 0, isArray: false, isConst: false },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs, typeRegistry });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => false),
+        getExpressionType: vi.fn(() => "handle_t"),
+        isStructType: vi.fn(() => false),
+        isIntegerType: vi.fn(() => false),
+        isFloatType: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "use_handle",
+        argCtx,
+        input,
+        state,
+        orchestrator,
+      );
+
+      expect(result.code).toBe("use_handle(my_handle)");
+    });
+  });
 });
