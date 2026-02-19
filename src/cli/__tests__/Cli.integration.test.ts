@@ -28,7 +28,12 @@ describe("Cli path normalization (integration)", () => {
   });
 
   it("expands tilde in config include paths", () => {
-    // Create config with tilde path
+    // Create a real home directory structure to verify tilde expansion
+    const homeDir = mkdtempSync(join(tmpdir(), "home-"));
+    mkdirSync(join(homeDir, "sdk", "include"), { recursive: true });
+
+    process.env.HOME = homeDir;
+
     writeFileSync(
       join(tempDir, "cnext.config.json"),
       JSON.stringify({ include: ["~/sdk/include"] }),
@@ -39,11 +44,12 @@ describe("Cli path normalization (integration)", () => {
 
     const result = Cli.run();
 
-    // ~/sdk/include gets expanded to /home/testuser/sdk/include
-    // Since the path doesn't exist, normalizeIncludePaths filters it out
-    // But we can verify the expansion happened by checking the result
-    // For non-existent paths, they get filtered out, so includeDirs will be empty
-    expect(result.shouldRun).toBe(true);
+    // Verify tilde was expanded to actual home directory path
+    expect(result.config?.includeDirs).toContain(join(homeDir, "sdk/include"));
+    // Verify the unexpanded tilde path is NOT present
+    expect(result.config?.includeDirs).not.toContain("~/sdk/include");
+
+    rmSync(homeDir, { recursive: true, force: true });
   });
 
   it("expands ** in config include paths", () => {
@@ -66,6 +72,12 @@ describe("Cli path normalization (integration)", () => {
   });
 
   it("expands tilde in CLI --include paths", () => {
+    // Create a real home directory structure to verify tilde expansion
+    const homeDir = mkdtempSync(join(tmpdir(), "home-"));
+    mkdirSync(join(homeDir, "my-libs"), { recursive: true });
+
+    process.env.HOME = homeDir;
+
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
 
     process.argv = [
@@ -78,31 +90,11 @@ describe("Cli path normalization (integration)", () => {
 
     const result = Cli.run();
 
-    // Path won't exist, so it gets filtered out by normalizeIncludePaths
-    // But the expansion should have happened
-    expect(result.shouldRun).toBe(true);
-  });
+    // Verify tilde was expanded to actual home directory path
+    expect(result.config?.includeDirs).toContain(join(homeDir, "my-libs"));
+    // Verify the unexpanded tilde path is NOT present
+    expect(result.config?.includeDirs).not.toContain("~/my-libs");
 
-  it("expands tilde in config include path to existing directory", () => {
-    // Create real directories that exist
-    const homeDir = mkdtempSync(join(tmpdir(), "home-"));
-    mkdirSync(join(homeDir, "sdk", "include"), { recursive: true });
-
-    process.env.HOME = homeDir;
-
-    writeFileSync(
-      join(tempDir, "cnext.config.json"),
-      JSON.stringify({ include: ["~/sdk/include"] }),
-    );
-    writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
-
-    process.argv = ["node", "cnext", join(tempDir, "test.cnx")];
-
-    const result = Cli.run();
-
-    expect(result.config?.includeDirs).toContain(join(homeDir, "sdk/include"));
-
-    // Cleanup
     rmSync(homeDir, { recursive: true, force: true });
   });
 });

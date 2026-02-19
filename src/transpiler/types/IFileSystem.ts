@@ -58,6 +58,14 @@ interface IFileSystem {
    * @throws Error if file doesn't exist or can't be read
    */
   stat(path: string): { mtimeMs: number };
+
+  /**
+   * Resolve symlinks to get the real path.
+   * Optional - if not provided, symlink loop detection is skipped.
+   * @returns The resolved real path
+   * @throws Error if path doesn't exist
+   */
+  realpath?(path: string): string;
 }
 
 export default IFileSystem;

@@ -212,6 +212,85 @@ describe("PathNormalizer", () => {
       const result = PathNormalizer.normalizeIncludePaths([], fs);
       expect(result).toEqual([]);
     });
+
+    it("deduplicates paths", () => {
+      const result = PathNormalizer.normalizeIncludePaths(
+        [tempDir, tempDir, join(tempDir, "sub1"), tempDir],
+        fs,
+      );
+      // Each path appears only once, order preserved
+      expect(result).toEqual([tempDir, join(tempDir, "sub1")]);
+    });
+
+    it("deduplicates paths from overlapping recursive expansions", () => {
+      // tempDir/** expands to [tempDir, sub1, sub2]
+      // Adding tempDir explicitly shouldn't duplicate
+      const result = PathNormalizer.normalizeIncludePaths(
+        [tempDir, `${tempDir}/**`],
+        fs,
+      );
+      // tempDir should appear only once
+      const tempDirCount = result.filter((p) => p === tempDir).length;
+      expect(tempDirCount).toBe(1);
+    });
+  });
+
+  describe("expandRecursive symlink handling", () => {
+    it("handles symlink loops via realpath", () => {
+      const mockFs: IFileSystem = {
+        exists: () => true,
+        isDirectory: () => true,
+        // Simulate symlink loop: dir -> subdir -> (symlink to dir)
+        readdir: (dir) => {
+          if (dir === "/root") return ["subdir"];
+          if (dir === "/root/subdir") return ["link-to-root"];
+          return [];
+        },
+        // realpath resolves the symlink to its target
+        realpath: (path) => {
+          if (path === "/root/subdir/link-to-root") return "/root";
+          return path;
+        },
+        readFile: () => "",
+        writeFile: () => {},
+        mkdir: () => {},
+        isFile: () => false,
+        stat: () => ({ mtimeMs: 0 }),
+      };
+
+      const result = PathNormalizer.expandRecursive("/root/**", mockFs);
+
+      // Should include /root and /root/subdir but NOT loop infinitely
+      expect(result).toContain("/root");
+      expect(result).toContain("/root/subdir");
+      // The symlink directory is detected but already visited
+      expect(result).toHaveLength(2);
+    });
+
+    it("works without realpath (graceful degradation)", () => {
+      const mockFs: IFileSystem = {
+        exists: () => true,
+        isDirectory: (path) =>
+          path === "/root" || path === "/root/sub1" || path === "/root/sub2",
+        readdir: (dir) => {
+          if (dir === "/root") return ["sub1", "sub2"];
+          return [];
+        },
+        // No realpath method
+        readFile: () => "",
+        writeFile: () => {},
+        mkdir: () => {},
+        isFile: () => false,
+        stat: () => ({ mtimeMs: 0 }),
+      };
+
+      const result = PathNormalizer.expandRecursive("/root/**", mockFs);
+
+      expect(result).toContain("/root");
+      expect(result).toContain("/root/sub1");
+      expect(result).toContain("/root/sub2");
+      expect(result).toHaveLength(3);
+    });
   });
 
   describe("normalizeConfig", () => {

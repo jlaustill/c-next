@@ -72,18 +72,31 @@ class PathNormalizer {
 
   /**
    * Recursively collect all subdirectories into the dirs array.
+   * Uses a visited set to prevent symlink loops.
    */
   private static collectSubdirectories(
     dir: string,
     dirs: string[],
     fs: IFileSystem,
+    visited: Set<string> = new Set(),
   ): void {
+    // Get real path to detect symlink loops
+    const realPath = fs.realpath ? fs.realpath(dir) : dir;
+    if (visited.has(realPath)) {
+      return; // Skip already-visited directories (symlink loop protection)
+    }
+    visited.add(realPath);
+
     const entries = fs.readdir(dir);
     for (const entry of entries) {
       const fullPath = join(dir, entry);
       if (fs.isDirectory(fullPath)) {
-        dirs.push(fullPath);
-        this.collectSubdirectories(fullPath, dirs, fs);
+        // Check if this subdirectory's real path was already visited
+        const subRealPath = fs.realpath ? fs.realpath(fullPath) : fullPath;
+        if (!visited.has(subRealPath)) {
+          dirs.push(fullPath);
+          this.collectSubdirectories(fullPath, dirs, fs, visited);
+        }
       }
     }
   }
@@ -103,20 +116,27 @@ class PathNormalizer {
 
   /**
    * Normalize include paths (tilde + recursive expansion).
+   * Deduplicates paths to avoid redundant includes.
    * @param paths - Array of paths to normalize
    * @param fs - File system abstraction for testing
-   * @returns Flattened array of all resolved directories
+   * @returns Flattened array of all resolved directories (deduplicated)
    */
   static normalizeIncludePaths(
     paths: string[],
     fs: IFileSystem = defaultFs,
   ): string[] {
+    const seen = new Set<string>();
     const result: string[] = [];
 
     for (const path of paths) {
       const expanded = this.expandTilde(path);
       const dirs = this.expandRecursive(expanded, fs);
-      result.push(...dirs);
+      for (const dir of dirs) {
+        if (!seen.has(dir)) {
+          seen.add(dir);
+          result.push(dir);
+        }
+      }
     }
 
     return result;

@@ -12,6 +12,7 @@ import {
   statSync,
   mkdirSync,
   readdirSync,
+  realpathSync,
 } from "node:fs";
 import IFileSystem from "./types/IFileSystem";
 
@@ -56,6 +57,10 @@ class NodeFileSystem implements IFileSystem {
   stat(path: string): { mtimeMs: number } {
     const stats = statSync(path);
     return { mtimeMs: stats.mtimeMs };
+  }
+
+  realpath(path: string): string {
+    return realpathSync(path);
   }
 
   /** Shared singleton instance for use across all modules */
