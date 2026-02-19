@@ -8,7 +8,14 @@
  * (e.g., validateMisra missing -I flag in one file but not the other).
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  unlinkSync,
+  statSync,
+  readdirSync,
+} from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -25,6 +32,51 @@ const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 // Use pre-built bundle when available (eliminates tsx/npx overhead per test)
 const DIST_ENTRY = join(PROJECT_ROOT, "dist", "index.js");
+const SRC_DIR = join(PROJECT_ROOT, "src");
+
+/**
+ * Check if dist/index.js is fresh (newer than all source files in src/).
+ * Short-circuits on the first stale file found.
+ */
+function isDistFresh(): boolean {
+  if (!existsSync(DIST_ENTRY)) return false;
+
+  const distMtime = statSync(DIST_ENTRY).mtimeMs;
+
+  function hasNewerSource(dir: string): boolean {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === "node_modules" || entry.name === ".git") continue;
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (hasNewerSource(fullPath)) return true;
+      } else if (entry.name.endsWith(".ts")) {
+        if (statSync(fullPath).mtimeMs > distMtime) return true;
+      }
+    }
+    return false;
+  }
+
+  return !hasNewerSource(SRC_DIR);
+}
+
+// Auto-rebuild on module load to ensure tests always use fresh bundle
+if (existsSync(DIST_ENTRY) && !isDistFresh()) {
+  console.warn("Warning: dist/index.js is stale. Rebuilding...");
+  const buildResult = spawnSync("npm", ["run", "build"], {
+    cwd: PROJECT_ROOT,
+    encoding: "utf-8",
+    stdio: "inherit",
+  });
+  if (buildResult.status !== 0) {
+    console.error("Build failed. Falling back to tsx for transpilation.");
+    try {
+      unlinkSync(DIST_ENTRY);
+    } catch {
+      /* ignore */
+    }
+  }
+}
 const USE_BUILT = existsSync(DIST_ENTRY);
 
 /**
