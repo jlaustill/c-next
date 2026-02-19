@@ -49,7 +49,7 @@ function isNumericIntegerLiteral(text: string): boolean {
     }
   }
   // Must start with digit or be hex/binary/octal
-  return /^[0-9]/.test(text) || /^0[xXbBoO]/.test(text);
+  return /^\d/.test(text) || /^0[xXbBoO]/.test(text);
 }
 
 /**
