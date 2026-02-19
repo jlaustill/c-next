@@ -57,10 +57,26 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
  * Shared helper for struct field string handlers.
  */
 function getStructFieldType(structName: string, fieldName: string): string {
+  // Issue #831: Use SymbolTable as single source of truth for struct fields
   const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  const structType = structTypeInfo!.baseType;
-  const structFields = CodeGenState.symbols!.structFields.get(structType);
-  return structFields!.get(fieldName)!;
+  if (!structTypeInfo) {
+    throw new Error(
+      `Error: Unknown struct variable '${structName}' in string assignment`,
+    );
+  }
+
+  const structType = structTypeInfo.baseType;
+  const fieldType = CodeGenState.symbolTable?.getStructFieldType(
+    structType,
+    fieldName,
+  );
+  if (!fieldType) {
+    throw new Error(
+      `Error: Unknown field '${fieldName}' on struct '${structType}' in string assignment`,
+    );
+  }
+
+  return fieldType;
 }
 
 /**
@@ -70,7 +86,12 @@ function getStructFieldType(structName: string, fieldName: string): string {
  */
 function getStructType(structName: string): string {
   const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  return structTypeInfo!.baseType;
+  if (!structTypeInfo) {
+    throw new Error(
+      `Error: Unknown struct variable '${structName}' in string assignment`,
+    );
+  }
+  return structTypeInfo.baseType;
 }
 
 /**

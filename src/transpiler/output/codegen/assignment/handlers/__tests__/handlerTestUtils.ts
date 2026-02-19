@@ -5,6 +5,7 @@
 
 import { vi } from "vitest";
 import CodeGenState from "../../../../../state/CodeGenState";
+import SymbolTable from "../../../../../logic/symbols/SymbolTable";
 import type ICodeGenApi from "../../../types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../types/TTypeInfo";
@@ -63,12 +64,29 @@ function createDefaultMockSymbols(): ICodeGenSymbols {
 /**
  * Set up mock symbols on CodeGenState.
  * Provides comprehensive defaults that can be overridden.
+ * Issue #831: Also registers struct fields in SymbolTable for single source of truth.
  */
 function setupMockSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
   CodeGenState.symbols = {
     ...createDefaultMockSymbols(),
     ...overrides,
   };
+
+  // Also register struct fields in SymbolTable (single source of truth)
+  if (overrides.structFields) {
+    if (!CodeGenState.symbolTable) {
+      CodeGenState.symbolTable = new SymbolTable();
+    }
+    for (const [structName, fields] of overrides.structFields) {
+      for (const [fieldName, fieldType] of fields) {
+        CodeGenState.symbolTable.addStructField(
+          structName,
+          fieldName,
+          fieldType,
+        );
+      }
+    }
+  }
 }
 
 /**

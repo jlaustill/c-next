@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
+import SymbolTable from "../../../../logic/symbols/SymbolTable.js";
 import type * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
 
 /** Mock type for PostfixTargetOpContext */
@@ -70,14 +71,31 @@ describe("MemberChainAnalyzer", () => {
   });
 
   /**
-   * Helper to set up struct fields in CodeGenState.symbols
+   * Helper to set up struct fields in CodeGenState.symbolTable
+   * Issue #831: SymbolTable is now the single source of truth for struct fields
    */
   function setupStructFields(
     structName: string,
     fields: Map<string, string>,
     arrayFields: Set<string> = new Set(),
   ): void {
-    // Initialize symbols if not set
+    // Initialize symbolTable if not set
+    if (!CodeGenState.symbolTable) {
+      CodeGenState.symbolTable = new SymbolTable();
+    }
+
+    // Register struct fields in SymbolTable
+    for (const [fieldName, fieldType] of fields) {
+      const isArray = arrayFields.has(fieldName);
+      CodeGenState.symbolTable.addStructField(
+        structName,
+        fieldName,
+        fieldType,
+        isArray ? [10] : undefined, // Use realistic dimension for arrays
+      );
+    }
+
+    // Also mark struct as known (for isKnownStruct checks)
     if (!CodeGenState.symbols) {
       CodeGenState.symbols = {
         knownStructs: new Set(),
@@ -108,14 +126,6 @@ describe("MemberChainAnalyzer", () => {
       };
     }
     (CodeGenState.symbols.knownStructs as Set<string>).add(structName);
-    (CodeGenState.symbols.structFields as Map<string, Map<string, string>>).set(
-      structName,
-      fields,
-    );
-    (CodeGenState.symbols.structFieldArrays as Map<string, Set<string>>).set(
-      structName,
-      arrayFields,
-    );
   }
 
   describe("analyze", () => {

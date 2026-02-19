@@ -3,6 +3,7 @@ import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import CodeGenState from "../../../../state/CodeGenState";
+import SymbolTable from "../../../../logic/symbols/SymbolTable";
 import TTypeInfo from "../../types/TTypeInfo";
 
 // ========================================================================
@@ -64,6 +65,7 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
 
 /**
  * Helper to set up CodeGenState.symbols with minimal fields.
+ * Issue #831: Also registers struct fields in SymbolTable (single source of truth).
  */
 function setupSymbols(
   overrides: {
@@ -77,6 +79,22 @@ function setupSymbols(
     structFieldDimensions?: Map<string, Map<string, readonly number[]>>;
   } = {},
 ): void {
+  // Initialize symbolTable for struct field lookups
+  CodeGenState.symbolTable = new SymbolTable();
+
+  // Register struct fields in SymbolTable
+  if (overrides.structFields) {
+    for (const [structName, fields] of overrides.structFields) {
+      for (const [fieldName, fieldType] of fields) {
+        CodeGenState.symbolTable.addStructField(
+          structName,
+          fieldName,
+          fieldType,
+        );
+      }
+    }
+  }
+
   CodeGenState.symbols = {
     knownScopes: overrides.knownScopes ?? new Set(),
     knownStructs: overrides.knownStructs ?? new Set(),

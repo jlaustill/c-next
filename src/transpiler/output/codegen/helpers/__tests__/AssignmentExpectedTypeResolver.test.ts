@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
+import SymbolTable from "../../../../logic/symbols/SymbolTable.js";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.
@@ -18,12 +19,24 @@ function parseAssignmentTarget(target: string) {
 }
 
 /**
- * Helper to set up struct fields in CodeGenState.symbols
+ * Helper to set up struct fields in CodeGenState.symbolTable
+ * Issue #831: SymbolTable is now the single source of truth for struct fields
  */
 function setupStructFields(
   structName: string,
   fields: Map<string, string>,
 ): void {
+  // Initialize symbolTable if not set
+  if (!CodeGenState.symbolTable) {
+    CodeGenState.symbolTable = new SymbolTable();
+  }
+
+  // Register struct fields in SymbolTable
+  for (const [fieldName, fieldType] of fields) {
+    CodeGenState.symbolTable.addStructField(structName, fieldName, fieldType);
+  }
+
+  // Also mark struct as known (for isKnownStruct checks)
   if (!CodeGenState.symbols) {
     CodeGenState.symbols = {
       knownStructs: new Set(),
@@ -54,10 +67,6 @@ function setupStructFields(
     };
   }
   (CodeGenState.symbols.knownStructs as Set<string>).add(structName);
-  (CodeGenState.symbols.structFields as Map<string, Map<string, string>>).set(
-    structName,
-    fields,
-  );
 }
 
 describe("AssignmentExpectedTypeResolver", () => {

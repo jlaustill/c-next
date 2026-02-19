@@ -171,25 +171,21 @@ class MemberChainAnalyzer {
       return false;
     }
 
-    const structFields = CodeGenState.symbols?.structFields.get(
+    // Issue #831: Use SymbolTable as single source of truth for struct fields
+    const fieldInfo = CodeGenState.symbolTable?.getStructFieldInfo(
       state.currentStructType,
+      fieldName,
     );
-    if (!structFields) {
+    if (!fieldInfo) {
       return false;
     }
 
-    const fieldType = structFields.get(fieldName);
-    if (!fieldType) {
-      return false;
-    }
+    state.currentType = fieldInfo.type;
 
-    state.currentType = fieldType;
-
-    // Check if this field is an array
-    const arrayFields = CodeGenState.symbols?.structFieldArrays.get(
-      state.currentStructType,
-    );
-    state.isCurrentArray = arrayFields?.has(fieldName) ?? false;
+    // Check if this field is an array (has array dimensions)
+    state.isCurrentArray =
+      fieldInfo.arrayDimensions !== undefined &&
+      fieldInfo.arrayDimensions.length > 0;
 
     // If the field type is a struct, update currentStructType
     state.currentStructType = CodeGenState.isKnownStruct(state.currentType)
