@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PathNormalizer from "../PathNormalizer";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
 import IFileSystem from "../../transpiler/types/IFileSystem";
+import ICliConfig from "../types/ICliConfig";
 
 // Store original environment variables at module level for all tests
 const originalHome = process.env.HOME;
@@ -210,6 +211,122 @@ describe("PathNormalizer", () => {
     it("returns empty array for empty input", () => {
       const result = PathNormalizer.normalizeIncludePaths([], fs);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("normalizeConfig", () => {
+    let tempDir: string;
+    const fs = NodeFileSystem.instance;
+
+    beforeEach(() => {
+      process.env.HOME = "/home/testuser";
+      tempDir = mkdtempSync(join(tmpdir(), "pathnorm-config-"));
+      mkdirSync(join(tempDir, "include", "sub"), { recursive: true });
+    });
+
+    afterEach(() => {
+      process.env.HOME = originalHome;
+      rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it("normalizes all path fields in config", () => {
+      const mockFs: IFileSystem = {
+        exists: () => true,
+        isDirectory: () => true,
+        readdir: () => [],
+        readFile: () => "",
+        writeFile: () => {},
+        mkdir: () => {},
+        isFile: () => false,
+        stat: () => ({ mtimeMs: 0 }),
+      };
+
+      const config: ICliConfig = {
+        inputs: ["file.cnx"],
+        outputPath: "~/build",
+        includeDirs: ["~/sdk/include"],
+        defines: {},
+        preprocess: false,
+        verbose: false,
+        cppRequired: false,
+        noCache: false,
+        parseOnly: false,
+        headerOutDir: "~/include",
+        basePath: "~/src",
+      };
+
+      const result = PathNormalizer.normalizeConfig(config, mockFs);
+
+      expect(result.outputPath).toBe("/home/testuser/build");
+      expect(result.headerOutDir).toBe("/home/testuser/include");
+      expect(result.basePath).toBe("/home/testuser/src");
+      expect(result.includeDirs).toEqual(["/home/testuser/sdk/include"]);
+    });
+
+    it("handles undefined optional fields", () => {
+      const config: ICliConfig = {
+        inputs: ["file.cnx"],
+        outputPath: "",
+        includeDirs: [],
+        defines: {},
+        preprocess: false,
+        verbose: false,
+        cppRequired: false,
+        noCache: false,
+        parseOnly: false,
+      };
+
+      const result = PathNormalizer.normalizeConfig(config);
+
+      expect(result.headerOutDir).toBeUndefined();
+      expect(result.basePath).toBeUndefined();
+    });
+
+    it("expands ** in include paths", () => {
+      const config: ICliConfig = {
+        inputs: [],
+        outputPath: "",
+        includeDirs: [`${tempDir}/include/**`],
+        defines: {},
+        preprocess: false,
+        verbose: false,
+        cppRequired: false,
+        noCache: false,
+        parseOnly: false,
+      };
+
+      const result = PathNormalizer.normalizeConfig(config, fs);
+
+      expect(result.includeDirs).toContain(join(tempDir, "include"));
+      expect(result.includeDirs).toContain(join(tempDir, "include", "sub"));
+    });
+
+    it("preserves non-path fields unchanged", () => {
+      const config: ICliConfig = {
+        inputs: ["a.cnx", "b.cnx"],
+        outputPath: "",
+        includeDirs: [],
+        defines: { DEBUG: true },
+        preprocess: true,
+        verbose: true,
+        cppRequired: true,
+        noCache: true,
+        parseOnly: true,
+        target: "teensy41",
+        debugMode: true,
+      };
+
+      const result = PathNormalizer.normalizeConfig(config);
+
+      expect(result.inputs).toEqual(["a.cnx", "b.cnx"]);
+      expect(result.defines).toEqual({ DEBUG: true });
+      expect(result.preprocess).toBe(true);
+      expect(result.verbose).toBe(true);
+      expect(result.cppRequired).toBe(true);
+      expect(result.noCache).toBe(true);
+      expect(result.parseOnly).toBe(true);
+      expect(result.target).toBe("teensy41");
+      expect(result.debugMode).toBe(true);
     });
   });
 });

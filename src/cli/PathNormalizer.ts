@@ -7,6 +7,7 @@
 import { join } from "node:path";
 import IFileSystem from "../transpiler/types/IFileSystem";
 import NodeFileSystem from "../transpiler/NodeFileSystem";
+import ICliConfig from "./types/ICliConfig";
 
 /** Default file system instance */
 const defaultFs = NodeFileSystem.instance;
@@ -119,6 +120,30 @@ class PathNormalizer {
     }
 
     return result;
+  }
+
+  /**
+   * Normalize all paths in a CLI config.
+   * Single entry point for all path normalization.
+   * @param config - CLI config with potentially unnormalized paths
+   * @param fs - File system abstraction for testing
+   * @returns New config with all paths normalized
+   */
+  static normalizeConfig(
+    config: ICliConfig,
+    fs: IFileSystem = defaultFs,
+  ): ICliConfig {
+    return {
+      ...config,
+      outputPath: this.normalizePath(config.outputPath),
+      headerOutDir: config.headerOutDir
+        ? this.normalizePath(config.headerOutDir)
+        : undefined,
+      basePath: config.basePath
+        ? this.normalizePath(config.basePath)
+        : undefined,
+      includeDirs: this.normalizeIncludePaths(config.includeDirs, fs),
+    };
   }
 }
 
