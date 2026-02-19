@@ -36,6 +36,8 @@ function setupGenerator(
 
   const symbolTable = new SymbolTable();
   const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+  // Issue #831: Register TSymbols in SymbolTable (single source of truth)
+  symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
   const generator = new CodeGenerator();

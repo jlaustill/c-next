@@ -116,16 +116,17 @@ class AssignmentExpectedTypeResolver {
     let currentStructType: string | undefined = rootTypeInfo.baseType;
 
     // Walk through each member in the chain to find the final field's type
+    // Issue #831: Use SymbolTable as single source of truth for struct fields
     for (let i = 1; i < identifiers.length && currentStructType; i++) {
       const memberName = identifiers[i];
-      const structFieldTypes: ReadonlyMap<string, string> | undefined =
-        CodeGenState.symbols?.structFields.get(currentStructType);
+      const memberType = CodeGenState.symbolTable?.getStructFieldType(
+        currentStructType,
+        memberName,
+      );
 
-      if (!structFieldTypes?.has(memberName)) {
+      if (!memberType) {
         break;
       }
-
-      const memberType: string = structFieldTypes.get(memberName)!;
 
       if (i === identifiers.length - 1) {
         // Last field in chain - this is the assignment target's type

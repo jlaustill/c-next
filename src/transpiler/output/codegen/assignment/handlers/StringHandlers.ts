@@ -57,10 +57,10 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
  * Shared helper for struct field string handlers.
  */
 function getStructFieldType(structName: string, fieldName: string): string {
+  // Issue #831: Use SymbolTable as single source of truth for struct fields
   const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
   const structType = structTypeInfo!.baseType;
-  const structFields = CodeGenState.symbols!.structFields.get(structType);
-  return structFields!.get(fieldName)!;
+  return CodeGenState.symbolTable!.getStructFieldType(structType, fieldName)!;
 }
 
 /**

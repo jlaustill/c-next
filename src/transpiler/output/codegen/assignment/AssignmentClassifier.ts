@@ -669,8 +669,11 @@ class AssignmentClassifier {
     if (!structType) {
       return null;
     }
-    const structFields = CodeGenState.symbols!.structFields.get(structType);
-    const fieldType = structFields?.get(structFieldNames.fieldName);
+    // Issue #831: Use SymbolTable as single source of truth for struct fields
+    const fieldType = CodeGenState.symbolTable?.getStructFieldType(
+      structType,
+      structFieldNames.fieldName,
+    );
     return { structType, fieldType };
   }
 

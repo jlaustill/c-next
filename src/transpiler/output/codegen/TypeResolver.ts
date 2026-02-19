@@ -457,36 +457,24 @@ class TypeResolver {
 
   /**
    * Get type info for a struct member field.
-   * Issue #103: Checks SymbolTable first for C header structs.
+   * Issue #831: SymbolTable is the single source of truth for struct fields.
    */
   static getMemberTypeInfo(
     structType: string,
     memberName: string,
   ): { isArray: boolean; baseType: string } | undefined {
-    if (CodeGenState.symbolTable) {
-      const fieldInfo = CodeGenState.symbolTable.getStructFieldInfo(
-        structType,
-        memberName,
-      );
-      if (fieldInfo) {
-        return {
-          isArray:
-            fieldInfo.arrayDimensions !== undefined &&
-            fieldInfo.arrayDimensions.length > 0,
-          baseType: fieldInfo.type,
-        };
-      }
-    }
+    const fieldInfo = CodeGenState.symbolTable?.getStructFieldInfo(
+      structType,
+      memberName,
+    );
+    if (!fieldInfo) return undefined;
 
-    const fieldType = CodeGenState.symbols?.structFields
-      .get(structType)
-      ?.get(memberName);
-    if (!fieldType) return undefined;
-
-    const arrayFields = CodeGenState.symbols?.structFieldArrays.get(structType);
-    const isArray = arrayFields?.has(memberName) ?? false;
-
-    return { isArray, baseType: fieldType };
+    return {
+      isArray:
+        fieldInfo.arrayDimensions !== undefined &&
+        fieldInfo.arrayDimensions.length > 0,
+      baseType: fieldInfo.type,
+    };
   }
 }
 

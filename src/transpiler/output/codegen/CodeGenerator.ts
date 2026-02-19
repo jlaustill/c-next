@@ -1807,40 +1807,24 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Get struct field info for .length calculations.
    * Part of IOrchestrator interface.
+   *
+   * Issue #831: SymbolTable is the single source of truth for struct fields
+   * (both C-Next and C header structs).
    */
   getStructFieldInfo(
     structType: string,
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | null {
-    // First check SymbolTable (C header structs)
-    if (CodeGenState.symbolTable) {
-      const fieldInfo = CodeGenState.symbolTable.getStructFieldInfo(
-        structType,
-        fieldName,
-      );
-      if (fieldInfo) {
-        return {
-          type: fieldInfo.type,
-          dimensions: fieldInfo.arrayDimensions,
-        };
-      }
+    const fieldInfo = CodeGenState.symbolTable?.getStructFieldInfo(
+      structType,
+      fieldName,
+    );
+    if (fieldInfo) {
+      return {
+        type: fieldInfo.type,
+        dimensions: fieldInfo.arrayDimensions,
+      };
     }
-
-    // Fall back to local C-Next struct fields
-    const localFields = CodeGenState.symbols!.structFields.get(structType);
-    if (localFields) {
-      const fieldType = localFields.get(fieldName);
-      if (fieldType) {
-        const fieldDimensions =
-          CodeGenState.symbols!.structFieldDimensions.get(structType);
-        const dimensions = fieldDimensions?.get(fieldName);
-        return {
-          type: fieldType,
-          dimensions: dimensions ? [...dimensions] : undefined,
-        };
-      }
-    }
-
     return null;
   }
 
@@ -3466,8 +3450,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Get field type info for nested initializers
-    // Issue #502: Check both local struct fields and SymbolTable (for C++ header structs)
-    const structFieldTypes = CodeGenState.symbols!.structFields.get(typeName);
+    // Issue #831: SymbolTable is the single source of truth for struct fields
+    // (both C-Next and C/C++ header structs)
+    const structFieldTypes =
+      CodeGenState.symbolTable?.getStructFieldTypes(typeName);
 
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();

@@ -760,6 +760,23 @@ class SymbolTable {
   }
 
   /**
+   * Get struct field types as a simple map (fieldName -> typeName).
+   * Used by code generation for nested struct initializers.
+   * @param structName Name of the struct
+   * @returns Map of field names to type strings, or undefined if struct not found
+   */
+  getStructFieldTypes(structName: string): Map<string, string> | undefined {
+    const fields = this.structFields.get(structName);
+    if (!fields) return undefined;
+
+    const result = new Map<string, string>();
+    for (const [fieldName, info] of fields) {
+      result.set(fieldName, info.type);
+    }
+    return result;
+  }
+
+  /**
    * Get all struct fields for cache serialization
    * @returns Map of struct name -> (field name -> field info)
    */

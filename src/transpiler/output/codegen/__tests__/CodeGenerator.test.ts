@@ -29,6 +29,8 @@ function setupGenerator(source: string): {
 
   const symbolTable = new SymbolTable();
   const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+  // Issue #831: Register TSymbols in SymbolTable (single source of truth)
+  symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
   const generator = new CodeGenerator();
@@ -8594,6 +8596,10 @@ describe("CodeGenerator", () => {
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        // Issue #831: Register TSymbols in SymbolTable (single source of truth)
+        const symbolTable = new SymbolTable();
+        symbolTable.addTSymbols(tSymbols);
+        CodeGenState.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generator.generate(tree, tokenStream, {

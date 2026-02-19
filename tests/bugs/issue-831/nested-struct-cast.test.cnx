@@ -1,0 +1,18 @@
+// test-execution
+// Issue #831: Nested struct initializer casts to parent type instead of field type
+#include "nested.h"
+
+i32 main() {
+    // Initialize outer_t with nested inner_t initializer
+    outer_t val <- {
+        pos: { x: 10, y: 20 },
+        z: 30
+    };
+
+    // Verify the values were correctly assigned
+    if (val.pos.x != 10) return 1;
+    if (val.pos.y != 20) return 2;
+    if (val.z != 30) return 3;
+
+    return 0;
+}
