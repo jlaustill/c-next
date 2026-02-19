@@ -19,6 +19,6 @@ void Level1_entry(Config& config) {
 }
 
 int main(void) {
-    Config c = (Config){ .value = 0 };
+    Config c = (Config){ .value = 0U };
     Level1_entry(c);
 }

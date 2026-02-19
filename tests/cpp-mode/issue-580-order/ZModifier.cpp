@@ -12,5 +12,5 @@
 /* Scope: ZModifier */
 
 void ZModifier_reset(Config& c) {
-    c.value = 42;
+    c.value = 42U;
 }

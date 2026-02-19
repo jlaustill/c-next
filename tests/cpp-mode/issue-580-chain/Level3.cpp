@@ -11,5 +11,5 @@
 /* Scope: Level3 */
 
 void Level3_modify(Config& c) {
-    c.value = 42;
+    c.value = 42U;
 }

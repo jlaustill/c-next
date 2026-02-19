@@ -123,7 +123,7 @@ void testTypeConversions(void) {
     SensorConfig cfg = {};
     cfg.enabled = true;
     cfg.mode = EMode::ON;
-    cfg.flags = 0x0F;
+    cfg.flags = 0x0FU;
     cfg.permissions = FLAG_READ;
     uint32_t crc = 0U;
     crc = processByte(crc, cfg.enabled);
@@ -159,8 +159,8 @@ void testArrayMembers(void) {
 // Test nested struct member access
 void testComplexStructs(void) {
     Message msg = {};
-    msg.id = 0x100;
-    msg.length = 8;
+    msg.id = 0x100U;
+    msg.length = 8U;
     msg.flags = FLAG_READ;
     msg.result.code = 0;
     msg.result.dataLen = 0;

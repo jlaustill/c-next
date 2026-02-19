@@ -31,7 +31,7 @@ int main(void) {
     cfg.enabled = true;
     cfg.pressureType = PRESSURE_HIGH;
     cfg.thermocoupleType = TC_TYPE_J;
-    cfg.value = 4;
+    cfg.value = 4U;
     uint32_t result = testEnumBoolMembers(cfg);
     if (result != 6) return 1;
     return 0;

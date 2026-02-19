@@ -35,7 +35,7 @@ Coordinate Navigator_getCurrentPosition(void) {
 
 int main(void) {
     Coordinate dest = (Coordinate){ .x = 100, .y = 200, .z = 50 };
-    Waypoint wp = (Waypoint){ .position = dest, .id = 42 };
+    Waypoint wp = (Waypoint){ .position = dest, .id = 42U };
     Navigator_setDestination(wp);
     Waypoint retrieved = Navigator_getDestination();
     if (retrieved.id != 42) return 1;

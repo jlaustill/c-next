@@ -40,12 +40,12 @@ EDeviceState DeviceManager_getState(void) {
 }
 
 int main(void) {
-    DeviceConfig cfg = (DeviceConfig){ .baudRate = 115200, .address = 0x42 };
+    DeviceConfig cfg = (DeviceConfig){ .baudRate = 115200U, .address = 0x42U };
     DeviceManager_configure(&cfg);
     DeviceConfig retrievedCfg = DeviceManager_getConfig();
     if (retrievedCfg.baudRate != 115200) return 1;
     if (retrievedCfg.address != 0x42) return 2;
-    DeviceStatus stat = (DeviceStatus){ .state = EDeviceState_STATE_ACTIVE, .errorCount = 0, .connected = true };
+    DeviceStatus stat = (DeviceStatus){ .state = EDeviceState_STATE_ACTIVE, .errorCount = 0U, .connected = true };
     DeviceManager_setStatus(&stat);
     DeviceStatus retrievedStat = DeviceManager_getStatus();
     if (retrievedStat.state != EDeviceState_STATE_ACTIVE) return 3;

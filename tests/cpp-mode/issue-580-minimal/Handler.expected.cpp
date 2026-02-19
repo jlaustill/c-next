@@ -18,6 +18,6 @@ void Handler_passThrough(Config& config) {
 }
 
 int main(void) {
-    Config c = (Config){ .value = 0 };
+    Config c = (Config){ .value = 0U };
     Handler_passThrough(c);
 }

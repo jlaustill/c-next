@@ -20,9 +20,9 @@ static struct Issue332AppConfig Issue332Storage_appConfig = {0};
 
 void Issue332Storage_setup(void) {
     Issue332Storage_appConfig.setting = 100;
-    Issue332Storage_appConfig.flags = 5;
+    Issue332Storage_appConfig.flags = 5U;
     Issue332Storage_appData.value = 10.5;
-    Issue332Storage_appData.count = 0;
+    Issue332Storage_appData.count = 0U;
 }
 
 void Issue332Storage_processAll(void) {

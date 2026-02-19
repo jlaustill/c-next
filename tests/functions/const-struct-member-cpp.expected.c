@@ -24,8 +24,8 @@ uint32_t testConstStruct(const TestConfig& cfg) {
 
 int main(void) {
     TestConfig cfg = {};
-    cfg.value = 0x42;
-    cfg.flags = 0xFF;
+    cfg.value = 0x42U;
+    cfg.flags = 0xFFU;
     uint32_t result = testConstStruct(cfg);
     if (result != 0x42) return 1;
     return 0;

@@ -11,15 +11,15 @@
 #include <stdbool.h>
 
 void configureSerial(ExternalSerialConfig* cfg) {
-    cfg->baudRate = 115200;
-    cfg->dataBits = 8;
-    cfg->stopBits = 1;
+    cfg->baudRate = 115200U;
+    cfg->dataBits = 8U;
+    cfg->stopBits = 1U;
     cfg->parityEnabled = false;
 }
 
 void configureI2C(ExternalI2CConfig* cfg) {
-    cfg->address = 0x50;
-    cfg->channel = 1;
+    cfg->address = 0x50U;
+    cfg->channel = 1U;
     cfg->enabled = true;
 }
 

@@ -14,12 +14,12 @@
 
 int main(void) {
     SimpleRecord sr = {0};
-    sr.id = 99999;
-    sr.flags = 0x1234;
+    sr.id = 99999U;
+    sr.flags = 0x1234U;
     if (sr.id != 99999) return 1;
     if (sr.flags != 0x1234) return 2;
     DataBuffer buf = {0};
-    buf.len = 5;
+    buf.len = 5U;
     buf.data[0] = 0x11;
     buf.data[1] = 0x22;
     buf.data[2] = 0x33;
@@ -30,9 +30,9 @@ int main(void) {
     if (buf.data[4] != 0x55) return 5;
     MixedTypes mt = {0};
     mt.active = true;
-    mt.byte_val = 255;
-    mt.word_val = 1000;
-    mt.dword_val = 100000;
+    mt.byte_val = 255U;
+    mt.word_val = 1000U;
+    mt.dword_val = 100000U;
     mt.signed_val = -50000;
     if (mt.active != true) return 6;
     if (mt.byte_val != 255) return 7;

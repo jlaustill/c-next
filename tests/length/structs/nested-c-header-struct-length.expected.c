@@ -22,10 +22,10 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 int main(void) {
     struct OuterConfig config = {0};
-    config.directField = 0;
-    config.single.byteField = 0;
-    config.single.shortField = 0;
-    config.single.intField = 0;
+    config.directField = 0U;
+    config.single.byteField = 0U;
+    config.single.shortField = 0U;
+    config.single.intField = 0U;
     config.single.floatField = 0.0;
     for (uint32_t init = 0; init < 4; init += 1) {
         config.array[init].byteField = 0;
@@ -47,11 +47,11 @@ int main(void) {
         if (8 != 8) return 11;
     }
     struct DeepConfig deep = {0};
-    deep.timestamp = 0;
-    deep.outer.directField = 0;
-    deep.outer.single.byteField = 0;
-    deep.outer.single.shortField = 0;
-    deep.outer.single.intField = 0;
+    deep.timestamp = 0ULL;
+    deep.outer.directField = 0U;
+    deep.outer.single.byteField = 0U;
+    deep.outer.single.shortField = 0U;
+    deep.outer.single.intField = 0U;
     deep.outer.single.floatField = 0.0;
     for (uint32_t k = 0; k < 4; k += 1) {
         deep.outer.array[k].shortField = 0;

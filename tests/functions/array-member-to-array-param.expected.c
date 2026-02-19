@@ -50,7 +50,7 @@ uint32_t testBasicArrayMemberPassing(void) {
     msg.buf[5] = 0;
     msg.buf[6] = 0;
     msg.buf[7] = 0;
-    msg.len = 4;
+    msg.len = 4U;
     uint32_t result = processBuffer(msg.buf, msg.len);
     return result;
 }
@@ -72,12 +72,12 @@ uint32_t testMultipleArrayMembers(void) {
 
 uint32_t testArrayMemberInCondition(void) {
     CanMessage msg = {};
-    msg.id = 65280;
+    msg.id = 65280U;
     msg.buf[0] = 5;
     msg.buf[1] = 10;
     msg.buf[2] = 15;
     msg.buf[3] = 20;
-    msg.len = 4;
+    msg.len = 4U;
     uint32_t result = 0U;
     if (msg.id == 65280) {
         result = processBuffer(msg.buf, msg.len);

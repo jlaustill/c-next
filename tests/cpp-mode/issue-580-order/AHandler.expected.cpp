@@ -19,6 +19,6 @@ void AHandler_passThrough(Config& config) {
 }
 
 int main(void) {
-    Config c = (Config){ .value = 0 };
+    Config c = (Config){ .value = 0U };
     AHandler_passThrough(c);
 }
