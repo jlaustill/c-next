@@ -60,13 +60,22 @@ function isDistFresh(): boolean {
   return !hasNewerSource(SRC_DIR);
 }
 
+// Auto-rebuild on module load to ensure tests always use fresh bundle
 if (existsSync(DIST_ENTRY) && !isDistFresh()) {
   console.warn("Warning: dist/index.js is stale. Rebuilding...");
-  spawnSync("npm", ["run", "build"], {
+  const buildResult = spawnSync("npm", ["run", "build"], {
     cwd: PROJECT_ROOT,
     encoding: "utf-8",
     stdio: "inherit",
   });
+  if (buildResult.status !== 0) {
+    console.error("Build failed. Falling back to tsx for transpilation.");
+    try {
+      unlinkSync(DIST_ENTRY);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 const USE_BUILT = existsSync(DIST_ENTRY);
 
