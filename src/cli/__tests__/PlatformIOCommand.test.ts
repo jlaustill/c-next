@@ -68,6 +68,30 @@ describe("PlatformIOCommand", () => {
       expect(scriptCall?.[1]).toContain("transpile_cnext");
     });
 
+    it("generates script that runs at import time, not as buildprog pre-action (issue #833)", () => {
+      // Issue #833: buildprog fires AFTER compilation, so transpile runs too late
+      // The script should run transpilation at import time (before compilation)
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+
+      PlatformIOCommand.install();
+
+      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+      const scriptCall = writeCalls.find((call) =>
+        (call[0] as string).includes("cnext_build.py"),
+      );
+
+      expect(scriptCall).toBeDefined();
+      const scriptContent = scriptCall?.[1] as string;
+
+      // Should NOT use AddPreAction (runs too late)
+      expect(scriptContent).not.toContain("AddPreAction");
+      expect(scriptContent).not.toContain("buildprog");
+
+      // Should call transpile_cnext() at top level (import time)
+      expect(scriptContent).toContain("transpile_cnext()");
+    });
+
     it("adds extra_scripts to platformio.ini when not present", () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
@@ -128,6 +152,138 @@ describe("PlatformIOCommand", () => {
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("Next steps"),
       );
+    });
+
+    describe("cnext.config.json setup", () => {
+      it("creates cnext.config.json when it doesn't exist", () => {
+        vi.mocked(fs.existsSync).mockImplementation((path) => {
+          if ((path as string).includes("platformio.ini")) return true;
+          if ((path as string).includes("cnext.config.json")) return false;
+          return false;
+        });
+        vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+
+        PlatformIOCommand.install();
+
+        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+        const configCall = writeCalls.find((call) =>
+          (call[0] as string).includes("cnext.config.json"),
+        );
+
+        expect(configCall).toBeDefined();
+        const config = JSON.parse(configCall?.[1] as string);
+        expect(config.include).toContain(".pio/libdeps");
+        expect(config.headerOut).toBe("include");
+      });
+
+      it("appends .pio/libdeps to existing include array", () => {
+        vi.mocked(fs.existsSync).mockImplementation((path) => {
+          if ((path as string).includes("platformio.ini")) return true;
+          if ((path as string).includes("cnext.config.json")) return true;
+          return false;
+        });
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+          if ((path as string).includes("cnext.config.json")) {
+            return JSON.stringify({ include: ["lib/"] });
+          }
+          return "[env:esp32]\n";
+        });
+
+        PlatformIOCommand.install();
+
+        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+        const configCall = writeCalls.find((call) =>
+          (call[0] as string).includes("cnext.config.json"),
+        );
+
+        expect(configCall).toBeDefined();
+        const config = JSON.parse(configCall?.[1] as string);
+        expect(config.include).toContain("lib/");
+        expect(config.include).toContain(".pio/libdeps");
+      });
+
+      it("sets headerOut only if not already set", () => {
+        vi.mocked(fs.existsSync).mockImplementation((path) => {
+          if ((path as string).includes("platformio.ini")) return true;
+          if ((path as string).includes("cnext.config.json")) return true;
+          return false;
+        });
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+          if ((path as string).includes("cnext.config.json")) {
+            return JSON.stringify({ headerOut: "custom/" });
+          }
+          return "[env:esp32]\n";
+        });
+
+        PlatformIOCommand.install();
+
+        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+        const configCall = writeCalls.find((call) =>
+          (call[0] as string).includes("cnext.config.json"),
+        );
+
+        expect(configCall).toBeDefined();
+        const config = JSON.parse(configCall?.[1] as string);
+        expect(config.headerOut).toBe("custom/");
+      });
+
+      it("does not duplicate .pio/libdeps if already present", () => {
+        vi.mocked(fs.existsSync).mockImplementation((path) => {
+          if ((path as string).includes("platformio.ini")) return true;
+          if ((path as string).includes("cnext.config.json")) return true;
+          return false;
+        });
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+          if ((path as string).includes("cnext.config.json")) {
+            return JSON.stringify({ include: [".pio/libdeps", "lib/"] });
+          }
+          return "[env:esp32]\n";
+        });
+
+        PlatformIOCommand.install();
+
+        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+        const configCall = writeCalls.find((call) =>
+          (call[0] as string).includes("cnext.config.json"),
+        );
+
+        expect(configCall).toBeDefined();
+        const config = JSON.parse(configCall?.[1] as string);
+        const pioCount = config.include.filter(
+          (i: string) => i === ".pio/libdeps",
+        ).length;
+        expect(pioCount).toBe(1);
+      });
+
+      it("preserves other existing config values", () => {
+        vi.mocked(fs.existsSync).mockImplementation((path) => {
+          if ((path as string).includes("platformio.ini")) return true;
+          if ((path as string).includes("cnext.config.json")) return true;
+          return false;
+        });
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+          if ((path as string).includes("cnext.config.json")) {
+            return JSON.stringify({
+              cppRequired: true,
+              target: "teensy41",
+              include: ["lib/"],
+            });
+          }
+          return "[env:esp32]\n";
+        });
+
+        PlatformIOCommand.install();
+
+        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+        const configCall = writeCalls.find((call) =>
+          (call[0] as string).includes("cnext.config.json"),
+        );
+
+        expect(configCall).toBeDefined();
+        const config = JSON.parse(configCall?.[1] as string);
+        expect(config.cppRequired).toBe(true);
+        expect(config.target).toBe("teensy41");
+      });
     });
   });
 

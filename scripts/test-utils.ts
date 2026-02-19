@@ -23,6 +23,10 @@ import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 // Project root for CLI invocation (this file is in /workspace/scripts/)
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
+// Use pre-built bundle when available (eliminates tsx/npx overhead per test)
+const DIST_ENTRY = join(PROJECT_ROOT, "dist", "index.js");
+const USE_BUILT = existsSync(DIST_ENTRY);
+
 /**
  * Result from CLI transpilation
  */
@@ -54,16 +58,10 @@ function transpileViaCli(
 ): ICliTranspileResult {
   // Build CLI args - use PROJECT_ROOT for CLI/includes, but cnxFile is the actual test file path
   // Note: We don't clean up stale files - the CLI overwrites them and they're tracked in git
-  const args = [
-    "tsx",
-    join(PROJECT_ROOT, "src/index.ts"),
-    cnxFile,
-    "--include",
-    join(PROJECT_ROOT, "tests/include"),
-  ];
+  const cliArgs = [cnxFile, "--include", join(PROJECT_ROOT, "tests/include")];
 
   if (cppMode) {
-    args.push("--cpp");
+    cliArgs.push("--cpp");
   }
 
   // Determine output paths
@@ -73,7 +71,7 @@ function transpileViaCli(
   const headerExt = cppMode ? ".hpp" : ".h";
 
   if (outputPath) {
-    args.push("-o", outputPath);
+    cliArgs.push("-o", outputPath);
     codePath = outputPath;
     // Header goes next to the code file with matching extension
     headerPath = outputPath.replace(/\.(c|cpp)$/, headerExt);
@@ -89,12 +87,24 @@ function transpileViaCli(
   const cleanEnv = { ...process.env };
   delete cleanEnv.VITEST;
 
-  const result = spawnSync("npx", args, {
-    cwd: PROJECT_ROOT,
-    encoding: "utf-8",
-    timeout: 30000,
-    env: cleanEnv,
-  });
+  // Use pre-built bundle when available (fast), fall back to npx tsx for dev
+  const result = USE_BUILT
+    ? spawnSync(process.execPath, [DIST_ENTRY, ...cliArgs], {
+        cwd: PROJECT_ROOT,
+        encoding: "utf-8",
+        timeout: 30000,
+        env: cleanEnv,
+      })
+    : spawnSync(
+        "npx",
+        ["tsx", join(PROJECT_ROOT, "src/index.ts"), ...cliArgs],
+        {
+          cwd: PROJECT_ROOT,
+          encoding: "utf-8",
+          timeout: 30000,
+          env: cleanEnv,
+        },
+      );
 
   // Parse errors from stderr
   // CLI format: "Error: /path/file.cnx:line:column message" followed by optional indented continuation lines
@@ -421,256 +431,6 @@ class TestUtils {
       return false;
     } catch {
       return false;
-    }
-  }
-
-  /**
-   * Validate that a C file compiles without errors
-   * Uses gcc with -fsyntax-only for fast syntax checking
-   * Auto-detects C++14 headers and uses g++ when needed
-   *
-   * @param cFile - Path to the C file
-   * @param _tools - Available tools (unused, kept for API consistency)
-   * @param rootDir - Project root directory for include paths
-   */
-  static validateCompilation(
-    cFile: string,
-    _tools: ITools,
-    rootDir: string,
-  ): IValidationResult {
-    try {
-      // Auto-detect C++14 headers and use g++ when needed
-      const useCpp = TestUtils.requiresCpp14(cFile);
-      const compiler = useCpp ? "g++" : "gcc";
-      const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
-
-      // Use compiler to check syntax only (no object file generated)
-      // Suppress warnings about unused variables and void main (common in tests)
-      // -I tests/include for stub headers (e.g., cmsis_gcc.h for ARM intrinsics)
-      // -I cFileDir for local headers (e.g., test helpers in the same directory)
-      const cFileDir = dirname(cFile);
-      execFileSync(
-        compiler,
-        [
-          "-fsyntax-only",
-          stdFlag,
-          "-Wno-unused-variable",
-          "-Wno-main",
-          "-I",
-          join(rootDir, "tests/include"),
-          "-I",
-          cFileDir,
-          cFile,
-        ],
-        { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
-      );
-      return { valid: true };
-    } catch (error: unknown) {
-      const err = error as {
-        stderr?: string;
-        stdout?: string;
-        message: string;
-      };
-      // Extract just the error messages
-      const output = err.stderr || err.stdout || err.message;
-      const errors = output
-        .split("\n")
-        .filter((line) => line.includes("error:"))
-        .map((line) => line.replace(cFile + ":", ""))
-        .slice(0, 5)
-        .join("\n");
-      return {
-        valid: false,
-        message: errors || "Compilation failed",
-      };
-    }
-  }
-
-  /**
-   * Validate that a C file passes cppcheck static analysis
-   * Auto-detects C++14 headers and uses --language=c++ when needed
-   */
-  static validateCppcheck(cFile: string): IValidationResult {
-    try {
-      // Issue #251/#252: Auto-detect C++14 headers and use C++ mode when needed
-      const useCpp = TestUtils.requiresCpp14(cFile);
-      const args = [
-        "--error-exitcode=1",
-        "--enable=warning,performance",
-        "--suppress=unusedFunction",
-        "--suppress=missingIncludeSystem",
-        "--suppress=unusedVariable",
-        // Issue #321: Suppress Arduino header warnings (external code we can't modify)
-        "--suppress=uninitMemberVar:*fixtures/*",
-        "--quiet",
-      ];
-
-      if (useCpp) {
-        args.push("--language=c++", "--std=c++14");
-      }
-
-      args.push(cFile);
-
-      execFileSync("cppcheck", args, {
-        encoding: "utf-8",
-        timeout: 90000,
-        stdio: "pipe",
-      });
-      return { valid: true };
-    } catch (error: unknown) {
-      const err = error as {
-        stderr?: string;
-        stdout?: string;
-        message: string;
-      };
-      const output = err.stderr || err.stdout || err.message;
-      const issues = output
-        .split("\n")
-        .filter((line) => line.trim().length > 0)
-        .slice(0, 5)
-        .join("\n");
-      return {
-        valid: false,
-        message: issues || "Cppcheck failed",
-      };
-    }
-  }
-
-  /**
-   * Validate that a C file passes clang-tidy analysis
-   * Auto-detects C++14 headers and uses -std=c++14 when needed
-   */
-  static validateClangTidy(cFile: string): IValidationResult {
-    try {
-      // Issue #251/#252: Auto-detect C++14 headers and use C++ mode when needed
-      const useCpp = TestUtils.requiresCpp14(cFile);
-      const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
-
-      // Run clang-tidy with safety and readability checks
-      execFileSync(
-        "clang-tidy",
-        [cFile, "--", stdFlag, "-Wno-unused-variable"],
-        { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
-      );
-      return { valid: true };
-    } catch (error: unknown) {
-      const err = error as {
-        stderr?: string;
-        stdout?: string;
-        message: string;
-      };
-      const output = err.stderr || err.stdout || err.message;
-      // Filter for actual warnings/errors (not notes)
-      const issues = output
-        .split("\n")
-        .filter((line) => line.includes("warning:") || line.includes("error:"))
-        .slice(0, 5)
-        .join("\n");
-      // clang-tidy returns non-zero even for warnings, only fail on errors
-      if (issues.includes("error:")) {
-        return {
-          valid: false,
-          message: issues || "Clang-tidy failed",
-        };
-      }
-      return { valid: true };
-    }
-  }
-
-  /**
-   * Validate that a C file passes MISRA C compliance check
-   * Uses cppcheck's MISRA addon
-   * Note: MISRA C is only for C code, not C++. Skips validation for C++ files.
-   *
-   * @param cFile - Path to the C file
-   * @param rootDir - Project root directory for include paths
-   */
-  static validateMisra(cFile: string, rootDir: string): IValidationResult {
-    try {
-      // Issue #251/#252: Skip MISRA for C++ files (MISRA C is only for C code)
-      if (TestUtils.requiresCpp14(cFile)) {
-        return { valid: true };
-      }
-
-      // Issue #315: Include the C file's directory for local headers
-      const cFileDir = dirname(cFile);
-
-      // Run cppcheck with MISRA addon
-      // Include -I flag for tests/include to resolve stub headers
-      // Include -I flag for cFileDir for local headers
-      execFileSync(
-        "cppcheck",
-        [
-          "--addon=misra",
-          "--error-exitcode=1",
-          "--suppress=missingIncludeSystem",
-          "--suppress=unusedFunction",
-          "--quiet",
-          "-I",
-          join(rootDir, "tests/include"),
-          "-I",
-          cFileDir,
-          cFile,
-        ],
-        { encoding: "utf-8", timeout: 60000, stdio: "pipe" },
-      );
-      return { valid: true };
-    } catch (error: unknown) {
-      const err = error as {
-        stderr?: string;
-        stdout?: string;
-        message: string;
-      };
-      const output = err.stderr || err.stdout || err.message;
-      const issues = output
-        .split("\n")
-        .filter((line) => line.includes("misra") || line.includes("MISRA"))
-        .slice(0, 5)
-        .join("\n");
-      return {
-        valid: false,
-        message: issues || "MISRA check failed",
-      };
-    }
-  }
-
-  /**
-   * Validate that a C file passes flawfinder security analysis
-   * flawfinder scans C code for CWE-mapped security vulnerabilities
-   *
-   * @param cFile - Path to the C file
-   */
-  static validateFlawfinder(cFile: string): IValidationResult {
-    try {
-      // Run flawfinder with:
-      // --minlevel=3: Skip low-risk (0-2) to reduce noise from char[] static buffers
-      //   (C-Next uses static allocation per ADR-003, so level 2 char[] warnings are FPs)
-      // --error-level=3: Return non-zero exit for level 3+ findings (medium risk+)
-      // --dataonly: Output data only, no headers
-      // --quiet: Don't show progress
-      execFileSync(
-        "flawfinder",
-        ["--minlevel=3", "--error-level=3", "--dataonly", "--quiet", cFile],
-        { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
-      );
-      return { valid: true };
-    } catch (error: unknown) {
-      const err = error as {
-        stderr?: string;
-        stdout?: string;
-        message: string;
-      };
-      const output = err.stdout || err.stderr || err.message;
-      // Parse flawfinder output for CWE identifiers
-      const issues = output
-        .split("\n")
-        .filter((line) => line.includes("CWE") || line.includes(cFile))
-        .slice(0, 5)
-        .join("\n");
-      return {
-        valid: false,
-        message: issues || "Flawfinder security check failed",
-      };
     }
   }
 
@@ -1046,59 +806,22 @@ class TestUtils {
       result.compileSuccess = true; // Skip if no gcc
     }
 
-    // Run static analysis tools (C mode only - tools are C-specific)
-    if (mode === "c") {
-      // Step 1: cppcheck static analysis
-      if (tools.cppcheck) {
-        const cppcheckResult = TestUtils.validateCppcheck(expectedImplPath);
-        if (!cppcheckResult.valid) {
-          result.error = `cppcheck failed: ${cppcheckResult.message}`;
-          // No cleanup needed for helper files
-          return result;
-        }
-      }
+    // Static analysis (cppcheck, clang-tidy, MISRA, flawfinder) runs as a
+    // separate batch step via `npm run validate:c` / scripts/batch-validate.mjs.
+    // This avoids paying per-file tool startup costs during integration tests
+    // and ensures local + CI behavior are identical.
 
-      // Step 2: clang-tidy analysis
-      if (tools.clangTidy) {
-        const clangTidyResult = TestUtils.validateClangTidy(expectedImplPath);
-        if (!clangTidyResult.valid) {
-          result.error = `clang-tidy failed: ${clangTidyResult.message}`;
-          // No cleanup needed for helper files
-          return result;
-        }
-      }
-
-      // Step 3: MISRA compliance
-      if (tools.misra) {
-        const misraResult = TestUtils.validateMisra(expectedImplPath, rootDir);
-        if (!misraResult.valid) {
-          result.error = `MISRA check failed: ${misraResult.message}`;
-          // No cleanup needed for helper files
-          return result;
-        }
-      }
-
-      // Step 4: flawfinder security analysis
-      if (tools.flawfinder) {
-        const flawfinderResult = TestUtils.validateFlawfinder(expectedImplPath);
-        if (!flawfinderResult.valid) {
-          result.error = `flawfinder failed: ${flawfinderResult.message}`;
-          // No cleanup needed for helper files
-          return result;
-        }
-      }
-
-      // Step 5: no-warnings check (if marker present)
-      if (TestUtils.hasNoWarningsMarker(source)) {
-        const noWarningsResult = TestUtils.validateNoWarnings(
-          expectedImplPath,
-          rootDir,
-        );
-        if (!noWarningsResult.valid) {
-          result.error = `No-warnings check failed: ${noWarningsResult.message}`;
-          // No cleanup needed for helper files
-          return result;
-        }
+    // No-warnings check runs inline since it uses the same gcc compiler
+    // already available and is fast (syntax-only check)
+    if (mode === "c" && TestUtils.hasNoWarningsMarker(source)) {
+      const noWarningsResult = TestUtils.validateNoWarnings(
+        expectedImplPath,
+        rootDir,
+      );
+      if (!noWarningsResult.valid) {
+        result.error = `No-warnings check failed: ${noWarningsResult.message}`;
+        // No cleanup needed for helper files
+        return result;
       }
     }
 
