@@ -12,13 +12,13 @@
 // Test: ADR-016 global. accessor with all primitive types
 // Verifies that global. works correctly with every C-Next primitive type inside scope methods
 // Unsigned integer globals
-uint8_t globalU8 = 255;
+uint8_t globalU8 = 255U;
 
-uint16_t globalU16 = 65535;
+uint16_t globalU16 = 65535U;
 
-uint32_t globalU32 = 4294967295;
+uint32_t globalU32 = 4294967295U;
 
-uint64_t globalU64 = 18446744073709551615;
+uint64_t globalU64 = 18446744073709551615ULL;
 
 // Signed integer globals
 int8_t globalI8 = -128;
@@ -148,7 +148,7 @@ int main(void) {
     if (resultBool != true) {
         return 11;
     }
-    uint8_t newU8Value = 100;
+    uint8_t newU8Value = 100U;
     GlobalAccessTest_setGlobalU8(newU8Value);
     uint8_t resultU8_2 = GlobalAccessTest_getGlobalU8();
     if (resultU8_2 != 100) {

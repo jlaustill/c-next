@@ -64,7 +64,7 @@ uint8_t Handler_setValue(Config* cfg, uint32_t val) {
 }
 
 uint8_t Handler_setSecond(uint32_t dummy, Config* cfg) {
-    cfg->value = 999;
+    cfg->value = 999U;
     return 0;
 }
 
@@ -78,31 +78,31 @@ uint8_t Handler_wrapSetValue(Config* cfg, uint32_t val) {
 
 // Edge case 1: Nested conditionals
 void handleNestedIf(Config* config) {
-    uint8_t errorCode = 0;
+    uint8_t errorCode = 0U;
     bool a = true;
     bool b = true;
     if (a) {
         if (b) {
-            errorCode = Handler_setValue(config, 10);
+            errorCode = Handler_setValue(config, 10U);
         }
     }
 }
 
 // Edge case 2: Switch statement
 void handleSwitch(Config* config) {
-    uint8_t errorCode = 0;
-    uint32_t choice = 1;
+    uint8_t errorCode = 0U;
+    uint32_t choice = 1U;
     switch (choice) {
         case 0: {
-            errorCode = 0;
+            errorCode = 0U;
             break;
         }
         case 1: {
-            errorCode = Handler_setValue(config, 20);
+            errorCode = Handler_setValue(config, 20U);
             break;
         }
         default: {
-            errorCode = 2;
+            errorCode = 2U;
             break;
         }
     }
@@ -110,21 +110,21 @@ void handleSwitch(Config* config) {
 
 // Edge case 3: do-while loop
 void handleDoWhile(Config* config) {
-    uint8_t errorCode = 0;
-    uint32_t count = 0;
+    uint8_t errorCode = 0U;
+    uint32_t count = 0U;
     do {
-        errorCode = Handler_setValue(config, 30);
-        count = count + 1;
+        errorCode = Handler_setValue(config, 30U);
+        count = count + 1U;
     } while (count < 1);
 }
 
 // Edge case 4: Critical block
 void handleCritical(Config* config) {
-    uint8_t errorCode = 0;
+    uint8_t errorCode = 0U;
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        errorCode = Handler_setValue(config, 40);
+        errorCode = Handler_setValue(config, 40U);
         __cnx_set_PRIMASK(__primask);
     }
 }
@@ -133,54 +133,54 @@ void handleCritical(Config* config) {
 /* Scope: Processor */
 
 static uint8_t Processor_helper(Config* cfg) {
-    cfg->value = 50;
+    cfg->value = 50U;
     return 0;
 }
 
 void Processor_process(Config* config) {
-    uint8_t errorCode = 0;
+    uint8_t errorCode = 0U;
     errorCode = Processor_helper(config);
 }
 
 // Edge case 6: Second parameter is modified (not first)
 void handleSecondParam(Config* config) {
-    uint8_t errorCode = 0;
-    uint32_t dummy = 0;
+    uint8_t errorCode = 0U;
+    uint32_t dummy = 0U;
     errorCode = Handler_setSecond(dummy, config);
 }
 
 // Edge case 7: Nested function call in RHS
 void handleNestedCall(const Config* config) {
-    uint32_t result = 0;
+    uint32_t result = 0U;
     result = Handler_getValue(config);
 }
 
 // Edge case 8: Transitive modification via wrapper
 void handleTransitive(Config* config) {
-    uint8_t errorCode = 0;
-    errorCode = Handler_wrapSetValue(config, 60);
+    uint8_t errorCode = 0U;
+    errorCode = Handler_wrapSetValue(config, 60U);
 }
 
 // Edge case 9: Multiple reassignments, only one modifies
 void handleMultipleReassign(Config* config) {
-    uint8_t errorCode = 0;
-    uint32_t readVal = 0;
+    uint8_t errorCode = 0U;
+    uint32_t readVal = 0U;
     readVal = Handler_getValue(config);
-    errorCode = Handler_setValue(config, 70);
+    errorCode = Handler_setValue(config, 70U);
 }
 
 // Edge case 10: Compound assignment with modifying call
 // Note: compound assignment like a +<- b is equivalent to a <- a + b
 // The RHS here is an expression, so we need to ensure it's walked
 void handleCompoundAssign(const Config* config) {
-    uint32_t total = 0;
+    uint32_t total = 0U;
     total = cnx_clamp_add_u32(total, Handler_getValue(config));
 }
 
 // Edge case 11: Compound assignment where the call modifies
 void handleCompoundModify(Config* config) {
-    uint32_t total = 0;
-    uint8_t code = Handler_setValue(config, 80);
+    uint32_t total = 0U;
+    uint8_t code = Handler_setValue(config, 80U);
     total = cnx_clamp_add_u32(total, code);
 }
 
@@ -196,43 +196,43 @@ void handleBareReadOnly(const Config* config) {
 
 int main(void) {
     Config cfg = {0};
-    cfg.value = 0;
+    cfg.value = 0U;
     handleNestedIf(&cfg);
     if (cfg.value != 10) return 1;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleSwitch(&cfg);
     if (cfg.value != 20) return 2;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleDoWhile(&cfg);
     if (cfg.value != 30) return 3;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleCritical(&cfg);
     if (cfg.value != 40) return 4;
-    cfg.value = 0;
+    cfg.value = 0U;
     Processor_process(&cfg);
     if (cfg.value != 50) return 5;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleSecondParam(&cfg);
     if (cfg.value != 999) return 6;
-    cfg.value = 123;
+    cfg.value = 123U;
     handleNestedCall(&cfg);
     if (cfg.value != 123) return 7;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleTransitive(&cfg);
     if (cfg.value != 60) return 8;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleMultipleReassign(&cfg);
     if (cfg.value != 70) return 9;
-    cfg.value = 100;
+    cfg.value = 100U;
     handleCompoundAssign(&cfg);
     if (cfg.value != 100) return 10;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleCompoundModify(&cfg);
     if (cfg.value != 80) return 11;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleBareCall(&cfg);
     if (cfg.value != 90) return 12;
-    cfg.value = 123;
+    cfg.value = 123U;
     handleBareReadOnly(&cfg);
     if (cfg.value != 123) return 13;
     return 0;

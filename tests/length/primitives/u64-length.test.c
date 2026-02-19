@@ -10,7 +10,7 @@
 // test-execution
 // Comprehensive .length test for u64 type across all contexts
 // Tests: .length returns 64 for u64 in every possible scope and access pattern
-uint64_t globalVar = 1000000;
+uint64_t globalVar = 1000000ULL;
 
 /* Scope: TestScope */
 
@@ -43,17 +43,17 @@ int main(void) {
     if (64 != 64) {
         return 4;
     }
-    uint64_t localVar = 1000000;
+    uint64_t localVar = 1000000ULL;
     if (64 != 64) {
         return 5;
     }
-    uint64_t testVal = 1000000;
+    uint64_t testVal = 1000000ULL;
     result = checkParamLength(testVal);
     if (result != 64) {
         return 6;
     }
     TestStruct ts = {0};
-    ts.member = 1000000;
+    ts.member = 1000000ULL;
     if (64 != 64) {
         return 7;
     }

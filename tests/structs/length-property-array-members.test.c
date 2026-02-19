@@ -22,8 +22,8 @@ typedef struct Dataset {
 
 int main(void) {
     Dataset data = {0};
-    data.id = 12345;
-    data.count = 5;
+    data.id = 12345U;
+    data.count = 5U;
     data.samples[0].timestamp = 1000;
     data.samples[0].value = 42;
     data.samples[0].quality = 100;
@@ -33,7 +33,7 @@ int main(void) {
     if (32 != 32) return 4;
     if (16 != 16) return 5;
     if (8 != 8) return 6;
-    uint32_t bytes = 4;
+    uint32_t bytes = 32 / 8U;
     if (bytes != 4) return 7;
     return 0;
 }

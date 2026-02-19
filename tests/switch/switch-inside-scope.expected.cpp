@@ -9,7 +9,7 @@
 
 // Coverage: Section 7.5 - switch statement inside scope
 // Tests: switch statements inside scope method declarations
-uint32_t globalResult = 0;
+uint32_t globalResult = 0U;
 
 /* Scope: CommandProcessor */
 static uint32_t CommandProcessor_lastCommand = 0;
@@ -19,19 +19,19 @@ void CommandProcessor_execute(uint32_t command) {
     CommandProcessor_lastCommand = command;
     switch (command) {
         case 1: {
-            CommandProcessor_result = 100;
+            CommandProcessor_result = 100U;
             break;
         }
         case 2: {
-            CommandProcessor_result = 200;
+            CommandProcessor_result = 200U;
             break;
         }
         case 3: {
-            CommandProcessor_result = 300;
+            CommandProcessor_result = 300U;
             break;
         }
         default: {
-            CommandProcessor_result = 0;
+            CommandProcessor_result = 0U;
             break;
         }
     }
@@ -68,7 +68,7 @@ void Calculator_compute(uint32_t operation) {
             break;
         }
         default: {
-            Calculator_output = 0;
+            Calculator_output = 0U;
             break;
         }
     }

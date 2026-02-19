@@ -107,10 +107,10 @@ int main(void) {
     TestLiteral_set(1, 2000);
     TestLiteral_set(2, 3000);
     TestLiteral_set(3, 4000);
-    uint16_t l1 = TestLiteral_get(0);
-    uint16_t l2 = TestLiteral_get(1);
-    uint16_t l3 = TestLiteral_get(2);
-    uint16_t l4 = TestLiteral_get(3);
+    uint16_t l1 = TestLiteral_get(0U);
+    uint16_t l2 = TestLiteral_get(1U);
+    uint16_t l3 = TestLiteral_get(2U);
+    uint16_t l4 = TestLiteral_get(3U);
     if (l1 != 1000) return 7;
     if (l2 != 2000) return 8;
     if (l3 != 3000) return 9;

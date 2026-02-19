@@ -11,7 +11,7 @@
 // Validates: Implicit widening from smaller to larger unsigned types is safe
 // Coverage: u8 -> u16 -> u32 -> u64 widening chain
 int main(void) {
-    uint8_t byte = 255;
+    uint8_t byte = 255U;
     uint16_t word = byte;
     if (word != 255) return 1;
     uint32_t dword = word;
@@ -22,7 +22,7 @@ int main(void) {
     if (direct != 255) return 4;
     uint32_t result = byte + word;
     if (result != 510) return 5;
-    uint16_t large_word = 65535;
+    uint16_t large_word = 65535U;
     uint32_t large_dword = large_word;
     if (large_dword != 65535) return 6;
     return 0;

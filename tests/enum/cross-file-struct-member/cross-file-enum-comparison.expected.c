@@ -25,10 +25,10 @@ int main(void) {
     config.items[1].assigned = MyEnum_NONE;
     if (config.items[0].assigned != MyEnum_A) return 1;
     if (config.items[1].assigned != MyEnum_NONE) return 2;
-    uint8_t noneCount = 0;
+    uint8_t noneCount = 0U;
     for (uint8_t i = 0; i < 2; i += 1) {
         if (config.items[i].assigned == MyEnum_NONE) {
-            noneCount = cnx_clamp_add_u8(noneCount, 1);
+            noneCount = cnx_clamp_add_u8(noneCount, 1U);
         }
     }
     if (noneCount != 1) return 3;

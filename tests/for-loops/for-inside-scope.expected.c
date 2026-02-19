@@ -26,20 +26,20 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 
 // Coverage: Section 7.4 - for loop inside scope
 // Tests: for loops inside scope declarations
-uint32_t globalSum = 0;
+uint32_t globalSum = 0U;
 
 /* Scope: Calculator */
 static uint32_t Calculator_result = 0;
 
 void Calculator_sumToN(uint32_t n) {
-    Calculator_result = 0;
+    Calculator_result = 0U;
     for (uint32_t i = 1; i <= n; i = i + 1) {
         Calculator_result = cnx_clamp_add_u32(Calculator_result, i);
     }
 }
 
 void Calculator_factorial(uint32_t n) {
-    Calculator_result = 1;
+    Calculator_result = 1U;
     for (uint32_t i = 2; i <= n; i = i + 1) {
         Calculator_result = cnx_clamp_mul_u32(Calculator_result, i);
     }
@@ -60,7 +60,7 @@ void ArrayOps_initialize(void) {
 }
 
 void ArrayOps_computeSum(void) {
-    ArrayOps_sum = 0;
+    ArrayOps_sum = 0U;
     for (uint32_t i = 0; i < 10; i = i + 1) {
         ArrayOps_sum = cnx_clamp_add_u32(ArrayOps_sum, ArrayOps_data[i]);
     }

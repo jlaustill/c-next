@@ -33,31 +33,31 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Tests: Compound assignment operators
 // Demonstrates: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
 int main(void) {
-    uint32_t a = 10;
-    a = cnx_clamp_add_u32(a, 5);
+    uint32_t a = 10U;
+    a = cnx_clamp_add_u32(a, 5U);
     if (a != 15) return 1;
-    a = cnx_clamp_sub_u32(a, 3);
+    a = cnx_clamp_sub_u32(a, 3U);
     if (a != 12) return 2;
-    a = cnx_clamp_mul_u32(a, 2);
+    a = cnx_clamp_mul_u32(a, 2U);
     if (a != 24) return 3;
-    a /= 4;
+    a /= 4U;
     if (a != 6) return 4;
-    a = 17;
-    a %= 5;
+    a = 17U;
+    a %= 5U;
     if (a != 2) return 5;
-    uint8_t flags = 0b11111111;
-    flags &= 0b00001111;
+    uint8_t flags = 0b11111111U;
+    flags &= 0b00001111U;
     if (flags != 0b00001111) return 6;
-    flags |= 0b11110000;
+    flags |= 0b11110000U;
     if (flags != 0b11111111) return 7;
-    flags = 0b10101010;
-    flags ^= 0b11110000;
+    flags = 0b10101010U;
+    flags ^= 0b11110000U;
     if (flags != 0b01011010) return 8;
-    uint8_t val = 0b00000001;
-    val <<= 4;
+    uint8_t val = 0b00000001U;
+    val <<= 4U;
     if (val != 0b00010000) return 9;
-    val = 0b10000000;
-    val >>= 4;
+    val = 0b10000000U;
+    val >>= 4U;
     if (val != 0b00001000) return 10;
     return 0;
 }

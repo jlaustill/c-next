@@ -11,7 +11,7 @@
 // Comprehensive .length test for u8 type across all contexts
 // Tests: .length returns 8 for u8 in every possible scope and access pattern
 // Context 1: Global variable
-uint8_t globalVar = 42;
+uint8_t globalVar = 42U;
 
 // Context 2: Global accessed from inside scope
 /* Scope: TestScope */
@@ -47,17 +47,17 @@ int main(void) {
     if (8 != 8) {
         return 4;
     }
-    uint8_t localVar = 42;
+    uint8_t localVar = 42U;
     if (8 != 8) {
         return 5;
     }
-    uint8_t testVal = 42;
+    uint8_t testVal = 42U;
     result = checkParamLength(testVal);
     if (result != 8) {
         return 6;
     }
     TestStruct ts = {0};
-    ts.member = 42;
+    ts.member = 42U;
     if (8 != 8) {
         return 7;
     }

@@ -33,7 +33,7 @@ static uint32_t Counter_value = 0;
 static uint8_t Counter_overflowCount = 0;
 
 void Counter_increment(void) {
-    Counter_value = cnx_clamp_add_u32(Counter_value, 1);
+    Counter_value = cnx_clamp_add_u32(Counter_value, 1U);
 }
 
 void Counter_incrementBy(uint32_t delta) {
@@ -41,7 +41,7 @@ void Counter_incrementBy(uint32_t delta) {
 }
 
 void Counter_reset(void) {
-    Counter_value = 0;
+    Counter_value = 0U;
 }
 
 uint32_t Counter_get(void) {
@@ -53,7 +53,7 @@ static uint32_t Timer_ticks = 0;
 static uint16_t Timer_period = 1000;
 
 void Timer_tick(void) {
-    Timer_ticks += 1;
+    Timer_ticks += 1U;
 }
 
 void Timer_setPeriod(uint16_t p) {

@@ -19,27 +19,27 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.4 - for loop with compound update
 // Tests: for loops using compound assignment operators in update
 int main(void) {
-    uint32_t sum = 0;
-    uint32_t i = 0;
-    sum = 0;
+    uint32_t sum = 0U;
+    uint32_t i = 0U;
+    sum = 0U;
     for (i = 0; i < 10; i += 1) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 45) return 1;
-    sum = 0;
+    sum = 0U;
     for (i = 0; i < 10; i += 2) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 20) return 2;
-    sum = 0;
-    uint32_t count = 0;
+    sum = 0U;
+    uint32_t count = 0U;
     for (i = 1; i < 100; i *= 2) {
         sum = cnx_clamp_add_u32(sum, i);
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
     }
     if (sum != 127) return 3;
     if (count != 7) return 4;
-    sum = 0;
+    sum = 0U;
     for (i = 10; i > 0; i -= 1) {
         sum = cnx_clamp_add_u32(sum, i);
     }

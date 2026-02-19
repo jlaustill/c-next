@@ -20,44 +20,44 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: break statement in while loop
 // Validates: early loop termination with break in while loops
 int main(void) {
-    uint32_t count = 0;
-    uint32_t i = 0;
+    uint32_t count = 0U;
+    uint32_t i = 0U;
     while (i < 100) {
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
         if (i == 9) {
             break;
         }
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (count != 10) return 1;
     if (i != 9) return 2;
-    uint32_t sum = 0;
-    uint32_t j = 0;
+    uint32_t sum = 0U;
+    uint32_t j = 0U;
     while (true) {
         if (j >= 5) {
             break;
         }
         sum = cnx_clamp_add_u32(sum, j);
-        j = cnx_clamp_add_u32(j, 1);
+        j = cnx_clamp_add_u32(j, 1U);
     }
     if (sum != 10) return 3;
     if (j != 5) return 4;
-    uint32_t k = 0;
-    uint32_t found = 0;
+    uint32_t k = 0U;
+    uint32_t found = 0U;
     while (k < 1000) {
         if (k == 42) {
-            found = 1;
+            found = 1U;
             break;
         }
-        k = cnx_clamp_add_u32(k, 1);
+        k = cnx_clamp_add_u32(k, 1U);
     }
     if (found != 1) return 5;
     if (k != 42) return 6;
-    uint32_t m = 0;
-    uint32_t total = 0;
+    uint32_t m = 0U;
+    uint32_t total = 0U;
     while (m < 5) {
         total = cnx_clamp_add_u32(total, m);
-        m = cnx_clamp_add_u32(m, 1);
+        m = cnx_clamp_add_u32(m, 1U);
         if (m == 999) {
             break;
         }

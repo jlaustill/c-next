@@ -60,7 +60,7 @@ int main(void) {
     movePoint(pt, 5, -3);
     if (pt.x != 15) return 4;
     if (pt.y != 17) return 5;
-    Config cfg = (Config){ .value = 42, .enabled = true };
+    Config cfg = (Config){ .value = 42U, .enabled = true };
     uint32_t val = getConfigValue(cfg);
     if (val != 42) return 6;
     toggleAndRead(cfg);

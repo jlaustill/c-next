@@ -33,5 +33,5 @@ int main(void) {
     if (((flags >> 0) & 1) == true) {
         flags = (flags & ~(0x7 << 3)) | ((3 & 0x7) << 3);
     }
-    uint8_t doubleMode = ((flags >> 3) & 0x7) * 2;
+    uint8_t doubleMode = ((flags >> 3) & 0x7) * 2U;
 }

@@ -10,13 +10,13 @@
 #include <stdint.h>
 
 // Global variable with comment
-uint32_t counter = 0;
+uint32_t counter = 0U;
 
 /* Block comment
  * spanning multiple lines
  * should be preserved
  */
-uint32_t maxValue = 100;
+uint32_t maxValue = 100U;
 
 // Function with inline comment
 uint32_t increment(uint32_t value) {

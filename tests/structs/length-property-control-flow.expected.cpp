@@ -28,29 +28,29 @@ typedef struct Packet {
 
 int main(void) {
     Packet pkt = {0};
-    pkt.header = 0xDEADBEEF;
-    pkt.pktLength = 256;
-    pkt.type = 1;
-    pkt.payload = 0x123456789ABCDEF;
+    pkt.header = 0xDEADBEEFU;
+    pkt.pktLength = 256U;
+    pkt.type = 1U;
+    pkt.payload = 0x123456789ABCDEFULL;
     if (32 != 32) {
         return 1;
     }
     if (32 != 32) return 2;
     if (8 != 8) return 3;
-    uint32_t counter = 0;
+    uint32_t counter = 0U;
     uint32_t maxBits = 32;
     while ((counter < maxBits) != false) {
-        counter = cnx_clamp_add_u32(counter, 8);
+        counter = cnx_clamp_add_u32(counter, 8U);
     }
     if (counter != 32) return 4;
-    uint32_t totalBits = 0;
+    uint32_t totalBits = 0U;
     for (uint32_t i = 0; (i < 4) != false; i += 1) {
         totalBits = cnx_clamp_add_u32(totalBits, 8);
     }
     if (totalBits != 32) return 5;
-    uint32_t fieldSize = ((32 > 16) != false) ? 4 : 2;
+    uint32_t fieldSize = ((32 > 16U) != false) ? 4U : 2U;
     if (fieldSize != 4) return 6;
-    uint32_t headerBytes = 4;
+    uint32_t headerBytes = 32 / 8U;
     if (headerBytes != 4) {
         return 7;
     }

@@ -21,8 +21,8 @@ typedef struct Container {
 } Container;
 
 void modifyData(Data& d) {
-    d.value = 999;
-    d.flags = 0xFF;
+    d.value = 999U;
+    d.flags = 0xFFU;
 }
 
 Data createData(uint32_t val, uint8_t flg) {
@@ -32,18 +32,18 @@ Data createData(uint32_t val, uint8_t flg) {
 
 void updateContainer(Container& c, uint32_t newCount) {
     c.count = newCount;
-    c.inner.value = newCount * 10;
+    c.inner.value = newCount * 10U;
 }
 
 int main(void) {
-    Data d = (Data){ .value = 100, .flags = 0x0F };
+    Data d = (Data){ .value = 100U, .flags = 0x0FU };
     modifyData(d);
     if (d.value != 999) return 1;
     if (d.flags != 0xFF) return 2;
     Data created = createData(42, 0xAB);
     if (created.value != 42) return 3;
     if (created.flags != 0xAB) return 4;
-    Container c = (Container){ .inner = (Data){ .value = 0, .flags = 0 }, .count = 0 };
+    Container c = (Container){ .inner = (Data){ .value = 0U, .flags = 0U }, .count = 0U };
     updateContainer(c, 5);
     if (c.count != 5) return 5;
     if (c.inner.value != 50) return 6;

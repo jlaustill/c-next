@@ -20,7 +20,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: comprehensive break scenarios in for loops
 // Validates: various break patterns and edge cases
 int main(void) {
-    uint32_t breakPoint = 0;
+    uint32_t breakPoint = 0U;
     for (uint32_t i = 0; i < 100; i += 1) {
         if (i == 25) {
             breakPoint = i;
@@ -28,7 +28,7 @@ int main(void) {
         }
     }
     if (breakPoint != 25) return 1;
-    uint32_t counter = 0;
+    uint32_t counter = 0U;
     for (uint32_t j = 10; j < 50; j += 1) {
         counter = j;
         if (j == 20) {
@@ -36,7 +36,7 @@ int main(void) {
         }
     }
     if (counter != 20) return 2;
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (uint32_t k = 1; k <= 100; k += 1) {
         sum = cnx_clamp_add_u32(sum, k);
         if (sum >= 50) {
@@ -44,15 +44,15 @@ int main(void) {
         }
     }
     if (sum != 55) return 3;
-    uint32_t countdown = 0;
+    uint32_t countdown = 0U;
     for (uint32_t m = 100; m > 0; m -= 1) {
-        countdown = cnx_clamp_add_u32(countdown, 1);
+        countdown = cnx_clamp_add_u32(countdown, 1U);
         if (m == 90) {
             break;
         }
     }
     if (countdown != 11) return 4;
-    uint32_t evenSum = 0;
+    uint32_t evenSum = 0U;
     for (uint32_t n = 0; n < 100; n += 2) {
         evenSum = cnx_clamp_add_u32(evenSum, n);
         if (n == 10) {
@@ -60,7 +60,7 @@ int main(void) {
         }
     }
     if (evenSum != 30) return 5;
-    uint32_t found = 0;
+    uint32_t found = 0U;
     for (uint32_t p = 0; p < 100; p += 1) {
         if (p > 10) {
             if (p % 7 == 0) {
@@ -71,9 +71,9 @@ int main(void) {
     }
     if (found != 14) return 6;
     bool shouldBreak = false;
-    uint32_t iterCount = 0;
+    uint32_t iterCount = 0U;
     for (uint32_t q = 0; q < 50; q += 1) {
-        iterCount = cnx_clamp_add_u32(iterCount, 1);
+        iterCount = cnx_clamp_add_u32(iterCount, 1U);
         if (q == 15) {
             shouldBreak = true;
         }
@@ -82,9 +82,9 @@ int main(void) {
         }
     }
     if (iterCount != 16) return 7;
-    uint32_t emptyCount = 0;
+    uint32_t emptyCount = 0U;
     for (uint32_t r = 0; r < 100; r += 1) {
-        emptyCount = cnx_clamp_add_u32(emptyCount, 1);
+        emptyCount = cnx_clamp_add_u32(emptyCount, 1U);
         if (r == 0) {
             break;
         }

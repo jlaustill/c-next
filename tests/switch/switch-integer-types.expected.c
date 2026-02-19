@@ -15,19 +15,19 @@ uint32_t result = 0;
 void testSwitchU8(uint8_t val) {
     switch (val) {
         case 0: {
-            result = 100;
+            result = 100U;
             break;
         }
         case 10: {
-            result = 110;
+            result = 110U;
             break;
         }
         case 255: {
-            result = 355;
+            result = 355U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -36,19 +36,19 @@ void testSwitchU8(uint8_t val) {
 void testSwitchU16(uint16_t val) {
     switch (val) {
         case 0: {
-            result = 200;
+            result = 200U;
             break;
         }
         case 1000: {
-            result = 1200;
+            result = 1200U;
             break;
         }
         case 65535: {
-            result = 65735;
+            result = 65735U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -57,15 +57,15 @@ void testSwitchU16(uint16_t val) {
 void testSwitchU32(uint32_t val) {
     switch (val) {
         case 0: {
-            result = 300;
+            result = 300U;
             break;
         }
         case 1000000: {
-            result = 1000300;
+            result = 1000300U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -74,15 +74,15 @@ void testSwitchU32(uint32_t val) {
 void testSwitchU64(uint64_t val) {
     switch (val) {
         case 0: {
-            result = 400;
+            result = 400U;
             break;
         }
         case 1000000000000: {
-            result = 401;
+            result = 401U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -94,19 +94,19 @@ void testSwitchU64(uint64_t val) {
 void testSwitchI8(int8_t val) {
     switch (val) {
         case 0: {
-            result = 500;
+            result = 500U;
             break;
         }
         case 50: {
-            result = 501;
+            result = 501U;
             break;
         }
         case 127: {
-            result = 502;
+            result = 502U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -115,19 +115,19 @@ void testSwitchI8(int8_t val) {
 void testSwitchI16(int16_t val) {
     switch (val) {
         case 0: {
-            result = 600;
+            result = 600U;
             break;
         }
         case 5000: {
-            result = 601;
+            result = 601U;
             break;
         }
         case 32767: {
-            result = 602;
+            result = 602U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -136,19 +136,19 @@ void testSwitchI16(int16_t val) {
 void testSwitchI32(int32_t val) {
     switch (val) {
         case 0: {
-            result = 700;
+            result = 700U;
             break;
         }
         case 1000000: {
-            result = 701;
+            result = 701U;
             break;
         }
         case 2000000: {
-            result = 702;
+            result = 702U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -157,29 +157,29 @@ void testSwitchI32(int32_t val) {
 void testSwitchI64(int64_t val) {
     switch (val) {
         case 0: {
-            result = 800;
+            result = 800U;
             break;
         }
         case 5000000000: {
-            result = 801;
+            result = 801U;
             break;
         }
         case 9000000000: {
-            result = 802;
+            result = 802U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
 }
 
 int main(void) {
-    uint8_t u8_zero = 0;
-    uint8_t u8_ten = 10;
-    uint8_t u8_max = 255;
-    uint8_t u8_other = 50;
+    uint8_t u8_zero = 0U;
+    uint8_t u8_ten = 10U;
+    uint8_t u8_max = 255U;
+    uint8_t u8_other = 50U;
     testSwitchU8(u8_zero);
     if (result != 100) return 1;
     testSwitchU8(u8_ten);
@@ -188,10 +188,10 @@ int main(void) {
     if (result != 355) return 3;
     testSwitchU8(u8_other);
     if (result != 999) return 4;
-    uint16_t u16_zero = 0;
-    uint16_t u16_mid = 1000;
-    uint16_t u16_max = 65535;
-    uint16_t u16_other = 5000;
+    uint16_t u16_zero = 0U;
+    uint16_t u16_mid = 1000U;
+    uint16_t u16_max = 65535U;
+    uint16_t u16_other = 5000U;
     testSwitchU16(u16_zero);
     if (result != 200) return 5;
     testSwitchU16(u16_mid);
@@ -200,18 +200,18 @@ int main(void) {
     if (result != 65735) return 7;
     testSwitchU16(u16_other);
     if (result != 999) return 8;
-    uint32_t u32_zero = 0;
-    uint32_t u32_mid = 1000000;
-    uint32_t u32_other = 12345;
+    uint32_t u32_zero = 0U;
+    uint32_t u32_mid = 1000000U;
+    uint32_t u32_other = 12345U;
     testSwitchU32(u32_zero);
     if (result != 300) return 9;
     testSwitchU32(u32_mid);
     if (result != 1000300) return 10;
     testSwitchU32(u32_other);
     if (result != 999) return 11;
-    uint64_t u64_zero = 0;
-    uint64_t u64_large = 1000000000000;
-    uint64_t u64_other = 9999;
+    uint64_t u64_zero = 0ULL;
+    uint64_t u64_large = 1000000000000ULL;
+    uint64_t u64_other = 9999ULL;
     testSwitchU64(u64_zero);
     if (result != 400) return 12;
     testSwitchU64(u64_large);

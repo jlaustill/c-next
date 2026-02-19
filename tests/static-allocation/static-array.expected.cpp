@@ -23,10 +23,10 @@ uint8_t rxBuffer[256] = {0};
 uint8_t txBuffer[128] = {0};
 
 void fillBuffer(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < 256) {
         rxBuffer[i] = 0xAA;
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 

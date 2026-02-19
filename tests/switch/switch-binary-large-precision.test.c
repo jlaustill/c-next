@@ -16,23 +16,23 @@ uint32_t result = 0;
 void testLargeBinaryPrecision(uint64_t val) {
     switch (val) {
         case 0x20000000000000ULL: {
-            result = 1;
+            result = 1U;
             break;
         }
         case 0x20000000000001ULL: {
-            result = 2;
+            result = 2U;
             break;
         }
         case 0x20000000000002ULL: {
-            result = 3;
+            result = 3U;
             break;
         }
         case 0x20000000000003ULL: {
-            result = 4;
+            result = 4U;
             break;
         }
         default: {
-            result = 99;
+            result = 99U;
             break;
         }
     }
@@ -42,47 +42,47 @@ void testLargeBinaryPrecision(uint64_t val) {
 void testVeryLargeBinary(uint64_t val) {
     switch (val) {
         case 0x4000000000000000ULL: {
-            result = 10;
+            result = 10U;
             break;
         }
         case 0x4000000000000001ULL: {
-            result = 11;
+            result = 11U;
             break;
         }
         case 0x7FFFFFFFFFFFFFFFULL: {
-            result = 12;
+            result = 12U;
             break;
         }
         default: {
-            result = 99;
+            result = 99U;
             break;
         }
     }
 }
 
 int main(void) {
-    uint64_t v53 = 9007199254740992;
+    uint64_t v53 = 9007199254740992ULL;
     testLargeBinaryPrecision(v53);
     if (result != 1) return 1;
-    uint64_t v53_1 = 9007199254740993;
+    uint64_t v53_1 = 9007199254740993ULL;
     testLargeBinaryPrecision(v53_1);
     if (result != 2) return 2;
-    uint64_t v53_2 = 9007199254740994;
+    uint64_t v53_2 = 9007199254740994ULL;
     testLargeBinaryPrecision(v53_2);
     if (result != 3) return 3;
-    uint64_t v53_3 = 9007199254740995;
+    uint64_t v53_3 = 9007199254740995ULL;
     testLargeBinaryPrecision(v53_3);
     if (result != 4) return 4;
-    uint64_t vOther = 9007199254740990;
+    uint64_t vOther = 9007199254740990ULL;
     testLargeBinaryPrecision(vOther);
     if (result != 99) return 5;
-    uint64_t v62 = 4611686018427387904;
+    uint64_t v62 = 4611686018427387904ULL;
     testVeryLargeBinary(v62);
     if (result != 10) return 6;
-    uint64_t v62_1 = 4611686018427387905;
+    uint64_t v62_1 = 4611686018427387905ULL;
     testVeryLargeBinary(v62_1);
     if (result != 11) return 7;
-    uint64_t v63m1 = 9223372036854775807;
+    uint64_t v63m1 = 9223372036854775807ULL;
     testVeryLargeBinary(v63m1);
     if (result != 12) return 8;
     return 0;

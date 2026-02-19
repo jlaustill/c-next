@@ -35,13 +35,13 @@ int main(void) {
     scenes[0].objects[0].material.ambient.r = 255;
     scenes[0].objects[0].material.ambient.g = 128;
     scenes[0].objects[0].material.ambient.b = 64;
-    uint8_t red = scenes[0].objects[0].material.ambient.r;
-    uint8_t green = scenes[0].objects[0].material.ambient.g;
+    uint8_t red = scenes[0U].objects[0U].material.ambient.r;
+    uint8_t green = scenes[0U].objects[0U].material.ambient.g;
     scenes[0].objects[1].material.diffuse.r = 200;
     scenes[0].objects[1].material.diffuse.g = 100;
     scenes[0].objects[1].material.diffuse.b = 50;
     scenes[0].objects[0].material.opacity = 255;
-    uint8_t alpha = scenes[0].objects[0].material.opacity;
+    uint8_t alpha = scenes[0U].objects[0U].material.opacity;
     scenes[1].objects[2].material.ambient.r = 100;
     scenes[1].objects[3].material.diffuse.b = 75;
     scenes[0].objects[0].id = 42;

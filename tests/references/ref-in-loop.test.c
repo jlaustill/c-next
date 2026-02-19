@@ -10,86 +10,86 @@
 // Tests: Modifying reference parameter inside loops
 // Increments value N times
 void incrementN(uint32_t* value, uint32_t times) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < times) {
-        (*value) = (*value) + 1;
-        i = i + 1;
+        (*value) = (*value) + 1U;
+        i = i + 1U;
     }
 }
 
 // Doubles value N times
 void doubleN(uint32_t* value, uint32_t times) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < times) {
-        (*value) = (*value) * 2;
-        i = i + 1;
+        (*value) = (*value) * 2U;
+        i = i + 1U;
     }
 }
 
 // Accumulates sum using a loop
 void accumulate(uint32_t start, uint32_t end, uint32_t* result) {
-    (*result) = 0;
+    (*result) = 0U;
     uint32_t i = start;
     while (i <= end) {
         (*result) = (*result) + i;
-        i = i + 1;
+        i = i + 1U;
     }
 }
 
 // Factorial via loop
 void factorial(uint32_t n, uint32_t* result) {
-    (*result) = 1;
-    uint32_t i = 1;
+    (*result) = 1U;
+    uint32_t i = 1U;
     while (i <= n) {
         (*result) = (*result) * i;
-        i = i + 1;
+        i = i + 1U;
     }
 }
 
 // Modifies multiple refs in same loop
 void parallelIncrement(uint32_t* a, uint32_t* b, uint32_t times) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < times) {
-        (*a) = (*a) + 1;
-        (*b) = (*b) + 2;
-        i = i + 1;
+        (*a) = (*a) + 1U;
+        (*b) = (*b) + 2U;
+        i = i + 1U;
     }
 }
 
 int main(void) {
-    uint32_t val = 10;
+    uint32_t val = 10U;
     incrementN(&val, 5);
     if (val != 15) return 1;
-    val = 0;
+    val = 0U;
     incrementN(&val, 100);
     if (val != 100) return 2;
-    val = 1;
+    val = 1U;
     doubleN(&val, 4);
     if (val != 16) return 3;
-    val = 3;
+    val = 3U;
     doubleN(&val, 3);
     if (val != 24) return 4;
-    uint32_t sum = 999;
+    uint32_t sum = 999U;
     accumulate(1, 5, &sum);
     if (sum != 15) return 5;
     accumulate(1, 10, &sum);
     if (sum != 55) return 6;
     accumulate(5, 5, &sum);
     if (sum != 5) return 7;
-    uint32_t fact = 0;
+    uint32_t fact = 0U;
     factorial(5, &fact);
     if (fact != 120) return 8;
     factorial(1, &fact);
     if (fact != 1) return 9;
     factorial(6, &fact);
     if (fact != 720) return 10;
-    uint32_t x = 0;
-    uint32_t y = 0;
+    uint32_t x = 0U;
+    uint32_t y = 0U;
     parallelIncrement(&x, &y, 5);
     if (x != 5) return 11;
     if (y != 10) return 12;
-    x = 10;
-    y = 20;
+    x = 10U;
+    y = 20U;
     parallelIncrement(&x, &y, 3);
     if (x != 13) return 13;
     if (y != 26) return 14;

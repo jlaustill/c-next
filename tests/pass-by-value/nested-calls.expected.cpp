@@ -14,7 +14,7 @@ uint32_t addOne(uint32_t val) {
 }
 
 void modifyAddOne(uint32_t& val) {
-    val += 1;
+    val += 1U;
 }
 
 // Level 2: middle functions
@@ -63,7 +63,7 @@ void incrementBoth(uint32_t& x, uint32_t& y) {
 }
 
 int main(void) {
-    uint32_t val = 10;
+    uint32_t val = 10U;
     uint32_t result = addOne(val);
     if (val != 10) return 1;
     if (result != 11) return 2;
@@ -73,25 +73,25 @@ int main(void) {
     result = addFour(val);
     if (val != 10) return 5;
     if (result != 14) return 6;
-    uint32_t modVal = 100;
+    uint32_t modVal = 100U;
     modifyAddOne(modVal);
     if (modVal != 101) return 7;
-    modVal = 100;
+    modVal = 100U;
     modifyAddTwo(modVal);
     if (modVal != 102) return 8;
-    modVal = 100;
+    modVal = 100U;
     modifyAddFour(modVal);
     if (modVal != 104) return 9;
-    uint32_t mixedVal = 50;
+    uint32_t mixedVal = 50U;
     result = mixedChain(mixedVal);
     if (mixedVal != 51) return 10;
     if (result != 102) return 11;
-    result = sumThree(1, 2, 3);
+    result = sumThree(1U, 2U, 3U);
     if (result != 6) return 12;
-    result = sumSix(1, 2, 3, 4, 5, 6);
+    result = sumSix(1U, 2U, 3U, 4U, 5U, 6U);
     if (result != 21) return 13;
-    uint32_t x = 10;
-    uint32_t y = 20;
+    uint32_t x = 10U;
+    uint32_t y = 20U;
     incrementBoth(x, y);
     if (x != 11) return 14;
     if (y != 21) return 15;

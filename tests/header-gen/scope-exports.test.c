@@ -13,11 +13,11 @@
 static uint8_t LED_brightness = 0;
 
 void LED_on(void) {
-    LED_brightness = 255;
+    LED_brightness = 255U;
 }
 
 void LED_off(void) {
-    LED_brightness = 0;
+    LED_brightness = 0U;
 }
 
 void LED_setBrightness(uint8_t level) {
@@ -29,7 +29,7 @@ uint8_t LED_getBrightness(void) {
 }
 
 static void LED_privateReset(void) {
-    LED_brightness = 128;
+    LED_brightness = 128U;
 }
 
 int main(void) {

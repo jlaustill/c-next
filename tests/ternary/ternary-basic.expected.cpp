@@ -21,10 +21,10 @@ int32_t getAbs(int32_t x) {
 }
 
 int main(void) {
-    uint32_t a = 10;
-    uint32_t b = 20;
-    uint32_t c = 30;
-    uint32_t d = 5;
+    uint32_t a = 10U;
+    uint32_t b = 20U;
+    uint32_t c = 30U;
+    uint32_t d = 5U;
     int32_t neg = -5;
     int32_t pos = 7;
     uint32_t maxResult1 = getMax(a, b);

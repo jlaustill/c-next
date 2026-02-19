@@ -133,7 +133,7 @@ int main(void) {
     if (resultBool != true) {
         return 11;
     }
-    uint8_t newU8Value = 100;
+    uint8_t newU8Value = 100U;
     AllTypesTest_setU8(newU8Value);
     resultU8 = AllTypesTest_getU8();
     if (resultU8 != 100) {

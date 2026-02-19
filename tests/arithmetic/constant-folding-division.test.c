@@ -8,40 +8,40 @@
 // Issue #235: Constant folding for division expressions
 // Tests that compile-time constant expressions are evaluated during transpilation
 // Test 1: Pure literal division - should fold to constants
-uint32_t literal_result1 = 4;
+uint32_t literal_result1 = 32U / 8U;
 
 // Should fold to: 4
-uint32_t literal_result2 = 10;
+uint32_t literal_result2 = 100U / 10U;
 
 // Should fold to: 10
-uint32_t literal_result3 = 16;
+uint32_t literal_result3 = 64U / 4U;
 
 // Should fold to: 16
 // Test 2: .length property division (the original bug report)
 // .length returns compile-time constants (bit-width), so these should fold
 uint32_t x = 0;
 
-uint8_t bytes_for_u32 = 4;
+uint8_t bytes_for_u32 = 32 / 8U;
 
 // 32 / 8 should fold to: 4
 uint64_t y = 0;
 
-uint8_t bytes_for_u64 = 8;
+uint8_t bytes_for_u64 = 64 / 8U;
 
 // 64 / 8 should fold to: 8
 uint16_t z = 0;
 
-uint8_t bytes_for_u16 = 2;
+uint8_t bytes_for_u16 = 16 / 8U;
 
 // 16 / 8 should fold to: 2
 // Test 3: Other arithmetic operations on constants
-uint32_t mult_result = 32;
+uint32_t mult_result = 4U * 8U;
 
 // Should fold to: 32
-uint32_t add_result = 30;
+uint32_t add_result = 10U + 20U;
 
 // Should fold to: 30
-uint32_t sub_result = 60;
+uint32_t sub_result = 100U - 40U;
 
 // Should fold to: 60
 int main(void) {

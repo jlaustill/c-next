@@ -15,27 +15,27 @@ uint32_t checkValue(uint8_t x) {
 }
 
 int main(void) {
-    uint8_t a = 5;
-    uint8_t b = 3;
-    uint32_t result = 0;
+    uint8_t a = 5U;
+    uint8_t b = 3U;
+    uint32_t result = 0U;
     uint32_t check1 = checkValue(a + b);
     if (check1 > 5) {
-        result = 1;
+        result = 1U;
     }
     if (result != 1) return 1;
-    uint8_t iterations = 0;
-    uint8_t limit = 2;
-    uint32_t check2 = checkValue(limit + 1);
+    uint8_t iterations = 0U;
+    uint8_t limit = 2U;
+    uint32_t check2 = checkValue(limit + 1U);
     while (check2 > iterations) {
-        iterations = iterations + 1;
+        iterations = iterations + 1U;
         if (iterations > 10) return 2;
     }
     if (iterations != 3) return 3;
-    uint32_t sum = 0;
-    uint8_t maxVal = 3;
-    uint32_t check3 = checkValue(maxVal + 1);
+    uint32_t sum = 0U;
+    uint8_t maxVal = 3U;
+    uint32_t check3 = checkValue(maxVal + 1U);
     for (uint8_t i = 0; i < check3; i = i + 1) {
-        sum = sum + 1;
+        sum = sum + 1U;
     }
     if (sum != 4) return 4;
     return 0;

@@ -20,7 +20,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // For loop tests: u8 as loop counter
 // Tests: u8 type can be used as for-loop counter
 int main(void) {
-    uint8_t sum = 0;
+    uint8_t sum = 0U;
     for (uint8_t i = 0; i < 10; i += 1) {
         sum = cnx_clamp_add_u8(sum, i);
     }

@@ -50,11 +50,11 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 }
 
 // Atomic clamp variables - saturating arithmetic
-volatile uint8_t brightness = 100;
+volatile uint8_t brightness = 100U;
 
-volatile uint16_t volume = 500;
+volatile uint16_t volume = 500U;
 
-volatile uint32_t counter = 0;
+volatile uint32_t counter = 0U;
 
 // Signed atomic clamp
 volatile int8_t temperature = 0;
@@ -90,7 +90,7 @@ void updateVolume(uint16_t delta) {
 void incrementCounter(void) {
     do {
         uint32_t __old = __LDREXW(&counter);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1);
+        uint32_t __new = cnx_clamp_add_u32(__old, 1U);
         if (__STREXW(__new, &counter) == 0) break;
     } while (1);
 }

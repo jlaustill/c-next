@@ -15,11 +15,11 @@
 
 // Function that takes an array parameter
 uint32_t processBuffer(const uint8_t data[8], uint8_t len) {
-    uint32_t sum = 0;
-    uint8_t i = 0;
+    uint32_t sum = 0U;
+    uint8_t i = 0U;
     while (i < len) {
         sum = sum + data[i];
-        i = i + 1;
+        i = i + 1U;
     }
     return sum;
 }
@@ -31,11 +31,11 @@ uint32_t processHeader(const uint8_t header[4]) {
 
 // Function with larger array
 uint32_t processPayload(const uint8_t payload[16], uint8_t len) {
-    uint32_t sum = 0;
-    uint8_t i = 0;
+    uint32_t sum = 0U;
+    uint8_t i = 0U;
     while (i < len) {
         sum = sum + payload[i];
-        i = i + 1;
+        i = i + 1U;
     }
     return sum;
 }
@@ -66,7 +66,7 @@ uint32_t testMultipleArrayMembers(void) {
     packet.payload[2] = 30;
     packet.payload[3] = 40;
     uint32_t headerSum = processHeader(packet.header);
-    uint32_t payloadSum = processPayload(packet.payload, 4);
+    uint32_t payloadSum = processPayload(packet.payload, 4U);
     return headerSum + payloadSum;
 }
 
@@ -78,7 +78,7 @@ uint32_t testArrayMemberInCondition(void) {
     msg.buf[2] = 15;
     msg.buf[3] = 20;
     msg.len = 4;
-    uint32_t result = 0;
+    uint32_t result = 0U;
     if (msg.id == 65280) {
         result = processBuffer(msg.buf, msg.len);
     }

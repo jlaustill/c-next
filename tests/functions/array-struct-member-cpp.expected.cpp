@@ -21,28 +21,28 @@ uint32_t process(uint32_t crc, uint8_t byte) {
 }
 
 uint32_t testArrayStructMembers(void) {
-    uint32_t crc = 0;
+    uint32_t crc = 0U;
     sensors[0].active = true;
     sensors[0].sensorType = SENSOR_PRESSURE;
     sensors[0].status = STATUS_ON;
     sensors[0].value = 42;
-    crc = process(crc, sensors[0].active);
-    crc = process(crc, static_cast<uint8_t>(sensors[0].sensorType));
-    crc = process(crc, static_cast<uint8_t>(sensors[0].status));
-    crc = process(crc, sensors[0].value);
+    crc = process(crc, sensors[0U].active);
+    crc = process(crc, static_cast<uint8_t>(sensors[0U].sensorType));
+    crc = process(crc, static_cast<uint8_t>(sensors[0U].status));
+    crc = process(crc, sensors[0U].value);
     return crc;
 }
 
 uint32_t testMultipleIndices(void) {
-    uint32_t crc = 0;
+    uint32_t crc = 0U;
     sensors[1].active = false;
     sensors[1].sensorType = SENSOR_HUMIDITY;
     sensors[2].status = STATUS_ERROR;
     sensors[3].value = 100;
-    crc = process(crc, sensors[1].active);
-    crc = process(crc, static_cast<uint8_t>(sensors[1].sensorType));
-    crc = process(crc, static_cast<uint8_t>(sensors[2].status));
-    crc = process(crc, sensors[3].value);
+    crc = process(crc, sensors[1U].active);
+    crc = process(crc, static_cast<uint8_t>(sensors[1U].sensorType));
+    crc = process(crc, static_cast<uint8_t>(sensors[2U].status));
+    crc = process(crc, sensors[3U].value);
     return crc;
 }
 

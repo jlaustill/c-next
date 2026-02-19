@@ -26,7 +26,7 @@ uint32_t process(uint32_t crc, uint8_t byte) {
 }
 
 uint32_t testFuncReturnMember(void) {
-    uint32_t crc = 0;
+    uint32_t crc = 0U;
     globalConfig.enabled = true;
     globalConfig.mode = MODE_AUTO;
     globalConfig.value = 42;

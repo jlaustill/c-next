@@ -19,12 +19,12 @@ int main(void) {
     if (numbers[0] != 10) return 1;
     if (numbers[2] != 30) return 2;
     if (numbers[4] != 50) return 3;
-    uint8_t bytes[4] = {1, 2, 3, 4};
+    uint8_t bytes[4] = {1U, 2U, 3U, 4U};
     if (bytes[0] != 1) return 4;
     if (bytes[3] != 4) return 5;
     if (4 != 4) return 6;
     if (5 != 5) return 7;
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
         sum = sum + numbers[i];
     }

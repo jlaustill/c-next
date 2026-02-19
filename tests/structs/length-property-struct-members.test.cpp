@@ -16,9 +16,9 @@ typedef struct Config {
 
 int main(void) {
     Config cfg = {0};
-    cfg.magic = 0x12345678;
-    cfg.version = 1;
-    cfg.flags = 0xFF;
+    cfg.magic = 0x12345678U;
+    cfg.version = 1U;
+    cfg.flags = 0xFFU;
     if (32 != 32) {
         return 1;
     }

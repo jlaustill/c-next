@@ -22,10 +22,10 @@ typedef struct CNextConfig {
 
 int main(void) {
     CNextConfig localCfg = {0};
-    localCfg.magic = 0x11111111;
-    localCfg.version = 10;
-    localCfg.flags = 0xAA;
-    localCfg.timestamp = 9999999;
+    localCfg.magic = 0x11111111U;
+    localCfg.version = 10U;
+    localCfg.flags = 0xAAU;
+    localCfg.timestamp = 9999999ULL;
     if (32 != 32) {
         return 1;
     }
@@ -38,7 +38,7 @@ int main(void) {
     if (64 != 64) {
         return 4;
     }
-    uint8_t magicBytes = 4;
+    uint8_t magicBytes = 32 / 8U;
     if (magicBytes != 4) {
         return 5;
     }

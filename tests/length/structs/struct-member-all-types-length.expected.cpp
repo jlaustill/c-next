@@ -64,10 +64,10 @@ uint32_t checkParamStructMembers(const AllTypes& param) {
 }
 
 int main(void) {
-    globalStruct.u8Field = 42;
-    globalStruct.u16Field = 1000;
-    globalStruct.u32Field = 100000;
-    globalStruct.u64Field = 1000000;
+    globalStruct.u8Field = 42U;
+    globalStruct.u16Field = 1000U;
+    globalStruct.u32Field = 100000U;
+    globalStruct.u64Field = 1000000ULL;
     globalStruct.i8Field = -42;
     globalStruct.i16Field = -1000;
     globalStruct.i32Field = -100000;
@@ -113,10 +113,10 @@ int main(void) {
         return 12;
     }
     AllTypes localStruct = {0};
-    localStruct.u8Field = 1;
-    localStruct.u16Field = 1;
-    localStruct.u32Field = 1;
-    localStruct.u64Field = 1;
+    localStruct.u8Field = 1U;
+    localStruct.u16Field = 1U;
+    localStruct.u32Field = 1U;
+    localStruct.u64Field = 1ULL;
     localStruct.i8Field = -1;
     localStruct.i16Field = -1;
     localStruct.i32Field = -1;
@@ -158,10 +158,10 @@ int main(void) {
         return 23;
     }
     AllTypes paramStruct = {0};
-    paramStruct.u8Field = 1;
-    paramStruct.u16Field = 1;
-    paramStruct.u32Field = 1;
-    paramStruct.u64Field = 1;
+    paramStruct.u8Field = 1U;
+    paramStruct.u16Field = 1U;
+    paramStruct.u32Field = 1U;
+    paramStruct.u64Field = 1ULL;
     paramStruct.i8Field = -1;
     paramStruct.i16Field = -1;
     paramStruct.i32Field = -1;

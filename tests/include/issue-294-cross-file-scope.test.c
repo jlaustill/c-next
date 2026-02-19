@@ -38,15 +38,15 @@ int main(void) {
     testData[7] = 0x00;
     uint16_t spn = decoder_getSpn(testData);
     if (spn != 4660) return 1;
-    uint8_t byte0 = decoder_getByte(testData, 0);
+    uint8_t byte0 = decoder_getByte(testData, 0U);
     if (byte0 != 0x34) return 2;
-    uint8_t byte1 = decoder_getByte(testData, 1);
+    uint8_t byte1 = decoder_getByte(testData, 1U);
     if (byte1 != 0x12) return 3;
-    uint8_t byte2 = decoder_getByte(testData, 2);
+    uint8_t byte2 = decoder_getByte(testData, 2U);
     if (byte2 != 0xAB) return 4;
     uint16_t spn2 = handler_processData(testData);
     if (spn2 != 4660) return 5;
-    uint8_t extracted = handler_extractByte(testData, 3);
+    uint8_t extracted = handler_extractByte(testData, 3U);
     if (extracted != 0xCD) return 6;
     return 0;
 }

@@ -17,7 +17,7 @@ uint32_t process(uint32_t crc, uint8_t byte) {
 }
 
 uint32_t testConstStruct(const TestConfig& cfg) {
-    uint32_t crc = 0;
+    uint32_t crc = 0U;
     crc = process(crc, cfg.value);
     return crc;
 }

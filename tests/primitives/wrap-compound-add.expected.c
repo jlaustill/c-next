@@ -7,8 +7,8 @@
 
 // ADR-044: Wrap with compound assignment
 // Tests: wrap modifier with compound addition
-uint8_t counter = 250;
+uint8_t counter = 250U;
 
 int main(void) {
-    counter += 10;
+    counter += 10U;
 }

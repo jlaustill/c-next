@@ -32,11 +32,11 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 static uint8_t ClampScope_brightness = 200;
 
 void ClampScope_triggerOverflow(void) {
-    ClampScope_brightness = cnx_clamp_add_u8(ClampScope_brightness, 100);
+    ClampScope_brightness = cnx_clamp_add_u8(ClampScope_brightness, 100U);
 }
 
 void ClampScope_triggerUnderflow(void) {
-    ClampScope_brightness = cnx_clamp_sub_u8(ClampScope_brightness, 255);
+    ClampScope_brightness = cnx_clamp_sub_u8(ClampScope_brightness, 255U);
 }
 
 uint8_t ClampScope_getBrightness(void) {

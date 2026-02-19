@@ -10,62 +10,62 @@
 // Coverage: Section 7.1, 33.2 - Nested if statements
 // Tests: if statements nested inside other if statements
 int main(void) {
-    uint32_t a = 10;
-    uint32_t b = 20;
-    uint32_t c = 30;
-    uint32_t result = 0;
+    uint32_t a = 10U;
+    uint32_t b = 20U;
+    uint32_t c = 30U;
+    uint32_t result = 0U;
     if (a < b) {
         if (b < c) {
-            result = 1;
+            result = 1U;
         }
     }
     if (result != 1) return 1;
-    result = 0;
+    result = 0U;
     if (a > 5) {
         if (b > 25) {
-            result = 2;
+            result = 2U;
         } else {
-            result = 3;
+            result = 3U;
         }
     }
     if (result != 3) return 2;
-    result = 0;
+    result = 0U;
     if (a == 10) {
         if (b == 20) {
             if (c == 30) {
-                result = 4;
+                result = 4U;
             }
         }
     }
     if (result != 4) return 3;
-    result = 0;
+    result = 0U;
     if (a > 100) {
-        result = 5;
+        result = 5U;
     } else {
         if (b < 100) {
-            result = 6;
+            result = 6U;
         }
     }
     if (result != 6) return 4;
-    result = 0;
+    result = 0U;
     if (a < b) {
         if (b < c) {
-            result = 7;
+            result = 7U;
         } else {
-            result = 8;
+            result = 8U;
         }
     } else {
         if (a > c) {
-            result = 9;
+            result = 9U;
         } else {
-            result = 10;
+            result = 10U;
         }
     }
     if (result != 7) return 5;
-    result = 0;
+    result = 0U;
     if (a < b && b < c) {
         if (a + b < c + 10) {
-            result = 11;
+            result = 11U;
         }
     }
     if (result != 11) return 6;

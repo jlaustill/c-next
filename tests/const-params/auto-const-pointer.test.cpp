@@ -14,12 +14,12 @@ void readOnly(uint32_t value) {
 
 // Modified parameter - should NOT get const
 void modified(uint32_t& value) {
-    value = 42;
+    value = 42U;
 }
 
 // Multiple params - mixed const/non-const
 uint32_t mixedParams(uint32_t readVal, uint32_t& writeVal) {
-    writeVal = readVal + 10;
+    writeVal = readVal + 10U;
     return writeVal;
 }
 
@@ -34,18 +34,18 @@ uint8_t arrayReadOnly(const uint8_t arr[4]) {
 }
 
 int main(void) {
-    uint32_t x = 10;
+    uint32_t x = 10U;
     readOnly(x);
     if (x != 10) return 1;
     modified(x);
-    uint32_t a = 5;
-    uint32_t b = 0;
+    uint32_t a = 5U;
+    uint32_t b = 0U;
     uint32_t result = mixedParams(a, b);
     if (result != 15) return 2;
-    uint8_t data[4] = {1, 2, 3, 4};
+    uint8_t data[4] = {1U, 2U, 3U, 4U};
     arrayMod(data);
     if (data[0] != 99) return 3;
-    uint8_t data2[4] = {10, 20, 30, 40};
+    uint8_t data2[4] = {10U, 20U, 30U, 40U};
     uint8_t val = arrayReadOnly(data2);
     if (val != 10) return 4;
     return 0;

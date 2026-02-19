@@ -22,7 +22,7 @@ bool Api_isOk(Status status) {
 }
 
 void Api_updateValue(uint32_t& value) {
-    value += 1;
+    value += 1U;
 }
 
 uint32_t Api_readValue(uint32_t value) {

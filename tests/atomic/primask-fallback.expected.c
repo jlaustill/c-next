@@ -17,21 +17,21 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
-volatile uint32_t counter = 0;
+volatile uint32_t counter = 0U;
 
-volatile uint16_t ticks = 0;
+volatile uint16_t ticks = 0U;
 
 void increment(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        counter = cnx_clamp_add_u32(counter, 1);
+        counter = cnx_clamp_add_u32(counter, 1U);
         __set_PRIMASK(__primask);
     }
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        ticks += 1;
+        ticks += 1U;
         __set_PRIMASK(__primask);
     }
 }

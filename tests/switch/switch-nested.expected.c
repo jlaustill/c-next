@@ -17,15 +17,15 @@ void testNestedBasic(uint32_t outer, uint32_t inner) {
         case 0: {
             switch (inner) {
                 case 0: {
-                    result = 100;
+                    result = 100U;
                     break;
                 }
                 case 1: {
-                    result = 101;
+                    result = 101U;
                     break;
                 }
                 default: {
-                    result = 199;
+                    result = 199U;
                     break;
                 }
             }
@@ -34,15 +34,15 @@ void testNestedBasic(uint32_t outer, uint32_t inner) {
         case 1: {
             switch (inner) {
                 case 0: {
-                    result = 200;
+                    result = 200U;
                     break;
                 }
                 case 1: {
-                    result = 201;
+                    result = 201U;
                     break;
                 }
                 default: {
-                    result = 299;
+                    result = 299U;
                     break;
                 }
             }
@@ -51,15 +51,15 @@ void testNestedBasic(uint32_t outer, uint32_t inner) {
         default: {
             switch (inner) {
                 case 0: {
-                    result = 900;
+                    result = 900U;
                     break;
                 }
                 case 1: {
-                    result = 901;
+                    result = 901U;
                     break;
                 }
                 default: {
-                    result = 999;
+                    result = 999U;
                     break;
                 }
             }
@@ -74,15 +74,15 @@ void testNestedMixedTypes(uint8_t outer, uint16_t inner) {
         case 0: {
             switch (inner) {
                 case 0: {
-                    result = 1000;
+                    result = 1000U;
                     break;
                 }
                 case 1000: {
-                    result = 1001;
+                    result = 1001U;
                     break;
                 }
                 default: {
-                    result = 1099;
+                    result = 1099U;
                     break;
                 }
             }
@@ -91,18 +91,18 @@ void testNestedMixedTypes(uint8_t outer, uint16_t inner) {
         case 255: {
             switch (inner) {
                 case 65535: {
-                    result = 2000;
+                    result = 2000U;
                     break;
                 }
                 default: {
-                    result = 2099;
+                    result = 2099U;
                     break;
                 }
             }
             break;
         }
         default: {
-            result = 9999;
+            result = 9999U;
             break;
         }
     }
@@ -116,15 +116,15 @@ void testTripleNested(uint8_t a, uint8_t b, uint8_t c) {
                 case 0: {
                     switch (c) {
                         case 0: {
-                            result = 111;
+                            result = 111U;
                             break;
                         }
                         case 1: {
-                            result = 112;
+                            result = 112U;
                             break;
                         }
                         default: {
-                            result = 119;
+                            result = 119U;
                             break;
                         }
                     }
@@ -133,18 +133,18 @@ void testTripleNested(uint8_t a, uint8_t b, uint8_t c) {
                 case 1: {
                     switch (c) {
                         case 0: {
-                            result = 121;
+                            result = 121U;
                             break;
                         }
                         default: {
-                            result = 129;
+                            result = 129U;
                             break;
                         }
                     }
                     break;
                 }
                 default: {
-                    result = 190;
+                    result = 190U;
                     break;
                 }
             }
@@ -153,18 +153,18 @@ void testTripleNested(uint8_t a, uint8_t b, uint8_t c) {
         case 1: {
             switch (b) {
                 case 0: {
-                    result = 210;
+                    result = 210U;
                     break;
                 }
                 default: {
-                    result = 290;
+                    result = 290U;
                     break;
                 }
             }
             break;
         }
         default: {
-            result = 900;
+            result = 900U;
             break;
         }
     }
@@ -176,19 +176,19 @@ void testNestedSigned(int8_t outer, int8_t inner) {
         case 0: {
             switch (inner) {
                 case 0: {
-                    result = 11;
+                    result = 11U;
                     break;
                 }
                 case 1: {
-                    result = 12;
+                    result = 12U;
                     break;
                 }
                 case 50: {
-                    result = 13;
+                    result = 13U;
                     break;
                 }
                 default: {
-                    result = 19;
+                    result = 19U;
                     break;
                 }
             }
@@ -197,19 +197,19 @@ void testNestedSigned(int8_t outer, int8_t inner) {
         case 1: {
             switch (inner) {
                 case 0: {
-                    result = 21;
+                    result = 21U;
                     break;
                 }
                 case 1: {
-                    result = 22;
+                    result = 22U;
                     break;
                 }
                 case 50: {
-                    result = 23;
+                    result = 23U;
                     break;
                 }
                 default: {
-                    result = 29;
+                    result = 29U;
                     break;
                 }
             }
@@ -218,38 +218,38 @@ void testNestedSigned(int8_t outer, int8_t inner) {
         case 50: {
             switch (inner) {
                 case 0: {
-                    result = 31;
+                    result = 31U;
                     break;
                 }
                 case 1: {
-                    result = 32;
+                    result = 32U;
                     break;
                 }
                 case 50: {
-                    result = 33;
+                    result = 33U;
                     break;
                 }
                 default: {
-                    result = 39;
+                    result = 39U;
                     break;
                 }
             }
             break;
         }
         default: {
-            result = 99;
+            result = 99U;
             break;
         }
     }
 }
 
 int main(void) {
-    uint32_t o0 = 0;
-    uint32_t o1 = 1;
-    uint32_t o99 = 99;
-    uint32_t i0 = 0;
-    uint32_t i1 = 1;
-    uint32_t i99 = 99;
+    uint32_t o0 = 0U;
+    uint32_t o1 = 1U;
+    uint32_t o99 = 99U;
+    uint32_t i0 = 0U;
+    uint32_t i1 = 1U;
+    uint32_t i99 = 99U;
     testNestedBasic(o0, i0);
     if (result != 100) return 1;
     testNestedBasic(o0, i1);
@@ -268,13 +268,13 @@ int main(void) {
     if (result != 901) return 8;
     testNestedBasic(o99, i99);
     if (result != 999) return 9;
-    uint8_t m0 = 0;
-    uint8_t m255 = 255;
-    uint8_t mOther = 100;
-    uint16_t n0 = 0;
-    uint16_t n1000 = 1000;
-    uint16_t nMax = 65535;
-    uint16_t nOther = 5000;
+    uint8_t m0 = 0U;
+    uint8_t m255 = 255U;
+    uint8_t mOther = 100U;
+    uint16_t n0 = 0U;
+    uint16_t n1000 = 1000U;
+    uint16_t nMax = 65535U;
+    uint16_t nOther = 5000U;
     testNestedMixedTypes(m0, n0);
     if (result != 1000) return 10;
     testNestedMixedTypes(m0, n1000);
@@ -287,9 +287,9 @@ int main(void) {
     if (result != 2099) return 14;
     testNestedMixedTypes(mOther, n0);
     if (result != 9999) return 15;
-    uint8_t t0 = 0;
-    uint8_t t1 = 1;
-    uint8_t t99 = 99;
+    uint8_t t0 = 0U;
+    uint8_t t1 = 1U;
+    uint8_t t99 = 99U;
     testTripleNested(t0, t0, t0);
     if (result != 111) return 16;
     testTripleNested(t0, t0, t1);

@@ -33,9 +33,9 @@ int main(void) {
     if (notTrue) return 3;
     bool notFalse = notConstBool(false);
     if (!notFalse) return 4;
-    uint32_t selected = selectByBool(true, 100, 200);
+    uint32_t selected = selectByBool(true, 100U, 200U);
     if (selected != 100) return 5;
-    uint32_t selected2 = selectByBool(false, 100, 200);
+    uint32_t selected2 = selectByBool(false, 100U, 200U);
     if (selected2 != 200) return 6;
     return 0;
 }

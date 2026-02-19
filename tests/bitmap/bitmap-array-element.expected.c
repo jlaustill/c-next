@@ -44,7 +44,7 @@ int main(void) {
     arr[0] = (arr[0] & ~(1 << 0)) | (0 << 0);
     if (((arr[0] >> 0) & 1) != false) return 13;
     if (arr[0] != 2) return 14;
-    uint8_t idx = 1;
+    uint8_t idx = 1U;
     arr[idx] = (arr[idx] & ~(1 << 2)) | (1 << 2);
     if (((arr[idx] >> 2) & 1) != true) return 15;
     if (arr[1] != 44) return 16;

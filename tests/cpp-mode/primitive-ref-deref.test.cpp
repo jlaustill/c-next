@@ -24,5 +24,5 @@ uint32_t Test_process(uint32_t& val) {
 }
 
 int main(void) {
-    uint32_t result = Test_process(5);
+    uint32_t result = Test_process(5U);
 }

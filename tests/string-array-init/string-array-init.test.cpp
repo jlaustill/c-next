@@ -20,5 +20,5 @@ char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};
 /* Scope: Test */
 
 void Test_init(void) {
-    uint8_t len = strlen(LABELS[0]);
+    uint8_t len = strlen(LABELS[0U]);
 }

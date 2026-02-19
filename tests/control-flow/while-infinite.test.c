@@ -19,11 +19,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.2 - Infinite while loop (while true)
 // Tests: while(true) syntax compiles correctly
 // Note: Not an execution test since infinite loop would never terminate
-uint32_t counter = 0;
+uint32_t counter = 0U;
 
 void runForever(void) {
     while (true) {
-        counter = cnx_clamp_add_u32(counter, 1);
+        counter = cnx_clamp_add_u32(counter, 1U);
         if (counter > 100) {
             break;
         }
@@ -33,7 +33,7 @@ void runForever(void) {
 void anotherInfinitePattern(void) {
     bool running = true;
     while (running == true) {
-        counter = cnx_clamp_add_u32(counter, 1);
+        counter = cnx_clamp_add_u32(counter, 1U);
         if (counter > 200) {
             running = false;
         }

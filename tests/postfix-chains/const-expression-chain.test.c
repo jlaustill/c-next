@@ -8,17 +8,17 @@
 
 // Postfix Chain Test: Const Expressions in Chains
 // Tests: Using const values and expressions as indices in chains
-extern const uint32_t INDEX_0 = 0;
+extern const uint32_t INDEX_0 = 0U;
 
-extern const uint32_t INDEX_1 = 1;
+extern const uint32_t INDEX_1 = 1U;
 
-extern const uint32_t INDEX_2 = 2;
+extern const uint32_t INDEX_2 = 2U;
 
-extern const uint32_t SENSOR_COUNT = 4;
+extern const uint32_t SENSOR_COUNT = 4U;
 
-extern const uint32_t LED_BIT = 3;
+extern const uint32_t LED_BIT = 3U;
 
-extern const uint32_t STATUS_BIT = 7;
+extern const uint32_t STATUS_BIT = 7U;
 
 typedef struct Sensor {
     uint32_t id;
@@ -51,9 +51,9 @@ int main(void) {
     if (((sensors[INDEX_0].data >> LED_BIT) & 1) == true) {
         GPIO_DR = (GPIO_DR & ~(1 << LED_BIT)) | (1 << LED_BIT);
     }
-    const uint32_t ROW = 0;
-    const uint32_t COL = 1;
-    const uint32_t FIELD_BIT = 5;
+    const uint32_t ROW = 0U;
+    const uint32_t COL = 1U;
+    const uint32_t FIELD_BIT = 5U;
     uint8_t matrix[4][4] = {0};
     matrix[ROW][COL] = 0xFF;
     matrix[ROW][COL] = (matrix[ROW][COL] & ~(1 << FIELD_BIT)) | (0 << FIELD_BIT);

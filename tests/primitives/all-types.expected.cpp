@@ -12,13 +12,13 @@
 // test-coverage: 1.2-i32-global-variable-declaration, 1.2-i64-global-variable-declaration
 // ADR-044: Test all primitive types transpile correctly
 // Unsigned integers
-uint8_t byte = 255;
+uint8_t byte = 255U;
 
-uint16_t word = 65535;
+uint16_t word = 65535U;
 
-uint32_t dword = 4294967295;
+uint32_t dword = 4294967295U;
 
-uint64_t qword = 0;
+uint64_t qword = 0ULL;
 
 // Signed integers
 int8_t sbyte = -128;

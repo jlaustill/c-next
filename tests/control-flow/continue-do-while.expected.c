@@ -19,67 +19,67 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: continue statement in do-while loop
 // Validates: skipping iterations with continue in do-while loops
 int main(void) {
-    uint32_t oddSum = 0;
-    uint32_t i = 0;
+    uint32_t oddSum = 0U;
+    uint32_t i = 0U;
     do {
         uint32_t current = i;
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
         if (current % 2 == 0) {
             continue;
         }
         oddSum = cnx_clamp_add_u32(oddSum, current);
     } while (i < 10);
     if (oddSum != 25) return 1;
-    uint32_t sumExcept3 = 0;
-    uint32_t j = 0;
+    uint32_t sumExcept3 = 0U;
+    uint32_t j = 0U;
     do {
         uint32_t curr = j;
-        j = cnx_clamp_add_u32(j, 1);
+        j = cnx_clamp_add_u32(j, 1U);
         if (curr == 3) {
             continue;
         }
         sumExcept3 = cnx_clamp_add_u32(sumExcept3, curr);
     } while (j < 7);
     if (sumExcept3 != 18) return 2;
-    uint32_t skipped = 0;
-    uint32_t processed = 0;
-    uint32_t k = 0;
+    uint32_t skipped = 0U;
+    uint32_t processed = 0U;
+    uint32_t k = 0U;
     do {
         uint32_t val = k;
-        k = cnx_clamp_add_u32(k, 1);
+        k = cnx_clamp_add_u32(k, 1U);
         if (val % 2 == 0) {
-            skipped = cnx_clamp_add_u32(skipped, 1);
+            skipped = cnx_clamp_add_u32(skipped, 1U);
             continue;
         }
-        processed = cnx_clamp_add_u32(processed, 1);
+        processed = cnx_clamp_add_u32(processed, 1U);
     } while (k < 10);
     if (skipped != 5) return 3;
     if (processed != 5) return 4;
-    uint32_t earlySum = 0;
-    uint32_t m = 0;
+    uint32_t earlySum = 0U;
+    uint32_t m = 0U;
     do {
-        m = cnx_clamp_add_u32(m, 1);
+        m = cnx_clamp_add_u32(m, 1U);
         if (m <= 3) {
             continue;
         }
         earlySum = cnx_clamp_add_u32(earlySum, m);
     } while (m < 7);
     if (earlySum != 22) return 5;
-    uint32_t fullSum = 0;
-    uint32_t n = 0;
+    uint32_t fullSum = 0U;
+    uint32_t n = 0U;
     do {
         fullSum = cnx_clamp_add_u32(fullSum, n);
-        n = cnx_clamp_add_u32(n, 1);
+        n = cnx_clamp_add_u32(n, 1U);
         if (n == 999) {
             continue;
         }
     } while (n < 5);
     if (fullSum != 10) return 6;
-    uint32_t multiSum = 0;
-    uint32_t p = 0;
+    uint32_t multiSum = 0U;
+    uint32_t p = 0U;
     do {
         uint32_t v = p;
-        p = cnx_clamp_add_u32(p, 1);
+        p = cnx_clamp_add_u32(p, 1U);
         if (v % 3 == 0) {
             continue;
         }

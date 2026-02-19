@@ -16,11 +16,11 @@ typedef struct Device {
 
 Device devices[4] = {0};
 
-uint8_t flags = 0;
+uint8_t flags = 0U;
 
-uint16_t settings = 0;
+uint16_t settings = 0U;
 
-uint32_t registers = 0;
+uint32_t registers = 0U;
 
 int main(void) {
     flags = (flags & ~(((1U << 3) - 1) << 0)) | ((7 & ((1U << 3) - 1)) << 0);
@@ -29,36 +29,36 @@ int main(void) {
     settings = (settings & ~(0xFFU << 8)) | ((128 & 0xFFU) << 8);
     registers = (registers & ~(0xFFFFU << 0)) | ((0xFFFF & 0xFFFFU) << 0);
     registers = (registers & ~(0xFFFFU << 16)) | ((0x1234 & 0xFFFFU) << 16);
-    uint8_t lowBits = ((flags) & ((1U << 3) - 1));
-    uint8_t highBits = ((flags >> 3) & ((1U << 5) - 1));
-    uint16_t lowWord = ((registers) & 0xFFFFU);
-    uint16_t highWord = ((registers >> 16) & 0xFFFFU);
+    uint8_t lowBits = ((flags >> 0U) & ((1U << 3U) - 1));
+    uint8_t highBits = ((flags >> 3U) & ((1U << 5U) - 1));
+    uint16_t lowWord = ((registers >> 0U) & 0xFFFFU);
+    uint16_t highWord = ((registers >> 16U) & 0xFFFFU);
     devices[0].control = 0;
     devices[0].control = (devices[0].control & ~(((1U << 4) - 1) << 0)) | ((15 & ((1U << 4) - 1)) << 0);
     devices[0].control = (devices[0].control & ~(((1U << 4) - 1) << 4)) | ((8 & ((1U << 4) - 1)) << 4);
-    uint8_t ctrlLow = ((devices[0].control) & ((1U << 4) - 1));
-    uint8_t ctrlHigh = ((devices[0].control >> 4) & ((1U << 4) - 1));
+    uint8_t ctrlLow = ((devices[0U].control >> 0U) & ((1U << 4U) - 1));
+    uint8_t ctrlHigh = ((devices[0U].control >> 4U) & ((1U << 4U) - 1));
     devices[1].status = 0;
     devices[1].status = (devices[1].status & ~(0xFFU << 0)) | ((0xAA & 0xFFU) << 0);
     devices[1].status = (devices[1].status & ~(0xFFU << 8)) | ((0x55 & 0xFFU) << 8);
-    uint16_t statusLow = ((devices[1].status) & 0xFFU);
-    uint16_t statusHigh = ((devices[1].status >> 8) & 0xFFU);
+    uint16_t statusLow = ((devices[1U].status >> 0U) & 0xFFU);
+    uint16_t statusHigh = ((devices[1U].status >> 8U) & 0xFFU);
     devices[2].config = 0;
     devices[2].config = (devices[2].config & ~(0xFFU << 0)) | ((0x12 & 0xFFU) << 0);
     devices[2].config = (devices[2].config & ~(0xFFU << 8)) | ((0x34 & 0xFFU) << 8);
     devices[2].config = (devices[2].config & ~(0xFFU << 16)) | ((0x56 & 0xFFU) << 16);
     devices[2].config = (devices[2].config & ~(0xFFU << 24)) | ((0x78 & 0xFFU) << 24);
-    uint32_t byte0 = ((devices[2].config) & 0xFFU);
-    uint32_t byte1 = ((devices[2].config >> 8) & 0xFFU);
-    uint32_t byte2 = ((devices[2].config >> 16) & 0xFFU);
-    uint32_t byte3 = ((devices[2].config >> 24) & 0xFFU);
+    uint32_t byte0 = ((devices[2U].config >> 0U) & 0xFFU);
+    uint32_t byte1 = ((devices[2U].config >> 8U) & 0xFFU);
+    uint32_t byte2 = ((devices[2U].config >> 16U) & 0xFFU);
+    uint32_t byte3 = ((devices[2U].config >> 24U) & 0xFFU);
     flags = (flags & ~(((1U << 1) - 1) << 0)) | ((1 & ((1U << 1) - 1)) << 0);
-    uint8_t singleBit = ((flags) & ((1U << 1) - 1));
-    uint8_t test = 0;
+    uint8_t singleBit = ((flags >> 0U) & ((1U << 1U) - 1));
+    uint8_t test = 0U;
     test = (test & ~(((1U << 2) - 1) << 0)) | ((3 & ((1U << 2) - 1)) << 0);
     test = (test & ~(((1U << 3) - 1) << 2)) | ((7 & ((1U << 3) - 1)) << 2);
     test = (test & ~(((1U << 3) - 1) << 5)) | ((6 & ((1U << 3) - 1)) << 5);
-    uint8_t r1 = ((test) & ((1U << 2) - 1));
-    uint8_t r2 = ((test >> 2) & ((1U << 3) - 1));
-    uint8_t r3 = ((test >> 5) & ((1U << 3) - 1));
+    uint8_t r1 = ((test >> 0U) & ((1U << 2U) - 1));
+    uint8_t r2 = ((test >> 2U) & ((1U << 3U) - 1));
+    uint8_t r3 = ((test >> 5U) & ((1U << 3U) - 1));
 }

@@ -44,51 +44,51 @@ uint32_t WrapTest_getPosition(void) {
 }
 
 void WrapTest_incrementByteCounter(void) {
-    WrapTest_byteCounter += 10;
+    WrapTest_byteCounter += 10U;
 }
 
 void WrapTest_incrementTickCount(void) {
-    WrapTest_tickCount += 10;
+    WrapTest_tickCount += 10U;
 }
 
 void WrapTest_incrementCycleCounter(void) {
-    WrapTest_cycleCounter += 10;
+    WrapTest_cycleCounter += 10U;
 }
 
 void WrapTest_incrementBrightness(void) {
-    WrapTest_brightness += 5;
+    WrapTest_brightness += 5U;
 }
 
 void WrapTest_incrementSensorValue(void) {
-    WrapTest_sensorValue += 100;
+    WrapTest_sensorValue += 100U;
 }
 
 void WrapTest_incrementPosition(void) {
-    WrapTest_position += 1000;
+    WrapTest_position += 1000U;
 }
 
 void WrapTest_decrementBrightness(void) {
-    WrapTest_brightness -= 20;
+    WrapTest_brightness -= 20U;
 }
 
 void WrapTest_decrementSensorValue(void) {
-    WrapTest_sensorValue -= 150;
+    WrapTest_sensorValue -= 150U;
 }
 
 void WrapTest_decrementPosition(void) {
-    WrapTest_position -= 100;
+    WrapTest_position -= 100U;
 }
 
 void WrapTest_decrementByteCounter(void) {
-    WrapTest_byteCounter -= 1;
+    WrapTest_byteCounter -= 1U;
 }
 
 void WrapTest_decrementTickCount(void) {
-    WrapTest_tickCount -= 1;
+    WrapTest_tickCount -= 1U;
 }
 
 void WrapTest_decrementCycleCounter(void) {
-    WrapTest_cycleCounter -= 1;
+    WrapTest_cycleCounter -= 1U;
 }
 
 void WrapTest_setByteCounter(uint8_t val) {

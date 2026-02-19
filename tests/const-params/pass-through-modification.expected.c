@@ -11,7 +11,7 @@
 // the parameter should NOT get const (since it's effectively modified).
 // Function that modifies its parameter - should NOT get const
 void modifiesParam(uint32_t* value) {
-    (*value) = 42;
+    (*value) = 42U;
 }
 
 // Function that passes its parameter to modifiesParam
@@ -35,26 +35,26 @@ uint32_t passesThroughToReader(uint32_t value) {
 // Mixed case: reads and passes to modifier
 // Should NOT get const because of pass-through to modifier
 void mixedPassThrough(uint32_t* value) {
-    uint32_t local = (*value) + 1;
+    uint32_t local = (*value) + 1U;
     modifiesParam(value);
 }
 
 int main(void) {
-    uint32_t x = 10;
+    uint32_t x = 10U;
     modifiesParam(&x);
     if (x != 42) return 1;
-    x = 100;
+    x = 100U;
     passesThroughToModifier(&x);
     if (x != 42) return 2;
-    x = 5;
+    x = 5U;
     uint32_t result = readOnly(x);
     if (result != 6) return 3;
     if (x != 5) return 4;
-    x = 7;
+    x = 7U;
     result = passesThroughToReader(x);
     if (result != 8) return 5;
     if (x != 7) return 6;
-    x = 200;
+    x = 200U;
     mixedPassThrough(&x);
     if (x != 42) return 7;
     return 0;

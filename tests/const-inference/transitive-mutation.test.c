@@ -10,7 +10,7 @@
 /* Scope: Test */
 
 static void Test_fillData(Data* d) {
-    d->value = 42;
+    d->value = 42U;
 }
 
 void Test_loadData(Data* d) {

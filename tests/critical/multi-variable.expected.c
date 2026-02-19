@@ -51,9 +51,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-c-only
 // ADR-050: Critical section with multiple variables
 // Tests: multiple variables protected in one critical section
-uint32_t readIdx = 0;
+uint32_t readIdx = 0U;
 
-uint32_t writeIdx = 0;
+uint32_t writeIdx = 0U;
 
 uint8_t buffer[64] = {0};
 
@@ -62,9 +62,9 @@ void transfer(void) {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
         uint8_t data = buffer[readIdx];
-        readIdx = cnx_clamp_add_u32(readIdx, 1);
+        readIdx = cnx_clamp_add_u32(readIdx, 1U);
         buffer[writeIdx] = data;
-        writeIdx = cnx_clamp_add_u32(writeIdx, 1);
+        writeIdx = cnx_clamp_add_u32(writeIdx, 1U);
         __cnx_set_PRIMASK(__primask);
     }
 }

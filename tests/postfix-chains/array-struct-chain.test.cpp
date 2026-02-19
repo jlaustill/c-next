@@ -61,10 +61,10 @@ int main(void) {
     bool bit7 = ((grid[2][3].flags >> 7) & 1);
     meshes[1].indices[0] = 0;
     meshes[1].indices[11] = 7;
-    uint32_t idx = meshes[1].indices[0];
+    uint32_t idx = meshes[1U].indices[0U];
     grid[0][1].transform.scale.x = 1.0;
     grid[0][1].transform.scale.x *= 2.0;
     float sx = grid[0][1].transform.scale.x;
     grid[3][3].id = 999;
-    uint32_t entityId = grid[3][3].id;
+    uint32_t entityId = grid[3U][3U].id;
 }

@@ -48,11 +48,11 @@ bool flipBool(bool val) {
 
 // Modified functions - should pass by pointer
 void incrementU8(uint8_t& val) {
-    val += 1;
+    val += 1U;
 }
 
 void incrementU32(uint32_t& val) {
-    val += 1;
+    val += 1U;
 }
 
 void incrementI32(int32_t& val) {
@@ -64,19 +64,19 @@ void toggleBool(bool& val) {
 }
 
 int main(void) {
-    uint8_t u8Val = 10;
+    uint8_t u8Val = 10U;
     uint8_t u8Result = doubleU8(u8Val);
     if (u8Val != 10) return 1;
     if (u8Result != 20) return 2;
-    uint16_t u16Val = 1000;
+    uint16_t u16Val = 1000U;
     uint16_t u16Result = doubleU16(u16Val);
     if (u16Val != 1000) return 3;
     if (u16Result != 2000) return 4;
-    uint32_t u32Val = 100000;
+    uint32_t u32Val = 100000U;
     uint32_t u32Result = doubleU32(u32Val);
     if (u32Val != 100000) return 5;
     if (u32Result != 200000) return 6;
-    uint64_t u64Val = 1000000000;
+    uint64_t u64Val = 1000000000ULL;
     uint64_t u64Result = doubleU64(u64Val);
     if (u64Val != 1000000000) return 7;
     if (u64Result != 2000000000) return 8;
@@ -100,10 +100,10 @@ int main(void) {
     bool boolResult = flipBool(boolVal);
     if (boolVal != true) return 17;
     if (boolResult != false) return 18;
-    uint8_t modU8 = 100;
+    uint8_t modU8 = 100U;
     incrementU8(modU8);
     if (modU8 != 101) return 19;
-    uint32_t modU32 = 1000;
+    uint32_t modU32 = 1000U;
     incrementU32(modU32);
     if (modU32 != 1001) return 20;
     int32_t modI32 = -50;

@@ -8,10 +8,10 @@
 // ADR-024: Test that valid literal values work correctly
 // This should compile successfully
 int main(void) {
-    uint8_t byte = 255;
-    uint8_t zero = 0;
-    uint16_t word = 65535;
-    uint32_t dword = 4294967295;
+    uint8_t byte = 255U;
+    uint8_t zero = 0U;
+    uint16_t word = 65535U;
+    uint32_t dword = 4294967295U;
     int8_t sbyte = -128;
     int8_t sbyte_max = 127;
     int16_t sword = -32768;

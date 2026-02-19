@@ -17,37 +17,37 @@ void Sensor_addReading(uint16_t val, uint8_t ch) {
     if (Sensor_count < 4) {
         Sensor_buffer[Sensor_count].value = val;
         Sensor_buffer[Sensor_count].channel = ch;
-        Sensor_count = Sensor_count + 1;
+        Sensor_count = Sensor_count + 1U;
     }
 }
 
 uint16_t Sensor_sumValues(void) {
-    uint16_t total = 0;
-    uint8_t i = 0;
+    uint16_t total = 0U;
+    uint8_t i = 0U;
     while (i < Sensor_count) {
         total = total + Sensor_buffer[i].value;
-        i = i + 1;
+        i = i + 1U;
     }
     return total;
 }
 
 void Sensor_clear(void) {
-    uint8_t i = 0;
+    uint8_t i = 0U;
     while (i < 4) {
         Sensor_buffer[i].value = 0;
         Sensor_buffer[i].channel = 0;
-        i = i + 1;
+        i = i + 1U;
     }
-    Sensor_count = 0;
+    Sensor_count = 0U;
 }
 
 int main(void) {
     if (Sensor_count != 0) return 1;
-    uint8_t i = 0;
+    uint8_t i = 0U;
     while (i < 3) {
-        uint16_t val = static_cast<uint16_t>((100 + i * 10));
+        uint16_t val = static_cast<uint16_t>((100U + i * 10U));
         Sensor_addReading(val, i);
-        i = i + 1;
+        i = i + 1U;
     }
     if (Sensor_count != 3) return 2;
     if (Sensor_buffer[0].value != 100) return 3;
@@ -61,11 +61,11 @@ int main(void) {
     Sensor_clear();
     if (Sensor_count != 0) return 10;
     if (Sensor_buffer[0].value != 0) return 11;
-    i = 0;
+    i = 0U;
     while (i < 2) {
         Sensor_buffer[i].value = static_cast<uint16_t>((200 + i));
         Sensor_buffer[i].channel = i;
-        i = i + 1;
+        i = i + 1U;
     }
     Sensor_count = 2;
     if (Sensor_buffer[0].value != 200) return 12;

@@ -18,8 +18,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.4 - for loop non-boolean condition error
 // Tests: Error when using non-boolean expression as for condition
 void test(void) {
-    uint32_t count = 0;
+    uint32_t count = 0U;
     for (uint32_t i = 10; i; i = i - 1) {
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
     }
 }

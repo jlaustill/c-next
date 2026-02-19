@@ -18,8 +18,8 @@ uint8_t Handler_process(const MyData& data) {
 
 int main(void) {
     MyData data = {0};
-    data.value = 42;
-    data.count = 1;
+    data.value = 42U;
+    data.count = 1U;
     uint8_t result = Handler_process(data);
     if (result != 42) return 1;
     return 0;

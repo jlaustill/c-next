@@ -8,9 +8,9 @@
 // ADR-035: Size Inference Test
 // Tests: u8 data[] <- [1, 2, 3] infers size 3
 // Inferred size from element count
-uint8_t data[5] = {1, 2, 3, 4, 5};
+uint8_t data[5] = {1U, 2U, 3U, 4U, 5U};
 
 // Different types with inference
-uint16_t words[3] = {100, 200, 300};
+uint16_t words[3] = {100U, 200U, 300U};
 
 int32_t nums[11] = {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5};

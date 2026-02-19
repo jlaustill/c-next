@@ -39,7 +39,7 @@ int main(void) {
     if (va.values[0] != 0) return 5;
     if (va.values[1] != 100) return 6;
     if (va.values[7] != 700) return 7;
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (uint32_t i = 0; i < va.count; i += 1) {
         sum = cnx_clamp_add_u32(sum, va.values[i]);
     }

@@ -9,19 +9,19 @@
 // test-execution
 // Tests: Variable initialization inside loops
 int main(void) {
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
         sum = sum + i;
     }
     if (sum != 10) return 1;
-    uint32_t count = 0;
+    uint32_t count = 0U;
     while (count < 3) {
-        uint32_t temp = count * 2;
+        uint32_t temp = count * 2U;
         sum = sum + temp;
-        count = count + 1;
+        count = count + 1U;
     }
     if (sum != 16) return 2;
-    uint32_t product = 1;
+    uint32_t product = 1U;
     for (uint32_t i = 1; i <= 3; i = i + 1) {
         for (uint32_t j = 1; j <= 2; j = j + 1) {
             uint32_t factor = i * j;
@@ -30,7 +30,7 @@ int main(void) {
     }
     if (product != 288) return 3;
     for (uint32_t i = 0; i < 3; i = i + 1) {
-        uint32_t value = i * 10;
+        uint32_t value = i * 10U;
         sum = sum + value;
     }
     if (sum != 46) return 4;

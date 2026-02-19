@@ -20,11 +20,11 @@ int main(void) {
     if (extern_counter != 50) return 3;
     uint32_t magic = EXTERN_MAGIC_NUMBER;
     if (magic != 0xCAFEBABE) return 4;
-    uint8_t first = extern_lookup_table[0];
-    uint8_t last = extern_lookup_table[15];
+    uint8_t first = extern_lookup_table[0U];
+    uint8_t last = extern_lookup_table[15U];
     if (first != 0x00) return 5;
     if (last != 0xFF) return 6;
-    uint32_t sum = extern_lookup_table[1] + extern_lookup_table[2];
+    uint32_t sum = extern_lookup_table[1U] + extern_lookup_table[2U];
     if (sum != 0x33) return 7;
     uint32_t status = extern_status_register;
     if (status != 0) return 8;

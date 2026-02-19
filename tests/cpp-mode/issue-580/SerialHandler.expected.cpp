@@ -28,8 +28,8 @@ void SerialHandler_handlePreset(Config& config) {
         Serial_println(3);
         return;
     }
-    uint8_t input = 1;
-    uint8_t preset = 2;
+    uint8_t input = 1U;
+    uint8_t preset = 2U;
     CommandHandler_applyPreset(config, input, preset);
 }
 

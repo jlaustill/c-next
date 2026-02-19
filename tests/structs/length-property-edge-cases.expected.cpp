@@ -45,10 +45,10 @@ uint32_t testParam(const AllTypes& data) {
 
 int main(void) {
     AllTypes data = {0};
-    data.field_u8 = 1;
-    data.field_u16 = 2;
-    data.field_u32 = 3;
-    data.field_u64 = 4;
+    data.field_u8 = 1U;
+    data.field_u16 = 2U;
+    data.field_u32 = 3U;
+    data.field_u64 = 4ULL;
     data.field_i8 = -1;
     data.field_i16 = -2;
     data.field_i32 = -3;
@@ -61,7 +61,7 @@ int main(void) {
     if (result != 0) return result;
     uint32_t totalBits = 56;
     if (totalBits != 56) return 100;
-    uint32_t totalBytes = (48) / 8;
+    uint32_t totalBytes = (48) / 8U;
     if (totalBytes != 6) return 101;
     uint32_t len1 = 32;
     uint32_t len2 = 16;

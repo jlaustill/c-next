@@ -7,4 +7,4 @@
 
 // Configuration constants for external-const-array test
 // Tests: Issue #461 - Array dimensions should use literal values from external constants
-extern const uint8_t DEVICE_COUNT = 4;
+extern const uint8_t DEVICE_COUNT = 4U;

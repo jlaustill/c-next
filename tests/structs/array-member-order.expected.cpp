@@ -35,12 +35,12 @@ int main(void) {
     cfg.items[1].flags = 0x02;
     cfg.items[2].value = 300;
     cfg.items[2].flags = 0x04;
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (uint32_t i = 0; i < 3; i += 1) {
         sum = cnx_clamp_add_u32(sum, cfg.items[i].value);
     }
-    uint32_t first = cfg.items[0].value;
-    uint8_t firstFlags = cfg.items[0].flags;
+    uint32_t first = cfg.items[0U].value;
+    uint8_t firstFlags = cfg.items[0U].flags;
     if (sum != 600) {
         return 1;
     }

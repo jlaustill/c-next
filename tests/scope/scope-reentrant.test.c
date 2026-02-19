@@ -13,7 +13,7 @@
 // Issue #232: Variables used in only ONE function become function-local,
 // making them reentrant. Variables used in multiple functions stay shared.
 // Pass a value through a global to avoid scope method call argument issue
-uint32_t call_arg = 0;
+uint32_t call_arg = 0U;
 
 /* Scope: Reentrant */
 static uint32_t Reentrant_outer_temp = 0;
@@ -26,13 +26,13 @@ uint32_t Reentrant_inner(void) {
 
 uint32_t Reentrant_outer(uint32_t x) {
     Reentrant_outer_temp = x;
-    call_arg = x + 100;
+    call_arg = x + 100U;
     uint32_t inner_result = Reentrant_inner();
     return Reentrant_outer_temp;
 }
 
 int main(void) {
-    uint32_t result = Reentrant_outer(10);
+    uint32_t result = Reentrant_outer(10U);
     if (result != 10) return 1;
     return 0;
 }

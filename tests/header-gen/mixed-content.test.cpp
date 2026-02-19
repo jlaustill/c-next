@@ -19,11 +19,11 @@ typedef struct Config {
     EStatus status;
 } Config;
 
-Config globalConfig = (Config){ .timeout = 1000, .retries = 3, .status = EStatus_STATUS_IDLE };
+Config globalConfig = (Config){ .timeout = 1000U, .retries = 3U, .status = EStatus_STATUS_IDLE };
 
 void initConfig(void) {
-    globalConfig.timeout = 5000;
-    globalConfig.retries = 5;
+    globalConfig.timeout = 5000U;
+    globalConfig.retries = 5U;
     globalConfig.status = EStatus_STATUS_IDLE;
 }
 

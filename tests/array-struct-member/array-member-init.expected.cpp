@@ -21,7 +21,7 @@ typedef struct Packet {
 
 int main(void) {
     Config cfg = {0};
-    cfg.version = 1;
+    cfg.version = 1U;
     cfg.flags[0] = 0x01;
     cfg.flags[1] = 0x02;
     cfg.flags[2] = 0x04;
@@ -32,7 +32,7 @@ int main(void) {
     if (cfg.flags[2] != 0x04) return 4;
     if (cfg.flags[3] != 0x08) return 5;
     Packet pkt = {0};
-    pkt.checksum = 0;
+    pkt.checksum = 0U;
     pkt.header[0] = 0xAA;
     pkt.header[1] = 0xBB;
     pkt.header[2] = 0xCC;
@@ -45,18 +45,18 @@ int main(void) {
     pkt.payload[5] = 6;
     pkt.payload[6] = 7;
     pkt.payload[7] = 8;
-    pkt.checksum += pkt.header[0];
-    pkt.checksum += pkt.header[1];
-    pkt.checksum += pkt.header[2];
-    pkt.checksum += pkt.header[3];
-    pkt.checksum += pkt.payload[0];
-    pkt.checksum += pkt.payload[1];
-    pkt.checksum += pkt.payload[2];
-    pkt.checksum += pkt.payload[3];
-    pkt.checksum += pkt.payload[4];
-    pkt.checksum += pkt.payload[5];
-    pkt.checksum += pkt.payload[6];
-    pkt.checksum += pkt.payload[7];
+    pkt.checksum += pkt.header[0U];
+    pkt.checksum += pkt.header[1U];
+    pkt.checksum += pkt.header[2U];
+    pkt.checksum += pkt.header[3U];
+    pkt.checksum += pkt.payload[0U];
+    pkt.checksum += pkt.payload[1U];
+    pkt.checksum += pkt.payload[2U];
+    pkt.checksum += pkt.payload[3U];
+    pkt.checksum += pkt.payload[4U];
+    pkt.checksum += pkt.payload[5U];
+    pkt.checksum += pkt.payload[6U];
+    pkt.checksum += pkt.payload[7U];
     if (pkt.header[0] != 0xAA) return 6;
     if (pkt.header[3] != 0xDD) return 7;
     if (pkt.payload[0] != 1) return 8;

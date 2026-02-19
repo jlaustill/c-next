@@ -54,14 +54,14 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // See GitHub issue #473
 uint8_t buffer[64] = {0};
 
-uint32_t writeIdx = 0;
+uint32_t writeIdx = 0U;
 
 void enqueue(uint8_t data) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
         buffer[writeIdx] = data;
-        writeIdx = cnx_clamp_add_u32(writeIdx, 1);
+        writeIdx = cnx_clamp_add_u32(writeIdx, 1U);
         __cnx_set_PRIMASK(__primask);
     }
 }

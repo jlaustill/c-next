@@ -16,9 +16,9 @@
 static uint32_t Calculator_operationCount = 0;
 
 uint32_t Calculator_addAndCount(uint32_t value) {
-    uint32_t accumulator = 0;
+    uint32_t accumulator = 0U;
     accumulator = accumulator + value;
-    Calculator_operationCount = Calculator_operationCount + 1;
+    Calculator_operationCount = Calculator_operationCount + 1U;
     return accumulator;
 }
 
@@ -27,15 +27,15 @@ uint32_t Calculator_getOperationCount(void) {
 }
 
 int main(void) {
-    uint32_t result1 = Calculator_addAndCount(10);
+    uint32_t result1 = Calculator_addAndCount(10U);
     if (result1 != 10) return 1;
     uint32_t count1 = Calculator_getOperationCount();
     if (count1 != 1) return 2;
-    uint32_t result2 = Calculator_addAndCount(5);
+    uint32_t result2 = Calculator_addAndCount(5U);
     if (result2 != 5) return 3;
     uint32_t count2 = Calculator_getOperationCount();
     if (count2 != 2) return 4;
-    uint32_t result3 = Calculator_addAndCount(7);
+    uint32_t result3 = Calculator_addAndCount(7U);
     if (result3 != 7) return 5;
     uint32_t count3 = Calculator_getOperationCount();
     if (count3 != 3) return 6;

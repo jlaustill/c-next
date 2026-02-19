@@ -53,13 +53,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
-volatile uint32_t sharedCounter = 0;
+volatile uint32_t sharedCounter = 0U;
 
-volatile uint16_t sequence = 0;
+volatile uint16_t sequence = 0U;
 
 uint8_t buffer[64] = {0};
 
-uint32_t writeIdx = 0;
+uint32_t writeIdx = 0U;
 
 // Atomic operation within critical section
 void criticalUpdate(void) {
@@ -68,12 +68,12 @@ void criticalUpdate(void) {
         __cnx_disable_irq();
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
-            uint32_t __new = cnx_clamp_add_u32(__old, 1);
+            uint32_t __new = cnx_clamp_add_u32(__old, 1U);
             if (__STREXW(__new, &sharedCounter) == 0) break;
         } while (1);
         do {
             uint16_t __old = __LDREXH(&sequence);
-            uint16_t __new = __old + 1;
+            uint16_t __new = __old + 1U;
             if (__STREXH(__new, &sequence) == 0) break;
         } while (1);
         __cnx_set_PRIMASK(__primask);
@@ -86,10 +86,10 @@ void enqueueWithCount(uint8_t data) {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
         buffer[writeIdx] = data;
-        writeIdx = cnx_clamp_add_u32(writeIdx, 1);
+        writeIdx = cnx_clamp_add_u32(writeIdx, 1U);
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
-            uint32_t __new = cnx_clamp_add_u32(__old, 1);
+            uint32_t __new = cnx_clamp_add_u32(__old, 1U);
             if (__STREXW(__new, &sharedCounter) == 0) break;
         } while (1);
         __cnx_set_PRIMASK(__primask);
@@ -108,7 +108,7 @@ void batchUpdate(uint32_t delta) {
         } while (1);
         do {
             uint16_t __old = __LDREXH(&sequence);
-            uint16_t __new = __old + 1;
+            uint16_t __new = __old + 1U;
             if (__STREXH(__new, &sequence) == 0) break;
         } while (1);
         __cnx_set_PRIMASK(__primask);
@@ -123,7 +123,7 @@ void conditionalIncrement(void) {
         if (sharedCounter < 1000) {
             do {
                 uint32_t __old = __LDREXW(&sharedCounter);
-                uint32_t __new = cnx_clamp_add_u32(__old, 1);
+                uint32_t __new = cnx_clamp_add_u32(__old, 1U);
                 if (__STREXW(__new, &sharedCounter) == 0) break;
             } while (1);
         }

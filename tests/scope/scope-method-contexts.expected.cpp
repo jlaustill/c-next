@@ -30,11 +30,11 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Verifies that this. and global. accessors work correctly in all method contexts
 // Tests: public methods, private methods, local variables with modifiers, combined access patterns
 // Global variables for testing global. accessor in all method contexts
-extern const uint8_t GLOBAL_MAX = 100;
+extern const uint8_t GLOBAL_MAX = 100U;
 
-extern const uint16_t GLOBAL_THRESHOLD = 1000;
+extern const uint16_t GLOBAL_THRESHOLD = 1000U;
 
-uint8_t globalCounter = 50;
+uint8_t globalCounter = 50U;
 
 bool globalEnabled = true;
 
@@ -71,11 +71,11 @@ static uint8_t MethodContexts_getPrivateWrapValue(void) {
 }
 
 static void MethodContexts_incrementPrivateClamp(void) {
-    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 100);
+    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 100U);
 }
 
 static void MethodContexts_incrementPrivateWrap(void) {
-    MethodContexts_privateWrapValue += 10;
+    MethodContexts_privateWrapValue += 10U;
 }
 
 static bool MethodContexts_getPrivateFlag(void) {
@@ -135,11 +135,11 @@ uint16_t MethodContexts_getPublicWrapValue(void) {
 }
 
 void MethodContexts_incrementPublicClamp(void) {
-    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 10000);
+    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 10000U);
 }
 
 void MethodContexts_incrementPublicWrap(void) {
-    MethodContexts_publicWrapValue += 10;
+    MethodContexts_publicWrapValue += 10U;
 }
 
 bool MethodContexts_getPublicFlag(void) {
@@ -215,17 +215,17 @@ uint8_t MethodContexts_getPrivateClampViaInternal(void) {
 }
 
 void MethodContexts_modifyAllPrivate(void) {
-    MethodContexts_privateValue = MethodContexts_privateValue + 1;
-    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 10);
-    MethodContexts_privateWrapValue += 5;
+    MethodContexts_privateValue = MethodContexts_privateValue + 1U;
+    MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 10U);
+    MethodContexts_privateWrapValue += 5U;
     MethodContexts_privateFlag = !MethodContexts_privateFlag;
     MethodContexts_privateOffset = MethodContexts_privateOffset - 10;
 }
 
 void MethodContexts_modifyAllPublic(void) {
-    MethodContexts_publicValue = MethodContexts_publicValue + 1;
-    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 100);
-    MethodContexts_publicWrapValue += 5;
+    MethodContexts_publicValue = MethodContexts_publicValue + 1U;
+    MethodContexts_publicClampValue = cnx_clamp_add_u16(MethodContexts_publicClampValue, 100U);
+    MethodContexts_publicWrapValue += 5U;
     MethodContexts_publicFlag = !MethodContexts_publicFlag;
     MethodContexts_publicOffset = MethodContexts_publicOffset - 100;
 }

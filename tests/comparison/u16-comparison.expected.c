@@ -10,11 +10,11 @@
 // Tests: u16 comparison operations (<, >, <=, >=, =, !=)
 // Coverage: Section 3.3-3.6 for u16 type
 int main(void) {
-    uint16_t a = 30000;
-    uint16_t b = 15000;
-    uint16_t c = 30000;
-    uint16_t zero = 0;
-    uint16_t max_val = 65535;
+    uint16_t a = 30000U;
+    uint16_t b = 15000U;
+    uint16_t c = 30000U;
+    uint16_t zero = 0U;
+    uint16_t max_val = 65535U;
     if ((a == c) != true) return 1;
     if ((a == b) != false) return 2;
     if ((zero == 0) != true) return 3;
@@ -41,7 +41,7 @@ int main(void) {
     if ((b >= a) != false) return 24;
     if ((max_val >= zero) != true) return 25;
     if ((max_val >= max_val) != true) return 26;
-    uint16_t almost_max = 65534;
+    uint16_t almost_max = 65534U;
     if ((max_val > almost_max) != true) return 27;
     if ((almost_max < max_val) != true) return 28;
     if ((15000 < a) != true) return 29;

@@ -109,62 +109,62 @@ Controller_EStatus Controller_getStatus(void) {
 
 // === MAIN TEST FUNCTION ===
 int main(void) {
-    uint32_t errors = 0;
+    uint32_t errors = 0U;
     EGlobalState state = EGlobalState_IDLE;
     if (state != EGlobalState_IDLE) {
-        errors = errors + 1;
+        errors = errors + 1U;
     }
     state = EGlobalState_RUNNING;
     if (state != EGlobalState_RUNNING) {
-        errors = errors + 2;
+        errors = errors + 2U;
     }
     if (state != EGlobalState_RUNNING) {
-        errors = errors + 4;
+        errors = errors + 4U;
     }
     Motor_setMode(Motor_EMode_LOW);
     Motor_EMode motorMode = Motor_getMode();
     if (motorMode != Motor_EMode_LOW) {
-        errors = errors + 8;
+        errors = errors + 8U;
     }
     bool isOff = Motor_isOff();
     if (isOff) {
-        errors = errors + 16;
+        errors = errors + 16U;
     }
     bool isLow = Motor_isMode(Motor_EMode_LOW);
     if (!isLow) {
-        errors = errors + 32;
+        errors = errors + 32U;
     }
     Motor_setAtomicMode(Motor_EMode_HIGH);
     Motor_EMode atomicResult = Motor_getAtomicMode();
     if (atomicResult != Motor_EMode_HIGH) {
-        errors = errors + 64;
+        errors = errors + 64U;
     }
     Motor_criticalEnumUpdate();
     Motor_EMode afterCritical = Motor_getMode();
     if (afterCritical != Motor_EMode_HIGH) {
-        errors = errors + 128;
+        errors = errors + 128U;
     }
     Controller_setMotorMode();
     EGlobalState loopState = EGlobalState_IDLE;
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < 3) {
         if (loopState == EGlobalState_IDLE) {
             loopState = EGlobalState_RUNNING;
         } else {
             loopState = EGlobalState_STOPPED;
         }
-        i = i + 1;
+        i = i + 1U;
     }
     if (loopState != EGlobalState_STOPPED) {
-        errors = errors + 256;
+        errors = errors + 256U;
     }
     EGlobalState fromScope = Motor_getGlobalState();
     if (fromScope != EGlobalState_IDLE) {
-        errors = errors + 512;
+        errors = errors + 512U;
     }
     Controller_EStatus ctrlStatus = Controller_getStatus();
     if (ctrlStatus != Controller_EStatus_OK) {
-        errors = errors + 1024;
+        errors = errors + 1024U;
     }
     return errors;
 }

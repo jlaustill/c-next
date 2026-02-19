@@ -18,9 +18,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // ADR-027: Basic do-while loop with comparison condition
 int main(void) {
-    uint32_t count = 0;
+    uint32_t count = 0U;
     do {
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
     } while (count < 10);
     if (count == 10) {
         return 0;

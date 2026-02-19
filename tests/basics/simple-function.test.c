@@ -27,7 +27,7 @@ uint32_t multiply(uint32_t x, uint32_t y) {
 uint32_t counter = 0;
 
 void incrementCounter(void) {
-    counter = counter + 1;
+    counter = counter + 1U;
 }
 
 // Function calling another function
@@ -39,17 +39,17 @@ uint32_t addThenDouble(uint32_t a, uint32_t b) {
 int main(void) {
     uint32_t result = getFortyTwo();
     if (result != 42) return 1;
-    result = add(10, 20);
+    result = add(10U, 20U);
     if (result != 30) return 2;
-    result = multiply(6, 7);
+    result = multiply(6U, 7U);
     if (result != 42) return 3;
-    counter = 0;
+    counter = 0U;
     incrementCounter();
     if (counter != 1) return 4;
     incrementCounter();
     incrementCounter();
     if (counter != 3) return 5;
-    result = addThenDouble(5, 10);
+    result = addThenDouble(5U, 10U);
     if (result != 30) return 6;
     return 0;
 }

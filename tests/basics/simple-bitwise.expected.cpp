@@ -10,28 +10,28 @@
 // Tests: Bitwise operators
 // Demonstrates: &, |, ^, ~, <<, >>
 int main(void) {
-    uint8_t a = 0b11110000;
-    uint8_t b = 0b10101010;
+    uint8_t a = 0b11110000U;
+    uint8_t b = 0b10101010U;
     uint8_t result = a & b;
     if (result != 0b10100000) return 1;
     result = a | b;
     if (result != 0b11111010) return 2;
     result = a ^ b;
     if (result != 0b01011010) return 3;
-    uint8_t c = 0b00001111;
+    uint8_t c = 0b00001111U;
     uint8_t notC = ~c;
     if (notC != 0b11110000) return 4;
-    uint8_t d = 0b00000001;
-    uint8_t shifted = d << 4;
+    uint8_t d = 0b00000001U;
+    uint8_t shifted = d << 4U;
     if (shifted != 0b00010000) return 5;
-    uint8_t e = 0b10000000;
-    shifted = e >> 4;
+    uint8_t e = 0b10000000U;
+    shifted = e >> 4U;
     if (shifted != 0b00001000) return 6;
-    uint8_t flags = 0b00000000;
-    flags = flags | 0b00000001;
-    flags = flags | 0b00000100;
+    uint8_t flags = 0b00000000U;
+    flags = flags | 0b00000001U;
+    flags = flags | 0b00000100U;
     if (flags != 0b00000101) return 7;
-    flags = flags & ~0b00000001;
+    flags = flags & ~0b00000001U;
     if (flags != 0b00000100) return 8;
     bool bit2Set = ((flags & 0b00000100) != 0);
     if (bit2Set != true) return 9;

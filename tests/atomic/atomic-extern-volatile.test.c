@@ -26,9 +26,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Global atomic variables should generate volatile extern declarations
 volatile TReading readings[4] = {0};
 
-volatile uint32_t counter = 0;
+volatile uint32_t counter = 0U;
 
-volatile uint8_t flags = 0;
+volatile uint8_t flags = 0U;
 
 /* Scope: Manager */
 
@@ -36,10 +36,10 @@ void Manager_test(void) {
     readings[0].valid = true;
     do {
         uint32_t __old = __LDREXW(&counter);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1);
+        uint32_t __new = cnx_clamp_add_u32(__old, 1U);
         if (__STREXW(__new, &counter) == 0) break;
     } while (1);
-    flags = 0xFF;
+    flags = 0xFFU;
 }
 
 int main(void) {

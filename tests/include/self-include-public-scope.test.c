@@ -26,9 +26,9 @@ uint32_t Calculator_multiply(uint32_t a, uint32_t b) {
 }
 
 int main(void) {
-    uint32_t result = Calculator_add(5, 3);
+    uint32_t result = Calculator_add(5U, 3U);
     if (result != 8) return 1;
-    result = Calculator_multiply(3, 4);
+    result = Calculator_multiply(3U, 4U);
     if (result != 25) return 2;
     return 0;
 }

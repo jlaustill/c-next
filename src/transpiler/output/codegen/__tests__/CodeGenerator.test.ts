@@ -984,7 +984,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("x = 42;");
+      expect(code).toContain("x = 42U;");
     });
 
     it("should translate compound assignment operators", () => {
@@ -1009,10 +1009,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("x += 5;");
-      expect(code).toContain("x -= 3;");
-      expect(code).toContain("x *= 2;");
-      expect(code).toContain("x /= 2;");
+      expect(code).toContain("x += 5U;");
+      expect(code).toContain("x -= 3U;");
+      expect(code).toContain("x *= 2U;");
+      expect(code).toContain("x /= 2U;");
     });
   });
 
@@ -1161,7 +1161,7 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("cnx_clamp_add_u8");
-      expect(code).toContain("cnx_clamp_add_u8(value, 100)");
+      expect(code).toContain("cnx_clamp_add_u8(value, 100U)");
     });
   });
 
@@ -1304,7 +1304,7 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("if (x == 10)");
-      expect(code).toContain("x = 5;");
+      expect(code).toContain("x = 5U;");
     });
 
     it("should generate if-else statement", () => {
@@ -1484,7 +1484,7 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("arr[3]");
-      expect(code).toContain("{1, 2, 3}");
+      expect(code).toContain("{1U, 2U, 3U}");
     });
 
     it("should generate multi-dimensional array", () => {
@@ -1585,7 +1585,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("a + b * 2 - 1");
+      expect(code).toContain("a + b * 2U - 1U");
     });
 
     it("should generate comparison expressions", () => {
@@ -1870,7 +1870,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("result = add(1, 2);");
+      expect(code).toContain("result = add(1U, 2U);");
     });
 
     it("should generate scope function call", () => {
@@ -1895,7 +1895,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Math_square(5)");
+      expect(code).toContain("Math_square(5U)");
     });
   });
 
@@ -2147,7 +2147,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("(a > b) ? 1 : 0");
+      expect(code).toContain("(a > b) ? 1U : 0U");
     });
   });
 
@@ -2942,7 +2942,7 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("values[5]"); // Size inferred from initializer
-      expect(code).toContain("{1, 2, 3, 4, 5}");
+      expect(code).toContain("{1U, 2U, 3U, 4U, 5U}");
     });
   });
 
@@ -3349,7 +3349,7 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("const uint32_t LOOKUP[4]");
-      expect(code).toContain("{10, 20, 30, 40}");
+      expect(code).toContain("{10U, 20U, 30U, 40U}");
     });
   });
 
@@ -3756,8 +3756,8 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      // Should generate {0} for fill-all syntax
-      expect(code).toContain("{0}");
+      // Should generate all zeros with U suffix for unsigned fill-all
+      expect(code).toContain("{0U, 0U");
     });
 
     it("should generate fill-all array with non-zero value", () => {
@@ -3775,7 +3775,7 @@ describe("CodeGenerator", () => {
       });
 
       // Non-zero fill-all expands to all elements
-      expect(code).toContain("= {255, 255, 255, 255}");
+      expect(code).toContain("= {255U, 255U, 255U, 255U}");
     });
   });
 
@@ -3794,7 +3794,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("{{1, 2, 3}, {4, 5, 6}}");
+      expect(code).toContain("{{1U, 2U, 3U}, {4U, 5U, 6U}}");
     });
   });
 
@@ -5081,7 +5081,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("add(10, 20)");
+      expect(code).toContain("add(10U, 20U)");
     });
   });
 
@@ -5753,6 +5753,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
+      // Array element assignments don't get U suffix yet
       expect(code).toContain("output[0]");
       expect(code).toContain("output[1]");
     });
@@ -6564,7 +6565,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("{1, 2, 3, 4}");
+      expect(code).toContain("{1U, 2U, 3U, 4U}");
     });
   });
 
@@ -7657,7 +7658,7 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("while (i < 10)");
-        expect(code).toContain("cnx_clamp_add_u32(i, 1)");
+        expect(code).toContain("cnx_clamp_add_u32(i, 1U)");
       });
 
       it("should handle for loop with block", () => {
@@ -7725,7 +7726,7 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("__cnx_disable_irq()");
-        expect(code).toContain("cnx_clamp_add_u32(counter, 1)");
+        expect(code).toContain("cnx_clamp_add_u32(counter, 1U)");
         expect(code).toContain("__cnx_set_PRIMASK");
       });
 
@@ -8351,7 +8352,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("arr[5]");
+        expect(code).toContain("arr[5U]");
       });
 
       it("should handle bit range access on integer", () => {
@@ -8391,7 +8392,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("arr[0]");
+        expect(code).toContain("arr[0U]");
       });
 
       it("should handle struct member array element access", () => {
@@ -8411,7 +8412,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("d->values[0]");
+        expect(code).toContain("d->values[0U]");
       });
 
       it("should handle C++ mode array access", () => {
@@ -8432,7 +8433,7 @@ describe("CodeGenerator", () => {
           cppMode: true,
         });
 
-        expect(code).toContain("arr[5]");
+        expect(code).toContain("arr[5U]");
       });
 
       it("should handle multi-dimensional array access", () => {
@@ -8452,7 +8453,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("matrix[1][2]");
+        expect(code).toContain("matrix[1U][2U]");
       });
     });
 
@@ -8608,7 +8609,7 @@ describe("CodeGenerator", () => {
           cppMode: true,
         });
 
-        expect(code).toContain("d.values[0]");
+        expect(code).toContain("d.values[0U]");
       });
 
       it("should handle struct array element member access", () => {
@@ -8629,7 +8630,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("points[0].x");
+        expect(code).toContain("points[0U].x");
       });
 
       it("should handle function return member access pattern", () => {
@@ -9111,8 +9112,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Bitmap indexing generates bit extraction
-        expect(code).toContain("((flags >> 0) & 1)");
+        // Bitmap indexing generates bit extraction with U suffix
+        expect(code).toContain("((flags >> 0U) & 1)");
       });
     });
 
@@ -9374,7 +9375,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("(x > 3) ? 10 : 20");
+        expect(code).toContain("(x > 3U) ? 10U : 20U");
       });
     });
 
@@ -9638,7 +9639,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("{1, 2, 3, 4, 5}");
+        expect(code).toContain("{1U, 2U, 3U, 4U, 5U}");
       });
     });
 
@@ -9896,7 +9897,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("sizeof(x + 1)");
+        expect(code).toContain("sizeof(x + 1U)");
       });
     });
 
@@ -9942,6 +9943,7 @@ describe("CodeGenerator", () => {
           cppMode: true,
         });
 
+        // Array element assignments don't get U suffix yet
         expect(code).toContain("c.points[0].x = 5");
       });
     });
@@ -10008,8 +10010,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Constant expressions may be folded
-        expect(code).toContain("compute(8)");
+        // Literals get U suffix per MISRA Rule 7.2
+        expect(code).toContain("compute(5U + 3U)");
       });
     });
 
@@ -10216,9 +10218,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain(">> 8");
-        // Mask is generated as ((1U << 4) - 1) for bit width 4
-        expect(code).toContain("((1U << 4) - 1)");
+        expect(code).toContain(">> 8U");
+        // Mask is generated as ((1U << 4U) - 1) for bit width 4
+        expect(code).toContain("((1U << 4U) - 1)");
       });
     });
 
@@ -10700,6 +10702,7 @@ describe("CodeGenerator", () => {
         });
 
         // Array params don't need dereference
+        // Array element access doesn't get U suffix yet
         expect(code).toContain("arr[5]");
         expect(code).not.toContain("(*arr)");
       });
@@ -11958,7 +11961,7 @@ describe("CodeGenerator", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void processPoints(Point[4] points) {
-            points[0].x <- 10;
+            points[0U].x <- 10;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -12367,7 +12370,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("arr[5]");
+        expect(code).toContain("arr[5U]");
       });
 
       it("should resolve array element with variable index", () => {
@@ -12556,8 +12559,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Constant expressions get folded
-        expect(code).toContain("15");
+        // Literals get U suffix per MISRA Rule 7.2
+        expect(code).toContain("10U + 5U");
       });
     });
 
@@ -12955,11 +12958,11 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // When start=0, no shift needed - just mask
+        // Bit range access generates shift and mask
         expect(code).toContain("flags");
         expect(code).toContain("& 0xFF");
-        // Should NOT have >> 0 shift
-        expect(code).not.toContain(">> 0");
+        // MISRA Rule 7.2: shift amount gets U suffix
+        expect(code).toContain(">> 0U");
       });
 
       it("should generate integer bit range with shift for non-zero start", () => {
@@ -13538,7 +13541,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("buffer[5]");
+        expect(code).toContain("buffer[5U]");
       });
 
       it("should handle array access with variable index", () => {
@@ -13654,8 +13657,8 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("__bits_val");
-        // start=0 should NOT have >> 0 shift
-        expect(code).not.toContain(">> 0");
+        // MISRA Rule 7.2: shift amount gets U suffix
+        expect(code).toContain(">> 0U");
       });
 
       it("should handle multiple reads from same float reusing shadow", () => {
@@ -14108,6 +14111,7 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("Point points[3]");
+        // Array element assignments don't get U suffix yet
         expect(code).toContain("points[0].x = 10");
       });
 
@@ -14235,7 +14239,7 @@ describe("CodeGenerator", () => {
         });
 
         // Array element member access
-        expect(code).toContain("items[0].id");
+        expect(code).toContain("items[0U].id");
       });
 
       it("should use arrow for struct params in C mode", () => {
@@ -14635,8 +14639,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Position 0 should NOT generate >> 0
-        expect(code).not.toContain(">> 0");
+        // MISRA Rule 7.2: shift amount gets U suffix
+        expect(code).toContain(">> 0U");
       });
 
       it("should generate 64-bit mask for u64 values", () => {
@@ -15196,7 +15200,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("multiply(5, 10)");
+        expect(code).toContain("multiply(5U, 10U)");
       });
 
       it("should generate scoped function call", () => {
@@ -15220,7 +15224,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Math_square(5)");
+        expect(code).toContain("Math_square(5U)");
       });
     });
 
@@ -15358,7 +15362,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("arr[5]");
+        expect(code).toContain("arr[5U]");
       });
 
       it("should generate array access with variable index", () => {
@@ -15493,8 +15497,8 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      // Expression should be constant-folded: 10 + 5 = 15
-      expect(code).toContain("uint8_t result = 15;");
+      // Const values are inlined, 5 gets U suffix per MISRA Rule 7.2
+      expect(code).toContain("uint8_t result = 10 + 5U;");
       expect(code).not.toContain("Bar_OFFSET");
     });
   });

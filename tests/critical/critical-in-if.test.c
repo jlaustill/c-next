@@ -60,7 +60,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // test-coverage: 33.2-critical-inside-if
 // Coverage: Section 7.7, 33.2 - Critical section inside if statements
 // Tests: critical sections inside if/else branches
-uint32_t sharedValue = 0;
+uint32_t sharedValue = 0U;
 
 bool flag = false;
 
@@ -69,7 +69,7 @@ void criticalInIfBranch(void) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedValue = cnx_clamp_add_u32(sharedValue, 10);
+            sharedValue = cnx_clamp_add_u32(sharedValue, 10U);
             __cnx_set_PRIMASK(__primask);
         }
     }
@@ -77,12 +77,12 @@ void criticalInIfBranch(void) {
 
 void criticalInElseBranch(void) {
     if (flag == true) {
-        sharedValue = cnx_clamp_add_u32(sharedValue, 1);
+        sharedValue = cnx_clamp_add_u32(sharedValue, 1U);
     } else {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedValue = cnx_clamp_add_u32(sharedValue, 100);
+            sharedValue = cnx_clamp_add_u32(sharedValue, 100U);
             __cnx_set_PRIMASK(__primask);
         }
     }
@@ -93,14 +93,14 @@ void criticalInBothBranches(void) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedValue = 0;
+            sharedValue = 0U;
             __cnx_set_PRIMASK(__primask);
         }
     } else {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedValue = cnx_clamp_add_u32(sharedValue, 25);
+            sharedValue = cnx_clamp_add_u32(sharedValue, 25U);
             __cnx_set_PRIMASK(__primask);
         }
     }
@@ -113,7 +113,7 @@ void criticalInNestedIf(void) {
             {
                 uint32_t __primask = __cnx_get_PRIMASK();
                 __cnx_disable_irq();
-                sharedValue = cnx_clamp_mul_u32(sharedValue, 2);
+                sharedValue = cnx_clamp_mul_u32(sharedValue, 2U);
                 __cnx_set_PRIMASK(__primask);
             }
         }
@@ -121,26 +121,26 @@ void criticalInNestedIf(void) {
 }
 
 void criticalInIfElseChain(void) {
-    uint32_t mode = 2;
+    uint32_t mode = 2U;
     if (mode == 1) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedValue = 1;
+            sharedValue = 1U;
             __cnx_set_PRIMASK(__primask);
         }
     } else if (mode == 2) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedValue = 2;
+            sharedValue = 2U;
             __cnx_set_PRIMASK(__primask);
         }
     } else {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedValue = 0;
+            sharedValue = 0U;
             __cnx_set_PRIMASK(__primask);
         }
     }

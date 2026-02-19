@@ -41,47 +41,47 @@ int main(void) {
     if (buffer[1] != 105) return 16;
     if (buffer[2] != 33) return 17;
     uint8_t grade = 'B';
-    uint32_t points = 0;
+    uint32_t points = 0U;
     switch (grade) {
         case 'A': {
-            points = 4;
+            points = 4U;
             break;
         }
         case 'B': {
-            points = 3;
+            points = 3U;
             break;
         }
         case 'C': {
-            points = 2;
+            points = 2U;
             break;
         }
         default: {
-            points = 0;
+            points = 0U;
             break;
         }
     }
     if (points != 3) return 18;
     uint8_t dir = 'N';
-    uint32_t heading = 0;
+    uint32_t heading = 0U;
     switch (dir) {
         case 'N': {
-            heading = 0;
+            heading = 0U;
             break;
         }
         case 'E': {
-            heading = 90;
+            heading = 90U;
             break;
         }
         case 'S': {
-            heading = 180;
+            heading = 180U;
             break;
         }
         case 'W': {
-            heading = 270;
+            heading = 270U;
             break;
         }
         default: {
-            heading = 999;
+            heading = 999U;
             break;
         }
     }
@@ -89,32 +89,32 @@ int main(void) {
     dir = 'S';
     switch (dir) {
         case 'N': {
-            heading = 0;
+            heading = 0U;
             break;
         }
         case 'E': {
-            heading = 90;
+            heading = 90U;
             break;
         }
         case 'S': {
-            heading = 180;
+            heading = 180U;
             break;
         }
         case 'W': {
-            heading = 270;
+            heading = 270U;
             break;
         }
         default: {
-            heading = 999;
+            heading = 999U;
             break;
         }
     }
     if (heading != 180) return 20;
     uint8_t upperA = 'A';
-    uint8_t lowerA = upperA + 32;
+    uint8_t lowerA = upperA + 32U;
     if (lowerA != 'a') return 21;
     uint8_t lowerZ = 'z';
-    uint8_t upperZ = lowerZ - 32;
+    uint8_t upperZ = lowerZ - 32U;
     if (upperZ != 'Z') return 22;
     return 0;
 }

@@ -54,7 +54,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: critical sections inside for, while, and do-while loops
 uint32_t sharedData[10] = {0};
 
-uint32_t counter = 0;
+uint32_t counter = 0U;
 
 void criticalInFor(void) {
     for (uint32_t i = 0; i < 10; i = i + 1) {
@@ -62,14 +62,14 @@ void criticalInFor(void) {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
             sharedData[i] = i * 2;
-            counter = cnx_clamp_add_u32(counter, 1);
+            counter = cnx_clamp_add_u32(counter, 1U);
             __cnx_set_PRIMASK(__primask);
         }
     }
 }
 
 void criticalInWhile(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < 5) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
@@ -77,20 +77,20 @@ void criticalInWhile(void) {
             sharedData[i] += 1;
             __cnx_set_PRIMASK(__primask);
         }
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
 void criticalInDoWhile(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     do {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            counter = cnx_clamp_add_u32(counter, 1);
+            counter = cnx_clamp_add_u32(counter, 1U);
             __cnx_set_PRIMASK(__primask);
         }
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     } while (i < 3);
 }
 

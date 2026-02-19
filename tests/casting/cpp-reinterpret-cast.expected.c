@@ -23,9 +23,9 @@ static uint32_t ByteProcessor_processByte(uint32_t crc, uint8_t byte) {
 
 uint32_t ByteProcessor_processBuffer(void) {
     char buf[5] = "ABCD";
-    uint32_t crc = 0;
-    crc = ByteProcessor_processByte(crc, buf[0]);
-    crc = ByteProcessor_processByte(crc, buf[1]);
+    uint32_t crc = 0U;
+    crc = ByteProcessor_processByte(crc, buf[0U]);
+    crc = ByteProcessor_processByte(crc, buf[1U]);
     return crc;
 }
 

@@ -103,15 +103,15 @@ int32_t ClampTest_getPosition(void) {
 }
 
 void ClampTest_increaseBrightness(void) {
-    ClampTest_brightness = cnx_clamp_add_u8(ClampTest_brightness, 100);
+    ClampTest_brightness = cnx_clamp_add_u8(ClampTest_brightness, 100U);
 }
 
 void ClampTest_increaseSensorValue(void) {
-    ClampTest_sensorValue = cnx_clamp_add_u16(ClampTest_sensorValue, 10000);
+    ClampTest_sensorValue = cnx_clamp_add_u16(ClampTest_sensorValue, 10000U);
 }
 
 void ClampTest_increaseCounter(void) {
-    ClampTest_counter = cnx_clamp_add_u32(ClampTest_counter, 500000000);
+    ClampTest_counter = cnx_clamp_add_u32(ClampTest_counter, 500000000U);
 }
 
 void ClampTest_decreaseTemperature(void) {
@@ -127,11 +127,11 @@ void ClampTest_decreasePosition(void) {
 }
 
 void ClampTest_dimBrightness(void) {
-    ClampTest_brightness = cnx_clamp_sub_u8(ClampTest_brightness, 250);
+    ClampTest_brightness = cnx_clamp_sub_u8(ClampTest_brightness, 250U);
 }
 
 void ClampTest_resetSensor(void) {
-    ClampTest_sensorValue = cnx_clamp_sub_u16(ClampTest_sensorValue, 65000);
+    ClampTest_sensorValue = cnx_clamp_sub_u16(ClampTest_sensorValue, 65000U);
 }
 
 void ClampTest_setBrightness(uint8_t val) {

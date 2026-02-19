@@ -51,19 +51,19 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-c-only
 // ADR-050: Critical section with conditional
 // Tests: if/else inside critical section
-uint32_t counter = 0;
+uint32_t counter = 0U;
 
-uint32_t overflows = 0;
+uint32_t overflows = 0U;
 
 void safeIncrement(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
         if (counter < 1000) {
-            counter = cnx_clamp_add_u32(counter, 1);
+            counter = cnx_clamp_add_u32(counter, 1U);
         } else {
-            overflows = cnx_clamp_add_u32(overflows, 1);
-            counter = 0;
+            overflows = cnx_clamp_add_u32(overflows, 1U);
+            counter = 0U;
         }
         __cnx_set_PRIMASK(__primask);
     }

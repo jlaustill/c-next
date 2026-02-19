@@ -10,11 +10,11 @@
 // Tests: Const variable declarations and usage
 // Demonstrates: const primitives, const in expressions
 // Module-level constants
-extern const uint32_t MAX_VALUE = 100;
+extern const uint32_t MAX_VALUE = 100U;
 
-extern const uint8_t VERSION_MAJOR = 1;
+extern const uint8_t VERSION_MAJOR = 1U;
 
-extern const uint8_t VERSION_MINOR = 2;
+extern const uint8_t VERSION_MINOR = 2U;
 
 extern const float PI = 3.14159;
 
@@ -25,17 +25,17 @@ int main(void) {
     if (VERSION_MAJOR != 1) return 2;
     if (VERSION_MINOR != 2) return 3;
     if (ENABLED != true) return 4;
-    const uint32_t LOCAL_LIMIT = 50;
+    const uint32_t LOCAL_LIMIT = 50U;
     if (LOCAL_LIMIT != 50) return 5;
     uint32_t result = MAX_VALUE + LOCAL_LIMIT;
     if (result != 150) return 6;
-    uint32_t data[3] = {1, 2, 3};
-    const uint32_t EXPECTED_LENGTH = 3;
+    uint32_t data[3] = {1U, 2U, 3U};
+    const uint32_t EXPECTED_LENGTH = 3U;
     if (3 != EXPECTED_LENGTH) return 7;
-    uint32_t sum = 0;
-    const uint32_t ITERATIONS = 5;
+    uint32_t sum = 0U;
+    const uint32_t ITERATIONS = 5U;
     for (uint32_t i = 0; i < ITERATIONS; i = i + 1) {
-        sum = sum + 1;
+        sum = sum + 1U;
     }
     if (sum != 5) return 8;
     float radius = 2.0;

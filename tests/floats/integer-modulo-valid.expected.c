@@ -9,8 +9,8 @@
 // Tests: Integer modulo should work correctly (no error)
 // The % operator is valid for integer types
 int main(void) {
-    uint32_t a = 10;
-    uint32_t b = 3;
+    uint32_t a = 10U;
+    uint32_t b = 3U;
     uint32_t result = a % b;
     if (result != 1) return 1;
     int32_t c = 17;

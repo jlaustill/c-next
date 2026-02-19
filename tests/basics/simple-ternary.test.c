@@ -10,14 +10,14 @@
 // Tests: Ternary conditional operator
 // Demonstrates: condition ? value_if_true : value_if_false
 int main(void) {
-    uint32_t a = 10;
-    uint32_t b = 20;
+    uint32_t a = 10U;
+    uint32_t b = 20U;
     uint32_t max = (a > b) ? a : b;
     if (max != 20) return 1;
-    uint32_t x = 5;
-    uint32_t result = (x == 5) ? 100 : 200;
+    uint32_t x = 5U;
+    uint32_t result = (x == 5U) ? 100U : 200U;
     if (result != 100) return 2;
-    result = (x == 10) ? 100 : 200;
+    result = (x == 10U) ? 100U : 200U;
     if (result != 200) return 3;
     int32_t negative = -42;
     int32_t positive = 42;
@@ -29,7 +29,7 @@ int main(void) {
     if (isEven != true) return 6;
     isEven = ((1) == 0) ? true : false;
     if (isEven != false) return 7;
-    uint32_t bonus = (a < b) ? 50 : 0;
+    uint32_t bonus = (a < b) ? 50U : 0U;
     uint32_t total = a + bonus;
     if (total != 60) return 8;
     return 0;

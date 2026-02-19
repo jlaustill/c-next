@@ -16,7 +16,7 @@
 static uint32_t SharedState_counter = 0;
 
 void SharedState_increment(void) {
-    SharedState_counter = SharedState_counter + 1;
+    SharedState_counter = SharedState_counter + 1U;
 }
 
 uint32_t SharedState_getCount(void) {

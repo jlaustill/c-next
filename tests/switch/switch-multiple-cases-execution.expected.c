@@ -17,20 +17,20 @@ void testMultiCase(uint32_t val) {
         case 0:
         case 1:
         case 2: {
-            result = 100;
+            result = 100U;
             break;
         }
         case 10:
         case 20: {
-            result = 200;
+            result = 200U;
             break;
         }
         case 100: {
-            result = 300;
+            result = 300U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
@@ -41,20 +41,20 @@ void testMultiCaseHex(uint8_t val) {
     switch (val) {
         case 0x00:
         case 0x01: {
-            result = 10;
+            result = 10U;
             break;
         }
         case 0x0A:
         case 0x0B: {
-            result = 20;
+            result = 20U;
             break;
         }
         case 0xFF: {
-            result = 30;
+            result = 30U;
             break;
         }
         default: {
-            result = 99;
+            result = 99U;
             break;
         }
     }
@@ -65,20 +65,20 @@ void testMultiCaseBinary(uint8_t val) {
     switch (val) {
         case 0x0:
         case 0x1: {
-            result = 40;
+            result = 40U;
             break;
         }
         case 0xA:
         case 0xB: {
-            result = 50;
+            result = 50U;
             break;
         }
         case 0xFF: {
-            result = 60;
+            result = 60U;
             break;
         }
         default: {
-            result = 99;
+            result = 99U;
             break;
         }
     }
@@ -90,22 +90,22 @@ void testMultiCaseSigned(int8_t val) {
         case 0:
         case 1:
         case 2: {
-            result = 1;
+            result = 1U;
             break;
         }
         case 50:
         case 51:
         case 52: {
-            result = 2;
+            result = 2U;
             break;
         }
         case 126:
         case 127: {
-            result = 3;
+            result = 3U;
             break;
         }
         default: {
-            result = 9;
+            result = 9U;
             break;
         }
     }
@@ -119,30 +119,30 @@ void testManyMultiCases(uint16_t val) {
         case 3:
         case 4:
         case 5: {
-            result = 500;
+            result = 500U;
             break;
         }
         case 100:
         case 200:
         case 300: {
-            result = 600;
+            result = 600U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
 }
 
 int main(void) {
-    uint32_t val0 = 0;
-    uint32_t val1 = 1;
-    uint32_t val2 = 2;
-    uint32_t val10 = 10;
-    uint32_t val20 = 20;
-    uint32_t val100 = 100;
-    uint32_t val50 = 50;
+    uint32_t val0 = 0U;
+    uint32_t val1 = 1U;
+    uint32_t val2 = 2U;
+    uint32_t val10 = 10U;
+    uint32_t val20 = 20U;
+    uint32_t val100 = 100U;
+    uint32_t val50 = 50U;
     testMultiCase(val0);
     if (result != 100) return 1;
     testMultiCase(val1);
@@ -157,11 +157,11 @@ int main(void) {
     if (result != 300) return 6;
     testMultiCase(val50);
     if (result != 999) return 7;
-    uint8_t hex0 = 0x00;
-    uint8_t hex1 = 0x01;
-    uint8_t hexA = 0x0A;
-    uint8_t hexFF = 0xFF;
-    uint8_t hexOther = 0x50;
+    uint8_t hex0 = 0x00U;
+    uint8_t hex1 = 0x01U;
+    uint8_t hexA = 0x0AU;
+    uint8_t hexFF = 0xFFU;
+    uint8_t hexOther = 0x50U;
     testMultiCaseHex(hex0);
     if (result != 10) return 8;
     testMultiCaseHex(hex1);
@@ -172,11 +172,11 @@ int main(void) {
     if (result != 30) return 11;
     testMultiCaseHex(hexOther);
     if (result != 99) return 12;
-    uint8_t bin0 = 0b00000000;
-    uint8_t bin1 = 0b00000001;
-    uint8_t binA = 0b00001010;
-    uint8_t binFF = 0b11111111;
-    uint8_t binOther = 0b00100000;
+    uint8_t bin0 = 0b00000000U;
+    uint8_t bin1 = 0b00000001U;
+    uint8_t binA = 0b00001010U;
+    uint8_t binFF = 0b11111111U;
+    uint8_t binOther = 0b00100000U;
     testMultiCaseBinary(bin0);
     if (result != 40) return 13;
     testMultiCaseBinary(bin1);
@@ -211,13 +211,13 @@ int main(void) {
     if (result != 3) return 24;
     testMultiCaseSigned(sNeg);
     if (result != 9) return 25;
-    uint16_t m1 = 1;
-    uint16_t m3 = 3;
-    uint16_t m5 = 5;
-    uint16_t m100 = 100;
-    uint16_t m200 = 200;
-    uint16_t m300 = 300;
-    uint16_t mOther = 999;
+    uint16_t m1 = 1U;
+    uint16_t m3 = 3U;
+    uint16_t m5 = 5U;
+    uint16_t m100 = 100U;
+    uint16_t m200 = 200U;
+    uint16_t m300 = 300U;
+    uint16_t mOther = 999U;
     testManyMultiCases(m1);
     if (result != 500) return 26;
     testManyMultiCases(m3);

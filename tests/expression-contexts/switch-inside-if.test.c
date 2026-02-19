@@ -14,127 +14,127 @@ uint32_t result = 0;
 
 int main(void) {
     bool cond = true;
-    uint32_t selector = 1;
+    uint32_t selector = 1U;
     if (cond == true) {
         switch (selector) {
                 case 0: {
-                        result = 100;
+                        result = 100U;
                         break;
                 }
                 case 1: {
-                        result = 101;
+                        result = 101U;
                         break;
                 }
                 case 2: {
-                        result = 102;
+                        result = 102U;
                         break;
                 }
                 default: {
-                        result = 199;
+                        result = 199U;
                         break;
                 }
         }
     }
     if (result != 101) return 1;
-    result = 0;
+    result = 0U;
     cond = false;
     if (cond == true) {
         switch (selector) {
                 case 0: {
-                        result = 200;
+                        result = 200U;
                         break;
                 }
                 case 1: {
-                        result = 201;
+                        result = 201U;
                         break;
                 }
                 default: {
-                        result = 299;
+                        result = 299U;
                         break;
                 }
         }
     }
     if (result != 0) return 2;
     cond = false;
-    selector = 2;
+    selector = 2U;
     if (cond == true) {
-        result = 300;
+        result = 300U;
     } else {
         switch (selector) {
                 case 0: {
-                        result = 400;
+                        result = 400U;
                         break;
                 }
                 case 1: {
-                        result = 401;
+                        result = 401U;
                         break;
                 }
                 case 2: {
-                        result = 402;
+                        result = 402U;
                         break;
                 }
                 default: {
-                        result = 499;
+                        result = 499U;
                         break;
                 }
         }
     }
     if (result != 402) return 3;
     cond = true;
-    selector = 0;
+    selector = 0U;
     if (cond == true) {
         switch (selector) {
                 case 0: {
-                        result = 500;
+                        result = 500U;
                         break;
                 }
                 case 1: {
-                        result = 501;
+                        result = 501U;
                         break;
                 }
                 default: {
-                        result = 599;
+                        result = 599U;
                         break;
                 }
         }
     } else {
-        result = 999;
+        result = 999U;
     }
     if (result != 500) return 4;
     cond = true;
-    uint32_t selA = 1;
-    uint32_t selB = 2;
+    uint32_t selA = 1U;
+    uint32_t selB = 2U;
     if (cond == true) {
         switch (selA) {
                 case 0: {
-                        result = 600;
+                        result = 600U;
                         break;
                 }
                 case 1: {
-                        result = 601;
+                        result = 601U;
                         break;
                 }
                 default: {
-                        result = 699;
+                        result = 699U;
                         break;
                 }
         }
     } else {
         switch (selB) {
                 case 0: {
-                        result = 700;
+                        result = 700U;
                         break;
                 }
                 case 1: {
-                        result = 701;
+                        result = 701U;
                         break;
                 }
                 case 2: {
-                        result = 702;
+                        result = 702U;
                         break;
                 }
                 default: {
-                        result = 799;
+                        result = 799U;
                         break;
                 }
         }
@@ -144,34 +144,34 @@ int main(void) {
     if (cond == true) {
         switch (selA) {
                 case 0: {
-                        result = 600;
+                        result = 600U;
                         break;
                 }
                 case 1: {
-                        result = 601;
+                        result = 601U;
                         break;
                 }
                 default: {
-                        result = 699;
+                        result = 699U;
                         break;
                 }
         }
     } else {
         switch (selB) {
                 case 0: {
-                        result = 700;
+                        result = 700U;
                         break;
                 }
                 case 1: {
-                        result = 701;
+                        result = 701U;
                         break;
                 }
                 case 2: {
-                        result = 702;
+                        result = 702U;
                         break;
                 }
                 default: {
-                        result = 799;
+                        result = 799U;
                         break;
                 }
         }
@@ -179,20 +179,20 @@ int main(void) {
     if (result != 702) return 6;
     bool outer = true;
     bool inner = true;
-    selector = 1;
+    selector = 1U;
     if (outer == true) {
         if (inner == true) {
             switch (selector) {
                         case 0: {
-                                    result = 800;
+                                    result = 800U;
                                     break;
                         }
                         case 1: {
-                                    result = 801;
+                                    result = 801U;
                                     break;
                         }
                         default: {
-                                    result = 899;
+                                    result = 899U;
                                     break;
                         }
             }
@@ -201,22 +201,22 @@ int main(void) {
     if (result != 801) return 7;
     outer = false;
     inner = true;
-    selector = 0;
+    selector = 0U;
     if (outer == true) {
-        result = 900;
+        result = 900U;
     } else {
         if (inner == true) {
             switch (selector) {
                         case 0: {
-                                    result = 901;
+                                    result = 901U;
                                     break;
                         }
                         case 1: {
-                                    result = 902;
+                                    result = 902U;
                                     break;
                         }
                         default: {
-                                    result = 999;
+                                    result = 999U;
                                     break;
                         }
             }
@@ -224,55 +224,55 @@ int main(void) {
     }
     if (result != 901) return 8;
     outer = true;
-    selector = 99;
+    selector = 99U;
     if (outer == true) {
         switch (selector) {
                 case 0: {
-                        result = 1000;
+                        result = 1000U;
                         break;
                 }
                 case 1: {
-                        result = 1001;
+                        result = 1001U;
                         break;
                 }
                 default: {
-                        result = 1099;
+                        result = 1099U;
                         break;
                 }
         }
     }
     if (result != 1099) return 9;
     cond = true;
-    uint32_t first = 0;
-    uint32_t second = 1;
-    uint32_t resultA = 0;
-    uint32_t resultB = 0;
+    uint32_t first = 0U;
+    uint32_t second = 1U;
+    uint32_t resultA = 0U;
+    uint32_t resultB = 0U;
     if (cond == true) {
         switch (first) {
                 case 0: {
-                        resultA = 10;
+                        resultA = 10U;
                         break;
                 }
                 case 1: {
-                        resultA = 11;
+                        resultA = 11U;
                         break;
                 }
                 default: {
-                        resultA = 19;
+                        resultA = 19U;
                         break;
                 }
         }
         switch (second) {
                 case 0: {
-                        resultB = 20;
+                        resultB = 20U;
                         break;
                 }
                 case 1: {
-                        resultB = 21;
+                        resultB = 21U;
                         break;
                 }
                 default: {
-                        resultB = 29;
+                        resultB = 29U;
                         break;
                 }
         }
@@ -284,19 +284,19 @@ int main(void) {
     if (cond == true) {
         switch (signedSel) {
                 case 0: {
-                        result = 1200;
+                        result = 1200U;
                         break;
                 }
                 case 1: {
-                        result = 1201;
+                        result = 1201U;
                         break;
                 }
                 case 2: {
-                        result = 1202;
+                        result = 1202U;
                         break;
                 }
                 default: {
-                        result = 1299;
+                        result = 1299U;
                         break;
                 }
         }

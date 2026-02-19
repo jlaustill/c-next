@@ -9,14 +9,14 @@
 // test-execution
 // ADR-001: Basic assignment operator
 // Tests: <- operator transpiles to = in C
-uint32_t counter = 0;
+uint32_t counter = 0U;
 
 int32_t offset = -10;
 
 bool flag = true;
 
 void updateValues(void) {
-    counter = 42;
+    counter = 42U;
     offset = 100;
     flag = false;
 }

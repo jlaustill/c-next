@@ -22,23 +22,23 @@ static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator, uint32
 // Demonstrates the pattern for preserving state when division fails
 // Example: speed <- distance / time (if time is zero, speed shouldn't change)
 void testPreserveSpeedOnZeroTime(void) {
-    uint32_t speed = 60;
-    uint32_t distance = 120;
-    uint32_t time = 0;
+    uint32_t speed = 60U;
+    uint32_t distance = 120U;
+    uint32_t time = 0U;
     bool err = false;
     err = cnx_safe_div_u32(&speed, distance, time, speed);
 }
 
 void testPreserveMultipleValues(void) {
-    uint32_t avgTemp = 72;
-    uint32_t totalTemp = 500;
-    uint32_t sampleCount = 0;
+    uint32_t avgTemp = 72U;
+    uint32_t totalTemp = 500U;
+    uint32_t sampleCount = 0U;
     bool err = false;
     err = cnx_safe_div_u32(&avgTemp, totalTemp, sampleCount, avgTemp);
 }
 
 void testUpdateOnSuccess(void) {
-    uint32_t value = 50;
+    uint32_t value = 50U;
     bool err = false;
     err = cnx_safe_div_u32(&value, 100, 2, value);
 }

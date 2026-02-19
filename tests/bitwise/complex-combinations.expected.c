@@ -10,28 +10,28 @@
 // Test complex bitwise combinations and expressions
 // Coverage: Section 5.7 - complex patterns, multiple operations, precedence
 int main(void) {
-    uint32_t a = 0xFFFF0000;
-    uint32_t b = 0x00FFFF00;
-    uint32_t c = 0x0000FFFF;
+    uint32_t a = 0xFFFF0000U;
+    uint32_t b = 0x00FFFF00U;
+    uint32_t c = 0x0000FFFFU;
     uint32_t chain = (a & b) | c;
-    uint16_t d = 0xFF;
-    uint16_t shift_and_mask = (d << 8) & 0xF000;
-    uint8_t e = 0b11110000;
-    uint8_t not_and_shift = (~e) << 2;
-    uint32_t flags = 0b11001100;
-    uint32_t toggle = flags ^ 0b00110011;
-    uint32_t toggle_back = toggle ^ 0b00110011;
-    uint32_t f = 0xABCD;
-    uint32_t extract_byte = (f >> 8) & 0xFF;
-    uint16_t bit_pos = 5;
-    uint16_t mask = 1 << bit_pos;
-    uint16_t test_val = 0b00100101;
+    uint16_t d = 0xFFU;
+    uint16_t shift_and_mask = (d << 8U) & 0xF000U;
+    uint8_t e = 0b11110000U;
+    uint8_t not_and_shift = (~e) << 2U;
+    uint32_t flags = 0b11001100U;
+    uint32_t toggle = flags ^ 0b00110011U;
+    uint32_t toggle_back = toggle ^ 0b00110011U;
+    uint32_t f = 0xABCDU;
+    uint32_t extract_byte = (f >> 8U) & 0xFFU;
+    uint16_t bit_pos = 5U;
+    uint16_t mask = 1U << bit_pos;
+    uint16_t test_val = 0b00100101U;
     uint16_t bit_test = (test_val & mask) >> bit_pos;
-    uint32_t g = 0x12345678;
-    uint32_t swap_bytes = ((g & 0xFF00FF00) >> 8) | ((g & 0x00FF00FF) << 8);
-    uint8_t status = 0b10101010;
-    uint8_t check_bit = (status & 0b10000000) >> 7;
-    uint32_t nested = ((0xFF << 16) | (0xAA << 8)) | 0x55;
+    uint32_t g = 0x12345678U;
+    uint32_t swap_bytes = ((g & 0xFF00FF00U) >> 8U) | ((g & 0x00FF00FFU) << 8U);
+    uint8_t status = 0b10101010U;
+    uint8_t check_bit = (status & 0b10000000U) >> 7U;
+    uint32_t nested = ((0xFFU << 16U) | (0xAAU << 8U)) | 0x55U;
     if (chain == 0x00FFFFFF && shift_and_mask == 0xF000 && not_and_shift == 60) {
         if (toggle == 255 && toggle_back == 204 && extract_byte == 171) {
             if (mask == 32 && bit_test == 1 && check_bit == 1) {

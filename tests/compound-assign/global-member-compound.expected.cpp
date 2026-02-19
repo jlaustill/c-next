@@ -32,7 +32,7 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 // Global variables accessed via global.* from within scope
 int32_t gValue = 0;
 
-uint32_t gBits = 0;
+uint32_t gBits = 0U;
 
 /* Scope: Worker */
 
@@ -86,66 +86,66 @@ int32_t Worker_testModulo(void) {
 }
 
 int32_t Worker_testBitwiseAnd(void) {
-    gBits = 0xFF;
-    gBits &= 0x0F;
+    gBits = 0xFFU;
+    gBits &= 0x0FU;
     if (gBits != 0x0F) return 40;
-    gBits = 0xAA;
-    gBits &= 0x55;
+    gBits = 0xAAU;
+    gBits &= 0x55U;
     if (gBits != 0) return 41;
-    gBits = 0x12345678;
-    gBits &= 0xFFFFFFFF;
+    gBits = 0x12345678U;
+    gBits &= 0xFFFFFFFFU;
     if (gBits != 0x12345678) return 42;
     return 0;
 }
 
 int32_t Worker_testBitwiseOr(void) {
-    gBits = 0xF0;
-    gBits |= 0x0F;
+    gBits = 0xF0U;
+    gBits |= 0x0FU;
     if (gBits != 0xFF) return 50;
-    gBits = 0x00;
-    gBits |= 0xAB;
+    gBits = 0x00U;
+    gBits |= 0xABU;
     if (gBits != 0xAB) return 51;
-    gBits = 0x12340000;
-    gBits |= 0x00005678;
+    gBits = 0x12340000U;
+    gBits |= 0x00005678U;
     if (gBits != 0x12345678) return 52;
     return 0;
 }
 
 int32_t Worker_testBitwiseXor(void) {
-    gBits = 0xFF;
-    gBits ^= 0xFF;
+    gBits = 0xFFU;
+    gBits ^= 0xFFU;
     if (gBits != 0) return 60;
-    gBits = 0xAA;
-    gBits ^= 0x55;
+    gBits = 0xAAU;
+    gBits ^= 0x55U;
     if (gBits != 0xFF) return 61;
-    gBits = 0x12345678;
-    gBits ^= 0x00000000;
+    gBits = 0x12345678U;
+    gBits ^= 0x00000000U;
     if (gBits != 0x12345678) return 62;
     return 0;
 }
 
 int32_t Worker_testLeftShift(void) {
-    gBits = 1;
-    gBits <<= 4;
+    gBits = 1U;
+    gBits <<= 4U;
     if (gBits != 16) return 70;
-    gBits = 0xFF;
-    gBits <<= 8;
+    gBits = 0xFFU;
+    gBits <<= 8U;
     if (gBits != 0xFF00) return 71;
-    gBits = 1;
-    gBits <<= 0;
+    gBits = 1U;
+    gBits <<= 0U;
     if (gBits != 1) return 72;
     return 0;
 }
 
 int32_t Worker_testRightShift(void) {
-    gBits = 256;
-    gBits >>= 4;
+    gBits = 256U;
+    gBits >>= 4U;
     if (gBits != 16) return 80;
-    gBits = 0xFF00;
-    gBits >>= 8;
+    gBits = 0xFF00U;
+    gBits >>= 8U;
     if (gBits != 0xFF) return 81;
-    gBits = 128;
-    gBits >>= 0;
+    gBits = 128U;
+    gBits >>= 0U;
     if (gBits != 128) return 82;
     return 0;
 }

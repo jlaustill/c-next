@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
             userName[_userName_len - 1] = '\0';
         }
     }
-    uint8_t whoAmIByte = argv[0][0];
+    uint8_t whoAmIByte = argv[0U][0U];
     printf("Hello from %s %s! Your special character is %c\n", argv[0], userName, whoAmIByte);
     return 0;
 }

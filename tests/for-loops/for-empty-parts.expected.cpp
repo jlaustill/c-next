@@ -17,38 +17,38 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // Coverage: Section 7.4 - for loop with empty init/condition/update
 // Tests: for loops with optional parts omitted
-uint32_t globalCounter = 0;
+uint32_t globalCounter = 0U;
 
 // Test 1: Empty init (variable declared outside)
 void testEmptyInit(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     for (; i < 5; i = i + 1) {
-        globalCounter = cnx_clamp_add_u32(globalCounter, 1);
+        globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
     }
 }
 
 // Test 2: Empty update (update inside loop body)
 void testEmptyUpdate(void) {
     for (uint32_t i = 0; i < 5; ) {
-        globalCounter = cnx_clamp_add_u32(globalCounter, 1);
-        i = i + 1;
+        globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
+        i = i + 1U;
     }
 }
 
 // Test 3: Empty init and update
 void testEmptyInitAndUpdate(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     for (; i < 3; ) {
-        globalCounter = cnx_clamp_add_u32(globalCounter, 1);
-        i = i + 1;
+        globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
+        i = i + 1U;
     }
 }
 
 // Test 4: Empty condition (infinite loop with break)
 void testEmptyCondition(void) {
-    uint32_t count = 0;
+    uint32_t count = 0U;
     for (uint32_t i = 0; ; i = i + 1) {
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
         if (i >= 4) {
             break;
         }
@@ -58,10 +58,10 @@ void testEmptyCondition(void) {
 
 // Test 5: All empty (infinite loop with break)
 void testAllEmpty(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     for (; ; ) {
-        globalCounter = cnx_clamp_add_u32(globalCounter, 1);
-        i = cnx_clamp_add_u32(i, 1);
+        globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
+        i = cnx_clamp_add_u32(i, 1U);
         if (i >= 3) {
             break;
         }

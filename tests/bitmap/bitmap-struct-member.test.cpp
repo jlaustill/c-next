@@ -45,8 +45,8 @@ Device device = {0};
 Controller ctrl = {0};
 
 int main(void) {
-    device.id = 12345;
-    device.value = 100;
+    device.id = 12345U;
+    device.value = 100U;
     device.flags = (device.flags & ~(1 << 0)) | (1 << 0);
     device.flags = (device.flags & ~(1 << 1)) | (1 << 1);
     device.flags = (device.flags & ~(1 << 2)) | (0 << 2);
@@ -64,7 +64,7 @@ int main(void) {
     if (((device.status >> 8) & 0xFF) != 50) return 7;
     if (device.id != 12345) return 8;
     if (device.value != 100) return 9;
-    ctrl.counter = 999;
+    ctrl.counter = 999U;
     ctrl.controlFlags = (ctrl.controlFlags & ~(1 << 0)) | (1 << 0);
     ctrl.controlFlags = (ctrl.controlFlags & ~(0x1F << 3)) | ((7 & 0x1F) << 3);
     if (((ctrl.controlFlags >> 0) & 1) != true) return 10;

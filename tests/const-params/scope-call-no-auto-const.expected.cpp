@@ -16,7 +16,7 @@
 /* Scope: Storage */
 
 void Storage_load(AppConfig& config) {
-    config.value = 42;
+    config.value = 42U;
     config.enabled = true;
 }
 
@@ -43,17 +43,17 @@ void directLoad(AppConfig& config) {
 
 int main(void) {
     AppConfig cfg = {0};
-    cfg.value = 0;
+    cfg.value = 0U;
     cfg.enabled = false;
     loadConfig(cfg);
     if (cfg.value != 42) return 1;
     if (cfg.enabled != true) return 2;
-    cfg.value = 100;
+    cfg.value = 100U;
     cfg.enabled = false;
     directLoad(cfg);
     if (cfg.value != 42) return 3;
     if (cfg.enabled != true) return 4;
-    cfg.value = 999;
+    cfg.value = 999U;
     saveConfig(cfg);
     if (cfg.value != 999) return 5;
     return 0;

@@ -29,13 +29,13 @@ typedef struct Container {
 
 int main(void) {
     Container cfg = {0};
-    Item item0 = (Item){ .value = 100, .flags = 0 };
-    Item item1 = (Item){ .value = 200, .flags = 0 };
-    Item item2 = (Item){ .value = 300, .flags = 0 };
+    Item item0 = (Item){ .value = 100U, .flags = 0U };
+    Item item1 = (Item){ .value = 200U, .flags = 0U };
+    Item item2 = (Item){ .value = 300U, .flags = 0U };
     cfg.items[0] = item0;
     cfg.items[1] = item1;
     cfg.items[2] = item2;
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (uint32_t i = 0; i < 3; i += 1) {
         sum = cnx_clamp_add_u32(sum, cfg.items[i].value);
     }

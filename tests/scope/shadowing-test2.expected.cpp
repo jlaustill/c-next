@@ -10,17 +10,17 @@
 // test-execution
 // Test: Scope shadowing between global and scope (no const) (ADR-016)
 // Scope member should shadow global with same name
-uint8_t globalFlags = 0;
+uint8_t globalFlags = 0U;
 
 // Global with different name
-uint8_t flags = 0;
+uint8_t flags = 0U;
 
 // Global 'flags'
 /* Scope: Control */
 static uint8_t Control_flags = 0b11111111;
 
 void Control_setFlag(void) {
-    Control_flags = 0b10101010;
+    Control_flags = 0b10101010U;
 }
 
 uint8_t Control_getFlags(void) {

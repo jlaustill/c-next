@@ -40,9 +40,9 @@ int main(void) {
     if (buffer[3] != 999999) return 2;
     writeU32(buffer, 1, 500000);
     if (buffer[1] != 500000) return 3;
-    uint32_t result = readU32(buffer, 0);
+    uint32_t result = readU32(buffer, 0U);
     if (result != 100000) return 4;
-    result = readU32(buffer, 3);
+    result = readU32(buffer, 3U);
     if (result != 999999) return 5;
     buffer[2] = 50;
     incrementU32(buffer, 2);

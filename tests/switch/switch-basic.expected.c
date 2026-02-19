@@ -13,24 +13,24 @@ uint32_t result = 0;
 void handleCommand(uint32_t cmd) {
     switch (cmd) {
         case 0: {
-            result = 100;
+            result = 100U;
             break;
         }
         case 1: {
-            result = 200;
+            result = 200U;
             break;
         }
         default: {
-            result = 999;
+            result = 999U;
             break;
         }
     }
 }
 
 int main(void) {
-    uint32_t cmd0 = 0;
-    uint32_t cmd1 = 1;
-    uint32_t cmd99 = 99;
+    uint32_t cmd0 = 0U;
+    uint32_t cmd1 = 1U;
+    uint32_t cmd99 = 99U;
     handleCommand(cmd0);
     if (result != 100) {
         return 1;

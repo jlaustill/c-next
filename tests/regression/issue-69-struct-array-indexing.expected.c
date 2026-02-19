@@ -59,10 +59,10 @@ int main(void) {
     cfg.tempInputs[2].coeffA = 3.5;
     cfg.tempInputs[5].assignedSpn = 999;
     cfg.tempInputs[5].coeffA = 9.5;
-    uint32_t idx0 = 0;
-    uint32_t idx1 = 1;
-    uint32_t idx2 = 2;
-    uint32_t idx5 = 5;
+    uint32_t idx0 = 0U;
+    uint32_t idx1 = 1U;
+    uint32_t idx2 = 2U;
+    uint32_t idx5 = 5U;
     uint16_t spn0 = getSpn(&cfg, idx0);
     if (spn0 != 100) return 1;
     uint16_t spn1 = getSpn(&cfg, idx1);
@@ -80,7 +80,7 @@ int main(void) {
     if (cfg.tempInputs[0].assignedSpn != 100) return 8;
     if (cfg.tempInputs[1].assignedSpn != 200) return 9;
     if (cfg.tempInputs[2].assignedSpn != 300) return 10;
-    uint16_t sum = cfg.tempInputs[0].assignedSpn + cfg.tempInputs[1].assignedSpn;
+    uint16_t sum = cfg.tempInputs[0U].assignedSpn + cfg.tempInputs[1U].assignedSpn;
     if (sum != 300) return 11;
     uint16_t val = getSpn(&cfg, idx2);
     if (val != 300) return 12;

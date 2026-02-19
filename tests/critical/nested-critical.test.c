@@ -52,25 +52,25 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.7 - Nested critical sections
 // Tests: critical sections nested inside other critical sections
 // Note: Nested critical is valid syntax - inner critical is redundant but allowed
-uint32_t sharedCounter = 0;
+uint32_t sharedCounter = 0U;
 
 uint32_t buffer[10] = {0};
 
-uint32_t writeIdx = 0;
+uint32_t writeIdx = 0U;
 
 void nestedCriticalTest(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        sharedCounter = cnx_clamp_add_u32(sharedCounter, 1);
+        sharedCounter = cnx_clamp_add_u32(sharedCounter, 1U);
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
             buffer[writeIdx] = sharedCounter;
-            writeIdx = cnx_clamp_add_u32(writeIdx, 1);
+            writeIdx = cnx_clamp_add_u32(writeIdx, 1U);
             __cnx_set_PRIMASK(__primask);
         }
-        sharedCounter = cnx_clamp_add_u32(sharedCounter, 1);
+        sharedCounter = cnx_clamp_add_u32(sharedCounter, 1U);
         __cnx_set_PRIMASK(__primask);
     }
 }
@@ -83,7 +83,7 @@ void deeplyNestedCritical(void) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            temp = cnx_clamp_add_u32(temp, 10);
+            temp = cnx_clamp_add_u32(temp, 10U);
             {
                 uint32_t __primask = __cnx_get_PRIMASK();
                 __cnx_disable_irq();

@@ -22,24 +22,24 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // ADR-040: ISR as struct field
 // Tests: storing ISR in struct, retrieving and invoking
 // Global to track which handler was called
-uint32_t structCallCount = 0;
+uint32_t structCallCount = 0U;
 
-uint32_t structLastHandler = 0;
+uint32_t structLastHandler = 0U;
 
 // Handler functions
 void structHandler1(void) {
-    structCallCount = cnx_clamp_add_u32(structCallCount, 1);
-    structLastHandler = 1;
+    structCallCount = cnx_clamp_add_u32(structCallCount, 1U);
+    structLastHandler = 1U;
 }
 
 void structHandler2(void) {
-    structCallCount = cnx_clamp_add_u32(structCallCount, 1);
-    structLastHandler = 2;
+    structCallCount = cnx_clamp_add_u32(structCallCount, 1U);
+    structLastHandler = 2U;
 }
 
 void structHandler3(void) {
-    structCallCount = cnx_clamp_add_u32(structCallCount, 1);
-    structLastHandler = 3;
+    structCallCount = cnx_clamp_add_u32(structCallCount, 1U);
+    structLastHandler = 3U;
 }
 
 // Struct with ISR fields
@@ -64,32 +64,32 @@ int main(void) {
     IsrHolder holder = {0};
     holder.primary = structHandler1;
     holder.secondary = structHandler1;
-    structCallCount = 0;
-    structLastHandler = 0;
+    structCallCount = 0U;
+    structLastHandler = 0U;
     holder.primary = structHandler1;
     holder.primary();
     if (structCallCount != 1) return 1;
     if (structLastHandler != 1) return 2;
-    structCallCount = 0;
-    structLastHandler = 0;
+    structCallCount = 0U;
+    structLastHandler = 0U;
     holder.secondary = structHandler2;
     holder.secondary();
     if (structCallCount != 1) return 3;
     if (structLastHandler != 2) return 4;
-    structCallCount = 0;
-    structLastHandler = 0;
+    structCallCount = 0U;
+    structLastHandler = 0U;
     initStructHolder(holder, structHandler1, structHandler3);
     invokeStructHolder(holder);
     if (structCallCount != 2) return 5;
     if (structLastHandler != 3) return 6;
-    structCallCount = 0;
+    structCallCount = 0U;
     holder.primary = structHandler2;
     holder.secondary = structHandler1;
     invokeStructHolder(holder);
     if (structCallCount != 2) return 7;
     if (structLastHandler != 1) return 8;
-    structCallCount = 0;
-    structLastHandler = 0;
+    structCallCount = 0U;
+    structLastHandler = 0U;
     holder.primary = structHandler3;
     holder.primary();
     if (structCallCount != 1) return 9;

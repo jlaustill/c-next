@@ -39,15 +39,15 @@ uint16_t errorCount = 0;
 uint8_t retryCount = 0;
 
 void recordEvent(void) {
-    eventCount = cnx_clamp_add_u32(eventCount, 1);
+    eventCount = cnx_clamp_add_u32(eventCount, 1U);
 }
 
 void recordError(void) {
-    errorCount = cnx_clamp_add_u16(errorCount, 1);
+    errorCount = cnx_clamp_add_u16(errorCount, 1U);
 }
 
 void recordRetry(void) {
-    retryCount = cnx_clamp_add_u8(retryCount, 1);
+    retryCount = cnx_clamp_add_u8(retryCount, 1U);
 }
 
 int main(void) {

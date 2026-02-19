@@ -21,26 +21,26 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Validates: Array indexing and iteration generate bounds-safe code
 // Coverage: Direct indexing, loop iteration, constant indices
 int main(void) {
-    uint32_t arr[5] = {10, 20, 30, 40, 50};
+    uint32_t arr[5] = {10U, 20U, 30U, 40U, 50U};
     if (arr[0] != 10) return 1;
     if (arr[4] != 50) return 2;
-    uint32_t idx = 2;
+    uint32_t idx = 2U;
     if (arr[idx] != 30) return 3;
-    uint32_t sum = 0;
-    uint32_t i = 0;
+    uint32_t sum = 0U;
+    uint32_t i = 0U;
     while (i < 5) {
         sum = cnx_clamp_add_u32(sum, arr[i]);
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (sum != 150) return 4;
-    uint32_t offset = 1;
-    uint32_t base = 2;
+    uint32_t offset = 1U;
+    uint32_t base = 2U;
     if (arr[base + offset] != 40) return 5;
-    uint32_t matrix[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    uint32_t matrix[3][3] = {{1U, 2U, 3U}, {4U, 5U, 6U}, {7U, 8U, 9U}};
     if (matrix[0][0] != 1) return 6;
     if (matrix[2][2] != 9) return 7;
     if (matrix[1][1] != 5) return 8;
-    uint8_t tiny[2] = {100, 200};
+    uint8_t tiny[2] = {100U, 200U};
     if (tiny[0] != 100) return 9;
     if (tiny[1] != 200) return 10;
     return 0;

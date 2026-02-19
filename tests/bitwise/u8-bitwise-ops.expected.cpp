@@ -10,19 +10,19 @@
 // Test u8 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u8 type
 int main(void) {
-    uint8_t a = 0b11110000;
-    uint8_t b = 0b10101010;
+    uint8_t a = 0b11110000U;
+    uint8_t b = 0b10101010U;
     uint8_t and_result = a & b;
     uint8_t or_result = a | b;
     uint8_t xor_result = a ^ b;
-    uint8_t c = 0b10101010;
+    uint8_t c = 0b10101010U;
     uint8_t not_result = ~c;
-    uint8_t hex_a = 0xF0;
-    uint8_t hex_b = 0xAA;
+    uint8_t hex_a = 0xF0U;
+    uint8_t hex_b = 0xAAU;
     uint8_t hex_and = hex_a & hex_b;
     uint8_t hex_or = hex_a | hex_b;
-    uint8_t dec_and = 240 & 170;
-    uint8_t dec_or = 240 | 170;
+    uint8_t dec_and = 240U & 170U;
+    uint8_t dec_or = 240U | 170U;
     if (and_result == 160 && or_result == 250 && xor_result == 90 && not_result == 85) {
         if (hex_and == 160 && hex_or == 250) {
             if (dec_and == 160 && dec_or == 250) {

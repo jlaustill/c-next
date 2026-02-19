@@ -28,7 +28,7 @@ void minmax(int32_t a, int32_t b, int32_t* minVal, int32_t* maxVal) {
 // Calculates statistics: sum, count, and average
 void stats(uint32_t a, uint32_t b, uint32_t c, uint32_t* sum, uint32_t* count, uint32_t* avg) {
     (*sum) = a + b + c;
-    (*count) = 3;
+    (*count) = 3U;
     (*avg) = (*sum) / (*count);
 }
 
@@ -41,8 +41,8 @@ void rotate3(uint32_t* a, uint32_t* b, uint32_t* c) {
 }
 
 int main(void) {
-    uint32_t q = 0;
-    uint32_t r = 0;
+    uint32_t q = 0U;
+    uint32_t r = 0U;
     divmod(17, 5, &q, &r);
     if (q != 3) return 1;
     if (r != 2) return 2;
@@ -63,9 +63,9 @@ int main(void) {
     minmax(-5, 5, &minResult, &maxResult);
     if (minResult != -5) return 11;
     if (maxResult != 5) return 12;
-    uint32_t sum = 0;
-    uint32_t count = 0;
-    uint32_t avg = 0;
+    uint32_t sum = 0U;
+    uint32_t count = 0U;
+    uint32_t avg = 0U;
     stats(10, 20, 30, &sum, &count, &avg);
     if (sum != 60) return 13;
     if (count != 3) return 14;
@@ -73,9 +73,9 @@ int main(void) {
     stats(100, 200, 300, &sum, &count, &avg);
     if (sum != 600) return 16;
     if (avg != 200) return 17;
-    uint32_t x = 1;
-    uint32_t y = 2;
-    uint32_t z = 3;
+    uint32_t x = 1U;
+    uint32_t y = 2U;
+    uint32_t z = 3U;
     rotate3(&x, &y, &z);
     if (x != 2) return 18;
     if (y != 3) return 19;

@@ -16,7 +16,7 @@
 static uint32_t SingleFunctionState_callCount = 0;
 
 uint32_t SingleFunctionState_countCalls(void) {
-    SingleFunctionState_callCount = SingleFunctionState_callCount + 1;
+    SingleFunctionState_callCount = SingleFunctionState_callCount + 1U;
     return SingleFunctionState_callCount;
 }
 

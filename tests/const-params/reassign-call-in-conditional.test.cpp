@@ -29,20 +29,20 @@ uint8_t CommandHandler_enable(Config& cfg) {
 // This pattern triggers issue #565 - the reassignment's RHS isn't walked for calls
 void handleEnableSpn(Config& config) {
     bool enable = true;
-    uint8_t errorCode = 0;
+    uint8_t errorCode = 0U;
     if (enable) {
-        errorCode = CommandHandler_setValue(config, 42);
+        errorCode = CommandHandler_setValue(config, 42U);
     } else {
-        errorCode = CommandHandler_setValue(config, 0);
+        errorCode = CommandHandler_setValue(config, 0U);
     }
 }
 
 // Variant: reassignment inside else branch
 void handleElseBranch(Config& config) {
     bool enable = false;
-    uint8_t errorCode = 0;
+    uint8_t errorCode = 0U;
     if (enable) {
-        errorCode = 1;
+        errorCode = 1U;
     } else {
         errorCode = CommandHandler_enable(config);
     }
@@ -50,19 +50,19 @@ void handleElseBranch(Config& config) {
 
 // Variant: reassignment inside while loop
 void handleWhileLoop(Config& config) {
-    uint8_t errorCode = 0;
-    uint32_t count = 0;
+    uint8_t errorCode = 0U;
+    uint32_t count = 0U;
     while (count < 1) {
-        errorCode = CommandHandler_setValue(config, 100);
-        count = count + 1;
+        errorCode = CommandHandler_setValue(config, 100U);
+        count = count + 1U;
     }
 }
 
 // Variant: reassignment inside for loop
 void handleForLoop(Config& config) {
-    uint8_t errorCode = 0;
+    uint8_t errorCode = 0U;
     for (uint32_t i = 0; i < 1; i = i + 1) {
-        errorCode = CommandHandler_setValue(config, 200);
+        errorCode = CommandHandler_setValue(config, 200U);
     }
 }
 
@@ -70,37 +70,37 @@ void handleForLoop(Config& config) {
 void handleDeclaration(Config& config) {
     bool enable = true;
     if (enable) {
-        uint8_t errorCode = CommandHandler_setValue(config, 42);
+        uint8_t errorCode = CommandHandler_setValue(config, 42U);
     }
 }
 
 // Control case: top-level reassignment (outside conditional)
 void handleTopLevel(Config& config) {
-    uint8_t errorCode = 0;
-    errorCode = CommandHandler_setValue(config, 300);
+    uint8_t errorCode = 0U;
+    errorCode = CommandHandler_setValue(config, 300U);
 }
 
 int main(void) {
     Config cfg = {0};
-    cfg.value = 0;
+    cfg.value = 0U;
     cfg.enabled = false;
     handleEnableSpn(cfg);
     if (cfg.value != 42) return 1;
-    cfg.value = 0;
+    cfg.value = 0U;
     cfg.enabled = false;
     handleElseBranch(cfg);
     if (cfg.enabled != true) return 2;
-    cfg.value = 0;
+    cfg.value = 0U;
     cfg.enabled = false;
     handleWhileLoop(cfg);
     if (cfg.value != 100) return 3;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleForLoop(cfg);
     if (cfg.value != 200) return 4;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleDeclaration(cfg);
     if (cfg.value != 42) return 5;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleTopLevel(cfg);
     if (cfg.value != 300) return 6;
     return 0;

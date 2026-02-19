@@ -32,9 +32,9 @@ uint32_t readAndAdd(uint32_t* val, uint32_t amount) {
 
 // Multiple compound ops - should NOT get const
 void multipleCompound(uint32_t* val) {
-    (*val) += 10;
-    (*val) *= 2;
-    (*val) -= 5;
+    (*val) += 10U;
+    (*val) *= 2U;
+    (*val) -= 5U;
 }
 
 // Only reads with arithmetic - SHOULD get const
@@ -43,24 +43,24 @@ uint32_t onlyReads(uint32_t a, uint32_t b) {
 }
 
 int main(void) {
-    uint32_t x = 100;
+    uint32_t x = 100U;
     addToValue(&x, 50);
     if (x != 150) return 1;
     int32_t y = 100;
     subtractFromValue(&y, 30);
     if (y != 70) return 2;
-    uint32_t z = 10;
+    uint32_t z = 10U;
     multiplyValue(&z, 5);
     if (z != 50) return 3;
-    uint32_t w = 25;
-    uint32_t original = readAndAdd(&w, 10);
+    uint32_t w = 25U;
+    uint32_t original = readAndAdd(&w, 10U);
     if (original != 25) return 4;
     if (w != 35) return 5;
-    uint32_t m = 10;
+    uint32_t m = 10U;
     multipleCompound(&m);
     if (m != 35) return 6;
-    uint32_t a = 5;
-    uint32_t b = 3;
+    uint32_t a = 5U;
+    uint32_t b = 3U;
     uint32_t result = onlyReads(a, b);
     if (result != 11) return 7;
     if (a != 5) return 8;

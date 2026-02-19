@@ -18,33 +18,33 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // ADR-013: Short-circuit evaluation prevents unsafe operations
 // Critical for embedded systems where bounds checking and validation matter
-uint32_t accessCount = 0;
+uint32_t accessCount = 0U;
 
-uint32_t dangerousValue = 0;
+uint32_t dangerousValue = 0U;
 
 bool isIndexSafe(uint32_t index) {
     return index < 5;
 }
 
 uint32_t performDangerousOperation(uint32_t index) {
-    accessCount = cnx_clamp_add_u32(accessCount, 1);
-    dangerousValue = index * 2;
+    accessCount = cnx_clamp_add_u32(accessCount, 1U);
+    dangerousValue = index * 2U;
     return dangerousValue;
 }
 
 void testSafeGuardPattern(void) {
-    accessCount = 0;
+    accessCount = 0U;
     bool result = isIndexSafe(10) && (performDangerousOperation(10) > 0);
 }
 
 void testSafeGuardPatternValid(void) {
-    accessCount = 0;
+    accessCount = 0U;
     bool result = isIndexSafe(2) && (performDangerousOperation(2) >= 0);
 }
 
 void testOrSafetyPattern(void) {
-    accessCount = 0;
-    uint32_t invalidIndex = 100;
+    accessCount = 0U;
+    uint32_t invalidIndex = 100U;
     bool shouldUseDefault = (invalidIndex >= 5) || (performDangerousOperation(invalidIndex) == 0);
 }
 
@@ -56,7 +56,7 @@ typedef struct TStatusRegister {
 TStatusRegister status = {0};
 
 void testNullLikeCheck(void) {
-    status.enabled = 0;
-    accessCount = 0;
+    status.enabled = 0U;
+    accessCount = 0U;
     bool shouldRead = (status.enabled != 0) && (status.value > 0);
 }

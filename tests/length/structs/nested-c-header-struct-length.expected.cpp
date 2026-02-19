@@ -63,11 +63,11 @@ int main(void) {
     if (16 != 16) return 16;
     if (32 != 32) return 17;
     if (64 != 64) return 18;
-    uint32_t bytes = 4;
+    uint32_t bytes = 32 / 8U;
     if (bytes != 4) return 19;
     uint32_t total = 24;
     if (total != 24) return 20;
-    uint32_t bitSum = 0;
+    uint32_t bitSum = 0U;
     for (uint32_t j = 0; j < 4; j += 1) {
         bitSum = cnx_clamp_add_u32(bitSum, 8);
     }

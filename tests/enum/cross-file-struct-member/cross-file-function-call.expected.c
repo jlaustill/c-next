@@ -11,9 +11,9 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t sum = MathUtils_add(10, 20);
+    uint32_t sum = MathUtils_add(10U, 20U);
     if (sum != 30) return 1;
-    uint32_t product = MathUtils_multiply(5, 6);
+    uint32_t product = MathUtils_multiply(5U, 6U);
     if (product != 30) return 2;
     uint32_t combined = MathUtils_add(sum, product);
     if (combined != 60) return 3;

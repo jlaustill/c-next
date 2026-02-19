@@ -10,34 +10,34 @@
 // Tests: Issue #234 - Slice assignment with const variable offsets
 // Validates that const variables are recognized as compile-time constants
 // and can be used for slice offset and length parameters.
-extern const uint32_t OFFSET_MAGIC = 0;
+extern const uint32_t OFFSET_MAGIC = 0U;
 
-extern const uint32_t OFFSET_VERSION = 4;
+extern const uint32_t OFFSET_VERSION = 4U;
 
-extern const uint32_t OFFSET_FLAGS = 6;
+extern const uint32_t OFFSET_FLAGS = 6U;
 
-extern const uint8_t LEN_MAGIC = 4;
+extern const uint8_t LEN_MAGIC = 4U;
 
-extern const uint8_t LEN_VERSION = 2;
+extern const uint8_t LEN_VERSION = 2U;
 
-extern const uint8_t LEN_FLAGS = 1;
+extern const uint8_t LEN_FLAGS = 1U;
 
 int main(void) {
     uint8_t buffer[64] = {0};
-    uint32_t magic = 0x12345678;
+    uint32_t magic = 0x12345678U;
     memcpy(&buffer[0], &magic, 4);
     if (buffer[0] != 0x78) return 1;
     if (buffer[1] != 0x56) return 2;
     if (buffer[2] != 0x34) return 3;
     if (buffer[3] != 0x12) return 4;
-    uint16_t version = 0xABCD;
+    uint16_t version = 0xABCDU;
     memcpy(&buffer[4], &version, 2);
     if (buffer[4] != 0xCD) return 5;
     if (buffer[5] != 0xAB) return 6;
-    uint8_t flags = 0xFF;
+    uint8_t flags = 0xFFU;
     memcpy(&buffer[6], &flags, 1);
     if (buffer[6] != 0xFF) return 7;
-    uint32_t value = 0x11223344;
+    uint32_t value = 0x11223344U;
     memcpy(&buffer[6], &value, 4);
     if (buffer[6] != 0x44) return 8;
     if (buffer[7] != 0x33) return 9;

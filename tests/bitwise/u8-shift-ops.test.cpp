@@ -10,23 +10,23 @@
 // Test u8 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u8 type
 int main(void) {
-    uint8_t a = 0b00000001;
-    uint8_t left1 = a << 1;
-    uint8_t left4 = a << 4;
-    uint8_t left7 = a << 7;
-    uint8_t b = 0b10000000;
-    uint8_t right1 = b >> 1;
-    uint8_t right4 = b >> 4;
-    uint8_t right7 = b >> 7;
-    uint8_t c = 0b00001111;
-    uint8_t shift_amount = 2;
+    uint8_t a = 0b00000001U;
+    uint8_t left1 = a << 1U;
+    uint8_t left4 = a << 4U;
+    uint8_t left7 = a << 7U;
+    uint8_t b = 0b10000000U;
+    uint8_t right1 = b >> 1U;
+    uint8_t right4 = b >> 4U;
+    uint8_t right7 = b >> 7U;
+    uint8_t c = 0b00001111U;
+    uint8_t shift_amount = 2U;
     uint8_t left_var = c << shift_amount;
     uint8_t right_var = c >> shift_amount;
-    uint8_t d = 0b10101010;
-    uint8_t left_zero = d << 0;
-    uint8_t right_zero = d >> 0;
-    uint8_t e = 255;
-    uint8_t multi_shift = (e >> 2) << 1;
+    uint8_t d = 0b10101010U;
+    uint8_t left_zero = d << 0U;
+    uint8_t right_zero = d >> 0U;
+    uint8_t e = 255U;
+    uint8_t multi_shift = (e >> 2U) << 1U;
     if (left1 == 2 && left4 == 16 && left7 == 128) {
         if (right1 == 64 && right4 == 8 && right7 == 1) {
             if (left_var == 60 && right_var == 3) {

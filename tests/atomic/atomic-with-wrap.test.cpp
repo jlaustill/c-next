@@ -11,31 +11,31 @@
 #include <cmsis_gcc.h>
 
 // Atomic wrap variables - wrapping arithmetic
-volatile uint8_t tick8 = 0;
+volatile uint8_t tick8 = 0U;
 
-volatile uint16_t tick16 = 0;
+volatile uint16_t tick16 = 0U;
 
-volatile uint32_t tick32 = 0;
+volatile uint32_t tick32 = 0U;
 
 // Wrap is useful for counters that should overflow
-volatile uint8_t sequenceNumber = 0;
+volatile uint8_t sequenceNumber = 0U;
 
-volatile uint16_t frameCounter = 0;
+volatile uint16_t frameCounter = 0U;
 
 void incrementTicks(void) {
     do {
         uint8_t __old = __LDREXB(&tick8);
-        uint8_t __new = __old + 1;
+        uint8_t __new = __old + 1U;
         if (__STREXB(__new, &tick8) == 0) break;
     } while (1);
     do {
         uint16_t __old = __LDREXH(&tick16);
-        uint16_t __new = __old + 1;
+        uint16_t __new = __old + 1U;
         if (__STREXH(__new, &tick16) == 0) break;
     } while (1);
     do {
         uint32_t __old = __LDREXW(&tick32);
-        uint32_t __new = __old + 1;
+        uint32_t __new = __old + 1U;
         if (__STREXW(__new, &tick32) == 0) break;
     } while (1);
 }
@@ -43,7 +43,7 @@ void incrementTicks(void) {
 void nextSequence(void) {
     do {
         uint8_t __old = __LDREXB(&sequenceNumber);
-        uint8_t __new = __old + 1;
+        uint8_t __new = __old + 1U;
         if (__STREXB(__new, &sequenceNumber) == 0) break;
     } while (1);
 }
@@ -51,7 +51,7 @@ void nextSequence(void) {
 void nextFrame(void) {
     do {
         uint16_t __old = __LDREXH(&frameCounter);
-        uint16_t __new = __old + 1;
+        uint16_t __new = __old + 1U;
         if (__STREXH(__new, &frameCounter) == 0) break;
     } while (1);
 }

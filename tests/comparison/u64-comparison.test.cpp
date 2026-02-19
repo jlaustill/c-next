@@ -22,18 +22,18 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 // Validates all comparison operators with u64 type
 // Includes edge cases with zero, max values, and typical embedded use cases
 int main(void) {
-    uint64_t a = 1000000000000;
-    uint64_t b = 1000000000000;
-    uint64_t c = 2000000000000;
+    uint64_t a = 1000000000000ULL;
+    uint64_t b = 1000000000000ULL;
+    uint64_t c = 2000000000000ULL;
     if ((a == b) != true) return 1;
     if ((a == c) != false) return 2;
     if ((a != c) != true) return 3;
     if ((a != b) != false) return 4;
-    uint64_t zero = 0;
+    uint64_t zero = 0ULL;
     if ((zero == 0) != true) return 5;
     if ((zero != 1) != true) return 6;
-    uint64_t small = 1000;
-    uint64_t large = 1000000000000;
+    uint64_t small = 1000ULL;
+    uint64_t large = 1000000000000ULL;
     if ((small < large) != true) return 7;
     if ((large < small) != false) return 8;
     if ((small < small) != false) return 9;
@@ -50,7 +50,7 @@ int main(void) {
     if ((small >= large) != false) return 20;
     if ((1 > zero) != true) return 21;
     if ((zero >= 0) != true) return 22;
-    uint64_t val = 1000000000000;
+    uint64_t val = 1000000000000ULL;
     if ((val == 1000000000000) != true) return 23;
     if ((val != 1000000000000) != false) return 24;
     if ((val < 2000000000000) != true) return 25;
@@ -61,15 +61,15 @@ int main(void) {
     if ((val <= 2000000000000) != true) return 30;
     if ((val >= 1000000000000) != true) return 31;
     if ((val >= 500000000000) != true) return 32;
-    uint64_t counter = 0;
+    uint64_t counter = 0ULL;
     while (counter < 100) {
-        counter = cnx_clamp_add_u64(counter, 1);
+        counter = cnx_clamp_add_u64(counter, 1ULL);
         if (counter >= 50) {
-            counter = 100;
+            counter = 100ULL;
         }
     }
     if (counter != 100) return 33;
-    uint64_t threshold = 1000000000;
+    uint64_t threshold = 1000000000ULL;
     bool nested_passed = false;
     if (counter > 0) {
         if (counter < threshold) {
@@ -80,21 +80,21 @@ int main(void) {
     if ((zero < 1) != true) return 35;
     if ((zero == 0) != true) return 36;
     if ((0 <= zero) != true) return 37;
-    uint64_t max = 18446744073709551615;
-    uint64_t near_max = 18446744073709551614;
+    uint64_t max = 18446744073709551615ULL;
+    uint64_t near_max = 18446744073709551614ULL;
     if ((zero < max) != true) return 38;
     if ((max >= max) != true) return 39;
     if ((max == max) != true) return 40;
     if ((near_max < max) != true) return 41;
     if ((near_max != max) != true) return 42;
     if ((near_max <= max) != true) return 43;
-    uint64_t timestamp_2020 = 1577836800000;
-    uint64_t timestamp_2021 = 1609459200000;
+    uint64_t timestamp_2020 = 1577836800000ULL;
+    uint64_t timestamp_2021 = 1609459200000ULL;
     if ((timestamp_2021 > timestamp_2020) != true) return 44;
     if ((timestamp_2021 != timestamp_2020) != true) return 45;
-    uint64_t chain_a = 1000;
-    uint64_t chain_b = 5000;
-    uint64_t chain_c = 10000;
+    uint64_t chain_a = 1000ULL;
+    uint64_t chain_b = 5000ULL;
+    uint64_t chain_c = 10000ULL;
     bool chain_result = false;
     if (chain_a < chain_b) {
         if (chain_b < chain_c) {

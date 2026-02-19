@@ -42,14 +42,14 @@ typedef uint8_t Flags;
 
 int main(int argc, char *argv[]) {
     Flags f = 0;
-    uint8_t count = 0;
-    uint8_t iterations = 8;
-    uint8_t threshold = 3;
+    uint8_t count = 0U;
+    uint8_t iterations = 8U;
+    uint8_t threshold = 3U;
     if (argc > 1) {
-        iterations = atoi(argv[1]);
+        iterations = atoi(argv[1U]);
     }
     if (argc > 2) {
-        threshold = atoi(argv[2]);
+        threshold = atoi(argv[2U]);
     }
     for (uint8_t i = 0; i < iterations; i += 1) {
         f = (f & ~(1 << 0)) | (((i % 2) == 0 ? 1 : 0) << 0);
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
             f = (f & ~(1 << 2)) | (1 << 2);
         }
         if (((f >> 0) & 1) == true) {
-            count = cnx_clamp_add_u8(count, 1);
+            count = cnx_clamp_add_u8(count, 1U);
         }
     }
     if (((f >> 0) & 1) != false) return 1;

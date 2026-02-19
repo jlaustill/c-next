@@ -25,22 +25,22 @@ typedef struct DeepNest {
 
 int main(void) {
     Outer config = {0};
-    config.inner.value = 0x12345678;
-    config.inner.status = 100;
-    config.flags = 0xFF;
+    config.inner.value = 0x12345678U;
+    config.inner.status = 100U;
+    config.flags = 0xFFU;
     if (32 != 32) return 1;
     if (16 != 16) return 2;
     if (8 != 8) return 3;
     DeepNest deep = {0};
-    deep.outer.inner.value = 0xABCDEF;
-    deep.outer.inner.status = 200;
-    deep.outer.flags = 0x42;
-    deep.timestamp = 999999;
+    deep.outer.inner.value = 0xABCDEFU;
+    deep.outer.inner.status = 200U;
+    deep.outer.flags = 0x42U;
+    deep.timestamp = 999999ULL;
     if (32 != 32) return 4;
     if (16 != 16) return 5;
     if (8 != 8) return 6;
     if (64 != 64) return 7;
-    uint32_t bytes = 4;
+    uint32_t bytes = 32 / 8U;
     if (bytes != 4) return 8;
     uint32_t total = 40;
     if (total != 40) return 9;
