@@ -8,12 +8,14 @@ import { tmpdir } from "node:os";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PathNormalizer from "../PathNormalizer";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import IFileSystem from "../../transpiler/types/IFileSystem";
+
+// Store original environment variables at module level for all tests
+const originalHome = process.env.HOME;
+const originalUserProfile = process.env.USERPROFILE;
 
 describe("PathNormalizer", () => {
   describe("expandTilde", () => {
-    const originalHome = process.env.HOME;
-    const originalUserProfile = process.env.USERPROFILE;
-
     beforeEach(() => {
       process.env.HOME = "/home/testuser";
       process.env.USERPROFILE = "C:\\Users\\testuser";
@@ -114,6 +116,100 @@ describe("PathNormalizer", () => {
       writeFileSync(filePath, "content");
       const result = PathNormalizer.expandRecursive(filePath, fs);
       expect(result).toEqual([filePath]);
+    });
+  });
+
+  describe("normalizePath", () => {
+    beforeEach(() => {
+      process.env.HOME = "/home/testuser";
+    });
+
+    afterEach(() => {
+      process.env.HOME = originalHome;
+    });
+
+    it("expands tilde in path", () => {
+      const result = PathNormalizer.normalizePath("~/output");
+      expect(result).toBe("/home/testuser/output");
+    });
+
+    it("leaves absolute path unchanged", () => {
+      const result = PathNormalizer.normalizePath("/abs/path");
+      expect(result).toBe("/abs/path");
+    });
+
+    it("handles empty string", () => {
+      const result = PathNormalizer.normalizePath("");
+      expect(result).toBe("");
+    });
+  });
+
+  describe("normalizeIncludePaths", () => {
+    let tempDir: string;
+    const fs = NodeFileSystem.instance;
+
+    beforeEach(() => {
+      process.env.HOME = "/home/testuser";
+      tempDir = mkdtempSync(join(tmpdir(), "pathnorm-include-"));
+      mkdirSync(join(tempDir, "sub1"), { recursive: true });
+      mkdirSync(join(tempDir, "sub2"), { recursive: true });
+    });
+
+    afterEach(() => {
+      process.env.HOME = originalHome;
+      rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it("expands tilde in all paths", () => {
+      // Use mock fs for tilde paths since they won't exist
+      const mockFs: IFileSystem = {
+        exists: (p) => p === "/home/testuser/a" || p === "/home/testuser/b",
+        isDirectory: (p) =>
+          p === "/home/testuser/a" || p === "/home/testuser/b",
+        readdir: () => [],
+        readFile: () => "",
+        writeFile: () => {},
+        mkdir: () => {},
+        isFile: () => false,
+        stat: () => ({ mtimeMs: 0 }),
+      };
+      const result = PathNormalizer.normalizeIncludePaths(
+        ["~/a", "~/b"],
+        mockFs,
+      );
+      expect(result).toEqual(["/home/testuser/a", "/home/testuser/b"]);
+    });
+
+    it("expands ** in paths", () => {
+      const result = PathNormalizer.normalizeIncludePaths(
+        [`${tempDir}/**`],
+        fs,
+      );
+      expect(result).toContain(tempDir);
+      expect(result).toContain(join(tempDir, "sub1"));
+      expect(result).toContain(join(tempDir, "sub2"));
+    });
+
+    it("handles mixed paths with tilde and **", () => {
+      const result = PathNormalizer.normalizeIncludePaths(
+        [tempDir, `${tempDir}/**`],
+        fs,
+      );
+      expect(result).toContain(tempDir);
+      expect(result).toContain(join(tempDir, "sub1"));
+    });
+
+    it("filters out nonexistent paths", () => {
+      const result = PathNormalizer.normalizeIncludePaths(
+        ["/nonexistent", tempDir],
+        fs,
+      );
+      expect(result).toEqual([tempDir]);
+    });
+
+    it("returns empty array for empty input", () => {
+      const result = PathNormalizer.normalizeIncludePaths([], fs);
+      expect(result).toEqual([]);
     });
   });
 });

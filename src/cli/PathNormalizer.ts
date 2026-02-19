@@ -86,6 +86,40 @@ class PathNormalizer {
       }
     }
   }
+
+  /**
+   * Normalize a single path (tilde expansion only).
+   * Used for output, headerOut, basePath.
+   * @param path - Path to normalize
+   * @returns Normalized path
+   */
+  static normalizePath(path: string): string {
+    if (!path) {
+      return path;
+    }
+    return this.expandTilde(path);
+  }
+
+  /**
+   * Normalize include paths (tilde + recursive expansion).
+   * @param paths - Array of paths to normalize
+   * @param fs - File system abstraction for testing
+   * @returns Flattened array of all resolved directories
+   */
+  static normalizeIncludePaths(
+    paths: string[],
+    fs: IFileSystem = defaultFs,
+  ): string[] {
+    const result: string[] = [];
+
+    for (const path of paths) {
+      const expanded = this.expandTilde(path);
+      const dirs = this.expandRecursive(expanded, fs);
+      result.push(...dirs);
+    }
+
+    return result;
+  }
 }
 
 export default PathNormalizer;
