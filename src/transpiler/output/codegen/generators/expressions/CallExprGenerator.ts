@@ -96,8 +96,11 @@ const _parameterExpectsAddressOf = (
   }
 
   // paramType should end with * (already checked by caller)
-  // Remove trailing * and whitespace to get the base type
-  const paramBaseType = paramType.replace(/\s*\*+$/, "").trim();
+  // Remove trailing pointer markers to get the base type
+  // Use indexOf/slice instead of regex to avoid ReDoS concerns (SonarCloud S5852)
+  const starIndex = paramType.indexOf("*");
+  const paramBaseType =
+    starIndex >= 0 ? paramType.slice(0, starIndex).trim() : paramType.trim();
   return paramBaseType === argType;
 };
 
