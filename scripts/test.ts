@@ -56,14 +56,13 @@ interface IWorkerResult {
 
 /**
  * Check if validation tools are available
+ *
+ * Static analysis tools (cppcheck, clang-tidy, MISRA, flawfinder) run as a
+ * separate batch step via `npm run validate:c` / scripts/batch-validate.mjs.
  */
 function checkValidationTools(): ITools {
   const tools: ITools = {
     gcc: false,
-    cppcheck: false,
-    clangTidy: false,
-    misra: false,
-    flawfinder: false,
   };
 
   try {
@@ -71,38 +70,6 @@ function checkValidationTools(): ITools {
     tools.gcc = true;
   } catch {
     // gcc not available
-  }
-
-  try {
-    execFileSync("cppcheck", ["--version"], {
-      encoding: "utf-8",
-      stdio: "pipe",
-    });
-    tools.cppcheck = true;
-    // MISRA addon requires cppcheck
-    tools.misra = true;
-  } catch {
-    // cppcheck not available
-  }
-
-  try {
-    execFileSync("clang-tidy", ["--version"], {
-      encoding: "utf-8",
-      stdio: "pipe",
-    });
-    tools.clangTidy = true;
-  } catch {
-    // clang-tidy not available
-  }
-
-  try {
-    execFileSync("flawfinder", ["--version"], {
-      encoding: "utf-8",
-      stdio: "pipe",
-    });
-    tools.flawfinder = true;
-  } catch {
-    // flawfinder not available
   }
 
   return tools;
@@ -490,13 +457,7 @@ async function main(): Promise<void> {
     }
 
     // Show available validation tools
-    const toolList: string[] = [];
-    if (tools.gcc) toolList.push("gcc");
-    if (tools.cppcheck) toolList.push("cppcheck");
-    if (tools.clangTidy) toolList.push("clang-tidy");
-    if (tools.misra) toolList.push("MISRA");
-    if (tools.flawfinder) toolList.push("flawfinder");
-    console.log(chalk.cyan(`Validation: ${toolList.join(" → ")}`));
+    console.log(chalk.cyan(`Validation: ${tools.gcc ? "gcc" : "(no gcc)"}`));
 
     // Show parallelism info
     if (numJobs > 1) {

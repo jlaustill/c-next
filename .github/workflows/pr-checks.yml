@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # PARALLEL GROUP 1: Static Analysis (no build needed)
+  # STAGE 1 (parallel): Build + Lint
   # ============================================================================
   lint:
     name: Static Analysis
@@ -84,9 +84,6 @@ jobs:
           [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
-  # ============================================================================
-  # PARALLEL GROUP 1: Build (parser generation + typecheck)
-  # ============================================================================
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -111,11 +108,25 @@ jobs:
       - name: Generate parser files
         run: npm run antlr:all
 
+      - name: Build transpiler bundle
+        run: npm run build
+
       - name: Check TypeScript types
         run: npm run typecheck
 
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          retention-days: 1
+          path: |
+            dist/
+            src/transpiler/logic/parser/grammar/
+            src/transpiler/logic/parser/c/grammar/
+            src/transpiler/logic/parser/cpp/grammar/
+
   # ============================================================================
-  # PARALLEL GROUP 2: Test suites (all run in parallel after build)
+  # STAGE 2 (parallel): Test suites (all need build artifact)
   # ============================================================================
   integration-tests:
     name: Integration Tests
@@ -139,11 +150,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate parser files
-        run: npm run antlr:all
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
 
       - name: Run integration tests
         run: npm test
+
+      - name: Upload generated test files
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-test-files
+          retention-days: 1
+          path: |
+            tests/**/*.test.c
+            tests/**/*.test.cpp
+            tests/**/*.test.h
 
   unit-tests:
     name: Unit Tests
@@ -169,8 +192,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate parser files
-        run: npm run antlr:all
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
 
       - name: Run unit tests with coverage
         run: npm run unit -- --coverage
@@ -203,15 +228,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate parser files
-        run: npm run antlr:all
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
 
       - name: Run CLI integration tests
         run: npm run test:cli
 
       - name: Verify transpiler CLI
         run: |
-          ./bin/cnext.js examples/teensy4/blink.cnx
+          node dist/index.js examples/teensy4/blink.cnx
           test -f examples/teensy4/blink.c || exit 1
 
   grammar-coverage:
@@ -236,8 +263,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate parser files
-        run: npm run antlr:all
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
 
       - name: Check grammar coverage
         run: npm run coverage:grammar:check -- --threshold 80
@@ -245,7 +274,40 @@ jobs:
   verify-clean:
     name: Verify Clean
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [integration-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Download generated test files
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-test-files
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Uncommitted changes detected!"
+            git status --porcelain
+            echo ""
+            echo "Run 'npm run antlr:all' and 'npm test' locally, then commit."
+            exit 1
+          fi
+          echo "✅ No uncommitted changes"
+
+  # ============================================================================
+  # STAGE 3 (parallel): Analysis that needs generated files
+  # ============================================================================
+  c-validation:
+    name: C Static Analysis
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
 
     steps:
       - name: Checkout code
@@ -264,26 +326,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate parser files
-        run: npm run antlr:all
-
-      - name: Run tests (generates output files)
-        run: npm test
-
-      - name: Check for uncommitted changes
+      - name: Install C analysis tools
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::Uncommitted changes detected!"
-            git status --porcelain
-            echo ""
-            echo "Run 'npm run antlr:all' and 'npm test' locally, then commit."
-            exit 1
-          fi
-          echo "✅ No uncommitted changes"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cppcheck clang-tidy flawfinder
 
-  # ============================================================================
-  # SEQUENTIAL: SonarCloud (needs coverage from unit-tests)
-  # ============================================================================
+      - name: Download generated test files
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-test-files
+
+      - name: Run batch validation
+        run: npm run validate:c
+
   sonar:
     name: SonarCloud
     runs-on: ubuntu-latest
@@ -321,6 +376,7 @@ jobs:
         cli-tests,
         grammar-coverage,
         verify-clean,
+        c-validation,
         sonar,
       ]
     if: always()
@@ -337,6 +393,7 @@ jobs:
           [ "${{ needs.cli-tests.result }}" != "success" ] && echo "❌ CLI Tests" && FAILED=1 || echo "✅ CLI Tests"
           [ "${{ needs.grammar-coverage.result }}" != "success" ] && echo "❌ Grammar Coverage" && FAILED=1 || echo "✅ Grammar Coverage"
           [ "${{ needs.verify-clean.result }}" != "success" ] && echo "❌ Verify Clean" && FAILED=1 || echo "✅ Verify Clean"
+          [ "${{ needs.c-validation.result }}" != "success" ] && echo "❌ C Static Analysis" && FAILED=1 || echo "✅ C Static Analysis"
           [ "${{ needs.sonar.result }}" != "success" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
           [ $FAILED -eq 1 ] && exit 1 || echo "::notice::All checks passed!"
 
