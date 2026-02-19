@@ -40,12 +40,12 @@ cnext.config.json (raw paths)
 
 ### Paths Normalized
 
-| Config key | Normalization |
-|------------|---------------|
-| `include` | Tilde expansion + `**` recursive expansion |
-| `output` | Tilde expansion only |
-| `headerOut` | Tilde expansion only |
-| `basePath` | Tilde expansion only |
+| Config key  | Normalization                              |
+| ----------- | ------------------------------------------ |
+| `include`   | Tilde expansion + `**` recursive expansion |
+| `output`    | Tilde expansion only                       |
+| `headerOut` | Tilde expansion only                       |
+| `basePath`  | Tilde expansion only                       |
 
 Only `include` gets recursive expansion because `**` is a search path concept. Output directories should not recursively expand.
 
@@ -59,31 +59,31 @@ class PathNormalizer {
    * Normalize all paths in a CLI config.
    * Single entry point for all path normalization.
    */
-  static normalizeConfig(config: ICliConfig): ICliConfig
+  static normalizeConfig(config: ICliConfig): ICliConfig;
 
   /**
    * Expand ~ to home directory.
    * Handles: ~, ~/path (only leading tilde)
    */
-  static expandTilde(path: string): string
+  static expandTilde(path: string): string;
 
   /**
    * Expand path/** to all subdirectories.
    * Returns array: one entry per directory found.
    */
-  static expandRecursive(path: string, fs?: IFileSystem): string[]
+  static expandRecursive(path: string, fs?: IFileSystem): string[];
 
   /**
    * Normalize a single path (tilde only, no recursive).
    * Used for output, headerOut, basePath.
    */
-  static normalizePath(path: string): string
+  static normalizePath(path: string): string;
 
   /**
    * Normalize include paths (tilde + recursive expansion).
    * Returns flattened array of all resolved directories.
    */
-  static normalizeIncludePaths(paths: string[], fs?: IFileSystem): string[]
+  static normalizeIncludePaths(paths: string[], fs?: IFileSystem): string[];
 }
 ```
 
@@ -115,6 +115,7 @@ private static mergeConfig(
 ```
 
 **Why Cli.mergeConfig, not ConfigLoader**:
+
 - CLI `--include` args also need normalization
 - `mergeConfig` is where both sources combine — single point
 - ConfigLoader stays focused on JSON parsing
@@ -125,17 +126,17 @@ private static mergeConfig(
 
 ### Unit Tests
 
-| Test case | Input | Expected |
-|-----------|-------|----------|
-| `expandTilde` - basic | `~/foo` | `/home/user/foo` |
-| `expandTilde` - no tilde | `/abs/path` | `/abs/path` |
-| `expandTilde` - tilde only | `~` | `/home/user` |
-| `expandTilde` - mid-path tilde | `/foo/~/bar` | `/foo/~/bar` (unchanged) |
-| `expandRecursive` - no suffix | `/sdk/include` | `["/sdk/include"]` |
-| `expandRecursive` - with ** | `/sdk/**` | `["/sdk", "/sdk/a", "/sdk/b", ...]` |
-| `expandRecursive` - nonexistent | `/nonexistent/**` | `[]` |
-| `normalizeIncludePaths` - mixed | `["~/a", "/b/**"]` | Combined expanded paths |
-| `normalizeConfig` - full | Config with all path types | All paths normalized |
+| Test case                       | Input                      | Expected                            |
+| ------------------------------- | -------------------------- | ----------------------------------- |
+| `expandTilde` - basic           | `~/foo`                    | `/home/user/foo`                    |
+| `expandTilde` - no tilde        | `/abs/path`                | `/abs/path`                         |
+| `expandTilde` - tilde only      | `~`                        | `/home/user`                        |
+| `expandTilde` - mid-path tilde  | `/foo/~/bar`               | `/foo/~/bar` (unchanged)            |
+| `expandRecursive` - no suffix   | `/sdk/include`             | `["/sdk/include"]`                  |
+| `expandRecursive` - with \*\*   | `/sdk/**`                  | `["/sdk", "/sdk/a", "/sdk/b", ...]` |
+| `expandRecursive` - nonexistent | `/nonexistent/**`          | `[]`                                |
+| `normalizeIncludePaths` - mixed | `["~/a", "/b/**"]`         | Combined expanded paths             |
+| `normalizeConfig` - full        | Config with all path types | All paths normalized                |
 
 ### Mock Strategy
 
@@ -149,9 +150,9 @@ In existing `Cli.test.ts`: Verify tilde paths in config file get expanded before
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/cli/PathNormalizer.ts` | New - all path normalization logic |
-| `src/cli/__tests__/PathNormalizer.test.ts` | New - unit tests |
-| `src/cli/Cli.ts` | Call `PathNormalizer.normalizeConfig()` in `mergeConfig()` |
-| `src/cli/__tests__/Cli.test.ts` | Add integration test for path normalization |
+| File                                       | Change                                                     |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `src/cli/PathNormalizer.ts`                | New - all path normalization logic                         |
+| `src/cli/__tests__/PathNormalizer.test.ts` | New - unit tests                                           |
+| `src/cli/Cli.ts`                           | Call `PathNormalizer.normalizeConfig()` in `mergeConfig()` |
+| `src/cli/__tests__/Cli.test.ts`            | Add integration test for path normalization                |

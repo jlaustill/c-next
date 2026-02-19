@@ -13,6 +13,7 @@
 ## Task 1: Create PathNormalizer with expandTilde
 
 **Files:**
+
 - Create: `src/cli/PathNormalizer.ts`
 - Create: `src/cli/__tests__/PathNormalizer.test.ts`
 
@@ -142,9 +143,10 @@ git commit -m "feat(cli): add PathNormalizer.expandTilde for ~ expansion (#829)"
 
 ---
 
-## Task 2: Add expandRecursive for /** paths
+## Task 2: Add expandRecursive for /\*\* paths
 
 **Files:**
+
 - Modify: `src/cli/PathNormalizer.ts`
 - Modify: `src/cli/__tests__/PathNormalizer.test.ts`
 
@@ -243,10 +245,7 @@ class PathNormalizer {
    * @param fs - File system abstraction for testing
    * @returns Array of all directories found
    */
-  static expandRecursive(
-    path: string,
-    fs: IFileSystem = defaultFs,
-  ): string[] {
+  static expandRecursive(path: string, fs: IFileSystem = defaultFs): string[] {
     const hasRecursiveSuffix = path.endsWith("/**");
     const basePath = hasRecursiveSuffix ? path.slice(0, -3) : path;
 
@@ -305,6 +304,7 @@ git commit -m "feat(cli): add PathNormalizer.expandRecursive for /** paths (#829
 ## Task 3: Add normalizePath and normalizeIncludePaths
 
 **Files:**
+
 - Modify: `src/cli/PathNormalizer.ts`
 - Modify: `src/cli/__tests__/PathNormalizer.test.ts`
 
@@ -467,6 +467,7 @@ git commit -m "feat(cli): add normalizePath and normalizeIncludePaths (#829)"
 ## Task 4: Add normalizeConfig as single entry point
 
 **Files:**
+
 - Modify: `src/cli/PathNormalizer.ts`
 - Modify: `src/cli/__tests__/PathNormalizer.test.ts`
 
@@ -648,6 +649,7 @@ git commit -m "feat(cli): add normalizeConfig as single entry point (#829)"
 ## Task 5: Integrate PathNormalizer into Cli.mergeConfig
 
 **Files:**
+
 - Modify: `src/cli/Cli.ts`
 - Modify: `src/cli/__tests__/Cli.test.ts`
 
@@ -705,7 +707,9 @@ describe("path normalization", () => {
     const result = Cli.run();
 
     expect(result.config?.includeDirs).toContain(join(tempDir, "include"));
-    expect(result.config?.includeDirs).toContain(join(tempDir, "include", "sub"));
+    expect(result.config?.includeDirs).toContain(
+      join(tempDir, "include", "sub"),
+    );
   });
 
   it("expands tilde in CLI --include paths", () => {
@@ -827,9 +831,9 @@ EOF
 
 ## Summary of Files
 
-| File | Action |
-|------|--------|
-| `src/cli/PathNormalizer.ts` | Create |
+| File                                       | Action |
+| ------------------------------------------ | ------ |
+| `src/cli/PathNormalizer.ts`                | Create |
 | `src/cli/__tests__/PathNormalizer.test.ts` | Create |
-| `src/cli/Cli.ts` | Modify |
-| `src/cli/__tests__/Cli.test.ts` | Modify |
+| `src/cli/Cli.ts`                           | Modify |
+| `src/cli/__tests__/Cli.test.ts`            | Modify |
