@@ -33,10 +33,13 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 | Task               | Command                                 |
 | ------------------ | --------------------------------------- |
+| Build transpiler   | `npm run build`                         |
 | Integration tests  | `npm test` or `npm run test:q` (quiet)  |
 | Single test        | `npm test -- tests/dir/file.test.cnx`   |
 | Unit tests         | `npm run unit`                          |
 | Coverage           | `npm run unit:coverage`                 |
+| C static analysis  | `npm run validate:c`                    |
+| All tests + checks | `npm run test:all`                      |
 | Local transpiler   | `npx tsx src/index.ts <file.cnx>`       |
 | C++ mode           | `npx tsx src/index.ts <file.cnx> --cpp` |
 | Generate snapshots | `npm test -- <path> --update`           |
