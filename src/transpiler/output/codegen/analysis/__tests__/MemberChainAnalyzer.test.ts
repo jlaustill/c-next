@@ -91,7 +91,7 @@ describe("MemberChainAnalyzer", () => {
         structName,
         fieldName,
         fieldType,
-        isArray ? [0] : undefined, // Use [0] as placeholder for arrays
+        isArray ? [10] : undefined, // Use realistic dimension for arrays
       );
     }
 
