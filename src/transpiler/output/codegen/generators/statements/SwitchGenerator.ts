@@ -339,9 +339,11 @@ const generateSwitch = (
   } else {
     // Issue #855: MISRA C:2012 Rule 16.4 - every switch shall have a default
     // Generate empty default case for compliance
-    lines.push(orchestrator.indent("default: {"));
-    lines.push(orchestrator.indent(orchestrator.indent("break;")));
-    lines.push(orchestrator.indent("}"));
+    lines.push(
+      orchestrator.indent("default: {"),
+      orchestrator.indent(orchestrator.indent("break;")),
+      orchestrator.indent("}"),
+    );
   }
 
   lines.push("}");
