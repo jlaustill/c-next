@@ -317,6 +317,27 @@ Writing `false` or `0` to a w1c field is an error — it has no effect (w1c bits
 
 Multi-bit w1c fields (rare but they exist — some DMA error status registers) work the same way: the value is shifted to the field position and written directly.
 
+#### Width Safety for Multi-Bit Fields
+
+Assigning a wider type to a narrower bitmap field requires explicit bit extraction — no implicit truncation:
+
+```cnx
+bitmap32 DmaErrors {
+    Chan0Err[4],   // 4 bits wide
+    Chan1Err[4],
+    Reserved[24]
+}
+
+u8 error <- 0xFF;
+
+DMA.ERR.Chan0Err <- error;        // ERROR: u8 (8 bits) doesn't fit in 4-bit field
+DMA.ERR.Chan0Err <- error[0, 4];  // OK: explicitly extract 4 bits
+DMA.ERR.Chan0Err <- 0xF;          // OK: literal fits in 4 bits
+DMA.ERR.Chan0Err <- 0x1F;         // ERROR: literal exceeds 4 bits
+```
+
+This follows C-Next's philosophy of explicit bit extraction (`value[start, width]`) rather than C's implicit truncating casts.
+
 #### Implementation
 
 In the register assignment codegen, check the access modifier and generate direct writes instead of RMW:
