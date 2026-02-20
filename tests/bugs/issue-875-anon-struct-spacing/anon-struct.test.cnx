@@ -1,0 +1,18 @@
+// test-cpp-only
+// test-transpile-only
+// Issue #875: Anonymous struct compound literal missing spaces between tokens
+// When initializing an anonymous struct field, the transpiler concatenates
+// tokens without spaces: "unsignedintflag_a" instead of "unsigned int flag_a"
+
+#include "anon-struct.h"
+
+void test() {
+    // This should generate proper spacing in the anonymous struct cast:
+    // config_t cfg = (config_t){ .value = 42, .flags = (struct { unsigned int flag_a: 1; unsigned int flag_b: 1; }){ .flag_a = true } };
+    // Bug: generates:
+    // config_t cfg = (config_t){ .value = 42, .flags = (struct{unsignedintflag_a:1;unsignedintflag_b:1;}){ .flag_a = true } };
+    config_t cfg <- {
+        value: 42,
+        flags: { flag_a: true }
+    };
+}

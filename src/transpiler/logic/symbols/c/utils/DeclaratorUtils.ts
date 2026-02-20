@@ -11,6 +11,9 @@ import type {
   DeclarationSpecifiersContext,
   StructOrUnionSpecifierContext,
   EnumSpecifierContext,
+  StructDeclarationListContext,
+  StructDeclarationContext,
+  StructDeclaratorContext,
 } from "../../../parser/c/grammar/CParser";
 import SymbolUtils from "../../SymbolUtils";
 import IExtractedParameter from "../../shared/IExtractedParameter";
@@ -227,8 +230,8 @@ class DeclaratorUtils {
             // Use just the struct/union name, not "structName" concatenated
             parts.push(identifier.getText());
           } else {
-            // Anonymous struct - use full text
-            parts.push(typeSpec.getText());
+            // Anonymous struct - reconstruct with proper spacing
+            parts.push(DeclaratorUtils.reconstructAnonymousStruct(structSpec));
           }
         } else {
           parts.push(typeSpec.getText());
@@ -244,6 +247,100 @@ class DeclaratorUtils {
     }
 
     return parts.join(" ") || "int";
+  }
+
+  /**
+   * Reconstruct an anonymous struct/union type with proper spacing.
+   * For `struct { unsigned int flag_a: 1; }`, returns the properly formatted string
+   * instead of the concatenated tokens from getText().
+   */
+  private static reconstructAnonymousStruct(
+    structSpec: StructOrUnionSpecifierContext,
+  ): string {
+    const structOrUnion = structSpec.structOrUnion();
+    const keyword = structOrUnion.Struct() ? "struct" : "union";
+
+    const declList = structSpec.structDeclarationList();
+    if (!declList) {
+      return `${keyword} { }`;
+    }
+
+    const fields = DeclaratorUtils.reconstructStructFields(declList);
+    return `${keyword} { ${fields} }`;
+  }
+
+  /**
+   * Reconstruct struct fields with proper spacing.
+   */
+  private static reconstructStructFields(
+    declList: StructDeclarationListContext,
+  ): string {
+    const fieldStrings: string[] = [];
+
+    for (const decl of declList.structDeclaration()) {
+      const fieldStr = DeclaratorUtils.reconstructStructField(decl);
+      if (fieldStr) {
+        fieldStrings.push(fieldStr);
+      }
+    }
+
+    return fieldStrings.join(" ");
+  }
+
+  /**
+   * Reconstruct a single struct field declaration.
+   */
+  private static reconstructStructField(
+    decl: StructDeclarationContext,
+  ): string | null {
+    const specQualList = decl.specifierQualifierList();
+    if (!specQualList) return null;
+
+    // Get the base type with proper spacing
+    const baseType = DeclaratorUtils.extractTypeFromSpecQualList(specQualList);
+
+    const declaratorList = decl.structDeclaratorList();
+    if (!declaratorList) {
+      return `${baseType};`;
+    }
+
+    // Process each declarator in the list
+    const declarators: string[] = [];
+    for (const structDecl of declaratorList.structDeclarator()) {
+      const declStr = DeclaratorUtils.reconstructStructDeclarator(structDecl);
+      if (declStr) {
+        declarators.push(declStr);
+      }
+    }
+
+    if (declarators.length === 0) {
+      return `${baseType};`;
+    }
+
+    return `${baseType} ${declarators.join(", ")};`;
+  }
+
+  /**
+   * Reconstruct a struct declarator (field name with optional bitfield width).
+   */
+  private static reconstructStructDeclarator(
+    structDecl: StructDeclaratorContext,
+  ): string | null {
+    const declarator = structDecl.declarator();
+    const hasColon = structDecl.Colon() !== null;
+    const constExpr = structDecl.constantExpression();
+
+    let name = "";
+    if (declarator) {
+      name = DeclaratorUtils.extractDeclaratorName(declarator) || "";
+    }
+
+    if (hasColon && constExpr) {
+      const width = constExpr.getText();
+      return `${name}: ${width}`;
+    }
+
+    return name || null;
   }
 
   /**
