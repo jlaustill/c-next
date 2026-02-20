@@ -246,6 +246,13 @@ function runClangTidy() {
 }
 
 // --- MISRA (per-file, C only) ---
+// Files excluded from MISRA validation (contain valid exceptions or intentional violations)
+const MISRA_EXCLUDED_FILES = [
+  // uri-exception.test.c tests MISRA Amendment 4 URI exception (://);
+  // cppcheck doesn't implement Amendment 4, so it false-positives on Rule 3.1
+  "uri-exception.test.c",
+];
+
 function runMisra() {
   if (!hasCppcheck) {
     console.log("⊘ cppcheck not available (needed for MISRA addon), skipping");
@@ -253,7 +260,11 @@ function runMisra() {
   }
 
   // MISRA is C-only; skip files that need C++ compilation
-  const misraFiles = cFiles.filter((f) => !requiresCpp(f));
+  // Also exclude files testing valid MISRA exceptions
+  const misraFiles = cFiles.filter(
+    (f) =>
+      !requiresCpp(f) && !MISRA_EXCLUDED_FILES.some((exc) => f.endsWith(exc)),
+  );
   console.log(`Running MISRA on ${misraFiles.length} C files...`);
 
   for (const file of misraFiles) {
