@@ -191,18 +191,37 @@ This is straightforward to implement:
 
 The key insight: **all expressions are compile-time constants**. No runtime evaluation needed — just constant folding during transpilation.
 
-#### Type Identity
+#### Type Identity and Generic Peripheral Code
 
-Each register instance is a distinct type for type-checking purposes:
+Register instances can be used in two ways:
 
+**Specific instance** — when you need a particular peripheral:
 ```cnx
-void configureGpio(GPIO1 port) { ... }  // Only accepts GPIO1
-
-configureGpio(GPIO1);  // OK
-configureGpio(GPIO2);  // ERROR: GPIO2 is not GPIO1
+void debugUart1(GPIO1 port) { ... }  // Only accepts GPIO1
 ```
 
-For generic peripheral handling, see Part 4 (Peripheral Traits).
+**Any instance of a template** — when you want generic code:
+```cnx
+void togglePin(GpioPort port, u8 pin) {
+    port.DR[pin] <- !port.DR[pin];
+}
+
+togglePin(GPIO1, 13);  // OK — GPIO1 is a GpioPort
+togglePin(GPIO2, 0);   // OK — GPIO2 is a GpioPort
+togglePin(UART1, 0);   // ERROR: UART1 is not a GpioPort
+```
+
+The parameterized register type (`GpioPort`) serves as the "interface" type. Any instance of that template satisfies it. The compiler resolves the correct base address at each call site:
+
+```cnx
+togglePin(GPIO1, 13);
+// Transpiles to: GPIO1_DR ^= (1 << 13);
+
+togglePin(GPIO2, 0);
+// Transpiles to: GPIO2_DR ^= (1 << 0);
+```
+
+This enables writing reusable HAL code without duplicating functions per instance.
 
 ---
 
@@ -266,6 +285,43 @@ error: bit-field assignment to w1c register 'INT.STATUS' would generate
 
        If the hardware truly requires RMW, mark the register as 'rw' instead
        of 'w1c' — this indicates the SVD or datasheet is incorrect.
+```
+
+#### Bitmap Masks for w1c Registers
+
+When a w1c register uses a bitmap type, direct writes lose the named-field ergonomics:
+
+```cnx
+bitmap32 GpioInterruptFlags {
+    Pin0, Pin1, Pin2, Pin3, /* ... */ Pin31
+}
+
+register GpioPort(u32 baseAddress) {
+    ISR: GpioInterruptFlags w1c @ baseAddress + 0x18,
+}
+
+// BLOCKED: GPIO1.ISR.Pin3 <- true           // RMW
+// AWKWARD: GPIO1.ISR <- (1 << 3)            // Magic number, loses type safety
+```
+
+To preserve named-field ergonomics, bitmap types provide a `.mask()` function:
+
+```cnx
+GPIO1.ISR <- GpioInterruptFlags.mask(.Pin3);              // Clear Pin3 only
+GPIO1.ISR <- GpioInterruptFlags.mask(.Pin3, .Pin7);       // Clear Pin3 and Pin7
+GPIO1.ISR <- GpioInterruptFlags.mask(.Pin0, .Pin1, .Pin2); // Clear multiple
+```
+
+The `.mask()` function:
+- Accepts one or more field names (prefixed with `.` for clarity)
+- Returns the computed bitmask as a compile-time constant
+- Preserves type safety — only valid field names accepted
+- Generates no runtime code
+
+Transpilation:
+```c
+GPIO1_ISR = (1 << 3);           // .mask(.Pin3)
+GPIO1_ISR = (1 << 3) | (1 << 7); // .mask(.Pin3, .Pin7)
 ```
 
 #### Implementation
@@ -435,11 +491,24 @@ src/tools/svd2cnext/
 
 Key implementation considerations:
 
-1. **Peripheral derivation** — SVD uses `derivedFrom` for identical peripherals; emit as template + instances
+1. **Peripheral derivation** — SVD uses `derivedFrom` for identical peripherals; emit as parameterized register + instances
+
 2. **Reserved field generation** — Calculate gaps between fields and emit `Reserved[N]`
+
 3. **Field name sanitization** — SVD field names may conflict with C-Next keywords
+
 4. **Cluster handling** — SVD `<cluster>` elements represent register arrays; emit with appropriate indexing
-5. **Dim handling** — SVD `<dim>` represents repeated elements; expand or use array syntax
+
+5. **Dim handling** — SVD `<dim>`, `<dimIncrement>`, `<dimIndex>` represent register arrays (e.g., GPT timer's `OCR1`, `OCR2`, `OCR3` with dim=3). Default: expand to individual registers. Future: emit array syntax if C-Next adds register arrays.
+
+6. **Alternate registers** — SVD `<alternateGroup>` and `<alternateRegister>` handle registers sharing the same address with different access (e.g., UART THR/RBR). Emit as two register fields at same offset with `wo` and `ro` — C-Next already supports this.
+
+7. **Template detection** — Some SVD files have layout-identical peripherals without `derivedFrom`. Add `--detect-templates` flag to identify and consolidate these automatically:
+   ```bash
+   npx svd2cnext chip.svd --detect-templates  # Auto-detect identical layouts
+   ```
+
+8. **Struct name mapping** — SVD's `<headerStructName>` maps directly to the parameterized register template name
 
 ---
 
@@ -529,223 +598,237 @@ procedure Send (Data : Byte)
 
 1. **Compile-time safety** — Catch configuration errors before runtime
 2. **Zero runtime cost** — No state tracking in generated code
-3. **Incremental adoption** — Can use without full typestate
-4. **Embedded-appropriate** — Works with static allocation, no heap
+3. **C-developer friendly** — No ownership semantics, no consumed parameters, no tuple returns
+4. **Whole-program analysis** — State tracked across function boundaries and ISRs
+5. **Opt-in complexity** — Simple peripherals shouldn't need state machines
 
-### Options Considered
+### Syntax Options for C-Next Typestate
 
-#### Option A: Peripheral Scopes with Init Blocks
+The goal is compile-time state verification without Rust-style ownership or annotation-heavy syntax.
 
-Leverage C-Next's existing `scope` construct with initialization requirements:
+#### Option A: State Graph Declaration
 
-```cnx
-scope Uart1 requires clock(UART1_CLK) {
-    register UART1: UartPort @ 0x40184000;
-
-    public void init(u32 baud) {
-        // Configuration code
-    }
-
-    public void send(u8 data) requires init {
-        UART1.DR <- data;
-    }
-}
-
-// Usage
-clock.enable(UART1_CLK);  // Satisfies 'requires clock'
-Uart1.init(115200);       // Satisfies 'requires init'
-Uart1.send(0x55);         // Now allowed
-```
-
-**Analysis:**
-- `requires` clauses checked at compile time via call graph analysis
-- Works for simple linear initialization sequences
-- Doesn't handle runtime-conditional initialization
-
-#### Option B: State Machine Types
-
-Explicit state encoding in types:
-
-```cnx
-state UartState { Disabled, Initialized, Enabled }
-
-scope Uart1 {
-    state: UartState <- Disabled;
-
-    public Uart1[Initialized] init(Uart1[Disabled] self, u32 baud) {
-        // Returns Uart1 in Initialized state
-    }
-
-    public void send(Uart1[Enabled] self, u8 data) {
-        // Requires Enabled state
-    }
-}
-```
-
-**Analysis:**
-- More expressive than Option A
-- Requires significant type system additions
-- Higher learning curve
-
-#### Option C: Compile-Time Assertions
-
-Simpler approach using static assertions:
+Define the state machine separately from function implementations:
 
 ```cnx
 scope Uart1 {
-    static initialized: bool <- false;
+    state UartState { Disabled, Configured, Enabled }
+
+    // State machine definition — which functions cause which transitions
+    state graph {
+        Disabled   -- init()   --> Configured;
+        Configured -- enable() --> Enabled;
+        Enabled    -- send()   --> Enabled;      // stays in Enabled
+        Enabled    -- deinit() --> Disabled;
+    }
+
+    register UART: UartPort(0x40184000);
 
     public void init(u32 baud) {
-        // ...
-        initialized <- true;
+        CCM.CCGR5[12, 2] <- 0b11;
+        UART.UCR1 <- 0x0001;
+    }
+
+    public void enable() {
+        UART.UCR2[0] <- true;
     }
 
     public void send(u8 data) {
-        static_assert(initialized, "UART1 must be initialized before send");
-        // ...
-    }
-}
-```
-
-**Analysis:**
-- Leverages existing language features
-- Limited to compile-time-known state
-- Doesn't prevent runtime ordering issues
-
-### Decision: Full Typestate
-
-C-Next will implement compile-time typestate for peripheral initialization safety. Invalid state transitions are compile errors, not runtime bugs.
-
-### Specification: Typestate for Peripherals
-
-#### State Declarations
-
-Peripherals declare their possible states using a `state` enum:
-
-```cnx
-state UartState { Disabled, Configured, Enabled }
-state GpioState { Unclaimed, Input, Output, Alternate }
-state DmaState  { Idle, Configured, Running }
-```
-
-#### Stateful Scopes
-
-Scopes can be parameterized by state:
-
-```cnx
-scope Uart1[UartState] {
-    register UART: UartPort(0x40184000);
-
-    /// Transition from Disabled → Configured
-    public Uart1[Configured] init(Uart1[Disabled] self, u32 baud) {
-        // Enable clock, configure pins, set baud
-        CCM.CCGR5[12, 2] <- 0b11;
-        UART.UCR1 <- 0x0001;
-        // ...
-    }
-
-    /// Transition from Configured → Enabled
-    public Uart1[Enabled] enable(Uart1[Configured] self) {
-        UART.UCR2[0] <- true;  // Enable transmitter
-    }
-
-    /// Only callable in Enabled state
-    public void send(Uart1[Enabled] self, u8 data) {
         while (UART.USR1[13] = false) { }
         UART.UTXD <- data;
     }
 
-    /// Transition from Enabled → Disabled
-    public Uart1[Disabled] deinit(Uart1[Enabled] self) {
+    public void deinit() {
         UART.UCR1 <- 0x0000;
         CCM.CCGR5[12, 2] <- 0b00;
     }
 }
 ```
 
-#### Usage
+**Pros:**
+- State machine is visible at a glance (like a UML diagram in code)
+- Functions are normal C-Next functions — no special parameters
+- Easy to read the valid transitions
+
+**Cons:**
+- State machine and functions are separate — must keep in sync
+- New syntax element (`state graph`)
+
+#### Option B: Phase Blocks
+
+Group functions by the state they're valid in:
 
 ```cnx
-void main() {
-    // Uart1 starts in Disabled state
-    Uart1.send(0x55);           // COMPILE ERROR: Uart1 is Disabled, send requires Enabled
+scope Uart1 {
+    state { Disabled, Configured, Enabled }
 
-    Uart1.init(115200);         // Uart1 transitions to Configured
-    Uart1.send(0x55);           // COMPILE ERROR: Uart1 is Configured, send requires Enabled
+    register UART: UartPort(0x40184000);
 
-    Uart1.enable();             // Uart1 transitions to Enabled
-    Uart1.send(0x55);           // OK: Uart1 is Enabled
-    Uart1.send(0x48);           // OK: still Enabled
-
-    Uart1.deinit();             // Uart1 transitions to Disabled
-    Uart1.send(0x00);           // COMPILE ERROR: Uart1 is Disabled
-}
-```
-
-#### Initial State
-
-Scopes have a default initial state (first enum value) or can be explicitly initialized:
-
-```cnx
-// Default: Uart1 starts as Disabled (first state in UartState)
-scope Uart1[UartState] { ... }
-
-// Explicit: Uart1 starts as Configured
-scope Uart1[UartState <- Configured] { ... }
-```
-
-#### State-Independent Methods
-
-Methods without state parameters work in any state:
-
-```cnx
-scope Uart1[UartState] {
-    /// Works in any state
-    public UartState getState(Uart1 self) {
-        // Return current state (compiler tracks this)
+    phase Disabled {
+        public void init(u32 baud) -> Configured {
+            CCM.CCGR5[12, 2] <- 0b11;
+            UART.UCR1 <- 0x0001;
+        }
     }
 
-    /// Works in any state, returns to same state
-    public void clearErrors(Uart1 self) {
-        UART.USR1 <- 0xFFFF;  // Clear all flags
-    }
-}
-```
-
-#### Conditional State (Runtime Branching)
-
-When state depends on runtime conditions, use state unions:
-
-```cnx
-scope Uart1[UartState] {
-    /// May succeed or fail — returns either Enabled or Configured
-    public Uart1[Enabled | Configured] tryEnable(Uart1[Configured] self) {
-        if (hardware_ready()) {
+    phase Configured {
+        public void enable() -> Enabled {
             UART.UCR2[0] <- true;
-            return self[Enabled];
-        } else {
-            return self[Configured];
         }
+    }
+
+    phase Enabled {
+        public void send(u8 data) {  // no arrow = stays in current phase
+            while (UART.USR1[13] = false) { }
+            UART.UTXD <- data;
+        }
+
+        public void deinit() -> Disabled {
+            UART.UCR1 <- 0x0000;
+            CCM.CCGR5[12, 2] <- 0b00;
+        }
+    }
+}
+```
+
+**Pros:**
+- Functions grouped by valid state — immediately see what's callable when
+- `-> State` suffix is lightweight
+- Familiar block structure
+
+**Cons:**
+- Functions can only be in one phase (can't have a function valid in multiple states without duplication)
+- New block syntax (`phase`)
+
+#### Option C: Function-Level State Annotations
+
+Minimal annotations on functions:
+
+```cnx
+scope Uart1 {
+    state { Disabled, Configured, Enabled }
+
+    register UART: UartPort(0x40184000);
+
+    [Disabled -> Configured]
+    public void init(u32 baud) {
+        CCM.CCGR5[12, 2] <- 0b11;
+        UART.UCR1 <- 0x0001;
+    }
+
+    [Configured -> Enabled]
+    public void enable() {
+        UART.UCR2[0] <- true;
+    }
+
+    [Enabled]  // valid in Enabled, stays in Enabled
+    public void send(u8 data) {
+        while (UART.USR1[13] = false) { }
+        UART.UTXD <- data;
+    }
+
+    [Enabled -> Disabled]
+    public void deinit() {
+        UART.UCR1 <- 0x0000;
+        CCM.CCGR5[12, 2] <- 0b00;
+    }
+
+    [*]  // valid in any state
+    public void clearErrors() {
+        UART.USR1 <- 0xFFFF;
+    }
+}
+```
+
+**Pros:**
+- Annotation directly on function — no lookup needed
+- `[*]` for state-independent functions
+- Compact
+
+**Cons:**
+- Still looks like annotations (though simpler than `requires`/`transitions`)
+- State machine not visible at a glance
+
+### Recommendation: NEEDS USER INPUT
+
+All three options achieve the same compile-time safety with zero runtime overhead. The choice is syntax preference:
+
+- **Option A (State Graph)**: Best if you want the state machine visible as documentation
+- **Option B (Phase Blocks)**: Best if you think of functions as belonging to states
+- **Option C (Annotations)**: Most compact, least new syntax
+
+### Specification: Common Elements (All Options)
+
+#### Whole-Program State Tracking
+
+The compiler tracks peripheral state across the entire program, not just within a single function:
+
+```cnx
+void setup() {
+    Uart1.init(115200);   // Uart1: Disabled -> Configured
+    Uart1.enable();       // Uart1: Configured -> Enabled
+}
+
+void loop() {
+    Uart1.send(0x55);     // OK: compiler knows Uart1 is Enabled from setup()
+}
+
+void main() {
+    setup();
+    while (true) { loop(); }
+}
+```
+
+The compiler builds a call graph and propagates state through all paths.
+
+#### ISR State Handling
+
+Interrupt handlers are a special case. The compiler must know what state peripherals are in when the ISR fires:
+
+```cnx
+scope Timer1 {
+    state { Stopped, Running }
+
+    [Running]
+    public void handleInterrupt() {
+        // Only valid if Timer1 was started before ISR enabled
     }
 }
 
-// Usage requires handling both cases
 void main() {
-    Uart1.init(115200);
-    match Uart1.tryEnable() {
-        Uart1[Enabled] -> {
-            Uart1.send(0x55);  // OK
-        }
-        Uart1[Configured] -> {
-            // Handle failure, can't send
-        }
-    }
+    Timer1.start();           // Timer1: Stopped -> Running
+    enableInterrupts();       // ISR can now fire
+    // Compiler verifies Timer1 is Running before ISR is enabled
 }
+```
+
+If the state isn't guaranteed at ISR-enable time, the compiler errors:
+
+```
+error: ISR 'Timer1.handleInterrupt' requires Timer1 in state 'Running'
+       but state is 'Stopped' when interrupts are enabled at main.cnx:42
+
+       Call 'Timer1.start()' before 'enableInterrupts()'
+```
+
+#### No State Tracking (Opt-Out)
+
+Simple peripherals that don't need state tracking can omit the `state` declaration entirely:
+
+```cnx
+scope SimpleLed {
+    register LED: GpioPort(0x40000000);
+
+    public void on() { LED.DR[13] <- true; }
+    public void off() { LED.DR[13] <- false; }
+    public void toggle() { LED.DR[13] <- !LED.DR[13]; }
+}
+// No state tracking — any function callable at any time
 ```
 
 #### Transpilation
 
-Typestate is erased at compile time — no runtime overhead:
+All state tracking is erased at compile time:
 
 ```cnx
 Uart1.init(115200);
@@ -761,19 +844,18 @@ Uart1_enable();
 Uart1_send(0x55);
 ```
 
-The state machine is verified during compilation, then discarded. Generated C has zero typestate overhead.
+Zero runtime overhead.
 
 #### Error Messages
 
 ```
 error: cannot call 'Uart1.send' — Uart1 is in state 'Configured'
-       'send' requires state 'Enabled'
+       'send' is only valid in state 'Enabled'
 
        Did you forget to call 'Uart1.enable()'?
 
-       State transitions available from 'Configured':
+       Valid transitions from 'Configured':
          - enable() → Enabled
-         - deinit() → Disabled
 ```
 
 ---
@@ -815,93 +897,47 @@ let uart = Uart::new(uart1, pins.p13, pins.p14);  // Consumes p13, p14
 // pins.p13 no longer usable — moved into uart
 ```
 
-### Specification: Pin Resource Tracking
+### Recommendation: Simplified Static Pin Binding
 
-#### Pin Type with Typestate
+For C developers coming from embedded, the full Rust-style typestate on pins (consumed parameters, tuple returns) is too much ceremony. The **simplified static binding** provides 90% of the safety with 10% of the complexity.
 
-Pins are first-class types with their own state machine:
+### Specification: Static Pin Binding
 
-```cnx
-state PinState { Unclaimed, Gpio, Alternate }
+#### Pins Declared at Register Instantiation
 
-/// Pin declaration — each physical pin is a unique type
-pin GPIO_AD_B0_12[PinState];
-pin GPIO_AD_B0_13[PinState];
-// ... all MCU pins declared
-```
-
-#### Peripheral Pin Requirements
-
-Peripherals declare which pins they need and in what state:
+Pins are bound when a peripheral is instantiated, not at runtime:
 
 ```cnx
-scope Uart1[UartState] {
-    register UART: UartPort(0x40184000);
+register UartPort(u32 baseAddress) {
+    DR:   u32 rw @ baseAddress + 0x00,
+    CR1:  u32 rw @ baseAddress + 0x04,
+    // ...
 
-    /// Requires two unclaimed pins, claims them as Alternate
-    public Uart1[Configured] init(
-        Uart1[Disabled] self,
-        GPIO_AD_B0_12[Unclaimed] tx,
-        GPIO_AD_B0_13[Unclaimed] rx,
-        u32 baud
-    ) -> (Uart1[Configured], GPIO_AD_B0_12[Alternate], GPIO_AD_B0_13[Alternate]) {
-        // Configure IOMUXC for UART function
-        IOMUXC.MUX_GPIO_AD_B0_12 <- 0x02;  // ALT2 = UART1_TX
-        IOMUXC.MUX_GPIO_AD_B0_13 <- 0x02;  // ALT2 = UART1_RX
-        // ... rest of init
-    }
-
-    /// Returns pins to Unclaimed when peripheral is disabled
-    public Uart1[Disabled] deinit(
-        Uart1[Enabled] self,
-        GPIO_AD_B0_12[Alternate] tx,
-        GPIO_AD_B0_13[Alternate] rx
-    ) -> (Uart1[Disabled], GPIO_AD_B0_12[Unclaimed], GPIO_AD_B0_13[Unclaimed]) {
-        // Release pins
+    pins {
+        TX: pin,
+        RX: pin,
     }
 }
+
+// Bind pins at instantiation
+register UART1: UartPort(0x40184000) {
+    pins {
+        TX: GPIO_AD_B0_12,
+        RX: GPIO_AD_B0_13,
+    }
+};
+
+register UART2: UartPort(0x40188000) {
+    pins {
+        TX: GPIO_AD_B1_02,
+        RX: GPIO_AD_B1_03,
+    }
+};
 ```
 
 #### Compile-Time Conflict Detection
 
-```cnx
-void main() {
-    // All pins start Unclaimed
-    Uart1.init(GPIO_AD_B0_12, GPIO_AD_B0_13, 115200);
-    // GPIO_AD_B0_12 is now Alternate
-
-    Spi1.init(GPIO_AD_B0_12, ...);  // COMPILE ERROR: GPIO_AD_B0_12 is Alternate, needs Unclaimed
-}
-```
-
-#### GPIO Pin Usage
-
-```cnx
-scope Gpio[GpioState] {
-    /// Claim a pin for GPIO output
-    public Gpio[Output] asOutput(
-        pin[Unclaimed] p
-    ) -> (Gpio[Output], pin[Gpio]) {
-        // Configure as GPIO output
-    }
-
-    public void setHigh(Gpio[Output] self) { ... }
-    public void setLow(Gpio[Output] self) { ... }
-}
-
-void main() {
-    Gpio led <- Gpio.asOutput(GPIO_AD_B0_03);
-    led.setHigh();  // OK
-    led.setLow();   // OK
-
-    // Can't use GPIO_AD_B0_03 for anything else — it's in Gpio state
-    Uart2.init(GPIO_AD_B0_03, ...);  // COMPILE ERROR: pin is Gpio, needs Unclaimed
-}
-```
-
-#### Alternative: Simplified Pin Binding (Less Type-Safe)
-
-For simpler use cases, pins can be bound at peripheral declaration time:
+The compiler tracks all pin bindings globally and errors on conflicts:
 
 ```cnx
 register UartPort(u32 baseAddress) {
@@ -929,7 +965,28 @@ register SPI1: SpiPort(0x40394000) {
 };
 ```
 
-This is simpler but less flexible — pins are permanently bound at compile time rather than dynamically claimed/released via typestate.
+#### Error Messages
+
+```
+error: pin conflict — GPIO_AD_B0_12 is already bound
+
+       GPIO_AD_B0_12 is bound to UART1.TX at hal/uart.cnx:15
+       Cannot also bind to SPI1.MOSI at hal/spi.cnx:8
+
+       Each physical pin can only be assigned to one peripheral.
+```
+
+#### Tradeoffs
+
+This approach is:
+- **Simple** — No ownership semantics, no consumed parameters, no tuple returns
+- **Static** — Pins permanently bound at compile time, not dynamically claimed/released
+- **Sufficient** — Covers 95% of embedded use cases where pin assignments are fixed
+
+For rare cases needing dynamic pin reassignment (e.g., runtime-switchable debug/production pins), users can:
+1. Use separate compilation units
+2. Use C interop for that specific peripheral
+3. Request full typestate pins in a future ADR if demand exists
 
 ---
 
@@ -950,6 +1007,7 @@ For **100% statically typed, memory-safe hardware access**, the following must b
 | | Prevent reads from wo/w1c/w1s | ✅ Implemented |
 | | Prevent RMW on wo/w1c/w1s | 🔶 This ADR |
 | | Enforce read-only (ro) at compile time | ✅ Implemented |
+| | Bitmap field overlap detection | ✅ Implemented (ADR-034 "bits must sum to size") |
 | **Concurrency** | | |
 | | Atomic register access | ✅ Implemented (`atomic` keyword) |
 | | Critical sections | ✅ Implemented (`critical { }`) |
@@ -987,15 +1045,22 @@ For **100% statically typed, memory-safe hardware access**, the following must b
 
 ### Accepted
 
-1. **Parameterized registers** — `register Name(u32 baseAddress) { ... }` with `register Instance: Name(address);` instantiation
+1. **Parameterized registers** — `register Name(u32 baseAddress) { ... }` with `register Instance: Name(address);` instantiation. Template type serves as interface for generic peripheral code.
 
-2. **w1c/w1s RMW prevention** — Hard compile error for bit-field assignments to write-only registers. No escape hatch — if hardware needs RMW, mark it `rw`, not `w1c`.
+2. **w1c/w1s RMW prevention** — Hard compile error for bit-field assignments to write-only registers. No escape hatch. Bitmap `.mask()` helper for ergonomic direct writes.
 
-3. **svd2cnext tool** — TypeScript tool to generate C-Next from SVD files
+3. **svd2cnext tool** — TypeScript tool to generate C-Next from SVD files. Includes `--detect-templates` for auto-detecting identical peripheral layouts.
 
-4. **Full typestate** — Compile-time state machine verification for peripheral initialization using `scope Name[StateEnum]` syntax. Zero runtime overhead.
+4. **Typestate for peripherals** — Compile-time state machine verification with whole-program analysis. Syntax to be chosen from:
+   - Option A: State Graph Declaration
+   - Option B: Phase Blocks
+   - Option C: Function-Level Annotations
 
-5. **Pin mux tracking** — Static conflict detection via pin declarations in register blocks
+5. **Static pin binding** — Pins declared at register instantiation with compile-time conflict detection. No Rust-style ownership semantics.
+
+### Needs User Input
+
+6. **Typestate syntax** — Which of the three options (State Graph, Phase Blocks, Annotations) fits C-Next best?
 
 ---
 
