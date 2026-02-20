@@ -1,6 +1,6 @@
 {
   "name": "c-next",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
   "packageManager": "npm@11.9.0",
   "type": "module",
