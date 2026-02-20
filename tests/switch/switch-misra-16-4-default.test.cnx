@@ -1,0 +1,93 @@
+// test-execution
+// Tests: MISRA C:2012 Rule 16.4 - Every switch shall have a default
+// Issue: #855
+// Verifies: Switches without explicit default get an auto-generated one
+
+enum Status {
+    OK,
+    ERROR,
+    PENDING
+}
+
+// Exhaustive enum switch - no explicit default in source
+// MISRA 16.4 requires a default case anyway
+u32 getStatusCode(Status s) {
+    u32 code <- 0;
+    switch (s) {
+        case Status.OK {
+            code <- 1;
+        }
+        case Status.ERROR {
+            code <- 2;
+        }
+        case Status.PENDING {
+            code <- 3;
+        }
+    }
+    return code;
+}
+
+// Integer switch without default
+// MISRA 16.4 requires a default case
+u32 mapValue(u32 val) {
+    u32 result <- 99;
+    switch (val) {
+        case 1 {
+            result <- 10;
+        }
+        case 2 {
+            result <- 20;
+        }
+        case 3 {
+            result <- 30;
+        }
+    }
+    return result;
+}
+
+// Switch WITH explicit default - should work as before
+u32 withDefault(u32 val) {
+    u32 result <- 0;
+    switch (val) {
+        case 1 {
+            result <- 100;
+        }
+        default {
+            result <- 999;
+        }
+    }
+    return result;
+}
+
+u32 main() {
+    u32 result <- 0;
+
+    // Test exhaustive enum switch
+    result <- getStatusCode(Status.OK);
+    if (result != 1) return 1;
+    result <- getStatusCode(Status.ERROR);
+    if (result != 2) return 2;
+    result <- getStatusCode(Status.PENDING);
+    if (result != 3) return 3;
+
+    // Test integer switch (values that match)
+    result <- mapValue(1);
+    if (result != 10) return 4;
+    result <- mapValue(2);
+    if (result != 20) return 5;
+    result <- mapValue(3);
+    if (result != 30) return 6;
+
+    // Test integer switch (value that doesn't match - hits auto-default)
+    // result stays 99 since no case matches and default is no-op
+    result <- mapValue(999);
+    if (result != 99) return 7;
+
+    // Test explicit default
+    result <- withDefault(1);
+    if (result != 100) return 8;
+    result <- withDefault(5);
+    if (result != 999) return 9;
+
+    return 0;
+}

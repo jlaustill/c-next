@@ -29,6 +29,9 @@ uint32_t colorToValue(Color c) {
             result = 3U;
             break;
         }
+        default: {
+            break;
+        }
     }
     return result;
 }

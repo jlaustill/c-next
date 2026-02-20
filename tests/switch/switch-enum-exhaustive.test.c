@@ -34,5 +34,8 @@ void handleState(EState state) {
             onStopped();
             break;
         }
+        default: {
+            break;
+        }
     }
 }

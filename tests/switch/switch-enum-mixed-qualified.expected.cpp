@@ -32,6 +32,9 @@ uint32_t getPriorityValue(EPriority p) {
             return 100;
             break;
         }
+        default: {
+            break;
+        }
     }
     return 0;
 }

@@ -31,6 +31,9 @@ uint32_t categorize(ECategory cat) {
             return 30;
             break;
         }
+        default: {
+            break;
+        }
     }
     return 0;
 }

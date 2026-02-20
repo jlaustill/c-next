@@ -32,6 +32,9 @@ uint32_t categoryToValue(ESpnCategory cat) {
             return 2;
             break;
         }
+        default: {
+            break;
+        }
     }
     return 99;
 }
