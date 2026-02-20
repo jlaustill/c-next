@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-02-20
+
+### Fixed
+
+- Nested struct initializer casts to parent type instead of field type (Issue #831, PR #870)
+- Auto-reference (`&`) not added for typedef pointer output parameters (Issue #832, PR #837)
+- PlatformIO build script hooks to wrong phase — transpile runs after compilation (Issue #833, PR #835)
+- Compound literal cast missing `struct` keyword for named struct tags (Issue #834, PR #836)
+- Honor `cppRequired` from config file when `--cpp` not specified (PR #828)
+- MISRA Rule 7.2: Add `U` suffix to unsigned integer literals (Issue #842, PR #873)
+
+### Added
+
+- Config include paths support tilde expansion (`~`) and recursive search (`/**`) (PR #871)
+- `--pio-install` now auto-configures `cnext.config.json` with cppRequired setting (PR #830)
+- esbuild-based build for faster CLI startup and CI (PR #838)
+- Auto-rebuild stale `dist/index.js` before running tests (PR #840)
+
 ## [0.2.1] - 2026-02-17
 
 ### Added
@@ -1015,6 +1033,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.0...HEAD
+[0.2.2]: https://github.com/jlaustill/c-next/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/jlaustill/c-next/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jlaustill/c-next/compare/v0.1.72...v0.2.0
 [0.1.72]: https://github.com/jlaustill/c-next/compare/v0.1.71...v0.1.72
