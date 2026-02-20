@@ -91,5 +91,38 @@ describe("DeclaratorUtils", () => {
       expect(result).toContain("unsigned int flag_a : 1;");
       expect(result).toContain("unsigned int flag_b : 1;");
     });
+
+    it("should extract anonymous union type with proper spacing", () => {
+      // Test union handling (code path: structOrUnion.Struct() returns false)
+      const source = `typedef struct {
+        union {
+            int as_int;
+            float as_float;
+        } value;
+      } variant_t;`;
+      const { tree } = HeaderParser.parseC(source);
+
+      const structSpec = tree
+        ?.translationUnit()
+        ?.externalDeclaration(0)
+        ?.declaration()
+        ?.declarationSpecifiers()
+        ?.declarationSpecifier(1)
+        ?.typeSpecifier()
+        ?.structOrUnionSpecifier();
+
+      // Get the first field (value) which is an anonymous union
+      const valueDecl = structSpec
+        ?.structDeclarationList()
+        ?.structDeclaration(0);
+      const specQualList = valueDecl?.specifierQualifierList();
+
+      const result = DeclaratorUtils.extractTypeFromSpecQualList(specQualList);
+
+      // Should use "union" keyword and have proper spacing
+      expect(result).toContain("union {");
+      expect(result).toContain("int as_int;");
+      expect(result).toContain("float as_float;");
+    });
   });
 });
