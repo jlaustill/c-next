@@ -70,8 +70,11 @@ class ArrayAccessHelper {
   }
 
   /**
-   * Generate float bit range read with shadow variable.
-   * Uses memcpy pattern to safely reinterpret float bits.
+   * Generate float bit range read with union-based type punning.
+   * Uses union { float f; uint32_t u; } for MISRA 21.15 compliance.
+   *
+   * NOTE: This helper is not used in production (PostfixExpressionGenerator
+   * handles float bit access directly). It exists for testing and completeness.
    */
   static generateFloatBitRange(
     info: IArrayAccessInfo,
@@ -85,7 +88,7 @@ class ArrayAccessHelper {
       );
     }
 
-    deps.requireInclude("string");
+    // No string.h needed - uses union-based type punning
     deps.requireInclude("float_static_assert");
 
     const isF64 = info.typeInfo?.baseType === "f64";

@@ -2051,7 +2051,15 @@ interface IFloatBitRangeContext {
 }
 
 /**
- * Handle float bit range access with memcpy shadow variable.
+ * Get the C float type name for a C-Next float type.
+ */
+const getFloatTypeName = (baseType: string): string => {
+  return baseType === "f64" ? "double" : "float";
+};
+
+/**
+ * Handle float bit range access with union-based type punning.
+ * Uses union { float f; uint32_t u; } for MISRA C:2012 Rule 21.15 compliance.
  */
 const handleFloatBitRange = (
   ctx: IFloatBitRangeContext,
@@ -2065,35 +2073,36 @@ const handleFloatBitRange = (
     );
   }
 
-  effects.push(
-    { type: "include", header: "string" },
-    { type: "include", header: "float_static_assert" },
-  );
+  effects.push({ type: "include", header: "float_static_assert" });
 
   const isF64 = ctx.baseType === "f64";
-  const shadowType = isF64 ? "uint64_t" : "uint32_t";
+  const floatType = getFloatTypeName(ctx.baseType);
+  const intType = isF64 ? "uint64_t" : "uint32_t";
   const shadowName = `__bits_${ctx.rootIdentifier}`;
   const mask = orchestrator.generateBitMask(ctx.width, isF64);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
   if (needsDeclaration) {
     orchestrator.registerFloatBitShadow(shadowName);
-    orchestrator.addPendingTempDeclaration(`${shadowType} ${shadowName};`);
+    // Emit union declaration: union { float f; uint32_t u; } __bits_name;
+    orchestrator.addPendingTempDeclaration(
+      `union { ${floatType} f; ${intType} u; } ${shadowName};`,
+    );
   }
 
   const shadowIsCurrent = orchestrator.isFloatShadowCurrent(shadowName);
   orchestrator.markFloatShadowCurrent(shadowName);
 
-  if (shadowIsCurrent) {
-    if (ctx.start === "0") {
-      return `(${shadowName} & ${mask})`;
-    }
-    return `((${shadowName} >> ${ctx.start}) & ${mask})`;
+  // If shadow is not current, emit assignment: __bits_name.f = floatVar;
+  if (!shadowIsCurrent) {
+    orchestrator.addPendingTempDeclaration(`${shadowName}.f = ${ctx.result};`);
   }
+
+  // Return just the bit read expression using union member .u
   if (ctx.start === "0") {
-    return `(memcpy(&${shadowName}, &${ctx.result}, sizeof(${ctx.result})), (${shadowName} & ${mask}))`;
+    return `(${shadowName}.u & ${mask})`;
   }
-  return `(memcpy(&${shadowName}, &${ctx.result}, sizeof(${ctx.result})), ((${shadowName} >> ${ctx.start}) & ${mask}))`;
+  return `((${shadowName}.u >> ${ctx.start}) & ${mask})`;
 };
 
 // ========================================================================
