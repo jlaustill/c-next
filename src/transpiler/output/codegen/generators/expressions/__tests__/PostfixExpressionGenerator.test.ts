@@ -1698,7 +1698,7 @@ describe("PostfixExpressionGenerator", () => {
   });
 
   describe("float bit indexing", () => {
-    it("generates float bit range with memcpy", () => {
+    it("generates float bit range with union-based type punning", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "f",
@@ -1726,9 +1726,11 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toContain("memcpy");
-      expect(result.code).toContain("__bits_f");
-      expect(result.effects).toContainEqual({
+      // Uses union member .u for bit access, not memcpy
+      expect(result.code).toContain("__bits_f.u");
+      expect(result.code).not.toContain("memcpy");
+      // No string.h needed for MISRA 21.15 compliance
+      expect(result.effects).not.toContainEqual({
         type: "include",
         header: "string",
       });
@@ -1767,7 +1769,7 @@ describe("PostfixExpressionGenerator", () => {
       ).toThrow("cannot be used at global scope");
     });
 
-    it("skips memcpy when shadow is current", () => {
+    it("uses union member when shadow is current (no re-assignment)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "f",
@@ -1796,7 +1798,8 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).not.toContain("memcpy");
-      expect(result.code).toBe("(__bits_f & 0xFF)");
+      // Uses union member .u for bit access
+      expect(result.code).toBe("(__bits_f.u & 0xFF)");
     });
   });
 

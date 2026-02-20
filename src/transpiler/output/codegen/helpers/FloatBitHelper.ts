@@ -1,14 +1,17 @@
 /**
- * FloatBitHelper - Generates float bit write operations using shadow variables
+ * FloatBitHelper - Generates float bit write operations using union-based type punning
  *
  * Issue #644: Extracted from CodeGenerator to reduce file size.
+ * Issue #857: Changed from memcpy to union for MISRA C:2012 Rule 21.15 compliance.
  *
- * Floats don't support direct bit access in C, so we use a shadow integer
- * variable and memcpy to read/write bit values. The pattern:
- *   1. Declare shadow variable if needed
- *   2. memcpy float → shadow (if not already current)
- *   3. Modify shadow bits
- *   4. memcpy shadow → float
+ * Floats don't support direct bit access in C, so we use a union for type punning.
+ * The pattern:
+ *   1. Declare union variable if needed: union { float f; uint32_t u; } __bits_name;
+ *   2. Copy float to union: __bits_name.f = floatVar;
+ *   3. Modify bits via union member: __bits_name.u = ...
+ *   4. Copy back: floatVar = __bits_name.f;
+ *
+ * This approach is MISRA-compliant because union type punning is well-defined in C99+.
  *
  * Migrated to use CodeGenState instead of constructor DI.
  */
@@ -30,15 +33,24 @@ interface IFloatBitCallbacks {
 }
 
 /**
- * Generates float bit write operations using shadow variables and memcpy.
+ * Get the C float type name for a C-Next float type.
+ */
+const getFloatTypeName = (baseType: string): string => {
+  return baseType === "f64" ? "double" : "float";
+};
+
+/**
+ * Generates float bit write operations using union-based type punning.
  *
  * For single bit: width is null, uses bitIndex only
  * For bit range: width is provided, uses bitIndex as start position
  */
 class FloatBitHelper {
   /**
-   * Generate float bit write using shadow variable + memcpy.
+   * Generate float bit write using union-based type punning.
    * Returns null if typeInfo is not a float type.
+   *
+   * Uses union { float f; uint32_t u; } for MISRA 21.15 compliance instead of memcpy.
    *
    * @param name - Variable name being written
    * @param typeInfo - Type information for the variable
@@ -62,11 +74,11 @@ class FloatBitHelper {
       return null;
     }
 
-    callbacks.requireInclude("string"); // For memcpy
     callbacks.requireInclude("float_static_assert"); // For size verification
 
     const isF64 = typeInfo.baseType === "f64";
-    const shadowType = isF64 ? "uint64_t" : "uint32_t";
+    const floatType = getFloatTypeName(typeInfo.baseType);
+    const intType = isF64 ? "uint64_t" : "uint32_t";
     const shadowName = `__bits_${name}`;
     const maskSuffix = isF64 ? "ULL" : "U";
 
@@ -76,13 +88,15 @@ class FloatBitHelper {
       CodeGenState.floatBitShadows.add(shadowName);
     }
 
-    // Check if shadow already has current value (skip redundant memcpy read)
+    // Check if shadow already has current value (skip redundant read)
     const shadowIsCurrent = CodeGenState.floatShadowCurrent.has(shadowName);
 
-    const decl = needsDeclaration ? `${shadowType} ${shadowName}; ` : "";
-    const readMemcpy = shadowIsCurrent
-      ? ""
-      : `memcpy(&${shadowName}, &${name}, sizeof(${name})); `;
+    // Union declaration: union { float f; uint32_t u; } __bits_name;
+    const decl = needsDeclaration
+      ? `union { ${floatType} f; ${intType} u; } ${shadowName};\n`
+      : "";
+    // Read from float into union: __bits_name.f = floatVar;
+    const readUnion = shadowIsCurrent ? "" : `${shadowName}.f = ${name};\n`;
 
     // Mark shadow as current after this write
     CodeGenState.floatShadowCurrent.add(shadowName);
@@ -90,17 +104,17 @@ class FloatBitHelper {
     if (width === null) {
       // Single bit assignment: floatVar[3] <- true
       return (
-        `${decl}${readMemcpy}` +
-        `${shadowName} = (${shadowName} & ~(1${maskSuffix} << ${bitIndex})) | ((${shadowType})${callbacks.foldBooleanToInt(value)} << ${bitIndex}); ` +
-        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+        `${decl}${readUnion}` +
+        `${shadowName}.u = (${shadowName}.u & ~(1${maskSuffix} << ${bitIndex})) | ((${intType})${callbacks.foldBooleanToInt(value)} << ${bitIndex});\n` +
+        `${name} = ${shadowName}.f;`
       );
     } else {
       // Bit range assignment: floatVar[0, 8] <- b0
       const mask = callbacks.generateBitMask(width, isF64);
       return (
-        `${decl}${readMemcpy}` +
-        `${shadowName} = (${shadowName} & ~(${mask} << ${bitIndex})) | (((${shadowType})${value} & ${mask}) << ${bitIndex}); ` +
-        `memcpy(&${name}, &${shadowName}, sizeof(${name}));`
+        `${decl}${readUnion}` +
+        `${shadowName}.u = (${shadowName}.u & ~(${mask} << ${bitIndex})) | (((${intType})${value} & ${mask}) << ${bitIndex});\n` +
+        `${name} = ${shadowName}.f;`
       );
     }
   }

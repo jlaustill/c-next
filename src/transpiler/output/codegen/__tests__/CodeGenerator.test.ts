@@ -8776,7 +8776,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain(">> 4");
       });
 
-      it("should generate float bit range read with shadow variable", () => {
+      it("should generate float bit range read with union shadow variable", () => {
         const source = `
           void test() {
             f32 value <- 3.14;
@@ -8793,8 +8793,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Float bit access uses shadow variable and memcpy
-        expect(code).toContain("memcpy");
+        // Float bit access uses union-based type punning (MISRA 21.15 compliant)
+        expect(code).toContain("union { float f; uint32_t u; }");
+        expect(code).not.toContain("memcpy");
       });
     });
 
@@ -10750,7 +10751,7 @@ describe("CodeGenerator", () => {
     });
 
     describe("float bit range access helpers", () => {
-      it("should generate float bit range read with memcpy", () => {
+      it("should generate float bit range read with union", () => {
         const source = `
           void test() {
             f32 value <- 3.14;
@@ -10767,11 +10768,12 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Float bit access uses memcpy for type punning
-        expect(code).toContain("memcpy");
+        // Float bit access uses union-based type punning (MISRA 21.15 compliant)
+        expect(code).toContain("union { float f; uint32_t u; }");
+        expect(code).not.toContain("memcpy");
       });
 
-      it("should generate f64 bit range read", () => {
+      it("should generate f64 bit range read with union", () => {
         const source = `
           void test() {
             f64 value <- 3.14159;
@@ -10788,7 +10790,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("memcpy");
+        // f64 uses double/uint64_t union
+        expect(code).toContain("union { double f; uint64_t u; }");
+        expect(code).not.toContain("memcpy");
       });
     });
 
@@ -12264,7 +12268,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain("flags");
       });
 
-      it("should handle float bit punning", () => {
+      it("should handle float bit punning with union", () => {
         const source = `
           void test() {
             f32 val <- 3.14;
@@ -12281,8 +12285,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Float bit access uses memcpy for type punning
-        expect(code).toContain("memcpy");
+        // Float bit access uses union-based type punning (MISRA 21.15 compliant)
+        expect(code).toContain("union { float f; uint32_t u; }");
+        expect(code).not.toContain("memcpy");
       });
     });
 
@@ -12870,7 +12875,7 @@ describe("CodeGenerator", () => {
 
   describe("refactored helper methods", () => {
     describe("float bit range access (PR #715 coverage)", () => {
-      it("should generate f32 bit range read with shadow and memcpy", () => {
+      it("should generate f32 bit range read with union shadow", () => {
         const source = `
           void test() {
             f32 floatVal <- 1.5;
@@ -12887,13 +12892,13 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Should use shadow variable pattern for float bit access
+        // Should use union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("__bits_floatVal");
-        expect(code).toContain("memcpy");
-        expect(code).toContain("uint32_t");
+        expect(code).toContain("union { float f; uint32_t u; }");
+        expect(code).not.toContain("memcpy");
       });
 
-      it("should generate f64 bit range read with 64-bit shadow", () => {
+      it("should generate f64 bit range read with 64-bit union shadow", () => {
         const source = `
           void test() {
             f64 doubleVal <- 2.718;
@@ -12910,10 +12915,10 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Should use 64-bit shadow for f64
+        // Should use 64-bit union for f64 (MISRA 21.15 compliant)
         expect(code).toContain("__bits_doubleVal");
-        expect(code).toContain("uint64_t");
-        expect(code).toContain("memcpy");
+        expect(code).toContain("union { double f; uint64_t u; }");
+        expect(code).not.toContain("memcpy");
       });
 
       it("should reuse shadow variable for repeated float bit reads", () => {
@@ -12934,11 +12939,13 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Shadow variable should only be declared once
-        const shadowDecls = (code.match(/uint32_t __bits_val;/g) || []).length;
+        // Union shadow should only be declared once
+        const shadowDecls = (
+          code.match(/union { float f; uint32_t u; } __bits_val;/g) || []
+        ).length;
         expect(shadowDecls).toBe(1);
-        // But memcpy may be used only on first access
-        expect(code).toContain("__bits_val");
+        // Uses union member .u for bit access
+        expect(code).toContain("__bits_val.u");
       });
 
       it("should generate integer bit range with start=0 optimization", () => {
@@ -13617,7 +13624,7 @@ describe("CodeGenerator", () => {
     });
 
     describe("float bit range edge cases", () => {
-      it("should generate f32 bit range with non-zero start position", () => {
+      it("should generate f32 bit range with non-zero start position using union", () => {
         const source = `
           void test() {
             f32 value <- 3.14;
@@ -13636,7 +13643,9 @@ describe("CodeGenerator", () => {
 
         expect(code).toContain("__bits_value");
         expect(code).toContain(">> 8");
-        expect(code).toContain("memcpy");
+        // Uses union, not memcpy (MISRA 21.15 compliant)
+        expect(code).toContain("union { float f; uint32_t u; }");
+        expect(code).not.toContain("memcpy");
       });
 
       it("should generate f32 bit range with start=0", () => {
@@ -13661,7 +13670,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain(">> 0U");
       });
 
-      it("should handle multiple reads from same float reusing shadow", () => {
+      it("should handle multiple reads from same float reusing union shadow", () => {
         const source = `
           void test() {
             f32 data <- 2.5;
@@ -13680,10 +13689,10 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Shadow declaration should appear once
-        expect(code).toContain("uint32_t __bits_data");
-        // Multiple reads should work
-        expect(code).toContain("__bits_data");
+        // Union shadow declaration should appear once
+        expect(code).toContain("union { float f; uint32_t u; } __bits_data;");
+        // Multiple reads should work via union member
+        expect(code).toContain("__bits_data.u");
       });
     });
 
@@ -15406,7 +15415,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain("& 0xFF");
       });
 
-      it("should generate float bit range access with memcpy", () => {
+      it("should generate float bit range access with union", () => {
         const source = `
           void test() {
             f32 fval <- 1.5;
@@ -15423,11 +15432,13 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("memcpy");
-        expect(code).toContain("__bits_fval");
+        // Uses union, not memcpy (MISRA 21.15 compliant)
+        expect(code).toContain("union { float f; uint32_t u; } __bits_fval;");
+        expect(code).toContain("__bits_fval.u");
+        expect(code).not.toContain("memcpy");
       });
 
-      it("should generate f64 bit range access with uint64_t shadow", () => {
+      it("should generate f64 bit range access with uint64_t union shadow", () => {
         const source = `
           void test() {
             f64 dval <- 1.5;
@@ -15444,8 +15455,10 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("uint64_t __bits_dval");
-        expect(code).toContain("memcpy");
+        // Uses union, not memcpy (MISRA 21.15 compliant)
+        expect(code).toContain("union { double f; uint64_t u; } __bits_dval;");
+        expect(code).toContain("__bits_dval.u");
+        expect(code).not.toContain("memcpy");
       });
     });
   });

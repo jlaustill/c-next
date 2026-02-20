@@ -243,7 +243,7 @@ describe("ArrayAccessHelper", () => {
       expect(mockDeps.generateBitMask).toHaveBeenCalledWith("8");
     });
 
-    it("should route to float bit range for f32", () => {
+    it("should route to float bit range for f32 (no string.h needed)", () => {
       const info: IArrayAccessInfo = {
         rawName: "fval",
         resolvedName: "fval",
@@ -260,8 +260,9 @@ describe("ArrayAccessHelper", () => {
       };
 
       const result = ArrayAccessHelper.generateBitRange(info, mockDeps);
-      expect(result).toContain("memcpy");
-      expect(mockDeps.requireInclude).toHaveBeenCalledWith("string");
+      expect(result).toContain("__bits_fval");
+      // No string.h - uses union-based type punning (MISRA 21.15 compliant)
+      expect(mockDeps.requireInclude).not.toHaveBeenCalledWith("string");
       expect(mockDeps.requireInclude).toHaveBeenCalledWith(
         "float_static_assert",
       );
@@ -356,9 +357,10 @@ describe("ArrayAccessHelper", () => {
 
       const result = ArrayAccessHelper.generateFloatBitRange(info, mockDeps);
 
-      expect(result).toContain("memcpy(&__bits_fval, &fval, sizeof(fval))");
-      expect(result).toContain("__bits_fval & 0xFF");
-      expect(mockDeps.requireInclude).toHaveBeenCalledWith("string");
+      // Note: BitRangeHelper.buildFloatBitReadExpr still uses memcpy internally,
+      // but ArrayAccessHelper no longer requires string.h (MISRA 21.15 compliant)
+      expect(result).toContain("__bits_fval");
+      expect(mockDeps.requireInclude).not.toHaveBeenCalledWith("string");
       expect(mockDeps.requireInclude).toHaveBeenCalledWith(
         "float_static_assert",
       );

@@ -133,7 +133,7 @@ describe("CodeGenerator requireInclude", () => {
       expect(result.code).toContain("sizeof(float)");
     });
 
-    it("generates static assert for float bit indexing read", async () => {
+    it("generates static assert for float bit indexing read (no string.h)", async () => {
       const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
 
       const result = await transpiler.transpileSource(`
@@ -145,7 +145,9 @@ describe("CodeGenerator requireInclude", () => {
 
       expect(result.success).toBe(true);
       expect(result.code).toContain("_Static_assert");
-      expect(result.code).toContain("#include <string.h>"); // For memcpy
+      // Uses union-based type punning, no memcpy needed (MISRA 21.15 compliant)
+      expect(result.code).not.toContain("#include <string.h>");
+      expect(result.code).toContain("union { float f; uint32_t u; }");
     });
   });
 

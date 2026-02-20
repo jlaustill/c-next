@@ -2,6 +2,7 @@
  * Unit tests for FloatBitHelper
  *
  * Issue #644: Tests for the extracted float bit write helper.
+ * Issue #857: Updated for union-based type punning (MISRA 21.15 compliance).
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
@@ -57,7 +58,7 @@ describe("FloatBitHelper", () => {
       expect(callbacks.requireInclude).not.toHaveBeenCalled();
     });
 
-    it("generates single bit write for f32", () => {
+    it("generates single bit write for f32 using union", () => {
       const typeInfo: TTypeInfo = {
         baseType: "f32",
         bitWidth: 32,
@@ -74,17 +75,27 @@ describe("FloatBitHelper", () => {
         callbacks,
       );
 
-      expect(result).toContain("uint32_t __bits_myFloat;");
-      expect(result).toContain("memcpy(&__bits_myFloat, &myFloat");
-      expect(result).toContain("& ~(1U << 3)");
-      expect(result).toContain("memcpy(&myFloat, &__bits_myFloat");
-      expect(callbacks.requireInclude).toHaveBeenCalledWith("string");
+      // Union declaration
+      expect(result).toContain(
+        "union { float f; uint32_t u; } __bits_myFloat;",
+      );
+      // Read via union
+      expect(result).toContain("__bits_myFloat.f = myFloat;");
+      // Bit manipulation via .u
+      expect(result).toContain(
+        "__bits_myFloat.u = (__bits_myFloat.u & ~(1U << 3))",
+      );
+      // Write back via union
+      expect(result).toContain("myFloat = __bits_myFloat.f;");
+      // No memcpy for MISRA compliance
+      expect(result).not.toContain("memcpy");
+      expect(callbacks.requireInclude).not.toHaveBeenCalledWith("string");
       expect(callbacks.requireInclude).toHaveBeenCalledWith(
         "float_static_assert",
       );
     });
 
-    it("generates single bit write for f64", () => {
+    it("generates single bit write for f64 using union", () => {
       const typeInfo: TTypeInfo = {
         baseType: "f64",
         bitWidth: 64,
@@ -101,11 +112,13 @@ describe("FloatBitHelper", () => {
         callbacks,
       );
 
-      expect(result).toContain("uint64_t __bits_myDouble;");
+      expect(result).toContain(
+        "union { double f; uint64_t u; } __bits_myDouble;",
+      );
       expect(result).toContain("1ULL << 5");
     });
 
-    it("generates bit range write for f32", () => {
+    it("generates bit range write for f32 using union", () => {
       const typeInfo: TTypeInfo = {
         baseType: "f32",
         bitWidth: 32,
@@ -122,11 +135,13 @@ describe("FloatBitHelper", () => {
         callbacks,
       );
 
-      expect(result).toContain("uint32_t __bits_myFloat;");
+      expect(result).toContain(
+        "union { float f; uint32_t u; } __bits_myFloat;",
+      );
       expect(callbacks.generateBitMask).toHaveBeenCalledWith("8", false);
     });
 
-    it("skips declaration when shadow already exists", () => {
+    it("skips union declaration when shadow already exists", () => {
       const typeInfo: TTypeInfo = {
         baseType: "f32",
         bitWidth: 32,
@@ -146,11 +161,11 @@ describe("FloatBitHelper", () => {
         callbacks,
       );
 
-      expect(result).not.toContain("uint32_t __bits_myFloat;");
-      expect(result).toContain("memcpy(&__bits_myFloat");
+      expect(result).not.toContain("union { float f; uint32_t u; }");
+      expect(result).toContain("__bits_myFloat.f = myFloat;");
     });
 
-    it("skips redundant memcpy read when shadow is current", () => {
+    it("skips redundant union read when shadow is current", () => {
       const typeInfo: TTypeInfo = {
         baseType: "f32",
         bitWidth: 32,
@@ -171,10 +186,11 @@ describe("FloatBitHelper", () => {
         callbacks,
       );
 
-      expect(result).not.toContain("uint32_t __bits_myFloat;");
-      // Should not have read memcpy, only write memcpy
-      const memcpyMatches = result!.match(/memcpy/g);
-      expect(memcpyMatches).toHaveLength(1);
+      expect(result).not.toContain("union { float f; uint32_t u; }");
+      // Should not have the read assignment, only the write-back
+      expect(result).not.toContain("__bits_myFloat.f = myFloat;");
+      // Should still have the write-back
+      expect(result).toContain("myFloat = __bits_myFloat.f;");
     });
 
     it("marks shadow as current after write", () => {
