@@ -257,6 +257,32 @@ void setPin_GPIO2(uint8_t pin) { GPIO2_DR |= (1 << pin); }
 
 This enables writing reusable HAL code without runtime overhead or duplicating source code per instance.
 
+#### Compile-Time-Only Constraint
+
+Register template types (`GpioPort`) are **compile-time-only identifiers**, not runtime values. They cannot be assigned to variables or stored in data structures:
+
+```cnx
+GpioPort activePort <- GPIO1;  // ERROR: register types are not assignable
+activePort <- GPIO2;           // ERROR: cannot reassign register type
+setPin(activePort, 13);        // Would require runtime indirection
+
+GpioPort ports[2] <- [GPIO1, GPIO2];  // ERROR: cannot store registers in arrays
+```
+
+This is intentional — runtime polymorphism over registers would require function pointers or vtables, defeating zero-cost abstraction. If you need dynamic port selection, use explicit branching:
+
+```cnx
+void setPinOnPort(u8 portNum, u8 pin) {
+    switch (portNum) {
+        case 1 { setPin(GPIO1, pin); }
+        case 2 { setPin(GPIO2, pin); }
+        // ...
+    }
+}
+```
+
+The compiler may optimize this switch into a lookup table if beneficial, but the register access itself remains a direct memory operation.
+
 ---
 
 ## Part 2: w1c/wo/w1s Codegen Fix
@@ -282,10 +308,14 @@ Bit-field and bitmap-field writes to w1c/wo/w1s registers must generate **direct
 | `INT.STATUS <- 0x0F` | `INT_STATUS = 0x0F;` |
 | `INT.STATUS[3] <- true` | `INT_STATUS = (1 << 3);` |
 | `INT.STATUS.Pin3 <- true` | `INT_STATUS = (1 << 3);` |
+| `DMA.ERR.Chan0Err <- 0xF` | `DMA_ERR = (0xF << 0);` |
 | `INT.STATUS[3] <- false` | **Compiler error** |
 | `INT.STATUS.Pin3 <- false` | **Compiler error** |
+| `DMA.ERR.Chan0Err <- 0` | **Compiler error** |
 
-Writing `false` to a w1c bit is an error — it has no effect (w1c bits are cleared by writing `1`, not `0`).
+Writing `false` or `0` to a w1c field is an error — it has no effect (w1c bits are cleared by writing `1`, not `0`).
+
+Multi-bit w1c fields (rare but they exist — some DMA error status registers) work the same way: the value is shifted to the field position and written directly.
 
 #### Implementation
 
