@@ -14,7 +14,7 @@
 // Tests: private calling private, private accessing this., private accessing global.
 // Note: Avoids passing computed expressions to functions (transpiler generates pointer params)
 // Global variables for private method global. access testing
-uint32_t globalCounter = 100;
+uint32_t globalCounter = 100U;
 
 bool globalFlag = true;
 
@@ -42,7 +42,7 @@ static int32_t PrivateMethodTest_getPrivateAccumulator(void) {
 }
 
 static void PrivateMethodTest_incrementCallCount(void) {
-    PrivateMethodTest_callCount = PrivateMethodTest_callCount + 1;
+    PrivateMethodTest_callCount = PrivateMethodTest_callCount + 1U;
 }
 
 static uint8_t PrivateMethodTest_getCallCount(void) {
@@ -75,7 +75,7 @@ static uint32_t PrivateMethodTest_getStateViaHelper(void) {
 
 static void PrivateMethodTest_performPrivateChain(void) {
     PrivateMethodTest_incrementCallCount();
-    PrivateMethodTest_privateState = PrivateMethodTest_privateState + 10;
+    PrivateMethodTest_privateState = PrivateMethodTest_privateState + 10U;
     PrivateMethodTest_privateFlag = !PrivateMethodTest_privateFlag;
 }
 

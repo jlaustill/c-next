@@ -7,10 +7,10 @@
 
 // ADR-044: Test wrap keyword in variable declarations
 // Explicit wrap modifier for counters
-uint8_t byteCounter = 0;
+uint8_t byteCounter = 0U;
 
-uint16_t tickCount = 0;
+uint16_t tickCount = 0U;
 
-uint32_t cycleCounter = 0;
+uint32_t cycleCounter = 0U;
 
-uint64_t systemTicks = 0;
+uint64_t systemTicks = 0ULL;

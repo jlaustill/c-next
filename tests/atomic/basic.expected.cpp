@@ -24,26 +24,26 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return result;
 }
 
-volatile uint32_t counter = 0;
+volatile uint32_t counter = 0U;
 
-volatile uint8_t brightness = 100;
+volatile uint8_t brightness = 100U;
 
-volatile uint32_t ticks = 0;
+volatile uint32_t ticks = 0U;
 
 void increment(void) {
     do {
         uint32_t __old = __LDREXW(&counter);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1);
+        uint32_t __new = cnx_clamp_add_u32(__old, 1U);
         if (__STREXW(__new, &counter) == 0) break;
     } while (1);
     do {
         uint8_t __old = __LDREXB(&brightness);
-        uint8_t __new = cnx_clamp_add_u8(__old, 10);
+        uint8_t __new = cnx_clamp_add_u8(__old, 10U);
         if (__STREXB(__new, &brightness) == 0) break;
     } while (1);
     do {
         uint32_t __old = __LDREXW(&ticks);
-        uint32_t __new = __old + 1;
+        uint32_t __new = __old + 1U;
         if (__STREXW(__new, &ticks) == 0) break;
     } while (1);
 }

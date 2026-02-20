@@ -10,11 +10,11 @@
 // ADR-010: C Interoperability - Type compatibility
 // Tests: C-Next types map cleanly to C types
 // All C-Next types map to stdint.h types
-uint8_t byte = 255;
+uint8_t byte = 255U;
 
-uint16_t word = 65535;
+uint16_t word = 65535U;
 
-uint32_t dword = 0xFFFFFFFF;
+uint32_t dword = 0xFFFFFFFFU;
 
 int8_t sbyte = -128;
 

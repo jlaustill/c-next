@@ -126,7 +126,7 @@ bool ModifierCombos_getPrivateFlag(void) {
 }
 
 void ModifierCombos_increasePublicClampByte(void) {
-    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 100);
+    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 100U);
 }
 
 void ModifierCombos_decreasePublicClampSigned(void) {
@@ -134,38 +134,38 @@ void ModifierCombos_decreasePublicClampSigned(void) {
 }
 
 static void ModifierCombos_increasePrivateClampByte(void) {
-    ModifierCombos_privateClampByte = cnx_clamp_add_u8(ModifierCombos_privateClampByte, 220);
+    ModifierCombos_privateClampByte = cnx_clamp_add_u8(ModifierCombos_privateClampByte, 220U);
 }
 
 static void ModifierCombos_decreasePrivateClampWord(void) {
-    ModifierCombos_privateClampWord = cnx_clamp_sub_u16(ModifierCombos_privateClampWord, 15000);
+    ModifierCombos_privateClampWord = cnx_clamp_sub_u16(ModifierCombos_privateClampWord, 15000U);
 }
 
 void ModifierCombos_incrementPublicWrapByte(void) {
-    ModifierCombos_publicWrapByte += 10;
+    ModifierCombos_publicWrapByte += 10U;
 }
 
 void ModifierCombos_incrementPublicWrapWord(void) {
-    ModifierCombos_publicWrapWord += 10;
+    ModifierCombos_publicWrapWord += 10U;
 }
 
 static void ModifierCombos_decrementPrivateWrapByte(void) {
-    ModifierCombos_privateWrapByte -= 10;
+    ModifierCombos_privateWrapByte -= 10U;
 }
 
 static void ModifierCombos_decrementPrivateWrapWord(void) {
-    ModifierCombos_privateWrapWord -= 150;
+    ModifierCombos_privateWrapWord -= 150U;
 }
 
 void ModifierCombos_adjustAllClamp(void) {
-    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 10);
+    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 10U);
     ModifierCombos_publicClampSigned = cnx_clamp_sub_i8(ModifierCombos_publicClampSigned, 5);
     ModifierCombos_increasePrivateClampByte();
 }
 
 void ModifierCombos_adjustAllWrap(void) {
-    ModifierCombos_publicWrapByte += 1;
-    ModifierCombos_publicWrapWord += 1;
+    ModifierCombos_publicWrapByte += 1U;
+    ModifierCombos_publicWrapWord += 1U;
     ModifierCombos_decrementPrivateWrapByte();
 }
 

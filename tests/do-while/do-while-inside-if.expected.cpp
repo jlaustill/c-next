@@ -20,56 +20,56 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.3 - do-while loop inside if statement
 // Tests: do-while loops nested inside if/else branches
 int main(void) {
-    uint32_t count = 0;
-    uint32_t i = 0;
+    uint32_t count = 0U;
+    uint32_t i = 0U;
     bool condition = true;
     if (condition == true) {
-        i = 0;
+        i = 0U;
         do {
-            count = cnx_clamp_add_u32(count, 1);
-            i = cnx_clamp_add_u32(i, 1);
+            count = cnx_clamp_add_u32(count, 1U);
+            i = cnx_clamp_add_u32(i, 1U);
         } while (i < 5);
     }
     if (count != 5) return 1;
-    count = 0;
+    count = 0U;
     condition = false;
     if (condition == true) {
-        count = 100;
+        count = 100U;
     } else {
-        i = 0;
+        i = 0U;
         do {
-            count = cnx_clamp_add_u32(count, 10);
-            i = cnx_clamp_add_u32(i, 1);
+            count = cnx_clamp_add_u32(count, 10U);
+            i = cnx_clamp_add_u32(i, 1U);
         } while (i < 3);
     }
     if (count != 30) return 2;
-    uint32_t resultA = 0;
-    uint32_t resultB = 0;
+    uint32_t resultA = 0U;
+    uint32_t resultB = 0U;
     bool flag = false;
     if (flag == true) {
-        i = 0;
+        i = 0U;
         do {
-            resultA = cnx_clamp_add_u32(resultA, 1);
-            i = cnx_clamp_add_u32(i, 1);
+            resultA = cnx_clamp_add_u32(resultA, 1U);
+            i = cnx_clamp_add_u32(i, 1U);
         } while (i < 4);
     } else {
-        i = 0;
+        i = 0U;
         do {
-            resultB = cnx_clamp_add_u32(resultB, 1);
-            i = cnx_clamp_add_u32(i, 1);
+            resultB = cnx_clamp_add_u32(resultB, 1U);
+            i = cnx_clamp_add_u32(i, 1U);
         } while (i < 2);
     }
     if (resultA != 0) return 3;
     if (resultB != 2) return 4;
-    count = 0;
+    count = 0U;
     condition = true;
     flag = true;
     if (condition == true) {
         if (flag == true) {
-            i = 0;
+            i = 0U;
             do {
-                count = cnx_clamp_add_u32(count, 5);
-                i = cnx_clamp_add_u32(i, 1);
+                count = cnx_clamp_add_u32(count, 5U);
+                i = cnx_clamp_add_u32(i, 1U);
             } while (i < 3);
         }
     }

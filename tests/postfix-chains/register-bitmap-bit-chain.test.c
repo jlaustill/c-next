@@ -52,5 +52,5 @@ int main(void) {
     if (((MOTOR_STATUS >> 0) & 1) == true) {
         MOTOR_CONTROL = (MOTOR_CONTROL & ~(1 << 0)) | (1 << 0);
     }
-    uint8_t doubleSpeed = ((MOTOR_CONTROL >> 2) & 0xFF) * 2;
+    uint8_t doubleSpeed = ((MOTOR_CONTROL >> 2) & 0xFF) * 2U;
 }

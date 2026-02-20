@@ -131,7 +131,7 @@ describe("ServeCommand", () => {
         id: 2,
         result: {
           success: true,
-          code: expect.stringContaining("uint8_t x = 5;"),
+          code: expect.stringContaining("uint8_t x = 5U;"),
           errors: [],
         },
       });

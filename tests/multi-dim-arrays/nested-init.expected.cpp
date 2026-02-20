@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-036: Nested initialization syntax
-uint8_t data[2][3] = {{1, 2, 3}, {4, 5, 6}};
+uint8_t data[2][3] = {{1U, 2U, 3U}, {4U, 5U, 6U}};
 
 int main(void) {
     return 0;

@@ -20,17 +20,17 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: counters can be incremented from their zero-initialized state
 uint32_t eventCount = 0;
 
-uint32_t maxEvents = 5;
+uint32_t maxEvents = 5U;
 
 void recordEvent(void) {
-    eventCount = cnx_clamp_add_u32(eventCount, 1);
+    eventCount = cnx_clamp_add_u32(eventCount, 1U);
 }
 
 int main(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < maxEvents) {
         recordEvent();
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (eventCount == 5) {
         return 0;

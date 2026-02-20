@@ -13,7 +13,7 @@
 static uint32_t State_value = 100;
 
 uint32_t State_shadowTest(void) {
-    uint32_t value = 5;
+    uint32_t value = 5U;
     State_value = value;
     return State_value;
 }

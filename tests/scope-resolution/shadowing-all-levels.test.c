@@ -19,15 +19,15 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // Test accessing local, scope, and global when all have same name
 // test-execution
-uint32_t globalCount = 1000;
+uint32_t globalCount = 1000U;
 
 // Global (renamed to avoid shadowing)
 /* Scope: Counter */
 static uint32_t Counter_count = 100;
 
 uint32_t Counter_testAllLevels(void) {
-    uint32_t count = 10;
-    uint32_t sum = 0;
+    uint32_t count = 10U;
+    uint32_t sum = 0U;
     sum = cnx_clamp_add_u32(sum, count);
     sum = cnx_clamp_add_u32(sum, Counter_count);
     sum = cnx_clamp_add_u32(sum, globalCount);

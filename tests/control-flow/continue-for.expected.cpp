@@ -19,7 +19,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: continue statement in for loop
 // Validates: skipping iterations with continue in for loops
 int main(void) {
-    uint32_t oddSum = 0;
+    uint32_t oddSum = 0U;
     for (uint32_t i = 0; i < 10; i += 1) {
         if (i % 2 == 0) {
             continue;
@@ -27,7 +27,7 @@ int main(void) {
         oddSum = cnx_clamp_add_u32(oddSum, i);
     }
     if (oddSum != 25) return 1;
-    uint32_t sumExcept5 = 0;
+    uint32_t sumExcept5 = 0U;
     for (uint32_t j = 0; j < 10; j += 1) {
         if (j == 5) {
             continue;
@@ -35,7 +35,7 @@ int main(void) {
         sumExcept5 = cnx_clamp_add_u32(sumExcept5, j);
     }
     if (sumExcept5 != 40) return 2;
-    uint32_t filtered = 0;
+    uint32_t filtered = 0U;
     for (uint32_t k = 0; k < 20; k += 1) {
         if (k % 2 == 0) {
             continue;
@@ -46,18 +46,18 @@ int main(void) {
         filtered = cnx_clamp_add_u32(filtered, k);
     }
     if (filtered != 80) return 3;
-    uint32_t count = 0;
-    uint32_t iterations = 0;
+    uint32_t count = 0U;
+    uint32_t iterations = 0U;
     for (uint32_t m = 0; m < 10; m += 1) {
-        iterations = cnx_clamp_add_u32(iterations, 1);
+        iterations = cnx_clamp_add_u32(iterations, 1U);
         if (m < 5) {
             continue;
         }
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
     }
     if (iterations != 10) return 4;
     if (count != 5) return 5;
-    uint32_t skipFirst = 0;
+    uint32_t skipFirst = 0U;
     for (uint32_t p = 0; p < 5; p += 1) {
         if (p == 0) {
             continue;
@@ -65,7 +65,7 @@ int main(void) {
         skipFirst = cnx_clamp_add_u32(skipFirst, p);
     }
     if (skipFirst != 10) return 6;
-    uint32_t skipLast = 0;
+    uint32_t skipLast = 0U;
     for (uint32_t q = 0; q < 5; q += 1) {
         if (q == 4) {
             continue;
@@ -73,7 +73,7 @@ int main(void) {
         skipLast = cnx_clamp_add_u32(skipLast, q);
     }
     if (skipLast != 6) return 7;
-    uint32_t complexSum = 0;
+    uint32_t complexSum = 0U;
     for (uint32_t r = 1; r <= 20; r += 1) {
         if (r % 2 == 0 && r % 3 == 0) {
             continue;

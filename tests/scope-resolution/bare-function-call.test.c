@@ -13,11 +13,11 @@
 static uint32_t Calculator_result = 0;
 
 static void Calculator_reset(void) {
-    Calculator_result = 0;
+    Calculator_result = 0U;
 }
 
 static void Calculator_addTen(void) {
-    Calculator_result += 10;
+    Calculator_result += 10U;
 }
 
 void Calculator_compute(void) {

@@ -15,8 +15,8 @@ typedef struct Image {
 Image screen = {0};
 
 int main(void) {
-    screen.width = 320;
-    screen.height = 240;
+    screen.width = 320U;
+    screen.height = 240U;
     screen.pixels[0][0] = 0;
     screen.pixels[239][319] = 255;
     return 0;

@@ -21,17 +21,17 @@ static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator, uint32
 // ADR-051: Basic safe division tests
 // Tests the safe_div() built-in function with valid and zero divisors
 void testSafeDivBasic(void) {
-    uint32_t result = 0;
+    uint32_t result = 0U;
     bool err = false;
     err = cnx_safe_div_u32(&result, 10, 2, 0);
-    result = 100;
+    result = 100U;
     err = cnx_safe_div_u32(&result, 10, 0, 99);
-    result = 42;
+    result = 42U;
     err = cnx_safe_div_u32(&result, 10, 0, result);
 }
 
 void testSafeDivEdgeCases(void) {
-    uint32_t result = 0;
+    uint32_t result = 0U;
     bool err = false;
     err = cnx_safe_div_u32(&result, 0, 5, 999);
     err = cnx_safe_div_u32(&result, 42, 1, 0);

@@ -20,7 +20,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Pass-through modification tracking through call chains
 // Level 3: Leaf functions
 void level3Modify(uint32_t* val) {
-    (*val) = 999;
+    (*val) = 999U;
 }
 
 uint32_t level3Read(uint32_t val) {
@@ -59,21 +59,21 @@ uint32_t complexChain(uint32_t a, uint32_t* b, uint32_t c) {
 }
 
 int main(void) {
-    uint32_t x = 100;
+    uint32_t x = 100U;
     level1DeepModify(&x);
     if (x != 999) return 1;
-    uint32_t y = 50;
+    uint32_t y = 50U;
     uint32_t result = level1DeepRead(y);
     if (result != 51) return 2;
     if (y != 50) return 3;
-    uint32_t r = 10;
-    uint32_t m = 20;
+    uint32_t r = 10U;
+    uint32_t m = 20U;
     level2Mixed(r, &m);
     if (r != 10) return 4;
     if (m != 999) return 5;
-    uint32_t a = 5;
-    uint32_t b = 100;
-    uint32_t c = 7;
+    uint32_t a = 5U;
+    uint32_t b = 100U;
+    uint32_t c = 7U;
     result = complexChain(a, &b, c);
     if (result != 14) return 6;
     if (a != 5) return 7;

@@ -21,12 +21,12 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 }
 
 int main(void) {
-    uint8_t doubled = COUNT * 2;
+    uint8_t doubled = COUNT * 2U;
     if (doubled != 8) return 1;
     if (COUNT != 4) return 2;
-    uint8_t sum = 0;
+    uint8_t sum = 0U;
     for (uint8_t i = 0; i < COUNT; i += 1) {
-        sum = cnx_clamp_add_u8(sum, 1);
+        sum = cnx_clamp_add_u8(sum, 1U);
     }
     if (sum != 4) return 3;
     return 0;

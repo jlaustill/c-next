@@ -18,8 +18,8 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.2 - while loop non-boolean condition error
 // Tests: Error when using non-boolean expression as while condition
 void test(void) {
-    uint32_t count = 5;
+    uint32_t count = 5U;
     while (count) {
-        count = cnx_clamp_sub_u32(count, 1);
+        count = cnx_clamp_sub_u32(count, 1U);
     }
 }

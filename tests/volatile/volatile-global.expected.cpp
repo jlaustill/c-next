@@ -21,30 +21,30 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: Global volatile variable declaration and access
 // ADR-108: Volatile keyword for optimization prevention
 // Global volatile variable - prevents compiler from caching value
-volatile uint32_t status_flag = 0;
+volatile uint32_t status_flag = 0U;
 
-volatile uint8_t byte_flag = 0;
+volatile uint8_t byte_flag = 0U;
 
 volatile bool ready_flag = false;
 
 int main(void) {
-    status_flag = 0x12345678;
+    status_flag = 0x12345678U;
     if (status_flag != 0x12345678) return 1;
-    status_flag = 100;
-    status_flag = 200;
-    status_flag = 300;
+    status_flag = 100U;
+    status_flag = 200U;
+    status_flag = 300U;
     if (status_flag != 300) return 2;
-    status_flag = 500;
+    status_flag = 500U;
     uint32_t value = status_flag;
     if (value != 500) return 3;
-    byte_flag = 255;
+    byte_flag = 255U;
     if (byte_flag != 255) return 4;
     ready_flag = true;
     if (ready_flag != true) return 5;
     ready_flag = false;
     if (ready_flag != false) return 6;
-    status_flag = 10;
-    status_flag = cnx_clamp_add_u32(status_flag, 5);
+    status_flag = 10U;
+    status_flag = cnx_clamp_add_u32(status_flag, 5U);
     if (status_flag != 15) return 7;
     return 0;
 }

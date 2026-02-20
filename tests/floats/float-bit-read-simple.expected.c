@@ -14,7 +14,7 @@ _Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double")
 int main(void) {
     float testVal = 1.0;
     uint32_t __bits_testVal;
-    uint8_t byte3 = (memcpy(&__bits_testVal, &testVal, sizeof(testVal)), ((__bits_testVal >> 24) & 0xFFU));
+    uint8_t byte3 = (memcpy(&__bits_testVal, &testVal, sizeof(testVal)), ((__bits_testVal >> 24U) & 0xFFU));
     if (byte3 != 0x3F) return 1;
     return 0;
 }

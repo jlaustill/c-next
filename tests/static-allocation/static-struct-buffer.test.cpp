@@ -24,17 +24,17 @@ void addReading(uint8_t index, uint32_t ts, int16_t val, uint8_t id) {
 }
 
 int main(void) {
-    uint8_t idx0 = 0;
-    uint8_t idx1 = 1;
-    uint8_t idx2 = 2;
-    uint32_t ts1 = 1000;
-    uint32_t ts2 = 2000;
-    uint32_t ts3 = 3000;
+    uint8_t idx0 = 0U;
+    uint8_t idx1 = 1U;
+    uint8_t idx2 = 2U;
+    uint32_t ts1 = 1000U;
+    uint32_t ts2 = 2000U;
+    uint32_t ts3 = 3000U;
     int16_t val1 = 25;
     int16_t val2 = 30;
     int16_t val3 = -5;
-    uint8_t id1 = 1;
-    uint8_t id2 = 2;
+    uint8_t id1 = 1U;
+    uint8_t id2 = 2U;
     addReading(idx0, ts1, val1, id1);
     addReading(idx1, ts2, val2, id2);
     addReading(idx2, ts3, val3, id1);

@@ -83,66 +83,66 @@ static int32_t Calculator_testModulo(void) {
 }
 
 static int32_t Calculator_testBitwiseAnd(void) {
-    Calculator_bits = 0xFF;
-    Calculator_bits &= 0x0F;
+    Calculator_bits = 0xFFU;
+    Calculator_bits &= 0x0FU;
     if (Calculator_bits != 0x0F) return 40;
-    Calculator_bits = 0xAA;
-    Calculator_bits &= 0x55;
+    Calculator_bits = 0xAAU;
+    Calculator_bits &= 0x55U;
     if (Calculator_bits != 0) return 41;
-    Calculator_bits = 0x12345678;
-    Calculator_bits &= 0xFFFFFFFF;
+    Calculator_bits = 0x12345678U;
+    Calculator_bits &= 0xFFFFFFFFU;
     if (Calculator_bits != 0x12345678) return 42;
     return 0;
 }
 
 static int32_t Calculator_testBitwiseOr(void) {
-    Calculator_bits = 0xF0;
-    Calculator_bits |= 0x0F;
+    Calculator_bits = 0xF0U;
+    Calculator_bits |= 0x0FU;
     if (Calculator_bits != 0xFF) return 50;
-    Calculator_bits = 0x00;
-    Calculator_bits |= 0xAB;
+    Calculator_bits = 0x00U;
+    Calculator_bits |= 0xABU;
     if (Calculator_bits != 0xAB) return 51;
-    Calculator_bits = 0x12340000;
-    Calculator_bits |= 0x00005678;
+    Calculator_bits = 0x12340000U;
+    Calculator_bits |= 0x00005678U;
     if (Calculator_bits != 0x12345678) return 52;
     return 0;
 }
 
 static int32_t Calculator_testBitwiseXor(void) {
-    Calculator_bits = 0xFF;
-    Calculator_bits ^= 0xFF;
+    Calculator_bits = 0xFFU;
+    Calculator_bits ^= 0xFFU;
     if (Calculator_bits != 0) return 60;
-    Calculator_bits = 0xAA;
-    Calculator_bits ^= 0x55;
+    Calculator_bits = 0xAAU;
+    Calculator_bits ^= 0x55U;
     if (Calculator_bits != 0xFF) return 61;
-    Calculator_bits = 0x12345678;
-    Calculator_bits ^= 0x00000000;
+    Calculator_bits = 0x12345678U;
+    Calculator_bits ^= 0x00000000U;
     if (Calculator_bits != 0x12345678) return 62;
     return 0;
 }
 
 static int32_t Calculator_testLeftShift(void) {
-    Calculator_bits = 1;
-    Calculator_bits <<= 4;
+    Calculator_bits = 1U;
+    Calculator_bits <<= 4U;
     if (Calculator_bits != 16) return 70;
-    Calculator_bits = 0xFF;
-    Calculator_bits <<= 8;
+    Calculator_bits = 0xFFU;
+    Calculator_bits <<= 8U;
     if (Calculator_bits != 0xFF00) return 71;
-    Calculator_bits = 1;
-    Calculator_bits <<= 0;
+    Calculator_bits = 1U;
+    Calculator_bits <<= 0U;
     if (Calculator_bits != 1) return 72;
     return 0;
 }
 
 static int32_t Calculator_testRightShift(void) {
-    Calculator_bits = 256;
-    Calculator_bits >>= 4;
+    Calculator_bits = 256U;
+    Calculator_bits >>= 4U;
     if (Calculator_bits != 16) return 80;
-    Calculator_bits = 0xFF00;
-    Calculator_bits >>= 8;
+    Calculator_bits = 0xFF00U;
+    Calculator_bits >>= 8U;
     if (Calculator_bits != 0xFF) return 81;
-    Calculator_bits = 128;
-    Calculator_bits >>= 0;
+    Calculator_bits = 128U;
+    Calculator_bits >>= 0U;
     if (Calculator_bits != 128) return 82;
     return 0;
 }

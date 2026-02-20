@@ -11,13 +11,13 @@
 // Validates: Array initializers with various types are warning-free
 // Coverage: Integer arrays, partial init, zero init
 int main(void) {
-    uint32_t full[4] = {10, 20, 30, 40};
+    uint32_t full[4] = {10U, 20U, 30U, 40U};
     if (full[0] != 10) return 1;
     if (full[3] != 40) return 2;
-    uint8_t bytes[3] = {0x41, 0x42, 0x43};
+    uint8_t bytes[3] = {0x41U, 0x42U, 0x43U};
     if (bytes[0] != 0x41) return 3;
     if (bytes[2] != 0x43) return 4;
-    uint64_t big[2] = {1000000000, 2000000000};
+    uint64_t big[2] = {1000000000ULL, 2000000000ULL};
     if (big[0] != 1000000000) return 5;
     if (big[1] != 2000000000) return 6;
     int32_t signed_arr[3] = {-10, 0, 10};

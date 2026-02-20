@@ -10,22 +10,22 @@
 // Test u64 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u64 type
 int main(void) {
-    uint64_t a = 0x0000000000000001;
-    uint64_t left1 = a << 1;
-    uint64_t left32 = a << 32;
-    uint64_t left63 = a << 63;
-    uint64_t b = 0x8000000000000000;
-    uint64_t right1 = b >> 1;
-    uint64_t right32 = b >> 32;
-    uint64_t right63 = b >> 63;
-    uint64_t c = 0x00000000FFFFFFFF;
-    uint64_t shift_amount = 16;
+    uint64_t a = 0x0000000000000001ULL;
+    uint64_t left1 = a << 1ULL;
+    uint64_t left32 = a << 32ULL;
+    uint64_t left63 = a << 63ULL;
+    uint64_t b = 0x8000000000000000ULL;
+    uint64_t right1 = b >> 1ULL;
+    uint64_t right32 = b >> 32ULL;
+    uint64_t right63 = b >> 63ULL;
+    uint64_t c = 0x00000000FFFFFFFFULL;
+    uint64_t shift_amount = 16ULL;
     uint64_t left_var = c << shift_amount;
     uint64_t right_var = c >> shift_amount;
-    uint64_t d = 0x00000000FF000000;
-    uint64_t shift_cross = d << 8;
-    uint64_t e = 0x0000FFFF0000FFFF;
-    uint64_t multi_shift = (e >> 16) << 8;
+    uint64_t d = 0x00000000FF000000ULL;
+    uint64_t shift_cross = d << 8ULL;
+    uint64_t e = 0x0000FFFF0000FFFFULL;
+    uint64_t multi_shift = (e >> 16ULL) << 8ULL;
     if (left1 == 2 && right63 == 1 && right_var == 65535) {
         return 0;
     }

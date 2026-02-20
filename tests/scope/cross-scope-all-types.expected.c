@@ -209,11 +209,11 @@ int main(void) {
     Consumer_writeProviderArray(0, 1000);
     Consumer_writeProviderArray(1, 2000);
     Consumer_writeProviderArray(2, 3000);
-    uint32_t arrResult0 = Consumer_readProviderArray(0);
+    uint32_t arrResult0 = Consumer_readProviderArray(0U);
     if (arrResult0 != 1000) return 19;
-    uint32_t arrResult1 = Consumer_readProviderArray(1);
+    uint32_t arrResult1 = Consumer_readProviderArray(1U);
     if (arrResult1 != 2000) return 20;
-    uint32_t arrResult2 = Consumer_readProviderArray(2);
+    uint32_t arrResult2 = Consumer_readProviderArray(2U);
     if (arrResult2 != 3000) return 21;
     uint8_t clampResult = Consumer_readProviderClamp();
     if (clampResult != 200) return 22;

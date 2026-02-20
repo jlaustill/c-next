@@ -17,6 +17,6 @@ int main(void) {
     Point p = {0};
     p.x = 10;
     Color c = {0};
-    c.red = 255;
+    c.red = 255U;
     return 0;
 }

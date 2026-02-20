@@ -37,7 +37,7 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 }
 
 // Edge case 1: atomic + const combination
-extern const volatile uint32_t CONFIG = 42;
+extern const volatile uint32_t CONFIG = 42U;
 
 // Edge case 2: atomic 2D array
 volatile uint8_t matrix[4][4] = {0};
@@ -46,7 +46,7 @@ volatile uint8_t matrix[4][4] = {0};
 volatile int64_t bigSignedCounter = 0;
 
 // Edge case 4: atomic u64 (unsigned 64-bit)
-volatile uint64_t bigUnsignedCounter = 0;
+volatile uint64_t bigUnsignedCounter = 0ULL;
 
 // Edge case 5: atomic string type
 char statusMessage[17] = "";
@@ -60,7 +60,7 @@ typedef struct TStatus {
 volatile TStatus currentStatus = {0};
 
 // Edge case 7: atomic with wrap + const (multiple modifiers)
-volatile uint16_t sequence = 0;
+volatile uint16_t sequence = 0U;
 
 // Edge case 8: atomic with clamp (saturation)
 volatile int8_t temperature = 0;
@@ -76,13 +76,13 @@ int main(void) {
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();
-        bigUnsignedCounter = cnx_clamp_add_u64(bigUnsignedCounter, 1);
+        bigUnsignedCounter = cnx_clamp_add_u64(bigUnsignedCounter, 1ULL);
         __set_PRIMASK(__primask);
     }
     currentStatus.active = true;
     do {
         uint16_t __old = __LDREXH(&sequence);
-        uint16_t __new = __old + 1;
+        uint16_t __new = __old + 1U;
         if (__STREXH(__new, &sequence) == 0) break;
     } while (1);
     do {

@@ -27,19 +27,19 @@ typedef struct Pixel {
 Pixel image[4][4] = {0};
 
 int main(void) {
-    uint32_t y = 0;
+    uint32_t y = 0U;
     while (y < 4) {
-        uint32_t x = 0;
+        uint32_t x = 0U;
         while (x < 4) {
             image[y][x].r = y * 64;
             image[y][x].g = x * 64;
             image[y][x].b = (y + x) * 32;
-            x = cnx_clamp_add_u32(x, 1);
+            x = cnx_clamp_add_u32(x, 1U);
         }
-        y = cnx_clamp_add_u32(y, 1);
+        y = cnx_clamp_add_u32(y, 1U);
     }
-    uint32_t testY = 2;
-    uint32_t testX = 3;
+    uint32_t testY = 2U;
+    uint32_t testX = 3U;
     if (image[testY][testX].r != 128) return 1;
     if (image[testY][testX].g != 192) return 2;
     if (image[testY][testX].b != 160) return 3;
@@ -49,11 +49,11 @@ int main(void) {
     if (image[3][3].r != 192) return 7;
     if (image[3][3].g != 192) return 8;
     if (image[3][3].b != 192) return 9;
-    uint32_t baseRow = 1;
-    uint32_t offset = 1;
+    uint32_t baseRow = 1U;
+    uint32_t offset = 1U;
     if (image[baseRow + offset][offset].r != 128) return 10;
-    uint32_t targetRow = 2;
-    uint32_t targetCol = 2;
+    uint32_t targetRow = 2U;
+    uint32_t targetCol = 2U;
     image[targetRow][targetCol].r = 255;
     image[targetRow][targetCol].g = 255;
     image[targetRow][targetCol].b = 255;

@@ -26,10 +26,10 @@ uint32_t process(uint32_t crc, uint8_t byte) {
 }
 
 uint32_t testFuncReturnMember(void) {
-    uint32_t crc = 0;
+    uint32_t crc = 0U;
     globalConfig.enabled = true;
     globalConfig.mode = MODE_AUTO;
-    globalConfig.value = 42;
+    globalConfig.value = 42U;
     crc = process(crc, getConfig().enabled);
     crc = process(crc, getConfig().mode);
     crc = process(crc, getConfig().value);

@@ -10,7 +10,7 @@
 // test-execution
 // Comprehensive .length test for u16 type across all contexts
 // Tests: .length returns 16 for u16 in every possible scope and access pattern
-uint16_t globalVar = 1000;
+uint16_t globalVar = 1000U;
 
 /* Scope: TestScope */
 
@@ -43,17 +43,17 @@ int main(void) {
     if (16 != 16) {
         return 4;
     }
-    uint16_t localVar = 1000;
+    uint16_t localVar = 1000U;
     if (16 != 16) {
         return 5;
     }
-    uint16_t testVal = 1000;
+    uint16_t testVal = 1000U;
     result = checkParamLength(testVal);
     if (result != 16) {
         return 6;
     }
     TestStruct ts = {0};
-    ts.member = 1000;
+    ts.member = 1000U;
     if (16 != 16) {
         return 7;
     }

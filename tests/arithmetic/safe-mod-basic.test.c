@@ -21,17 +21,17 @@ static inline bool cnx_safe_mod_u32(uint32_t* output, uint32_t numerator, uint32
 // ADR-051: Basic safe modulo tests
 // Tests the safe_mod() built-in function with valid and zero divisors
 void testSafeModBasic(void) {
-    uint32_t result = 0;
+    uint32_t result = 0U;
     bool err = false;
     err = cnx_safe_mod_u32(&result, 10, 3, 0);
-    result = 100;
+    result = 100U;
     err = cnx_safe_mod_u32(&result, 10, 0, 99);
-    result = 42;
+    result = 42U;
     err = cnx_safe_mod_u32(&result, 10, 0, result);
 }
 
 void testSafeModEdgeCases(void) {
-    uint32_t result = 0;
+    uint32_t result = 0U;
     bool err = false;
     err = cnx_safe_mod_u32(&result, 0, 5, 999);
     err = cnx_safe_mod_u32(&result, 10, 10, 0);
@@ -39,8 +39,8 @@ void testSafeModEdgeCases(void) {
 }
 
 void testSafeModCircularBuffer(void) {
-    uint32_t index = 0;
-    uint32_t bufferSize = 16;
+    uint32_t index = 0U;
+    uint32_t bufferSize = 16U;
     bool err = false;
     err = cnx_safe_mod_u32(&index, 10, bufferSize, 0);
     err = cnx_safe_mod_u32(&index, 17, bufferSize, 0);

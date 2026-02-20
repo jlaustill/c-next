@@ -20,19 +20,19 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 // Validates array operations with u64 element type
 // Includes typical embedded use cases (timestamps, counters, buffers)
 // Fixed size with explicit values (typical timestamps)
-uint64_t timestamps[4] = {1000000000000, 2000000000000, 3000000000000, 4000000000000};
+uint64_t timestamps[4] = {1000000000000ULL, 2000000000000ULL, 3000000000000ULL, 4000000000000ULL};
 
 // Size inference
-uint64_t counters[5] = {100, 200, 300, 400, 500};
+uint64_t counters[5] = {100ULL, 200ULL, 300ULL, 400ULL, 500ULL};
 
 // Fill syntax - zero initialized buffer
-uint64_t buffer[100] = {0};
+uint64_t buffer[100] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
 
 // Fill syntax - ones
-uint64_t ones[50] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+uint64_t ones[50] = {1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL};
 
 // Const lookup table (factorials)
-extern const uint64_t factorials[10] = {1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880};
+extern const uint64_t factorials[10] = {1ULL, 1ULL, 2ULL, 6ULL, 24ULL, 120ULL, 720ULL, 5040ULL, 40320ULL, 362880ULL};
 
 int main(void) {
     if (timestamps[0] != 1000000000000) return 1;
@@ -48,12 +48,12 @@ int main(void) {
     if (ones[0] != 1) return 11;
     if (ones[25] != 1) return 12;
     if (ones[49] != 1) return 13;
-    uint64_t mutableArr[5] = {10, 20, 30, 40, 50};
+    uint64_t mutableArr[5] = {10ULL, 20ULL, 30ULL, 40ULL, 50ULL};
     mutableArr[2] = 999;
     if (mutableArr[2] != 999) return 14;
     if (mutableArr[0] != 10) return 15;
     if (mutableArr[4] != 50) return 16;
-    uint64_t sum = 0;
+    uint64_t sum = 0ULL;
     for (uint32_t i = 0; i < 5; i += 1) {
         sum = cnx_clamp_add_u64(sum, counters[i]);
     }
@@ -61,7 +61,7 @@ int main(void) {
     if (factorials[0] != 1) return 18;
     if (factorials[5] != 120) return 19;
     if (factorials[9] != 362880) return 20;
-    uint64_t large_vals[3] = {9000000000000000000, 8000000000000000000, 7000000000000000000};
+    uint64_t large_vals[3] = {9000000000000000000ULL, 8000000000000000000ULL, 7000000000000000000ULL};
     if (large_vals[0] != 9000000000000000000) return 21;
     if (large_vals[2] != 7000000000000000000) return 22;
     uint64_t sequence[10] = {0};

@@ -49,30 +49,30 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Validates: Clamp compound assignment should not trigger false warnings
 // Coverage: __builtin_*_overflow allows GCC to track value bounds correctly
 int main(void) {
-    uint32_t index = 100;
-    index = cnx_clamp_add_u32(index, 50);
+    uint32_t index = 100U;
+    index = cnx_clamp_add_u32(index, 50U);
     if (index != 150) return 1;
-    index = cnx_clamp_sub_u32(index, 50);
+    index = cnx_clamp_sub_u32(index, 50U);
     if (index != 100) return 2;
-    uint32_t mult_val = 5;
-    mult_val = cnx_clamp_mul_u32(mult_val, 10);
+    uint32_t mult_val = 5U;
+    mult_val = cnx_clamp_mul_u32(mult_val, 10U);
     if (mult_val != 50) return 3;
-    uint32_t overflow_test = 4294967290;
-    overflow_test = cnx_clamp_add_u32(overflow_test, 100);
+    uint32_t overflow_test = 4294967290U;
+    overflow_test = cnx_clamp_add_u32(overflow_test, 100U);
     if (overflow_test != 4294967295) return 4;
-    uint32_t underflow_test = 10;
-    underflow_test = cnx_clamp_sub_u32(underflow_test, 100);
+    uint32_t underflow_test = 10U;
+    underflow_test = cnx_clamp_sub_u32(underflow_test, 100U);
     if (underflow_test != 0) return 5;
-    uint32_t mul_overflow = 100000;
-    mul_overflow = cnx_clamp_mul_u32(mul_overflow, 100000);
+    uint32_t mul_overflow = 100000U;
+    mul_overflow = cnx_clamp_mul_u32(mul_overflow, 100000U);
     if (mul_overflow != 4294967295) return 6;
-    uint8_t byte_val = 100;
-    byte_val = cnx_clamp_add_u8(byte_val, 50);
+    uint8_t byte_val = 100U;
+    byte_val = cnx_clamp_add_u8(byte_val, 50U);
     if (byte_val != 150) return 7;
-    byte_val = cnx_clamp_add_u8(byte_val, 200);
+    byte_val = cnx_clamp_add_u8(byte_val, 200U);
     if (byte_val != 255) return 8;
-    uint16_t short_val = 60000;
-    short_val = cnx_clamp_add_u16(short_val, 10000);
+    uint16_t short_val = 60000U;
+    short_val = cnx_clamp_add_u16(short_val, 10000U);
     if (short_val != 65535) return 9;
     return 0;
 }

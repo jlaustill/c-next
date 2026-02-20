@@ -11,7 +11,7 @@
 // Tests: Issue #579 - Array indexing on parameter should generate array access, not bit manipulation
 // When a function parameter is declared as `u8 buf` (without explicit array syntax)
 // but used with array indexing, it becomes a pointer in C (ADR-006), so buf[i] is array access.
-uint32_t result = 0;
+uint32_t result = 0U;
 
 // Test 1: Write to parameter with variable index
 void writeToParam(uint8_t* buf, uint32_t idx) {
@@ -67,12 +67,12 @@ void setArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit,
 }
 
 int main(void) {
-    uint8_t buffer[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t source[4] = {10, 20, 30, 40};
-    uint8_t dest[4] = {0, 0, 0, 0};
+    uint8_t buffer[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+    uint8_t source[4] = {10U, 20U, 30U, 40U};
+    uint8_t dest[4] = {0U, 0U, 0U, 0U};
     writeToParam(buffer, 3);
     if (buffer[3] != 42) return 1;
-    uint8_t val = readFromParam(source, 2);
+    uint8_t val = readFromParam(source, 2U);
     if (val != 30) return 2;
     copyElement(source, dest, 1);
     if (dest[1] != 20) return 3;
@@ -85,15 +85,15 @@ int main(void) {
     if (buffer[1] != 5) return 6;
     writeExplicit(buffer, 4);
     if (buffer[4] != 99) return 7;
-    uint16_t testWord = 0x1234;
+    uint16_t testWord = 0x1234U;
     uint8_t low = getLowByte(testWord);
     if (low != 0x34) return 8;
     uint8_t high = getHighByte(testWord);
     if (high != 0x12) return 9;
-    uint8_t matrix[2][2] = {{0xFF, 0x00}, {0xAA, 0x55}};
-    uint8_t bit0 = getArrayBit(matrix, 0, 0, 0);
+    uint8_t matrix[2][2] = {{0xFFU, 0x00U}, {0xAAU, 0x55U}};
+    uint8_t bit0 = getArrayBit(matrix, 0U, 0U, 0U);
     if (bit0 != 1) return 10;
-    uint8_t bit1 = getArrayBit(matrix, 0, 1, 0);
+    uint8_t bit1 = getArrayBit(matrix, 0U, 1U, 0U);
     if (bit1 != 0) return 11;
     setArrayBit(matrix, 0, 1, 0, true);
     if (matrix[0][1] != 0x01) return 12;

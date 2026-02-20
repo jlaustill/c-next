@@ -17,5 +17,5 @@ CppTestClass items[4] = {};
 uint32_t counters[8] = {0};
 
 int main(void) {
-    uint8_t dummy = 0;
+    uint8_t dummy = 0U;
 }

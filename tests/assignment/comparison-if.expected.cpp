@@ -27,9 +27,9 @@ bool isPositive(int32_t n) {
 }
 
 int main(void) {
-    uint32_t zero = 0;
-    uint32_t hundred = 100;
-    uint32_t fifty = 50;
+    uint32_t zero = 0U;
+    uint32_t hundred = 100U;
+    uint32_t fifty = 50U;
     int32_t positive = 5;
     int32_t negative = -5;
     uint32_t result1 = checkValue(zero);

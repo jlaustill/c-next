@@ -31,16 +31,16 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 
 // ADR-044: Test compound assignments with overflow behavior
 // Clamp variables use helper functions
-uint8_t brightness = 100;
+uint8_t brightness = 100U;
 
-uint16_t sensorValue = 0;
+uint16_t sensorValue = 0U;
 
 // Wrap variables use natural C arithmetic
-uint32_t counter = 0;
+uint32_t counter = 0U;
 
 void update(void) {
-    brightness = cnx_clamp_add_u8(brightness, 10);
-    brightness = cnx_clamp_sub_u8(brightness, 5);
-    sensorValue = cnx_clamp_mul_u16(sensorValue, 2);
-    counter += 1;
+    brightness = cnx_clamp_add_u8(brightness, 10U);
+    brightness = cnx_clamp_sub_u8(brightness, 5U);
+    sensorValue = cnx_clamp_mul_u16(sensorValue, 2U);
+    counter += 1U;
 }

@@ -12,8 +12,8 @@
 /* Scope: decoder */
 
 uint16_t decoder_getSpn(const uint8_t data[8]) {
-    uint16_t result = data[0];
-    result = result + (data[1] * 256);
+    uint16_t result = data[0U];
+    result = result + (data[1U] * 256U);
     return result;
 }
 

@@ -11,27 +11,27 @@
 // Validates: Arithmetic on smaller types promotes correctly without warnings
 // Coverage: u8/u16 arithmetic, mixed-width operations
 int main(void) {
-    uint8_t a = 100;
-    uint8_t b = 50;
+    uint8_t a = 100U;
+    uint8_t b = 50U;
     uint32_t sum = a + b;
     if (sum != 150) return 1;
-    uint8_t c = 200;
-    uint8_t d = 2;
+    uint8_t c = 200U;
+    uint8_t d = 2U;
     uint32_t product = c * d;
     if (product != 400) return 2;
-    uint16_t e = 30000;
-    uint16_t f = 20000;
+    uint16_t e = 30000U;
+    uint16_t f = 20000U;
     uint32_t large_sum = e + f;
     if (large_sum != 50000) return 3;
-    uint8_t small = 255;
-    uint16_t medium = 1000;
+    uint8_t small = 255U;
+    uint16_t medium = 1000U;
     uint32_t mixed = small + medium;
     if (mixed != 1255) return 4;
-    uint32_t shift_val = 1;
-    uint32_t shifted = shift_val << 8;
+    uint32_t shift_val = 1U;
+    uint32_t shifted = shift_val << 8U;
     if (shifted != 256) return 5;
-    uint32_t dividend = 100;
-    uint32_t divisor = 3;
+    uint32_t dividend = 100U;
+    uint32_t divisor = 3U;
     uint32_t quotient = dividend / divisor;
     if (quotient != 33) return 6;
     uint32_t remainder = dividend % divisor;

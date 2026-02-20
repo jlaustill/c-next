@@ -38,11 +38,11 @@ uint32_t sumFourBytes(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
 // Array should decay to pointer, NOT have & added
 // ============================================================
 uint8_t sumArray(const uint8_t arr[6], uint8_t len) {
-    uint8_t sum = 0;
-    uint8_t i = 0;
+    uint8_t sum = 0U;
+    uint8_t i = 0U;
     while (i < len) {
         sum = sum + arr[i];
-        i = i + 1;
+        i = i + 1U;
     }
     return sum;
 }
@@ -53,17 +53,17 @@ int main(void) {
     data[1] = 0x34;
     data[2] = 0x56;
     data[3] = 0x78;
-    uint32_t sum = sumFourBytes(data[0], data[1], data[2], data[3]);
+    uint32_t sum = sumFourBytes(data[0U], data[1U], data[2U], data[3U]);
     if (sum != 276) return 1;
     DataResult result = {0};
-    result.errorCode = 0;
+    result.errorCode = 0U;
     result.data[0] = 10;
     result.data[1] = 20;
     result.data[2] = 30;
     result.data[3] = 40;
     result.data[4] = 50;
     result.data[5] = 60;
-    result.dataLen = 6;
+    result.dataLen = 6U;
     uint8_t total = sumArray(result.data, result.dataLen);
     if (total != 210) return 2;
     return 0;

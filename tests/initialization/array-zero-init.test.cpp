@@ -23,12 +23,12 @@ uint8_t buffer[16] = {0};
 int32_t values[4] = {0};
 
 int main(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < 16) {
         if (buffer[i] != 0) {
             return 1;
         }
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (values[0] == 0 && values[1] == 0 && values[2] == 0 && values[3] == 0) {
         return 0;

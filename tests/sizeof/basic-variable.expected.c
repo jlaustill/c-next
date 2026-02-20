@@ -7,7 +7,7 @@
 
 // ADR-023: sizeof on local variables
 int main(void) {
-    uint32_t counter = 0;
+    uint32_t counter = 0U;
     uint8_t buffer[256] = {0};
     uint32_t counterSize = sizeof(counter);
     uint32_t bufferSize = sizeof(buffer);

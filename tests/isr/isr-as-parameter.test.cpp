@@ -22,24 +22,24 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // ADR-040: ISR as function parameter
 // Tests: passing ISR to functions and invoking through parameter
 // Global to track which handler was called
-uint32_t paramCallCount = 0;
+uint32_t paramCallCount = 0U;
 
-uint32_t paramLastHandler = 0;
+uint32_t paramLastHandler = 0U;
 
 // Handler functions (void() compatible with ISR)
 void paramHandler1(void) {
-    paramCallCount = cnx_clamp_add_u32(paramCallCount, 1);
-    paramLastHandler = 1;
+    paramCallCount = cnx_clamp_add_u32(paramCallCount, 1U);
+    paramLastHandler = 1U;
 }
 
 void paramHandler2(void) {
-    paramCallCount = cnx_clamp_add_u32(paramCallCount, 1);
-    paramLastHandler = 2;
+    paramCallCount = cnx_clamp_add_u32(paramCallCount, 1U);
+    paramLastHandler = 2U;
 }
 
 void paramHandler3(void) {
-    paramCallCount = cnx_clamp_add_u32(paramCallCount, 1);
-    paramLastHandler = 3;
+    paramCallCount = cnx_clamp_add_u32(paramCallCount, 1U);
+    paramLastHandler = 3U;
 }
 
 // Function that accepts ISR as parameter and invokes it
@@ -61,30 +61,30 @@ void executeParamBoth(ISR first, ISR second) {
 }
 
 int main(void) {
-    paramCallCount = 0;
-    paramLastHandler = 0;
+    paramCallCount = 0U;
+    paramLastHandler = 0U;
     executeParamHandler(paramHandler1);
     if (paramCallCount != 1) return 1;
     if (paramLastHandler != 1) return 2;
-    paramCallCount = 0;
-    paramLastHandler = 0;
+    paramCallCount = 0U;
+    paramLastHandler = 0U;
     executeParamHandler(paramHandler2);
     if (paramCallCount != 1) return 3;
     if (paramLastHandler != 2) return 4;
-    paramCallCount = 0;
+    paramCallCount = 0U;
     executeParamMultiple(paramHandler1, 5);
     if (paramCallCount != 5) return 5;
-    paramCallCount = 0;
-    paramLastHandler = 0;
+    paramCallCount = 0U;
+    paramLastHandler = 0U;
     executeParamBoth(paramHandler1, paramHandler2);
     if (paramCallCount != 2) return 6;
     if (paramLastHandler != 2) return 7;
-    paramCallCount = 0;
-    paramLastHandler = 0;
+    paramCallCount = 0U;
+    paramLastHandler = 0U;
     executeParamBoth(paramHandler2, paramHandler1);
     if (paramCallCount != 2) return 8;
     if (paramLastHandler != 1) return 9;
-    paramCallCount = 0;
+    paramCallCount = 0U;
     executeParamHandler(paramHandler1);
     executeParamHandler(paramHandler2);
     executeParamHandler(paramHandler3);

@@ -8,8 +8,8 @@
 // ADR-007: Bit range read
 // Tests: reading multiple bits with [start, width] syntax
 int main(void) {
-    uint8_t config = 0b11110101;
-    uint8_t lowNibble = ((config) & ((1U << 4) - 1));
-    uint8_t highNibble = ((config >> 4) & ((1U << 4) - 1));
-    uint8_t midBits = ((config >> 2) & ((1U << 3) - 1));
+    uint8_t config = 0b11110101U;
+    uint8_t lowNibble = ((config >> 0U) & ((1U << 4U) - 1));
+    uint8_t highNibble = ((config >> 4U) & ((1U << 4U) - 1));
+    uint8_t midBits = ((config >> 2U) & ((1U << 3U) - 1));
 }

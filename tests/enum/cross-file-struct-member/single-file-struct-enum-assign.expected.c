@@ -33,7 +33,7 @@ typedef struct Config {
     TItem items[4];
 } Config;
 
-extern const uint8_t COUNT = 4;
+extern const uint8_t COUNT = 4U;
 
 Config config = {0};
 
@@ -44,11 +44,11 @@ int main(void) {
     config.items[3].assigned = MyEnum_A;
     MyEnum val = config.items[0].assigned;
     if (val != MyEnum_A) return 1;
-    uint8_t countAssigned = 0;
+    uint8_t countAssigned = 0U;
     for (uint8_t i = 0; i < COUNT; i += 1) {
         MyEnum current = config.items[i].assigned;
         if (current != MyEnum_NONE) {
-            countAssigned = cnx_clamp_add_u8(countAssigned, 1);
+            countAssigned = cnx_clamp_add_u8(countAssigned, 1U);
         }
     }
     if (countAssigned != 3) return 2;

@@ -18,10 +18,10 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Issue #403: Function declarations header generation test
 // Tests that top-level functions generate prototypes in the header.
 // Note: In C-Next, 'public' is only used inside scopes.
-uint32_t globalCounter = 0;
+uint32_t globalCounter = 0U;
 
 void incrementCounter(void) {
-    globalCounter = cnx_clamp_add_u32(globalCounter, 1);
+    globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
 }
 
 uint32_t getCounter(void) {
@@ -29,7 +29,7 @@ uint32_t getCounter(void) {
 }
 
 void resetCounter(void) {
-    globalCounter = 0;
+    globalCounter = 0U;
 }
 
 int main(void) {

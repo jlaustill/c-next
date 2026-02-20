@@ -12,13 +12,13 @@
 #include <stdint.h>
 
 int main(void) {
-    uint8_t result_u8 = add_u8(100, 50);
+    uint8_t result_u8 = add_u8(100U, 50U);
     if (result_u8 != 150) return 1;
-    uint16_t result_u16 = add_u16(1000, 2000);
+    uint16_t result_u16 = add_u16(1000U, 2000U);
     if (result_u16 != 3000) return 2;
-    uint32_t result_u32 = add_u32(100000, 200000);
+    uint32_t result_u32 = add_u32(100000U, 200000U);
     if (result_u32 != 300000) return 3;
-    uint64_t result_u64 = add_u64(1000000000, 2000000000);
+    uint64_t result_u64 = add_u64(1000000000ULL, 2000000000ULL);
     if (result_u64 != 3000000000) return 4;
     int8_t result_i8 = add_i8(50, 25);
     if (result_i8 != 75) return 5;
@@ -28,9 +28,9 @@ int main(void) {
     if (result_i32 != 100) return 7;
     int64_t result_i64 = add_i64(-1000000000, 2000000000);
     if (result_i64 != 1000000000) return 8;
-    uint8_t id_u8 = identity_u8(255);
+    uint8_t id_u8 = identity_u8(255U);
     if (id_u8 != 255) return 9;
-    uint32_t id_u32 = identity_u32(0x12345678);
+    uint32_t id_u32 = identity_u32(0x12345678U);
     if (id_u32 != 0x12345678) return 10;
     int32_t id_i32 = identity_i32(-12345);
     if (id_i32 != -12345) return 11;

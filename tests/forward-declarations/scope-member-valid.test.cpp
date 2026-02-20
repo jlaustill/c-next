@@ -12,11 +12,11 @@
 /* Scope: LED */
 
 void LED_on(void) {
-    uint32_t x = 1;
+    uint32_t x = 1U;
 }
 
 void LED_off(void) {
-    uint32_t x = 0;
+    uint32_t x = 0U;
 }
 
 int main(void) {

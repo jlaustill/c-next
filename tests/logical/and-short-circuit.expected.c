@@ -18,27 +18,27 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // ADR-013: Logical AND (&&) must short-circuit
 // If left operand is false, right operand must NOT be evaluated
-uint32_t sideEffectCounter = 0;
+uint32_t sideEffectCounter = 0U;
 
 bool causeSideEffect(void) {
-    sideEffectCounter = cnx_clamp_add_u32(sideEffectCounter, 1);
+    sideEffectCounter = cnx_clamp_add_u32(sideEffectCounter, 1U);
     return true;
 }
 
 void testAndShortCircuit(void) {
-    sideEffectCounter = 0;
+    sideEffectCounter = 0U;
     bool result1 = false && causeSideEffect();
-    sideEffectCounter = 0;
+    sideEffectCounter = 0U;
     bool result2 = true && causeSideEffect();
 }
 
 void testAndShortCircuitWithComparison(void) {
-    uint32_t value = 0;
-    sideEffectCounter = 0;
+    uint32_t value = 0U;
+    sideEffectCounter = 0U;
     bool result = (value != 0) && causeSideEffect();
 }
 
 void testAndShortCircuitChained(void) {
-    sideEffectCounter = 0;
+    sideEffectCounter = 0U;
     bool result = false && causeSideEffect() && causeSideEffect();
 }

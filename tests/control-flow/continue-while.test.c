@@ -19,49 +19,49 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: continue statement in while loop
 // Validates: skipping iterations with continue in while loops
 int main(void) {
-    uint32_t oddSum = 0;
-    uint32_t i = 0;
+    uint32_t oddSum = 0U;
+    uint32_t i = 0U;
     while (i < 10) {
         uint32_t current = i;
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
         if (current % 2 == 0) {
             continue;
         }
         oddSum = cnx_clamp_add_u32(oddSum, current);
     }
     if (oddSum != 25) return 1;
-    uint32_t sumExcept5 = 0;
-    uint32_t j = 0;
+    uint32_t sumExcept5 = 0U;
+    uint32_t j = 0U;
     while (j < 10) {
         uint32_t curr = j;
-        j = cnx_clamp_add_u32(j, 1);
+        j = cnx_clamp_add_u32(j, 1U);
         if (curr == 5) {
             continue;
         }
         sumExcept5 = cnx_clamp_add_u32(sumExcept5, curr);
     }
     if (sumExcept5 != 40) return 2;
-    uint32_t skipped = 0;
-    uint32_t processed = 0;
-    uint32_t k = 0;
+    uint32_t skipped = 0U;
+    uint32_t processed = 0U;
+    uint32_t k = 0U;
     while (k < 10) {
         uint32_t val = k;
-        k = cnx_clamp_add_u32(k, 1);
+        k = cnx_clamp_add_u32(k, 1U);
         if (val % 3 == 0) {
-            skipped = cnx_clamp_add_u32(skipped, 1);
+            skipped = cnx_clamp_add_u32(skipped, 1U);
             continue;
         }
-        processed = cnx_clamp_add_u32(processed, 1);
+        processed = cnx_clamp_add_u32(processed, 1U);
     }
     if (skipped != 4) return 3;
     if (processed != 6) return 4;
-    uint32_t beforeSum = 0;
-    uint32_t afterSum = 0;
-    uint32_t m = 0;
+    uint32_t beforeSum = 0U;
+    uint32_t afterSum = 0U;
+    uint32_t m = 0U;
     while (m < 5) {
         beforeSum = cnx_clamp_add_u32(beforeSum, m);
         uint32_t temp = m;
-        m = cnx_clamp_add_u32(m, 1);
+        m = cnx_clamp_add_u32(m, 1U);
         if (temp % 2 == 0) {
             continue;
         }
@@ -69,11 +69,11 @@ int main(void) {
     }
     if (beforeSum != 10) return 5;
     if (afterSum != 4) return 6;
-    uint32_t nestedSum = 0;
-    uint32_t n = 0;
+    uint32_t nestedSum = 0U;
+    uint32_t n = 0U;
     while (n < 20) {
         uint32_t v = n;
-        n = cnx_clamp_add_u32(n, 1);
+        n = cnx_clamp_add_u32(n, 1U);
         if (v > 5) {
             if (v < 15) {
                 continue;

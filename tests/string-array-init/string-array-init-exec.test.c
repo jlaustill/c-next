@@ -33,11 +33,11 @@ int main(void) {
     if (strlen(colors[3]) != 6) return 16;
     if (10 != 10) return 17;
     if (8 != 8) return 18;
-    uint32_t totalLen = 0;
-    uint32_t i = 0;
+    uint32_t totalLen = 0U;
+    uint32_t i = 0U;
     while (i < 3) {
         totalLen = totalLen + strlen(LABELS[i]);
-        i = i + 1;
+        i = i + 1U;
     }
     if (totalLen != 11) return 19;
     return 0;

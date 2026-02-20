@@ -9,8 +9,8 @@
 // Tests: Basic arithmetic operators
 // Demonstrates: +, -, *, /, % with different types
 int main(void) {
-    uint32_t a = 10;
-    uint32_t b = 20;
+    uint32_t a = 10U;
+    uint32_t b = 20U;
     uint32_t sum = a + b;
     if (sum != 30) return 1;
     uint32_t diff = b - a;
@@ -19,11 +19,11 @@ int main(void) {
     if (product != 200) return 3;
     uint32_t quotient = b / a;
     if (quotient != 2) return 4;
-    uint32_t remainder = 2;
+    uint32_t remainder = 17U % 5U;
     if (remainder != 2) return 5;
-    uint32_t result = (a + b) * 2;
+    uint32_t result = (a + b) * 2U;
     if (result != 60) return 6;
-    result = a + b * 2;
+    result = a + b * 2U;
     if (result != 50) return 7;
     int32_t x = -10;
     int32_t y = 3;

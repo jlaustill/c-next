@@ -10,17 +10,17 @@
 // When const is at file scope, the generated .c file should include extern
 // to give the definition external linkage (matching the header declaration)
 // Define top-level const - should generate "extern const uint8_t MAX_COUNT = 8;"
-extern const uint8_t MAX_COUNT = 8;
+extern const uint8_t MAX_COUNT = 8U;
 
-extern const uint16_t BUFFER_SIZE = 256;
+extern const uint16_t BUFFER_SIZE = 256U;
 
 // Non-const global should NOT have extern
-uint8_t mutableGlobal = 0;
+uint8_t mutableGlobal = 0U;
 
 int main(void) {
     if (MAX_COUNT != 8) return 1;
     if (BUFFER_SIZE != 256) return 2;
-    mutableGlobal = 42;
+    mutableGlobal = 42U;
     if (mutableGlobal != 42) return 3;
     return 0;
 }

@@ -15,7 +15,7 @@
 /* Scope: TestScope */
 
 void TestScope_increment(uint32_t& x) {
-    x = x + 1;
+    x = x + 1U;
 }
 
 uint32_t TestScope_accumulate(uint32_t& sum, uint32_t value) {
@@ -24,22 +24,22 @@ uint32_t TestScope_accumulate(uint32_t& sum, uint32_t value) {
 }
 
 void TestScope_doubleIncrement(uint32_t& x) {
-    x = x + 1;
-    x = x + 1;
+    x = x + 1U;
+    x = x + 1U;
 }
 
 void TestScope_switchIncrement(uint32_t& x, uint32_t mode) {
     switch (mode) {
         case 1: {
-            x = x + 10;
+            x = x + 10U;
             break;
         }
         case 2: {
-            x = x + 20;
+            x = x + 20U;
             break;
         }
         default: {
-            x = x + 1;
+            x = x + 1U;
             break;
         }
     }
@@ -50,36 +50,36 @@ uint32_t TestScope_readOnly(uint32_t x) {
 }
 
 uint32_t TestScope_mixedParams(uint32_t& counter, uint32_t multiplier) {
-    counter = counter + 1;
+    counter = counter + 1U;
     return counter * multiplier;
 }
 
 int main(void) {
-    uint32_t counter = 10;
+    uint32_t counter = 10U;
     TestScope_increment(counter);
     if (counter != 11) return 1;
-    uint32_t total = 100;
-    uint32_t result = TestScope_accumulate(total, 50);
+    uint32_t total = 100U;
+    uint32_t result = TestScope_accumulate(total, 50U);
     if (total != 150) return 2;
     if (result != 150) return 3;
-    uint32_t doubled = 5;
+    uint32_t doubled = 5U;
     TestScope_doubleIncrement(doubled);
     if (doubled != 7) return 4;
-    uint32_t switchVal = 100;
+    uint32_t switchVal = 100U;
     TestScope_switchIncrement(switchVal, 1);
     if (switchVal != 110) return 5;
-    switchVal = 100;
+    switchVal = 100U;
     TestScope_switchIncrement(switchVal, 2);
     if (switchVal != 120) return 6;
-    switchVal = 100;
+    switchVal = 100U;
     TestScope_switchIncrement(switchVal, 99);
     if (switchVal != 101) return 7;
-    uint32_t readVal = 25;
+    uint32_t readVal = 25U;
     uint32_t readResult = TestScope_readOnly(readVal);
     if (readVal != 25) return 8;
     if (readResult != 50) return 9;
-    uint32_t mixedCounter = 10;
-    uint32_t mixedMult = 3;
+    uint32_t mixedCounter = 10U;
+    uint32_t mixedMult = 3U;
     uint32_t mixedResult = TestScope_mixedParams(mixedCounter, mixedMult);
     if (mixedCounter != 11) return 10;
     if (mixedMult != 3) return 11;

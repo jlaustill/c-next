@@ -20,44 +20,44 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.2, 33.2 - Nested while loops
 // Tests: while loops nested inside other while loops
 int main(void) {
-    uint32_t i = 0;
-    uint32_t j = 0;
-    uint32_t count = 0;
-    i = 0;
+    uint32_t i = 0U;
+    uint32_t j = 0U;
+    uint32_t count = 0U;
+    i = 0U;
     while (i < 3) {
-        j = 0;
+        j = 0U;
         while (j < 3) {
-            count = cnx_clamp_add_u32(count, 1);
-            j = cnx_clamp_add_u32(j, 1);
+            count = cnx_clamp_add_u32(count, 1U);
+            j = cnx_clamp_add_u32(j, 1U);
         }
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (count != 9) return 1;
-    uint32_t k = 0;
-    count = 0;
-    i = 0;
+    uint32_t k = 0U;
+    count = 0U;
+    i = 0U;
     while (i < 2) {
-        j = 0;
+        j = 0U;
         while (j < 2) {
-            k = 0;
+            k = 0U;
             while (k < 2) {
-                count = cnx_clamp_add_u32(count, 1);
-                k = cnx_clamp_add_u32(k, 1);
+                count = cnx_clamp_add_u32(count, 1U);
+                k = cnx_clamp_add_u32(k, 1U);
             }
-            j = cnx_clamp_add_u32(j, 1);
+            j = cnx_clamp_add_u32(j, 1U);
         }
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (count != 8) return 2;
-    count = 0;
-    i = 0;
+    count = 0U;
+    i = 0U;
     while (i < 5) {
-        j = 0;
+        j = 0U;
         while (j < i) {
-            count = cnx_clamp_add_u32(count, 1);
-            j = cnx_clamp_add_u32(j, 1);
+            count = cnx_clamp_add_u32(count, 1U);
+            j = cnx_clamp_add_u32(j, 1U);
         }
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (count != 10) return 3;
     return 0;

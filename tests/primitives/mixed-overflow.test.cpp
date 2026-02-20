@@ -24,22 +24,22 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 
 // Test: Mixed overflow behaviors in same file
 // clamp variables use saturating arithmetic, wrap uses natural C arithmetic
-uint16_t safe_counter = 0;
+uint16_t safe_counter = 0U;
 
-uint16_t fast_counter = 0;
+uint16_t fast_counter = 0U;
 
-uint16_t default_counter = 0;
+uint16_t default_counter = 0U;
 
 // Default is clamp
 void increment_all(void) {
-    safe_counter = cnx_clamp_add_u16(safe_counter, 1);
-    fast_counter += 1;
-    default_counter = cnx_clamp_add_u16(default_counter, 1);
+    safe_counter = cnx_clamp_add_u16(safe_counter, 1U);
+    fast_counter += 1U;
+    default_counter = cnx_clamp_add_u16(default_counter, 1U);
 }
 
 void multiply_test(void) {
-    uint32_t safe_value = 1000;
-    uint32_t wrap_value = 1000;
-    safe_value = cnx_clamp_mul_u32(safe_value, 1000);
-    wrap_value *= 1000;
+    uint32_t safe_value = 1000U;
+    uint32_t wrap_value = 1000U;
+    safe_value = cnx_clamp_mul_u32(safe_value, 1000U);
+    wrap_value *= 1000U;
 }

@@ -39,26 +39,26 @@ int main(void) {
     c = '\0';
     if (c != '\0') return 17;
     uint8_t whitespace = '\t';
-    uint32_t wsType = 0;
+    uint32_t wsType = 0U;
     switch (whitespace) {
         case ' ': {
-            wsType = 1;
+            wsType = 1U;
             break;
         }
         case '\t': {
-            wsType = 2;
+            wsType = 2U;
             break;
         }
         case '\n': {
-            wsType = 3;
+            wsType = 3U;
             break;
         }
         case '\r': {
-            wsType = 4;
+            wsType = 4U;
             break;
         }
         default: {
-            wsType = 0;
+            wsType = 0U;
             break;
         }
     }
@@ -66,23 +66,23 @@ int main(void) {
     whitespace = '\n';
     switch (whitespace) {
         case ' ': {
-            wsType = 1;
+            wsType = 1U;
             break;
         }
         case '\t': {
-            wsType = 2;
+            wsType = 2U;
             break;
         }
         case '\n': {
-            wsType = 3;
+            wsType = 3U;
             break;
         }
         case '\r': {
-            wsType = 4;
+            wsType = 4U;
             break;
         }
         default: {
-            wsType = 0;
+            wsType = 0U;
             break;
         }
     }

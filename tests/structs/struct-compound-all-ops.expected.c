@@ -23,26 +23,26 @@ typedef struct Data {
 Data d = {0};
 
 int main(void) {
-    d.add_val = 100;
-    d.sub_val = 50;
-    d.mul_val = 10;
-    d.div_val = 100;
-    d.mod_val = 17;
-    d.and_val = 0b11110000;
-    d.or_val = 0b00001111;
-    d.xor_val = 0b10101010;
-    d.shl_val = 8;
-    d.shr_val = 128;
-    d.add_val += 25;
-    d.sub_val -= 15;
-    d.mul_val *= 7;
-    d.div_val /= 4;
-    d.mod_val %= 5;
-    d.and_val &= 0b11001100;
-    d.or_val |= 0b11110000;
-    d.xor_val ^= 0b11111111;
-    d.shl_val <<= 2;
-    d.shr_val >>= 3;
+    d.add_val = 100U;
+    d.sub_val = 50U;
+    d.mul_val = 10U;
+    d.div_val = 100U;
+    d.mod_val = 17U;
+    d.and_val = 0b11110000U;
+    d.or_val = 0b00001111U;
+    d.xor_val = 0b10101010U;
+    d.shl_val = 8U;
+    d.shr_val = 128U;
+    d.add_val += 25U;
+    d.sub_val -= 15U;
+    d.mul_val *= 7U;
+    d.div_val /= 4U;
+    d.mod_val %= 5U;
+    d.and_val &= 0b11001100U;
+    d.or_val |= 0b11110000U;
+    d.xor_val ^= 0b11111111U;
+    d.shl_val <<= 2U;
+    d.shr_val >>= 3U;
     if (d.add_val != 125) {
         return 1;
     }

@@ -8,8 +8,8 @@
 // Coverage: Section 7.1 - if statement non-boolean condition error
 // Tests: Error when using non-boolean expression as if condition
 void test(void) {
-    uint32_t value = 5;
+    uint32_t value = 5U;
     if (value) {
-        value = 10;
+        value = 10U;
     }
 }

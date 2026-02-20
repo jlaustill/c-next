@@ -17,8 +17,8 @@
 static AppConfig ConfigManager_config = {};
 
 void ConfigManager_initConfig(void) {
-    ConfigManager_config.timeout = 1000;
-    ConfigManager_config.retries = 3;
+    ConfigManager_config.timeout = 1000U;
+    ConfigManager_config.retries = 3U;
 }
 
 void ConfigManager_loadFromStorage(void) {

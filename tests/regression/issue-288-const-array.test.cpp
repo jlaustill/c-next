@@ -26,11 +26,11 @@ int main(void) {
     if (ConstArrayTest_LOOKUP_TABLE[1] != 20) return 2;
     if (ConstArrayTest_LOOKUP_TABLE[2] != 30) return 3;
     if (ConstArrayTest_LOOKUP_TABLE[3] != 40) return 4;
-    uint8_t val0 = ConstArrayTest_lookup(0);
+    uint8_t val0 = ConstArrayTest_lookup(0U);
     if (val0 != 10) return 5;
-    uint8_t val2 = ConstArrayTest_lookup(2);
+    uint8_t val2 = ConstArrayTest_lookup(2U);
     if (val2 != 30) return 6;
-    uint8_t outOfBounds = ConstArrayTest_lookup(10);
+    uint8_t outOfBounds = ConstArrayTest_lookup(10U);
     if (outOfBounds != 0) return 7;
     return 0;
 }

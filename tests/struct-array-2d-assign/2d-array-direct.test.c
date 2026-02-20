@@ -27,16 +27,16 @@ typedef struct Cell {
 Cell grid[3][4] = {0};
 
 int main(void) {
-    uint32_t r = 0;
+    uint32_t r = 0U;
     while (r < 3) {
-        uint32_t c = 0;
+        uint32_t c = 0U;
         while (c < 4) {
             grid[r][c].row = r;
             grid[r][c].col = c;
             grid[r][c].data = r * 4 + c;
-            c = cnx_clamp_add_u32(c, 1);
+            c = cnx_clamp_add_u32(c, 1U);
         }
-        r = cnx_clamp_add_u32(r, 1);
+        r = cnx_clamp_add_u32(r, 1U);
     }
     if (grid[0][0].data != 0) return 1;
     if (grid[0][3].data != 3) return 2;

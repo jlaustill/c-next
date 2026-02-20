@@ -17,7 +17,7 @@ uint32_t Foo_getConstant(void) {
 }
 
 uint8_t Foo_useInExpression(void) {
-    uint8_t result = 15;
+    uint8_t result = 10 + 5U;
     return result;
 }
 

@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013: Const u16 variable
 // Tests: const u16 declaration and read access
-extern const uint16_t MAX_PORT = 65535;
+extern const uint16_t MAX_PORT = 65535U;
 
-extern const uint16_t DEFAULT_PORT = 8080;
+extern const uint16_t DEFAULT_PORT = 8080U;
 
 int main(void) {
     uint16_t port = MAX_PORT;
@@ -20,8 +20,8 @@ int main(void) {
     uint16_t result = MAX_PORT - DEFAULT_PORT;
     if (result != 57455) return 3;
     if (DEFAULT_PORT >= MAX_PORT) return 4;
-    uint16_t values[3] = {100, 200, 300};
-    uint16_t sum = 0;
+    uint16_t values[3] = {100U, 200U, 300U};
+    uint16_t sum = 0U;
     for (uint16_t i = 0; i < 3; i = i + 1) {
         sum = sum + values[i];
     }

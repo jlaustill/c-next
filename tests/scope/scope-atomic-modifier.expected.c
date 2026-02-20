@@ -82,38 +82,38 @@ uint32_t AtomicTest_getTicks(void) {
 }
 
 void AtomicTest_incrementU8(void) {
-    AtomicTest_counterU8 = cnx_clamp_add_u8(AtomicTest_counterU8, 1);
+    AtomicTest_counterU8 = cnx_clamp_add_u8(AtomicTest_counterU8, 1U);
 }
 
 void AtomicTest_incrementU16(void) {
-    AtomicTest_counterU16 = cnx_clamp_add_u16(AtomicTest_counterU16, 1);
+    AtomicTest_counterU16 = cnx_clamp_add_u16(AtomicTest_counterU16, 1U);
 }
 
 void AtomicTest_incrementU32(void) {
-    AtomicTest_counterU32 = cnx_clamp_add_u32(AtomicTest_counterU32, 1);
+    AtomicTest_counterU32 = cnx_clamp_add_u32(AtomicTest_counterU32, 1U);
 }
 
 void AtomicTest_decrementBrightness(void) {
-    AtomicTest_brightness = cnx_clamp_sub_u8(AtomicTest_brightness, 10);
+    AtomicTest_brightness = cnx_clamp_sub_u8(AtomicTest_brightness, 10U);
 }
 
 void AtomicTest_decrementPosition(void) {
-    AtomicTest_position = cnx_clamp_sub_u16(AtomicTest_position, 50);
+    AtomicTest_position = cnx_clamp_sub_u16(AtomicTest_position, 50U);
 }
 
 void AtomicTest_maskTicks(void) {
-    AtomicTest_ticks &= 0xFFFF;
+    AtomicTest_ticks &= 0xFFFFU;
 }
 
 void AtomicTest_setTickFlag(void) {
-    AtomicTest_ticks |= 0x80000000;
+    AtomicTest_ticks |= 0x80000000U;
 }
 
 void AtomicTest_incrementAll(void) {
-    AtomicTest_counterU8 = cnx_clamp_add_u8(AtomicTest_counterU8, 1);
-    AtomicTest_counterU16 = cnx_clamp_add_u16(AtomicTest_counterU16, 1);
-    AtomicTest_counterU32 = cnx_clamp_add_u32(AtomicTest_counterU32, 1);
-    AtomicTest_ticks = cnx_clamp_add_u32(AtomicTest_ticks, 1);
+    AtomicTest_counterU8 = cnx_clamp_add_u8(AtomicTest_counterU8, 1U);
+    AtomicTest_counterU16 = cnx_clamp_add_u16(AtomicTest_counterU16, 1U);
+    AtomicTest_counterU32 = cnx_clamp_add_u32(AtomicTest_counterU32, 1U);
+    AtomicTest_ticks = cnx_clamp_add_u32(AtomicTest_ticks, 1U);
 }
 
 int main(void) {

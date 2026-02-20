@@ -10,9 +10,9 @@
 // Tests: Comparison and logical operators
 // Demonstrates: =, !=, <, >, <=, >=, &&, ||, !
 int main(void) {
-    uint32_t a = 10;
-    uint32_t b = 20;
-    uint32_t c = 10;
+    uint32_t a = 10U;
+    uint32_t b = 20U;
+    uint32_t c = 10U;
     bool equal = (a == c);
     if (equal != true) return 1;
     equal = (a == b);

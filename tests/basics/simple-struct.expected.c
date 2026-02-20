@@ -67,7 +67,7 @@ int main(void) {
     Point p4 = (Point){ .x = -3, .y = 4 };
     int32_t dist = manhattanDistance(&p4);
     if (dist != 7) return 10;
-    Sensor s1 = (Sensor){ .id = 42, .temperature = 23.5, .active = true };
+    Sensor s1 = (Sensor){ .id = 42U, .temperature = 23.5, .active = true };
     if (s1.id != 42) return 11;
     if (s1.active != true) return 12;
     return 0;

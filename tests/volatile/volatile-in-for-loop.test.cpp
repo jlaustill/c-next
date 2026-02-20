@@ -20,27 +20,27 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: Volatile variable in for loop (iteration variable)
 // ADR-108: Prevent loop optimization in timing-critical code
 int main(void) {
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (volatile uint32_t i = 0; i < 5; i += 1) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 10) return 1;
-    volatile uint32_t iterations = 0;
+    volatile uint32_t iterations = 0U;
     for (volatile uint32_t j = 10; j > 0; j -= 1) {
-        iterations = cnx_clamp_add_u32(iterations, 1);
+        iterations = cnx_clamp_add_u32(iterations, 1U);
     }
     if (iterations != 10) return 2;
-    uint32_t total = 0;
+    uint32_t total = 0U;
     for (volatile uint32_t outer = 0; outer < 3; outer += 1) {
         for (volatile uint32_t inner = 0; inner < 4; inner += 1) {
-            total = cnx_clamp_add_u32(total, 1);
+            total = cnx_clamp_add_u32(total, 1U);
         }
     }
     if (total != 12) return 3;
-    volatile uint32_t step = 2;
-    uint32_t count = 0;
+    volatile uint32_t step = 2U;
+    uint32_t count = 0U;
     for (volatile uint32_t k = 0; k < 10; k += step) {
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
     }
     if (count != 5) return 4;
     return 0;

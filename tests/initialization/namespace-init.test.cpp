@@ -15,11 +15,11 @@ uint8_t globalCount = 0;
 static uint8_t Counter_count = 0;
 
 void Counter_init(void) {
-    Counter_count = 0;
+    Counter_count = 0U;
 }
 
 void Counter_increment(void) {
-    Counter_count = Counter_count + 1;
+    Counter_count = Counter_count + 1U;
 }
 
 int main(void) {

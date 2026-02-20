@@ -22,61 +22,61 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // ADR-040: ISR direct invocation
 // Tests: invoking ISR through variables (global and local)
 // Global to track handler execution
-uint32_t invokeCallCount = 0;
+uint32_t invokeCallCount = 0U;
 
-uint32_t invokeLastHandler = 0;
+uint32_t invokeLastHandler = 0U;
 
 // Handler functions
 void invokeHandler1(void) {
-    invokeCallCount = cnx_clamp_add_u32(invokeCallCount, 1);
-    invokeLastHandler = 1;
+    invokeCallCount = cnx_clamp_add_u32(invokeCallCount, 1U);
+    invokeLastHandler = 1U;
 }
 
 void invokeHandler2(void) {
-    invokeCallCount = cnx_clamp_add_u32(invokeCallCount, 1);
-    invokeLastHandler = 2;
+    invokeCallCount = cnx_clamp_add_u32(invokeCallCount, 1U);
+    invokeLastHandler = 2U;
 }
 
 void invokeHandler3(void) {
-    invokeCallCount = cnx_clamp_add_u32(invokeCallCount, 1);
-    invokeLastHandler = 3;
+    invokeCallCount = cnx_clamp_add_u32(invokeCallCount, 1U);
+    invokeLastHandler = 3U;
 }
 
 // Global ISR variable
 ISR globalHandler = invokeHandler1;
 
 int main(void) {
-    invokeCallCount = 0;
-    invokeLastHandler = 0;
+    invokeCallCount = 0U;
+    invokeLastHandler = 0U;
     globalHandler();
     if (invokeCallCount != 1) return 1;
     if (invokeLastHandler != 1) return 2;
-    invokeCallCount = 0;
-    invokeLastHandler = 0;
+    invokeCallCount = 0U;
+    invokeLastHandler = 0U;
     globalHandler = invokeHandler2;
     globalHandler();
     if (invokeCallCount != 1) return 3;
     if (invokeLastHandler != 2) return 4;
-    invokeCallCount = 0;
-    invokeLastHandler = 0;
+    invokeCallCount = 0U;
+    invokeLastHandler = 0U;
     ISR localHandler = invokeHandler3;
     localHandler();
     if (invokeCallCount != 1) return 5;
     if (invokeLastHandler != 3) return 6;
-    invokeCallCount = 0;
-    invokeLastHandler = 0;
+    invokeCallCount = 0U;
+    invokeLastHandler = 0U;
     localHandler = invokeHandler1;
     localHandler();
     if (invokeCallCount != 1) return 7;
     if (invokeLastHandler != 1) return 8;
-    invokeCallCount = 0;
+    invokeCallCount = 0U;
     localHandler = invokeHandler2;
     localHandler();
     localHandler();
     localHandler();
     if (invokeCallCount != 3) return 9;
     if (invokeLastHandler != 2) return 10;
-    invokeCallCount = 0;
+    invokeCallCount = 0U;
     localHandler = invokeHandler1;
     localHandler();
     localHandler = invokeHandler2;

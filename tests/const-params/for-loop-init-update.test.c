@@ -18,7 +18,7 @@ uint8_t Handler_setValue(Config* cfg, uint32_t val) {
 }
 
 uint32_t Handler_getNext(Config* cfg, uint32_t current) {
-    cfg->value = current + 1;
+    cfg->value = current + 1U;
     return current + 1;
 }
 
@@ -30,17 +30,17 @@ void handleForUpdate(Config* config) {
 
 // For loop with modifying call in the INIT part (via forAssignment)
 void handleForInit(Config* config) {
-    uint32_t start = 0;
+    uint32_t start = 0U;
     for (start = Handler_setValue(config, 10); start < 1; start = start + 1) {
     }
 }
 
 int main(void) {
     Config cfg = {0};
-    cfg.value = 0;
+    cfg.value = 0U;
     handleForUpdate(&cfg);
     if (cfg.value != 1) return 1;
-    cfg.value = 0;
+    cfg.value = 0U;
     handleForInit(&cfg);
     if (cfg.value != 10) return 2;
     return 0;

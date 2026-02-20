@@ -11,5 +11,5 @@
 /* Scope: Storage */
 
 void Storage_loadDefaults(Config& cfg) {
-    cfg.value = 42;
+    cfg.value = 42U;
 }

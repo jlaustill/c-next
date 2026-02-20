@@ -121,13 +121,13 @@ static inline bool cnx_safe_div_i64(int64_t* output, int64_t numerator, int64_t 
 // Verifies safe_div() and safe_mod() work with all integer types
 void testSafeDivUnsignedTypes(void) {
     bool err = false;
-    uint8_t result_u8 = 0;
+    uint8_t result_u8 = 0U;
     err = cnx_safe_div_u8(&result_u8, 10, 2, 0);
-    uint16_t result_u16 = 0;
+    uint16_t result_u16 = 0U;
     err = cnx_safe_div_u16(&result_u16, 1000, 10, 0);
-    uint32_t result_u32 = 0;
+    uint32_t result_u32 = 0U;
     err = cnx_safe_div_u32(&result_u32, 100000, 1000, 0);
-    uint64_t result_u64 = 0;
+    uint64_t result_u64 = 0ULL;
     err = cnx_safe_div_u64(&result_u64, 10000000, 1000, 0);
 }
 
@@ -145,11 +145,11 @@ void testSafeDivSignedTypes(void) {
 
 void testSafeModAllTypes(void) {
     bool err = false;
-    uint8_t mod_u8 = 0;
+    uint8_t mod_u8 = 0U;
     err = cnx_safe_mod_u8(&mod_u8, 10, 3, 0);
-    uint16_t mod_u16 = 0;
+    uint16_t mod_u16 = 0U;
     err = cnx_safe_mod_u16(&mod_u16, 1000, 7, 0);
-    uint32_t mod_u32 = 0;
+    uint32_t mod_u32 = 0U;
     err = cnx_safe_mod_u32(&mod_u32, 100000, 97, 0);
     int32_t mod_i32 = 0;
     err = cnx_safe_mod_i32(&mod_i32, -10, 3, 0);
@@ -157,12 +157,12 @@ void testSafeModAllTypes(void) {
 
 void testSafeDivZeroAllTypes(void) {
     bool err = false;
-    uint8_t r8 = 1;
+    uint8_t r8 = 1U;
     err = cnx_safe_div_u8(&r8, 10, 0, r8);
-    uint16_t r16 = 2;
+    uint16_t r16 = 2U;
     err = cnx_safe_div_u16(&r16, 10, 0, r16);
-    uint32_t r32 = 3;
+    uint32_t r32 = 3U;
     err = cnx_safe_div_u32(&r32, 10, 0, r32);
-    uint64_t r64 = 4;
+    uint64_t r64 = 4ULL;
     err = cnx_safe_div_u64(&r64, 10, 0, r64);
 }

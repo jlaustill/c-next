@@ -21,7 +21,7 @@ int main(void) {
     if (forty_two != 42) return 3;
     uint32_t magic = get_magic_number();
     if (magic != 0xDEADBEEF) return 4;
-    uint32_t product = multiply_u32(6, 7);
+    uint32_t product = multiply_u32(6U, 7U);
     if (product != 42) return 5;
     bool pos = is_positive(42);
     if (pos != true) return 6;

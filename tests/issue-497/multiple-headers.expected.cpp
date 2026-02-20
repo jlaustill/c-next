@@ -12,7 +12,7 @@
 /* Scope: Graphics */
 
 Color Graphics_getDefaultColor(void) {
-    Color c = (Color){ .r = 255, .g = 255, .b = 255 };
+    Color c = (Color){ .r = 255U, .g = 255U, .b = 255U };
     return c;
 }
 

@@ -17,6 +17,6 @@ bool isZero(int32_t n) {
 }
 
 void test(void) {
-    uint32_t flag = 1;
-    uint32_t result = (flag != 0) ? 42 : 0;
+    uint32_t flag = 1U;
+    uint32_t result = (flag != 0U) ? 42U : 0U;
 }

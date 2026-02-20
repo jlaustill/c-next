@@ -15,8 +15,8 @@ int main(void) {
     Rectangle rect = {0};
     rect.origin.x = 10;
     rect.origin.y = 20;
-    rect.width = 100;
-    rect.height = 50;
+    rect.width = 100U;
+    rect.height = 50U;
     if (rect.origin.x != 10) return 1;
     if (rect.origin.y != 20) return 2;
     if (rect.width != 100) return 3;

@@ -12,13 +12,13 @@ uint32_t process(uint32_t crc, uint8_t byte) {
 }
 
 int main(void) {
-    uint32_t value = 0x12345678;
-    uint32_t crc = 0;
-    crc = process(crc, value & 0xFF);
+    uint32_t value = 0x12345678U;
+    uint32_t crc = 0U;
+    crc = process(crc, value & 0xFFU);
     if (crc != 0x78) return 1;
-    uint8_t a = 10;
-    uint8_t b = 5;
-    crc = 0;
+    uint8_t a = 10U;
+    uint8_t b = 5U;
+    crc = 0U;
     crc = process(crc, a + b);
     if (crc != 15) return 2;
     return 0;

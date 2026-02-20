@@ -20,10 +20,10 @@ int main(void) {
     if (pt.x != 100) return 1;
     if (pt.y != 200) return 2;
     struct NamedConfig cfg = {0};
-    cfg.magic = 0xCAFEBABE;
-    cfg.version = 0x0102;
-    cfg.flags = 0xFF;
-    cfg.checksum = 0xAA;
+    cfg.magic = 0xCAFEBABEU;
+    cfg.version = 0x0102U;
+    cfg.flags = 0xFFU;
+    cfg.checksum = 0xAAU;
     if (cfg.magic != 0xCAFEBABE) return 3;
     if (cfg.version != 0x0102) return 4;
     if (cfg.flags != 0xFF) return 5;

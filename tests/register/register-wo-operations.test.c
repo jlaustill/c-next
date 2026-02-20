@@ -16,11 +16,11 @@
 #define GPIO_DR_CLEAR (*(volatile uint32_t*)(0x42000000 + 0x88))
 #define GPIO_DR_TOGGLE (*(volatile uint32_t*)(0x42000000 + 0x8C))
 
-extern const uint32_t LED_BIT = 3;
+extern const uint32_t LED_BIT = 3U;
 
-extern const uint32_t BUTTON_BIT = 7;
+extern const uint32_t BUTTON_BIT = 7U;
 
-uint32_t dynamicBit = 5;
+uint32_t dynamicBit = 5U;
 
 int main(void) {
     GPIO_DR_SET = (1 << 0);

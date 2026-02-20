@@ -20,7 +20,7 @@
 /* Scope: SerialHandler */
 
 static void SerialHandler_handleSet(Config& config) {
-    uint8_t result = CommandHandler_setValue(config, 42);
+    uint8_t result = CommandHandler_setValue(config, 42U);
 }
 
 void SerialHandler_process(Config& config) {
@@ -28,6 +28,6 @@ void SerialHandler_process(Config& config) {
 }
 
 int main(void) {
-    Config c = (Config){ .value = 0 };
+    Config c = (Config){ .value = 0U };
     SerialHandler_process(c);
 }

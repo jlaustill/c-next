@@ -28,34 +28,34 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Validates: Loop counters and accumulators are properly used
 // Coverage: While loops, compound assignment in loops
 int main(void) {
-    uint32_t counter = 0;
+    uint32_t counter = 0U;
     while (counter < 10) {
-        counter = cnx_clamp_add_u32(counter, 1);
+        counter = cnx_clamp_add_u32(counter, 1U);
     }
     if (counter != 10) return 1;
-    uint32_t sum = 0;
-    uint32_t i = 1;
+    uint32_t sum = 0U;
+    uint32_t i = 1U;
     while (i <= 5) {
         sum = cnx_clamp_add_u32(sum, i);
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (sum != 15) return 2;
-    uint32_t countdown = 5;
-    uint32_t iterations = 0;
+    uint32_t countdown = 5U;
+    uint32_t iterations = 0U;
     while (countdown > 0) {
-        countdown = cnx_clamp_sub_u32(countdown, 1);
-        iterations = cnx_clamp_add_u32(iterations, 1);
+        countdown = cnx_clamp_sub_u32(countdown, 1U);
+        iterations = cnx_clamp_add_u32(iterations, 1U);
     }
     if (iterations != 5) return 3;
-    uint32_t outer = 0;
-    uint32_t total = 0;
+    uint32_t outer = 0U;
+    uint32_t total = 0U;
     while (outer < 3) {
-        uint32_t inner = 0;
+        uint32_t inner = 0U;
         while (inner < 3) {
-            total = cnx_clamp_add_u32(total, 1);
-            inner = cnx_clamp_add_u32(inner, 1);
+            total = cnx_clamp_add_u32(total, 1U);
+            inner = cnx_clamp_add_u32(inner, 1U);
         }
-        outer = cnx_clamp_add_u32(outer, 1);
+        outer = cnx_clamp_add_u32(outer, 1U);
     }
     if (total != 9) return 4;
     return 0;

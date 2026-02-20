@@ -107,7 +107,7 @@ describe("CodeGenerator Coverage Tests", () => {
       `;
       const { code } = setupGenerator(source);
       // Single string indexing returns a char, not a string
-      expect(code).toContain("name[0]");
+      expect(code).toContain("name[0U]");
     });
 
     it("should return false for non-string array type", () => {
@@ -118,7 +118,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("values[0]");
+      expect(code).toContain("values[0U]");
     });
 
     it("should handle array access without typeInfo", () => {
@@ -629,8 +629,8 @@ describe("CodeGenerator Coverage Tests", () => {
         u8[2][3] matrix <- [[1, 2, 3], [4, 5, 6]];
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("{1, 2, 3}");
-      expect(code).toContain("{4, 5, 6}");
+      expect(code).toContain("{1U, 2U, 3U}");
+      expect(code).toContain("{4U, 5U, 6U}");
     });
 
     it("should generate simple expression elements", () => {
@@ -638,7 +638,7 @@ describe("CodeGenerator Coverage Tests", () => {
         u32[5] values <- [10, 20, 30, 40, 50];
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("{10, 20, 30, 40, 50}");
+      expect(code).toContain("{10U, 20U, 30U, 40U, 50U}");
     });
   });
 

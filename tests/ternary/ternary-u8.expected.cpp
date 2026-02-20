@@ -17,10 +17,10 @@ uint8_t getMin(uint8_t a, uint8_t b) {
 }
 
 int main(void) {
-    uint8_t a = 10;
-    uint8_t b = 20;
-    uint8_t c = 30;
-    uint8_t d = 5;
+    uint8_t a = 10U;
+    uint8_t b = 20U;
+    uint8_t c = 30U;
+    uint8_t d = 5U;
     uint8_t maxResult1 = getMax(a, b);
     if (maxResult1 != 20) {
         return 1;
@@ -41,19 +41,19 @@ int main(void) {
     if (result != 20) {
         return 5;
     }
-    uint8_t max_val = 255;
-    uint8_t mid_val = 127;
+    uint8_t max_val = 255U;
+    uint8_t mid_val = 127U;
     uint8_t edge_result = (max_val > mid_val) ? max_val : mid_val;
     if (edge_result != 255) {
         return 6;
     }
-    uint8_t zero = 0;
-    uint8_t one = 1;
+    uint8_t zero = 0U;
+    uint8_t one = 1U;
     uint8_t zero_result = (zero < one) ? zero : one;
     if (zero_result != 0) {
         return 7;
     }
-    uint8_t equal_test = (a == 10) ? 100 : 200;
+    uint8_t equal_test = (a == 10U) ? 100U : 200U;
     if (equal_test != 100) {
         return 8;
     }

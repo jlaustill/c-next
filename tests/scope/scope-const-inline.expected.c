@@ -58,8 +58,8 @@ uint32_t ConstTest_getHexAddr(void) {
 
 uint16_t ConstTest_multipleRefs(void) {
     uint16_t a = 255;
-    uint16_t b = 256;
-    uint16_t c = 510;
+    uint16_t b = 255 + 1U;
+    uint16_t c = 255 * 2U;
     return a + b + c;
 }
 

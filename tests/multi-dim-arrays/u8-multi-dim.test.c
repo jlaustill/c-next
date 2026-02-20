@@ -53,7 +53,7 @@ int main(void) {
     if (matrix2d[0][7] != 7) return 13;
     if (matrix2d[1][3] != 13) return 14;
     if (matrix2d[3][7] != 37) return 15;
-    uint16_t sum = 0;
+    uint16_t sum = 0U;
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
             for (uint32_t k = 0; k < 4; k += 1) {

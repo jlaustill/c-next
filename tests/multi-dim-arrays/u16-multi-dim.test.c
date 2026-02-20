@@ -58,7 +58,7 @@ int main(void) {
     if (matrix2d[0][7] != 7) return 18;
     if (matrix2d[1][3] != 103) return 19;
     if (matrix2d[3][7] != 307) return 20;
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
             for (uint32_t k = 0; k < 4; k += 1) {
@@ -112,7 +112,7 @@ int main(void) {
     }
     data[0][0] = 30000;
     data[0][1] = 35000;
-    uint32_t largeSum = data[0][0] + data[0][1];
+    uint32_t largeSum = data[0U][0U] + data[0U][1U];
     if (largeSum != 65000) return 34;
     return 0;
 }

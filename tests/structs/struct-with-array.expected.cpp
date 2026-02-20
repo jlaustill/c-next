@@ -14,8 +14,8 @@ typedef struct Buffer {
 
 int main(void) {
     Buffer buf = {0};
-    buf.len = 0;
+    buf.len = 0U;
     buf.data[0] = 0x41;
     buf.data[1] = 0x42;
-    buf.len = 2;
+    buf.len = 2U;
 }

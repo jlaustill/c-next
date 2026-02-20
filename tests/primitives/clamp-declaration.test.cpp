@@ -7,11 +7,11 @@
 
 // ADR-044: Test clamp keyword in variable declarations
 // Explicit clamp modifier
-uint8_t brightness = 100;
+uint8_t brightness = 100U;
 
-uint16_t sensorValue = 0;
+uint16_t sensorValue = 0U;
 
-uint32_t temperature = 2500;
+uint32_t temperature = 2500U;
 
 // Clamp with const
-extern const uint8_t MAX_BRIGHTNESS = 255;
+extern const uint8_t MAX_BRIGHTNESS = 255U;

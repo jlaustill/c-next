@@ -8,9 +8,9 @@
 // ADR-007: The .length property
 // Tests: .length returns bit width for integers and element count for arrays
 int main(void) {
-    uint8_t byte = 0;
-    uint16_t word = 0;
-    uint32_t dword = 0;
+    uint8_t byte = 0U;
+    uint16_t word = 0U;
+    uint32_t dword = 0U;
     uint8_t buffer[64] = {0};
     buffer[0] = 0;
     uint32_t byteBits = 8;

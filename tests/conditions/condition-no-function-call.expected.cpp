@@ -38,26 +38,26 @@ int main(void) {
     uint32_t value = getValue();
     bool valid = checkValue();
     if (value > 0) {
-        value = 1;
+        value = 1U;
     }
     if (value != 1) return 1;
-    uint32_t count = 3;
+    uint32_t count = 3U;
     while (count > 0) {
-        count = cnx_clamp_sub_u32(count, 1);
+        count = cnx_clamp_sub_u32(count, 1U);
     }
     if (count != 0) return 2;
-    uint32_t sum = 0;
-    uint32_t limit = 5;
+    uint32_t sum = 0U;
+    uint32_t limit = 5U;
     for (uint32_t i = 0; i < limit; i += 1) {
-        sum = cnx_clamp_add_u32(sum, 1);
+        sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 5) return 3;
-    uint32_t x = 2;
+    uint32_t x = 2U;
     do {
-        x = cnx_clamp_sub_u32(x, 1);
+        x = cnx_clamp_sub_u32(x, 1U);
     } while (x > 0);
     if (x != 0) return 4;
-    uint32_t result = (valid == true) ? 100 : 0;
+    uint32_t result = (valid == true) ? 100U : 0U;
     if (result != 100) return 5;
     return 0;
 }

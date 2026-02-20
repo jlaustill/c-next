@@ -22,7 +22,7 @@ static uint8_t Visibility_getPrivateCounterInternal(void) {
 }
 
 static void Visibility_incrementPrivateCounter(void) {
-    Visibility_privateCounter = Visibility_privateCounter + 1;
+    Visibility_privateCounter = Visibility_privateCounter + 1U;
 }
 
 static bool Visibility_checkPrivateFlag(void) {

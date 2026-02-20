@@ -8,13 +8,13 @@
 // test-execution
 // Tests .bit_length property for all integer types (ADR-058)
 // Each integer type should return its bit width
-uint8_t global_u8 = 255;
+uint8_t global_u8 = 255U;
 
-uint16_t global_u16 = 65535;
+uint16_t global_u16 = 65535U;
 
-uint32_t global_u32 = 100000;
+uint32_t global_u32 = 100000U;
 
-uint64_t global_u64 = 1000000000;
+uint64_t global_u64 = 1000000000ULL;
 
 int8_t global_i8 = -128;
 
@@ -49,11 +49,11 @@ int main(void) {
     if (64 != 64) {
         return 8;
     }
-    uint8_t local_u8 = 255;
+    uint8_t local_u8 = 255U;
     if (8 != 8) {
         return 9;
     }
-    uint64_t local_u64 = 1000000000;
+    uint64_t local_u64 = 1000000000ULL;
     if (64 != 64) {
         return 10;
     }

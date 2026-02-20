@@ -14,11 +14,11 @@
 uint8_t Motor_speed = 0;
 
 void Motor_start(void) {
-    Motor_speed = 100;
+    Motor_speed = 100U;
 }
 
 void Motor_stop(void) {
-    Motor_speed = 0;
+    Motor_speed = 0U;
 }
 
 /* Scope: Controller */

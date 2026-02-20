@@ -11,7 +11,7 @@
 // Ensures that slice assignment fix doesn't break existing bit-range operations
 // Bit operations on scalar integers should use bit manipulation, not memcpy
 int main(void) {
-    uint32_t flags = 0;
+    uint32_t flags = 0U;
     flags = (flags & ~(1 << 0)) | (1 << 0);
     if (flags != 0x00000001) return 1;
     flags = (flags & ~(1 << 7)) | (1 << 7);
@@ -20,24 +20,24 @@ int main(void) {
     if (flags != 0x00000080) return 3;
     flags = (flags & ~(1 << 15)) | (1 << 15);
     if (flags != 0x00008080) return 4;
-    uint32_t value = 0;
+    uint32_t value = 0U;
     value = (value & ~(((1U << 3) - 1) << 0)) | ((5 & ((1U << 3) - 1)) << 0);
     if (value != 0x00000005) return 5;
     value = (value & ~(((1U << 4) - 1) << 4)) | ((10 & ((1U << 4) - 1)) << 4);
     if (value != 0x000000A5) return 6;
     value = (value & ~(0xFFU << 8)) | ((255 & 0xFFU) << 8);
     if (value != 0x0000FFA5) return 7;
-    uint32_t bits = 0xFFFFFFFF;
+    uint32_t bits = 0xFFFFFFFFU;
     bits = (bits & ~(((1U << 4) - 1) << 0)) | ((0 & ((1U << 4) - 1)) << 0);
     if (bits != 0xFFFFFFF0) return 8;
     bits = (bits & ~(((1U << 4) - 1) << 4)) | ((5 & ((1U << 4) - 1)) << 4);
     if (bits != 0xFFFFFF50) return 9;
-    uint8_t smallFlags = 0;
+    uint8_t smallFlags = 0U;
     smallFlags = (smallFlags & ~(((1U << 4) - 1) << 0)) | ((15 & ((1U << 4) - 1)) << 0);
     if (smallFlags != 0x0F) return 10;
     smallFlags = (smallFlags & ~(1 << 7)) | (1 << 7);
     if (smallFlags != 0x8F) return 11;
-    uint16_t mediumFlags = 0;
+    uint16_t mediumFlags = 0U;
     mediumFlags = (mediumFlags & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0);
     if (mediumFlags != 0x00FF) return 12;
     mediumFlags = (mediumFlags & ~(((1U << 4) - 1) << 8)) | ((0x0A & ((1U << 4) - 1)) << 8);

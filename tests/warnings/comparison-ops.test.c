@@ -11,8 +11,8 @@
 // Validates: Same-type comparisons are warning-free
 // Coverage: Unsigned comparisons, signed comparisons, equality
 int main(void) {
-    uint32_t ua = 100;
-    uint32_t ub = 200;
+    uint32_t ua = 100U;
+    uint32_t ub = 200U;
     if (ua > ub) return 1;
     if (ua >= ub) return 2;
     if (!(ua < ub)) return 3;
@@ -25,12 +25,12 @@ int main(void) {
     if (sa >= sb) return 8;
     if (!(sa < sb)) return 9;
     if (!(sa <= sb)) return 10;
-    uint8_t ba = 0;
-    uint8_t bb = 255;
+    uint8_t ba = 0U;
+    uint8_t bb = 255U;
     if (ba > bb) return 11;
     if (!(ba < bb)) return 12;
     if (ba == bb) return 13;
-    uint32_t zero = 0;
+    uint32_t zero = 0U;
     if (zero != 0) return 14;
     if (!(zero == 0)) return 15;
     int8_t neg = -1;

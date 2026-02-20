@@ -20,24 +20,24 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // Coverage: Section 7.2 - while loop inside scope
 // Tests: while loops inside scope declarations
-uint32_t globalResult = 0;
+uint32_t globalResult = 0U;
 
 /* Scope: Counter */
 static uint32_t Counter_value = 0;
 
 void Counter_countToFive(void) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < 5) {
-        Counter_value = cnx_clamp_add_u32(Counter_value, 1);
-        i = cnx_clamp_add_u32(i, 1);
+        Counter_value = cnx_clamp_add_u32(Counter_value, 1U);
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
 void Counter_countWhileCondition(bool shouldCount) {
-    uint32_t i = 0;
+    uint32_t i = 0U;
     while (i < 3 && shouldCount == true) {
-        Counter_value = cnx_clamp_add_u32(Counter_value, 10);
-        i = cnx_clamp_add_u32(i, 1);
+        Counter_value = cnx_clamp_add_u32(Counter_value, 10U);
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
@@ -46,17 +46,17 @@ uint32_t Counter_getValue(void) {
 }
 
 void Counter_reset(void) {
-    Counter_value = 0;
+    Counter_value = 0U;
 }
 
 /* Scope: Accumulator */
 static uint32_t Accumulator_sum = 0;
 
 void Accumulator_sumRange(uint32_t limit) {
-    uint32_t i = 1;
+    uint32_t i = 1U;
     while (i <= limit) {
         Accumulator_sum = cnx_clamp_add_u32(Accumulator_sum, i);
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 

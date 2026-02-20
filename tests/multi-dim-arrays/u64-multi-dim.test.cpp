@@ -58,7 +58,7 @@ int main(void) {
     if (matrix2d[0][7] != 7) return 18;
     if (matrix2d[1][3] != 103) return 19;
     if (matrix2d[3][7] != 307) return 20;
-    uint64_t sum = 0;
+    uint64_t sum = 0ULL;
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
             for (uint32_t k = 0; k < 4; k += 1) {
@@ -81,7 +81,7 @@ int main(void) {
     timestamps[2][1] = 1622505600000;
     if (timestamps[0][0] != 1609459200000) return 24;
     if (timestamps[2][1] != 1622505600000) return 25;
-    uint64_t diff = timestamps[0][1] - timestamps[0][0];
+    uint64_t diff = timestamps[0ULL][1ULL] - timestamps[0ULL][0ULL];
     if (diff != 2678400000) return 26;
     return 0;
 }

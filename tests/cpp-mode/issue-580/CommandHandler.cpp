@@ -13,7 +13,7 @@
 /* Scope: CommandHandler */
 
 void CommandHandler_reset(Config& config) {
-    config.value = 42;
+    config.value = 42U;
 }
 
 void CommandHandler_applyPreset(Config& config, uint8_t input, uint8_t preset) {

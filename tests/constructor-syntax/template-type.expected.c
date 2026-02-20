@@ -8,11 +8,11 @@
 
 #include <stdint.h>
 
-extern const uint8_t canBus = 1;
+extern const uint8_t canBus = 1U;
 
-extern const uint16_t rxSize = 256;
+extern const uint16_t rxSize = 256U;
 
-extern const uint16_t txSize = 16;
+extern const uint16_t txSize = 16U;
 
 FlexCAN_T4<CAN1,256,16> canController(canBus);
 

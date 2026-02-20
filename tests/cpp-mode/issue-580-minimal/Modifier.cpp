@@ -11,5 +11,5 @@
 /* Scope: Modifier */
 
 void Modifier_reset(Config& c) {
-    c.value = 42;
+    c.value = 42U;
 }

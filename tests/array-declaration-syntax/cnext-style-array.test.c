@@ -10,7 +10,7 @@
 uint16_t myArray[8] = {0};
 
 // With initialization
-uint8_t initialized[4] = {1, 2, 3, 4};
+uint8_t initialized[4] = {1U, 2U, 3U, 4U};
 
 // Different types
 int32_t signedArray[3] = {0};

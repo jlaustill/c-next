@@ -10,7 +10,7 @@
 void test_int_to_float(void) {
     int32_t int_val = 42;
     float float_val = int_val;
-    uint32_t uint_val = 100;
+    uint32_t uint_val = 100U;
     float_val = uint_val;
     double double_val = int_val;
     double_val = uint_val;

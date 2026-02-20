@@ -9,7 +9,7 @@
 // Tests: Implicit type widening (safe conversions)
 // Demonstrates: smaller types implicitly widen to larger types
 int main(void) {
-    uint8_t byte = 255;
+    uint8_t byte = 255U;
     uint16_t word = byte;
     if (word != 255) return 1;
     uint32_t dword = word;
@@ -29,8 +29,8 @@ int main(void) {
     float single = 3.14;
     double precise = single;
     if (precise < 3.13 || precise > 3.15) return 8;
-    uint8_t a = 200;
-    uint8_t b = 200;
+    uint8_t a = 200U;
+    uint8_t b = 200U;
     uint16_t sum = a + b;
     if (sum != 400) return 9;
     return 0;

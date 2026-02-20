@@ -33,7 +33,7 @@ void resetPoint(Point& p) {
 
 void incrementCounter(Counter& c) {
     if (c.value < c.maxValue) {
-        c.value += 1;
+        c.value += 1U;
     }
 }
 
@@ -62,13 +62,13 @@ int main(void) {
     resetPoint(pt);
     if (pt.x != 0) return 3;
     if (pt.y != 0) return 4;
-    Counter cnt = (Counter){ .value = 0, .maxValue = 5 };
+    Counter cnt = (Counter){ .value = 0U, .maxValue = 5U };
     incrementCounter(cnt);
     if (cnt.value != 1) return 5;
     incrementCounter(cnt);
     incrementCounter(cnt);
     if (cnt.value != 3) return 6;
-    cnt.value = 5;
+    cnt.value = 5U;
     incrementCounter(cnt);
     if (cnt.value != 5) return 7;
     setCounterMax(cnt, 10);
@@ -80,12 +80,12 @@ int main(void) {
     if (sum != 300) return 10;
     if (readPt.x != 100) return 11;
     if (readPt.y != 200) return 12;
-    Counter readCnt = (Counter){ .value = 42, .maxValue = 100 };
+    Counter readCnt = (Counter){ .value = 42U, .maxValue = 100U };
     uint32_t val = getCounterValue(readCnt);
     if (val != 42) return 13;
     bool atMax = isCounterAtMax(readCnt);
     if (atMax != false) return 14;
-    readCnt.value = 100;
+    readCnt.value = 100U;
     atMax = isCounterAtMax(readCnt);
     if (atMax != true) return 15;
     return 0;

@@ -19,88 +19,88 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: break in nested loops
 // Validates: break only exits innermost loop
 int main(void) {
-    uint32_t outerCount = 0;
-    uint32_t innerBreaks = 0;
+    uint32_t outerCount = 0U;
+    uint32_t innerBreaks = 0U;
     for (uint32_t i = 0; i < 5; i += 1) {
-        outerCount = cnx_clamp_add_u32(outerCount, 1);
+        outerCount = cnx_clamp_add_u32(outerCount, 1U);
         for (uint32_t j = 0; j < 10; j += 1) {
             if (j == 3) {
-                innerBreaks = cnx_clamp_add_u32(innerBreaks, 1);
+                innerBreaks = cnx_clamp_add_u32(innerBreaks, 1U);
                 break;
             }
         }
     }
     if (outerCount != 5) return 1;
     if (innerBreaks != 5) return 2;
-    uint32_t outerIter = 0;
-    uint32_t innerSum = 0;
-    uint32_t a = 0;
+    uint32_t outerIter = 0U;
+    uint32_t innerSum = 0U;
+    uint32_t a = 0U;
     while (a < 3) {
-        outerIter = cnx_clamp_add_u32(outerIter, 1);
-        uint32_t b = 0;
+        outerIter = cnx_clamp_add_u32(outerIter, 1U);
+        uint32_t b = 0U;
         while (b < 100) {
             innerSum = cnx_clamp_add_u32(innerSum, b);
             if (b == 4) {
                 break;
             }
-            b = cnx_clamp_add_u32(b, 1);
+            b = cnx_clamp_add_u32(b, 1U);
         }
-        a = cnx_clamp_add_u32(a, 1);
+        a = cnx_clamp_add_u32(a, 1U);
     }
     if (outerIter != 3) return 3;
     if (innerSum != 30) return 4;
-    uint32_t whileRuns = 0;
-    uint32_t forBreaks = 0;
-    uint32_t c = 0;
+    uint32_t whileRuns = 0U;
+    uint32_t forBreaks = 0U;
+    uint32_t c = 0U;
     while (c < 4) {
-        whileRuns = cnx_clamp_add_u32(whileRuns, 1);
+        whileRuns = cnx_clamp_add_u32(whileRuns, 1U);
         for (uint32_t d = 0; d < 20; d += 1) {
             if (d == 2) {
-                forBreaks = cnx_clamp_add_u32(forBreaks, 1);
+                forBreaks = cnx_clamp_add_u32(forBreaks, 1U);
                 break;
             }
         }
-        c = cnx_clamp_add_u32(c, 1);
+        c = cnx_clamp_add_u32(c, 1U);
     }
     if (whileRuns != 4) return 5;
     if (forBreaks != 4) return 6;
-    uint32_t forRuns = 0;
-    uint32_t whileBreaks = 0;
+    uint32_t forRuns = 0U;
+    uint32_t whileBreaks = 0U;
     for (uint32_t e = 0; e < 3; e += 1) {
-        forRuns = cnx_clamp_add_u32(forRuns, 1);
-        uint32_t f = 0;
+        forRuns = cnx_clamp_add_u32(forRuns, 1U);
+        uint32_t f = 0U;
         while (f < 50) {
             if (f == 5) {
-                whileBreaks = cnx_clamp_add_u32(whileBreaks, 1);
+                whileBreaks = cnx_clamp_add_u32(whileBreaks, 1U);
                 break;
             }
-            f = cnx_clamp_add_u32(f, 1);
+            f = cnx_clamp_add_u32(f, 1U);
         }
     }
     if (forRuns != 3) return 7;
     if (whileBreaks != 3) return 8;
-    uint32_t doBreaks = 0;
+    uint32_t doBreaks = 0U;
     for (uint32_t g = 0; g < 2; g += 1) {
-        uint32_t h = 0;
+        uint32_t h = 0U;
         do {
-            h = cnx_clamp_add_u32(h, 1);
+            h = cnx_clamp_add_u32(h, 1U);
             if (h == 3) {
-                doBreaks = cnx_clamp_add_u32(doBreaks, 1);
+                doBreaks = cnx_clamp_add_u32(doBreaks, 1U);
                 break;
             }
         } while (h < 100);
     }
     if (doBreaks != 2) return 9;
-    uint32_t level1 = 0;
-    uint32_t level2 = 0;
-    uint32_t level3Breaks = 0;
+    uint32_t level1 = 0U;
+    uint32_t level2 = 0U;
+    uint32_t level3Breaks = 0U;
     for (uint32_t x = 0; x < 2; x += 1) {
-        level1 = cnx_clamp_add_u32(level1, 1);
+        level1 = cnx_clamp_add_u32(level1, 1U);
         for (uint32_t y = 0; y < 3; y += 1) {
-            level2 = cnx_clamp_add_u32(level2, 1);
+            level2 = cnx_clamp_add_u32(level2, 1U);
             for (uint32_t z = 0; z < 10; z += 1) {
                 if (z == 1) {
-                    level3Breaks = cnx_clamp_add_u32(level3Breaks, 1);
+                    level3Breaks = cnx_clamp_add_u32(level3Breaks, 1U);
                     break;
                 }
             }

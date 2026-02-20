@@ -20,10 +20,10 @@ typedef struct Config {
 int main(void) {
     uint8_t buffer[256] = {0};
     Config config = {0};
-    config.magic = 0x43534E58;
-    config.version = 0x0101;
-    config.flags = 0x0F;
-    config.timestamp = 0x123456789ABCDEF0;
+    config.magic = 0x43534E58U;
+    config.version = 0x0101U;
+    config.flags = 0x0FU;
+    config.timestamp = 0x123456789ABCDEF0ULL;
     memcpy(&buffer[0], &config.magic, 4);
     memcpy(&buffer[4], &config.version, 2);
     memcpy(&buffer[6], &config.flags, 1);

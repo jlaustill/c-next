@@ -17,21 +17,21 @@
 /* Scope: Handler */
 
 uint32_t Handler_processBuffer(const uint8_t data[8], uint8_t len) {
-    uint32_t sum = 0;
-    uint8_t i = 0;
+    uint32_t sum = 0U;
+    uint8_t i = 0U;
     while (i < len) {
         sum = sum + data[i];
-        i = i + 1;
+        i = i + 1U;
     }
     return sum;
 }
 
 uint32_t Handler_processData(const uint8_t data[16], uint8_t len) {
-    uint32_t sum = 0;
-    uint8_t i = 0;
+    uint32_t sum = 0U;
+    uint8_t i = 0U;
     while (i < len) {
         sum = sum + data[i];
-        i = i + 1;
+        i = i + 1U;
     }
     return sum;
 }
@@ -41,8 +41,8 @@ uint32_t Handler_handleMessage(const CAN_message_t* msg) {
 }
 
 uint32_t Handler_processMultiArray(const MultiArray_t* multi) {
-    uint32_t headerSum = Handler_processBuffer(multi->header, 4);
-    uint32_t bodySum = Handler_processData(multi->body, multi->sizes[1]);
+    uint32_t headerSum = Handler_processBuffer(multi->header, 4U);
+    uint32_t bodySum = Handler_processData(multi->body, multi->sizes[1U]);
     return headerSum + bodySum;
 }
 
@@ -52,7 +52,7 @@ uint32_t Handler_handleMutableMessage(const CAN_message_t* msg) {
 
 uint32_t testNamedTypedefConstArrayMember(void) {
     CAN_message_t msg = {0};
-    msg.id = 1234;
+    msg.id = 1234U;
     msg.buf[0] = 10;
     msg.buf[1] = 20;
     msg.buf[2] = 30;
@@ -61,7 +61,7 @@ uint32_t testNamedTypedefConstArrayMember(void) {
     msg.buf[5] = 0;
     msg.buf[6] = 0;
     msg.buf[7] = 0;
-    msg.len = 4;
+    msg.len = 4U;
     uint32_t result = Handler_handleMessage(&msg);
     return result;
 }
@@ -83,10 +83,10 @@ uint32_t testMultipleArrayMembers(void) {
 
 uint32_t testNonConstArrayMember(void) {
     CAN_message_t msg = {0};
-    msg.id = 999;
+    msg.id = 999U;
     msg.buf[0] = 100;
     msg.buf[1] = 50;
-    msg.len = 2;
+    msg.len = 2U;
     uint32_t result = Handler_handleMutableMessage(&msg);
     return result;
 }

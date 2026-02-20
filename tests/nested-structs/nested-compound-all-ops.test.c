@@ -33,30 +33,30 @@ typedef struct Outer {
 Outer o = {0};
 
 int main(void) {
-    o.middle.inner.add_val = 100;
-    o.middle.inner.sub_val = 50;
-    o.middle.inner.mul_val = 10;
-    o.middle.inner.div_val = 100;
-    o.middle.inner.mod_val = 17;
-    o.middle.inner.and_val = 0b11110000;
-    o.middle.inner.or_val = 0b00001111;
-    o.middle.inner.xor_val = 0b10101010;
-    o.middle.inner.shl_val = 8;
-    o.middle.inner.shr_val = 128;
-    o.middle.value = 200;
-    o.top_val = 50;
-    o.middle.inner.add_val += 25;
-    o.middle.inner.sub_val -= 15;
-    o.middle.inner.mul_val *= 7;
-    o.middle.inner.div_val /= 4;
-    o.middle.inner.mod_val %= 5;
-    o.middle.inner.and_val &= 0b11001100;
-    o.middle.inner.or_val |= 0b11110000;
-    o.middle.inner.xor_val ^= 0b11111111;
-    o.middle.inner.shl_val <<= 2;
-    o.middle.inner.shr_val >>= 3;
-    o.middle.value += 100;
-    o.top_val *= 3;
+    o.middle.inner.add_val = 100U;
+    o.middle.inner.sub_val = 50U;
+    o.middle.inner.mul_val = 10U;
+    o.middle.inner.div_val = 100U;
+    o.middle.inner.mod_val = 17U;
+    o.middle.inner.and_val = 0b11110000U;
+    o.middle.inner.or_val = 0b00001111U;
+    o.middle.inner.xor_val = 0b10101010U;
+    o.middle.inner.shl_val = 8U;
+    o.middle.inner.shr_val = 128U;
+    o.middle.value = 200U;
+    o.top_val = 50U;
+    o.middle.inner.add_val += 25U;
+    o.middle.inner.sub_val -= 15U;
+    o.middle.inner.mul_val *= 7U;
+    o.middle.inner.div_val /= 4U;
+    o.middle.inner.mod_val %= 5U;
+    o.middle.inner.and_val &= 0b11001100U;
+    o.middle.inner.or_val |= 0b11110000U;
+    o.middle.inner.xor_val ^= 0b11111111U;
+    o.middle.inner.shl_val <<= 2U;
+    o.middle.inner.shr_val >>= 3U;
+    o.middle.value += 100U;
+    o.top_val *= 3U;
     if (o.middle.inner.add_val != 125) {
         return 1;
     }

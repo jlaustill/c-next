@@ -19,8 +19,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: continue in nested loops
 // Validates: continue only skips to next iteration of innermost loop
 int main(void) {
-    uint32_t outerSum = 0;
-    uint32_t innerOddSum = 0;
+    uint32_t outerSum = 0U;
+    uint32_t innerOddSum = 0U;
     for (uint32_t i = 0; i < 3; i += 1) {
         outerSum = cnx_clamp_add_u32(outerSum, i);
         for (uint32_t j = 0; j < 6; j += 1) {
@@ -32,67 +32,67 @@ int main(void) {
     }
     if (outerSum != 3) return 1;
     if (innerOddSum != 27) return 2;
-    uint32_t outerCount = 0;
-    uint32_t innerSkipped = 0;
-    uint32_t a = 0;
+    uint32_t outerCount = 0U;
+    uint32_t innerSkipped = 0U;
+    uint32_t a = 0U;
     while (a < 4) {
-        outerCount = cnx_clamp_add_u32(outerCount, 1);
-        uint32_t b = 0;
+        outerCount = cnx_clamp_add_u32(outerCount, 1U);
+        uint32_t b = 0U;
         while (b < 5) {
             uint32_t curr = b;
-            b = cnx_clamp_add_u32(b, 1);
+            b = cnx_clamp_add_u32(b, 1U);
             if (curr % 2 == 0) {
-                innerSkipped = cnx_clamp_add_u32(innerSkipped, 1);
+                innerSkipped = cnx_clamp_add_u32(innerSkipped, 1U);
                 continue;
             }
         }
-        a = cnx_clamp_add_u32(a, 1);
+        a = cnx_clamp_add_u32(a, 1U);
     }
     if (outerCount != 4) return 3;
     if (innerSkipped != 12) return 4;
-    uint32_t outerRuns = 0;
-    uint32_t innerProcessed = 0;
+    uint32_t outerRuns = 0U;
+    uint32_t innerProcessed = 0U;
     for (uint32_t c = 0; c < 3; c += 1) {
-        outerRuns = cnx_clamp_add_u32(outerRuns, 1);
+        outerRuns = cnx_clamp_add_u32(outerRuns, 1U);
         for (uint32_t d = 0; d < 10; d += 1) {
             if (d < 7) {
                 continue;
             }
-            innerProcessed = cnx_clamp_add_u32(innerProcessed, 1);
+            innerProcessed = cnx_clamp_add_u32(innerProcessed, 1U);
         }
     }
     if (outerRuns != 3) return 5;
     if (innerProcessed != 9) return 6;
-    uint32_t doSkipped = 0;
-    uint32_t doProcessed = 0;
+    uint32_t doSkipped = 0U;
+    uint32_t doProcessed = 0U;
     for (uint32_t e = 0; e < 2; e += 1) {
-        uint32_t f = 0;
+        uint32_t f = 0U;
         do {
             uint32_t val = f;
-            f = cnx_clamp_add_u32(f, 1);
+            f = cnx_clamp_add_u32(f, 1U);
             if (val % 3 == 0) {
-                doSkipped = cnx_clamp_add_u32(doSkipped, 1);
+                doSkipped = cnx_clamp_add_u32(doSkipped, 1U);
                 continue;
             }
-            doProcessed = cnx_clamp_add_u32(doProcessed, 1);
+            doProcessed = cnx_clamp_add_u32(doProcessed, 1U);
         } while (f < 6);
     }
     if (doSkipped != 4) return 7;
     if (doProcessed != 8) return 8;
-    uint32_t l1 = 0;
-    uint32_t l2 = 0;
-    uint32_t l3Skipped = 0;
-    uint32_t l3Processed = 0;
+    uint32_t l1 = 0U;
+    uint32_t l2 = 0U;
+    uint32_t l3Skipped = 0U;
+    uint32_t l3Processed = 0U;
     for (uint32_t x = 0; x < 2; x += 1) {
-        l1 = cnx_clamp_add_u32(l1, 1);
+        l1 = cnx_clamp_add_u32(l1, 1U);
         for (uint32_t y = 0; y < 2; y += 1) {
-            l2 = cnx_clamp_add_u32(l2, 1);
+            l2 = cnx_clamp_add_u32(l2, 1U);
             for (uint32_t z = 0; z < 4; z += 1) {
                 if (z < 2) {
-                    l3Skipped = cnx_clamp_add_u32(l3Skipped, 1);
+                    l3Skipped = cnx_clamp_add_u32(l3Skipped, 1U);
                     continue;
                 }
-                l3Processed = cnx_clamp_add_u32(l3Processed, 1);
+                l3Processed = cnx_clamp_add_u32(l3Processed, 1U);
             }
         }
     }

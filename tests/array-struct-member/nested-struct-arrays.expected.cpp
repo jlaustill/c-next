@@ -25,7 +25,7 @@ typedef struct Route {
 
 int main(void) {
     Path path = {0};
-    path.count = 3;
+    path.count = 3U;
     path.points[0].x = 0;
     path.points[0].y = 0;
     path.points[1].x = 10;
@@ -40,7 +40,7 @@ int main(void) {
     if (path.points[2].x != 30) return 6;
     if (path.points[2].y != 40) return 7;
     Route route = {0};
-    route.totalSegments = 2;
+    route.totalSegments = 2U;
     route.segments[0].count = 2;
     route.segments[0].points[0].x = 100;
     route.segments[0].points[0].y = 100;
@@ -57,8 +57,8 @@ int main(void) {
     if (route.segments[0].points[1].y != 150) return 11;
     if (route.segments[1].points[0].x != 200) return 12;
     if (route.segments[1].points[1].y != 250) return 13;
-    uint32_t segIdx = 1;
-    uint32_t ptIdx = 0;
+    uint32_t segIdx = 1U;
+    uint32_t ptIdx = 0U;
     if (route.segments[segIdx].points[ptIdx].x != 200) return 14;
     route.segments[0].points[0].x += 50;
     if (route.segments[0].points[0].x != 150) return 15;

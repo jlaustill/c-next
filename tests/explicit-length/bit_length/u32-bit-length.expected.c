@@ -10,7 +10,7 @@
 // test-execution
 // Comprehensive .bit_length test for u32 type across all contexts (ADR-058)
 // Tests: .bit_length returns 32 for u32 in every possible scope and access pattern
-uint32_t globalVar = 100000;
+uint32_t globalVar = 100000U;
 
 /* Scope: TestScope */
 
@@ -43,17 +43,17 @@ int main(void) {
     if (32 != 32) {
         return 4;
     }
-    uint32_t localVar = 100000;
+    uint32_t localVar = 100000U;
     if (32 != 32) {
         return 5;
     }
-    uint32_t testVal = 100000;
+    uint32_t testVal = 100000U;
     result = checkParamBitLength(testVal);
     if (result != 32) {
         return 6;
     }
     TestStruct ts = {0};
-    ts.member = 100000;
+    ts.member = 100000U;
     if (32 != 32) {
         return 7;
     }

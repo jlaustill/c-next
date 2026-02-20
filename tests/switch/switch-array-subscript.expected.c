@@ -13,30 +13,30 @@ uint32_t result = 0;
 void handleByArray(const uint8_t data[4], uint8_t idx) {
     switch (data[idx]) {
         case 1: {
-            result = 10;
+            result = 10U;
             break;
         }
         case 2: {
-            result = 20;
+            result = 20U;
             break;
         }
         case 3: {
-            result = 30;
+            result = 30U;
             break;
         }
         default: {
-            result = 99;
+            result = 99U;
             break;
         }
     }
 }
 
 int main(void) {
-    uint8_t arr[4] = {1, 2, 3, 4};
-    uint8_t idx0 = 0;
-    uint8_t idx1 = 1;
-    uint8_t idx2 = 2;
-    uint8_t idx3 = 3;
+    uint8_t arr[4] = {1U, 2U, 3U, 4U};
+    uint8_t idx0 = 0U;
+    uint8_t idx1 = 1U;
+    uint8_t idx2 = 2U;
+    uint8_t idx3 = 3U;
     handleByArray(arr, idx0);
     if (result != 10) return 1;
     handleByArray(arr, idx1);

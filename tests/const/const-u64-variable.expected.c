@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013: Const u64 variable
 // Tests: const u64 declaration and read access
-extern const uint64_t MAX_FILE_SIZE = 4294967296;
+extern const uint64_t MAX_FILE_SIZE = 4294967296ULL;
 
-extern const uint64_t CHUNK_SIZE = 1048576;
+extern const uint64_t CHUNK_SIZE = 1048576ULL;
 
 int main(void) {
     uint64_t maxSize = MAX_FILE_SIZE;
@@ -20,7 +20,7 @@ int main(void) {
     uint64_t numChunks = MAX_FILE_SIZE / CHUNK_SIZE;
     if (numChunks != 4096) return 3;
     if (CHUNK_SIZE >= MAX_FILE_SIZE) return 4;
-    uint64_t doubleChunk = CHUNK_SIZE * 2;
+    uint64_t doubleChunk = CHUNK_SIZE * 2ULL;
     if (doubleChunk != 2097152) return 5;
     return 0;
 }

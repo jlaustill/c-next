@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-extern const uint8_t thermoCouplePin = 10;
+extern const uint8_t thermoCouplePin = 10U;
 
 Adafruit_MAX31856 thermocouple(thermoCouplePin);
 

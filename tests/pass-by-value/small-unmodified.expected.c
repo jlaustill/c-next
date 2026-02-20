@@ -63,11 +63,11 @@ bool invert(bool flag) {
 
 // --- Modified parameters: should still pass by pointer ---
 void increment(uint32_t* x) {
-    (*x) = (*x) + 1;
+    (*x) = (*x) + 1U;
 }
 
 void doubleValue(uint16_t* val) {
-    (*val) = (*val) * 2;
+    (*val) = (*val) * 2U;
 }
 
 // --- Transitively modified: passed to function that modifies ---
@@ -78,7 +78,7 @@ void incrementWrapper(uint32_t* x) {
 
 // --- Mixed: some params modified, some not ---
 uint32_t addAndIncrement(uint32_t* a, uint32_t b) {
-    (*a) = (*a) + 1;
+    (*a) = (*a) + 1U;
     return (*a) + b;
 }
 
@@ -87,15 +87,15 @@ uint32_t addAndIncrement(uint32_t* a, uint32_t b) {
 void modifyInSwitch(uint32_t* x, uint32_t mode) {
     switch (mode) {
         case 1: {
-            (*x) = (*x) + 10;
+            (*x) = (*x) + 10U;
             break;
         }
         case 2: {
-            (*x) = (*x) + 20;
+            (*x) = (*x) + 20U;
             break;
         }
         default: {
-            (*x) = (*x) + 1;
+            (*x) = (*x) + 1U;
             break;
         }
     }
@@ -106,48 +106,48 @@ void modifyInCritical(uint32_t* x) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        (*x) = (*x) * 2;
+        (*x) = (*x) * 2U;
         __cnx_set_PRIMASK(__primask);
     }
 }
 
 // --- Main test ---
 int main(void) {
-    uint16_t testVal = 0x1234;
+    uint16_t testVal = 0x1234U;
     uint8_t low = getLowByte(testVal);
     if (low != 0x34) return 1;
     uint8_t high = getHighByte(testVal);
     if (high != 0x12) return 2;
-    uint32_t sum = addTwo(100, 200);
+    uint32_t sum = addTwo(100U, 200U);
     if (sum != 300) return 3;
     bool result = invert(true);
     if (result != false) return 4;
     result = invert(false);
     if (result != true) return 5;
-    uint32_t counter = 10;
+    uint32_t counter = 10U;
     increment(&counter);
     if (counter != 11) return 6;
-    uint16_t doubled = 50;
+    uint16_t doubled = 50U;
     doubleValue(&doubled);
     if (doubled != 100) return 7;
-    uint32_t wrapped = 20;
+    uint32_t wrapped = 20U;
     incrementWrapper(&wrapped);
     if (wrapped != 21) return 8;
-    uint32_t mixedA = 5;
-    uint32_t mixedB = 10;
+    uint32_t mixedA = 5U;
+    uint32_t mixedB = 10U;
     uint32_t mixedResult = addAndIncrement(&mixedA, mixedB);
     if (mixedResult != 16) return 9;
     if (mixedA != 6) return 10;
-    uint32_t switchVal = 100;
+    uint32_t switchVal = 100U;
     modifyInSwitch(&switchVal, 1);
     if (switchVal != 110) return 11;
-    switchVal = 100;
+    switchVal = 100U;
     modifyInSwitch(&switchVal, 2);
     if (switchVal != 120) return 12;
-    switchVal = 100;
+    switchVal = 100U;
     modifyInSwitch(&switchVal, 99);
     if (switchVal != 101) return 13;
-    uint32_t criticalVal = 50;
+    uint32_t criticalVal = 50U;
     modifyInCritical(&criticalVal);
     if (criticalVal != 100) return 14;
     return 0;

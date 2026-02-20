@@ -10,19 +10,19 @@
 // ADR-044: Test .length property on all primitive types
 // The .length property should return the bit width of any type
 int main(void) {
-    uint8_t val8 = 1;
+    uint8_t val8 = 1U;
     if (8 != 8) {
         return 1;
     }
-    uint16_t val16 = 1;
+    uint16_t val16 = 1U;
     if (16 != 16) {
         return 1;
     }
-    uint32_t val32 = 1;
+    uint32_t val32 = 1U;
     if (32 != 32) {
         return 1;
     }
-    uint64_t val64 = 1;
+    uint64_t val64 = 1ULL;
     if (64 != 64) {
         return 1;
     }

@@ -25,7 +25,7 @@ int main(void) {
     Person alice = {0};
     strncpy(alice.name, "Alice", 64); alice.name[64] = '\0';
     strncpy(alice.bio, "Software engineer", 128); alice.bio[128] = '\0';
-    alice.age = 30;
+    alice.age = 30U;
     if (64 != 64) return 1;
     if (128 != 128) return 2;
     if (65 != 65) return 3;

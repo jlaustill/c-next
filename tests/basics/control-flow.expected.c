@@ -9,61 +9,61 @@
 // Tests: Basic control flow structures
 // Demonstrates: if/else, while, for, do-while
 int main(void) {
-    uint32_t result = 0;
-    uint32_t x = 10;
+    uint32_t result = 0U;
+    uint32_t x = 10U;
     if (x > 5) {
-        result = 1;
+        result = 1U;
     }
     if (result != 1) return 1;
     if (x < 5) {
-        result = 100;
+        result = 100U;
     } else {
-        result = 200;
+        result = 200U;
     }
     if (result != 200) return 2;
-    uint32_t score = 85;
+    uint32_t score = 85U;
     uint32_t grade = 0;
     if (score >= 90) {
-        grade = 4;
+        grade = 4U;
     } else if (score >= 80) {
-        grade = 3;
+        grade = 3U;
     } else if (score >= 70) {
-        grade = 2;
+        grade = 2U;
     } else {
-        grade = 1;
+        grade = 1U;
     }
     if (grade != 3) return 3;
-    uint32_t counter = 0;
-    uint32_t sum = 0;
+    uint32_t counter = 0U;
+    uint32_t sum = 0U;
     while (counter < 5) {
         sum = sum + counter;
-        counter = counter + 1;
+        counter = counter + 1U;
     }
     if (sum != 10) return 4;
-    sum = 0;
+    sum = 0U;
     for (uint32_t i = 1; i <= 5; i = i + 1) {
         sum = sum + i;
     }
     if (sum != 15) return 5;
-    counter = 0;
+    counter = 0U;
     do {
-        counter = counter + 1;
+        counter = counter + 1U;
     } while (counter < 3);
     if (counter != 3) return 6;
-    sum = 0;
+    sum = 0U;
     for (uint32_t i = 0; i < 100; i = i + 1) {
         if (i == 5) {
             break;
         }
-        sum = sum + 1;
+        sum = sum + 1U;
     }
     if (sum != 5) return 7;
-    sum = 0;
+    sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
         if (i == 2) {
             continue;
         }
-        sum = sum + 1;
+        sum = sum + 1U;
     }
     if (sum != 4) return 8;
     return 0;

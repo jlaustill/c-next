@@ -8,7 +8,7 @@
 // ADR-024: Test that widening conversions are implicit and safe
 // u8 -> u16 -> u32 -> u64 should all work without explicit casts
 int main(void) {
-    uint8_t byte = 255;
+    uint8_t byte = 255U;
     uint16_t word = byte;
     uint32_t dword = word;
     uint64_t qword = dword;

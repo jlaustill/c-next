@@ -33,7 +33,7 @@ int main(void) {
     Rectangle rect = (Rectangle){ .topLeft = (Point){ .x = 0, .y = 0 }, .bottomRight = (Point){ .x = 100, .y = 100 } };
     if (rect.topLeft.x != 0) return 3;
     if (rect.bottomRight.y != 100) return 4;
-    Data d = (Data){ .id = 42, .flags = 0xFF, .count = 1000 };
+    Data d = (Data){ .id = 42U, .flags = 0xFFU, .count = 1000U };
     if (d.id != 42) return 5;
     if (d.flags != 0xFF) return 6;
     if (d.count != 1000) return 7;

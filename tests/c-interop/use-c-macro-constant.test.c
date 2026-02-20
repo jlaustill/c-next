@@ -32,9 +32,9 @@ int main(void) {
     if (mask != 0xFF00) return 9;
     uint32_t flags = FLAG_BITS;
     if (flags != 0x0F) return 10;
-    uint32_t double_buf = BUFFER_SIZE * 2;
+    uint32_t double_buf = BUFFER_SIZE * 2U;
     if (double_buf != 128) return 11;
-    uint32_t masked = 0x1234 & STATUS_MASK;
+    uint32_t masked = 0x1234U & STATUS_MASK;
     if (masked != 0x1200) return 12;
     uint32_t enabled = FEATURE_ENABLED;
     uint32_t disabled = FEATURE_DISABLED;

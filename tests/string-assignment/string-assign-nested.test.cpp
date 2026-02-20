@@ -32,12 +32,12 @@ void deepNest(uint32_t depth) {
 
 void mixedNest(uint32_t count) {
     if (count > 0) {
-        uint32_t i = 0;
+        uint32_t i = 0U;
         while (i < count) {
             if (i == 0) {
                 strncpy(nested, "Mixed", 32); nested[32] = '\0';
             }
-            i = cnx_clamp_add_u32(i, 1);
+            i = cnx_clamp_add_u32(i, 1U);
         }
     }
 }

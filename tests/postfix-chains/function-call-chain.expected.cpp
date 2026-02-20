@@ -71,6 +71,6 @@ int main(void) {
     temp.scale = transforms[0].scale;
     setTransform(temp, 2);
     transforms[2].position = scaleVec3(transforms[0].position, 3.0);
-    uint32_t idx = addU32(1, 1);
+    uint32_t idx = addU32(1U, 1U);
     transforms[idx].position.x = 5.0;
 }

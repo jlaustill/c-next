@@ -17,13 +17,13 @@
 static ByteData ByteCaller_data = {0};
 
 void ByteCaller_init(void) {
-    ByteCaller_data.value1 = 0;
-    ByteCaller_data.value2 = 0;
+    ByteCaller_data.value1 = 0U;
+    ByteCaller_data.value2 = 0U;
 }
 
 uint8_t ByteCaller_test(void) {
-    ByteCaller_data.value1 = 10;
-    ByteCaller_data.value2 = 25;
+    ByteCaller_data.value1 = 10U;
+    ByteCaller_data.value2 = 25U;
     uint8_t result = TestFuncSmall_addBytes(ByteCaller_data.value1, ByteCaller_data.value2);
     return result;
 }

@@ -8,6 +8,6 @@
 // Test: Initialize before use should be OK
 int main(void) {
     uint32_t x = 0;
-    x = 5;
-    uint32_t y = x + 1;
+    x = 5U;
+    uint32_t y = x + 1U;
 }

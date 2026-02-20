@@ -21,7 +21,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.4, 33.2 - for loop inside if statement
 // Tests: for loops nested inside if/else branches
 int main(void) {
-    uint32_t sum = 0;
+    uint32_t sum = 0U;
     bool condition = true;
     if (condition == true) {
         for (uint32_t i = 0; i < 5; i = i + 1) {
@@ -29,37 +29,37 @@ int main(void) {
         }
     }
     if (sum != 10) return 1;
-    sum = 0;
+    sum = 0U;
     condition = false;
     if (condition == true) {
-        sum = 100;
+        sum = 100U;
     } else {
         for (uint32_t i = 0; i < 3; i = i + 1) {
-            sum = cnx_clamp_add_u32(sum, 10);
+            sum = cnx_clamp_add_u32(sum, 10U);
         }
     }
     if (sum != 30) return 2;
-    uint32_t resultA = 0;
-    uint32_t resultB = 0;
+    uint32_t resultA = 0U;
+    uint32_t resultB = 0U;
     bool flag = true;
     if (flag == true) {
         for (uint32_t i = 0; i < 4; i = i + 1) {
-            resultA = cnx_clamp_add_u32(resultA, 1);
+            resultA = cnx_clamp_add_u32(resultA, 1U);
         }
     } else {
         for (uint32_t i = 0; i < 2; i = i + 1) {
-            resultB = cnx_clamp_add_u32(resultB, 1);
+            resultB = cnx_clamp_add_u32(resultB, 1U);
         }
     }
     if (resultA != 4) return 3;
     if (resultB != 0) return 4;
-    sum = 0;
+    sum = 0U;
     condition = true;
     flag = true;
     if (condition == true) {
         if (flag == true) {
             for (uint32_t i = 0; i < 5; i = i + 1) {
-                sum = cnx_clamp_add_u32(sum, 2);
+                sum = cnx_clamp_add_u32(sum, 2U);
             }
         }
     }

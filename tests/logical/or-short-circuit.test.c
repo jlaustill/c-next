@@ -18,33 +18,33 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // ADR-013: Logical OR (||) must short-circuit
 // If left operand is true, right operand must NOT be evaluated
-uint32_t sideEffectCounter = 0;
+uint32_t sideEffectCounter = 0U;
 
 bool causeSideEffect(void) {
-    sideEffectCounter = cnx_clamp_add_u32(sideEffectCounter, 1);
+    sideEffectCounter = cnx_clamp_add_u32(sideEffectCounter, 1U);
     return false;
 }
 
 void testOrShortCircuit(void) {
-    sideEffectCounter = 0;
+    sideEffectCounter = 0U;
     bool result1 = true || causeSideEffect();
-    sideEffectCounter = 0;
+    sideEffectCounter = 0U;
     bool result2 = false || causeSideEffect();
 }
 
 void testOrShortCircuitWithComparison(void) {
-    uint32_t value = 1;
-    sideEffectCounter = 0;
+    uint32_t value = 1U;
+    sideEffectCounter = 0U;
     bool result = (value != 0) || causeSideEffect();
 }
 
 void testOrShortCircuitChained(void) {
-    sideEffectCounter = 0;
+    sideEffectCounter = 0U;
     bool result = true || causeSideEffect() || causeSideEffect();
 }
 
 void testOrShortCircuitMixed(void) {
-    sideEffectCounter = 0;
+    sideEffectCounter = 0U;
     bool a = false;
     bool b = true;
     bool result = a || b || causeSideEffect();

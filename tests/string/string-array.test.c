@@ -53,21 +53,21 @@ int main(void) {
     if (strlen(colors[2]) != 4) return 16;
     uint32_t arrLen = getArrayLength(&globalNames);
     if (arrLen != 5) return 17;
-    uint32_t elemLen0 = getElementLength(&globalNames, 0);
+    uint32_t elemLen0 = getElementLength(&globalNames, 0U);
     if (elemLen0 != 5) return 18;
-    uint32_t elemLen1 = getElementLength(&globalNames, 1);
+    uint32_t elemLen1 = getElementLength(&globalNames, 1U);
     if (elemLen1 != 3) return 19;
-    uint32_t elemLen2 = getElementLength(&globalNames, 2);
+    uint32_t elemLen2 = getElementLength(&globalNames, 2U);
     if (elemLen2 != 7) return 20;
-    uint32_t elemLen3 = getElementLength(&globalNames, 3);
+    uint32_t elemLen3 = getElementLength(&globalNames, 3U);
     if (elemLen3 != 5) return 21;
-    uint32_t elemLen4 = getElementLength(&globalNames, 4);
+    uint32_t elemLen4 = getElementLength(&globalNames, 4U);
     if (elemLen4 != 3) return 22;
-    uint32_t totalLength = 0;
-    uint32_t i = 0;
+    uint32_t totalLength = 0U;
+    uint32_t i = 0U;
     while (i < 5) {
         totalLength = totalLength + strlen(globalNames[i]);
-        i = i + 1;
+        i = i + 1U;
     }
     if (totalLength != 23) return 23;
     strncpy(globalNames[1], "Benjamin", 32);

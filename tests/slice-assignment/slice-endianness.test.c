@@ -12,13 +12,13 @@
 // Embedded systems typically use little-endian
 int main(void) {
     uint8_t buffer[128] = {0};
-    uint32_t value32 = 0x12345678;
+    uint32_t value32 = 0x12345678U;
     memcpy(&buffer[0], &value32, 4);
     if (buffer[0] != 0x78) return 1;
     if (buffer[1] != 0x56) return 2;
     if (buffer[2] != 0x34) return 3;
     if (buffer[3] != 0x12) return 4;
-    uint64_t value64 = 0x0102030405060708;
+    uint64_t value64 = 0x0102030405060708ULL;
     memcpy(&buffer[10], &value64, 8);
     if (buffer[10] != 0x08) return 5;
     if (buffer[11] != 0x07) return 6;
@@ -28,11 +28,11 @@ int main(void) {
     if (buffer[15] != 0x03) return 10;
     if (buffer[16] != 0x02) return 11;
     if (buffer[17] != 0x01) return 12;
-    uint16_t value16 = 0xABCD;
+    uint16_t value16 = 0xABCDU;
     memcpy(&buffer[20], &value16, 2);
     if (buffer[20] != 0xCD) return 13;
     if (buffer[21] != 0xAB) return 14;
-    uint32_t bits = 0x80000001;
+    uint32_t bits = 0x80000001U;
     memcpy(&buffer[30], &bits, 4);
     if (buffer[30] != 0x01) return 15;
     if (buffer[31] != 0x00) return 16;

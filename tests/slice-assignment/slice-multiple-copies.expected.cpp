@@ -12,19 +12,19 @@
 // Simulates real-world buffer building with explicit layout
 int main(void) {
     uint8_t buffer[256] = {0};
-    uint32_t magic = 0x50415255;
+    uint32_t magic = 0x50415255U;
     memcpy(&buffer[0], &magic, 4);
-    uint16_t version = 0x0100;
+    uint16_t version = 0x0100U;
     memcpy(&buffer[4], &version, 2);
-    uint16_t length = 20;
+    uint16_t length = 20U;
     memcpy(&buffer[6], &length, 2);
-    uint8_t flags = 0x0F;
+    uint8_t flags = 0x0FU;
     memcpy(&buffer[8], &flags, 1);
-    uint8_t reserved = 0;
+    uint8_t reserved = 0U;
     memcpy(&buffer[9], &reserved, 1);
     memcpy(&buffer[10], &reserved, 1);
     memcpy(&buffer[11], &reserved, 1);
-    uint64_t data = 0x0102030405060708;
+    uint64_t data = 0x0102030405060708ULL;
     memcpy(&buffer[12], &data, 8);
     if (buffer[0] != 0x55) return 1;
     if (buffer[1] != 0x52) return 2;
@@ -46,7 +46,7 @@ int main(void) {
     if (buffer[17] != 0x03) return 18;
     if (buffer[18] != 0x02) return 19;
     if (buffer[19] != 0x01) return 20;
-    uint32_t newMagic = 0x44434241;
+    uint32_t newMagic = 0x44434241U;
     memcpy(&buffer[0], &newMagic, 4);
     if (buffer[0] != 0x41) return 21;
     if (buffer[1] != 0x42) return 22;

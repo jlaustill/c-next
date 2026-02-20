@@ -27,27 +27,27 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Tests: Local volatile variable in function scope
 // ADR-108: Volatile keyword for delay loops and optimization prevention
 int main(void) {
-    volatile uint32_t counter = 0;
+    volatile uint32_t counter = 0U;
     if (counter != 0) return 1;
-    counter = 100;
+    counter = 100U;
     if (counter != 100) return 2;
-    volatile uint32_t i = 0;
+    volatile uint32_t i = 0U;
     while (i < 10) {
-        i = cnx_clamp_add_u32(i, 1);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (i != 10) return 3;
-    volatile uint32_t countdown = 5;
+    volatile uint32_t countdown = 5U;
     while (countdown > 0) {
-        countdown = cnx_clamp_sub_u32(countdown, 1);
+        countdown = cnx_clamp_sub_u32(countdown, 1U);
     }
     if (countdown != 0) return 4;
-    volatile uint8_t a = 10;
-    volatile uint8_t b = 20;
+    volatile uint8_t a = 10U;
+    volatile uint8_t b = 20U;
     volatile uint8_t c = a + b;
     if (c != 30) return 5;
-    volatile uint32_t loop_count = 0;
+    volatile uint32_t loop_count = 0U;
     for (volatile uint32_t j = 0; j < 5; j += 1) {
-        loop_count = cnx_clamp_add_u32(loop_count, 1);
+        loop_count = cnx_clamp_add_u32(loop_count, 1U);
     }
     if (loop_count != 5) return 6;
     return 0;

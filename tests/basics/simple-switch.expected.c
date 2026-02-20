@@ -15,18 +15,18 @@ typedef enum {
 } Color;
 
 uint32_t colorToValue(Color c) {
-    uint32_t result = 0;
+    uint32_t result = 0U;
     switch (c) {
         case Color_RED: {
-            result = 1;
+            result = 1U;
             break;
         }
         case Color_GREEN: {
-            result = 2;
+            result = 2U;
             break;
         }
         case Color_BLUE: {
-            result = 3;
+            result = 3U;
             break;
         }
     }
@@ -34,18 +34,18 @@ uint32_t colorToValue(Color c) {
 }
 
 uint32_t dayType(uint32_t day) {
-    uint32_t result = 0;
+    uint32_t result = 0U;
     switch (day) {
         case 0: {
-            result = 1;
+            result = 1U;
             break;
         }
         case 6: {
-            result = 1;
+            result = 1U;
             break;
         }
         default: {
-            result = 2;
+            result = 2U;
             break;
         }
     }
@@ -62,11 +62,11 @@ int main(void) {
     c = Color_BLUE;
     val = colorToValue(c);
     if (val != 3) return 3;
-    uint32_t result = dayType(0);
+    uint32_t result = dayType(0U);
     if (result != 1) return 4;
-    result = dayType(6);
+    result = dayType(6U);
     if (result != 1) return 5;
-    result = dayType(3);
+    result = dayType(3U);
     if (result != 2) return 6;
     return 0;
 }

@@ -18,9 +18,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: break statement in for loop
 int main(void) {
-    uint32_t count = 0;
+    uint32_t count = 0U;
     for (uint32_t i = 0; i < 100; i = i + 1) {
-        count = cnx_clamp_add_u32(count, 1);
+        count = cnx_clamp_add_u32(count, 1U);
         if (i == 9) {
             break;
         }

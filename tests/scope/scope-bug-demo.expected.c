@@ -10,17 +10,17 @@
 // test-execution
 // Test: Scope member shadowing works correctly (ADR-016)
 // The scope member 'count' should shadow the global 'count'
-uint8_t globalCount = 0;
+uint8_t globalCount = 0U;
 
 // Global
-extern const uint8_t limit = 10;
+extern const uint8_t limit = 10U;
 
 // Global const
 /* Scope: Counter */
 static uint8_t Counter_count = 0;
 
 void Counter_increment(void) {
-    Counter_count = Counter_count + 1;
+    Counter_count = Counter_count + 1U;
 }
 
 uint8_t Counter_getCount(void) {

@@ -15,11 +15,11 @@
 static uint32_t Counter_value = 0;
 
 void Counter_reset(void) {
-    Counter_value = 0;
+    Counter_value = 0U;
 }
 
 void Counter_increment(void) {
-    Counter_value = Counter_value + 1;
+    Counter_value = Counter_value + 1U;
 }
 
 void Counter_add(uint32_t amount) {

@@ -123,9 +123,9 @@ void testTypeConversions(void) {
     SensorConfig cfg = {};
     cfg.enabled = true;
     cfg.mode = EMode::ON;
-    cfg.flags = 0x0F;
+    cfg.flags = 0x0FU;
     cfg.permissions = FLAG_READ;
-    uint32_t crc = 0;
+    uint32_t crc = 0U;
     crc = processByte(crc, cfg.enabled);
     crc = processByte(crc, static_cast<uint8_t>(cfg.mode));
     crc = processByte(crc, cfg.flags);
@@ -146,11 +146,11 @@ void testArrayMembers(void) {
     device.sensors[2].flags = 0x0F;
     bool enabled = device.sensors[0].enabled;
     EMode mode = device.sensors[1].mode;
-    uint8_t flags = device.sensors[2].flags;
-    uint32_t crc = 0;
-    crc = processByte(crc, device.sensors[0].enabled);
-    crc = processByte(crc, static_cast<uint8_t>(device.sensors[0].mode));
-    crc = processByte(crc, device.sensors[0].flags);
+    uint8_t flags = device.sensors[2U].flags;
+    uint32_t crc = 0U;
+    crc = processByte(crc, device.sensors[0U].enabled);
+    crc = processByte(crc, static_cast<uint8_t>(device.sensors[0U].mode));
+    crc = processByte(crc, device.sensors[0U].flags);
 }
 
 // ============================================================================
@@ -159,14 +159,14 @@ void testArrayMembers(void) {
 // Test nested struct member access
 void testComplexStructs(void) {
     Message msg = {};
-    msg.id = 0x100;
-    msg.length = 8;
+    msg.id = 0x100U;
+    msg.length = 8U;
     msg.flags = FLAG_READ;
     msg.result.code = 0;
     msg.result.dataLen = 0;
     msg.result.data[0] = 0x42;
     int32_t code = msg.result.code;
-    uint8_t firstByte = msg.result.data[0];
+    uint8_t firstByte = msg.result.data[0U];
 }
 
 // ============================================================================

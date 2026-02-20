@@ -17,10 +17,10 @@ uint16_t getMin(uint16_t a, uint16_t b) {
 }
 
 int main(void) {
-    uint16_t a = 100;
-    uint16_t b = 200;
-    uint16_t c = 300;
-    uint16_t d = 50;
+    uint16_t a = 100U;
+    uint16_t b = 200U;
+    uint16_t c = 300U;
+    uint16_t d = 50U;
     uint16_t maxResult1 = getMax(a, b);
     if (maxResult1 != 200) {
         return 1;
@@ -41,24 +41,24 @@ int main(void) {
     if (result != 200) {
         return 5;
     }
-    uint16_t max_val = 65535;
-    uint16_t mid_val = 32767;
+    uint16_t max_val = 65535U;
+    uint16_t mid_val = 32767U;
     uint16_t edge_result = (max_val > mid_val) ? max_val : mid_val;
     if (edge_result != 65535) {
         return 6;
     }
-    uint16_t zero = 0;
-    uint16_t one = 1;
+    uint16_t zero = 0U;
+    uint16_t one = 1U;
     uint16_t zero_result = (zero < one) ? zero : one;
     if (zero_result != 0) {
         return 7;
     }
-    uint16_t equal_test = (a == 100) ? 1000 : 2000;
+    uint16_t equal_test = (a == 100U) ? 1000U : 2000U;
     if (equal_test != 1000) {
         return 8;
     }
-    uint16_t large_a = 50000;
-    uint16_t large_b = 60000;
+    uint16_t large_a = 50000U;
+    uint16_t large_b = 60000U;
     uint16_t large_result = (large_a < large_b) ? large_a : large_b;
     if (large_result != 50000) {
         return 9;
