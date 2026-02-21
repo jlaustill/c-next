@@ -13,6 +13,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import SymbolTable from "../symbols/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
+import CodeGenState from "../../state/CodeGenState";
 
 /**
  * C-Next built-in functions
@@ -451,6 +452,7 @@ class FunctionCallAnalyzer {
     this.collectIncludes(tree);
     this.collectCallbackTypes(tree);
     this.collectAllLocalFunctions(tree);
+    this.collectCallbackCompatibleFunctions(tree);
 
     // Second pass: walk tree in order, tracking definitions and checking calls
     const listener = new FunctionCallListener(this);
@@ -549,6 +551,75 @@ class FunctionCallAnalyzer {
    */
   public isCallbackType(name: string): boolean {
     return this.callbackTypes.has(name);
+  }
+
+  /**
+   * Check if a type name is a C function pointer typedef.
+   * Looks up the type in the symbol table and checks if it's a typedef
+   * whose underlying type contains "(*)" indicating a function pointer.
+   */
+  public isCFunctionPointerTypedef(typeName: string): boolean {
+    if (!this.symbolTable) return false;
+    const sym = this.symbolTable.getCSymbol(typeName);
+    if (!sym || sym.kind !== "type") return false;
+    // ICTypedefSymbol has a `type` field with the underlying C type string
+    return (
+      "type" in sym && typeof sym.type === "string" && sym.type.includes("(*)")
+    );
+  }
+
+  /**
+   * Detect functions assigned to C function pointer typedefs.
+   * When `PointCallback cb <- my_handler;` is found and PointCallback
+   * is a C function pointer typedef, mark my_handler as callback-compatible.
+   */
+  private collectCallbackCompatibleFunctions(
+    tree: Parser.ProgramContext,
+  ): void {
+    for (const decl of tree.declaration()) {
+      const funcDecl = decl.functionDeclaration();
+      if (!funcDecl) continue;
+
+      const block = funcDecl.block();
+      if (!block) continue;
+
+      this.scanBlockForCallbackAssignments(block);
+    }
+  }
+
+  private scanBlockForCallbackAssignments(block: Parser.BlockContext): void {
+    for (const stmt of block.statement()) {
+      const varDecl = stmt.variableDeclaration();
+      if (!varDecl) continue;
+
+      const typeName = varDecl.type().getText();
+      if (!this.isCFunctionPointerTypedef(typeName)) continue;
+
+      // Get the initializer expression
+      const expr = varDecl.expression();
+      if (!expr) continue;
+
+      // Extract the function name from a simple identifier expression
+      const funcName = this.extractSimpleIdentifier(expr);
+      if (funcName && this.allLocalFunctions.has(funcName)) {
+        CodeGenState.callbackCompatibleFunctions.add(funcName);
+      }
+    }
+  }
+
+  /**
+   * Extract a simple identifier from an expression context.
+   * Returns null if the expression is not a simple identifier reference.
+   */
+  private extractSimpleIdentifier(
+    expr: Parser.ExpressionContext,
+  ): string | null {
+    const text = expr.getText();
+    // A simple identifier contains only word characters
+    if (/^\w+$/.test(text)) {
+      return text;
+    }
+    return null;
   }
 
   /**
