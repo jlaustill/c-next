@@ -118,6 +118,9 @@ const generateIf = (
   // Issue #254: Validate no function calls in condition (E0702)
   orchestrator.validateConditionNoFunctionCall(node.expression(), "if");
 
+  // Issue #884: Validate condition is a boolean expression (E0701)
+  orchestrator.validateConditionIsBoolean(node.expression(), "if");
+
   // Generate with cache enabled
   const condition = orchestrator.generateExpression(node.expression());
 
@@ -161,6 +164,9 @@ const generateWhile = (
   // Issue #254: Validate no function calls in condition (E0702)
   orchestrator.validateConditionNoFunctionCall(node.expression(), "while");
 
+  // Issue #884: Validate condition is a boolean expression (E0701)
+  orchestrator.validateConditionIsBoolean(node.expression(), "while");
+
   const condition = orchestrator.generateExpression(node.expression());
 
   // Issue #250: Flush any temp vars from condition BEFORE generating body
@@ -189,11 +195,11 @@ const generateDoWhile = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // Validate the condition is a boolean expression (E0701)
-  orchestrator.validateDoWhileCondition(node.expression());
-
   // Issue #254: Validate no function calls in condition (E0702)
   orchestrator.validateConditionNoFunctionCall(node.expression(), "do-while");
+
+  // Issue #884: Validate condition is a boolean expression (E0701)
+  orchestrator.validateConditionIsBoolean(node.expression(), "do-while");
 
   const body = orchestrator.generateBlock(node.block());
   const condition = orchestrator.generateExpression(node.expression());
@@ -311,6 +317,9 @@ const generateFor = (
   if (node.expression()) {
     // Issue #254: Validate no function calls in condition (E0702)
     orchestrator.validateConditionNoFunctionCall(node.expression()!, "for");
+
+    // Issue #884: Validate condition is a boolean expression (E0701)
+    orchestrator.validateConditionIsBoolean(node.expression()!, "for");
     condition = orchestrator.generateExpression(node.expression()!);
   }
 

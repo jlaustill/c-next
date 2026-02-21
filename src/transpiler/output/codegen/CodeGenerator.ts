@@ -1042,11 +1042,14 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Validate do-while condition.
+   * Validate condition is a boolean expression (ADR-027, Issue #884).
    * Part of IOrchestrator interface (ADR-053 A3).
    */
-  validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
-    TypeValidator.validateDoWhileCondition(ctx);
+  validateConditionIsBoolean(
+    ctx: Parser.ExpressionContext,
+    conditionType: string,
+  ): void {
+    TypeValidator.validateConditionIsBoolean(ctx, conditionType);
   }
 
   /**

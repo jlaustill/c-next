@@ -1,0 +1,2 @@
+1:0 Code generation failed: Error E0701: for condition must be a boolean expression (comparison or logical operation), not 'i' (MISRA C:2012 Rule 14.4)
+  help: use explicit comparison: i > 0 or i != 0
