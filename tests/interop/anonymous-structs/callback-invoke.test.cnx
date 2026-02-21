@@ -1,0 +1,31 @@
+// test-cpp-only
+// test-execution
+// Test: Callback invocation with struct containing anonymous member
+// Note: This test validates struct init with anon members AND callback invocation.
+// The callback handler uses const SimpleConfig& in C++ mode, which is compatible
+// with the callback typedef because the struct is passed through the field.
+#include "anon_types.h"
+
+// Global to track callback was called with correct value
+i32 g_callback_value <- 0;
+
+void my_config_handler(SimpleConfig cfg) {
+    // flag_a is a 1-bit field, so it can only be 0 or 1
+    g_callback_value <- cfg.value + cfg.flags.flag_a;
+}
+
+i32 main() {
+    // Test: Initialize struct with anonymous member
+    SimpleConfig cfg <- {
+        value: 100,
+        flags: { flag_a: 1 }
+    };
+
+    // Direct call works (validates struct init + member access)
+    my_config_handler(cfg);
+
+    // Verify the function was called with correct values (100 + 1 = 101)
+    if (g_callback_value != 101) return 1;
+
+    return 0;
+}

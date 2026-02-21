@@ -149,12 +149,20 @@ class FunctionContextManager {
       callbacks,
     );
 
+    // For callback-compatible functions, struct params use by-value semantics
+    // (no pointer dereference, dot access instead of arrow in C mode)
+    const isCallbackCompat =
+      CodeGenState.currentFunctionName !== null &&
+      CodeGenState.callbackCompatibleFunctions.has(
+        CodeGenState.currentFunctionName,
+      );
+
     // Register in currentParameters
     const paramInfo = {
       name,
       baseType: typeInfo.typeName,
       isArray,
-      isStruct: typeInfo.isStruct,
+      isStruct: isCallbackCompat ? false : typeInfo.isStruct,
       isConst,
       isCallback: typeInfo.isCallback,
       isString: typeInfo.isString,

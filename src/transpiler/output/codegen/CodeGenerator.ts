@@ -3499,6 +3499,17 @@ export default class CodeGenerator implements IOrchestrator {
 
     // For C-Next/C structs, generate designated initializer
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
+
+    // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
+    // Compound literals like (struct { ... }){ ... } create incompatible types in C++
+    // because each struct { ... } definition creates a distinct nominal type.
+    if (
+      CodeGenState.cppMode &&
+      (typeName.startsWith("struct {") || typeName.startsWith("union {"))
+    ) {
+      return `{ ${fieldInits.join(", ")} }`;
+    }
+
     return `(${castType}){ ${fieldInits.join(", ")} }`;
   }
 
@@ -3762,6 +3773,18 @@ export default class CodeGenerator implements IOrchestrator {
         CodeGenState.currentFunctionName,
         name,
       )
+    ) {
+      return true;
+    }
+
+    // Callback-compatible functions: struct params become pass-by-value
+    // to match C function pointer typedef signatures
+    if (
+      CodeGenState.currentFunctionName &&
+      CodeGenState.callbackCompatibleFunctions.has(
+        CodeGenState.currentFunctionName,
+      ) &&
+      this.isKnownStruct(typeName)
     ) {
       return true;
     }

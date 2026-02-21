@@ -13,5 +13,5 @@
 #include <stdbool.h>
 
 void test(void) {
-    config_t cfg = (config_t){ .value = 42, .flags = (struct { unsigned int flag_a : 1; unsigned int flag_b : 1; }){ .flag_a = true } };
+    config_t cfg = (config_t){ .value = 42, .flags = { .flag_a = true } };
 }

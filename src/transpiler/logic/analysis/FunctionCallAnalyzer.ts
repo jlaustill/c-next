@@ -13,6 +13,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import SymbolTable from "../symbols/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
+import CodeGenState from "../../state/CodeGenState";
 
 /**
  * C-Next built-in functions
@@ -216,19 +217,26 @@ class FunctionCallListener extends CNextListener {
   // ========================================================================
 
   /**
+   * Check if a type name represents a callable type (ISR, callback, or C function pointer typedef).
+   */
+  private isCallableType(typeName: string): boolean {
+    return (
+      typeName === "ISR" ||
+      this.analyzer.isCallbackType(typeName) ||
+      this.analyzer.isCFunctionPointerTypedef(typeName)
+    );
+  }
+
+  /**
    * Track ISR-typed variables from variable declarations
    * e.g., `ISR handler <- myFunction;`
    */
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    const typeCtx = ctx.type();
-    const typeName = typeCtx.getText();
-
-    // Check if this is an ISR type or a callback type (function-as-type)
-    if (typeName === "ISR" || this.analyzer.isCallbackType(typeName)) {
-      const varName = ctx.IDENTIFIER().getText();
-      this.analyzer.defineCallableVariable(varName);
+    const typeName = ctx.type().getText();
+    if (this.isCallableType(typeName)) {
+      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
     }
   };
 
@@ -237,13 +245,9 @@ class FunctionCallListener extends CNextListener {
    * e.g., `void execute(ISR handler) { handler(); }`
    */
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    const typeCtx = ctx.type();
-    const typeName = typeCtx.getText();
-
-    // Check if this is an ISR type or a callback type (function-as-type)
-    if (typeName === "ISR" || this.analyzer.isCallbackType(typeName)) {
-      const paramName = ctx.IDENTIFIER().getText();
-      this.analyzer.defineCallableVariable(paramName);
+    const typeName = ctx.type().getText();
+    if (this.isCallableType(typeName)) {
+      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
     }
   };
 
@@ -451,6 +455,7 @@ class FunctionCallAnalyzer {
     this.collectIncludes(tree);
     this.collectCallbackTypes(tree);
     this.collectAllLocalFunctions(tree);
+    this.collectCallbackCompatibleFunctions(tree);
 
     // Second pass: walk tree in order, tracking definitions and checking calls
     const listener = new FunctionCallListener(this);
@@ -549,6 +554,157 @@ class FunctionCallAnalyzer {
    */
   public isCallbackType(name: string): boolean {
     return this.callbackTypes.has(name);
+  }
+
+  /**
+   * Check if a type name is a C function pointer typedef.
+   * Looks up the type in the symbol table and checks if it's a typedef
+   * whose underlying type contains "(*)" indicating a function pointer.
+   */
+  public isCFunctionPointerTypedef(typeName: string): boolean {
+    if (!this.symbolTable) return false;
+    const sym = this.symbolTable.getCSymbol(typeName);
+    if (sym?.kind !== "type") return false;
+    // ICTypedefSymbol has a `type` field with the underlying C type string
+    return (
+      "type" in sym && typeof sym.type === "string" && sym.type.includes("(*)")
+    );
+  }
+
+  /**
+   * Detect functions assigned to C function pointer typedefs.
+   * When `PointCallback cb <- my_handler;` is found and PointCallback
+   * is a C function pointer typedef, mark my_handler as callback-compatible.
+   */
+  private collectCallbackCompatibleFunctions(
+    tree: Parser.ProgramContext,
+  ): void {
+    for (const decl of tree.declaration()) {
+      const funcDecl = decl.functionDeclaration();
+      if (!funcDecl) continue;
+
+      const block = funcDecl.block();
+      if (!block) continue;
+
+      this.scanBlockForCallbackAssignments(block);
+    }
+  }
+
+  /**
+   * Recursively scan all statements in a block for callback typedef assignments.
+   */
+  private scanBlockForCallbackAssignments(block: Parser.BlockContext): void {
+    for (const stmt of block.statement()) {
+      this.scanStatementForCallbackAssignments(stmt);
+    }
+  }
+
+  /**
+   * Scan a single statement for callback typedef assignments,
+   * recursing into nested blocks (if/while/for/do-while/switch/critical).
+   */
+  private scanStatementForCallbackAssignments(
+    stmt: Parser.StatementContext,
+  ): void {
+    // Check variable declarations for callback assignments
+    const varDecl = stmt.variableDeclaration();
+    if (varDecl) {
+      this.checkVarDeclForCallbackAssignment(varDecl);
+      return;
+    }
+
+    // Recurse into nested blocks/statements
+    const ifStmt = stmt.ifStatement();
+    if (ifStmt) {
+      for (const child of ifStmt.statement()) {
+        this.scanStatementForCallbackAssignments(child);
+      }
+      return;
+    }
+
+    const whileStmt = stmt.whileStatement();
+    if (whileStmt) {
+      this.scanStatementForCallbackAssignments(whileStmt.statement());
+      return;
+    }
+
+    const forStmt = stmt.forStatement();
+    if (forStmt) {
+      this.scanStatementForCallbackAssignments(forStmt.statement());
+      return;
+    }
+
+    const doWhileStmt = stmt.doWhileStatement();
+    if (doWhileStmt) {
+      this.scanBlockForCallbackAssignments(doWhileStmt.block());
+      return;
+    }
+
+    const switchStmt = stmt.switchStatement();
+    if (switchStmt) {
+      for (const caseCtx of switchStmt.switchCase()) {
+        this.scanBlockForCallbackAssignments(caseCtx.block());
+      }
+      const defaultCtx = switchStmt.defaultCase();
+      if (defaultCtx) {
+        this.scanBlockForCallbackAssignments(defaultCtx.block());
+      }
+      return;
+    }
+
+    const criticalStmt = stmt.criticalStatement();
+    if (criticalStmt) {
+      this.scanBlockForCallbackAssignments(criticalStmt.block());
+      return;
+    }
+
+    // A statement can itself be a block
+    const nestedBlock = stmt.block();
+    if (nestedBlock) {
+      this.scanBlockForCallbackAssignments(nestedBlock);
+    }
+  }
+
+  /**
+   * Check if a variable declaration assigns a function to a C callback typedef.
+   */
+  private checkVarDeclForCallbackAssignment(
+    varDecl: Parser.VariableDeclarationContext,
+  ): void {
+    const typeName = varDecl.type().getText();
+    if (!this.isCFunctionPointerTypedef(typeName)) return;
+
+    const expr = varDecl.expression();
+    if (!expr) return;
+
+    const funcRef = this.extractFunctionReference(expr);
+    if (!funcRef) return;
+
+    // Scope-qualified names use dot in source (MyScope.handler) but
+    // allLocalFunctions stores them with underscore (MyScope_handler)
+    const lookupName = funcRef.includes(".")
+      ? funcRef.replace(".", "_")
+      : funcRef;
+
+    if (this.allLocalFunctions.has(lookupName)) {
+      CodeGenState.callbackCompatibleFunctions.add(lookupName);
+    }
+  }
+
+  /**
+   * Extract a function reference from an expression context.
+   * Matches bare identifiers (e.g., "my_handler") and qualified scope
+   * names (e.g., "MyScope.handler").
+   * Returns null if the expression is not a function reference.
+   */
+  private extractFunctionReference(
+    expr: Parser.ExpressionContext,
+  ): string | null {
+    const text = expr.getText();
+    if (/^\w+(\.\w+)?$/.test(text)) {
+      return text;
+    }
+    return null;
   }
 
   /**

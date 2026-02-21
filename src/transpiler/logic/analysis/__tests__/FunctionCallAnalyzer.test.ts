@@ -12,6 +12,7 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestScopeUtils from "../../symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -620,6 +621,35 @@ describe("FunctionCallAnalyzer", () => {
       expect(doSomethingErrors).toHaveLength(0);
     });
 
+    it("should detect C function pointer typedef variable as callable", () => {
+      const code = `
+        void myHandler() {
+          u32 x <- 1;
+        }
+        void main() {
+          PointCallback cb <- myHandler;
+          cb();
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(Point)",
+      });
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      // cb should be recognized as callable (no E0422 for cb())
+      expect(errors).toHaveLength(0);
+    });
+
     it("allows cross-file C-Next functions from SymbolTable (Issue #786)", () => {
       const code = `
         void main() {
@@ -648,6 +678,303 @@ describe("FunctionCallAnalyzer", () => {
       // Issue #786: Cross-file C-Next functions from includes are now allowed
       // without E0422 since they're defined in an included file
       expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Callback Compatibility Detection
+  // ========================================================================
+
+  describe("callback compatibility detection", () => {
+    it("should mark function as callback-compatible when assigned to C function pointer typedef", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          PointCallback cb <- my_handler;
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
+
+    it("should not mark function when assigned to non-function-pointer typedef", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          MyType cb <- my_handler;
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "MyType",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "uint32_t",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        false,
+      );
+    });
+
+    it("should not mark when initializer is not a simple identifier", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          u32 result <- my_handler(5);
+        }
+      `;
+      const tree = parse(code);
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        false,
+      );
+    });
+
+    it("isCFunctionPointerTypedef returns false without symbol table", () => {
+      const analyzer = new FunctionCallAnalyzer();
+      expect(analyzer.isCFunctionPointerTypedef("PointCallback")).toBe(false);
+    });
+
+    it("isCFunctionPointerTypedef returns false for non-type symbols", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "myFunc",
+        kind: "function",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "funcs.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void",
+      });
+
+      const analyzer = new FunctionCallAnalyzer();
+      // Need to call analyze to set the symbolTable
+      const tree = parse("");
+      analyzer.analyze(tree, symbolTable);
+
+      expect(analyzer.isCFunctionPointerTypedef("myFunc")).toBe(false);
+    });
+
+    it("isCFunctionPointerTypedef returns true for function pointer typedef", () => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "Callback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(int)",
+      });
+
+      const analyzer = new FunctionCallAnalyzer();
+      const tree = parse("");
+      analyzer.analyze(tree, symbolTable);
+
+      expect(analyzer.isCFunctionPointerTypedef("Callback")).toBe(true);
+    });
+
+    it("should detect callback assignment inside if block", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          u32 flag <- 1;
+          if (flag = 1) {
+            PointCallback cb <- my_handler;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
+
+    it("should detect callback assignment inside while loop", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          u32 running <- 1;
+          while (running = 1) {
+            PointCallback cb <- my_handler;
+            running <- 0;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
+
+    it("should detect callback assignment inside for loop", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          for (u32 i <- 0; i < 1; i <- i + 1) {
+            PointCallback cb <- my_handler;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
+
+    it("should detect callback assignment with scope-qualified function name", () => {
+      const code = `
+        scope Handlers {
+          public void on_point(u32 x) {
+            u32 y <- x;
+          }
+        }
+        void main() {
+          PointCallback cb <- Handlers.on_point;
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      // Scope functions are stored as ScopeName_funcName
+      expect(
+        CodeGenState.callbackCompatibleFunctions.has("Handlers_on_point"),
+      ).toBe(true);
+    });
+
+    it("should detect callback assignment inside else block", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          u32 flag <- 0;
+          if (flag = 1) {
+            u32 x <- 1;
+          } else {
+            PointCallback cb <- my_handler;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
     });
   });
 });
