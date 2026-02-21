@@ -128,6 +128,9 @@ export default class CodeGenState {
   /** Callback field types: "Struct.field" -> callbackTypeName */
   static callbackFieldTypes: Map<string, string> = new Map();
 
+  /** Functions that need C-callback-compatible (by-value) struct parameters */
+  static callbackCompatibleFunctions: Set<string> = new Set();
+
   // ===========================================================================
   // PASS-BY-VALUE ANALYSIS (Issue #269)
   // ===========================================================================
@@ -324,6 +327,7 @@ export default class CodeGenState {
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
+    this.callbackCompatibleFunctions = new Set();
 
     // Pass-by-value analysis
     this.modifiedParameters = new Map();
