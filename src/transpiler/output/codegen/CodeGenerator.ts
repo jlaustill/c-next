@@ -3774,6 +3774,18 @@ export default class CodeGenerator implements IOrchestrator {
       return true;
     }
 
+    // Callback-compatible functions: struct params become pass-by-value
+    // to match C function pointer typedef signatures
+    if (
+      CodeGenState.currentFunctionName &&
+      CodeGenState.callbackCompatibleFunctions.has(
+        CodeGenState.currentFunctionName,
+      ) &&
+      this.isKnownStruct(typeName)
+    ) {
+      return true;
+    }
+
     return false;
   }
 
