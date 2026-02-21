@@ -366,7 +366,7 @@ class CResolver {
 
   /**
    * Extract parameter text from a function pointer declarator.
-   * Returns the text of the parameters, e.g., "Pointp" from "(*Callback)(Point p)".
+   * Returns the text of the parameters from a function pointer like "(*Callback)(Point p)".
    */
   static extractParamText(declarator: any): string {
     const directDecl = declarator.directDeclarator?.();
