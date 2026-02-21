@@ -56,7 +56,9 @@ register GPIO2 @ 0x401BC000 {
 ### Research: How Other Languages Solve This
 
 #### Rust (svd2rust)
+
 Uses generics with marker types:
+
 ```rust
 pub struct GPIO<const BASE: u32> {
     dr: Reg<DR_SPEC>,
@@ -68,7 +70,9 @@ const GPIO2: GPIO<0x401BC000> = GPIO::new();
 ```
 
 #### Zig
+
 Uses comptime parameters:
+
 ```zig
 fn GPIO(comptime base: u32) type {
     return struct {
@@ -81,7 +85,9 @@ const GPIO1 = GPIO(0x401B8000);
 ```
 
 #### C (CMSIS)
+
 Uses macros and base address offsets:
+
 ```c
 #define GPIO_DR_OFFSET   0x00
 #define GPIO_GDIR_OFFSET 0x04
@@ -210,6 +216,7 @@ The key insight: **all expressions are compile-time constants**. No runtime eval
 Register instances can be used in two ways:
 
 **Specific instance** — when you need a particular peripheral:
+
 ```cnx
 void debugGpio1() {
     GPIO1.DR[13] <- true;  // Only works with GPIO1
@@ -217,6 +224,7 @@ void debugGpio1() {
 ```
 
 **Any instance of a template** — when you want generic code:
+
 ```cnx
 void setPin(GpioPort port, u8 pin) {
     port.DR[pin] <- true;
@@ -303,15 +311,15 @@ Bit-field and bitmap-field writes to w1c/wo/w1s registers must generate **direct
 
 #### Correct Codegen for w1c
 
-| C-Next | Generated C |
-|--------|-------------|
-| `INT.STATUS <- 0x0F` | `INT_STATUS = 0x0F;` |
-| `INT.STATUS[3] <- true` | `INT_STATUS = (1 << 3);` |
-| `INT.STATUS.Pin3 <- true` | `INT_STATUS = (1 << 3);` |
-| `DMA.ERR.Chan0Err <- 0xF` | `DMA_ERR = (0xF << 0);` |
-| `INT.STATUS[3] <- false` | **Compiler error** |
-| `INT.STATUS.Pin3 <- false` | **Compiler error** |
-| `DMA.ERR.Chan0Err <- 0` | **Compiler error** |
+| C-Next                     | Generated C              |
+| -------------------------- | ------------------------ |
+| `INT.STATUS <- 0x0F`       | `INT_STATUS = 0x0F;`     |
+| `INT.STATUS[3] <- true`    | `INT_STATUS = (1 << 3);` |
+| `INT.STATUS.Pin3 <- true`  | `INT_STATUS = (1 << 3);` |
+| `DMA.ERR.Chan0Err <- 0xF`  | `DMA_ERR = (0xF << 0);`  |
+| `INT.STATUS[3] <- false`   | **Compiler error**       |
+| `INT.STATUS.Pin3 <- false` | **Compiler error**       |
+| `DMA.ERR.Chan0Err <- 0`    | **Compiler error**       |
 
 Writing `false` or `0` to a w1c field is an error — it has no effect (w1c bits are cleared by writing `1`, not `0`).
 
@@ -345,13 +353,13 @@ In the register assignment codegen, check the access modifier and generate direc
 ```typescript
 // For w1c/wo/w1s bit-field assignments:
 if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
-    if (value === false) {
-        throw new CodeGenerationError(
-            `writing 'false' to ${accessMod} register bit has no effect`
-        );
-    }
-    // Generate direct write: REG = (1 << bit)
-    return `${regName} = (1 << ${bitPosition});`;
+  if (value === false) {
+    throw new CodeGenerationError(
+      `writing 'false' to ${accessMod} register bit has no effect`,
+    );
+  }
+  // Generate direct write: REG = (1 << bit)
+  return `${regName} = (1 << ${bitPosition});`;
 }
 // For rw registers, use existing RMW codegen
 ```
@@ -421,23 +429,24 @@ src/hal/imxrt1062/
 
 #### SVD to C-Next Mapping
 
-| SVD | C-Next |
-|-----|--------|
-| `<peripheral>` (any) | Parameterized register + instance(s) |
-| `<peripheral>` with `derivedFrom` | Additional instance of same template |
-| `<register access="read-write">` | `rw` |
-| `<register access="read-only">` | `ro` |
-| `<register access="write-only">` | `wo` |
-| `<register modifiedWriteValues="oneToClear">` | `w1c` |
-| `<register modifiedWriteValues="oneToSet">` | `w1s` |
-| `<register>` with `<field>` definitions | Generate bitmap type |
-| Reserved gaps in fields | `Reserved[width]` |
+| SVD                                           | C-Next                               |
+| --------------------------------------------- | ------------------------------------ |
+| `<peripheral>` (any)                          | Parameterized register + instance(s) |
+| `<peripheral>` with `derivedFrom`             | Additional instance of same template |
+| `<register access="read-write">`              | `rw`                                 |
+| `<register access="read-only">`               | `ro`                                 |
+| `<register access="write-only">`              | `wo`                                 |
+| `<register modifiedWriteValues="oneToClear">` | `w1c`                                |
+| `<register modifiedWriteValues="oneToSet">`   | `w1s`                                |
+| `<register>` with `<field>` definitions       | Generate bitmap type                 |
+| Reserved gaps in fields                       | `Reserved[width]`                    |
 
 #### Bitmap Generation
 
 The tool generates bitmap types for any register with `<field>` definitions. Field names are preserved from SVD:
 
 Input SVD:
+
 ```xml
 <register>
   <name>CR1</name>
@@ -465,6 +474,7 @@ Input SVD:
 ```
 
 Generated C-Next:
+
 ```cnx
 bitmap32 UartCr1 {
     Enable,
@@ -479,6 +489,7 @@ register UartPort(u32 baseAddress) {
 ```
 
 The tool applies naming conventions:
+
 - `ENABLE` → `Enable` (PascalCase)
 - `GPIO1_DR` → `GpioDr` (strip peripheral prefix, PascalCase)
 - Reserved gaps calculated automatically
@@ -486,6 +497,7 @@ The tool applies naming conventions:
 #### Example Output
 
 Input SVD:
+
 ```xml
 <peripheral>
   <name>GPIO1</name>
@@ -523,6 +535,7 @@ Input SVD:
 ```
 
 Generated C-Next:
+
 ```cnx
 /// GPIO - General Purpose Input/Output
 /// Generated from MIMXRT1062.svd
