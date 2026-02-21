@@ -433,25 +433,6 @@ export default class CodeGenState {
   }
 
   /**
-   * Check if a type is a C-Next defined struct (not from C/C++ header).
-   * C-Next structs use const T& in C++ mode.
-   */
-  static isCNextStruct(name: string): boolean {
-    return this.symbols?.knownStructs.has(name) ?? false;
-  }
-
-  /**
-   * Check if a type is a C/C++ header struct (not C-Next defined).
-   * C header structs need pass-by-value in C++ mode for callback compatibility.
-   */
-  static isCHeaderStruct(name: string): boolean {
-    // It's a C header struct if it's in the symbol table but NOT a C-Next struct
-    if (this.symbols?.knownStructs.has(name)) return false;
-    if (this.symbols?.knownBitmaps.has(name)) return false;
-    return !!this.symbolTable.getStructFields(name);
-  }
-
-  /**
    * Check if a type name is a known scope.
    */
   static isKnownScope(name: string): boolean {

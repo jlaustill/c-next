@@ -217,24 +217,26 @@ class FunctionCallListener extends CNextListener {
   // ========================================================================
 
   /**
+   * Check if a type name represents a callable type (ISR, callback, or C function pointer typedef).
+   */
+  private isCallableType(typeName: string): boolean {
+    return (
+      typeName === "ISR" ||
+      this.analyzer.isCallbackType(typeName) ||
+      this.analyzer.isCFunctionPointerTypedef(typeName)
+    );
+  }
+
+  /**
    * Track ISR-typed variables from variable declarations
    * e.g., `ISR handler <- myFunction;`
    */
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    const typeCtx = ctx.type();
-    const typeName = typeCtx.getText();
-
-    // Check if this is an ISR type, a callback type (function-as-type),
-    // or a C function pointer typedef
-    if (
-      typeName === "ISR" ||
-      this.analyzer.isCallbackType(typeName) ||
-      this.analyzer.isCFunctionPointerTypedef(typeName)
-    ) {
-      const varName = ctx.IDENTIFIER().getText();
-      this.analyzer.defineCallableVariable(varName);
+    const typeName = ctx.type().getText();
+    if (this.isCallableType(typeName)) {
+      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
     }
   };
 
@@ -243,18 +245,9 @@ class FunctionCallListener extends CNextListener {
    * e.g., `void execute(ISR handler) { handler(); }`
    */
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    const typeCtx = ctx.type();
-    const typeName = typeCtx.getText();
-
-    // Check if this is an ISR type, a callback type (function-as-type),
-    // or a C function pointer typedef
-    if (
-      typeName === "ISR" ||
-      this.analyzer.isCallbackType(typeName) ||
-      this.analyzer.isCFunctionPointerTypedef(typeName)
-    ) {
-      const paramName = ctx.IDENTIFIER().getText();
-      this.analyzer.defineCallableVariable(paramName);
+    const typeName = ctx.type().getText();
+    if (this.isCallableType(typeName)) {
+      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
     }
   };
 
@@ -571,7 +564,7 @@ class FunctionCallAnalyzer {
   public isCFunctionPointerTypedef(typeName: string): boolean {
     if (!this.symbolTable) return false;
     const sym = this.symbolTable.getCSymbol(typeName);
-    if (!sym || sym.kind !== "type") return false;
+    if (sym?.kind !== "type") return false;
     // ICTypedefSymbol has a `type` field with the underlying C type string
     return (
       "type" in sym && typeof sym.type === "string" && sym.type.includes("(*)")
@@ -597,6 +590,11 @@ class FunctionCallAnalyzer {
     }
   }
 
+  /**
+   * Scan top-level statements in a block for callback typedef assignments.
+   * Only scans direct children — nested blocks (if/while) are not checked
+   * since callback assignments are typically at function scope level.
+   */
   private scanBlockForCallbackAssignments(block: Parser.BlockContext): void {
     for (const stmt of block.statement()) {
       const varDecl = stmt.variableDeclaration();
@@ -620,12 +618,14 @@ class FunctionCallAnalyzer {
   /**
    * Extract a simple identifier from an expression context.
    * Returns null if the expression is not a simple identifier reference.
+   * Note: Only matches bare identifiers (e.g., "my_handler"), not qualified
+   * names like "Scope.handler". Scoped functions assigned to C callbacks
+   * would need wrapper functions regardless, so this is intentional.
    */
   private extractSimpleIdentifier(
     expr: Parser.ExpressionContext,
   ): string | null {
     const text = expr.getText();
-    // A simple identifier contains only word characters
     if (/^\w+$/.test(text)) {
       return text;
     }
