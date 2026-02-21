@@ -591,42 +591,117 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * Scan top-level statements in a block for callback typedef assignments.
-   * Only scans direct children — nested blocks (if/while) are not checked
-   * since callback assignments are typically at function scope level.
+   * Recursively scan all statements in a block for callback typedef assignments.
    */
   private scanBlockForCallbackAssignments(block: Parser.BlockContext): void {
     for (const stmt of block.statement()) {
-      const varDecl = stmt.variableDeclaration();
-      if (!varDecl) continue;
-
-      const typeName = varDecl.type().getText();
-      if (!this.isCFunctionPointerTypedef(typeName)) continue;
-
-      // Get the initializer expression
-      const expr = varDecl.expression();
-      if (!expr) continue;
-
-      // Extract the function name from a simple identifier expression
-      const funcName = this.extractSimpleIdentifier(expr);
-      if (funcName && this.allLocalFunctions.has(funcName)) {
-        CodeGenState.callbackCompatibleFunctions.add(funcName);
-      }
+      this.scanStatementForCallbackAssignments(stmt);
     }
   }
 
   /**
-   * Extract a simple identifier from an expression context.
-   * Returns null if the expression is not a simple identifier reference.
-   * Note: Only matches bare identifiers (e.g., "my_handler"), not qualified
-   * names like "Scope.handler". Scoped functions assigned to C callbacks
-   * would need wrapper functions regardless, so this is intentional.
+   * Scan a single statement for callback typedef assignments,
+   * recursing into nested blocks (if/while/for/do-while/switch/critical).
    */
-  private extractSimpleIdentifier(
+  private scanStatementForCallbackAssignments(
+    stmt: Parser.StatementContext,
+  ): void {
+    // Check variable declarations for callback assignments
+    const varDecl = stmt.variableDeclaration();
+    if (varDecl) {
+      this.checkVarDeclForCallbackAssignment(varDecl);
+      return;
+    }
+
+    // Recurse into nested blocks/statements
+    const ifStmt = stmt.ifStatement();
+    if (ifStmt) {
+      for (const child of ifStmt.statement()) {
+        this.scanStatementForCallbackAssignments(child);
+      }
+      return;
+    }
+
+    const whileStmt = stmt.whileStatement();
+    if (whileStmt) {
+      this.scanStatementForCallbackAssignments(whileStmt.statement());
+      return;
+    }
+
+    const forStmt = stmt.forStatement();
+    if (forStmt) {
+      this.scanStatementForCallbackAssignments(forStmt.statement());
+      return;
+    }
+
+    const doWhileStmt = stmt.doWhileStatement();
+    if (doWhileStmt) {
+      this.scanBlockForCallbackAssignments(doWhileStmt.block());
+      return;
+    }
+
+    const switchStmt = stmt.switchStatement();
+    if (switchStmt) {
+      for (const caseCtx of switchStmt.switchCase()) {
+        this.scanBlockForCallbackAssignments(caseCtx.block());
+      }
+      const defaultCtx = switchStmt.defaultCase();
+      if (defaultCtx) {
+        this.scanBlockForCallbackAssignments(defaultCtx.block());
+      }
+      return;
+    }
+
+    const criticalStmt = stmt.criticalStatement();
+    if (criticalStmt) {
+      this.scanBlockForCallbackAssignments(criticalStmt.block());
+      return;
+    }
+
+    // A statement can itself be a block
+    const nestedBlock = stmt.block();
+    if (nestedBlock) {
+      this.scanBlockForCallbackAssignments(nestedBlock);
+    }
+  }
+
+  /**
+   * Check if a variable declaration assigns a function to a C callback typedef.
+   */
+  private checkVarDeclForCallbackAssignment(
+    varDecl: Parser.VariableDeclarationContext,
+  ): void {
+    const typeName = varDecl.type().getText();
+    if (!this.isCFunctionPointerTypedef(typeName)) return;
+
+    const expr = varDecl.expression();
+    if (!expr) return;
+
+    const funcRef = this.extractFunctionReference(expr);
+    if (!funcRef) return;
+
+    // Scope-qualified names use dot in source (MyScope.handler) but
+    // allLocalFunctions stores them with underscore (MyScope_handler)
+    const lookupName = funcRef.includes(".")
+      ? funcRef.replace(".", "_")
+      : funcRef;
+
+    if (this.allLocalFunctions.has(lookupName)) {
+      CodeGenState.callbackCompatibleFunctions.add(lookupName);
+    }
+  }
+
+  /**
+   * Extract a function reference from an expression context.
+   * Matches bare identifiers (e.g., "my_handler") and qualified scope
+   * names (e.g., "MyScope.handler").
+   * Returns null if the expression is not a function reference.
+   */
+  private extractFunctionReference(
     expr: Parser.ExpressionContext,
   ): string | null {
     const text = expr.getText();
-    if (/^\w+$/.test(text)) {
+    if (/^\w+(\.\w+)?$/.test(text)) {
       return text;
     }
     return null;

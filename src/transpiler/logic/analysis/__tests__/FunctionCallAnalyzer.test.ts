@@ -809,5 +809,172 @@ describe("FunctionCallAnalyzer", () => {
 
       expect(analyzer.isCFunctionPointerTypedef("Callback")).toBe(true);
     });
+
+    it("should detect callback assignment inside if block", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          u32 flag <- 1;
+          if (flag = 1) {
+            PointCallback cb <- my_handler;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
+
+    it("should detect callback assignment inside while loop", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          u32 running <- 1;
+          while (running = 1) {
+            PointCallback cb <- my_handler;
+            running <- 0;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
+
+    it("should detect callback assignment inside for loop", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          for (u32 i <- 0; i < 1; i <- i + 1) {
+            PointCallback cb <- my_handler;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
+
+    it("should detect callback assignment with scope-qualified function name", () => {
+      const code = `
+        scope Handlers {
+          public void on_point(u32 x) {
+            u32 y <- x;
+          }
+        }
+        void main() {
+          PointCallback cb <- Handlers.on_point;
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      // Scope functions are stored as ScopeName_funcName
+      expect(
+        CodeGenState.callbackCompatibleFunctions.has("Handlers_on_point"),
+      ).toBe(true);
+    });
+
+    it("should detect callback assignment inside else block", () => {
+      const code = `
+        void my_handler(u32 x) {
+          u32 y <- x;
+        }
+        void main() {
+          u32 flag <- 0;
+          if (flag = 1) {
+            u32 x <- 1;
+          } else {
+            PointCallback cb <- my_handler;
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "PointCallback",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "callback_types.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void (*)(uint32_t)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+        true,
+      );
+    });
   });
 });
