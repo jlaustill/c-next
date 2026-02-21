@@ -192,8 +192,13 @@ class CResolver {
       const isFunction = DeclaratorUtils.declaratorIsFunction(declarator);
 
       if (ctx.isTypedef) {
+        // For function pointer typedefs like `typedef void (*Callback)(int)`,
+        // reconstruct the full type including (*) so consumers can detect it
+        const typedefType = CResolver.isFunctionPointerDeclarator(declarator)
+          ? `${baseType} (*)(${CResolver.extractParamText(declarator)})`
+          : baseType;
         ctx.symbols.push(
-          TypedefCollector.collect(name, baseType, ctx.sourceFile, ctx.line),
+          TypedefCollector.collect(name, typedefType, ctx.sourceFile, ctx.line),
         );
       } else if (isFunction) {
         ctx.symbols.push(
@@ -327,6 +332,50 @@ class CResolver {
       }
     }
     return typeParts.join(" ") || "int";
+  }
+
+  /**
+   * Check if a declarator represents a function pointer.
+   * For `(*PointCallback)(Point p)`, the C grammar parses as:
+   *   declarator -> directDeclarator
+   *   directDeclarator -> directDeclarator '(' parameterTypeList ')'
+   *   inner directDeclarator -> '(' declarator ')'
+   *   inner declarator -> pointer directDeclarator -> * PointCallback
+   */
+  static isFunctionPointerDeclarator(declarator: any): boolean {
+    const directDecl = declarator.directDeclarator?.();
+    if (!directDecl) return false;
+
+    // The outer directDeclarator has: directDeclarator '(' params ')'
+    // Check for parameter list at the outer level
+    const hasParams =
+      directDecl.parameterTypeList?.() !== null ||
+      Boolean(directDecl.LeftParen?.());
+
+    if (!hasParams) return false;
+
+    // The inner directDeclarator should be '(' declarator ')' with a pointer
+    const innerDirectDecl = directDecl.directDeclarator?.();
+    if (!innerDirectDecl) return false;
+
+    const nestedDecl = innerDirectDecl.declarator?.();
+    if (!nestedDecl) return false;
+
+    return Boolean(nestedDecl.pointer?.());
+  }
+
+  /**
+   * Extract parameter text from a function pointer declarator.
+   * Returns the text of the parameters, e.g., "Pointp" from "(*Callback)(Point p)".
+   */
+  static extractParamText(declarator: any): string {
+    const directDecl = declarator.directDeclarator?.();
+    if (!directDecl) return "";
+
+    const paramTypeList = directDecl.parameterTypeList?.();
+    if (!paramTypeList) return "";
+
+    return paramTypeList.getText();
   }
 }
 

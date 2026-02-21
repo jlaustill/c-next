@@ -226,8 +226,13 @@ class FunctionCallListener extends CNextListener {
     const typeCtx = ctx.type();
     const typeName = typeCtx.getText();
 
-    // Check if this is an ISR type or a callback type (function-as-type)
-    if (typeName === "ISR" || this.analyzer.isCallbackType(typeName)) {
+    // Check if this is an ISR type, a callback type (function-as-type),
+    // or a C function pointer typedef
+    if (
+      typeName === "ISR" ||
+      this.analyzer.isCallbackType(typeName) ||
+      this.analyzer.isCFunctionPointerTypedef(typeName)
+    ) {
       const varName = ctx.IDENTIFIER().getText();
       this.analyzer.defineCallableVariable(varName);
     }
@@ -241,8 +246,13 @@ class FunctionCallListener extends CNextListener {
     const typeCtx = ctx.type();
     const typeName = typeCtx.getText();
 
-    // Check if this is an ISR type or a callback type (function-as-type)
-    if (typeName === "ISR" || this.analyzer.isCallbackType(typeName)) {
+    // Check if this is an ISR type, a callback type (function-as-type),
+    // or a C function pointer typedef
+    if (
+      typeName === "ISR" ||
+      this.analyzer.isCallbackType(typeName) ||
+      this.analyzer.isCFunctionPointerTypedef(typeName)
+    ) {
       const paramName = ctx.IDENTIFIER().getText();
       this.analyzer.defineCallableVariable(paramName);
     }

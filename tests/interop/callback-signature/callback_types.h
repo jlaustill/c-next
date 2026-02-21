@@ -19,7 +19,14 @@ typedef struct {
     PointCallback on_point;
 } PointHandler;
 
-/* Function that accepts a callback */
-void register_callback(PointCallback cb);
+/* Function that accepts a callback - inline implementation for test linking */
+static int callback_called = 0;
+static inline void register_callback(PointCallback cb) {
+    callback_called = 1;
+    Point test_point;
+    test_point.x = 10;
+    test_point.y = 20;
+    cb(test_point);
+}
 
 #endif /* CALLBACK_TYPES_H */

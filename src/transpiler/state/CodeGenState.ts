@@ -327,7 +327,9 @@ export default class CodeGenState {
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
-    this.callbackCompatibleFunctions = new Set();
+    // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
+    // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must
+    // persist into code generation. It is cleared at the start of each Transpiler run.
 
     // Pass-by-value analysis
     this.modifiedParameters = new Map();

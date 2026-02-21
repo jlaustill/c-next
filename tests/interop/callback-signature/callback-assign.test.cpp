@@ -3,23 +3,32 @@
  * A safer C for embedded systems
  */
 
-// test-cpp-only
-// test-transpile-only
+// test-execution
 // Test: Assigning C-Next function to C callback typedef
-// Current behavior: C-Next generates `const T&` but C callback expects `T`
-// This test documents the current (incorrect) behavior
-// TODO: Fix so C-Next functions can be assigned to C callbacks
+// Verifies signature compatibility in both C and C++ modes
 #include "callback_types.h"
 
 #include <stdint.h>
 
+int32_t handler_sum = 0;
+
 // C-Next function that should be assignable to PointCallback
-void my_point_handler(const Point& p) {
-    int32_t sum = p.x + p.y;
+void my_point_handler(Point p) {
+    handler_sum = p.x + p.y;
 }
 
-void test_callback_assign(void) {
+int main(void) {
     PointCallback cb = my_point_handler;
+    Point p1 = (Point){ .x = 3, .y = 7 };
+    cb(p1);
+    if (handler_sum != 10) return 1;
+    handler_sum = 0;
     PointHandler handler = (PointHandler){ .on_point = my_point_handler };
+    Point p2 = (Point){ .x = 5, .y = 15 };
+    handler.on_point(p2);
+    if (handler_sum != 20) return 2;
+    handler_sum = 0;
     register_callback(my_point_handler);
+    if (handler_sum != 30) return 3;
+    return 0;
 }

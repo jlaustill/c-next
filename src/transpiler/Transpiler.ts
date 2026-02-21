@@ -619,6 +619,9 @@ class Transpiler {
     CodeGenState.symbolTable.clear();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
     SymbolRegistry.reset();
+    // Reset callback-compatible functions for new run
+    // (populated by FunctionCallAnalyzer, persists through CodeGenState.reset())
+    CodeGenState.callbackCompatibleFunctions = new Set();
   }
 
   /**
