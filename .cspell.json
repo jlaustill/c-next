@@ -355,6 +355,8 @@
   "ignorePaths": [
     "node_modules/**",
     "dist/**",
+    "vscode-extension/node_modules/**",
+    "vscode-extension/dist/**",
     "src/antlr_parser/**",
     "**/parser/**/grammar/**",
     "package-lock.json",
