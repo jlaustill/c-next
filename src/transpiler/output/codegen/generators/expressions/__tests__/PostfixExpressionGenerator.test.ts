@@ -200,7 +200,7 @@ function createMockOrchestrator(overrides?: {
     indent: vi.fn((text) => text),
     validateNoEarlyExits: vi.fn(),
     validateSwitchStatement: vi.fn(),
-    validateDoWhileCondition: vi.fn(),
+    validateConditionIsBoolean: vi.fn(),
     validateConditionNoFunctionCall: vi.fn(),
     validateTernaryConditionNoFunctionCall: vi.fn(),
     generateAssignmentTarget: vi.fn(),

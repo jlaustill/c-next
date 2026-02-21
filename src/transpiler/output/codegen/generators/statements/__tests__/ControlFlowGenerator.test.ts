@@ -364,7 +364,7 @@ function createMockOrchestrator(options?: {
     registerLocalVariable: vi.fn(),
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
     validateConditionNoFunctionCall: vi.fn(),
-    validateDoWhileCondition: vi.fn(),
+    validateConditionIsBoolean: vi.fn(),
     countStringLengthAccesses: vi.fn(() => new Map()),
     countBlockLengthAccesses: vi.fn(),
     setupLengthCache: vi.fn(() => options?.lengthCacheDecls ?? ""),
@@ -690,15 +690,15 @@ describe("ControlFlowGenerator", () => {
       const ctx = createMockDoWhileStatement({ expr });
       const input = createMockInput();
       const state = createMockState();
-      const validateDoWhileCondition = vi.fn();
+      const validateConditionIsBoolean = vi.fn();
       const orchestrator = {
         ...createMockOrchestrator(),
-        validateDoWhileCondition,
+        validateConditionIsBoolean,
       } as unknown as IOrchestrator;
 
       generateDoWhile(ctx, input, state, orchestrator);
 
-      expect(validateDoWhileCondition).toHaveBeenCalledWith(expr);
+      expect(validateConditionIsBoolean).toHaveBeenCalledWith(expr, "do-while");
     });
 
     it("validates no function calls in condition (Issue #254)", () => {

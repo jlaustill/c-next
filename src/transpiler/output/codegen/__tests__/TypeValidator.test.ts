@@ -1820,7 +1820,7 @@ describe("TypeValidator", () => {
   // Tests - Do-While Validation (ADR-027)
   // ========================================================================
 
-  describe("validateDoWhileCondition", () => {
+  describe("validateConditionIsBoolean", () => {
     function createFullDoWhileExpression(
       text: string,
       options?: {
@@ -1874,36 +1874,44 @@ describe("TypeValidator", () => {
       const ctx = createFullDoWhileExpression("x < 10", {
         hasRelational: true,
       });
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).not.toThrow();
     });
 
     it("allows conditions with equality operators", () => {
       setupState();
       const ctx = createFullDoWhileExpression("x = 0", { hasEquality: true });
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).not.toThrow();
     });
 
     it("allows conditions with && operator", () => {
       setupState();
       const ctx = createFullDoWhileExpression("a && b", { hasAnd: true });
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).not.toThrow();
     });
 
     it("allows conditions with || operator", () => {
       setupState();
       const ctx = createFullDoWhileExpression("a || b", { hasOr: true });
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).not.toThrow();
     });
 
     it("throws for bare value condition", () => {
       setupState();
       const ctx = createFullDoWhileExpression("count");
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
-        "E0701",
-      );
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
-        "do-while condition must be a boolean expression",
-      );
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("E0701");
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("do-while condition must be a boolean expression");
     });
 
     it("throws for ternary in do-while condition", () => {
@@ -1914,9 +1922,9 @@ describe("TypeValidator", () => {
           orExpression: () => [{}, {}], // Multiple orExpressions = ternary
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
-        "E0701",
-      );
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("E0701");
     });
 
     it("allows boolean literals", () => {
@@ -1948,7 +1956,9 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).not.toThrow();
     });
 
     it("allows negation expressions", () => {
@@ -1979,7 +1989,9 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).not.toThrow();
     });
 
     it("allows bool type variables", () => {
@@ -2016,15 +2028,17 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).not.toThrow();
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).not.toThrow();
     });
 
     it("shows help message in error", () => {
       setupState();
       const ctx = createFullDoWhileExpression("count");
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
-        "help: use explicit comparison: count > 0 or count != 0",
-      );
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("help: use explicit comparison: count > 0 or count != 0");
     });
 
     it("throws when no andExpression", () => {
@@ -2039,9 +2053,9 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
-        "E0701",
-      );
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("E0701");
     });
 
     it("throws when no equalityExpression", () => {
@@ -2059,9 +2073,9 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
-        "E0701",
-      );
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("E0701");
     });
 
     it("throws when no relationalExpression", () => {
@@ -2082,9 +2096,9 @@ describe("TypeValidator", () => {
           orExpression: antlrArray([orExpr]),
         }),
       } as unknown as Parser.ExpressionContext;
-      expect(() => TypeValidator.validateDoWhileCondition(ctx)).toThrow(
-        "E0701",
-      );
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("E0701");
     });
   });
 

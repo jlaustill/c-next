@@ -1,0 +1,2 @@
+1:0 Code generation failed: Error E0701: while condition must be a boolean expression (comparison or logical operation), not 'count' (MISRA C:2012 Rule 14.4)
+  help: use explicit comparison: count > 0 or count != 0

@@ -208,8 +208,11 @@ interface IOrchestrator {
     switchExpr: Parser.ExpressionContext,
   ): void;
 
-  /** Validate do-while condition (ADR-027) */
-  validateDoWhileCondition(ctx: Parser.ExpressionContext): void;
+  /** Validate condition is a boolean expression (ADR-027, Issue #884) */
+  validateConditionIsBoolean(
+    ctx: Parser.ExpressionContext,
+    conditionType: string,
+  ): void;
 
   /** Validate no function calls in condition (Issue #254, E0702) */
   validateConditionNoFunctionCall(

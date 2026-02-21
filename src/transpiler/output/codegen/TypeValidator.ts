@@ -714,16 +714,19 @@ class TypeValidator {
   }
 
   // ========================================================================
-  // Do-While Validation (ADR-027)
+  // Condition Boolean Validation (ADR-027, Issue #884)
   // ========================================================================
 
-  static validateDoWhileCondition(ctx: Parser.ExpressionContext): void {
+  static validateConditionIsBoolean(
+    ctx: Parser.ExpressionContext,
+    conditionType: string,
+  ): void {
     const ternaryExpr = ctx.ternaryExpression();
     const orExprs = ternaryExpr.orExpression();
 
     if (orExprs.length !== 1) {
       throw new Error(
-        `Error E0701: do-while condition must be a boolean expression, not a ternary (MISRA C:2012 Rule 14.4)`,
+        `Error E0701: ${conditionType} condition must be a boolean expression, not a ternary (MISRA C:2012 Rule 14.4)`,
       );
     }
 
@@ -737,7 +740,7 @@ class TypeValidator {
     const andExpr = orExpr.andExpression(0);
     if (!andExpr) {
       throw new Error(
-        `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
+        `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
       );
     }
 
@@ -748,7 +751,7 @@ class TypeValidator {
     const equalityExpr = andExpr.equalityExpression(0);
     if (!equalityExpr) {
       throw new Error(
-        `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
+        `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
       );
     }
 
@@ -759,7 +762,7 @@ class TypeValidator {
     const relationalExpr = equalityExpr.relationalExpression(0);
     if (!relationalExpr) {
       throw new Error(
-        `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
+        `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
       );
     }
 
@@ -773,7 +776,7 @@ class TypeValidator {
     }
 
     throw new Error(
-      `Error E0701: do-while condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: use explicit comparison: ${text} > 0 or ${text} != 0`,
+      `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: use explicit comparison: ${text} > 0 or ${text} != 0`,
     );
   }
 
