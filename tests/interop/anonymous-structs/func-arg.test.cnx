@@ -1,0 +1,54 @@
+// test-cpp-only
+// test-execution
+// Test: Struct with anonymous member used as function argument
+#include "anon_types.h"
+
+// Test function that takes struct with anonymous member
+i32 check_simple(SimpleConfig cfg) {
+    if (cfg.value != 99) return 1;
+    if (cfg.flags.flag_b != 1) return 2;
+    return 0;
+}
+
+i32 check_display(DisplayConfig disp) {
+    if (disp.resolution.width != 1024) return 1;
+    if (disp.resolution.height != 768) return 2;
+    if (disp.settings.brightness != 100) return 3;
+    return 0;
+}
+
+i32 check_panel(PanelConfig panel) {
+    if (panel.clk_src != 1) return 1;
+    if (panel.timings.h_res != 800) return 2;
+    if (panel.flags.fb_in_psram != 1) return 3;
+    return 0;
+}
+
+i32 main() {
+    // Test 1: Simple struct with anon member
+    SimpleConfig cfg <- {
+        value: 99,
+        flags: { flag_b: 1 }
+    };
+    i32 result <- check_simple(cfg);
+    if (result != 0) return result;
+
+    // Test 2: Display config
+    DisplayConfig disp <- {
+        resolution: { width: 1024, height: 768 },
+        settings: { brightness: 100, contrast: 75 }
+    };
+    result <- check_display(disp);
+    if (result != 0) return 10 + result;
+
+    // Test 3: Panel config (ESP-IDF style)
+    PanelConfig panel <- {
+        clk_src: 1,
+        timings: { pclk_hz: 16000000, h_res: 800, v_res: 480 },
+        flags: { fb_in_psram: 1, double_fb: 0 }
+    };
+    result <- check_panel(panel);
+    if (result != 0) return 20 + result;
+
+    return 0;
+}

@@ -1,0 +1,25 @@
+// test-cpp-only
+// test-transpile-only
+// Test: Assigning C-Next function to C callback typedef
+// Current behavior: C-Next generates `const T&` but C callback expects `T`
+// This test documents the current (incorrect) behavior
+// TODO: Fix so C-Next functions can be assigned to C callbacks
+#include "callback_types.h"
+
+// C-Next function that should be assignable to PointCallback
+void my_point_handler(Point p) {
+    i32 sum <- p.x + p.y;
+}
+
+void test_callback_assign() {
+    // This should work: assign C-Next function to C callback
+    PointCallback cb <- my_point_handler;
+
+    // Struct with callback field
+    PointHandler handler <- {
+        on_point: my_point_handler
+    };
+
+    // Pass to C function
+    register_callback(my_point_handler);
+}
