@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 _Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
 _Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
@@ -13,8 +12,9 @@ _Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double")
 // Simple test for float bit read inside function
 int main(void) {
     float testVal = 1.0;
-    uint32_t __bits_testVal;
-    uint8_t byte3 = (memcpy(&__bits_testVal, &testVal, sizeof(testVal)), ((__bits_testVal >> 24U) & 0xFFU));
+    union { float f; uint32_t u; } __bits_testVal;
+    __bits_testVal.f = testVal;
+    uint8_t byte3 = ((__bits_testVal.u >> 24U) & 0xFFU);
     if (byte3 != 0x3F) return 1;
     return 0;
 }

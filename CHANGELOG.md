@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-02-20
+
+### Fixed
+
+- Use union-based type punning for float bit access to avoid undefined behavior (Issue #857)
+- Add default case to all switch statements for MISRA 16.4 compliance
+- Exclude URI exception test from cppcheck MISRA validation (Issue #856)
+- Add proper spacing in anonymous struct compound literals
+
+### Changed
+
+- Consolidate push calls for SonarCloud S7778 compliance
+
+### Added
+
+- Union type coverage for anonymous struct reconstruction tests
+
 ## [0.2.2] - 2026-02-20
 
 ### Fixed
@@ -1032,7 +1049,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/jlaustill/c-next/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/jlaustill/c-next/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/jlaustill/c-next/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jlaustill/c-next/compare/v0.1.72...v0.2.0

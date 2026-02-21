@@ -23,6 +23,9 @@ uint32_t classify(EStatus status) {
             return 3;
             break;
         }
+        default: {
+            break;
+        }
     }
     return 0;
 }
