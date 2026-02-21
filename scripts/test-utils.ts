@@ -60,8 +60,10 @@ function isDistFresh(): boolean {
   return !hasNewerSource(SRC_DIR);
 }
 
-// Auto-rebuild on module load to ensure tests always use fresh bundle
-if (existsSync(DIST_ENTRY) && !isDistFresh()) {
+// Auto-rebuild on module load to ensure tests always use fresh bundle.
+// Only the main process should rebuild — workers (created via fork()) have
+// process.send, so we skip the build check in them to avoid 24 concurrent builds.
+if (!process.send && existsSync(DIST_ENTRY) && !isDistFresh()) {
   console.warn("Warning: dist/index.js is stale. Rebuilding...");
   const buildResult = spawnSync("npm", ["run", "build"], {
     cwd: PROJECT_ROOT,
