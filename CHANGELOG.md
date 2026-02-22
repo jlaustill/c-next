@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-02-22
+
+### Added
+
+- Centralized error code registry document (docs/error-codes.md)
+
+### Changed
+
+- Move `ExpressionUnwrapper` utility to `src/utils/` for layer compliance
+- Finalize ADR-054 Decision section for array index overflow semantics
+- Use self-hosted runner for trusted CI jobs
+- Split integration tests for parallel c-validation
+- Parallelize C static analysis with matrix strategy
+
+### Fixed
+
+- Fix callback functions generating wrong pointer signatures (#895)
+- Preserve const from callback typedef signatures (#895)
+- Detect C++ reference params in `hasCppFeatures()`
+
 ## [0.2.4] - 2026-02-22
 
 ### Added
