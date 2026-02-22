@@ -235,7 +235,7 @@ void Robot_loadPlugin(Robot self, MoodOverride override) {
 Arrays of same-type callbacks are rarely needed in embedded. Use explicit named fields instead:
 
 ```cnx
-// Instead of: callback handlers[3];
+// Instead of: callback[3] handlers;
 // Use:
 struct EventSystem {
     onEvent preHandler;

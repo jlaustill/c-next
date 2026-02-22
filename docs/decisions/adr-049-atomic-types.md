@@ -383,7 +383,7 @@ atomic wrap u32 tickCount <- 0;
 
 // NOT allowed - use critical blocks instead
 // atomic MyStruct data;           // ERROR: structs not atomic
-// atomic u8 buffer[16];           // ERROR: arrays not atomic
+// atomic u8[16] buffer;           // ERROR: arrays not atomic
 ```
 
 **Documentation Note**: 64-bit atomics on 32-bit platforms require disabling interrupts for every access. Use when correctness matters more than latency. Consider whether a `critical { }` block around multiple operations might be clearer.

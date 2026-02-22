@@ -609,7 +609,7 @@ describe("StructCollector", () => {
   it("should collect struct with array fields", () => {
     const tree = parse(`
       struct Buffer {
-        u8 data[256];
+        u8[256] data;
       }
     `);
     const ctx = tree.declaration(0).structDeclaration()!;

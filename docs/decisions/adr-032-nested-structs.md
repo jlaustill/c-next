@@ -129,7 +129,7 @@ struct Material {
 }
 
 struct Mesh {
-    Point vertices[100];
+    Point[100] vertices;
     Material material;
 }
 ```
@@ -154,7 +154,7 @@ struct PacketHeader {
 struct Packet {
     u8 type;
     PacketHeader header;
-    u8 payload[256];
+    u8[256] payload;
 }
 
 // Access is equally clear:

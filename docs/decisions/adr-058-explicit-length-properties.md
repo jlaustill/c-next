@@ -18,9 +18,9 @@ C-Next currently uses `.length` as a universal property on multiple types, but i
 | Type                       | `.length` returns       | Compile-time? | Example                        |
 | -------------------------- | ----------------------- | ------------- | ------------------------------ |
 | `u32 counter`              | 32 (bit width)          | Yes           | `counter.length` → `32`        |
-| `u8 buffer[16]`            | 16 (element count)      | Yes           | `buffer.length` → `16`         |
+| `u8[16] buffer`            | 16 (element count)      | Yes           | `buffer.length` → `16`         |
 | `string<64> name`          | Runtime character count | **No**        | `name.length` → `strlen(name)` |
-| `u32 arr[10]` via `arr[0]` | 32 (element bit width)  | Yes           | `arr[0].length` → `32`         |
+| `u32[10] arr` via `arr[0]` | 32 (element bit width)  | Yes           | `arr[0].length` → `32`         |
 
 This overloading means that reading `someVar.length` requires knowing the type of `someVar` to understand what the value represents. This is exactly the class of ambiguity that has caused well-documented problems in other languages.
 
@@ -46,7 +46,7 @@ Beyond the ambiguity of built-in types, users reasonably want `.length` as a mem
 
 ```cnx
 struct Packet {
-    u8 data[256];
+    u8[256] data;
     u32 length;      // How many bytes are actually used
 }
 ```
@@ -215,12 +215,12 @@ u32 e <- s.bit_length;          // 32
 Arrays get all three properties — total storage size AND element count:
 
 ```cnx
-u32 buffer[16];
+u32[16] buffer;
 u32 bits <- buffer.bit_length;        // 512  (16 × 32)
 u32 bytes <- buffer.byte_length;      // 64   (512 / 8)
 u32 count <- buffer.element_count;    // 16
 
-u8 data[256];
+u8[256] data;
 u32 bits2 <- data.bit_length;        // 2048 (256 × 8)
 u32 bytes2 <- data.byte_length;      // 256  (2048 / 8)
 u32 count2 <- data.element_count;    // 256
@@ -231,7 +231,7 @@ u32 count2 <- data.element_count;    // 256
 Properties work recursively through each dimension:
 
 ```cnx
-u8 matrix[8][8];
+u8[8][8] matrix;
 
 // Full array: 8 × 8 × 8 bits
 u32 total <- matrix.bit_length;       // 512
@@ -282,7 +282,7 @@ Struct size properties are invaluable for memory safety in v2 scenarios:
 
 ```cnx
 // Dynamic memory (ADR-101, v2)
-SensorReading readings[100];
+SensorReading[100] readings;
 u32 total_bytes <- readings.byte_length;   // Total buffer size for DMA transfer
 
 // Thread-safe shared memory (ADR-100, v2)
@@ -294,12 +294,12 @@ u32 struct_size <- reading.byte_length;    // Size for memcpy in IPC
 ```cnx
 // No collision with built-in properties
 struct Packet {
-    u8 data[256];
+    u8[256] data;
     u32 length;             // Perfectly fine now
 }
 
 scope Buffer {
-    u8 data[1024];
+    u8[1024] data;
     u32 length <- 0;        // Track used bytes — no conflict
 
     void append(u8 byte) {
@@ -326,7 +326,7 @@ The rename improves readability — `flags.bit_length` makes it obvious that the
 `byte_length` is directly useful for slice assignments (ADR-007, Issue #234):
 
 ```cnx
-u8 buffer[256];
+u8[256] buffer;
 u32 magic <- 0x12345678;
 
 // Before: had to manually calculate byte size
@@ -469,7 +469,7 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 1. **Struct padding**: Should `bit_length`/`byte_length` on structs report the size with or without C struct padding? With padding matches `sizeof()` (what you'd use for `memcpy`), but without padding matches the sum of field sizes. The `sizeof` interpretation is more useful and matches what C does.
 
-2. **Nested struct arrays**: For `struct Outer { Inner items[10]; }`, should `outer.items.element_count` return 10? This follows naturally from the array rules, but the implementation needs to handle struct field type resolution.
+2. **Nested struct arrays**: For `struct Outer { Inner[10] items; }`, should `outer.items.element_count` return 10? This follows naturally from the array rules, but the implementation needs to handle struct field type resolution.
 
 ---
 

@@ -73,7 +73,7 @@ registerHandler(uartHandler);   // OK
 
 ```cnx
 // Array of ISRs
-ISR handlers[4];
+ISR[4] handlers;
 
 // Initialize
 handlers[0] <- timerHandler;

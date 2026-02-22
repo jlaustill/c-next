@@ -280,11 +280,11 @@ i32 x <- calculate(5, 3);  // x gets value 8
 Arrays pass by reference naturally (pointer to first element):
 
 ```
-void processBuffer(u8 buffer[256]) {
+void processBuffer(u8[256] buffer) {
     buffer[0] <- 0xFF;  // Modifies original array
 }
 
-u8 myBuffer[256];
+u8[256] myBuffer;
 processBuffer(myBuffer);  // Pass array, modifies in place
 ```
 

@@ -53,9 +53,9 @@ Extend `clamp`/`wrap` keywords to array declarations, with per-access override c
 
 ```cnx
 // Declaration sets the default index behavior
-clamp u8 buffer[100];   // Out-of-bounds indices clamp to valid range
-wrap u8 ring[256];      // Out-of-bounds indices wrap (circular buffer)
-u8 normal[50];          // Default is clamp (safe by default)
+clamp u8[100] buffer;   // Out-of-bounds indices clamp to valid range
+wrap u8[256] ring;      // Out-of-bounds indices wrap (circular buffer)
+u8[50] normal;          // Default is clamp (safe by default)
 
 // Usage with declaration default
 value <- buffer[105];        // Clamps: buffer[99]
@@ -78,7 +78,7 @@ value <- ring[clamp idx];    // Override: clamp instead of wrap
 The third option is a **silent no-op** — out-of-bounds access simply does nothing:
 
 ```cnx
-discard u8 buffer[100];
+discard u8[100] buffer;
 
 u8 result <- 42;
 result <- buffer[105];   // result stays 42 (read ignored)
@@ -97,7 +97,7 @@ buffer[105] <- 99;       // Write discarded silently
 
 | Integer Overflow | Array Index         | Philosophy                |
 | ---------------- | ------------------- | ------------------------- |
-| `clamp u16 temp` | `clamp u8 buf[100]` | Declaration sets default  |
+| `clamp u16 temp` | `clamp u8[100] buf` | Declaration sets default  |
 | `temp +wrap 1`   | `buf[wrap idx]`     | Per-operation override    |
 | Default: clamp   | Default: clamp      | Safe by default           |
 | `--debug`: panic | `--debug`: panic    | Catch bugs in development |
@@ -123,7 +123,7 @@ With C-Next array index overflow:
 
 ```cnx
 // C-Next: Intent declared once, enforced everywhere
-wrap u8 rxBuffer[256];
+wrap u8[256] rxBuffer;
 wrap u8 head <- 0;
 
 void uart_isr() {
@@ -564,7 +564,7 @@ buffer.clamp(idx)
 How should negative indices behave?
 
 ```cnx
-wrap u8 buffer[100];
+wrap u8[100] buffer;
 value <- buffer[-1];  // Option A: Wraps to buffer[99] (Python-like)
                       // Option B: Wraps to buffer[?] (modulo behavior unclear for negative)
                       // Option C: Always clamp negative to 0 regardless of wrap
@@ -575,11 +575,11 @@ value <- buffer[-1];  // Option A: Wraps to buffer[99] (Python-like)
 How does this extend to multi-dimensional arrays?
 
 ```cnx
-wrap u8 matrix[10][10];
+wrap u8[10][10] matrix;
 value <- matrix[15][20];  // Both indices wrap? Or just one?
 
 // Can dimensions have different behaviors?
-// wrap/clamp u8 matrix[10][10]; ???
+// wrap/clamp u8[10][10] matrix; ???
 ```
 
 ### Q5: Interaction with Sizeof/Length
@@ -587,7 +587,7 @@ value <- matrix[15][20];  // Both indices wrap? Or just one?
 If an array clamps, does `.length` still return the declared size?
 
 ```cnx
-clamp u8 buffer[100];
+clamp u8[100] buffer;
 u32 len <- buffer.length;  // 100 (declared size)
 buffer[150] <- 0;          // Writes to buffer[99]
 // Is this confusing? Length says 100, but 150 "works"
@@ -672,7 +672,7 @@ indexOverride
 
 ```cnx
 // C-Next
-clamp u8 buffer[100];
+clamp u8[100] buffer;
 value <- buffer[idx];
 ```
 
@@ -687,7 +687,7 @@ value = buffer[_idx_clamped];
 
 ```cnx
 // C-Next
-wrap u8 ring[256];
+wrap u8[256] ring;
 ring[head] <- byte;
 ```
 
@@ -703,7 +703,7 @@ ring[head % 100] = byte;   // Modulo for other sizes
 
 ```cnx
 // C-Next
-discard u8 sensorData[100];
+discard u8[100] sensorData;
 result <- sensorData[idx];
 sensorData[idx] <- newValue;
 ```

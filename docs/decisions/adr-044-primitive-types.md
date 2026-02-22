@@ -500,8 +500,8 @@ u32 unsigned <- (u32)signed;   // Explicit cast required
 Array element types are explicit:
 
 ```cnx
-u8 buffer[256];      // 256-byte buffer
-i32 values[10];      // 10 32-bit integers
+u8[256] buffer;      // 256-byte buffer
+i32[10] values;      // 10 32-bit integers
 ```
 
 ---

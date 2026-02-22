@@ -85,7 +85,7 @@ usize structSize <- sizeof(Point); // Includes padding
 ### Variable Sizeof
 
 ```cnx
-u8 buffer[256];
+u8[256] buffer;
 usize bufSize <- sizeof(buffer);   // 256
 
 Point p;
@@ -99,17 +99,17 @@ usize pSize <- sizeof(p);          // Same as sizeof(Point)
 memset(&config, 0, sizeof(config));
 
 // Copy buffer - use sizeof(type) * .length for byte count
-void copyBuffer(u8 dest[], u8 src[]) {
+void copyBuffer(u8[] dest, u8[] src) {
     memcpy(dest, src, sizeof(u8) * src.length);
 }
 
 // Array element count vs byte count (local arrays only)
-u32 arr[10];
+u32[10] arr;
 usize count <- arr.length;      // 10 (element count, ADR-007)
 usize bytes <- sizeof(arr);     // 40 (total bytes)
 
 // Struct array byte count
-Point points[5];
+Point[5] points;
 usize pointBytes <- sizeof(Point) * points.length;  // Safe pattern
 ```
 
@@ -122,7 +122,7 @@ C-Next enforces three safety rules to prevent common sizeof bugs.
 Using `sizeof()` on an array parameter is a compile error. In C, array parameters decay to pointers, so `sizeof(arrayParam)` returns pointer size (4 or 8 bytes), not the array size.
 
 ```cnx
-void process(u8 data[]) {
+void process(u8[] data) {
     usize size <- sizeof(data);  // ERROR E0601
 }
 ```
@@ -143,7 +143,7 @@ error[E0601]: sizeof() on array parameter returns pointer size, not array size
 **Safe alternatives:**
 
 ```cnx
-void process(u8 data[]) {
+void process(u8[] data) {
     usize count <- data.length;               // Element count
     usize bytes <- sizeof(u8) * data.length;  // Byte count
 }
@@ -189,7 +189,7 @@ Variable-length arrays (VLAs) are not allowed in C-Next. This aligns with ADR-00
 
 ```cnx
 void process(u32 n) {
-    u8 buffer[n];  // ERROR E0603
+    u8[n] buffer;  // ERROR E0603
 }
 ```
 
@@ -199,7 +199,7 @@ void process(u32 n) {
 error[E0603]: variable-length arrays are not allowed (ADR-003: static allocation)
   --> file.cnx:2:5
    |
-2  |     u8 buffer[n];
+2  |     u8[n] buffer;
    |        ^^^^^^^^^ array size must be compile-time constant
    |
    = help: use a fixed-size buffer or allocate at startup
@@ -210,7 +210,7 @@ error[E0603]: variable-length arrays are not allowed (ADR-003: static allocation
 ```cnx
 // Fixed-size buffer
 void process(u32 n) {
-    u8 buffer[MAX_SIZE];  // Compile-time constant
+    u8[MAX_SIZE] buffer;  // Compile-time constant
     // Use only first n elements...
 }
 
@@ -228,7 +228,7 @@ usize ptrSize <- sizeof(usize);         // Platform-dependent
 usize pointSize <- sizeof(Point);       // Includes padding
 
 // Local fixed arrays (not parameters)
-u8 localBuffer[256];
+u8[256] localBuffer;
 usize bufBytes <- sizeof(localBuffer);  // 256 - OK
 
 // Struct instances
@@ -236,7 +236,7 @@ Point p;
 usize pSize <- sizeof(p);               // Same as sizeof(Point)
 
 // Byte count via explicit multiplication (recommended for params)
-void clear(u8 data[]) {
+void clear(u8[] data) {
     memset(data, 0, sizeof(u8) * data.length);  // Explicit and safe
 }
 ```

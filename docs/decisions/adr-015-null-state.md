@@ -25,7 +25,7 @@ This applies to all variables:
 - Primitives (`u32 count;`)
 - Structs (`Point origin;`)
 - Class instances (`UART uart1;`)
-- Arrays (`u8 buffer[256];`)
+- Arrays (`u8[256] buffer;`)
 
 ## The Problem
 
@@ -82,7 +82,7 @@ This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Un
 // Global variables - zero initialized
 u32 count;           // count = 0
 bool flag;           // flag = false
-u8 buffer[256];      // All bytes = 0
+u8[256] buffer;      // All bytes = 0
 Point origin;        // origin.x = 0, origin.y = 0
 UART uart1;          // All fields = 0
 ```
@@ -187,7 +187,7 @@ In C-Next globals:
 
 ```cnx
 u32 count;           // 0 - ready for incrementing
-u8 buffer[256];      // All zeros - ready for data
+u8[256] buffer;      // All zeros - ready for data
 bool initialized;    // false - correct initial state
 ```
 
@@ -281,7 +281,7 @@ visitVariableDeclaration(ctx) {
 | `u32 x;`       | `uint32_t x = 0;`         |
 | `bool f;`      | `bool f = false;`         |
 | `f32 v;`       | `float v = 0.0f;`         |
-| `u8 buf[256];` | `uint8_t buf[256] = {0};` |
+| `u8[256] buf;` | `uint8_t buf[256] = {0};` |
 | `Point p;`     | `Point p = {0};`          |
 | `UART u;`      | `UART u = {0};`           |
 
@@ -326,7 +326,7 @@ void handleError() {
 ### Buffer Pattern
 
 ```cnx
-u8 rxBuffer[1024];   // All zeros
+u8[1024] rxBuffer;   // All zeros
 
 void receive(u8 byte) {
     rxBuffer[rxIndex] <- byte;
