@@ -152,43 +152,44 @@ class Transpiler {
     try {
       await this._initializeRun();
 
-      if (input.kind === "files") {
-        // File discovery from config.inputs
-        const { cnextFiles, headerFiles } = await this.discoverSources();
-        if (cnextFiles.length === 0) {
-          return this._finalizeResult(result, "No C-Next source files found");
-        }
-
-        this._ensureOutputDirectories();
-
-        const pipelineFiles: IPipelineFile[] = cnextFiles.map((f) => ({
-          path: f.path,
-          discoveredFile: f,
-        }));
-
-        const pipelineInput: IPipelineInput = {
-          cnextFiles: pipelineFiles,
-          headerFiles,
-          writeOutputToDisk: true,
-        };
-
-        await this._executePipeline(pipelineInput, result);
-      } else {
-        // Source discovery from in-memory string
-        const pipelineInput = this._discoverFromSource(
-          input.source,
-          input.workingDir ?? process.cwd(),
-          input.includeDirs ?? [],
-          input.sourcePath ?? "<string>",
-        );
-
-        await this._executePipeline(pipelineInput, result);
+      const pipelineInput = await this.discoverIncludes(input);
+      if (pipelineInput.cnextFiles.length === 0) {
+        return this._finalizeResult(result, "No C-Next source files found");
       }
 
+      if (input.kind === "files") {
+        this._ensureOutputDirectories();
+      }
+
+      await this._executePipeline(pipelineInput, result);
       return await this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
     }
+  }
+
+  /**
+   * Stage 1: Discover files and build pipeline input.
+   *
+   * Branches on input kind:
+   * - 'files': filesystem scan, dependency graph, topological sort
+   * - 'source': parse in-memory string, walk include tree
+   *
+   * Header directive storage happens via IncludeResolver.resolve() for both
+   * C headers and cnext includes (Issue #854).
+   */
+  private async discoverIncludes(
+    input: TTranspileInput,
+  ): Promise<IPipelineInput> {
+    if (input.kind === "files") {
+      return this._discoverFromFiles();
+    }
+    return this._discoverFromSource(
+      input.source,
+      input.workingDir ?? process.cwd(),
+      input.includeDirs ?? [],
+      input.sourcePath ?? "<string>",
+    );
   }
 
   // ===========================================================================
@@ -896,10 +897,7 @@ class Transpiler {
    * This ensures headers are found based on what the source actually
    * includes, not by blindly scanning include directories.
    */
-  private async discoverSources(): Promise<{
-    cnextFiles: IDiscoveredFile[];
-    headerFiles: IDiscoveredFile[];
-  }> {
+  private async _discoverFromFiles(): Promise<IPipelineInput> {
     // Step 1: Discover C-Next files from inputs (files or directories)
     const cnextFiles: IDiscoveredFile[] = [];
     const fileByPath = new Map<string, IDiscoveredFile>();
@@ -909,7 +907,7 @@ class Transpiler {
     }
 
     if (cnextFiles.length === 0) {
-      return { cnextFiles: [], headerFiles: [] };
+      return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
     }
 
     // Step 2: For each C-Next file, resolve its #include directives
@@ -933,7 +931,7 @@ class Transpiler {
     // Issue #580: Sort files topologically for correct cross-file const inference
     const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
-    // Resolve headers transitively for the run() path
+    // Resolve headers transitively
     const { headers: allHeaders, warnings: headerWarnings } =
       IncludeResolver.resolveHeadersTransitively(
         [...headerSet.values()],
@@ -948,9 +946,16 @@ class Transpiler {
       );
     this.warnings.push(...headerWarnings);
 
+    // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
+    const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
+      path: f.path,
+      discoveredFile: f,
+    }));
+
     return {
-      cnextFiles: sortedCnextFiles,
+      cnextFiles: pipelineFiles,
       headerFiles: allHeaders,
+      writeOutputToDisk: true,
     };
   }
 
