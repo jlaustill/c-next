@@ -422,7 +422,7 @@ describe("Transpiler.determineProjectRoot", () => {
       });
 
       // Run transpiler to trigger cache creation
-      await transpiler.run();
+      await transpiler.transpile({ kind: "files" });
 
       // Cache directory should be in project root, not src dir
       expect(existsSync(join(projectDir, ".cnx"))).toBe(true);
@@ -440,7 +440,7 @@ describe("Transpiler.determineProjectRoot", () => {
         noCache: true,
       });
 
-      await transpiler.run();
+      await transpiler.transpile({ kind: "files" });
 
       // No cache directory should be created
       expect(existsSync(join(projectDir, ".cnx"))).toBe(false);

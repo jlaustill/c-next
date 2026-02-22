@@ -5,9 +5,9 @@
  * Key insight from ADR-053: "A single file transpilation is just a project
  * with one .cnx file."
  *
- * Architecture: Both run() and transpileSource() are thin wrappers that
- * discover files and delegate to _executePipeline(). There is ONE pipeline
- * for all transpilation — no branching on context/standalone mode.
+ * Architecture: transpile() is the single entry point. It discovers files
+ * via discoverIncludes(), then delegates to _executePipeline(). There is
+ * ONE pipeline for all transpilation.
  */
 
 import { join, basename, dirname, resolve } from "node:path";
@@ -52,6 +52,7 @@ import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
 import IPipelineFile from "./types/IPipelineFile";
 import IPipelineInput from "./types/IPipelineInput";
+import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./state/TranspilerState";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
@@ -134,42 +135,33 @@ class Transpiler {
   }
 
   // ===========================================================================
-  // Public API: run() and transpileSource()
+  // Public API
   // ===========================================================================
 
   /**
-   * Execute the unified pipeline from CLI inputs.
+   * Unified entry point for all transpilation.
    *
-   * Stage 1 (file discovery) happens here, then delegates to _executePipeline().
+   * @param input - What to transpile:
+   *   - { kind: 'files' } — discover from config.inputs, write to disk
+   *   - { kind: 'source', source, ... } — transpile in-memory source
+   * @returns ITranspilerResult with per-file results in .files[]
    */
-  async run(): Promise<ITranspilerResult> {
+  async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
     const result = this._initResult();
 
     try {
       await this._initializeRun();
 
-      // Stage 1: Discover source files
-      const { cnextFiles, headerFiles } = await this.discoverSources();
-      if (cnextFiles.length === 0) {
+      const pipelineInput = await this.discoverIncludes(input);
+      if (pipelineInput.cnextFiles.length === 0) {
         return this._finalizeResult(result, "No C-Next source files found");
       }
 
-      this._ensureOutputDirectories();
+      if (input.kind === "files") {
+        this._ensureOutputDirectories();
+      }
 
-      // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
-      const pipelineFiles: IPipelineFile[] = cnextFiles.map((f) => ({
-        path: f.path,
-        discoveredFile: f,
-      }));
-
-      const input: IPipelineInput = {
-        cnextFiles: pipelineFiles,
-        headerFiles,
-        writeOutputToDisk: true,
-      };
-
-      await this._executePipeline(input, result);
-
+      await this._executePipeline(pipelineInput, result);
       return await this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
@@ -177,66 +169,27 @@ class Transpiler {
   }
 
   /**
-   * Transpile source code provided as a string.
+   * Stage 1: Discover files and build pipeline input.
    *
-   * Discovers includes from the source, builds an IPipelineInput, and
-   * delegates to the same _executePipeline() as run().
+   * Branches on input kind:
+   * - 'files': filesystem scan, dependency graph, topological sort
+   * - 'source': parse in-memory string, walk include tree
    *
-   * @param source - The C-Next source code as a string
-   * @param options - Options for transpilation
-   * @returns Promise<IFileResult> with generated code or errors
+   * Header directive storage happens via IncludeResolver.resolve() for both
+   * C headers and cnext includes (Issue #854).
    */
-  async transpileSource(
-    source: string,
-    options?: {
-      workingDir?: string;
-      includeDirs?: string[];
-      sourcePath?: string;
-    },
-  ): Promise<IFileResult> {
-    const workingDir = options?.workingDir ?? process.cwd();
-    const additionalIncludeDirs = options?.includeDirs ?? [];
-    const sourcePath = options?.sourcePath ?? "<string>";
-
-    try {
-      await this._initializeRun();
-
-      const input = this._discoverFromSource(
-        source,
-        workingDir,
-        additionalIncludeDirs,
-        sourcePath,
-      );
-
-      const result = this._initResult();
-      await this._executePipeline(input, result);
-
-      // Find our main file's result
-      const fileResult = result.files.find((f) => f.sourcePath === sourcePath);
-      if (fileResult) {
-        return fileResult;
-      }
-
-      // No file result found — pipeline exited early (e.g., parse errors in Stage 3)
-      // Return pipeline errors as a file result
-      if (result.errors.length > 0) {
-        return this.buildErrorResult(sourcePath, result.errors, 0);
-      }
-      return this.buildErrorResult(
-        sourcePath,
-        [
-          {
-            line: 1,
-            column: 0,
-            message: "Pipeline produced no result for source file",
-            severity: "error",
-          },
-        ],
-        0,
-      );
-    } catch (err) {
-      return this.buildCatchResult(sourcePath, err);
+  private async discoverIncludes(
+    input: TTranspileInput,
+  ): Promise<IPipelineInput> {
+    if (input.kind === "files") {
+      return this._discoverFromFiles();
     }
+    return this._discoverFromSource(
+      input.source,
+      input.workingDir ?? process.cwd(),
+      input.includeDirs ?? [],
+      input.sourcePath ?? "<string>",
+    );
   }
 
   // ===========================================================================
@@ -246,7 +199,7 @@ class Transpiler {
   /**
    * The single unified pipeline for all transpilation.
    *
-   * Both run() and transpileSource() delegate here after file discovery.
+   * transpile() delegates here after file discovery via discoverIncludes().
    *
    * Stage 2: Collect symbols from C/C++ headers (includes building analyzer context)
    * Stage 3: Collect symbols from C-Next files
@@ -291,7 +244,7 @@ class Transpiler {
       );
     }
 
-    // Stage 6: Generate headers (only write to disk in run() mode)
+    // Stage 6: Generate headers (only write to disk in files mode)
     if (result.success && input.writeOutputToDisk) {
       this._generateAllHeadersFromPipeline(input.cnextFiles, result);
     }
@@ -453,19 +406,8 @@ class Transpiler {
         this._accumulateFileModifications();
       }
 
-      // ADR-055 Phase 7: Get TSymbols for header generation (auto-const applied during conversion)
-      const fileSymbols =
-        CodeGenState.symbolTable.getTSymbolsByFile(sourcePath);
-
-      // Generate header content
-      const headerCode = this.generateHeaderContent(
-        fileSymbols,
-        sourcePath,
-        this.cppDetected,
-        userIncludes,
-        passByValueCopy,
-        symbolInfo,
-      );
+      // Generate header content (reads from state populated above)
+      const headerCode = this.generateHeaderForFile(file) ?? undefined;
 
       return this.buildSuccessResult(
         sourcePath,
@@ -736,8 +678,12 @@ class Transpiler {
       if (file.symbolOnly) {
         continue;
       }
-      const headerPath = this.generateHeader(file.discoveredFile);
-      if (headerPath) {
+      const headerContent = this.generateHeaderForFile(file);
+      if (headerContent) {
+        const headerPath = this.pathResolver.getHeaderOutputPath(
+          file.discoveredFile,
+        );
+        this.fs.writeFile(headerPath, headerContent);
         result.outputFiles.push(headerPath);
       }
     }
@@ -781,7 +727,7 @@ class Transpiler {
   }
 
   // ===========================================================================
-  // Source Discovery (Stage 1 for run())
+  // File Discovery (Stage 1 for files mode)
   // ===========================================================================
 
   /**
@@ -968,10 +914,7 @@ class Transpiler {
    * This ensures headers are found based on what the source actually
    * includes, not by blindly scanning include directories.
    */
-  private async discoverSources(): Promise<{
-    cnextFiles: IDiscoveredFile[];
-    headerFiles: IDiscoveredFile[];
-  }> {
+  private async _discoverFromFiles(): Promise<IPipelineInput> {
     // Step 1: Discover C-Next files from inputs (files or directories)
     const cnextFiles: IDiscoveredFile[] = [];
     const fileByPath = new Map<string, IDiscoveredFile>();
@@ -981,7 +924,7 @@ class Transpiler {
     }
 
     if (cnextFiles.length === 0) {
-      return { cnextFiles: [], headerFiles: [] };
+      return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
     }
 
     // Step 2: For each C-Next file, resolve its #include directives
@@ -1005,7 +948,7 @@ class Transpiler {
     // Issue #580: Sort files topologically for correct cross-file const inference
     const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
-    // Resolve headers transitively for the run() path
+    // Resolve headers transitively
     const { headers: allHeaders, warnings: headerWarnings } =
       IncludeResolver.resolveHeadersTransitively(
         [...headerSet.values()],
@@ -1020,9 +963,16 @@ class Transpiler {
       );
     this.warnings.push(...headerWarnings);
 
+    // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
+    const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
+      path: f.path,
+      discoveredFile: f,
+    }));
+
     return {
-      cnextFiles: sortedCnextFiles,
+      cnextFiles: pipelineFiles,
       headerFiles: allHeaders,
+      writeOutputToDisk: true,
     };
   }
 
@@ -1266,48 +1216,41 @@ class Transpiler {
    * Stage 6: Generate header file for a C-Next file
    * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
    */
-  private generateHeader(file: IDiscoveredFile): string | null {
-    const tSymbols = CodeGenState.symbolTable.getTSymbolsByFile(file.path);
+  /**
+   * Generate header content for a single file's exported symbols.
+   * Unified method replacing both generateHeader() and generateHeaderContent().
+   * Reads all needed data from state (populated during Stage 5).
+   */
+  private generateHeaderForFile(file: IPipelineFile): string | null {
+    const sourcePath = file.path;
+    const tSymbols = CodeGenState.symbolTable.getTSymbolsByFile(sourcePath);
     const exportedSymbols = tSymbols.filter((s) => s.isExported);
 
     if (exportedSymbols.length === 0) {
       return null;
     }
 
-    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-    const headerPath = this.pathResolver.getHeaderOutputPath(file);
+    const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
 
-    // Issue #220: Get SymbolCollector for full type definitions
-    const typeInput = this.state.getSymbolInfo(file.path);
-
-    // Issue #280: Get pass-by-value params from per-file storage for multi-file consistency
-    // This uses the snapshot taken during transpilation, not the current (stale) codeGenerator state.
-    // Fallback to empty map if not found (defensive - should always exist after transpilation).
+    const typeInput = this.state.getSymbolInfo(sourcePath);
     const passByValueParams =
-      this.state.getPassByValueParams(file.path) ??
+      this.state.getPassByValueParams(sourcePath) ??
       new Map<string, Set<string>>();
+    const userIncludes = this.state.getUserIncludes(sourcePath);
 
-    // Issue #424: Get user includes for header generation
-    const userIncludes = this.state.getUserIncludes(file.path);
-
-    // Issue #478, #588: Collect all known enum names from all files for cross-file type handling
     const allKnownEnums = TransitiveEnumCollector.aggregateKnownEnums(
       this.state.getAllSymbolInfo(),
     );
 
-    // Issue #497: Build mapping from external types to their C header includes
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this.state.getAllHeaderDirectives(),
       CodeGenState.symbolTable,
     );
 
-    // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
     const typeInputWithSymbolTable = typeInput
       ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
       : undefined;
 
-    // ADR-055 Phase 7: Convert TSymbol to IHeaderSymbol with auto-const info
-    // Issue #817: Apply auto-const info same as generateHeaderContent() does
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
     const headerSymbols = this.convertToHeaderSymbols(
       exportedSymbols,
@@ -1315,7 +1258,7 @@ class Transpiler {
       allKnownEnums,
     );
 
-    const headerContent = this.headerGenerator.generate(
+    return this.headerGenerator.generate(
       headerSymbols,
       headerName,
       {
@@ -1328,9 +1271,6 @@ class Transpiler {
       passByValueParams,
       allKnownEnums,
     );
-
-    this.fs.writeFile(headerPath, headerContent);
-    return headerPath;
   }
 
   /**
@@ -1373,65 +1313,6 @@ class Transpiler {
         accumulatedParamLists,
       );
     }
-  }
-
-  /**
-   * Generate header content for exported symbols.
-   * Issue #591: Extracted from transpileSource() for reduced complexity.
-   * ADR-055 Phase 7: Works with TSymbol[], converts to IHeaderSymbol for generation.
-   */
-  private generateHeaderContent(
-    tSymbols: TSymbol[],
-    sourcePath: string,
-    cppMode: boolean,
-    userIncludes: string[],
-    passByValueParams: Map<string, Set<string>>,
-    symbolInfo: ICodeGenSymbols,
-  ): string | undefined {
-    const exportedSymbols = tSymbols.filter((s) => s.isExported);
-
-    if (exportedSymbols.length === 0) {
-      return undefined;
-    }
-
-    // Convert to IHeaderSymbol with auto-const info
-    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
-    const headerSymbols = this.convertToHeaderSymbols(
-      exportedSymbols,
-      unmodifiedParams,
-      symbolInfo.knownEnums,
-    );
-
-    const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
-
-    // Get type input from CodeGenState (for struct/enum definitions)
-    const typeInput = CodeGenState.symbols;
-
-    // Issue #497: Build mapping from external types to their C header includes
-    const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
-      this.state.getAllHeaderDirectives(),
-      CodeGenState.symbolTable,
-    );
-
-    // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
-    const typeInputWithSymbolTable = typeInput
-      ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
-      : undefined;
-
-    // Issue #478: Pass all known enums for cross-file type handling
-    return this.headerGenerator.generate(
-      headerSymbols,
-      headerName,
-      {
-        exportedOnly: true,
-        userIncludes,
-        externalTypeHeaders,
-        cppMode,
-      },
-      typeInputWithSymbolTable,
-      passByValueParams,
-      symbolInfo.knownEnums,
-    );
   }
 
   /**

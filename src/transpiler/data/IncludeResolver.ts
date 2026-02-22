@@ -37,7 +37,7 @@ interface IResolvedIncludes {
  * Unified include resolution for the C-Next Pipeline
  *
  * This class encapsulates the complete include resolution workflow,
- * used by both `run()` (CLI) and `transpileSource()` (API) paths.
+ * used by the unified `transpile()` entry point for both file and source modes.
  *
  * Key responsibilities:
  * - Extract #include directives from source content
@@ -359,8 +359,8 @@ class IncludeResolver {
   /**
    * Build search paths from a source file location
    *
-   * Consolidates the search path building logic used by both `run()` and
-   * `transpileSource()` code paths.
+   * Consolidates the search path building logic used by the unified
+   * transpile() entry point.
    *
    * Search order (highest to lowest priority):
    * 1. Source file's directory (for relative includes)

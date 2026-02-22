@@ -1,8 +1,8 @@
 /**
  * Unit tests for IncludeResolver
  *
- * Tests the unified include resolution logic used by both
- * Pipeline.run() and Pipeline.transpileSource().
+ * Tests the unified include resolution logic used by
+ * the transpile() entry point for both file and source modes.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";

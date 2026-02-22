@@ -54,7 +54,7 @@ class Runner {
       debugMode: config.debugMode,
     });
 
-    const result = await pipeline.run();
+    const result = await pipeline.transpile({ kind: "files" });
     this._renameOutputIfNeeded(result, explicitOutputFile);
 
     ResultPrinter.print(result);

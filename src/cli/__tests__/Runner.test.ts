@@ -30,7 +30,7 @@ describe("Runner", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let processExitSpy: any;
   let mockConfig: ICliConfig;
-  let mockTranspilerInstance: { run: ReturnType<typeof vi.fn> };
+  let mockTranspilerInstance: { transpile: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,7 +66,7 @@ describe("Runner", () => {
 
     // Mock Transpiler
     mockTranspilerInstance = {
-      run: vi.fn().mockResolvedValue({
+      transpile: vi.fn().mockResolvedValue({
         success: true,
         outputFiles: ["/project/src/main.c"],
         errors: [],
@@ -94,7 +94,7 @@ describe("Runner", () => {
         "src/main.cnx",
       ]);
       expect(Transpiler).toHaveBeenCalled();
-      expect(mockTranspilerInstance.run).toHaveBeenCalled();
+      expect(mockTranspilerInstance.transpile).toHaveBeenCalled();
       expect(ResultPrinter.print).toHaveBeenCalled();
     });
 
@@ -125,7 +125,7 @@ describe("Runner", () => {
     });
 
     it("passes include paths to Transpiler", async () => {
-      // Include discovery now happens inside Transpiler.discoverSources()
+      // Include discovery now happens inside Transpiler.discoverIncludes()
       // Runner just passes config.includeDirs directly
       mockConfig.includeDirs = ["/extra/include"];
 
@@ -168,7 +168,7 @@ describe("Runner", () => {
     it("handles explicit output filename for single file", async () => {
       mockConfig.outputPath = "output/result.c";
 
-      mockTranspilerInstance.run.mockResolvedValue({
+      mockTranspilerInstance.transpile.mockResolvedValue({
         success: true,
         outputFiles: ["/project/output/main.c"],
         errors: [],
@@ -236,7 +236,7 @@ describe("Runner", () => {
     });
 
     it("exits with 0 on success", async () => {
-      mockTranspilerInstance.run.mockResolvedValue({
+      mockTranspilerInstance.transpile.mockResolvedValue({
         success: true,
         outputFiles: ["/project/src/main.c"],
         errors: [],
@@ -248,7 +248,7 @@ describe("Runner", () => {
     });
 
     it("exits with 1 on failure", async () => {
-      mockTranspilerInstance.run.mockResolvedValue({
+      mockTranspilerInstance.transpile.mockResolvedValue({
         success: false,
         outputFiles: [],
         errors: ["Some error"],
@@ -285,7 +285,7 @@ describe("Runner", () => {
     it("doesn't rename when generated file matches explicit path", async () => {
       mockConfig.outputPath = "/project/output/main.c";
 
-      mockTranspilerInstance.run.mockResolvedValue({
+      mockTranspilerInstance.transpile.mockResolvedValue({
         success: true,
         outputFiles: ["/project/output/main.c"],
         errors: [],

@@ -19,7 +19,7 @@ import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
 
 /**
- * Method handler type (async to support Transpiler.transpileSource)
+ * Method handler type (async to support Transpiler.transpile)
  */
 type MethodHandler = (
   params?: Record<string, unknown>,
@@ -286,17 +286,35 @@ class ServeCommand {
       ? { workingDir: dirname(filePath), sourcePath: filePath }
       : undefined;
 
-    const result = await ServeCommand.transpiler.transpileSource(
+    const transpileResult = await ServeCommand.transpiler.transpile({
+      kind: "source",
       source,
-      options,
-    );
+      ...options,
+    });
+    const fileResult =
+      transpileResult.files.find(
+        (f) => f.sourcePath === (filePath ?? "<string>"),
+      ) ?? transpileResult.files[0];
+
+    // When files[] is empty (e.g., parse errors), fall back to aggregate errors
+    if (!fileResult) {
+      return {
+        success: true,
+        result: {
+          success: false,
+          code: "",
+          errors: transpileResult.errors,
+          cppDetected: ServeCommand.transpiler.isCppDetected(),
+        },
+      };
+    }
 
     return {
       success: true,
       result: {
-        success: result.success,
-        code: result.code,
-        errors: result.errors,
+        success: fileResult.success,
+        code: fileResult.code,
+        errors: fileResult.errors,
         cppDetected: ServeCommand.transpiler.isCppDetected(),
       },
     };
@@ -312,12 +330,14 @@ class ServeCommand {
   ): Promise<IMethodResult> {
     const { source, filePath } = params;
 
-    // If transpiler is initialized, run transpileSource to trigger header
+    // If transpiler is initialized, run transpile to trigger header
     // resolution and C++ detection (results are discarded, we just want
     // the side effects on the symbol table)
     if (ServeCommand.transpiler && filePath) {
       try {
-        await ServeCommand.transpiler.transpileSource(source, {
+        await ServeCommand.transpiler.transpile({
+          kind: "source",
+          source,
           workingDir: dirname(filePath),
           sourcePath: filePath,
         });

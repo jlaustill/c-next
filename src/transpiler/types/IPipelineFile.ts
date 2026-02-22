@@ -3,8 +3,8 @@ import IDiscoveredFile from "../data/types/IDiscoveredFile";
 /**
  * A file descriptor for the unified transpilation pipeline.
  *
- * Supports both disk-based files (from run()) and in-memory sources
- * (from transpileSource()). The pipeline reads content via:
+ * Supports both disk-based files (kind: 'files') and in-memory sources
+ * (kind: 'source'). The pipeline reads content via:
  *   file.source ?? this.fs.readFile(file.path)
  */
 interface IPipelineFile {

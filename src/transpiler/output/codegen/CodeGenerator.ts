@@ -1566,8 +1566,8 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Issue #561: Analyze modifications in a parse tree without full code generation.
-   * Used by Pipeline.transpileSource() to collect modification info from includes
-   * for cross-file const inference (unified with Pipeline.run() behavior).
+   * Used by the transpile() pipeline to collect modification info from includes
+   * for cross-file const inference.
    *
    * Issue #565: Now accepts optional cross-file data for transitive propagation.
    * When a file calls a function from an included file that modifies its param,

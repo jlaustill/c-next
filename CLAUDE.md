@@ -248,14 +248,15 @@ foo.expected.error    # Expected error (if test-error)
 - **Struct tests**: Need `.expected.h` alongside `.expected.c`
 - **Bug reproduction**: `bugs/issue-<name>/` directories — commit with fixes for regression prevention
 
-### Transpiler Entry Points
+### Transpiler Entry Point
 
-| Entry Point         | Purpose                                                         |
-| ------------------- | --------------------------------------------------------------- |
-| `run()`             | CLI, full symbol resolution across includes                     |
-| `transpileSource()` | Test framework, single-file (or called by `run()` with context) |
+| Entry Point   | Purpose                                  |
+| ------------- | ---------------------------------------- |
+| `transpile()` | Single entry point for all transpilation |
 
-Both use same symbol collection timing. `DualCodePaths.test.ts` verifies parity.
+Accepts `{ kind: 'files' }` for CLI/multi-file or `{ kind: 'source', source }` for API/single-file.
+Always returns `ITranspilerResult`. `DualCodePaths.test.ts` verifies parity between both modes.
+Header directive propagation is handled by `IncludeResolver.resolve()` for all include types.
 
 ---
 
