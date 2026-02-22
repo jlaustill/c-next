@@ -125,7 +125,7 @@ describe("Runner", () => {
     });
 
     it("passes include paths to Transpiler", async () => {
-      // Include discovery now happens inside Transpiler.discoverSources()
+      // Include discovery now happens inside Transpiler.discoverIncludes()
       // Runner just passes config.includeDirs directly
       mockConfig.includeDirs = ["/extra/include"];
 

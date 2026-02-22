@@ -74,7 +74,7 @@ class TransitiveEnumCollector {
   /**
    * Collect symbol info for standalone mode from resolved includes.
    *
-   * Issue #591: Extracted from Transpiler.transpileSource() to unify enum collection.
+   * Issue #591: Extracted to unify enum collection across transpilation modes.
    * Unlike collect() which starts from a file path and parses it, this method
    * starts from already-resolved includes (from IncludeResolver.resolve()).
    *

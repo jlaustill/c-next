@@ -1,12 +1,11 @@
 /**
  * Tests for dual code path consolidation (Issue #634)
  *
- * These tests verify that run() and transpileSource() produce identical
- * output for the same input, ensuring the refactoring doesn't break anything.
+ * These tests verify that transpile({ kind: 'files' }) and
+ * transpile({ kind: 'source' }) produce identical output for the same input.
  *
- * Design note: Parity is now guaranteed by architecture — both run() and
- * transpileSource() delegate to the same _executePipeline(). These tests
- * verify the external behavior still matches.
+ * Design note: Parity is guaranteed by architecture — both paths delegate
+ * to the same _executePipeline() via the unified transpile() entry point.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";

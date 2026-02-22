@@ -16,8 +16,8 @@ describe("Transpiler", () => {
       mockFs = new MockFileSystem();
     });
 
-    describe("transpileSource (primary unit testing target)", () => {
-      // transpileSource is the main API that benefits from MockFileSystem
+    describe("transpile source mode (primary unit testing target)", () => {
+      // transpile({ kind: 'source' }) is the main API that benefits from MockFileSystem
       // because it doesn't rely on FileDiscovery for the main code path
 
       it("transpiles source string without file I/O", async () => {

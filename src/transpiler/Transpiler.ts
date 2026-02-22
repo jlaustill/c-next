@@ -5,9 +5,9 @@
  * Key insight from ADR-053: "A single file transpilation is just a project
  * with one .cnx file."
  *
- * Architecture: Both run() and transpileSource() are thin wrappers that
- * discover files and delegate to _executePipeline(). There is ONE pipeline
- * for all transpilation — no branching on context/standalone mode.
+ * Architecture: transpile() is the single entry point. It discovers files
+ * via discoverIncludes(), then delegates to _executePipeline(). There is
+ * ONE pipeline for all transpilation.
  */
 
 import { join, basename, dirname, resolve } from "node:path";
@@ -199,7 +199,7 @@ class Transpiler {
   /**
    * The single unified pipeline for all transpilation.
    *
-   * Both run() and transpileSource() delegate here after file discovery.
+   * transpile() delegates here after file discovery via discoverIncludes().
    *
    * Stage 2: Collect symbols from C/C++ headers (includes building analyzer context)
    * Stage 3: Collect symbols from C-Next files

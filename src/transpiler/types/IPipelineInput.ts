@@ -4,7 +4,7 @@ import IPipelineFile from "./IPipelineFile";
 /**
  * Input to the unified transpilation pipeline (_executePipeline).
  *
- * Both run() and transpileSource() construct this and delegate to the pipeline.
+ * transpile() constructs this via discoverIncludes() and delegates to the pipeline.
  */
 interface IPipelineInput {
   /** C-Next files to process (in dependency order) */
