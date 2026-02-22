@@ -93,6 +93,40 @@ buffer[105] <- 99;       // Write discarded silently
 - Network protocols (invalid packets dropped silently)
 - Defensive sensor reading (bad index returns last-known-good value)
 
+### Index Type Safety
+
+All bracket subscript expressions require unsigned integer types. Signed integers, floats, and other non-integer types produce a compile error. This applies uniformly to array access, bit access, and bit range access.
+
+**Allowed index types:**
+
+| Type                      | Allowed           | Rationale                               |
+| ------------------------- | ----------------- | --------------------------------------- |
+| `u8`, `u16`, `u32`, `u64` | Yes               | Primary index types                     |
+| `bool`                    | Yes               | Safe (0/1), useful for lookup tables    |
+| Enum members              | Yes               | Transpile to unsigned constants         |
+| Integer literals          | Yes               | Most common case                        |
+| `i8`, `i16`, `i32`, `i64` | **Compile error** | Negative indexes are undefined behavior |
+| `f32`, `f64`              | **Compile error** | Not valid index types                   |
+
+This follows the same approach as Rust (`usize` only) and Zig (`usize` only), but using C-Next's fixed-width unsigned types instead of a platform-sized type (see ADR-020).
+
+```cnx
+u8[100] buffer;
+u32 idx <- 5;
+buffer[idx] <- 0xFF;           // OK: u32 is unsigned
+
+i32 signedIdx <- 3;
+buffer[signedIdx] <- 0xFF;     // ERROR E0850: signed index
+
+f32 floatIdx <- 2.5;
+buffer[floatIdx] <- 0xFF;      // ERROR E0850: float index
+
+// Enum indexing is allowed
+enum EColor { RED, GREEN, BLUE, COUNT }
+u8[EColor.COUNT] palette;
+palette[EColor.RED] <- 0xFF;   // OK: enum member
+```
+
 ### Consistency with Integer Overflow (ADR-044)
 
 | Integer Overflow | Array Index         | Philosophy                |
@@ -647,7 +681,7 @@ This affects whether strings are "array-like" (direct index writes) or "string-l
 ```antlr
 // Array declaration with optional overflow behavior
 arrayDeclaration
-    : indexBehavior? type IDENTIFIER arrayDimension+ ('<-' arrayInitializer)? ';'
+    : indexBehavior? type arrayDimension+ IDENTIFIER ('<-' arrayInitializer)? ';'
     ;
 
 indexBehavior

@@ -1,0 +1,8 @@
+// test-error
+// Tests: Signed integer in arithmetic expression used as array index (E0850)
+
+void test_signed_arithmetic_index() {
+    u8[10] arr;
+    i32 x <- 2;
+    arr[x + 1] <- 5;
+}

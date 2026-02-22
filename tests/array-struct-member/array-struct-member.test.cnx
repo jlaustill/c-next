@@ -77,7 +77,7 @@ i32 main() {
     }
 
     // === Test 3: Variable index ===
-    i32 idx <- 2;
+    u32 idx <- 2;
     sensors[idx].id <- 300;
     sensors[idx].value <- 3000;
 
