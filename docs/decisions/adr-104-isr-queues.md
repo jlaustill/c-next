@@ -112,21 +112,21 @@ xQueueReceive(queue, &value, portMAX_DELAY);
 
 ### Q1: Should Queues Be a Language Feature or Library?
 
-**Option A: Built-in language feature**
+**Option A: Built-in language feature with array-like syntax**
 
 ```cnx
-Queue<CAN_Message, 32> canRxQueue;
+queue CAN_Message[32] canRxQueue;
 ```
 
 - Compiler can optimize
-- Consistent syntax
+- Consistent with C-Next array syntax (`type[size] name`)
 - More language complexity
 
 **Option B: Standard library**
 
 ```cnx
 #include <cnx/queue.h>
-Queue canRxQueue <- Queue_create(CAN_Message, 32);
+Queue canRxQueue <- Queue.create(CAN_Message, 32);
 ```
 
 - Simpler language
@@ -151,18 +151,18 @@ Queue canRxQueue <- Queue_create(CAN_Message, 32);
 
 ### Q3: Syntax for Queue Declaration
 
-**Option A: Generic type syntax**
+**Option A: Array-like with qualifier**
 
 ```cnx
-Queue<u32, 8> myQueue;
-Queue<CAN_Message, 32> canQueue;
+queue u32[8] myQueue;
+queue CAN_Message[32] canQueue;
 ```
 
-**Option B: Array-like with qualifier**
+**Option B: Dedicated keyword with capacity**
 
 ```cnx
-queue u32 myQueue[8];
-queue CAN_Message canQueue[32];
+queue(8) u32 myQueue;
+queue(32) CAN_Message canQueue;
 ```
 
 **Option C: Function-style initialization**

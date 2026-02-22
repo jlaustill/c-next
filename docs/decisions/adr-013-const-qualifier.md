@@ -248,14 +248,14 @@ When interfacing with C libraries, const correctness matters:
 
 ```cnx
 // C function expects const char*
-extern void log_message(const char message[]);
+extern void log_message(const char[] message);
 
 void logError() {
-    char buffer[64] <- "Error occurred";
+    char[64] buffer <- "Error occurred";
     buffer[0] <- 'W';  // OK: buffer is mutable
     log_message(buffer);  // OK
 
-    const char constMsg[] <- "Critical failure";
+    const char[] constMsg <- "Critical failure";
     constMsg[0] <- 'M';  // Should ERROR: constMsg is const
     log_message(constMsg);  // C expects const, we should enforce it
 }

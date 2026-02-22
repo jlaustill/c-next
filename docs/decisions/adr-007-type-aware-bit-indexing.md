@@ -95,7 +95,7 @@ Every type exposes its size via `.length`:
 | `T[N]`            | N (element count) |
 
 ```cnx
-u8 buffer[16];
+u8[16] buffer;
 u32 counter <- 0;
 
 u32 arrLen <- buffer.length;     // 16 (array element count)
@@ -230,7 +230,7 @@ config[6] <- false;   // Interrupt: bit 6
 ### Array Length for Loops
 
 ```cnx
-u8 buffer[64];
+u8[64] buffer;
 
 for (u32 i <- 0; i < buffer.length; i <- i + 1) {
     buffer[i] <- 0;   // Array access (element)
@@ -382,7 +382,7 @@ The `[offset, length]` syntax has a different meaning when applied to arrays ver
 **Array Slice Syntax:**
 
 ```cnx
-u8 packet[256];
+u8[256] packet;
 u32 magic <- 0x12345678;
 
 // Copy 4 bytes from magic into packet at offset 0
@@ -421,7 +421,7 @@ u32 offset <- 0;
 packet[offset, 4] <- magic;  // ERROR: offset must be compile-time constant
 
 // INVALID: Multi-dimensional array outer dimension
-u8 board[4][8];
+u8[4][8] board;
 board[0, 4] <- magic;  // ERROR: slice only valid on 1D arrays
 // Future: board[0][0, 4] <- magic;  // Would slice row 0
 ```

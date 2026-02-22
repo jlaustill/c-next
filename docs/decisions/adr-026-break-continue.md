@@ -120,7 +120,7 @@ for (int i = 0; i < 100; i++) {
 **C-Next (exit condition in header):**
 
 ```cnx
-u8 buffer[100];  // unsigned, so != 0 is correct
+u8[100] buffer;  // unsigned, so != 0 is correct
 u32 i <- 0;
 while (i < 100 && buffer[i] != 0) {
     i +<- 1;
@@ -131,7 +131,7 @@ while (i < 100 && buffer[i] != 0) {
 For signed buffers, use `> 0` or `>= 0` depending on the sentinel value:
 
 ```cnx
-i8 signedBuffer[100];  // signed, could have negative values
+i8[100] signedBuffer;  // signed, could have negative values
 u32 i <- 0;
 while (i < 100 && signedBuffer[i] > 0) {
     i +<- 1;

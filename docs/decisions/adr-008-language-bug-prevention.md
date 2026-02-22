@@ -60,13 +60,13 @@ strcpy(buffer, user_input);  // No bounds checking!
 | Mechanism                      | How it Prevents                                                                |
 | ------------------------------ | ------------------------------------------------------------------------------ |
 | **Bounds-checked arrays**      | All array accesses validated at compile-time where possible, runtime otherwise |
-| **Array size as part of type** | `u8 buffer[10]` carries the `10` as type information                           |
+| **Array size as part of type** | `u8[10] buffer` carries the `10` as type information                           |
 | **Safe string operations**     | No `strcpy` — use length-aware operations only                                 |
 | **Range-based iteration**      | `for item in array` instead of manual indexing                                 |
 
 ```
 // C-Next: Compile-time error if provably out of bounds
-u8 buffer[10];
+u8[10] buffer;
 buffer[10] <- 5;  // ERROR: Index 10 out of bounds for size 10
 
 // Runtime check for dynamic indices
@@ -112,7 +112,7 @@ free(ptr);
 
 ```
 // C-Next: No malloc, no free, no problem
-u8 buffer[256];  // Static allocation, lives forever
+u8[256] buffer;  // Static allocation, lives forever
 // buffer is ALWAYS valid for the program's lifetime
 ```
 
@@ -435,7 +435,7 @@ strncpy(buffer, source, 10);  // Might not null-terminate!
 
 ```
 // C-Next: Range-based iteration (no off-by-one possible)
-u8 array[10];
+u8[10] array;
 for item in array {
     item <- 0;  // Exactly 10 iterations
 }
@@ -493,7 +493,7 @@ void process() {
 
 ```
 // C-Next: Static allocation only
-u8 buffer[1024];  // Always exists, never leaked
+u8[1024] buffer;  // Always exists, never leaked
 
 // For variable-size needs: pools (future feature)
 Pool<Message, 32> messagePool;

@@ -390,7 +390,7 @@ Built-in single-producer/single-consumer queue for ISR-to-main communication:
 
 ```cnx
 // Fixed-size queue declaration
-Queue<CAN_Message, 32> canRxQueue;
+queue CAN_Message[32] canRxQueue;
 
 // In ISR: enqueue (lock-free, never blocks)
 interrupt CAN_RX {

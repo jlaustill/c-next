@@ -643,7 +643,7 @@ atomic bool dataReady <- false;
 atomic wrap u32 tickCount <- 0;
 
 // Buffer + index must update together - use critical
-u8 buffer[64];
+u8[64] buffer;
 u32 writeIdx <- 0;
 
 critical {

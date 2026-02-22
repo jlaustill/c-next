@@ -409,7 +409,7 @@ if (a != b) {      // strcmp(a, b) != 0
 string<64> message <- "Hello";
 
 // Using u8 array (also valid)
-u8 message[65] <- "Hello";  // Must manually account for null terminator
+u8[65] message <- "Hello";  // Must manually account for null terminator
 ```
 
 The `string` type provides safety and ergonomics, but `u8[]` remains available for:
@@ -454,7 +454,7 @@ const char VERSION[6] = "1.0.0";
 ### Arrays of Strings
 
 ```cnx
-string<32> names[10];    // Array of 10 strings, each up to 32 chars
+string<32>[10] names;    // Array of 10 strings, each up to 32 chars
 ```
 
 Transpiles to:

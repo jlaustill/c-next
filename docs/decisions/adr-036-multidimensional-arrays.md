@@ -30,7 +30,7 @@ Multi-dimensional arrays are used for:
 ### 2D Arrays
 
 ```cnx
-u8 display[24][80];  // 24 rows, 80 columns
+u8[24][80] display;  // 24 rows, 80 columns
 
 display[0][0] <- 'H';
 display[0][1] <- 'i';
@@ -39,7 +39,7 @@ display[0][1] <- 'i';
 ### 3D Arrays
 
 ```cnx
-u8 voxels[16][16][16];
+u8[16][16][16] voxels;
 
 voxels[x][y][z] <- material;
 ```
@@ -47,7 +47,7 @@ voxels[x][y][z] <- material;
 ### Matrices
 
 ```cnx
-f32 transform[4][4];
+f32[4][4] transform;
 
 // Identity matrix
 transform[0][0] <- 1.0;
@@ -61,7 +61,7 @@ transform[3][3] <- 1.0;
 Per ADR-035, array initializers use square brackets `[]`, not curly braces:
 
 ```cnx
-u8 font[128][8] <- [
+u8[128][8] font <- [
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],  // ' '
     [0x18, 0x3C, 0x3C, 0x18, 0x18, 0x00, 0x18, 0x00],  // '!'
     // ... more character data
@@ -73,13 +73,13 @@ u8 font[128][8] <- [
 Extending ADR-035's `[value*]` syntax:
 
 ```cnx
-u8 matrix[4][4] <- [0*][4*];     // All 16 elements = 0
-                                  // Read as: 4 rows, each filled with [0*]
+u8[4][4] matrix <- [0*][4*];     // All 16 elements = 0
+                                 // Read as: 4 rows, each filled with [0*]
 
-i32 cube[3][3][3] <- [0*][3*][3*];  // All 27 elements = 0
+i32[3][3][3] cube <- [0*][3*][3*];  // All 27 elements = 0
 
 // Fill with non-zero values
-u8 screen[24][80] <- [' '*][80*];   // All spaces (ASCII 32)
+u8[24][80] screen <- [' '*][80*];   // All spaces (ASCII 32)
 ```
 
 ### In Struct
@@ -88,14 +88,14 @@ u8 screen[24][80] <- [' '*][80*];   // All spaces (ASCII 32)
 struct Image {
     u32 width;
     u32 height;
-    u8 pixels[240][320];  // 320x240 display
+    u8[240][320] pixels;  // 320x240 display
 }
 ```
 
 ### As Function Parameter (Size Enforced)
 
 ```cnx
-void matrixMultiply(f32 a[4][4], f32 b[4][4], f32 result[4][4]) {
+void matrixMultiply(f32[4][4] a, f32[4][4] b, f32[4][4] result) {
     // All dimensions enforced at compile time
     // Unlike C, you cannot pass a [3][3] matrix here
 }
@@ -108,14 +108,14 @@ void matrixMultiply(f32 a[4][4], f32 b[4][4], f32 result[4][4]) {
 Multi-dimensional array indexing produces nested array types:
 
 ```cnx
-u8 matrix[8][8][8];
+u8[8][8][8] matrix;
 
 // Type of matrix[1] is u8[8][8]
 // Type of matrix[1][2] is u8[8]
 // Type of matrix[1][2][3] is u8
 
-u8 row[8][8] <- matrix[0];      // Copy first "plane"
-u8 column[8] <- matrix[0][0];   // Copy first row of first plane
+u8[8][8] row <- matrix[0];      // Copy first "plane"
+u8[8] column <- matrix[0][0];   // Copy first row of first plane
 u8 value <- matrix[0][0][0];    // Single element
 ```
 
@@ -124,7 +124,7 @@ u8 value <- matrix[0][0][0];    // Single element
 The `.length` property returns the outermost dimension and is resolved at compile time:
 
 ```cnx
-u8 matrix[4][8];
+u8[4][8] matrix;
 const usize rows <- matrix.length;      // 4 (compile-time const)
 const usize cols <- matrix[0].length;   // 8 (compile-time const)
 ```
@@ -142,12 +142,12 @@ const size_t cols = 8;   // Compile-time constant
 Unlike C (where array sizes in parameters are advisory), C-Next enforces dimensions at compile time:
 
 ```cnx
-void process4x4(f32 matrix[4][4]) {
+void process4x4(f32[4][4] matrix) {
     // Implementation uses matrix.length = 4, matrix[0].length = 4
 }
 
-f32 small[3][3];
-f32 correct[4][4];
+f32[3][3] small;
+f32[4][4] correct;
 
 process4x4(correct);  // OK
 process4x4(small);    // COMPILE ERROR: expected [4][4], got [3][3]
@@ -186,7 +186,7 @@ Direct mapping to C with size enforcement:
 
 ```c
 // C-Next input
-void process(u8 data[4][4]) { }
+void process(u8[4][4] data) { }
 
 // Generated C - preserve array notation for safety
 void process(uint8_t data[4][4]) {
@@ -325,7 +325,7 @@ for (size_t i = 0; i < COLS; i++) {     // Should be ROWS
 **C-Next Solution:**
 
 ```cnx
-u8 matrix[10][5];
+u8[10][5] matrix;
 
 // Use .length to ensure correct bounds
 for (usize i <- 0; i < matrix.length; i +<- 1) {        // 10
@@ -399,7 +399,7 @@ while (*pwszTemp != L'\\')
 For variable indices, generate bounds checks:
 
 ```cnx
-u8 matrix[10][10];
+u8[10][10] matrix;
 u8 value <- matrix[x][y];  // x and y are variables
 ```
 

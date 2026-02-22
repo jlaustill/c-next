@@ -274,7 +274,7 @@ GpioPort activePort <- GPIO1;  // ERROR: register types are not assignable
 activePort <- GPIO2;           // ERROR: cannot reassign register type
 setPin(activePort, 13);        // Would require runtime indirection
 
-GpioPort ports[2] <- [GPIO1, GPIO2];  // ERROR: cannot store registers in arrays
+GpioPort[2] ports <- [GPIO1, GPIO2];  // ERROR: cannot store registers in arrays
 ```
 
 This is intentional — runtime polymorphism over registers would require function pointers or vtables, defeating zero-cost abstraction. If you need dynamic port selection, use explicit branching:

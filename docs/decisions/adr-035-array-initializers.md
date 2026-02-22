@@ -35,31 +35,31 @@ int values[] = {1, 2, 3, 4, 5};
 ### Basic Initializer
 
 ```cnx
-u8 data[5] <- [1, 2, 3, 4, 5];
+u8[5] data <- [1, 2, 3, 4, 5];
 ```
 
 ### Inferred Size
 
 ```cnx
-u8 data[] <- [1, 2, 3, 4, 5];  // Size inferred as 5
+u8[] data <- [1, 2, 3, 4, 5];  // Size inferred as 5
 ```
 
 ### Fill-All Initialization
 
 ```cnx
-u8 buffer[100] <- [0*];  // All 100 elements initialized to 0
+u8[100] buffer <- [0*];  // All 100 elements initialized to 0
 ```
 
 ### String Initialization
 
 ```cnx
-u8 message[] <- "Hello";  // Includes null terminator
+u8[] message <- "Hello";  // Includes null terminator
 ```
 
 ### Const Lookup Tables
 
 ```cnx
-const u8 sinTable[256] <- [
+const u8[256] sinTable <- [
     0, 3, 6, 9, 12, 15, 18, 21,
     // ... more values
 ];
@@ -70,7 +70,7 @@ const u8 sinTable[256] <- [
 ```cnx
 struct Command { u8 code; u8 length; }
 
-const Command commands[] <- [
+const Command[] commands <- [
     { code: 0x01, length: 4 },
     { code: 0x02, length: 8 },
     { code: 0x03, length: 2 },
@@ -80,7 +80,7 @@ const Command commands[] <- [
 ### Nested Array Initialization
 
 ```cnx
-u8 matrix[3][3] <- [
+u8[3][3] matrix <- [
     [1, 2, 3],
     [4, 5, 6],
     [7, 8, 9]
@@ -106,7 +106,7 @@ variableDeclaration
 When `[]` used without size, count initializer elements:
 
 ```cnx
-u8 data[] <- [1, 2, 3];  // data[3]
+u8[] data <- [1, 2, 3];  // u8[3] data
 ```
 
 ### CodeGenerator
@@ -163,7 +163,7 @@ int z[4] = {1};       // z = {1, 0, 0, 0}
 More initializer elements than array size is a **hard error**:
 
 ```cnx
-u8 data[3] <- [1, 2, 3, 4, 5];  // ERROR: 5 elements for size-3 array
+u8[3] data <- [1, 2, 3, 4, 5];  // ERROR: 5 elements for size-3 array
 ```
 
 ### 2. Explicit Fill Syntax: `[value*]`
@@ -171,9 +171,9 @@ u8 data[3] <- [1, 2, 3, 4, 5];  // ERROR: 5 elements for size-3 array
 C-Next does NOT support C's implicit zero-fill for partial initialization. Instead, use the explicit fill-all syntax `[value*]`:
 
 ```cnx
-u8 buffer[100] <- [0*];      // All 100 elements initialized to 0
-u8 ones[50] <- [1*];         // All 50 elements initialized to 1
-i32 magic[10] <- [0xDEAD*];  // All 10 elements initialized to 0xDEAD
+u8[100] buffer <- [0*];      // All 100 elements initialized to 0
+u8[50] ones <- [1*];         // All 50 elements initialized to 1
+i32[10] magic <- [0xDEAD*];  // All 10 elements initialized to 0xDEAD
 ```
 
 The `*` is familiar from bash globs, regex, and other contexts meaning "all" or "any number of".
@@ -191,13 +191,13 @@ C-Next does **not** support C99 designated initializers like `[index]=value`. Ra
 ### 4. Partial Initialization: Not Allowed
 
 ```cnx
-u8 data[5] <- [1, 2, 3];  // ERROR: 3 elements for size-5 array
+u8[5] data <- [1, 2, 3];  // ERROR: 3 elements for size-5 array
 ```
 
 If you want partial values with zero-fill, be explicit:
 
 ```cnx
-u8 data[5] <- [1, 2, 3, 0, 0];  // OK: all elements explicit
+u8[5] data <- [1, 2, 3, 0, 0];  // OK: all elements explicit
 ```
 
 ## References
