@@ -46,12 +46,16 @@ class VariableModifierBuilder {
    *
    * @param ctx - Parser context with modifier methods
    * @param inFunctionBody - Whether we're inside a function body (affects extern)
+   * @param hasInitializer - Whether the variable has an initializer (affects extern in C mode)
+   * @param cppMode - Whether we're generating C++ code (affects extern behavior)
    * @returns Modifier strings ready for use in generated code
    * @throws Error if both atomic and volatile are specified
    */
   static build(
     ctx: IModifierContext,
     inFunctionBody: boolean,
+    hasInitializer: boolean = false,
+    cppMode: boolean = false,
   ): IVariableModifiers {
     const hasConst = ctx.constModifier?.() ?? false;
     const constMod = hasConst ? "const " : "";
@@ -59,7 +63,18 @@ class VariableModifierBuilder {
     const volatileMod = ctx.volatileModifier() ? "volatile " : "";
 
     // Issue #525: Add extern for top-level const in C++ for external linkage
-    const externMod = hasConst && !inFunctionBody ? "extern " : "";
+    // In C++, const at file scope has internal linkage by default, so extern is needed.
+    //
+    // Issue #852 (MISRA Rule 8.5): In C mode, do NOT add extern to definitions
+    // (variables with initializers). The extern declaration comes from the header.
+    //
+    // Summary:
+    // - C mode + no initializer: extern (declaration)
+    // - C mode + initializer: NO extern (definition - MISRA 8.5)
+    // - C++ mode: ALWAYS extern for external linkage (both declarations and definitions)
+    const needsExtern =
+      hasConst && !inFunctionBody && (cppMode || !hasInitializer);
+    const externMod = needsExtern ? "extern " : "";
 
     // Validate: cannot use both atomic and volatile
     if (ctx.atomicModifier() && ctx.volatileModifier()) {

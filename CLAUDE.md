@@ -51,6 +51,14 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 **Layer constraints (depcruise)**: `logic/` cannot import from `output/`. Check import dependencies before choosing extraction location.
 
+**Local MISRA validation**: `sudo apt-get install cppcheck` then `npm run validate:c`
+
+**MISRA rule details**: `cppcheck --addon=misra -I tests/include <file.c>` shows specific rule violations (batch-validate only shows file names)
+
+**Regenerate all snapshots**: `npm test -- --update` (after codegen changes)
+
+**C vs C++ const linkage**: C const at file scope has external linkage; C++ const has internal linkage (needs `extern`). `CodeGenState.cppMode` controls this.
+
 ---
 
 ## Code Quality

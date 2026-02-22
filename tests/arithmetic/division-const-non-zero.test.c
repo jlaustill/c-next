@@ -7,9 +7,9 @@
 
 // ADR-051 Phase 3: Division by const non-zero
 // Should compile successfully
-extern const uint32_t TEN = 10U;
+const uint32_t TEN = 10U;
 
-extern const uint32_t FIVE = 5U;
+const uint32_t FIVE = 5U;
 
 void testDivisionByConstNonZero(void) {
     uint32_t result1 = 100U / TEN;

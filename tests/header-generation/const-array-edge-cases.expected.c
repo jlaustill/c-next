@@ -11,10 +11,10 @@
 // Tests: Edge cases for const-based array dimensions
 // Verifies comprehensive coverage for issue #455
 // Hex constant - should resolve to 16
-extern const uint8_t HEX_SIZE = 0x10U;
+const uint8_t HEX_SIZE = 0x10U;
 
 // Binary constant - should resolve to 10
-extern const uint8_t BIN_SIZE = 0b1010U;
+const uint8_t BIN_SIZE = 0b1010U;
 
 // Array using hex constant
 bool hex_arr[16] = {0};
@@ -23,7 +23,7 @@ bool hex_arr[16] = {0};
 int16_t bin_arr[10] = {0};
 
 // Array inside a scope using top-level constant
-extern const uint8_t BUFFER_SIZE = 8U;
+const uint8_t BUFFER_SIZE = 8U;
 
 /* Scope: Device */
 uint8_t Device_buffer[8] = {0};

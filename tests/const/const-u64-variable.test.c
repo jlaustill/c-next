@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013: Const u64 variable
 // Tests: const u64 declaration and read access
-extern const uint64_t MAX_FILE_SIZE = 4294967296ULL;
+const uint64_t MAX_FILE_SIZE = 4294967296ULL;
 
-extern const uint64_t CHUNK_SIZE = 1048576ULL;
+const uint64_t CHUNK_SIZE = 1048576ULL;
 
 int main(void) {
     uint64_t maxSize = MAX_FILE_SIZE;

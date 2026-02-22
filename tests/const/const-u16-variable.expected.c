@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013: Const u16 variable
 // Tests: const u16 declaration and read access
-extern const uint16_t MAX_PORT = 65535U;
+const uint16_t MAX_PORT = 65535U;
 
-extern const uint16_t DEFAULT_PORT = 8080U;
+const uint16_t DEFAULT_PORT = 8080U;
 
 int main(void) {
     uint16_t port = MAX_PORT;

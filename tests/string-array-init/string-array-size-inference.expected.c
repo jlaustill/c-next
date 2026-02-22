@@ -10,7 +10,7 @@
 // Issue #380: String array initializers with size inference
 // Tests: array size inferred from initializer count
 // Size inferred from initializer count (3 elements)
-extern const char DAYS[3][17] = {"Monday", "Tuesday", "Wednesday"};
+const char DAYS[3][17] = {"Monday", "Tuesday", "Wednesday"};
 
 // Local array with size inference (C-style for string arrays)
 void test(void) {

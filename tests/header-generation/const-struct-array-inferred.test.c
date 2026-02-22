@@ -16,18 +16,18 @@ typedef struct TItem {
 // Key case: const struct array with inferred size []
 // Header MUST generate: extern const TItem ITEMS[3];
 // NOT: extern const TItem ITEMS;  (this breaks cross-file compilation)
-extern const TItem ITEMS[3] = {(TItem){ .id = 1U, .value = 100U }, (TItem){ .id = 2U, .value = 200U }, (TItem){ .id = 3U, .value = 300U }};
+const TItem ITEMS[3] = {(TItem){ .id = 1U, .value = 100U }, (TItem){ .id = 2U, .value = 200U }, (TItem){ .id = 3U, .value = 300U }};
 
 // Also test: non-const struct array with inferred size
 TItem mutableItems[2] = {(TItem){ .id = 10U, .value = 1000U }, (TItem){ .id = 20U, .value = 2000U }};
 
 // Also test: const primitive array with inferred size
-extern const uint8_t SIZES[4] = {10U, 20U, 30U, 40U};
+const uint8_t SIZES[4] = {10U, 20U, 30U, 40U};
 
 // Also test: const array with explicit size (control case)
-extern const int32_t EXPLICIT[2] = {100, 200};
+const int32_t EXPLICIT[2] = {100, 200};
 
-extern const uint8_t ITEM_COUNT = 3U;
+const uint8_t ITEM_COUNT = 3U;
 
 int main(void) {
     uint32_t total = 0U;

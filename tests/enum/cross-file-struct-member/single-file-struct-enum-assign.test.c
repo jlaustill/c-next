@@ -33,7 +33,7 @@ typedef struct Config {
     TItem items[4];
 } Config;
 
-extern const uint8_t COUNT = 4U;
+const uint8_t COUNT = 4U;
 
 Config config = {0};
 

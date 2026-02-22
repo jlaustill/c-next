@@ -11,7 +11,7 @@
 char greeting[33] = "Hello";
 
 // C-style allowed for string arrays (grammar limitation)
-extern const char labels[3][17] = {"one", "two", "three"};
+const char labels[3][17] = {"one", "two", "three"};
 
 int main(void) {
     uint8_t len = strlen(greeting);

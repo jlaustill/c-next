@@ -9,17 +9,17 @@
 // Helper file: Various const types at file scope
 // Tests that all const type variants get extern in generated .c
 // Basic integer const
-extern const uint8_t BYTE_CONST = 42U;
+const uint8_t BYTE_CONST = 42U;
 
-extern const uint16_t WORD_CONST = 1000U;
+const uint16_t WORD_CONST = 1000U;
 
-extern const uint32_t DWORD_CONST = 100000U;
+const uint32_t DWORD_CONST = 100000U;
 
 // Bounded string const
-extern const char STRING_CONST[17] = "Hello";
+const char STRING_CONST[17] = "Hello";
 
 // Const array
-extern const uint8_t BYTE_ARRAY[4] = {1U, 2U, 3U, 4U};
+const uint8_t BYTE_ARRAY[4] = {1U, 2U, 3U, 4U};
 
 // Const string array (C-style allowed for string arrays - grammar limitation)
-extern const char STRING_ARRAY[3][9] = {"one", "two", "three"};
+const char STRING_ARRAY[3][9] = {"one", "two", "three"};
