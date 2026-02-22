@@ -1,0 +1,120 @@
+#include "widget.h"
+
+// ==========================================================================
+// FILE A: Callback DEFINITIONS + self-registration tests
+//
+// Defines 3 callbacks:
+//   A_G:  Global function
+//   A_SP: Scope public method  (in ScopeAP)
+//   A_SV: Scope private method (in ScopeAV)
+//
+// Also tests registration FROM this file for each callback.
+// ==========================================================================
+
+// --- A_G: Global callback in file A ---
+void a_global_cb(widget_t w, const rect_t area, u8 buf) {
+    global.widget_flush_ready(w);
+}
+
+// --- A_SP: Scope public callback in file A ---
+scope ScopeAP {
+    public void cb(widget_t w, const rect_t area, u8 buf) {
+        global.widget_flush_ready(w);
+    }
+}
+
+// --- A_SV: Scope private callback in file A ---
+scope ScopeAV {
+    void cb(widget_t w, const rect_t area, u8 buf) {
+        global.widget_flush_ready(w);
+    }
+
+    // A_SV registered from same-scope public method
+    public void reg_from_public() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    // A_SV registered from same-scope private method
+    void reg_from_private_helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    public void reg_from_private() {
+        this.reg_from_private_helper();
+    }
+}
+
+// --- A_G registered from same-file global function ---
+void a_reg_global_from_global() {
+    widget_t w <- global.widget_create();
+    global.widget_set_flush_cb(w, a_global_cb);
+}
+
+// --- A_G registered from same-file scope public method ---
+scope RegAGPub {
+    public void register_it() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, a_global_cb);
+    }
+}
+
+// --- A_G registered from same-file scope private method ---
+scope RegAGPriv {
+    void helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, a_global_cb);
+    }
+
+    public void register_it() {
+        this.helper();
+    }
+}
+
+// --- A_SP registered from same-file global function ---
+void a_reg_sp_from_global() {
+    widget_t w <- global.widget_create();
+    global.widget_set_flush_cb(w, global.ScopeAP.cb);
+}
+
+// --- A_SP registered from same-file same-scope public method ---
+scope ScopeAPSelf {
+    public void cb(widget_t w, const rect_t area, u8 buf) {
+        global.widget_flush_ready(w);
+    }
+
+    public void reg_from_public() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    void reg_from_private_helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    public void reg_from_private() {
+        this.reg_from_private_helper();
+    }
+}
+
+// --- A_SP registered from same-file different-scope public method ---
+scope RegASPDiffPub {
+    public void register_it() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, global.ScopeAP.cb);
+    }
+}
+
+// --- A_SP registered from same-file different-scope private method ---
+scope RegASPDiffPriv {
+    void helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, global.ScopeAP.cb);
+    }
+
+    public void register_it() {
+        this.helper();
+    }
+}

@@ -1,0 +1,229 @@
+#include "widget.h"
+#include "defs.cnx"
+
+// ==========================================================================
+// FILE B: Cross-file registration tests + own callback definitions
+//
+// Defines 3 more callbacks:
+//   B_G:  Global function (this file)
+//   B_SP: Scope public method  (in ScopeBP)
+//   B_SV: Scope private method (in ScopeBV)
+//
+// Tests registration of ALL 6 callbacks from every legal access site.
+// ==========================================================================
+
+// --- B_G: Global callback in file B ---
+void b_global_cb(widget_t w, const rect_t area, u8 buf) {
+    global.widget_flush_ready(w);
+}
+
+// --- B_SP: Scope public callback in file B ---
+scope ScopeBP {
+    public void cb(widget_t w, const rect_t area, u8 buf) {
+        global.widget_flush_ready(w);
+    }
+}
+
+// --- B_SV: Scope private callback in file B ---
+scope ScopeBV {
+    void cb(widget_t w, const rect_t area, u8 buf) {
+        global.widget_flush_ready(w);
+    }
+
+    // B_SV registered from same-scope public method
+    public void reg_from_public() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    // B_SV registered from same-scope private method
+    void reg_from_private_helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    public void reg_from_private() {
+        this.reg_from_private_helper();
+    }
+}
+
+// ==========================================================================
+// B_G (same-file global) registered from every access site in file B
+// ==========================================================================
+
+// B_G from same-file global function
+void b_reg_bg_from_global() {
+    widget_t w <- global.widget_create();
+    global.widget_set_flush_cb(w, b_global_cb);
+}
+
+// B_G from same-file scope public method
+scope RegBGPub {
+    public void register_it() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, b_global_cb);
+    }
+}
+
+// B_G from same-file scope private method
+scope RegBGPriv {
+    void helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, b_global_cb);
+    }
+
+    public void register_it() {
+        this.helper();
+    }
+}
+
+// ==========================================================================
+// B_SP (same-file scope public) registered from every access site in file B
+// ==========================================================================
+
+// B_SP from same-file global function
+void b_reg_bsp_from_global() {
+    widget_t w <- global.widget_create();
+    global.widget_set_flush_cb(w, global.ScopeBP.cb);
+}
+
+// B_SP from same-file same-scope public method
+scope ScopeBPSelf {
+    public void cb(widget_t w, const rect_t area, u8 buf) {
+        global.widget_flush_ready(w);
+    }
+
+    public void reg_from_public() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    void reg_from_private_helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.cb);
+    }
+
+    public void reg_from_private() {
+        this.reg_from_private_helper();
+    }
+}
+
+// B_SP from same-file different-scope public method
+scope RegBSPDiffPub {
+    public void register_it() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, global.ScopeBP.cb);
+    }
+}
+
+// B_SP from same-file different-scope private method
+scope RegBSPDiffPriv {
+    void helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, global.ScopeBP.cb);
+    }
+
+    public void register_it() {
+        this.helper();
+    }
+}
+
+// ==========================================================================
+// A_G (cross-file global) registered from every access site in file B
+// ==========================================================================
+
+// A_G from diff-file global function
+void b_reg_ag_from_global() {
+    widget_t w <- global.widget_create();
+    global.widget_set_flush_cb(w, a_global_cb);
+}
+
+// A_G from diff-file scope public method
+scope RegAGCrossPub {
+    public void register_it() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, a_global_cb);
+    }
+}
+
+// A_G from diff-file scope private method
+scope RegAGCrossPriv {
+    void helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, a_global_cb);
+    }
+
+    public void register_it() {
+        this.helper();
+    }
+}
+
+// ==========================================================================
+// A_SP (cross-file scope public) registered from every access site in file B
+// ==========================================================================
+
+// A_SP from diff-file global function
+void b_reg_asp_from_global() {
+    widget_t w <- global.widget_create();
+    global.widget_set_flush_cb(w, global.ScopeAP.cb);
+}
+
+// A_SP from diff-file scope public method
+scope RegASPCrossPub {
+    public void register_it() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, global.ScopeAP.cb);
+    }
+}
+
+// A_SP from diff-file scope private method
+scope RegASPCrossPriv {
+    void helper() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, global.ScopeAP.cb);
+    }
+
+    public void register_it() {
+        this.helper();
+    }
+}
+
+// ==========================================================================
+// main() — exercises every registration path
+// ==========================================================================
+
+i32 main() {
+    // --- Same-file registrations from defs.cnx ---
+    a_reg_global_from_global();          // A_G from same-file global
+    RegAGPub.register_it();              // A_G from same-file scope public
+    RegAGPriv.register_it();             // A_G from same-file scope private
+    a_reg_sp_from_global();              // A_SP from same-file global
+    RegASPDiffPub.register_it();         // A_SP from same-file diff-scope public
+    RegASPDiffPriv.register_it();        // A_SP from same-file diff-scope private
+    ScopeAPSelf.reg_from_public();       // A_SP from same-file same-scope public
+    ScopeAPSelf.reg_from_private();      // A_SP from same-file same-scope private
+    ScopeAV.reg_from_public();           // A_SV from same-scope public
+    ScopeAV.reg_from_private();          // A_SV from same-scope private
+
+    // --- Same-file registrations from test.cnx ---
+    b_reg_bg_from_global();              // B_G from same-file global
+    RegBGPub.register_it();              // B_G from same-file scope public
+    RegBGPriv.register_it();             // B_G from same-file scope private
+    b_reg_bsp_from_global();             // B_SP from same-file global
+    RegBSPDiffPub.register_it();         // B_SP from same-file diff-scope public
+    RegBSPDiffPriv.register_it();        // B_SP from same-file diff-scope private
+    ScopeBPSelf.reg_from_public();       // B_SP from same-file same-scope public
+    ScopeBPSelf.reg_from_private();      // B_SP from same-file same-scope private
+    ScopeBV.reg_from_public();           // B_SV from same-scope public
+    ScopeBV.reg_from_private();          // B_SV from same-scope private
+
+    // --- Cross-file registrations (file A callbacks, file B registration) ---
+    b_reg_ag_from_global();              // A_G from diff-file global
+    RegAGCrossPub.register_it();         // A_G from diff-file scope public
+    RegAGCrossPriv.register_it();        // A_G from diff-file scope private
+    b_reg_asp_from_global();             // A_SP from diff-file global
+    RegASPCrossPub.register_it();        // A_SP from diff-file scope public
+    RegASPCrossPriv.register_it();       // A_SP from diff-file scope private
+
+    return 0;
+}
