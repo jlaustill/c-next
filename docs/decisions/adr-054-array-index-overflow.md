@@ -683,16 +683,17 @@ When writing past the current char_count but within capacity:
 
 - The gap is filled with space characters (` `)
 - `.char_count` is updated to include the new character
+- The null terminator moves to the new `char_count` position (C string invariant maintained)
 - Clamping applies against capacity (not char_count) for writes
 
 ### New Error Codes
 
-| Code | Meaning                                            |
-| ---- | -------------------------------------------------- |
-| TBD  | Compile-time warning: constant index out of bounds |
-| TBD  | Invalid overflow modifier in array dimension       |
+| Code  | Meaning                                            |
+| ----- | -------------------------------------------------- |
+| E0854 | Compile-time warning: constant index out of bounds |
+| E0855 | Invalid overflow modifier in array dimension       |
 
-(E0850 already exists for signed/float index errors)
+(E0850–E0853 already used for index type safety and critical section errors)
 
 ---
 
