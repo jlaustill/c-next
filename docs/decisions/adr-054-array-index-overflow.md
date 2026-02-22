@@ -532,18 +532,18 @@ procedure Access(Arr : My_Array; Idx : Integer)
 
 ## Research Summary: Language Comparison
 
-| Language              | Default Behavior                 | Alternative Access    | Wrap Support      | No-Op Support  |
-| --------------------- | -------------------------------- | --------------------- | ----------------- | -------------- |
-| **Rust**              | Panic                            | `get()` → Option      | ❌ Manual         | ❌             |
-| **Zig**               | Panic (debug) / UB (release)     | —                     | ❌ Manual         | ❌             |
-| **Ada**               | Exception                        | Modular types         | ✅ `mod` types    | ❌             |
-| **Swift**             | Crash (trap)                     | Manual extension      | ❌                | ❌             |
-| **D**                 | Exception (@safe) / UB (@system) | —                     | ❌ Manual         | ❌             |
-| **Java**              | Exception                        | —                     | ❌ Manual         | ❌             |
-| **C#**                | Exception                        | `unsafe`              | ❌ Manual         | ❌             |
-| **JavaScript**        | `undefined` / extend             | —                     | ❌ Manual         | ✅ Implicit    |
-| **Vulkan/GPU**        | Clamp                            | `robustBufferAccess2` | ❌                | ✅ Discard     |
-| **C-Next (proposed)** | Clamp                            | Per-access override   | ✅ `wrap` keyword | ✅ discard     |
+| Language              | Default Behavior                 | Alternative Access    | Wrap Support      | No-Op Support |
+| --------------------- | -------------------------------- | --------------------- | ----------------- | ------------- |
+| **Rust**              | Panic                            | `get()` → Option      | ❌ Manual         | ❌            |
+| **Zig**               | Panic (debug) / UB (release)     | —                     | ❌ Manual         | ❌            |
+| **Ada**               | Exception                        | Modular types         | ✅ `mod` types    | ❌            |
+| **Swift**             | Crash (trap)                     | Manual extension      | ❌                | ❌            |
+| **D**                 | Exception (@safe) / UB (@system) | —                     | ❌ Manual         | ❌            |
+| **Java**              | Exception                        | —                     | ❌ Manual         | ❌            |
+| **C#**                | Exception                        | `unsafe`              | ❌ Manual         | ❌            |
+| **JavaScript**        | `undefined` / extend             | —                     | ❌ Manual         | ✅ Implicit   |
+| **Vulkan/GPU**        | Clamp                            | `robustBufferAccess2` | ❌                | ✅ Discard    |
+| **C-Next (proposed)** | Clamp                            | Per-access override   | ✅ `wrap` keyword | ✅ discard    |
 
 ### Key Findings
 
