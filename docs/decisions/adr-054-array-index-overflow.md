@@ -1,7 +1,8 @@
 # ADR-054: Array Index Overflow Semantics
 
-**Status:** Research
+**Status:** Research (Pending Approval)
 **Date:** 2026-01-23
+**Updated:** 2026-02-22
 **Decision Makers:** C-Next Language Design Team
 
 ## Context
@@ -59,7 +60,6 @@ u8[50] normal;          // Default is clamp (safe by default)
 
 // Usage with declaration default
 value <- buffer[105];        // Clamps: buffer[99]
-value <- buffer[-5];         // Clamps: buffer[0]
 ring[300] <- byte;           // Wraps: ring[44] (300 % 256)
 
 // Per-access override
@@ -138,36 +138,6 @@ palette[EColor.RED] <- 0xFF;   // OK: enum member
 
 **Note:** Integer overflow doesn't have a direct equivalent to the "no-op" behavior. This may be array-specific.
 
-### Killer Use Case: Circular Buffers
-
-Circular/ring buffers are fundamental to embedded systems (UART, SPI, audio, sensors). Currently they require manual modulo operations:
-
-```c
-// C: Manual and error-prone
-uint8_t rx_buffer[256];
-volatile uint8_t head = 0;
-
-void uart_isr(void) {
-    rx_buffer[head % 256] = UART_DR;  // Easy to forget the % 256
-    head = (head + 1) % 256;          // Must remember here too
-}
-```
-
-With C-Next array index overflow:
-
-```cnx
-// C-Next: Intent declared once, enforced everywhere
-u8[wrap 256] rxBuffer;
-wrap u8 head <- 0;
-
-void uart_isr() {
-    rxBuffer[head] <- UART.DR;  // Wraps automatically at 256
-    head <- head + 1;            // Also wraps (integer overflow)
-}
-```
-
-The circular buffer behavior is declared at the type level, not scattered throughout the code.
-
 ### Extension: Bounded Strings
 
 The same `clamp`/`wrap`/`discard` semantics should apply to bounded strings (see ADR-045). However, strings introduce an additional complexity: they have **two bounds**.
@@ -175,27 +145,27 @@ The same `clamp`/`wrap`/`discard` semantics should apply to bounded strings (see
 #### The Two-Bounds Problem
 
 ```cnx
-String<64> name <- "Hello";  // capacity=64, length=5
+String<64> name <- "Hello";  // capacity=64, char_count=5
 ```
 
-| Index       | Relative to Length (5) | Relative to Capacity (64) |
-| ----------- | ---------------------- | ------------------------- |
-| `name[3]`   | ✅ Valid ('l')         | ✅ Valid                  |
-| `name[10]`  | ❌ Past length         | ✅ Within capacity        |
-| `name[100]` | ❌ Past length         | ❌ Past capacity          |
+| Index       | Relative to char_count (5) | Relative to Capacity (64) |
+| ----------- | -------------------------- | ------------------------- |
+| `name[3]`   | ✅ Valid ('l')             | ✅ Valid                  |
+| `name[10]`  | ❌ Past char_count         | ✅ Within capacity        |
+| `name[100]` | ❌ Past char_count         | ❌ Past capacity          |
 
-**Question:** Should bounds checking use the **current length** or the **fixed capacity**?
+**Question:** Should bounds checking use the **current char_count** or the **fixed capacity**?
 
-#### Recommendation: Check Against Length for reads
+#### Recommendation: Check Against char_count for reads
 
-For safety and predictability, index bounds should check against the **current string length**, not capacity:
+For safety and predictability, index bounds should check against the **current string char_count**, not capacity (see ADR-058 for property naming):
 
 ```cnx
-clamp String<64> name <- "Hello";  // length=5
+clamp String<64> name <- "Hello";  // char_count=5
 name[10];   // Clamps to name[4] → 'o' (last valid char)
 name[100];  // Clamps to name[4] → 'o'
 
-wrap String<64> name <- "Hello";   // length=5
+wrap String<64> name <- "Hello";   // char_count=5
 name[7];    // Wraps: 7 % 5 = 2 → 'l'
 name[100];  // Wraps: 100 % 5 = 0 → 'H'
 
@@ -207,7 +177,7 @@ result <- name[10];  // result stays 'X' (read discarded)
 #### Rationale
 
 1. **Accessing uninitialized memory is a bug** — Even if index 10 is within capacity, it contains garbage
-2. **Consistency with string semantics** — `.length` returns content length, indexing should respect it
+2. **Consistency with string semantics** — `.char_count` returns content length, indexing should respect it
 3. **Safer default** — Prevents reading uninitialized data in the capacity buffer
 
 #### Write Behavior
@@ -215,7 +185,7 @@ result <- name[10];  // result stays 'X' (read discarded)
 For writes, the behavior should be based on capacity and pad with spaces.
 
 ```cnx
-clamp String<64> name <- "Hello";  // length=5
+clamp String<64> name <- "Hello";  // char_count=5
 name[10] <- 'X';  // name → "Hello    X"
 name[100] <- 'Y'; // name → "Hello    X                                                     Y"
 name[100] <- "XYZ"; // compiler error if detected, panic in --debug mode, no-op otherwise
@@ -566,9 +536,172 @@ procedure Access(Arr : My_Array; Idx : Integer)
 
 ---
 
-## Potential Implementation
+## Decision
+
+### Core Feature: Array Index Overflow with `clamp`/`wrap`/`discard`
+
+Extend the `clamp`/`wrap` keywords (and add `discard`) to array dimension declarations. The overflow modifier sits **inside the brackets** alongside the size, which is distinct from integer overflow (`clamp u8`) because they control different things:
+
+- `clamp u8` — clamps the **value** stored in the variable
+- `u8[clamp 100]` — clamps the **index** used to access the array
+
+These are orthogonal and composable:
+
+```cnx
+wrap u8[discard 256] buffer;
+// wrap: values stored in buffer saturate via two's complement
+// discard: out-of-bounds index access is a no-op
+
+buffer[0] <- 1000;    // value wraps: 1000 % 256 = 232
+buffer[1000] <- 0;     // index discarded: no-op
+```
+
+### Syntax
+
+#### Declaration
+
+```cnx
+u8[100] buffer;            // Default: clamp (safe by default)
+u8[clamp 100] buffer;      // Explicit clamp (same as default)
+u8[wrap 256] ring;          // Wrapping index (circular buffer)
+u8[discard 100] sensorData; // Discarding index (no-op on OOB)
+```
+
+#### Per-Access Override
+
+The per-access override places the keyword before the index expression inside the brackets. The parser distinguishes this by token count: `[wrap]` (1 token) is a variable name; `[wrap idx]` (2 tokens) is a keyword + expression.
+
+```cnx
+u8[clamp 100] buffer;
+value <- buffer[wrap idx];   // Override: wrap instead of clamp
+value <- buffer[discard idx]; // Override: discard instead of clamp
+```
+
+#### Multi-Dimensional Arrays
+
+Each dimension has its own independent overflow behavior, defaulting to `clamp`:
+
+```cnx
+u32[clamp 10][wrap 20] matrix;
+// dim 0: clamp (explicit), dim 1: wrap
+
+u32[10][20] grid;
+// dim 0: clamp (default), dim 1: clamp (default)
+
+matrix[15][25] <- 5;  // dim 0 clamps to 9, dim 1 wraps: 25 % 20 = 5
+```
+
+Per-access overrides also apply per-dimension:
+
+```cnx
+matrix[wrap i][clamp j] <- value;  // Each dimension overridden independently
+```
+
+### Behaviors
+
+| Behavior  | Read `buffer[105]` (size 100)  | Write `buffer[105] <- x`       | Use Case                |
+| --------- | ------------------------------ | ------------------------------ | ----------------------- |
+| `clamp`   | Returns `buffer[99]`           | Writes to `buffer[99]`         | Safe access to boundary |
+| `wrap`    | Returns `buffer[5]`            | Writes to `buffer[5]`          | Circular buffers        |
+| `discard` | Result unchanged (zero if new) | No-op (write silently ignored) | Ignore invalid data     |
+
+### Philosophy: Safety Nets, Not Features
+
+**Critical:** `clamp`, `wrap`, and `discard` are **safety nets**, not features. They prevent undefined behavior when an index is unexpectedly out of bounds. Developers should still handle bounds intentionally — these keywords catch the bugs that slip through.
+
+This means:
+
+- Compile-time warnings remain for constant OOB indices, even when clamp/wrap/discard would handle them safely at runtime
+- `--debug` mode panics on **all three behaviors** when an OOB access occurs, because hitting the safety net means a bug exists
+- There is **no "unchecked" or "raw" mode** — this goes against C-Next's core safety philosophy
+
+### Default Behavior
+
+All array access defaults to `clamp`. This means existing code without explicit overflow modifiers will gain bounds-checking code generation. This is intentional and non-negotiable — C-Next eliminates buffer overflows by construction.
+
+### Debug Mode
+
+In `--debug` mode, **all** out-of-bounds accesses panic regardless of the declared overflow behavior:
+
+```c
+// --debug mode generated C (all behaviors)
+if ((size_t)idx >= 100) {
+    fprintf(stderr, "Array index out of bounds: %zu >= 100 at %s:%d\n",
+            (size_t)idx, __FILE__, __LINE__);
+    abort();
+}
+```
+
+### Constant Index Optimization
+
+When the index is a compile-time constant and provably within bounds, **no bounds-checking code is generated**:
+
+```cnx
+u8[clamp 100] buffer;
+buffer[5] <- 0xFF;    // 5 < 100: no clamping code generated, direct access
+buffer[idx] <- 0xFF;  // idx unknown: clamping code generated
+```
+
+When the index is a compile-time constant and out of bounds, a **compile-time warning** is emitted (the safety net catches it, but the developer should fix the code).
+
+### Index Type Safety
+
+Already implemented. All bracket subscript expressions require unsigned integer types. Signed integers and floats produce compile error E0850.
+
+### Array Slices
+
+Overflow behavior applies to slice offsets as well:
+
+```cnx
+u8[clamp 100] buffer;
+buffer[95, 10] <- source;  // offset 95 clamped, slice bounds checked
+```
+
+### Bounded Strings
+
+The same `clamp`/`wrap`/`discard` semantics apply to bounded strings (ADR-045), with special handling for the two-bounds problem:
+
+#### Reads: Check Against Current char_count
+
+```cnx
+clamp String<64> name <- "Hello";  // char_count=5
+name[10];   // Clamps to name[4] → 'o' (last valid char)
+name[100];  // Clamps to name[4] → 'o'
+```
+
+Rationale: Accessing past the current char_count reads uninitialized memory, which is always a bug.
+
+#### Writes: Check Against Capacity, Pad with Spaces
+
+```cnx
+clamp String<64> name <- "Hello";  // char_count=5
+name[10] <- 'X';  // name → "Hello     X", .char_count becomes 11
+name[3] <- 'X';   // name → "HelXo", .char_count stays 5
+```
+
+When writing past the current char_count but within capacity:
+
+- The gap is filled with space characters (` `)
+- `.char_count` is updated to include the new character
+- The null terminator moves to the new `char_count` position (C string invariant maintained)
+- Clamping applies against capacity (not char_count) for writes
+
+### New Error Codes
+
+| Code  | Meaning                                            |
+| ----- | -------------------------------------------------- |
+| E0854 | Compile-time warning: constant index out of bounds |
+| E0855 | Invalid overflow modifier in array dimension       |
+
+(E0850–E0853 already used for index type safety and critical section errors)
+
+---
+
+## Implementation
 
 ### Generated C
+
+#### Clamp (Default)
 
 ```cnx
 // C-Next
@@ -577,13 +710,12 @@ value <- buffer[idx];
 ```
 
 ```c
-// Generated C
+// Generated C (indices are always unsigned, no < 0 check needed)
 uint8_t buffer[100];
-
-// Clamped access
-size_t _idx_clamped = (idx < 0) ? 0 : ((size_t)idx >= 100) ? 99 : (size_t)idx;
-value = buffer[_idx_clamped];
+value = buffer[idx >= 100 ? 99 : idx];
 ```
+
+#### Wrap
 
 ```cnx
 // C-Next
@@ -594,12 +726,22 @@ ring[head] <- byte;
 ```c
 // Generated C (power-of-2 optimization)
 uint8_t ring[256];
-ring[head & 0xFF] = byte;  // Bitwise AND for power-of-2 sizes
-
-// Non-power-of-2
-uint8_t ring[100];
-ring[head % 100] = byte;   // Modulo for other sizes
+ring[head & 255] = byte;  // Bitwise AND for power-of-2 sizes
 ```
+
+```cnx
+// C-Next (non-power-of-2)
+u8[wrap 100] ring;
+ring[head] <- byte;
+```
+
+```c
+// Generated C (general case)
+uint8_t ring[100];
+ring[head % 100] = byte;   // Modulo for non-power-of-2 sizes
+```
+
+#### Discard
 
 ```cnx
 // C-Next
@@ -612,17 +754,47 @@ sensorData[idx] <- newValue;
 // Generated C
 uint8_t sensorData[100];
 
-// Discard read: returns unchanged if out of bounds
-if ((size_t)idx < 100) {
+// Discard read: unchanged if out of bounds
+if (idx < 100) {
     result = sensorData[idx];
 }
-// else: result unchanged
 
 // Discard write: silently ignored if out of bounds
-if ((size_t)idx < 100) {
+if (idx < 100) {
     sensorData[idx] = newValue;
 }
-// else: write discarded
+```
+
+#### Constant Index (Optimized — No Bounds Code)
+
+```cnx
+u8[clamp 100] buffer;
+buffer[5] <- 0xFF;
+```
+
+```c
+// Generated C — index provably in bounds, no clamping emitted
+uint8_t buffer[100];
+buffer[5] = 0xFF;
+```
+
+#### Debug Mode (All Behaviors)
+
+```cnx
+// --debug
+u8[wrap 256] ring;
+ring[head] <- byte;
+```
+
+```c
+// Generated C (--debug)
+uint8_t ring[256];
+if (head >= 256) {
+    fprintf(stderr, "Array index out of bounds: %u >= 256 at %s:%d\n",
+            head, __FILE__, __LINE__);
+    abort();
+}
+ring[head & 255] = byte;
 ```
 
 ---

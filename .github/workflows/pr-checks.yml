@@ -1,8 +1,13 @@
 name: PR Quality Checks
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
+
+# Self-hosted runner for trusted code (your branches, pushes to main)
+# GitHub runners for untrusted code (fork PRs)
 
 # Prevent concurrent Pages deployments
 concurrency:
@@ -15,7 +20,7 @@ jobs:
   # ============================================================================
   lint:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout code
@@ -84,7 +89,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout code
@@ -124,11 +129,11 @@ jobs:
             src/transpiler/logic/parser/cpp/grammar/
 
   # ============================================================================
-  # STAGE 2 (parallel): Test suites (all need build artifact)
+  # STAGE 2a: Transpile tests (generates C/C++ files for validation)
   # ============================================================================
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
+  integration-transpile:
+    name: Integration Transpile
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -153,8 +158,8 @@ jobs:
         with:
           name: build-output
 
-      - name: Run integration tests
-        run: npm test
+      - name: Transpile tests (snapshot comparison only)
+        run: npm run integration:transpile
 
       - name: Upload generated test files
         uses: actions/upload-artifact@v4
@@ -166,9 +171,48 @@ jobs:
             tests/**/*.test.cpp
             tests/**/*.test.h
 
+  # ============================================================================
+  # STAGE 2b (parallel): Execute tests + other test suites
+  # ============================================================================
+  integration-execute:
+    name: Integration Execute
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [integration-transpile]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Download generated test files
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-test-files
+          path: tests
+
+      - name: Execute tests (compile + run)
+        run: npm run integration:execute
+
   unit-tests:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -206,7 +250,7 @@ jobs:
 
   cli-tests:
     name: CLI Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -241,7 +285,7 @@ jobs:
 
   grammar-coverage:
     name: Grammar Coverage
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -271,8 +315,8 @@ jobs:
 
   verify-clean:
     name: Verify Clean
-    runs-on: ubuntu-latest
-    needs: [integration-tests]
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [integration-transpile]
 
     steps:
       - name: Checkout code
@@ -304,11 +348,17 @@ jobs:
   # STAGE 3 (parallel): Analysis that needs generated files
   # ============================================================================
   c-validation:
-    name: C Static Analysis
-    runs-on: ubuntu-latest
-    needs: [integration-tests]
+    name: C Static Analysis (${{ matrix.tool }})
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [integration-transpile]
     # Advisory: pre-existing MISRA violations exist; don't block PR merges
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # Note: 'misra' is a cppcheck addon, not a standalone tool
+        # batch-validate.mjs handles this dependency automatically
+        tool: [cppcheck, clang-tidy, misra, flawfinder]
 
     steps:
       - name: Checkout code
@@ -328,6 +378,7 @@ jobs:
         run: npm ci
 
       - name: Install C analysis tools
+        if: runner.environment == 'github-hosted'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq cppcheck clang-tidy flawfinder
@@ -338,12 +389,14 @@ jobs:
           name: generated-test-files
           path: tests
 
-      - name: Run batch validation
-        run: npm run validate:c
+      - name: Run validation
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: npm run validate:c -- --tool "$TOOL"
 
   sonar:
     name: SonarCloud
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [unit-tests]
 
     steps:
@@ -368,12 +421,13 @@ jobs:
   # ============================================================================
   all-checks-passed:
     name: All Checks Passed
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs:
       [
         lint,
         build,
-        integration-tests,
+        integration-transpile,
+        integration-execute,
         unit-tests,
         cli-tests,
         grammar-coverage,
@@ -390,7 +444,8 @@ jobs:
           FAILED=0
           [ "${{ needs.lint.result }}" != "success" ] && echo "❌ Static Analysis" && FAILED=1 || echo "✅ Static Analysis"
           [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
-          [ "${{ needs.integration-tests.result }}" != "success" ] && echo "❌ Integration Tests" && FAILED=1 || echo "✅ Integration Tests"
+          [ "${{ needs.integration-transpile.result }}" != "success" ] && echo "❌ Integration Transpile" && FAILED=1 || echo "✅ Integration Transpile"
+          [ "${{ needs.integration-execute.result }}" != "success" ] && echo "❌ Integration Execute" && FAILED=1 || echo "✅ Integration Execute"
           [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
           [ "${{ needs.cli-tests.result }}" != "success" ] && echo "❌ CLI Tests" && FAILED=1 || echo "✅ CLI Tests"
           [ "${{ needs.grammar-coverage.result }}" != "success" ] && echo "❌ Grammar Coverage" && FAILED=1 || echo "✅ Grammar Coverage"
@@ -404,7 +459,7 @@ jobs:
   # ============================================================================
   deploy-coverage:
     name: Deploy Coverage
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [unit-tests]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
