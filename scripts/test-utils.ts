@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import ITools from "./types/ITools";
+import ITestOptions from "./types/ITestOptions";
 import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
 import type { TTestMode, IModeResult } from "./types/ITestMode";
@@ -679,6 +680,7 @@ class TestUtils {
    * @param rootDir - Project root directory
    * @param shouldExec - Whether to run execution tests
    * @param helperCnxFiles - Helper .cnx files to also transpile
+   * @param options - Test execution options (transpileOnly, executeOnly)
    */
   static async runTestMode(
     cnxFile: string,
@@ -689,6 +691,7 @@ class TestUtils {
     rootDir: string,
     shouldExec: boolean,
     helperCnxFiles: string[],
+    options: ITestOptions = {},
   ): Promise<IModeResult> {
     const basePath = cnxFile.replace(/\.test\.cnx$/, "");
     const paths = TestUtils.getExpectedPaths(basePath, mode);
@@ -703,108 +706,144 @@ class TestUtils {
       execSuccess: false,
     };
 
-    // Transpile via CLI (not library import) to ensure tests use same code path as users
-    const transpileResult = transpileViaCli(cnxFile, rootDir, mode === "cpp");
-
-    if (!transpileResult.success) {
-      const errors = transpileResult.errors
-        .map((e) => `${e.line}:${e.column} ${e.message}`)
-        .join("\n");
-      result.error = `Transpilation failed: ${errors || transpileResult.stderr}`;
-      return result;
-    }
-
-    result.transpileSuccess = true;
-
-    // Transpile helper files via CLI
-    // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
-    // that would move tracked helper files to temp locations. Instead, let
-    // helpers generate in place (they're tracked in git anyway).
-    const helperImplFiles: string[] = [];
-
-    for (const helperCnx of helperCnxFiles) {
-      const helperBaseName = basename(helperCnx, ".cnx");
-      const implExt = mode === "cpp" ? "cpp" : "c";
-
-      // The helper file will be generated at the default location
-      const helperImplFile = join(
-        dirname(helperCnx),
-        `${helperBaseName}.${implExt}`,
-      );
-
-      // Transpile WITHOUT -o to avoid renaming tracked files
-      const helperResult = transpileViaCli(helperCnx, rootDir, mode === "cpp");
-
-      if (helperResult.success) {
-        helperImplFiles.push(helperImplFile);
-      }
-    }
-
-    // No cleanup needed - helper files are tracked in git and should persist
-
-    // Check expected file exists (no fallbacks - tests must have proper expected files)
+    // Expected file paths
     const expectedImplPath = paths.expectedImpl;
     const expectedHeaderPath = paths.expectedHeader;
-    const hasExpectedImpl = existsSync(expectedImplPath);
-    const hasExpectedHeader = existsSync(expectedHeaderPath);
 
-    // Update mode: create/update snapshots
-    if (updateMode) {
-      writeFileSync(paths.expectedImpl, transpileResult.code);
-      if (transpileResult.headerCode) {
-        writeFileSync(paths.expectedHeader, transpileResult.headerCode);
+    // Helper implementation files (built up during transpilation or discovered for executeOnly)
+    let helperImplFiles: string[] = [];
+
+    // executeOnly mode: Skip transpilation, assume .test.c files already exist
+    if (options.executeOnly) {
+      // Check that required files exist
+      if (!existsSync(expectedImplPath)) {
+        result.error = `Execute-only mode: missing ${expectedImplPath} (run transpile first)`;
+        return result;
       }
+
+      // Mark transpile/snapshot phases as passed (already validated in transpile phase)
+      result.transpileSuccess = true;
       result.snapshotMatch = true;
       result.headerMatch = true;
-      result.compileSuccess = true;
-      result.execSuccess = true;
-      // No cleanup needed for helper files
-      return result;
-    }
 
-    // No expected file - skip this mode
-    if (!hasExpectedImpl) {
-      result.error = `No expected file: ${paths.expectedImpl}`;
-      // No cleanup needed for helper files
-      return result;
-    }
+      // Find existing helper implementation files
+      for (const helperCnx of helperCnxFiles) {
+        const helperBaseName = basename(helperCnx, ".cnx");
+        const implExt = mode === "cpp" ? "cpp" : "c";
+        const helperImplFile = join(
+          dirname(helperCnx),
+          `${helperBaseName}.${implExt}`,
+        );
+        if (existsSync(helperImplFile)) {
+          helperImplFiles.push(helperImplFile);
+        }
+      }
+    } else {
+      // Normal mode: Transpile via CLI
+      const transpileResult = transpileViaCli(cnxFile, rootDir, mode === "cpp");
 
-    // Compare implementation snapshot
-    const expectedImpl = readFileSync(expectedImplPath, "utf-8");
-    if (
-      TestUtils.normalize(transpileResult.code) !==
-      TestUtils.normalize(expectedImpl)
-    ) {
-      result.error = `${mode.toUpperCase()} output mismatch`;
-      result.expected = expectedImpl;
-      result.actual = transpileResult.code;
-      // No cleanup needed for helper files
-      return result;
-    }
-    result.snapshotMatch = true;
-
-    // Compare header snapshot (if headers were generated)
-    if (transpileResult.headerCode) {
-      if (!hasExpectedHeader) {
-        result.error = `Missing ${expectedHeaderPath} - headers were generated but no snapshot exists`;
-        // No cleanup needed for helper files
+      if (!transpileResult.success) {
+        const errors = transpileResult.errors
+          .map((e) => `${e.line}:${e.column} ${e.message}`)
+          .join("\n");
+        result.error = `Transpilation failed: ${errors || transpileResult.stderr}`;
         return result;
       }
-      const expectedHeader = readFileSync(expectedHeaderPath, "utf-8");
+
+      result.transpileSuccess = true;
+
+      // Transpile helper files via CLI
+      // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
+      // that would move tracked helper files to temp locations. Instead, let
+      // helpers generate in place (they're tracked in git anyway).
+      for (const helperCnx of helperCnxFiles) {
+        const helperBaseName = basename(helperCnx, ".cnx");
+        const implExt = mode === "cpp" ? "cpp" : "c";
+
+        // The helper file will be generated at the default location
+        const helperImplFile = join(
+          dirname(helperCnx),
+          `${helperBaseName}.${implExt}`,
+        );
+
+        // Transpile WITHOUT -o to avoid renaming tracked files
+        const helperResult = transpileViaCli(
+          helperCnx,
+          rootDir,
+          mode === "cpp",
+        );
+
+        if (helperResult.success) {
+          helperImplFiles.push(helperImplFile);
+        }
+      }
+
+      // No cleanup needed - helper files are tracked in git and should persist
+
+      const hasExpectedImpl = existsSync(expectedImplPath);
+      const hasExpectedHeader = existsSync(expectedHeaderPath);
+
+      // Update mode: create/update snapshots
+      if (updateMode) {
+        writeFileSync(paths.expectedImpl, transpileResult.code);
+        if (transpileResult.headerCode) {
+          writeFileSync(paths.expectedHeader, transpileResult.headerCode);
+        }
+        result.snapshotMatch = true;
+        result.headerMatch = true;
+        result.compileSuccess = true;
+        result.execSuccess = true;
+        return result;
+      }
+
+      // No expected file - skip this mode
+      if (!hasExpectedImpl) {
+        result.error = `No expected file: ${paths.expectedImpl}`;
+        return result;
+      }
+
+      // Compare implementation snapshot
+      const expectedImpl = readFileSync(expectedImplPath, "utf-8");
       if (
-        TestUtils.normalize(transpileResult.headerCode) !==
-        TestUtils.normalize(expectedHeader)
+        TestUtils.normalize(transpileResult.code) !==
+        TestUtils.normalize(expectedImpl)
       ) {
-        result.error = `${mode.toUpperCase()} header mismatch`;
-        result.expected = expectedHeader;
-        result.actual = transpileResult.headerCode;
-        // No cleanup needed for helper files
+        result.error = `${mode.toUpperCase()} output mismatch`;
+        result.expected = expectedImpl;
+        result.actual = transpileResult.code;
+        return result;
+      }
+      result.snapshotMatch = true;
+
+      // Compare header snapshot (if headers were generated)
+      if (transpileResult.headerCode) {
+        if (!hasExpectedHeader) {
+          result.error = `Missing ${expectedHeaderPath} - headers were generated but no snapshot exists`;
+          return result;
+        }
+        const expectedHeader = readFileSync(expectedHeaderPath, "utf-8");
+        if (
+          TestUtils.normalize(transpileResult.headerCode) !==
+          TestUtils.normalize(expectedHeader)
+        ) {
+          result.error = `${mode.toUpperCase()} header mismatch`;
+          result.expected = expectedHeader;
+          result.actual = transpileResult.headerCode;
+          return result;
+        }
+      }
+      result.headerMatch = true;
+
+      // transpileOnly mode: Skip compilation and execution
+      if (options.transpileOnly) {
+        result.compileSuccess = true;
+        result.execSuccess = true;
+        result.skippedExec = true;
         return result;
       }
     }
-    result.headerMatch = true;
 
-    // Skip compilation for transpile-only tests
+    // Skip compilation for transpile-only tests (per-file marker)
     const isTranspileOnly = TestUtils.hasTranspileOnlyMarker(source);
     if (isTranspileOnly) {
       result.compileSuccess = true;
@@ -881,7 +920,9 @@ class TestUtils {
 
     // Execute if requested and not ARM-only code
     if (shouldExec && /^\s*\/\/\s*test-execution\s*$/m.test(source)) {
-      if (TestUtils.requiresArmRuntime(transpileResult.code)) {
+      // Read generated code to check for ARM runtime requirements
+      const generatedCode = readFileSync(expectedImplPath, "utf-8");
+      if (TestUtils.requiresArmRuntime(generatedCode)) {
         result.execSuccess = true;
         result.skippedExec = true;
         // No cleanup needed for helper files
@@ -961,12 +1002,14 @@ class TestUtils {
    * @param updateMode - Whether to update snapshots
    * @param tools - Available validation tools
    * @param rootDir - Project root directory
+   * @param options - Test execution options (transpileOnly, executeOnly)
    */
   static async runTest(
     cnxFile: string,
     updateMode: boolean,
     tools: ITools,
     rootDir: string,
+    options: ITestOptions = {},
   ): Promise<ITestResult> {
     const source = readFileSync(cnxFile, "utf-8");
 
@@ -1010,6 +1053,7 @@ class TestUtils {
         rootDir,
         shouldExec,
         helperCnxFiles,
+        options,
       );
       modeResults.push(modeResult);
     }

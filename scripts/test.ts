@@ -25,6 +25,8 @@
  *   npm test -- --quiet                   # Minimal output (errors + summary only)
  *   npm test -- --jobs 4                  # Run with 4 parallel workers
  *   npm test -- --jobs 1                  # Run sequentially (no parallelism)
+ *   npm test -- --transpile-only          # Transpile + snapshot comparison only (no compile/execute)
+ *   npm test -- --execute-only            # Compile + execute only (assumes transpiled files exist)
  *   npm test -- tests/enum                # Run specific directory
  *   npm test -- tests/enum/my.test.cnx    # Run single test file
  */
@@ -35,6 +37,7 @@ import { fileURLToPath } from "node:url";
 import { execFileSync, fork, ChildProcess } from "node:child_process";
 import { cpus } from "node:os";
 import ITools from "./types/ITools";
+import ITestOptions from "./types/ITestOptions";
 import ITestResult from "./types/ITestResult";
 
 // Import shared test utilities
@@ -83,8 +86,9 @@ async function runTest(
   cnxFile: string,
   updateMode: boolean,
   tools: ITools,
+  options: ITestOptions = {},
 ): Promise<ITestResult> {
-  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir);
+  return TestUtils.runTest(cnxFile, updateMode, tools, rootDir, options);
 }
 
 /**
@@ -200,6 +204,7 @@ async function runTestsParallel(
   quietMode: boolean,
   tools: ITools,
   numWorkers: number,
+  options: ITestOptions = {},
 ): Promise<{
   passed: number;
   failed: number;
@@ -254,7 +259,7 @@ async function runTestsParallel(
       worker.on("message", (message: IWorkerResult) => {
         if (message.type === "loaded") {
           // Worker is loaded, send init message
-          worker.send({ type: "init", rootDir, tools });
+          worker.send({ type: "init", rootDir, tools, options });
         } else if (message.type === "ready") {
           // Worker is initialized, assign work
           assignWork(worker);
@@ -359,6 +364,7 @@ async function runTestsSequential(
   updateMode: boolean,
   quietMode: boolean,
   tools: ITools,
+  options: ITestOptions = {},
 ): Promise<{
   passed: number;
   failed: number;
@@ -372,7 +378,7 @@ async function runTestsSequential(
 
   for (const cnxFile of cnxFiles) {
     const relativePath = cnxFile.replace(rootDir + "/", "");
-    const result = await runTest(cnxFile, updateMode, tools);
+    const result = await runTest(cnxFile, updateMode, tools, options);
 
     printResult(relativePath, result, quietMode);
 
@@ -393,6 +399,24 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const updateMode = args.includes("--update") || args.includes("-u");
   const quietMode = args.includes("--quiet") || args.includes("-q");
+  const transpileOnly = args.includes("--transpile-only");
+  const executeOnly = args.includes("--execute-only");
+
+  // Validate mutually exclusive options
+  if (transpileOnly && executeOnly) {
+    console.error(
+      chalk.red(
+        "Error: --transpile-only and --execute-only are mutually exclusive",
+      ),
+    );
+    process.exit(1);
+  }
+
+  // Build test options
+  const testOptions: ITestOptions = {
+    transpileOnly,
+    executeOnly,
+  };
 
   // Parse --jobs argument
   let numJobs = cpus().length; // Default to CPU count
@@ -437,8 +461,8 @@ async function main(): Promise<void> {
   // Always check for validation tools (validation is mandatory)
   const tools = checkValidationTools();
 
-  // Require at least GCC for compilation check
-  if (!tools.gcc) {
+  // Require at least GCC for compilation check (unless transpile-only mode)
+  if (!tools.gcc && !transpileOnly) {
     console.error(
       chalk.red("Error: gcc is required for C compilation validation"),
     );
@@ -456,8 +480,15 @@ async function main(): Promise<void> {
       );
     }
 
-    // Show available validation tools
-    console.log(chalk.cyan(`Validation: ${tools.gcc ? "gcc" : "(no gcc)"}`));
+    // Show test mode
+    if (transpileOnly) {
+      console.log(chalk.cyan("Mode: transpile-only (skip compile/execute)"));
+    } else if (executeOnly) {
+      console.log(chalk.cyan("Mode: execute-only (skip transpilation)"));
+    } else {
+      // Show available validation tools
+      console.log(chalk.cyan(`Validation: ${tools.gcc ? "gcc" : "(no gcc)"}`));
+    }
 
     // Show parallelism info
     if (numJobs > 1) {
@@ -493,9 +524,16 @@ async function main(): Promise<void> {
       quietMode,
       tools,
       numJobs,
+      testOptions,
     );
   } else {
-    results = await runTestsSequential(cnxFiles, updateMode, quietMode, tools);
+    results = await runTestsSequential(
+      cnxFiles,
+      updateMode,
+      quietMode,
+      tools,
+      testOptions,
+    );
   }
 
   const { passed, failed, updated, noSnapshot } = results;
