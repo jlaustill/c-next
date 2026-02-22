@@ -1,0 +1,5 @@
+// Helper: defines a struct used by the test file
+struct Sensor {
+    u32 id;
+    u16 value;
+}

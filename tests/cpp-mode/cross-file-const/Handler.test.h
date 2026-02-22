@@ -15,9 +15,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct Config Config;
-
 /* Function prototypes */
 uint8_t Handler_reset(Config& cfg);
 

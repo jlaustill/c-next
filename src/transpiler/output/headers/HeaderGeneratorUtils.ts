@@ -284,9 +284,12 @@ class HeaderGeneratorUtils {
       }
     }
 
-    // External type header includes
+    // External type header includes (skip duplicates of user includes)
+    const userIncludeSet = new Set(options.userIncludes ?? []);
     for (const directive of headersToInclude) {
-      lines.push(directive);
+      if (!userIncludeSet.has(directive)) {
+        lines.push(directive);
+      }
     }
 
     // Add blank line if any includes were added

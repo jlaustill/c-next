@@ -15,9 +15,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct Config Config;
-
 /* Function prototypes */
 void Handler_passThrough(Config& config);
 

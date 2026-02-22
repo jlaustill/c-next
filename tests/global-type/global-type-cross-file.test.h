@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct Vec2 Vec2;
-
 /* Function prototypes */
 EPriority TaskManager_getPriority(void);
 int32_t TaskManager_priorityToInt(EPriority p);

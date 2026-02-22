@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct Config Config;
-
 /* Function prototypes */
 void ZModifier_reset(Config& c);
 

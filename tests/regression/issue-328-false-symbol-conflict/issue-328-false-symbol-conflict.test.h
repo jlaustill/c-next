@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct AppData AppData;
-
 /* External variables */
 extern AppData sensorData;
 

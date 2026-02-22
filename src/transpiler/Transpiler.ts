@@ -549,6 +549,15 @@ class Transpiler {
       }
     }
 
+    // Issue #854: Store header directives for cnext includes
+    for (const cnxInclude of resolved.cnextIncludes) {
+      const includePath = resolve(cnxInclude.path);
+      const directive = resolved.headerIncludeDirectives.get(includePath);
+      if (directive) {
+        this.state.setHeaderDirective(includePath, directive);
+      }
+    }
+
     // Walk C-Next includes transitively to build include file list
     const cnextIncludeFiles: IPipelineFile[] = [];
     IncludeTreeWalker.walk(
@@ -841,7 +850,10 @@ class Transpiler {
    * Issue #580: Track dependencies for topological sorting
    */
   private _processCnextIncludes(
-    resolved: { cnextIncludes: IDiscoveredFile[] },
+    resolved: {
+      cnextIncludes: IDiscoveredFile[];
+      headerIncludeDirectives: Map<string, string>;
+    },
     cnxPath: string,
     depGraph: DependencyGraph,
     cnextFiles: IDiscoveredFile[],
@@ -856,6 +868,12 @@ class Transpiler {
       );
 
       depGraph.addDependency(cnxPath, includePath);
+
+      // Issue #854: Store header directive for cnext include types
+      const directive = resolved.headerIncludeDirectives.get(includePath);
+      if (directive) {
+        this.state.setHeaderDirective(includePath, directive);
+      }
 
       // Don't add if already in the list
       const alreadyExists =

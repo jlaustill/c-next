@@ -14,10 +14,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct DeviceConfig DeviceConfig;
-typedef struct DeviceStatus DeviceStatus;
-
 /* Function prototypes */
 void DeviceManager_configure(const DeviceConfig* newConfig);
 DeviceConfig DeviceManager_getConfig(void);
