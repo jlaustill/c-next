@@ -244,7 +244,7 @@ class Transpiler {
       );
     }
 
-    // Stage 6: Generate headers (only write to disk in run() mode)
+    // Stage 6: Generate headers (only write to disk in files mode)
     if (result.success && input.writeOutputToDisk) {
       this._generateAllHeadersFromPipeline(input.cnextFiles, result);
     }
@@ -712,7 +712,7 @@ class Transpiler {
   }
 
   // ===========================================================================
-  // Source Discovery (Stage 1 for run())
+  // File Discovery (Stage 1 for files mode)
   // ===========================================================================
 
   /**
