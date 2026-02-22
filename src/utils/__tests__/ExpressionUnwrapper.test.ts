@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from "vitest";
 import ExpressionUnwrapper from "../ExpressionUnwrapper";
-import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
-import * as Parser from "../../../../logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
+import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 
 /**
  * Helper to parse a simple expression and get its ExpressionContext

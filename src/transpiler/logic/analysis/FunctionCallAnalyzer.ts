@@ -14,7 +14,7 @@ import SymbolTable from "../symbols/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
 import CodeGenState from "../../state/CodeGenState";
-import ExpressionUnwrapper from "../../output/codegen/utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 
 /**
  * C-Next built-in functions

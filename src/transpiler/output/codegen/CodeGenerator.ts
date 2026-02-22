@@ -118,7 +118,7 @@ import ISimpleIdentifierDeps from "./types/ISimpleIdentifierDeps";
 import IPostfixChainDeps from "./types/IPostfixChainDeps";
 import IPostfixOperation from "./types/IPostfixOperation";
 // Issue #707: Expression unwrapping utility for reducing duplication
-import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 // Stateless parser utilities extracted from CodeGenerator
 import CodegenParserUtils from "./utils/CodegenParserUtils";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";

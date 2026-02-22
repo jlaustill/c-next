@@ -16,7 +16,7 @@
  * eliminate code duplication.
  */
 
-import * as Parser from "../../../logic/parser/grammar/CNextParser";
+import * as Parser from "../transpiler/logic/parser/grammar/CNextParser";
 
 /**
  * Utility class for navigating expression tree hierarchy

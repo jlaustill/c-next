@@ -11,7 +11,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import StringUtils from "../../../../utils/StringUtils.js";
-import ExpressionUnwrapper from "../utils/ExpressionUnwrapper.js";
+import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 
 /** Regex for identifying valid C/C++ identifiers */
 const IDENTIFIER_REGEX = /^[a-zA-Z_]\w*$/;
