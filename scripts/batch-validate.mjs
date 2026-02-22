@@ -189,7 +189,11 @@ function runCppcheck() {
   ];
 
   // Batch C files (excluding those that need C++ mode)
-  const pureCFiles = cFiles.filter((f) => !requiresCpp(f));
+  // Also exclude error test files (*-error.test.c) which intentionally contain
+  // invalid code to test transpiler error detection (e.g., shift beyond width)
+  const pureCFiles = cFiles.filter(
+    (f) => !requiresCpp(f) && !f.endsWith("-error.test.c"),
+  );
   const cppDetectedFiles = cFiles.filter((f) => requiresCpp(f));
 
   if (pureCFiles.length > 0) {
@@ -287,9 +291,13 @@ function runMisra() {
 
   // MISRA is C-only; skip files that need C++ compilation
   // Also exclude files testing valid MISRA exceptions
+  // Also exclude error test files (*-error.test.c) which intentionally contain
+  // invalid code to test transpiler error detection (e.g., shift beyond width)
   const misraFiles = cFiles.filter(
     (f) =>
-      !requiresCpp(f) && !MISRA_EXCLUDED_FILES.some((exc) => f.endsWith(exc)),
+      !requiresCpp(f) &&
+      !f.endsWith("-error.test.c") &&
+      !MISRA_EXCLUDED_FILES.some((exc) => f.endsWith(exc)),
   );
   console.log(`Running MISRA on ${misraFiles.length} C files...`);
 
