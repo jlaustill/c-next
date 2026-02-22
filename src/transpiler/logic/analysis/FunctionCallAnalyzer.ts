@@ -572,6 +572,9 @@ class FunctionCallAnalyzer {
     );
   }
 
+  /** Current scope name during callback assignment scanning */
+  private scanCurrentScope: string | null = null;
+
   /**
    * Detect functions assigned to C function pointer typedefs.
    * When `PointCallback cb <- my_handler;` is found and PointCallback
@@ -581,13 +584,33 @@ class FunctionCallAnalyzer {
     tree: Parser.ProgramContext,
   ): void {
     for (const decl of tree.declaration()) {
+      // Scan standalone function declarations
       const funcDecl = decl.functionDeclaration();
-      if (!funcDecl) continue;
+      if (funcDecl) {
+        const block = funcDecl.block();
+        if (block) {
+          this.scanCurrentScope = null;
+          this.scanBlockForCallbackAssignments(block);
+        }
+        continue;
+      }
 
-      const block = funcDecl.block();
-      if (!block) continue;
-
-      this.scanBlockForCallbackAssignments(block);
+      // Scan scope member functions (Issue #895)
+      const scopeDecl = decl.scopeDeclaration();
+      if (scopeDecl) {
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+        for (const member of scopeDecl.scopeMember()) {
+          const memberFunc = member.functionDeclaration();
+          if (memberFunc) {
+            const block = memberFunc.block();
+            if (block) {
+              this.scanCurrentScope = scopeName;
+              this.scanBlockForCallbackAssignments(block);
+            }
+          }
+        }
+        this.scanCurrentScope = null;
+      }
     }
   }
 
@@ -702,17 +725,38 @@ class FunctionCallAnalyzer {
 
   /**
    * Extract a function reference from an expression context.
-   * Matches bare identifiers (e.g., "my_handler") and qualified scope
-   * names (e.g., "MyScope.handler").
+   * Matches:
+   *   - Bare identifiers: "my_handler"
+   *   - Qualified scope names: "MyScope.handler"
+   *   - Self-scope reference: "this.handler" (resolved using scanCurrentScope)
+   *   - Global scope reference: "global.ScopeName.handler"
    * Returns null if the expression is not a function reference.
    */
   private extractFunctionReference(
     expr: Parser.ExpressionContext,
   ): string | null {
     const text = expr.getText();
-    if (/^\w+(\.\w+)?$/.test(text)) {
+
+    // Pattern 1: this.member -> CurrentScope.member (Issue #895)
+    const thisPattern = /^this\.(\w+)$/;
+    const thisMatch = thisPattern.exec(text);
+    if (thisMatch && this.scanCurrentScope) {
+      return this.scanCurrentScope + "." + thisMatch[1];
+    }
+
+    // Pattern 2: global.Scope.member -> Scope.member (Issue #895)
+    const globalPattern = /^global\.(\w+)\.(\w+)$/;
+    const globalMatch = globalPattern.exec(text);
+    if (globalMatch) {
+      return globalMatch[1] + "." + globalMatch[2];
+    }
+
+    // Pattern 3: Bare identifier or simple Scope.member
+    const simplePattern = /^\w+(\.\w+)?$/;
+    if (simplePattern.test(text)) {
       return text;
     }
+
     return null;
   }
 
