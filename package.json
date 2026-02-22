@@ -22,6 +22,8 @@
     "test:cli": "node scripts/test-cli.js",
     "test:q": "tsx scripts/test.ts -q",
     "test:update": "tsx scripts/test.ts --update",
+    "integration:transpile": "tsx scripts/test.ts --transpile-only",
+    "integration:execute": "tsx scripts/test.ts --execute-only",
     "analyze": "./scripts/static-analysis.sh",
     "clean": "rm -rf dist src/transpiler/logic/parser/grammar src/transpiler/logic/parser/c/grammar src/transpiler/logic/parser/cpp/grammar",
     "prettier:check": "prettier --check .",

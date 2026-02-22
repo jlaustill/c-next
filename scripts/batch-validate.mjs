@@ -27,6 +27,32 @@ const TESTS_DIR = join(ROOT, "tests");
 const INCLUDE_DIR = join(ROOT, "tests/include");
 
 // ============================================================================
+// CLI argument parsing
+// ============================================================================
+
+const VALID_TOOLS = ["cppcheck", "clang-tidy", "misra", "flawfinder", "all"];
+
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let tool = "all";
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--tool" && args[i + 1]) {
+      tool = args[i + 1].toLowerCase();
+      if (!VALID_TOOLS.includes(tool)) {
+        console.error(`Invalid tool: ${tool}`);
+        console.error(`Valid options: ${VALID_TOOLS.join(", ")}`);
+        process.exit(1);
+      }
+    }
+  }
+
+  return { tool };
+}
+
+const { tool: selectedTool } = parseArgs();
+
+// ============================================================================
 // Tool detection
 // ============================================================================
 
@@ -328,25 +354,44 @@ function runFlawfinder() {
 // Main
 // ============================================================================
 
-const tools = [];
-if (hasCppcheck) tools.push("cppcheck", "MISRA");
-if (hasClangTidy) tools.push("clang-tidy");
-if (hasFlawfinder) tools.push("flawfinder");
+function shouldRun(toolName) {
+  return selectedTool === "all" || selectedTool === toolName;
+}
 
-if (tools.length === 0) {
+const availableTools = [];
+if (hasCppcheck) availableTools.push("cppcheck", "misra");
+if (hasClangTidy) availableTools.push("clang-tidy");
+if (hasFlawfinder) availableTools.push("flawfinder");
+
+if (availableTools.length === 0) {
   console.log(
     "No static analysis tools available — install cppcheck, clang-tidy, or flawfinder",
   );
   process.exit(0);
 }
 
-console.log(`Tools: ${tools.join(", ")}`);
+// Check if the selected tool is available
+if (selectedTool !== "all" && !availableTools.includes(selectedTool)) {
+  // MISRA requires cppcheck
+  if (selectedTool === "misra" && !hasCppcheck) {
+    console.log("⊘ cppcheck not available (needed for MISRA addon), skipping");
+    process.exit(0);
+  }
+  console.log(`⊘ ${selectedTool} not available, skipping`);
+  process.exit(0);
+}
+
+if (selectedTool === "all") {
+  console.log(`Tools: ${availableTools.join(", ")}`);
+} else {
+  console.log(`Tool: ${selectedTool}`);
+}
 console.log();
 
-runCppcheck();
-runClangTidy();
-runMisra();
-runFlawfinder();
+if (shouldRun("cppcheck")) runCppcheck();
+if (shouldRun("clang-tidy")) runClangTidy();
+if (shouldRun("misra")) runMisra();
+if (shouldRun("flawfinder")) runFlawfinder();
 
 console.log();
 if (failures > 0) {
