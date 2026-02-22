@@ -571,9 +571,13 @@ class VariableDeclHelper {
     }
 
     // Issue #696: Use helper for modifier extraction and validation
+    // Issue #852 (MISRA Rule 8.5): Pass hasInitializer and cppMode for correct extern behavior
+    const hasInitializer = ctx.expression() !== null;
     const modifiers = VariableModifierBuilder.build(
       ctx,
       CodeGenState.inFunctionBody,
+      hasInitializer,
+      CodeGenState.cppMode,
     );
 
     const name = ctx.IDENTIFIER().getText();

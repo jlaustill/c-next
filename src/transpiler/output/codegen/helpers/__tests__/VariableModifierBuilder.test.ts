@@ -54,14 +54,46 @@ describe("VariableModifierBuilder", () => {
       expect(result.volatile).toBe("volatile ");
     });
 
-    it("returns extern for const at file scope", () => {
+    it("returns extern for const at file scope (declaration without initializer, C mode)", () => {
       const ctx = {
         constModifier: () => ({}),
         atomicModifier: () => null,
         volatileModifier: () => null,
       };
 
-      const result = VariableModifierBuilder.build(ctx, false);
+      // Declaration (no initializer) in C mode - should have extern
+      const result = VariableModifierBuilder.build(ctx, false, false, false);
+
+      expect(result.extern).toBe("extern ");
+    });
+
+    it("does not return extern for const at file scope with initializer in C mode (MISRA 8.5)", () => {
+      // MISRA Rule 8.5: External object/function shall be declared once in one file only.
+      // When a variable has an initializer, it's a DEFINITION, not a declaration.
+      // The extern declaration comes from the header; the .c file should not duplicate it.
+      const ctx = {
+        constModifier: () => ({}),
+        atomicModifier: () => null,
+        volatileModifier: () => null,
+      };
+
+      // Definition (has initializer) in C mode - should NOT have extern
+      const result = VariableModifierBuilder.build(ctx, false, true, false);
+
+      expect(result.extern).toBe("");
+    });
+
+    it("returns extern for const at file scope with initializer in C++ mode (Issue #525)", () => {
+      // In C++, const at file scope has internal linkage by default.
+      // extern is needed for cross-file access, even for definitions.
+      const ctx = {
+        constModifier: () => ({}),
+        atomicModifier: () => null,
+        volatileModifier: () => null,
+      };
+
+      // Definition (has initializer) in C++ mode - SHOULD have extern for external linkage
+      const result = VariableModifierBuilder.build(ctx, false, true, true);
 
       expect(result.extern).toBe("extern ");
     });

@@ -10,7 +10,7 @@
 // test-execution
 // Test: Scope shadowing between global and scope (ADR-016)
 // Scope member should shadow global const
-extern const uint8_t globalFlags = 0U;
+const uint8_t globalFlags = 0U;
 
 // Global const
 /* Scope: Control */

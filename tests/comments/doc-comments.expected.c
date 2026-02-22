@@ -19,4 +19,4 @@ uint32_t doubleValue(uint32_t value) {
 }
 
 /** Maximum buffer size constant */
-extern const uint32_t MAX_BUFFER = 256U;
+const uint32_t MAX_BUFFER = 256U;

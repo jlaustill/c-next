@@ -13,7 +13,7 @@
 uint8_t globalCount = 0U;
 
 // Global
-extern const uint8_t limit = 10U;
+const uint8_t limit = 10U;
 
 // Global const
 /* Scope: Counter */

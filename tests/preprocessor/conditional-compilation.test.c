@@ -24,9 +24,9 @@
 #include <stdbool.h>
 
 // Use const for values (not #define)
-extern const uint32_t LED_BIT = 3U;
+const uint32_t LED_BIT = 3U;
 
-extern const uint32_t BLINK_DELAY = 1000U;
+const uint32_t BLINK_DELAY = 1000U;
 
 /* Register: GPIO7 @ 0x42004000 */
 #define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))

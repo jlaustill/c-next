@@ -8,11 +8,11 @@
 // test-execution
 // ADR-013: Const i16 variable
 // Tests: const i16 declaration and read access with negative values
-extern const int16_t MIN_ALTITUDE = -500;
+const int16_t MIN_ALTITUDE = -500;
 
-extern const int16_t MAX_ALTITUDE = 10000;
+const int16_t MAX_ALTITUDE = 10000;
 
-extern const int16_t SEA_LEVEL = 0;
+const int16_t SEA_LEVEL = 0;
 
 int main(void) {
     int16_t minAlt = MIN_ALTITUDE;

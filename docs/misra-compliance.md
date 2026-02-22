@@ -142,22 +142,22 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 
 ## Rule 8 - Declarations and Definitions
 
-| Rule | Description                                     | Status        | Reference                     |
-| ---- | ----------------------------------------------- | ------------- | ----------------------------- |
-| 8.1  | Types explicitly stated                         | **By Design** | No implicit types             |
-| 8.2  | Function types with prototypes                  | **By Design** | All functions have prototypes |
-| 8.3  | Compatible declarations                         | **By Design** | Single definition rule        |
-| 8.4  | Compatible external declarations                | **By Design** | Module system                 |
-| 8.5  | External object/function one definition         | **By Design** | Transpiler enforces           |
-| 8.6  | Identifier with external linkage one definition | **By Design** |                               |
-| 8.7  | Functions/objects internal if possible          | Not Enforced  |                               |
-| 8.8  | Static for internal linkage                     | Partial       | ADR-038: static/extern        |
-| 8.9  | Object at block scope if possible               | Not Enforced  |                               |
-| 8.10 | Inline functions internal linkage               | **By Design** | ADR-031                       |
-| 8.11 | Array size explicit when extern                 | Partial       |                               |
-| 8.12 | Enum implicit values only if all implicit       | Not Enforced  |                               |
-| 8.13 | Pointer to const if not modified                | Not Enforced  |                               |
-| 8.14 | No restrict qualifier                           | **By Design** | Not in C-Next                 |
+| Rule | Description                                     | Status        | Reference                          |
+| ---- | ----------------------------------------------- | ------------- | ---------------------------------- |
+| 8.1  | Types explicitly stated                         | **By Design** | No implicit types                  |
+| 8.2  | Function types with prototypes                  | **By Design** | All functions have prototypes      |
+| 8.3  | Compatible declarations                         | **By Design** | Single definition rule             |
+| 8.4  | Compatible external declarations                | **By Design** | Module system                      |
+| 8.5  | External object/function one definition         | **By Design** | Issue #852: extern only in headers |
+| 8.6  | Identifier with external linkage one definition | **By Design** |                                    |
+| 8.7  | Functions/objects internal if possible          | Not Enforced  |                                    |
+| 8.8  | Static for internal linkage                     | Partial       | ADR-038: static/extern             |
+| 8.9  | Object at block scope if possible               | Not Enforced  |                                    |
+| 8.10 | Inline functions internal linkage               | **By Design** | ADR-031                            |
+| 8.11 | Array size explicit when extern                 | Partial       |                                    |
+| 8.12 | Enum implicit values only if all implicit       | Not Enforced  |                                    |
+| 8.13 | Pointer to const if not modified                | Not Enforced  |                                    |
+| 8.14 | No restrict qualifier                           | **By Design** | Not in C-Next                      |
 
 ---
 
@@ -389,5 +389,5 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 
 ---
 
-_Last updated: 2026-01-19_
+_Last updated: 2026-02-22_
 _Based on MISRA C:2012 with Amendment 2_

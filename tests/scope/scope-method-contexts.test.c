@@ -30,9 +30,9 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Verifies that this. and global. accessors work correctly in all method contexts
 // Tests: public methods, private methods, local variables with modifiers, combined access patterns
 // Global variables for testing global. accessor in all method contexts
-extern const uint8_t GLOBAL_MAX = 100U;
+const uint8_t GLOBAL_MAX = 100U;
 
-extern const uint16_t GLOBAL_THRESHOLD = 1000U;
+const uint16_t GLOBAL_THRESHOLD = 1000U;
 
 uint8_t globalCounter = 50U;
 

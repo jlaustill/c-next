@@ -8,11 +8,11 @@
 // test-execution
 // ADR-013: Const i8 variable
 // Tests: const i8 declaration and read access with negative values
-extern const int8_t MIN_TEMP = -40;
+const int8_t MIN_TEMP = -40;
 
-extern const int8_t MAX_TEMP = 85;
+const int8_t MAX_TEMP = 85;
 
-extern const int8_t ZERO_POINT = 0;
+const int8_t ZERO_POINT = 0;
 
 int main(void) {
     int8_t minT = MIN_TEMP;

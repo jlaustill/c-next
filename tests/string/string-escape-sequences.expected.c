@@ -30,4 +30,4 @@ char escapeAtStart[33] = "\nStartsWithNewline";
 char escapeAtEnd[33] = "EndsWithNewline\n";
 
 // Combined in const string
-extern const char VERSION_INFO[25] = "v1.0.0\nBuild: 2024-01-01";
+const char VERSION_INFO[25] = "v1.0.0\nBuild: 2024-01-01";

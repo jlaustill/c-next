@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013 + ADR-044: Const wrap u16 combination
 // Tests: const wrap u16 declaration and read access
-extern const uint16_t MAX_COUNTER = 65535U;
+const uint16_t MAX_COUNTER = 65535U;
 
-extern const uint16_t START_VALUE = 1000U;
+const uint16_t START_VALUE = 1000U;
 
 int main(void) {
     uint16_t maxCnt = MAX_COUNTER;

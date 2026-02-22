@@ -5589,8 +5589,11 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("Extern const in header mode", () => {
-    it("should add extern for const at file scope", () => {
+  describe("Extern const behavior", () => {
+    it("should NOT add extern for const with initializer in C mode (MISRA 8.5)", () => {
+      // MISRA Rule 8.5: External object shall be declared once in one file.
+      // A definition (with initializer) should NOT have extern in C mode.
+      // The extern declaration comes from the header.
       const source = `const u32 VERSION <- 1;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -5600,9 +5603,31 @@ describe("CodeGenerator", () => {
       const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
+        cppMode: false,
       });
 
-      expect(code).toContain("extern const uint32_t VERSION");
+      // Definition should have const but NOT extern
+      expect(code).toContain("const uint32_t VERSION = 1U;");
+      expect(code).not.toContain("extern const uint32_t VERSION");
+    });
+
+    it("should add extern for const with initializer in C++ mode (Issue #525)", () => {
+      // In C++, const at file scope has internal linkage by default.
+      // extern is needed for cross-file access, even for definitions.
+      const source = `const u32 VERSION <- 1;`;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        cppMode: true,
+      });
+
+      // In C++ mode, definition should have extern const
+      expect(code).toContain("extern const uint32_t VERSION = 1U;");
     });
   });
 

@@ -8,11 +8,11 @@
 // test-execution
 // ADR-013: Const f64 variable
 // Tests: const f64 declaration and read access
-extern const double PI_PRECISE = 3.14159265358979;
+const double PI_PRECISE = 3.14159265358979;
 
-extern const double E = 2.71828182845905;
+const double E = 2.71828182845905;
 
-extern const double ZERO = 0.0;
+const double ZERO = 0.0;
 
 int main(void) {
     double pi = PI_PRECISE;

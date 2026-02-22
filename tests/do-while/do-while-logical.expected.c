@@ -17,7 +17,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // ADR-027: Do-while with logical operators
-extern const uint32_t MAX_RETRIES = 5U;
+const uint32_t MAX_RETRIES = 5U;
 
 void retryLoop(void) {
     uint32_t attempts = 0U;

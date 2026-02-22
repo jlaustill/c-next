@@ -8,9 +8,9 @@
 // test-execution
 // ADR-013 + ADR-044: Const clamp u8 combination
 // Tests: const clamp u8 declaration and read access
-extern const uint8_t MAX_VALUE = 255U;
+const uint8_t MAX_VALUE = 255U;
 
-extern const uint8_t MID_VALUE = 128U;
+const uint8_t MID_VALUE = 128U;
 
 int main(void) {
     uint8_t maxVal = MAX_VALUE;
