@@ -23,6 +23,13 @@ interface ISeparatorContext {
 
   /** Whether scopedRegName refers to a known register */
   readonly isScopedRegister: boolean;
+
+  /**
+   * Issue #895: Force pointer semantics even in C++ mode.
+   * When true, struct params use -> instead of . because they're part of
+   * a callback-compatible function that must match C typedef signatures.
+   */
+  readonly forcePointerSemantics?: boolean;
 }
 
 export default ISeparatorContext;

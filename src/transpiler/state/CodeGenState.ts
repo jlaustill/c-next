@@ -128,8 +128,12 @@ export default class CodeGenState {
   /** Callback field types: "Struct.field" -> callbackTypeName */
   static callbackFieldTypes: Map<string, string> = new Map();
 
-  /** Functions that need C-callback-compatible (by-value) struct parameters */
-  static callbackCompatibleFunctions: Set<string> = new Set();
+  /**
+   * Functions that are assigned to C callback typedefs.
+   * Maps function name -> typedef name (e.g., "my_flush" -> "flush_cb_t")
+   * Issue #895: We need the typedef name to look up parameter types.
+   */
+  static callbackCompatibleFunctions: Map<string, string> = new Map();
 
   // ===========================================================================
   // PASS-BY-VALUE ANALYSIS (Issue #269)
@@ -622,6 +626,21 @@ export default class CodeGenState {
    */
   static getCallbackType(name: string): ICallbackTypeInfo | undefined {
     return this.callbackTypes.get(name);
+  }
+
+  /**
+   * Issue #895: Get the typedef type string for a C typedef by name.
+   * Used to look up function pointer typedef signatures for callback-compatible functions.
+   *
+   * @param typedefName - Name of the typedef (e.g., "flush_cb_t")
+   * @returns The type string (e.g., "void (*)(widget_t *, const rect_t *, uint8_t *)") or undefined
+   */
+  static getTypedefType(typedefName: string): string | undefined {
+    const symbol = this.symbolTable.getCSymbol(typedefName);
+    if (symbol?.kind === "type") {
+      return symbol.type;
+    }
+    return undefined;
   }
 
   /**

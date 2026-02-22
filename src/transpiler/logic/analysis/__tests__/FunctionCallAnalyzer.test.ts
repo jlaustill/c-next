@@ -976,5 +976,53 @@ describe("FunctionCallAnalyzer", () => {
         true,
       );
     });
+
+    it("should detect callback passed as function argument (Issue #895)", () => {
+      const code = `
+        void my_flush(u32 w) {
+          u32 x <- w;
+        }
+        void main() {
+          u32 w <- 0;
+          global.widget_set_flush_cb(w, my_flush);
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+
+      // Register the C function that takes a callback parameter
+      symbolTable.addCSymbol({
+        name: "widget_set_flush_cb",
+        kind: "function",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "widget.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void",
+        parameters: [
+          { name: "w", type: "widget_t*", isConst: false, isArray: false },
+          { name: "cb", type: "flush_cb_t", isConst: false, isArray: false },
+        ],
+      });
+
+      // Register the callback typedef
+      symbolTable.addCSymbol({
+        name: "flush_cb_t",
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "widget.h",
+        sourceLine: 2,
+        isExported: true,
+        type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
+      });
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      expect(CodeGenState.callbackCompatibleFunctions.has("my_flush")).toBe(
+        true,
+      );
+    });
   });
 });

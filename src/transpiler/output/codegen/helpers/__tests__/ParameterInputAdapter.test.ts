@@ -61,6 +61,7 @@ function createDefaultASTDeps(overrides?: {
     typeMap,
     isModified: overrides?.isModified ?? false,
     isPassByValue: overrides?.isPassByValue ?? false,
+    isCallbackCompatible: false,
   };
 }
 

@@ -28,6 +28,12 @@ class ParameterDereferenceResolver {
     paramInfo: TParameterInfo,
     deps: IParameterDereferenceDeps,
   ): boolean {
+    // Issue #895: Primitive params that became pointers due to callback typedef
+    // need dereferencing when used as values
+    if (paramInfo.isCallbackPointerPrimitive) {
+      return false;
+    }
+
     // ADR-029: Callback parameters are function pointers
     if (paramInfo.isCallback) {
       return true;
@@ -90,6 +96,12 @@ class ParameterDereferenceResolver {
   ): string {
     if (ParameterDereferenceResolver.isPassByValue(paramInfo, deps)) {
       return id;
+    }
+
+    // Issue #895: Callback-compatible primitives always need dereferencing,
+    // even in C++ mode (because they use pointer semantics to match C typedef)
+    if (paramInfo.forcePointerSemantics) {
+      return `(*${id})`;
     }
 
     // Known primitive that is pass-by-reference needs dereference

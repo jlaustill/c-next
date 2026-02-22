@@ -103,14 +103,19 @@ class ParameterSignatureBuilder {
   /**
    * Build pass-by-reference parameter signature.
    * C mode: const Point* p
-   * C++ mode: const Point& p
+   * C++ mode: const Point& p (unless forcePointerSyntax)
+   *
+   * Issue #895: When forcePointerSyntax is set, always use pointer syntax
+   * because C callback typedefs expect pointers, not C++ references.
    */
   private static _buildRefParam(
     param: IParameterInput,
     refSuffix: string,
   ): string {
     const constPrefix = this._getConstPrefix(param);
-    return `${constPrefix}${param.mappedType}${refSuffix} ${param.name}`;
+    // Issue #895: Override refSuffix for callback-compatible functions
+    const actualSuffix = param.forcePointerSyntax ? "*" : refSuffix;
+    return `${constPrefix}${param.mappedType}${actualSuffix} ${param.name}`;
   }
 
   /**

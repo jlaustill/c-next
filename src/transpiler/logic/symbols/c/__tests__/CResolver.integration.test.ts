@@ -429,6 +429,24 @@ describe("CResolver - Complex Declarators", () => {
     expect(result.symbols[0].kind).toBe("type");
   });
 
+  it("handles function pointer typedef with multiple pointer params (Issue #895)", () => {
+    const tree = TestHelpers.parseC(
+      `typedef void (*flush_cb_t)(widget_t *, const rect_t *, uint8_t *);`,
+    );
+    const result = CResolver.resolve(tree!, "test.h");
+
+    expect(result.symbols[0].name).toBe("flush_cb_t");
+    expect(result.symbols[0].kind).toBe("type");
+    if (result.symbols[0].kind === "type") {
+      // Verify the type string captures pointer params for TypedefParamParser
+      // Note: getText() removes spaces between tokens
+      expect(result.symbols[0].type).toContain("(*)");
+      expect(result.symbols[0].type).toContain("widget_t*");
+      expect(result.symbols[0].type).toContain("rect_t*");
+      expect(result.symbols[0].type).toContain("uint8_t*");
+    }
+  });
+
   it("handles pointer variable", () => {
     const tree = TestHelpers.parseC(`int *ptr;`);
     const result = CResolver.resolve(tree!, "test.h");

@@ -347,7 +347,7 @@ describe("FunctionContextManager", () => {
       const callbacks = createMockCallbacks();
       const param = createMockParam("x", "u32", { isPrimitive: true });
 
-      FunctionContextManager.processParameter(param, callbacks);
+      FunctionContextManager.processParameter(param, callbacks, 0);
 
       const paramInfo = CodeGenState.currentParameters.get("x");
       expect(paramInfo).toBeDefined();
@@ -363,7 +363,7 @@ describe("FunctionContextManager", () => {
         isArray: true,
       });
 
-      FunctionContextManager.processParameter(param, callbacks);
+      FunctionContextManager.processParameter(param, callbacks, 0);
 
       const paramInfo = CodeGenState.currentParameters.get("arr");
       expect(paramInfo).toBeDefined();
@@ -377,7 +377,7 @@ describe("FunctionContextManager", () => {
         isConst: true,
       });
 
-      FunctionContextManager.processParameter(param, callbacks);
+      FunctionContextManager.processParameter(param, callbacks, 0);
 
       const paramInfo = CodeGenState.currentParameters.get("x");
       expect(paramInfo).toBeDefined();
@@ -391,7 +391,7 @@ describe("FunctionContextManager", () => {
       );
       const param = createMockParam("point", "Point", { isUserType: true });
 
-      FunctionContextManager.processParameter(param, callbacks);
+      FunctionContextManager.processParameter(param, callbacks, 0);
 
       const paramInfo = CodeGenState.currentParameters.get("point");
       expect(paramInfo).toBeDefined();
@@ -406,7 +406,7 @@ describe("FunctionContextManager", () => {
         stringCapacity: 32,
       });
 
-      FunctionContextManager.processParameter(param, callbacks);
+      FunctionContextManager.processParameter(param, callbacks, 0);
 
       const paramInfo = CodeGenState.currentParameters.get("name");
       expect(paramInfo).toBeDefined();
