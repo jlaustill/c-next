@@ -193,6 +193,10 @@ export default new Registry();
 - **Test isolation**: Call `SymbolRegistry.reset()` in `beforeEach` for CNextResolver tests
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **Analyzer state**: `CodeGenState.buildExternalStructFields()` in Stage 2b; analyzers read via `getExternalStructFields()`
+- **Analyzer symbols**: `CodeGenState.symbols` is set before `runAnalyzers()` in `_transpileFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
+- **Analyzer test isolation**: Use `CodeGenState.reset()` in `afterEach` when tests set `CodeGenState.symbols`
+- **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
+- **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0
 
 ---
 
