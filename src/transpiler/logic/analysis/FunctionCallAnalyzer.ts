@@ -584,34 +584,62 @@ class FunctionCallAnalyzer {
     tree: Parser.ProgramContext,
   ): void {
     for (const decl of tree.declaration()) {
-      // Scan standalone function declarations
       const funcDecl = decl.functionDeclaration();
       if (funcDecl) {
-        const block = funcDecl.block();
-        if (block) {
-          this.scanCurrentScope = null;
-          this.scanBlockForCallbackAssignments(block);
-        }
+        this.scanStandaloneFunctionForCallbacks(funcDecl);
         continue;
       }
 
-      // Scan scope member functions (Issue #895)
       const scopeDecl = decl.scopeDeclaration();
       if (scopeDecl) {
-        const scopeName = scopeDecl.IDENTIFIER().getText();
-        for (const member of scopeDecl.scopeMember()) {
-          const memberFunc = member.functionDeclaration();
-          if (memberFunc) {
-            const block = memberFunc.block();
-            if (block) {
-              this.scanCurrentScope = scopeName;
-              this.scanBlockForCallbackAssignments(block);
-            }
-          }
-        }
-        this.scanCurrentScope = null;
+        this.scanScopeForCallbacks(scopeDecl);
       }
     }
+  }
+
+  /**
+   * Scan a standalone function declaration for callback assignments.
+   */
+  private scanStandaloneFunctionForCallbacks(
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const block = funcDecl.block();
+    if (!block) return;
+
+    this.scanCurrentScope = null;
+    this.scanBlockForCallbackAssignments(block);
+  }
+
+  /**
+   * Scan all member functions in a scope for callback assignments (Issue #895).
+   */
+  private scanScopeForCallbacks(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    for (const member of scopeDecl.scopeMember()) {
+      this.scanScopeMemberForCallbacks(member, scopeName);
+    }
+
+    this.scanCurrentScope = null;
+  }
+
+  /**
+   * Scan a single scope member for callback assignments.
+   */
+  private scanScopeMemberForCallbacks(
+    member: Parser.ScopeMemberContext,
+    scopeName: string,
+  ): void {
+    const memberFunc = member.functionDeclaration();
+    if (!memberFunc) return;
+
+    const block = memberFunc.block();
+    if (!block) return;
+
+    this.scanCurrentScope = scopeName;
+    this.scanBlockForCallbackAssignments(block);
   }
 
   /**
