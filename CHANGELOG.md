@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-02-22
+
+### Added
+
+- Unsigned array index restriction — `ArrayIndexTypeAnalyzer` enforces signed types cannot index arrays (E0850) (Issue #888)
+- Callback-compatible function detection in `FunctionCallAnalyzer` for parameter signature matching
+- `callbackCompatibleFunctions` state tracking in `CodeGenState`
+- ADR-111: Safe hardware abstraction primitives design document
+
+### Changed
+
+- Unified `transpile()` API — single entry point replaces `run()` and `transpileSource()` (PR #891)
+- Merge `generateHeader()`/`generateHeaderContent()` into `generateHeaderForFile()`
+- Unify file discovery into `discoverIncludes()`
+- Add `TTranspileInput` discriminated union type for type-safe transpiler input
+
+### Fixed
+
+- Eliminate duplicate typedef forward declarations for cnext include types (Issue #854, PR #889)
+- Recursive block scan and scope-qualified names for callback detection
+- Enforce E0701 boolean condition validation for while/if/for statements (Issue #884, PR #887)
+- Prevent concurrent `npm run build` during parallel test runs (PR #886)
+- Use plain brace init for anonymous structs in C++ mode (Issue #882)
+- Rewrite `ArrayIndexTypeAnalyzer` with state-based type resolution
+
 ## [0.2.3] - 2026-02-20
 
 ### Fixed
@@ -1049,7 +1074,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/jlaustill/c-next/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/jlaustill/c-next/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/jlaustill/c-next/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/jlaustill/c-next/compare/v0.2.0...v0.2.1
