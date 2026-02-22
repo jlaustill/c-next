@@ -135,47 +135,8 @@ class Transpiler {
   }
 
   // ===========================================================================
-  // Public API: run() and transpileSource()
+  // Public API
   // ===========================================================================
-
-  /**
-   * Execute the unified pipeline from CLI inputs.
-   *
-   * Stage 1 (file discovery) happens here, then delegates to _executePipeline().
-   */
-  async run(): Promise<ITranspilerResult> {
-    const result = this._initResult();
-
-    try {
-      await this._initializeRun();
-
-      // Stage 1: Discover source files
-      const { cnextFiles, headerFiles } = await this.discoverSources();
-      if (cnextFiles.length === 0) {
-        return this._finalizeResult(result, "No C-Next source files found");
-      }
-
-      this._ensureOutputDirectories();
-
-      // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
-      const pipelineFiles: IPipelineFile[] = cnextFiles.map((f) => ({
-        path: f.path,
-        discoveredFile: f,
-      }));
-
-      const input: IPipelineInput = {
-        cnextFiles: pipelineFiles,
-        headerFiles,
-        writeOutputToDisk: true,
-      };
-
-      await this._executePipeline(input, result);
-
-      return await this._finalizeResult(result);
-    } catch (err) {
-      return this._handleRunError(result, err);
-    }
-  }
 
   /**
    * Unified entry point for all transpilation.
@@ -186,90 +147,47 @@ class Transpiler {
    * @returns ITranspilerResult with per-file results in .files[]
    */
   async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
-    if (input.kind === "files") {
-      return this.run();
-    }
-
-    // Source mode: delegate to transpileSource() and wrap in ITranspilerResult
     const result = this._initResult();
 
     try {
       await this._initializeRun();
 
-      const pipelineInput = this._discoverFromSource(
-        input.source,
-        input.workingDir ?? process.cwd(),
-        input.includeDirs ?? [],
-        input.sourcePath ?? "<string>",
-      );
+      if (input.kind === "files") {
+        // File discovery from config.inputs
+        const { cnextFiles, headerFiles } = await this.discoverSources();
+        if (cnextFiles.length === 0) {
+          return this._finalizeResult(result, "No C-Next source files found");
+        }
 
-      await this._executePipeline(pipelineInput, result);
+        this._ensureOutputDirectories();
+
+        const pipelineFiles: IPipelineFile[] = cnextFiles.map((f) => ({
+          path: f.path,
+          discoveredFile: f,
+        }));
+
+        const pipelineInput: IPipelineInput = {
+          cnextFiles: pipelineFiles,
+          headerFiles,
+          writeOutputToDisk: true,
+        };
+
+        await this._executePipeline(pipelineInput, result);
+      } else {
+        // Source discovery from in-memory string
+        const pipelineInput = this._discoverFromSource(
+          input.source,
+          input.workingDir ?? process.cwd(),
+          input.includeDirs ?? [],
+          input.sourcePath ?? "<string>",
+        );
+
+        await this._executePipeline(pipelineInput, result);
+      }
+
       return await this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
-    }
-  }
-
-  /**
-   * Transpile source code provided as a string.
-   *
-   * Discovers includes from the source, builds an IPipelineInput, and
-   * delegates to the same _executePipeline() as run().
-   *
-   * @param source - The C-Next source code as a string
-   * @param options - Options for transpilation
-   * @returns Promise<IFileResult> with generated code or errors
-   */
-  async transpileSource(
-    source: string,
-    options?: {
-      workingDir?: string;
-      includeDirs?: string[];
-      sourcePath?: string;
-    },
-  ): Promise<IFileResult> {
-    const workingDir = options?.workingDir ?? process.cwd();
-    const additionalIncludeDirs = options?.includeDirs ?? [];
-    const sourcePath = options?.sourcePath ?? "<string>";
-
-    try {
-      await this._initializeRun();
-
-      const input = this._discoverFromSource(
-        source,
-        workingDir,
-        additionalIncludeDirs,
-        sourcePath,
-      );
-
-      const result = this._initResult();
-      await this._executePipeline(input, result);
-
-      // Find our main file's result
-      const fileResult = result.files.find((f) => f.sourcePath === sourcePath);
-      if (fileResult) {
-        return fileResult;
-      }
-
-      // No file result found — pipeline exited early (e.g., parse errors in Stage 3)
-      // Return pipeline errors as a file result
-      if (result.errors.length > 0) {
-        return this.buildErrorResult(sourcePath, result.errors, 0);
-      }
-      return this.buildErrorResult(
-        sourcePath,
-        [
-          {
-            line: 1,
-            column: 0,
-            message: "Pipeline produced no result for source file",
-            severity: "error",
-          },
-        ],
-        0,
-      );
-    } catch (err) {
-      return this.buildCatchResult(sourcePath, err);
     }
   }
 
