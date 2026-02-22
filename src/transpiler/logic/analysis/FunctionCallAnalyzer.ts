@@ -572,6 +572,9 @@ class FunctionCallAnalyzer {
     );
   }
 
+  /** Current scope name during callback assignment scanning */
+  private scanCurrentScope: string | null = null;
+
   /**
    * Detect functions assigned to C function pointer typedefs.
    * When `PointCallback cb <- my_handler;` is found and PointCallback
@@ -582,13 +585,61 @@ class FunctionCallAnalyzer {
   ): void {
     for (const decl of tree.declaration()) {
       const funcDecl = decl.functionDeclaration();
-      if (!funcDecl) continue;
+      if (funcDecl) {
+        this.scanStandaloneFunctionForCallbacks(funcDecl);
+        continue;
+      }
 
-      const block = funcDecl.block();
-      if (!block) continue;
-
-      this.scanBlockForCallbackAssignments(block);
+      const scopeDecl = decl.scopeDeclaration();
+      if (scopeDecl) {
+        this.scanScopeForCallbacks(scopeDecl);
+      }
     }
+  }
+
+  /**
+   * Scan a standalone function declaration for callback assignments.
+   */
+  private scanStandaloneFunctionForCallbacks(
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const block = funcDecl.block();
+    if (!block) return;
+
+    this.scanCurrentScope = null;
+    this.scanBlockForCallbackAssignments(block);
+  }
+
+  /**
+   * Scan all member functions in a scope for callback assignments (Issue #895).
+   */
+  private scanScopeForCallbacks(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    for (const member of scopeDecl.scopeMember()) {
+      this.scanScopeMemberForCallbacks(member, scopeName);
+    }
+
+    this.scanCurrentScope = null;
+  }
+
+  /**
+   * Scan a single scope member for callback assignments.
+   */
+  private scanScopeMemberForCallbacks(
+    member: Parser.ScopeMemberContext,
+    scopeName: string,
+  ): void {
+    const memberFunc = member.functionDeclaration();
+    if (!memberFunc) return;
+
+    const block = memberFunc.block();
+    if (!block) return;
+
+    this.scanCurrentScope = scopeName;
+    this.scanBlockForCallbackAssignments(block);
   }
 
   /**
@@ -702,17 +753,41 @@ class FunctionCallAnalyzer {
 
   /**
    * Extract a function reference from an expression context.
-   * Matches bare identifiers (e.g., "my_handler") and qualified scope
-   * names (e.g., "MyScope.handler").
+   * Matches:
+   *   - Bare identifiers: "my_handler"
+   *   - Qualified scope names: "MyScope.handler"
+   *   - Self-scope reference: "this.handler" (resolved using scanCurrentScope)
+   *   - Global scope reference: "global.ScopeName.handler"
    * Returns null if the expression is not a function reference.
    */
   private extractFunctionReference(
     expr: Parser.ExpressionContext,
   ): string | null {
     const text = expr.getText();
-    if (/^\w+(\.\w+)?$/.test(text)) {
+
+    // Pattern 1: this.member -> CurrentScope.member (Issue #895)
+    const thisPattern = /^this\.(\w+)$/;
+    const thisMatch = thisPattern.exec(text);
+    if (thisMatch) {
+      if (!this.scanCurrentScope) {
+        return null; // this.member outside scope context
+      }
+      return this.scanCurrentScope + "." + thisMatch[1];
+    }
+
+    // Pattern 2: global.Scope.member -> Scope.member (Issue #895)
+    const globalPattern = /^global\.(\w+)\.(\w+)$/;
+    const globalMatch = globalPattern.exec(text);
+    if (globalMatch) {
+      return globalMatch[1] + "." + globalMatch[2];
+    }
+
+    // Pattern 3: Bare identifier or simple Scope.member
+    const simplePattern = /^\w+(\.\w+)?$/;
+    if (simplePattern.test(text)) {
       return text;
     }
+
     return null;
   }
 

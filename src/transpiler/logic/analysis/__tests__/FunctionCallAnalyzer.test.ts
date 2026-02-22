@@ -25,6 +25,38 @@ function parse(source: string) {
   return parser.program();
 }
 
+/**
+ * Helper to register widget callback symbols for Issue #895 tests.
+ * Adds widget_set_flush_cb function and flush_cb_t typedef to symbol table.
+ */
+function addWidgetCallbackSymbols(symbolTable: SymbolTable): void {
+  // Register the C function that takes a callback parameter
+  symbolTable.addCSymbol({
+    name: "widget_set_flush_cb",
+    kind: "function",
+    sourceLanguage: ESourceLanguage.C,
+    sourceFile: "widget.h",
+    sourceLine: 1,
+    isExported: true,
+    type: "void",
+    parameters: [
+      { name: "w", type: "widget_t*", isConst: false, isArray: false },
+      { name: "cb", type: "flush_cb_t", isConst: false, isArray: false },
+    ],
+  });
+
+  // Register the callback typedef
+  symbolTable.addCSymbol({
+    name: "flush_cb_t",
+    kind: "type",
+    sourceLanguage: ESourceLanguage.C,
+    sourceFile: "widget.h",
+    sourceLine: 2,
+    isExported: true,
+    type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
+  });
+}
+
 describe("FunctionCallAnalyzer", () => {
   // ========================================================================
   // Define Before Use
@@ -1021,6 +1053,66 @@ describe("FunctionCallAnalyzer", () => {
       analyzer.analyze(tree, symbolTable);
 
       expect(CodeGenState.callbackCompatibleFunctions.has("my_flush")).toBe(
+        true,
+      );
+    });
+
+    it("should detect scope callback with this.member pattern (Issue #895 Bug A)", () => {
+      // Bug A: PR #897 only fixed global functions. Scope callbacks using
+      // this.cb pattern are not detected because extractFunctionReference
+      // does not handle the this keyword.
+      const code = `
+        scope ScopeAP {
+          public void cb(u32 w) {
+            u32 x <- w;
+          }
+
+          public void register_it() {
+            u32 w <- 0;
+            global.widget_set_flush_cb(w, this.cb);
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      addWidgetCallbackSymbols(symbolTable);
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      // Should detect ScopeAP_cb as callback-compatible
+      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP_cb")).toBe(
+        true,
+      );
+    });
+
+    it("should detect scope callback with global.Scope.member pattern (Issue #895 Bug A)", () => {
+      // Bug A: PR #897 only fixed global functions. Scope callbacks using
+      // global.ScopeName.member pattern are not detected because
+      // extractFunctionReference does not handle two-level dotted paths.
+      const code = `
+        scope ScopeAP {
+          public void cb(u32 w) {
+            u32 x <- w;
+          }
+        }
+
+        void register_from_global() {
+          u32 w <- 0;
+          global.widget_set_flush_cb(w, global.ScopeAP.cb);
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      addWidgetCallbackSymbols(symbolTable);
+
+      CodeGenState.callbackCompatibleFunctions.clear();
+      const analyzer = new FunctionCallAnalyzer();
+      analyzer.analyze(tree, symbolTable);
+
+      // Should detect ScopeAP_cb as callback-compatible
+      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP_cb")).toBe(
         true,
       );
     });
