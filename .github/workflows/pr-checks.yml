@@ -304,11 +304,15 @@ jobs:
   # STAGE 3 (parallel): Analysis that needs generated files
   # ============================================================================
   c-validation:
-    name: C Static Analysis
+    name: C Static Analysis (${{ matrix.tool }})
     runs-on: ubuntu-latest
     needs: [integration-tests]
     # Advisory: pre-existing MISRA violations exist; don't block PR merges
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [cppcheck, clang-tidy, misra, flawfinder]
 
     steps:
       - name: Checkout code
@@ -338,8 +342,10 @@ jobs:
           name: generated-test-files
           path: tests
 
-      - name: Run batch validation
-        run: npm run validate:c
+      - name: Run validation
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: npm run validate:c -- --tool "$TOOL"
 
   sonar:
     name: SonarCloud
