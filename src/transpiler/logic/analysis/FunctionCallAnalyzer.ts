@@ -740,7 +740,10 @@ class FunctionCallAnalyzer {
     // Pattern 1: this.member -> CurrentScope.member (Issue #895)
     const thisPattern = /^this\.(\w+)$/;
     const thisMatch = thisPattern.exec(text);
-    if (thisMatch && this.scanCurrentScope) {
+    if (thisMatch) {
+      if (!this.scanCurrentScope) {
+        return null; // this.member outside scope context
+      }
       return this.scanCurrentScope + "." + thisMatch[1];
     }
 

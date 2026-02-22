@@ -25,6 +25,38 @@ function parse(source: string) {
   return parser.program();
 }
 
+/**
+ * Helper to register widget callback symbols for Issue #895 tests.
+ * Adds widget_set_flush_cb function and flush_cb_t typedef to symbol table.
+ */
+function addWidgetCallbackSymbols(symbolTable: SymbolTable): void {
+  // Register the C function that takes a callback parameter
+  symbolTable.addCSymbol({
+    name: "widget_set_flush_cb",
+    kind: "function",
+    sourceLanguage: ESourceLanguage.C,
+    sourceFile: "widget.h",
+    sourceLine: 1,
+    isExported: true,
+    type: "void",
+    parameters: [
+      { name: "w", type: "widget_t*", isConst: false, isArray: false },
+      { name: "cb", type: "flush_cb_t", isConst: false, isArray: false },
+    ],
+  });
+
+  // Register the callback typedef
+  symbolTable.addCSymbol({
+    name: "flush_cb_t",
+    kind: "type",
+    sourceLanguage: ESourceLanguage.C,
+    sourceFile: "widget.h",
+    sourceLine: 2,
+    isExported: true,
+    type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
+  });
+}
+
 describe("FunctionCallAnalyzer", () => {
   // ========================================================================
   // Define Before Use
@@ -1043,32 +1075,7 @@ describe("FunctionCallAnalyzer", () => {
       `;
       const tree = parse(code);
       const symbolTable = new SymbolTable();
-
-      // Register the C function that takes a callback parameter
-      symbolTable.addCSymbol({
-        name: "widget_set_flush_cb",
-        kind: "function",
-        sourceLanguage: ESourceLanguage.C,
-        sourceFile: "widget.h",
-        sourceLine: 1,
-        isExported: true,
-        type: "void",
-        parameters: [
-          { name: "w", type: "widget_t*", isConst: false, isArray: false },
-          { name: "cb", type: "flush_cb_t", isConst: false, isArray: false },
-        ],
-      });
-
-      // Register the callback typedef
-      symbolTable.addCSymbol({
-        name: "flush_cb_t",
-        kind: "type",
-        sourceLanguage: ESourceLanguage.C,
-        sourceFile: "widget.h",
-        sourceLine: 2,
-        isExported: true,
-        type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
-      });
+      addWidgetCallbackSymbols(symbolTable);
 
       CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
@@ -1098,32 +1105,7 @@ describe("FunctionCallAnalyzer", () => {
       `;
       const tree = parse(code);
       const symbolTable = new SymbolTable();
-
-      // Register the C function that takes a callback parameter
-      symbolTable.addCSymbol({
-        name: "widget_set_flush_cb",
-        kind: "function",
-        sourceLanguage: ESourceLanguage.C,
-        sourceFile: "widget.h",
-        sourceLine: 1,
-        isExported: true,
-        type: "void",
-        parameters: [
-          { name: "w", type: "widget_t*", isConst: false, isArray: false },
-          { name: "cb", type: "flush_cb_t", isConst: false, isArray: false },
-        ],
-      });
-
-      // Register the callback typedef
-      symbolTable.addCSymbol({
-        name: "flush_cb_t",
-        kind: "type",
-        sourceLanguage: ESourceLanguage.C,
-        sourceFile: "widget.h",
-        sourceLine: 2,
-        isExported: true,
-        type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
-      });
+      addWidgetCallbackSymbols(symbolTable);
 
       CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
