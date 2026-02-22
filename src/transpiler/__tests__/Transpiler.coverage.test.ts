@@ -48,7 +48,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // Check output file has .cpp extension
@@ -62,9 +62,12 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.transpileSource(
-        "void test(u32 value) { u32 x <- value; }",
-      );
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: "void test(u32 value) { u32 x <- value; }",
+        })
+      ).files[0];
 
       expect(result.success).toBe(true);
       // C++ mode generates different output (const T& vs const T*)
@@ -95,7 +98,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // Should generate .cpp file since C++ was detected
@@ -123,7 +126,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // .hpp triggers C++ mode
@@ -160,7 +163,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      await transpiler.run();
+      await transpiler.transpile({ kind: "files" });
 
       // Debug mode should produce console output
       expect(consoleSpy).toHaveBeenCalled();
@@ -204,7 +207,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // Pure C header should result in .c output (not .cpp)
@@ -232,7 +235,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
     });
@@ -264,7 +267,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
     });
@@ -288,7 +291,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // In parse-only mode, no output files should be written
@@ -307,9 +310,12 @@ describe("Transpiler coverage tests", () => {
 
       // Mock an internal failure by transpiling invalid code that passes parsing
       // but fails in a later stage
-      const result = await transpiler.transpileSource(
-        "void test() { unknownType x; }",
-      );
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: "void test() { unknownType x; }",
+        })
+      ).files[0];
 
       // Should handle gracefully
       expect(result).toBeDefined();
@@ -321,7 +327,12 @@ describe("Transpiler coverage tests", () => {
       const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
 
       // Test with valid code to ensure normal path works
-      const result = await transpiler.transpileSource("void main() { }");
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: "void main() { }",
+        })
+      ).files[0];
       expect(result.success).toBe(true);
     });
   });
@@ -348,7 +359,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       // Should succeed with distinct function names
       expect(result.success).toBe(true);
@@ -380,7 +391,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       // This test exercises the symbol conflict detection path (lines 240-256)
       // Duplicate function definitions across included files trigger conflicts
@@ -416,7 +427,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       // Should fail due to code generation error
       expect(result.success).toBe(false);
@@ -451,7 +462,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
     });
@@ -484,7 +495,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // Check that contributions were processed
@@ -509,7 +520,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // No header file should be generated
@@ -541,7 +552,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // Header should be generated
@@ -562,7 +573,12 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.transpileSource("void main() { }");
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: "void main() { }",
+        })
+      ).files[0];
 
       expect(result.success).toBe(true);
     });
@@ -585,14 +601,19 @@ describe("Transpiler coverage tests", () => {
       );
 
       // Simpler code that's known to work
-      const result = await transpiler.transpileSource(`
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: `
         void modifyValue(u32 value) {
           u32 x <- value + 1;
         }
         void main() {
           modifyValue(42);
         }
-      `);
+      `,
+        })
+      ).files[0];
 
       expect(result.success).toBe(true);
       expect(result.code).toContain("modifyValue");
@@ -625,7 +646,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       // Should complete (possibly with warnings) rather than crash
       expect(result).toBeDefined();
@@ -665,7 +686,12 @@ describe("Transpiler coverage tests", () => {
       );
 
       // transpileSource standalone should flush cache
-      const result = await transpiler.transpileSource("void main() { }");
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: "void main() { }",
+        })
+      ).files[0];
 
       expect(result.success).toBe(true);
     });
@@ -698,7 +724,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       // File contribution should exist
@@ -717,12 +743,17 @@ describe("Transpiler coverage tests", () => {
 
       // Code with MISRA violation - function call in if condition (Rule 13.5)
       // Note: This may or may not trigger depending on analyzer config
-      const result = await transpiler.transpileSource(`
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: `
         bool isReady() { return 1 = 1; }
         void test() {
           if (isReady() && isReady()) { }
         }
-      `);
+      `,
+        })
+      ).files[0];
 
       // Result should be defined regardless of success/failure
       expect(result).toBeDefined();
@@ -733,12 +764,17 @@ describe("Transpiler coverage tests", () => {
       const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
 
       // Code that triggers initialization analyzer error
-      const result = await transpiler.transpileSource(`
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: `
         void test() {
           u32 x;
           u32 y <- x;
         }
-      `);
+      `,
+        })
+      ).files[0];
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
@@ -776,12 +812,12 @@ describe("Transpiler coverage tests", () => {
       };
 
       const transpiler1 = new Transpiler(config, mockFs);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
       expect(result1.success).toBe(true);
 
       // Second run uses cache but still detects C++
       const transpiler2 = new Transpiler(config, mockFs);
-      const result2 = await transpiler2.run();
+      const result2 = await transpiler2.transpile({ kind: "files" });
       expect(result2.success).toBe(true);
       // Should still generate .cpp output
       const writeCalls = mockFs.getWriteLog();
@@ -808,11 +844,11 @@ describe("Transpiler coverage tests", () => {
 
       // First run
       const transpiler1 = new Transpiler(config, mockFs);
-      await transpiler1.run();
+      await transpiler1.transpile({ kind: "files" });
 
       // Second run - cache hit path for .hpp
       const transpiler2 = new Transpiler(config, mockFs);
-      const result2 = await transpiler2.run();
+      const result2 = await transpiler2.transpile({ kind: "files" });
       expect(result2.success).toBe(true);
 
       // Should generate .cpp
@@ -849,7 +885,7 @@ describe("Transpiler coverage tests", () => {
         mockFs,
       );
 
-      await transpiler.run();
+      await transpiler.transpile({ kind: "files" });
 
       // Should have debug log for C++ header
       const debugCalls = consoleSpy.mock.calls.filter((call) =>
@@ -893,7 +929,7 @@ describe("Transpiler coverage tests", () => {
 
       // First run - populates cache and detects C++
       const transpiler1 = new Transpiler(config, mockFs);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
       expect(result1.success).toBe(true);
 
       // First run should detect C++ and output .cpp
@@ -906,7 +942,7 @@ describe("Transpiler coverage tests", () => {
       // Second run - should use cache AND still detect C++
       // This tests lines 543-547 (CHeader cache hit with C++ detection)
       const transpiler2 = new Transpiler(config, mockFs);
-      const result2 = await transpiler2.run();
+      const result2 = await transpiler2.transpile({ kind: "files" });
       expect(result2.success).toBe(true);
 
       // Should output .cpp file (C++ detected even from cache)
@@ -935,7 +971,7 @@ describe("Transpiler coverage tests", () => {
 
       // First run - populates cache
       const transpiler1 = new Transpiler(config, mockFs);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
       expect(result1.success).toBe(true);
 
       // First run should detect C++ from .hpp and output .cpp
@@ -948,7 +984,7 @@ describe("Transpiler coverage tests", () => {
       // Second run - should use cache and still set cppDetected from hpp file
       // This tests lines 548-550 (CppHeader cache hit)
       const transpiler2 = new Transpiler(config, mockFs);
-      const result2 = await transpiler2.run();
+      const result2 = await transpiler2.transpile({ kind: "files" });
       expect(result2.success).toBe(true);
 
       // Should output .cpp file
@@ -994,7 +1030,7 @@ describe("Transpiler coverage integration tests", () => {
       noCache: true,
     });
 
-    const result = await transpiler.run();
+    const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(true);
     // Should have processed all 3 files
@@ -1016,7 +1052,7 @@ describe("Transpiler coverage integration tests", () => {
       noCache: true,
     });
 
-    const result = await transpiler.run();
+    const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(true);
     // Should find files in subdirectories too
@@ -1057,14 +1093,14 @@ describe("Transpiler coverage integration tests", () => {
 
     // First run - populates cache
     const transpiler1 = new Transpiler(config);
-    const result1 = await transpiler1.run();
+    const result1 = await transpiler1.transpile({ kind: "files" });
     expect(result1.success).toBe(true);
     // First run should detect C++ and output .cpp
     expect(result1.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
 
     // Second run - should use cache and still detect C++ (lines 543-547)
     const transpiler2 = new Transpiler(config);
-    const result2 = await transpiler2.run();
+    const result2 = await transpiler2.transpile({ kind: "files" });
     expect(result2.success).toBe(true);
     // Should still output .cpp from cache hit path
     expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
@@ -1097,13 +1133,13 @@ describe("Transpiler coverage integration tests", () => {
 
     // First run - populates cache
     const transpiler1 = new Transpiler(config);
-    const result1 = await transpiler1.run();
+    const result1 = await transpiler1.transpile({ kind: "files" });
     expect(result1.success).toBe(true);
     expect(result1.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
 
     // Second run - should use cache and still detect C++ from .hpp (lines 548-550)
     const transpiler2 = new Transpiler(config);
-    const result2 = await transpiler2.run();
+    const result2 = await transpiler2.transpile({ kind: "files" });
     expect(result2.success).toBe(true);
     expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
   });
@@ -1134,7 +1170,7 @@ describe("Transpiler coverage integration tests", () => {
       noCache: true,
     });
 
-    const result = await transpiler.run();
+    const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(true);
     expect(result.files.length).toBe(2);
@@ -1161,12 +1197,12 @@ describe("Transpiler coverage integration tests", () => {
 
     // First run - should populate cache
     const transpiler1 = new Transpiler(config);
-    const result1 = await transpiler1.run();
+    const result1 = await transpiler1.transpile({ kind: "files" });
     expect(result1.success).toBe(true);
 
     // Second run - should use cache
     const transpiler2 = new Transpiler(config);
-    const result2 = await transpiler2.run();
+    const result2 = await transpiler2.transpile({ kind: "files" });
     expect(result2.success).toBe(true);
   });
 
@@ -1193,7 +1229,7 @@ describe("Transpiler coverage integration tests", () => {
       noCache: true,
     });
 
-    const result = await transpiler.run();
+    const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(true);
     // Should generate output files

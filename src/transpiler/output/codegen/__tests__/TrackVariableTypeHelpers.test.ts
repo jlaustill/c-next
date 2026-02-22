@@ -12,7 +12,9 @@ import Transpiler from "../../../Transpiler";
  */
 async function transpileSource(source: string): Promise<string> {
   const transpiler = new Transpiler({ inputs: [] });
-  const result = await transpiler.transpileSource(source);
+  const result = (
+    await transpiler.transpile({ kind: "source", source: source })
+  ).files[0];
   if (result.errors && result.errors.length > 0) {
     throw new Error(
       `Transpile failed: ${result.errors.map((e) => e.message).join(", ")}`,

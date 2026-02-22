@@ -312,7 +312,9 @@ describe("ExpressionWalker - const inference integration", () => {
       }
     `;
     const transpiler = new Transpiler({ inputs: [] });
-    const transpileResult = await transpiler.transpileSource(source);
+    const transpileResult = (
+      await transpiler.transpile({ kind: "source", source: source })
+    ).files[0];
     expect(transpileResult.success).toBe(true);
     // The caller function should NOT have const param because x is passed to modifyParam
     // which modifies its parameter
@@ -340,7 +342,9 @@ describe("ExpressionWalker - const inference integration", () => {
       }
     `;
     const transpiler = new Transpiler({ inputs: [] });
-    const transpileResult = await transpiler.transpileSource(source);
+    const transpileResult = (
+      await transpiler.transpile({ kind: "source", source: source })
+    ).files[0];
     expect(transpileResult.success).toBe(true);
     // x should not be const because it's passed through a modifying call chain
     expect(transpileResult.code).not.toContain("void caller(const uint32_t x)");
@@ -367,7 +371,9 @@ describe("ExpressionWalker - const inference integration", () => {
       }
     `;
     const transpiler = new Transpiler({ inputs: [] });
-    const transpileResult = await transpiler.transpileSource(source);
+    const transpileResult = (
+      await transpiler.transpile({ kind: "source", source: source })
+    ).files[0];
     expect(transpileResult.success).toBe(true);
     // x should not be const
     expect(transpileResult.code).not.toContain("void caller(const uint32_t x)");

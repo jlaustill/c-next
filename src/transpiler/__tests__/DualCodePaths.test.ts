@@ -55,14 +55,18 @@ void main() {
 
       // Path 1: Via run()
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       // Path 2: Via transpileSource()
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -87,13 +91,17 @@ void main() {
       writeFileSync(filePath, source);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -113,13 +121,17 @@ void main() {
       writeFileSync(filePath, source);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -145,13 +157,17 @@ void main() {
       writeFileSync(filePath, source);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -181,13 +197,17 @@ void main() {
       writeFileSync(filePath, source);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -228,7 +248,7 @@ void main() {
 
       // run() should handle cross-file references
       const transpiler = createTranspiler([mainPath]);
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
       expect(result.files.length).toBe(2);
@@ -265,7 +285,7 @@ void main() {
       writeFileSync(mainPath, mainSource);
 
       const transpiler = createTranspiler([mainPath]);
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
     });
@@ -292,7 +312,7 @@ void main() {
       writeFileSync(mainPath, mainSource);
 
       const transpiler = createTranspiler([mainPath]);
-      const result = await transpiler.run();
+      const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
     });
@@ -329,7 +349,7 @@ void main() {
 
       // Via run()
       const transpiler1 = createTranspiler([consumerPath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       expect(result1.success).toBe(true);
 
@@ -344,10 +364,14 @@ void main() {
 
       // Via transpileSource() with context from run()
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(consumerSource, {
-        workingDir: tempDir,
-        sourcePath: consumerPath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: consumerSource,
+          workingDir: tempDir,
+          sourcePath: consumerPath,
+        })
+      ).files[0];
 
       expect(result2.success).toBe(true);
       expect(result2.code).toContain("Provider_getValue()");
@@ -384,7 +408,7 @@ void main() {
 
       // Via run()
       const transpiler1 = createTranspiler([writerPath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       expect(result1.success).toBe(true);
 
@@ -397,10 +421,14 @@ void main() {
 
       // Via transpileSource()
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(writerSource, {
-        workingDir: tempDir,
-        sourcePath: writerPath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: writerSource,
+          workingDir: tempDir,
+          sourcePath: writerPath,
+        })
+      ).files[0];
 
       expect(result2.success).toBe(true);
       expect(result2.code).toContain("Storage_value = 42");
@@ -422,12 +450,20 @@ void main() {}
       // Two separate standalone transpileSource calls
       const transpiler = createTranspiler([]);
 
-      const result1 = await transpiler.transpileSource(source1, {
-        sourcePath: "file1.cnx",
-      });
-      const result2 = await transpiler.transpileSource(source2, {
-        sourcePath: "file2.cnx",
-      });
+      const result1 = (
+        await transpiler.transpile({
+          kind: "source",
+          source: source1,
+          sourcePath: "file1.cnx",
+        })
+      ).files[0];
+      const result2 = (
+        await transpiler.transpile({
+          kind: "source",
+          source: source2,
+          sourcePath: "file2.cnx",
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -450,12 +486,12 @@ void main() {}
       const transpiler = createTranspiler([filePath]);
 
       // First run
-      const result1 = await transpiler.run();
+      const result1 = await transpiler.transpile({ kind: "files" });
       expect(result1.success).toBe(true);
       expect(result1.symbolsCollected).toBeGreaterThan(0);
 
       // Second run should not accumulate symbols from first
-      const result2 = await transpiler.run();
+      const result2 = await transpiler.transpile({ kind: "files" });
       expect(result2.success).toBe(true);
       expect(result2.symbolsCollected).toBe(result1.symbolsCollected);
     });
@@ -486,13 +522,17 @@ void main() {
       writeFileSync(filePath, source);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -526,13 +566,17 @@ void main() {
       writeFileSync(filePath, source);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -565,13 +609,17 @@ void main() {
       writeFileSync(filePath, source);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(source, {
-        workingDir: tempDir,
-        sourcePath: filePath,
-      });
+      const result2 = (
+        await transpiler2.transpile({
+          kind: "source",
+          source: source,
+          workingDir: tempDir,
+          sourcePath: filePath,
+        })
+      ).files[0];
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
@@ -588,10 +636,12 @@ u8 x <- ;  // Parse error: missing expression
       writeFileSync(filePath, invalidSource);
 
       const transpiler1 = createTranspiler([filePath]);
-      const result1 = await transpiler1.run();
+      const result1 = await transpiler1.transpile({ kind: "files" });
 
       const transpiler2 = createTranspiler([]);
-      const result2 = await transpiler2.transpileSource(invalidSource, {
+      const result2 = await transpiler2.transpile({
+        kind: "source",
+        source: invalidSource,
         sourcePath: filePath,
       });
 

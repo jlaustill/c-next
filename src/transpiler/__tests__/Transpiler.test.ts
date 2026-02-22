@@ -26,9 +26,12 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(
-          "u32 add(u32 a, u32 b) { return a + b; }",
-        );
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: "u32 add(u32 a, u32 b) { return a + b; }",
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("uint32_t");
@@ -41,7 +44,10 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource("@@@invalid");
+        const result = await transpiler.transpile({
+          kind: "source",
+          source: "@@@invalid",
+        });
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
@@ -53,11 +59,16 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(`
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `
           scope API {
             public void doSomething() { }
           }
-        `);
+        `,
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.headerCode).toBeDefined();
@@ -70,9 +81,12 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(
-          "void privateFunc() { }",
-        );
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: "void privateFunc() { }",
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.headerCode).toBeUndefined();
@@ -84,9 +98,12 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(
-          "u32 test() { return 42; }",
-        );
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: "u32 test() { return 42; }",
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toBe("");
@@ -99,9 +116,12 @@ describe("Transpiler", () => {
         );
 
         // This should parse but might have semantic issues
-        const result = await transpiler.transpileSource(
-          "void test() { undefinedVar <- 5; }",
-        );
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: "void test() { undefinedVar <- 5; }",
+          })
+        ).files[0];
 
         // Should still succeed (undefined vars become C identifiers)
         expect(result.success).toBe(true);
@@ -113,9 +133,12 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(
-          `void test() {\n  u32 large <- 1000;\n  u8 small <- large;\n}`,
-        );
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `void test() {\n  u32 large <- 1000;\n  u8 small <- large;\n}`,
+          })
+        ).files[0];
 
         expect(result.success).toBe(false);
         expect(result.errors).toHaveLength(1);
@@ -131,9 +154,12 @@ describe("Transpiler", () => {
         );
 
         // Ternary with bare variable produces error without line prefix
-        const result = await transpiler.transpileSource(
-          `void test() { u32 x <- 5; u32 r <- (x) ? 1 : 0; }`,
-        );
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `void test() { u32 x <- 5; u32 r <- (x) ? 1 : 0; }`,
+          })
+        ).files[0];
 
         expect(result.success).toBe(false);
         expect(result.errors[0].line).toBe(1);
@@ -147,7 +173,10 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(`
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `
           u8 byte <- 255;
           u16 word <- 65535;
           u32 dword <- 0xFFFFFFFF;
@@ -156,7 +185,9 @@ describe("Transpiler", () => {
           i32 sdword <- -1;
           f32 floatVal <- 3.14;
           f64 doubleVal <- 2.718;
-        `);
+        `,
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("uint8_t");
@@ -175,12 +206,17 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(`
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `
           void test() {
             u32 x;
             x <- 42;
           }
-        `);
+        `,
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("x = 42");
@@ -192,11 +228,16 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(`
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `
           bool test(u32 a, u32 b) {
             return a = b;
           }
-        `);
+        `,
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("a == b");
@@ -208,12 +249,17 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(`
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `
           struct Point {
             i32 x;
             i32 y;
           }
-        `);
+        `,
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("typedef struct");
@@ -227,13 +273,18 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(`
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `
           enum Color {
             RED,
             GREEN,
             BLUE
           }
-        `);
+        `,
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("typedef enum");
@@ -248,12 +299,17 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.transpileSource(`
+        const result = (
+          await transpiler.transpile({
+            kind: "source",
+            source: `
           scope LED {
             public void on() { }
             public void off() { }
           }
-        `);
+        `,
+          })
+        ).files[0];
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("LED_on");
@@ -277,7 +333,7 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(true);
         expect(result.filesProcessed).toBe(1);
@@ -300,7 +356,7 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        await transpiler.run();
+        await transpiler.transpile({ kind: "files" });
 
         const mkdirCalls = mockFs.getMkdirLog();
         expect(mkdirCalls.some((c) => c.path === "/project/build")).toBe(true);
@@ -319,7 +375,7 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        await transpiler.run();
+        await transpiler.transpile({ kind: "files" });
 
         const mkdirCalls = mockFs.getMkdirLog();
         expect(mkdirCalls.some((c) => c.path === "/project/include")).toBe(
@@ -346,7 +402,7 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(true);
 
@@ -365,7 +421,7 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(false);
         expect(result.errors[0].message).toContain("Input not found");
@@ -382,7 +438,7 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.warnings).toContain("No C-Next source files found");
       });
@@ -398,7 +454,7 @@ describe("Transpiler", () => {
           mockFs,
         );
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
@@ -429,7 +485,7 @@ describe("Transpiler", () => {
           noCache: true,
         });
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(true);
         expect(result.filesProcessed).toBe(1);
@@ -445,7 +501,7 @@ describe("Transpiler", () => {
           noCache: true,
         });
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
@@ -461,7 +517,7 @@ describe("Transpiler", () => {
           noCache: true,
         });
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
@@ -478,7 +534,7 @@ describe("Transpiler", () => {
           noCache: true,
         });
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
@@ -495,7 +551,7 @@ describe("Transpiler", () => {
           noCache: true,
         });
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(true);
         expect(result.outputFiles.length).toBeGreaterThan(0);
@@ -518,7 +574,7 @@ describe("Transpiler", () => {
           noCache: true,
         });
 
-        const result = await transpiler.run();
+        const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(true);
         // Should have both .c and .h output
