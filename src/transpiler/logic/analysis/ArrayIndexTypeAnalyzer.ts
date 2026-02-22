@@ -9,6 +9,9 @@
  * Two-pass analysis:
  * 1. Collect variable declarations with their types
  * 2. Validate subscript expressions use unsigned integer types
+ *
+ * Uses CodeGenState for state-based type resolution (struct fields, function
+ * return types, enum detection) to handle complex expressions like arr[x + 1].
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -18,6 +21,7 @@ import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
+import CodeGenState from "../../state/CodeGenState";
 
 /**
  * First pass: Collect variable declarations with their types
@@ -29,39 +33,26 @@ class VariableTypeCollector extends CNextListener {
     return this.varTypes;
   }
 
-  /**
-   * Track variable declarations
-   */
+  private trackType(
+    typeCtx: Parser.TypeContext | null,
+    identifier: { getText(): string } | null,
+  ): void {
+    if (!typeCtx || !identifier) return;
+    this.varTypes.set(identifier.getText(), typeCtx.getText());
+  }
+
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    const typeCtx = ctx.type();
-    const identifier = ctx.IDENTIFIER();
-    if (!typeCtx || !identifier) return;
-
-    this.varTypes.set(identifier.getText(), typeCtx.getText());
+    this.trackType(ctx.type(), ctx.IDENTIFIER());
   };
 
-  /**
-   * Track function parameters
-   */
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    const typeCtx = ctx.type();
-    const identifier = ctx.IDENTIFIER();
-    if (!typeCtx || !identifier) return;
-
-    this.varTypes.set(identifier.getText(), typeCtx.getText());
+    this.trackType(ctx.type(), ctx.IDENTIFIER());
   };
 
-  /**
-   * Track for-loop variable declarations
-   */
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    const typeCtx = ctx.type();
-    const identifier = ctx.IDENTIFIER();
-    if (!typeCtx || !identifier) return;
-
-    this.varTypes.set(identifier.getText(), typeCtx.getText());
+    this.trackType(ctx.type(), ctx.IDENTIFIER());
   };
 }
 
@@ -107,130 +98,196 @@ class IndexTypeListener extends CNextListener {
   };
 
   /**
-   * Validate that a subscript index expression uses an unsigned integer type
+   * Validate that a subscript index expression uses an unsigned integer type.
+   * Collects all leaf operands from the expression and checks each one.
    */
   private validateIndexExpression(ctx: Parser.ExpressionContext): void {
-    const primaryExpr = this.drillToPrimaryExpression(ctx);
-    if (!primaryExpr) return;
+    const operands = this.collectOperands(ctx);
 
-    // Check for literal: integer literals are fine, float literals are not
-    const literal = primaryExpr.literal();
-    if (literal) {
-      if (LiteralUtils.isFloat(literal)) {
+    for (const operand of operands) {
+      const resolvedType = this.resolveOperandType(operand);
+      if (!resolvedType) continue;
+
+      if (TypeConstants.SIGNED_TYPES.includes(resolvedType)) {
         const { line, column } = ParserUtils.getPosition(ctx);
-        this.analyzer.addError(line, column, "E0851", "float literal");
+        this.analyzer.addError(line, column, "E0850", resolvedType);
+        return;
       }
-      // Integer literals are always valid as indexes
-      return;
-    }
 
-    // Check for dot-qualified identifier (e.g., EColor.RED) - allow enum access
-    const text = ctx.getText();
-    if (text.includes(".")) return;
+      if (
+        resolvedType === "float literal" ||
+        TypeConstants.FLOAT_TYPES.includes(resolvedType)
+      ) {
+        const { line, column } = ParserUtils.getPosition(ctx);
+        this.analyzer.addError(line, column, "E0851", resolvedType);
+        return;
+      }
 
-    // Check for identifier - look up type
-    const identifier = primaryExpr.IDENTIFIER();
-    if (!identifier) return;
+      if (TypeConstants.UNSIGNED_INDEX_TYPES.includes(resolvedType)) {
+        continue;
+      }
 
-    const varName = identifier.getText();
-    const varType = this.varTypes.get(varName);
-    if (!varType) return; // Can't resolve type, pass through
-
-    // Check if signed integer type
-    if (TypeConstants.SIGNED_TYPES.includes(varType)) {
+      // Other non-integer types (e.g., string, struct) - E0852
       const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.addError(line, column, "E0850", varType);
+      this.analyzer.addError(line, column, "E0852", resolvedType);
       return;
     }
-
-    // Check if float type
-    if (TypeConstants.FLOAT_TYPES.includes(varType)) {
-      const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.addError(line, column, "E0851", varType);
-      return;
-    }
-
-    // Check if unsigned type - these are allowed
-    if (TypeConstants.UNSIGNED_INDEX_TYPES.includes(varType)) {
-      return;
-    }
-
-    // Other non-integer types (e.g., string, struct) - E0852
-    // Only flag if we could resolve the type
-    const { line, column } = ParserUtils.getPosition(ctx);
-    this.analyzer.addError(line, column, "E0852", varType);
   }
 
   /**
-   * Drill through the grammar hierarchy from expression to primaryExpression.
-   *
-   * Expression chain:
-   * expression -> ternaryExpression -> orExpression[0] -> andExpression[0]
-   * -> equalityExpression[0] -> relationalExpression[0] -> bitwiseOrExpression[0]
-   * -> bitwiseXorExpression[0] -> bitwiseAndExpression[0] -> shiftExpression[0]
-   * -> additiveExpression[0] -> multiplicativeExpression[0] -> unaryExpression[0]
-   * -> postfixExpression -> primaryExpression
-   *
-   * Returns null if any step fails (complex expression that can't be statically resolved).
+   * Collect all leaf unary expression operands from an expression tree.
+   * Handles binary operators at any level by flatMapping through the grammar hierarchy.
    */
-  private drillToPrimaryExpression(
+  private collectOperands(
     ctx: Parser.ExpressionContext,
-  ): Parser.PrimaryExpressionContext | null {
+  ): Parser.UnaryExpressionContext[] {
     const ternary = ctx.ternaryExpression();
-    if (!ternary) return null;
+    if (!ternary) return [];
 
     const orExpressions = ternary.orExpression();
-    if (orExpressions.length === 0) return null;
-    // If this is a ternary expression (condition ? true : false), there will be
-    // multiple orExpression children. We can't statically resolve the index type
-    // from the condition, so bail out.
-    if (orExpressions.length > 1) return null;
-    const orExpr = orExpressions[0];
+    if (orExpressions.length === 0) return [];
 
-    const andExpressions = orExpr.andExpression();
-    if (andExpressions.length === 0) return null;
-    const andExpr = andExpressions[0];
+    // For ternary (cond ? true : false), skip the condition (index 0)
+    // and only check the value branches (indices 1 and 2)
+    const valueExpressions =
+      orExpressions.length === 3 ? orExpressions.slice(1) : orExpressions;
 
-    const eqExpressions = andExpr.equalityExpression();
-    if (eqExpressions.length === 0) return null;
-    const eqExpr = eqExpressions[0];
+    return valueExpressions
+      .flatMap((o) => o.andExpression())
+      .flatMap((a) => a.equalityExpression())
+      .flatMap((e) => e.relationalExpression())
+      .flatMap((r) => r.bitwiseOrExpression())
+      .flatMap((bo) => bo.bitwiseXorExpression())
+      .flatMap((bx) => bx.bitwiseAndExpression())
+      .flatMap((ba) => ba.shiftExpression())
+      .flatMap((s) => s.additiveExpression())
+      .flatMap((a) => a.multiplicativeExpression())
+      .flatMap((m) => m.unaryExpression());
+  }
 
-    const relExpressions = eqExpr.relationalExpression();
-    if (relExpressions.length === 0) return null;
-    const relExpr = relExpressions[0];
-
-    const bitorExpressions = relExpr.bitwiseOrExpression();
-    if (bitorExpressions.length === 0) return null;
-    const bitorExpr = bitorExpressions[0];
-
-    const bitxorExpressions = bitorExpr.bitwiseXorExpression();
-    if (bitxorExpressions.length === 0) return null;
-    const bitxorExpr = bitxorExpressions[0];
-
-    const bitandExpressions = bitxorExpr.bitwiseAndExpression();
-    if (bitandExpressions.length === 0) return null;
-    const bitandExpr = bitandExpressions[0];
-
-    const shiftExpressions = bitandExpr.shiftExpression();
-    if (shiftExpressions.length === 0) return null;
-    const shiftExpr = shiftExpressions[0];
-
-    const addExpressions = shiftExpr.additiveExpression();
-    if (addExpressions.length === 0) return null;
-    const addExpr = addExpressions[0];
-
-    const mulExpressions = addExpr.multiplicativeExpression();
-    if (mulExpressions.length === 0) return null;
-    const mulExpr = mulExpressions[0];
-
-    const unaryExpressions = mulExpr.unaryExpression();
-    if (unaryExpressions.length === 0) return null;
-    const unaryExpr = unaryExpressions[0];
-
-    const postfixExpr = unaryExpr.postfixExpression();
+  /**
+   * Resolve the type of a unary expression operand.
+   * Uses local varTypes first, then falls back to CodeGenState for
+   * struct fields, function return types, and enum detection.
+   *
+   * Returns null if the type cannot be resolved (pass-through).
+   */
+  private resolveOperandType(
+    operand: Parser.UnaryExpressionContext,
+  ): string | null {
+    const postfixExpr = operand.postfixExpression();
     if (!postfixExpr) return null;
 
-    return postfixExpr.primaryExpression();
+    const primaryExpr = postfixExpr.primaryExpression();
+    if (!primaryExpr) return null;
+
+    // Resolve base type from primaryExpression
+    let currentType = this.resolveBaseType(primaryExpr);
+
+    // Walk postfix operators to transform the type
+    const postfixOps = postfixExpr.postfixOp();
+
+    // If base type is null but there are postfix ops, use identifier name
+    // for function call / member access resolution (e.g., getIndex())
+    if (!currentType && postfixOps.length > 0) {
+      const identifier = primaryExpr.IDENTIFIER();
+      if (identifier) {
+        currentType = identifier.getText();
+      }
+    }
+
+    for (const op of postfixOps) {
+      if (!currentType) return null;
+      currentType = this.resolvePostfixOpType(currentType, op);
+    }
+
+    return currentType;
+  }
+
+  /**
+   * Resolve the base type of a primary expression.
+   */
+  private resolveBaseType(
+    primaryExpr: Parser.PrimaryExpressionContext,
+  ): string | null {
+    // Check for literal
+    const literal = primaryExpr.literal();
+    if (literal) {
+      if (LiteralUtils.isFloat(literal)) return "float literal";
+      // Integer literals are always valid
+      return null;
+    }
+
+    // Check for parenthesized expression — recurse
+    const parenExpr = primaryExpr.expression();
+    if (parenExpr) {
+      const innerOperands = this.collectOperands(parenExpr);
+      for (const innerOp of innerOperands) {
+        const innerType = this.resolveOperandType(innerOp);
+        if (innerType) return innerType;
+      }
+      return null;
+    }
+
+    // Check for identifier
+    const identifier = primaryExpr.IDENTIFIER();
+    if (!identifier) return null;
+
+    const varName = identifier.getText();
+
+    // Local variables first (params, for-loop vars, function body vars)
+    const localType = this.varTypes.get(varName);
+    if (localType) return localType;
+
+    // Fall back to CodeGenState for cross-file variables
+    const typeInfo = CodeGenState.getVariableTypeInfo(varName);
+    if (typeInfo) return typeInfo.baseType;
+
+    return null;
+  }
+
+  /**
+   * Resolve the resulting type after applying a postfix operator.
+   */
+  private resolvePostfixOpType(
+    currentType: string,
+    op: Parser.PostfixOpContext,
+  ): string | null {
+    // Dot access (e.g., config.value, EColor.RED)
+    if (op.DOT()) {
+      const fieldId = op.IDENTIFIER();
+      if (!fieldId) return null;
+      const fieldName = fieldId.getText();
+
+      // Check if it's an enum access — always valid
+      if (CodeGenState.isKnownEnum(currentType)) return null;
+
+      // Check struct field type
+      const fieldType = CodeGenState.getStructFieldType(currentType, fieldName);
+      return fieldType ?? null;
+    }
+
+    // Array/bit subscript (e.g., lookup[idx])
+    if (op.LBRACKET()) {
+      // If current type is an array, result is the element type
+      // If current type is an integer, result is "bool" (bit access)
+      if (TypeConstants.UNSIGNED_INDEX_TYPES.includes(currentType)) {
+        return "bool";
+      }
+      if (TypeConstants.SIGNED_TYPES.includes(currentType)) {
+        return "bool";
+      }
+      // Array element type — strip array suffix
+      return currentType;
+    }
+
+    // Function call (e.g., getIndex())
+    if (op.LPAREN()) {
+      const returnType = CodeGenState.getFunctionReturnType(currentType);
+      return returnType ?? null;
+    }
+
+    return null;
   }
 }
 

@@ -395,17 +395,7 @@ class Transpiler {
         return this.buildParseOnlyResult(sourcePath, declarationCount);
       }
 
-      // Run analyzers (reads externalStructFields and symbolTable from CodeGenState)
-      const analyzerErrors = runAnalyzers(tree, tokenStream);
-      if (analyzerErrors.length > 0) {
-        return this.buildErrorResult(
-          sourcePath,
-          analyzerErrors,
-          declarationCount,
-        );
-      }
-
-      // Build symbolInfo for code generation
+      // Build symbolInfo for code generation (before analyzers so they can read it)
       const tSymbols = CNextResolver.resolve(tree, sourcePath);
       let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -418,6 +408,19 @@ class Transpiler {
         symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
           symbolInfo,
           externalEnumSources,
+        );
+      }
+
+      // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
+      CodeGenState.symbols = symbolInfo;
+
+      // Run analyzers (reads symbols, externalStructFields, and symbolTable from CodeGenState)
+      const analyzerErrors = runAnalyzers(tree, tokenStream);
+      if (analyzerErrors.length > 0) {
+        return this.buildErrorResult(
+          sourcePath,
+          analyzerErrors,
+          declarationCount,
         );
       }
 
