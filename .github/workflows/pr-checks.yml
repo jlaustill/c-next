@@ -1,8 +1,13 @@
 name: PR Quality Checks
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
+
+# Self-hosted runner for trusted code (your branches, pushes to main)
+# GitHub runners for untrusted code (fork PRs)
 
 # Prevent concurrent Pages deployments
 concurrency:
@@ -15,7 +20,7 @@ jobs:
   # ============================================================================
   lint:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout code
@@ -84,7 +89,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout code
@@ -128,7 +133,7 @@ jobs:
   # ============================================================================
   integration-transpile:
     name: Integration Transpile
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -171,7 +176,7 @@ jobs:
   # ============================================================================
   integration-execute:
     name: Integration Execute
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [integration-transpile]
 
     steps:
@@ -207,7 +212,7 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -245,7 +250,7 @@ jobs:
 
   cli-tests:
     name: CLI Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -280,7 +285,7 @@ jobs:
 
   grammar-coverage:
     name: Grammar Coverage
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
     steps:
@@ -310,7 +315,7 @@ jobs:
 
   verify-clean:
     name: Verify Clean
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [integration-transpile]
 
     steps:
@@ -344,7 +349,7 @@ jobs:
   # ============================================================================
   c-validation:
     name: C Static Analysis (${{ matrix.tool }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [integration-transpile]
     # Advisory: pre-existing MISRA violations exist; don't block PR merges
     continue-on-error: true
@@ -373,6 +378,7 @@ jobs:
         run: npm ci
 
       - name: Install C analysis tools
+        if: runner.environment == 'github-hosted'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq cppcheck clang-tidy flawfinder
@@ -390,7 +396,7 @@ jobs:
 
   sonar:
     name: SonarCloud
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [unit-tests]
 
     steps:
@@ -415,7 +421,7 @@ jobs:
   # ============================================================================
   all-checks-passed:
     name: All Checks Passed
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs:
       [
         lint,
@@ -453,7 +459,7 @@ jobs:
   # ============================================================================
   deploy-coverage:
     name: Deploy Coverage
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [unit-tests]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
