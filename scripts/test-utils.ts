@@ -419,6 +419,18 @@ class TestUtils {
       return true;
     }
 
+    // C++ reference parameters in function declarations
+    // Pattern 1: const Type& paramName (const reference)
+    if (/\bconst\s+\w+\s*&\s*\w+/.test(cCode)) {
+      return true;
+    }
+    // Pattern 2: Type& paramName in function param context
+    // Requires: type starts with letter, & follows, param name starts with letter, ends with , or )
+    // Uses [a-zA-Z] instead of \w to exclude patterns like "0xFFU & value)" which are bitwise ops
+    if (/[a-zA-Z_]\w*\s*&\s*[a-zA-Z_]\w*\s*[,)]/.test(cCode)) {
+      return true;
+    }
+
     // Issue #375: Check for C++ constructor call syntax
     // Pattern: TypeName varName(args); at global scope
     // Matches lines like "Adafruit_MAX31856 thermocouple(pin);"
