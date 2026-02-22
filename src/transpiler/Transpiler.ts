@@ -403,19 +403,8 @@ class Transpiler {
         this._accumulateFileModifications();
       }
 
-      // ADR-055 Phase 7: Get TSymbols for header generation (auto-const applied during conversion)
-      const fileSymbols =
-        CodeGenState.symbolTable.getTSymbolsByFile(sourcePath);
-
-      // Generate header content
-      const headerCode = this.generateHeaderContent(
-        fileSymbols,
-        sourcePath,
-        this.cppDetected,
-        userIncludes,
-        passByValueCopy,
-        symbolInfo,
-      );
+      // Generate header content (reads from state populated above)
+      const headerCode = this.generateHeaderForFile(file) ?? undefined;
 
       return this.buildSuccessResult(
         sourcePath,
@@ -674,8 +663,12 @@ class Transpiler {
       if (file.symbolOnly) {
         continue;
       }
-      const headerPath = this.generateHeader(file.discoveredFile);
-      if (headerPath) {
+      const headerContent = this.generateHeaderForFile(file);
+      if (headerContent) {
+        const headerPath = this.pathResolver.getHeaderOutputPath(
+          file.discoveredFile,
+        );
+        this.fs.writeFile(headerPath, headerContent);
         result.outputFiles.push(headerPath);
       }
     }
@@ -1199,48 +1192,41 @@ class Transpiler {
    * Stage 6: Generate header file for a C-Next file
    * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
    */
-  private generateHeader(file: IDiscoveredFile): string | null {
-    const tSymbols = CodeGenState.symbolTable.getTSymbolsByFile(file.path);
+  /**
+   * Generate header content for a single file's exported symbols.
+   * Unified method replacing both generateHeader() and generateHeaderContent().
+   * Reads all needed data from state (populated during Stage 5).
+   */
+  private generateHeaderForFile(file: IPipelineFile): string | null {
+    const sourcePath = file.path;
+    const tSymbols = CodeGenState.symbolTable.getTSymbolsByFile(sourcePath);
     const exportedSymbols = tSymbols.filter((s) => s.isExported);
 
     if (exportedSymbols.length === 0) {
       return null;
     }
 
-    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
-    const headerPath = this.pathResolver.getHeaderOutputPath(file);
+    const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
 
-    // Issue #220: Get SymbolCollector for full type definitions
-    const typeInput = this.state.getSymbolInfo(file.path);
-
-    // Issue #280: Get pass-by-value params from per-file storage for multi-file consistency
-    // This uses the snapshot taken during transpilation, not the current (stale) codeGenerator state.
-    // Fallback to empty map if not found (defensive - should always exist after transpilation).
+    const typeInput = this.state.getSymbolInfo(sourcePath);
     const passByValueParams =
-      this.state.getPassByValueParams(file.path) ??
+      this.state.getPassByValueParams(sourcePath) ??
       new Map<string, Set<string>>();
+    const userIncludes = this.state.getUserIncludes(sourcePath);
 
-    // Issue #424: Get user includes for header generation
-    const userIncludes = this.state.getUserIncludes(file.path);
-
-    // Issue #478, #588: Collect all known enum names from all files for cross-file type handling
     const allKnownEnums = TransitiveEnumCollector.aggregateKnownEnums(
       this.state.getAllSymbolInfo(),
     );
 
-    // Issue #497: Build mapping from external types to their C header includes
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this.state.getAllHeaderDirectives(),
       CodeGenState.symbolTable,
     );
 
-    // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
     const typeInputWithSymbolTable = typeInput
       ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
       : undefined;
 
-    // ADR-055 Phase 7: Convert TSymbol to IHeaderSymbol with auto-const info
-    // Issue #817: Apply auto-const info same as generateHeaderContent() does
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
     const headerSymbols = this.convertToHeaderSymbols(
       exportedSymbols,
@@ -1248,7 +1234,7 @@ class Transpiler {
       allKnownEnums,
     );
 
-    const headerContent = this.headerGenerator.generate(
+    return this.headerGenerator.generate(
       headerSymbols,
       headerName,
       {
@@ -1261,9 +1247,6 @@ class Transpiler {
       passByValueParams,
       allKnownEnums,
     );
-
-    this.fs.writeFile(headerPath, headerContent);
-    return headerPath;
   }
 
   /**
@@ -1306,65 +1289,6 @@ class Transpiler {
         accumulatedParamLists,
       );
     }
-  }
-
-  /**
-   * Generate header content for exported symbols.
-   * Issue #591: Extracted from transpileSource() for reduced complexity.
-   * ADR-055 Phase 7: Works with TSymbol[], converts to IHeaderSymbol for generation.
-   */
-  private generateHeaderContent(
-    tSymbols: TSymbol[],
-    sourcePath: string,
-    cppMode: boolean,
-    userIncludes: string[],
-    passByValueParams: Map<string, Set<string>>,
-    symbolInfo: ICodeGenSymbols,
-  ): string | undefined {
-    const exportedSymbols = tSymbols.filter((s) => s.isExported);
-
-    if (exportedSymbols.length === 0) {
-      return undefined;
-    }
-
-    // Convert to IHeaderSymbol with auto-const info
-    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
-    const headerSymbols = this.convertToHeaderSymbols(
-      exportedSymbols,
-      unmodifiedParams,
-      symbolInfo.knownEnums,
-    );
-
-    const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
-
-    // Get type input from CodeGenState (for struct/enum definitions)
-    const typeInput = CodeGenState.symbols;
-
-    // Issue #497: Build mapping from external types to their C header includes
-    const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
-      this.state.getAllHeaderDirectives(),
-      CodeGenState.symbolTable,
-    );
-
-    // Issue #502: Include symbolTable in typeInput for C++ namespace type detection
-    const typeInputWithSymbolTable = typeInput
-      ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
-      : undefined;
-
-    // Issue #478: Pass all known enums for cross-file type handling
-    return this.headerGenerator.generate(
-      headerSymbols,
-      headerName,
-      {
-        exportedOnly: true,
-        userIncludes,
-        externalTypeHeaders,
-        cppMode,
-      },
-      typeInputWithSymbolTable,
-      passByValueParams,
-      symbolInfo.knownEnums,
-    );
   }
 
   /**
