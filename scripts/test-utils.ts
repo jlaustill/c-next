@@ -427,6 +427,8 @@ class TestUtils {
     // Pattern 2: Type& paramName in function param context
     // Requires: type starts with letter, & follows, param name starts with letter, ends with , or )
     // Uses [a-zA-Z] instead of \w to exclude patterns like "0xFFU & value)" which are bitwise ops
+    // NOTE: Intentionally permissive — may match in typedef/macro contexts, which is acceptable
+    // since the goal is C++ compiler selection (false positives are harmless, false negatives break builds)
     if (/[a-zA-Z_]\w*\s*&\s*[a-zA-Z_]\w*\s*[,)]/.test(cCode)) {
       return true;
     }
@@ -739,6 +741,9 @@ class TestUtils {
       result.headerMatch = true;
 
       // Find existing helper implementation files
+      // NOTE: Missing helpers are silently skipped — if transpile phase completed successfully,
+      // helpers should exist; if they don't, it's likely the test doesn't use helpers in this mode
+      // (e.g., a helper only needed in C++ mode but we're running C mode)
       for (const helperCnx of helperCnxFiles) {
         const helperBaseName = basename(helperCnx, ".cnx");
         const implExt = mode === "cpp" ? "cpp" : "c";
@@ -932,9 +937,10 @@ class TestUtils {
 
     // Execute if requested and not ARM-only code
     if (shouldExec && /^\s*\/\/\s*test-execution\s*$/m.test(source)) {
-      // Read generated code to check for ARM runtime requirements
-      const generatedCode = readFileSync(expectedImplPath, "utf-8");
-      if (TestUtils.requiresArmRuntime(generatedCode)) {
+      // Read existing code to check for ARM runtime requirements
+      // (may be freshly generated or pre-existing in executeOnly mode)
+      const existingCode = readFileSync(expectedImplPath, "utf-8");
+      if (TestUtils.requiresArmRuntime(existingCode)) {
         result.execSuccess = true;
         result.skippedExec = true;
         // No cleanup needed for helper files
