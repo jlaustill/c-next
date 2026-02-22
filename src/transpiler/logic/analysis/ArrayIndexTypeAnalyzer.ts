@@ -181,6 +181,10 @@ class IndexTypeListener extends CNextListener {
 
     const orExpressions = ternary.orExpression();
     if (orExpressions.length === 0) return null;
+    // If this is a ternary expression (condition ? true : false), there will be
+    // multiple orExpression children. We can't statically resolve the index type
+    // from the condition, so bail out.
+    if (orExpressions.length > 1) return null;
     const orExpr = orExpressions[0];
 
     const andExpressions = orExpr.andExpression();
