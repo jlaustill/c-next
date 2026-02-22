@@ -527,4 +527,50 @@ describe("Transpiler", () => {
       });
     });
   });
+
+  describe("transpile() unified entry point", () => {
+    let mockFs: MockFileSystem;
+
+    beforeEach(() => {
+      mockFs = new MockFileSystem();
+    });
+
+    it("transpile({ kind: 'source' }) returns ITranspilerResult with files[]", async () => {
+      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+
+      const result = await transpiler.transpile({
+        kind: "source",
+        source: "void main() { }",
+      });
+      expect(result.success).toBe(true);
+      expect(result.files).toHaveLength(1);
+      expect(result.files[0].code).toContain("int main");
+    });
+
+    it("transpile({ kind: 'source' }) returns header in files[0].headerCode", async () => {
+      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+
+      const result = await transpiler.transpile({
+        kind: "source",
+        source: `
+          scope API {
+            public void doSomething() { }
+          }
+        `,
+      });
+      expect(result.success).toBe(true);
+      expect(result.files[0].headerCode).toContain("API_doSomething");
+    });
+
+    it("transpile({ kind: 'source' }) returns errors in result", async () => {
+      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+
+      const result = await transpiler.transpile({
+        kind: "source",
+        source: "@@@invalid",
+      });
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+  });
 });

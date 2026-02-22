@@ -52,6 +52,7 @@ import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
 import IPipelineFile from "./types/IPipelineFile";
 import IPipelineInput from "./types/IPipelineInput";
+import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./state/TranspilerState";
 import runAnalyzers from "./logic/analysis/runAnalyzers";
@@ -170,6 +171,39 @@ class Transpiler {
 
       await this._executePipeline(input, result);
 
+      return await this._finalizeResult(result);
+    } catch (err) {
+      return this._handleRunError(result, err);
+    }
+  }
+
+  /**
+   * Unified entry point for all transpilation.
+   *
+   * @param input - What to transpile:
+   *   - { kind: 'files' } — discover from config.inputs, write to disk
+   *   - { kind: 'source', source, ... } — transpile in-memory source
+   * @returns ITranspilerResult with per-file results in .files[]
+   */
+  async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
+    if (input.kind === "files") {
+      return this.run();
+    }
+
+    // Source mode: delegate to transpileSource() and wrap in ITranspilerResult
+    const result = this._initResult();
+
+    try {
+      await this._initializeRun();
+
+      const pipelineInput = this._discoverFromSource(
+        input.source,
+        input.workingDir ?? process.cwd(),
+        input.includeDirs ?? [],
+        input.sourcePath ?? "<string>",
+      );
+
+      await this._executePipeline(pipelineInput, result);
       return await this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
