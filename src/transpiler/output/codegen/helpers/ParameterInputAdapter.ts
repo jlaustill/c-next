@@ -42,6 +42,21 @@ interface IFromASTDeps {
 
   /** Whether the parameter should use pass-by-value (pre-computed) */
   isPassByValue: boolean;
+
+  /** Issue #895: Whether the current function is callback-compatible */
+  isCallbackCompatible: boolean;
+
+  /**
+   * Issue #895: Force pass-by-reference for callback-compatible functions
+   * When the typedef signature requires a pointer, this overrides normal logic.
+   */
+  forcePassByReference?: boolean;
+
+  /**
+   * Issue #895: Force const qualifier from callback typedef signature.
+   * When the C typedef has `const T*`, this preserves const on the generated param.
+   */
+  forceConst?: boolean;
 }
 
 /**
@@ -122,7 +137,15 @@ class ParameterInputAdapter {
     // Determine classification for non-array, non-string types
     const isKnownStruct = deps.isKnownStruct(typeName);
     const isKnownPrimitive = !!deps.typeMap[typeName];
-    const isAutoConst = !deps.isModified && !isConst;
+    // Issue #895: Don't add auto-const for callback-compatible functions
+    // because it would change the signature and break typedef compatibility
+    const isAutoConst =
+      !deps.isCallbackCompatible && !deps.isModified && !isConst;
+
+    // Issue #895: For callback-compatible functions, force pass-by-reference
+    // when the typedef signature requires a pointer (e.g., opaque types)
+    const isPassByReference =
+      deps.forcePassByReference || isKnownStruct || isKnownPrimitive;
 
     return {
       name,
@@ -134,7 +157,12 @@ class ParameterInputAdapter {
       isCallback: false,
       isString: false,
       isPassByValue: deps.isPassByValue,
-      isPassByReference: isKnownStruct || isKnownPrimitive,
+      isPassByReference,
+      // Issue #895: Force pointer syntax in C++ mode for callback-compatible functions
+      // because C callback typedefs expect pointers, not C++ references
+      forcePointerSyntax: deps.forcePassByReference,
+      // Issue #895: Preserve const from callback typedef signature
+      forceConst: deps.forceConst,
     };
   }
 

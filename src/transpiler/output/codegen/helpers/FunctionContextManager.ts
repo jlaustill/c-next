@@ -15,6 +15,8 @@ import CodeGenState from "../../../state/CodeGenState.js";
 import TYPE_WIDTH from "../types/TYPE_WIDTH.js";
 import ArrayDimensionParser from "./ArrayDimensionParser.js";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
+// Issue #895: Parse typedef signatures to determine pointer vs value params
+import TypedefParamParser from "./TypedefParamParser.js";
 
 /**
  * Result from resolving parameter type information.
@@ -124,8 +126,9 @@ class FunctionContextManager {
     CodeGenState.currentParameters.clear();
     if (!params) return;
 
-    for (const param of params.parameter()) {
-      FunctionContextManager.processParameter(param, callbacks);
+    const paramList = params.parameter();
+    for (let i = 0; i < paramList.length; i++) {
+      FunctionContextManager.processParameter(paramList[i], callbacks, i);
     }
   }
 
@@ -135,6 +138,7 @@ class FunctionContextManager {
   static processParameter(
     param: Parser.ParameterContext,
     callbacks: IFunctionContextCallbacks,
+    paramIndex: number,
   ): void {
     const name = param.IDENTIFIER().getText();
     // Check both C-Next style (u8[8] param) and legacy style (u8 param[8])
@@ -149,23 +153,38 @@ class FunctionContextManager {
       callbacks,
     );
 
-    // For callback-compatible functions, struct params use by-value semantics
-    // (no pointer dereference, dot access instead of arrow in C mode)
-    const isCallbackCompat =
-      CodeGenState.currentFunctionName !== null &&
-      CodeGenState.callbackCompatibleFunctions.has(
-        CodeGenState.currentFunctionName,
-      );
+    // Issue #895: For callback-compatible functions, check the typedef signature
+    // to determine if the param should be a pointer or value
+    const callbackTypedefInfo =
+      FunctionContextManager.getCallbackTypedefParamInfo(paramIndex);
+    const isCallbackPointerParam =
+      callbackTypedefInfo?.shouldBePointer ?? false;
+
+    // Determine isStruct: for callback-compatible params, both typedef AND type info matter
+    // - If typedef says pointer AND it's actually a struct, use -> access (isStruct=true)
+    // - If typedef says pointer BUT it's a primitive (like u8), don't treat as struct
+    //   (primitives use forcePointerSemantics for dereference instead)
+    const isStruct = callbackTypedefInfo
+      ? isCallbackPointerParam && typeInfo.isStruct
+      : typeInfo.isStruct;
+
+    // Issue #895: Primitive types that become pointers need dereferencing when used as values
+    // e.g., "u8 buf" becoming "uint8_t* buf" requires "*buf" when accessing the value
+    const isCallbackPointerPrimitive =
+      isCallbackPointerParam && !typeInfo.isStruct && !isArray;
 
     // Register in currentParameters
     const paramInfo = {
       name,
       baseType: typeInfo.typeName,
       isArray,
-      isStruct: isCallbackCompat ? false : typeInfo.isStruct,
+      isStruct,
       isConst,
       isCallback: typeInfo.isCallback,
       isString: typeInfo.isString,
+      isCallbackPointerPrimitive,
+      // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
+      forcePointerSemantics: isCallbackPointerParam,
     };
     CodeGenState.currentParameters.set(name, paramInfo);
 
@@ -372,6 +391,40 @@ class FunctionContextManager {
       }
     }
     return dimensions;
+  }
+
+  /**
+   * Issue #895: Get callback typedef parameter info from the C header.
+   * Returns null if not callback-compatible or index is invalid.
+   */
+  static getCallbackTypedefParamInfo(
+    paramIndex: number,
+  ): { shouldBePointer: boolean; shouldBeConst: boolean } | null {
+    if (CodeGenState.currentFunctionName === null) return null;
+
+    const typedefName = CodeGenState.callbackCompatibleFunctions.get(
+      CodeGenState.currentFunctionName,
+    );
+    if (!typedefName) return null;
+
+    const typedefType = CodeGenState.getTypedefType(typedefName);
+    if (!typedefType) return null;
+
+    const shouldBePointer = TypedefParamParser.shouldBePointer(
+      typedefType,
+      paramIndex,
+    );
+    const shouldBeConst = TypedefParamParser.shouldBeConst(
+      typedefType,
+      paramIndex,
+    );
+
+    if (shouldBePointer === null) return null;
+
+    return {
+      shouldBePointer,
+      shouldBeConst: shouldBeConst ?? false,
+    };
   }
 
   /**

@@ -103,14 +103,19 @@ class ParameterSignatureBuilder {
   /**
    * Build pass-by-reference parameter signature.
    * C mode: const Point* p
-   * C++ mode: const Point& p
+   * C++ mode: const Point& p (unless forcePointerSyntax)
+   *
+   * Issue #895: When forcePointerSyntax is set, always use pointer syntax
+   * because C callback typedefs expect pointers, not C++ references.
    */
   private static _buildRefParam(
     param: IParameterInput,
     refSuffix: string,
   ): string {
     const constPrefix = this._getConstPrefix(param);
-    return `${constPrefix}${param.mappedType}${refSuffix} ${param.name}`;
+    // Issue #895: Override refSuffix for callback-compatible functions
+    const actualSuffix = param.forcePointerSyntax ? "*" : refSuffix;
+    return `${constPrefix}${param.mappedType}${actualSuffix} ${param.name}`;
   }
 
   /**
@@ -122,13 +127,16 @@ class ParameterSignatureBuilder {
   }
 
   /**
-   * Get const prefix combining explicit const and auto-const.
-   * Auto-const is applied to unmodified parameters.
+   * Get const prefix combining explicit const, auto-const, and forced const.
+   * Priority: forceConst > isConst > isAutoConst
+   * Issue #895: forceConst preserves const from callback typedef signature.
    */
   private static _getConstPrefix(param: IParameterInput): string {
-    const autoConst = param.isAutoConst && !param.isConst ? "const " : "";
-    const explicitConst = param.isConst ? "const " : "";
-    return `${autoConst}${explicitConst}`;
+    // Any source of const results in "const " prefix
+    if (param.forceConst || param.isConst || param.isAutoConst) {
+      return "const ";
+    }
+    return "";
   }
 }
 

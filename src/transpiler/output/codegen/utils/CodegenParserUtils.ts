@@ -7,7 +7,7 @@
 
 import { ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import ExpressionUnwrapper from "./ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 
 /**
  * Static utility methods for parser context operations in code generation.

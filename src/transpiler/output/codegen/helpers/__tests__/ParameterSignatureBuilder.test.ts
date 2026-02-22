@@ -312,4 +312,67 @@ describe("ParameterSignatureBuilder", () => {
       expect(result).toBe("const UnknownType data");
     });
   });
+
+  describe("callback-compatible parameters (Issue #895)", () => {
+    it("forceConst adds const from typedef signature", () => {
+      const input = createInput({
+        name: "area",
+        baseType: "rect_t",
+        mappedType: "rect_t",
+        isPassByReference: true,
+        forcePointerSyntax: true,
+        forceConst: true,
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "&");
+
+      // Should use pointer (not reference) and add const from typedef
+      expect(result).toBe("const rect_t* area");
+    });
+
+    it("forcePointerSyntax uses pointer in C++ mode", () => {
+      const input = createInput({
+        name: "w",
+        baseType: "widget_t",
+        mappedType: "widget_t",
+        isPassByReference: true,
+        forcePointerSyntax: true,
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "&");
+
+      // Should use pointer even in C++ mode (& suffix)
+      expect(result).toBe("widget_t* w");
+    });
+
+    it("forceConst without forcePointerSyntax still adds const", () => {
+      const input = createInput({
+        name: "data",
+        baseType: "Data",
+        mappedType: "Data",
+        isPassByReference: true,
+        forceConst: true,
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "*");
+
+      expect(result).toBe("const Data* data");
+    });
+
+    it("forceConst combines with forcePointerSyntax in C++ mode", () => {
+      const input = createInput({
+        name: "buf",
+        baseType: "uint8_t",
+        mappedType: "uint8_t",
+        isPassByReference: true,
+        forcePointerSyntax: true,
+        forceConst: false, // typedef doesn't have const
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "&");
+
+      // No const, but still uses pointer
+      expect(result).toBe("uint8_t* buf");
+    });
+  });
 });

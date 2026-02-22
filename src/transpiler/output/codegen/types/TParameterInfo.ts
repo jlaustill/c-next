@@ -14,6 +14,18 @@ type TParameterInfo = {
   isConst: boolean; // ADR-013
   isCallback: boolean; // ADR-029
   isString: boolean; // ADR-045
+  /**
+   * Issue #895: True when a primitive param becomes a pointer due to callback typedef.
+   * When used as a value in expressions, these params need dereferencing (*param).
+   */
+  isCallbackPointerPrimitive?: boolean;
+
+  /**
+   * Issue #895: True when a param needs pointer semantics due to callback typedef.
+   * In C++ mode, this forces -> member access instead of . (reference access).
+   * Applies to both struct and primitive callback-compatible params.
+   */
+  forcePointerSemantics?: boolean;
 };
 
 export default TParameterInfo;

@@ -16,6 +16,19 @@ import ISeparatorContext from "../types/ISeparatorContext";
 import IMemberSeparatorDeps from "../types/IMemberSeparatorDeps";
 
 /**
+ * Input parameters for building a separator context
+ */
+interface IBuildContextInput {
+  firstId: string;
+  hasGlobal: boolean;
+  hasThis: boolean;
+  currentScope: string | null;
+  isStructParam: boolean;
+  isCppAccess: boolean;
+  forcePointerSemantics?: boolean;
+}
+
+/**
  * Static utility for resolving member access separators
  */
 class MemberSeparatorResolver {
@@ -23,14 +36,18 @@ class MemberSeparatorResolver {
    * Build the separator context for a member access chain
    */
   static buildContext(
-    firstId: string,
-    hasGlobal: boolean,
-    hasThis: boolean,
-    currentScope: string | null,
-    isStructParam: boolean,
+    input: IBuildContextInput,
     deps: IMemberSeparatorDeps,
-    isCppAccess: boolean,
   ): ISeparatorContext {
+    const {
+      firstId,
+      hasGlobal,
+      hasThis,
+      currentScope,
+      isStructParam,
+      isCppAccess,
+      forcePointerSemantics,
+    } = input;
     const isCrossScope =
       hasGlobal &&
       (deps.isKnownScope(firstId) || deps.isKnownRegister(firstId));
@@ -48,6 +65,7 @@ class MemberSeparatorResolver {
       isCppAccess,
       scopedRegName,
       isScopedRegister,
+      forcePointerSemantics,
     };
   }
 
@@ -66,7 +84,11 @@ class MemberSeparatorResolver {
     }
 
     // Struct parameter uses -> in C mode, . in C++ mode
+    // Issue #895: forcePointerSemantics overrides C++ mode to use ->
     if (ctx.isStructParam) {
+      if (ctx.forcePointerSemantics) {
+        return "->";
+      }
       return deps.getStructParamSeparator();
     }
 

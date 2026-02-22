@@ -110,6 +110,8 @@ const initializeTrackingState = (
 interface IPostfixContext {
   rootIdentifier: string | undefined;
   isStructParam: boolean;
+  /** Issue #895: Force pointer semantics for callback-compatible params */
+  forcePointerSemantics: boolean;
   input: IGeneratorInput;
   state: IGeneratorState;
   orchestrator: IOrchestrator;
@@ -149,6 +151,8 @@ const generatePostfixExpression = (
     ? state.currentParameters.get(rootIdentifier)
     : null;
   const isStructParam = paramInfo?.isStruct ?? false;
+  // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
+  const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
 
   // Issue #579: Check if we have subscript access on a non-array parameter
   const hasSubscriptOps = ops.some((op) => op.expression().length > 0);
@@ -178,6 +182,7 @@ const generatePostfixExpression = (
   const postfixCtx: IPostfixContext = {
     rootIdentifier,
     isStructParam,
+    forcePointerSemantics,
     input,
     state,
     orchestrator,
@@ -303,6 +308,7 @@ const handleMemberOp = (
       memberName,
       rootIdentifier: ctx.rootIdentifier,
       isStructParam: ctx.isStructParam,
+      forcePointerSemantics: ctx.forcePointerSemantics,
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
       currentStructType: tracking.currentStructType,
@@ -1409,6 +1415,8 @@ interface IMemberAccessContext {
   memberName: string;
   rootIdentifier: string | undefined;
   isStructParam: boolean;
+  /** Issue #895: Force pointer semantics for callback-compatible params */
+  forcePointerSemantics: boolean;
   isGlobalAccess: boolean;
   isCppAccessChain: boolean;
   currentStructType: string | undefined;
@@ -1657,9 +1665,13 @@ const tryStructParamAccess = (
     return null;
   }
 
-  const structParamSep = memberAccessChain.getStructParamSeparator({
-    cppMode: orchestrator.isCppMode(),
-  });
+  // Issue #895: Force pointer semantics for callback-compatible params
+  // even in C++ mode (use -> instead of .)
+  const structParamSep = ctx.forcePointerSemantics
+    ? "->"
+    : memberAccessChain.getStructParamSeparator({
+        cppMode: orchestrator.isCppMode(),
+      });
 
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${structParamSep}${ctx.memberName}`;

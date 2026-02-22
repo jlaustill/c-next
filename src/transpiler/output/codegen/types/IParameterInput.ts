@@ -53,6 +53,19 @@ interface IParameterInput {
 
   /** Whether to use pass-by-reference semantics (known struct or known primitive) */
   isPassByReference: boolean;
+
+  /**
+   * Issue #895: Force pointer syntax even in C++ mode.
+   * Required for callback-compatible functions because C callback typedefs
+   * expect pointers, not C++ references.
+   */
+  forcePointerSyntax?: boolean;
+
+  /**
+   * Issue #895: Force const qualifier from callback typedef signature.
+   * When the C typedef has `const T*`, this preserves const on the generated param.
+   */
+  forceConst?: boolean;
 }
 
 export default IParameterInput;

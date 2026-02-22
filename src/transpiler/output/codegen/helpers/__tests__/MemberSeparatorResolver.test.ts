@@ -46,13 +46,15 @@ describe("MemberSeparatorResolver", () => {
       });
 
       const ctx = MemberSeparatorResolver.buildContext(
-        "Motor",
-        true, // hasGlobal
-        false, // hasThis
-        null,
-        false, // isStructParam
+        {
+          firstId: "Motor",
+          hasGlobal: true,
+          hasThis: false,
+          currentScope: null,
+          isStructParam: false,
+          isCppAccess: false,
+        },
         deps,
-        false, // isCppAccess
       );
 
       expect(ctx.isCrossScope).toBe(true);
@@ -65,13 +67,15 @@ describe("MemberSeparatorResolver", () => {
       });
 
       const ctx = MemberSeparatorResolver.buildContext(
-        "GPIO7",
-        true, // hasGlobal
-        false, // hasThis
-        null,
-        false,
+        {
+          firstId: "GPIO7",
+          hasGlobal: true,
+          hasThis: false,
+          currentScope: null,
+          isStructParam: false,
+          isCppAccess: false,
+        },
         deps,
-        false,
       );
 
       expect(ctx.isCrossScope).toBe(true);
@@ -83,13 +87,15 @@ describe("MemberSeparatorResolver", () => {
       });
 
       const ctx = MemberSeparatorResolver.buildContext(
-        "CONTROL_REG",
-        false, // hasGlobal
-        true, // hasThis
-        "Motor", // currentScope
-        false,
+        {
+          firstId: "CONTROL_REG",
+          hasGlobal: false,
+          hasThis: true,
+          currentScope: "Motor",
+          isStructParam: false,
+          isCppAccess: false,
+        },
         deps,
-        false,
       );
 
       expect(ctx.scopedRegName).toBe("Motor_CONTROL_REG");
@@ -100,13 +106,15 @@ describe("MemberSeparatorResolver", () => {
       const deps = createMockDeps();
 
       const ctx = MemberSeparatorResolver.buildContext(
-        "CONTROL_REG",
-        false,
-        false, // no this
-        "Motor",
-        false,
+        {
+          firstId: "CONTROL_REG",
+          hasGlobal: false,
+          hasThis: false,
+          currentScope: "Motor",
+          isStructParam: false,
+          isCppAccess: false,
+        },
         deps,
-        false,
       );
 
       expect(ctx.scopedRegName).toBe(null);
@@ -117,13 +125,15 @@ describe("MemberSeparatorResolver", () => {
       const deps = createMockDeps();
 
       const ctx = MemberSeparatorResolver.buildContext(
-        "point",
-        false,
-        false,
-        null,
-        true, // isStructParam
+        {
+          firstId: "point",
+          hasGlobal: false,
+          hasThis: false,
+          currentScope: null,
+          isStructParam: true,
+          isCppAccess: false,
+        },
         deps,
-        false,
       );
 
       expect(ctx.isStructParam).toBe(true);
@@ -133,13 +143,15 @@ describe("MemberSeparatorResolver", () => {
       const deps = createMockDeps();
 
       const ctx = MemberSeparatorResolver.buildContext(
-        "SeaDash",
-        true,
-        false,
-        null,
-        false,
+        {
+          firstId: "SeaDash",
+          hasGlobal: true,
+          hasThis: false,
+          currentScope: null,
+          isStructParam: false,
+          isCppAccess: true,
+        },
         deps,
-        true, // isCppAccess
       );
 
       expect(ctx.isCppAccess).toBe(true);

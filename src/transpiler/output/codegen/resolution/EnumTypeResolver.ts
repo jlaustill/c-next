@@ -17,7 +17,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import TypeResolver from "../TypeResolver";
-import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**

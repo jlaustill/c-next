@@ -14,6 +14,7 @@ import SymbolTable from "../symbols/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
 import CodeGenState from "../../state/CodeGenState";
+import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 
 /**
  * C-Next built-in functions
@@ -613,6 +614,13 @@ class FunctionCallAnalyzer {
       return;
     }
 
+    // Check expression statements for function calls with callback arguments
+    const exprStmt = stmt.expressionStatement();
+    if (exprStmt) {
+      this.checkExpressionForCallbackArgs(exprStmt.expression());
+      return;
+    }
+
     // Recurse into nested blocks/statements
     const ifStmt = stmt.ifStatement();
     if (ifStmt) {
@@ -687,7 +695,8 @@ class FunctionCallAnalyzer {
       : funcRef;
 
     if (this.allLocalFunctions.has(lookupName)) {
-      CodeGenState.callbackCompatibleFunctions.add(lookupName);
+      // Store function name -> typedef name mapping
+      CodeGenState.callbackCompatibleFunctions.set(lookupName, typeName);
     }
   }
 
@@ -705,6 +714,108 @@ class FunctionCallAnalyzer {
       return text;
     }
     return null;
+  }
+
+  /**
+   * Issue #895: Check expression for function calls that pass C-Next functions
+   * to C function pointer parameters.
+   *
+   * Pattern: `global.widget_set_flush_cb(w, my_flush)`
+   * Where widget_set_flush_cb's 2nd param is a C function pointer typedef.
+   */
+  private checkExpressionForCallbackArgs(expr: Parser.ExpressionContext): void {
+    // Navigate to the postfix expression (handles assignments, ternaries, etc.)
+    const postfix = this.findPostfixExpression(expr);
+    if (!postfix) return;
+
+    // Extract function name and argument list
+    const callInfo = this.extractCallInfo(postfix);
+    if (!callInfo) return;
+
+    // Look up the C function in symbol table
+    const cFunc = this.symbolTable?.getCSymbol(callInfo.funcName);
+    if (cFunc?.kind !== "function" || !cFunc.parameters) return;
+
+    // Check each argument against the corresponding parameter type
+    for (let i = 0; i < callInfo.args.length; i++) {
+      const param = cFunc.parameters[i];
+      if (!param) continue;
+
+      // Check if parameter type is a function pointer typedef
+      if (!this.isCFunctionPointerTypedef(param.type)) continue;
+
+      // Extract function reference from argument
+      const funcRef = this.extractFunctionReference(callInfo.args[i]);
+      if (!funcRef) continue;
+
+      // Normalize scope-qualified names
+      const lookupName = funcRef.includes(".")
+        ? funcRef.replace(".", "_")
+        : funcRef;
+
+      // Mark as callback-compatible if it's a local C-Next function
+      if (this.allLocalFunctions.has(lookupName)) {
+        // Store function name -> typedef name mapping
+        CodeGenState.callbackCompatibleFunctions.set(lookupName, param.type);
+      }
+    }
+  }
+
+  /**
+   * Find the postfix expression within an expression tree.
+   * Uses ExpressionUnwrapper which validates that expression is "simple"
+   * (single term at each level), returning null for complex expressions.
+   */
+  private findPostfixExpression(
+    expr: Parser.ExpressionContext,
+  ): Parser.PostfixExpressionContext | null {
+    return ExpressionUnwrapper.getPostfixExpression(expr);
+  }
+
+  /**
+   * Extract function name and arguments from a postfix expression.
+   * Returns null if not a function call.
+   */
+  private extractCallInfo(
+    postfix: Parser.PostfixExpressionContext,
+  ): { funcName: string; args: Parser.ExpressionContext[] } | null {
+    const primary = postfix.primaryExpression();
+    const ops = postfix.postfixOp();
+
+    // Start with primary expression (identifier or 'global')
+    const ident = primary.IDENTIFIER();
+    const globalKw = primary.GLOBAL();
+
+    // Early return: neither identifier nor global keyword means not a function call
+    if (!ident && !globalKw) {
+      return null;
+    }
+
+    // Build function name from primary + member access ops
+    // For 'global' keyword, funcName starts empty and gets built from member access
+    let funcName = ident ? ident.getText() : "";
+    let argListOp: Parser.PostfixOpContext | null = null;
+
+    // Walk postfix ops to find function name and call
+    for (const op of ops) {
+      if (op.IDENTIFIER()) {
+        // Member access: build qualified name
+        const member = op.IDENTIFIER()!.getText();
+        funcName = funcName ? `${funcName}_${member}` : member;
+      } else if (op.argumentList() || op.getText().startsWith("(")) {
+        // Found the call - this op has the arguments
+        argListOp = op;
+        break;
+      }
+    }
+
+    if (!argListOp || !funcName) return null;
+
+    // Extract arguments
+    const argList = argListOp.argumentList();
+    const args = argList?.expression() ?? [];
+
+    return { funcName, args };
   }
 
   /**

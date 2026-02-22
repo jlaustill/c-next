@@ -1,0 +1,55 @@
+// test-transpile-only
+// Issue #895: Callback functions with pointer parameters
+// Tests that C-Next functions assigned to C callback typedefs
+// generate the correct pointer signatures
+
+#include "widget.h"
+
+// This function will be assigned to flush_cb_t typedef
+// The typedef expects: void (*)(widget_t *, const rect_t *, uint8_t *)
+// So all params should be pointers, not values
+void my_flush(widget_t w, rect_t area, u8 buf) {
+    // Just track that we were called with correct data
+    global.widget_flush_was_called <- true;
+    global.widget_flush_area_x <- area.x;
+    global.widget_flush_area_y <- area.y;
+    global.widget_flush_buf_first_byte <- buf;
+}
+
+u32 main() {
+    // Create widget and set our callback
+    widget_t w <- global.widget_create();
+    global.widget_set_flush_cb(w, my_flush);
+
+    // Prepare test data
+    rect_t area;
+    area.x <- 10;
+    area.y <- 20;
+    area.width <- 100;
+    area.height <- 50;
+
+    u8[4] buffer <- [0xAB, 0xCD, 0xEF, 0x12];
+
+    // Trigger flush - this calls our callback
+    global.widget_trigger_flush(w, area, buffer);
+
+    // Verify callback was called
+    bool called <- global.widget_flush_was_called;
+    if (!called) return 1;
+
+    // Verify area was passed correctly
+    u16 ax <- global.widget_flush_area_x;
+    if (ax != 10) return 2;
+
+    u16 ay <- global.widget_flush_area_y;
+    if (ay != 20) return 3;
+
+    // Verify buffer first byte
+    u8 first <- global.widget_flush_buf_first_byte;
+    if (first != 0xAB) return 4;
+
+    // Cleanup
+    global.widget_destroy(w);
+
+    return 0;
+}

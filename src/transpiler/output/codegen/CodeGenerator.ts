@@ -118,7 +118,7 @@ import ISimpleIdentifierDeps from "./types/ISimpleIdentifierDeps";
 import IPostfixChainDeps from "./types/IPostfixChainDeps";
 import IPostfixOperation from "./types/IPostfixOperation";
 // Issue #707: Expression unwrapping utility for reducing duplication
-import ExpressionUnwrapper from "./utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 // Stateless parser utilities extracted from CodeGenerator
 import CodegenParserUtils from "./utils/CodegenParserUtils";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
@@ -140,6 +140,7 @@ import PassByValueAnalyzer from "../../logic/analysis/PassByValueAnalyzer";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "./helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
+// Issue #895: Parse typedef signatures to determine pointer vs value params
 // Extracted resolvers that use CodeGenState
 import SizeofResolver from "./resolution/SizeofResolver";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
@@ -1241,7 +1242,7 @@ export default class CodeGenerator implements IOrchestrator {
   generateParameterList(ctx: Parser.ParameterListContext): string {
     return ctx
       .parameter()
-      .map((p) => this.generateParameter(p))
+      .map((p, index) => this.generateParameter(p, index))
       .join(", ");
   }
 
@@ -3684,7 +3685,10 @@ export default class CodeGenerator implements IOrchestrator {
     return typedef ? functionCode + typedef : functionCode;
   }
 
-  private generateParameter(ctx: Parser.ParameterContext): string {
+  private generateParameter(
+    ctx: Parser.ParameterContext,
+    paramIndex?: number,
+  ): string {
     const typeName = this.getTypeName(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
@@ -3696,9 +3700,22 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Pre-compute CodeGenState-dependent values
     const isModified = this._isCurrentParameterModified(name);
-    const isPassByValue = this._isPassByValueType(typeName, name);
+
+    // Issue #895: For callback-compatible functions, determine pointer/value
+    // from the typedef signature, not from normal C-Next pass-by-value rules
+    const callbackInfo =
+      paramIndex === undefined
+        ? null
+        : FunctionContextManager.getCallbackTypedefParamInfo(paramIndex);
+    const isPassByValue = callbackInfo
+      ? !callbackInfo.shouldBePointer
+      : this._isPassByValueType(typeName, name);
+    const isCallbackCompatible = callbackInfo !== null;
 
     // Build normalized input using adapter
+    // Issue #895: Force pass-by-reference and const from typedef signature
+    const forcePassByReference = callbackInfo?.shouldBePointer ?? false;
+    const forceConst = callbackInfo?.shouldBeConst ?? false;
     const input = ParameterInputAdapter.fromAST(ctx, {
       getTypeName: (t) => this.getTypeName(t),
       generateType: (t) => this.generateType(t),
@@ -3708,6 +3725,9 @@ export default class CodeGenerator implements IOrchestrator {
       typeMap: TYPE_MAP,
       isModified,
       isPassByValue,
+      isCallbackCompatible,
+      forcePassByReference,
+      forceConst,
     });
 
     // Use shared builder with C/C++ mode
@@ -3779,6 +3799,9 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Callback-compatible functions: struct params become pass-by-value
     // to match C function pointer typedef signatures
+    // NOTE: This assumes the C typedef expects pass-by-value structs.
+    // Issue #895 describes cases where the typedef expects pointers instead.
+    // A full fix requires parsing the typedef signature to determine which.
     if (
       CodeGenState.currentFunctionName &&
       CodeGenState.callbackCompatibleFunctions.has(
@@ -4178,16 +4201,21 @@ export default class CodeGenerator implements IOrchestrator {
     const isStructParam = paramInfo?.isStruct ?? false;
     const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
     const separatorDeps = this._buildMemberSeparatorDeps();
+    // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
+    const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
 
     const separatorCtx: ISeparatorContext =
       MemberSeparatorResolver.buildContext(
-        firstId,
-        hasGlobal,
-        hasThis,
-        CodeGenState.currentScope,
-        isStructParam,
+        {
+          firstId,
+          hasGlobal,
+          hasThis,
+          currentScope: CodeGenState.currentScope,
+          isStructParam,
+          isCppAccess,
+          forcePointerSemantics,
+        },
         separatorDeps,
-        isCppAccess,
       );
 
     return {

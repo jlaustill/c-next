@@ -11,7 +11,7 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
-import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 
 /**
  * Callbacks for operations that require CodeGenerator context.
