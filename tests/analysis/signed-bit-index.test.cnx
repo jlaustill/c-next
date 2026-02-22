@@ -1,0 +1,8 @@
+// test-error
+// Tests: Signed integer used as bit index should be rejected (E0850)
+
+void test_signed_bit() {
+    u8 flags <- 0xFF;
+    i32 bit <- 3;
+    flags[bit] <- false;
+}

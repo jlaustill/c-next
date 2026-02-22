@@ -2,7 +2,7 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 8 analyzers run in sequence, each returning errors that block compilation.
+ * All 9 analyzers run in sequence, each returning errors that block compilation.
  */
 
 import { CommonTokenStream } from "antlr4ng";
@@ -14,6 +14,7 @@ import FunctionCallAnalyzer from "./FunctionCallAnalyzer";
 import NullCheckAnalyzer from "./NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
+import ArrayIndexTypeAnalyzer from "./ArrayIndexTypeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
 import SymbolTable from "../symbols/SymbolTable";
@@ -138,7 +139,13 @@ function runAnalyzers(
     return errors;
   }
 
-  // 8. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 8. Array index type validation (ADR-054: unsigned indexes only)
+  const indexTypeAnalyzer = new ArrayIndexTypeAnalyzer();
+  if (collectErrors(indexTypeAnalyzer.analyze(tree), errors, formatWithCode)) {
+    return errors;
+  }
+
+  // 9. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   collectErrors(
     commentExtractor.validate(),

@@ -1,0 +1,8 @@
+// test-error
+// Tests: Signed integer used as array index should be rejected (E0850)
+
+void test_signed_index() {
+    u8[10] buffer;
+    i32 idx <- 5;
+    buffer[idx] <- 0xFF;
+}

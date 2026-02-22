@@ -85,7 +85,7 @@ int main(void) {
     if (sensors[1].active != false) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    int32_t idx = 2;
+    uint32_t idx = 2U;
     sensors[idx].id = 300;
     sensors[idx].value = 3000;
     if (sensors[2].id != 300) {

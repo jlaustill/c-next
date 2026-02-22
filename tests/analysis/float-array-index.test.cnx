@@ -1,0 +1,8 @@
+// test-error
+// Tests: Float used as array index should be rejected (E0851)
+
+void test_float_index() {
+    u8[10] buffer;
+    f32 idx <- 2.5;
+    buffer[idx] <- 0xFF;
+}
