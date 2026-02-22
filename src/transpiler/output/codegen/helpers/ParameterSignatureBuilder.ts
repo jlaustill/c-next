@@ -127,13 +127,16 @@ class ParameterSignatureBuilder {
   }
 
   /**
-   * Get const prefix combining explicit const and auto-const.
-   * Auto-const is applied to unmodified parameters.
+   * Get const prefix combining explicit const, auto-const, and forced const.
+   * Priority: forceConst > isConst > isAutoConst
+   * Issue #895: forceConst preserves const from callback typedef signature.
    */
   private static _getConstPrefix(param: IParameterInput): string {
-    const autoConst = param.isAutoConst && !param.isConst ? "const " : "";
-    const explicitConst = param.isConst ? "const " : "";
-    return `${autoConst}${explicitConst}`;
+    // Any source of const results in "const " prefix
+    if (param.forceConst || param.isConst || param.isAutoConst) {
+      return "const ";
+    }
+    return "";
   }
 }
 

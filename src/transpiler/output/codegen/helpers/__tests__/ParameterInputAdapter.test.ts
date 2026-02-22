@@ -423,5 +423,41 @@ describe("ParameterInputAdapter", () => {
       expect(result.arrayDimensions).toEqual(["5", "33"]);
       expect(result.isPassByReference).toBe(false);
     });
+
+    it("passes through forceConst from deps (Issue #895)", () => {
+      const ctx = getParameterContext("void foo(Point area) {}");
+      const deps = {
+        ...createDefaultASTDeps({ isKnownStruct: true }),
+        forceConst: true,
+      };
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.forceConst).toBe(true);
+    });
+
+    it("passes through forcePassByReference and forceConst together", () => {
+      const ctx = getParameterContext("void foo(Point area) {}");
+      const deps = {
+        ...createDefaultASTDeps({ isKnownStruct: true }),
+        forcePassByReference: true,
+        forceConst: true,
+      };
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.forcePointerSyntax).toBe(true);
+      expect(result.forceConst).toBe(true);
+      expect(result.isPassByReference).toBe(true);
+    });
+
+    it("forceConst defaults to undefined when not provided", () => {
+      const ctx = getParameterContext("void foo(Point area) {}");
+      const deps = createDefaultASTDeps({ isKnownStruct: true });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.forceConst).toBeUndefined();
+    });
   });
 });

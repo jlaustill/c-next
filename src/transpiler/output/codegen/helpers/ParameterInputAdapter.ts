@@ -51,6 +51,12 @@ interface IFromASTDeps {
    * When the typedef signature requires a pointer, this overrides normal logic.
    */
   forcePassByReference?: boolean;
+
+  /**
+   * Issue #895: Force const qualifier from callback typedef signature.
+   * When the C typedef has `const T*`, this preserves const on the generated param.
+   */
+  forceConst?: boolean;
 }
 
 /**
@@ -155,6 +161,8 @@ class ParameterInputAdapter {
       // Issue #895: Force pointer syntax in C++ mode for callback-compatible functions
       // because C callback typedefs expect pointers, not C++ references
       forcePointerSyntax: deps.forcePassByReference,
+      // Issue #895: Preserve const from callback typedef signature
+      forceConst: deps.forceConst,
     };
   }
 

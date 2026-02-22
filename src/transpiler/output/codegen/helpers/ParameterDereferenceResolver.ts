@@ -29,9 +29,9 @@ class ParameterDereferenceResolver {
     deps: IParameterDereferenceDeps,
   ): boolean {
     // Issue #895: Primitive params that became pointers due to callback typedef
-    // need dereferencing when used as values
+    // are NOT pass-by-value - they need dereferencing when used as values
     if (paramInfo.isCallbackPointerPrimitive) {
-      return false;
+      return false; // Not pass-by-value → will be dereferenced
     }
 
     // ADR-029: Callback parameters are function pointers

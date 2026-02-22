@@ -14,6 +14,7 @@ import SymbolTable from "../symbols/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
 import CodeGenState from "../../state/CodeGenState";
+import ExpressionUnwrapper from "../../output/codegen/utils/ExpressionUnwrapper";
 
 /**
  * C-Next built-in functions
@@ -762,50 +763,13 @@ class FunctionCallAnalyzer {
 
   /**
    * Find the postfix expression within an expression tree.
-   * Grammar: Expression → Ternary → Or → And → Equality → Relational →
-   *          BitwiseOr → BitwiseXor → BitwiseAnd → Shift → Additive →
-   *          Multiplicative → Unary → Postfix
+   * Uses ExpressionUnwrapper which validates that expression is "simple"
+   * (single term at each level), returning null for complex expressions.
    */
   private findPostfixExpression(
     expr: Parser.ExpressionContext,
   ): Parser.PostfixExpressionContext | null {
-    const ternary = expr.ternaryExpression();
-    if (!ternary) return null;
-
-    const orExpr = ternary.orExpression(0);
-    if (!orExpr) return null;
-
-    const andExpr = orExpr.andExpression(0);
-    if (!andExpr) return null;
-
-    const equality = andExpr.equalityExpression(0);
-    if (!equality) return null;
-
-    const relational = equality.relationalExpression(0);
-    if (!relational) return null;
-
-    const bitwiseOr = relational.bitwiseOrExpression(0);
-    if (!bitwiseOr) return null;
-
-    const bitwiseXor = bitwiseOr.bitwiseXorExpression(0);
-    if (!bitwiseXor) return null;
-
-    const bitwiseAnd = bitwiseXor.bitwiseAndExpression(0);
-    if (!bitwiseAnd) return null;
-
-    const shift = bitwiseAnd.shiftExpression(0);
-    if (!shift) return null;
-
-    const additive = shift.additiveExpression(0);
-    if (!additive) return null;
-
-    const mult = additive.multiplicativeExpression(0);
-    if (!mult) return null;
-
-    const unary = mult.unaryExpression(0);
-    if (!unary) return null;
-
-    return unary.postfixExpression() ?? null;
+    return ExpressionUnwrapper.getPostfixExpression(expr);
   }
 
   /**
@@ -818,21 +782,19 @@ class FunctionCallAnalyzer {
     const primary = postfix.primaryExpression();
     const ops = postfix.postfixOp();
 
-    // Build function name from primary + member access ops
-    let funcName = "";
-    let argListOp: Parser.PostfixOpContext | null = null;
-
     // Start with primary expression (identifier or 'global')
     const ident = primary.IDENTIFIER();
     const globalKw = primary.GLOBAL();
 
-    if (ident) {
-      funcName = ident.getText();
-    } else if (!globalKw) {
-      // Neither identifier nor global keyword - not a function call
+    // Early return: neither identifier nor global keyword means not a function call
+    if (!ident && !globalKw) {
       return null;
     }
-    // For 'global' keyword, funcName stays "" and gets built from member access
+
+    // Build function name from primary + member access ops
+    // For 'global' keyword, funcName starts empty and gets built from member access
+    let funcName = ident ? ident.getText() : "";
+    let argListOp: Parser.PostfixOpContext | null = null;
 
     // Walk postfix ops to find function name and call
     for (const op of ops) {

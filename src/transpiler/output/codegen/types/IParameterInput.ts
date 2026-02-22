@@ -60,6 +60,12 @@ interface IParameterInput {
    * expect pointers, not C++ references.
    */
   forcePointerSyntax?: boolean;
+
+  /**
+   * Issue #895: Force const qualifier from callback typedef signature.
+   * When the C typedef has `const T*`, this preserves const on the generated param.
+   */
+  forceConst?: boolean;
 }
 
 export default IParameterInput;

@@ -15,7 +15,7 @@
 // This function will be assigned to flush_cb_t typedef
 // The typedef expects: void (*)(widget_t *, const rect_t *, uint8_t *)
 // So all params should be pointers, not values
-void my_flush(widget_t* w, rect_t* area, uint8_t* buf) {
+void my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
     widget_flush_was_called = true;
     widget_flush_area_x = area->x;
     widget_flush_area_y = area->y;
