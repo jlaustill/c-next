@@ -287,9 +287,13 @@ function runMisra() {
 
   // MISRA is C-only; skip files that need C++ compilation
   // Also exclude files testing valid MISRA exceptions
+  // Also exclude error test files (*-error.test.c) which intentionally contain
+  // invalid code to test transpiler error detection (e.g., shift beyond width)
   const misraFiles = cFiles.filter(
     (f) =>
-      !requiresCpp(f) && !MISRA_EXCLUDED_FILES.some((exc) => f.endsWith(exc)),
+      !requiresCpp(f) &&
+      !f.includes("-error.test.c") &&
+      !MISRA_EXCLUDED_FILES.some((exc) => f.endsWith(exc)),
   );
   console.log(`Running MISRA on ${misraFiles.length} C files...`);
 
