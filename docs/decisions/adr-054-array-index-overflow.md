@@ -53,8 +53,8 @@ Extend `clamp`/`wrap` keywords to array declarations, with per-access override c
 
 ```cnx
 // Declaration sets the default index behavior
-clamp u8[100] buffer;   // Out-of-bounds indices clamp to valid range
-wrap u8[256] ring;      // Out-of-bounds indices wrap (circular buffer)
+u8[clamp 100] buffer;   // Out-of-bounds indices clamp to valid range
+u8[wrap 256] ring;      // Out-of-bounds indices wrap (circular buffer)
 u8[50] normal;          // Default is clamp (safe by default)
 
 // Usage with declaration default
@@ -78,7 +78,7 @@ value <- ring[clamp idx];    // Override: clamp instead of wrap
 The third option is a **silent no-op** — out-of-bounds access simply does nothing:
 
 ```cnx
-discard u8[100] buffer;
+u8[discard 100] buffer;
 
 u8 result <- 42;
 result <- buffer[105];   // result stays 42 (read ignored)
@@ -131,8 +131,8 @@ palette[EColor.RED] <- 0xFF;   // OK: enum member
 
 | Integer Overflow | Array Index         | Philosophy                |
 | ---------------- | ------------------- | ------------------------- |
-| `clamp u16 temp` | `clamp u8[100] buf` | Declaration sets default  |
-| `temp +wrap 1`   | `buf[wrap idx]`     | Per-operation override    |
+| `clamp u16 temp` | `u8[clamp 100] buf` | Declaration sets default  |
+| `N/A`            | `buf[wrap idx]`     | Per-operation override    |
 | Default: clamp   | Default: clamp      | Safe by default           |
 | `--debug`: panic | `--debug`: panic    | Catch bugs in development |
 
@@ -157,7 +157,7 @@ With C-Next array index overflow:
 
 ```cnx
 // C-Next: Intent declared once, enforced everywhere
-wrap u8[256] rxBuffer;
+u8[wrap 256] rxBuffer;
 wrap u8 head <- 0;
 
 void uart_isr() {
@@ -186,7 +186,7 @@ String<64> name <- "Hello";  // capacity=64, length=5
 
 **Question:** Should bounds checking use the **current length** or the **fixed capacity**?
 
-#### Recommendation: Check Against Length
+#### Recommendation: Check Against Length for reads
 
 For safety and predictability, index bounds should check against the **current string length**, not capacity:
 
@@ -212,15 +212,14 @@ result <- name[10];  // result stays 'X' (read discarded)
 
 #### Write Behavior
 
-For writes, the behavior depends on whether we're _extending_ the string or _modifying_ existing content:
+For writes, the behavior should be based on capacity and pad with spaces.
 
 ```cnx
 clamp String<64> name <- "Hello";  // length=5
-name[10] <- 'X';  // Clamps to name[4] = 'X' → "HellX"
-                  // OR: Error because modifying, not appending?
+name[10] <- 'X';  // name → "Hello    X"
+name[100] <- 'Y'; // name → "Hello    X                                                     Y"
+name[100] <- "XYZ"; // compiler error if detected, panic in --debug mode, no-op otherwise
 ```
-
-**Open question:** Should writes past length be allowed to extend the string (up to capacity), or should they follow the same bounds as reads?
 
 ---
 
@@ -544,7 +543,7 @@ procedure Access(Arr : My_Array; Idx : Integer)
 | **C#**                | Exception                        | `unsafe`              | ❌ Manual         | ❌             |
 | **JavaScript**        | `undefined` / extend             | —                     | ❌ Manual         | ✅ Implicit    |
 | **Vulkan/GPU**        | Clamp                            | `robustBufferAccess2` | ❌                | ✅ Discard     |
-| **C-Next (proposed)** | Clamp                            | Per-access override   | ✅ `wrap` keyword | ✅ TBD keyword |
+| **C-Next (proposed)** | Clamp                            | Per-access override   | ✅ `wrap` keyword | ✅ discard     |
 
 ### Key Findings
 
@@ -553,113 +552,6 @@ procedure Access(Arr : My_Array; Idx : Integer)
 3. **Vulkan calls the no-op write behavior "discard"** — strong naming precedent
 4. **JavaScript returns `undefined`** for out-of-bounds reads — implicit "skip" behavior
 5. **Most languages choose panic/exception** as default, C-Next's `clamp` default is novel
-
----
-
-## Open Questions
-
-### Q1: Name for "No-Op" Behavior
-
-What should the third behavior (silent ignore) be called?
-
-**Research finding:** Vulkan uses **"discard"** for out-of-bounds writes that are silently ignored (`robustBufferAccess2`).
-
-| Candidate     | Pros                                         | Cons                            | Precedent     |
-| ------------- | -------------------------------------------- | ------------------------------- | ------------- |
-| **`discard`** | Explicit about data loss, industry precedent | 7 characters                    | ✅ Vulkan/GPU |
-| `skip`        | Short (4 chars), clear                       | Could confuse with loop control | —             |
-| `ignore`      | Clear intent                                 | Might imply logging             | —             |
-| `guard`       | Implies protection                           | Doesn't describe write behavior | —             |
-| `silent`      | Describes behavior                           | Adjective, not verb             | —             |
-| `noop`        | Technical, accurate                          | Jargon-y                        | —             |
-
-**Recommendation:** `discard` — it has industry precedent (Vulkan) and clearly communicates that out-of-bounds writes are thrown away.
-
-### Q2: Syntax for Per-Access Override
-
-Should the override keyword go before or after the index?
-
-```cnx
-// Option A: Keyword before index
-buffer[wrap idx]
-buffer[clamp idx]
-
-// Option B: Keyword as operator on index
-buffer[idx wrap]
-buffer[idx clamp]
-
-// Option C: Method-like syntax
-buffer.wrap(idx)
-buffer.clamp(idx)
-```
-
-### Q3: Negative Index Handling
-
-How should negative indices behave?
-
-```cnx
-wrap u8[100] buffer;
-value <- buffer[-1];  // Option A: Wraps to buffer[99] (Python-like)
-                      // Option B: Wraps to buffer[?] (modulo behavior unclear for negative)
-                      // Option C: Always clamp negative to 0 regardless of wrap
-```
-
-### Q4: Multi-Dimensional Arrays
-
-How does this extend to multi-dimensional arrays?
-
-```cnx
-wrap u8[10][10] matrix;
-value <- matrix[15][20];  // Both indices wrap? Or just one?
-
-// Can dimensions have different behaviors?
-// wrap/clamp u8[10][10] matrix; ???
-```
-
-### Q5: Interaction with Sizeof/Length
-
-If an array clamps, does `.length` still return the declared size?
-
-```cnx
-clamp u8[100] buffer;
-u32 len <- buffer.length;  // 100 (declared size)
-buffer[150] <- 0;          // Writes to buffer[99]
-// Is this confusing? Length says 100, but 150 "works"
-```
-
-### Q6: Performance Implications
-
-- Is clamp checking more expensive than wrap (modulo)?
-- Should there be a way to disable checks in release builds?
-- How does this interact with `--debug` mode?
-
-### Q7: Pointer/Reference Semantics
-
-If C-Next adds limited pointer support for C interop, how do bounds apply?
-
-### Q8: Bounded String Index Bounds
-
-For bounded strings like `String<64>`, should index bounds check against:
-
-| Option            | `String<64> s <- "Hello"` then `s[10]` | Pros                   | Cons                      |
-| ----------------- | -------------------------------------- | ---------------------- | ------------------------- |
-| **Length** (5)    | Out-of-bounds                          | Safe, no garbage reads | Length changes at runtime |
-| **Capacity** (64) | In-bounds (reads garbage)              | Simpler, static        | Unsafe default            |
-
-**Recommendation:** Check against length. Capacity is a maximum, not a guarantee of valid data.
-
-### Q9: String Write Extension
-
-Should writing past string length (but within capacity) extend the string?
-
-```cnx
-String<64> name <- "Hi";  // length=2, capacity=64
-name[5] <- 'X';           // Option A: Extend to "Hi   X" (length=6)?
-                          // Option B: Clamp to name[1] = 'X' → "HX"?
-                          // Option C: Error (use .append() instead)?
-```
-
-This affects whether strings are "array-like" (direct index writes) or "string-like" (append/insert methods only).
 
 ---
 
@@ -676,37 +568,11 @@ This affects whether strings are "array-like" (direct index writes) or "string-l
 
 ## Potential Implementation
 
-### Grammar Changes
-
-```antlr
-// Array declaration with optional overflow behavior
-arrayDeclaration
-    : indexBehavior? type arrayDimension+ IDENTIFIER ('<-' arrayInitializer)? ';'
-    ;
-
-indexBehavior
-    : 'clamp'    // Default: out-of-bounds clamps to valid range
-    | 'wrap'     // Circular: index wraps modulo array size
-    | 'discard'  // Silent: out-of-bounds access is no-op
-    ;
-
-// Array access with optional override
-arrayAccess
-    : IDENTIFIER '[' indexOverride? expression ']'
-    ;
-
-indexOverride
-    : 'clamp'
-    | 'wrap'
-    | 'discard'
-    ;
-```
-
 ### Generated C
 
 ```cnx
 // C-Next
-clamp u8[100] buffer;
+u8[clamp 100] buffer;
 value <- buffer[idx];
 ```
 
@@ -721,7 +587,7 @@ value = buffer[_idx_clamped];
 
 ```cnx
 // C-Next
-wrap u8[256] ring;
+u8[wrap 256] ring;
 ring[head] <- byte;
 ```
 
@@ -737,7 +603,7 @@ ring[head % 100] = byte;   // Modulo for other sizes
 
 ```cnx
 // C-Next
-discard u8[100] sensorData;
+u8[discard 100] sensorData;
 result <- sensorData[idx];
 sensorData[idx] <- newValue;
 ```
