@@ -124,10 +124,10 @@ jobs:
             src/transpiler/logic/parser/cpp/grammar/
 
   # ============================================================================
-  # STAGE 2 (parallel): Test suites (all need build artifact)
+  # STAGE 2a: Transpile tests (generates C/C++ files for validation)
   # ============================================================================
-  integration-tests:
-    name: Integration Tests
+  integration-transpile:
+    name: Integration Transpile
     runs-on: ubuntu-latest
     needs: [build]
 
@@ -153,8 +153,8 @@ jobs:
         with:
           name: build-output
 
-      - name: Run integration tests
-        run: npm test
+      - name: Transpile tests (snapshot comparison only)
+        run: npm run integration:transpile
 
       - name: Upload generated test files
         uses: actions/upload-artifact@v4
@@ -165,6 +165,45 @@ jobs:
             tests/**/*.test.c
             tests/**/*.test.cpp
             tests/**/*.test.h
+
+  # ============================================================================
+  # STAGE 2b (parallel): Execute tests + other test suites
+  # ============================================================================
+  integration-execute:
+    name: Integration Execute
+    runs-on: ubuntu-latest
+    needs: [integration-transpile]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Download generated test files
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-test-files
+          path: tests
+
+      - name: Execute tests (compile + run)
+        run: npm run integration:execute
 
   unit-tests:
     name: Unit Tests
@@ -272,7 +311,7 @@ jobs:
   verify-clean:
     name: Verify Clean
     runs-on: ubuntu-latest
-    needs: [integration-tests]
+    needs: [integration-transpile]
 
     steps:
       - name: Checkout code
@@ -304,11 +343,17 @@ jobs:
   # STAGE 3 (parallel): Analysis that needs generated files
   # ============================================================================
   c-validation:
-    name: C Static Analysis
+    name: C Static Analysis (${{ matrix.tool }})
     runs-on: ubuntu-latest
-    needs: [integration-tests]
+    needs: [integration-transpile]
     # Advisory: pre-existing MISRA violations exist; don't block PR merges
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # Note: 'misra' is a cppcheck addon, not a standalone tool
+        # batch-validate.mjs handles this dependency automatically
+        tool: [cppcheck, clang-tidy, misra, flawfinder]
 
     steps:
       - name: Checkout code
@@ -338,8 +383,10 @@ jobs:
           name: generated-test-files
           path: tests
 
-      - name: Run batch validation
-        run: npm run validate:c
+      - name: Run validation
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: npm run validate:c -- --tool "$TOOL"
 
   sonar:
     name: SonarCloud
@@ -373,7 +420,8 @@ jobs:
       [
         lint,
         build,
-        integration-tests,
+        integration-transpile,
+        integration-execute,
         unit-tests,
         cli-tests,
         grammar-coverage,
@@ -390,7 +438,8 @@ jobs:
           FAILED=0
           [ "${{ needs.lint.result }}" != "success" ] && echo "❌ Static Analysis" && FAILED=1 || echo "✅ Static Analysis"
           [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
-          [ "${{ needs.integration-tests.result }}" != "success" ] && echo "❌ Integration Tests" && FAILED=1 || echo "✅ Integration Tests"
+          [ "${{ needs.integration-transpile.result }}" != "success" ] && echo "❌ Integration Transpile" && FAILED=1 || echo "✅ Integration Transpile"
+          [ "${{ needs.integration-execute.result }}" != "success" ] && echo "❌ Integration Execute" && FAILED=1 || echo "✅ Integration Execute"
           [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
           [ "${{ needs.cli-tests.result }}" != "success" ] && echo "❌ CLI Tests" && FAILED=1 || echo "✅ CLI Tests"
           [ "${{ needs.grammar-coverage.result }}" != "success" ] && echo "❌ Grammar Coverage" && FAILED=1 || echo "✅ Grammar Coverage"
