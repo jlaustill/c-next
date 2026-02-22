@@ -161,6 +161,14 @@ class IncludeResolver {
 
     if (file.type === EFileType.CNext) {
       result.cnextIncludes.push(file);
+      // Issue #854: Track header directive for cnext includes so their types
+      // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
+      // forward declarations (MISRA Rule 5.6)
+      const headerPath = includeInfo.path.replace(/\.cnx$|\.cnext$/, ".h");
+      const directive = includeInfo.isLocal
+        ? `#include "${headerPath}"`
+        : `#include <${headerPath}>`;
+      result.headerIncludeDirectives.set(absolutePath, directive);
     }
   }
 

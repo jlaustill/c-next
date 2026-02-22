@@ -1,0 +1,27 @@
+// Issue #854: MISRA Rule 5.6 - typedef name shall be unique
+// test-execution
+// When including a cnx file that defines a struct, the generated header
+// should NOT emit a forward declaration typedef for that struct,
+// because it's already available via the #include.
+#include <typedef-types.cnx>
+
+scope Reader {
+    Sensor current;
+
+    public void update(Sensor s) {
+        this.current <- s;
+    }
+
+    public Sensor read() {
+        return this.current;
+    }
+}
+
+u32 main() {
+    Sensor s <- {id: 42, value: 100};
+    Reader.update(s);
+    Sensor result <- Reader.read();
+    if (result.id != 42) return 1;
+    if (result.value != 100) return 2;
+    return 0;
+}

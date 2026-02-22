@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct AppData AppData;
-
 /* Function prototypes */
 void DataHandler_initialize(const AppData* data);
 AppData DataHandler_getData(void);

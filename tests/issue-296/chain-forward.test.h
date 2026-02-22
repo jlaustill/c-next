@@ -9,14 +9,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <chain-types-mid.h>
+#include <chain-types-base.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct Waypoint Waypoint;
-typedef struct Coordinate Coordinate;
 
 /* Function prototypes */
 void Navigator_setDestination(const Waypoint& wp);

@@ -15,9 +15,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct Config Config;
-
 /* Function prototypes */
 void Level2_passToLevel3(Config& c);
 

@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct Config Config;
-
 /* Function prototypes */
 void CommandHandler_reset(Config& config);
 void CommandHandler_applyPreset(Config& config, uint8_t input, uint8_t preset);
