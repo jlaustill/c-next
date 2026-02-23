@@ -1,0 +1,19 @@
+// test-transpile-only
+// Issue #895 Bug B: Test direct C function calls (without global. prefix)
+// When calling C functions directly, pointer inference should still work.
+#include "widget.h"
+
+void test_direct_call() {
+    // Direct call without global. prefix - should still infer widget_t*
+    widget_t w <- widget_create(480, 320);
+    i32 width <- widget_get_width(w);
+    widget_destroy(w);
+}
+
+scope DirectDisplay {
+    public void init() {
+        // Direct call in scope context
+        widget_t screen <- widget_create(800, 600);
+        widget_destroy(screen);
+    }
+}

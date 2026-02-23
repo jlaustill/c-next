@@ -17,6 +17,7 @@ import SymbolTable from "../../../logic/symbols/SymbolTable";
 import CNextResolver from "../../../logic/symbols/cnext/index";
 import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import CodeGenState from "../../../state/CodeGenState";
+import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
@@ -1207,6 +1208,134 @@ describe("CodeGenerator Coverage Tests", () => {
       `;
       const { code } = setupGenerator(source);
       expect(code).toContain("cnx_clamp_add_u8");
+    });
+  });
+
+  // ==========================================================================
+  // Issue #895 Bug B: Pointer type inference from C function calls
+  // ==========================================================================
+  describe("_inferPointerTypeFromFunctionCall / _extractCFunctionName", () => {
+    /**
+     * Helper to setup generator with C symbols added to SymbolTable.
+     */
+    function setupGeneratorWithCSymbols(
+      source: string,
+      cSymbols: Array<{
+        name: string;
+        type: string;
+        sourceFile: string;
+      }>,
+    ): string {
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+
+      const symbolTable = new SymbolTable();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      symbolTable.addTSymbols(tSymbols);
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      // Add C function symbols
+      for (const cSym of cSymbols) {
+        symbolTable.addCSymbol({
+          kind: "function",
+          name: cSym.name,
+          type: cSym.type,
+          sourceFile: cSym.sourceFile,
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.C,
+          isExported: true,
+          isDeclaration: true,
+        });
+      }
+
+      const generator = new CodeGenerator();
+      CodeGenState.symbolTable = symbolTable;
+
+      return generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        cppMode: false,
+      });
+    }
+
+    it("should infer pointer type from global.funcName() pattern", () => {
+      const source = `
+        void test() {
+          widget_t w <- global.widget_create();
+        }
+      `;
+
+      const code = setupGeneratorWithCSymbols(source, [
+        { name: "widget_create", type: "widget_t*", sourceFile: "widget.h" },
+      ]);
+
+      // Should generate widget_t* w (pointer), not widget_t w
+      expect(code).toContain("widget_t* w = widget_create()");
+    });
+
+    it("should infer pointer type from direct funcName() call", () => {
+      const source = `
+        void test() {
+          widget_t w <- widget_create();
+        }
+      `;
+
+      const code = setupGeneratorWithCSymbols(source, [
+        { name: "widget_create", type: "widget_t*", sourceFile: "widget.h" },
+      ]);
+
+      // Should generate widget_t* w (pointer), not widget_t w
+      expect(code).toContain("widget_t* w = widget_create()");
+    });
+
+    it("should not infer pointer when C function returns non-pointer", () => {
+      const source = `
+        void test() {
+          i32 val <- global.get_value();
+        }
+      `;
+
+      const code = setupGeneratorWithCSymbols(source, [
+        { name: "get_value", type: "int", sourceFile: "utils.h" },
+      ]);
+
+      // Should generate int32_t val (not a pointer)
+      expect(code).toContain("int32_t val = get_value()");
+      expect(code).not.toContain("int32_t* val");
+    });
+
+    it("should not infer pointer when function is not a C function", () => {
+      // No C symbols registered - create_widget is a C-Next function
+      const source = `
+        struct widget_t { i32 x; }
+        widget_t create_widget() {
+          widget_t dummy <- {x: 0};
+          return dummy;
+        }
+        void test() {
+          widget_t w <- create_widget();
+        }
+      `;
+
+      const { code } = setupGenerator(source);
+
+      // Should NOT generate pointer since create_widget is a C-Next function
+      expect(code).not.toContain("widget_t* w");
+    });
+
+    it("should not infer pointer when return type base doesn't match declared type", () => {
+      const source = `
+        void test() {
+          widget_t w <- global.create_other();
+        }
+      `;
+
+      const code = setupGeneratorWithCSymbols(source, [
+        { name: "create_other", type: "other_t*", sourceFile: "other.h" },
+      ]);
+
+      // Should NOT infer pointer since types don't match
+      // (other_t* doesn't match widget_t)
+      expect(code).not.toContain("widget_t* w");
     });
   });
 });

@@ -3834,6 +3834,7 @@ export default class CodeGenerator implements IOrchestrator {
         this._inferVariableType(varCtx, name),
       trackLocalVariable: (varCtx, name) =>
         this._trackLocalVariable(varCtx, name),
+      markVariableAsPointer: (name) => this._markVariableAsPointer(name),
       getStringConcatOperands: (concatCtx) =>
         this._getStringConcatOperands(concatCtx),
       getSubstringOperands: (substrCtx) =>
@@ -3845,25 +3846,159 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Issue #696: Infer variable type, handling nullable C pointer types.
+   * Issue #895 Bug B: Infer pointer type from C function return type.
    */
   private _inferVariableType(
     ctx: Parser.VariableDeclarationContext,
     name: string,
   ): string {
-    let type = this.generateType(ctx.type());
+    const type = this.generateType(ctx.type());
 
-    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
-    if (!name.startsWith("c_") || !ctx.expression()) {
+    if (!ctx.expression()) {
       return type;
     }
 
-    const exprText = ctx.expression()!.getText();
-    for (const funcName of NullCheckAnalyzer.getStructPointerFunctions()) {
-      if (exprText.includes(`${funcName}(`)) {
-        return `${type}*`;
+    // Issue #895 Bug B: Check if initializer is a C function call returning pointer
+    const pointerType = this._inferPointerTypeFromFunctionCall(
+      ctx.expression()!,
+      type,
+    );
+    if (pointerType) {
+      return pointerType;
+    }
+
+    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
+    if (name.startsWith("c_")) {
+      const exprText = ctx.expression()!.getText();
+      for (const funcName of NullCheckAnalyzer.getStructPointerFunctions()) {
+        if (exprText.includes(`${funcName}(`)) {
+          return `${type}*`;
+        }
       }
     }
+
     return type;
+  }
+
+  /**
+   * Issue #895 Bug B: Infer pointer type from C function return type.
+   * If initializer is a call to a C function that returns T*, and declared
+   * type is T, return T* instead of T.
+   */
+  private _inferPointerTypeFromFunctionCall(
+    expr: Parser.ExpressionContext,
+    declaredType: string,
+  ): string | null {
+    // Extract function name from C function call patterns
+    const funcName = this._extractCFunctionName(expr);
+    if (!funcName) {
+      return null;
+    }
+
+    // Look up C function in symbol table
+    const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+    if (cFunc?.kind !== "function") {
+      return null;
+    }
+
+    // Check if return type is a pointer to the declared type
+    const returnType = cFunc.type;
+    if (!returnType.endsWith("*")) {
+      return null;
+    }
+
+    // Check if the base return type matches the declared type
+    // e.g., "widget_t *" or "widget_t*" matches declared "widget_t"
+    const returnBaseType = returnType.replace(/\s*\*\s*$/, "").trim();
+    if (returnBaseType === declaredType) {
+      return `${declaredType}*`;
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract C function name from expression patterns.
+   * Handles both:
+   * - global.funcName(...) - explicit global access
+   * - funcName(...) - direct call (if funcName is a known C function)
+   * Returns null if expression doesn't match these patterns.
+   */
+  private _extractCFunctionName(expr: Parser.ExpressionContext): string | null {
+    const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
+    if (!postfix) {
+      return null;
+    }
+
+    const primary = postfix.primaryExpression();
+    const ops = postfix.postfixOp();
+
+    // Pattern 1: global.funcName(...)
+    if (primary.GLOBAL()) {
+      return this._extractGlobalPatternFuncName(ops);
+    }
+
+    // Pattern 2: funcName(...) - direct call
+    const identifier = primary.IDENTIFIER();
+    if (identifier) {
+      return this._extractDirectCallFuncName(identifier.getText(), ops);
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract function name from global.funcName(...) pattern.
+   */
+  private _extractGlobalPatternFuncName(
+    ops: Parser.PostfixOpContext[],
+  ): string | null {
+    if (ops.length < 2) {
+      return null;
+    }
+
+    const memberOp = ops[0];
+    if (!memberOp.IDENTIFIER()) {
+      return null;
+    }
+
+    const callOp = ops[1];
+    if (!this._isCallOp(callOp)) {
+      return null;
+    }
+
+    return memberOp.IDENTIFIER()!.getText();
+  }
+
+  /**
+   * Extract function name from direct funcName(...) call if it's a C function.
+   */
+  private _extractDirectCallFuncName(
+    funcName: string,
+    ops: Parser.PostfixOpContext[],
+  ): string | null {
+    if (ops.length < 1) {
+      return null;
+    }
+
+    if (!this._isCallOp(ops[0])) {
+      return null;
+    }
+
+    // Verify this is actually a C function (not a C-Next scope function)
+    const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+    if (cFunc?.kind === "function") {
+      return funcName;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if a postfix op is a function call.
+   */
+  private _isCallOp(op: Parser.PostfixOpContext): boolean {
+    return Boolean(op.argumentList() || op.getText().startsWith("("));
   }
 
   /**
@@ -3890,6 +4025,21 @@ export default class CodeGenerator implements IOrchestrator {
       if (constValue !== undefined) {
         CodeGenState.constValues.set(name, constValue);
       }
+    }
+  }
+
+  /**
+   * Issue #895 Bug B: Mark variable as a pointer in the type registry.
+   * Called when type inference detects that a variable should be a pointer
+   * (e.g., initialized from a C function returning T*).
+   */
+  private _markVariableAsPointer(name: string): void {
+    const typeInfo = CodeGenState.getVariableTypeInfo(name);
+    if (typeInfo) {
+      CodeGenState.setVariableTypeInfo(name, {
+        ...typeInfo,
+        isPointer: true,
+      });
     }
   }
 

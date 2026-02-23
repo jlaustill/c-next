@@ -126,21 +126,28 @@ const _generateCFunctionArg = (
 
   // Issue #322: If getExpressionType returns null (e.g., for this.member),
   // fall back to looking up the generated code in the type registry
+  let isPointerVariable = false;
+  const typeInfo = CodeGenState.getVariableTypeInfo(argCode);
   if (!argType && !argCode.startsWith("&")) {
-    const typeInfo = CodeGenState.getVariableTypeInfo(argCode);
     if (typeInfo) {
       argType = typeInfo.baseType;
     }
+  }
+  // Issue #895 Bug B: Check if variable was inferred as a pointer
+  if (typeInfo?.isPointer) {
+    isPointerVariable = true;
   }
 
   // Add & if argument needs address-of to match parameter type.
   // Issue #322: struct types passed to pointer params.
   // Issue #832: typedef'd pointer types (e.g., handle_t passed to handle_t*).
+  // Issue #895 Bug B: Skip address-of for variables that are already pointers
   const needsAddressOf =
     argType &&
     !argType.endsWith("*") &&
     !argCode.startsWith("&") &&
     !targetParam.isArray &&
+    !isPointerVariable &&
     (orchestrator.isStructType(argType) ||
       _parameterExpectsAddressOf(targetParam.baseType, argType, orchestrator));
 

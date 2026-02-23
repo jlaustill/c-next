@@ -2,9 +2,10 @@
  * FunctionCollector - Collects function symbols from C parse trees.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import type { FunctionDefinitionContext } from "../../../parser/c/grammar/CParser";
+import type {
+  DeclaratorContext,
+  FunctionDefinitionContext,
+} from "../../../parser/c/grammar/CParser";
 import type ICFunctionSymbol from "../../../../types/symbols/c/ICFunctionSymbol";
 import type ICParameterInfo from "../../../../types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
@@ -80,7 +81,7 @@ class FunctionCollector {
   static collectFromDeclaration(
     name: string,
     baseType: string,
-    declarator: any,
+    declarator: DeclaratorContext,
     sourceFile: string,
     line: number,
     isExtern: boolean,
@@ -89,6 +90,11 @@ class FunctionCollector {
       DeclaratorUtils.extractFunctionParameters(declarator),
     );
 
+    // Issue #895 Bug B: Check if declarator has pointer - means function returns pointer
+    // In C grammar: widget_t *func() has declarator with pointer() before directDeclarator
+    const hasPointer = declarator.pointer() !== null;
+    const returnType = hasPointer ? `${baseType}*` : baseType;
+
     return {
       kind: "function",
       name,
@@ -96,7 +102,7 @@ class FunctionCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
       isExported: !isExtern,
-      type: baseType,
+      type: returnType,
       parameters: parameters.length > 0 ? parameters : undefined,
       isDeclaration: true,
     };
