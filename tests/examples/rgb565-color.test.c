@@ -25,9 +25,9 @@
 // Meaning:        "width bits starting at bit position start"
 int main(void) {
     uint16_t pixel = 0x7BEFU;
-    uint8_t red = ((pixel >> 11U) & ((1U << 5U) - 1));
-    uint8_t green = ((pixel >> 5U) & ((1U << 6U) - 1));
-    uint8_t blue = ((pixel >> 0U) & ((1U << 5U) - 1));
+    uint8_t red = (uint8_t)((pixel >> 11U) & ((1U << 5U) - 1));
+    uint8_t green = (uint8_t)((pixel >> 5U) & ((1U << 6U) - 1));
+    uint8_t blue = (uint8_t)((pixel >> 0U) & ((1U << 5U) - 1));
     if (red != 15) return 1;
     if (green != 31) return 2;
     if (blue != 15) return 3;

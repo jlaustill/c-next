@@ -533,6 +533,9 @@ class VariableDeclHelper {
       getExpressionType: callbacks.getExpressionType,
     });
 
+    // Note: MISRA 10.3 narrowing casts are added at expression generation sites
+    // (e.g., PostfixExpressionGenerator.handleBitRangeSubscript) using
+    // CodeGenState.expectedType, not here at the assignment site.
     const result = `${decl} = ${callbacks.generateExpression(ctx.expression()!)}`;
     CodeGenState.expectedType = savedExpectedType;
 

@@ -29,10 +29,10 @@ int main(void) {
     settings = (settings & ~(0xFFU << 8)) | ((128 & 0xFFU) << 8);
     registers = (registers & ~(0xFFFFU << 0)) | ((0xFFFF & 0xFFFFU) << 0);
     registers = (registers & ~(0xFFFFU << 16)) | ((0x1234 & 0xFFFFU) << 16);
-    uint8_t lowBits = ((flags >> 0U) & ((1U << 3U) - 1));
-    uint8_t highBits = ((flags >> 3U) & ((1U << 5U) - 1));
-    uint16_t lowWord = ((registers >> 0U) & 0xFFFFU);
-    uint16_t highWord = ((registers >> 16U) & 0xFFFFU);
+    uint8_t lowBits = (uint8_t)((flags >> 0U) & ((1U << 3U) - 1));
+    uint8_t highBits = (uint8_t)((flags >> 3U) & ((1U << 5U) - 1));
+    uint16_t lowWord = (uint16_t)((registers >> 0U) & 0xFFFFU);
+    uint16_t highWord = (uint16_t)((registers >> 16U) & 0xFFFFU);
     devices[0].control = 0;
     devices[0].control = (devices[0].control & ~(((1U << 4) - 1) << 0)) | ((15 & ((1U << 4) - 1)) << 0);
     devices[0].control = (devices[0].control & ~(((1U << 4) - 1) << 4)) | ((8 & ((1U << 4) - 1)) << 4);
@@ -53,12 +53,12 @@ int main(void) {
     uint32_t byte2 = ((devices[2U].config >> 16U) & 0xFFU);
     uint32_t byte3 = ((devices[2U].config >> 24U) & 0xFFU);
     flags = (flags & ~(((1U << 1) - 1) << 0)) | ((1 & ((1U << 1) - 1)) << 0);
-    uint8_t singleBit = ((flags >> 0U) & ((1U << 1U) - 1));
+    uint8_t singleBit = (uint8_t)((flags >> 0U) & ((1U << 1U) - 1));
     uint8_t test = 0U;
     test = (test & ~(((1U << 2) - 1) << 0)) | ((3 & ((1U << 2) - 1)) << 0);
     test = (test & ~(((1U << 3) - 1) << 2)) | ((7 & ((1U << 3) - 1)) << 2);
     test = (test & ~(((1U << 3) - 1) << 5)) | ((6 & ((1U << 3) - 1)) << 5);
-    uint8_t r1 = ((test >> 0U) & ((1U << 2U) - 1));
-    uint8_t r2 = ((test >> 2U) & ((1U << 3U) - 1));
-    uint8_t r3 = ((test >> 5U) & ((1U << 3U) - 1));
+    uint8_t r1 = (uint8_t)((test >> 0U) & ((1U << 2U) - 1));
+    uint8_t r2 = (uint8_t)((test >> 2U) & ((1U << 3U) - 1));
+    uint8_t r3 = (uint8_t)((test >> 5U) & ((1U << 3U) - 1));
 }

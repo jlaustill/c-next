@@ -43,10 +43,10 @@ int main(void) {
     uint8_t lastByte = items[15U].byte;
     uint8_t test8 = 0U;
     test8 = (test8 & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0);
-    uint8_t all8 = ((test8 >> 0U) & 0xFFU);
+    uint8_t all8 = static_cast<uint8_t>(((test8 >> 0U) & 0xFFU));
     uint16_t test16 = 0U;
     test16 = (test16 & ~(0xFFFFU << 0)) | ((0xFFFF & 0xFFFFU) << 0);
-    uint16_t all16 = ((test16 >> 0U) & 0xFFFFU);
+    uint16_t all16 = static_cast<uint16_t>(((test16 >> 0U) & 0xFFFFU));
     uint32_t test32 = 0U;
     test32 = (test32 & ~(0xFFFFFFFFU << 0)) | ((0xFFFFFFFF & 0xFFFFFFFFU) << 0);
     uint32_t all32 = ((test32 >> 0U) & 0xFFFFFFFFU);

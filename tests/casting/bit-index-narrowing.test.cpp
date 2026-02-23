@@ -9,7 +9,7 @@
 // Using [start, width] syntax to explicitly extract bits
 int main(void) {
     uint32_t large = 0xDEADBEEFU;
-    uint8_t low_byte = ((large >> 0U) & 0xFFU);
-    uint8_t high_byte = ((large >> 24U) & 0xFFU);
-    uint16_t low_word = ((large >> 0U) & 0xFFFFU);
+    uint8_t low_byte = static_cast<uint8_t>(((large >> 0U) & 0xFFU));
+    uint8_t high_byte = static_cast<uint8_t>(((large >> 24U) & 0xFFU));
+    uint16_t low_word = static_cast<uint16_t>(((large >> 0U) & 0xFFFFU));
 }

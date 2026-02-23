@@ -22,6 +22,7 @@ import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
 import MemberAccessValidator from "../../helpers/MemberAccessValidator";
 import BitmapAccessHelper from "./BitmapAccessHelper";
+import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
@@ -1784,10 +1785,27 @@ const handleBitRangeSubscript = (
     );
   } else {
     const mask = orchestrator.generateBitMask(width);
+    let expr: string;
     if (start === "0") {
-      output.result = `((${ctx.result}) & ${mask})`;
+      expr = `((${ctx.result}) & ${mask})`;
     } else {
-      output.result = `((${ctx.result} >> ${start}) & ${mask})`;
+      expr = `((${ctx.result} >> ${start}) & ${mask})`;
+    }
+
+    // MISRA 10.3: Add narrowing cast if expected type is known
+    // Bit operations promote to int, so wrap with cast when assigning to narrower types
+    const targetType = CodeGenState.expectedType;
+    if (targetType && ctx.primaryTypeInfo?.baseType) {
+      const promotedSourceType = NarrowingCastHelper.getPromotedType(
+        ctx.primaryTypeInfo.baseType,
+      );
+      output.result = NarrowingCastHelper.wrap(
+        expr,
+        promotedSourceType,
+        targetType,
+      );
+    } else {
+      output.result = expr;
     }
   }
 
