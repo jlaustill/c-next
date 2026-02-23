@@ -38,7 +38,7 @@ int main(void) {
     GPIO_DR_TOGGLE = (1U << targetBit);
     GPIO_DR = (GPIO_DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
     GPIO_DR = (GPIO_DR & ~(1U << BUTTON_BIT)) | (0U << BUTTON_BIT);
-    bool state = ((GPIO_DR >> LED_BIT) & 1);
+    bool state = ((((GPIO_DR >> LED_BIT) & 1)) != 0U);
     if (state == true) {
         GPIO_DR_CLEAR = (1U << LED_BIT);
     } else {

@@ -57,8 +57,8 @@ int main(void) {
     grid[2][3].flags = 0xFF;
     grid[2][3].flags = (grid[2][3].flags & ~(1U << 0)) | (1U << 0);
     grid[2][3].flags = (grid[2][3].flags & ~(1U << 7)) | (0U << 7);
-    bool bit0 = ((grid[2][3].flags >> 0) & 1);
-    bool bit7 = ((grid[2][3].flags >> 7) & 1);
+    bool bit0 = ((((grid[2][3].flags >> 0) & 1)) != 0U);
+    bool bit7 = ((((grid[2][3].flags >> 7) & 1)) != 0U);
     meshes[1].indices[0] = 0;
     meshes[1].indices[11] = 7;
     uint32_t idx = meshes[1U].indices[0U];

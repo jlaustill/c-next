@@ -1604,7 +1604,12 @@ const handleSingleSubscript = (
 
   // Register access: bit extraction
   if (isRegisterAccess) {
-    output.result = `((${ctx.result} >> ${index}) & 1)`;
+    let expr = `((${ctx.result} >> ${index}) & 1)`;
+    const targetType = CodeGenState.expectedType;
+    if (targetType) {
+      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    }
+    output.result = expr;
     return output;
   }
 
@@ -1625,7 +1630,12 @@ const handleSingleSubscript = (
   const isPrimitiveIntMember =
     ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
   if (isPrimitiveIntMember) {
-    output.result = `((${ctx.result} >> ${index}) & 1)`;
+    let expr = `((${ctx.result} >> ${index}) & 1)`;
+    const targetType = CodeGenState.expectedType;
+    if (targetType) {
+      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    }
+    output.result = expr;
     output.currentStructType = undefined;
     return output;
   }
@@ -1743,10 +1753,16 @@ const handleDefaultSubscript = (
     isRegisterAccess: false,
   });
 
-  output.result =
-    subscriptKind === "bit_single"
-      ? `((${ctx.result} >> ${index}) & 1)`
-      : `${ctx.result}[${index}]`;
+  if (subscriptKind === "bit_single") {
+    let expr = `((${ctx.result} >> ${index}) & 1)`;
+    const targetType = CodeGenState.expectedType;
+    if (targetType) {
+      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    }
+    output.result = expr;
+  } else {
+    output.result = `${ctx.result}[${index}]`;
+  }
 
   return output;
 };

@@ -15,6 +15,6 @@
 int main(void) {
     GPIO_DR = (GPIO_DR & ~(1U << 0)) | (1U << 0);
     GPIO_DR = (GPIO_DR & ~(1U << 7)) | (1U << 7);
-    bool bit3 = ((GPIO_DR >> 3) & 1);
+    bool bit3 = ((((GPIO_DR >> 3) & 1)) != 0U);
     GPIO_DR_SET = (1U << 4);
 }

@@ -52,7 +52,7 @@ int main(void) {
     bool running = ((MotorController_MOTOR_REG_CTRL >> 0) & 1);
     uint8_t mode = ((MotorController_MOTOR_REG_CTRL >> 3) & 0x7);
     Board_GPIO_DR = (Board_GPIO_DR & ~(1U << 0)) | (1U << 0);
-    bool ledState = ((Board_GPIO_DR >> 3) & 1);
+    bool ledState = ((((Board_GPIO_DR >> 3) & 1)) != 0U);
     MotorController_start();
     bool isRun = MotorController_isRunning();
     uint8_t currentMode = MotorController_getMode();
