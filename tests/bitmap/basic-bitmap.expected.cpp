@@ -27,11 +27,11 @@ int main(void) {
     flags = (flags & ~(1U << 1)) | (0U << 1);
     flags = (flags & ~(1U << 2)) | (1U << 2);
     flags = (flags & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
-    bool isRunning = ((flags >> 0) & 1);
-    bool hasFault = ((flags >> 2) & 1);
-    uint8_t mode = ((flags >> 3) & 0x7);
+    bool isRunning = ((((flags >> 0) & 1)) != 0U);
+    bool hasFault = ((((flags >> 2) & 1)) != 0U);
+    uint8_t mode = static_cast<uint8_t>(((flags >> 3) & 0x7));
     if (((flags >> 0) & 1) == true) {
         flags = (flags & ~(0x7U << 3)) | ((3 & 0x7U) << 3);
     }
-    uint8_t doubleMode = ((flags >> 3) & 0x7) * 2U;
+    uint8_t doubleMode = static_cast<uint8_t>(((flags >> 3) & 0x7)) * 2U;
 }

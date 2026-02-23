@@ -13,6 +13,8 @@
  */
 import IGeneratorOutput from "../IGeneratorOutput";
 import TTypeInfo from "../../types/TTypeInfo";
+import CodeGenState from "../../../../state/CodeGenState.js";
+import NarrowingCastHelper from "../../helpers/NarrowingCastHelper.js";
 
 /**
  * Generate code for .capacity property access.
@@ -56,22 +58,32 @@ interface BitmapFieldInfo {
  *
  * Single bit fields generate: ((value >> offset) & 1)
  * Multi-bit fields generate: ((value >> offset) & mask)
+ *
+ * MISRA C:2012 Rule 10.3: When target type is known (via CodeGenState.expectedType),
+ * wraps expression with appropriate cast. Bool targets use != 0U comparison.
  */
 const generateBitmapFieldAccess = (
   result: string,
   fieldInfo: BitmapFieldInfo,
 ): IGeneratorOutput => {
+  let expr: string;
   if (fieldInfo.width === 1) {
     // Single bit: ((value >> offset) & 1)
-    return { code: `((${result} >> ${fieldInfo.offset}) & 1)`, effects: [] };
+    expr = `((${result} >> ${fieldInfo.offset}) & 1)`;
   } else {
     // Multi-bit: ((value >> offset) & mask)
     const mask = (1 << fieldInfo.width) - 1;
-    return {
-      code: `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`,
-      effects: [],
-    };
+    expr = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
   }
+
+  // MISRA 10.3: Add narrowing cast if target type is known
+  const targetType = CodeGenState.expectedType;
+  if (targetType) {
+    // Bitmap operations on small types produce int in C
+    expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+  }
+
+  return { code: expr, effects: [] };
 };
 
 // Export all generators

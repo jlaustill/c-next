@@ -77,9 +77,9 @@ int main(void) {
     if (((config >> 0) & 0xFF) != 0xFF) return 12;
     if (((config >> 8) & 0xFFFF) != 0x1234) return 13;
     if (((config >> 24) & 0xFF) != 0xAB) return 14;
-    uint8_t oct1 = ((ip >> 0) & 0xFF);
+    uint8_t oct1 = static_cast<uint8_t>(((ip >> 0) & 0xFF));
     if (oct1 != 192) return 15;
-    uint16_t addr = ((config >> 8) & 0xFFFF);
+    uint16_t addr = static_cast<uint16_t>(((config >> 8) & 0xFFFF));
     if (addr != 0x1234) return 16;
     ip = (ip & ~(0xFFU << 16)) | ((0 & 0xFFU) << 16);
     if (((ip >> 0) & 0xFF) != 192) return 17;

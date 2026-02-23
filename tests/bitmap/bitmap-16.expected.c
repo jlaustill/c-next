@@ -28,7 +28,7 @@ int main(void) {
     status = (status & ~(1U << 0)) | (1U << 0);
     status = (status & ~(1U << 1)) | (0U << 1);
     status = (status & ~(0xFFU << 8)) | ((255 & 0xFFU) << 8);
-    bool isReady = ((status >> 0) & 1);
-    uint8_t count = ((status >> 8) & 0xFF);
+    bool isReady = ((((status >> 0) & 1)) != 0U);
+    uint8_t count = (uint8_t)((status >> 8) & 0xFF);
     status = (status & ~(0xFFU << 8)) | ((128 & 0xFFU) << 8);
 }
