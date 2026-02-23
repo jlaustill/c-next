@@ -572,6 +572,29 @@ describe("CResolver - Additional Edge Cases", () => {
     expect(result.symbols[0].name).toBe("getPtr");
     expect(result.symbols[0].kind).toBe("function");
   });
+
+  it("collects pointer return type from function prototype (Issue #895 Bug B)", () => {
+    const tree = TestHelpers.parseC(`widget_t *widget_create(int w, int h);`);
+    const result = CResolver.resolve(tree!, "test.h");
+
+    expect(result.symbols).toHaveLength(1);
+    const symbol = result.symbols[0];
+    expect(symbol.name).toBe("widget_create");
+    expect(symbol.kind).toBe("function");
+    if (symbol.kind === "function") {
+      expect(symbol.type).toBe("widget_t*");
+      expect(symbol.parameters).toHaveLength(2);
+    }
+  });
+
+  it("collects non-pointer return type correctly (Issue #895 Bug B)", () => {
+    const tree = TestHelpers.parseC(`int getValue();`);
+    const result = CResolver.resolve(tree!, "test.h");
+
+    if (result.symbols[0].kind === "function") {
+      expect(result.symbols[0].type).toBe("int");
+    }
+  });
 });
 
 describe("CResolver - Without SymbolTable", () => {
