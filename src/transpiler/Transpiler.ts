@@ -391,7 +391,10 @@ class Transpiler {
       });
 
       // Collect user includes
-      const userIncludes = IncludeExtractor.collectUserIncludes(tree);
+      const userIncludes = IncludeExtractor.collectUserIncludes(
+        tree,
+        this.cppDetected,
+      );
 
       // Get pass-by-value params (snapshot before next file clears it)
       const passByValue = this.codeGenerator.getPassByValueParams();

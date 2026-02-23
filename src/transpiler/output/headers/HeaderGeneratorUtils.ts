@@ -277,29 +277,27 @@ class HeaderGeneratorUtils {
       lines.push("#include <stdint.h>", "#include <stdbool.h>");
     }
 
-    // User includes
-    // Issue #933: Transform .h to .hpp in C++ mode so headers include correct files
+    // User includes (already have correct extension from IncludeExtractor)
     if (options.userIncludes && options.userIncludes.length > 0) {
       for (const include of options.userIncludes) {
-        const transformedInclude = options.cppMode
-          ? include.replace(/\.h"/, '.hpp"').replace(/\.h>/, ".hpp>")
-          : include;
-        lines.push(transformedInclude);
+        lines.push(include);
       }
     }
 
     // External type header includes (skip duplicates of user includes)
-    // Note: External C headers stay as .h - only user includes from .cnx files get
-    // transformed to .hpp in C++ mode (those are C-Next generated headers)
-    const userIncludeSet = new Set(
-      options.userIncludes?.map((inc) =>
-        options.cppMode
-          ? inc.replace(/\.h"/, '.hpp"').replace(/\.h>/, ".hpp>")
-          : inc,
-      ) ?? [],
-    );
+    // Note: headersToInclude comes from IncludeResolver which always produces .h
+    // (it runs before cppDetected is set). We need to match against userIncludes
+    // which may have .hpp in C++ mode, so normalize both for deduplication.
+    const userIncludeSet = new Set(options.userIncludes ?? []);
+    // Issue #941: Also add .h variants for dedup since headersToInclude uses .h
+    if (options.cppMode && options.userIncludes) {
+      for (const inc of options.userIncludes) {
+        // Add the .h version so we can match against headersToInclude
+        const hVersion = inc.replace(/\.hpp"/, '.h"').replace(/\.hpp>/, ".h>");
+        userIncludeSet.add(hVersion);
+      }
+    }
     for (const directive of headersToInclude) {
-      // Don't transform external C headers - they should stay as .h
       if (!userIncludeSet.has(directive)) {
         lines.push(directive);
       }
