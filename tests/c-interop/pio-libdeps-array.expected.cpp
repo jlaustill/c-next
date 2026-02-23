@@ -34,6 +34,6 @@ void PioArrayTest_processBuffer(const uint8_t data[8], uint8_t len) {
 
 void PioArrayTest_handleMessage(const MockCanMessage& msg) {
     if (msg.id != 0) {
-        PioArrayTest_processBuffer(msg.buf, 8);
+        PioArrayTest_processBuffer(msg.buf, 8U);
     }
 }

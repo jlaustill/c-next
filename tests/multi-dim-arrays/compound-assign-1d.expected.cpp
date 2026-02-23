@@ -30,34 +30,34 @@ int main(void) {
     data[7] ^= 0b11111111U;
     data[8] <<= 2U;
     data[9] >>= 3U;
-    if (data[0] != 125) {
+    if (data[0U] != 125) {
         return 1;
     }
-    if (data[1] != 35) {
+    if (data[1U] != 35) {
         return 2;
     }
-    if (data[2] != 70) {
+    if (data[2U] != 70) {
         return 3;
     }
-    if (data[3] != 25) {
+    if (data[3U] != 25) {
         return 4;
     }
-    if (data[4] != 2) {
+    if (data[4U] != 2) {
         return 5;
     }
-    if (data[5] != 192) {
+    if (data[5U] != 192) {
         return 6;
     }
-    if (data[6] != 255) {
+    if (data[6U] != 255) {
         return 7;
     }
-    if (data[7] != 85) {
+    if (data[7U] != 85) {
         return 8;
     }
-    if (data[8] != 32) {
+    if (data[8U] != 32) {
         return 9;
     }
-    if (data[9] != 16) {
+    if (data[9U] != 16) {
         return 10;
     }
     return 0;

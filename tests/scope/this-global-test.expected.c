@@ -11,7 +11,7 @@
 const uint8_t globalValue = 10U;
 
 /* Scope: Motor */
-static uint8_t Motor_state = 0;
+static uint8_t Motor_state = 0U;
 
 uint8_t Motor_getLocalValue(void) {
     return 5;
@@ -30,5 +30,5 @@ void Motor_setState(uint8_t val) {
 }
 
 int main(void) {
-    Motor_setState(42);
+    Motor_setState(42U);
 }

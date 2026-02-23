@@ -14,6 +14,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Unsigned type patterns for MISRA Rule 7.2 compliance.
@@ -27,7 +28,17 @@ const UNSIGNED_TYPES = new Set([
   "uint8_t",
   "uint16_t",
   "uint32_t",
+  "size_t", // Array indices (MISRA 7.2)
 ]);
+
+/**
+ * Resolve typedef aliases to their underlying type.
+ * For C typedef'd types (e.g., "byte_t" -> "uint8_t"), look up the symbol table.
+ */
+function resolveTypedef(typeName: string): string {
+  const underlyingType = CodeGenState.getTypedefType(typeName);
+  return underlyingType ?? typeName;
+}
 
 /**
  * Check if a literal is a numeric integer (decimal, hex, octal, or binary).
@@ -120,9 +131,11 @@ const generateLiteral = (
     isNumericIntegerLiteral(literalText) &&
     !hasUnsignedSuffix(literalText)
   ) {
-    if (UNSIGNED_64_TYPES.has(expectedType)) {
+    // Resolve typedef aliases (e.g., "byte_t" -> "uint8_t")
+    const resolvedType = resolveTypedef(expectedType);
+    if (UNSIGNED_64_TYPES.has(resolvedType)) {
       literalText = literalText + "ULL";
-    } else if (UNSIGNED_TYPES.has(expectedType)) {
+    } else if (UNSIGNED_TYPES.has(resolvedType)) {
       literalText = literalText + "U";
     }
   }

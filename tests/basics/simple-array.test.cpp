@@ -16,12 +16,12 @@ int main(void) {
     numbers[2] = 30U;
     numbers[3] = 40U;
     numbers[4] = 50U;
-    if (numbers[0] != 10) return 1;
-    if (numbers[2] != 30) return 2;
-    if (numbers[4] != 50) return 3;
+    if (numbers[0U] != 10) return 1;
+    if (numbers[2U] != 30) return 2;
+    if (numbers[4U] != 50) return 3;
     uint8_t bytes[4] = {1U, 2U, 3U, 4U};
-    if (bytes[0] != 1) return 4;
-    if (bytes[3] != 4) return 5;
+    if (bytes[0U] != 1) return 4;
+    if (bytes[3U] != 4) return 5;
     if (4 != 4) return 6;
     if (5 != 5) return 7;
     uint32_t sum = 0U;
@@ -30,13 +30,13 @@ int main(void) {
     }
     if (sum != 150) return 8;
     numbers[2] = 100U;
-    if (numbers[2] != 100) return 9;
+    if (numbers[2U] != 100) return 9;
     int32_t temps[3] = {-10, 0, 25};
-    if (temps[0] != -10) return 10;
-    if (temps[1] != 0) return 11;
-    if (temps[2] != 25) return 12;
+    if (temps[0U] != -10) return 10;
+    if (temps[1U] != 0) return 11;
+    if (temps[2U] != 25) return 12;
     bool flags[3] = {true, false, true};
-    if (flags[0] != true) return 13;
-    if (flags[1] != false) return 14;
+    if (flags[0U] != true) return 13;
+    if (flags[1U] != false) return 14;
     return 0;
 }

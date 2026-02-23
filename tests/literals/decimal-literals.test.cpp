@@ -49,11 +49,11 @@ int main(void) {
     uint16_t remainder = 17U % 5U;
     if (remainder != 2) return 19;
     uint16_t values[5] = {10U, 20U, 30U, 40U, 50U};
-    if (values[0] != 10) return 20;
-    if (values[1] != 20) return 21;
-    if (values[2] != 30) return 22;
-    if (values[3] != 40) return 23;
-    if (values[4] != 50) return 24;
+    if (values[0U] != 10) return 20;
+    if (values[1U] != 20) return 21;
+    if (values[2U] != 30) return 22;
+    if (values[3U] != 40) return 23;
+    if (values[4U] != 50) return 24;
     uint32_t val = 12345U;
     if (val != 12345) return 25;
     if (100 >= 200) return 26;

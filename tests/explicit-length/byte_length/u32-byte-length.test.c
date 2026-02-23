@@ -17,12 +17,12 @@ uint32_t globalVar = 100000U;
 uint32_t TestScope_getGlobalByteLength(void) {
     return 4;
 }
-static uint32_t TestScope_scopeMember = 100000;
+static uint32_t TestScope_scopeMember = 100000U;
 
 uint32_t TestScope_getMemberByteLength(void) {
     return 4;
 }
-uint32_t TestScope_publicMember = 100000;
+uint32_t TestScope_publicMember = 100000U;
 
 uint32_t checkParamByteLength(uint32_t param) {
     return 4;

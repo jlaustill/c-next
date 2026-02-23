@@ -14,7 +14,7 @@ const uint8_t globalFlags = 0U;
 
 // Global const
 /* Scope: Control */
-static uint8_t Control_flags = 0b11111111;
+static uint8_t Control_flags = 0b11111111U;
 
 void Control_setFlag(void) {
     Control_flags = 0b10101010U;

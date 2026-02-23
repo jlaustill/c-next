@@ -18,9 +18,9 @@ int main(void) {
     if (msgType != 5) return 1;
     uint8_t priority = ((header >> 4U) & ((1U << 2U) - 1));
     if (priority != 2) return 2;
-    bool encrypted = ((header >> 6) & 1);
+    bool encrypted = ((header >> 6U) & 1);
     if (encrypted != true) return 3;
-    bool compressed = ((header >> 7) & 1);
+    bool compressed = ((header >> 7U) & 1);
     if (compressed != false) return 4;
     return 0;
 }

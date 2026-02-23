@@ -12,17 +12,17 @@
 
 int main(void) {
     SimpleConfig configs[3] = {(SimpleConfig){ .value = 1, .flags = { .flag_a = 1 } }, (SimpleConfig){ .value = 2, .flags = { .flag_b = 1 } }, (SimpleConfig){ .value = 3, .flags = { .flag_a = 1, .flag_b = 1 } }};
-    if (configs[0].value != 1) return 1;
-    if (configs[0].flags.flag_a != 1) return 2;
-    if (configs[1].value != 2) return 3;
-    if (configs[1].flags.flag_b != 1) return 4;
-    if (configs[2].value != 3) return 5;
-    if (configs[2].flags.flag_a != 1) return 6;
-    if (configs[2].flags.flag_b != 1) return 7;
+    if (configs[0U].value != 1) return 1;
+    if (configs[0U].flags.flag_a != 1) return 2;
+    if (configs[1U].value != 2) return 3;
+    if (configs[1U].flags.flag_b != 1) return 4;
+    if (configs[2U].value != 3) return 5;
+    if (configs[2U].flags.flag_a != 1) return 6;
+    if (configs[2U].flags.flag_b != 1) return 7;
     DisplayConfig displays[2] = {(DisplayConfig){ .resolution = { .width = 800, .height = 600 }, .settings = { .brightness = 50 } }, (DisplayConfig){ .resolution = { .width = 1920, .height = 1080 }, .settings = { .brightness = 100 } }};
-    if (displays[0].resolution.width != 800) return 8;
-    if (displays[0].settings.brightness != 50) return 9;
-    if (displays[1].resolution.width != 1920) return 10;
-    if (displays[1].settings.brightness != 100) return 11;
+    if (displays[0U].resolution.width != 800) return 8;
+    if (displays[0U].settings.brightness != 50) return 9;
+    if (displays[1U].resolution.width != 1920) return 10;
+    if (displays[1U].settings.brightness != 100) return 11;
     return 0;
 }

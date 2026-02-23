@@ -19,24 +19,24 @@ static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
 // Coverage: Section 1.2 i64 array element type
 int main(void) {
     int64_t values[5] = {-9223372036854775808, -1000000000000, 0, 1000000000000, 9223372036854775807};
-    if (values[0] != -9223372036854775808) return 1;
-    if (values[1] != -1000000000000) return 2;
-    if (values[2] != 0) return 3;
-    if (values[3] != 1000000000000) return 4;
-    if (values[4] != 9223372036854775807) return 5;
+    if (values[0U] != -9223372036854775808) return 1;
+    if (values[1U] != -1000000000000) return 2;
+    if (values[2U] != 0) return 3;
+    if (values[3U] != 1000000000000) return 4;
+    if (values[4U] != 9223372036854775807) return 5;
     int64_t data[4] = {0};
     data[0] = -5000000000000;
     data[1] = 5000000000000;
     data[2] = -10000000000000;
     data[3] = 10000000000000;
-    if (data[0] != -5000000000000) return 6;
-    if (data[1] != 5000000000000) return 7;
-    if (data[2] != -10000000000000) return 8;
-    if (data[3] != 10000000000000) return 9;
+    if (data[0U] != -5000000000000) return 6;
+    if (data[1U] != 5000000000000) return 7;
+    if (data[2U] != -10000000000000) return 8;
+    if (data[3U] != 10000000000000) return 9;
     int64_t inferred[3] = {100000000000, 200000000000, 300000000000};
-    if (inferred[0] != 100000000000) return 10;
-    if (inferred[1] != 200000000000) return 11;
-    if (inferred[2] != 300000000000) return 12;
+    if (inferred[0U] != 100000000000) return 10;
+    if (inferred[1U] != 200000000000) return 11;
+    if (inferred[2U] != 300000000000) return 12;
     int64_t loop_arr[3] = {1000000000, 2000000000, 3000000000};
     int64_t sum = 0;
     for (uint32_t i = 0; i < 3; i += 1) {
@@ -46,7 +46,7 @@ int main(void) {
     int64_t modify[2] = {10000000000, 20000000000};
     modify[0] = -10000000000;
     modify[1] = -20000000000;
-    if (modify[0] != -10000000000) return 14;
-    if (modify[1] != -20000000000) return 15;
+    if (modify[0U] != -10000000000) return 14;
+    if (modify[1U] != -20000000000) return 15;
     return 0;
 }

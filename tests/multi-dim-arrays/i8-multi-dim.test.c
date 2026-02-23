@@ -28,20 +28,20 @@ int main(void) {
     matrix2d[0][7] = 127;
     matrix2d[1][3] = -50;
     matrix2d[3][7] = 100;
-    if (matrix2d[0][0] != -128) return 1;
-    if (matrix2d[0][7] != 127) return 2;
-    if (matrix2d[1][3] != -50) return 3;
-    if (matrix2d[3][7] != 100) return 4;
+    if (matrix2d[0U][0U] != -128) return 1;
+    if (matrix2d[0U][7U] != 127) return 2;
+    if (matrix2d[1U][3U] != -50) return 3;
+    if (matrix2d[3U][7U] != 100) return 4;
     cube3d[0][0][0] = -100;
     cube3d[0][0][3] = -25;
     cube3d[0][2][3] = 0;
     cube3d[1][0][0] = 50;
     cube3d[1][2][3] = 127;
-    if (cube3d[0][0][0] != -100) return 5;
-    if (cube3d[0][0][3] != -25) return 6;
-    if (cube3d[0][2][3] != 0) return 7;
-    if (cube3d[1][0][0] != 50) return 8;
-    if (cube3d[1][2][3] != 127) return 9;
+    if (cube3d[0U][0U][0U] != -100) return 5;
+    if (cube3d[0U][0U][3U] != -25) return 6;
+    if (cube3d[0U][2U][3U] != 0) return 7;
+    if (cube3d[1U][0U][0U] != 50) return 8;
+    if (cube3d[1U][2U][3U] != 127) return 9;
     if (4 != 4) return 10;
     if (8 != 8) return 11;
     if (8 != 8) return 12;
@@ -54,10 +54,10 @@ int main(void) {
             matrix2d[i][j] = i * 5 + j;
         }
     }
-    if (matrix2d[0][0] != 0) return 17;
-    if (matrix2d[0][7] != 7) return 18;
-    if (matrix2d[1][3] != 8) return 19;
-    if (matrix2d[3][7] != 22) return 20;
+    if (matrix2d[0U][0U] != 0) return 17;
+    if (matrix2d[0U][7U] != 7) return 18;
+    if (matrix2d[1U][3U] != 8) return 19;
+    if (matrix2d[3U][7U] != 22) return 20;
     int16_t sum = 0;
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
@@ -69,9 +69,9 @@ int main(void) {
     }
     if (sum != 144) return 21;
     matrix2d[2][4] = -128;
-    if (matrix2d[2][4] != -128) return 22;
+    if (matrix2d[2U][4U] != -128) return 22;
     matrix2d[3][7] = -1;
-    if (matrix2d[3][7] != -1) return 23;
+    if (matrix2d[3U][7U] != -1) return 23;
     int8_t testArray[4][2] = {0};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
@@ -84,12 +84,12 @@ int main(void) {
     testArray[1][1] = -1;
     testArray[2][0] = 1;
     testArray[3][1] = -50;
-    if (testArray[0][0] != -128) return 24;
-    if (testArray[0][1] != 127) return 25;
-    if (testArray[1][0] != 0) return 26;
-    if (testArray[1][1] != -1) return 27;
-    if (testArray[2][0] != 1) return 28;
-    if (testArray[3][1] != -50) return 29;
+    if (testArray[0U][0U] != -128) return 24;
+    if (testArray[0U][1U] != 127) return 25;
+    if (testArray[1U][0U] != 0) return 26;
+    if (testArray[1U][1U] != -1) return 27;
+    if (testArray[2U][0U] != 1) return 28;
+    if (testArray[3U][1U] != -50) return 29;
     int8_t temps[3][3] = {0};
     for (uint32_t tei = 0; tei < 3; tei += 1) {
         for (uint32_t tej = 0; tej < 3; tej += 1) {
@@ -102,12 +102,12 @@ int main(void) {
     temps[1][1] = 20;
     temps[2][0] = 37;
     temps[2][1] = 100;
-    if (temps[0][0] != -40) return 30;
-    if (temps[0][1] != -10) return 31;
-    if (temps[1][0] != 0) return 32;
-    if (temps[1][1] != 20) return 33;
-    if (temps[2][0] != 37) return 34;
-    if (temps[2][1] != 100) return 35;
+    if (temps[0U][0U] != -40) return 30;
+    if (temps[0U][1U] != -10) return 31;
+    if (temps[1U][0U] != 0) return 32;
+    if (temps[1U][1U] != 20) return 33;
+    if (temps[2U][0U] != 37) return 34;
+    if (temps[2U][1U] != 100) return 35;
     int8_t deltas[2][2] = {0};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 2; dj += 1) {
@@ -116,7 +116,7 @@ int main(void) {
     }
     deltas[0][0] = -10;
     deltas[0][1] = 5;
-    int16_t deltaSum = deltas[0][0] + deltas[0][1];
+    int16_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
     if (deltaSum != -5) return 36;
     return 0;
 }

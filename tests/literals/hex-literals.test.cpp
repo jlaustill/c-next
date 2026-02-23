@@ -39,10 +39,10 @@ int main(void) {
     uint8_t orResult = 0xF0U | 0x0FU;
     if (orResult != 255) return 14;
     uint8_t bytes[4] = {0x48U, 0x65U, 0x6CU, 0x6CU};
-    if (bytes[0] != 72) return 15;
-    if (bytes[1] != 101) return 16;
-    if (bytes[2] != 108) return 17;
-    if (bytes[3] != 108) return 18;
+    if (bytes[0U] != 72) return 15;
+    if (bytes[1U] != 101) return 16;
+    if (bytes[2U] != 108) return 17;
+    if (bytes[3U] != 108) return 18;
     uint8_t val = 0x42U;
     if (val != 0x42) return 19;
     if (0x10 >= 0x20) return 20;

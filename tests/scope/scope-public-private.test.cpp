@@ -12,9 +12,9 @@
 // Test: ADR-016 public and private visibility modifiers on scope members and methods
 // Verifies public members are accessible from outside scope and private are only internal
 /* Scope: Visibility */
-static uint8_t Visibility_privateCounter = 0;
+static uint8_t Visibility_privateCounter = 0U;
 static bool Visibility_privateFlag = false;
-uint8_t Visibility_publicCounter = 10;
+uint8_t Visibility_publicCounter = 10U;
 bool Visibility_publicFlag = true;
 
 static uint8_t Visibility_getPrivateCounterInternal(void) {
@@ -80,7 +80,7 @@ int main(void) {
     if (result5 != 10) return 5;
     Visibility_publicCounter = 20;
     if (Visibility_publicCounter != 20) return 6;
-    Visibility_setPublicCounter(30);
+    Visibility_setPublicCounter(30U);
     uint8_t result7 = Visibility_getPublicCounter();
     if (result7 != 30) return 7;
     Visibility_incrementPrivate();
@@ -94,7 +94,7 @@ int main(void) {
     Visibility_setPublicFlag(false);
     bool result11 = Visibility_getBothFlags();
     if (result11 != false) return 11;
-    Visibility_setPrivateCounter(100);
+    Visibility_setPrivateCounter(100U);
     uint8_t result12 = Visibility_getPrivateCounter();
     if (result12 != 100) return 12;
     return 0;

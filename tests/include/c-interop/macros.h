@@ -16,9 +16,9 @@
 #define VERSION_PATCH 3
 
 /* Hex constants */
-#define MAGIC_VALUE 0xDEADBEEF
-#define STATUS_MASK 0xFF00
-#define FLAG_BITS 0x0F
+#define MAGIC_VALUE 0xDEADBEEFU
+#define STATUS_MASK 0xFF00U
+#define FLAG_BITS 0x0FU
 
 /* Computed constants */
 #define TOTAL_VERSION ((VERSION_MAJOR * 10000) + (VERSION_MINOR * 100) + VERSION_PATCH)

@@ -32,7 +32,7 @@ void fillBuffer(void) {
 
 int main(void) {
     fillBuffer();
-    if (rxBuffer[0] == 0xAA && rxBuffer[255] == 0xAA) {
+    if (rxBuffer[0U] == 0xAA && rxBuffer[255U] == 0xAA) {
         return 0;
     }
     return 1;

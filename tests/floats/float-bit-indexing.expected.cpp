@@ -27,11 +27,11 @@ float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
 }
 
 int main(void) {
-    float one = fromBytesLE(0x00, 0x00, 0x80, 0x3F);
+    float one = fromBytesLE(0x00U, 0x00U, 0x80U, 0x3FU);
     if (one != 1.0) return 1;
-    float negOne = fromBytesLE(0x00, 0x00, 0x80, 0xBF);
+    float negOne = fromBytesLE(0x00U, 0x00U, 0x80U, 0xBFU);
     if (negOne != -1.0) return 2;
-    float two = fromBytesLE(0x00, 0x00, 0x00, 0x40);
+    float two = fromBytesLE(0x00U, 0x00U, 0x00U, 0x40U);
     if (two != 2.0) return 3;
     float testVal = 1.0;
     union { float f; uint32_t u; } __bits_testVal;

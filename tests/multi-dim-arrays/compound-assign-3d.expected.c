@@ -30,34 +30,34 @@ int main(void) {
     cube[2][0][1] ^= 0b11111111U;
     cube[1][2][0] <<= 2U;
     cube[1][1][0] >>= 3U;
-    if (cube[0][0][0] != 125) {
+    if (cube[0U][0U][0U] != 125) {
         return 1;
     }
-    if (cube[1][1][1] != 35) {
+    if (cube[1U][1U][1U] != 35) {
         return 2;
     }
-    if (cube[2][2][2] != 70) {
+    if (cube[2U][2U][2U] != 70) {
         return 3;
     }
-    if (cube[0][1][2] != 25) {
+    if (cube[0U][1U][2U] != 25) {
         return 4;
     }
-    if (cube[2][1][0] != 2) {
+    if (cube[2U][1U][0U] != 2) {
         return 5;
     }
-    if (cube[1][0][2] != 192) {
+    if (cube[1U][0U][2U] != 192) {
         return 6;
     }
-    if (cube[0][2][1] != 255) {
+    if (cube[0U][2U][1U] != 255) {
         return 7;
     }
-    if (cube[2][0][1] != 85) {
+    if (cube[2U][0U][1U] != 85) {
         return 8;
     }
-    if (cube[1][2][0] != 32) {
+    if (cube[1U][2U][0U] != 32) {
         return 9;
     }
-    if (cube[1][1][0] != 16) {
+    if (cube[1U][1U][0U] != 16) {
         return 10;
     }
     return 0;

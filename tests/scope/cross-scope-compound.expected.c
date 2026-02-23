@@ -31,7 +31,7 @@ int main(void) {
     if (Counter_value != 150) {
         return 1;
     }
-    if (Counter_data[0] != 15) {
+    if (Counter_data[0U] != 15) {
         return 2;
     }
     return 0;

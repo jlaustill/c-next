@@ -30,7 +30,7 @@ int main(void) {
         }
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (values[0] == 0 && values[1] == 0 && values[2] == 0 && values[3] == 0) {
+    if (values[0U] == 0 && values[1U] == 0 && values[2U] == 0 && values[3U] == 0) {
         return 0;
     }
     return 1;

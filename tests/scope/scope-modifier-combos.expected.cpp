@@ -36,17 +36,17 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
 // Verifies that combined modifiers (const clamp, const wrap, public clamp, etc.)
 // work correctly with scope variables accessed via this. accessor
 /* Scope: ModifierCombos */
-uint8_t ModifierCombos_publicClampByte = 200;
-uint16_t ModifierCombos_publicClampWord = 60000;
+uint8_t ModifierCombos_publicClampByte = 200U;
+uint16_t ModifierCombos_publicClampWord = 60000U;
 int8_t ModifierCombos_publicClampSigned = 100;
-static uint8_t ModifierCombos_privateClampByte = 50;
-static uint16_t ModifierCombos_privateClampWord = 10000;
+static uint8_t ModifierCombos_privateClampByte = 50U;
+static uint16_t ModifierCombos_privateClampWord = 10000U;
 static int8_t ModifierCombos_privateClampSigned = -50;
-uint8_t ModifierCombos_publicWrapByte = 250;
-uint16_t ModifierCombos_publicWrapWord = 65530;
-static uint8_t ModifierCombos_privateWrapByte = 5;
-static uint16_t ModifierCombos_privateWrapWord = 100;
-const uint8_t ModifierCombos_PUBLIC_CONST = 42;
+uint8_t ModifierCombos_publicWrapByte = 250U;
+uint16_t ModifierCombos_publicWrapWord = 65530U;
+static uint8_t ModifierCombos_privateWrapByte = 5U;
+static uint16_t ModifierCombos_privateWrapWord = 100U;
+const uint8_t ModifierCombos_PUBLIC_CONST = 42U;
 const bool ModifierCombos_PUBLIC_FLAG = true;
 
 uint8_t ModifierCombos_getMaxBrightness(void) {

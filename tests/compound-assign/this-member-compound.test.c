@@ -31,7 +31,7 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 // Note: +<- is already tested in scope/scope-compound-assign.test.cnx
 /* Scope: Calculator */
 static int32_t Calculator_value = 0;
-static uint32_t Calculator_bits = 0;
+static uint32_t Calculator_bits = 0U;
 
 static int32_t Calculator_testSubtraction(void) {
     Calculator_value = 100;

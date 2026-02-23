@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 uint32_t globalSum = 0U;
 
 /* Scope: Calculator */
-static uint32_t Calculator_result = 0;
+static uint32_t Calculator_result = 0U;
 
 void Calculator_sumToN(uint32_t n) {
     Calculator_result = 0U;
@@ -51,7 +51,7 @@ uint32_t Calculator_getResult(void) {
 
 /* Scope: ArrayOps */
 static uint32_t ArrayOps_data[10] = {0};
-static uint32_t ArrayOps_sum = 0;
+static uint32_t ArrayOps_sum = 0U;
 
 void ArrayOps_initialize(void) {
     for (uint32_t i = 0; i < 10; i = i + 1) {
@@ -71,9 +71,9 @@ uint32_t ArrayOps_getSum(void) {
 }
 
 int main(void) {
-    Calculator_sumToN(5);
+    Calculator_sumToN(5U);
     globalSum = Calculator_getResult();
-    Calculator_factorial(5);
+    Calculator_factorial(5U);
     ArrayOps_initialize();
     ArrayOps_computeSum();
 }

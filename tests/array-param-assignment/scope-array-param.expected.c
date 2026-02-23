@@ -24,10 +24,10 @@ int main(void) {
     buffer[0] = 0U;
     buffer[1] = 0U;
     buffer[2] = 0U;
-    Test_writeToArray(buffer, 42);
-    if (buffer[0] != 42) return 1;
-    Test_writeAtIndex(buffer, 1, 99);
-    if (buffer[1] != 99) return 2;
-    if (buffer[2] != 0) return 3;
+    Test_writeToArray(buffer, 42U);
+    if (buffer[0U] != 42) return 1;
+    Test_writeAtIndex(buffer, 1U, 99U);
+    if (buffer[1U] != 99) return 2;
+    if (buffer[2U] != 0) return 3;
     return 0;
 }

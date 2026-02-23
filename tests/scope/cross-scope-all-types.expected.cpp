@@ -16,10 +16,10 @@
 // SCOPE A: Provider scope with all primitive types
 // ==========================================
 /* Scope: Provider */
-uint8_t Provider_valU8 = 255;
-uint16_t Provider_valU16 = 65535;
-uint32_t Provider_valU32 = 4294967295;
-uint64_t Provider_valU64 = 18446744073709551615;
+uint8_t Provider_valU8 = 255U;
+uint16_t Provider_valU16 = 65535U;
+uint32_t Provider_valU32 = 4294967295U;
+uint64_t Provider_valU64 = 18446744073709551615ULL;
 int8_t Provider_valI8 = -128;
 int16_t Provider_valI16 = -32768;
 int32_t Provider_valI32 = -2147483648;
@@ -29,8 +29,8 @@ double Provider_valF64 = 3.141592653589793;
 bool Provider_valBool = true;
 uint32_t Provider_arrayU32[3] = {0};
 int16_t Provider_arrayI16[3] = {0};
-uint8_t Provider_clampVal = 200;
-uint8_t Provider_wrapVal = 250;
+uint8_t Provider_clampVal = 200U;
+uint8_t Provider_wrapVal = 250U;
 
 uint8_t Provider_getU8(void) {
     return Provider_valU8;
@@ -60,7 +60,7 @@ void Provider_setBool(bool val) {
 // SCOPE B: Consumer scope that accesses Provider
 // ==========================================
 /* Scope: Consumer */
-uint32_t Consumer_result = 0;
+uint32_t Consumer_result = 0U;
 int32_t Consumer_signedResult = 0;
 bool Consumer_boolResult = false;
 
@@ -191,7 +191,7 @@ int main(void) {
     if (resultF64 != expectedF64) return 10;
     bool resultBool = Consumer_readProviderBool();
     if (resultBool != true) return 11;
-    Consumer_writeProviderU8(42);
+    Consumer_writeProviderU8(42U);
     if (Provider_valU8 != 42) return 12;
     Consumer_writeProviderI32(-999);
     if (Provider_valI32 != -999) return 13;
@@ -206,9 +206,9 @@ int main(void) {
     if (resultI32_2 != -500) return 16;
     bool resultBool2 = Consumer_callProviderGetBool();
     if (resultBool2 != true) return 17;
-    Consumer_writeProviderArray(0, 1000);
-    Consumer_writeProviderArray(1, 2000);
-    Consumer_writeProviderArray(2, 3000);
+    Consumer_writeProviderArray(0U, 1000U);
+    Consumer_writeProviderArray(1U, 2000U);
+    Consumer_writeProviderArray(2U, 3000U);
     uint32_t arrResult0 = Consumer_readProviderArray(0U);
     if (arrResult0 != 1000) return 19;
     uint32_t arrResult1 = Consumer_readProviderArray(1U);
@@ -219,10 +219,10 @@ int main(void) {
     if (clampResult != 200) return 22;
     uint8_t wrapResult = Consumer_readProviderWrap();
     if (wrapResult != 250) return 23;
-    Consumer_setProviderClamp(100);
+    Consumer_setProviderClamp(100U);
     uint8_t clampResult2 = Consumer_readProviderClamp();
     if (clampResult2 != 100) return 24;
-    Consumer_setProviderWrap(50);
+    Consumer_setProviderWrap(50U);
     uint8_t wrapResult2 = Consumer_readProviderWrap();
     if (wrapResult2 != 50) return 25;
     if (Provider_valU8 != 100) return 26;
@@ -232,7 +232,7 @@ int main(void) {
     if (Consumer_result != 4294967295) return 28;
     Consumer_computeSignedSum();
     if (Consumer_signedResult != -400) return 29;
-    Consumer_writeProviderU8(77);
+    Consumer_writeProviderU8(77U);
     uint8_t finalResult = Provider_getU8();
     if (finalResult != 77) return 30;
     return 0;

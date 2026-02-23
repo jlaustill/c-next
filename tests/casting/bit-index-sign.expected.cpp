@@ -11,5 +11,5 @@ int main(void) {
     int32_t signed_val = -5;
     uint32_t as_unsigned = ((signed_val >> 0U) & 0xFFFFFFFFU);
     uint32_t unsigned_val = 0xFFFFFFFFU;
-    int32_t as_signed = ((unsigned_val) & 0xFFFFFFFFU);
+    int32_t as_signed = ((unsigned_val >> 0U) & 0xFFFFFFFFU);
 }

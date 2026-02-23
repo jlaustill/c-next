@@ -20,16 +20,16 @@ uint32_t test(void) {
     char items[4][9] = {"A", "B", "C", "D"};
     uint8_t count = 4;
     if (count != 4) return 1;
-    if (strlen(items[0]) != 1) return 2;
-    if (strlen(items[3]) != 1) return 3;
+    if (strlen(items[0U]) != 1) return 2;
+    if (strlen(items[3U]) != 1) return 3;
     return 0;
 }
 
 int main(void) {
     if (3 != 3) return 1;
-    if (strlen(DAYS[0]) != 6) return 2;
-    if (strlen(DAYS[1]) != 7) return 3;
-    if (strlen(DAYS[2]) != 9) return 4;
+    if (strlen(DAYS[0U]) != 6) return 2;
+    if (strlen(DAYS[1U]) != 7) return 3;
+    if (strlen(DAYS[2U]) != 9) return 4;
     uint32_t localResult = test();
     if (localResult != 0) return 5;
     return 0;

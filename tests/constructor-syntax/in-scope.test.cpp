@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 /* Scope: Sensor */
-const uint8_t Sensor_pin = 10;
+const uint8_t Sensor_pin = 10U;
 Adafruit_MAX31856 Sensor_device(Sensor_pin);
 
 void Sensor_init(void) {

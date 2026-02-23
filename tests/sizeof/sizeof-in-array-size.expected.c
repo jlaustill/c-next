@@ -25,13 +25,13 @@ int main(void) {
     typeBuffer[1] = 0xCDU;
     typeBuffer[2] = 0xEFU;
     typeBuffer[3] = 0x12U;
-    if (typeBuffer[0] != 0xAB) return 5;
-    if (typeBuffer[3] != 0x12) return 6;
+    if (typeBuffer[0U] != 0xAB) return 5;
+    if (typeBuffer[3U] != 0x12) return 6;
     uint8_t shortBuffer[2] = {0};
     shortBuffer[0] = 0xFFU;
     shortBuffer[1] = 0x00U;
-    if (shortBuffer[0] != 0xFF) return 7;
-    if (shortBuffer[1] != 0x00) return 8;
+    if (shortBuffer[0U] != 0xFF) return 7;
+    if (shortBuffer[1U] != 0x00) return 8;
     uint8_t paddedBuffer[8] = {0};
     uint32_t paddedSize = sizeof(paddedBuffer);
     if (paddedSize != 8) return 9;

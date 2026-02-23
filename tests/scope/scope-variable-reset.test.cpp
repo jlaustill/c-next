@@ -13,7 +13,7 @@
 // This test verifies that scope variables are initialized once at program start
 // and persist across all function calls, just like C static variables.
 /* Scope: Calculator */
-static uint32_t Calculator_operationCount = 0;
+static uint32_t Calculator_operationCount = 0U;
 
 uint32_t Calculator_addAndCount(uint32_t value) {
     uint32_t accumulator = 0U;

@@ -38,17 +38,17 @@ int main(void) {
         }
         r = cnx_clamp_add_u32(r, 1U);
     }
-    if (grid[0][0].data != 0) return 1;
-    if (grid[0][3].data != 3) return 2;
-    if (grid[2][0].data != 8) return 3;
-    if (grid[2][3].data != 11) return 4;
-    if (grid[1][2].row != 1) return 5;
-    if (grid[1][2].col != 2) return 6;
-    if (grid[1][1].data != 5) return 7;
-    if (grid[1][2].data != 6) return 8;
+    if (grid[0U][0U].data != 0) return 1;
+    if (grid[0U][3U].data != 3) return 2;
+    if (grid[2U][0U].data != 8) return 3;
+    if (grid[2U][3U].data != 11) return 4;
+    if (grid[1U][2U].row != 1) return 5;
+    if (grid[1U][2U].col != 2) return 6;
+    if (grid[1U][1U].data != 5) return 7;
+    if (grid[1U][2U].data != 6) return 8;
     grid[1][1].data = 999U;
-    if (grid[1][1].data != 999) return 9;
+    if (grid[1U][1U].data != 999) return 9;
     grid[0][0].data += 100U;
-    if (grid[0][0].data != 100) return 10;
+    if (grid[0U][0U].data != 100) return 10;
     return 0;
 }

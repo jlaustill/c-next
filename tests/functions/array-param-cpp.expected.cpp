@@ -15,24 +15,24 @@ void fillBuffer(uint8_t buf[8]) {
 }
 
 uint8_t readFirst(const uint8_t data[8]) {
-    return data[0];
+    return data[0U];
 }
 
 uint8_t readSecond(const uint8_t data[4]) {
-    return data[1];
+    return data[1U];
 }
 
 // Test non-const and const array params together
 uint8_t sumFirstTwo(uint8_t buf[8], const uint8_t ref[4]) {
     buf[0] = ref[0U];
-    return buf[0] + ref[1];
+    return buf[0U] + ref[1U];
 }
 
 int main(void) {
     uint8_t buffer[8] = {0};
     fillBuffer(buffer);
-    if (buffer[0] != 0xAA) return 1;
-    if (buffer[1] != 0xBB) return 2;
+    if (buffer[0U] != 0xAA) return 1;
+    if (buffer[1U] != 0xBB) return 2;
     uint8_t data[8] = {0};
     data[0] = 42U;
     uint8_t val = readFirst(data);

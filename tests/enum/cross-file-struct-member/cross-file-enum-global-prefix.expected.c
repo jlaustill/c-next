@@ -12,7 +12,7 @@
 
 int main(void) {
     config.items[0].assigned = MyEnum_A;
-    MyEnum val = config.items[0].assigned;
+    MyEnum val = config.items[0U].assigned;
     if (val != MyEnum_A) return 1;
     return 0;
 }

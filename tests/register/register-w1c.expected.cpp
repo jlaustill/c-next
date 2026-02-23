@@ -34,9 +34,9 @@ void clearSingleBit(uint8_t bit) {
 }
 
 int main(void) {
-    clearInterrupt(0x01);
-    clearInterrupt(0xFF);
-    clearPendingIRQ(5);
-    clearGpioInterrupt(0x0F);
-    clearSingleBit(7);
+    clearInterrupt(0x01U);
+    clearInterrupt(0xFFU);
+    clearPendingIRQ(5U);
+    clearGpioInterrupt(0x0FU);
+    clearSingleBit(7U);
 }

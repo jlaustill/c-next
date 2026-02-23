@@ -42,7 +42,7 @@ int main(void) {
     if (counter != 150) {
         return 1;
     }
-    if (values[0] != 300) {
+    if (values[0U] != 300) {
         return 2;
     }
     return 0;

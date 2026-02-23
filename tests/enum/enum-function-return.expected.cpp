@@ -58,13 +58,13 @@ TrafficLight colorToLight(Color c) {
 }
 
 int main(void) {
-    Color c = getColorByIndex(0);
+    Color c = getColorByIndex(0U);
     if (c != Color_RED) return 1;
-    c = getColorByIndex(1);
+    c = getColorByIndex(1U);
     if (c != Color_GREEN) return 2;
-    c = getColorByIndex(2);
+    c = getColorByIndex(2U);
     if (c != Color_BLUE) return 3;
-    c = getColorByIndex(99);
+    c = getColorByIndex(99U);
     if (c != Color_YELLOW) return 4;
     TrafficLight light = TrafficLight_STOP;
     light = getNextLight(light);

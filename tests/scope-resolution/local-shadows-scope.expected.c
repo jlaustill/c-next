@@ -10,7 +10,7 @@
 // Test local variable shadows scope member, this. accesses scope
 // test-execution
 /* Scope: State */
-static uint32_t State_value = 100;
+static uint32_t State_value = 100U;
 
 uint32_t State_shadowTest(void) {
     uint32_t value = 5U;

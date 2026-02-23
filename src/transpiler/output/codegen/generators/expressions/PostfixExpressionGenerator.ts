@@ -1593,7 +1593,12 @@ const handleSingleSubscript = (
   orchestrator: IOrchestrator,
   output: SubscriptAccessResult,
 ): SubscriptAccessResult => {
+  // Set expectedType to size_t (unsigned) for array indices per MISRA 7.2
+  // This ensures index literals get U suffix regardless of element type
+  const savedExpectedType = CodeGenState.expectedType;
+  CodeGenState.expectedType = "size_t";
   const index = orchestrator.generateExpression(expr);
+  CodeGenState.expectedType = savedExpectedType;
 
   // Check if result is a register member with bitmap type (throws)
   validateNotBitmapMember(ctx, input);
@@ -1762,8 +1767,13 @@ const handleBitRangeSubscript = (
   effects: TGeneratorEffect[],
   output: SubscriptAccessResult,
 ): SubscriptAccessResult => {
+  // Set expectedType to size_t (unsigned) for bit indices per MISRA 7.2
+  // Bit positions are inherently unsigned values
+  const savedExpectedType = CodeGenState.expectedType;
+  CodeGenState.expectedType = "size_t";
   const start = orchestrator.generateExpression(exprs[0]);
   const width = orchestrator.generateExpression(exprs[1]);
+  CodeGenState.expectedType = savedExpectedType;
 
   const isFloatType =
     ctx.primaryTypeInfo?.baseType === "f32" ||

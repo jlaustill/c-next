@@ -44,13 +44,13 @@ uint32_t onlyReads(uint32_t a, uint32_t b) {
 
 int main(void) {
     uint32_t x = 100U;
-    addToValue(&x, 50);
+    addToValue(&x, 50U);
     if (x != 150) return 1;
     int32_t y = 100;
     subtractFromValue(&y, 30);
     if (y != 70) return 2;
     uint32_t z = 10U;
-    multiplyValue(&z, 5);
+    multiplyValue(&z, 5U);
     if (z != 50) return 3;
     uint32_t w = 25U;
     uint32_t original = readAndAdd(&w, 10U);

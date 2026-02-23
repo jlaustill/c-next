@@ -26,7 +26,7 @@ uint32_t processBuffer(const uint8_t data[8], uint8_t len) {
 
 // Function with different array size
 uint32_t processHeader(const uint8_t header[4]) {
-    return header[0] + header[1] + header[2] + header[3];
+    return header[0U] + header[1U] + header[2U] + header[3U];
 }
 
 // Function with larger array

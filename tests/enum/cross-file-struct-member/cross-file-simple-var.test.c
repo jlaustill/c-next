@@ -13,6 +13,6 @@
 int main(void) {
     if (COUNT != 4) return 1;
     config.items[0].padding = 42U;
-    if (config.items[0].padding != 42) return 2;
+    if (config.items[0U].padding != 42) return 2;
     return 0;
 }

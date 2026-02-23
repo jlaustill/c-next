@@ -107,6 +107,7 @@ const _parameterExpectsAddressOf = (
 /**
  * Generate argument code for a C/C++ function call.
  * Handles automatic address-of (&) for struct arguments passed to pointer params.
+ * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
  */
 const _generateCFunctionArg = (
   e: ExpressionContext,
@@ -134,7 +135,13 @@ const _generateCFunctionArg = (
     );
   }
 
+  // Issue #872: Set expectedType for MISRA 7.2 compliance
+  const savedExpectedType = CodeGenState.expectedType;
+  if (targetParam?.baseType) {
+    CodeGenState.expectedType = targetParam.baseType;
+  }
   let argCode = orchestrator.generateExpression(e);
+  CodeGenState.expectedType = savedExpectedType;
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
   if (!targetParam?.baseType?.endsWith("*")) {
@@ -295,7 +302,13 @@ const generateFunctionCall = (
           orchestrator,
         )
       ) {
+        // Issue #872: Set expectedType for MISRA 7.2 compliance
+        const savedExpectedType = CodeGenState.expectedType;
+        if (targetParam?.baseType) {
+          CodeGenState.expectedType = targetParam.baseType;
+        }
         const argCode = orchestrator.generateExpression(e);
+        CodeGenState.expectedType = savedExpectedType;
         return wrapWithCppEnumCast(
           argCode,
           e,

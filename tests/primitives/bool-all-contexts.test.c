@@ -53,8 +53,8 @@ int main(void) {
     if (flags.active != false) return 8;
     flagArray[0] = true;
     flagArray[1] = false;
-    if (flagArray[0] != true) return 9;
-    if (flagArray[1] != false) return 10;
+    if (flagArray[0U] != true) return 9;
+    if (flagArray[1U] != false) return 10;
     bool combined = globalTrue && localBool;
     if (combined != true) return 11;
     bool orResult = globalFalse || localBool;

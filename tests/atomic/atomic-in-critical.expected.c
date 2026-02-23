@@ -133,7 +133,7 @@ void conditionalIncrement(void) {
 
 int main(void) {
     criticalUpdate();
-    enqueueWithCount(0xAB);
-    batchUpdate(10);
+    enqueueWithCount(0xABU);
+    batchUpdate(10U);
     conditionalIncrement();
 }

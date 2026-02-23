@@ -7886,7 +7886,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("callee(arr[0])");
+        expect(code).toContain("callee(arr[0U])");
       });
 
       it("should handle scope member as argument", () => {
@@ -8035,7 +8035,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("callee(42)");
+        expect(code).toContain("callee(42U)");
       });
 
       it("should handle nested function call as argument", () => {
@@ -10707,8 +10707,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Bit access extracts bit 0 with width 1
-        expect(code).toContain("((flags) & ((1U << 1) - 1))");
+        // Bit access extracts bit 0 with width 1 (indices get U suffix per MISRA 7.2)
+        expect(code).toContain("((flags >> 0U) & ((1U << 1U) - 1))");
       });
 
       it("should not dereference array parameter for index access", () => {
@@ -10728,8 +10728,8 @@ describe("CodeGenerator", () => {
         });
 
         // Array params don't need dereference
-        // Array element access doesn't get U suffix yet
-        expect(code).toContain("arr[5]");
+        // Array index gets U suffix per MISRA 7.2
+        expect(code).toContain("arr[5U]");
         expect(code).not.toContain("(*arr)");
       });
 
@@ -13444,7 +13444,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("process(x + 5)");
+        expect(code).toContain("process(x + 5U)");
       });
     });
 

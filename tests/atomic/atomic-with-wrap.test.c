@@ -76,6 +76,6 @@ int main(void) {
     incrementTicks();
     nextSequence();
     nextFrame();
-    addToTicks(100);
-    subtractFromTick8(10);
+    addToTicks(100U);
+    subtractFromTick8(10U);
 }

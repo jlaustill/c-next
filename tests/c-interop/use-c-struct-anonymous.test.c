@@ -26,8 +26,8 @@ int main(void) {
     buf.data[3] = 0x44U;
     buf.data[4] = 0x55U;
     if (buf.len != 5) return 3;
-    if (buf.data[0] != 0x11) return 4;
-    if (buf.data[4] != 0x55) return 5;
+    if (buf.data[0U] != 0x11) return 4;
+    if (buf.data[4U] != 0x55) return 5;
     MixedTypes mt = {0};
     mt.active = true;
     mt.byte_val = 255U;

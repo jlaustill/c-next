@@ -42,7 +42,7 @@ int main(void) {
     config.items[1].assigned = MyEnum_B;
     config.items[2].assigned = MyEnum_NONE;
     config.items[3].assigned = MyEnum_A;
-    MyEnum val = config.items[0].assigned;
+    MyEnum val = config.items[0U].assigned;
     if (val != MyEnum_A) return 1;
     uint8_t countAssigned = 0U;
     for (uint8_t i = 0; i < COUNT; i += 1) {

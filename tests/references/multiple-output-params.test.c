@@ -43,13 +43,13 @@ void rotate3(uint32_t* a, uint32_t* b, uint32_t* c) {
 int main(void) {
     uint32_t q = 0U;
     uint32_t r = 0U;
-    divmod(17, 5, &q, &r);
+    divmod(17U, 5U, &q, &r);
     if (q != 3) return 1;
     if (r != 2) return 2;
-    divmod(100, 10, &q, &r);
+    divmod(100U, 10U, &q, &r);
     if (q != 10) return 3;
     if (r != 0) return 4;
-    divmod(7, 3, &q, &r);
+    divmod(7U, 3U, &q, &r);
     if (q != 2) return 5;
     if (r != 1) return 6;
     int32_t minResult = 0;
@@ -66,11 +66,11 @@ int main(void) {
     uint32_t sum = 0U;
     uint32_t count = 0U;
     uint32_t avg = 0U;
-    stats(10, 20, 30, &sum, &count, &avg);
+    stats(10U, 20U, 30U, &sum, &count, &avg);
     if (sum != 60) return 13;
     if (count != 3) return 14;
     if (avg != 20) return 15;
-    stats(100, 200, 300, &sum, &count, &avg);
+    stats(100U, 200U, 300U, &sum, &count, &avg);
     if (sum != 600) return 16;
     if (avg != 200) return 17;
     uint32_t x = 1U;

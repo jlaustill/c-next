@@ -66,22 +66,34 @@ class ArgumentGenerator {
 
   /**
    * Handle rvalue argument (literals or complex expressions).
+   * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
    */
   static handleRvalueArg(
     ctx: Parser.ExpressionContext,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
   ): string {
+    // Issue #872: Set expectedType for MISRA 7.2 compliance
+    const savedExpectedType = CodeGenState.expectedType;
+    if (targetParamBaseType) {
+      CodeGenState.expectedType = targetParamBaseType;
+    }
+
     if (!targetParamBaseType) {
-      return callbacks.generateExpression(ctx);
+      const result = callbacks.generateExpression(ctx);
+      CodeGenState.expectedType = savedExpectedType;
+      return result;
     }
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (!cType || cType === "void") {
-      return callbacks.generateExpression(ctx);
+      const result = callbacks.generateExpression(ctx);
+      CodeGenState.expectedType = savedExpectedType;
+      return result;
     }
 
     const value = callbacks.generateExpression(ctx);
+    CodeGenState.expectedType = savedExpectedType;
 
     // C++ mode: rvalues can bind to const T&
     if (CodeGenState.cppMode) {

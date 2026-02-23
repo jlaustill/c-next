@@ -45,5 +45,5 @@ int main(void) {
     scenes[1].objects[2].material.ambient.r = 100U;
     scenes[1].objects[3].material.diffuse.b = 75U;
     scenes[0].objects[0].id = 42;
-    int32_t objId = scenes[1].objects[2].id;
+    int32_t objId = scenes[1U].objects[2U].id;
 }

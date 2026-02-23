@@ -27,9 +27,9 @@ int main(void) {
     if (pos != true) return 6;
     bool neg = is_positive(-42);
     if (neg != false) return 7;
-    bool even = is_even(42);
+    bool even = is_even(42U);
     if (even != true) return 8;
-    bool odd = is_even(43);
+    bool odd = is_even(43U);
     if (odd != false) return 9;
     return 0;
 }
