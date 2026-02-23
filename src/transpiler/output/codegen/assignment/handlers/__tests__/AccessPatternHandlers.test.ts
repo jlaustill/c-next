@@ -279,7 +279,7 @@ describe("AccessPatternHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("GPIO7_DR_SET =");
-      expect(result).toContain("& ~(1 <<");
+      expect(result).toContain("& ~(1U <<");
       expect(result).toContain("LED_BIT");
     });
 
@@ -298,7 +298,7 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("GPIO7_DR_SET = (1 << LED_BIT);");
+      expect(result).toBe("GPIO7_DR_SET = (1U << LED_BIT);");
     });
 
     it("throws on write-only register with false value", () => {
@@ -438,8 +438,8 @@ describe("AccessPatternHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("grid[2][3].flags =");
-      expect(result).toContain("& ~(1 << 0)");
-      expect(result).toContain("1 << 0");
+      expect(result).toContain("& ~(1U << 0)");
+      expect(result).toContain("1U << 0");
     });
 
     it("uses 1ULL for 64-bit bit access", () => {

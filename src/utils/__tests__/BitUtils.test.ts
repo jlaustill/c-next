@@ -5,28 +5,28 @@ import BitUtils from "../BitUtils";
 // boolToInt
 // ========================================================================
 describe("BitUtils.boolToInt", () => {
-  it("converts literal true to 1", () => {
-    expect(BitUtils.boolToInt("true")).toBe("1");
+  it("converts literal true to 1U (MISRA 10.1 compliance)", () => {
+    expect(BitUtils.boolToInt("true")).toBe("1U");
   });
 
-  it("converts literal false to 0", () => {
-    expect(BitUtils.boolToInt("false")).toBe("0");
+  it("converts literal false to 0U (MISRA 10.1 compliance)", () => {
+    expect(BitUtils.boolToInt("false")).toBe("0U");
   });
 
-  it("wraps comparison expressions in ternary", () => {
-    expect(BitUtils.boolToInt("x > 5")).toBe("(x > 5 ? 1 : 0)");
+  it("wraps comparison expressions in ternary with unsigned values", () => {
+    expect(BitUtils.boolToInt("x > 5")).toBe("(x > 5 ? 1U : 0U)");
   });
 
-  it("wraps variable expressions in ternary", () => {
-    expect(BitUtils.boolToInt("isEnabled")).toBe("(isEnabled ? 1 : 0)");
+  it("wraps variable expressions in ternary with unsigned values", () => {
+    expect(BitUtils.boolToInt("isEnabled")).toBe("(isEnabled ? 1U : 0U)");
   });
 
-  it("wraps complex expressions in ternary", () => {
-    expect(BitUtils.boolToInt("a && b")).toBe("(a && b ? 1 : 0)");
+  it("wraps complex expressions in ternary with unsigned values", () => {
+    expect(BitUtils.boolToInt("a && b")).toBe("(a && b ? 1U : 0U)");
   });
 
-  it("wraps function calls in ternary", () => {
-    expect(BitUtils.boolToInt("isReady()")).toBe("(isReady() ? 1 : 0)");
+  it("wraps function calls in ternary with unsigned values", () => {
+    expect(BitUtils.boolToInt("isReady()")).toBe("(isReady() ? 1U : 0U)");
   });
 });
 
@@ -96,20 +96,20 @@ describe("BitUtils.oneForType", () => {
     expect(BitUtils.oneForType("i64")).toBe("1ULL");
   });
 
-  it("returns 1 for u32", () => {
-    expect(BitUtils.oneForType("u32")).toBe("1");
+  it("returns 1U for u32 (MISRA 10.1 compliance)", () => {
+    expect(BitUtils.oneForType("u32")).toBe("1U");
   });
 
-  it("returns 1 for i32", () => {
-    expect(BitUtils.oneForType("i32")).toBe("1");
+  it("returns 1U for i32 (MISRA 10.1 compliance)", () => {
+    expect(BitUtils.oneForType("i32")).toBe("1U");
   });
 
-  it("returns 1 for u8", () => {
-    expect(BitUtils.oneForType("u8")).toBe("1");
+  it("returns 1U for u8 (MISRA 10.1 compliance)", () => {
+    expect(BitUtils.oneForType("u8")).toBe("1U");
   });
 
-  it("returns 1 for unknown types", () => {
-    expect(BitUtils.oneForType("custom")).toBe("1");
+  it("returns 1U for unknown types (MISRA 10.1 compliance)", () => {
+    expect(BitUtils.oneForType("custom")).toBe("1U");
   });
 });
 
@@ -286,58 +286,58 @@ describe("BitUtils.bitRangeRead", () => {
 // singleBitWrite
 // ========================================================================
 describe("BitUtils.singleBitWrite", () => {
-  it("generates RMW for literal true", () => {
+  it("generates RMW for literal true (MISRA 10.1 - uses 1U)", () => {
     expect(BitUtils.singleBitWrite("flags", 0, "true")).toBe(
-      "flags = (flags & ~(1 << 0)) | (1 << 0);",
+      "flags = (flags & ~(1U << 0)) | (1U << 0);",
     );
   });
 
-  it("generates RMW for literal false", () => {
+  it("generates RMW for literal false (MISRA 10.1 - uses 1U)", () => {
     expect(BitUtils.singleBitWrite("flags", 3, "false")).toBe(
-      "flags = (flags & ~(1 << 3)) | (0 << 3);",
+      "flags = (flags & ~(1U << 3)) | (0U << 3);",
     );
   });
 
-  it("generates RMW with ternary for expression value", () => {
+  it("generates RMW with ternary for expression value (MISRA 10.1)", () => {
     expect(BitUtils.singleBitWrite("reg", 7, "isEnabled")).toBe(
-      "reg = (reg & ~(1 << 7)) | ((isEnabled ? 1 : 0) << 7);",
+      "reg = (reg & ~(1U << 7)) | ((isEnabled ? 1U : 0U) << 7);",
     );
   });
 
-  it("generates RMW with dynamic offset", () => {
+  it("generates RMW with dynamic offset (MISRA 10.1 - uses 1U)", () => {
     expect(BitUtils.singleBitWrite("byte", "n", "true")).toBe(
-      "byte = (byte & ~(1 << n)) | (1 << n);",
+      "byte = (byte & ~(1U << n)) | (1U << n);",
     );
   });
 
-  it("handles comparison expression as value", () => {
+  it("handles comparison expression as value (MISRA 10.1)", () => {
     expect(BitUtils.singleBitWrite("status", 0, "x > 5")).toBe(
-      "status = (status & ~(1 << 0)) | ((x > 5 ? 1 : 0) << 0);",
+      "status = (status & ~(1U << 0)) | ((x > 5 ? 1U : 0U) << 0);",
     );
   });
 
   // 64-bit target tests (targetType parameter)
   it("generates 64-bit RMW for u64 target at high position", () => {
     expect(BitUtils.singleBitWrite("val64", 32, "true", "u64")).toBe(
-      "val64 = (val64 & ~(1ULL << 32)) | ((uint64_t)1 << 32);",
+      "val64 = (val64 & ~(1ULL << 32)) | ((uint64_t)1U << 32);",
     );
   });
 
   it("generates 64-bit RMW for u64 target at position 63", () => {
     expect(BitUtils.singleBitWrite("val64", 63, "true", "u64")).toBe(
-      "val64 = (val64 & ~(1ULL << 63)) | ((uint64_t)1 << 63);",
+      "val64 = (val64 & ~(1ULL << 63)) | ((uint64_t)1U << 63);",
     );
   });
 
   it("generates 64-bit RMW with expression value for u64", () => {
     expect(BitUtils.singleBitWrite("flags", 48, "isSet", "u64")).toBe(
-      "flags = (flags & ~(1ULL << 48)) | ((uint64_t)(isSet ? 1 : 0) << 48);",
+      "flags = (flags & ~(1ULL << 48)) | ((uint64_t)(isSet ? 1U : 0U) << 48);",
     );
   });
 
   it("generates 64-bit RMW for i64 target", () => {
     expect(BitUtils.singleBitWrite("val64", 40, "false", "i64")).toBe(
-      "val64 = (val64 & ~(1ULL << 40)) | ((uint64_t)0 << 40);",
+      "val64 = (val64 & ~(1ULL << 40)) | ((uint64_t)0U << 40);",
     );
   });
 });
@@ -406,33 +406,33 @@ describe("BitUtils.multiBitWrite", () => {
 // writeOnlySingleBit
 // ========================================================================
 describe("BitUtils.writeOnlySingleBit", () => {
-  it("generates write-only for literal true", () => {
+  it("generates write-only for literal true (MISRA 10.1 - uses 1U)", () => {
     expect(BitUtils.writeOnlySingleBit("SET_REG", 0, "true")).toBe(
-      "SET_REG = (1 << 0);",
+      "SET_REG = (1U << 0);",
     );
   });
 
-  it("generates write-only for literal false", () => {
+  it("generates write-only for literal false (MISRA 10.1 - uses 0U)", () => {
     expect(BitUtils.writeOnlySingleBit("CLR_REG", 3, "false")).toBe(
-      "CLR_REG = (0 << 3);",
+      "CLR_REG = (0U << 3);",
     );
   });
 
-  it("generates write-only with ternary for expression", () => {
+  it("generates write-only with ternary for expression (MISRA 10.1)", () => {
     expect(BitUtils.writeOnlySingleBit("CTRL", 7, "isActive")).toBe(
-      "CTRL = ((isActive ? 1 : 0) << 7);",
+      "CTRL = ((isActive ? 1U : 0U) << 7);",
     );
   });
 
-  it("handles dynamic offset", () => {
+  it("handles dynamic offset (MISRA 10.1 - uses 1U)", () => {
     expect(BitUtils.writeOnlySingleBit("PORT", "bit", "true")).toBe(
-      "PORT = (1 << bit);",
+      "PORT = (1U << bit);",
     );
   });
 
-  it("handles expression offset", () => {
+  it("handles expression offset (MISRA 10.1 - uses 0U)", () => {
     expect(BitUtils.writeOnlySingleBit("REG", "i + 1", "false")).toBe(
-      "REG = (0 << i + 1);",
+      "REG = (0U << i + 1);",
     );
   });
 });

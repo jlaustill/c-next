@@ -23,25 +23,25 @@ const uint32_t BUTTON_BIT = 7U;
 uint32_t dynamicBit = 5U;
 
 int main(void) {
-    GPIO_DR_SET = (1 << 0);
-    GPIO_DR_SET = (1 << 31);
-    GPIO_DR_SET = (1 << LED_BIT);
-    GPIO_DR_CLEAR = (1 << LED_BIT);
-    GPIO_DR_TOGGLE = (1 << LED_BIT);
-    GPIO_DR_SET = (1 << BUTTON_BIT);
-    GPIO_DR_CLEAR = (1 << BUTTON_BIT);
-    GPIO_DR_SET = (1 << dynamicBit);
-    GPIO_DR_CLEAR = (1 << dynamicBit);
-    GPIO_DR_SET = (1 << LED_BIT + 1);
-    GPIO_DR_CLEAR = (1 << LED_BIT * 2);
+    GPIO_DR_SET = (1U << 0);
+    GPIO_DR_SET = (1U << 31);
+    GPIO_DR_SET = (1U << LED_BIT);
+    GPIO_DR_CLEAR = (1U << LED_BIT);
+    GPIO_DR_TOGGLE = (1U << LED_BIT);
+    GPIO_DR_SET = (1U << BUTTON_BIT);
+    GPIO_DR_CLEAR = (1U << BUTTON_BIT);
+    GPIO_DR_SET = (1U << dynamicBit);
+    GPIO_DR_CLEAR = (1U << dynamicBit);
+    GPIO_DR_SET = (1U << LED_BIT + 1);
+    GPIO_DR_CLEAR = (1U << LED_BIT * 2);
     uint32_t targetBit = LED_BIT;
-    GPIO_DR_TOGGLE = (1 << targetBit);
-    GPIO_DR = (GPIO_DR & ~(1 << LED_BIT)) | (1 << LED_BIT);
-    GPIO_DR = (GPIO_DR & ~(1 << BUTTON_BIT)) | (0 << BUTTON_BIT);
+    GPIO_DR_TOGGLE = (1U << targetBit);
+    GPIO_DR = (GPIO_DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
+    GPIO_DR = (GPIO_DR & ~(1U << BUTTON_BIT)) | (0U << BUTTON_BIT);
     bool state = ((GPIO_DR >> LED_BIT) & 1);
     if (state == true) {
-        GPIO_DR_CLEAR = (1 << LED_BIT);
+        GPIO_DR_CLEAR = (1U << LED_BIT);
     } else {
-        GPIO_DR_SET = (1 << LED_BIT);
+        GPIO_DR_SET = (1U << LED_BIT);
     }
 }

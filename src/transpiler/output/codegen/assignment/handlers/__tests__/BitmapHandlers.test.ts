@@ -102,7 +102,7 @@ describe("BitmapHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("flags =");
-      expect(result).toContain("& ~(1 << 0)");
+      expect(result).toContain("& ~(1U << 0)");
       expect(result).toContain("<< 0");
     });
 
@@ -255,7 +255,7 @@ describe("BitmapHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("flagsArray[i] =");
-      expect(result).toContain("& ~(1 << 0)");
+      expect(result).toContain("& ~(1U << 0)");
     });
   });
 
@@ -309,7 +309,7 @@ describe("BitmapHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("MOTOR_CTRL =");
-      expect(result).toContain("& ~(1 << 0)");
+      expect(result).toContain("& ~(1U << 0)");
     });
   });
 

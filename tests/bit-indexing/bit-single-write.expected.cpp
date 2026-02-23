@@ -11,13 +11,13 @@
 // Tests: setting individual bits in integer
 int main(void) {
     uint8_t flags = 0U;
-    flags = (flags & ~(1 << 0)) | (1 << 0);
-    flags = (flags & ~(1 << 3)) | (1 << 3);
-    flags = (flags & ~(1 << 7)) | (1 << 7);
+    flags = (flags & ~(1U << 0)) | (1U << 0);
+    flags = (flags & ~(1U << 3)) | (1U << 3);
+    flags = (flags & ~(1U << 7)) | (1U << 7);
     if (flags != 0x89) {
         return 1;
     }
-    flags = (flags & ~(1 << 3)) | (0 << 3);
+    flags = (flags & ~(1U << 3)) | (0U << 3);
     if (flags == 0x81) {
         return 0;
     }

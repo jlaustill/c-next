@@ -109,10 +109,10 @@ function handleGlobalRegisterBit(ctx: IAssignmentContext): string {
           `Use the corresponding CLEAR register to clear bits.`,
       );
     }
-    return `${regName} = (1 << ${bitIndex});`;
+    return `${regName} = (1U << ${bitIndex});`;
   }
 
-  return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
+  return `${regName} = (${regName} & ~(1U << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
 }
 
 /**

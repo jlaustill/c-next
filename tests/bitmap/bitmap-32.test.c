@@ -57,10 +57,10 @@ int main(void) {
     if (((ip >> 8) & 0xFF) != 168) return 2;
     if (((ip >> 16) & 0xFF) != 1) return 3;
     if (((ip >> 24) & 0xFF) != 100) return 4;
-    status = (status & ~(1 << 0)) | (1 << 0);
-    status = (status & ~(1 << 1)) | (1 << 1);
-    status = (status & ~(1 << 2)) | (0 << 2);
-    status = (status & ~(1 << 3)) | (1 << 3);
+    status = (status & ~(1U << 0)) | (1U << 0);
+    status = (status & ~(1U << 1)) | (1U << 1);
+    status = (status & ~(1U << 2)) | (0U << 2);
+    status = (status & ~(1U << 3)) | (1U << 3);
     if (((status >> 0) & 1) != true) return 5;
     if (((status >> 1) & 1) != true) return 6;
     if (((status >> 2) & 1) != false) return 7;

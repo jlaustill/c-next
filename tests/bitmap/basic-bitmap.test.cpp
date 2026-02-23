@@ -23,9 +23,9 @@ typedef uint8_t MotorFlags;
 MotorFlags flags = 0;
 
 int main(void) {
-    flags = (flags & ~(1 << 0)) | (1 << 0);
-    flags = (flags & ~(1 << 1)) | (0 << 1);
-    flags = (flags & ~(1 << 2)) | (1 << 2);
+    flags = (flags & ~(1U << 0)) | (1U << 0);
+    flags = (flags & ~(1U << 1)) | (0U << 1);
+    flags = (flags & ~(1U << 2)) | (1U << 2);
     flags = (flags & ~(0x7 << 3)) | ((5 & 0x7) << 3);
     bool isRunning = ((flags >> 0) & 1);
     bool hasFault = ((flags >> 2) & 1);

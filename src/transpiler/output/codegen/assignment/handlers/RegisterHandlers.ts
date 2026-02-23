@@ -50,10 +50,10 @@ function handleRegisterBit(ctx: IAssignmentContext): string {
       bitIndex,
       true,
     );
-    return `${fullName} = (1 << ${bitIndex});`;
+    return `${fullName} = (1U << ${bitIndex});`;
   }
 
-  return `${fullName} = (${fullName} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
+  return `${fullName} = (${fullName} & ~(1U << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
 }
 
 /**
@@ -144,10 +144,10 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
       bitIndex,
       true,
     );
-    return `${regName} = (1 << ${bitIndex});`;
+    return `${regName} = (1U << ${bitIndex});`;
   }
 
-  return `${regName} = (${regName} & ~(1 << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
+  return `${regName} = (${regName} & ~(1U << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
 }
 
 /**

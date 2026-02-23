@@ -31,7 +31,7 @@ uint32_t checkParamLength(const StatusFlags& param) {
 }
 
 int main(void) {
-    globalVar = (globalVar & ~(1 << 0)) | (1 << 0);
+    globalVar = (globalVar & ~(1U << 0)) | (1U << 0);
     if (32 != 32) {
         return 1;
     }
@@ -47,12 +47,12 @@ int main(void) {
         return 4;
     }
     StatusFlags localVar = {0};
-    localVar = (localVar & ~(1 << 0)) | (1 << 0);
+    localVar = (localVar & ~(1U << 0)) | (1U << 0);
     if (32 != 32) {
         return 5;
     }
     StatusFlags testVal = {0};
-    testVal = (testVal & ~(1 << 0)) | (1 << 0);
+    testVal = (testVal & ~(1U << 0)) | (1U << 0);
     result = checkParamLength(testVal);
     if (result != 32) {
         return 6;

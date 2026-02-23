@@ -37,11 +37,11 @@ extern const uint32_t BLINK_DELAY = 1000U;
 /* Scope: LED */
 
 void LED_on(void) {
-    GPIO7_DR_SET = (1 << LED_BIT);
+    GPIO7_DR_SET = (1U << LED_BIT);
 }
 
 void LED_off(void) {
-    GPIO7_DR_CLEAR = (1 << LED_BIT);
+    GPIO7_DR_CLEAR = (1U << LED_BIT);
 }
 
 void setup(void) {

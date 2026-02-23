@@ -45,9 +45,9 @@ int main(void) {
     if (((color >> 0) & 0xFF) != 0) return 4;
     if (((color >> 8) & 0xFF) != 128) return 5;
     if (((color >> 16) & 0xFF) != 64) return 6;
-    sensor = (sensor & ~(1 << 0)) | (1 << 0);
-    sensor = (sensor & ~(1 << 1)) | (0 << 1);
-    sensor = (sensor & ~(1 << 2)) | (1 << 2);
+    sensor = (sensor & ~(1U << 0)) | (1U << 0);
+    sensor = (sensor & ~(1U << 1)) | (0U << 1);
+    sensor = (sensor & ~(1U << 2)) | (1U << 2);
     if (((sensor >> 0) & 1) != true) return 7;
     if (((sensor >> 1) & 1) != false) return 8;
     if (((sensor >> 2) & 1) != true) return 9;

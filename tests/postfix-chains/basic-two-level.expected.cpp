@@ -36,7 +36,7 @@ int main(void) {
     points[0].x = 5;
     points[0].y = 15;
     int32_t px = points[0].x;
-    GPIO_DR = (GPIO_DR & ~(1 << 3)) | (1 << 3);
+    GPIO_DR = (GPIO_DR & ~(1U << 3)) | (1U << 3);
     bool bit = ((GPIO_DR >> 5) & 1);
-    GPIO_DR_SET = (1 << 7);
+    GPIO_DR_SET = (1U << 7);
 }
