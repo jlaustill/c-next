@@ -17,6 +17,17 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 There are NO exceptions. Do not ignore, dismiss, or defer bugs without creating an issue. Pre-existing bugs found during other work still require tracking.
 
+### No Duplicate Code Paths — ZERO EXCEPTIONS
+
+**NEVER create or perpetuate duplicate code paths.** If changing something in one place requires a corresponding change in another place, that is a bug in the architecture. Fix it immediately.
+
+- If two interfaces need the same fields, extract a shared type or push the data onto the shared model (e.g., `IParameterSymbol`)
+- If two code paths must produce identical output, they MUST share the same logic — not copy it
+- When fixing a bug caused by divergent paths, **unify the paths** rather than patching both independently
+- **Example (Issue #914):** `.c` and `.h` generation had separate callback-handling logic. The fix resolved callback info ONCE onto `IParameterSymbol`, eliminating the duplicate path entirely
+
+Having to update something in 2 places instead of 1 is the WORST anti-pattern in this project. When you find it, fix it.
+
 ### Project Hygiene
 
 - No root-level analysis artifacts (`*.csv`, `*-report.md`) — use terminal or `docs/`
@@ -170,11 +181,11 @@ export default new Registry();
 
 ### Symbol Types
 
-| Type             | Purpose                        | Status           |
-| ---------------- | ------------------------------ | ---------------- |
-| `TSymbol`        | New discriminated union        | Use for new code |
-| `ISymbol`        | Legacy flat interface          | Being phased out |
-| `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Backwards compat |
+| Type             | Purpose                        | Status            |
+| ---------------- | ------------------------------ | ----------------- |
+| `TSymbol`        | New discriminated union        | Use for new code  |
+| `ISymbol`        | Legacy flat interface          | Removed (Phase 7) |
+| `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Removed (Phase 7) |
 
 **Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
@@ -190,7 +201,6 @@ export default new Registry();
 - **C/C++ symbols use string types**: Unlike C-Next's `TType`, pass through unchanged
 - **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`)
 - **Adapters**: `CTSymbolAdapter`, `CppTSymbolAdapter` convert to legacy `ISymbol[]`
-- **Remaining work**: #803 (Phase 5 - migrate consumers), #804 (Phase 6 - C++/C resolvers), #805 (Phase 7 - remove legacy)
 
 ### Enum `expectedType` Contexts
 
@@ -221,6 +231,7 @@ export default new Registry();
 - **Analyzer test isolation**: Use `CodeGenState.reset()` in `afterEach` when tests set `CodeGenState.symbols`
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0
+- **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
 
 ---
 
@@ -290,7 +301,7 @@ Header directive propagation is handled by `IncludeResolver.resolve()` for all i
 
 - **expectedType**: Use `this.context.expectedType` to disambiguate (e.g., enum members)
 - **Struct access**: Track `currentStructType` through member chains
-- **C++ mode**: Coordinate changes in `generateParameter()`, member access, `_generateFunctionArg()`, and HeaderGenerator
+- **C++ mode**: Parameter signatures go through `ParameterSignatureBuilder.build()` — single path for both `.c` and `.h` generation. Use `CppModeHelper` for mode-specific logic
 - **Handler state**: Access via `CodeGenState` (properties) and `CodeGenState.generator!` (methods)
 - **CodeGenState**: Sole state container — don't add instance state to CodeGenerator
 

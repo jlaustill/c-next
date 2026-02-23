@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import TypedefParamParser from "../TypedefParamParser";
+import IParameterSymbol from "../../../../../utils/types/IParameterSymbol";
 
 describe("TypedefParamParser", () => {
   describe("parse", () => {
@@ -204,6 +205,93 @@ describe("TypedefParamParser", () => {
       expect(TypedefParamParser.shouldBeConst(typedef, 0)).toBe(false);
       expect(TypedefParamParser.shouldBeConst(typedef, 1)).toBe(true);
       expect(TypedefParamParser.shouldBeConst(typedef, 2)).toBe(false);
+    });
+  });
+
+  describe("resolveCallbackParams (Issue #914)", () => {
+    function makeParam(
+      name: string,
+      type: string,
+      overrides?: Partial<IParameterSymbol>,
+    ): IParameterSymbol {
+      return {
+        name,
+        type,
+        isConst: false,
+        isArray: false,
+        ...overrides,
+      };
+    }
+
+    it("should set isCallbackPointer for pointer params", () => {
+      const params = [makeParam("w", "widget_t"), makeParam("buf", "u8")];
+      const typedef = "void (*)(widget_t *, uint8_t *)";
+
+      const result = TypedefParamParser.resolveCallbackParams(params, typedef);
+
+      expect(result[0].isCallbackPointer).toBe(true);
+      expect(result[1].isCallbackPointer).toBe(true);
+    });
+
+    it("should set isCallbackConst for const pointer params", () => {
+      const params = [
+        makeParam("w", "widget_t"),
+        makeParam("area", "rect_t"),
+        makeParam("buf", "u8"),
+      ];
+      const typedef = "void (*)(widget_t *, const rect_t *, uint8_t *)";
+
+      const result = TypedefParamParser.resolveCallbackParams(params, typedef);
+
+      expect(result[0].isCallbackPointer).toBe(true);
+      expect(result[0].isCallbackConst).toBe(false);
+
+      expect(result[1].isCallbackPointer).toBe(true);
+      expect(result[1].isCallbackConst).toBe(true);
+
+      expect(result[2].isCallbackPointer).toBe(true);
+      expect(result[2].isCallbackConst).toBe(false);
+    });
+
+    it("should not set callback flags for value params", () => {
+      const params = [makeParam("count", "u32")];
+      const typedef = "void (*)(int count)";
+
+      const result = TypedefParamParser.resolveCallbackParams(params, typedef);
+
+      expect(result[0].isCallbackPointer).toBe(false);
+      expect(result[0].isCallbackConst).toBe(false);
+    });
+
+    it("should preserve existing param fields", () => {
+      const params = [
+        makeParam("data", "u8", {
+          isConst: true,
+          isArray: true,
+          arrayDimensions: ["10"],
+        }),
+      ];
+      const typedef = "void (*)(uint8_t *)";
+
+      const result = TypedefParamParser.resolveCallbackParams(params, typedef);
+
+      expect(result[0].name).toBe("data");
+      expect(result[0].type).toBe("u8");
+      expect(result[0].isConst).toBe(true);
+      expect(result[0].isArray).toBe(true);
+      expect(result[0].arrayDimensions).toEqual(["10"]);
+      expect(result[0].isCallbackPointer).toBe(true);
+    });
+
+    it("should handle params beyond typedef length gracefully", () => {
+      const params = [makeParam("w", "widget_t"), makeParam("extra", "u32")];
+      const typedef = "void (*)(widget_t *)";
+
+      const result = TypedefParamParser.resolveCallbackParams(params, typedef);
+
+      expect(result[0].isCallbackPointer).toBe(true);
+      expect(result[1].isCallbackPointer).toBeUndefined();
+      expect(result[1].isCallbackConst).toBeUndefined();
     });
   });
 });

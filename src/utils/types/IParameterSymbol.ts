@@ -8,6 +8,8 @@ interface IParameterSymbol {
   isArray: boolean;
   arrayDimensions?: string[]; // e.g., ["10", "20"] or ["", ""] for unbounded
   isAutoConst?: boolean; // Issue #268: true if parameter should get auto-const (unmodified pointer)
+  isCallbackPointer?: boolean; // Issue #914: typedef says this param must be a pointer
+  isCallbackConst?: boolean; // Issue #914: typedef says this param must be const
 }
 
 export default IParameterSymbol;

@@ -285,6 +285,54 @@ describe("ParameterInputAdapter", () => {
 
       expect(result.isAutoConst).toBe(false);
     });
+
+    it("forces pointer when isCallbackPointer is set (Issue #914)", () => {
+      const param: IParameterSymbol = {
+        name: "buf",
+        type: "u8",
+        isConst: false,
+        isArray: false,
+        isCallbackPointer: true,
+      };
+
+      // Even though deps says pass-by-value, callback overrides it
+      const deps = { ...defaultDeps, isPassByValue: true };
+      const result = ParameterInputAdapter.fromSymbol(param, deps);
+
+      expect(result.isPassByValue).toBe(false);
+      expect(result.isPassByReference).toBe(true);
+      expect(result.forcePointerSyntax).toBe(true);
+    });
+
+    it("forces const when isCallbackConst is set (Issue #914)", () => {
+      const param: IParameterSymbol = {
+        name: "area",
+        type: "rect_t",
+        isConst: false,
+        isArray: false,
+        isCallbackPointer: true,
+        isCallbackConst: true,
+      };
+
+      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
+
+      expect(result.forceConst).toBe(true);
+      expect(result.forcePointerSyntax).toBe(true);
+    });
+
+    it("does not force pointer when isCallbackPointer is not set", () => {
+      const param: IParameterSymbol = {
+        name: "value",
+        type: "u32",
+        isConst: false,
+        isArray: false,
+      };
+
+      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
+
+      expect(result.forcePointerSyntax).toBeUndefined();
+      expect(result.forceConst).toBeUndefined();
+    });
   });
 
   describe("fromAST", () => {
