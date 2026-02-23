@@ -20,6 +20,8 @@ function createFunctionSymbol(
     isAutoConst?: boolean;
     isArray?: boolean;
     arrayDimensions?: string[];
+    isCallbackPointer?: boolean;
+    isCallbackConst?: boolean;
   }>,
 ): IHeaderSymbol {
   return {
@@ -36,6 +38,8 @@ function createFunctionSymbol(
       isAutoConst: p.isAutoConst ?? false,
       isArray: p.isArray ?? false,
       arrayDimensions: p.arrayDimensions,
+      isCallbackPointer: p.isCallbackPointer,
+      isCallbackConst: p.isCallbackConst,
     })),
   };
 }
@@ -237,6 +241,89 @@ describe("BaseHeaderGenerator", () => {
       const result = cGenerator.generate(symbols, "test.h");
 
       expect(result).toContain("void processData(const MyStruct* data);");
+    });
+  });
+
+  describe("Callback-compatible functions (Issue #914)", () => {
+    it("should use pointer for primitive param when isCallbackPointer is set (C mode)", () => {
+      const generator = new CHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("Renderer_flush", "void", [
+          { name: "buf", type: "u8", isCallbackPointer: true },
+        ]),
+      ];
+
+      const result = generator.generate(symbols, "test.h");
+
+      expect(result).toContain("uint8_t* buf");
+    });
+
+    it("should use pointer for primitive param when isCallbackPointer is set (C++ mode)", () => {
+      const generator = new CppHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("Renderer_flush", "void", [
+          { name: "buf", type: "u8", isCallbackPointer: true },
+        ]),
+      ];
+
+      const result = generator.generate(symbols, "test.h");
+
+      // Must use * not & because headers are wrapped in extern "C"
+      expect(result).toContain("uint8_t* buf");
+    });
+
+    it("should use const pointer for struct param with isCallbackConst (C mode)", () => {
+      const generator = new CHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("Renderer_flush", "void", [
+          {
+            name: "area",
+            type: "rect_t",
+            isCallbackPointer: true,
+            isCallbackConst: true,
+          },
+        ]),
+      ];
+
+      const result = generator.generate(symbols, "test.h");
+
+      expect(result).toContain("const rect_t* area");
+    });
+
+    it("should use non-const pointer for struct param without isCallbackConst (C++ mode)", () => {
+      const generator = new CppHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("Renderer_flush", "void", [
+          { name: "w", type: "widget_t", isCallbackPointer: true },
+        ]),
+      ];
+
+      const result = generator.generate(symbols, "test.h");
+
+      // Must use * not & for callback params
+      expect(result).toContain("widget_t* w");
+    });
+
+    it("should handle mixed callback and non-callback params", () => {
+      const generator = new CHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("Renderer_flush", "void", [
+          { name: "w", type: "widget_t", isCallbackPointer: true },
+          {
+            name: "area",
+            type: "rect_t",
+            isCallbackPointer: true,
+            isCallbackConst: true,
+          },
+          { name: "buf", type: "u8", isCallbackPointer: true },
+        ]),
+      ];
+
+      const result = generator.generate(symbols, "test.h");
+
+      expect(result).toContain(
+        "void Renderer_flush(widget_t* w, const rect_t* area, uint8_t* buf);",
+      );
     });
   });
 });

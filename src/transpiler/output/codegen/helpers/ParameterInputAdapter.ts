@@ -212,6 +212,9 @@ class ParameterInputAdapter {
       };
     }
 
+    // Issue #914: Callback typedef overrides — param carries resolved pointer/const info
+    const isCallbackPointer = param.isCallbackPointer ?? false;
+
     return {
       name: param.name,
       baseType: param.type,
@@ -221,8 +224,10 @@ class ParameterInputAdapter {
       isArray: false,
       isCallback: false,
       isString: false,
-      isPassByValue: deps.isPassByValue,
-      isPassByReference: !deps.isPassByValue,
+      isPassByValue: isCallbackPointer ? false : deps.isPassByValue,
+      isPassByReference: isCallbackPointer ? true : !deps.isPassByValue,
+      forcePointerSyntax: isCallbackPointer || undefined,
+      forceConst: param.isCallbackConst || undefined,
     };
   }
 

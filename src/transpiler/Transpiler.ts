@@ -61,6 +61,7 @@ import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
+import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 
 /**
  * Unified transpiler
@@ -1327,36 +1328,52 @@ class Transpiler {
     return symbols.map((symbol) => {
       const headerSymbol = HeaderSymbolAdapter.fromTSymbol(symbol);
 
-      // Apply auto-const to function parameters
       if (
-        symbol.kind === "function" &&
-        headerSymbol.parameters &&
-        headerSymbol.parameters.length > 0
+        symbol.kind !== "function" ||
+        !headerSymbol.parameters ||
+        headerSymbol.parameters.length === 0
       ) {
-        const unmodified = unmodifiedParams.get(headerSymbol.name);
-        if (unmodified) {
-          // Create a mutable copy of parameters with auto-const applied
-          const updatedParams = headerSymbol.parameters.map((param) => {
-            const isPointerParam =
-              !param.isConst &&
-              !param.isArray &&
-              param.type !== "f32" &&
-              param.type !== "f64" &&
-              param.type !== "ISR" &&
-              !knownEnums.has(param.type ?? "");
-            const isArrayParam = param.isArray && !param.isConst;
+        return headerSymbol;
+      }
 
-            if (
-              (isPointerParam || isArrayParam) &&
-              unmodified.has(param.name)
-            ) {
-              return { ...param, isAutoConst: true };
-            }
-            return param;
-          });
+      // Issue #914: Resolve callback typedef type for callback-compatible functions
+      const typedefName = CodeGenState.callbackCompatibleFunctions.get(
+        headerSymbol.name,
+      );
+      const callbackTypedefType = typedefName
+        ? CodeGenState.getTypedefType(typedefName)
+        : undefined;
 
-          return { ...headerSymbol, parameters: updatedParams };
-        }
+      // Issue #914: For callback-compatible functions, bake pointer/const overrides
+      // onto each parameter. Skip auto-const (matches CodeGenerator path).
+      if (callbackTypedefType) {
+        const updatedParams = TypedefParamParser.resolveCallbackParams(
+          headerSymbol.parameters,
+          callbackTypedefType,
+        );
+        return { ...headerSymbol, parameters: updatedParams };
+      }
+
+      // Apply auto-const to non-callback function parameters
+      const unmodified = unmodifiedParams.get(headerSymbol.name);
+      if (unmodified) {
+        const updatedParams = headerSymbol.parameters.map((param) => {
+          const isPointerParam =
+            !param.isConst &&
+            !param.isArray &&
+            param.type !== "f32" &&
+            param.type !== "f64" &&
+            param.type !== "ISR" &&
+            !knownEnums.has(param.type ?? "");
+          const isArrayParam = param.isArray && !param.isConst;
+
+          if ((isPointerParam || isArrayParam) && unmodified.has(param.name)) {
+            return { ...param, isAutoConst: true };
+          }
+          return param;
+        });
+
+        return { ...headerSymbol, parameters: updatedParams };
       }
 
       return headerSymbol;

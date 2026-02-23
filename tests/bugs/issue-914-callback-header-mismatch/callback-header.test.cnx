@@ -1,0 +1,20 @@
+// test-transpile-only
+// Issue #914: Public scope function matching callback typedef
+// The header prototype must have pointer params matching the .c implementation
+// Specifically tests that primitive params (u8) get pointer syntax in headers
+
+#include "widget.h"
+
+scope Renderer {
+    // PUBLIC so it appears in the header
+    // flush_cb_t expects: void (*)(widget_t *, const rect_t *, uint8_t *)
+    // u8 buf MUST become uint8_t* buf in BOTH .c AND .h
+    public void flush(widget_t w, const rect_t area, u8 buf) {
+        // no-op for transpile-only test
+    }
+
+    public void init() {
+        widget_t w <- global.widget_create();
+        global.widget_set_flush_cb(w, this.flush);
+    }
+}
