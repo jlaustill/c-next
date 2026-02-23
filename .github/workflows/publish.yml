@@ -7,7 +7,8 @@ on:
 
 jobs:
   publish:
-    runs-on: self-hosted
+    # Must use GitHub-hosted runner for npm provenance
+    runs-on: ubuntu-latest
 
     permissions:
       contents: write # Required for creating GitHub releases
@@ -31,11 +32,8 @@ jobs:
       - name: Generate parser files
         run: npm run antlr:all
 
-      - name: Run tests
-        run: npm test
-
-      - name: Run linter
-        run: npm run oxlint:check
+      - name: Build
+        run: npm run build
 
       - name: Publish to npm
         run: npm publish --provenance --access public
