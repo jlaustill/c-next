@@ -375,18 +375,7 @@ class PassByValueAnalyzer {
     orExpr: Parser.OrExpressionContext,
     handler: (unaryExpr: Parser.UnaryExpressionContext) => void,
   ): void {
-    orExpr
-      .andExpression()
-      .flatMap((and) => and.equalityExpression())
-      .flatMap((eq) => eq.relationalExpression())
-      .flatMap((rel) => rel.bitwiseOrExpression())
-      .flatMap((bor) => bor.bitwiseXorExpression())
-      .flatMap((bxor) => bxor.bitwiseAndExpression())
-      .flatMap((band) => band.shiftExpression())
-      .flatMap((shift) => shift.additiveExpression())
-      .flatMap((add) => add.multiplicativeExpression())
-      .flatMap((mul) => mul.unaryExpression())
-      .forEach(handler);
+    ExpressionUtils.collectUnaryFromOrExpr(orExpr).forEach(handler);
   }
 
   /**

@@ -141,6 +141,57 @@ class ExpressionUtils {
   }
 
   /**
+   * Collect all additive expressions from a ternary expression.
+   *
+   * Uses flatMap chains to traverse the expression grammar efficiently.
+   * Useful for analyzers that need to examine operands at the additive level.
+   *
+   * @param ctx - The ternary expression context
+   * @returns Array of all additive expression contexts in the tree
+   */
+  static collectAdditiveExpressions(
+    ctx: Parser.TernaryExpressionContext,
+  ): Parser.AdditiveExpressionContext[] {
+    return ExpressionUtils.collectAdditiveFromOrExprs(ctx.orExpression());
+  }
+
+  /**
+   * Collect additive expressions from an array of orExpression contexts.
+   *
+   * Internal helper that performs the actual flatMap traversal.
+   */
+  private static collectAdditiveFromOrExprs(
+    orExprs: Parser.OrExpressionContext[],
+  ): Parser.AdditiveExpressionContext[] {
+    return orExprs
+      .flatMap((or) => or.andExpression())
+      .flatMap((and) => and.equalityExpression())
+      .flatMap((eq) => eq.relationalExpression())
+      .flatMap((rel) => rel.bitwiseOrExpression())
+      .flatMap((bor) => bor.bitwiseXorExpression())
+      .flatMap((bxor) => bxor.bitwiseAndExpression())
+      .flatMap((band) => band.shiftExpression())
+      .flatMap((shift) => shift.additiveExpression());
+  }
+
+  /**
+   * Collect all unary expressions from an orExpression context.
+   *
+   * Traverses through the entire expression hierarchy to find all unary expressions.
+   * Useful for analyzers that need to examine leaf operands.
+   *
+   * @param orExpr - The orExpression context
+   * @returns Array of all unary expression contexts in the tree
+   */
+  static collectUnaryFromOrExpr(
+    orExpr: Parser.OrExpressionContext,
+  ): Parser.UnaryExpressionContext[] {
+    return ExpressionUtils.collectAdditiveFromOrExprs([orExpr])
+      .flatMap((add) => add.multiplicativeExpression())
+      .flatMap((mul) => mul.unaryExpression());
+  }
+
+  /**
    * ADR-023: Check if an expression contains a function call anywhere in its tree.
    *
    * This traverses the full expression hierarchy to find any postfix expression

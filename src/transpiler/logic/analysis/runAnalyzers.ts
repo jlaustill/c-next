@@ -2,7 +2,7 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 9 analyzers run in sequence, each returning errors that block compilation.
+ * All 10 analyzers run in sequence, each returning errors that block compilation.
  */
 
 import { CommonTokenStream } from "antlr4ng";
@@ -15,6 +15,7 @@ import NullCheckAnalyzer from "./NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
 import ArrayIndexTypeAnalyzer from "./ArrayIndexTypeAnalyzer";
+import SignedShiftAnalyzer from "./SignedShiftAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
 import SymbolTable from "../symbols/SymbolTable";
@@ -145,7 +146,15 @@ function runAnalyzers(
     return errors;
   }
 
-  // 9. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 9. Signed shift validation (MISRA C:2012 Rule 10.1: no signed shifts)
+  const signedShiftAnalyzer = new SignedShiftAnalyzer();
+  if (
+    collectErrors(signedShiftAnalyzer.analyze(tree), errors, formatWithCode)
+  ) {
+    return errors;
+  }
+
+  // 10. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   collectErrors(
     commentExtractor.validate(),
