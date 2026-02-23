@@ -10,10 +10,14 @@
 // Issue #380: String array initializers with size inference
 // Tests: array size inferred from initializer count
 // Size inferred from initializer count (3 elements)
+// cppcheck-suppress misra-c2012-9.3
+// cppcheck-suppress misra-c2012-9.4
 extern const char DAYS[3][17] = {"Monday", "Tuesday", "Wednesday"};
 
 // Local array with size inference (C-style for string arrays)
 void test(void) {
+    // cppcheck-suppress misra-c2012-9.3
+    // cppcheck-suppress misra-c2012-9.4
     char items[4][9] = {"A", "B", "C", "D"};
     uint8_t count = 4;
 }

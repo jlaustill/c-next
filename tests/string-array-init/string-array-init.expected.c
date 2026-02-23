@@ -12,9 +12,13 @@
 // Issue #380: String array initializers
 // Tests: const string array with inline initialization
 // Array of bounded strings with initializer (C-style allowed for string arrays)
+// cppcheck-suppress misra-c2012-9.3
+// cppcheck-suppress misra-c2012-9.4
 const char LABELS[3][11] = {"One", "Two", "Three"};
 
 // Non-const string array with initializer
+// cppcheck-suppress misra-c2012-9.3
+// cppcheck-suppress misra-c2012-9.4
 char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};
 
 /* Scope: Test */
