@@ -3889,8 +3889,8 @@ export default class CodeGenerator implements IOrchestrator {
     expr: Parser.ExpressionContext,
     declaredType: string,
   ): string | null {
-    // Extract function name from global.funcName(...) pattern
-    const funcName = this._extractGlobalFunctionName(expr);
+    // Extract function name from C function call patterns
+    const funcName = this._extractCFunctionName(expr);
     if (!funcName) {
       return null;
     }
@@ -3918,12 +3918,13 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Extract function name from global.funcName(...) expression pattern.
-   * Returns null if expression doesn't match this pattern.
+   * Extract C function name from expression patterns.
+   * Handles both:
+   * - global.funcName(...) - explicit global access
+   * - funcName(...) - direct call (if funcName is a known C function)
+   * Returns null if expression doesn't match these patterns.
    */
-  private _extractGlobalFunctionName(
-    expr: Parser.ExpressionContext,
-  ): string | null {
+  private _extractCFunctionName(expr: Parser.ExpressionContext): string | null {
     // Navigate to postfix expression
     const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
     if (!postfix) {
@@ -3933,29 +3934,52 @@ export default class CodeGenerator implements IOrchestrator {
     const primary = postfix.primaryExpression();
     const ops = postfix.postfixOp();
 
-    // Must start with 'global' keyword
-    if (!primary.GLOBAL()) {
-      return null;
+    // Pattern 1: global.funcName(...)
+    if (primary.GLOBAL()) {
+      // Must have at least 2 postfix ops: .funcName and (args)
+      if (ops.length < 2) {
+        return null;
+      }
+
+      // First op should be member access with function name
+      const memberOp = ops[0];
+      if (!memberOp.IDENTIFIER()) {
+        return null;
+      }
+
+      // Second op should be function call (argument list)
+      const callOp = ops[1];
+      if (!callOp.argumentList() && !callOp.getText().startsWith("(")) {
+        return null;
+      }
+
+      return memberOp.IDENTIFIER()!.getText();
     }
 
-    // Must have at least 2 postfix ops: .funcName and (args)
-    if (ops.length < 2) {
-      return null;
+    // Pattern 2: funcName(...) - direct call
+    const identifier = primary.IDENTIFIER();
+    if (identifier) {
+      // Must have at least 1 postfix op: (args)
+      if (ops.length < 1) {
+        return null;
+      }
+
+      // First op should be function call (argument list)
+      const callOp = ops[0];
+      if (!callOp.argumentList() && !callOp.getText().startsWith("(")) {
+        return null;
+      }
+
+      const funcName = identifier.getText();
+
+      // Verify this is actually a C function (not a C-Next scope function)
+      const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+      if (cFunc?.kind === "function") {
+        return funcName;
+      }
     }
 
-    // First op should be member access with function name
-    const memberOp = ops[0];
-    if (!memberOp.IDENTIFIER()) {
-      return null;
-    }
-
-    // Second op should be function call (argument list)
-    const callOp = ops[1];
-    if (!callOp.argumentList() && !callOp.getText().startsWith("(")) {
-      return null;
-    }
-
-    return memberOp.IDENTIFIER()!.getText();
+    return null;
   }
 
   /**
