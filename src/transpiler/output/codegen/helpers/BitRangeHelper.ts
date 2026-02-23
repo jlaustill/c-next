@@ -3,6 +3,8 @@
  * Extracted from CodeGenerator to improve testability.
  */
 
+import NarrowingCastHelper from "./NarrowingCastHelper.js";
+
 /**
  * Options for generating float bit read expressions.
  */
@@ -21,6 +23,8 @@ interface IIntegerBitReadOptions {
   varName: string;
   start: string;
   mask: string;
+  sourceType?: string; // Optional: source variable type for cast detection
+  targetType?: string; // Optional: target variable type for cast
 }
 
 /**
@@ -51,14 +55,26 @@ class BitRangeHelper {
   /**
    * Generate integer bit range read: ((value >> start) & mask)
    * Optimizes away the shift when start is 0.
+   *
+   * When sourceType and targetType are provided, wraps the expression
+   * with MISRA 10.3 compliant cast if needed.
    */
   static buildIntegerBitReadExpr(options: IIntegerBitReadOptions): string {
-    const { varName, start, mask } = options;
+    const { varName, start, mask, sourceType, targetType } = options;
 
+    let expr: string;
     if (start === "0") {
-      return `((${varName}) & ${mask})`;
+      expr = `((${varName}) & ${mask})`;
+    } else {
+      expr = `((${varName} >> ${start}) & ${mask})`;
     }
-    return `((${varName} >> ${start}) & ${mask})`;
+
+    // If target type provided, wrap with MISRA cast if needed
+    if (sourceType && targetType) {
+      return NarrowingCastHelper.wrap(expr, sourceType, targetType);
+    }
+
+    return expr;
   }
 
   /**

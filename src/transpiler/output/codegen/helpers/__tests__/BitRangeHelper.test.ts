@@ -2,8 +2,9 @@
  * Unit tests for BitRangeHelper utility.
  * Tests bit range access code generation patterns.
  */
-import { describe, it, expect } from "vitest";
-import BitRangeHelper from "../BitRangeHelper";
+import { describe, it, expect, beforeEach } from "vitest";
+import BitRangeHelper from "../BitRangeHelper.js";
+import CodeGenState from "../../../../state/CodeGenState.js";
 
 describe("BitRangeHelper", () => {
   describe("buildFloatBitReadExpr", () => {
@@ -111,6 +112,56 @@ describe("BitRangeHelper", () => {
       });
 
       expect(result).toBe("((config.registers[0] >> 8) & 0xFFFF)");
+    });
+  });
+
+  describe("buildIntegerBitReadExpr with target type", () => {
+    beforeEach(() => {
+      CodeGenState.reset();
+      CodeGenState.cppMode = false;
+    });
+
+    it("adds cast when target type is narrower than source", () => {
+      const result = BitRangeHelper.buildIntegerBitReadExpr({
+        varName: "value",
+        start: "0",
+        mask: "0xFFU",
+        sourceType: "u32",
+        targetType: "u8",
+      });
+      expect(result).toBe("(uint8_t)((value) & 0xFFU)");
+    });
+
+    it("returns plain expression when no narrowing", () => {
+      const result = BitRangeHelper.buildIntegerBitReadExpr({
+        varName: "value",
+        start: "8",
+        mask: "0xFFFFU",
+        sourceType: "u32",
+        targetType: "u32",
+      });
+      expect(result).toBe("((value >> 8) & 0xFFFFU)");
+    });
+
+    it("returns plain expression when types not provided (backward compatible)", () => {
+      const result = BitRangeHelper.buildIntegerBitReadExpr({
+        varName: "value",
+        start: "0",
+        mask: "0xFFU",
+      });
+      expect(result).toBe("((value) & 0xFFU)");
+    });
+
+    it("uses static_cast in C++ mode", () => {
+      CodeGenState.cppMode = true;
+      const result = BitRangeHelper.buildIntegerBitReadExpr({
+        varName: "value",
+        start: "0",
+        mask: "0xFFU",
+        sourceType: "u32",
+        targetType: "u8",
+      });
+      expect(result).toBe("static_cast<uint8_t>(((value) & 0xFFU))");
     });
   });
 
