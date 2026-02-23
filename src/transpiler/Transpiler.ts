@@ -1107,19 +1107,22 @@ class Transpiler {
     // - #if MACRO != 0
     // - #if MACRO == 1
     // - #if MACRO > 0
+    // - #if MACRO (bare macro as truthy check)
+    // - #elif MACRO != 0
     // - #if defined(X) && MACRO
     // - etc.
     //
     // Simple patterns handled by the parser without preprocessing:
     // - #ifdef MACRO
     // - #ifndef MACRO
-    // - #if defined(MACRO)
+    // - #if defined(MACRO) (single defined check)
     // - #if 1
     // - #if 0
     //
-    // Look for #if followed by an expression (not just defined() or 0/1)
+    // Look for #if/#elif followed by an expression (not just defined() or 0/1)
+    // Also match bare macro names used as truthy checks (common in config headers)
     const ifExpressionPattern =
-      /#if\s+(?!defined\s*\()(?![01]\s*(?:$|\n|\/\*|\/\/))\w+\s*[!=<>]/m;
+      /#(?:if|elif)\s+(?!defined\s*\()(?![01]\s*(?:$|\n|\/\*|\/\/))\w+/m;
     return ifExpressionPattern.test(content);
   }
 
