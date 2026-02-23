@@ -47,9 +47,14 @@ class FunctionCollector {
 
     // Get return type from declaration specifiers
     const declSpecs = funcDef.declarationSpecifiers();
-    const returnType = declSpecs
+    const baseType = declSpecs
       ? DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs)
       : "int";
+
+    // Issue #945: Check if declarator has pointer - means function returns pointer
+    // Same logic as collectFromDeclaration (Issue #895 Bug B)
+    const hasPointer = declarator.pointer() !== null;
+    const returnType = hasPointer ? `${baseType}*` : baseType;
 
     const parameters = FunctionCollector._mapParameters(
       DeclaratorUtils.extractFunctionParameters(declarator),

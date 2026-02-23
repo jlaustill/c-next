@@ -1,0 +1,25 @@
+// test-transpile-only
+// Issue #945: Transpiler preprocessor doesn't evaluate #if MACRO != 0
+//
+// When a C header guards functions with #if MACRO != 0, the transpiler
+// should evaluate the condition using defines from included config headers.
+//
+// The conditional_features.h includes feature_conf.h which defines:
+//   #define FEATURE_LABEL 1
+//
+// Therefore create_label() should be visible to the transpiler.
+// Currently fails: The transpiler doesn't evaluate the #if FEATURE_LABEL != 0 condition.
+
+#include "conditional_features.h"
+
+void test() {
+    // This should work - function is always available
+    u32 x <- always_available();
+
+    // This is the bug: create_label() returns widget_t* (pointer)
+    // If the transpiler can't see it (because #if FEATURE_LABEL != 0 isn't evaluated),
+    // it will either:
+    // 1. Fail with "unknown function" error, or
+    // 2. Guess wrong and generate value type instead of pointer type
+    widget_t label <- global.create_label(null);
+}
