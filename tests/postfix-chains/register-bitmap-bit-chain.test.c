@@ -35,13 +35,13 @@ typedef uint16_t ControlFlags;
 int main(void) {
     MOTOR_STATUS = (MOTOR_STATUS & ~(1U << 0)) | (1U << 0);
     MOTOR_STATUS = (MOTOR_STATUS & ~(1U << 1)) | (0U << 1);
-    MOTOR_STATUS = (MOTOR_STATUS & ~(0x7 << 2)) | ((5 & 0x7) << 2);
+    MOTOR_STATUS = (MOTOR_STATUS & ~(0x7U << 2)) | ((5 & 0x7U) << 2);
     bool isReady = ((MOTOR_STATUS >> 0) & 1);
     bool hasError = ((MOTOR_STATUS >> 1) & 1);
     uint8_t mode = ((MOTOR_STATUS >> 2) & 0x7);
     MOTOR_CONTROL = (MOTOR_CONTROL & ~(1U << 0)) | (1U << 0);
     MOTOR_CONTROL = (MOTOR_CONTROL & ~(1U << 1)) | (0U << 1);
-    MOTOR_CONTROL = (MOTOR_CONTROL & ~(0xFF << 2)) | ((127 & 0xFF) << 2);
+    MOTOR_CONTROL = (MOTOR_CONTROL & ~(0xFFU << 2)) | ((127 & 0xFFU) << 2);
     uint8_t speed = ((MOTOR_CONTROL >> 2) & 0xFF);
     bool enabled = ((MOTOR_CONTROL >> 0) & 1);
     MOTOR_DATA = (MOTOR_DATA & ~(1U << 0)) | (1U << 0);

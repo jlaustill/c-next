@@ -350,7 +350,8 @@
     "nanf",
     "nanl",
     "testuser",
-    "pathnorm"
+    "pathnorm",
+    "DEADBEEFU"
   ],
   "ignorePaths": [
     "node_modules/**",
