@@ -16,14 +16,14 @@ int main(void) {
     uint16_t or_result = a | b;
     uint16_t xor_result = a ^ b;
     uint16_t c = 0xAAAAU;
-    uint16_t not_result = ~c;
+    uint16_t not_result = static_cast<uint16_t>(~c);
     uint16_t bin_a = 0b1111111100000000U;
     uint16_t bin_b = 0b1010101010101010U;
     uint16_t bin_and = bin_a & bin_b;
     uint16_t dec_and = 65280U & 43690U;
     uint16_t dec_or = 65280U | 43690U;
     uint16_t all_bits = 0xFFFFU;
-    uint16_t not_all = ~all_bits;
+    uint16_t not_all = static_cast<uint16_t>(~all_bits);
     if (and_result == 43520 && or_result == 65450 && xor_result == 21930 && not_result == 21845) {
         if (bin_and == 43520 && dec_and == 43520 && dec_or == 65450 && not_all == 0) {
             return 0;

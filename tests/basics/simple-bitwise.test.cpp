@@ -19,7 +19,7 @@ int main(void) {
     result = a ^ b;
     if (result != 0b01011010) return 3;
     uint8_t c = 0b00001111U;
-    uint8_t notC = ~c;
+    uint8_t notC = static_cast<uint8_t>(~c);
     if (notC != 0b11110000) return 4;
     uint8_t d = 0b00000001U;
     uint8_t shifted = d << 4U;

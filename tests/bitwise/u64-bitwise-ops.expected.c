@@ -16,13 +16,13 @@ int main(void) {
     uint64_t or_result = a | b;
     uint64_t xor_result = a ^ b;
     uint64_t c = 0xAAAAAAAAAAAAAAAAULL;
-    uint64_t not_result = ~c;
+    uint64_t not_result = (uint64_t)~c;
     uint64_t small_a = 0xFFA0ULL;
     uint64_t small_b = 0xAAULL;
     uint64_t small_and = small_a & small_b;
     uint64_t small_or = small_a | small_b;
     uint64_t all_bits = 0xFFFFFFFFFFFFFFFFULL;
-    uint64_t not_all = ~all_bits;
+    uint64_t not_all = (uint64_t)~all_bits;
     uint64_t lower32 = 0x12345678ULL;
     uint64_t mask32 = 0x00000000FFFFFFFFULL;
     uint64_t masked = lower32 & mask32;

@@ -17,7 +17,7 @@ int main(void) {
     uint16_t d = 0xFFU;
     uint16_t shift_and_mask = (d << 8U) & 0xF000U;
     uint8_t e = 0b11110000U;
-    uint8_t not_and_shift = (~e) << 2U;
+    uint8_t not_and_shift = (static_cast<uint8_t>(~e)) << 2U;
     uint32_t flags = 0b11001100U;
     uint32_t toggle = flags ^ 0b00110011U;
     uint32_t toggle_back = toggle ^ 0b00110011U;
