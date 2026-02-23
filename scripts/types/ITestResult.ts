@@ -1,4 +1,4 @@
-import type { IModeResult } from "./ITestMode";
+import type IModeResult from "./ITestMode";
 
 /**
  * Result of running a single test
@@ -26,6 +26,14 @@ interface ITestResult {
   cSkipped?: boolean;
   /** Whether C++ mode was skipped (test-c-only marker) */
   cppSkipped?: boolean;
+
+  // Parity tracking (Issue #922)
+  /** Whether parity was checked (both modes ran with execution) */
+  parityChecked?: boolean;
+  /** Whether outputs matched between C and C++ modes */
+  parityPassed?: boolean;
+  /** Details of parity mismatch (stdout differences) */
+  parityError?: string;
 }
 
 export default ITestResult;
