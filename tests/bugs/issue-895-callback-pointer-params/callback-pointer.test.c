@@ -23,15 +23,15 @@ void my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
 }
 
 int main(void) {
-    widget_t* w = widget_create();
-    widget_set_flush_cb(w, my_flush);
+    widget_t w = widget_create();
+    widget_set_flush_cb(&w, my_flush);
     rect_t area = {0};
     area.x = 10U;
     area.y = 20U;
     area.width = 100U;
     area.height = 50U;
     uint8_t buffer[4] = {0xABU, 0xCDU, 0xEFU, 0x12U};
-    widget_trigger_flush(w, &area, buffer);
+    widget_trigger_flush(&w, &area, buffer);
     bool called = widget_flush_was_called;
     if (!called) return 1;
     uint16_t ax = widget_flush_area_x;
@@ -40,6 +40,6 @@ int main(void) {
     if (ay != 20) return 3;
     uint8_t first = widget_flush_buf_first_byte;
     if (first != 0xAB) return 4;
-    widget_destroy(w);
+    widget_destroy(&w);
     return 0;
 }

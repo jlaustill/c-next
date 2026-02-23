@@ -22,6 +22,6 @@ static void Renderer_my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
 }
 
 void Renderer_init(void) {
-    widget_t* w = widget_create();
-    widget_set_flush_cb(w, Renderer_my_flush);
+    widget_t w = widget_create();
+    widget_set_flush_cb(&w, Renderer_my_flush);
 }
