@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-02-23
+
+### Fixed
+
+- Fix opaque types generating as values instead of pointers (#895 Bug A)
+- Fix pointer return type not inferred from C function calls (#895 Bug B)
+- Fix primitive params not matching callback typedef signatures (#895 Bug C)
+- Support direct C function calls without `global.` prefix for pointer inference (#895)
+- MISRA Rule 10.1: Use unsigned literals in bit shift operations (#843)
+- MISRA Rules 9.3/9.4: Add suppression for string array initialization (#851)
+- MISRA Rule 8.5: Remove extern from const definitions in C mode (#852)
+- Exclude error test files from MISRA/cppcheck validation (#853)
+
+### Changed
+
+- Reduce cognitive complexity in `_extractCFunctionName` via helper extraction
+- Improve type safety in `FunctionCollector` with proper `DeclaratorContext` typing
+
 ## [0.2.5] - 2026-02-22
 
 ### Added
@@ -23,8 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix callback functions generating wrong pointer signatures (#895)
-- Preserve const from callback typedef signatures (#895)
 - Detect C++ reference params in `hasCppFeatures()`
 
 ## [0.2.4] - 2026-02-22
@@ -1094,7 +1110,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/jlaustill/c-next/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/jlaustill/c-next/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/jlaustill/c-next/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/jlaustill/c-next/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/jlaustill/c-next/compare/v0.2.1...v0.2.2
