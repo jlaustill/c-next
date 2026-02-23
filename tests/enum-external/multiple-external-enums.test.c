@@ -3,7 +3,6 @@
  * A safer C for embedded systems
  */
 
-// test-transpile-only
 // Issue #465: Test multiple external enums from different files
 // Verifies that enum prefixing works when including multiple files with enums
 #include "types.h"

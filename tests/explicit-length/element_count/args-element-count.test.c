@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <string.h>
 
-// test-transpile-only
 // Tests args.element_count property (ADR-058)
 // args.element_count returns argc
 int main(int argc, char *argv[]) {

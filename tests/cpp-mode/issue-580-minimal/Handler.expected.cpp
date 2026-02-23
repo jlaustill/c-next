@@ -6,7 +6,6 @@
 #include "Handler.test.h"
 
 // test-cpp-only
-// test-transpile-only
 // Issue #580 minimal reproduction: function with ONLY a pass-through call
 #include "Config.h"
 #include "Modifier.h"

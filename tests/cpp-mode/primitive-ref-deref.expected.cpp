@@ -8,7 +8,6 @@
 #include <stdint.h>
 
 // test-cpp-only
-// test-transpile-only
 // Bug #558: Primitive parameter reassigned should not use pointer dereference in C++ mode
 // When a primitive is reassigned, it becomes a reference (uint32_t&)
 // The body should use 'val' directly, not '(*val)'
@@ -24,5 +23,8 @@ uint32_t Test_process(uint32_t& val) {
 }
 
 int main(void) {
-    uint32_t result = Test_process(5U);
+    uint32_t input = 5U;
+    uint32_t result = Test_process(input);
+    if (result != 6) return 1;
+    return 0;
 }
