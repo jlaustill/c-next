@@ -1,0 +1,49 @@
+// test-execution
+// test-c-only
+// Bug #937: Callback params dereferenced when forwarded to global. calls
+// When a scope function matches a callback typedef, its promoted pointer params
+// should be passed directly to global. function calls, not dereferenced.
+
+#include "widget.h"
+
+scope Port {
+    void my_flush(widget_t w, const rect_t area, u8 buf) {
+        i32 x2 <- area.x2 + 1;
+        i32 y2 <- area.y2 + 1;
+        // buf should be passed as-is (uint8_t*), not dereferenced (*buf = uint8_t)
+        global.draw_bitmap(0, area.x1, area.y1, x2, y2, buf);
+        // w should be passed as-is (widget_t*), not &(*w)
+        global.flush_ready(w);
+    }
+
+    public void init() {
+        global.register_flush(this.my_flush);
+    }
+}
+
+i32 main() {
+    Port.init();
+
+    // Create test data
+    rect_t r <- {x1: 10, y1: 20, x2: 100, y2: 200};
+    u8[4] buffer <- [0xAA, 0xBB, 0xCC, 0xDD];
+    widget_t dummy_widget <- {dummy: 42};
+
+    // Invoke the callback via helper - the callback should forward params correctly
+    i32 invoked <- global.invoke_registered_cb(&dummy_widget, &r, buffer);
+    if (invoked = 0) return 1;
+
+    // Verify the forwarded values
+    if (last_x1 != 10) return 2;
+    if (last_y1 != 20) return 3;
+    if (last_x2 != 101) return 4;  // x2 + 1
+    if (last_y2 != 201) return 5;  // y2 + 1
+
+    // Verify buf was forwarded as pointer (last_data should point to buffer)
+    if (last_data != buffer) return 6;
+
+    // Verify w was forwarded correctly
+    if (last_widget != &dummy_widget) return 7;
+
+    return 0;
+}

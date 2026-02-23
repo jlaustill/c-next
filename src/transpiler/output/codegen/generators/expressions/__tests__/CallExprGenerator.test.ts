@@ -379,6 +379,66 @@ describe("CallExprGenerator", () => {
 
       expect(result.code).toBe("c_func(unknown)");
     });
+
+    it("Issue #937: passes callback-promoted params directly to pointer-expecting C functions", () => {
+      // When a C-Next param matches a callback typedef (e.g., u8 buf -> uint8_t* buf),
+      // and it's passed to a C function expecting a pointer, use identifier directly
+      const argExprs = [createMockExpressionContext("buf")];
+      const argCtx = createMockArgListContext(argExprs);
+      const sigs = new Map([
+        [
+          "draw_bitmap",
+          {
+            name: "draw_bitmap",
+            parameters: [
+              {
+                name: "data",
+                baseType: "const void*",
+                isConst: true,
+                isArray: false,
+              },
+            ],
+          },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs });
+      const state = createMockState();
+
+      // Set up CodeGenState.currentParameters to simulate callback-promoted param
+      CodeGenState.currentParameters.set("buf", {
+        name: "buf",
+        baseType: "u8",
+        isArray: false,
+        isStruct: false,
+        isConst: false,
+        isCallback: false,
+        isString: false,
+        forcePointerSemantics: true, // Callback-promoted param
+      });
+
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => false),
+        getSimpleIdentifier: vi.fn(() => "buf"),
+        // generateExpression would return (*buf) if called, but we bypass it
+        generateExpression: vi.fn(() => "(*buf)"),
+        getExpressionType: vi.fn(() => "u8"),
+        isStructType: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "draw_bitmap",
+        argCtx,
+        input,
+        state,
+        orchestrator,
+      );
+
+      // Should pass buf directly, NOT (*buf) or &(*buf)
+      expect(result.code).toBe("draw_bitmap(buf)");
+
+      // Clean up
+      CodeGenState.currentParameters.clear();
+    });
   });
 
   describe("C++ enum class static_cast", () => {

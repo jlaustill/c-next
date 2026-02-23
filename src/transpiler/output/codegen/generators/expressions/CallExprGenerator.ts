@@ -114,6 +114,26 @@ const _generateCFunctionArg = (
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string => {
+  // Issue #937: Check if argument is a callback-promoted parameter (already a pointer)
+  // BEFORE generating the expression. If target expects a pointer and we have a
+  // callback-promoted param, use the identifier directly instead of dereferencing.
+  const argIdentifier = orchestrator.getSimpleIdentifier(e);
+  const paramInfo = argIdentifier
+    ? CodeGenState.currentParameters.get(argIdentifier)
+    : undefined;
+  const isCallbackPromotedParam = paramInfo?.forcePointerSemantics ?? false;
+
+  // If target expects a pointer and argument is a callback-promoted param,
+  // use the identifier directly (it's already a pointer matching the typedef)
+  if (targetParam?.baseType?.endsWith("*") && isCallbackPromotedParam) {
+    return wrapWithCppEnumCast(
+      argIdentifier!,
+      e,
+      targetParam?.baseType,
+      orchestrator,
+    );
+  }
+
   let argCode = orchestrator.generateExpression(e);
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
