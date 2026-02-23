@@ -1,0 +1,17 @@
+// test-transpile-only
+// Issue #895 Bug B: Opaque type local variables should be pointers
+// when initialized from a C function returning pointer to opaque type.
+#include "widget.h"
+
+void test_opaque_local() {
+    widget_t w <- global.widget_create(480, 320);
+    i32 width <- global.widget_get_width(w);
+    global.widget_destroy(w);
+}
+
+scope Display {
+    public void init() {
+        widget_t screen <- global.widget_create(800, 600);
+        global.widget_destroy(screen);
+    }
+}

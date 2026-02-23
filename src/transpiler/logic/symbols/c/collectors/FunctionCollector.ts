@@ -89,6 +89,11 @@ class FunctionCollector {
       DeclaratorUtils.extractFunctionParameters(declarator),
     );
 
+    // Issue #895 Bug B: Check if declarator has pointer - means function returns pointer
+    // In C grammar: widget_t *func() has declarator with pointer() before directDeclarator
+    const hasPointer = Boolean(declarator.pointer?.());
+    const returnType = hasPointer ? `${baseType}*` : baseType;
+
     return {
       kind: "function",
       name,
@@ -96,7 +101,7 @@ class FunctionCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
       isExported: !isExtern,
-      type: baseType,
+      type: returnType,
       parameters: parameters.length > 0 ? parameters : undefined,
       isDeclaration: true,
     };

@@ -46,6 +46,11 @@ class ArgumentGenerator {
       return id;
     }
 
+    // Issue #895 Bug B: Inferred pointers are already pointers, don't add &
+    if (typeInfo?.isPointer) {
+      return id;
+    }
+
     // Scope member - may need prefixing
     if (CodeGenState.currentScope) {
       const members = CodeGenState.getScopeMembers(CodeGenState.currentScope);

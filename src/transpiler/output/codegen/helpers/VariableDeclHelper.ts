@@ -139,6 +139,8 @@ interface IVariableDeclCallbacks {
     ctx: Parser.VariableDeclarationContext,
     name: string,
   ) => void;
+  /** Issue #895 Bug B: Mark variable as pointer in type registry */
+  markVariableAsPointer: (name: string) => void;
   /** Get string concatenation operands */
   getStringConcatOperands: (
     ctx: Parser.ExpressionContext,
@@ -590,6 +592,11 @@ class VariableDeclHelper {
 
     // Track local variable metadata
     callbacks.trackLocalVariable(ctx, name);
+
+    // Issue #895 Bug B: If type was inferred as pointer, mark it in the registry
+    if (type.endsWith("*")) {
+      callbacks.markVariableAsPointer(name);
+    }
 
     // ADR-045: Handle bounded string type specially - early return
     const stringResult = StringDeclHelper.generateStringDecl(
