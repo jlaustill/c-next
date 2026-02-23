@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "switch-inside-scope.test.h"
+#include "switch-inside-scope.test.hpp"
 
 #include <stdint.h>
 

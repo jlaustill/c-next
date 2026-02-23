@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-call-no-auto-const.test.h"
+#include "scope-call-no-auto-const.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "bitmap-field-assignment.test.h"
+#include "bitmap-field-assignment.test.hpp"
 
 // Test that bitmap field assignment on register members generates correct bit manipulation
 // Tests this.SysTick.CTRL.ENABLE <- false pattern

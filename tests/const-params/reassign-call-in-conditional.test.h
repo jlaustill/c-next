@@ -20,8 +20,8 @@ typedef struct Config {
 } Config;
 
 /* Function prototypes */
-uint8_t CommandHandler_setValue(Config& cfg, uint32_t val);
-uint8_t CommandHandler_enable(Config& cfg);
+uint8_t CommandHandler_setValue(Config* cfg, uint32_t val);
+uint8_t CommandHandler_enable(Config* cfg);
 
 #ifdef __cplusplus
 }

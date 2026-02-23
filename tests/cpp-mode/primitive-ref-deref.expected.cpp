@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "primitive-ref-deref.test.h"
+#include "primitive-ref-deref.test.hpp"
 
 #include <stdint.h>
 

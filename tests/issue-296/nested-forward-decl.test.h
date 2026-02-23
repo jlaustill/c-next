@@ -15,9 +15,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Collision_setBounds(const BoundingBox& newBounds);
+void Collision_setBounds(const BoundingBox* newBounds);
 BoundingBox Collision_getBounds(void);
-bool Collision_contains(const Vector2D& point);
+bool Collision_contains(const Vector2D* point);
 
 #ifdef __cplusplus
 }

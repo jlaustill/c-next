@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-type-return.test.h"
+#include "global-type-return.test.hpp"
 
 #include <stdint.h>
 

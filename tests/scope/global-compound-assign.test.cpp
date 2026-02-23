@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-compound-assign.test.h"
+#include "global-compound-assign.test.hpp"
 
 #include <stdint.h>
 

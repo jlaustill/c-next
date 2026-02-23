@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "Storage.h"
+#include "Storage.hpp"
 
 // test-cpp-only
 #include "Config.h"

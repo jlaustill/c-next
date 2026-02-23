@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "external-template-interop.test.h"
+#include "external-template-interop.test.hpp"
 
 // Issue #291: Test C++ template interop with C-Next scope
 // This demonstrates that template types come from C++ headers (external)

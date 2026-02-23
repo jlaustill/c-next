@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "conditional-compilation.test.h"
+#include "conditional-compilation.test.hpp"
 
 // ADR-037: Conditional compilation directives
 // These pass through to the generated C for the C preprocessor to handle

@@ -278,15 +278,28 @@ class HeaderGeneratorUtils {
     }
 
     // User includes
+    // Issue #933: Transform .h to .hpp in C++ mode so headers include correct files
     if (options.userIncludes && options.userIncludes.length > 0) {
       for (const include of options.userIncludes) {
-        lines.push(include);
+        const transformedInclude = options.cppMode
+          ? include.replace(/\.h"/, '.hpp"').replace(/\.h>/, ".hpp>")
+          : include;
+        lines.push(transformedInclude);
       }
     }
 
     // External type header includes (skip duplicates of user includes)
-    const userIncludeSet = new Set(options.userIncludes ?? []);
+    // Note: External C headers stay as .h - only user includes from .cnx files get
+    // transformed to .hpp in C++ mode (those are C-Next generated headers)
+    const userIncludeSet = new Set(
+      options.userIncludes?.map((inc) =>
+        options.cppMode
+          ? inc.replace(/\.h"/, '.hpp"').replace(/\.h>/, ".hpp>")
+          : inc,
+      ) ?? [],
+    );
     for (const directive of headersToInclude) {
+      // Don't transform external C headers - they should stay as .h
       if (!userIncludeSet.has(directive)) {
         lines.push(directive);
       }

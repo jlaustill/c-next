@@ -22,7 +22,7 @@ typedef struct Geometry_Point {
 /* Function prototypes */
 Geometry_Point Geometry_makePoint(int32_t x, int32_t y);
 Geometry_Point Geometry_origin(void);
-Geometry_Point Geometry_midpoint(const Geometry_Point& a, const Geometry_Point& b);
+Geometry_Point Geometry_midpoint(const Geometry_Point* a, const Geometry_Point* b);
 
 #ifdef __cplusplus
 }

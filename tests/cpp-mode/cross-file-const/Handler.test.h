@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t Handler_reset(Config& cfg);
+uint8_t Handler_reset(Config* cfg);
 
 #ifdef __cplusplus
 }

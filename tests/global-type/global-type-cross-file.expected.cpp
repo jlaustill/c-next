@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-type-cross-file.test.h"
+#include "global-type-cross-file.test.hpp"
 
 // test-execution
 // Tests: global.Type for cross-file type references (the actual bug scenario from #478)

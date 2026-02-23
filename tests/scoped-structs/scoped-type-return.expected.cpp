@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scoped-type-return.test.h"
+#include "scoped-type-return.test.hpp"
 
 #include <stdint.h>
 

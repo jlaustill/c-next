@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-var-same-as-scope.test.h"
+#include "global-var-same-as-scope.test.hpp"
 
 #include <stdint.h>
 

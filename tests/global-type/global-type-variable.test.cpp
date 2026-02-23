@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-type-variable.test.h"
+#include "global-type-variable.test.hpp"
 
 #include <stdint.h>
 

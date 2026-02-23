@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "this-global-test.test.h"
+#include "this-global-test.test.hpp"
 
 #include <stdint.h>
 

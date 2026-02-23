@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "nested-forward-decl.test.h"
+#include "nested-forward-decl.test.hpp"
 
 // Issue #404: Forward declarations with nested struct types
 // test-execution

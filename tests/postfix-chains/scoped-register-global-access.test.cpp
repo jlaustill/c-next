@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scoped-register-global-access.test.h"
+#include "scoped-register-global-access.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

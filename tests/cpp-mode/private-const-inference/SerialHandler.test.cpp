@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "SerialHandler.test.h"
+#include "SerialHandler.test.hpp"
 
 // test-cpp-only
 // Bug #561: Private function const inference

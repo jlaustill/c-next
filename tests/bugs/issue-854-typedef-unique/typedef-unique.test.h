@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Reader_update(const Sensor& s);
+void Reader_update(const Sensor* s);
 Sensor Reader_read(void);
 
 #ifdef __cplusplus

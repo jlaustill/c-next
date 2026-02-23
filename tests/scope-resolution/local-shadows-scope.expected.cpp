@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "local-shadows-scope.test.h"
+#include "local-shadows-scope.test.hpp"
 
 #include <stdint.h>
 

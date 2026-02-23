@@ -324,5 +324,37 @@ describe("PathResolver", () => {
       // src/main.cnx with basePath "src" -> main.h in headerDir
       expect(result).toBe(join(headerDir, "main.h"));
     });
+
+    // Issue #933: Test C++ mode header extension
+    it("generates .hpp path in C++ mode", () => {
+      const resolver = new PathResolver({
+        inputs: [srcDir],
+        outDir,
+      });
+
+      const filePath = join(srcDir, "main.cnx");
+      writeFileSync(filePath, "");
+      const file = createFile(filePath);
+
+      const result = resolver.getHeaderOutputPath(file, true);
+
+      expect(result).toBe(join(outDir, "main.hpp"));
+    });
+
+    it("generates .hpp path in headerOutDir in C++ mode", () => {
+      const resolver = new PathResolver({
+        inputs: [srcDir],
+        outDir,
+        headerOutDir: headerDir,
+      });
+
+      const filePath = join(srcDir, "main.cnx");
+      writeFileSync(filePath, "");
+      const file = createFile(filePath);
+
+      const result = resolver.getHeaderOutputPath(file, true);
+
+      expect(result).toBe(join(headerDir, "main.hpp"));
+    });
   });
 });

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-this-method.test.h"
+#include "enum-this-method.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

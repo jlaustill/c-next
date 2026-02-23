@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "u32-array-element-count.test.h"
+#include "u32-array-element-count.test.hpp"
 
 #include <stdint.h>
 

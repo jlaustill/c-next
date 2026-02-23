@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-no-duplication.test.h"
+#include "enum-no-duplication.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

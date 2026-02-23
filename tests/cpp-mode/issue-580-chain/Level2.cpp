@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "Level2.h"
+#include "Level2.hpp"
 
 // test-cpp-only
 #include "Config.h"

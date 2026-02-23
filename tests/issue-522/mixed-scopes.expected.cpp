@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "mixed-scopes.test.h"
+#include "mixed-scopes.test.hpp"
 
 // test-transpile-only
 // Tests: Issue #522 - Mixed C-Next scopes and C++ namespaces

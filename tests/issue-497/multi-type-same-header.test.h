@@ -16,7 +16,7 @@ extern "C" {
 
 /* Function prototypes */
 Point Geometry_getOrigin(void);
-Line Geometry_makeLine(const Point& start, const Point& end);
+Line Geometry_makeLine(const Point* start, const Point* end);
 
 #ifdef __cplusplus
 }

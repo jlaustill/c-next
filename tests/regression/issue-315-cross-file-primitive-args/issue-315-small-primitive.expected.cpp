@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-315-small-primitive.test.h"
+#include "issue-315-small-primitive.test.hpp"
 
 // test-execution
 // Issue #315: Test SMALL_PRIMITIVE_TYPES path for cross-file calls

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-const-bare-reference.test.h"
+#include "scope-const-bare-reference.test.hpp"
 
 #include <stdint.h>
 

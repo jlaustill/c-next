@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-enum-access.test.h"
+#include "scope-enum-access.test.hpp"
 
 #include <stdint.h>
 

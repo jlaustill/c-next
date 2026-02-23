@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "this-member-compound.test.h"
+#include "this-member-compound.test.hpp"
 
 #include <stdint.h>
 

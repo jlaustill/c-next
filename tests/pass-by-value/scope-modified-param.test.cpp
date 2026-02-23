@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-modified-param.test.h"
+#include "scope-modified-param.test.hpp"
 
 #include <stdint.h>
 

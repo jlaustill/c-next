@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "AHandler.test.h"
+#include "AHandler.test.hpp"
 
 // test-cpp-only
 // Issue #580 order test: AHandler comes before ZModifier alphabetically

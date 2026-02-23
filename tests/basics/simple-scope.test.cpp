@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "simple-scope.test.h"
+#include "simple-scope.test.hpp"
 
 #include <stdint.h>
 

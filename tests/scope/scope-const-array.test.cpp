@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-const-array.test.h"
+#include "scope-const-array.test.hpp"
 
 #include <stdint.h>
 

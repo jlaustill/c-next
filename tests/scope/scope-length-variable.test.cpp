@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-length-variable.test.h"
+#include "scope-length-variable.test.hpp"
 
 #include <stdint.h>
 

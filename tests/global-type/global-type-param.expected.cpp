@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-type-param.test.h"
+#include "global-type-param.test.hpp"
 
 #include <stdint.h>
 

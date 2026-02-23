@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-322-auto-address-of.test.h"
+#include "issue-322-auto-address-of.test.hpp"
 
 // test-execution
 // Issue #322: Auto address-of for external C++ functions expecting pointers

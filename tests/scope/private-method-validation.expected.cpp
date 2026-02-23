@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "private-method-validation.test.h"
+#include "private-method-validation.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "atomic-in-scope.test.h"
+#include "atomic-in-scope.test.hpp"
 
 // test-coverage: 20-atomic-in-scope
 // Tests: atomic variables inside scope declarations

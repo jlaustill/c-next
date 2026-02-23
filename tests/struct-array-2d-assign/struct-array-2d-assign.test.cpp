@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "struct-array-2d-assign.test.h"
+#include "struct-array-2d-assign.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>
