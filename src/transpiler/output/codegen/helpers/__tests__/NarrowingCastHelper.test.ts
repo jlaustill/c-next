@@ -112,4 +112,48 @@ describe("NarrowingCastHelper", () => {
       );
     });
   });
+
+  describe("getPromotedType", () => {
+    it("returns 'int' for u8 (promoted)", () => {
+      expect(NarrowingCastHelper.getPromotedType("u8")).toBe("int");
+    });
+
+    it("returns 'int' for i8 (promoted)", () => {
+      expect(NarrowingCastHelper.getPromotedType("i8")).toBe("int");
+    });
+
+    it("returns 'int' for u16 (promoted)", () => {
+      expect(NarrowingCastHelper.getPromotedType("u16")).toBe("int");
+    });
+
+    it("returns 'int' for i16 (promoted)", () => {
+      expect(NarrowingCastHelper.getPromotedType("i16")).toBe("int");
+    });
+
+    it("returns same type for u32 (no promotion)", () => {
+      expect(NarrowingCastHelper.getPromotedType("u32")).toBe("u32");
+    });
+
+    it("returns same type for i32 (no promotion)", () => {
+      expect(NarrowingCastHelper.getPromotedType("i32")).toBe("i32");
+    });
+
+    it("returns same type for u64 (no promotion)", () => {
+      expect(NarrowingCastHelper.getPromotedType("u64")).toBe("u64");
+    });
+
+    it("returns same type for i64 (no promotion)", () => {
+      expect(NarrowingCastHelper.getPromotedType("i64")).toBe("i64");
+    });
+
+    it("returns 'int' for bool (promoted)", () => {
+      expect(NarrowingCastHelper.getPromotedType("bool")).toBe("int");
+    });
+
+    it("returns same type for unknown types (conservative)", () => {
+      expect(NarrowingCastHelper.getPromotedType("custom_type")).toBe(
+        "custom_type",
+      );
+    });
+  });
 });

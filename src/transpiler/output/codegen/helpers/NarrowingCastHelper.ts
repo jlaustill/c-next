@@ -22,6 +22,12 @@ const EXTENDED_TYPE_WIDTH: Record<string, number> = {
 };
 
 /**
+ * Types that get promoted to int in C's integer promotion rules.
+ * In C, operations on types smaller than int get promoted to int.
+ */
+const PROMOTED_TO_INT = new Set(["u8", "i8", "u16", "i16", "bool"]);
+
+/**
  * Helper for adding MISRA 10.3 compliant casts to generated C code.
  */
 class NarrowingCastHelper {
@@ -78,6 +84,23 @@ class NarrowingCastHelper {
     // Get C type name for the target
     const cType = TYPE_MAP[targetType] ?? targetType;
     return CppModeHelper.cast(cType, expr);
+  }
+
+  /**
+   * Determine the result type of C integer promotion for a given type.
+   *
+   * In C, operations on types smaller than int are promoted:
+   * - u8, i8, u16, i16, bool -> int (32-bit)
+   * - u32, i32, u64, i64 -> no promotion (already >= int width)
+   *
+   * @param baseType - The C-Next type of the operand
+   * @returns "int" for promoted types, or the original type
+   */
+  static getPromotedType(baseType: string): string {
+    if (PROMOTED_TO_INT.has(baseType)) {
+      return "int";
+    }
+    return baseType;
   }
 }
 
