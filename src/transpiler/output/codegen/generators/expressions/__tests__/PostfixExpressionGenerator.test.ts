@@ -611,7 +611,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("'.length' is deprecated");
+      ).toThrow("'.length' on 'val' is deprecated");
     });
   });
 

@@ -1,14 +1,15 @@
 /**
  * Access Expression Generator (ADR-053 A2 Phase 6)
  *
- * Generates C code for property access expressions:
- * - .capacity property for strings
- * - .size property for strings (buffer size = capacity + 1)
+ * Generates C code for string buffer property access:
+ * - .capacity → compile-time max string length (excluding null terminator)
+ * - .size → compile-time buffer size (capacity + 1, for null terminator)
  *
  * Also provides helper for bitmap field access.
  *
- * Note: .length property was removed (ADR-058). Use explicit properties:
- * .bit_length, .byte_length, .element_count, .char_count
+ * Note: Explicit length properties (.bit_length, .byte_length, .element_count,
+ * .char_count) are handled in PostfixExpressionGenerator.ts, not here.
+ * The deprecated .length property was removed per ADR-058.
  */
 import IGeneratorOutput from "../IGeneratorOutput";
 import TTypeInfo from "../../types/TTypeInfo";

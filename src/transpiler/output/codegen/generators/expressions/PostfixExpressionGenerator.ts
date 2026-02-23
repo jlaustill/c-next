@@ -548,7 +548,7 @@ const tryPropertyAccess = (
   // ADR-058: .length is deprecated - use explicit properties instead
   if (memberName === "length") {
     throw new Error(
-      `Error: '.length' is deprecated. Use explicit properties: ` +
+      `Error: '.length' on '${tracking.result}' is deprecated. Use explicit properties: ` +
         `.bit_length (bit width), .byte_length (byte size), ` +
         `.element_count (array size), or .char_count (string length)`,
     );
