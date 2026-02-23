@@ -8,6 +8,15 @@
 
 Violations include: deleting/skipping failing tests, `--no-verify`/`--force` flags, `any` types, `@ts-ignore`, disabling lints, stubbing with no-ops, skipping validation. **If unclear or blocked — ASK the user.**
 
+### Bug Tracking — ZERO EXCEPTIONS
+
+**NEVER sweep bugs under the rug.** When a bug is discovered, it MUST be either:
+
+1. **Fixed** — resolve the issue immediately, OR
+2. **Tracked** — file a GitHub issue with clear reproduction steps
+
+There are NO exceptions. Do not ignore, dismiss, or defer bugs without creating an issue. Pre-existing bugs found during other work still require tracking.
+
 ### Project Hygiene
 
 - No root-level analysis artifacts (`*.csv`, `*-report.md`) — use terminal or `docs/`
