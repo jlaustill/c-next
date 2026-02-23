@@ -19,6 +19,8 @@ type IArrayAccessInfo = {
   widthExpr?: string;
   /** Type info for the variable being accessed */
   typeInfo?: TTypeInfo;
+  /** Target type for narrowing cast (e.g., "u8" when extracting to uint8_t) */
+  targetType?: string;
   /** Source line for error messages */
   line: number;
 };

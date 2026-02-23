@@ -2,10 +2,11 @@
  * Unit tests for ArrayAccessHelper utility.
  * Tests array access code generation patterns without ANTLR dependencies.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ArrayAccessHelper from "../ArrayAccessHelper";
 import IArrayAccessInfo from "../../types/IArrayAccessInfo";
 import IArrayAccessDeps from "../../types/IArrayAccessDeps";
+import CodeGenState from "../../../../state/CodeGenState.js";
 
 /**
  * Create mock dependencies for testing.
@@ -476,6 +477,135 @@ describe("ArrayAccessHelper", () => {
       );
       // is64Bit is false since baseType is undefined (not f64)
       expect(mockDeps.generateBitMask).toHaveBeenCalledWith("8", false);
+    });
+  });
+
+  describe("generateIntegerBitRange with MISRA casts", () => {
+    let mockDeps: IArrayAccessDeps;
+
+    beforeEach(() => {
+      CodeGenState.reset();
+      CodeGenState.cppMode = false;
+      mockDeps = createMockDeps();
+    });
+
+    afterEach(() => {
+      CodeGenState.reset();
+    });
+
+    it("adds cast when target type is narrower", () => {
+      // Configure mock to return the actual mask for u8 width
+      (mockDeps.generateBitMask as ReturnType<typeof vi.fn>).mockReturnValue(
+        "0xFFU",
+      );
+
+      const info: IArrayAccessInfo = {
+        rawName: "value",
+        resolvedName: "value",
+        accessType: "bit-range",
+        startExpr: "0",
+        widthExpr: "8",
+        typeInfo: {
+          baseType: "u32",
+          bitWidth: 32,
+          isArray: false,
+          isConst: false,
+        },
+        targetType: "u8",
+        line: 1,
+      };
+      const result = ArrayAccessHelper.generateIntegerBitRange(info, mockDeps);
+      expect(result).toBe("(uint8_t)((value) & 0xFFU)");
+    });
+
+    it("no cast when target type matches source", () => {
+      (mockDeps.generateBitMask as ReturnType<typeof vi.fn>).mockReturnValue(
+        "0xFFFFU",
+      );
+
+      const info: IArrayAccessInfo = {
+        rawName: "value",
+        resolvedName: "value",
+        accessType: "bit-range",
+        startExpr: "8",
+        widthExpr: "16",
+        typeInfo: {
+          baseType: "u32",
+          bitWidth: 32,
+          isArray: false,
+          isConst: false,
+        },
+        targetType: "u32",
+        line: 1,
+      };
+      const result = ArrayAccessHelper.generateIntegerBitRange(info, mockDeps);
+      expect(result).toBe("((value >> 8) & 0xFFFFU)");
+    });
+
+    it("no cast when targetType not provided (backward compatible)", () => {
+      (mockDeps.generateBitMask as ReturnType<typeof vi.fn>).mockReturnValue(
+        "0xFFU",
+      );
+
+      const info: IArrayAccessInfo = {
+        rawName: "value",
+        resolvedName: "value",
+        accessType: "bit-range",
+        startExpr: "0",
+        widthExpr: "8",
+        typeInfo: {
+          baseType: "u32",
+          bitWidth: 32,
+          isArray: false,
+          isConst: false,
+        },
+        line: 1,
+      };
+      const result = ArrayAccessHelper.generateIntegerBitRange(info, mockDeps);
+      expect(result).toBe("((value) & 0xFFU)");
+    });
+
+    it("adds cast for u16 target from u32 source", () => {
+      (mockDeps.generateBitMask as ReturnType<typeof vi.fn>).mockReturnValue(
+        "0xFFFFU",
+      );
+
+      const info: IArrayAccessInfo = {
+        rawName: "data",
+        resolvedName: "data",
+        accessType: "bit-range",
+        startExpr: "16",
+        widthExpr: "16",
+        typeInfo: {
+          baseType: "u32",
+          bitWidth: 32,
+          isArray: false,
+          isConst: false,
+        },
+        targetType: "u16",
+        line: 1,
+      };
+      const result = ArrayAccessHelper.generateIntegerBitRange(info, mockDeps);
+      expect(result).toBe("(uint16_t)((data >> 16) & 0xFFFFU)");
+    });
+
+    it("no cast when no typeInfo provided", () => {
+      (mockDeps.generateBitMask as ReturnType<typeof vi.fn>).mockReturnValue(
+        "0xFFU",
+      );
+
+      const info: IArrayAccessInfo = {
+        rawName: "value",
+        resolvedName: "value",
+        accessType: "bit-range",
+        startExpr: "0",
+        widthExpr: "8",
+        targetType: "u8",
+        line: 1,
+      };
+      const result = ArrayAccessHelper.generateIntegerBitRange(info, mockDeps);
+      // No cast because sourceType is undefined
+      expect(result).toBe("((value) & 0xFFU)");
     });
   });
 });

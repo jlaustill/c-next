@@ -115,6 +115,7 @@ class ArrayAccessHelper {
 
   /**
    * Generate integer bit range read: ((value >> start) & mask)
+   * Passes sourceType and targetType to BitRangeHelper for MISRA 10.3 casts.
    */
   static generateIntegerBitRange(
     info: IArrayAccessInfo,
@@ -125,6 +126,8 @@ class ArrayAccessHelper {
       varName: info.resolvedName,
       start: info.startExpr ?? "0",
       mask,
+      sourceType: info.typeInfo?.baseType,
+      targetType: info.targetType,
     });
   }
 }
