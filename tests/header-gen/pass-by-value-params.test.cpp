@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// test-transpile-only
 // Tests: Header generation with pass-by-value parameters
 // Floats, enums, and ISR types should use pass-by-value, not pointers
 /* Scope: Api */
@@ -27,4 +26,20 @@ void Api_updateValue(uint32_t& value) {
 
 uint32_t Api_readValue(uint32_t value) {
     return value * 2;
+}
+
+int main(void) {
+    float sum = Api_addFloats(1.5, 2.5);
+    int32_t sumInt = sum;
+    if (sumInt != 4) return 1;
+    bool okResult = Api_isOk(Status_Ok);
+    if (!okResult) return 2;
+    bool errResult = Api_isOk(Status_Error);
+    if (errResult) return 3;
+    uint32_t val = 10U;
+    Api_updateValue(val);
+    if (val != 11) return 4;
+    uint32_t doubled = Api_readValue(5U);
+    if (doubled != 10) return 5;
+    return 0;
 }

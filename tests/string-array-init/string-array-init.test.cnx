@@ -1,4 +1,3 @@
-// test-transpile-only
 // Issue #380: String array initializers
 // Tests: const string array with inline initialization
 
@@ -22,4 +21,28 @@ scope Test {
         // Access string array element
         u8 len <- global.LABELS[0].char_count;
     }
+}
+
+u32 main() {
+    // Test 1: LABELS array should have 3 elements
+    if (global.LABELS.length != 3) return 1;
+
+    // Test 2: Check LABELS string lengths
+    if (global.LABELS[0].length != 3) return 2;  // "One"
+    if (global.LABELS[1].length != 3) return 3;  // "Two"
+    if (global.LABELS[2].length != 5) return 4;  // "Three"
+
+    // Test 3: colors array should have 4 elements
+    if (global.colors.length != 4) return 5;
+
+    // Test 4: Check colors string lengths
+    if (global.colors[0].length != 3) return 6;  // "Red"
+    if (global.colors[1].length != 5) return 7;  // "Green"
+    if (global.colors[2].length != 4) return 8;  // "Blue"
+    if (global.colors[3].length != 6) return 9;  // "Yellow"
+
+    // Test 5: Exercise scope function
+    global.Test.init();
+
+    return 0;
 }

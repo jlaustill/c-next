@@ -5,9 +5,9 @@
 
 #include "cnext-scope-underscore.test.h"
 
+#include <stdint.h>
 #include <stdbool.h>
 
-// test-transpile-only
 // Tests: Issue #502 - C-Next scope types must use _ NOT ::
 // This ensures the fix doesn't incorrectly convert C-Next scope types
 // C-Next scope - Motor_State should stay as Motor_State (underscore)
@@ -18,3 +18,14 @@
 
 // Test: C-Next nested types must use _ not ::
 Sensor_Reading reading = (Sensor_Reading){ .motorState = (Motor_State){ .position = 0, .running = false }, .value = 42 };
+
+int main(void) {
+    if (reading.value != 42) return 1;
+    if (reading.motorState.position != 0) return 2;
+    if (reading.motorState.running != false) return 3;
+    reading.motorState.position = 100;
+    reading.motorState.running = true;
+    if (reading.motorState.position != 100) return 4;
+    if (reading.motorState.running != true) return 5;
+    return 0;
+}

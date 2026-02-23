@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <string.h>
 
-// test-transpile-only
 // Issue #380: String array initializers
 // Tests: const string array with inline initialization
 // Array of bounded strings with initializer (C-style allowed for string arrays)
@@ -25,4 +24,18 @@ char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};
 
 void Test_init(void) {
     uint8_t len = strlen(LABELS[0U]);
+}
+
+int main(void) {
+    if (3 != 3) return 1;
+    if (strlen(LABELS[0]) != 3) return 2;
+    if (strlen(LABELS[1]) != 3) return 3;
+    if (strlen(LABELS[2]) != 5) return 4;
+    if (4 != 4) return 5;
+    if (strlen(colors[0]) != 3) return 6;
+    if (strlen(colors[1]) != 5) return 7;
+    if (strlen(colors[2]) != 4) return 8;
+    if (strlen(colors[3]) != 6) return 9;
+    Test_init();
+    return 0;
 }

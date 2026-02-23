@@ -5,7 +5,8 @@
 
 #include "transitive-mutation.test.h"
 
-// test-transpile-only
+#include <stdint.h>
+
 // Issue #797: Transpiler incorrectly infers const when function delegates mutation
 /* Scope: Test */
 
@@ -15,4 +16,12 @@ static void Test_fillData(Data* d) {
 
 void Test_loadData(Data* d) {
     Test_fillData(d);
+}
+
+int main(void) {
+    Data d = (Data){ .value = 0U };
+    if (d.value != 0) return 1;
+    Test_loadData(&d);
+    if (d.value != 42) return 2;
+    return 0;
 }

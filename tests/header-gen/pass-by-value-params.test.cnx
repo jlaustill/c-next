@@ -1,4 +1,3 @@
-// test-transpile-only
 // Tests: Header generation with pass-by-value parameters
 // Floats, enums, and ISR types should use pass-by-value, not pointers
 
@@ -27,4 +26,31 @@ scope Api {
     public u32 readValue(u32 value) {
         return value * 2;
     }
+}
+
+u32 main() {
+    // Test 1: Float addition
+    f32 sum <- global.Api.addFloats(1.5, 2.5);
+    // Use integer comparison to avoid float precision issues
+    i32 sumInt <- sum;
+    if (sumInt != 4) return 1;
+
+    // Test 2: Enum check - Ok should be true
+    bool okResult <- global.Api.isOk(Status.Ok);
+    if (!okResult) return 2;
+
+    // Test 3: Enum check - Error should be false
+    bool errResult <- global.Api.isOk(Status.Error);
+    if (errResult) return 3;
+
+    // Test 4: Value modification
+    u32 val <- 10;
+    global.Api.updateValue(val);
+    if (val != 11) return 4;
+
+    // Test 5: Read value (no modification)
+    u32 doubled <- global.Api.readValue(5);
+    if (doubled != 10) return 5;
+
+    return 0;
 }
