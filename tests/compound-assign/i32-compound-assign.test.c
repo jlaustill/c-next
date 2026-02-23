@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -70,7 +71,7 @@ int main(void) {
     if (sub != 1000000) return 14;
     sub = -2147483647;
     sub = cnx_clamp_sub_i32(sub, 1);
-    if (sub != -2147483648) return 15;
+    if (sub != (int32_t)INT32_MIN) return 15;
     int32_t mul = 10000;
     mul = cnx_clamp_mul_i32(mul, 10000);
     if (mul != 100000000) return 20;

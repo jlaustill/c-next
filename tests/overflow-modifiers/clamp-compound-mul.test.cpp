@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -152,7 +153,7 @@ int main(void) {
     if (vali32 != 2147483647) return 26;
     vali32 = 50000;
     vali32 = cnx_clamp_mul_i32(vali32, -50000);
-    if (vali32 != -2147483648) return 27;
+    if (vali32 != (int32_t)INT32_MIN) return 27;
     vali32 = 1000;
     vali32 = cnx_clamp_mul_i32(vali32, 1000);
     if (vali32 != 1000000) return 28;

@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-coverage: 5.1-i64-and, 5.2-i64-or, 5.3-i64-xor, 5.4-i64-not
 // test-execution
@@ -20,7 +21,7 @@ int main(void) {
     int64_t xor_result = a ^ b;
     int64_t c = 9223372036854775807;
     int64_t not_pos = ~c;
-    int64_t d = -9223372036854775808;
+    int64_t d = (int64_t)INT64_MIN;
     int64_t not_neg = ~d;
     int64_t minus_one = -1;
     int64_t not_minus_one = ~minus_one;

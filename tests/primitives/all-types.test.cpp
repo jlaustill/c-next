@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
 // test-coverage: 1.1-u8-global-variable-declaration, 1.1-u16-global-variable-declaration
 // test-coverage: 1.1-u32-global-variable-declaration, 1.1-u64-global-variable-declaration
@@ -25,7 +26,7 @@ int8_t sbyte = -128;
 
 int16_t sword = -32768;
 
-int32_t sdword = -2147483648;
+int32_t sdword = (int32_t)INT32_MIN;
 
 int64_t sqword = 0;
 

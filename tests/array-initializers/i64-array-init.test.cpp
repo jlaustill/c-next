@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -18,8 +19,8 @@ static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
 // Tests: i64 as array element type
 // Coverage: Section 1.2 i64 array element type
 int main(void) {
-    int64_t values[5] = {-9223372036854775808, -1000000000000, 0, 1000000000000, 9223372036854775807};
-    if (values[0] != -9223372036854775808) return 1;
+    int64_t values[5] = {(int64_t)INT64_MIN, -1000000000000, 0, 1000000000000, 9223372036854775807};
+    if (values[0] != (int64_t)INT64_MIN) return 1;
     if (values[1] != -1000000000000) return 2;
     if (values[2] != 0) return 3;
     if (values[3] != 1000000000000) return 4;

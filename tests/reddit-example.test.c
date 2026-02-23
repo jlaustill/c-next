@@ -10,10 +10,10 @@
 // Tests: bit indexing example for Reddit post
 int main(void) {
     uint8_t header = 0U;
-    header = (header & ~(((1U << 4) - 1) << 0)) | ((5 & ((1U << 4) - 1)) << 0);
-    header = (header & ~(((1U << 2) - 1) << 4)) | ((2 & ((1U << 2) - 1)) << 4);
-    header = (header & ~(1U << 6)) | (1U << 6);
-    header = (header & ~(1U << 7)) | (0U << 7);
+    header = (uint8_t)((header & ~(((1U << 4) - 1) << 0)) | ((5 & ((1U << 4) - 1)) << 0));
+    header = (uint8_t)((header & ~(((1U << 2) - 1) << 4)) | ((2 & ((1U << 2) - 1)) << 4));
+    header = (uint8_t)((header & ~(1U << 6)) | (1U << 6));
+    header = (uint8_t)((header & ~(1U << 7)) | (0U << 7));
     uint8_t msgType = (uint8_t)((header >> 0U) & ((1U << 4U) - 1));
     if (msgType != 5) return 1;
     uint8_t priority = (uint8_t)((header >> 4U) & ((1U << 2U) - 1));

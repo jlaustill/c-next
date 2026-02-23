@@ -12,9 +12,9 @@
 int main(void) {
     double negative = -100.0;
     double in_range = 1000000000000.0;
-    uint64_t result = ((negative) > ((double)UINT64_MAX) ? UINT64_MAX : (negative) < 0.0 ? 0 : static_cast<uint64_t>((negative)));
+    uint64_t result = ((negative) > ((double)UINT64_MAX) ? static_cast<uint64_t>(UINT64_MAX) : (negative) < 0.0 ? 0 : static_cast<uint64_t>((negative)));
     if (result != 0) return 1;
-    result = ((in_range) > ((double)UINT64_MAX) ? UINT64_MAX : (in_range) < 0.0 ? 0 : static_cast<uint64_t>((in_range)));
+    result = ((in_range) > ((double)UINT64_MAX) ? static_cast<uint64_t>(UINT64_MAX) : (in_range) < 0.0 ? 0 : static_cast<uint64_t>((in_range)));
     if (result != 1000000000000) return 2;
     return 0;
 }

@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
 // test-execution
 // Tests: 2D struct arrays with various member types
@@ -27,14 +28,14 @@ int main(void) {
     matrix[0][0].intVal = 4294967295;
     matrix[0][0].signedByte = -128;
     matrix[0][0].signedShort = -32768;
-    matrix[0][0].signedInt = -2147483648;
+    matrix[0][0].signedInt = (int32_t)INT32_MIN;
     matrix[0][0].flag = true;
     if (matrix[0][0].byteVal != 255) return 1;
     if (matrix[0][0].shortVal != 65535) return 2;
     if (matrix[0][0].intVal != 4294967295) return 3;
     if (matrix[0][0].signedByte != -128) return 4;
     if (matrix[0][0].signedShort != -32768) return 5;
-    if (matrix[0][0].signedInt != -2147483648) return 6;
+    if (matrix[0][0].signedInt != (int32_t)INT32_MIN) return 6;
     if (matrix[0][0].flag != true) return 7;
     matrix[1][1].byteVal = 0;
     matrix[1][1].shortVal = 1000;

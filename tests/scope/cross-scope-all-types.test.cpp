@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
 // test-execution
 // Test: ADR-016 Cross-scope access with all primitive types
@@ -22,8 +23,8 @@ uint32_t Provider_valU32 = 4294967295;
 uint64_t Provider_valU64 = 18446744073709551615;
 int8_t Provider_valI8 = -128;
 int16_t Provider_valI16 = -32768;
-int32_t Provider_valI32 = -2147483648;
-int64_t Provider_valI64 = -9223372036854775808;
+int32_t Provider_valI32 = (int32_t)INT32_MIN;
+int64_t Provider_valI64 = (int64_t)INT64_MIN;
 float Provider_valF32 = 3.14;
 double Provider_valF64 = 3.141592653589793;
 bool Provider_valBool = true;
@@ -178,9 +179,9 @@ int main(void) {
     int16_t resultI16 = Consumer_readProviderI16();
     if (resultI16 != -32768) return 6;
     int32_t resultI32 = Consumer_readProviderI32();
-    if (resultI32 != -2147483648) return 7;
+    if (resultI32 != (int32_t)INT32_MIN) return 7;
     int64_t resultI64 = Consumer_readProviderI64();
-    if (resultI64 != -9223372036854775808) return 8;
+    if (resultI64 != (int64_t)INT64_MIN) return 8;
     float expectedF32 = 3.14;
     Provider_valF32 = expectedF32;
     float resultF32 = Consumer_readProviderF32();

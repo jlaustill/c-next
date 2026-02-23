@@ -4697,8 +4697,12 @@ export default class CodeGenerator implements IOrchestrator {
     // Generate clamping expression:
     // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
     // Note: For unsigned targets, MIN is 0 so we check < 0.0
+    // MISRA 10.3: Cast limit macros to target type (they have type 'int')
     const finalCast = CppModeHelper.cast(targetType, `(${expr})`);
-    return `((${expr}) > ${maxComparison} ? ${maxValue} : (${expr}) < ${minComparison} ? ${minValue} : ${finalCast})`;
+    const castMax = CppModeHelper.cast(targetType, maxValue);
+    const castMin =
+      minValue === "0" ? "0" : CppModeHelper.cast(targetType, minValue);
+    return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
   }
 
   /**

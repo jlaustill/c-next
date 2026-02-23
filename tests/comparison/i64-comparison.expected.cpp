@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
 // test-execution
 // Test i64 comparison operations
@@ -36,7 +37,7 @@ int main(void) {
     bool gte2 = a >= c;
     bool gte3 = b >= a;
     int64_t max_val = 9223372036854775807;
-    int64_t min_val = -9223372036854775808;
+    int64_t min_val = (int64_t)INT64_MIN;
     bool max_gt_min = max_val > min_val;
     bool min_lt_max = min_val < max_val;
     if (eq1 && !eq2 && eq3) {

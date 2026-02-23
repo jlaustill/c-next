@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-execution
 // Test i64 arithmetic operations
@@ -54,7 +55,7 @@ int main(void) {
     int64_t max_val = 9223372036854775807;
     int64_t one = 1;
     int64_t max_minus_one = max_val - one;
-    int64_t min_val = -9223372036854775808;
+    int64_t min_val = (int64_t)INT64_MIN;
     int64_t min_plus_one = min_val + one;
     if (sum == 8000000000 && sum_neg == -2000000000 && sum_both_neg == -6000000000) {
         if (diff == 2000000000 && diff_neg == -2000000000 && diff_mixed == -5000000000) {

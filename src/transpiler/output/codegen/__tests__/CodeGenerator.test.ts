@@ -2798,7 +2798,8 @@ describe("CodeGenerator", () => {
 
       expect(code).toContain("int8_t a = -128");
       expect(code).toContain("int16_t b = -32768");
-      expect(code).toContain("int32_t c = -2147483648");
+      // MISRA 10.3: -2147483648 is replaced with (int32_t)INT32_MIN
+      expect(code).toContain("int32_t c = (int32_t)INT32_MIN");
     });
   });
 

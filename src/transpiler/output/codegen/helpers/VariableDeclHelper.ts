@@ -18,10 +18,13 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import TypeResolver from "../TypeResolver.js";
 import ArrayInitHelper from "./ArrayInitHelper.js";
+import CppModeHelper from "./CppModeHelper.js";
 import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
 import IntegerLiteralValidator from "./IntegerLiteralValidator.js";
+import NarrowingCastHelper from "./NarrowingCastHelper.js";
 import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
+import TYPE_MAP from "../types/TYPE_MAP.js";
 
 /**
  * Callbacks for integer validation in variable declarations.
@@ -533,10 +536,36 @@ class VariableDeclHelper {
       getExpressionType: callbacks.getExpressionType,
     });
 
-    // Note: MISRA 10.3 narrowing casts are added at expression generation sites
-    // (e.g., PostfixExpressionGenerator.handleBitRangeSubscript) using
-    // CodeGenState.expectedType, not here at the assignment site.
-    const result = `${decl} = ${callbacks.generateExpression(ctx.expression()!)}`;
+    // Generate the expression
+    let exprCode = callbacks.generateExpression(ctx.expression()!);
+
+    // MISRA 10.3: Check for cross-type-category conversions (int <-> float)
+    const exprType = callbacks.getExpressionType(ctx.expression()!);
+    if (
+      exprType &&
+      NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
+    ) {
+      // Int to float: add explicit cast
+      if (
+        NarrowingCastHelper.isIntegerType(exprType) &&
+        NarrowingCastHelper.isFloatType(typeName)
+      ) {
+        exprCode = NarrowingCastHelper.wrapIntToFloat(exprCode, typeName);
+      }
+      // Float to int: add explicit cast for MISRA compliance
+      // Note: For safety, users should use explicit cast in C-Next source: (i32)float
+      // which generates a clamping expression. This implicit cast is just for
+      // MISRA 10.3 compliance when user omits explicit cast.
+      if (
+        NarrowingCastHelper.isFloatType(exprType) &&
+        NarrowingCastHelper.isIntegerType(typeName)
+      ) {
+        const cType = TYPE_MAP[typeName] ?? typeName;
+        exprCode = CppModeHelper.cast(cType, exprCode);
+      }
+    }
+
+    const result = `${decl} = ${exprCode}`;
     CodeGenState.expectedType = savedExpectedType;
 
     return result;

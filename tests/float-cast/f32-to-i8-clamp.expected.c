@@ -16,17 +16,17 @@ int main(void) {
     float at_max = 127.0;
     float at_min = -128.0;
     float negative = -50.5;
-    int8_t result = ((over) > ((float)INT8_MAX) ? INT8_MAX : (over) < ((float)INT8_MIN) ? INT8_MIN : (int8_t)(over));
+    int8_t result = ((over) > ((float)INT8_MAX) ? (int8_t)INT8_MAX : (over) < ((float)INT8_MIN) ? (int8_t)INT8_MIN : (int8_t)(over));
     if (result != 127) return 1;
-    result = ((under) > ((float)INT8_MAX) ? INT8_MAX : (under) < ((float)INT8_MIN) ? INT8_MIN : (int8_t)(under));
+    result = ((under) > ((float)INT8_MAX) ? (int8_t)INT8_MAX : (under) < ((float)INT8_MIN) ? (int8_t)INT8_MIN : (int8_t)(under));
     if (result != -128) return 2;
-    result = ((in_range) > ((float)INT8_MAX) ? INT8_MAX : (in_range) < ((float)INT8_MIN) ? INT8_MIN : (int8_t)(in_range));
+    result = ((in_range) > ((float)INT8_MAX) ? (int8_t)INT8_MAX : (in_range) < ((float)INT8_MIN) ? (int8_t)INT8_MIN : (int8_t)(in_range));
     if (result != 50) return 3;
-    result = ((at_max) > ((float)INT8_MAX) ? INT8_MAX : (at_max) < ((float)INT8_MIN) ? INT8_MIN : (int8_t)(at_max));
+    result = ((at_max) > ((float)INT8_MAX) ? (int8_t)INT8_MAX : (at_max) < ((float)INT8_MIN) ? (int8_t)INT8_MIN : (int8_t)(at_max));
     if (result != 127) return 4;
-    result = ((at_min) > ((float)INT8_MAX) ? INT8_MAX : (at_min) < ((float)INT8_MIN) ? INT8_MIN : (int8_t)(at_min));
+    result = ((at_min) > ((float)INT8_MAX) ? (int8_t)INT8_MAX : (at_min) < ((float)INT8_MIN) ? (int8_t)INT8_MIN : (int8_t)(at_min));
     if (result != -128) return 5;
-    result = ((negative) > ((float)INT8_MAX) ? INT8_MAX : (negative) < ((float)INT8_MIN) ? INT8_MIN : (int8_t)(negative));
+    result = ((negative) > ((float)INT8_MAX) ? (int8_t)INT8_MAX : (negative) < ((float)INT8_MIN) ? (int8_t)INT8_MIN : (int8_t)(negative));
     if (result != -50) return 6;
     return 0;
 }

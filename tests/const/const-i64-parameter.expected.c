@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-execution
 // ADR-013: Const i64 parameter
@@ -28,8 +29,8 @@ int main(void) {
     if (absPos != 123456789) return 3;
     int64_t absNeg = absConstI64(-987654321);
     if (absNeg != 987654321) return 4;
-    int64_t myValue = -2147483648;
+    int64_t myValue = (int32_t)INT32_MIN;
     int64_t readBack = readConstI64(myValue);
-    if (readBack != -2147483648) return 5;
+    if (readBack != (int32_t)INT32_MIN) return 5;
     return 0;
 }

@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // ADR-024: Test that valid literal values work correctly
 // This should compile successfully
@@ -15,5 +16,5 @@ int main(void) {
     int8_t sbyte = -128;
     int8_t sbyte_max = 127;
     int16_t sword = -32768;
-    int32_t sdword = -2147483648;
+    int32_t sdword = (int32_t)INT32_MIN;
 }

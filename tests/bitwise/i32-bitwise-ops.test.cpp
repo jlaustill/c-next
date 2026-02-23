@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-coverage: 5.1-i32-and, 5.2-i32-or, 5.3-i32-xor, 5.4-i32-not
 // test-execution
@@ -20,7 +21,7 @@ int main(void) {
     int32_t xor_result = a ^ b;
     int32_t c = 2147483647;
     int32_t not_pos = ~c;
-    int32_t d = -2147483648;
+    int32_t d = (int32_t)INT32_MIN;
     int32_t not_neg = ~d;
     int32_t minus_one = -1;
     int32_t not_minus_one = ~minus_one;
@@ -28,7 +29,7 @@ int main(void) {
     int32_t small_b = 0xAA;
     int32_t small_and = small_a & small_b;
     if (and_result == 1431633920 && or_result == 2147439957) {
-        if (not_pos == -2147483648 && not_neg == 2147483647 && not_minus_one == 0) {
+        if (not_pos == (int32_t)INT32_MIN && not_neg == 2147483647 && not_minus_one == 0) {
             if (neg_and == -65536 && small_and == 160) {
                 return 0;
             }

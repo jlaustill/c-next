@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -19,8 +20,8 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Tests: i32 as array element type
 // Coverage: Section 1.2 i32 array element type
 int main(void) {
-    int32_t values[5] = {-2147483648, -100000, 0, 100000, 2147483647};
-    if (values[0] != -2147483648) return 1;
+    int32_t values[5] = {(int32_t)INT32_MIN, -100000, 0, 100000, 2147483647};
+    if (values[0] != (int32_t)INT32_MIN) return 1;
     if (values[1] != -100000) return 2;
     if (values[2] != 0) return 3;
     if (values[3] != 100000) return 4;

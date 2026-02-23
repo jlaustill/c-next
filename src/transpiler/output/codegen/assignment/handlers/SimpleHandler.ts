@@ -6,11 +6,13 @@
  *
  * Issue #845: MISRA 10.3 - For compound assignments on narrower types (i8, i16,
  * u8, u16), expands to explicit cast: `target = (type)(target OP value);`
+ * Also handles int-to-float conversions with explicit casts.
  */
 import IAssignmentContext from "../IAssignmentContext";
 import CodeGenState from "../../../../state/CodeGenState";
 import type ICodeGenApi from "../../types/ICodeGenApi";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper.js";
+import TypeResolver from "../../TypeResolver.js";
 import TYPE_MAP from "../../types/TYPE_MAP.js";
 import CppModeHelper from "../../helpers/CppModeHelper.js";
 
@@ -60,6 +62,29 @@ function handleSimpleAssignment(ctx: IAssignmentContext): string {
         const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
         const castExpr = CppModeHelper.cast(cType, expr);
         return `${target} = ${castExpr};`;
+      }
+    }
+  }
+
+  // For non-compound assignments, check for cross-type-category (int <-> float)
+  if (!ctx.isCompound && ctx.firstIdTypeInfo && ctx.valueCtx) {
+    const targetType = ctx.firstIdTypeInfo.baseType;
+    const valueType = TypeResolver.getExpressionType(ctx.valueCtx);
+
+    if (
+      valueType &&
+      NarrowingCastHelper.isCrossTypeCategoryConversion(valueType, targetType)
+    ) {
+      // Int to float: add explicit cast
+      if (
+        NarrowingCastHelper.isIntegerType(valueType) &&
+        NarrowingCastHelper.isFloatType(targetType)
+      ) {
+        const castedValue = NarrowingCastHelper.wrapIntToFloat(
+          ctx.generatedValue,
+          targetType,
+        );
+        return `${target} ${ctx.cOp} ${castedValue};`;
       }
     }
   }

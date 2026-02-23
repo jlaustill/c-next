@@ -28,6 +28,34 @@ const EXTENDED_TYPE_WIDTH: Record<string, number> = {
 const PROMOTED_TO_INT = new Set(["u8", "i8", "u16", "i16", "bool"]);
 
 /**
+ * Float types for cross-category detection.
+ */
+const FLOAT_TYPES = new Set(["f32", "f64", "float", "double"]);
+
+/**
+ * Integer types for cross-category detection.
+ */
+const INTEGER_TYPES = new Set([
+  "u8",
+  "u16",
+  "u32",
+  "u64",
+  "i8",
+  "i16",
+  "i32",
+  "i64",
+  "uint8_t",
+  "uint16_t",
+  "uint32_t",
+  "uint64_t",
+  "int8_t",
+  "int16_t",
+  "int32_t",
+  "int64_t",
+  "int",
+]);
+
+/**
  * Helper for adding MISRA 10.3 compliant casts to generated C code.
  */
 class NarrowingCastHelper {
@@ -101,6 +129,62 @@ class NarrowingCastHelper {
       return "int";
     }
     return baseType;
+  }
+
+  /**
+   * Check if a type is a floating-point type.
+   */
+  static isFloatType(typeName: string): boolean {
+    return FLOAT_TYPES.has(typeName);
+  }
+
+  /**
+   * Check if a type is an integer type.
+   */
+  static isIntegerType(typeName: string): boolean {
+    return INTEGER_TYPES.has(typeName);
+  }
+
+  /**
+   * Check if conversion between source and target is a cross-type-category conversion.
+   * MISRA 10.3 requires explicit casts for different essential type categories.
+   */
+  static isCrossTypeCategoryConversion(
+    sourceType: string,
+    targetType: string,
+  ): boolean {
+    const sourceIsFloat = NarrowingCastHelper.isFloatType(sourceType);
+    const targetIsFloat = NarrowingCastHelper.isFloatType(targetType);
+    const sourceIsInt = NarrowingCastHelper.isIntegerType(sourceType);
+    const targetIsInt = NarrowingCastHelper.isIntegerType(targetType);
+
+    // Float to integer or integer to float
+    return (sourceIsFloat && targetIsInt) || (sourceIsInt && targetIsFloat);
+  }
+
+  /**
+   * Get the appropriate C float type for a C-Next type.
+   */
+  static getCFloatType(typeName: string): string {
+    if (typeName === "f32" || typeName === "float") {
+      return "float";
+    }
+    if (typeName === "f64" || typeName === "double") {
+      return "double";
+    }
+    return "double"; // Default to double
+  }
+
+  /**
+   * Wrap int-to-float conversion with explicit cast for MISRA 10.3.
+   *
+   * @param expr - The integer expression
+   * @param targetType - The float target type (f32/f64)
+   * @returns Expression with cast
+   */
+  static wrapIntToFloat(expr: string, targetType: string): string {
+    const floatType = NarrowingCastHelper.getCFloatType(targetType);
+    return CppModeHelper.cast(floatType, expr);
   }
 }
 

@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-execution
 // Tests: wrap modifier for i64 type (-9223372036854775808 to 9223372036854775807)
@@ -12,7 +13,7 @@
 int main(void) {
     int64_t val = 9223372036854775807;
     val += 1;
-    if (val != -9223372036854775808) return 1;
+    if (val != (int64_t)INT64_MIN) return 1;
     int64_t val2 = 9223372036854775800;
     val2 += 10;
     if (val2 != -9223372036854775806) return 2;
@@ -21,10 +22,10 @@ int main(void) {
     if (val != -8446744073709551616) return 3;
     val = 9223372036854775807;
     val += 1;
-    if (val != -9223372036854775808) return 4;
+    if (val != (int64_t)INT64_MIN) return 4;
     val += 9223372036854775807;
     if (val != -1) return 5;
-    val = -9223372036854775808;
+    val = (int64_t)INT64_MIN;
     val -= 1;
     if (val != 9223372036854775807) return 6;
     val = -9223372036854775800;
@@ -33,7 +34,7 @@ int main(void) {
     val = -5000000000000000000;
     val -= 5000000000000000000;
     if (val != 8446744073709551616) return 8;
-    val = -9223372036854775808;
+    val = (int64_t)INT64_MIN;
     val -= 1;
     if (val != 9223372036854775807) return 9;
     val -= 9223372036854775807;
@@ -67,7 +68,7 @@ int main(void) {
     if (val != 9223372036854775807) return 19;
     val = -9223372036854775807;
     val -= 1;
-    if (val != -9223372036854775808) return 20;
+    if (val != (int64_t)INT64_MIN) return 20;
     val = 4611686018427387904;
     val += 0;
     if (val != 4611686018427387904) return 21;
@@ -76,7 +77,7 @@ int main(void) {
     if (val != -4611686018427387904) return 22;
     val = 9223372036854775807;
     val += 1;
-    if (val != -9223372036854775808) return 23;
+    if (val != (int64_t)INT64_MIN) return 23;
     val -= 1;
     if (val != 9223372036854775807) return 24;
     return 0;

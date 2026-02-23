@@ -1130,17 +1130,17 @@ describe("TypeResolver", () => {
       });
     });
 
-    describe("unsuffixed literals", () => {
-      it("should return null for unsuffixed integer", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("42"))).toBeNull();
+    describe("unsuffixed literals (MISRA 10.3 compliance)", () => {
+      it("should return int for unsuffixed integer", () => {
+        expect(TypeResolver.getLiteralType(mockLiteral("42"))).toBe("int");
       });
 
-      it("should return null for unsuffixed hex", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("0xFF"))).toBeNull();
+      it("should return int for unsuffixed hex", () => {
+        expect(TypeResolver.getLiteralType(mockLiteral("0xFF"))).toBe("int");
       });
 
-      it("should return null for unsuffixed float", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("3.14"))).toBeNull();
+      it("should return f64 for unsuffixed float", () => {
+        expect(TypeResolver.getLiteralType(mockLiteral("3.14"))).toBe("f64");
       });
     });
   });

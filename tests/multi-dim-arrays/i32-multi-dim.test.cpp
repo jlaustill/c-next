@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -23,11 +24,11 @@ int32_t matrix2d[4][8] = {0};
 int32_t cube3d[2][3][4] = {0};
 
 int main(void) {
-    matrix2d[0][0] = -2147483648;
+    matrix2d[0][0] = (int32_t)INT32_MIN;
     matrix2d[0][7] = 2147483647;
     matrix2d[1][3] = -1000000;
     matrix2d[3][7] = 1000000;
-    if (matrix2d[0][0] != -2147483648) return 1;
+    if (matrix2d[0][0] != (int32_t)INT32_MIN) return 1;
     if (matrix2d[0][7] != 2147483647) return 2;
     if (matrix2d[1][3] != -1000000) return 3;
     if (matrix2d[3][7] != 1000000) return 4;
@@ -67,8 +68,8 @@ int main(void) {
         }
     }
     if (sum != 14436) return 21;
-    matrix2d[2][4] = -2147483648;
-    if (matrix2d[2][4] != -2147483648) return 22;
+    matrix2d[2][4] = (int32_t)INT32_MIN;
+    if (matrix2d[2][4] != (int32_t)INT32_MIN) return 22;
     matrix2d[3][7] = -100000;
     if (matrix2d[3][7] != -100000) return 23;
     int32_t testArray[4][2] = {0};
@@ -77,13 +78,13 @@ int main(void) {
             testArray[ti][tj] = 0;
         }
     }
-    testArray[0][0] = -2147483648;
+    testArray[0][0] = (int32_t)INT32_MIN;
     testArray[0][1] = 2147483647;
     testArray[1][0] = 0;
     testArray[1][1] = -1;
     testArray[2][0] = 1;
     testArray[3][1] = -1000000;
-    if (testArray[0][0] != -2147483648) return 24;
+    if (testArray[0][0] != (int32_t)INT32_MIN) return 24;
     if (testArray[0][1] != 2147483647) return 25;
     if (testArray[1][0] != 0) return 26;
     if (testArray[1][1] != -1) return 27;

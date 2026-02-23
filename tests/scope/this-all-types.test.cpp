@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
 // test-execution
 // Test: ADR-016 this. accessor with all primitive types
@@ -18,8 +19,8 @@ static uint32_t AllTypesTest_valU32 = 4294967295;
 static uint64_t AllTypesTest_valU64 = 18446744073709551615;
 static int8_t AllTypesTest_valI8 = -128;
 static int16_t AllTypesTest_valI16 = -32768;
-static int32_t AllTypesTest_valI32 = -2147483648;
-static int64_t AllTypesTest_valI64 = -9223372036854775808;
+static int32_t AllTypesTest_valI32 = (int32_t)INT32_MIN;
+static int64_t AllTypesTest_valI64 = (int64_t)INT64_MIN;
 static float AllTypesTest_valF32 = 3.14;
 static double AllTypesTest_valF64 = 3.141592653589793;
 static bool AllTypesTest_valBool = true;
@@ -110,11 +111,11 @@ int main(void) {
         return 6;
     }
     int32_t resultI32 = AllTypesTest_getI32();
-    if (resultI32 != -2147483648) {
+    if (resultI32 != (int32_t)INT32_MIN) {
         return 7;
     }
     int64_t resultI64 = AllTypesTest_getI64();
-    if (resultI64 != -9223372036854775808) {
+    if (resultI64 != (int64_t)INT64_MIN) {
         return 8;
     }
     float testF32 = 99.5;

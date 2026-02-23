@@ -14,13 +14,13 @@ int main(void) {
     double negative = -100.0;
     double in_range = 30000.0;
     double at_max = 65535.0;
-    uint16_t result = ((over) > ((double)UINT16_MAX) ? UINT16_MAX : (over) < 0.0 ? 0 : static_cast<uint16_t>((over)));
+    uint16_t result = ((over) > ((double)UINT16_MAX) ? static_cast<uint16_t>(UINT16_MAX) : (over) < 0.0 ? 0 : static_cast<uint16_t>((over)));
     if (result != 65535) return 1;
-    result = ((negative) > ((double)UINT16_MAX) ? UINT16_MAX : (negative) < 0.0 ? 0 : static_cast<uint16_t>((negative)));
+    result = ((negative) > ((double)UINT16_MAX) ? static_cast<uint16_t>(UINT16_MAX) : (negative) < 0.0 ? 0 : static_cast<uint16_t>((negative)));
     if (result != 0) return 2;
-    result = ((in_range) > ((double)UINT16_MAX) ? UINT16_MAX : (in_range) < 0.0 ? 0 : static_cast<uint16_t>((in_range)));
+    result = ((in_range) > ((double)UINT16_MAX) ? static_cast<uint16_t>(UINT16_MAX) : (in_range) < 0.0 ? 0 : static_cast<uint16_t>((in_range)));
     if (result != 30000) return 3;
-    result = ((at_max) > ((double)UINT16_MAX) ? UINT16_MAX : (at_max) < 0.0 ? 0 : static_cast<uint16_t>((at_max)));
+    result = ((at_max) > ((double)UINT16_MAX) ? static_cast<uint16_t>(UINT16_MAX) : (at_max) < 0.0 ? 0 : static_cast<uint16_t>((at_max)));
     if (result != 65535) return 4;
     return 0;
 }
