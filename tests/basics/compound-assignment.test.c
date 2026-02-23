@@ -46,18 +46,18 @@ int main(void) {
     a %= 5U;
     if (a != 2) return 5;
     uint8_t flags = 0b11111111U;
-    flags &= 0b00001111U;
+    flags = (uint8_t)(flags & 0b00001111U);
     if (flags != 0b00001111) return 6;
-    flags |= 0b11110000U;
+    flags = (uint8_t)(flags | 0b11110000U);
     if (flags != 0b11111111) return 7;
     flags = 0b10101010U;
-    flags ^= 0b11110000U;
+    flags = (uint8_t)(flags ^ 0b11110000U);
     if (flags != 0b01011010) return 8;
     uint8_t val = 0b00000001U;
-    val <<= 4U;
+    val = (uint8_t)(val << 4U);
     if (val != 0b00010000) return 9;
     val = 0b10000000U;
-    val >>= 4U;
+    val = (uint8_t)(val >> 4U);
     if (val != 0b00001000) return 10;
     return 0;
 }

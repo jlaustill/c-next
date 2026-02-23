@@ -33,7 +33,7 @@ uint16_t default_counter = 0U;
 // Default is clamp
 void increment_all(void) {
     safe_counter = cnx_clamp_add_u16(safe_counter, 1U);
-    fast_counter += 1U;
+    fast_counter = (uint16_t)(fast_counter + 1U);
     default_counter = cnx_clamp_add_u16(default_counter, 1U);
 }
 

@@ -10,5 +10,5 @@
 uint8_t counter = 250U;
 
 int main(void) {
-    counter += 10U;
+    counter = (uint8_t)(counter + 10U);
 }

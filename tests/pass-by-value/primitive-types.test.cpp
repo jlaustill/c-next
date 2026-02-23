@@ -48,7 +48,7 @@ bool flipBool(bool val) {
 
 // Modified functions - should pass by pointer
 void incrementU8(uint8_t& val) {
-    val += 1U;
+    val = static_cast<uint8_t>((val + 1U));
 }
 
 void incrementU32(uint32_t& val) {
