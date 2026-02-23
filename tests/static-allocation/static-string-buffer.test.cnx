@@ -7,11 +7,11 @@ string<64> messageBuffer <- "Initial";
 string<128> logBuffer <- "Log entry one";
 
 u32 getMessageLength() {
-    return messageBuffer.length;
+    return messageBuffer.char_count;
 }
 
 u32 getLogLength() {
-    return logBuffer.length;
+    return logBuffer.char_count;
 }
 
 // Issue #138 fixed: assignment from const parameter now generates valid C
@@ -27,8 +27,8 @@ void setDefaultMessage() {
 u32 main() {
    
 // Test 1: Global string buffers are initialized correctly
-    if (messageBuffer.length != 7) return 1; // "Initial"
-    if (logBuffer.length != 13) return 2; // "Log entry one"
+    if (messageBuffer.char_count != 7) return 1; // "Initial"
+    if (logBuffer.char_count != 13) return 2; // "Log entry one"
 
    
 // Test 2: Content comparison
@@ -55,20 +55,20 @@ u32 main() {
    
 // Test 6: Modify global buffer directly (issue #139)
     messageBuffer <- "Modified";
-    if (messageBuffer.length != 8) return 11;
+    if (messageBuffer.char_count != 8) return 11;
     if (messageBuffer != "Modified") return 12;
 
    
 // Test 7: Copy from parameter (issue #138)
     string<64> source <- "FromParam";
     copyMessage(source);
-    if (messageBuffer.length != 9) return 13;
+    if (messageBuffer.char_count != 9) return 13;
     if (messageBuffer != "FromParam") return 14;
 
    
 // Test 8: Set from literal in function (issue #139)
     setDefaultMessage();
-    if (messageBuffer.length != 12) return 15;
+    if (messageBuffer.char_count != 12) return 15;
     if (messageBuffer != "DefaultValue") return 16;
 
     return 0;

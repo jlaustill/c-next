@@ -75,21 +75,9 @@ describe("runAnalyzers", () => {
   // ========================================================================
   // Phase 2: Struct Field Errors (early return)
   // ========================================================================
-
-  describe("phase 2 - struct field naming", () => {
-    it("should return early on struct field reserved name", () => {
-      const { tree, tokenStream } = parseWithStream(`
-        struct MyStruct {
-          u32 length;
-        }
-      `);
-      const errors = runAnalyzers(tree, tokenStream);
-
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].severity).toBe("error");
-      expect(errors[0].message).toContain("E0355");
-    });
-  });
+  // Note: ADR-058 removed all reserved field names (including "length")
+  // so there are no struct field naming violations to test.
+  // The StructFieldAnalyzer infrastructure remains for future reserved names.
 
   // ========================================================================
   // Phase 3: Initialization Errors (early return)

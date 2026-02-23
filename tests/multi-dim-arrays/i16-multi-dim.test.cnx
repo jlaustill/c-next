@@ -36,15 +36,15 @@ u32 main() {
    
 // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.length != 4) return 10; // First dimension
-    if (matrix2d[0].length != 8) return 11; // Second dimension
-    if (matrix2d[0][0].length != 16) return 12; // Element bit width
+    if (matrix2d.element_count != 4) return 10; // First dimension
+    if (matrix2d[0].element_count != 8) return 11; // Second dimension
+    if (matrix2d[0][0].bit_length != 16) return 12; // Element bit width
 
     // 3D array dimensions
-    if (cube3d.length != 2) return 13; // First dimension
-    if (cube3d[0].length != 3) return 14; // Second dimension
-    if (cube3d[0][0].length != 4) return 15; // Third dimension
-    if (cube3d[0][0][0].length != 16) return 16; // Element bit width
+    if (cube3d.element_count != 2) return 13; // First dimension
+    if (cube3d[0].element_count != 3) return 14; // Second dimension
+    if (cube3d[0][0].element_count != 4) return 15; // Third dimension
+    if (cube3d[0][0][0].bit_length != 16) return 16; // Element bit width
 
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -80,7 +80,7 @@ u32 main() {
 
    
 // Test boundary access
-    matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- -1000;
+    matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- -1000;
     if (matrix2d[3][7] != -1000) return 23;
 
    

@@ -9,8 +9,8 @@ u32 main(string args[]) {
 // ADR-046: c_ prefix required for nullable C pointers
     cstring c_result <- fgets(userName, userName.size, stdin);
     if (c_result != NULL) {
-        if (userName.length > 0 && userName[userName.length - 1] = '\n') {
-            userName[userName.length - 1] <- '\0';
+        if (userName.char_count > 0 && userName[userName.char_count - 1] = '\n') {
+            userName[userName.char_count - 1] <- '\0';
         }
     }
 

@@ -7,7 +7,7 @@
 
 // test-execution
 // Regression test for issue #68: Real-world serialization pattern
-// Verifies config.magic.length correctly returns 32 (was returning 0)
+// Verifies config.magic.bit_length correctly returns 32 (was returning 0)
 typedef struct Config {
     uint32_t magic;
     uint8_t version;

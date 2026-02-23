@@ -5,12 +5,12 @@
 string<32> globalNames[5];
 
 u32 getArrayLength(string<32>[5] arr) {
-    return arr.length;
+    return arr.element_count;
 }
 
-// Issue #136 fixed: arr[index].length now correctly returns strlen
+// Issue #136 fixed: arr[index].char_count now correctly returns strlen
 u32 getElementLength(string<32>[5] arr, u32 index) {
-    return arr[index].length;
+    return arr[index].char_count;
 }
 
 i32 main() {
@@ -23,16 +23,16 @@ i32 main() {
     globalNames[4] <- "Eve";
 
    
-// Test 2: Array .length returns element count
-    if (globalNames.length != 5) return 1;
+// Test 2: Array .element_count returns element count
+    if (globalNames.element_count != 5) return 1;
 
    
 // Test 3: Element .length returns string length (strlen)
-    if (globalNames[0].length != 5) return 2; // "Alice"
-    if (globalNames[1].length != 3) return 3; // "Bob"
-    if (globalNames[2].length != 7) return 4; // "Charlie"
-    if (globalNames[3].length != 5) return 5; // "Diana"
-    if (globalNames[4].length != 3) return 6; // "Eve"
+    if (globalNames[0].char_count != 5) return 2; // "Alice"
+    if (globalNames[1].char_count != 3) return 3; // "Bob"
+    if (globalNames[2].char_count != 7) return 4; // "Charlie"
+    if (globalNames[3].char_count != 5) return 5; // "Diana"
+    if (globalNames[4].char_count != 3) return 6; // "Eve"
 
    
 // Test 4: Element .capacity
@@ -63,10 +63,10 @@ i32 main() {
     colors[1] <- "Green";
     colors[2] <- "Blue";
 
-    if (colors.length != 3) return 13;
-    if (colors[0].length != 3) return 14;
-    if (colors[1].length != 5) return 15;
-    if (colors[2].length != 4) return 16;
+    if (colors.element_count != 3) return 13;
+    if (colors[0].char_count != 3) return 14;
+    if (colors[1].char_count != 5) return 15;
+    if (colors[2].char_count != 4) return 16;
 
    
 // Test 9: Pass array to function - get array length
@@ -90,8 +90,8 @@ i32 main() {
 // Test 11: Loop through array with index
     u32 totalLength <- 0;
     u32 i <- 0;
-    while (i < globalNames.length) {
-        totalLength <- totalLength + globalNames[i].length;
+    while (i < globalNames.element_count) {
+        totalLength <- totalLength + globalNames[i].char_count;
         i <- i + 1;
     }
 
@@ -101,7 +101,7 @@ i32 main() {
    
 // Test 12: Reassign array element
     globalNames[1] <- "Benjamin";
-    if (globalNames[1].length != 8) return 24;
+    if (globalNames[1].char_count != 8) return 24;
     if (globalNames[1] != "Benjamin") return 25;
 
    
@@ -112,9 +112,9 @@ i32 main() {
     sparse[1] <- "Middle";
 
     // sparse[2] is empty by default
-    if (sparse[0].length != 0) return 26;
-    if (sparse[1].length != 6) return 27;
-    if (sparse[2].length != 0) return 28;
+    if (sparse[0].char_count != 0) return 26;
+    if (sparse[1].char_count != 6) return 27;
+    if (sparse[2].char_count != 0) return 28;
 
     return 0;
 }

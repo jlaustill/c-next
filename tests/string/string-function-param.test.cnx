@@ -2,7 +2,7 @@
 // Tests: passing bounded string to function
 void printMessage(const string<64> msg) {
     // Use the string (read-only)
-    u32 len <- msg.length;
+    u32 len <- msg.char_count;
 }
 
 void main() {

@@ -5,9 +5,9 @@
 
 #include <string.h>
 
-// ADR-045: Test repeated .length usage
-// TODO: Future optimization - cache strlen() when .length is used multiple times
-// Current behavior: each .length generates a separate strlen() call
+// ADR-045: Test repeated .char_count usage
+// TODO: Future optimization - cache strlen() when .char_count is used multiple times
+// Current behavior: each .char_count generates a separate strlen() call
 // Optimized behavior: generate a temp variable to cache the length
 char text[65] = "Hello World";
 

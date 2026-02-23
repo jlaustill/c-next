@@ -8,8 +8,8 @@ void main() {
     u8[64] buffer;
     buffer[0] <- 0;  // Initialize to satisfy use-before-init check
 
-    u32 byteBits <- byte.length;    // 8
-    u32 wordBits <- word.length;    // 16
-    u32 dwordBits <- dword.length;  // 32
-    u32 bufLen <- buffer.length;    // 64
+    u32 byteBits <- byte.bit_length;    // 8
+    u32 wordBits <- word.bit_length;    // 16
+    u32 dwordBits <- dword.bit_length;  // 32
+    u32 bufLen <- buffer.element_count;    // 64
 }

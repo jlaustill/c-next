@@ -16,7 +16,7 @@ uint32_t getArrayLength(const char arr[5][33]) {
     return 5;
 }
 
-// Issue #136 fixed: arr[index].length now correctly returns strlen
+// Issue #136 fixed: arr[index].char_count now correctly returns strlen
 uint32_t getElementLength(const char arr[5][33], uint32_t index) {
     return strlen(arr[index]);
 }

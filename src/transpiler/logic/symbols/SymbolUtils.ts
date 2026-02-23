@@ -6,8 +6,11 @@
 /**
  * Reserved field names that conflict with C-Next built-in properties.
  * These should not be used as struct field names.
+ *
+ * Note: "length" was removed from this list (ADR-058) since .length is now deprecated.
+ * Structs can have fields named "length" without conflict.
  */
-const RESERVED_FIELD_NAMES = new Set(["length"]);
+const RESERVED_FIELD_NAMES = new Set<string>([]);
 
 /**
  * Parse array dimensions from declarator text using regex.

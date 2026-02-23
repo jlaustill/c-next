@@ -37,7 +37,7 @@ describe("StringLengthCounter", () => {
   });
 
   describe("countExpression", () => {
-    it("counts single .length access on string variable", () => {
+    it("counts single .char_count access on string variable", () => {
       CodeGenState.setVariableTypeInfo("myStr", {
         baseType: "char",
         bitWidth: 8,
@@ -47,13 +47,13 @@ describe("StringLengthCounter", () => {
         stringCapacity: 64,
       });
 
-      const expr = parseExpression("myStr.length");
+      const expr = parseExpression("myStr.char_count");
       const counts = StringLengthCounter.countExpression(expr);
 
       expect(counts.get("myStr")).toBe(1);
     });
 
-    it("counts multiple .length accesses on same variable", () => {
+    it("counts multiple .char_count accesses on same variable", () => {
       CodeGenState.setVariableTypeInfo("str", {
         baseType: "char",
         bitWidth: 8,
@@ -63,14 +63,14 @@ describe("StringLengthCounter", () => {
         stringCapacity: 32,
       });
 
-      // Expression: str.length + str.length
-      const expr = parseExpression("str.length + str.length");
+      // Expression: str.char_count + str.char_count
+      const expr = parseExpression("str.char_count + str.char_count");
       const counts = StringLengthCounter.countExpression(expr);
 
       expect(counts.get("str")).toBe(2);
     });
 
-    it("counts .length accesses on different string variables", () => {
+    it("counts .char_count accesses on different string variables", () => {
       CodeGenState.setVariableTypeInfo("a", {
         baseType: "char",
         bitWidth: 8,
@@ -88,14 +88,14 @@ describe("StringLengthCounter", () => {
         stringCapacity: 16,
       });
 
-      const expr = parseExpression("a.length + b.length");
+      const expr = parseExpression("a.char_count + b.char_count");
       const counts = StringLengthCounter.countExpression(expr);
 
       expect(counts.get("a")).toBe(1);
       expect(counts.get("b")).toBe(1);
     });
 
-    it("ignores .length on non-string variables", () => {
+    it("ignores .char_count on non-string variables", () => {
       CodeGenState.setVariableTypeInfo("arr", {
         baseType: "u8",
         bitWidth: 8,
@@ -104,7 +104,7 @@ describe("StringLengthCounter", () => {
         arrayDimensions: [10],
       });
 
-      const expr = parseExpression("arr.length");
+      const expr = parseExpression("arr.char_count");
       const counts = StringLengthCounter.countExpression(expr);
 
       expect(counts.get("arr")).toBeUndefined();
@@ -126,7 +126,7 @@ describe("StringLengthCounter", () => {
 
     it("handles unknown variables gracefully", () => {
       // No type registered for "unknown"
-      const expr = parseExpression("unknown.length");
+      const expr = parseExpression("unknown.char_count");
       const counts = StringLengthCounter.countExpression(expr);
 
       expect(counts.size).toBe(0);
@@ -134,7 +134,7 @@ describe("StringLengthCounter", () => {
   });
 
   describe("countBlock", () => {
-    it("counts .length accesses across multiple statements", () => {
+    it("counts .char_count accesses across multiple statements", () => {
       CodeGenState.setVariableTypeInfo("msg", {
         baseType: "char",
         bitWidth: 8,
@@ -145,15 +145,15 @@ describe("StringLengthCounter", () => {
       });
 
       const block = parseBlock(`
-        u32 len <- msg.length;
-        u32 doubled <- msg.length * 2;
+        u32 len <- msg.char_count;
+        u32 doubled <- msg.char_count * 2;
       `);
       const counts = StringLengthCounter.countBlock(block);
 
       expect(counts.get("msg")).toBe(2);
     });
 
-    it("counts .length in assignment statements", () => {
+    it("counts .char_count in assignment statements", () => {
       CodeGenState.setVariableTypeInfo("text", {
         baseType: "char",
         bitWidth: 8,
@@ -165,7 +165,7 @@ describe("StringLengthCounter", () => {
 
       const block = parseBlock(`
         u32 x;
-        x <- text.length;
+        x <- text.char_count;
       `);
       const counts = StringLengthCounter.countBlock(block);
 
@@ -197,8 +197,8 @@ describe("StringLengthCounter", () => {
       counts.set("s1", 1);
 
       const block = parseBlock(`
-        u32 a <- s1.length;
-        u32 b <- s2.length;
+        u32 a <- s1.char_count;
+        u32 b <- s2.char_count;
       `);
       StringLengthCounter.countBlockInto(block, counts);
 
@@ -208,7 +208,7 @@ describe("StringLengthCounter", () => {
   });
 
   describe("nested expressions", () => {
-    it("counts .length in ternary expressions", () => {
+    it("counts .char_count in ternary expressions", () => {
       CodeGenState.setVariableTypeInfo("str", {
         baseType: "char",
         bitWidth: 8,
@@ -218,13 +218,13 @@ describe("StringLengthCounter", () => {
         stringCapacity: 64,
       });
 
-      const expr = parseExpression("(str.length > 0) ? str.length : 0");
+      const expr = parseExpression("(str.char_count > 0) ? str.char_count : 0");
       const counts = StringLengthCounter.countExpression(expr);
 
       expect(counts.get("str")).toBe(2);
     });
 
-    it("counts .length in comparison expressions", () => {
+    it("counts .char_count in comparison expressions", () => {
       CodeGenState.setVariableTypeInfo("name", {
         baseType: "char",
         bitWidth: 8,
@@ -234,7 +234,7 @@ describe("StringLengthCounter", () => {
         stringCapacity: 50,
       });
 
-      const expr = parseExpression("name.length = 10");
+      const expr = parseExpression("name.char_count = 10");
       const counts = StringLengthCounter.countExpression(expr);
 
       expect(counts.get("name")).toBe(1);

@@ -92,14 +92,14 @@ u32 main() {
 
    
 // Test length property with u64 arrays
-    if (timestamps.length != 4) return 26;
-    if (counters.length != 5) return 27;
-    if (buffer.length != 100) return 28;
+    if (timestamps.element_count != 4) return 26;
+    if (counters.element_count != 5) return 27;
+    if (buffer.element_count != 100) return 28;
 
    
 // Test element length property
-    if (timestamps[0].length != 64) return 29;
-    if (counters[0].length != 64) return 30;
+    if (timestamps[0].bit_length != 64) return 29;
+    if (counters[0].bit_length != 64) return 30;
 
    
 // Test array assignment from computation

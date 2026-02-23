@@ -5,7 +5,7 @@ i32 main() {
 // Test 1-3: Small to large capacity assignment
     string<32> small <- "Test";
     string<64> big <- small;
-    if (big.length != 4) return 1;
+    if (big.char_count != 4) return 1;
     if (big != "Test") return 2;
     if (big.capacity != 64) return 3;
 
@@ -13,14 +13,14 @@ i32 main() {
 // Test 4-6: Assignment preserves content exactly
     string<16> source <- "Hello World";
     string<32> dest <- source;
-    if (dest.length != 11) return 4;
+    if (dest.char_count != 11) return 4;
     if (dest != "Hello World") return 5;
 
    
 // Test 7-9: Assignment of empty string
     string<32> emptySource;
     string<64> emptyDest <- emptySource;
-    if (emptyDest.length != 0) return 6;
+    if (emptyDest.char_count != 0) return 6;
     if (emptyDest != "") return 7;
 
    
@@ -29,7 +29,7 @@ i32 main() {
     if (local != "First") return 8;
     local <- "Second";
     if (local != "Second") return 9;
-    if (local.length != 6) return 10;
+    if (local.char_count != 6) return 10;
 
    
 // Test 11-12: Multiple reassignments
@@ -37,12 +37,12 @@ i32 main() {
     multi <- "Two";
     multi <- "Three";
     if (multi != "Three") return 11;
-    if (multi.length != 5) return 12;
+    if (multi.char_count != 5) return 12;
 
    
 // Test 13-14: Assignment from literal
     string<32> fromLit <- "Direct Literal";
-    if (fromLit.length != 14) return 13;
+    if (fromLit.char_count != 14) return 13;
     if (fromLit != "Direct Literal") return 14;
 
     return 0;

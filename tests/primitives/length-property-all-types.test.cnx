@@ -4,60 +4,60 @@
 i32 main() {
     // Unsigned integers
     u8 val8 <- 1;
-    if (val8.length != 8) {
+    if (val8.bit_length != 8) {
         return 1;
     }
 
     u16 val16 <- 1;
-    if (val16.length != 16) {
+    if (val16.bit_length != 16) {
         return 1;
     }
 
     u32 val32 <- 1;
-    if (val32.length != 32) {
+    if (val32.bit_length != 32) {
         return 1;
     }
 
     u64 val64 <- 1;
-    if (val64.length != 64) {
+    if (val64.bit_length != 64) {
         return 1;
     }
 
     // Signed integers
     i8 sval8 <- -1;
-    if (sval8.length != 8) {
+    if (sval8.bit_length != 8) {
         return 1;
     }
 
     i16 sval16 <- -1;
-    if (sval16.length != 16) {
+    if (sval16.bit_length != 16) {
         return 1;
     }
 
     i32 sval32 <- -1;
-    if (sval32.length != 32) {
+    if (sval32.bit_length != 32) {
         return 1;
     }
 
     i64 sval64 <- -1;
-    if (sval64.length != 64) {
+    if (sval64.bit_length != 64) {
         return 1;
     }
 
     // Floating point
     f32 float32 <- 3.14;
-    if (float32.length != 32) {
+    if (float32.bit_length != 32) {
         return 1;
     }
 
     f64 float64 <- 3.14159;
-    if (float64.length != 64) {
+    if (float64.bit_length != 64) {
         return 1;
     }
 
     // Boolean (stored as 1 byte = 8 bits)
     bool flag <- true;
-    if (flag.length != 8) {
+    if (flag.bit_length != 8) {
         return 1;
     }
 

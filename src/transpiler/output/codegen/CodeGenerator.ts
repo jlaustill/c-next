@@ -749,17 +749,23 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _isArrayAccessStringExpression(text: string): boolean {
     // Pattern: identifier[expression] or identifier[expression][expression]...
-    // BUT NOT if accessing .length/.capacity/.size (those return numbers, not strings)
+    // BUT NOT if accessing properties that return numbers, not strings
     const arrayAccessMatch = /^([a-zA-Z_]\w*)\[/.exec(text);
     if (!arrayAccessMatch) {
       return false;
     }
 
-    // ADR-045: String properties return numeric values, not strings
+    // ADR-045/ADR-058: String/array properties return numeric values, not strings
+    // ADR-058: .length deprecated, replaced by .bit_length, .byte_length,
+    // .element_count, .char_count
     if (
       text.endsWith(".length") ||
       text.endsWith(".capacity") ||
-      text.endsWith(".size")
+      text.endsWith(".size") ||
+      text.endsWith(".bit_length") ||
+      text.endsWith(".byte_length") ||
+      text.endsWith(".element_count") ||
+      text.endsWith(".char_count")
     ) {
       return false;
     }

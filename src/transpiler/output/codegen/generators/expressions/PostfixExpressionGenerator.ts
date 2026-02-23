@@ -386,7 +386,7 @@ const handleGlobalPrefix = (
 const handleThisScopeLength = (
   memberName: string,
   tracking: ITrackingState,
-  input: IGeneratorInput,
+  _input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): boolean => {
@@ -531,8 +531,10 @@ const tryExplicitLengthProperty = (
 };
 
 /**
- * Try handling property access (.length, .capacity, .size, .bit_length, .byte_length, .element_count, .char_count).
+ * Try handling property access (.capacity, .size, .bit_length, .byte_length, .element_count, .char_count).
  * Returns true if handled.
+ *
+ * Note: .length was removed in favor of explicit properties (ADR-058).
  */
 const tryPropertyAccess = (
   memberName: string,
@@ -543,20 +545,13 @@ const tryPropertyAccess = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): boolean => {
+  // ADR-058: .length is deprecated - use explicit properties instead
   if (memberName === "length") {
-    const ctx = createExplicitLengthContext(tracking, rootIdentifier);
-    const lengthResult = generateLengthProperty(
-      ctx,
-      input,
-      state,
-      orchestrator,
-      effects,
+    throw new Error(
+      `Error: '.length' is deprecated. Use explicit properties: ` +
+        `.bit_length (bit width), .byte_length (byte size), ` +
+        `.element_count (array size), or .char_count (string length)`,
     );
-    if (lengthResult !== null) {
-      applyPropertyResult(tracking, lengthResult);
-      return true;
-    }
-    return false;
   }
 
   // ADR-058: Explicit length properties
@@ -605,264 +600,6 @@ const tryPropertyAccess = (
   }
 
   return false;
-};
-
-// ========================================================================
-// Length Property
-// ========================================================================
-
-/**
- * Context for .length property generation.
- */
-interface ILengthContext {
-  result: string;
-  rootIdentifier: string | undefined;
-  resolvedIdentifier: string | undefined;
-  previousStructType: string | undefined;
-  previousMemberName: string | undefined;
-  subscriptDepth: number;
-}
-
-/**
- * Generate .length property access.
- * Returns null if not applicable (falls through to member access).
- */
-const generateLengthProperty = (
-  ctx: ILengthContext,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
-): string | null => {
-  // Special case: main function's args.length -> argc
-  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    return "argc";
-  }
-
-  // Check if we're accessing a struct member (cfg.magic.length)
-  if (ctx.previousStructType && ctx.previousMemberName) {
-    const fieldInfo = orchestrator.getStructFieldInfo(
-      ctx.previousStructType,
-      ctx.previousMemberName,
-    );
-    if (fieldInfo) {
-      return generateStructFieldLength(
-        ctx.result,
-        fieldInfo,
-        ctx.subscriptDepth,
-        input,
-        orchestrator,
-        effects,
-      );
-    }
-  }
-
-  // Fall back to checking the current resolved identifier's type
-  const typeInfo = ctx.resolvedIdentifier
-    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
-
-  if (!typeInfo) {
-    return `/* .length: unknown type for ${ctx.result} */0`;
-  }
-
-  return generateTypeInfoLength(
-    ctx.result,
-    typeInfo,
-    ctx.subscriptDepth,
-    ctx.resolvedIdentifier,
-    input,
-    state,
-    effects,
-  );
-};
-
-/**
- * Generate .length for a struct field.
- */
-const generateStructFieldLength = (
-  result: string,
-  fieldInfo: { type: string; dimensions?: (number | string)[] },
-  subscriptDepth: number,
-  input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
-): string => {
-  const memberType = fieldInfo.type;
-  const dimensions = fieldInfo.dimensions;
-  const isStringField = TypeCheckUtils.isString(memberType);
-
-  if (dimensions?.length && dimensions.length > 1 && isStringField) {
-    if (subscriptDepth === 0) {
-      return String(dimensions[0]);
-    } else {
-      effects.push({ type: "include", header: "string" });
-      return `strlen(${result})`;
-    }
-  } else if (dimensions?.length === 1 && isStringField) {
-    effects.push({ type: "include", header: "string" });
-    return `strlen(${result})`;
-  } else if (
-    dimensions?.length &&
-    dimensions.length > 0 &&
-    subscriptDepth < dimensions.length
-  ) {
-    return String(dimensions[subscriptDepth]);
-  } else if (
-    dimensions?.length &&
-    dimensions.length > 0 &&
-    subscriptDepth >= dimensions.length
-  ) {
-    return getTypeBitWidth(memberType, input);
-  } else {
-    return getTypeBitWidth(memberType, input);
-  }
-};
-
-/**
- * Generate .length from type info.
- */
-const generateTypeInfoLength = (
-  result: string,
-  typeInfo: {
-    isString?: boolean;
-    isArray?: boolean;
-    isEnum?: boolean;
-    arrayDimensions?: (number | string)[];
-    baseType: string;
-    bitWidth?: number;
-    isBitmap?: boolean;
-    bitmapTypeName?: string;
-  },
-  subscriptDepth: number,
-  resolvedIdentifier: string | undefined,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  effects: TGeneratorEffect[],
-): string => {
-  // ADR-045: String type handling
-  if (typeInfo.isString) {
-    return generateStringLength(
-      result,
-      typeInfo,
-      subscriptDepth,
-      resolvedIdentifier,
-      state,
-    );
-  }
-
-  // Non-string enum - always 32 bits
-  if (typeInfo.isEnum && !typeInfo.isArray) {
-    return "32";
-  }
-
-  // Non-string, non-enum, non-array - use bitWidth
-  if (!typeInfo.isArray) {
-    return String(typeInfo.bitWidth || 0);
-  }
-
-  // Array without dimensions - unknown length
-  const dims = typeInfo.arrayDimensions;
-  if (!dims || dims.length === 0) {
-    return `/* .length unknown for ${resolvedIdentifier} */0`;
-  }
-
-  // Array with subscript within bounds - return that dimension
-  if (subscriptDepth < dims.length) {
-    return String(dims[subscriptDepth]);
-  }
-
-  // Subscript past array bounds - return element type's length
-  return generateElementTypeLength(result, typeInfo, input, effects);
-};
-
-/**
- * Generate .length for string types.
- */
-const generateStringLength = (
-  result: string,
-  typeInfo: {
-    arrayDimensions?: (number | string)[];
-  },
-  subscriptDepth: number,
-  resolvedIdentifier: string | undefined,
-  state: IGeneratorState,
-): string => {
-  const dims = typeInfo.arrayDimensions;
-
-  // String array (2D): first dimension is array size, second is string capacity
-  if (dims && dims.length > 1) {
-    return subscriptDepth === 0 ? String(dims[0]) : `strlen(${result})`;
-  }
-
-  // String array with subscript - use result which contains arr[index]
-  // This handles string<32>[5] parameters where subscriptDepth=1 after arr[index]
-  if (subscriptDepth > 0) {
-    return `strlen(${result})`;
-  }
-
-  // Simple string: check length cache first, then use strlen
-  if (resolvedIdentifier && state.lengthCache?.has(resolvedIdentifier)) {
-    return state.lengthCache.get(resolvedIdentifier)!;
-  }
-  return resolvedIdentifier
-    ? `strlen(${resolvedIdentifier})`
-    : `strlen(${result})`;
-};
-
-/**
- * Generate .length for array element types (subscript past bounds).
- */
-const generateElementTypeLength = (
-  result: string,
-  typeInfo: {
-    isEnum?: boolean;
-    isString?: boolean;
-    baseType: string;
-    isBitmap?: boolean;
-    bitmapTypeName?: string;
-  },
-  input: IGeneratorInput,
-  effects: TGeneratorEffect[],
-): string => {
-  // Enum element
-  if (typeInfo.isEnum) {
-    return "32";
-  }
-
-  // String element
-  if (TypeCheckUtils.isString(typeInfo.baseType) || typeInfo.isString) {
-    effects.push({ type: "include", header: "string" });
-    return `strlen(${result})`;
-  }
-
-  // Numeric/bitmap element - get bit width
-  let elementBitWidth = TYPE_WIDTH[typeInfo.baseType] || 0;
-  if (elementBitWidth === 0 && typeInfo.isBitmap && typeInfo.bitmapTypeName) {
-    elementBitWidth =
-      input.symbols!.bitmapBitWidth.get(typeInfo.bitmapTypeName) || 0;
-  }
-
-  if (elementBitWidth > 0) {
-    return String(elementBitWidth);
-  }
-  return `/* .length: unsupported element type ${typeInfo.baseType} */0`;
-};
-
-/**
- * Get bit width for a type.
- */
-const getTypeBitWidth = (typeName: string, input: IGeneratorInput): string => {
-  let bitWidth = TYPE_WIDTH[typeName] || C_TYPE_WIDTH[typeName] || 0;
-  if (bitWidth === 0 && input.symbolTable) {
-    const enumWidth = input.symbolTable.getEnumBitWidth(typeName);
-    if (enumWidth) bitWidth = enumWidth;
-  }
-  if (bitWidth > 0) {
-    return String(bitWidth);
-  } else {
-    return `/* .length: unsupported type ${typeName} */0`;
-  }
 };
 
 // ========================================================================
@@ -1377,16 +1114,18 @@ const generateCharCountProperty = (
 
   effects.push({ type: "include", header: "string" });
 
-  // Check length cache first
+  // Check length cache first (only for simple variable access, not indexed)
   if (
+    ctx.subscriptDepth === 0 &&
     ctx.resolvedIdentifier &&
     state.lengthCache?.has(ctx.resolvedIdentifier)
   ) {
     return state.lengthCache.get(ctx.resolvedIdentifier)!;
   }
 
-  const target = ctx.resolvedIdentifier ?? ctx.result;
-  return `strlen(${target})`;
+  // Use ctx.result which contains the full expression including any subscripts
+  // e.g., for arr[0].char_count, ctx.result is "arr[0]" not "arr"
+  return `strlen(${ctx.result})`;
 };
 
 // ========================================================================

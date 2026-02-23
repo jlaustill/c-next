@@ -350,14 +350,14 @@ describe("CResolver - Struct Fields", () => {
     expect(fieldsMap?.get("inner")?.type).toBe("Inner");
   });
 
-  it("warns about reserved field names", () => {
+  // ADR-058: "length" is no longer reserved since .length was deprecated
+  it("does not warn about 'length' field names after ADR-058", () => {
     const tree = TestHelpers.parseC(`struct Test { int length; };`);
     const symbolTable = new SymbolTable();
     const result = CResolver.resolve(tree!, "test.h", symbolTable);
 
-    expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.warnings[0]).toContain("length");
-    expect(result.warnings[0]).toContain("conflicts with C-Next");
+    // No warnings since "length" is no longer reserved
+    expect(result.warnings.length).toBe(0);
   });
 });
 

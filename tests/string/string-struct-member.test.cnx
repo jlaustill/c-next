@@ -13,7 +13,7 @@ struct Config {
 }
 
 u32 getNameLength(Person p) {
-    return p.name.length;
+    return p.name.char_count;
 }
 
 bool compareName(Person p, const string<64> expected) {
@@ -28,8 +28,8 @@ i32 main() {
     alice.bio <- "Software engineer";
     alice.age <- 30;
 
-    if (alice.name.length != 5) return 1;
-    if (alice.bio.length != 17) return 2;
+    if (alice.name.char_count != 5) return 1;
+    if (alice.bio.char_count != 17) return 2;
 
    
 // Test 2: .capacity property on struct member
@@ -53,7 +53,7 @@ i32 main() {
     bob.bio <- "Data scientist";
     bob.age <- 25;
 
-    if (bob.name.length != 3) return 9;
+    if (bob.name.char_count != 3) return 9;
     if (bob.name != "Bob") return 10;
 
    
@@ -82,20 +82,20 @@ i32 main() {
     cfg.key <- "api_url";
     cfg.value <- "https://example.com/api/v1";
 
-    if (cfg.key.length != 7) return 17;
-    if (cfg.value.length != 26) return 18;
+    if (cfg.key.char_count != 7) return 17;
+    if (cfg.value.char_count != 26) return 18;
     if (cfg.key.capacity != 32) return 19;
     if (cfg.value.capacity != 256) return 20;
 
    
 // Test 11: Empty string member
     Person empty;
-    if (empty.name.length != 0) return 21;
+    if (empty.name.char_count != 0) return 21;
 
    
 // Test 12: Reassign struct member
     alice.name <- "Alicia";
-    if (alice.name.length != 6) return 22;
+    if (alice.name.char_count != 6) return 22;
     if (alice.name != "Alicia") return 23;
 
     return 0;

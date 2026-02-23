@@ -112,14 +112,13 @@ describe("SymbolUtils", () => {
 
   // ========================================================================
   // Reserved Field Names
+  // ADR-058: .length removed, so "length" is no longer reserved
   // ========================================================================
 
   describe("isReservedFieldName", () => {
-    it("should return true for reserved names", () => {
-      expect(SymbolUtils.isReservedFieldName("length")).toBe(true);
-    });
-
-    it("should return false for non-reserved names", () => {
+    it("should return false for all names (no reserved names after ADR-058)", () => {
+      // "length" is no longer reserved since .length was deprecated
+      expect(SymbolUtils.isReservedFieldName("length")).toBe(false);
       expect(SymbolUtils.isReservedFieldName("x")).toBe(false);
       expect(SymbolUtils.isReservedFieldName("data")).toBe(false);
       expect(SymbolUtils.isReservedFieldName("size")).toBe(false);
@@ -128,10 +127,10 @@ describe("SymbolUtils", () => {
   });
 
   describe("getReservedFieldNames", () => {
-    it("should return array of reserved names", () => {
+    it("should return empty array (no reserved names after ADR-058)", () => {
       const reserved = SymbolUtils.getReservedFieldNames();
       expect(Array.isArray(reserved)).toBe(true);
-      expect(reserved).toContain("length");
+      expect(reserved).toHaveLength(0);
     });
   });
 
@@ -140,11 +139,11 @@ describe("SymbolUtils", () => {
       const msg = SymbolUtils.getReservedFieldWarning(
         "C",
         "MyStruct",
-        "length",
+        "someField",
       );
       expect(msg).toContain("C header struct");
       expect(msg).toContain("MyStruct");
-      expect(msg).toContain("length");
+      expect(msg).toContain("someField");
       expect(msg).toContain("conflicts with C-Next");
     });
 
@@ -152,11 +151,11 @@ describe("SymbolUtils", () => {
       const msg = SymbolUtils.getReservedFieldWarning(
         "C++",
         "MyClass",
-        "length",
+        "someField",
       );
       expect(msg).toContain("C++ header struct");
       expect(msg).toContain("MyClass");
-      expect(msg).toContain("length");
+      expect(msg).toContain("someField");
     });
   });
 });

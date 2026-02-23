@@ -12,5 +12,5 @@ const string<16> DAYS[] <- [
 // Local array with size inference (C-style for string arrays)
 void test() {
     string<8> items[] <- ["A", "B", "C", "D"];
-    u8 count <- items.length;
+    u8 count <- items.element_count;
 }

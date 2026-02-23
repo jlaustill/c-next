@@ -17,7 +17,7 @@ u32 calculateChecksum(const AppConfig config) {
     u8 length <- 0;
 
     // This line will fail at compile time because offset is a runtime variable
-    length <- config.magic.length / 8;
+    length <- config.magic.bit_length / 8;
     buffer[offset, length] <- config.magic;
 
     return 0;

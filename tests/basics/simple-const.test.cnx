@@ -27,7 +27,7 @@ u32 main() {
     // Constant used in array operations
     u32[3] data <- [1, 2, 3];
     const u32 EXPECTED_LENGTH <- 3;
-    if (data.length != EXPECTED_LENGTH) return 7;
+    if (data.element_count != EXPECTED_LENGTH) return 7;
 
     // Constant in loop bound
     u32 sum <- 0;

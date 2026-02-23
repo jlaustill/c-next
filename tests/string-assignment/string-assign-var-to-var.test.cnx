@@ -10,18 +10,18 @@ void copyString() {
 
 u32 main() {
     copyString();
-    if (dest.length != 8) return 1;
+    if (dest.char_count != 8) return 1;
 
     // Change source and copy again
     source <- "NewValue";
     dest <- source;
-    if (dest.length != 8) return 2;
+    if (dest.char_count != 8) return 2;
 
     // Local variable to variable copy
     string<32> localSrc <- "LocalSource";
     string<32> localDst <- "";
     localDst <- localSrc;
-    if (localDst.length != 11) return 3;
+    if (localDst.char_count != 11) return 3;
 
     return 0;
 }

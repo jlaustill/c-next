@@ -27,10 +27,10 @@ u32 main(string args[]) {
     u8 iterations <- 8;
     u8 threshold <- 3;
 
-    if (args.length > 1) {
+    if (args.element_count > 1) {
         iterations <- atoi(args[1]);
     }
-    if (args.length > 2) {
+    if (args.element_count > 2) {
         threshold <- atoi(args[2]);
     }
 

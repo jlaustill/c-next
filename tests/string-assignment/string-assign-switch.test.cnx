@@ -21,16 +21,16 @@ void setLevel(u32 code) {
 
 u32 main() {
     setLevel(0);
-    if (level.length != 3) return 1;
+    if (level.char_count != 3) return 1;
 
     setLevel(1);
-    if (level.length != 6) return 2;
+    if (level.char_count != 6) return 2;
 
     setLevel(2);
-    if (level.length != 4) return 3;
+    if (level.char_count != 4) return 3;
 
     setLevel(99);
-    if (level.length != 7) return 4;
+    if (level.char_count != 7) return 4;
 
     return 0;
 }

@@ -1,23 +1,24 @@
 /**
- * StringLengthCounter - Counts .length accesses on string variables
+ * StringLengthCounter - Counts .char_count accesses on string variables
  *
  * Issue #644: Extracted from CodeGenerator to reduce code duplication.
- * Used for strlen caching optimization - when a string's .length is accessed
+ * Used for strlen caching optimization - when a string's .char_count is accessed
  * multiple times, we cache the strlen result in a temp variable.
  *
  * Migrated to use CodeGenState instead of constructor DI.
+ * Updated for ADR-058: .length replaced with .char_count
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 
 /**
- * Counts .length accesses on string variables in an expression tree.
+ * Counts .char_count accesses on string variables in an expression tree.
  * This enables strlen caching optimization.
  */
 class StringLengthCounter {
   /**
-   * Count .length accesses in an expression.
+   * Count .char_count accesses in an expression.
    */
   static countExpression(ctx: Parser.ExpressionContext): Map<string, number> {
     const counts = new Map<string, number>();
@@ -26,7 +27,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Count .length accesses in a block.
+   * Count .char_count accesses in a block.
    */
   static countBlock(ctx: Parser.BlockContext): Map<string, number> {
     const counts = new Map<string, number>();
@@ -37,7 +38,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Count .length accesses in a block, adding to existing counts.
+   * Count .char_count accesses in a block, adding to existing counts.
    */
   static countBlockInto(
     ctx: Parser.BlockContext,
@@ -49,7 +50,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Walk an expression tree, counting .length accesses.
+   * Walk an expression tree, counting .char_count accesses.
    * Uses generic traversal - only postfix expressions need special handling.
    */
   private static walkExpression(
@@ -177,7 +178,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Walk a postfix expression - this is where we detect .length accesses.
+   * Walk a postfix expression - this is where we detect .char_count accesses.
    */
   private static walkPostfixExpr(
     ctx: Parser.PostfixExpressionContext,
@@ -187,11 +188,11 @@ class StringLengthCounter {
     const primaryId = primary.IDENTIFIER()?.getText();
     const ops = ctx.postfixOp();
 
-    // Check for pattern: identifier.length where identifier is a string
+    // Check for pattern: identifier.char_count where identifier is a string
     if (primaryId && ops.length > 0) {
       for (const op of ops) {
         const memberName = op.IDENTIFIER()?.getText();
-        if (memberName === "length") {
+        if (memberName === "char_count") {
           // Check if this is a string type
           const typeInfo = CodeGenState.getVariableTypeInfo(primaryId);
           if (typeInfo?.isString) {
@@ -213,7 +214,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Walk a statement, counting .length accesses.
+   * Walk a statement, counting .char_count accesses.
    */
   private static walkStatement(
     ctx: Parser.StatementContext,

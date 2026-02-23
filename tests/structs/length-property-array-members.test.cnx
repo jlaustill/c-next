@@ -1,6 +1,6 @@
 // test-execution
 // Regression test: .length on struct members that are arrays
-// Tests both array.length (element count) and array[i].field.length
+// Tests both array.length (element count) and array[i].field.bit_length
 struct DataPoint {
     u32 timestamp;
     u16 value;
@@ -25,22 +25,22 @@ u32 main() {
 
    
 // Test .length on scalar struct member
-    if (data.id.length != 32) return 1;
-    if (data.count.length != 8) return 2;
+    if (data.id.bit_length != 32) return 1;
+    if (data.count.bit_length != 8) return 2;
 
    
-// Test .length on array member (should be element count)
-    if (data.samples.length != 10) return 3;
+// Test .element_count on array member (should be element count)
+    if (data.samples.element_count != 10) return 3;
 
    
 // Test .length on array element's field
-    if (data.samples[0].timestamp.length != 32) return 4;
-    if (data.samples[0].value.length != 16) return 5;
-    if (data.samples[0].quality.length != 8) return 6;
+    if (data.samples[0].timestamp.bit_length != 32) return 4;
+    if (data.samples[0].value.bit_length != 16) return 5;
+    if (data.samples[0].quality.bit_length != 8) return 6;
 
    
 // Test byte calculation from array element field
-    u32 bytes <- data.samples[0].timestamp.length / 8;
+    u32 bytes <- data.samples[0].timestamp.bit_length / 8;
     if (bytes != 4) return 7;
 
     return 0;

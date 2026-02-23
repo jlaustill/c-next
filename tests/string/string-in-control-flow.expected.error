@@ -1,1 +1,1 @@
-61:8 error[E0381]: use of uninitialized variable 'maybeEmpty'
+1:0 Code generation failed: Error: Cannot determine .element_count for 'items' - type not found in registry.

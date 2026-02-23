@@ -18,7 +18,7 @@ struct DeepNest {
 
 u32 main() {
    
-// Test 2-level nesting: outer.inner.field.length
+// Test 2-level nesting: outer.inner.field.bit_length
     Outer config;
     config.inner.value <- 0x12345678;
     config.inner.status <- 100;
@@ -26,15 +26,15 @@ u32 main() {
 
    
 // Test nested struct member .length
-    if (config.inner.value.length != 32) return 1;
-    if (config.inner.status.length != 16) return 2;
+    if (config.inner.value.bit_length != 32) return 1;
+    if (config.inner.status.bit_length != 16) return 2;
 
    
 // Test direct member .length on nested struct
-    if (config.flags.length != 8) return 3;
+    if (config.flags.bit_length != 8) return 3;
 
    
-// Test 3-level nesting: deep.outer.inner.field.length
+// Test 3-level nesting: deep.outer.inner.field.bit_length
     DeepNest deep;
     deep.outer.inner.value <- 0xABCDEF;
     deep.outer.inner.status <- 200;
@@ -43,19 +43,19 @@ u32 main() {
 
    
 // Test deep nested member .length
-    if (deep.outer.inner.value.length != 32) return 4;
-    if (deep.outer.inner.status.length != 16) return 5;
-    if (deep.outer.flags.length != 8) return 6;
-    if (deep.timestamp.length != 64) return 7;
+    if (deep.outer.inner.value.bit_length != 32) return 4;
+    if (deep.outer.inner.status.bit_length != 16) return 5;
+    if (deep.outer.flags.bit_length != 8) return 6;
+    if (deep.timestamp.bit_length != 64) return 7;
 
    
 // Test byte calculation from nested struct
-    u32 bytes <- deep.outer.inner.value.length / 8;
+    u32 bytes <- deep.outer.inner.value.bit_length / 8;
     if (bytes != 4) return 8;
 
    
 // Test multiple nested .length in expression
-    u32 total <- deep.outer.inner.value.length + deep.outer.flags.length;
+    u32 total <- deep.outer.inner.value.bit_length + deep.outer.flags.bit_length;
     if (total != 40) return 9; // 32 + 8 = 40
 
     return 0;

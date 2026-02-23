@@ -255,16 +255,16 @@ describe("CppResolver", () => {
     });
   });
 
+  // ADR-058: "length" is no longer reserved since .length was deprecated
   describe("warnings", () => {
-    it("warns about reserved field names", () => {
+    it("does not warn about 'length' field names after ADR-058", () => {
       const source = `class MyStruct { int length; };`;
       const tree = TestHelpers.parseCpp(source);
       expect(tree).not.toBeNull();
       const result = CppResolver.resolve(tree!, "test.hpp", symbolTable);
 
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("length");
-      expect(result.warnings[0]).toContain("MyStruct");
+      // No warnings since "length" is no longer reserved
+      expect(result.warnings).toHaveLength(0);
     });
   });
 });

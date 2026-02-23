@@ -20,6 +20,6 @@ string<8> colors[4] <- [
 scope Test {
     public void init() {
         // Access string array element
-        u8 len <- global.LABELS[0].length;
+        u8 len <- global.LABELS[0].char_count;
     }
 }
