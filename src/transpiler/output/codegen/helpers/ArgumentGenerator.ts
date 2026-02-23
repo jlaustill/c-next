@@ -80,13 +80,19 @@ class ArgumentGenerator {
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (!cType || cType === "void") {
-      return CodeGenState.withExpectedType(targetParamBaseType, () =>
-        callbacks.generateExpression(ctx),
+      // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
+      return CodeGenState.withExpectedType(
+        targetParamBaseType,
+        () => callbacks.generateExpression(ctx),
+        true, // suppressEnumResolution
       );
     }
 
-    const value = CodeGenState.withExpectedType(targetParamBaseType, () =>
-      callbacks.generateExpression(ctx),
+    // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
+    const value = CodeGenState.withExpectedType(
+      targetParamBaseType,
+      () => callbacks.generateExpression(ctx),
+      true, // suppressEnumResolution
     );
 
     // C++ mode: rvalues can bind to const T&

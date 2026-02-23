@@ -135,9 +135,12 @@ const _generateCFunctionArg = (
     );
   }
 
-  // Issue #872: Set expectedType for MISRA 7.2 compliance
-  const argCode = CodeGenState.withExpectedType(targetParam?.baseType, () =>
-    orchestrator.generateExpression(e),
+  // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
+  // (bare enums in function args was never allowed - changing that requires ADR approval)
+  const argCode = CodeGenState.withExpectedType(
+    targetParam?.baseType,
+    () => orchestrator.generateExpression(e),
+    true, // suppressEnumResolution
   );
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
@@ -302,10 +305,11 @@ const generateFunctionCall = (
           orchestrator,
         )
       ) {
-        // Issue #872: Set expectedType for MISRA 7.2 compliance
+        // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
         const argCode = CodeGenState.withExpectedType(
           targetParam?.baseType,
           () => orchestrator.generateExpression(e),
+          true, // suppressEnumResolution
         );
         return wrapWithCppEnumCast(
           argCode,

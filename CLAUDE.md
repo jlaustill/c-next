@@ -28,6 +28,20 @@ There are NO exceptions. Do not ignore, dismiss, or defer bugs without creating 
 
 Having to update something in 2 places instead of 1 is the WORST anti-pattern in this project. When you find it, fix it.
 
+### C-Next Syntax Changes — ZERO EXCEPTIONS
+
+**NEVER change C-Next language syntax or behavior without explicit ADR approval and user confirmation.** This is absolutely non-negotiable.
+
+- C-Next syntax MUST always follow the ADRs exactly
+- If there is any ambiguity about syntax behavior, **ASK the user for direction**
+- NEVER assume a syntax change is acceptable, even as a "beneficial side effect"
+- NEVER introduce behavioral changes that affect what C-Next code compiles or how it compiles
+- Test files marked `// test-error` define expected behavior — changing them to pass is a syntax change
+
+**Example (Issue #872):** Setting `expectedType` for MISRA compliance accidentally enabled bare enum resolution in function arguments. This was reverted because it changed C-Next behavior without ADR approval. The fix added `suppressBareEnumResolution` to get MISRA compliance without changing syntax behavior.
+
+When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
+
 ### Project Hygiene
 
 - No root-level analysis artifacts (`*.csv`, `*-report.md`) — use terminal or `docs/`

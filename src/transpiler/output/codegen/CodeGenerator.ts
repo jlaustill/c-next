@@ -4540,8 +4540,12 @@ export default class CodeGenerator implements IOrchestrator {
    * @returns The qualified enum member access, or null if not an enum member
    */
   private _resolveUnqualifiedEnumMember(id: string): string | null {
-    // Type-aware resolution: check only the expected enum type
-    if (
+    // Issue #872: MISRA contexts set expectedType for U suffix but suppress enum resolution
+    // Bare enum resolution in function args was never allowed and requires ADR approval to change
+    if (CodeGenState.suppressBareEnumResolution) {
+      // Fall through to error handling below - don't resolve bare enums
+    } else if (
+      // Type-aware resolution: check only the expected enum type
       CodeGenState.expectedType &&
       CodeGenState.symbols!.knownEnums.has(CodeGenState.expectedType)
     ) {

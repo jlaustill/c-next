@@ -6,10 +6,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// test-execution
-// Tests: Bare enum member as function argument resolves via expectedType (Issue #872)
-// Note: MISRA 7.2 compliance requires expectedType for unsigned literals, which
-// enables bare enum resolution as a beneficial side effect.
+// test-error
+// Tests: Bare enum member as function argument should error (no expectedType context)
+// Issue #872: MISRA 7.2 sets expectedType for U suffix but suppressBareEnumResolution
+// prevents changing this behavior without ADR approval.
 typedef enum {
     Mode_OFF = 0,
     Mode_ON = 1
