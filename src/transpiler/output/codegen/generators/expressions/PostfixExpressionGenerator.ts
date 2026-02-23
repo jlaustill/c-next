@@ -235,6 +235,10 @@ const generatePostfixExpression = (
   }
 
   // ADR-006: If a struct parameter is used as a whole value (no postfix ops)
+  // This applies to both normal struct params AND callback-promoted struct params.
+  // When used as a value (assignments, etc.), we need to dereference to get the struct.
+  // Issue #937: For function arguments expecting pointers, CallExprGenerator handles
+  // using the identifier directly instead of the dereferenced form.
   if (isStructParam && ops.length === 0) {
     return {
       code: memberAccessChain.wrapStructParamValue(result, {

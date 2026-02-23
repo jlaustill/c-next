@@ -324,6 +324,15 @@ Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.t
 
 Use `memberAccessChain.ts` helpers for all patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for chains. Never inline these.
 
+### Function Argument Generation
+
+**Key principle**: Ask "What does the TARGET parameter expect?" not "What is the argument?"
+
+- If target expects pointer and arg is already pointer → pass directly
+- If target expects value and arg is pointer → dereference
+- Handler: `CallExprGenerator._generateCFunctionArg()` implements this logic
+- Callback-promoted params (`forcePointerSemantics=true`) are already pointers matching typedef
+
 ---
 
 ## Parser & Grammar

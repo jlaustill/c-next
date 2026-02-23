@@ -29,9 +29,12 @@ class ParameterDereferenceResolver {
     deps: IParameterDereferenceDeps,
   ): boolean {
     // Issue #895: Primitive params that became pointers due to callback typedef
-    // are NOT pass-by-value - they need dereferencing when used as values
+    // are NOT pass-by-value — when used as values (assignments, comparisons),
+    // they need dereferencing (*buf) to get the actual value.
+    // Issue #937: However, when forwarded to C functions expecting pointers,
+    // the CallExprGenerator handles using the identifier directly.
     if (paramInfo.isCallbackPointerPrimitive) {
-      return false; // Not pass-by-value → will be dereferenced
+      return false; // Needs dereferencing when used as a value
     }
 
     // ADR-029: Callback parameters are function pointers
@@ -98,8 +101,9 @@ class ParameterDereferenceResolver {
       return id;
     }
 
-    // Issue #895: Callback-compatible primitives always need dereferencing,
-    // even in C++ mode (because they use pointer semantics to match C typedef)
+    // Issue #895: Callback-compatible primitives need dereferencing when
+    // used as values (assignments, comparisons) because the C-Next type
+    // (e.g., u8) became a pointer (uint8_t*) to match the callback typedef.
     if (paramInfo.forcePointerSemantics) {
       return `(*${id})`;
     }
