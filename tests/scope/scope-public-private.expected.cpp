@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-public-private.test.h"
+#include "scope-public-private.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-function-return.test.h"
+#include "enum-function-return.test.hpp"
 
 #include <stdint.h>
 

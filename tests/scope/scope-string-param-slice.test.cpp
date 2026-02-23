@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-string-param-slice.test.h"
+#include "scope-string-param-slice.test.hpp"
 
 #include <stdint.h>
 #include <string.h>

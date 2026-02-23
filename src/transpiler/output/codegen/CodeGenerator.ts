@@ -2208,7 +2208,9 @@ export default class CodeGenerator implements IOrchestrator {
       const pathToUse =
         options?.sourceRelativePath ||
         CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
-      const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ".h");
+      // Issue #933: Use .hpp extension in C++ mode to match header file
+      const ext = CodeGenState.cppMode ? ".hpp" : ".h";
+      const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
       output.push(`#include "${headerName}"`, "");
       CodeGenState.selfIncludeAdded = true;
     }

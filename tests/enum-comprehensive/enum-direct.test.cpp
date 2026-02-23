@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-direct.test.h"
+#include "enum-direct.test.hpp"
 
 #include <stdint.h>
 

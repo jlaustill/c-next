@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "bare-scope-member.test.h"
+#include "bare-scope-member.test.hpp"
 
 #include <stdint.h>
 

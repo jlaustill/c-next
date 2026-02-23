@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-basic.test.h"
+#include "enum-basic.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "c-header-include.test.h"
+#include "c-header-include.test.hpp"
 
 #include "data-types.h"
 

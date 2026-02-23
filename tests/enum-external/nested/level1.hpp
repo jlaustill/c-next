@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "level2.h"
+#include "level2.hpp"
 
 #ifdef __cplusplus
 extern "C" {

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-struct-array-comprehensive.test.h"
+#include "global-struct-array-comprehensive.test.hpp"
 
 // Issue #612 comprehensive tests: Array indexing on struct fields via global/this
 // Tests various edge cases to prevent regression

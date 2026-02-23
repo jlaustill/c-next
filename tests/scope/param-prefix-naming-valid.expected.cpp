@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "param-prefix-naming-valid.test.h"
+#include "param-prefix-naming-valid.test.hpp"
 
 #include <stdint.h>
 

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "bare-array-member.test.h"
+#include "bare-array-member.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -19,7 +19,7 @@ typedef struct Data {
 } Data;
 
 /* Function prototypes */
-void Test_loadData(Data& d);
+void Test_loadData(Data* d);
 
 #ifdef __cplusplus
 }

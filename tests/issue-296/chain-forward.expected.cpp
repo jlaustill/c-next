@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "chain-forward.test.h"
+#include "chain-forward.test.hpp"
 
 // Issue #404: Chained forward declarations across multiple files
 // test-execution

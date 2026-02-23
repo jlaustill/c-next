@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "string-assign-scope-this.test.h"
+#include "string-assign-scope-this.test.hpp"
 
 #include <stdint.h>
 #include <string.h>

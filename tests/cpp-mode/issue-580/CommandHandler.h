@@ -15,8 +15,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void CommandHandler_reset(Config& config);
-void CommandHandler_applyPreset(Config& config, uint8_t input, uint8_t preset);
+void CommandHandler_reset(Config* config);
+void CommandHandler_applyPreset(Config* config, uint8_t input, uint8_t preset);
 
 #ifdef __cplusplus
 }

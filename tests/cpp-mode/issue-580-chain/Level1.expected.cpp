@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "Level1.test.h"
+#include "Level1.test.hpp"
 
 // test-cpp-only
 // Issue #580 chain test: 3-level deep pass-through chain

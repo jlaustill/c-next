@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-external-struct-array.test.h"
+#include "global-external-struct-array.test.hpp"
 
 // Issue #612: Array indexing on global external struct field
 // This tests that global.structVar.arrayField[N] generates array access,

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "Serial.h"
+#include "Serial.hpp"
 
 #include <stdint.h>
 

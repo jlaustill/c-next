@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-array-size-header.test.h"
+#include "enum-array-size-header.test.hpp"
 
 #include <stdint.h>
 

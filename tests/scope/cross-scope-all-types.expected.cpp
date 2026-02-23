@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cross-scope-all-types.test.h"
+#include "cross-scope-all-types.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

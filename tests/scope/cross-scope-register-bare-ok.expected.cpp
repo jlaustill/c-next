@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cross-scope-register-bare-ok.test.h"
+#include "cross-scope-register-bare-ok.test.hpp"
 
 #include <stdint.h>
 

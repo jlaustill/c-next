@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "basic-scoped-struct.test.h"
+#include "basic-scoped-struct.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

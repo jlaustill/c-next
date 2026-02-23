@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Storage_loadDefaults(Config& cfg);
+void Storage_loadDefaults(Config* cfg);
 
 #ifdef __cplusplus
 }

@@ -3,11 +3,10 @@
  * A safer C for embedded systems
  */
 
-#include "cnext-scope-still-works.test.h"
+#include "cnext-scope-still-works.test.hpp"
 
 #include <stdint.h>
 
-// test-transpile-only
 // Tests: C-Next scopes still use _ separator after issue #516 fix
 // Ensures we didn't break existing C-Next scope functionality
 /* Scope: Motor */
@@ -27,4 +26,16 @@ void Controller_run(void) {
     Motor_start();
     Motor_stop();
     uint8_t s = Motor_speed;
+}
+
+int main(void) {
+    if (Motor_speed != 0) return 1;
+    Motor_start();
+    if (Motor_speed != 100) return 2;
+    Motor_stop();
+    if (Motor_speed != 0) return 3;
+    Motor_start();
+    Controller_run();
+    if (Motor_speed != 0) return 4;
+    return 0;
 }

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-288-const-array.test.h"
+#include "issue-288-const-array.test.hpp"
 
 #include <stdint.h>
 

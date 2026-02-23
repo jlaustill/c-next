@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-bug-demo.test.h"
+#include "scope-bug-demo.test.hpp"
 
 #include <stdint.h>
 

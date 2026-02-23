@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void SerialHandler_process(Config& config);
+void SerialHandler_process(Config* config);
 
 #ifdef __cplusplus
 }

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scoped-struct-loops.test.h"
+#include "scoped-struct-loops.test.hpp"
 
 #include <stdint.h>
 

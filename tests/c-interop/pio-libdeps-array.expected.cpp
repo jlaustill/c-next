@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "pio-libdeps-array.test.h"
+#include "pio-libdeps-array.test.hpp"
 
 // Issue #355: Array member access through pointer should not generate static_cast
 // Regression test for PlatformIO library dependency header parsing

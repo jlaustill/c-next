@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-315-cross-file-primitive-args.test.h"
+#include "issue-315-cross-file-primitive-args.test.hpp"
 
 // test-execution
 // Issue #315: Cross-file calls incorrectly add & to primitive struct member arguments

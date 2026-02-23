@@ -1,4 +1,3 @@
-// test-transpile-only
 // Issue #380: String array fill-all syntax
 // Tests: ["value"*] expands to fill all elements
 
@@ -7,3 +6,22 @@ string<10> greetings[3] <- ["Hello"*];
 
 // Fill with empty string (should use {""} which C handles)
 string<8> empty[2] <- [""*];
+
+u32 main() {
+    // Test 1: greetings array should have 3 elements
+    if (global.greetings.element_count != 3) return 1;
+
+    // Test 2: Each greeting should have length 5 ("Hello")
+    if (global.greetings[0].char_count != 5) return 2;
+    if (global.greetings[1].char_count != 5) return 3;
+    if (global.greetings[2].char_count != 5) return 4;
+
+    // Test 3: empty array should have 2 elements
+    if (global.empty.element_count != 2) return 5;
+
+    // Test 4: Each empty string should have length 0
+    if (global.empty[0].char_count != 0) return 6;
+    if (global.empty[1].char_count != 0) return 7;
+
+    return 0;
+}

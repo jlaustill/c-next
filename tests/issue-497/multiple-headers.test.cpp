@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "multiple-headers.test.h"
+#include "multiple-headers.test.hpp"
 
 // Test: Types from different C headers should include both headers
 #include "known-header-types.h"

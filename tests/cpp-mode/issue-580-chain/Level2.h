@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Level2_passToLevel3(Config& c);
+void Level2_passToLevel3(Config* c);
 
 #ifdef __cplusplus
 }

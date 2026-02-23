@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-member-valid.test.h"
+#include "scope-member-valid.test.hpp"
 
 #include <stdint.h>
 

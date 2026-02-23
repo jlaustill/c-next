@@ -109,13 +109,17 @@ class PathResolver {
   }
 
   /**
-   * Get output path for a header file (.h)
+   * Get output path for a header file (.h or .hpp)
    * Uses headerOutDir if specified, otherwise falls back to outDir
    *
    * @param file - The discovered file to get header path for
+   * @param cppMode - If true, output .hpp; otherwise .h (Issue #933)
    * @returns The full header output path
    */
-  getHeaderOutputPath(file: IDiscoveredFile): string {
+  getHeaderOutputPath(file: IDiscoveredFile, cppMode = false): string {
+    // Issue #933: Use .hpp extension in C++ mode so C and C++ headers don't overwrite
+    const ext = cppMode ? ".hpp" : ".h";
+
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 
@@ -123,7 +127,7 @@ class PathResolver {
     if (relativePath) {
       // File is under an input directory - preserve structure (minus basePath)
       const strippedPath = this.stripBasePath(relativePath);
-      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
+      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ext);
       const outputPath = join(headerDir, outputRelative);
 
       const outputDir = dirname(outputPath);
@@ -142,7 +146,7 @@ class PathResolver {
       // Only use CWD-relative path if file is under CWD (not starting with ..)
       if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
         const strippedPath = this.stripBasePath(relativeFromCwd);
-        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ".h");
+        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ext);
         const outputPath = join(this.config.headerOutDir, outputRelative);
 
         const outputDir = dirname(outputPath);
@@ -154,7 +158,7 @@ class PathResolver {
       }
 
       // File outside CWD: put in headerOutDir with just basename
-      const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+      const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
       const outputPath = join(this.config.headerOutDir, headerName);
 
       if (!this.fs.exists(this.config.headerOutDir)) {
@@ -166,7 +170,7 @@ class PathResolver {
 
     // Fallback: output next to the source file (no headerDir specified)
     // This handles included files that aren't under any input directory
-    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ".h");
+    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
     return join(dirname(file.path), headerName);
   }
 

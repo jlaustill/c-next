@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "namespace-init.test.h"
+#include "namespace-init.test.hpp"
 
 #include <stdint.h>
 

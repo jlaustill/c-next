@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-single-function-state.test.h"
+#include "scope-single-function-state.test.hpp"
 
 #include <stdint.h>
 

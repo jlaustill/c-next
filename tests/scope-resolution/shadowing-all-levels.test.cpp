@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "shadowing-all-levels.test.h"
+#include "shadowing-all-levels.test.hpp"
 
 #include <stdint.h>
 

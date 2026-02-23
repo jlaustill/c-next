@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "namespace-edge-cases.test.h"
+#include "namespace-edge-cases.test.hpp"
 
 // test-transpile-only
 // Tests: Edge cases for C++ namespace function calls (Issue #516)

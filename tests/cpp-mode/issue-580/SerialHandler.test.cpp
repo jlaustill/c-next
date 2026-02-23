@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "SerialHandler.test.h"
+#include "SerialHandler.test.hpp"
 
 // test-cpp-only
 // Issue #580: Incorrect const inference when parameter is only passed to mutating function

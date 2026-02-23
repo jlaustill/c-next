@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "const-array-dimensions.test.h"
+#include "const-array-dimensions.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

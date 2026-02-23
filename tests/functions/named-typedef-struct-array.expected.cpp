@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "named-typedef-struct-array.test.h"
+#include "named-typedef-struct-array.test.hpp"
 
 // tests/functions/named-typedef-struct-array.test.cnx
 // test-execution

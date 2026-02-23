@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "callback-header.test.h"
+#include "callback-header.test.hpp"
 
 // test-transpile-only
 // Issue #914: Public scope function matching callback typedef

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "struct-no-duplication.test.h"
+#include "struct-no-duplication.test.hpp"
 
 #include <stdint.h>
 
