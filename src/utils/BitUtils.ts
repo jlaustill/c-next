@@ -91,14 +91,15 @@ class BitUtils {
   }
 
   /**
-   * Format a number as an uppercase hex string (e.g., 255 -> "0xFF").
+   * Format a number as an unsigned uppercase hex string (e.g., 255 -> "0xFFU").
    * Used for generating hex mask literals in generated C code.
+   * Includes U suffix for MISRA C:2012 Rule 10.1 compliance.
    *
    * @param value - The numeric value to format
-   * @returns Hex string like "0xFF" or "0x1F"
+   * @returns Hex string like "0xFFU" or "0x1FU"
    */
   static formatHex(value: number): string {
-    return `0x${value.toString(16).toUpperCase()}`;
+    return `0x${value.toString(16).toUpperCase()}U`;
   }
 
   /**

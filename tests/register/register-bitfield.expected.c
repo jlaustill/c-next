@@ -63,7 +63,7 @@ void configureUART(void) {
     UART_CTRL = (UART_CTRL & ~(1U << 0)) | (1U << 0);
     UART_CTRL = (UART_CTRL & ~(1U << 1)) | (1U << 1);
     UART_CTRL = (UART_CTRL & ~(1U << 2)) | (1U << 2);
-    UART_CTRL = (UART_CTRL & ~(0x3 << 5)) | ((3 & 0x3) << 5);
+    UART_CTRL = (UART_CTRL & ~(0x3U << 5)) | ((3 & 0x3U) << 5);
 }
 
 bool isUARTReady(void) {
@@ -72,7 +72,7 @@ bool isUARTReady(void) {
 
 void configureTimer(uint8_t prescale) {
     TIMER_CONFIG = (TIMER_CONFIG & ~(1U << 0)) | (0U << 0);
-    TIMER_CONFIG = (TIMER_CONFIG & ~(0xFF << 4)) | ((prescale & 0xFF) << 4);
+    TIMER_CONFIG = (TIMER_CONFIG & ~(0xFFU << 4)) | ((prescale & 0xFFU) << 4);
     TIMER_CONFIG = (TIMER_CONFIG & ~(1U << 2)) | (1U << 2);
     TIMER_CONFIG = (TIMER_CONFIG & ~(1U << 3)) | (1U << 3);
     TIMER_CONFIG = (TIMER_CONFIG & ~(1U << 0)) | (1U << 0);

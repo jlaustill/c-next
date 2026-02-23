@@ -204,8 +204,8 @@ describe("BitmapHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("flags =");
-      expect(result).toContain("& ~(0x7 << 4)");
-      expect(result).toContain("(3 & 0x7)");
+      expect(result).toContain("& ~(0x7U << 4)");
+      expect(result).toContain("(3 & 0x7U)");
       expect(result).toContain("<< 4");
     });
 
