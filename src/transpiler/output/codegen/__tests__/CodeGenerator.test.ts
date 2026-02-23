@@ -3031,7 +3031,8 @@ describe("CodeGenerator", () => {
       });
 
       // Wrap doesn't use clamp helpers
-      expect(code).toContain("counter += 1");
+      // Issue #845: MISRA 10.3 - narrow types expand with cast
+      expect(code).toContain("(uint8_t)(counter + 1");
       expect(code).not.toContain("cnx_clamp");
     });
   });
@@ -4880,7 +4881,9 @@ describe("CodeGenerator", () => {
   });
 
   describe("Compound assignment operators", () => {
-    it("should generate bitwise AND compound assignment", () => {
+    // Issue #845: MISRA 10.3 - narrow type compound assignments expand to explicit cast
+    // u8 val &= 0x0F => val = (uint8_t)(val & 0x0F)
+    it("should generate bitwise AND compound assignment with MISRA cast", () => {
       const source = `
         wrap u8 mask <- 0xFF;
         void main() {
@@ -4897,10 +4900,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("&=");
+      expect(code).toContain("(uint8_t)(mask &");
     });
 
-    it("should generate bitwise OR compound assignment", () => {
+    it("should generate bitwise OR compound assignment with MISRA cast", () => {
       const source = `
         wrap u8 flags <- 0x00;
         void main() {
@@ -4917,10 +4920,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("|=");
+      expect(code).toContain("(uint8_t)(flags |");
     });
 
-    it("should generate bitwise XOR compound assignment", () => {
+    it("should generate bitwise XOR compound assignment with MISRA cast", () => {
       const source = `
         wrap u8 bits <- 0x55;
         void main() {
@@ -4937,10 +4940,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("^=");
+      expect(code).toContain("(uint8_t)(bits ^");
     });
 
-    it("should generate left shift compound assignment", () => {
+    it("should generate left shift compound assignment with MISRA cast", () => {
       const source = `
         wrap u8 val <- 1;
         void main() {
@@ -4957,10 +4960,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("<<=");
+      expect(code).toContain("(uint8_t)(val <<");
     });
 
-    it("should generate right shift compound assignment", () => {
+    it("should generate right shift compound assignment with MISRA cast", () => {
       const source = `
         wrap u8 val <- 0x80;
         void main() {
@@ -4977,7 +4980,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain(">>=");
+      expect(code).toContain("(uint8_t)(val >>");
     });
 
     it("should generate multiply compound assignment", () => {
@@ -15324,8 +15327,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Wrap types just use += without helper
-        expect(code).toContain("+=");
+        // Wrap types don't use cnx_clamp helpers
+        // Issue #845: MISRA 10.3 - narrow types expand with cast
+        expect(code).toContain("(uint8_t)(val + 10");
         expect(code).not.toContain("cnx_");
       });
     });
