@@ -11,6 +11,9 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import TypeResolver from "../../TypeResolver";
+import TYPE_MAP from "../../types/TYPE_MAP";
+import CppModeHelper from "../../helpers/CppModeHelper";
 
 /**
  * Generate C code for a unary expression.
@@ -43,7 +46,16 @@ const generateUnaryExpr = (
   // Determine the operator and generate output
   if (text.startsWith("!")) return { code: `!${inner}`, effects: [] };
   if (text.startsWith("-")) return { code: `-${inner}`, effects: [] };
-  if (text.startsWith("~")) return { code: `~${inner}`, effects: [] };
+  if (text.startsWith("~")) {
+    const innerType = TypeResolver.getUnaryExpressionType(
+      node.unaryExpression()!,
+    );
+    if (innerType && TypeResolver.isUnsignedType(innerType)) {
+      const cType = TYPE_MAP[innerType] ?? innerType;
+      return { code: CppModeHelper.cast(cType, `~${inner}`), effects: [] };
+    }
+    return { code: `~${inner}`, effects: [] };
+  }
   if (text.startsWith("&")) return { code: `&${inner}`, effects: [] };
 
   // Fallback (shouldn't happen with valid grammar)

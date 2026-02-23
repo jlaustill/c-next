@@ -16,7 +16,7 @@ int main(void) {
     uint8_t or_result = a | b;
     uint8_t xor_result = a ^ b;
     uint8_t c = 0b10101010U;
-    uint8_t not_result = ~c;
+    uint8_t not_result = (uint8_t)~c;
     uint8_t hex_a = 0xF0U;
     uint8_t hex_b = 0xAAU;
     uint8_t hex_and = hex_a & hex_b;
