@@ -9,11 +9,6 @@ on:
 # Self-hosted runner for trusted code (your branches, pushes to main)
 # GitHub runners for untrusted code (fork PRs)
 
-# Prevent concurrent Pages deployments
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
   # ============================================================================
   # STAGE 1 (parallel): Build + Lint
@@ -462,6 +457,10 @@ jobs:
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [unit-tests]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Prevent concurrent Pages deployments
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
     permissions:
       contents: read
       pages: write
