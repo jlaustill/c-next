@@ -11,7 +11,7 @@
 uint8_t matrix[8][8] = {0};
 
 int main(void) {
-    matrix[0][0] = 1;
+    matrix[0][0] = 1U;
     if (8 != 8) {
         return 1;
     }

@@ -29,12 +29,12 @@ typedef struct Container {
 
 int main(void) {
     Container cfg = {0};
-    cfg.items[0].value = 100;
-    cfg.items[0].flags = 0x01;
-    cfg.items[1].value = 200;
-    cfg.items[1].flags = 0x02;
-    cfg.items[2].value = 300;
-    cfg.items[2].flags = 0x04;
+    cfg.items[0].value = 100U;
+    cfg.items[0].flags = 0x01U;
+    cfg.items[1].value = 200U;
+    cfg.items[1].flags = 0x02U;
+    cfg.items[2].value = 300U;
+    cfg.items[2].flags = 0x04U;
     uint32_t sum = 0U;
     for (uint32_t i = 0; i < 3; i += 1) {
         sum = cnx_clamp_add_u32(sum, cfg.items[i].value);

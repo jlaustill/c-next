@@ -66,7 +66,7 @@ volatile uint16_t sequence = 0U;
 volatile int8_t temperature = 0;
 
 int main(void) {
-    matrix[0][0] = 1;
+    matrix[0][0] = 1U;
     {
         uint32_t __primask = __get_PRIMASK();
         __disable_irq();

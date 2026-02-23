@@ -61,10 +61,10 @@ int main(void) {
     if (points[2].y != 60) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    sensors[0].id = 100;
+    sensors[0].id = 100U;
     sensors[0].value = 1000;
     sensors[0].active = true;
-    sensors[1].id = 200;
+    sensors[1].id = 200U;
     sensors[1].value = 2000;
     sensors[1].active = false;
     if (sensors[0].id != 100) {
@@ -86,7 +86,7 @@ int main(void) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
     uint32_t idx = 2U;
-    sensors[idx].id = 300;
+    sensors[idx].id = 300U;
     sensors[idx].value = 3000;
     if (sensors[2].id != 300) {
         errors = cnx_clamp_add_i32(errors, 1);

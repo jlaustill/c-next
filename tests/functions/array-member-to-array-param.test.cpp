@@ -42,14 +42,14 @@ uint32_t processPayload(const uint8_t payload[16], uint8_t len) {
 
 uint32_t testBasicArrayMemberPassing(void) {
     CanMessage msg = {};
-    msg.buf[0] = 10;
-    msg.buf[1] = 20;
-    msg.buf[2] = 30;
-    msg.buf[3] = 40;
-    msg.buf[4] = 0;
-    msg.buf[5] = 0;
-    msg.buf[6] = 0;
-    msg.buf[7] = 0;
+    msg.buf[0] = 10U;
+    msg.buf[1] = 20U;
+    msg.buf[2] = 30U;
+    msg.buf[3] = 40U;
+    msg.buf[4] = 0U;
+    msg.buf[5] = 0U;
+    msg.buf[6] = 0U;
+    msg.buf[7] = 0U;
     msg.len = 4U;
     uint32_t result = processBuffer(msg.buf, msg.len);
     return result;
@@ -57,14 +57,14 @@ uint32_t testBasicArrayMemberPassing(void) {
 
 uint32_t testMultipleArrayMembers(void) {
     PacketData packet = {};
-    packet.header[0] = 1;
-    packet.header[1] = 2;
-    packet.header[2] = 3;
-    packet.header[3] = 4;
-    packet.payload[0] = 10;
-    packet.payload[1] = 20;
-    packet.payload[2] = 30;
-    packet.payload[3] = 40;
+    packet.header[0] = 1U;
+    packet.header[1] = 2U;
+    packet.header[2] = 3U;
+    packet.header[3] = 4U;
+    packet.payload[0] = 10U;
+    packet.payload[1] = 20U;
+    packet.payload[2] = 30U;
+    packet.payload[3] = 40U;
     uint32_t headerSum = processHeader(packet.header);
     uint32_t payloadSum = processPayload(packet.payload, 4U);
     return headerSum + payloadSum;
@@ -73,10 +73,10 @@ uint32_t testMultipleArrayMembers(void) {
 uint32_t testArrayMemberInCondition(void) {
     CanMessage msg = {};
     msg.id = 65280U;
-    msg.buf[0] = 5;
-    msg.buf[1] = 10;
-    msg.buf[2] = 15;
-    msg.buf[3] = 20;
+    msg.buf[0] = 5U;
+    msg.buf[1] = 10U;
+    msg.buf[2] = 15U;
+    msg.buf[3] = 20U;
     msg.len = 4U;
     uint32_t result = 0U;
     if (msg.id == 65280) {

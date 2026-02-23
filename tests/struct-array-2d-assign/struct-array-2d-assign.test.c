@@ -17,7 +17,7 @@ TReading readings[4][4] = {0};
 uint32_t Test_run(void) {
     readings[0][0].value = 100;
     if (readings[0][0].value != 100) return 1;
-    readings[0][0].timestamp = 12345;
+    readings[0][0].timestamp = 12345U;
     if (readings[0][0].timestamp != 12345) return 2;
     readings[0][0].valid = true;
     if (readings[0][0].valid != true) return 3;

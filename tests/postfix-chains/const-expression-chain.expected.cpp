@@ -32,19 +32,19 @@ Sensor sensors[4] = {0};
 #define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 int main(void) {
-    sensors[INDEX_0].id = 100;
-    sensors[INDEX_1].id = 200;
-    sensors[INDEX_2].id = 300;
+    sensors[INDEX_0].id = 100U;
+    sensors[INDEX_1].id = 200U;
+    sensors[INDEX_2].id = 300U;
     uint32_t id0 = sensors[INDEX_0].id;
     uint32_t id1 = sensors[INDEX_1].id;
-    sensors[INDEX_0].data = 0xFF;
+    sensors[INDEX_0].data = 0xFFU;
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (0U << LED_BIT);
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << STATUS_BIT)) | (1U << STATUS_BIT);
     GPIO_DR = (GPIO_DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
     GPIO_DR = (GPIO_DR & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
     GPIO_DR_SET = (1U << LED_BIT);
     const uint32_t COMPUTED_IDX = INDEX_1 + INDEX_1;
-    sensors[COMPUTED_IDX].id = 500;
+    sensors[COMPUTED_IDX].id = 500U;
     uint32_t computedId = sensors[COMPUTED_IDX].id;
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (1U << LED_BIT);
     sensors[INDEX_1].data = (sensors[INDEX_1].data & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
@@ -55,7 +55,7 @@ int main(void) {
     const uint32_t COL = 1U;
     const uint32_t FIELD_BIT = 5U;
     uint8_t matrix[4][4] = {0};
-    matrix[ROW][COL] = 0xFF;
+    matrix[ROW][COL] = 0xFFU;
     matrix[ROW][COL] = (matrix[ROW][COL] & ~(1U << FIELD_BIT)) | (0U << FIELD_BIT);
     uint8_t value = matrix[ROW][COL];
     bool bit = ((matrix[ROW][COL] >> FIELD_BIT) & 1);

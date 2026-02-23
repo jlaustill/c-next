@@ -24,19 +24,19 @@ uint64_t matrix2d[4][8] = {0};
 uint64_t cube3d[2][3][4] = {0};
 
 int main(void) {
-    matrix2d[0][0] = 1000000000000;
-    matrix2d[0][7] = 2000000000000;
-    matrix2d[1][3] = 3000000000000;
-    matrix2d[3][7] = 4000000000000;
+    matrix2d[0][0] = 1000000000000ULL;
+    matrix2d[0][7] = 2000000000000ULL;
+    matrix2d[1][3] = 3000000000000ULL;
+    matrix2d[3][7] = 4000000000000ULL;
     if (matrix2d[0][0] != 1000000000000) return 1;
     if (matrix2d[0][7] != 2000000000000) return 2;
     if (matrix2d[1][3] != 3000000000000) return 3;
     if (matrix2d[3][7] != 4000000000000) return 4;
-    cube3d[0][0][0] = 100;
-    cube3d[0][0][3] = 200;
-    cube3d[0][2][3] = 300;
-    cube3d[1][0][0] = 999999999999;
-    cube3d[1][2][3] = 888888888888;
+    cube3d[0][0][0] = 100ULL;
+    cube3d[0][0][3] = 200ULL;
+    cube3d[0][2][3] = 300ULL;
+    cube3d[1][0][0] = 999999999999ULL;
+    cube3d[1][2][3] = 888888888888ULL;
     if (cube3d[0][0][0] != 100) return 5;
     if (cube3d[0][0][3] != 200) return 6;
     if (cube3d[0][2][3] != 300) return 7;
@@ -51,7 +51,7 @@ int main(void) {
     if (64 != 64) return 16;
     for (uint32_t i = 0; i < 4; i += 1) {
         for (uint32_t j = 0; j < 8; j += 1) {
-            matrix2d[i][j] = i * 100 + j;
+            matrix2d[i][j] = i * 100ULL + j;
         }
     }
     if (matrix2d[0][0] != 0) return 17;
@@ -62,23 +62,23 @@ int main(void) {
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
             for (uint32_t k = 0; k < 4; k += 1) {
-                cube3d[i][j][k] = i * 100 + j * 10 + k;
+                cube3d[i][j][k] = i * 100ULL + j * 10ULL + k;
                 sum = cnx_clamp_add_u64(sum, cube3d[i][j][k]);
             }
         }
     }
     if (sum != 1476) return 21;
-    matrix2d[2][4] = 9000000000000000000;
+    matrix2d[2][4] = 9000000000000000000ULL;
     if (matrix2d[2][4] != 9000000000000000000) return 22;
-    matrix2d[3][7] = 555;
+    matrix2d[3][7] = 555ULL;
     if (matrix2d[3][7] != 555) return 23;
     uint64_t timestamps[3][2] = {0};
-    timestamps[0][0] = 1609459200000;
-    timestamps[0][1] = 1612137600000;
-    timestamps[1][0] = 1614556800000;
-    timestamps[1][1] = 1617235200000;
-    timestamps[2][0] = 1619827200000;
-    timestamps[2][1] = 1622505600000;
+    timestamps[0][0] = 1609459200000ULL;
+    timestamps[0][1] = 1612137600000ULL;
+    timestamps[1][0] = 1614556800000ULL;
+    timestamps[1][1] = 1617235200000ULL;
+    timestamps[2][0] = 1619827200000ULL;
+    timestamps[2][1] = 1622505600000ULL;
     if (timestamps[0][0] != 1609459200000) return 24;
     if (timestamps[2][1] != 1622505600000) return 25;
     uint64_t diff = timestamps[0ULL][1ULL] - timestamps[0ULL][0ULL];

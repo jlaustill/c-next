@@ -18,6 +18,6 @@ int32_t signedArray[3] = {0};
 // In a function
 void useArrays(void) {
     uint32_t localArray[2] = {0};
-    localArray[0] = 10;
-    localArray[1] = 20;
+    localArray[0] = 10U;
+    localArray[1] = 20U;
 }

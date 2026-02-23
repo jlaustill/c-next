@@ -11,11 +11,11 @@
 // Demonstrates: array literals, element access, array.length
 int main(void) {
     uint32_t numbers[5] = {0};
-    numbers[0] = 10;
-    numbers[1] = 20;
-    numbers[2] = 30;
-    numbers[3] = 40;
-    numbers[4] = 50;
+    numbers[0] = 10U;
+    numbers[1] = 20U;
+    numbers[2] = 30U;
+    numbers[3] = 40U;
+    numbers[4] = 50U;
     if (numbers[0] != 10) return 1;
     if (numbers[2] != 30) return 2;
     if (numbers[4] != 50) return 3;
@@ -29,7 +29,7 @@ int main(void) {
         sum = sum + numbers[i];
     }
     if (sum != 150) return 8;
-    numbers[2] = 100;
+    numbers[2] = 100U;
     if (numbers[2] != 100) return 9;
     int32_t temps[3] = {-10, 0, 25};
     if (temps[0] != -10) return 10;

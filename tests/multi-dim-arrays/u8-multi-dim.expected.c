@@ -24,19 +24,19 @@ uint8_t matrix2d[4][8] = {0};
 uint8_t cube3d[2][3][4] = {0};
 
 int main(void) {
-    matrix2d[0][0] = 10;
-    matrix2d[0][7] = 200;
-    matrix2d[1][3] = 123;
-    matrix2d[3][7] = 255;
+    matrix2d[0][0] = 10U;
+    matrix2d[0][7] = 200U;
+    matrix2d[1][3] = 123U;
+    matrix2d[3][7] = 255U;
     if (matrix2d[0][0] != 10) return 1;
     if (matrix2d[0][7] != 200) return 2;
     if (matrix2d[1][3] != 123) return 3;
     if (matrix2d[3][7] != 255) return 4;
-    cube3d[0][0][0] = 5;
-    cube3d[0][0][3] = 50;
-    cube3d[0][2][3] = 100;
-    cube3d[1][0][0] = 150;
-    cube3d[1][2][3] = 250;
+    cube3d[0][0][0] = 5U;
+    cube3d[0][0][3] = 50U;
+    cube3d[0][2][3] = 100U;
+    cube3d[1][0][0] = 150U;
+    cube3d[1][2][3] = 250U;
     if (cube3d[0][0][0] != 5) return 5;
     if (cube3d[0][0][3] != 50) return 6;
     if (cube3d[0][2][3] != 100) return 7;
@@ -46,7 +46,7 @@ int main(void) {
     if (2 != 2) return 11;
     for (uint32_t i = 0; i < 4; i += 1) {
         for (uint32_t j = 0; j < 8; j += 1) {
-            matrix2d[i][j] = i * 10 + j;
+            matrix2d[i][j] = i * 10U + j;
         }
     }
     if (matrix2d[0][0] != 0) return 12;
@@ -57,26 +57,26 @@ int main(void) {
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
             for (uint32_t k = 0; k < 4; k += 1) {
-                cube3d[i][j][k] = i * 10 + j * 5 + k;
+                cube3d[i][j][k] = i * 10U + j * 5U + k;
                 sum = cnx_clamp_add_u16(sum, cube3d[i][j][k]);
             }
         }
     }
     if (sum != 276) return 21;
-    matrix2d[2][4] = 255;
+    matrix2d[2][4] = 255U;
     if (matrix2d[2][4] != 255) return 22;
-    matrix2d[3][7] = 111;
+    matrix2d[3][7] = 111U;
     if (matrix2d[3][7] != 111) return 23;
     uint8_t testArray[3][2] = {0};
     for (uint32_t ti = 0; ti < 3; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
-            testArray[ti][tj] = 0;
+            testArray[ti][tj] = 0U;
         }
     }
-    testArray[0][0] = 0;
-    testArray[0][1] = 255;
-    testArray[1][0] = 128;
-    testArray[2][1] = 1;
+    testArray[0][0] = 0U;
+    testArray[0][1] = 255U;
+    testArray[1][0] = 128U;
+    testArray[2][1] = 1U;
     if (testArray[0][0] != 0) return 24;
     if (testArray[0][1] != 255) return 25;
     if (testArray[1][0] != 128) return 26;
@@ -84,14 +84,14 @@ int main(void) {
     uint8_t buffer[4][4] = {0};
     for (uint32_t bi = 0; bi < 4; bi += 1) {
         for (uint32_t bj = 0; bj < 4; bj += 1) {
-            buffer[bi][bj] = 0;
+            buffer[bi][bj] = 0U;
         }
     }
-    buffer[0][0] = 0x0F;
-    buffer[0][1] = 0xF0;
-    buffer[1][1] = 0xAA;
-    buffer[2][2] = 0x55;
-    buffer[3][3] = 0xFF;
+    buffer[0][0] = 0x0FU;
+    buffer[0][1] = 0xF0U;
+    buffer[1][1] = 0xAAU;
+    buffer[2][2] = 0x55U;
+    buffer[3][3] = 0xFFU;
     if (buffer[0][0] != 15) return 28;
     if (buffer[0][1] != 240) return 29;
     if (buffer[1][1] != 170) return 30;

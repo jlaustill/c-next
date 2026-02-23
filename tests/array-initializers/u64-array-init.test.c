@@ -49,7 +49,7 @@ int main(void) {
     if (ones[25] != 1) return 12;
     if (ones[49] != 1) return 13;
     uint64_t mutableArr[5] = {10ULL, 20ULL, 30ULL, 40ULL, 50ULL};
-    mutableArr[2] = 999;
+    mutableArr[2] = 999ULL;
     if (mutableArr[2] != 999) return 14;
     if (mutableArr[0] != 10) return 15;
     if (mutableArr[4] != 50) return 16;
@@ -66,7 +66,7 @@ int main(void) {
     if (large_vals[2] != 7000000000000000000) return 22;
     uint64_t sequence[10] = {0};
     for (uint32_t i = 0; i < 10; i += 1) {
-        sequence[i] = i * 1000000;
+        sequence[i] = i * 1000000ULL;
     }
     if (sequence[0] != 0) return 23;
     if (sequence[5] != 5000000) return 24;
@@ -77,9 +77,9 @@ int main(void) {
     if (64 != 64) return 29;
     if (64 != 64) return 30;
     uint64_t computed[3] = {0};
-    computed[0] = 1000000;
-    computed[1] = 1000000000;
-    computed[2] = computed[0] + computed[1];
+    computed[0] = 1000ULL * 1000ULL;
+    computed[1] = 1000ULL * 1000000ULL;
+    computed[2] = computed[0ULL] + computed[1ULL];
     if (computed[2] != 1001000000) return 31;
     return 0;
 }

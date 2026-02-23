@@ -42,7 +42,7 @@ void swapElements(uint8_t* buf, uint32_t i, uint32_t j) {
 
 // Test 6: With explicit array syntax (should still work)
 void writeExplicit(uint8_t buf[8], uint32_t idx) {
-    buf[idx] = 99;
+    buf[idx] = 99U;
 }
 
 // Test 7: Bit range on parameter should still be bit extraction (NOT array access)
@@ -78,8 +78,8 @@ int main(void) {
     if (dest[1] != 20) return 3;
     val = readFirst(source);
     if (val != 10) return 4;
-    buffer[0] = 5;
-    buffer[1] = 7;
+    buffer[0] = 5U;
+    buffer[1] = 7U;
     swapElements(buffer, 0, 1);
     if (buffer[0] != 7) return 5;
     if (buffer[1] != 5) return 6;

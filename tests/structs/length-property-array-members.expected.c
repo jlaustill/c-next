@@ -24,9 +24,9 @@ int main(void) {
     Dataset data = {0};
     data.id = 12345U;
     data.count = 5U;
-    data.samples[0].timestamp = 1000;
-    data.samples[0].value = 42;
-    data.samples[0].quality = 100;
+    data.samples[0].timestamp = 1000U;
+    data.samples[0].value = 42U;
+    data.samples[0].quality = 100U;
     if (32 != 32) return 1;
     if (8 != 8) return 2;
     if (10 != 10) return 3;

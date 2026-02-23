@@ -12,7 +12,7 @@ int main(void) {
     uint16_t word = 0U;
     uint32_t dword = 0U;
     uint8_t buffer[64] = {0};
-    buffer[0] = 0;
+    buffer[0] = 0U;
     uint32_t byteBits = 8;
     uint32_t wordBits = 16;
     uint32_t dwordBits = 32;

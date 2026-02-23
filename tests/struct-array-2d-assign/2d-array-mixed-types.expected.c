@@ -22,9 +22,9 @@ typedef struct MixedData {
 MixedData matrix[2][2] = {0};
 
 int main(void) {
-    matrix[0][0].byteVal = 255;
-    matrix[0][0].shortVal = 65535;
-    matrix[0][0].intVal = 4294967295;
+    matrix[0][0].byteVal = 255U;
+    matrix[0][0].shortVal = 65535U;
+    matrix[0][0].intVal = 4294967295U;
     matrix[0][0].signedByte = -128;
     matrix[0][0].signedShort = -32768;
     matrix[0][0].signedInt = -2147483648;
@@ -36,9 +36,9 @@ int main(void) {
     if (matrix[0][0].signedShort != -32768) return 5;
     if (matrix[0][0].signedInt != -2147483648) return 6;
     if (matrix[0][0].flag != true) return 7;
-    matrix[1][1].byteVal = 0;
-    matrix[1][1].shortVal = 1000;
-    matrix[1][1].intVal = 100000;
+    matrix[1][1].byteVal = 0U;
+    matrix[1][1].shortVal = 1000U;
+    matrix[1][1].intVal = 100000U;
     matrix[1][1].signedByte = 127;
     matrix[1][1].signedShort = 32767;
     matrix[1][1].signedInt = 2147483647;
@@ -50,8 +50,8 @@ int main(void) {
     if (matrix[1][1].signedShort != 32767) return 12;
     if (matrix[1][1].signedInt != 2147483647) return 13;
     if (matrix[1][1].flag != false) return 14;
-    matrix[0][1].byteVal = 100;
-    matrix[0][1].byteVal += 50;
+    matrix[0][1].byteVal = 100U;
+    matrix[0][1].byteVal += 50U;
     if (matrix[0][1].byteVal != 150) return 15;
     matrix[0][1].signedInt = -100;
     matrix[0][1].signedInt += 50;

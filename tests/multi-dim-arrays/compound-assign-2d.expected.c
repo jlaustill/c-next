@@ -10,12 +10,12 @@
 uint8_t matrix[4][4] = {0};
 
 int main(void) {
-    matrix[0][0] = 10;
-    matrix[1][1] = 20;
-    matrix[2][2] = 100;
-    matrix[0][0] += 5;
-    matrix[1][1] -= 8;
-    matrix[2][2] *= 2;
+    matrix[0][0] = 10U;
+    matrix[1][1] = 20U;
+    matrix[2][2] = 100U;
+    matrix[0][0] += 5U;
+    matrix[1][1] -= 8U;
+    matrix[2][2] *= 2U;
     if (matrix[0][0] != 15) {
         return 1;
     }

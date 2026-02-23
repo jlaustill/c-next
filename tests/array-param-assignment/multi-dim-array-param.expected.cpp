@@ -29,12 +29,12 @@ uint32_t sumRow(const uint32_t arr[2][3], uint32_t row) {
 
 int main(void) {
     uint32_t matrix[2][3] = {0};
-    matrix[0][0] = 0;
-    matrix[0][1] = 0;
-    matrix[0][2] = 0;
-    matrix[1][0] = 0;
-    matrix[1][1] = 0;
-    matrix[1][2] = 0;
+    matrix[0][0] = 0U;
+    matrix[0][1] = 0U;
+    matrix[0][2] = 0U;
+    matrix[1][0] = 0U;
+    matrix[1][1] = 0U;
+    matrix[1][2] = 0U;
     write2D(matrix, 0, 0, 100);
     if (matrix[0][0] != 100) return 1;
     write2D(matrix, 1, 2, 999);

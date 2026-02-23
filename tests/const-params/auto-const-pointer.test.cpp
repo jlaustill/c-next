@@ -25,7 +25,7 @@ uint32_t mixedParams(uint32_t readVal, uint32_t& writeVal) {
 
 // Array parameter modification via index
 void arrayMod(uint8_t arr[4]) {
-    arr[0] = 99;
+    arr[0] = 99U;
 }
 
 // Array parameter read-only

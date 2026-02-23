@@ -16,7 +16,7 @@ static uint8_t ArrayBug_data[4] = {0, 0, 0, 0};
 static bool ArrayBug_flag = false;
 
 void ArrayBug_callback(void) {
-    ArrayBug_data[0] = 42;
+    ArrayBug_data[0] = 42U;
     ArrayBug_flag = true;
 }
 

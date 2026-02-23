@@ -183,7 +183,8 @@ describe("AssignmentExpectedTypeResolver", () => {
     });
 
     describe("array access", () => {
-      it("should return null for array access target", () => {
+      // Issue #872: Array element assignments need expectedType for MISRA 7.2 U suffix
+      it("should resolve expected type for simple array element access", () => {
         CodeGenState.setVariableTypeInfo("arr", {
           baseType: "u32",
           bitWidth: 32,
@@ -194,8 +195,65 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target);
 
+        expect(result.expectedType).toBe("u32");
+      });
+
+      it("should resolve expected type for u8 array element access", () => {
+        CodeGenState.setVariableTypeInfo("buffer", {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          isConst: false,
+        });
+        const target = parseAssignmentTarget("buffer[5]");
+
+        const result = AssignmentExpectedTypeResolver.resolve(target);
+
+        expect(result.expectedType).toBe("u8");
+      });
+
+      it("should resolve expected type for struct member array access", () => {
+        CodeGenState.setVariableTypeInfo("pkt", {
+          baseType: "Packet",
+          bitWidth: 0,
+          isArray: false,
+          isConst: false,
+        });
+        setupStructFields("Packet", new Map([["header", "u8"]]));
+        // Mark header as an array field
+        if (CodeGenState.symbols) {
+          (
+            CodeGenState.symbols.structFieldArrays as Map<string, Set<string>>
+          ).set("Packet", new Set(["header"]));
+        }
+        const target = parseAssignmentTarget("pkt.header[0]");
+
+        const result = AssignmentExpectedTypeResolver.resolve(target);
+
+        expect(result.expectedType).toBe("u8");
+      });
+
+      it("should resolve expected type for multi-dimensional array element", () => {
+        CodeGenState.setVariableTypeInfo("matrix", {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          arrayDimensions: [4, 8],
+          isConst: false,
+        });
+        const target = parseAssignmentTarget("matrix[0][0]");
+
+        const result = AssignmentExpectedTypeResolver.resolve(target);
+
+        expect(result.expectedType).toBe("u8");
+      });
+
+      it("should return null for unknown array variable", () => {
+        const target = parseAssignmentTarget("unknown[0]");
+
+        const result = AssignmentExpectedTypeResolver.resolve(target);
+
         expect(result.expectedType).toBeNull();
-        expect(result.assignmentContext).toBeNull();
       });
     });
   });

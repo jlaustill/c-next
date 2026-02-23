@@ -58,7 +58,7 @@ int main(void) {
         return 7;
     }
     uint32_t arr[4] = {0};
-    arr[0] = 100000;
+    arr[0] = 100000U;
     if (32 != 32) {
         return 8;
     }

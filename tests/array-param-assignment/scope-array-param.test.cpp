@@ -21,9 +21,9 @@ void Test_writeAtIndex(uint8_t data[8], uint32_t index, uint8_t value) {
 
 int main(void) {
     uint8_t buffer[8] = {0};
-    buffer[0] = 0;
-    buffer[1] = 0;
-    buffer[2] = 0;
+    buffer[0] = 0U;
+    buffer[1] = 0U;
+    buffer[2] = 0U;
     Test_writeToArray(buffer, 42);
     if (buffer[0] != 42) return 1;
     Test_writeAtIndex(buffer, 1, 99);

@@ -51,13 +51,13 @@ void initializeAll(Configuration* conf, uint16_t spnValue, float coeffValue) {
 
 int main(void) {
     Configuration cfg = {0};
-    cfg.tempInputs[0].assignedSpn = 100;
+    cfg.tempInputs[0].assignedSpn = 100U;
     cfg.tempInputs[0].coeffA = 1.5;
-    cfg.tempInputs[1].assignedSpn = 200;
+    cfg.tempInputs[1].assignedSpn = 200U;
     cfg.tempInputs[1].coeffA = 2.5;
-    cfg.tempInputs[2].assignedSpn = 300;
+    cfg.tempInputs[2].assignedSpn = 300U;
     cfg.tempInputs[2].coeffA = 3.5;
-    cfg.tempInputs[5].assignedSpn = 999;
+    cfg.tempInputs[5].assignedSpn = 999U;
     cfg.tempInputs[5].coeffA = 9.5;
     uint32_t idx0 = 0U;
     uint32_t idx1 = 1U;

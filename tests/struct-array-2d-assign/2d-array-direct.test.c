@@ -33,7 +33,7 @@ int main(void) {
         while (c < 4) {
             grid[r][c].row = r;
             grid[r][c].col = c;
-            grid[r][c].data = r * 4 + c;
+            grid[r][c].data = r * 4U + c;
             c = cnx_clamp_add_u32(c, 1U);
         }
         r = cnx_clamp_add_u32(r, 1U);
@@ -46,9 +46,9 @@ int main(void) {
     if (grid[1][2].col != 2) return 6;
     if (grid[1][1].data != 5) return 7;
     if (grid[1][2].data != 6) return 8;
-    grid[1][1].data = 999;
+    grid[1][1].data = 999U;
     if (grid[1][1].data != 999) return 9;
-    grid[0][0].data += 100;
+    grid[0][0].data += 100U;
     if (grid[0][0].data != 100) return 10;
     return 0;
 }

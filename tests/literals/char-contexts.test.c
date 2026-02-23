@@ -36,7 +36,7 @@ int main(void) {
     buffer[0] = 'H';
     buffer[1] = 'i';
     buffer[2] = '!';
-    buffer[3] = 0;
+    buffer[3] = 0U;
     if (buffer[0] != 72) return 15;
     if (buffer[1] != 105) return 16;
     if (buffer[2] != 33) return 17;

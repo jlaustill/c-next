@@ -24,19 +24,19 @@ uint16_t matrix2d[4][8] = {0};
 uint16_t cube3d[2][3][4] = {0};
 
 int main(void) {
-    matrix2d[0][0] = 1000;
-    matrix2d[0][7] = 20000;
-    matrix2d[1][3] = 30000;
-    matrix2d[3][7] = 65535;
+    matrix2d[0][0] = 1000U;
+    matrix2d[0][7] = 20000U;
+    matrix2d[1][3] = 30000U;
+    matrix2d[3][7] = 65535U;
     if (matrix2d[0][0] != 1000) return 1;
     if (matrix2d[0][7] != 20000) return 2;
     if (matrix2d[1][3] != 30000) return 3;
     if (matrix2d[3][7] != 65535) return 4;
-    cube3d[0][0][0] = 100;
-    cube3d[0][0][3] = 500;
-    cube3d[0][2][3] = 1000;
-    cube3d[1][0][0] = 10000;
-    cube3d[1][2][3] = 50000;
+    cube3d[0][0][0] = 100U;
+    cube3d[0][0][3] = 500U;
+    cube3d[0][2][3] = 1000U;
+    cube3d[1][0][0] = 10000U;
+    cube3d[1][2][3] = 50000U;
     if (cube3d[0][0][0] != 100) return 5;
     if (cube3d[0][0][3] != 500) return 6;
     if (cube3d[0][2][3] != 1000) return 7;
@@ -51,7 +51,7 @@ int main(void) {
     if (16 != 16) return 16;
     for (uint32_t i = 0; i < 4; i += 1) {
         for (uint32_t j = 0; j < 8; j += 1) {
-            matrix2d[i][j] = i * 100 + j;
+            matrix2d[i][j] = i * 100U + j;
         }
     }
     if (matrix2d[0][0] != 0) return 17;
@@ -62,26 +62,26 @@ int main(void) {
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
             for (uint32_t k = 0; k < 4; k += 1) {
-                cube3d[i][j][k] = i * 100 + j * 10 + k;
+                cube3d[i][j][k] = i * 100U + j * 10U + k;
                 sum = cnx_clamp_add_u32(sum, cube3d[i][j][k]);
             }
         }
     }
     if (sum != 1476) return 21;
-    matrix2d[2][4] = 60000;
+    matrix2d[2][4] = 60000U;
     if (matrix2d[2][4] != 60000) return 22;
-    matrix2d[3][7] = 555;
+    matrix2d[3][7] = 555U;
     if (matrix2d[3][7] != 555) return 23;
     uint16_t testArray[3][2] = {0};
     for (uint32_t ti = 0; ti < 3; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
-            testArray[ti][tj] = 0;
+            testArray[ti][tj] = 0U;
         }
     }
-    testArray[0][0] = 0;
-    testArray[0][1] = 65535;
-    testArray[1][0] = 32768;
-    testArray[2][1] = 1000;
+    testArray[0][0] = 0U;
+    testArray[0][1] = 65535U;
+    testArray[1][0] = 32768U;
+    testArray[2][1] = 1000U;
     if (testArray[0][0] != 0) return 24;
     if (testArray[0][1] != 65535) return 25;
     if (testArray[1][0] != 32768) return 26;
@@ -89,15 +89,15 @@ int main(void) {
     uint16_t ports[3][3] = {0};
     for (uint32_t pi = 0; pi < 3; pi += 1) {
         for (uint32_t pj = 0; pj < 3; pj += 1) {
-            ports[pi][pj] = 0;
+            ports[pi][pj] = 0U;
         }
     }
-    ports[0][0] = 80;
-    ports[0][1] = 443;
-    ports[1][0] = 22;
-    ports[1][1] = 3306;
-    ports[2][0] = 5432;
-    ports[2][1] = 8080;
+    ports[0][0] = 80U;
+    ports[0][1] = 443U;
+    ports[1][0] = 22U;
+    ports[1][1] = 3306U;
+    ports[2][0] = 5432U;
+    ports[2][1] = 8080U;
     if (ports[0][0] != 80) return 28;
     if (ports[0][1] != 443) return 29;
     if (ports[1][0] != 22) return 30;
@@ -107,11 +107,11 @@ int main(void) {
     uint16_t data[2][2] = {0};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 2; dj += 1) {
-            data[di][dj] = 0;
+            data[di][dj] = 0U;
         }
     }
-    data[0][0] = 30000;
-    data[0][1] = 35000;
+    data[0][0] = 30000U;
+    data[0][1] = 35000U;
     uint32_t largeSum = data[0U][0U] + data[0U][1U];
     if (largeSum != 65000) return 34;
     return 0;

@@ -41,12 +41,12 @@ int main(void) {
     if (path.points[2].y != 40) return 7;
     Route route = {0};
     route.totalSegments = 2U;
-    route.segments[0].count = 2;
+    route.segments[0].count = 2U;
     route.segments[0].points[0].x = 100;
     route.segments[0].points[0].y = 100;
     route.segments[0].points[1].x = 150;
     route.segments[0].points[1].y = 150;
-    route.segments[1].count = 2;
+    route.segments[1].count = 2U;
     route.segments[1].points[0].x = 200;
     route.segments[1].points[0].y = 200;
     route.segments[1].points[1].x = 250;

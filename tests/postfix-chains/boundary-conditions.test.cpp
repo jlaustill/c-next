@@ -19,27 +19,27 @@ Data items[16] = {0};
 
 // Max reasonable array size for testing
 int main(void) {
-    items[0].byte = 0xFF;
+    items[0].byte = 0xFFU;
     items[0].byte = (items[0].byte & ~(1U << 0)) | (1U << 0);
     items[0].byte = (items[0].byte & ~(1U << 7)) | (0U << 7);
     bool b0 = ((items[0].byte >> 0) & 1);
     bool b7 = ((items[0].byte >> 7) & 1);
-    items[0].word = 0xFFFF;
+    items[0].word = 0xFFFFU;
     items[0].word = (items[0].word & ~(1U << 0)) | (1U << 0);
     items[0].word = (items[0].word & ~(1U << 15)) | (0U << 15);
     bool w0 = ((items[0].word >> 0) & 1);
     bool w15 = ((items[0].word >> 15) & 1);
-    items[0].dword = 0xFFFFFFFF;
+    items[0].dword = 0xFFFFFFFFU;
     items[0].dword = (items[0].dword & ~(1U << 0)) | (1U << 0);
     items[0].dword = (items[0].dword & ~(1U << 31)) | (0U << 31);
     bool d0 = ((items[0].dword >> 0) & 1);
     bool d31 = ((items[0].dword >> 31) & 1);
-    items[0].qword = 0;
+    items[0].qword = 0ULL;
     items[0].qword = (items[0].qword & ~(1ULL << 0)) | (1U << 0);
     items[0].qword = (items[0].qword & ~(1ULL << 30)) | (1U << 30);
     bool q0 = ((items[0].qword >> 0) & 1);
     bool q30 = ((items[0].qword >> 30) & 1);
-    items[15].byte = 0xAA;
+    items[15].byte = 0xAAU;
     uint8_t lastByte = items[15U].byte;
     uint8_t test8 = 0U;
     test8 = (test8 & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0);
@@ -53,7 +53,7 @@ int main(void) {
     uint32_t maxBitTest = 0U;
     maxBitTest = (maxBitTest & ~(1U << 31)) | (1U << 31);
     bool maxBit = ((maxBitTest >> 31) & 1);
-    items[15].dword = 0xFFFFFFFF;
+    items[15].dword = 0xFFFFFFFFU;
     items[15].dword = (items[15].dword & ~(1U << 31)) | (0U << 31);
     bool complexMax = ((items[15].dword >> 31) & 1);
     items[0].byte = (items[0].byte & ~(1U << 0)) | (1U << 0);

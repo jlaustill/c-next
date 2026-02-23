@@ -32,11 +32,11 @@ int main(void) {
     if (negatives[0] != -1) return 10;
     if (negatives[2] != -1) return 11;
     if (negatives[4] != -1) return 12;
-    buffer[50] = 42;
+    buffer[50] = 42U;
     if (buffer[50] != 42) return 13;
     if (buffer[49] != 0) return 14;
     if (buffer[51] != 0) return 15;
-    ones[25] = 255;
+    ones[25] = 255U;
     if (ones[25] != 255) return 16;
     if (ones[24] != 1) return 17;
     if (ones[26] != 1) return 18;

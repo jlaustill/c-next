@@ -34,8 +34,8 @@ uint16_t Sensor_sumValues(void) {
 void Sensor_clear(void) {
     uint8_t i = 0U;
     while (i < 4) {
-        Sensor_buffer[i].value = 0;
-        Sensor_buffer[i].channel = 0;
+        Sensor_buffer[i].value = 0U;
+        Sensor_buffer[i].channel = 0U;
         i = i + 1U;
     }
     Sensor_count = 0U;

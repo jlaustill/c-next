@@ -55,7 +55,7 @@ static uint32_t ArrayOps_sum = 0;
 
 void ArrayOps_initialize(void) {
     for (uint32_t i = 0; i < 10; i = i + 1) {
-        ArrayOps_data[i] = i * 2;
+        ArrayOps_data[i] = i * 2U;
     }
 }
 

@@ -32,18 +32,18 @@ typedef struct Scene {
 Scene scenes[2] = {0};
 
 int main(void) {
-    scenes[0].objects[0].material.ambient.r = 255;
-    scenes[0].objects[0].material.ambient.g = 128;
-    scenes[0].objects[0].material.ambient.b = 64;
+    scenes[0].objects[0].material.ambient.r = 255U;
+    scenes[0].objects[0].material.ambient.g = 128U;
+    scenes[0].objects[0].material.ambient.b = 64U;
     uint8_t red = scenes[0U].objects[0U].material.ambient.r;
     uint8_t green = scenes[0U].objects[0U].material.ambient.g;
-    scenes[0].objects[1].material.diffuse.r = 200;
-    scenes[0].objects[1].material.diffuse.g = 100;
-    scenes[0].objects[1].material.diffuse.b = 50;
-    scenes[0].objects[0].material.opacity = 255;
+    scenes[0].objects[1].material.diffuse.r = 200U;
+    scenes[0].objects[1].material.diffuse.g = 100U;
+    scenes[0].objects[1].material.diffuse.b = 50U;
+    scenes[0].objects[0].material.opacity = 255U;
     uint8_t alpha = scenes[0U].objects[0U].material.opacity;
-    scenes[1].objects[2].material.ambient.r = 100;
-    scenes[1].objects[3].material.diffuse.b = 75;
+    scenes[1].objects[2].material.ambient.r = 100U;
+    scenes[1].objects[3].material.diffuse.b = 75U;
     scenes[0].objects[0].id = 42;
     int32_t objId = scenes[1].objects[2].id;
 }

@@ -10,26 +10,26 @@
 uint32_t data[10] = {0};
 
 int main(void) {
-    data[0] = 100;
-    data[1] = 50;
-    data[2] = 10;
-    data[3] = 100;
-    data[4] = 17;
-    data[5] = 0b11110000;
-    data[6] = 0b00001111;
-    data[7] = 0b10101010;
-    data[8] = 8;
-    data[9] = 128;
-    data[0] += 25;
-    data[1] -= 15;
-    data[2] *= 7;
-    data[3] /= 4;
-    data[4] %= 5;
-    data[5] &= 0b11001100;
-    data[6] |= 0b11110000;
-    data[7] ^= 0b11111111;
-    data[8] <<= 2;
-    data[9] >>= 3;
+    data[0] = 100U;
+    data[1] = 50U;
+    data[2] = 10U;
+    data[3] = 100U;
+    data[4] = 17U;
+    data[5] = 0b11110000U;
+    data[6] = 0b00001111U;
+    data[7] = 0b10101010U;
+    data[8] = 8U;
+    data[9] = 128U;
+    data[0] += 25U;
+    data[1] -= 15U;
+    data[2] *= 7U;
+    data[3] /= 4U;
+    data[4] %= 5U;
+    data[5] &= 0b11001100U;
+    data[6] |= 0b11110000U;
+    data[7] ^= 0b11111111U;
+    data[8] <<= 2U;
+    data[9] >>= 3U;
     if (data[0] != 125) {
         return 1;
     }

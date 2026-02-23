@@ -140,10 +140,10 @@ void testArrayMembers(void) {
     DeviceConfig device = {};
     device.sensors[0].enabled = true;
     device.sensors[0].mode = EMode::ON;
-    device.sensors[0].flags = 0x01;
+    device.sensors[0].flags = 0x01U;
     device.sensors[1].enabled = false;
     device.sensors[1].mode = EMode::OFF;
-    device.sensors[2].flags = 0x0F;
+    device.sensors[2].flags = 0x0FU;
     bool enabled = device.sensors[0].enabled;
     EMode mode = device.sensors[1].mode;
     uint8_t flags = device.sensors[2U].flags;
@@ -164,7 +164,7 @@ void testComplexStructs(void) {
     msg.flags = FLAG_READ;
     msg.result.code = 0;
     msg.result.dataLen = 0;
-    msg.result.data[0] = 0x42;
+    msg.result.data[0] = 0x42U;
     int32_t code = msg.result.code;
     uint8_t firstByte = msg.result.data[0U];
 }
@@ -217,13 +217,13 @@ void testArrayParams(void) {
     ResponsePacket packet = {};
     packet.statusCode = 200;
     packet.payloadLen = 8;
-    packet.payload[0] = 0x01;
-    packet.payload[1] = 0x02;
+    packet.payload[0] = 0x01U;
+    packet.payload[1] = 0x02U;
     sendData(1, packet.statusCode, packet.payload, packet.payloadLen);
     Result res = {};
     res.code = 0;
     res.dataLen = 4;
-    res.data[0] = 0xAB;
+    res.data[0] = 0xABU;
     sendData(2, res.code, res.data, res.dataLen);
 }
 
