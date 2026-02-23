@@ -2422,15 +2422,17 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-010: Transform #include directives, converting .cnx to .h
+   * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
    * ADR-053 A5: Delegates to IncludeGenerator
    * Issue #349: Now passes includeDirs and inputs for angle-bracket resolution
+   * Issue #941: Now passes cppMode for .hpp extension in C++ mode
    */
   private transformIncludeDirective(includeText: string): string {
     return includeTransformIncludeDirective(includeText, {
       sourcePath: CodeGenState.sourcePath,
       includeDirs: CodeGenState.includeDirs,
       inputs: CodeGenState.inputs,
+      cppMode: CodeGenState.cppMode,
     });
   }
 
