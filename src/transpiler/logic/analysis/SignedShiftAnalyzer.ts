@@ -20,6 +20,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import ISignedShiftError from "./types/ISignedShiftError";
 import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
+import ExpressionUtils from "../../../utils/ExpressionUtils";
 
 /**
  * First pass: Collect variable declarations with their types
@@ -179,24 +180,12 @@ class SignedShiftListener extends CNextListener {
 
   /**
    * Check if a full expression contains signed operands
-   * Uses flatMap chains to traverse the expression grammar without deep nesting
    */
   private isSignedExpression(ctx: Parser.ExpressionContext): boolean {
     const ternary = ctx.ternaryExpression();
     if (!ternary) return false;
 
-    // Flatten the grammar tree traversal using flatMap chains
-    const additiveExprs = ternary
-      .orExpression()
-      .flatMap((or) => or.andExpression())
-      .flatMap((and) => and.equalityExpression())
-      .flatMap((eq) => eq.relationalExpression())
-      .flatMap((rel) => rel.bitwiseOrExpression())
-      .flatMap((bor) => bor.bitwiseXorExpression())
-      .flatMap((bxor) => bxor.bitwiseAndExpression())
-      .flatMap((band) => band.shiftExpression())
-      .flatMap((shift) => shift.additiveExpression());
-
+    const additiveExprs = ExpressionUtils.collectAdditiveExpressions(ternary);
     return additiveExprs.some((addExpr) => this.isSignedOperand(addExpr));
   }
 }
