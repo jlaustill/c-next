@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-02-23
+
+### Added
+
+- Compile-time analyzer rejecting signed shift operations (Issue #843)
+
+### Changed
+
+- Deprecate `.length` property in favor of explicit `.byteLength` and `.elementCount` properties (ADR-058)
+
+### Fixed
+
+- Cast bitwise NOT on unsigned types to satisfy MISRA 10.1/10.3 (Issue #915)
+- Header prototype missing pointer on callback params (Issue #914)
+
+### Tests
+
+- Convert 10 Phase 1 transpile-only tests to executable (Issue #916)
+
 ## [0.2.6] - 2026-02-23
 
 ### Fixed
@@ -1111,6 +1130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.6...HEAD
+[0.2.7]: https://github.com/jlaustill/c-next/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/jlaustill/c-next/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/jlaustill/c-next/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/jlaustill/c-next/compare/v0.2.3...v0.2.4
