@@ -10,23 +10,23 @@
 // Tests: Character literal usage in various contexts
 // Character literals work with u8 type (which maps to uint8_t in C)
 int main(void) {
-    uint8_t letter = 'A';
+    uint8_t letter = static_cast<uint8_t>('A');
     if (letter != 65) return 1;
-    uint8_t lower = 'z';
+    uint8_t lower = static_cast<uint8_t>('z');
     if (lower != 122) return 2;
-    uint8_t digit = '0';
+    uint8_t digit = static_cast<uint8_t>('0');
     if (digit != 48) return 3;
-    uint8_t space = ' ';
+    uint8_t space = static_cast<uint8_t>(' ');
     if (space != 32) return 4;
-    uint8_t c = 'X';
+    uint8_t c = static_cast<uint8_t>('X');
     if (c != 'X') return 5;
     if (c == 'Y') return 6;
     if ('A' >= 'B') return 7;
     if ('Z' <= 'A') return 8;
-    uint8_t first = 'a';
-    uint8_t second = 'b';
+    uint8_t first = static_cast<uint8_t>('a');
+    uint8_t second = static_cast<uint8_t>('b');
     if (first >= second) return 9;
-    uint8_t vowels[5] = {'a', 'e', 'i', 'o', 'u'};
+    uint8_t vowels[5] = {static_cast<uint8_t>('a'), static_cast<uint8_t>('e'), static_cast<uint8_t>('i'), static_cast<uint8_t>('o'), static_cast<uint8_t>('u')};
     if (vowels[0] != 'a') return 10;
     if (vowels[1] != 'e') return 11;
     if (vowels[2] != 'i') return 12;
@@ -40,7 +40,7 @@ int main(void) {
     if (buffer[0] != 72) return 15;
     if (buffer[1] != 105) return 16;
     if (buffer[2] != 33) return 17;
-    uint8_t grade = 'B';
+    uint8_t grade = static_cast<uint8_t>('B');
     uint32_t points = 0U;
     switch (grade) {
         case 'A': {
@@ -61,7 +61,7 @@ int main(void) {
         }
     }
     if (points != 3) return 18;
-    uint8_t dir = 'N';
+    uint8_t dir = static_cast<uint8_t>('N');
     uint32_t heading = 0U;
     switch (dir) {
         case 'N': {
@@ -86,7 +86,7 @@ int main(void) {
         }
     }
     if (heading != 0) return 19;
-    dir = 'S';
+    dir = static_cast<uint8_t>('S');
     switch (dir) {
         case 'N': {
             heading = 0U;
@@ -110,10 +110,10 @@ int main(void) {
         }
     }
     if (heading != 180) return 20;
-    uint8_t upperA = 'A';
+    uint8_t upperA = static_cast<uint8_t>('A');
     uint8_t lowerA = upperA + 32U;
     if (lowerA != 'a') return 21;
-    uint8_t lowerZ = 'z';
+    uint8_t lowerZ = static_cast<uint8_t>('z');
     uint8_t upperZ = lowerZ - 32U;
     if (upperZ != 'Z') return 22;
     return 0;
