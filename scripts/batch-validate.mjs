@@ -307,6 +307,7 @@ function runMisra() {
         "cppcheck",
         [
           "--addon=misra",
+          "--inline-suppr",
           "--error-exitcode=1",
           "--suppress=missingIncludeSystem",
           "--suppress=unusedFunction",

@@ -303,7 +303,14 @@ class StringDeclHelper {
       initValue,
       arrayDims,
     );
-    return { code: `${decl} = ${finalInitValue};`, handled: true };
+    // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
+    // but C standard guarantees zero-initialization of remaining elements
+    const suppression =
+      "// cppcheck-suppress misra-c2012-9.3\n// cppcheck-suppress misra-c2012-9.4\n";
+    return {
+      code: `${suppression}${decl} = ${finalInitValue};`,
+      handled: true,
+    };
   }
 
   /**

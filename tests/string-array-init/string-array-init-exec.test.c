@@ -10,8 +10,12 @@
 // Issue #380: String array initializers - execution validation
 // Tests: array access, .length, .capacity after inline initialization
 // C-style allowed for string arrays (grammar limitation)
+// cppcheck-suppress misra-c2012-9.3
+// cppcheck-suppress misra-c2012-9.4
 const char LABELS[3][11] = {"One", "Two", "Three"};
 
+// cppcheck-suppress misra-c2012-9.3
+// cppcheck-suppress misra-c2012-9.4
 char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};
 
 int main(void) {

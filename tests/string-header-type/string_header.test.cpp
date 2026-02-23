@@ -11,6 +11,8 @@
 char greeting[33] = "Hello";
 
 // C-style allowed for string arrays (grammar limitation)
+// cppcheck-suppress misra-c2012-9.3
+// cppcheck-suppress misra-c2012-9.4
 extern const char labels[3][17] = {"one", "two", "three"};
 
 int main(void) {
