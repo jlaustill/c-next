@@ -9,7 +9,7 @@
 // test-execution
 // Tests forward declarations when types form a chain: test -> mid -> base
 // This validates transitive include handling.
-#include <chain-types-mid.h>
+#include <chain-types-mid.hpp>
 
 #include <stdint.h>
 

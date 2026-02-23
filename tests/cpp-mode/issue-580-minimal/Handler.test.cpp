@@ -7,8 +7,8 @@
 
 // test-cpp-only
 // Issue #580 minimal reproduction: function with ONLY a pass-through call
-#include "Config.h"
-#include "Modifier.h"
+#include "Config.hpp"
+#include "Modifier.hpp"
 
 /* Scope: Handler */
 

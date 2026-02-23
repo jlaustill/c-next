@@ -9,7 +9,7 @@
 // Issue #315: Cross-file calls incorrectly add & to primitive struct member arguments
 // When calling a function in another file via global.ScopeName.function(),
 // primitive struct member arguments should NOT have & added.
-#include <TestFunc.h>
+#include <TestFunc.hpp>
 
 #include <stdint.h>
 

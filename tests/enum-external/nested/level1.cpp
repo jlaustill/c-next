@@ -4,7 +4,7 @@
  */
 
 // Middle level - includes level2 and uses its enum
-#include "level2.h"
+#include "level2.hpp"
 
 typedef struct Config {
     ELevel level;

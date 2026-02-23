@@ -7,8 +7,8 @@
 // ADR-010: C Interoperability - Mixed includes
 // Tests: Mix of .cnx, .h, and standard library includes
 #include <stdio.h>
-#include <helper-types.h>
-#include "helper-types.h"
+#include <helper-types.hpp>
+#include "helper-types.hpp"
 #include <string.h>
 
 #include <stdint.h>

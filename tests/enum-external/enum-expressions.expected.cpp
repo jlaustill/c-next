@@ -6,7 +6,7 @@
 // test-execution
 // Issue #465: Test external enum values in various expression contexts
 // Ternary, function args, return values, arithmetic comparisons
-#include "types.h"
+#include "types.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

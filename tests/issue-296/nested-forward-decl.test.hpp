@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <nested-forward-decl-types.hpp>
-#include <nested-forward-decl-types.h>
 
 #ifdef __cplusplus
 extern "C" {

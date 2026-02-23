@@ -7,7 +7,7 @@
 // When a constant from an external .cnx file is used in an array size,
 // the generated .h file should contain the resolved literal value, not the constant name.
 // This is necessary because extern const values aren't compile-time constant expressions in C/C++.
-#include "config.h"
+#include "config.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

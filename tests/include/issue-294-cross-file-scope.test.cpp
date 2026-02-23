@@ -11,7 +11,7 @@
 // Tests that including a file with a scope allows calling that scope's
 // public functions, and the generated code uses underscore notation
 // (e.g., decoder_getSpn) not dot notation (decoder.getSpn)
-#include <issue-294-decoder.h>
+#include <issue-294-decoder.hpp>
 
 #include <stdint.h>
 

@@ -9,7 +9,7 @@
 // test-execution
 // Tests that forward declarations work correctly when structs contain
 // other structs from external files.
-#include <nested-forward-decl-types.h>
+#include <nested-forward-decl-types.hpp>
 
 #include <stdint.h>
 #include <stdbool.h>

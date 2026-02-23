@@ -10,7 +10,7 @@
 // When a public function uses a struct from another file, the header
 // generator creates forward declarations that must be compatible with
 // the struct definition.
-#include <issue-296-types.h>
+#include <issue-296-types.hpp>
 
 #include <stdint.h>
 

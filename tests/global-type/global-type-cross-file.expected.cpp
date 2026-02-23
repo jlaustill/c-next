@@ -8,7 +8,7 @@
 // test-execution
 // Tests: global.Type for cross-file type references (the actual bug scenario from #478)
 // The enum and struct are defined in cross-file-types.cnx
-#include <cross-file-types.h>
+#include <cross-file-types.hpp>
 
 #include <stdint.h>
 

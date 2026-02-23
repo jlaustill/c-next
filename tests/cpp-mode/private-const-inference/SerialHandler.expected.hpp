@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include "Config.hpp"
 #include "CommandHandler.hpp"
-#include "Config.h"
 
 #ifdef __cplusplus
 extern "C" {
