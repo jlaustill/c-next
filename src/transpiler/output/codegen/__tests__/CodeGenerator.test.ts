@@ -14631,9 +14631,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Single bit write
+        // Single bit write (uses 1U for MISRA 10.1 compliance)
         expect(code).toContain("flags");
-        expect(code).toContain("1 << 3");
+        expect(code).toContain("1U << 3");
       });
 
       it("should generate array element write", () => {

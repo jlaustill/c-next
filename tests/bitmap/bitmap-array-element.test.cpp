@@ -22,10 +22,10 @@ typedef uint8_t StatusFlags;
 
 int main(void) {
     StatusFlags arr[4] = {0};
-    arr[0] = (arr[0] & ~(1 << 0)) | (1 << 0);
+    arr[0] = (arr[0] & ~(1U << 0)) | (1U << 0);
     if (((arr[0] >> 0) & 1) != true) return 1;
     if (arr[0] != 1) return 2;
-    arr[0] = (arr[0] & ~(1 << 1)) | (1 << 1);
+    arr[0] = (arr[0] & ~(1U << 1)) | (1U << 1);
     if (((arr[0] >> 1) & 1) != true) return 3;
     if (arr[0] != 3) return 4;
     arr[1] = (arr[1] & ~(0x7 << 3)) | ((5 & 0x7) << 3);
@@ -34,18 +34,18 @@ int main(void) {
     arr[2] = (arr[2] & ~(0x3 << 6)) | ((3 & 0x3) << 6);
     if (((arr[2] >> 6) & 0x3) != 3) return 7;
     if (arr[2] != 192) return 8;
-    arr[3] = (arr[3] & ~(1 << 0)) | (1 << 0);
+    arr[3] = (arr[3] & ~(1U << 0)) | (1U << 0);
     arr[3] = (arr[3] & ~(0x7 << 3)) | ((7 & 0x7) << 3);
     arr[3] = (arr[3] & ~(0x3 << 6)) | ((2 & 0x3) << 6);
     if (((arr[3] >> 0) & 1) != true) return 9;
     if (((arr[3] >> 3) & 0x7) != 7) return 10;
     if (((arr[3] >> 6) & 0x3) != 2) return 11;
     if (arr[3] != 185) return 12;
-    arr[0] = (arr[0] & ~(1 << 0)) | (0 << 0);
+    arr[0] = (arr[0] & ~(1U << 0)) | (0U << 0);
     if (((arr[0] >> 0) & 1) != false) return 13;
     if (arr[0] != 2) return 14;
     uint8_t idx = 1U;
-    arr[idx] = (arr[idx] & ~(1 << 2)) | (1 << 2);
+    arr[idx] = (arr[idx] & ~(1U << 2)) | (1U << 2);
     if (((arr[idx] >> 2) & 1) != true) return 15;
     if (arr[1] != 44) return 16;
     return 0;

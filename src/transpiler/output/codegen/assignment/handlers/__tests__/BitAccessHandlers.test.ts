@@ -85,8 +85,8 @@ describe("BitAccessHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("flags =");
-      expect(result).toContain("& ~(1 << 3)");
-      expect(result).toContain("1 << 3");
+      expect(result).toContain("& ~(1U << 3)");
+      expect(result).toContain("1U << 3");
     });
 
     it("uses 1ULL for 64-bit types", () => {
@@ -127,7 +127,7 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("| (1 << 0)");
+      expect(result).toContain("| (1U << 0)");
     });
 
     it("converts false to 0", () => {
@@ -141,7 +141,7 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("| (0 << 0)");
+      expect(result).toContain("| (0U << 0)");
     });
 
     it("delegates to float bit write for float types", () => {
@@ -305,8 +305,8 @@ describe("BitAccessHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("item.byte =");
-      expect(result).toContain("& ~(1 << 7)");
-      expect(result).toContain("1 << 7");
+      expect(result).toContain("& ~(1U << 7)");
+      expect(result).toContain("1U << 7");
     });
 
     it("throws on compound assignment", () => {
@@ -348,7 +348,7 @@ describe("BitAccessHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("arr[i] =");
-      expect(result).toContain("& ~(1 << BIT)");
+      expect(result).toContain("& ~(1U << BIT)");
     });
 
     it("generates array element bit assignment for 2D array", () => {
@@ -374,7 +374,7 @@ describe("BitAccessHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("matrix[i][j] =");
-      expect(result).toContain("& ~(1 << FIELD_BIT)");
+      expect(result).toContain("& ~(1U << FIELD_BIT)");
     });
 
     it("uses 1ULL for 64-bit array element", () => {

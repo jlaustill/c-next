@@ -63,7 +63,7 @@ uint8_t getArrayBit(const uint8_t matrix[2][2], uint32_t row, uint32_t col, uint
 }
 
 void setArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit, bool val) {
-    matrix[row][col] = (matrix[row][col] & ~(1 << bit)) | ((val ? 1 : 0) << bit);
+    matrix[row][col] = (matrix[row][col] & ~(1U << bit)) | ((val ? 1U : 0U) << bit);
 }
 
 int main(void) {

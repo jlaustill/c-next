@@ -6,16 +6,17 @@
  */
 class BitUtils {
   /**
-   * Convert a boolean expression to an integer (0 or 1).
+   * Convert a boolean expression to an unsigned integer (0U or 1U).
    * Handles literal "true"/"false" and generates ternary for expressions.
+   * Uses unsigned literals for MISRA C:2012 Rule 10.1 compliance.
    *
    * @param expr - The expression to convert
-   * @returns C code string representing the integer value
+   * @returns C code string representing the unsigned integer value
    */
   static boolToInt(expr: string): string {
-    if (expr === "true") return "1";
-    if (expr === "false") return "0";
-    return `(${expr} ? 1 : 0)`;
+    if (expr === "true") return "1U";
+    if (expr === "false") return "0U";
+    return `(${expr} ? 1U : 0U)`;
   }
 
   /**
@@ -78,14 +79,15 @@ class BitUtils {
   }
 
   /**
-   * Return the appropriate "1" literal for a given type.
-   * Uses "1ULL" for 64-bit types to avoid undefined behavior on large shifts.
+   * Return the appropriate unsigned "1" literal for a given type.
+   * Uses "1ULL" for 64-bit types, "1U" for others.
+   * MISRA C:2012 Rule 10.1 requires unsigned operands for bitwise operations.
    *
    * @param typeName - The C-Next type name (e.g., "u64", "i32")
-   * @returns "1ULL" for 64-bit types, "1" otherwise
+   * @returns "1ULL" for 64-bit types, "1U" otherwise
    */
   static oneForType(typeName: string): string {
-    return typeName === "u64" || typeName === "i64" ? "1ULL" : "1";
+    return typeName === "u64" || typeName === "i64" ? "1ULL" : "1U";
   }
 
   /**
@@ -154,7 +156,7 @@ class BitUtils {
   ): string {
     const intValue = BitUtils.boolToInt(value);
     const is64Bit = targetType === "u64" || targetType === "i64";
-    const one = is64Bit ? "1ULL" : "1";
+    const one = is64Bit ? "1ULL" : "1U";
     // For 64-bit types, cast the value to ensure shift doesn't overflow
     const valueShift = is64Bit
       ? `((uint64_t)${intValue} << ${offset})`
@@ -203,6 +205,7 @@ class BitUtils {
   ): string {
     const intValue = BitUtils.boolToInt(value);
     // For 64-bit types, cast to ensure correct shift width
+    // boolToInt already returns unsigned values (1U/0U) for MISRA 10.1 compliance
     const castPrefix =
       targetType === "u64" || targetType === "i64" ? "(uint64_t)" : "";
     return `${target} = (${castPrefix}${intValue} << ${offset});`;

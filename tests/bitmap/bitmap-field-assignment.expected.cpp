@@ -19,9 +19,9 @@
 
 
 void Timer_init(void) {
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 0)) | (0 << 0);
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 1)) | (1 << 1);
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1 << 2)) | (1 << 2);
+    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1U << 0)) | (0U << 0);
+    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1U << 1)) | (1U << 1);
+    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1U << 2)) | (1U << 2);
     Timer_SysTick_LOAD = 16000;
 }
 

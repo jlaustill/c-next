@@ -20,7 +20,7 @@
 #define CTRL_FLAGS (*(volatile uint32_t*)(0x40001000 + 0x04))
 
 void setGpioBit(uint8_t pin) {
-    GPIO_DR_SET = (1 << pin);
+    GPIO_DR_SET = (1U << pin);
 }
 
 void setGpioMask(uint32_t mask) {
@@ -28,7 +28,7 @@ void setGpioMask(uint32_t mask) {
 }
 
 void enableFeature(uint8_t feature) {
-    CTRL_ENABLE = (1 << feature);
+    CTRL_ENABLE = (1U << feature);
 }
 
 void setFlags(uint32_t flagMask) {

@@ -79,8 +79,8 @@ function generateBitmapWrite(
   const { maskHex } = calculateMask(fieldInfo.width);
 
   if (fieldInfo.width === 1) {
-    // Single bit write: target = (target & ~(1 << offset)) | ((value ? 1 : 0) << offset)
-    return `${target} = (${target} & ~(1 << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
+    // Single bit write: target = (target & ~(1U << offset)) | ((value ? 1 : 0) << offset)
+    return `${target} = (${target} & ~(1U << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
   } else {
     // Multi-bit write: target = (target & ~(mask << offset)) | ((value & mask) << offset)
     return `${target} = (${target} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;

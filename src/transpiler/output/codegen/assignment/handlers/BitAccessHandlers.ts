@@ -121,9 +121,9 @@ function handleStructMemberBit(ctx: IAssignmentContext): string {
   // Extract the bit index from the last subscript
   const bitIndex = gen().generateExpression(ctx.subscripts.at(-1)!);
 
-  // Limitation: Uses literal "1" which works for types up to 32 bits.
+  // Limitation: Uses literal "1U" which works for types up to 32 bits.
   // For 64-bit struct members, would need to track member type through chain.
-  const one = "1";
+  const one = "1U";
   const intValue = BitUtils.boolToInt(ctx.generatedValue);
 
   return `${target} = (${target} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;

@@ -84,7 +84,7 @@ describe("RegisterHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("GPIO7_DR_SET");
-      expect(result).toContain("& ~(1 <<");
+      expect(result).toContain("& ~(1U <<");
       expect(result).toContain("LED_BIT");
     });
 
@@ -99,7 +99,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("GPIO7_DR_SET = (1 << LED_BIT);");
+      expect(result).toBe("GPIO7_DR_SET = (1U << LED_BIT);");
     });
 
     it("throws on write-only register with false value", () => {
@@ -309,7 +309,7 @@ describe("RegisterHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor_GPIO7_DR_SET");
-      expect(result).toContain("& ~(1 <<");
+      expect(result).toContain("& ~(1U <<");
     });
 
     it("generates simple write for write-only scoped register", () => {
@@ -327,7 +327,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("Motor_GPIO7_DR_SET = (1 << LED_BIT);");
+      expect(result).toBe("Motor_GPIO7_DR_SET = (1U << LED_BIT);");
     });
 
     it("throws when used outside scope", () => {
