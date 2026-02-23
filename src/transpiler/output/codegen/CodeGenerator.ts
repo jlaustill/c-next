@@ -3925,7 +3925,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Returns null if expression doesn't match these patterns.
    */
   private _extractCFunctionName(expr: Parser.ExpressionContext): string | null {
-    // Navigate to postfix expression
     const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
     if (!postfix) {
       return null;
@@ -3936,50 +3935,70 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Pattern 1: global.funcName(...)
     if (primary.GLOBAL()) {
-      // Must have at least 2 postfix ops: .funcName and (args)
-      if (ops.length < 2) {
-        return null;
-      }
-
-      // First op should be member access with function name
-      const memberOp = ops[0];
-      if (!memberOp.IDENTIFIER()) {
-        return null;
-      }
-
-      // Second op should be function call (argument list)
-      const callOp = ops[1];
-      if (!callOp.argumentList() && !callOp.getText().startsWith("(")) {
-        return null;
-      }
-
-      return memberOp.IDENTIFIER()!.getText();
+      return this._extractGlobalPatternFuncName(ops);
     }
 
     // Pattern 2: funcName(...) - direct call
     const identifier = primary.IDENTIFIER();
     if (identifier) {
-      // Must have at least 1 postfix op: (args)
-      if (ops.length < 1) {
-        return null;
-      }
-
-      // First op should be function call (argument list)
-      const callOp = ops[0];
-      if (!callOp.argumentList() && !callOp.getText().startsWith("(")) {
-        return null;
-      }
-
-      const funcName = identifier.getText();
-
-      // Verify this is actually a C function (not a C-Next scope function)
-      const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
-      if (cFunc?.kind === "function") {
-        return funcName;
-      }
+      return this._extractDirectCallFuncName(identifier.getText(), ops);
     }
 
     return null;
+  }
+
+  /**
+   * Extract function name from global.funcName(...) pattern.
+   */
+  private _extractGlobalPatternFuncName(
+    ops: Parser.PostfixOpContext[],
+  ): string | null {
+    if (ops.length < 2) {
+      return null;
+    }
+
+    const memberOp = ops[0];
+    if (!memberOp.IDENTIFIER()) {
+      return null;
+    }
+
+    const callOp = ops[1];
+    if (!this._isCallOp(callOp)) {
+      return null;
+    }
+
+    return memberOp.IDENTIFIER()!.getText();
+  }
+
+  /**
+   * Extract function name from direct funcName(...) call if it's a C function.
+   */
+  private _extractDirectCallFuncName(
+    funcName: string,
+    ops: Parser.PostfixOpContext[],
+  ): string | null {
+    if (ops.length < 1) {
+      return null;
+    }
+
+    if (!this._isCallOp(ops[0])) {
+      return null;
+    }
+
+    // Verify this is actually a C function (not a C-Next scope function)
+    const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+    if (cFunc?.kind === "function") {
+      return funcName;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if a postfix op is a function call.
+   */
+  private _isCallOp(op: Parser.PostfixOpContext): boolean {
+    return Boolean(op.argumentList() || op.getText().startsWith("("));
   }
 
   /**
