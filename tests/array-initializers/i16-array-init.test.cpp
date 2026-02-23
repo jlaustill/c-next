@@ -20,24 +20,24 @@ static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
 // Coverage: Section 1.2 i16 array element type
 int main(void) {
     int16_t values[5] = {-32768, -1000, 0, 1000, 32767};
-    if (values[0] != -32768) return 1;
-    if (values[1] != -1000) return 2;
-    if (values[2] != 0) return 3;
-    if (values[3] != 1000) return 4;
-    if (values[4] != 32767) return 5;
+    if (values[0U] != -32768) return 1;
+    if (values[1U] != -1000) return 2;
+    if (values[2U] != 0) return 3;
+    if (values[3U] != 1000) return 4;
+    if (values[4U] != 32767) return 5;
     int16_t data[4] = {0};
     data[0] = -5000;
     data[1] = 5000;
     data[2] = -10000;
     data[3] = 10000;
-    if (data[0] != -5000) return 6;
-    if (data[1] != 5000) return 7;
-    if (data[2] != -10000) return 8;
-    if (data[3] != 10000) return 9;
+    if (data[0U] != -5000) return 6;
+    if (data[1U] != 5000) return 7;
+    if (data[2U] != -10000) return 8;
+    if (data[3U] != 10000) return 9;
     int16_t inferred[3] = {100, 200, 300};
-    if (inferred[0] != 100) return 10;
-    if (inferred[1] != 200) return 11;
-    if (inferred[2] != 300) return 12;
+    if (inferred[0U] != 100) return 10;
+    if (inferred[1U] != 200) return 11;
+    if (inferred[2U] != 300) return 12;
     int16_t loop_arr[3] = {100, 200, 300};
     int16_t sum = 0;
     for (uint32_t i = 0; i < 3; i += 1) {
@@ -47,7 +47,7 @@ int main(void) {
     int16_t modify[2] = {1000, 2000};
     modify[0] = -1000;
     modify[1] = -2000;
-    if (modify[0] != -1000) return 14;
-    if (modify[1] != -2000) return 15;
+    if (modify[0U] != -1000) return 14;
+    if (modify[1U] != -2000) return 15;
     return 0;
 }

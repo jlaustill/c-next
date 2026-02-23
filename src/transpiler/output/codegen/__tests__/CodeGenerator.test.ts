@@ -7886,7 +7886,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("callee(arr[0])");
+        expect(code).toContain("callee(arr[0U])");
       });
 
       it("should handle scope member as argument", () => {
@@ -8035,7 +8035,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("callee(42)");
+        expect(code).toContain("callee(42U)");
       });
 
       it("should handle nested function call as argument", () => {
@@ -9138,8 +9138,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Bitmap indexing generates bit extraction with U suffix
-        expect(code).toContain("((flags >> 0U) & 1)");
+        // Bitmap indexing generates bit extraction (no shift for position 0)
+        expect(code).toContain("((flags) & 1)");
       });
     });
 
@@ -10707,8 +10707,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Bit access extracts bit 0 with width 1
-        expect(code).toContain("((flags) & ((1U << 1) - 1))");
+        // Bit access extracts bit 0 with width 1 (no shift for position 0)
+        expect(code).toContain("((flags) & ((1U << 1U) - 1))");
       });
 
       it("should not dereference array parameter for index access", () => {
@@ -10728,8 +10728,8 @@ describe("CodeGenerator", () => {
         });
 
         // Array params don't need dereference
-        // Array element access doesn't get U suffix yet
-        expect(code).toContain("arr[5]");
+        // Array index gets U suffix per MISRA 7.2
+        expect(code).toContain("arr[5U]");
         expect(code).not.toContain("(*arr)");
       });
 
@@ -12990,11 +12990,11 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Bit range access generates shift and mask
+        // Bit range access generates mask (no shift for start=0)
         expect(code).toContain("flags");
         expect(code).toContain("& 0xFF");
-        // MISRA Rule 7.2: shift amount gets U suffix
-        expect(code).toContain(">> 0U");
+        // Optimization: no shift when start=0
+        expect(code).not.toContain(">> 0");
       });
 
       it("should generate integer bit range with shift for non-zero start", () => {
@@ -13444,7 +13444,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("process(x + 5)");
+        expect(code).toContain("process(x + 5U)");
       });
     });
 
@@ -13691,8 +13691,8 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("__bits_val");
-        // MISRA Rule 7.2: shift amount gets U suffix
-        expect(code).toContain(">> 0U");
+        // Optimization: no shift when start=0
+        expect(code).not.toContain(">> 0");
       });
 
       it("should handle multiple reads from same float reusing union shadow", () => {
@@ -14673,8 +14673,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // MISRA Rule 7.2: shift amount gets U suffix
-        expect(code).toContain(">> 0U");
+        // Optimization: no shift when start=0
+        expect(code).not.toContain(">> 0");
       });
 
       it("should generate 64-bit mask for u64 values", () => {

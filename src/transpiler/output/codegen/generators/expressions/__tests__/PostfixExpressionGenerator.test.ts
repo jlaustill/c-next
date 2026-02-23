@@ -1179,7 +1179,8 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("((GPIO >> 0) & 1)");
+      // Optimization: no shift when index is 0
+      expect(result.code).toBe("((GPIO) & 1)");
     });
 
     it("throws for bracket indexing on bitmap type", () => {

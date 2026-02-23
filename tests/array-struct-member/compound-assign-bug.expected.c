@@ -18,10 +18,10 @@ int main(void) {
     counters[1].value = 200;
     counters[0].value += 10;
     counters[1].value -= 50;
-    if (counters[0].value != 110) {
+    if (counters[0U].value != 110) {
         return 1;
     }
-    if (counters[1].value != 150) {
+    if (counters[1U].value != 150) {
         return 1;
     }
     return 0;

@@ -20,24 +20,24 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Coverage: Section 1.2 i32 array element type
 int main(void) {
     int32_t values[5] = {-2147483648, -100000, 0, 100000, 2147483647};
-    if (values[0] != -2147483648) return 1;
-    if (values[1] != -100000) return 2;
-    if (values[2] != 0) return 3;
-    if (values[3] != 100000) return 4;
-    if (values[4] != 2147483647) return 5;
+    if (values[0U] != -2147483648) return 1;
+    if (values[1U] != -100000) return 2;
+    if (values[2U] != 0) return 3;
+    if (values[3U] != 100000) return 4;
+    if (values[4U] != 2147483647) return 5;
     int32_t data[4] = {0};
     data[0] = -500000;
     data[1] = 500000;
     data[2] = -1000000;
     data[3] = 1000000;
-    if (data[0] != -500000) return 6;
-    if (data[1] != 500000) return 7;
-    if (data[2] != -1000000) return 8;
-    if (data[3] != 1000000) return 9;
+    if (data[0U] != -500000) return 6;
+    if (data[1U] != 500000) return 7;
+    if (data[2U] != -1000000) return 8;
+    if (data[3U] != 1000000) return 9;
     int32_t inferred[3] = {10000, 20000, 30000};
-    if (inferred[0] != 10000) return 10;
-    if (inferred[1] != 20000) return 11;
-    if (inferred[2] != 30000) return 12;
+    if (inferred[0U] != 10000) return 10;
+    if (inferred[1U] != 20000) return 11;
+    if (inferred[2U] != 30000) return 12;
     int32_t loop_arr[3] = {1000, 2000, 3000};
     int32_t sum = 0;
     for (uint32_t i = 0; i < 3; i += 1) {
@@ -47,7 +47,7 @@ int main(void) {
     int32_t modify[2] = {10000, 20000};
     modify[0] = -10000;
     modify[1] = -20000;
-    if (modify[0] != -10000) return 14;
-    if (modify[1] != -20000) return 15;
+    if (modify[0U] != -10000) return 14;
+    if (modify[1U] != -20000) return 15;
     return 0;
 }

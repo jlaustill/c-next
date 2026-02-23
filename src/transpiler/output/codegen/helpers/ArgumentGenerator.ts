@@ -66,22 +66,34 @@ class ArgumentGenerator {
 
   /**
    * Handle rvalue argument (literals or complex expressions).
+   * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
    */
   static handleRvalueArg(
     ctx: Parser.ExpressionContext,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
   ): string {
+    // Issue #872: Early return when no target type - no state management needed
     if (!targetParamBaseType) {
       return callbacks.generateExpression(ctx);
     }
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (!cType || cType === "void") {
-      return callbacks.generateExpression(ctx);
+      // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
+      return CodeGenState.withExpectedType(
+        targetParamBaseType,
+        () => callbacks.generateExpression(ctx),
+        true, // suppressEnumResolution
+      );
     }
 
-    const value = callbacks.generateExpression(ctx);
+    // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
+    const value = CodeGenState.withExpectedType(
+      targetParamBaseType,
+      () => callbacks.generateExpression(ctx),
+      true, // suppressEnumResolution
+    );
 
     // C++ mode: rvalues can bind to const T&
     if (CodeGenState.cppMode) {

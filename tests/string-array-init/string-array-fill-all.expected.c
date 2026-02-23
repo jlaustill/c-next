@@ -20,11 +20,11 @@ char empty[2][9] = {""};
 
 int main(void) {
     if (3 != 3) return 1;
-    if (strlen(greetings[0]) != 5) return 2;
-    if (strlen(greetings[1]) != 5) return 3;
-    if (strlen(greetings[2]) != 5) return 4;
+    if (strlen(greetings[0U]) != 5) return 2;
+    if (strlen(greetings[1U]) != 5) return 3;
+    if (strlen(greetings[2U]) != 5) return 4;
     if (2 != 2) return 5;
-    if (strlen(empty[0]) != 0) return 6;
-    if (strlen(empty[1]) != 0) return 7;
+    if (strlen(empty[0U]) != 0) return 6;
+    if (strlen(empty[1U]) != 0) return 7;
     return 0;
 }

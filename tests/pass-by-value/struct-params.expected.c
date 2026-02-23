@@ -71,7 +71,7 @@ int main(void) {
     cnt.value = 5U;
     incrementCounter(&cnt);
     if (cnt.value != 5) return 7;
-    setCounterMax(&cnt, 10);
+    setCounterMax(&cnt, 10U);
     if (cnt.maxValue != 10) return 8;
     incrementCounter(&cnt);
     if (cnt.value != 6) return 9;

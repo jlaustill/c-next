@@ -14,8 +14,8 @@ void writeToSized(uint8_t arr[8], uint32_t index, uint8_t value) {
 
 int main(void) {
     uint8_t buffer[8] = {0};
-    buffer[0] = 0;
-    writeToSized(buffer, 0, 42);
-    if (buffer[0] != 42) return 1;
+    buffer[0] = 0U;
+    writeToSized(buffer, 0U, 42U);
+    if (buffer[0U] != 42) return 1;
     return 0;
 }

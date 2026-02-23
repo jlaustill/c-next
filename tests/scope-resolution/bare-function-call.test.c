@@ -10,7 +10,7 @@
 // Test bare function names call scope functions
 // test-execution
 /* Scope: Calculator */
-static uint32_t Calculator_result = 0;
+static uint32_t Calculator_result = 0U;
 
 static void Calculator_reset(void) {
     Calculator_result = 0U;

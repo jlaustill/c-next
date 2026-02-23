@@ -23,8 +23,8 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 int main(void) {
     config.items[0].assigned = MyEnum_A;
     config.items[1].assigned = MyEnum_NONE;
-    if (config.items[0].assigned != MyEnum_A) return 1;
-    if (config.items[1].assigned != MyEnum_NONE) return 2;
+    if (config.items[0U].assigned != MyEnum_A) return 1;
+    if (config.items[1U].assigned != MyEnum_NONE) return 2;
     uint8_t noneCount = 0U;
     for (uint8_t i = 0; i < 2; i += 1) {
         if (config.items[i].assigned == MyEnum_NONE) {

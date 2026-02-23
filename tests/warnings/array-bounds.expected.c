@@ -22,8 +22,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Direct indexing, loop iteration, constant indices
 int main(void) {
     uint32_t arr[5] = {10U, 20U, 30U, 40U, 50U};
-    if (arr[0] != 10) return 1;
-    if (arr[4] != 50) return 2;
+    if (arr[0U] != 10) return 1;
+    if (arr[4U] != 50) return 2;
     uint32_t idx = 2U;
     if (arr[idx] != 30) return 3;
     uint32_t sum = 0U;
@@ -37,11 +37,11 @@ int main(void) {
     uint32_t base = 2U;
     if (arr[base + offset] != 40) return 5;
     uint32_t matrix[3][3] = {{1U, 2U, 3U}, {4U, 5U, 6U}, {7U, 8U, 9U}};
-    if (matrix[0][0] != 1) return 6;
-    if (matrix[2][2] != 9) return 7;
-    if (matrix[1][1] != 5) return 8;
+    if (matrix[0U][0U] != 1) return 6;
+    if (matrix[2U][2U] != 9) return 7;
+    if (matrix[1U][1U] != 5) return 8;
     uint8_t tiny[2] = {100U, 200U};
-    if (tiny[0] != 100) return 9;
-    if (tiny[1] != 200) return 10;
+    if (tiny[0U] != 100) return 9;
+    if (tiny[1U] != 200) return 10;
     return 0;
 }

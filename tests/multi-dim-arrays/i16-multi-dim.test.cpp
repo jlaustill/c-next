@@ -28,20 +28,20 @@ int main(void) {
     matrix2d[0][7] = 32767;
     matrix2d[1][3] = -10000;
     matrix2d[3][7] = 20000;
-    if (matrix2d[0][0] != -32768) return 1;
-    if (matrix2d[0][7] != 32767) return 2;
-    if (matrix2d[1][3] != -10000) return 3;
-    if (matrix2d[3][7] != 20000) return 4;
+    if (matrix2d[0U][0U] != -32768) return 1;
+    if (matrix2d[0U][7U] != 32767) return 2;
+    if (matrix2d[1U][3U] != -10000) return 3;
+    if (matrix2d[3U][7U] != 20000) return 4;
     cube3d[0][0][0] = -15000;
     cube3d[0][0][3] = -5000;
     cube3d[0][2][3] = 0;
     cube3d[1][0][0] = 10000;
     cube3d[1][2][3] = 30000;
-    if (cube3d[0][0][0] != -15000) return 5;
-    if (cube3d[0][0][3] != -5000) return 6;
-    if (cube3d[0][2][3] != 0) return 7;
-    if (cube3d[1][0][0] != 10000) return 8;
-    if (cube3d[1][2][3] != 30000) return 9;
+    if (cube3d[0U][0U][0U] != -15000) return 5;
+    if (cube3d[0U][0U][3U] != -5000) return 6;
+    if (cube3d[0U][2U][3U] != 0) return 7;
+    if (cube3d[1U][0U][0U] != 10000) return 8;
+    if (cube3d[1U][2U][3U] != 30000) return 9;
     if (4 != 4) return 10;
     if (8 != 8) return 11;
     if (16 != 16) return 12;
@@ -54,10 +54,10 @@ int main(void) {
             matrix2d[i][j] = i * 100 + j;
         }
     }
-    if (matrix2d[0][0] != 0) return 17;
-    if (matrix2d[0][7] != 7) return 18;
-    if (matrix2d[1][3] != 103) return 19;
-    if (matrix2d[3][7] != 307) return 20;
+    if (matrix2d[0U][0U] != 0) return 17;
+    if (matrix2d[0U][7U] != 7) return 18;
+    if (matrix2d[1U][3U] != 103) return 19;
+    if (matrix2d[3U][7U] != 307) return 20;
     int32_t sum = 0;
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
@@ -69,9 +69,9 @@ int main(void) {
     }
     if (sum != 1476) return 21;
     matrix2d[2][4] = -32768;
-    if (matrix2d[2][4] != -32768) return 22;
+    if (matrix2d[2U][4U] != -32768) return 22;
     matrix2d[3][7] = -1000;
-    if (matrix2d[3][7] != -1000) return 23;
+    if (matrix2d[3U][7U] != -1000) return 23;
     int16_t testArray[4][2] = {0};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
@@ -84,12 +84,12 @@ int main(void) {
     testArray[1][1] = -1;
     testArray[2][0] = 1;
     testArray[3][1] = -15000;
-    if (testArray[0][0] != -32768) return 24;
-    if (testArray[0][1] != 32767) return 25;
-    if (testArray[1][0] != 0) return 26;
-    if (testArray[1][1] != -1) return 27;
-    if (testArray[2][0] != 1) return 28;
-    if (testArray[3][1] != -15000) return 29;
+    if (testArray[0U][0U] != -32768) return 24;
+    if (testArray[0U][1U] != 32767) return 25;
+    if (testArray[1U][0U] != 0) return 26;
+    if (testArray[1U][1U] != -1) return 27;
+    if (testArray[2U][0U] != 1) return 28;
+    if (testArray[3U][1U] != -15000) return 29;
     int16_t coords[3][3] = {0};
     for (uint32_t ci = 0; ci < 3; ci += 1) {
         for (uint32_t cj = 0; cj < 3; cj += 1) {
@@ -102,12 +102,12 @@ int main(void) {
     coords[1][1] = 0;
     coords[2][0] = 2000;
     coords[2][1] = -3000;
-    if (coords[0][0] != -1000) return 30;
-    if (coords[0][1] != 500) return 31;
-    if (coords[1][0] != 0) return 32;
-    if (coords[1][1] != 0) return 33;
-    if (coords[2][0] != 2000) return 34;
-    if (coords[2][1] != -3000) return 35;
+    if (coords[0U][0U] != -1000) return 30;
+    if (coords[0U][1U] != 500) return 31;
+    if (coords[1U][0U] != 0) return 32;
+    if (coords[1U][1U] != 0) return 33;
+    if (coords[2U][0U] != 2000) return 34;
+    if (coords[2U][1U] != -3000) return 35;
     int16_t deltas[2][2] = {0};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 2; dj += 1) {
@@ -116,7 +116,7 @@ int main(void) {
     }
     deltas[0][0] = -5000;
     deltas[0][1] = 3000;
-    int32_t deltaSum = deltas[0][0] + deltas[0][1];
+    int32_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
     if (deltaSum != -2000) return 36;
     int16_t altitudes[2][3] = {0};
     for (uint32_t ai = 0; ai < 2; ai += 1) {
@@ -130,8 +130,8 @@ int main(void) {
     altitudes[1][0] = -10994;
     altitudes[1][1] = 5895;
     altitudes[1][2] = 1000;
-    if (altitudes[0][0] != -400) return 37;
-    if (altitudes[0][2] != 8849) return 38;
-    if (altitudes[1][0] != -10994) return 39;
+    if (altitudes[0U][0U] != -400) return 37;
+    if (altitudes[0U][2U] != 8849) return 38;
+    if (altitudes[1U][0U] != -10994) return 39;
     return 0;
 }

@@ -35,9 +35,9 @@ float Math_multiply(float mult_factor, float value) {
 }
 
 int main(void) {
-    calculate(42);
-    process(10);
-    update(5);
+    calculate(42U);
+    process(10U);
+    update(5U);
     float result = Math_add(1.0, 2.0);
     result = Math_multiply(3.0, 4.0);
 }

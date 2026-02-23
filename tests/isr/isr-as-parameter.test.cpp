@@ -72,7 +72,7 @@ int main(void) {
     if (paramCallCount != 1) return 3;
     if (paramLastHandler != 2) return 4;
     paramCallCount = 0U;
-    executeParamMultiple(paramHandler1, 5);
+    executeParamMultiple(paramHandler1, 5U);
     if (paramCallCount != 5) return 5;
     paramCallCount = 0U;
     paramLastHandler = 0U;

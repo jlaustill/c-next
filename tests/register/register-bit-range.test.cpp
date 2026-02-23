@@ -33,18 +33,18 @@ void configureOptions(uint16_t opts) {
 }
 
 uint8_t readTimerMode(void) {
-    return ((TIMER_CTRL) & ((1U << 4) - 1));
+    return ((TIMER_CTRL) & ((1U << 4U) - 1));
 }
 
 uint8_t readTimerFlags(void) {
-    return ((TIMER_CTRL >> 4) & ((1U << 4) - 1));
+    return ((TIMER_CTRL >> 4U) & ((1U << 4U) - 1));
 }
 
 int main(void) {
-    setTimerPrescaler(100);
-    setTimerMode(5);
-    setTimerFlags(0x0F);
-    configureOptions(0x1234);
+    setTimerPrescaler(100U);
+    setTimerMode(5U);
+    setTimerFlags(0x0FU);
+    configureOptions(0x1234U);
     uint8_t mode = readTimerMode();
     uint8_t flags = readTimerFlags();
 }

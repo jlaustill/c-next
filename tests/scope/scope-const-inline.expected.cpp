@@ -12,9 +12,9 @@
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
 /* Scope: ConstTest */
-const uint8_t ConstTest_PUBLIC_MAX = 200;
-const uint32_t ConstTest_PUBLIC_ID = 42;
-static uint8_t ConstTest_counter = 0;
+const uint8_t ConstTest_PUBLIC_MAX = 200U;
+const uint32_t ConstTest_PUBLIC_ID = 42U;
+static uint8_t ConstTest_counter = 0U;
 
 uint8_t ConstTest_getMaxValue(void) {
     return 255;

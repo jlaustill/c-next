@@ -16,9 +16,9 @@
 // The .test.h file contains a C++14 typed enum to force g++ compilation,
 // which is stricter about const mismatches between declaration and definition.
 /* Scope: ExternConstTest */
-const uint8_t ExternConstTest_STATUS_OK = 0;
-const uint8_t ExternConstTest_STATUS_ERROR = 1;
-const uint32_t ExternConstTest_MAGIC_NUMBER = 0xCAFEBABE;
+const uint8_t ExternConstTest_STATUS_OK = 0U;
+const uint8_t ExternConstTest_STATUS_ERROR = 1U;
+const uint32_t ExternConstTest_MAGIC_NUMBER = 0xCAFEBABEU;
 
 bool ExternConstTest_isSuccess(uint8_t status) {
     if (status == ExternConstTest_STATUS_OK) {
@@ -39,7 +39,7 @@ int main(void) {
     if (ExternConstTest_STATUS_OK != 0) return 1;
     if (ExternConstTest_STATUS_ERROR != 1) return 2;
     if (ExternConstTest_MAGIC_NUMBER != 0xCAFEBABE) return 3;
-    bool success = ExternConstTest_isSuccess(0);
+    bool success = ExternConstTest_isSuccess(0U);
     if (success != true) return 4;
     uint8_t errCode = ExternConstTest_getErrorCode();
     if (errCode != 1) return 5;

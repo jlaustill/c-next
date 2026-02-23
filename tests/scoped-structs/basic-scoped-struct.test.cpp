@@ -41,11 +41,11 @@ int main(void) {
     if (Motor_current.speed != 0) return 1;
     if (Motor_current.direction != 0) return 2;
     if (Motor_current.enabled != false) return 3;
-    Motor_setSpeed(100);
+    Motor_setSpeed(100U);
     if (Motor_current.speed != 100) return 4;
     uint8_t speed = Motor_getSpeed();
     if (speed != 100) return 5;
-    Motor_setDirection(1);
+    Motor_setDirection(1U);
     if (Motor_current.direction != 1) return 6;
     Motor_enable();
     bool enabled = Motor_isEnabled();

@@ -17,11 +17,11 @@ ExternalStruct globalExt = {0};
 /* Scope: Test */
 
 uint8_t Test_getFromGlobal(void) {
-    return globalExt.data[1];
+    return globalExt.data[1U];
 }
 
 uint8_t Test_getFromParam(const ExternalStruct* ext) {
-    return ext->data[1];
+    return ext->data[1U];
 }
 
 uint8_t Test_getCount(void) {

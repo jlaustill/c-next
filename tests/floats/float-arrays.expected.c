@@ -14,9 +14,9 @@ void test_f32_array(void) {
     samples_f32[0] = 1.1;
     samples_f32[1] = 2.2;
     samples_f32[2] = 3.3;
-    float first = samples_f32[0];
-    float second = samples_f32[1];
-    float sum = samples_f32[0] + samples_f32[1];
+    float first = samples_f32[0U];
+    float second = samples_f32[1U];
+    float sum = samples_f32[0U] + samples_f32[1U];
     samples_f32[3] = sum;
     for (uint32_t i = 0; i < 10; i += 1) {
         samples_f32[i] = i * 1.5;
@@ -26,17 +26,17 @@ void test_f32_array(void) {
 void test_f64_array(void) {
     measurements_f64[0] = 10.5;
     measurements_f64[1] = 20.75;
-    double val = measurements_f64[0];
-    if (measurements_f64[0] < measurements_f64[1]) {
-        measurements_f64[2] = measurements_f64[1];
+    double val = measurements_f64[0U];
+    if (measurements_f64[0U] < measurements_f64[1U]) {
+        measurements_f64[2] = measurements_f64[1U];
     }
 }
 
 void test_array_init(void) {
     float coords[3] = {0.0, 1.0, 2.0};
     double precise[2] = {3.14159, 2.71828};
-    float x = coords[0];
-    double pi = precise[0];
+    float x = coords[0U];
+    double pi = precise[0U];
 }
 
 int main(void) {

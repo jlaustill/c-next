@@ -220,6 +220,14 @@ export default class CodeGenState {
   /** Expected type for struct initializers and enum inference */
   static expectedType: string | null = null;
 
+  /**
+   * Suppress bare enum resolution even when expectedType is set.
+   * Issue #872: MISRA 7.2 requires expectedType for U suffix on function args,
+   * but bare enum resolution in function args was never allowed and changing
+   * that would require ADR approval.
+   */
+  static suppressBareEnumResolution: boolean = false;
+
   /** Track args parameter name for main() translation */
   static mainArgsName: string | null = null;
 
@@ -362,6 +370,7 @@ export default class CodeGenState {
     this.indentLevel = 0;
     this.inFunctionBody = false;
     this.expectedType = null;
+    this.suppressBareEnumResolution = false;
     this.mainArgsName = null;
     this.assignmentContext = {
       targetName: null,
@@ -419,6 +428,37 @@ export default class CodeGenState {
     this.localArrays.clear();
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
+  }
+
+  /**
+   * Execute a function with a temporary expectedType, restoring on completion.
+   * Issue #872: Extracted to eliminate duplicate save/restore pattern and add exception safety.
+   *
+   * @param type - The expected type to set (if falsy, no change is made)
+   * @param fn - The function to execute
+   * @param suppressEnumResolution - If true, suppress bare enum resolution (for MISRA-only contexts)
+   * @returns The result of the function
+   */
+  static withExpectedType<T>(
+    type: string | undefined | null,
+    fn: () => T,
+    suppressEnumResolution: boolean = false,
+  ): T {
+    if (!type) {
+      return fn();
+    }
+    const savedType = this.expectedType;
+    const savedSuppress = this.suppressBareEnumResolution;
+    this.expectedType = type;
+    if (suppressEnumResolution) {
+      this.suppressBareEnumResolution = true;
+    }
+    try {
+      return fn();
+    } finally {
+      this.expectedType = savedType;
+      this.suppressBareEnumResolution = savedSuppress;
+    }
   }
 
   // ===========================================================================

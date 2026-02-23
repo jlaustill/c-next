@@ -24,7 +24,7 @@ uint8_t LED = 5U;
 
 // Global variable named same as scope
 /* Scope: LED */
-uint8_t LED_brightness = 100;
+uint8_t LED_brightness = 100U;
 
 void LED_on(void) {
     LED_brightness = 255U;

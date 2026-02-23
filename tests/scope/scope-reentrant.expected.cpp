@@ -16,8 +16,8 @@
 uint32_t call_arg = 0U;
 
 /* Scope: Reentrant */
-static uint32_t Reentrant_outer_temp = 0;
-static uint32_t Reentrant_inner_temp = 0;
+static uint32_t Reentrant_outer_temp = 0U;
+static uint32_t Reentrant_inner_temp = 0U;
 
 uint32_t Reentrant_inner(void) {
     Reentrant_inner_temp = call_arg;

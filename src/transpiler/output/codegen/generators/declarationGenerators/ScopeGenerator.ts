@@ -24,9 +24,11 @@ import generateScopedRegister from "./ScopedRegisterGenerator";
 import BitmapCommentUtils from "./BitmapCommentUtils";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Generate initializer expression for a variable declaration.
+ * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
  */
 function generateInitializer(
   varDecl: Parser.VariableDeclarationContext,
@@ -34,7 +36,12 @@ function generateInitializer(
   orchestrator: IOrchestrator,
 ): string {
   if (varDecl.expression()) {
-    return ` = ${orchestrator.generateExpression(varDecl.expression()!)}`;
+    // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
+    const typeName = orchestrator.generateType(varDecl.type());
+    return CodeGenState.withExpectedType(
+      typeName,
+      () => ` = ${orchestrator.generateExpression(varDecl.expression()!)}`,
+    );
   }
   // ADR-015: Zero initialization for uninitialized scope variables
   return ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;

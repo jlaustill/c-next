@@ -56,14 +56,14 @@ void testTypedEnums(void) {
 // ============================================================================
 // Test class static method calls
 void testStaticMethods(void) {
-    bool ok = CommandHandler::execute(1);
+    bool ok = CommandHandler::execute(1U);
     int32_t status = CommandHandler::getStatus();
     CommandHandler::reset();
     int32_t absVal = MathUtils::abs(-5);
     int32_t minVal = MathUtils::min(10, 20);
     int32_t maxVal = MathUtils::max(10, 20);
     int32_t pi = MathUtils::PI_INT;
-    EMode computed = MathUtils::computeMode(0x05);
+    EMode computed = MathUtils::computeMode(0x05U);
 }
 
 // ============================================================================
@@ -140,12 +140,12 @@ void testArrayMembers(void) {
     DeviceConfig device = {};
     device.sensors[0].enabled = true;
     device.sensors[0].mode = EMode::ON;
-    device.sensors[0].flags = 0x01;
+    device.sensors[0].flags = 0x01U;
     device.sensors[1].enabled = false;
     device.sensors[1].mode = EMode::OFF;
-    device.sensors[2].flags = 0x0F;
-    bool enabled = device.sensors[0].enabled;
-    EMode mode = device.sensors[1].mode;
+    device.sensors[2].flags = 0x0FU;
+    bool enabled = device.sensors[0U].enabled;
+    EMode mode = device.sensors[1U].mode;
     uint8_t flags = device.sensors[2U].flags;
     uint32_t crc = 0U;
     crc = processByte(crc, device.sensors[0U].enabled);
@@ -163,8 +163,8 @@ void testComplexStructs(void) {
     msg.length = 8U;
     msg.flags = FLAG_READ;
     msg.result.code = 0;
-    msg.result.dataLen = 0;
-    msg.result.data[0] = 0x42;
+    msg.result.dataLen = 0U;
+    msg.result.data[0] = 0x42U;
     int32_t code = msg.result.code;
     uint8_t firstByte = msg.result.data[0U];
 }
@@ -202,7 +202,7 @@ void testStrictInit(void) {
     StrictResult sr3 = StrictResult::error(404);
     CommandResult cr1 = {};
     cr1.errorCode = 0;
-    cr1.responseLen = 0;
+    cr1.responseLen = 0U;
     CommandResult cr2 = CommandResult::ok();
     CommandResult cr3 = CommandResult::fail(500, "error");
     int32_t code1 = sr1.code;
@@ -216,14 +216,14 @@ void testStrictInit(void) {
 void testArrayParams(void) {
     ResponsePacket packet = {};
     packet.statusCode = 200;
-    packet.payloadLen = 8;
-    packet.payload[0] = 0x01;
-    packet.payload[1] = 0x02;
+    packet.payloadLen = 8U;
+    packet.payload[0] = 0x01U;
+    packet.payload[1] = 0x02U;
     sendData(1, packet.statusCode, packet.payload, packet.payloadLen);
     Result res = {};
     res.code = 0;
-    res.dataLen = 4;
-    res.data[0] = 0xAB;
+    res.dataLen = 4U;
+    res.data[0] = 0xABU;
     sendData(2, res.code, res.data, res.dataLen);
 }
 

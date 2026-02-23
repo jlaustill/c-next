@@ -95,7 +95,7 @@ describe("CodeGenerator Coverage Tests", () => {
       `;
       const { code } = setupGenerator(source);
       // Array of strings generates 2D char array
-      expect(code).toContain("names[0]");
+      expect(code).toContain("names[0U]");
       expect(code).toContain("puts(");
     });
 
@@ -301,8 +301,8 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      // Array element access
-      expect(code).toContain("arr[0]");
+      // Array element access (index gets U suffix per MISRA 7.2)
+      expect(code).toContain("arr[0U]");
       expect(code).toContain("test(");
     });
 

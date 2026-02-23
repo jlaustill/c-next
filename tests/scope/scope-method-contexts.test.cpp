@@ -43,14 +43,14 @@ int16_t globalOffset = -25;
 float globalScale = 2.5;
 
 /* Scope: MethodContexts */
-static uint8_t MethodContexts_privateValue = 10;
-static uint8_t MethodContexts_privateClampValue = 200;
-static uint8_t MethodContexts_privateWrapValue = 250;
+static uint8_t MethodContexts_privateValue = 10U;
+static uint8_t MethodContexts_privateClampValue = 200U;
+static uint8_t MethodContexts_privateWrapValue = 250U;
 static bool MethodContexts_privateFlag = false;
 static int16_t MethodContexts_privateOffset = -50;
-uint8_t MethodContexts_publicValue = 20;
-uint16_t MethodContexts_publicClampValue = 60000;
-uint16_t MethodContexts_publicWrapValue = 65530;
+uint8_t MethodContexts_publicValue = 20U;
+uint16_t MethodContexts_publicClampValue = 60000U;
+uint16_t MethodContexts_publicWrapValue = 65530U;
 bool MethodContexts_publicFlag = true;
 int32_t MethodContexts_publicOffset = -1000;
 
@@ -276,12 +276,12 @@ int main(void) {
     if (res17 != true) return 17;
     int32_t res18 = MethodContexts_computePublicWithOffset();
     if (res18 != -1025) return 18;
-    MethodContexts_setPrivateValue(42);
+    MethodContexts_setPrivateValue(42U);
     uint8_t res19 = MethodContexts_getPrivateValueExternal();
     if (res19 != 42) return 19;
     uint8_t res20 = MethodContexts_getPrivateSumViaInternal();
     if (res20 != 92) return 20;
-    MethodContexts_setPublicValue(84);
+    MethodContexts_setPublicValue(84U);
     uint8_t res21 = MethodContexts_getPublicValue();
     if (res21 != 84) return 21;
     uint8_t res22 = MethodContexts_computePublicSum();

@@ -24,12 +24,12 @@ static void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t value) {
 
 uint32_t StringSliceTest_testSliceAssignment(void) {
     char buffer[65] = "";
-    StringSliceTest_copyToBuffer(buffer, 0x1234);
+    StringSliceTest_copyToBuffer(buffer, 0x1234U);
     uint8_t byte0 = buffer[0U];
     uint8_t byte1 = buffer[1U];
     if (byte0 != 0x34) return 1;
     if (byte1 != 0x12) return 2;
-    StringSliceTest_copyToBufferAt2(buffer, 0x5678);
+    StringSliceTest_copyToBufferAt2(buffer, 0x5678U);
     uint8_t byte2 = buffer[2U];
     uint8_t byte3 = buffer[3U];
     if (byte2 != 0x78) return 3;

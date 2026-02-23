@@ -31,7 +31,7 @@ void handleForUpdate(Config& config) {
 // For loop with modifying call in the INIT part (via forAssignment)
 void handleForInit(Config& config) {
     uint32_t start = 0U;
-    for (start = Handler_setValue(config, 10); start < 1; start = start + 1) {
+    for (start = Handler_setValue(config, 10U); start < 1; start = start + 1) {
     }
 }
 

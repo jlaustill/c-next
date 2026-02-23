@@ -15,7 +15,7 @@
 #define GPIO_DIR (*(volatile uint32_t*)(0x40000000 + 0x04))
 
 /* Scope: Motor */
-static uint32_t Motor_speed = 0;
+static uint32_t Motor_speed = 0U;
 
 void Motor_configure(void) {
     GPIO_DR = 0x01;

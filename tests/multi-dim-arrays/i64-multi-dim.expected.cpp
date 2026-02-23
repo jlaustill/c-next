@@ -27,20 +27,20 @@ int main(void) {
     matrix2d[0][7] = 9000000000000000000;
     matrix2d[1][3] = -5000000000000;
     matrix2d[3][7] = 5000000000000;
-    if (matrix2d[0][0] != -9000000000000000000) return 1;
-    if (matrix2d[0][7] != 9000000000000000000) return 2;
-    if (matrix2d[1][3] != -5000000000000) return 3;
-    if (matrix2d[3][7] != 5000000000000) return 4;
+    if (matrix2d[0U][0U] != -9000000000000000000) return 1;
+    if (matrix2d[0U][7U] != 9000000000000000000) return 2;
+    if (matrix2d[1U][3U] != -5000000000000) return 3;
+    if (matrix2d[3U][7U] != 5000000000000) return 4;
     cube3d[0][0][0] = -1000000000000;
     cube3d[0][0][3] = -100000000000;
     cube3d[0][2][3] = 0;
     cube3d[1][0][0] = 100000000000;
     cube3d[1][2][3] = 8888888888888;
-    if (cube3d[0][0][0] != -1000000000000) return 5;
-    if (cube3d[0][0][3] != -100000000000) return 6;
-    if (cube3d[0][2][3] != 0) return 7;
-    if (cube3d[1][0][0] != 100000000000) return 8;
-    if (cube3d[1][2][3] != 8888888888888) return 9;
+    if (cube3d[0U][0U][0U] != -1000000000000) return 5;
+    if (cube3d[0U][0U][3U] != -100000000000) return 6;
+    if (cube3d[0U][2U][3U] != 0) return 7;
+    if (cube3d[1U][0U][0U] != 100000000000) return 8;
+    if (cube3d[1U][2U][3U] != 8888888888888) return 9;
     if (4 != 4) return 10;
     if (8 != 8) return 11;
     if (64 != 64) return 12;
@@ -53,10 +53,10 @@ int main(void) {
             matrix2d[i][j] = i * 100 + j;
         }
     }
-    if (matrix2d[0][0] != 0) return 17;
-    if (matrix2d[0][7] != 7) return 18;
-    if (matrix2d[1][3] != 103) return 19;
-    if (matrix2d[3][7] != 307) return 20;
+    if (matrix2d[0U][0U] != 0) return 17;
+    if (matrix2d[0U][7U] != 7) return 18;
+    if (matrix2d[1U][3U] != 103) return 19;
+    if (matrix2d[3U][7U] != 307) return 20;
     int64_t sum = 0;
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
@@ -68,9 +68,9 @@ int main(void) {
     }
     if (sum != 1476) return 21;
     matrix2d[2][4] = -9000000000000000000;
-    if (matrix2d[2][4] != -9000000000000000000) return 22;
+    if (matrix2d[2U][4U] != -9000000000000000000) return 22;
     matrix2d[3][7] = -555;
-    if (matrix2d[3][7] != -555) return 23;
+    if (matrix2d[3U][7U] != -555) return 23;
     int64_t testArray[4][2] = {0};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
@@ -83,12 +83,12 @@ int main(void) {
     testArray[1][1] = -1;
     testArray[2][0] = 1;
     testArray[3][1] = -1000000000000;
-    if (testArray[0][0] != -9000000000000000000) return 24;
-    if (testArray[0][1] != 9000000000000000000) return 25;
-    if (testArray[1][0] != 0) return 26;
-    if (testArray[1][1] != -1) return 27;
-    if (testArray[2][0] != 1) return 28;
-    if (testArray[3][1] != -1000000000000) return 29;
+    if (testArray[0U][0U] != -9000000000000000000) return 24;
+    if (testArray[0U][1U] != 9000000000000000000) return 25;
+    if (testArray[1U][0U] != 0) return 26;
+    if (testArray[1U][1U] != -1) return 27;
+    if (testArray[2U][0U] != 1) return 28;
+    if (testArray[3U][1U] != -1000000000000) return 29;
     int64_t timestamps[3][3] = {0};
     for (uint32_t tsi = 0; tsi < 3; tsi += 1) {
         for (uint32_t tsj = 0; tsj < 3; tsj += 1) {
@@ -101,15 +101,15 @@ int main(void) {
     timestamps[1][0] = 1640995200000;
     timestamps[1][1] = 1672531200000;
     timestamps[1][2] = 2524608000000;
-    if (timestamps[0][0] != -2208988800000) return 30;
-    if (timestamps[0][1] != 0) return 31;
-    if (timestamps[0][2] != 1609459200000) return 32;
-    if (timestamps[1][0] != 1640995200000) return 33;
-    if (timestamps[1][1] != 1672531200000) return 34;
-    if (timestamps[1][2] != 2524608000000) return 35;
-    int64_t diff = timestamps[0][2] - timestamps[0][1];
+    if (timestamps[0U][0U] != -2208988800000) return 30;
+    if (timestamps[0U][1U] != 0) return 31;
+    if (timestamps[0U][2U] != 1609459200000) return 32;
+    if (timestamps[1U][0U] != 1640995200000) return 33;
+    if (timestamps[1U][1U] != 1672531200000) return 34;
+    if (timestamps[1U][2U] != 2524608000000) return 35;
+    int64_t diff = timestamps[0U][2U] - timestamps[0U][1U];
     if (diff != 1609459200000) return 36;
-    int64_t negDiff = timestamps[0][0] - timestamps[0][1];
+    int64_t negDiff = timestamps[0U][0U] - timestamps[0U][1U];
     if (negDiff != -2208988800000) return 37;
     int64_t nanos[2][2] = {0};
     for (uint32_t ni = 0; ni < 2; ni += 1) {
@@ -121,10 +121,10 @@ int main(void) {
     nanos[0][1] = 1609459200123456789;
     nanos[1][0] = -1000000000;
     nanos[1][1] = 1000000000;
-    if (nanos[0][0] != 1609459200000000000) return 38;
-    if (nanos[0][1] != 1609459200123456789) return 39;
-    if (nanos[1][0] != -1000000000) return 40;
-    if (nanos[1][1] != 1000000000) return 41;
+    if (nanos[0U][0U] != 1609459200000000000) return 38;
+    if (nanos[0U][1U] != 1609459200123456789) return 39;
+    if (nanos[1U][0U] != -1000000000) return 40;
+    if (nanos[1U][1U] != 1000000000) return 41;
     int64_t balances[2][2] = {0};
     for (uint32_t bi = 0; bi < 2; bi += 1) {
         for (uint32_t bj = 0; bj < 2; bj += 1) {
@@ -133,7 +133,7 @@ int main(void) {
     }
     balances[0][0] = 2100000000000000;
     balances[0][1] = -100000000;
-    int64_t netBalance = balances[0][0] + balances[0][1];
+    int64_t netBalance = balances[0U][0U] + balances[0U][1U];
     if (netBalance != 2099999900000000) return 42;
     return 0;
 }

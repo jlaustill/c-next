@@ -23,7 +23,7 @@ uint32_t globalCount = 1000U;
 
 // Global (renamed to avoid shadowing)
 /* Scope: Counter */
-static uint32_t Counter_count = 100;
+static uint32_t Counter_count = 100U;
 
 uint32_t Counter_testAllLevels(void) {
     uint32_t count = 10U;

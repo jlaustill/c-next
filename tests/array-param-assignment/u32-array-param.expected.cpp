@@ -20,7 +20,7 @@ uint32_t readU32(const uint32_t arr[4], uint32_t index) {
 
 // Modify array element with compound assignment
 void incrementU32(uint32_t arr[4], uint32_t index) {
-    arr[index] += 1;
+    arr[index] += 1U;
 }
 
 // Copy between arrays
@@ -30,35 +30,35 @@ void copyU32(const uint32_t src[4], uint32_t dst[4], uint32_t index) {
 
 int main(void) {
     uint32_t buffer[4] = {0};
-    buffer[0] = 0;
-    buffer[1] = 0;
-    buffer[2] = 0;
-    buffer[3] = 0;
-    writeU32(buffer, 0, 100000);
-    if (buffer[0] != 100000) return 1;
-    writeU32(buffer, 3, 999999);
-    if (buffer[3] != 999999) return 2;
-    writeU32(buffer, 1, 500000);
-    if (buffer[1] != 500000) return 3;
+    buffer[0] = 0U;
+    buffer[1] = 0U;
+    buffer[2] = 0U;
+    buffer[3] = 0U;
+    writeU32(buffer, 0U, 100000U);
+    if (buffer[0U] != 100000) return 1;
+    writeU32(buffer, 3U, 999999U);
+    if (buffer[3U] != 999999) return 2;
+    writeU32(buffer, 1U, 500000U);
+    if (buffer[1U] != 500000) return 3;
     uint32_t result = readU32(buffer, 0U);
     if (result != 100000) return 4;
     result = readU32(buffer, 3U);
     if (result != 999999) return 5;
-    buffer[2] = 50;
-    incrementU32(buffer, 2);
-    if (buffer[2] != 51) return 6;
-    incrementU32(buffer, 2);
-    incrementU32(buffer, 2);
-    if (buffer[2] != 53) return 7;
+    buffer[2] = 50U;
+    incrementU32(buffer, 2U);
+    if (buffer[2U] != 51) return 6;
+    incrementU32(buffer, 2U);
+    incrementU32(buffer, 2U);
+    if (buffer[2U] != 53) return 7;
     uint32_t source[4] = {0};
     uint32_t dest[4] = {0};
-    source[0] = 12345;
-    source[1] = 67890;
-    dest[0] = 0;
-    dest[1] = 0;
-    copyU32(source, dest, 0);
-    if (dest[0] != 12345) return 8;
-    copyU32(source, dest, 1);
-    if (dest[1] != 67890) return 9;
+    source[0] = 12345U;
+    source[1] = 67890U;
+    dest[0] = 0U;
+    dest[1] = 0U;
+    copyU32(source, dest, 0U);
+    if (dest[0U] != 12345) return 8;
+    copyU32(source, dest, 1U);
+    if (dest[1U] != 67890) return 9;
     return 0;
 }

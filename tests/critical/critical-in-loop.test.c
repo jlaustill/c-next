@@ -61,7 +61,7 @@ void criticalInFor(void) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedData[i] = i * 2;
+            sharedData[i] = i * 2U;
             counter = cnx_clamp_add_u32(counter, 1U);
             __cnx_set_PRIMASK(__primask);
         }
@@ -74,7 +74,7 @@ void criticalInWhile(void) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedData[i] += 1;
+            sharedData[i] += 1U;
             __cnx_set_PRIMASK(__primask);
         }
         i = cnx_clamp_add_u32(i, 1U);

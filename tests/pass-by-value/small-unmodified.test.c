@@ -50,7 +50,7 @@ uint8_t getLowByte(uint16_t value) {
 }
 
 uint8_t getHighByte(uint16_t value) {
-    return ((value >> 8) & 0xFFU);
+    return ((value >> 8U) & 0xFFU);
 }
 
 uint32_t addTwo(uint32_t a, uint32_t b) {
@@ -139,13 +139,13 @@ int main(void) {
     if (mixedResult != 16) return 9;
     if (mixedA != 6) return 10;
     uint32_t switchVal = 100U;
-    modifyInSwitch(&switchVal, 1);
+    modifyInSwitch(&switchVal, 1U);
     if (switchVal != 110) return 11;
     switchVal = 100U;
-    modifyInSwitch(&switchVal, 2);
+    modifyInSwitch(&switchVal, 2U);
     if (switchVal != 120) return 12;
     switchVal = 100U;
-    modifyInSwitch(&switchVal, 99);
+    modifyInSwitch(&switchVal, 99U);
     if (switchVal != 101) return 13;
     uint32_t criticalVal = 50U;
     modifyInCritical(&criticalVal);

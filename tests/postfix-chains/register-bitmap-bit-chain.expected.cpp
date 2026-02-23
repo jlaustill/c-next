@@ -47,8 +47,8 @@ int main(void) {
     MOTOR_DATA = (MOTOR_DATA & ~(1U << 0)) | (1U << 0);
     MOTOR_DATA = (MOTOR_DATA & ~(1U << 15)) | (0U << 15);
     MOTOR_DATA = (MOTOR_DATA & ~(1U << 31)) | (1U << 31);
-    bool bit0 = ((MOTOR_DATA >> 0) & 1);
-    bool bit15 = ((MOTOR_DATA >> 15) & 1);
+    bool bit0 = ((MOTOR_DATA) & 1);
+    bool bit15 = ((MOTOR_DATA >> 15U) & 1);
     if (((MOTOR_STATUS >> 0) & 1) == true) {
         MOTOR_CONTROL = (MOTOR_CONTROL & ~(1U << 0)) | (1U << 0);
     }

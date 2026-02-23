@@ -53,14 +53,14 @@ uint32_t Handler_handleMutableMessage(const CAN_message_t& msg) {
 uint32_t testNamedTypedefConstArrayMember(void) {
     CAN_message_t msg = {0};
     msg.id = 1234U;
-    msg.buf[0] = 10;
-    msg.buf[1] = 20;
-    msg.buf[2] = 30;
-    msg.buf[3] = 40;
-    msg.buf[4] = 0;
-    msg.buf[5] = 0;
-    msg.buf[6] = 0;
-    msg.buf[7] = 0;
+    msg.buf[0] = 10U;
+    msg.buf[1] = 20U;
+    msg.buf[2] = 30U;
+    msg.buf[3] = 40U;
+    msg.buf[4] = 0U;
+    msg.buf[5] = 0U;
+    msg.buf[6] = 0U;
+    msg.buf[7] = 0U;
     msg.len = 4U;
     uint32_t result = Handler_handleMessage(msg);
     return result;
@@ -68,15 +68,15 @@ uint32_t testNamedTypedefConstArrayMember(void) {
 
 uint32_t testMultipleArrayMembers(void) {
     MultiArray_t multi = {0};
-    multi.header[0] = 1;
-    multi.header[1] = 2;
-    multi.header[2] = 3;
-    multi.header[3] = 4;
-    multi.body[0] = 10;
-    multi.body[1] = 20;
-    multi.sizes[0] = 4;
-    multi.sizes[1] = 2;
-    multi.sizes[2] = 2;
+    multi.header[0] = 1U;
+    multi.header[1] = 2U;
+    multi.header[2] = 3U;
+    multi.header[3] = 4U;
+    multi.body[0] = 10U;
+    multi.body[1] = 20U;
+    multi.sizes[0] = 4U;
+    multi.sizes[1] = 2U;
+    multi.sizes[2] = 2U;
     uint32_t result = Handler_processMultiArray(multi);
     return result;
 }
@@ -84,8 +84,8 @@ uint32_t testMultipleArrayMembers(void) {
 uint32_t testNonConstArrayMember(void) {
     CAN_message_t msg = {0};
     msg.id = 999U;
-    msg.buf[0] = 100;
-    msg.buf[1] = 50;
+    msg.buf[0] = 100U;
+    msg.buf[1] = 50U;
     msg.len = 2U;
     uint32_t result = Handler_handleMutableMessage(msg);
     return result;

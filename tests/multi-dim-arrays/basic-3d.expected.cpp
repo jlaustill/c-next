@@ -9,8 +9,8 @@
 uint8_t voxels[4][4][4] = {0};
 
 void init(void) {
-    voxels[0][0][0] = 1;
-    voxels[3][3][3] = 255;
+    voxels[0][0][0] = 1U;
+    voxels[3][3][3] = 255U;
 }
 
 int main(void) {

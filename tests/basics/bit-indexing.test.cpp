@@ -10,7 +10,7 @@
 // Demonstrates: value[start, width] for bit extraction
 int main(void) {
     uint32_t value = 0xDEADBEEFU;
-    uint8_t lowByte = ((value >> 0U) & 0xFFU);
+    uint8_t lowByte = ((value) & 0xFFU);
     if (lowByte != 0xEF) return 1;
     uint8_t byte1 = ((value >> 8U) & 0xFFU);
     if (byte1 != 0xBE) return 2;
@@ -18,16 +18,16 @@ int main(void) {
     if (byte2 != 0xAD) return 3;
     uint8_t highByte = ((value >> 24U) & 0xFFU);
     if (highByte != 0xDE) return 4;
-    uint8_t lowNibble = ((value >> 0U) & ((1U << 4U) - 1));
+    uint8_t lowNibble = ((value) & ((1U << 4U) - 1));
     if (lowNibble != 0x0F) return 5;
     uint8_t highNibble = ((value >> 4U) & ((1U << 4U) - 1));
     if (highNibble != 0x0E) return 6;
-    uint16_t lowWord = ((value >> 0U) & 0xFFFFU);
+    uint16_t lowWord = ((value) & 0xFFFFU);
     if (lowWord != 0xBEEF) return 7;
     uint16_t highWord = ((value >> 16U) & 0xFFFFU);
     if (highWord != 0xDEAD) return 8;
     uint8_t testVal = 0b10101010U;
-    uint8_t bit0 = ((testVal >> 0U) & ((1U << 1U) - 1));
+    uint8_t bit0 = ((testVal) & ((1U << 1U) - 1));
     if (bit0 != 0) return 9;
     uint8_t bit1 = ((testVal >> 1U) & ((1U << 1U) - 1));
     if (bit1 != 1) return 10;

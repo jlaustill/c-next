@@ -33,7 +33,7 @@ void incrementCounter(void) {
 // Function calling another function
 uint32_t addThenDouble(uint32_t a, uint32_t b) {
     uint32_t sum = add(a, b);
-    return multiply(sum, 2);
+    return multiply(sum, 2U);
 }
 
 int main(void) {

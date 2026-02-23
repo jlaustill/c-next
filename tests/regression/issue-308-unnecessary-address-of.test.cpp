@@ -49,20 +49,20 @@ uint8_t sumArray(const uint8_t arr[6], uint8_t len) {
 
 int main(void) {
     uint8_t data[8] = {0};
-    data[0] = 0x12;
-    data[1] = 0x34;
-    data[2] = 0x56;
-    data[3] = 0x78;
+    data[0] = 0x12U;
+    data[1] = 0x34U;
+    data[2] = 0x56U;
+    data[3] = 0x78U;
     uint32_t sum = sumFourBytes(data[0U], data[1U], data[2U], data[3U]);
     if (sum != 276) return 1;
     DataResult result = {0};
     result.errorCode = 0U;
-    result.data[0] = 10;
-    result.data[1] = 20;
-    result.data[2] = 30;
-    result.data[3] = 40;
-    result.data[4] = 50;
-    result.data[5] = 60;
+    result.data[0] = 10U;
+    result.data[1] = 20U;
+    result.data[2] = 30U;
+    result.data[3] = 40U;
+    result.data[4] = 50U;
+    result.data[5] = 60U;
     result.dataLen = 6U;
     uint8_t total = sumArray(result.data, result.dataLen);
     if (total != 210) return 2;

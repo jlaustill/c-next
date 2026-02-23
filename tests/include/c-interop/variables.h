@@ -12,7 +12,7 @@
  */
 
 /* Static constant (can be accessed from C-Next) */
-static const uint32_t EXTERN_MAGIC_NUMBER = 0xCAFEBABE;
+static const uint32_t EXTERN_MAGIC_NUMBER = 0xCAFEBABEU;
 
 /* Static variable (can be read/written from C-Next) */
 static uint32_t extern_counter = 0;

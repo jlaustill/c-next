@@ -34,9 +34,9 @@ int main(void) {
     if (strlen(status) != 7) return 1;
     setStatus(false);
     if (strlen(status) != 7) return 2;
-    setNested(2);
+    setNested(2U);
     if (strlen(status) != 6) return 3;
-    setNested(1);
+    setNested(1U);
     if (strlen(status) != 6) return 4;
     return 0;
 }

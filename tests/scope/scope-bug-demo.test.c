@@ -17,7 +17,7 @@ const uint8_t limit = 10U;
 
 // Global const
 /* Scope: Counter */
-static uint8_t Counter_count = 0;
+static uint8_t Counter_count = 0U;
 
 void Counter_increment(void) {
     Counter_count = Counter_count + 1U;

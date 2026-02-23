@@ -31,9 +31,9 @@ int main(void) {
     while (y < 4) {
         uint32_t x = 0U;
         while (x < 4) {
-            image[y][x].r = y * 64;
-            image[y][x].g = x * 64;
-            image[y][x].b = (y + x) * 32;
+            image[y][x].r = y * 64U;
+            image[y][x].g = x * 64U;
+            image[y][x].b = (y + x) * 32U;
             x = cnx_clamp_add_u32(x, 1U);
         }
         y = cnx_clamp_add_u32(y, 1U);
@@ -43,22 +43,22 @@ int main(void) {
     if (image[testY][testX].r != 128) return 1;
     if (image[testY][testX].g != 192) return 2;
     if (image[testY][testX].b != 160) return 3;
-    if (image[0][0].r != 0) return 4;
-    if (image[0][0].g != 0) return 5;
-    if (image[0][0].b != 0) return 6;
-    if (image[3][3].r != 192) return 7;
-    if (image[3][3].g != 192) return 8;
-    if (image[3][3].b != 192) return 9;
+    if (image[0U][0U].r != 0) return 4;
+    if (image[0U][0U].g != 0) return 5;
+    if (image[0U][0U].b != 0) return 6;
+    if (image[3U][3U].r != 192) return 7;
+    if (image[3U][3U].g != 192) return 8;
+    if (image[3U][3U].b != 192) return 9;
     uint32_t baseRow = 1U;
     uint32_t offset = 1U;
     if (image[baseRow + offset][offset].r != 128) return 10;
     uint32_t targetRow = 2U;
     uint32_t targetCol = 2U;
-    image[targetRow][targetCol].r = 255;
-    image[targetRow][targetCol].g = 255;
-    image[targetRow][targetCol].b = 255;
-    if (image[2][2].r != 255) return 11;
-    if (image[2][2].g != 255) return 12;
-    if (image[2][2].b != 255) return 13;
+    image[targetRow][targetCol].r = 255U;
+    image[targetRow][targetCol].g = 255U;
+    image[targetRow][targetCol].b = 255U;
+    if (image[2U][2U].r != 255) return 11;
+    if (image[2U][2U].g != 255) return 12;
+    if (image[2U][2U].b != 255) return 13;
     return 0;
 }

@@ -43,67 +43,67 @@ int main(void) {
     points[1].y = 40;
     points[2].x = 50;
     points[2].y = 60;
-    if (points[0].x != 10) {
+    if (points[0U].x != 10) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (points[0].y != 20) {
+    if (points[0U].y != 20) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (points[1].x != 30) {
+    if (points[1U].x != 30) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (points[1].y != 40) {
+    if (points[1U].y != 40) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (points[2].x != 50) {
+    if (points[2U].x != 50) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (points[2].y != 60) {
+    if (points[2U].y != 60) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    sensors[0].id = 100;
+    sensors[0].id = 100U;
     sensors[0].value = 1000;
     sensors[0].active = true;
-    sensors[1].id = 200;
+    sensors[1].id = 200U;
     sensors[1].value = 2000;
     sensors[1].active = false;
-    if (sensors[0].id != 100) {
+    if (sensors[0U].id != 100) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (sensors[0].value != 1000) {
+    if (sensors[0U].value != 1000) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (sensors[0].active != true) {
+    if (sensors[0U].active != true) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (sensors[1].id != 200) {
+    if (sensors[1U].id != 200) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (sensors[1].value != 2000) {
+    if (sensors[1U].value != 2000) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (sensors[1].active != false) {
+    if (sensors[1U].active != false) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
     uint32_t idx = 2U;
-    sensors[idx].id = 300;
+    sensors[idx].id = 300U;
     sensors[idx].value = 3000;
-    if (sensors[2].id != 300) {
+    if (sensors[2U].id != 300) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (sensors[2].value != 3000) {
+    if (sensors[2U].value != 3000) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
     points[0].x += 5;
     points[1].y -= 10;
-    if (points[0].x != 15) {
+    if (points[0U].x != 15) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    if (points[1].y != 30) {
+    if (points[1U].y != 30) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    points[2].x = points[0].x + points[1].x;
-    if (points[2].x != 45) {
+    points[2].x = points[0U].x + points[1U].x;
+    if (points[2U].x != 45) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
     if (errors > 0) {

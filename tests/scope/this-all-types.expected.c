@@ -12,10 +12,10 @@
 // Test: ADR-016 this. accessor with all primitive types
 // Verifies that this. works correctly with every C-Next primitive type inside scope methods
 /* Scope: AllTypesTest */
-static uint8_t AllTypesTest_valU8 = 255;
-static uint16_t AllTypesTest_valU16 = 65535;
-static uint32_t AllTypesTest_valU32 = 4294967295;
-static uint64_t AllTypesTest_valU64 = 18446744073709551615;
+static uint8_t AllTypesTest_valU8 = 255U;
+static uint16_t AllTypesTest_valU16 = 65535U;
+static uint32_t AllTypesTest_valU32 = 4294967295U;
+static uint64_t AllTypesTest_valU64 = 18446744073709551615ULL;
 static int8_t AllTypesTest_valI8 = -128;
 static int16_t AllTypesTest_valI16 = -32768;
 static int32_t AllTypesTest_valI32 = -2147483648;

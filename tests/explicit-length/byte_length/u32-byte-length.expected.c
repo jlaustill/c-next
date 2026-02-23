@@ -17,12 +17,12 @@ uint32_t globalVar = 100000U;
 uint32_t TestScope_getGlobalByteLength(void) {
     return 4;
 }
-static uint32_t TestScope_scopeMember = 100000;
+static uint32_t TestScope_scopeMember = 100000U;
 
 uint32_t TestScope_getMemberByteLength(void) {
     return 4;
 }
-uint32_t TestScope_publicMember = 100000;
+uint32_t TestScope_publicMember = 100000U;
 
 uint32_t checkParamByteLength(uint32_t param) {
     return 4;
@@ -58,7 +58,7 @@ int main(void) {
         return 7;
     }
     uint32_t arr[4] = {0};
-    arr[0] = 100000;
+    arr[0] = 100000U;
     if (4 != 4) {
         return 8;
     }

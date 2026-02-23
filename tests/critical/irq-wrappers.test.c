@@ -67,6 +67,6 @@ void enqueue(uint8_t data) {
 }
 
 int main(void) {
-    enqueue(42);
+    enqueue(42U);
     return 0;
 }

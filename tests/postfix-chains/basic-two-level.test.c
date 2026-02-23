@@ -31,12 +31,12 @@ int main(void) {
     lines[0].start.y = 20;
     lines[0].end.x = 30;
     lines[0].end.y = 40;
-    int32_t x1 = lines[0].start.x;
-    int32_t y1 = lines[0].start.y;
+    int32_t x1 = lines[0U].start.x;
+    int32_t y1 = lines[0U].start.y;
     points[0].x = 5;
     points[0].y = 15;
-    int32_t px = points[0].x;
+    int32_t px = points[0U].x;
     GPIO_DR = (GPIO_DR & ~(1U << 3)) | (1U << 3);
-    bool bit = ((GPIO_DR >> 5) & 1);
+    bool bit = ((GPIO_DR >> 5U) & 1);
     GPIO_DR_SET = (1U << 7);
 }

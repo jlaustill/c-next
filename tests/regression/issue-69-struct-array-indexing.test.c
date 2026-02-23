@@ -51,13 +51,13 @@ void initializeAll(Configuration* conf, uint16_t spnValue, float coeffValue) {
 
 int main(void) {
     Configuration cfg = {0};
-    cfg.tempInputs[0].assignedSpn = 100;
+    cfg.tempInputs[0].assignedSpn = 100U;
     cfg.tempInputs[0].coeffA = 1.5;
-    cfg.tempInputs[1].assignedSpn = 200;
+    cfg.tempInputs[1].assignedSpn = 200U;
     cfg.tempInputs[1].coeffA = 2.5;
-    cfg.tempInputs[2].assignedSpn = 300;
+    cfg.tempInputs[2].assignedSpn = 300U;
     cfg.tempInputs[2].coeffA = 3.5;
-    cfg.tempInputs[5].assignedSpn = 999;
+    cfg.tempInputs[5].assignedSpn = 999U;
     cfg.tempInputs[5].coeffA = 9.5;
     uint32_t idx0 = 0U;
     uint32_t idx1 = 1U;
@@ -77,19 +77,19 @@ int main(void) {
     if (coeff1 != 2.5) return 6;
     float coeff2 = getCoeff(&cfg, idx2);
     if (coeff2 != 3.5) return 7;
-    if (cfg.tempInputs[0].assignedSpn != 100) return 8;
-    if (cfg.tempInputs[1].assignedSpn != 200) return 9;
-    if (cfg.tempInputs[2].assignedSpn != 300) return 10;
+    if (cfg.tempInputs[0U].assignedSpn != 100) return 8;
+    if (cfg.tempInputs[1U].assignedSpn != 200) return 9;
+    if (cfg.tempInputs[2U].assignedSpn != 300) return 10;
     uint16_t sum = cfg.tempInputs[0U].assignedSpn + cfg.tempInputs[1U].assignedSpn;
     if (sum != 300) return 11;
     uint16_t val = getSpn(&cfg, idx2);
     if (val != 300) return 12;
-    if ((cfg.tempInputs[0].assignedSpn + cfg.tempInputs[2].assignedSpn) != 400) return 13;
-    setSpn(&cfg, idx0, 500);
-    if (cfg.tempInputs[0].assignedSpn != 500) return 14;
+    if ((cfg.tempInputs[0U].assignedSpn + cfg.tempInputs[2U].assignedSpn) != 400) return 13;
+    setSpn(&cfg, idx0, 500U);
+    if (cfg.tempInputs[0U].assignedSpn != 500) return 14;
     setCoeff(&cfg, idx1, 7.5);
-    if (cfg.tempInputs[1].coeffA != 7.5) return 15;
-    initializeAll(&cfg, 42, 4.5);
+    if (cfg.tempInputs[1U].coeffA != 7.5) return 15;
+    initializeAll(&cfg, 42U, 4.5);
     for (uint32_t j = 0; j < 8; j += 1) {
         if (cfg.tempInputs[j].assignedSpn != 42) return 16;
         if (cfg.tempInputs[j].coeffA != 4.5) return 17;
