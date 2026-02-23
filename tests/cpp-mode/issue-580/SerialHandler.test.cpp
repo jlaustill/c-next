@@ -6,7 +6,6 @@
 #include "SerialHandler.test.h"
 
 // test-cpp-only
-// test-transpile-only
 // Issue #580: Incorrect const inference when parameter is only passed to mutating function
 // handleReset was incorrectly marked const even though it passes config to reset() which mutates it
 #include "Config.h"

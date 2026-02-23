@@ -6,7 +6,6 @@
 #include "SerialHandler.test.h"
 
 // test-cpp-only
-// test-transpile-only
 // Bug #561: Private function const inference
 // handleSet is a PRIVATE function that passes config to CommandHandler.setValue
 // which modifies cfg.value. Therefore:

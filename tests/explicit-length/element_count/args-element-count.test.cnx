@@ -1,4 +1,3 @@
-// test-transpile-only
 // Tests args.element_count property (ADR-058)
 // args.element_count returns argc
 
