@@ -9,8 +9,8 @@
 uint8_t matrix[4][8] = {0};
 
 void init(void) {
-    matrix[0][0] = 1;
-    matrix[3][7] = 255;
+    matrix[0][0] = 1U;
+    matrix[3][7] = 255U;
 }
 
 int main(void) {

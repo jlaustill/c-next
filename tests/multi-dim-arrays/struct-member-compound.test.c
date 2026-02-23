@@ -15,24 +15,24 @@ typedef struct Buffer {
 Buffer buf = {0};
 
 int main(void) {
-    buf.data[0] = 50;
-    buf.data[1] = 100;
+    buf.data[0] = 50U;
+    buf.data[1] = 100U;
     buf.counts[0] = 1000;
     buf.counts[1] = 500;
-    buf.data[0] += 10;
-    buf.data[1] -= 25;
+    buf.data[0] += 10U;
+    buf.data[1] -= 25U;
     buf.counts[0] += 500;
     buf.counts[1] -= 200;
-    if (buf.data[0] != 60) {
+    if (buf.data[0U] != 60) {
         return 1;
     }
-    if (buf.data[1] != 75) {
+    if (buf.data[1U] != 75) {
         return 1;
     }
-    if (buf.counts[0] != 1500) {
+    if (buf.counts[0U] != 1500) {
         return 1;
     }
-    if (buf.counts[1] != 300) {
+    if (buf.counts[1U] != 300) {
         return 1;
     }
     return 0;

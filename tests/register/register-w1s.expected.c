@@ -36,11 +36,11 @@ void setFlags(uint32_t flagMask) {
 }
 
 int main(void) {
-    setGpioBit(0);
-    setGpioBit(7);
-    setGpioBit(15);
-    setGpioMask(0x00FF);
-    enableFeature(0);
-    enableFeature(3);
-    setFlags(0x0F);
+    setGpioBit(0U);
+    setGpioBit(7U);
+    setGpioBit(15U);
+    setGpioMask(0x00FFU);
+    enableFeature(0U);
+    enableFeature(3U);
+    setFlags(0x0FU);
 }

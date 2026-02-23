@@ -10,7 +10,7 @@
 // When including a cnx file that defines a struct, the generated header
 // should NOT emit a forward declaration typedef for that struct,
 // because it's already available via the #include.
-#include <typedef-types.h>
+#include <typedef-types.hpp>
 
 #include <stdint.h>
 

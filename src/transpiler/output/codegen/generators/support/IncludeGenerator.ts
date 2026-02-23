@@ -13,6 +13,7 @@ interface IIncludeTransformOptions {
   sourcePath: string | null;
   includeDirs?: string[];
   inputs?: string[];
+  cppMode?: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ const resolveAngleIncludePath = (
   sourcePath: string,
   includeDirs: string[],
   inputs: string[],
+  cppMode: boolean,
 ): string | null => {
   if (inputs.length === 0) {
     return null;
@@ -42,7 +44,8 @@ const resolveAngleIncludePath = (
     inputs,
   );
 
-  return relativePath ? relativePath.replace(/\.cnx$/, ".h") : null;
+  const ext = cppMode ? ".hpp" : ".h";
+  return relativePath ? relativePath.replace(/\.cnx$/, ext) : null;
 };
 
 /**
@@ -54,7 +57,12 @@ const transformAngleInclude = (
   filename: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const { sourcePath, includeDirs = [], inputs = [] } = options;
+  const {
+    sourcePath,
+    includeDirs = [],
+    inputs = [],
+    cppMode = false,
+  } = options;
 
   // Try to resolve the correct output path
   if (sourcePath) {
@@ -63,6 +71,7 @@ const transformAngleInclude = (
       sourcePath,
       includeDirs,
       inputs,
+      cppMode,
     );
     if (resolvedPath) {
       return includeText.replace(`<${filename}.cnx>`, `<${resolvedPath}>`);
@@ -70,7 +79,8 @@ const transformAngleInclude = (
   }
 
   // Fallback: simple replacement
-  return includeText.replace(`<${filename}.cnx>`, `<${filename}.h>`);
+  const ext = cppMode ? ".hpp" : ".h";
+  return includeText.replace(`<${filename}.cnx>`, `<${filename}${ext}>`);
 };
 
 /**
@@ -82,7 +92,7 @@ const transformQuoteInclude = (
   filepath: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const { sourcePath } = options;
+  const { sourcePath, cppMode = false } = options;
 
   // Validate .cnx file exists if we have source path
   if (sourcePath) {
@@ -98,12 +108,14 @@ const transformQuoteInclude = (
     }
   }
 
-  // Transform to .h
-  return includeText.replace(`"${filepath}.cnx"`, `"${filepath}.h"`);
+  // Transform to .h or .hpp
+  const ext = cppMode ? ".hpp" : ".h";
+  return includeText.replace(`"${filepath}.cnx"`, `"${filepath}${ext}"`);
 };
 
 /**
- * ADR-010: Transform #include directives, converting .cnx to .h
+ * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
+ * Issue #941: Uses .hpp extension when cppMode is true
  * Validates that .cnx files exist if sourcePath is available
  * Supports both <file.cnx> and "file.cnx" forms
  *

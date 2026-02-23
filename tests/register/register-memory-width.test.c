@@ -47,11 +47,11 @@ void write8_at_24(uint8_t data) {
 }
 
 int main(void) {
-    write32(0x12345678);
-    write16_at_0(0x1234);
-    write16_at_16(0x5678);
-    write8_at_0(0x12);
-    write8_at_8(0x34);
-    write8_at_16(0x56);
-    write8_at_24(0x78);
+    write32(0x12345678U);
+    write16_at_0(0x1234U);
+    write16_at_16(0x5678U);
+    write8_at_0(0x12U);
+    write8_at_8(0x34U);
+    write8_at_16(0x56U);
+    write8_at_24(0x78U);
 }

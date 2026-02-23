@@ -6,7 +6,7 @@
 #include "Storage.hpp"
 
 // test-cpp-only
-#include "Config.h"
+#include "Config.hpp"
 
 /* Scope: Storage */
 

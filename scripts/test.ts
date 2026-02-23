@@ -100,6 +100,10 @@ function getModeIndicator(result: ITestResult): string {
   if (result.cppResult && !result.cppSkipped) modes.push("C++");
   // Only show indicator if running both modes
   if (modes.length === 2) {
+    // Show parity status if both modes executed
+    if (result.parityChecked && result.parityPassed) {
+      return chalk.green(` [${modes.join("+")} PARITY]`);
+    }
     return chalk.dim(` [${modes.join("+")}]`);
   }
   return "";
@@ -158,6 +162,15 @@ function printResult(
     // Show warning error if present (test-no-warnings failure)
     if (result.warningError) {
       console.log(`        ${chalk.red("Warning:")} ${result.warningError}`);
+    }
+    // Show parity mismatch details (Issue #922)
+    if (result.parityError) {
+      console.log(
+        `        ${chalk.red("Parity mismatch - C and C++ outputs differ:")}`,
+      );
+      for (const line of result.parityError.split("\n").slice(0, 10)) {
+        console.log(`          ${chalk.dim(line)}`);
+      }
     }
   }
 }

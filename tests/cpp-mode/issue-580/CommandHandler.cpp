@@ -6,7 +6,7 @@
 #include "CommandHandler.hpp"
 
 // test-cpp-only
-#include "Config.h"
+#include "Config.hpp"
 
 #include <stdint.h>
 

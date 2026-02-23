@@ -24,32 +24,32 @@ void fillRow(uint32_t arr[2][3], uint32_t row, uint32_t val0, uint32_t val1, uin
 }
 
 uint32_t sumRow(const uint32_t arr[2][3], uint32_t row) {
-    return arr[row][0] + arr[row][1] + arr[row][2];
+    return arr[row][0U] + arr[row][1U] + arr[row][2U];
 }
 
 int main(void) {
     uint32_t matrix[2][3] = {0};
-    matrix[0][0] = 0;
-    matrix[0][1] = 0;
-    matrix[0][2] = 0;
-    matrix[1][0] = 0;
-    matrix[1][1] = 0;
-    matrix[1][2] = 0;
-    write2D(matrix, 0, 0, 100);
-    if (matrix[0][0] != 100) return 1;
-    write2D(matrix, 1, 2, 999);
-    if (matrix[1][2] != 999) return 2;
+    matrix[0][0] = 0U;
+    matrix[0][1] = 0U;
+    matrix[0][2] = 0U;
+    matrix[1][0] = 0U;
+    matrix[1][1] = 0U;
+    matrix[1][2] = 0U;
+    write2D(matrix, 0U, 0U, 100U);
+    if (matrix[0U][0U] != 100) return 1;
+    write2D(matrix, 1U, 2U, 999U);
+    if (matrix[1U][2U] != 999) return 2;
     uint32_t result = read2D(matrix, 0U, 0U);
     if (result != 100) return 3;
     result = read2D(matrix, 1U, 2U);
     if (result != 999) return 4;
-    fillRow(matrix, 0, 10, 20, 30);
-    if (matrix[0][0] != 10) return 5;
-    if (matrix[0][1] != 20) return 6;
-    if (matrix[0][2] != 30) return 7;
+    fillRow(matrix, 0U, 10U, 20U, 30U);
+    if (matrix[0U][0U] != 10) return 5;
+    if (matrix[0U][1U] != 20) return 6;
+    if (matrix[0U][2U] != 30) return 7;
     result = sumRow(matrix, 0U);
     if (result != 60) return 8;
-    fillRow(matrix, 1, 100, 200, 300);
+    fillRow(matrix, 1U, 100U, 200U, 300U);
     result = sumRow(matrix, 1U);
     if (result != 600) return 9;
     result = sumRow(matrix, 0U);

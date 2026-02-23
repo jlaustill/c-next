@@ -12,20 +12,20 @@
 #include <stdint.h>
 
 int main(void) {
-    byte_t b = 255;
+    byte_t b = 255U;
     if (b != 255) return 1;
-    word_t w = 65535;
+    word_t w = 65535U;
     if (w != 65535) return 2;
-    dword_t dw = 0xFFFFFFFF;
+    dword_t dw = 0xFFFFFFFFU;
     if (dw != 0xFFFFFFFF) return 3;
-    qword_t qw = 0xFFFFFFFFFFFFFFFF;
+    qword_t qw = 0xFFFFFFFFFFFFFFFFULL;
     if (qw != 0xFFFFFFFFFFFFFFFF) return 4;
     offset_t off = -1000;
     if (off != -1000) return 5;
-    byte_t a = 100;
-    byte_t c = a + 50;
+    byte_t a = 100U;
+    byte_t c = a + 50U;
     if (c != 150) return 6;
-    dword_t x = 12345;
+    dword_t x = 12345U;
     dword_t y = x;
     if (y != 12345) return 7;
     return 0;

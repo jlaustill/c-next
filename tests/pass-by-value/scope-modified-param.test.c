@@ -66,13 +66,13 @@ int main(void) {
     TestScope_doubleIncrement(&doubled);
     if (doubled != 7) return 4;
     uint32_t switchVal = 100U;
-    TestScope_switchIncrement(&switchVal, 1);
+    TestScope_switchIncrement(&switchVal, 1U);
     if (switchVal != 110) return 5;
     switchVal = 100U;
-    TestScope_switchIncrement(&switchVal, 2);
+    TestScope_switchIncrement(&switchVal, 2U);
     if (switchVal != 120) return 6;
     switchVal = 100U;
-    TestScope_switchIncrement(&switchVal, 99);
+    TestScope_switchIncrement(&switchVal, 99U);
     if (switchVal != 101) return 7;
     uint32_t readVal = 25U;
     uint32_t readResult = TestScope_readOnly(readVal);

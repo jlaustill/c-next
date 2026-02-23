@@ -15,7 +15,7 @@
 // The transpiler should NOT report a conflict because Display/AppData.h was generated
 // from Display/AppData.cnx and contains the C-Next Transpiler marker.
 #include "SomeModule.hpp"
-#include <Display/AppData.h>
+#include <Display/AppData.hpp>
 
 #include <stdint.h>
 

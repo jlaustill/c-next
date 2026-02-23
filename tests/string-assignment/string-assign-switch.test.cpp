@@ -32,13 +32,13 @@ void setLevel(uint32_t code) {
 }
 
 int main(void) {
-    setLevel(0);
+    setLevel(0U);
     if (strlen(level) != 3) return 1;
-    setLevel(1);
+    setLevel(1U);
     if (strlen(level) != 6) return 2;
-    setLevel(2);
+    setLevel(2U);
     if (strlen(level) != 4) return 3;
-    setLevel(99);
+    setLevel(99U);
     if (strlen(level) != 7) return 4;
     return 0;
 }

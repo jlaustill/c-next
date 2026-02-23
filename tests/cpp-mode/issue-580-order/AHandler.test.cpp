@@ -8,8 +8,8 @@
 // test-cpp-only
 // Issue #580 order test: AHandler comes before ZModifier alphabetically
 // Tests if file order affects const inference
-#include "Config.h"
-#include "ZModifier.h"
+#include "Config.hpp"
+#include "ZModifier.hpp"
 
 /* Scope: AHandler */
 

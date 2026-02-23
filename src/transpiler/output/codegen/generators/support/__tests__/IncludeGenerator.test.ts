@@ -156,6 +156,44 @@ describe("IncludeGenerator", () => {
 
       expect(result).toBe("#include <lib.h>");
     });
+
+    it("transforms angle bracket .cnx include to .hpp in C++ mode", () => {
+      const result = transformIncludeDirective("#include <utils.cnx>", {
+        sourcePath: null,
+        cppMode: true,
+      });
+      expect(result).toBe("#include <utils.hpp>");
+    });
+
+    it("resolves path from inputs with .hpp in C++ mode", () => {
+      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(
+        "/project/src/Display/utils.cnx",
+      );
+      vi.mocked(CnxFileResolver.getRelativePathFromInputs).mockReturnValue(
+        "Display/utils.cnx",
+      );
+
+      const result = transformIncludeDirective("#include <utils.cnx>", {
+        sourcePath: "/project/src/main.cnx",
+        includeDirs: ["/project/src/Display"],
+        inputs: ["/project/src"],
+        cppMode: true,
+      });
+
+      expect(result).toBe("#include <Display/utils.hpp>");
+    });
+
+    it("falls back to .hpp in C++ mode when file not found", () => {
+      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(null);
+
+      const result = transformIncludeDirective("#include <missing.cnx>", {
+        sourcePath: "/project/src/main.cnx",
+        inputs: ["/project/src"],
+        cppMode: true,
+      });
+
+      expect(result).toBe("#include <missing.hpp>");
+    });
   });
 
   // ==========================================================================
@@ -221,6 +259,28 @@ describe("IncludeGenerator", () => {
         }),
       ).toThrow(/Referenced in:.*main\.cnx/);
     });
+
+    it("transforms quoted .cnx include to .hpp in C++ mode", () => {
+      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
+
+      const result = transformIncludeDirective('#include "helper.cnx"', {
+        sourcePath: "/project/src/main.cnx",
+        cppMode: true,
+      });
+
+      expect(result).toBe('#include "helper.hpp"');
+    });
+
+    it("transforms quoted include with relative path to .hpp in C++ mode", () => {
+      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
+
+      const result = transformIncludeDirective('#include "../lib/utils.cnx"', {
+        sourcePath: "/project/src/main.cnx",
+        cppMode: true,
+      });
+
+      expect(result).toBe('#include "../lib/utils.hpp"');
+    });
   });
 
   // ==========================================================================
@@ -261,6 +321,14 @@ describe("IncludeGenerator", () => {
         sourcePath: null,
       });
       expect(result).toBe("int x = 5;");
+    });
+
+    it("passes through .h includes unchanged even in C++ mode", () => {
+      const result = transformIncludeDirective('#include "myheader.h"', {
+        sourcePath: "/project/main.cnx",
+        cppMode: true,
+      });
+      expect(result).toBe('#include "myheader.h"');
     });
   });
 

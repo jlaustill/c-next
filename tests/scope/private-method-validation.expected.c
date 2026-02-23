@@ -21,11 +21,11 @@ bool globalFlag = true;
 int32_t globalOffset = -50;
 
 /* Scope: PrivateMethodTest */
-static uint32_t PrivateMethodTest_privateState = 0;
+static uint32_t PrivateMethodTest_privateState = 0U;
 static bool PrivateMethodTest_privateFlag = false;
 static int32_t PrivateMethodTest_privateAccumulator = 0;
-static uint8_t PrivateMethodTest_callCount = 0;
-uint32_t PrivateMethodTest_publicResult = 0;
+static uint8_t PrivateMethodTest_callCount = 0U;
+uint32_t PrivateMethodTest_publicResult = 0U;
 bool PrivateMethodTest_publicFlag = false;
 int32_t PrivateMethodTest_publicAccumulator = 0;
 
@@ -141,7 +141,7 @@ void PrivateMethodTest_copyPrivateToPublic(void) {
 int main(void) {
     uint32_t resultState = PrivateMethodTest_exposePrivateState();
     if (resultState != 0) return 1;
-    PrivateMethodTest_setPrivateState(42);
+    PrivateMethodTest_setPrivateState(42U);
     resultState = PrivateMethodTest_exposePrivateState();
     if (resultState != 42) return 2;
     bool resultFlag = PrivateMethodTest_exposePrivateFlag();
@@ -168,7 +168,7 @@ int main(void) {
     if (resultBothFlags != false) return 11;
     uint32_t resultHelper = PrivateMethodTest_exposeStateViaHelper();
     if (resultHelper != 42) return 12;
-    PrivateMethodTest_setPrivateState(990);
+    PrivateMethodTest_setPrivateState(990U);
     resultState = PrivateMethodTest_exposePrivateState();
     if (resultState != 990) return 13;
     uint8_t resultCallCount = PrivateMethodTest_exposeCallCount();
@@ -180,7 +180,7 @@ int main(void) {
     if (resultFlag != true) return 16;
     resultCallCount = PrivateMethodTest_exposeCallCount();
     if (resultCallCount != 3) return 17;
-    PrivateMethodTest_setPrivateState(777);
+    PrivateMethodTest_setPrivateState(777U);
     PrivateMethodTest_setPrivateFlag(true);
     PrivateMethodTest_copyPrivateToPublic();
     if (PrivateMethodTest_publicResult != 777) return 18;

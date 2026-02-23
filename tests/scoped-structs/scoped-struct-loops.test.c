@@ -11,7 +11,7 @@
 // Tests: Scoped structs in loops - reading and writing in for/while loops
 /* Scope: Sensor */
 Sensor_Reading Sensor_buffer[4] = {0};
-uint8_t Sensor_count = 0;
+uint8_t Sensor_count = 0U;
 
 void Sensor_addReading(uint16_t val, uint8_t ch) {
     if (Sensor_count < 4) {
@@ -34,8 +34,8 @@ uint16_t Sensor_sumValues(void) {
 void Sensor_clear(void) {
     uint8_t i = 0U;
     while (i < 4) {
-        Sensor_buffer[i].value = 0;
-        Sensor_buffer[i].channel = 0;
+        Sensor_buffer[i].value = 0U;
+        Sensor_buffer[i].channel = 0U;
         i = i + 1U;
     }
     Sensor_count = 0U;
@@ -50,17 +50,17 @@ int main(void) {
         i = i + 1U;
     }
     if (Sensor_count != 3) return 2;
-    if (Sensor_buffer[0].value != 100) return 3;
-    if (Sensor_buffer[0].channel != 0) return 4;
-    if (Sensor_buffer[1].value != 110) return 5;
-    if (Sensor_buffer[1].channel != 1) return 6;
-    if (Sensor_buffer[2].value != 120) return 7;
-    if (Sensor_buffer[2].channel != 2) return 8;
+    if (Sensor_buffer[0U].value != 100) return 3;
+    if (Sensor_buffer[0U].channel != 0) return 4;
+    if (Sensor_buffer[1U].value != 110) return 5;
+    if (Sensor_buffer[1U].channel != 1) return 6;
+    if (Sensor_buffer[2U].value != 120) return 7;
+    if (Sensor_buffer[2U].channel != 2) return 8;
     uint16_t sum = Sensor_sumValues();
     if (sum != 330) return 9;
     Sensor_clear();
     if (Sensor_count != 0) return 10;
-    if (Sensor_buffer[0].value != 0) return 11;
+    if (Sensor_buffer[0U].value != 0) return 11;
     i = 0U;
     while (i < 2) {
         Sensor_buffer[i].value = (uint16_t)(200 + i);
@@ -68,7 +68,7 @@ int main(void) {
         i = i + 1U;
     }
     Sensor_count = 2;
-    if (Sensor_buffer[0].value != 200) return 12;
-    if (Sensor_buffer[1].value != 201) return 13;
+    if (Sensor_buffer[0U].value != 200) return 12;
+    if (Sensor_buffer[1U].value != 201) return 13;
     return 0;
 }

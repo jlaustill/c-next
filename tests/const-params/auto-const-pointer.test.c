@@ -25,12 +25,12 @@ uint32_t mixedParams(uint32_t readVal, uint32_t* writeVal) {
 
 // Array parameter modification via index
 void arrayMod(uint8_t arr[4]) {
-    arr[0] = 99;
+    arr[0] = 99U;
 }
 
 // Array parameter read-only
 uint8_t arrayReadOnly(const uint8_t arr[4]) {
-    return arr[0];
+    return arr[0U];
 }
 
 int main(void) {
@@ -44,7 +44,7 @@ int main(void) {
     if (result != 15) return 2;
     uint8_t data[4] = {1U, 2U, 3U, 4U};
     arrayMod(data);
-    if (data[0] != 99) return 3;
+    if (data[0U] != 99) return 3;
     uint8_t data2[4] = {10U, 20U, 30U, 40U};
     uint8_t val = arrayReadOnly(data2);
     if (val != 10) return 4;

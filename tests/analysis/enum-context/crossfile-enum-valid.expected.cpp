@@ -5,7 +5,7 @@
 
 // test-execution
 // Tests: Cross-file unqualified enum SHOULD work when return type is the enum
-#include "cross-file-types.h"
+#include "cross-file-types.hpp"
 
 #include <stdint.h>
 
@@ -40,9 +40,9 @@ uint32_t categoryToValue(ESpnCategory cat) {
 }
 
 int main(void) {
-    ESpnCategory cat = getCategory(100);
+    ESpnCategory cat = getCategory(100U);
     if (cat != ESpnCategory_SPN_CAT_PRESSURE) return 1;
-    cat = getCategory(0);
+    cat = getCategory(0U);
     if (cat != ESpnCategory_SPN_CAT_UNKNOWN) return 2;
     uint32_t val1 = categoryToValue(ESpnCategory_SPN_CAT_TEMPERATURE);
     if (val1 != 0) return 3;

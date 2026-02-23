@@ -45,10 +45,10 @@ int main(void) {
     uint8_t sum = 0b0001U + 0b0010U;
     if (sum != 3) return 17;
     uint8_t flags[4] = {0b0001U, 0b0010U, 0b0100U, 0b1000U};
-    if (flags[0] != 1) return 18;
-    if (flags[1] != 2) return 19;
-    if (flags[2] != 4) return 20;
-    if (flags[3] != 8) return 21;
+    if (flags[0U] != 1) return 18;
+    if (flags[1U] != 2) return 19;
+    if (flags[2U] != 4) return 20;
+    if (flags[3U] != 8) return 21;
     uint8_t val = 0b11001100U;
     if (val != 0b11001100) return 22;
     if (0b0001 >= 0b0010) return 23;

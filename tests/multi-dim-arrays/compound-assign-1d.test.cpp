@@ -10,54 +10,54 @@
 uint32_t data[10] = {0};
 
 int main(void) {
-    data[0] = 100;
-    data[1] = 50;
-    data[2] = 10;
-    data[3] = 100;
-    data[4] = 17;
-    data[5] = 0b11110000;
-    data[6] = 0b00001111;
-    data[7] = 0b10101010;
-    data[8] = 8;
-    data[9] = 128;
-    data[0] += 25;
-    data[1] -= 15;
-    data[2] *= 7;
-    data[3] /= 4;
-    data[4] %= 5;
-    data[5] &= 0b11001100;
-    data[6] |= 0b11110000;
-    data[7] ^= 0b11111111;
-    data[8] <<= 2;
-    data[9] >>= 3;
-    if (data[0] != 125) {
+    data[0] = 100U;
+    data[1] = 50U;
+    data[2] = 10U;
+    data[3] = 100U;
+    data[4] = 17U;
+    data[5] = 0b11110000U;
+    data[6] = 0b00001111U;
+    data[7] = 0b10101010U;
+    data[8] = 8U;
+    data[9] = 128U;
+    data[0] += 25U;
+    data[1] -= 15U;
+    data[2] *= 7U;
+    data[3] /= 4U;
+    data[4] %= 5U;
+    data[5] &= 0b11001100U;
+    data[6] |= 0b11110000U;
+    data[7] ^= 0b11111111U;
+    data[8] <<= 2U;
+    data[9] >>= 3U;
+    if (data[0U] != 125) {
         return 1;
     }
-    if (data[1] != 35) {
+    if (data[1U] != 35) {
         return 2;
     }
-    if (data[2] != 70) {
+    if (data[2U] != 70) {
         return 3;
     }
-    if (data[3] != 25) {
+    if (data[3U] != 25) {
         return 4;
     }
-    if (data[4] != 2) {
+    if (data[4U] != 2) {
         return 5;
     }
-    if (data[5] != 192) {
+    if (data[5U] != 192) {
         return 6;
     }
-    if (data[6] != 255) {
+    if (data[6U] != 255) {
         return 7;
     }
-    if (data[7] != 85) {
+    if (data[7U] != 85) {
         return 8;
     }
-    if (data[8] != 32) {
+    if (data[8U] != 32) {
         return 9;
     }
-    if (data[9] != 16) {
+    if (data[9U] != 16) {
         return 10;
     }
     return 0;

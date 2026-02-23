@@ -11,8 +11,8 @@
 // which modifies cfg.value. Therefore:
 // 1. handleSet's config param should NOT be const (it's passed to a modifying function)
 // 2. process's config param should NOT be const (it calls handleSet which transitively modifies)
-#include "Config.h"
-#include "CommandHandler.h"
+#include "Config.hpp"
+#include "CommandHandler.hpp"
 
 #include <stdint.h>
 

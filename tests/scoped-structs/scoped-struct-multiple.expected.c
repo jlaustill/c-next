@@ -39,10 +39,10 @@ int main(void) {
     DataManager_setCursor(10, 20);
     if (DataManager_cursor.x != 10) return 1;
     if (DataManager_cursor.y != 20) return 2;
-    DataManager_setScreen(800, 600);
+    DataManager_setScreen(800U, 600U);
     if (DataManager_screenSize.width != 800) return 3;
     if (DataManager_screenSize.height != 600) return 4;
-    DataManager_setViewport(50, 50, 200, 150);
+    DataManager_setViewport(50, 50, 200U, 150U);
     if (DataManager_viewport.origin.x != 50) return 5;
     if (DataManager_viewport.origin.y != 50) return 6;
     if (DataManager_viewport.dimensions.width != 200) return 7;

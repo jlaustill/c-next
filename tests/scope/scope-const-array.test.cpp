@@ -11,12 +11,12 @@
 // Tests: Issue #500 - Private const arrays should be emitted as static const
 // Edge cases: public arrays, different types, multi-dimensional, computed indices
 /* Scope: ArrayTest */
-static const uint16_t ArrayTest_VALUES[4] = {10, 20, 30, 40};
-static const uint8_t ArrayTest_BYTES[3] = {1, 2, 3};
+static const uint16_t ArrayTest_VALUES[4] = {10U, 20U, 30U, 40U};
+static const uint8_t ArrayTest_BYTES[3] = {1U, 2U, 3U};
 static const int32_t ArrayTest_OFFSETS[2] = {-10, 10};
-const uint8_t ArrayTest_PUBLIC_LOOKUP[4] = {100, 101, 102, 103};
-static const uint8_t ArrayTest_MATRIX[2][3] = {{1, 2, 3}, {4, 5, 6}};
-static uint8_t ArrayTest_currentIndex = 0;
+const uint8_t ArrayTest_PUBLIC_LOOKUP[4] = {100U, 101U, 102U, 103U};
+static const uint8_t ArrayTest_MATRIX[2][3] = {{1U, 2U, 3U}, {4U, 5U, 6U}};
+static uint8_t ArrayTest_currentIndex = 0U;
 
 uint16_t ArrayTest_getValueAt(uint8_t index) {
     return ArrayTest_VALUES[index];
@@ -47,7 +47,7 @@ void ArrayTest_setIndex(uint8_t index) {
 }
 
 uint16_t ArrayTest_sumFirstTwo(void) {
-    return ArrayTest_VALUES[0] + ArrayTest_VALUES[1];
+    return ArrayTest_VALUES[0U] + ArrayTest_VALUES[1U];
 }
 
 int main(void) {
@@ -59,7 +59,7 @@ int main(void) {
     if (val2 != 30) return 3;
     uint16_t val3 = ArrayTest_getValueAt(3U);
     if (val3 != 40) return 4;
-    ArrayTest_setIndex(2);
+    ArrayTest_setIndex(2U);
     uint16_t stateful = ArrayTest_getCurrentValue();
     if (stateful != 30) return 5;
     uint8_t byte0 = ArrayTest_getByteAt(0U);
@@ -68,9 +68,9 @@ int main(void) {
     if (byte1 != 2) return 7;
     uint8_t byte2 = ArrayTest_getByteAt(2U);
     if (byte2 != 3) return 8;
-    int32_t off0 = ArrayTest_getOffsetAt(0);
+    int32_t off0 = ArrayTest_getOffsetAt(0U);
     if (off0 != -10) return 9;
-    int32_t off1 = ArrayTest_getOffsetAt(1);
+    int32_t off1 = ArrayTest_getOffsetAt(1U);
     if (off1 != 10) return 10;
     uint8_t pub0 = ArrayTest_getPublicAt(0U);
     if (pub0 != 100) return 11;
@@ -80,7 +80,7 @@ int main(void) {
     if (pub2 != 102) return 13;
     uint8_t pub3 = ArrayTest_getPublicAt(3U);
     if (pub3 != 103) return 14;
-    if (ArrayTest_PUBLIC_LOOKUP[0] != 100) return 15;
+    if (ArrayTest_PUBLIC_LOOKUP[0U] != 100) return 15;
     uint8_t m00 = ArrayTest_getMatrixAt(0U, 0U);
     if (m00 != 1) return 16;
     uint8_t m01 = ArrayTest_getMatrixAt(0U, 1U);

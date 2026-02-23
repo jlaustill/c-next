@@ -12,17 +12,17 @@
 // Coverage: Integer arrays, partial init, zero init
 int main(void) {
     uint32_t full[4] = {10U, 20U, 30U, 40U};
-    if (full[0] != 10) return 1;
-    if (full[3] != 40) return 2;
+    if (full[0U] != 10) return 1;
+    if (full[3U] != 40) return 2;
     uint8_t bytes[3] = {0x41U, 0x42U, 0x43U};
-    if (bytes[0] != 0x41) return 3;
-    if (bytes[2] != 0x43) return 4;
+    if (bytes[0U] != 0x41) return 3;
+    if (bytes[2U] != 0x43) return 4;
     uint64_t big[2] = {1000000000ULL, 2000000000ULL};
-    if (big[0] != 1000000000) return 5;
-    if (big[1] != 2000000000) return 6;
+    if (big[0U] != 1000000000) return 5;
+    if (big[1U] != 2000000000) return 6;
     int32_t signed_arr[3] = {-10, 0, 10};
-    if (signed_arr[0] != -10) return 7;
-    if (signed_arr[1] != 0) return 8;
-    if (signed_arr[2] != 10) return 9;
+    if (signed_arr[0U] != -10) return 7;
+    if (signed_arr[1U] != 0) return 8;
+    if (signed_arr[2U] != 10) return 9;
     return 0;
 }

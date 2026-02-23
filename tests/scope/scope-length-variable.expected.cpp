@@ -12,8 +12,8 @@
 // When a scope variable is named 'length', this.length should access the variable,
 // not be interpreted as a .length property accessor
 /* Scope: LengthTest */
-static uint8_t LengthTest_length = 0;
-static uint16_t LengthTest_offset = 0;
+static uint8_t LengthTest_length = 0U;
+static uint16_t LengthTest_offset = 0U;
 
 uint8_t LengthTest_getLength(void) {
     return LengthTest_length;
@@ -40,7 +40,7 @@ int main(void) {
     if (resultLen != 0) {
         return 1;
     }
-    LengthTest_setLength(42);
+    LengthTest_setLength(42U);
     resultLen = LengthTest_getLength();
     if (resultLen != 42) {
         return 2;
@@ -49,7 +49,7 @@ int main(void) {
     if (resultOffset != 0) {
         return 3;
     }
-    LengthTest_setOffset(100);
+    LengthTest_setOffset(100U);
     resultOffset = LengthTest_getOffset();
     if (resultOffset != 100) {
         return 4;
@@ -58,7 +58,7 @@ int main(void) {
     if (resultSum != 142) {
         return 5;
     }
-    LengthTest_setLength(255);
+    LengthTest_setLength(255U);
     resultLen = LengthTest_getLength();
     if (resultLen != 255) {
         return 6;

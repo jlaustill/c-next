@@ -25,7 +25,8 @@ import ITools from "./types/ITools";
 import ITestOptions from "./types/ITestOptions";
 import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
-import type { TTestMode, IModeResult } from "./types/ITestMode";
+import type TTestMode from "./types/TTestMode";
+import type IModeResult from "./types/ITestMode";
 import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 
 // Project root for CLI invocation (this file is in /workspace/scripts/)
@@ -970,18 +971,20 @@ class TestUtils {
           { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
         );
 
-        // Execute
+        // Execute and capture stdout for parity comparison
         try {
-          execFileSync(execPath, [], {
+          const stdout = execFileSync(execPath, [], {
             encoding: "utf-8",
             timeout: 5000,
             stdio: "pipe",
           });
           result.execSuccess = true;
+          result.stdout = stdout; // Capture for parity comparison
         } catch (execError: unknown) {
-          const err = execError as { status?: number };
+          const err = execError as { status?: number; stdout?: string };
           const exitCode = err.status || 1;
           result.error = `${mode.toUpperCase()} execution failed with exit code ${exitCode}`;
+          result.stdout = err.stdout; // Capture stdout even on failure
           // No cleanup needed for helper files
           return result;
         } finally {
@@ -1225,7 +1228,64 @@ class TestUtils {
       testResult.message = `Updated ${modes} snapshot(s)`;
     }
 
+    // Parity check: compare stdout between C and C++ modes (Issue #922)
+    // Only check if both modes ran, both executed (not skipped), and both passed
+    if (
+      cResult &&
+      cppResult &&
+      cResult.execSuccess &&
+      cppResult.execSuccess &&
+      !cResult.skippedExec &&
+      !cppResult.skippedExec
+    ) {
+      testResult.parityChecked = true;
+
+      // Normalize stdout for comparison (handle undefined as empty string)
+      const cStdout = TestUtils.normalize(cResult.stdout || "");
+      const cppStdout = TestUtils.normalize(cppResult.stdout || "");
+
+      if (cStdout === cppStdout) {
+        testResult.parityPassed = true;
+      } else {
+        // Parity mismatch - hard failure
+        testResult.parityPassed = false;
+        testResult.passed = false;
+        testResult.parityError = TestUtils.formatParityError(
+          cStdout,
+          cppStdout,
+        );
+        testResult.message = "Parity mismatch: C and C++ outputs differ";
+      }
+    }
+
     return testResult;
+  }
+
+  /**
+   * Format a parity error message showing the differences between C and C++ output
+   */
+  private static formatParityError(cStdout: string, cppStdout: string): string {
+    const cLines = cStdout.split("\n");
+    const cppLines = cppStdout.split("\n");
+    const maxLines = Math.max(cLines.length, cppLines.length);
+
+    const differences: string[] = [];
+    for (let i = 0; i < maxLines; i++) {
+      const cLine = cLines[i] ?? "(no line)";
+      const cppLine = cppLines[i] ?? "(no line)";
+      if (cLine !== cppLine) {
+        differences.push(`Line ${i + 1}:`);
+        differences.push(`  C:   ${cLine}`);
+        differences.push(`  C++: ${cppLine}`);
+      }
+    }
+
+    return (
+      differences.slice(0, 15).join("\n") +
+      (differences.length > 15
+        ? `\n... and ${differences.length - 15} more differences`
+        : "")
+    );
   }
 }
 

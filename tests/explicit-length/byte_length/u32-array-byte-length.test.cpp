@@ -30,7 +30,7 @@ uint32_t checkArrayByteLength(const uint32_t arr[16]) {
 }
 
 int main(void) {
-    globalArr[0] = 100000;
+    globalArr[0] = 100000U;
     if (64 != 64) {
         return 1;
     }
@@ -46,18 +46,18 @@ int main(void) {
         return 4;
     }
     uint32_t localArr[16] = {0};
-    localArr[0] = 100000;
+    localArr[0] = 100000U;
     if (64 != 64) {
         return 5;
     }
     uint32_t testArr[16] = {0};
-    testArr[0] = 100000;
+    testArr[0] = 100000U;
     result = checkArrayByteLength(testArr);
     if (result != 64) {
         return 6;
     }
     TestStruct ts = {0};
-    ts.arr[0] = 100000;
+    ts.arr[0] = 100000U;
     if (64 != 64) {
         return 7;
     }

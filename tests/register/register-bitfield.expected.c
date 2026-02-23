@@ -84,8 +84,8 @@ int main(void) {
     if (uartReady) {
         UART_DATA = 0x55;
     }
-    configureTimer(100);
-    bool hasError = ((((UART_STATUS >> 4) & 1)) != 0U);
-    bool isBusy = ((((UART_STATUS >> 7) & 1)) != 0U);
-    uint8_t dataBits = (uint8_t)((UART_CTRL >> 5) & 0x3);
+    configureTimer(100U);
+    bool hasError = ((UART_STATUS >> 4) & 1);
+    bool isBusy = ((UART_STATUS >> 7) & 1);
+    uint8_t dataBits = ((UART_CTRL >> 5) & 0x3);
 }

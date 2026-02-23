@@ -109,5 +109,29 @@ describe("IncludeExtractor", () => {
       expect(includes[0]).not.toContain(".cnx");
       expect(includes[0]).toContain(".h");
     });
+
+    it("transforms .cnx includes to .hpp in C++ mode", () => {
+      const tree = CNextSourceParser.parse(
+        '#include "types.cnx"\nvoid foo() { }',
+      ).tree;
+      const includes = IncludeExtractor.collectUserIncludes(tree, true);
+      expect(includes).toEqual(['#include "types.hpp"']);
+    });
+
+    it("transforms angle bracket .cnx includes to .hpp in C++ mode", () => {
+      const tree = CNextSourceParser.parse(
+        "#include <lib.cnx>\nvoid foo() { }",
+      ).tree;
+      const includes = IncludeExtractor.collectUserIncludes(tree, true);
+      expect(includes).toEqual(["#include <lib.hpp>"]);
+    });
+
+    it("defaults to .h when cppMode not specified", () => {
+      const tree = CNextSourceParser.parse(
+        '#include "types.cnx"\nvoid foo() { }',
+      ).tree;
+      const includes = IncludeExtractor.collectUserIncludes(tree);
+      expect(includes).toEqual(['#include "types.h"']);
+    });
   });
 });

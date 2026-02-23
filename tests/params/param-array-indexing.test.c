@@ -30,7 +30,7 @@ void copyElement(const uint8_t* src, uint8_t* dst, uint32_t idx) {
 
 // Test 4: Constant index on parameter
 uint8_t readFirst(const uint8_t* buf) {
-    return buf[0];
+    return buf[0U];
 }
 
 // Test 5: Multiple index operations
@@ -42,7 +42,7 @@ void swapElements(uint8_t* buf, uint32_t i, uint32_t j) {
 
 // Test 6: With explicit array syntax (should still work)
 void writeExplicit(uint8_t buf[8], uint32_t idx) {
-    buf[idx] = 99;
+    buf[idx] = 99U;
 }
 
 // Test 7: Bit range on parameter should still be bit extraction (NOT array access)
@@ -52,7 +52,7 @@ uint8_t getLowByte(uint16_t value) {
 }
 
 uint8_t getHighByte(uint16_t value) {
-    return ((value >> 8) & 0xFFU);
+    return ((value >> 8U) & 0xFFU);
 }
 
 // Test 8: Local array with bit access after consuming all dimensions
@@ -70,21 +70,21 @@ int main(void) {
     uint8_t buffer[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
     uint8_t source[4] = {10U, 20U, 30U, 40U};
     uint8_t dest[4] = {0U, 0U, 0U, 0U};
-    writeToParam(buffer, 3);
-    if (buffer[3] != 42) return 1;
+    writeToParam(buffer, 3U);
+    if (buffer[3U] != 42) return 1;
     uint8_t val = readFromParam(source, 2U);
     if (val != 30) return 2;
-    copyElement(source, dest, 1);
-    if (dest[1] != 20) return 3;
+    copyElement(source, dest, 1U);
+    if (dest[1U] != 20) return 3;
     val = readFirst(source);
     if (val != 10) return 4;
-    buffer[0] = 5;
-    buffer[1] = 7;
-    swapElements(buffer, 0, 1);
-    if (buffer[0] != 7) return 5;
-    if (buffer[1] != 5) return 6;
-    writeExplicit(buffer, 4);
-    if (buffer[4] != 99) return 7;
+    buffer[0] = 5U;
+    buffer[1] = 7U;
+    swapElements(buffer, 0U, 1U);
+    if (buffer[0U] != 7) return 5;
+    if (buffer[1U] != 5) return 6;
+    writeExplicit(buffer, 4U);
+    if (buffer[4U] != 99) return 7;
     uint16_t testWord = 0x1234U;
     uint8_t low = getLowByte(testWord);
     if (low != 0x34) return 8;
@@ -95,9 +95,9 @@ int main(void) {
     if (bit0 != 1) return 10;
     uint8_t bit1 = getArrayBit(matrix, 0U, 1U, 0U);
     if (bit1 != 0) return 11;
-    setArrayBit(matrix, 0, 1, 0, true);
-    if (matrix[0][1] != 0x01) return 12;
-    setArrayBit(matrix, 0, 0, 7, false);
-    if (matrix[0][0] != 0x7F) return 13;
+    setArrayBit(matrix, 0U, 1U, 0U, true);
+    if (matrix[0U][1U] != 0x01) return 12;
+    setArrayBit(matrix, 0U, 0U, 7U, false);
+    if (matrix[0U][0U] != 0x7F) return 13;
     return 0;
 }

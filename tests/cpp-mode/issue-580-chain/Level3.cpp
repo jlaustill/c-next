@@ -6,7 +6,7 @@
 #include "Level3.hpp"
 
 // test-cpp-only
-#include "Config.h"
+#include "Config.hpp"
 
 /* Scope: Level3 */
 

@@ -39,7 +39,7 @@ int32_t Counter_test(void) {
     if (Counter_value != 110) {
         return 1;
     }
-    if (Counter_values[0] != 75) {
+    if (Counter_values[0U] != 75) {
         return 2;
     }
     return 0;

@@ -15,11 +15,11 @@ int main(int argc, char *argv[]) {
     char* c_result = fgets(userName, 51, stdin);
     if (c_result != nullptr) {
         size_t _userName_len = strlen(userName);
-        if (_userName_len > 0 && userName[_userName_len - 1] == '\n') {
+        if (_userName_len > 0 && userName[_userName_len - 1U] == '\n') {
             userName[_userName_len - 1] = '\0';
         }
     }
     uint8_t whoAmIByte = argv[0U][0U];
-    printf("Hello from %s %s! Your special character is %c\n", argv[0], userName, whoAmIByte);
+    printf("Hello from %s %s! Your special character is %c\n", argv[0U], userName, whoAmIByte);
     return 0;
 }

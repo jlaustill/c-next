@@ -107,6 +107,7 @@ const _parameterExpectsAddressOf = (
 /**
  * Generate argument code for a C/C++ function call.
  * Handles automatic address-of (&) for struct arguments passed to pointer params.
+ * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
  */
 const _generateCFunctionArg = (
   e: ExpressionContext,
@@ -134,7 +135,13 @@ const _generateCFunctionArg = (
     );
   }
 
-  let argCode = orchestrator.generateExpression(e);
+  // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
+  // (bare enums in function args was never allowed - changing that requires ADR approval)
+  const argCode = CodeGenState.withExpectedType(
+    targetParam?.baseType,
+    () => orchestrator.generateExpression(e),
+    true, // suppressEnumResolution
+  );
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
   if (!targetParam?.baseType?.endsWith("*")) {
@@ -171,11 +178,14 @@ const _generateCFunctionArg = (
     (orchestrator.isStructType(argType) ||
       _parameterExpectsAddressOf(targetParam.baseType, argType, orchestrator));
 
-  if (needsAddressOf) {
-    argCode = `&${argCode}`;
-  }
+  const finalArgCode = needsAddressOf ? `&${argCode}` : argCode;
 
-  return wrapWithCppEnumCast(argCode, e, targetParam?.baseType, orchestrator);
+  return wrapWithCppEnumCast(
+    finalArgCode,
+    e,
+    targetParam?.baseType,
+    orchestrator,
+  );
 };
 
 /**
@@ -295,7 +305,12 @@ const generateFunctionCall = (
           orchestrator,
         )
       ) {
-        const argCode = orchestrator.generateExpression(e);
+        // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
+        const argCode = CodeGenState.withExpectedType(
+          targetParam?.baseType,
+          () => orchestrator.generateExpression(e),
+          true, // suppressEnumResolution
+        );
         return wrapWithCppEnumCast(
           argCode,
           e,

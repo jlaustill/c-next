@@ -26,26 +26,26 @@ void copyElement(const uint8_t src[4], uint8_t dst[4], uint32_t index) {
 
 int main(void) {
     uint8_t buffer[8] = {0};
-    buffer[0] = 0;
-    buffer[1] = 0;
-    writeAt(buffer, 0, 42);
-    if (buffer[0] != 42) return 1;
-    writeAt(buffer, 1, 99);
-    if (buffer[1] != 99) return 2;
-    writeFirst(buffer, 123);
-    if (buffer[0] != 123) return 3;
+    buffer[0] = 0U;
+    buffer[1] = 0U;
+    writeAt(buffer, 0U, 42U);
+    if (buffer[0U] != 42) return 1;
+    writeAt(buffer, 1U, 99U);
+    if (buffer[1U] != 99) return 2;
+    writeFirst(buffer, 123U);
+    if (buffer[0U] != 123) return 3;
     uint8_t source[4] = {0};
     uint8_t dest[4] = {0};
-    source[0] = 0;
-    source[1] = 0;
-    source[2] = 0;
-    source[3] = 0;
-    dest[0] = 0;
-    dest[1] = 0;
-    dest[2] = 0;
-    dest[3] = 0;
-    source[2] = 200;
-    copyElement(source, dest, 2);
-    if (dest[2] != 200) return 4;
+    source[0] = 0U;
+    source[1] = 0U;
+    source[2] = 0U;
+    source[3] = 0U;
+    dest[0] = 0U;
+    dest[1] = 0U;
+    dest[2] = 0U;
+    dest[3] = 0U;
+    source[2] = 200U;
+    copyElement(source, dest, 2U);
+    if (dest[2U] != 200) return 4;
     return 0;
 }

@@ -10,35 +10,35 @@
 // Tests: Character literal escape sequences
 // Validates that escape sequences in char literals work correctly
 int main(void) {
-    uint8_t newline = (uint8_t)'\n';
+    uint8_t newline = '\n';
     if (newline != 10) return 1;
-    uint8_t tab = (uint8_t)'\t';
+    uint8_t tab = '\t';
     if (tab != 9) return 2;
-    uint8_t cr = (uint8_t)'\r';
+    uint8_t cr = '\r';
     if (cr != 13) return 3;
-    uint8_t nul = (uint8_t)'\0';
+    uint8_t nul = '\0';
     if (nul != 0) return 4;
-    uint8_t backslash = (uint8_t)'\\';
+    uint8_t backslash = '\\';
     if (backslash != 92) return 5;
-    uint8_t quote = (uint8_t)'\'';
+    uint8_t quote = '\'';
     if (quote != 39) return 6;
-    uint8_t dquote = (uint8_t)'\"';
+    uint8_t dquote = '\"';
     if (dquote != 34) return 7;
-    uint8_t escapes[7] = {(uint8_t)'\n', (uint8_t)'\t', (uint8_t)'\r', (uint8_t)'\0', (uint8_t)'\\', (uint8_t)'\'', (uint8_t)'\"'};
-    if (escapes[0] != 10) return 8;
-    if (escapes[1] != 9) return 9;
-    if (escapes[2] != 13) return 10;
-    if (escapes[3] != 0) return 11;
-    if (escapes[4] != 92) return 12;
-    if (escapes[5] != 39) return 13;
-    if (escapes[6] != 34) return 14;
-    uint8_t c = (uint8_t)'\n';
+    uint8_t escapes[7] = {'\n', '\t', '\r', '\0', '\\', '\'', '\"'};
+    if (escapes[0U] != 10) return 8;
+    if (escapes[1U] != 9) return 9;
+    if (escapes[2U] != 13) return 10;
+    if (escapes[3U] != 0) return 11;
+    if (escapes[4U] != 92) return 12;
+    if (escapes[5U] != 39) return 13;
+    if (escapes[6U] != 34) return 14;
+    uint8_t c = '\n';
     if (c != '\n') return 15;
-    c = (uint8_t)'\t';
+    c = '\t';
     if (c != '\t') return 16;
-    c = (uint8_t)'\0';
+    c = '\0';
     if (c != '\0') return 17;
-    uint8_t whitespace = (uint8_t)'\t';
+    uint8_t whitespace = '\t';
     uint32_t wsType = 0U;
     switch (whitespace) {
         case ' ': {
@@ -63,7 +63,7 @@ int main(void) {
         }
     }
     if (wsType != 2) return 18;
-    whitespace = (uint8_t)'\n';
+    whitespace = '\n';
     switch (whitespace) {
         case ' ': {
             wsType = 1U;

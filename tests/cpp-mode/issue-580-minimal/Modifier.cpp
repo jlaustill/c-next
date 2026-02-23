@@ -6,7 +6,7 @@
 #include "Modifier.hpp"
 
 // test-cpp-only
-#include "Config.h"
+#include "Config.hpp"
 
 /* Scope: Modifier */
 

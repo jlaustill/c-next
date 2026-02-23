@@ -10,19 +10,19 @@
 uint8_t matrix[4][4] = {0};
 
 int main(void) {
-    matrix[0][0] = 10;
-    matrix[1][1] = 20;
-    matrix[2][2] = 100;
-    matrix[0][0] += 5;
-    matrix[1][1] -= 8;
-    matrix[2][2] *= 2;
-    if (matrix[0][0] != 15) {
+    matrix[0][0] = 10U;
+    matrix[1][1] = 20U;
+    matrix[2][2] = 100U;
+    matrix[0][0] += 5U;
+    matrix[1][1] -= 8U;
+    matrix[2][2] *= 2U;
+    if (matrix[0U][0U] != 15) {
         return 1;
     }
-    if (matrix[1][1] != 12) {
+    if (matrix[1U][1U] != 12) {
         return 1;
     }
-    if (matrix[2][2] != 200) {
+    if (matrix[2U][2U] != 200) {
         return 1;
     }
     return 0;

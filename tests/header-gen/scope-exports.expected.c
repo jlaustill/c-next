@@ -10,7 +10,7 @@
 // Issue #403: Scope exports header generation test
 // Tests that public scope functions are exported in the header.
 /* Scope: LED */
-static uint8_t LED_brightness = 0;
+static uint8_t LED_brightness = 0U;
 
 void LED_on(void) {
     LED_brightness = 255U;
@@ -34,5 +34,5 @@ static void LED_privateReset(void) {
 
 int main(void) {
     LED_on();
-    LED_setBrightness(100);
+    LED_setBrightness(100U);
 }

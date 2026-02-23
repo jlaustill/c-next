@@ -542,6 +542,31 @@ describe("HeaderGeneratorUtils", () => {
 
       expect(lines[lines.length - 1]).toBe("");
     });
+
+    it("passes through userIncludes as-is (extension already correct from IncludeExtractor)", () => {
+      const lines = HeaderGeneratorUtils.generateIncludes(
+        {
+          userIncludes: ['#include "types.hpp"'],
+          cppMode: true,
+        },
+        new Set(),
+      );
+
+      expect(lines).toContain('#include "types.hpp"');
+    });
+
+    it("deduplicates headersToInclude against userIncludes with .h/.hpp normalization in C++ mode", () => {
+      const result = HeaderGeneratorUtils.generateIncludes(
+        {
+          userIncludes: ['#include "types.hpp"'],
+          cppMode: true,
+        },
+        new Set(['#include "types.h"']),
+      );
+      // Should NOT have duplicate - the .h version should be filtered
+      const typeIncludes = result.filter((l) => l.includes("types"));
+      expect(typeIncludes).toEqual(['#include "types.hpp"']);
+    });
   });
 
   describe("generateCppWrapperStart", () => {

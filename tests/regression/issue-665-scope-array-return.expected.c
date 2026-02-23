@@ -77,11 +77,11 @@ void TestArithmetic_set(uint8_t idx, int32_t value) {
 }
 
 int32_t TestArithmetic_getNext(uint8_t idx) {
-    return TestArithmetic_arr[idx + 1];
+    return TestArithmetic_arr[idx + 1U];
 }
 
 int32_t TestArithmetic_getPrev(uint8_t idx) {
-    return TestArithmetic_arr[idx - 1];
+    return TestArithmetic_arr[idx - 1U];
 }
 
 int main(void) {
@@ -94,19 +94,19 @@ int main(void) {
     if (v1 != 1.0) return 1;
     if (v2 != 2.0) return 2;
     if (v3 != 3.0) return 3;
-    TestIntIndex_set(0, 100);
-    TestIntIndex_set(1, 200);
-    TestIntIndex_set(2, 300);
-    int32_t d1 = TestIntIndex_get(0);
-    int32_t d2 = TestIntIndex_get(1);
-    int32_t d3 = TestIntIndex_get(2);
+    TestIntIndex_set(0U, 100);
+    TestIntIndex_set(1U, 200);
+    TestIntIndex_set(2U, 300);
+    int32_t d1 = TestIntIndex_get(0U);
+    int32_t d2 = TestIntIndex_get(1U);
+    int32_t d3 = TestIntIndex_get(2U);
     if (d1 != 100) return 4;
     if (d2 != 200) return 5;
     if (d3 != 300) return 6;
-    TestLiteral_set(0, 1000);
-    TestLiteral_set(1, 2000);
-    TestLiteral_set(2, 3000);
-    TestLiteral_set(3, 4000);
+    TestLiteral_set(0U, 1000U);
+    TestLiteral_set(1U, 2000U);
+    TestLiteral_set(2U, 3000U);
+    TestLiteral_set(3U, 4000U);
     uint16_t l1 = TestLiteral_get(0U);
     uint16_t l2 = TestLiteral_get(1U);
     uint16_t l3 = TestLiteral_get(2U);
@@ -115,10 +115,10 @@ int main(void) {
     if (l2 != 2000) return 8;
     if (l3 != 3000) return 9;
     if (l4 != 4000) return 10;
-    TestMultiple_setFirst(EIndex_FIRST, 10);
-    TestMultiple_setFirst(EIndex_SECOND, 20);
-    TestMultiple_setSecond(EIndex_FIRST, 30);
-    TestMultiple_setSecond(EIndex_SECOND, 40);
+    TestMultiple_setFirst(EIndex_FIRST, 10U);
+    TestMultiple_setFirst(EIndex_SECOND, 20U);
+    TestMultiple_setSecond(EIndex_FIRST, 30U);
+    TestMultiple_setSecond(EIndex_SECOND, 40U);
     uint8_t m1 = TestMultiple_getFirst(EIndex_FIRST);
     uint8_t m2 = TestMultiple_getFirst(EIndex_SECOND);
     uint8_t m3 = TestMultiple_getSecond(EIndex_FIRST);
@@ -127,13 +127,13 @@ int main(void) {
     if (m2 != 20) return 12;
     if (m3 != 30) return 13;
     if (m4 != 40) return 14;
-    TestArithmetic_set(0, 111);
-    TestArithmetic_set(1, 222);
-    TestArithmetic_set(2, 333);
-    int32_t a1 = TestArithmetic_getNext(0);
-    int32_t a2 = TestArithmetic_getNext(1);
-    int32_t a3 = TestArithmetic_getPrev(1);
-    int32_t a4 = TestArithmetic_getPrev(2);
+    TestArithmetic_set(0U, 111);
+    TestArithmetic_set(1U, 222);
+    TestArithmetic_set(2U, 333);
+    int32_t a1 = TestArithmetic_getNext(0U);
+    int32_t a2 = TestArithmetic_getNext(1U);
+    int32_t a3 = TestArithmetic_getPrev(1U);
+    int32_t a4 = TestArithmetic_getPrev(2U);
     if (a1 != 222) return 15;
     if (a2 != 333) return 16;
     if (a3 != 111) return 17;

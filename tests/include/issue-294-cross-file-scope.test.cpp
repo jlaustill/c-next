@@ -11,7 +11,7 @@
 // Tests that including a file with a scope allows calling that scope's
 // public functions, and the generated code uses underscore notation
 // (e.g., decoder_getSpn) not dot notation (decoder.getSpn)
-#include <issue-294-decoder.h>
+#include <issue-294-decoder.hpp>
 
 #include <stdint.h>
 
@@ -28,14 +28,14 @@ uint8_t handler_extractByte(const uint8_t data[8], uint8_t idx) {
 
 int main(void) {
     uint8_t testData[8] = {0};
-    testData[0] = 0x34;
-    testData[1] = 0x12;
-    testData[2] = 0xAB;
-    testData[3] = 0xCD;
-    testData[4] = 0x00;
-    testData[5] = 0x00;
-    testData[6] = 0x00;
-    testData[7] = 0x00;
+    testData[0] = 0x34U;
+    testData[1] = 0x12U;
+    testData[2] = 0xABU;
+    testData[3] = 0xCDU;
+    testData[4] = 0x00U;
+    testData[5] = 0x00U;
+    testData[6] = 0x00U;
+    testData[7] = 0x00U;
     uint16_t spn = decoder_getSpn(testData);
     if (spn != 4660) return 1;
     uint8_t byte0 = decoder_getByte(testData, 0U);

@@ -12,12 +12,12 @@
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators
 /* Scope: WrapTest */
-static uint8_t WrapTest_byteCounter = 250;
-static uint16_t WrapTest_tickCount = 65530;
-static uint32_t WrapTest_cycleCounter = 4294967290;
-static uint8_t WrapTest_brightness = 10;
-static uint16_t WrapTest_sensorValue = 100;
-static uint32_t WrapTest_position = 50;
+static uint8_t WrapTest_byteCounter = 250U;
+static uint16_t WrapTest_tickCount = 65530U;
+static uint32_t WrapTest_cycleCounter = 4294967290U;
+static uint8_t WrapTest_brightness = 10U;
+static uint16_t WrapTest_sensorValue = 100U;
+static uint32_t WrapTest_position = 50U;
 
 uint8_t WrapTest_getByteCounter(void) {
     return WrapTest_byteCounter;
@@ -140,15 +140,15 @@ int main(void) {
     WrapTest_incrementPosition();
     posResult = WrapTest_getPosition();
     if (posResult != 1050) return 12;
-    WrapTest_setBrightness(10);
+    WrapTest_setBrightness(10U);
     WrapTest_decrementBrightness();
     brightResult = WrapTest_getBrightness();
     if (brightResult != 246) return 13;
-    WrapTest_setSensorValue(100);
+    WrapTest_setSensorValue(100U);
     WrapTest_decrementSensorValue();
     sensorResult = WrapTest_getSensorValue();
     if (sensorResult != 65486) return 14;
-    WrapTest_setPosition(50);
+    WrapTest_setPosition(50U);
     WrapTest_decrementPosition();
     posResult = WrapTest_getPosition();
     if (posResult != 4294967246) return 15;

@@ -29,5 +29,5 @@ typedef struct TData {
 TData data = {0};
 
 int main(void) {
-    data.buffer[0] = 1;
+    data.buffer[0] = 1U;
 }

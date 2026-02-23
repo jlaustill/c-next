@@ -80,9 +80,9 @@ bool globalBufferLock = false;
 
 /* Scope: CriticalTest */
 static uint8_t CriticalTest_buffer[32] = {0};
-static uint32_t CriticalTest_writeIndex = 0;
-static uint32_t CriticalTest_readIndex = 0;
-static uint8_t CriticalTest_count = 0;
+static uint32_t CriticalTest_writeIndex = 0U;
+static uint32_t CriticalTest_readIndex = 0U;
+static uint8_t CriticalTest_count = 0U;
 static bool CriticalTest_locked = false;
 
 static void CriticalTest_internalEnqueue(uint8_t data) {
@@ -288,8 +288,8 @@ void CriticalTest_lockedEnqueue(uint8_t data) {
 }
 
 int main(void) {
-    CriticalTest_enqueue(42);
-    CriticalTest_enqueue(84);
+    CriticalTest_enqueue(42U);
+    CriticalTest_enqueue(84U);
     CriticalTest_dequeue();
     CriticalTest_updateGlobalIndex();
     CriticalTest_transferToGlobal();
@@ -299,7 +299,7 @@ int main(void) {
     CriticalTest_unlock();
     CriticalTest_resetAll();
     CriticalTest_isInSync();
-    CriticalTest_safeEnqueue(10);
+    CriticalTest_safeEnqueue(10U);
     CriticalTest_safeDequeue();
-    CriticalTest_lockedEnqueue(20);
+    CriticalTest_lockedEnqueue(20U);
 }

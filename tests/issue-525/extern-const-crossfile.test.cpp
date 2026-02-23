@@ -6,7 +6,7 @@
 // test-execution
 // Issue #525: Cross-file const linkage test
 // This tests the ACTUAL bug scenario: const defined in one file, used in another
-#include "const-types.h"
+#include "const-types.hpp"
 
 #include <stdint.h>
 
@@ -16,8 +16,8 @@ int main(void) {
     if (DWORD_CONST != 100000) return 3;
     uint8_t firstChar = STRING_CONST[0U];
     if (firstChar != 72) return 4;
-    if (BYTE_ARRAY[0] != 1) return 5;
-    if (BYTE_ARRAY[3] != 4) return 6;
+    if (BYTE_ARRAY[0U] != 1) return 5;
+    if (BYTE_ARRAY[3U] != 4) return 6;
     uint8_t oneFirst = STRING_ARRAY[0U][0U];
     if (oneFirst != 111) return 7;
     return 0;

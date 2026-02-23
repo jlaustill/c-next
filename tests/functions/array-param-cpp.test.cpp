@@ -10,40 +10,40 @@
 // Tests: C-Next style array parameters in C++ mode
 // Bug: u8[8] param generated as uint8_t& instead of uint8_t param[8]
 void fillBuffer(uint8_t buf[8]) {
-    buf[0] = 0xAA;
-    buf[1] = 0xBB;
+    buf[0] = 0xAAU;
+    buf[1] = 0xBBU;
 }
 
 uint8_t readFirst(const uint8_t data[8]) {
-    return data[0];
+    return data[0U];
 }
 
 uint8_t readSecond(const uint8_t data[4]) {
-    return data[1];
+    return data[1U];
 }
 
 // Test non-const and const array params together
 uint8_t sumFirstTwo(uint8_t buf[8], const uint8_t ref[4]) {
-    buf[0] = ref[0];
-    return buf[0] + ref[1];
+    buf[0] = ref[0U];
+    return buf[0U] + ref[1U];
 }
 
 int main(void) {
     uint8_t buffer[8] = {0};
     fillBuffer(buffer);
-    if (buffer[0] != 0xAA) return 1;
-    if (buffer[1] != 0xBB) return 2;
+    if (buffer[0U] != 0xAA) return 1;
+    if (buffer[1U] != 0xBB) return 2;
     uint8_t data[8] = {0};
-    data[0] = 42;
+    data[0] = 42U;
     uint8_t val = readFirst(data);
     if (val != 42) return 3;
     uint8_t small[4] = {0};
-    small[1] = 99;
+    small[1] = 99U;
     uint8_t val2 = readSecond(small);
     if (val2 != 99) return 4;
     uint8_t ref[4] = {0};
-    ref[0] = 10;
-    ref[1] = 20;
+    ref[0] = 10U;
+    ref[1] = 20U;
     uint8_t dest[8] = {0};
     uint8_t sum = sumFirstTwo(dest, ref);
     if (sum != 30) return 5;

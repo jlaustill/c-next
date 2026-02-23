@@ -18,20 +18,20 @@ int main(void) {
     matrix2d[0][7] = -2.75;
     matrix2d[1][3] = 100.5;
     matrix2d[3][7] = 0.0;
-    if (matrix2d[0][0] != 3.125) return 1;
-    if (matrix2d[0][7] != -2.75) return 2;
-    if (matrix2d[1][3] != 100.5) return 3;
-    if (matrix2d[3][7] != 0.0) return 4;
+    if (matrix2d[0U][0U] != 3.125) return 1;
+    if (matrix2d[0U][7U] != -2.75) return 2;
+    if (matrix2d[1U][3U] != 100.5) return 3;
+    if (matrix2d[3U][7U] != 0.0) return 4;
     cube3d[0][0][0] = 1.5;
     cube3d[0][0][3] = -10.25;
     cube3d[0][2][3] = 0.0;
     cube3d[1][0][0] = 99.5;
     cube3d[1][2][3] = -0.0625;
-    if (cube3d[0][0][0] != 1.5) return 5;
-    if (cube3d[0][0][3] != -10.25) return 6;
-    if (cube3d[0][2][3] != 0.0) return 7;
-    if (cube3d[1][0][0] != 99.5) return 8;
-    if (cube3d[1][2][3] != -0.0625) return 9;
+    if (cube3d[0U][0U][0U] != 1.5) return 5;
+    if (cube3d[0U][0U][3U] != -10.25) return 6;
+    if (cube3d[0U][2U][3U] != 0.0) return 7;
+    if (cube3d[1U][0U][0U] != 99.5) return 8;
+    if (cube3d[1U][2U][3U] != -0.0625) return 9;
     if (4 != 4) return 10;
     if (8 != 8) return 11;
     if (32 != 32) return 12;
@@ -44,10 +44,10 @@ int main(void) {
             matrix2d[i][j] = i * 2.5 + j * 0.5;
         }
     }
-    if (matrix2d[0][0] != 0.0) return 17;
-    if (matrix2d[0][7] != 3.5) return 18;
-    if (matrix2d[1][3] != 4.0) return 19;
-    if (matrix2d[3][7] != 11.0) return 20;
+    if (matrix2d[0U][0U] != 0.0) return 17;
+    if (matrix2d[0U][7U] != 3.5) return 18;
+    if (matrix2d[1U][3U] != 4.0) return 19;
+    if (matrix2d[3U][7U] != 11.0) return 20;
     float sum = 0.0;
     for (uint32_t i = 0; i < 2; i += 1) {
         for (uint32_t j = 0; j < 3; j += 1) {
@@ -59,9 +59,9 @@ int main(void) {
     }
     if (sum != 198.0) return 21;
     matrix2d[2][4] = -1000.0;
-    if (matrix2d[2][4] != -1000.0) return 22;
+    if (matrix2d[2U][4U] != -1000.0) return 22;
     matrix2d[3][7] = 42.5;
-    if (matrix2d[3][7] != 42.5) return 23;
+    if (matrix2d[3U][7U] != 42.5) return 23;
     float testArray[4][2] = {0};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
@@ -74,12 +74,12 @@ int main(void) {
     testArray[1][1] = -1.0;
     testArray[2][0] = 0.125;
     testArray[3][1] = -0.125;
-    if (testArray[0][0] != 0.0) return 24;
-    if (testArray[0][1] != -0.0) return 25;
-    if (testArray[1][0] != 1.0) return 26;
-    if (testArray[1][1] != -1.0) return 27;
-    if (testArray[2][0] != 0.125) return 28;
-    if (testArray[3][1] != -0.125) return 29;
+    if (testArray[0U][0U] != 0.0) return 24;
+    if (testArray[0U][1U] != -0.0) return 25;
+    if (testArray[1U][0U] != 1.0) return 26;
+    if (testArray[1U][1U] != -1.0) return 27;
+    if (testArray[2U][0U] != 0.125) return 28;
+    if (testArray[3U][1U] != -0.125) return 29;
     float temps[3][3] = {0};
     for (uint32_t tei = 0; tei < 3; tei += 1) {
         for (uint32_t tej = 0; tej < 3; tej += 1) {
@@ -93,11 +93,11 @@ int main(void) {
     temps[1][1] = 20.5;
     temps[2][0] = -40.0;
     temps[2][1] = 1000.0;
-    if (temps[0][0] != -273.0) return 30;
-    if (temps[0][1] != 0.0) return 31;
-    if (temps[0][2] != 100.0) return 32;
-    if (temps[1][0] != 37.0) return 33;
-    if (temps[2][0] != -40.0) return 34;
+    if (temps[0U][0U] != -273.0) return 30;
+    if (temps[0U][1U] != 0.0) return 31;
+    if (temps[0U][2U] != 100.0) return 32;
+    if (temps[1U][0U] != 37.0) return 33;
+    if (temps[2U][0U] != -40.0) return 34;
     float precise[2][2] = {0};
     for (uint32_t pi = 0; pi < 2; pi += 1) {
         for (uint32_t pj = 0; pj < 2; pj += 1) {
@@ -108,10 +108,10 @@ int main(void) {
     precise[0][1] = 0.0625;
     precise[1][0] = 1000.0;
     precise[1][1] = -123.5;
-    if (precise[0][0] != 0.125) return 35;
-    if (precise[0][1] != 0.0625) return 36;
-    if (precise[1][0] != 1000.0) return 37;
-    if (precise[1][1] != -123.5) return 38;
+    if (precise[0U][0U] != 0.125) return 35;
+    if (precise[0U][1U] != 0.0625) return 36;
+    if (precise[1U][0U] != 1000.0) return 37;
+    if (precise[1U][1U] != -123.5) return 38;
     float calc[2][2] = {0};
     for (uint32_t ci = 0; ci < 2; ci += 1) {
         for (uint32_t cj = 0; cj < 2; cj += 1) {
@@ -120,7 +120,7 @@ int main(void) {
     }
     calc[0][0] = 10.5;
     calc[0][1] = 5.25;
-    float calcSum = calc[0][0] + calc[0][1];
+    float calcSum = calc[0U][0U] + calc[0U][1U];
     if (calcSum != 15.75) return 39;
     float coords[2][4] = {0};
     for (uint32_t coi = 0; coi < 2; coi += 1) {
@@ -136,8 +136,8 @@ int main(void) {
     coords[1][1] = 0.375;
     coords[1][2] = 0.625;
     coords[1][3] = 0.875;
-    if (coords[0][0] != 0.0) return 40;
-    if (coords[0][3] != 0.75) return 41;
-    if (coords[1][0] != 1.0) return 42;
+    if (coords[0U][0U] != 0.0) return 40;
+    if (coords[0U][3U] != 0.75) return 41;
+    if (coords[1U][0U] != 1.0) return 42;
     return 0;
 }

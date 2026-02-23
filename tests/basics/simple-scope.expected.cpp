@@ -57,7 +57,7 @@ int main(void) {
     Counter_increment();
     val = Counter_get();
     if (val != 3) return 3;
-    Counter_add(10);
+    Counter_add(10U);
     val = Counter_get();
     if (val != 13) return 4;
     Counter_reset();

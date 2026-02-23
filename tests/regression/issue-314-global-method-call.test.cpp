@@ -33,7 +33,7 @@ void testUndeclaredExternalClasses(void) {
     Wire::begin();
     Wire::beginTransmission(0x50);
     SPI::begin();
-    SPI::transfer(0xFF);
+    SPI::transfer(0xFFU);
     ExternalLib::initialize();
     int32_t result = ExternalLib::compute(42);
 }

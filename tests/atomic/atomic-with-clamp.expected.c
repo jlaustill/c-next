@@ -104,9 +104,9 @@ void adjustTemperature(int8_t delta) {
 }
 
 int main(void) {
-    adjustBrightness(50);
-    decreaseBrightness(200);
-    updateVolume(1000);
+    adjustBrightness(50U);
+    decreaseBrightness(200U);
+    updateVolume(1000U);
     incrementCounter();
     adjustTemperature(100);
     adjustTemperature(-100);

@@ -525,8 +525,6 @@ class VariableDeclHelper {
     }
 
     const typeName = callbacks.getTypeName(typeCtx);
-    const savedExpectedType = CodeGenState.expectedType;
-    CodeGenState.expectedType = typeName;
 
     // ADR-017: Validate enum type for initialization
     EnumAssignmentValidator.validateEnumAssignment(typeName, ctx.expression()!);
@@ -536,39 +534,39 @@ class VariableDeclHelper {
       getExpressionType: callbacks.getExpressionType,
     });
 
-    // Generate the expression
-    let exprCode = callbacks.generateExpression(ctx.expression()!);
+    // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
+    // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
+    return CodeGenState.withExpectedType(typeName, () => {
+      let exprCode = callbacks.generateExpression(ctx.expression()!);
 
-    // MISRA 10.3: Check for cross-type-category conversions (int <-> float)
-    const exprType = callbacks.getExpressionType(ctx.expression()!);
-    if (
-      exprType &&
-      NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
-    ) {
-      // Int to float: add explicit cast
+      // MISRA 10.3: Check for cross-type-category conversions (int <-> float)
+      const exprType = callbacks.getExpressionType(ctx.expression()!);
       if (
-        NarrowingCastHelper.isIntegerType(exprType) &&
-        NarrowingCastHelper.isFloatType(typeName)
+        exprType &&
+        NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
       ) {
-        exprCode = NarrowingCastHelper.wrapIntToFloat(exprCode, typeName);
+        // Int to float: add explicit cast
+        if (
+          NarrowingCastHelper.isIntegerType(exprType) &&
+          NarrowingCastHelper.isFloatType(typeName)
+        ) {
+          exprCode = NarrowingCastHelper.wrapIntToFloat(exprCode, typeName);
+        }
+        // Float to int: add explicit cast for MISRA compliance
+        // Note: For safety, users should use explicit cast in C-Next source: (i32)float
+        // which generates a clamping expression. This implicit cast is just for
+        // MISRA 10.3 compliance when user omits explicit cast.
+        if (
+          NarrowingCastHelper.isFloatType(exprType) &&
+          NarrowingCastHelper.isIntegerType(typeName)
+        ) {
+          const cType = TYPE_MAP[typeName] ?? typeName;
+          exprCode = CppModeHelper.cast(cType, exprCode);
+        }
       }
-      // Float to int: add explicit cast for MISRA compliance
-      // Note: For safety, users should use explicit cast in C-Next source: (i32)float
-      // which generates a clamping expression. This implicit cast is just for
-      // MISRA 10.3 compliance when user omits explicit cast.
-      if (
-        NarrowingCastHelper.isFloatType(exprType) &&
-        NarrowingCastHelper.isIntegerType(typeName)
-      ) {
-        const cType = TYPE_MAP[typeName] ?? typeName;
-        exprCode = CppModeHelper.cast(cType, exprCode);
-      }
-    }
 
-    const result = `${decl} = ${exprCode}`;
-    CodeGenState.expectedType = savedExpectedType;
-
-    return result;
+      return `${decl} = ${exprCode}`;
+    });
   }
 
   // ========================================================================
