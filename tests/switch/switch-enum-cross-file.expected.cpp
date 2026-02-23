@@ -5,7 +5,7 @@
 
 // Issue #471: Cross-file enum resolution in case labels
 // Tests that enum values from included files get resolved correctly
-#include "switch-enum-cross-file-types.h"
+#include "switch-enum-cross-file-types.hpp"
 
 #include <stdint.h>
 

@@ -6,8 +6,8 @@
 #include "Level2.hpp"
 
 // test-cpp-only
-#include "Config.h"
-#include "Level3.h"
+#include "Config.hpp"
+#include "Level3.hpp"
 
 /* Scope: Level2 */
 

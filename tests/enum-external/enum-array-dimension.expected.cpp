@@ -5,7 +5,7 @@
 
 // test-execution
 // Tests: Cross-file enum value used as array dimension gets correct prefix
-#include "array-types.h"
+#include "array-types.hpp"
 
 #include <stdint.h>
 

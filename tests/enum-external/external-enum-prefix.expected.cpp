@@ -6,7 +6,7 @@
 // test-execution
 // Issue #465: Enum values from external files should get type prefix
 // Tests that PRESSURE_TYPE_PSIG from types.cnx becomes EPressureType_PRESSURE_TYPE_PSIG
-#include "types.h"
+#include "types.hpp"
 
 #include <stdint.h>
 

@@ -9,7 +9,7 @@
 // Issue #315: Test SMALL_PRIMITIVE_TYPES path for cross-file calls
 // This test uses u8 parameters which are handled by the isSmallPrimitive check,
 // NOT the isFloatParam check (which is tested by the main test file).
-#include <TestFuncSmall.h>
+#include <TestFuncSmall.hpp>
 
 #include <stdint.h>
 

@@ -6,7 +6,7 @@
 // test-execution
 // Issue #525: Cross-file const linkage test
 // This tests the ACTUAL bug scenario: const defined in one file, used in another
-#include "const-types.h"
+#include "const-types.hpp"
 
 #include <stdint.h>
 

@@ -8,9 +8,9 @@
 // test-cpp-only
 // Issue #580: Incorrect const inference when parameter is only passed to mutating function
 // handleReset was incorrectly marked const even though it passes config to reset() which mutates it
-#include "Config.h"
-#include "CommandHandler.h"
-#include "Serial.h"
+#include "Config.hpp"
+#include "CommandHandler.hpp"
+#include "Serial.hpp"
 
 #include <stdint.h>
 

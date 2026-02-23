@@ -8,8 +8,8 @@
 // test-cpp-only
 // Issue #580 chain test: 3-level deep pass-through chain
 // Level1 -> Level2 -> Level3 (modifies)
-#include "Config.h"
-#include "Level2.h"
+#include "Config.hpp"
+#include "Level2.hpp"
 
 /* Scope: Level1 */
 

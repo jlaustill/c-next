@@ -5,8 +5,8 @@
 
 // Issue #465: Test multiple external enums from different files
 // Verifies that enum prefixing works when including multiple files with enums
-#include "types.h"
-#include "status.h"
+#include "types.hpp"
+#include "status.hpp"
 
 #include <stdint.h>
 

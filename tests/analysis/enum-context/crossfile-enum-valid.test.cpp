@@ -5,7 +5,7 @@
 
 // test-execution
 // Tests: Cross-file unqualified enum SHOULD work when return type is the enum
-#include "cross-file-types.h"
+#include "cross-file-types.hpp"
 
 #include <stdint.h>
 

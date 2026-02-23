@@ -5,7 +5,7 @@
 
 // Issue #404: Mid-level types for chained forward declaration test
 // Level 2: Uses Coordinate from base
-#include <chain-types-base.h>
+#include <chain-types-base.hpp>
 
 #include <stdint.h>
 

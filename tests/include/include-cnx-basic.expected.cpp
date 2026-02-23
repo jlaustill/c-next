@@ -6,7 +6,7 @@
 // test-execution
 // ADR-010: C Interoperability - Include C-Next files
 // Tests: #include <file.cnx> transpiles to #include <file.h>
-#include <helper-types.h>
+#include <helper-types.hpp>
 
 #include <stdint.h>
 
