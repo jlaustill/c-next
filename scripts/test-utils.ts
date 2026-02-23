@@ -1280,11 +1280,6 @@ class TestUtils {
       }
     }
 
-    if (differences.length === 0 && cStdout !== cppStdout) {
-      // Edge case: different but no line-by-line diff (e.g., trailing newline)
-      return `C output (${cStdout.length} chars) differs from C++ output (${cppStdout.length} chars)`;
-    }
-
     return (
       differences.slice(0, 15).join("\n") +
       (differences.length > 15
