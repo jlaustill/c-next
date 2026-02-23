@@ -10,21 +10,21 @@
 // Tests: Character literal escape sequences
 // Validates that escape sequences in char literals work correctly
 int main(void) {
-    uint8_t newline = '\n';
+    uint8_t newline = (uint8_t)'\n';
     if (newline != 10) return 1;
-    uint8_t tab = '\t';
+    uint8_t tab = (uint8_t)'\t';
     if (tab != 9) return 2;
-    uint8_t cr = '\r';
+    uint8_t cr = (uint8_t)'\r';
     if (cr != 13) return 3;
-    uint8_t nul = '\0';
+    uint8_t nul = (uint8_t)'\0';
     if (nul != 0) return 4;
-    uint8_t backslash = '\\';
+    uint8_t backslash = (uint8_t)'\\';
     if (backslash != 92) return 5;
-    uint8_t quote = '\'';
+    uint8_t quote = (uint8_t)'\'';
     if (quote != 39) return 6;
-    uint8_t dquote = '\"';
+    uint8_t dquote = (uint8_t)'\"';
     if (dquote != 34) return 7;
-    uint8_t escapes[7] = {'\n', '\t', '\r', '\0', '\\', '\'', '\"'};
+    uint8_t escapes[7] = {(uint8_t)'\n', (uint8_t)'\t', (uint8_t)'\r', (uint8_t)'\0', (uint8_t)'\\', (uint8_t)'\'', (uint8_t)'\"'};
     if (escapes[0U] != 10) return 8;
     if (escapes[1U] != 9) return 9;
     if (escapes[2U] != 13) return 10;
@@ -32,13 +32,13 @@ int main(void) {
     if (escapes[4U] != 92) return 12;
     if (escapes[5U] != 39) return 13;
     if (escapes[6U] != 34) return 14;
-    uint8_t c = '\n';
+    uint8_t c = (uint8_t)'\n';
     if (c != '\n') return 15;
-    c = '\t';
+    c = (uint8_t)'\t';
     if (c != '\t') return 16;
-    c = '\0';
+    c = (uint8_t)'\0';
     if (c != '\0') return 17;
-    uint8_t whitespace = '\t';
+    uint8_t whitespace = (uint8_t)'\t';
     uint32_t wsType = 0U;
     switch (whitespace) {
         case ' ': {
@@ -63,7 +63,7 @@ int main(void) {
         }
     }
     if (wsType != 2) return 18;
-    whitespace = '\n';
+    whitespace = (uint8_t)'\n';
     switch (whitespace) {
         case ' ': {
             wsType = 1U;

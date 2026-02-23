@@ -25,9 +25,9 @@
 // Meaning:        "width bits starting at bit position start"
 int main(void) {
     uint16_t pixel = 0x7BEFU;
-    uint8_t red = ((pixel >> 11U) & ((1U << 5U) - 1));
-    uint8_t green = ((pixel >> 5U) & ((1U << 6U) - 1));
-    uint8_t blue = ((pixel) & ((1U << 5U) - 1));
+    uint8_t red = static_cast<uint8_t>(((pixel >> 11U) & ((1U << 5U) - 1)));
+    uint8_t green = static_cast<uint8_t>(((pixel >> 5U) & ((1U << 6U) - 1)));
+    uint8_t blue = static_cast<uint8_t>(((pixel) & ((1U << 5U) - 1)));
     if (red != 15) return 1;
     if (green != 31) return 2;
     if (blue != 15) return 3;
@@ -44,14 +44,14 @@ int main(void) {
     if (((pureBlue >> 5U) & ((1U << 6U) - 1)) != 0) return 11;
     if (((pureBlue) & ((1U << 5U) - 1)) != 31) return 12;
     uint16_t modified = 0x7BEFU;
-    modified = (modified & ~(((1U << 6) - 1) << 5)) | ((63 & ((1U << 6) - 1)) << 5);
+    modified = (uint16_t)((modified & ~(((1U << 6) - 1) << 5)) | ((63 & ((1U << 6) - 1)) << 5));
     if (((modified >> 11U) & ((1U << 5U) - 1)) != 15) return 13;
     if (((modified >> 5U) & ((1U << 6U) - 1)) != 63) return 14;
     if (((modified) & ((1U << 5U) - 1)) != 15) return 15;
     uint16_t custom = 0U;
-    custom = (custom & ~(((1U << 5) - 1) << 11)) | ((31 & ((1U << 5) - 1)) << 11);
-    custom = (custom & ~(((1U << 6) - 1) << 5)) | ((32 & ((1U << 6) - 1)) << 5);
-    custom = (custom & ~(((1U << 5) - 1) << 0)) | ((16 & ((1U << 5) - 1)) << 0);
+    custom = (uint16_t)((custom & ~(((1U << 5) - 1) << 11)) | ((31 & ((1U << 5) - 1)) << 11));
+    custom = (uint16_t)((custom & ~(((1U << 6) - 1) << 5)) | ((32 & ((1U << 6) - 1)) << 5));
+    custom = (uint16_t)((custom & ~(((1U << 5) - 1) << 0)) | ((16 & ((1U << 5) - 1)) << 0));
     if (((custom >> 11U) & ((1U << 5U) - 1)) != 31) return 16;
     if (((custom >> 5U) & ((1U << 6U) - 1)) != 32) return 17;
     if (((custom) & ((1U << 5U) - 1)) != 16) return 18;
