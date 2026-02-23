@@ -33,7 +33,7 @@ void configureOptions(uint16_t opts) {
 }
 
 uint8_t readTimerMode(void) {
-    return ((TIMER_CTRL >> 0U) & ((1U << 4U) - 1));
+    return ((TIMER_CTRL) & ((1U << 4U) - 1));
 }
 
 uint8_t readTimerFlags(void) {

@@ -48,7 +48,7 @@ void writeExplicit(uint8_t buf[8], uint32_t idx) {
 // Test 7: Bit range on parameter should still be bit extraction (NOT array access)
 // This ensures we don't over-correct and treat value[0, 8] as array access
 uint8_t getLowByte(uint16_t value) {
-    return ((value >> 0U) & 0xFFU);
+    return ((value) & 0xFFU);
 }
 
 uint8_t getHighByte(uint16_t value) {

@@ -14,7 +14,7 @@ int main(void) {
     header = (header & ~(((1U << 2) - 1) << 4)) | ((2 & ((1U << 2) - 1)) << 4);
     header = (header & ~(1U << 6)) | (1U << 6);
     header = (header & ~(1U << 7)) | (0U << 7);
-    uint8_t msgType = ((header >> 0U) & ((1U << 4U) - 1));
+    uint8_t msgType = ((header) & ((1U << 4U) - 1));
     if (msgType != 5) return 1;
     uint8_t priority = ((header >> 4U) & ((1U << 2U) - 1));
     if (priority != 2) return 2;

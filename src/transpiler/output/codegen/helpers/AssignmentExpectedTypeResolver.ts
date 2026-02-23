@@ -112,49 +112,13 @@ class AssignmentExpectedTypeResolver {
    *
    * Issue #452: Enables type-aware resolution of unqualified enum members
    * for nested access (e.g., config.nested.field).
+   *
+   * Delegates to walkMemberChain shared implementation.
    */
   private static resolveForMemberChain(
     identifiers: string[],
   ): IExpectedTypeResult {
-    if (identifiers.length < 2) {
-      return { expectedType: null, assignmentContext: null };
-    }
-
-    const rootName = identifiers[0];
-    const rootTypeInfo = CodeGenState.getVariableTypeInfo(rootName);
-
-    if (!rootTypeInfo || !CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
-      return { expectedType: null, assignmentContext: null };
-    }
-
-    let currentStructType: string | undefined = rootTypeInfo.baseType;
-
-    // Walk through each member in the chain to find the final field's type
-    // Issue #831: Use SymbolTable as single source of truth for struct fields
-    for (let i = 1; i < identifiers.length && currentStructType; i++) {
-      const memberName = identifiers[i];
-      const memberType = CodeGenState.symbolTable?.getStructFieldType(
-        currentStructType,
-        memberName,
-      );
-
-      if (!memberType) {
-        break;
-      }
-
-      if (i === identifiers.length - 1) {
-        // Last field in chain - this is the assignment target's type
-        return { expectedType: memberType, assignmentContext: null };
-      } else if (CodeGenState.isKnownStruct(memberType)) {
-        // Intermediate field - continue walking if it's a struct
-        currentStructType = memberType;
-      } else {
-        // Intermediate field is not a struct - can't walk further
-        break;
-      }
-    }
-
-    return { expectedType: null, assignmentContext: null };
+    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers);
   }
 
   /**
@@ -163,7 +127,7 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForArrayElement(id: string): IExpectedTypeResult {
     const typeInfo = CodeGenState.getVariableTypeInfo(id);
-    if (!typeInfo || !typeInfo.isArray) {
+    if (!typeInfo?.isArray) {
       return { expectedType: null, assignmentContext: null };
     }
 
@@ -175,11 +139,22 @@ class AssignmentExpectedTypeResolver {
    * Resolve expected type for member chain ending with array access.
    * Issue #872: struct.arr[i] <- value needs element type for MISRA 7.2.
    *
-   * Walks the struct chain to find the final array field's element type.
+   * Delegates to walkMemberChain which handles both member chain and
+   * member-array-element patterns identically (both return final field type).
    */
   private static resolveForMemberArrayElement(
     identifiers: string[],
   ): IExpectedTypeResult {
+    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers);
+  }
+
+  /**
+   * Walk a struct member chain to find the final field's type.
+   * Shared implementation for both member chain and member-array-element patterns.
+   *
+   * Issue #831: Uses SymbolTable as single source of truth for struct fields.
+   */
+  private static walkMemberChain(identifiers: string[]): IExpectedTypeResult {
     if (identifiers.length < 2) {
       return { expectedType: null, assignmentContext: null };
     }
@@ -193,7 +168,6 @@ class AssignmentExpectedTypeResolver {
 
     let currentStructType: string | undefined = rootTypeInfo.baseType;
 
-    // Walk through member chain to find the final field type
     for (let i = 1; i < identifiers.length && currentStructType; i++) {
       const memberName = identifiers[i];
       const memberType = CodeGenState.symbolTable?.getStructFieldType(
@@ -206,13 +180,10 @@ class AssignmentExpectedTypeResolver {
       }
 
       if (i === identifiers.length - 1) {
-        // Last field in chain - this is an array, return its element type
         return { expectedType: memberType, assignmentContext: null };
       } else if (CodeGenState.isKnownStruct(memberType)) {
-        // Intermediate field - continue walking if it's a struct
         currentStructType = memberType;
       } else {
-        // Intermediate field is not a struct - can't walk further
         break;
       }
     }

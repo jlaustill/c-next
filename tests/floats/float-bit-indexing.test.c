@@ -42,7 +42,7 @@ int main(void) {
     if (byte2 != 0x80) return 5;
     uint8_t byte1 = ((__bits_testVal.u >> 8U) & 0xFFU);
     if (byte1 != 0x00) return 6;
-    uint8_t byte0 = ((__bits_testVal.u >> 0U) & 0xFFU);
+    uint8_t byte0 = (__bits_testVal.u & 0xFFU);
     if (byte0 != 0x00) return 7;
     float val = 0.0;
     union { float f; uint32_t u; } __bits_val;

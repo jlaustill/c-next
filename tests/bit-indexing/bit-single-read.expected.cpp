@@ -11,7 +11,7 @@
 // Tests: reading individual bits from integer
 int main(void) {
     uint8_t flags = 0b01010101U;
-    bool b0 = ((flags >> 0U) & 1);
+    bool b0 = ((flags) & 1);
     bool b1 = ((flags >> 1U) & 1);
     bool b2 = ((flags >> 2U) & 1);
     bool b7 = ((flags >> 7U) & 1);

@@ -1608,7 +1608,11 @@ const handleSingleSubscript = (
 
   // Register access: bit extraction
   if (isRegisterAccess) {
-    output.result = `((${ctx.result} >> ${index}) & 1)`;
+    // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
+    output.result =
+      index === "0" || index === "0U"
+        ? `((${ctx.result}) & 1)`
+        : `((${ctx.result} >> ${index}) & 1)`;
     return output;
   }
 
@@ -1629,7 +1633,11 @@ const handleSingleSubscript = (
   const isPrimitiveIntMember =
     ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
   if (isPrimitiveIntMember) {
-    output.result = `((${ctx.result} >> ${index}) & 1)`;
+    // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
+    output.result =
+      index === "0" || index === "0U"
+        ? `((${ctx.result}) & 1)`
+        : `((${ctx.result} >> ${index}) & 1)`;
     output.currentStructType = undefined;
     return output;
   }
@@ -1747,10 +1755,15 @@ const handleDefaultSubscript = (
     isRegisterAccess: false,
   });
 
-  output.result =
-    subscriptKind === "bit_single"
-      ? `((${ctx.result} >> ${index}) & 1)`
-      : `${ctx.result}[${index}]`;
+  if (subscriptKind === "bit_single") {
+    // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
+    output.result =
+      index === "0" || index === "0U"
+        ? `((${ctx.result}) & 1)`
+        : `((${ctx.result} >> ${index}) & 1)`;
+  } else {
+    output.result = `${ctx.result}[${index}]`;
+  }
 
   return output;
 };
@@ -1794,7 +1807,8 @@ const handleBitRangeSubscript = (
     );
   } else {
     const mask = orchestrator.generateBitMask(width);
-    if (start === "0") {
+    // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)
+    if (start === "0" || start === "0U") {
       output.result = `((${ctx.result}) & ${mask})`;
     } else {
       output.result = `((${ctx.result} >> ${start}) & ${mask})`;
@@ -1864,7 +1878,8 @@ const handleFloatBitRange = (
   }
 
   // Return just the bit read expression using union member .u
-  if (ctx.start === "0") {
+  // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)
+  if (ctx.start === "0" || ctx.start === "0U") {
     return `(${shadowName}.u & ${mask})`;
   }
   return `((${shadowName}.u >> ${ctx.start}) & ${mask})`;

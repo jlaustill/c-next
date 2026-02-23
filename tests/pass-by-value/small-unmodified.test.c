@@ -46,7 +46,7 @@ static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 // while modified parameters still pass by pointer.
 // --- Unmodified parameters: should pass by value ---
 uint8_t getLowByte(uint16_t value) {
-    return ((value >> 0U) & 0xFFU);
+    return ((value) & 0xFFU);
 }
 
 uint8_t getHighByte(uint16_t value) {
