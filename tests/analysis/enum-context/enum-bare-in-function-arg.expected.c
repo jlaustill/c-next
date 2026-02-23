@@ -6,8 +6,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// test-error
-// Tests: Bare enum member as function argument should error (no expectedType)
+// test-execution
+// Tests: Bare enum member as function argument resolves via expectedType (Issue #872)
+// Note: MISRA 7.2 compliance requires expectedType for unsigned literals, which
+// enables bare enum resolution as a beneficial side effect.
 typedef enum {
     Mode_OFF = 0,
     Mode_ON = 1

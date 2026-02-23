@@ -73,27 +73,21 @@ class ArgumentGenerator {
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
   ): string {
-    // Issue #872: Set expectedType for MISRA 7.2 compliance
-    const savedExpectedType = CodeGenState.expectedType;
-    if (targetParamBaseType) {
-      CodeGenState.expectedType = targetParamBaseType;
-    }
-
+    // Issue #872: Early return when no target type - no state management needed
     if (!targetParamBaseType) {
-      const result = callbacks.generateExpression(ctx);
-      CodeGenState.expectedType = savedExpectedType;
-      return result;
+      return callbacks.generateExpression(ctx);
     }
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (!cType || cType === "void") {
-      const result = callbacks.generateExpression(ctx);
-      CodeGenState.expectedType = savedExpectedType;
-      return result;
+      return CodeGenState.withExpectedType(targetParamBaseType, () =>
+        callbacks.generateExpression(ctx),
+      );
     }
 
-    const value = callbacks.generateExpression(ctx);
-    CodeGenState.expectedType = savedExpectedType;
+    const value = CodeGenState.withExpectedType(targetParamBaseType, () =>
+      callbacks.generateExpression(ctx),
+    );
 
     // C++ mode: rvalues can bind to const T&
     if (CodeGenState.cppMode) {

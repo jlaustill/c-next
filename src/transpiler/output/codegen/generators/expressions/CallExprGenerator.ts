@@ -136,12 +136,9 @@ const _generateCFunctionArg = (
   }
 
   // Issue #872: Set expectedType for MISRA 7.2 compliance
-  const savedExpectedType = CodeGenState.expectedType;
-  if (targetParam?.baseType) {
-    CodeGenState.expectedType = targetParam.baseType;
-  }
-  let argCode = orchestrator.generateExpression(e);
-  CodeGenState.expectedType = savedExpectedType;
+  const argCode = CodeGenState.withExpectedType(targetParam?.baseType, () =>
+    orchestrator.generateExpression(e),
+  );
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
   if (!targetParam?.baseType?.endsWith("*")) {
@@ -178,11 +175,14 @@ const _generateCFunctionArg = (
     (orchestrator.isStructType(argType) ||
       _parameterExpectsAddressOf(targetParam.baseType, argType, orchestrator));
 
-  if (needsAddressOf) {
-    argCode = `&${argCode}`;
-  }
+  const finalArgCode = needsAddressOf ? `&${argCode}` : argCode;
 
-  return wrapWithCppEnumCast(argCode, e, targetParam?.baseType, orchestrator);
+  return wrapWithCppEnumCast(
+    finalArgCode,
+    e,
+    targetParam?.baseType,
+    orchestrator,
+  );
 };
 
 /**
@@ -303,12 +303,10 @@ const generateFunctionCall = (
         )
       ) {
         // Issue #872: Set expectedType for MISRA 7.2 compliance
-        const savedExpectedType = CodeGenState.expectedType;
-        if (targetParam?.baseType) {
-          CodeGenState.expectedType = targetParam.baseType;
-        }
-        const argCode = orchestrator.generateExpression(e);
-        CodeGenState.expectedType = savedExpectedType;
+        const argCode = CodeGenState.withExpectedType(
+          targetParam?.baseType,
+          () => orchestrator.generateExpression(e),
+        );
         return wrapWithCppEnumCast(
           argCode,
           e,

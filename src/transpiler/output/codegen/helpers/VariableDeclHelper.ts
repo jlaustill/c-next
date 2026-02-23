@@ -522,8 +522,6 @@ class VariableDeclHelper {
     }
 
     const typeName = callbacks.getTypeName(typeCtx);
-    const savedExpectedType = CodeGenState.expectedType;
-    CodeGenState.expectedType = typeName;
 
     // ADR-017: Validate enum type for initialization
     EnumAssignmentValidator.validateEnumAssignment(typeName, ctx.expression()!);
@@ -533,10 +531,11 @@ class VariableDeclHelper {
       getExpressionType: callbacks.getExpressionType,
     });
 
-    const result = `${decl} = ${callbacks.generateExpression(ctx.expression()!)}`;
-    CodeGenState.expectedType = savedExpectedType;
-
-    return result;
+    // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
+    return CodeGenState.withExpectedType(
+      typeName,
+      () => `${decl} = ${callbacks.generateExpression(ctx.expression()!)}`,
+    );
   }
 
   // ========================================================================

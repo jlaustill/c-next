@@ -106,11 +106,9 @@ class ArrayInitHelper {
     callbacks: IArrayInitCallbacks,
   ): string {
     const typeName = callbacks.getTypeName(typeCtx);
-    const savedExpectedType = CodeGenState.expectedType;
-    CodeGenState.expectedType = typeName;
-    const initValue = callbacks.generateExpression(expression);
-    CodeGenState.expectedType = savedExpectedType;
-    return initValue;
+    return CodeGenState.withExpectedType(typeName, () =>
+      callbacks.generateExpression(expression),
+    );
   }
 
   /**

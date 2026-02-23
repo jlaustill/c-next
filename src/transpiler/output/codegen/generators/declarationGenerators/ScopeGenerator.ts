@@ -38,13 +38,10 @@ function generateInitializer(
   if (varDecl.expression()) {
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
     const typeName = orchestrator.generateType(varDecl.type());
-    const savedExpectedType = CodeGenState.expectedType;
-    CodeGenState.expectedType = typeName;
-
-    const result = ` = ${orchestrator.generateExpression(varDecl.expression()!)}`;
-
-    CodeGenState.expectedType = savedExpectedType;
-    return result;
+    return CodeGenState.withExpectedType(
+      typeName,
+      () => ` = ${orchestrator.generateExpression(varDecl.expression()!)}`,
+    );
   }
   // ADR-015: Zero initialization for uninitialized scope variables
   return ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;

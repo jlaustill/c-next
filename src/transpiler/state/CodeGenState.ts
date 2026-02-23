@@ -421,6 +421,27 @@ export default class CodeGenState {
     this.floatShadowCurrent.clear();
   }
 
+  /**
+   * Execute a function with a temporary expectedType, restoring on completion.
+   * Issue #872: Extracted to eliminate duplicate save/restore pattern and add exception safety.
+   *
+   * @param type - The expected type to set (if falsy, no change is made)
+   * @param fn - The function to execute
+   * @returns The result of the function
+   */
+  static withExpectedType<T>(type: string | undefined | null, fn: () => T): T {
+    if (!type) {
+      return fn();
+    }
+    const saved = this.expectedType;
+    this.expectedType = type;
+    try {
+      return fn();
+    } finally {
+      this.expectedType = saved;
+    }
+  }
+
   // ===========================================================================
   // CONVENIENCE LOOKUP METHODS
   // ===========================================================================

@@ -586,16 +586,19 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Issue #477: Generate expression with a specific expected type context.
    * Used by return statements to resolve unqualified enum values.
+   * Note: Uses explicit save/restore (not withExpectedType) to support null values.
    */
   generateExpressionWithExpectedType(
     ctx: Parser.ExpressionContext,
     expectedType: string | null,
   ): string {
-    const savedExpectedType = CodeGenState.expectedType;
+    const saved = CodeGenState.expectedType;
     CodeGenState.expectedType = expectedType;
-    const result = this.generateExpression(ctx);
-    CodeGenState.expectedType = savedExpectedType;
-    return result;
+    try {
+      return this.generateExpression(ctx);
+    } finally {
+      CodeGenState.expectedType = saved;
+    }
   }
 
   /**
@@ -3470,13 +3473,13 @@ export default class CodeGenerator implements IOrchestrator {
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();
 
-      // Set expected type for nested initializers
-      const savedExpectedType = CodeGenState.expectedType;
+      // Compute expected type for nested initializers
+      let fieldType: string | undefined;
       if (structFieldTypes?.has(fieldName)) {
         // Issue #502: Convert underscore format to correct output format
         // C-Next struct fields may store C++ types with _ separator (e.g., SeaDash_Parse_ParseResult)
         // but code generation needs :: for C++ types (e.g., SeaDash::Parse::ParseResult)
-        let fieldType = structFieldTypes.get(fieldName)!;
+        fieldType = structFieldTypes.get(fieldName)!;
         if (fieldType.includes("_")) {
           // Check if this looks like a qualified type (contains _) and convert
           const parts = fieldType.split("_");
@@ -3485,13 +3488,11 @@ export default class CodeGenerator implements IOrchestrator {
             fieldType = parts.join("::");
           }
         }
-        CodeGenState.expectedType = fieldType;
       }
 
-      const value = this.generateExpression(field.expression());
-
-      // Restore expected type
-      CodeGenState.expectedType = savedExpectedType;
+      const value = CodeGenState.withExpectedType(fieldType, () =>
+        this.generateExpression(field.expression()),
+      );
 
       return { fieldName, value };
     });
@@ -4237,23 +4238,24 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #644: Set expected type for inferred struct initializers and overflow behavior
     // Delegated to AssignmentExpectedTypeResolver helper
-    const savedExpectedType = CodeGenState.expectedType;
     const savedAssignmentContext = { ...CodeGenState.assignmentContext };
 
     // Issue #644: AssignmentExpectedTypeResolver is now static
     const resolved = AssignmentExpectedTypeResolver.resolve(targetCtx);
-    if (resolved.expectedType) {
-      CodeGenState.expectedType = resolved.expectedType;
-    }
     if (resolved.assignmentContext) {
       CodeGenState.assignmentContext = resolved.assignmentContext;
     }
 
-    const value = this.generateExpression(ctx.expression());
-
-    // Restore expected type and assignment context
-    CodeGenState.expectedType = savedExpectedType;
-    CodeGenState.assignmentContext = savedAssignmentContext;
+    // Use withExpectedType for exception safety on expectedType,
+    // manually save/restore assignmentContext
+    let value: string;
+    try {
+      value = CodeGenState.withExpectedType(resolved.expectedType, () =>
+        this.generateExpression(ctx.expression()),
+      );
+    } finally {
+      CodeGenState.assignmentContext = savedAssignmentContext;
+    }
 
     // Get the assignment operator and map to C equivalent
     const operatorCtx = ctx.assignmentOperator();
