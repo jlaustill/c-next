@@ -22,7 +22,7 @@ typedef enum {
 /* Function prototypes */
 float Api_addFloats(float a, float b);
 bool Api_isOk(Status status);
-void Api_updateValue(uint32_t& value);
+void Api_updateValue(uint32_t* value);
 uint32_t Api_readValue(uint32_t value);
 
 #ifdef __cplusplus
