@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-02-23
+
+### Fixed
+
+- Pass callback-promoted params directly to pointer-expecting functions (Issue #937)
+- Remove stale binary .o file from test artifacts (Issue #937)
+
+### Tests
+
+- Add unit test for callback-promoted parameter passing (Issue #937)
+
 ## [0.2.7] - 2026-02-23
 
 ### Added
@@ -1129,7 +1140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/jlaustill/c-next/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/jlaustill/c-next/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/jlaustill/c-next/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/jlaustill/c-next/compare/v0.2.4...v0.2.5
