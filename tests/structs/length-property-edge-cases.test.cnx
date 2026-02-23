@@ -16,8 +16,8 @@ struct AllTypes {
 
 // Test with const parameter
 u32 testConst(const AllTypes data) {
-    if (data.field_u32.length != 32) return 1;
-    if (data.field_u16.length != 16) return 2;
+    if (data.field_u32.bit_length != 32) return 1;
+    if (data.field_u16.bit_length != 16) return 2;
     return 0;
 }
 
@@ -25,22 +25,22 @@ u32 testConst(const AllTypes data) {
 u32 testParam(AllTypes data) {
    
 // Test all unsigned types
-    if (data.field_u8.length != 8) return 10;
-    if (data.field_u16.length != 16) return 11;
-    if (data.field_u32.length != 32) return 12;
-    if (data.field_u64.length != 64) return 13;
+    if (data.field_u8.bit_length != 8) return 10;
+    if (data.field_u16.bit_length != 16) return 11;
+    if (data.field_u32.bit_length != 32) return 12;
+    if (data.field_u64.bit_length != 64) return 13;
 
    
 // Test all signed types
-    if (data.field_i8.length != 8) return 20;
-    if (data.field_i16.length != 16) return 21;
-    if (data.field_i32.length != 32) return 22;
-    if (data.field_i64.length != 64) return 23;
+    if (data.field_i8.bit_length != 8) return 20;
+    if (data.field_i16.bit_length != 16) return 21;
+    if (data.field_i32.bit_length != 32) return 22;
+    if (data.field_i64.bit_length != 64) return 23;
 
    
 // Test floating point types
-    if (data.field_f32.length != 32) return 30;
-    if (data.field_f64.length != 64) return 31;
+    if (data.field_f32.bit_length != 32) return 30;
+    if (data.field_f64.bit_length != 64) return 31;
 
     return 0;
 }
@@ -70,19 +70,19 @@ u32 main() {
 
    
 // Test nested expression
-    u32 totalBits <- data.field_u32.length + data.field_u16.length + data.field_u8.length;
+    u32 totalBits <- data.field_u32.bit_length + data.field_u16.bit_length + data.field_u8.bit_length;
     if (totalBits != 56) return 100; // 32 + 16 + 8 = 56
 
    
 // Test byte calculation in nested expression
-    u32 totalBytes <- (data.field_u32.length + data.field_u16.length) / 8;
+    u32 totalBytes <- (data.field_u32.bit_length + data.field_u16.bit_length) / 8;
     if (totalBytes != 6) return 101; // (32 + 16) / 8 = 6
 
    
 // Test multiple field accesses in sequence
-    u32 len1 <- data.field_u32.length;
-    u32 len2 <- data.field_u16.length;
-    u32 len3 <- data.field_u8.length;
+    u32 len1 <- data.field_u32.bit_length;
+    u32 len2 <- data.field_u16.bit_length;
+    u32 len3 <- data.field_u8.bit_length;
     if (len1 != 32) return 110;
     if (len2 != 16) return 111;
     if (len3 != 8) return 112;

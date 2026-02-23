@@ -6,23 +6,23 @@ u32 main() {
     // String declaration and initialization
     string<10> greeting <- "Hello";
 
-    // String length property
-    if (greeting.length != 5) return 1;
+    // String char_count property (ADR-058)
+    if (greeting.char_count != 5) return 1;
 
     // String size (capacity) property
     if (greeting.size != 11) return 2;  // 10 + null terminator
 
     // Empty string
     string<20> empty <- "";
-    if (empty.length != 0) return 3;
+    if (empty.char_count != 0) return 3;
 
     // String with spaces
     string<20> message <- "Hi there";
-    if (message.length != 8) return 4;
+    if (message.char_count != 8) return 4;
 
     // Longer string
     string<50> longer <- "The quick brown fox";
-    if (longer.length != 19) return 5;
+    if (longer.char_count != 19) return 5;
 
     // String comparison
     string<10> hello1 <- "Hello";

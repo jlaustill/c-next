@@ -6,14 +6,14 @@ i32 main() {
     string<32> first <- "Hello";
     string<32> second <- " World";
     string<64> result <- first + second;
-    if (result.length != 11) return 1;
+    if (result.char_count != 11) return 1;
     if (result != "Hello World") return 2;
     if (result.capacity != 64) return 3;
 
    
 // Test 4-6: Concatenation with literal
     string<64> withLit <- first + "!";
-    if (withLit.length != 6) return 4;
+    if (withLit.char_count != 6) return 4;
     if (withLit != "Hello!") return 5;
 
    
@@ -21,7 +21,7 @@ i32 main() {
     string<8> a <- "AB";
     string<8> b <- "CD";
     string<16> ab <- a + b;
-    if (ab.length != 4) return 6;
+    if (ab.char_count != 4) return 6;
     if (ab != "ABCD") return 7;
 
    
@@ -29,7 +29,7 @@ i32 main() {
     string<32> part1 <- "The quick ";
     string<32> part2 <- "brown fox";
     string<64> sentence <- part1 + part2;
-    if (sentence.length != 19) return 8;
+    if (sentence.char_count != 19) return 8;
     if (sentence != "The quick brown fox") return 9;
 
    
@@ -37,7 +37,7 @@ i32 main() {
     string<32> nonEmpty <- "Text";
     string<32> empty;
     string<64> withEmpty <- nonEmpty + empty;
-    if (withEmpty.length != 4) return 10;
+    if (withEmpty.char_count != 4) return 10;
     if (withEmpty != "Text") return 11;
 
    
@@ -48,7 +48,7 @@ i32 main() {
    
 // Test 13: Literal + literal (both tight capacity)
     string<11> litConcat <- "Hello" + " World";
-    if (litConcat.length != 11) return 13;
+    if (litConcat.char_count != 11) return 13;
     if (litConcat != "Hello World") return 14;
 
     return 0;

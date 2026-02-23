@@ -27,12 +27,12 @@ i32 main() {
    
 // Test 6-8: String length in condition
     string<64> text <- "Hello";
-    if (text.length = 5) {
+    if (text.char_count = 5) {
         result <- 4;
     }
     if (result != 4) return 4;
 
-    if (text.length > 3) {
+    if (text.char_count > 3) {
         result <- 5;
     }
     if (result != 5) return 5;
@@ -47,8 +47,8 @@ i32 main() {
 
     u32 totalLen <- 0;
     u32 i <- 0;
-    while (i < items.length) {
-        totalLen <- totalLen + items[i].length;
+    while (i < items.element_count) {
+        totalLen <- totalLen + items[i].char_count;
         i <- i + 1;
     }
 
@@ -58,13 +58,13 @@ i32 main() {
    
 // Test 12-14: Conditional based on empty string
     string<32> maybeEmpty;
-    if (maybeEmpty.length = 0) {
+    if (maybeEmpty.char_count = 0) {
         result <- 6;
     }
     if (result != 6) return 7;
 
     maybeEmpty <- "NotEmpty";
-    if (maybeEmpty.length != 0) {
+    if (maybeEmpty.char_count != 0) {
         result <- 7;
     }
     if (result != 7) return 8;
@@ -73,7 +73,7 @@ i32 main() {
 // Test 15: Nested conditions with strings
     string<32> status <- "active";
     if (status = "active") {
-        if (status.length = 6) {
+        if (status.char_count = 6) {
             result <- 8;
         }
     }

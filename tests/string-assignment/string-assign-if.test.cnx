@@ -24,20 +24,20 @@ u32 main() {
    
 // Test if branch
     setStatus(true);
-    if (status.length != 7) return 1;
+    if (status.char_count != 7) return 1;
 
    
 // Test else branch
     setStatus(false);
-    if (status.length != 7) return 2;
+    if (status.char_count != 7) return 2;
 
    
 // Test nested if via function
     setNested(2);
-    if (status.length != 6) return 3;
+    if (status.char_count != 6) return 3;
 
     setNested(1);
-    if (status.length != 6) return 4;
+    if (status.char_count != 6) return 4;
 
     return 0;
 }

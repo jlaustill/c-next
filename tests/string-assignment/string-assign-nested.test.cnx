@@ -27,11 +27,11 @@ void mixedNest(u32 count) {
 u32 main() {
     // Three levels deep
     deepNest(3);
-    if (nested.length != 8) return 1;
+    if (nested.char_count != 8) return 1;
 
     // Mixed nesting (if -> while -> if)
     mixedNest(1);
-    if (nested.length != 5) return 2;
+    if (nested.char_count != 5) return 2;
 
     // Block scope nesting
     {
@@ -41,7 +41,7 @@ u32 main() {
             }
         }
     }
-    if (nested.length != 6) return 3;
+    if (nested.char_count != 6) return 3;
 
     return 0;
 }

@@ -7,7 +7,7 @@
 
 // test-execution
 // Regression test: .length property on struct member access
-// Verifies cfg.magic.length correctly returns 32 (was returning 0)
+// Verifies cfg.magic.bit_length correctly returns 32 (was returning 0)
 typedef struct Config {
     uint32_t magic;
     uint16_t version;

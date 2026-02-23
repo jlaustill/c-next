@@ -4,7 +4,7 @@ void main() {
     u8[16] buffer;
     buffer[0] <- 0; // Initialize for use-before-init check
 
-    for (u32 i <- 0; i < buffer.length; i <- i + 1) {
+    for (u32 i <- 0; i < buffer.element_count; i <- i + 1) {
         buffer[i] <- 0;
     }
 }

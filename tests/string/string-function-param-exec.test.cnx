@@ -1,7 +1,7 @@
 // test-execution
 // ADR-045: Validate string function parameters at runtime
 u32 getLen(const string<64> s) {
-    return s.length;
+    return s.char_count;
 }
 
 u32 getCap(const string<64> s) {

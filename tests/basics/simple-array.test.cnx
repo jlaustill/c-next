@@ -21,12 +21,12 @@ u32 main() {
     if (bytes[3] != 4) return 5;
 
     // Array length property
-    if (bytes.length != 4) return 6;
-    if (numbers.length != 5) return 7;
+    if (bytes.element_count != 4) return 6;
+    if (numbers.element_count != 5) return 7;
 
     // Iterate over array
     u32 sum <- 0;
-    for (u32 i <- 0; i < numbers.length; i <- i + 1) {
+    for (u32 i <- 0; i < numbers.element_count; i <- i + 1) {
         sum <- sum + numbers[i];
     }
     if (sum != 150) return 8;  // 10+20+30+40+50

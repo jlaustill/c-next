@@ -61,15 +61,15 @@ describe("CodeGenerator Coverage Tests", () => {
   // NEW CODE IN PR: _isArrayAccessStringExpression (lines 811-852)
   // ==========================================================================
   describe("_isArrayAccessStringExpression() - PR new code", () => {
-    it("should return false for string property access (.length)", () => {
+    it("should return false for string property access (.char_count)", () => {
       const source = `
         string<32> name <- "test";
         void main() {
-          u32 len <- name.length;
+          u32 len <- name.char_count;
         }
       `;
       const { code } = setupGenerator(source);
-      // .length returns a number, not a string
+      // .char_count returns a number, not a string
       expect(code).toContain("strlen(name)");
     });
 

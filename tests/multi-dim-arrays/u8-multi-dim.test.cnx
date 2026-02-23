@@ -35,8 +35,8 @@ u32 main() {
 
    
 // Test .length property on first dimension
-    if (matrix2d.length != 4) return 10; // 2D first dimension
-    if (cube3d.length != 2) return 11; // 3D first dimension
+    if (matrix2d.element_count != 4) return 10; // 2D first dimension
+    if (cube3d.element_count != 2) return 11; // 3D first dimension
 
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -72,7 +72,7 @@ u32 main() {
 
    
 // Test boundary access
-    matrix2d[matrix2d.length - 1][matrix2d[0].length - 1] <- 111;
+    matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 111;
     if (matrix2d[3][7] != 111) return 23;
 
    

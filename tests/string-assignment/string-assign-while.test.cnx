@@ -10,7 +10,7 @@ u32 main() {
         current <- "Loop";
         count +<- 1;
     }
-    if (current.length != 4) return 1;
+    if (current.char_count != 4) return 1;
 
     // Multiple different assignments in loop
     count <- 0;
@@ -22,7 +22,7 @@ u32 main() {
         }
         count +<- 1;
     }
-    if (current.length != 6) return 2;
+    if (current.char_count != 6) return 2;
 
     return 0;
 }

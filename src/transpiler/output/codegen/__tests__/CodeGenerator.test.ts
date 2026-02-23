@@ -4719,11 +4719,11 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("Array length", () => {
-    it("should generate array length using sizeof", () => {
+  describe("Array element_count", () => {
+    it("should generate array element_count using sizeof", () => {
       const source = `
         u32[10] data;
-        u32 len <- data.length;
+        u32 len <- data.element_count;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -4735,7 +4735,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      // .length compiles to sizeof(arr)/sizeof(arr[0]) or constant
+      // .element_count compiles to sizeof(arr)/sizeof(arr[0]) or constant
       expect(code).toContain("len =");
     });
   });
@@ -9750,7 +9750,7 @@ describe("CodeGenerator", () => {
       it("should resolve string parameter", () => {
         const source = `
           void test(string<32> name) {
-            u32 len <- name.length;
+            u32 len <- name.char_count;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -10273,12 +10273,12 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("string capacity helpers", () => {
-      it("should get string capacity for global string variable", () => {
+    describe("string char_count helpers", () => {
+      it("should get string char_count for global string variable", () => {
         const source = `
           string<64> message <- "Hello World";
           void test() {
-            u32 cap <- message.length;
+            u32 cap <- message.char_count;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -10294,12 +10294,12 @@ describe("CodeGenerator", () => {
         expect(code).toContain("message[65]");
       });
 
-      it("should get string capacity for scoped string variable", () => {
+      it("should get string char_count for scoped string variable", () => {
         const source = `
           scope Logger {
             string<128> buffer;
             public u32 getCapacity() {
-              return this.buffer.length;
+              return this.buffer.char_count;
             }
           }
         `;
@@ -13098,13 +13098,13 @@ describe("CodeGenerator", () => {
     });
 
     describe("strlen optimization (_setupLengthCache)", () => {
-      it("should optimize multiple .length accesses on same string", () => {
+      it("should optimize multiple .char_count accesses on same string", () => {
         const source = `
           void test() {
             string<32> name <- "hello";
-            u32 a <- name.length;
-            u32 b <- name.length;
-            u32 c <- name.length;
+            u32 a <- name.char_count;
+            u32 b <- name.char_count;
+            u32 c <- name.char_count;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -13117,15 +13117,15 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Multiple .length accesses should be present
+        // Multiple .char_count accesses should be present
         expect(code).toContain("strlen");
       });
 
-      it("should generate proper strlen call for single length access", () => {
+      it("should generate proper strlen call for single char_count access", () => {
         const source = `
           void test() {
             string<32> msg <- "test";
-            u32 len <- msg.length;
+            u32 len <- msg.char_count;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -13241,7 +13241,7 @@ describe("CodeGenerator", () => {
       it("should handle string parameter with capacity", () => {
         const source = `
           void greet(string<64> name) {
-            u32 len <- name.length;
+            u32 len <- name.char_count;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -13726,8 +13726,8 @@ describe("CodeGenerator", () => {
         const source = `
           void test() {
             string<64> msg <- "hello world";
-            u32 len1 <- msg.length;
-            u32 len2 <- msg.length;
+            u32 len1 <- msg.char_count;
+            u32 len2 <- msg.char_count;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -13743,12 +13743,12 @@ describe("CodeGenerator", () => {
         expect(code).toContain("strlen");
       });
 
-      it("should generate cache for multiple .length accesses", () => {
+      it("should generate cache for multiple .char_count accesses", () => {
         const source = `
           void test() {
             string<32> s <- "hello";
-            if (s.length > 0) {
-              u32 x <- s.length;
+            if (s.char_count > 0) {
+              u32 x <- s.char_count;
             }
           }
         `;
@@ -13762,15 +13762,15 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        // Should generate cache variable for repeated .length access
+        // Should generate cache variable for repeated .char_count access
         expect(code).toContain("strlen");
       });
 
-      it("should not cache for single .length access", () => {
+      it("should not cache for single .char_count access", () => {
         const source = `
           void test() {
             string<32> s <- "hello";
-            u32 len <- s.length;
+            u32 len <- s.char_count;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);

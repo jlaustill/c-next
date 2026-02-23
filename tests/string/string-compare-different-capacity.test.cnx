@@ -38,12 +38,12 @@ i32 main() {
     string<32> longSmall <- "The quick brown fox";
     string<128> longLarge <- "The quick brown fox";
     if (longSmall != longLarge) return 12;
-    if (longSmall.length != longLarge.length) return 13;
+    if (longSmall.char_count != longLarge.char_count) return 13;
 
    
 // Test 15: Verify lengths match
-    if (small.length != medium.length) return 14;
-    if (medium.length != large.length) return 15;
+    if (small.char_count != medium.char_count) return 14;
+    if (medium.char_count != large.char_count) return 15;
 
     return 0;
 }

@@ -1,1 +1,0 @@
-12:21 Code generation failed: C-style array parameter is not allowed. Use 'State[16] arr' instead of 'State arr[16]'

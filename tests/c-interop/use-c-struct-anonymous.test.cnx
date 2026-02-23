@@ -45,10 +45,10 @@ u32 main() {
 
    
 // Test 4: Field type sizes
-    if (mt.byte_val.length != 8) return 11;
-    if (mt.word_val.length != 16) return 12;
-    if (mt.dword_val.length != 32) return 13;
-    if (mt.signed_val.length != 32) return 14;
+    if (mt.byte_val.bit_length != 8) return 11;
+    if (mt.word_val.bit_length != 16) return 12;
+    if (mt.dword_val.bit_length != 32) return 13;
+    if (mt.signed_val.bit_length != 32) return 14;
 
     return 0;  // All tests passed
 }

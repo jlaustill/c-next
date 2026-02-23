@@ -33,10 +33,10 @@ u32 main() {
 
    
 // Test 3: Verify field types via .length property
-    if (pt.x.length != 32) return 7;
-    if (cfg.magic.length != 32) return 8;
-    if (cfg.version.length != 16) return 9;
-    if (cfg.flags.length != 8) return 10;
+    if (pt.x.bit_length != 32) return 7;
+    if (cfg.magic.bit_length != 32) return 8;
+    if (cfg.version.bit_length != 16) return 9;
+    if (cfg.flags.bit_length != 8) return 10;
 
    
 // Test 4: Field assignment from another field

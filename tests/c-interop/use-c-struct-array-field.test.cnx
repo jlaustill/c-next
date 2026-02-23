@@ -47,9 +47,9 @@ u32 main() {
     if (sum != 2800) return 8;
 
    
-// Test 4: Array element .length property
-    if (buf.data[0].length != 8) return 9;
-    if (va.values[0].length != 32) return 10;
+// Test 4: Array element .bit_length property
+    if (buf.data[0].bit_length != 8) return 9;
+    if (va.values[0].bit_length != 32) return 10;
 
     return 0;  // All tests passed
 }

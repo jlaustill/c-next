@@ -9,13 +9,13 @@ u32 literal_result3 <- 64 / 4;      // Should fold to: 16
 // Test 2: .length property division (the original bug report)
 // .length returns compile-time constants (bit-width), so these should fold
 u32 x;
-u8 bytes_for_u32 <- x.length / 8;   // 32 / 8 should fold to: 4
+u8 bytes_for_u32 <- x.bit_length / 8;   // 32 / 8 should fold to: 4
 
 u64 y;
-u8 bytes_for_u64 <- y.length / 8;   // 64 / 8 should fold to: 8
+u8 bytes_for_u64 <- y.bit_length / 8;   // 64 / 8 should fold to: 8
 
 u16 z;
-u8 bytes_for_u16 <- z.length / 8;   // 16 / 8 should fold to: 2
+u8 bytes_for_u16 <- z.bit_length / 8;   // 16 / 8 should fold to: 2
 
 // Test 3: Other arithmetic operations on constants
 u32 mult_result <- 4 * 8;           // Should fold to: 32

@@ -1,0 +1,4 @@
+// test-error
+// Tests: .length property is deprecated, use explicit properties instead
+u32 x <- 42;
+u32 len <- x.length;

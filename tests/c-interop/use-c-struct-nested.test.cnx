@@ -21,8 +21,8 @@ u32 main() {
 
    
 // Test 2: Access nested struct field sizes
-    if (rect.origin.x.length != 32) return 5;
-    if (rect.width.length != 32) return 6;
+    if (rect.origin.x.bit_length != 32) return 5;
+    if (rect.width.bit_length != 32) return 6;
 
    
 // Test 3: Calculate area

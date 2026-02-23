@@ -2,5 +2,5 @@
 string<64> message <- "Hello";
 
 void test() {
-    u32 len <- message.length;
+    u32 len <- message.char_count;
 }

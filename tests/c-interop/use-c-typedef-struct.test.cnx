@@ -37,10 +37,10 @@ u32 main() {
 
    
 // Test 4: Verify field sizes via .length
-    if (sf.byte_field.length != 8) return 8;
-    if (sf.word_field.length != 16) return 9;
-    if (sf.dword_field.length != 32) return 10;
-    if (sf.qword_field.length != 64) return 11;
+    if (sf.byte_field.bit_length != 8) return 8;
+    if (sf.word_field.bit_length != 16) return 9;
+    if (sf.dword_field.bit_length != 32) return 10;
+    if (sf.qword_field.bit_length != 64) return 11;
 
     return 0;  // All tests passed
 }

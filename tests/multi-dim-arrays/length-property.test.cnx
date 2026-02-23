@@ -2,6 +2,6 @@
 u8[4] matrix[8];
 
 i32 main() {
-    u32 rows <- matrix.length; // Should be 4
+    u32 rows <- matrix.element_count; // Should be 4
     return 0;
 }
