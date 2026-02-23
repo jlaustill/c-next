@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-qualified-array-dim.test.h"
+#include "enum-qualified-array-dim.test.hpp"
 
 #include <stdint.h>
 

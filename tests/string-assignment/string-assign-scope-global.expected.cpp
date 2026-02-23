@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "string-assign-scope-global.test.h"
+#include "string-assign-scope-global.test.hpp"
 
 #include <stdint.h>
 #include <string.h>

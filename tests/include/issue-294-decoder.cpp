@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-294-decoder.h"
+#include "issue-294-decoder.hpp"
 
 #include <stdint.h>
 

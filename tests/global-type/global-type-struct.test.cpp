@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-type-struct.test.h"
+#include "global-type-struct.test.hpp"
 
 #include <stdint.h>
 

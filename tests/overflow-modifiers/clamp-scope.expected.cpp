@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "clamp-scope.test.h"
+#include "clamp-scope.test.hpp"
 
 #include <stdint.h>
 

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-array-param.test.h"
+#include "scope-array-param.test.hpp"
 
 #include <stdint.h>
 

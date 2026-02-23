@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scoped-struct-params.test.h"
+#include "scoped-struct-params.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-296-forward-decl.test.h"
+#include "issue-296-forward-decl.test.hpp"
 
 // Issue #296: Forward declaration incompatible with typedef struct pattern
 // Tests: Cross-file struct usage with public functions

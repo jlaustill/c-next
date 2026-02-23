@@ -24,7 +24,7 @@ void PointManager_setPoint(int32_t px, int32_t py);
 int32_t PointManager_getX(void);
 int32_t PointManager_getY(void);
 Point2D PointManager_getPoint(void);
-int32_t PointManager_sum(const Point2D& p);
+int32_t PointManager_sum(const Point2D* p);
 
 #ifdef __cplusplus
 }

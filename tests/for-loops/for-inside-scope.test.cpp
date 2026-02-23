@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "for-inside-scope.test.h"
+#include "for-inside-scope.test.hpp"
 
 #include <stdint.h>
 

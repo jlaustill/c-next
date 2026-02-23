@@ -556,8 +556,9 @@ describe("Transpiler coverage tests", () => {
 
       expect(result.success).toBe(true);
       // Header should be generated
+      // Issue #933: C++ mode generates .hpp extension
       const writeCalls = mockFs.getWriteLog();
-      const headerWrites = writeCalls.filter((w) => w.path.endsWith(".h"));
+      const headerWrites = writeCalls.filter((w) => w.path.endsWith(".hpp"));
       expect(headerWrites.length).toBe(1);
     });
   });

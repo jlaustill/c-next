@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-scope-returns-global.test.h"
+#include "enum-scope-returns-global.test.hpp"
 
 #include <stdint.h>
 

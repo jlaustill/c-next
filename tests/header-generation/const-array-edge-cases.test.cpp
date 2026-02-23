@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "const-array-edge-cases.test.h"
+#include "const-array-edge-cases.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

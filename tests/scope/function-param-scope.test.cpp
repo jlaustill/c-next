@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "function-param-scope.test.h"
+#include "function-param-scope.test.hpp"
 
 #include <stdint.h>
 

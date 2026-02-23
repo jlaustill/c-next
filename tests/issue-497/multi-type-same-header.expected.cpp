@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "multi-type-same-header.test.h"
+#include "multi-type-same-header.test.hpp"
 
 // Test: Multiple types from same C header should only include header once
 #include "multi-type-same-header.h"

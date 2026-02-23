@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-atomic-modifier.test.h"
+#include "scope-atomic-modifier.test.hpp"
 
 // Test: ADR-016 + ADR-049 Atomic variables inside scopes
 // Verifies that atomic modifier works correctly with integer types inside scope methods

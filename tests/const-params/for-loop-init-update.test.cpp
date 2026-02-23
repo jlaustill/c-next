@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "for-loop-init-update.test.h"
+#include "for-loop-init-update.test.hpp"
 
 #include <stdint.h>
 

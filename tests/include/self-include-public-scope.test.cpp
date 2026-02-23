@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "self-include-public-scope.test.h"
+#include "self-include-public-scope.test.hpp"
 
 #include <stdint.h>
 

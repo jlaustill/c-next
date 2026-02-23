@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "TestFunc.h"
+#include "TestFunc.hpp"
 
 #include <stdint.h>
 

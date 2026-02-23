@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "string-array-init.test.h"
+#include "string-array-init.test.hpp"
 
 #include <stdint.h>
 #include <string.h>

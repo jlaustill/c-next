@@ -681,8 +681,10 @@ class Transpiler {
       }
       const headerContent = this.generateHeaderForFile(file);
       if (headerContent) {
+        // Issue #933: Pass cppDetected to generate .hpp in C++ mode
         const headerPath = this.pathResolver.getHeaderOutputPath(
           file.discoveredFile,
+          this.cppDetected,
         );
         this.fs.writeFile(headerPath, headerContent);
         result.outputFiles.push(headerPath);
@@ -1231,7 +1233,9 @@ class Transpiler {
       return null;
     }
 
-    const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
+    // Issue #933: Use .hpp extension for include guard in C++ mode
+    const ext = this.cppDetected ? ".hpp" : ".h";
+    const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ext);
 
     const typeInput = this.state.getSymbolInfo(sourcePath);
     const passByValueParams =

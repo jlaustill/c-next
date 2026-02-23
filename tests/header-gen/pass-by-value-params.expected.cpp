@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "pass-by-value-params.test.h"
+#include "pass-by-value-params.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "ZModifier.h"
+#include "ZModifier.hpp"
 
 // test-cpp-only
 // Named with Z prefix to come AFTER AHandler alphabetically

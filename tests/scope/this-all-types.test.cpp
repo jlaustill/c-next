@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "this-all-types.test.h"
+#include "this-all-types.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

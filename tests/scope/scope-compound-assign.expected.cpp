@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-compound-assign.test.h"
+#include "scope-compound-assign.test.hpp"
 
 #include <stdint.h>
 

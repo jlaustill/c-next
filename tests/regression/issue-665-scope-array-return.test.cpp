@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-665-scope-array-return.test.h"
+#include "issue-665-scope-array-return.test.hpp"
 
 #include <stdint.h>
 

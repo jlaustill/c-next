@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "atomic-extern-volatile.test.h"
+#include "atomic-extern-volatile.test.hpp"
 
 // test-coverage: atomic-extern-volatile
 // Tests: atomic variables have volatile qualifier in extern declarations

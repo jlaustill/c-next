@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "enum-cross-scope-return.test.h"
+#include "enum-cross-scope-return.test.hpp"
 
 #include <stdint.h>
 

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "u32-bit-length.test.h"
+#include "u32-bit-length.test.hpp"
 
 #include <stdint.h>
 

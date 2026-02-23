@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "while-inside-scope.test.h"
+#include "while-inside-scope.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

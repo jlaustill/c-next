@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cnext-scope-underscore.test.h"
+#include "cnext-scope-underscore.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

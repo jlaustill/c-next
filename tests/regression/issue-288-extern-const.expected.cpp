@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-288-extern-const.test.h"
+#include "issue-288-extern-const.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

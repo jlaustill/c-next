@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "Handler.test.h"
+#include "Handler.test.hpp"
 
 // test-cpp-only
 // Issue #580 minimal reproduction: function with ONLY a pass-through call

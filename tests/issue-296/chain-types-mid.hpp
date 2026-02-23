@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <chain-types-base.h>
+#include <chain-types-base.hpp>
 
 #ifdef __cplusplus
 extern "C" {

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "namespace-func-call.test.h"
+#include "namespace-func-call.test.hpp"
 
 // test-transpile-only
 // Tests: C++ namespace function calls WITHOUT global. prefix (Issue #516)

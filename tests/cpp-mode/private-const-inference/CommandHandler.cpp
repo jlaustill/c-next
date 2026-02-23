@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "CommandHandler.h"
+#include "CommandHandler.hpp"
 
 // test-cpp-only
 #include "Config.h"

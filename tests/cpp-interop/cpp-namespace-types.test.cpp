@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cpp-namespace-types.test.h"
+#include "cpp-namespace-types.test.hpp"
 
 // test-transpile-only
 // Tests: C++ namespace type references from C-Next (Issue #388)

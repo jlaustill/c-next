@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void AHandler_passThrough(Config& config);
+void AHandler_passThrough(Config* config);
 
 #ifdef __cplusplus
 }

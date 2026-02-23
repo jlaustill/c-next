@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "opaque-locals.test.h"
+#include "opaque-locals.test.hpp"
 
 // test-transpile-only
 // Issue #895 Bug B: Opaque type local variables should be pointers

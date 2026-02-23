@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scoped-struct-multiple.test.h"
+#include "scoped-struct-multiple.test.hpp"
 
 #include <stdint.h>
 

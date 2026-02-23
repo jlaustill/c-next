@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "typedef-unique.test.h"
+#include "typedef-unique.test.hpp"
 
 // Issue #854: MISRA Rule 5.6 - typedef name shall be unique
 // test-execution

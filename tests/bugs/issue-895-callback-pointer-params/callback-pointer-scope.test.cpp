@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "callback-pointer-scope.test.h"
+#include "callback-pointer-scope.test.hpp"
 
 // test-transpile-only
 // Issue #895 Bug C: Callback functions INSIDE a scope

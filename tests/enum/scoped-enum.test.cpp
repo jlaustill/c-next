@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scoped-enum.test.h"
+#include "scoped-enum.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

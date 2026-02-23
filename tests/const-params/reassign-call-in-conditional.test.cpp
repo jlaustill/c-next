@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "reassign-call-in-conditional.test.h"
+#include "reassign-call-in-conditional.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "mixed-scope-init.test.h"
+#include "mixed-scope-init.test.hpp"
 
 // test-transpile-only
 // Tests: Issue #502 - Mixed C-Next scopes and C++ namespaces in struct initialization

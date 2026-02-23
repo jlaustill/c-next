@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cnext-scope-still-works.test.h"
+#include "cnext-scope-still-works.test.hpp"
 
 #include <stdint.h>
 

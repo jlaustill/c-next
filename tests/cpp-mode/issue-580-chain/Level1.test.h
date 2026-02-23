@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Level1_entry(Config& config);
+void Level1_entry(Config* config);
 
 #ifdef __cplusplus
 }

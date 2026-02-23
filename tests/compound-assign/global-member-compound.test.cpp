@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "global-member-compound.test.h"
+#include "global-member-compound.test.hpp"
 
 #include <stdint.h>
 

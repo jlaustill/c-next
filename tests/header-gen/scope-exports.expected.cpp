@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-exports.test.h"
+#include "scope-exports.test.hpp"
 
 #include <stdint.h>
 

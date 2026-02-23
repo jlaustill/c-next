@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cpp-reinterpret-cast.test.h"
+#include "cpp-reinterpret-cast.test.hpp"
 
 // test-execution
 /* test-no-warnings */

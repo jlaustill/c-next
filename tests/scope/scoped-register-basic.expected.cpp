@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scoped-register-basic.test.h"
+#include "scoped-register-basic.test.hpp"
 
 #include <stdint.h>
 

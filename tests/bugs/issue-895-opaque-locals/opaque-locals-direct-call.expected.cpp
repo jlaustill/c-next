@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "opaque-locals-direct-call.test.h"
+#include "opaque-locals-direct-call.test.hpp"
 
 // test-transpile-only
 // Issue #895 Bug B: Test direct C function calls (without global. prefix)

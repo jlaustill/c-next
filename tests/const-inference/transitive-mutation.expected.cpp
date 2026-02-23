@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "transitive-mutation.test.h"
+#include "transitive-mutation.test.hpp"
 
 #include <stdint.h>
 

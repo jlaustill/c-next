@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-const-inline.test.h"
+#include "scope-const-inline.test.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>

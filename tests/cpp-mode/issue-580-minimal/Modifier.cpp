@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "Modifier.h"
+#include "Modifier.hpp"
 
 // test-cpp-only
 #include "Config.h"

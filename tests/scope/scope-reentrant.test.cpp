@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "scope-reentrant.test.h"
+#include "scope-reentrant.test.hpp"
 
 #include <stdint.h>
 

@@ -16,9 +16,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Navigator_setDestination(const Waypoint& wp);
+void Navigator_setDestination(const Waypoint* wp);
 Waypoint Navigator_getDestination(void);
-void Navigator_moveTo(const Coordinate& pos);
+void Navigator_moveTo(const Coordinate* pos);
 Coordinate Navigator_getCurrentPosition(void);
 
 #ifdef __cplusplus

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "bare-function-call.test.h"
+#include "bare-function-call.test.hpp"
 
 #include <stdint.h>
 

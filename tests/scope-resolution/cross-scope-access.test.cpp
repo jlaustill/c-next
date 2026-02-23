@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "cross-scope-access.test.h"
+#include "cross-scope-access.test.hpp"
 
 #include <stdint.h>
 

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "issue-294-cross-file-scope.test.h"
+#include "issue-294-cross-file-scope.test.hpp"
 
 // Issue #294: Cross-file scope function calls
 // Note: This is a snapshot test, not an execution test, because the decoder

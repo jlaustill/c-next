@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "Handler.test.h"
+#include "Handler.test.hpp"
 
 // test-cpp-only
 // Bug #558: Cross-file const inference
