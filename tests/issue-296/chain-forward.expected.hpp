@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <chain-types-mid.hpp>
-#include <chain-types-mid.h>
 #include <chain-types-base.h>
 
 #ifdef __cplusplus

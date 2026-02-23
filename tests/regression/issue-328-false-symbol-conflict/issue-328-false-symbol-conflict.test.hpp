@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <Display/AppData.hpp>
-#include <Display/AppData.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -11,7 +11,6 @@
 #include "Config.hpp"
 #include "CommandHandler.hpp"
 #include "Serial.hpp"
-#include "Config.h"
 
 #ifdef __cplusplus
 extern "C" {
