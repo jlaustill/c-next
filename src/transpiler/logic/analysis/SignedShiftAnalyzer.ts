@@ -179,34 +179,25 @@ class SignedShiftListener extends CNextListener {
 
   /**
    * Check if a full expression contains signed operands
+   * Uses flatMap chains to traverse the expression grammar without deep nesting
    */
   private isSignedExpression(ctx: Parser.ExpressionContext): boolean {
     const ternary = ctx.ternaryExpression();
     if (!ternary) return false;
 
-    const orExprs = ternary.orExpression();
-    for (const orExpr of orExprs) {
-      for (const andExpr of orExpr.andExpression()) {
-        for (const eqExpr of andExpr.equalityExpression()) {
-          for (const relExpr of eqExpr.relationalExpression()) {
-            for (const borExpr of relExpr.bitwiseOrExpression()) {
-              for (const bxorExpr of borExpr.bitwiseXorExpression()) {
-                for (const bandExpr of bxorExpr.bitwiseAndExpression()) {
-                  for (const shiftExpr of bandExpr.shiftExpression()) {
-                    for (const addExpr of shiftExpr.additiveExpression()) {
-                      if (this.isSignedOperand(addExpr)) {
-                        return true;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return false;
+    // Flatten the grammar tree traversal using flatMap chains
+    const additiveExprs = ternary
+      .orExpression()
+      .flatMap((or) => or.andExpression())
+      .flatMap((and) => and.equalityExpression())
+      .flatMap((eq) => eq.relationalExpression())
+      .flatMap((rel) => rel.bitwiseOrExpression())
+      .flatMap((bor) => bor.bitwiseXorExpression())
+      .flatMap((bxor) => bxor.bitwiseAndExpression())
+      .flatMap((band) => band.shiftExpression())
+      .flatMap((shift) => shift.additiveExpression());
+
+    return additiveExprs.some((addExpr) => this.isSignedOperand(addExpr));
   }
 }
 
