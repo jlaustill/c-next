@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.10] - 2026-02-24
+
+### Fixed
+
+- Scope variable bit-index writes now correctly lowered to C (Issue #954)
+- Scope variables with forward-declared struct types generate as pointers (Issue #948)
+- E0852 incorrectly rejects enum type as array subscript index (Issue #949)
+- E0852 misparses nested bracket in array subscript expression (Issue #950)
+- Evaluate `#if MACRO != 0` in C headers via selective preprocessing (Issue #945)
+- MISRA C:2012 Rule 10.3 compliance - narrowing conversions (Issue #845)
+
+### Added
+
+- Opaque type tracking for forward-declared structs (Issue #948)
+
+### Tests
+
+- Comprehensive C++ constructor detection test suite (Issue #924)
+- Coverage tests for preprocessing paths
+- Scope variable bit-index write tests (Issue #954)
+
 ## [0.2.9] - 2026-02-23
 
 ### Fixed
@@ -1155,7 +1176,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.9...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.10...HEAD
+[0.2.10]: https://github.com/jlaustill/c-next/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/jlaustill/c-next/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/jlaustill/c-next/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/jlaustill/c-next/compare/v0.2.6...v0.2.7
