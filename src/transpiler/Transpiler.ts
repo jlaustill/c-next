@@ -366,6 +366,16 @@ class Transpiler {
         );
       }
 
+      // Issue #948: Merge opaque types from C/C++ headers
+      // These are forward-declared struct types that need pointer semantics
+      const externalOpaqueTypes = CodeGenState.symbolTable.getAllOpaqueTypes();
+      if (externalOpaqueTypes.length > 0) {
+        symbolInfo = TSymbolInfoAdapter.mergeOpaqueTypes(
+          symbolInfo,
+          externalOpaqueTypes,
+        );
+      }
+
       // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
       CodeGenState.symbols = symbolInfo;
 

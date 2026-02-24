@@ -567,6 +567,84 @@ class TSymbolInfoAdapter {
       hasPublicSymbols: base.hasPublicSymbols,
     };
   }
+
+  /**
+   * Issue #948: Merge opaque types from an external source (e.g., SymbolTable)
+   * into an existing ICodeGenSymbols.
+   *
+   * Opaque types are forward-declared struct types (like `typedef struct _foo foo;`)
+   * that come from C headers and need to be tracked for correct scope variable
+   * generation (as pointers with NULL initialization).
+   *
+   * @param base The ICodeGenSymbols from the current file
+   * @param externalOpaqueTypes Array of opaque type names from external sources
+   * @returns New ICodeGenSymbols with merged opaque types
+   */
+  static mergeOpaqueTypes(
+    base: ICodeGenSymbols,
+    externalOpaqueTypes: string[],
+  ): ICodeGenSymbols {
+    // If no external opaque types, return base unchanged
+    if (externalOpaqueTypes.length === 0) {
+      return base;
+    }
+
+    // Create merged set with existing and external opaque types
+    const mergedOpaqueTypes = new Set(base.opaqueTypes);
+    for (const typeName of externalOpaqueTypes) {
+      mergedOpaqueTypes.add(typeName);
+    }
+
+    // Return new ICodeGenSymbols with merged opaque types
+    // All other fields remain unchanged from base
+    return {
+      // Type sets
+      knownScopes: base.knownScopes,
+      knownStructs: base.knownStructs,
+      knownEnums: base.knownEnums,
+      knownBitmaps: base.knownBitmaps,
+      knownRegisters: base.knownRegisters,
+
+      // Scope info
+      scopeMembers: base.scopeMembers,
+      scopeMemberVisibility: base.scopeMemberVisibility,
+      scopeVariableUsage: base.scopeVariableUsage,
+
+      // Struct info
+      structFields: base.structFields,
+      structFieldArrays: base.structFieldArrays,
+      structFieldDimensions: base.structFieldDimensions,
+
+      // Enum info
+      enumMembers: base.enumMembers,
+
+      // Bitmap info
+      bitmapFields: base.bitmapFields,
+      bitmapBackingType: base.bitmapBackingType,
+      bitmapBitWidth: base.bitmapBitWidth,
+
+      // Register info
+      scopedRegisters: base.scopedRegisters,
+      registerMemberAccess: base.registerMemberAccess,
+      registerMemberTypes: base.registerMemberTypes,
+      registerBaseAddresses: base.registerBaseAddresses,
+      registerMemberOffsets: base.registerMemberOffsets,
+      registerMemberCTypes: base.registerMemberCTypes,
+
+      // Private const values
+      scopePrivateConstValues: base.scopePrivateConstValues,
+
+      // Function return types
+      functionReturnTypes: base.functionReturnTypes,
+
+      // Issue #948: Opaque types - merged
+      opaqueTypes: mergedOpaqueTypes,
+
+      // Methods - delegate to base's implementation
+      getSingleFunctionForVariable: base.getSingleFunctionForVariable,
+      hasPublicSymbols: base.hasPublicSymbols,
+    };
+  }
 }
 
 export default TSymbolInfoAdapter;
