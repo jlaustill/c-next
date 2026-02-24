@@ -113,6 +113,14 @@ interface ICodeGenSymbols {
    */
   readonly functionReturnTypes: ReadonlyMap<string, string>;
 
+  // === Opaque Types (Issue #948) ===
+
+  /**
+   * Issue #948: Types that are opaque (forward-declared structs).
+   * Variables of these types should be generated as pointers.
+   */
+  readonly opaqueTypes: ReadonlySet<string>;
+
   /**
    * Check if a scope variable is used in only one function.
    * Returns the function name if single-function, null otherwise.

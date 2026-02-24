@@ -92,6 +92,11 @@ class TSymbolInfoAdapter {
     // === Function Return Types ===
     const functionReturnTypes = new Map<string, string>();
 
+    // === Issue #948: Opaque Types ===
+    // Note: Opaque types are populated from SymbolTable, not TSymbol[]
+    // This will be an empty set here; actual values come from Transpiler
+    const opaqueTypes = new Set<string>();
+
     // Process each symbol
     for (const symbol of symbols) {
       switch (symbol.kind) {
@@ -196,6 +201,9 @@ class TSymbolInfoAdapter {
 
       // Function return types
       functionReturnTypes,
+
+      // Issue #948: Opaque types
+      opaqueTypes,
 
       // Methods
       getSingleFunctionForVariable: (scopeName: string, varName: string) =>
@@ -550,6 +558,9 @@ class TSymbolInfoAdapter {
 
       // Function return types - merged
       functionReturnTypes: mergedFunctionReturnTypes,
+
+      // Issue #948: Opaque types - pass through from base
+      opaqueTypes: base.opaqueTypes,
 
       // Methods - delegate to base's implementation
       getSingleFunctionForVariable: base.getSingleFunctionForVariable,
