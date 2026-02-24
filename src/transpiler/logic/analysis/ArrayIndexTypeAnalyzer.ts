@@ -277,7 +277,13 @@ class IndexTypeListener extends CNextListener {
       if (TypeConstants.SIGNED_TYPES.includes(currentType)) {
         return "bool";
       }
-      // Array element type — strip array suffix
+      // Array element type — strip outermost array dimension
+      // e.g., "u8[8]" → "u8", "u8[8][4]" → "u8[4]"
+      const strippedType = currentType.replace(/\[\d*\]$/, "");
+      if (strippedType !== currentType) {
+        return strippedType;
+      }
+      // Not an array type (e.g., struct), return as-is
       return currentType;
     }
 

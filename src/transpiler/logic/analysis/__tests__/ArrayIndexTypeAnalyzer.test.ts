@@ -526,6 +526,78 @@ describe("ArrayIndexTypeAnalyzer", () => {
   });
 
   // ========================================================================
+  // Nested array subscript (Issue #950)
+  // ========================================================================
+
+  describe("nested array subscript", () => {
+    it("should allow arr[data[i]] where data is u8[8] (Issue #950)", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[8] data <- [0, 0, 3, 0, 0, 0, 0, 0];
+          arr[data[2]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow arr[data[i] - 1] where data is u8[8] (Issue #950)", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[8] data <- [0, 0, 3, 0, 0, 0, 0, 0];
+          arr[data[2] - 1] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow nested subscript with const array param (Issue #950)", () => {
+      const tree = parse(`
+        void process(const u8[8] data) {
+          u8[10] inputs;
+          inputs[data[2] - 1] <- data[1];
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should reject nested subscript when inner array is signed", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          i8[8] data;
+          arr[data[2]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0850");
+      expect(errors[0].actualType).toBe("i8");
+    });
+
+    it("should allow multi-dimensional array index access", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[4][4] matrix;
+          arr[matrix[1][2]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
   // getErrors() accessor
   // ========================================================================
 
