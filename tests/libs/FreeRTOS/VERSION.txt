@@ -1,0 +1,4 @@
+FreeRTOS-Kernel V11.2.0
+Source: https://github.com/FreeRTOS/FreeRTOS-Kernel
+Downloaded: 2026-02-24
+Purpose: Real-world library integration tests for C-Next (Issue #931)
