@@ -1,0 +1,23 @@
+// test-cpp-only
+// Issue #924: Copy construction of C++ class instances
+// When initializing from another instance, should use copy semantics
+
+#include "CopyConstructible.hpp"
+
+i32 main() {
+    // Source instance
+    CopyConstructible src <- { id: 100, data: 200 };
+
+    // Copy to another instance
+    CopyConstructible copy <- src;
+
+    // Verify copy has correct values
+    if (copy.id != 100) return 1;
+    if (copy.data != 200) return 2;
+
+    // Modify copy - source should be unchanged
+    copy.id <- 999;
+    if (src.id != 100) return 3;
+
+    return 0;
+}
