@@ -520,6 +520,15 @@ export default class CodeGenState {
   }
 
   /**
+   * Issue #948: Check if a type name is an opaque (forward-declared) struct type.
+   * Opaque types are incomplete types that can only be used as pointers.
+   * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
+   */
+  static isOpaqueType(typeName: string): boolean {
+    return this.symbols?.opaqueTypes.has(typeName) ?? false;
+  }
+
+  /**
    * Get type info for a variable.
    * Checks local typeRegistry first, then falls back to SymbolTable
    * for cross-file variables from included .cnx files.

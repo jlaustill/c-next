@@ -716,6 +716,21 @@ describe("CodeGenState", () => {
       expect(CodeGenState.isKnownScope("MyScope")).toBe(true);
       expect(CodeGenState.isKnownScope("UnknownScope")).toBe(false);
     });
+
+    it("isOpaqueType returns false without symbols", () => {
+      CodeGenState.symbols = null;
+      expect(CodeGenState.isOpaqueType("widget_t")).toBe(false);
+    });
+
+    it("isOpaqueType returns true for opaque type", () => {
+      CodeGenState.symbols = createMockSymbols({
+        opaqueTypes: new Set(["widget_t", "display_t"]),
+      });
+
+      expect(CodeGenState.isOpaqueType("widget_t")).toBe(true);
+      expect(CodeGenState.isOpaqueType("display_t")).toBe(true);
+      expect(CodeGenState.isOpaqueType("Point")).toBe(false);
+    });
   });
 
   describe("Local Variable Helpers", () => {
