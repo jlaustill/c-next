@@ -32,7 +32,7 @@ import ESourceLanguage from "../types/ESourceLanguage";
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 4; // ADR-055 Phase 7: TAnySymbol replaces ISymbol
+const CACHE_VERSION = 5; // Issue #948: Add opaqueTypes to cache
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -134,6 +134,7 @@ class CacheManager {
     structFields: Map<string, Map<string, IStructFieldInfo>>;
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
+    opaqueTypes: string[];
   } | null {
     if (!this.cache) return null;
 
@@ -173,6 +174,7 @@ class CacheManager {
       structFields,
       needsStructKeyword: cachedEntry.needsStructKeyword ?? [],
       enumBitWidth,
+      opaqueTypes: cachedEntry.opaqueTypes ?? [],
     };
   }
 
@@ -186,6 +188,7 @@ class CacheManager {
     structFields: Map<string, Map<string, IStructFieldInfo>>,
     needsStructKeyword?: string[],
     enumBitWidth?: Map<string, number>,
+    opaqueTypes?: string[],
   ): void {
     if (!this.cache) return;
 
@@ -229,6 +232,7 @@ class CacheManager {
       structFields: serializedFields,
       needsStructKeyword,
       enumBitWidth: serializedEnumBitWidth,
+      opaqueTypes,
     };
 
     this.cache.setKey(filePath, entry);
@@ -266,6 +270,9 @@ class CacheManager {
       symbolTable,
     );
 
+    // Issue #948: Extract opaque types (forward-declared structs)
+    const opaqueTypes = symbolTable.getAllOpaqueTypes();
+
     // Delegate to existing setSymbols method
     this.setSymbols(
       filePath,
@@ -273,6 +280,7 @@ class CacheManager {
       structFields,
       needsStructKeyword,
       enumBitWidth,
+      opaqueTypes,
     );
   }
 

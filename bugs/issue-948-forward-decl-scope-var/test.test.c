@@ -9,9 +9,9 @@
 #include "fake_lib.h"
 
 /* Scope: MyScope */
-static widget_t MyScope_w = {0};
+static widget_t* MyScope_w = NULL;
 
 void MyScope_init(void) {
     MyScope_w = widget_create();
-    widget_set_value(&MyScope_w, 42);
+    widget_set_value(MyScope_w, 42);
 }

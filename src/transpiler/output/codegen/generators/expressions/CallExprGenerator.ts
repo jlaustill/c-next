@@ -165,16 +165,21 @@ const _generateCFunctionArg = (
     isPointerVariable = true;
   }
 
+  // Issue #948: Check if argument is an opaque scope variable (already a pointer)
+  const isOpaqueScopeVar = CodeGenState.isOpaqueScopeVariable(argCode);
+
   // Add & if argument needs address-of to match parameter type.
   // Issue #322: struct types passed to pointer params.
   // Issue #832: typedef'd pointer types (e.g., handle_t passed to handle_t*).
   // Issue #895 Bug B: Skip address-of for variables that are already pointers
+  // Issue #948: Skip address-of for opaque scope variables (already pointers)
   const needsAddressOf =
     argType &&
     !argType.endsWith("*") &&
     !argCode.startsWith("&") &&
     !targetParam.isArray &&
     !isPointerVariable &&
+    !isOpaqueScopeVar &&
     (orchestrator.isStructType(argType) ||
       _parameterExpectsAddressOf(targetParam.baseType, argType, orchestrator));
 

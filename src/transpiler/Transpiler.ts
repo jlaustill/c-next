@@ -1056,6 +1056,9 @@ class Transpiler {
     );
     CodeGenState.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
 
+    // Issue #948: Restore opaque types (forward-declared structs)
+    CodeGenState.symbolTable.restoreOpaqueTypes(cached.opaqueTypes);
+
     // Issue #211: Still check for C++ syntax even on cache hit
     this.detectCppFromFileType(file);
 

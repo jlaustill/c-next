@@ -117,10 +117,21 @@ class CResolver {
     // Check for struct/union
     const structSpec = DeclaratorUtils.findStructOrUnionSpecifier(declSpecs);
     if (structSpec) {
-      // For typedef struct, extract the typedef name from declarationSpecifiers
-      const typedefName = isTypedef
-        ? DeclaratorUtils.extractTypedefNameFromSpecs(declSpecs)
-        : undefined;
+      // For typedef struct, extract the typedef name
+      // First try from init-declarator-list (for "typedef struct _foo foo;")
+      // then fall back to declaration specifiers (for "typedef struct { ... } Point;")
+      let typedefName: string | undefined;
+      if (isTypedef) {
+        const initDeclList = decl.initDeclaratorList();
+        if (initDeclList) {
+          typedefName =
+            DeclaratorUtils.extractFirstDeclaratorName(initDeclList);
+        }
+        // Fall back to specifiers (works for some patterns)
+        if (!typedefName) {
+          typedefName = DeclaratorUtils.extractTypedefNameFromSpecs(declSpecs);
+        }
+      }
 
       const structSymbol = StructCollector.collect(
         structSpec,

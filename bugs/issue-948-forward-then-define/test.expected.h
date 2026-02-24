@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void MyScope_init(void);
+void Draw_setup(void);
 
 #ifdef __cplusplus
 }

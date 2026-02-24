@@ -1,0 +1,12 @@
+// test-transpile-only
+// Edge case: typedef struct _foo foo; followed by struct _foo { ... };
+// The type should NOT be opaque since it has a full definition.
+#include "lib_with_late_def.h"
+
+scope Draw {
+  point_t origin;
+
+  public void setup() {
+    global.point_init(this.origin);
+  }
+}

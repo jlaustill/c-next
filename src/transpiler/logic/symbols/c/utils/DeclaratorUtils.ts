@@ -361,6 +361,21 @@ class DeclaratorUtils {
     }
     return undefined;
   }
+
+  /**
+   * Extract the first declarator name from an init-declarator-list.
+   * For "typedef struct _widget_t widget_t;", this returns "widget_t".
+   * Used for Issue #948 opaque type detection.
+   */
+  static extractFirstDeclaratorName(initDeclList: any): string | undefined {
+    const initDeclarators = initDeclList.initDeclarator?.();
+    if (!initDeclarators || initDeclarators.length === 0) return undefined;
+
+    const firstDeclarator = initDeclarators[0].declarator?.();
+    if (!firstDeclarator) return undefined;
+
+    return DeclaratorUtils.extractDeclaratorName(firstDeclarator) ?? undefined;
+  }
 }
 
 export default DeclaratorUtils;

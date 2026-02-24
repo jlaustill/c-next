@@ -1492,7 +1492,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(4); // Current CACHE_VERSION (ADR-055 Phase 7)
+      expect(newConfig.version).toBe(5); // Current CACHE_VERSION (Issue #948 opaqueTypes)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {

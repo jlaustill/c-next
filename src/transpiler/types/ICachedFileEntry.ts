@@ -18,6 +18,8 @@ interface ICachedFileEntry {
   needsStructKeyword?: string[];
   /** Issue #208: Enum bit widths from typed enums (enum name -> bit width) */
   enumBitWidth?: Record<string, number>;
+  /** Issue #948: Opaque types (forward-declared struct types) */
+  opaqueTypes?: string[];
 }
 
 export default ICachedFileEntry;
