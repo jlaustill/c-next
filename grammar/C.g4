@@ -284,6 +284,8 @@ atomicTypeSpecifier
 typeQualifier
     : 'const'
     | 'restrict'
+    | '__restrict'   // GCC extension
+    | '__restrict__' // GCC extension
     | 'volatile'
     | '_Atomic'
     ;
