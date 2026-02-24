@@ -1,0 +1,31 @@
+// test-transpile-only
+// test-c-only
+// Tests: FreeRTOS integration using C boundary layer (ADR-061)
+// Issue #931: Real-world library integration tests
+//
+// This test validates the ADR-061 pattern:
+// - C-Next code is pure and type-safe (no void*)
+// - C-Next includes shared types header
+// - C wrapper (separate file) handles void* casting
+
+#include "task_types.h"
+
+// Typed task function - will be called by C wrapper
+// The C wrapper casts void* to TaskData* and calls this
+void counterTask_typed(TaskData data) {
+    data.counter <- data.counter + 1;
+    data.taskRan <- true;
+}
+
+// Test function demonstrating typed usage
+void testTypedAccess() {
+    TaskData data <- {counter: 0, maxCount: 10, taskRan: false};
+
+    // Direct typed call (for testing)
+    counterTask_typed(data);
+
+    // In real usage, C wrapper would:
+    // 1. Receive void* from FreeRTOS
+    // 2. Cast to TaskData*
+    // 3. Call counterTask_typed
+}
