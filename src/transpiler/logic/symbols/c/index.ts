@@ -114,29 +114,7 @@ class CResolver {
     const isTypedef = DeclaratorUtils.hasStorageClass(declSpecs, "typedef");
     const isExtern = DeclaratorUtils.hasStorageClass(declSpecs, "extern");
 
-    // Check for struct/union
-    const structSpec = DeclaratorUtils.findStructOrUnionSpecifier(declSpecs);
-    if (structSpec) {
-      CResolver.collectStructSymbol(
-        structSpec,
-        decl,
-        declSpecs,
-        sourceFile,
-        line,
-        symbolTable,
-        isTypedef,
-        symbols,
-        warnings,
-      );
-    }
-
-    // Check for enum
-    const enumSpec = DeclaratorUtils.findEnumSpecifier(declSpecs);
-    if (enumSpec) {
-      CResolver.collectEnumSymbols(enumSpec, sourceFile, line, symbols);
-    }
-
-    // Collect declarators (variables, function prototypes, typedefs)
+    // Build context early for reuse across helper methods
     const ctx: IDeclarationContext = {
       sourceFile,
       line,
@@ -144,6 +122,30 @@ class CResolver {
       isExtern,
       symbols,
     };
+
+    // Check for struct/union
+    const structSpec = DeclaratorUtils.findStructOrUnionSpecifier(declSpecs);
+    if (structSpec) {
+      CResolver.collectStructSymbol(
+        structSpec,
+        decl,
+        declSpecs,
+        ctx,
+        symbolTable,
+        warnings,
+      );
+    }
+
+    // Check for enum
+    const enumSpec = DeclaratorUtils.findEnumSpecifier(declSpecs);
+    if (enumSpec) {
+      CResolver.collectEnumSymbols(
+        enumSpec,
+        ctx.sourceFile,
+        ctx.line,
+        ctx.symbols,
+      );
+    }
 
     const initDeclList = decl.initDeclaratorList();
     if (initDeclList) {
@@ -168,29 +170,26 @@ class CResolver {
     structSpec: any,
     decl: DeclarationContext,
     declSpecs: DeclarationSpecifiersContext,
-    sourceFile: string,
-    line: number,
+    ctx: IDeclarationContext,
     symbolTable: SymbolTable | null,
-    isTypedef: boolean,
-    symbols: TCSymbol[],
     warnings: string[],
   ): void {
     // For typedef struct, extract the typedef name
-    const typedefName = isTypedef
+    const typedefName = ctx.isTypedef
       ? CResolver.extractTypedefName(decl, declSpecs)
       : undefined;
 
     const structSymbol = StructCollector.collect(
       structSpec,
-      sourceFile,
-      line,
+      ctx.sourceFile,
+      ctx.line,
       symbolTable,
       typedefName,
-      isTypedef,
+      ctx.isTypedef,
       warnings,
     );
     if (structSymbol) {
-      symbols.push(structSymbol);
+      ctx.symbols.push(structSymbol);
     }
   }
 
