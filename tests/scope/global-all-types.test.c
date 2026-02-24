@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
 // test-execution
 // Test: ADR-016 global. accessor with all primitive types
@@ -25,9 +26,9 @@ int8_t globalI8 = -128;
 
 int16_t globalI16 = -32768;
 
-int32_t globalI32 = -2147483648;
+int32_t globalI32 = (int32_t)INT32_MIN;
 
-int64_t globalI64 = -9223372036854775808;
+int64_t globalI64 = (int64_t)INT64_MIN;
 
 // Floating point globals
 float globalF32 = 3.14;
@@ -125,11 +126,11 @@ int main(void) {
         return 6;
     }
     int32_t resultI32 = GlobalAccessTest_getGlobalI32();
-    if (resultI32 != -2147483648) {
+    if (resultI32 != (int32_t)INT32_MIN) {
         return 7;
     }
     int64_t resultI64 = GlobalAccessTest_getGlobalI64();
-    if (resultI64 != -9223372036854775808) {
+    if (resultI64 != (int64_t)INT64_MIN) {
         return 8;
     }
     float testF32 = 99.5;

@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-c-only
 // test-execution
@@ -104,7 +105,7 @@ void testI32Hex(int32_t val) {
 }
 
 int main(void) {
-    int32_t minVal = -2147483648;
+    int32_t minVal = (int32_t)INT32_MIN;
     int32_t minPlus1 = -2147483647;
     int32_t negMillion = -1000000;
     int32_t neg32769 = -32769;

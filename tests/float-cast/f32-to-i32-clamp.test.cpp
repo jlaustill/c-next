@@ -12,11 +12,11 @@ int main(void) {
     float over = 3000000000.0;
     float under = -3000000000.0;
     float in_range = 1000000.0;
-    int32_t result = ((over) > ((float)INT32_MAX) ? INT32_MAX : (over) < ((float)INT32_MIN) ? INT32_MIN : static_cast<int32_t>((over)));
+    int32_t result = ((over) > ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (over) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((over)));
     if (result != 2147483647) return 1;
-    result = ((under) > ((float)INT32_MAX) ? INT32_MAX : (under) < ((float)INT32_MIN) ? INT32_MIN : static_cast<int32_t>((under)));
-    if (result != -2147483648) return 2;
-    result = ((in_range) > ((float)INT32_MAX) ? INT32_MAX : (in_range) < ((float)INT32_MIN) ? INT32_MIN : static_cast<int32_t>((in_range)));
+    result = ((under) > ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (under) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((under)));
+    if (result != (int32_t)INT32_MIN) return 2;
+    result = ((in_range) > ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (in_range) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((in_range)));
     if (result != 1000000) return 3;
     return 0;
 }

@@ -75,11 +75,11 @@ int main(void) {
     if (((device.status >> 8) & 0xFF) != 100) return 13;
     if (((device.status >> 2) & 1) != true) return 14;
     if (((device.status >> 0) & 1) != true) return 15;
-    bool isActive = ((device.flags >> 0) & 1);
+    bool isActive = ((((device.flags >> 0) & 1)) != 0U);
     if (isActive != true) return 16;
-    uint8_t progress = ((device.status >> 8) & 0xFF);
+    uint8_t progress = (uint8_t)((device.status >> 8) & 0xFF);
     if (progress != 100) return 17;
-    uint8_t mode = ((device.flags >> 3) & 0x1F);
+    uint8_t mode = (uint8_t)((device.flags >> 3) & 0x1F);
     if (mode != 15) return 18;
     return 0;
 }

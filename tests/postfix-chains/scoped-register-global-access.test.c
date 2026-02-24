@@ -49,10 +49,10 @@ int main(void) {
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1U << 0)) | (1U << 0);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1U << 1)) | (0U << 1);
     MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
-    bool running = ((MotorController_MOTOR_REG_CTRL >> 0) & 1);
-    uint8_t mode = ((MotorController_MOTOR_REG_CTRL >> 3) & 0x7);
+    bool running = ((((MotorController_MOTOR_REG_CTRL >> 0) & 1)) != 0U);
+    uint8_t mode = (uint8_t)((MotorController_MOTOR_REG_CTRL >> 3) & 0x7);
     Board_GPIO_DR = (Board_GPIO_DR & ~(1U << 0)) | (1U << 0);
-    bool ledState = ((Board_GPIO_DR >> 3U) & 1);
+    bool ledState = ((((Board_GPIO_DR >> 3U) & 1)) != 0U);
     MotorController_start();
     bool isRun = MotorController_isRunning();
     uint8_t currentMode = MotorController_getMode();

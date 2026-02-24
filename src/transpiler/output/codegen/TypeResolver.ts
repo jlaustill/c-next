@@ -176,6 +176,20 @@ class TypeResolver {
       return "f" + floatMatch[1];
     }
 
+    // Plain integer literals (no suffix) have type int in C
+    // Check for integer: starts with digit, no decimal point
+    if (/^\d+$/.test(text) || /^0[xXbBoO][\da-fA-F]+$/.test(text)) {
+      return "int";
+    }
+
+    // Plain float literals (no suffix) have type double in C
+    if (
+      /^\d*\.\d+([eE][+-]?\d+)?$/.test(text) ||
+      /^\d+[eE][+-]?\d+$/.test(text)
+    ) {
+      return "f64";
+    }
+
     return null;
   }
 

@@ -28,8 +28,8 @@ int main(void) {
     MOTOR_CTRL = (MOTOR_CTRL & ~(1U << 0)) | (1U << 0);
     MOTOR_CTRL = (MOTOR_CTRL & ~(1U << 1)) | (0U << 1);
     MOTOR_CTRL = (MOTOR_CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
-    bool isRunning = ((MOTOR_CTRL >> 0) & 1);
-    uint8_t mode = ((MOTOR_CTRL >> 3) & 0x7);
+    bool isRunning = ((((MOTOR_CTRL >> 0) & 1)) != 0U);
+    uint8_t mode = (uint8_t)((MOTOR_CTRL >> 3) & 0x7);
     if (((MOTOR_CTRL >> 2) & 1) == true) {
         MOTOR_CTRL = (MOTOR_CTRL & ~(0x7U << 3)) | ((0 & 0x7U) << 3);
     }

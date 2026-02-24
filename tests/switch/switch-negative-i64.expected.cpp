@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-execution
 // Issue #107: Negative Case Labels - i64 Type
@@ -109,7 +110,7 @@ int main(void) {
     int64_t negQuad = -1000000000000000;
     int64_t negTrillion = -1000000000000;
     int64_t negBeyondI32 = -2147483649;
-    int64_t negI32Min = -2147483648;
+    int64_t negI32Min = (int32_t)INT32_MIN;
     int64_t negOne = -1;
     int64_t zero = 0;
     int64_t posI32Max = 2147483647;

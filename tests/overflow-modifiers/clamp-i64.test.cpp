@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -41,15 +42,15 @@ int main(void) {
     if (val != 9223372036854775807) return 5;
     int64_t val2 = -9223372036854775800;
     val2 = cnx_clamp_sub_i64(val2, 100);
-    if (val2 != -9223372036854775808) return 6;
-    val2 = -9223372036854775808;
+    if (val2 != (int64_t)INT64_MIN) return 6;
+    val2 = (int64_t)INT64_MIN;
     val2 = cnx_clamp_sub_i64(val2, 1);
-    if (val2 != -9223372036854775808) return 7;
+    if (val2 != (int64_t)INT64_MIN) return 7;
     val2 = -9223372036854775800;
     val2 = cnx_clamp_sub_i64(val2, 100);
-    if (val2 != -9223372036854775808) return 8;
+    if (val2 != (int64_t)INT64_MIN) return 8;
     val2 = cnx_clamp_sub_i64(val2, 1000);
-    if (val2 != -9223372036854775808) return 9;
+    if (val2 != (int64_t)INT64_MIN) return 9;
     val = 1000000000000;
     val = cnx_clamp_sub_i64(val, 2000000000000);
     if (val != -1000000000000) return 10;

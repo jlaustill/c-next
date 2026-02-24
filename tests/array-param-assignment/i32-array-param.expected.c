@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-execution
 // Tests: i32 array parameter assignment
@@ -38,8 +39,8 @@ int main(void) {
     if (buffer[0U] != 12345) return 1;
     writeI32(buffer, 1U, -9999);
     if (buffer[1U] != -9999) return 2;
-    writeI32(buffer, 2U, -2147483648);
-    if (buffer[2U] != -2147483648) return 3;
+    writeI32(buffer, 2U, (int32_t)INT32_MIN);
+    if (buffer[2U] != (int32_t)INT32_MIN) return 3;
     writeI32(buffer, 3U, 2147483647);
     if (buffer[3U] != 2147483647) return 4;
     int32_t result = readI32(buffer, 1U);

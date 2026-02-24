@@ -12,11 +12,11 @@ int main(void) {
     float over = 5000000000.0;
     float negative = -100.0;
     float in_range = 1000000.0;
-    uint32_t result = ((over) > ((float)UINT32_MAX) ? UINT32_MAX : (over) < 0.0f ? 0 : static_cast<uint32_t>((over)));
+    uint32_t result = ((over) > ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (over) < 0.0f ? 0 : static_cast<uint32_t>((over)));
     if (result != 4294967295) return 1;
-    result = ((negative) > ((float)UINT32_MAX) ? UINT32_MAX : (negative) < 0.0f ? 0 : static_cast<uint32_t>((negative)));
+    result = ((negative) > ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (negative) < 0.0f ? 0 : static_cast<uint32_t>((negative)));
     if (result != 0) return 2;
-    result = ((in_range) > ((float)UINT32_MAX) ? UINT32_MAX : (in_range) < 0.0f ? 0 : static_cast<uint32_t>((in_range)));
+    result = ((in_range) > ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (in_range) < 0.0f ? 0 : static_cast<uint32_t>((in_range)));
     if (result != 1000000) return 3;
     return 0;
 }

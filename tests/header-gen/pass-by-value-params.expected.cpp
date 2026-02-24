@@ -30,7 +30,7 @@ uint32_t Api_readValue(uint32_t value) {
 
 int main(void) {
     float sum = Api_addFloats(1.5, 2.5);
-    int32_t sumInt = sum;
+    int32_t sumInt = static_cast<int32_t>(sum);
     if (sumInt != 4) return 1;
     bool okResult = Api_isOk(Status_Ok);
     if (!okResult) return 2;

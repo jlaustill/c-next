@@ -14,6 +14,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import NarrowingCastHelper from "../../helpers/NarrowingCastHelper.js";
 import CodeGenState from "../../../../state/CodeGenState";
 
 /**
@@ -91,6 +92,21 @@ const generateLiteral = (
   // Track boolean literal usage to include stdbool.h
   if (literalText === "true" || literalText === "false") {
     effects.push({ type: "include", header: "stdbool" });
+    return { code: literalText, effects };
+  }
+
+  // MISRA 10.3: Character literals have type int in C
+  // When assigning to narrower types (u8, i8, u16, i16), add explicit cast
+  if (literalText.startsWith("'")) {
+    const expectedType = state?.expectedType;
+    if (expectedType) {
+      const wrappedCode = NarrowingCastHelper.wrap(
+        literalText,
+        "int",
+        expectedType,
+      );
+      return { code: wrappedCode, effects };
+    }
     return { code: literalText, effects };
   }
 

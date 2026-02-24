@@ -586,10 +586,13 @@ class AssignmentClassifier {
     }
 
     // Overflow clamp (integers only, not floats)
-    // Also applies to scoped atomic variables with clamp behavior
+    // Only applies to arithmetic compound ops (+= -= *=) which can overflow
+    // Bitwise ops (&= |= ^= <<= >>=) don't overflow, so they go to SIMPLE
+    const ARITHMETIC_COMPOUND_OPS = new Set(["+=", "-=", "*="]);
     if (
       typeInfo.overflowBehavior === "clamp" &&
-      TypeCheckUtils.isInteger(typeInfo.baseType)
+      TypeCheckUtils.isInteger(typeInfo.baseType) &&
+      ARITHMETIC_COMPOUND_OPS.has(ctx.cOp)
     ) {
       return AssignmentKind.OVERFLOW_CLAMP;
     }

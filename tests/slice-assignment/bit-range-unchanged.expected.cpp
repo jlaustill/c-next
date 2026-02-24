@@ -33,14 +33,14 @@ int main(void) {
     bits = (bits & ~(((1U << 4) - 1) << 4)) | ((5 & ((1U << 4) - 1)) << 4);
     if (bits != 0xFFFFFF50) return 9;
     uint8_t smallFlags = 0U;
-    smallFlags = (smallFlags & ~(((1U << 4) - 1) << 0)) | ((15 & ((1U << 4) - 1)) << 0);
+    smallFlags = (uint8_t)((smallFlags & ~(((1U << 4) - 1) << 0)) | ((15 & ((1U << 4) - 1)) << 0));
     if (smallFlags != 0x0F) return 10;
-    smallFlags = (smallFlags & ~(1U << 7)) | (1U << 7);
+    smallFlags = (uint8_t)((smallFlags & ~(1U << 7)) | (1U << 7));
     if (smallFlags != 0x8F) return 11;
     uint16_t mediumFlags = 0U;
-    mediumFlags = (mediumFlags & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0);
+    mediumFlags = (uint16_t)((mediumFlags & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0));
     if (mediumFlags != 0x00FF) return 12;
-    mediumFlags = (mediumFlags & ~(((1U << 4) - 1) << 8)) | ((0x0A & ((1U << 4) - 1)) << 8);
+    mediumFlags = (uint16_t)((mediumFlags & ~(((1U << 4) - 1) << 8)) | ((0x0A & ((1U << 4) - 1)) << 8));
     if (mediumFlags != 0x0AFF) return 13;
     return 0;
 }

@@ -58,5 +58,5 @@ int main(void) {
     matrix[ROW][COL] = 0xFFU;
     matrix[ROW][COL] = (matrix[ROW][COL] & ~(1U << FIELD_BIT)) | (0U << FIELD_BIT);
     uint8_t value = matrix[ROW][COL];
-    bool bit = ((matrix[ROW][COL] >> FIELD_BIT) & 1);
+    bool bit = ((((matrix[ROW][COL] >> FIELD_BIT) & 1)) != 0U);
 }

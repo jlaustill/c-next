@@ -55,9 +55,9 @@ int main(void) {
     sensor = (sensor & ~(0xFFU << 16)) | ((50 & 0xFFU) << 16);
     if (((sensor >> 8) & 0xFF) != 100) return 10;
     if (((sensor >> 16) & 0xFF) != 50) return 11;
-    uint8_t rate = ((sensor >> 8) & 0xFF);
+    uint8_t rate = (uint8_t)((sensor >> 8) & 0xFF);
     if (rate != 100) return 12;
-    uint8_t thresh = ((sensor >> 16) & 0xFF);
+    uint8_t thresh = (uint8_t)((sensor >> 16) & 0xFF);
     if (thresh != 50) return 13;
     sensor = (sensor & ~(0xFFU << 8)) | ((200 & 0xFFU) << 8);
     if (((sensor >> 8) & 0xFF) != 200) return 14;

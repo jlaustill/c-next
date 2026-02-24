@@ -4,11 +4,12 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 // test-execution
 // ADR-013: Const i64 variable
 // Tests: const i64 declaration and read access with negative values
-const int64_t MIN_TIMESTAMP = -2147483648;
+const int64_t MIN_TIMESTAMP = (int32_t)INT32_MIN;
 
 const int64_t MAX_TIMESTAMP = 2147483647;
 
@@ -16,7 +17,7 @@ const int64_t EPOCH = 0;
 
 int main(void) {
     int64_t minTs = MIN_TIMESTAMP;
-    if (minTs != -2147483648) return 1;
+    if (minTs != (int32_t)INT32_MIN) return 1;
     int64_t maxTs = MAX_TIMESTAMP;
     if (maxTs != 2147483647) return 2;
     int64_t epoch = EPOCH;

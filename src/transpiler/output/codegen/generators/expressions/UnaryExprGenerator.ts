@@ -8,12 +8,21 @@
  */
 import { UnaryExpressionContext } from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
+import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TypeResolver from "../../TypeResolver";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import CppModeHelper from "../../helpers/CppModeHelper";
+
+/**
+ * Problematic negative literals that overflow their signed types in C.
+ * -2147483648 is parsed as -(2147483648) where 2147483648 > INT32_MAX.
+ * These need to be rewritten to avoid the overflow issue.
+ */
+const INT32_MIN_LITERAL = "2147483648";
+const INT64_MIN_LITERAL = "9223372036854775808";
 
 /**
  * Generate C code for a unary expression.
@@ -45,7 +54,22 @@ const generateUnaryExpr = (
 
   // Determine the operator and generate output
   if (text.startsWith("!")) return { code: `!${inner}`, effects: [] };
-  if (text.startsWith("-")) return { code: `-${inner}`, effects: [] };
+  if (text.startsWith("-")) {
+    // MISRA 10.3: Handle problematic negative literals that overflow in C
+    // -2147483648 is parsed as -(2147483648) where 2147483648 > INT32_MAX
+    // Must use INT32_MIN or INT64_MIN to avoid the overflow
+    // Cast is needed because INT32_MIN has type 'int', not 'int32_t'
+    const effects: TGeneratorEffect[] = [];
+    if (inner === INT32_MIN_LITERAL) {
+      effects.push({ type: "include", header: "limits" });
+      return { code: "(int32_t)INT32_MIN", effects };
+    }
+    if (inner === INT64_MIN_LITERAL || inner === INT64_MIN_LITERAL + "LL") {
+      effects.push({ type: "include", header: "limits" });
+      return { code: "(int64_t)INT64_MIN", effects };
+    }
+    return { code: `-${inner}`, effects };
+  }
   if (text.startsWith("~")) {
     const innerType = TypeResolver.getUnaryExpressionType(
       node.unaryExpression()!,

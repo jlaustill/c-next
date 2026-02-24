@@ -22,6 +22,7 @@ import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
 import MemberAccessValidator from "../../helpers/MemberAccessValidator";
 import BitmapAccessHelper from "./BitmapAccessHelper";
+import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
@@ -1608,10 +1609,16 @@ const handleSingleSubscript = (
   // Register access: bit extraction
   if (isRegisterAccess) {
     // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
-    output.result =
+    let expr =
       index === "0" || index === "0U"
         ? `((${ctx.result}) & 1)`
         : `((${ctx.result} >> ${index}) & 1)`;
+    // MISRA 10.3: Add narrowing cast if expected type is narrower than int
+    const targetType = CodeGenState.expectedType;
+    if (targetType) {
+      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    }
+    output.result = expr;
     return output;
   }
 
@@ -1633,10 +1640,16 @@ const handleSingleSubscript = (
     ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
   if (isPrimitiveIntMember) {
     // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
-    output.result =
+    let expr =
       index === "0" || index === "0U"
         ? `((${ctx.result}) & 1)`
         : `((${ctx.result} >> ${index}) & 1)`;
+    // MISRA 10.3: Add narrowing cast if expected type is narrower than int
+    const targetType = CodeGenState.expectedType;
+    if (targetType) {
+      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    }
+    output.result = expr;
     output.currentStructType = undefined;
     return output;
   }
@@ -1756,10 +1769,16 @@ const handleDefaultSubscript = (
 
   if (subscriptKind === "bit_single") {
     // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
-    output.result =
+    let expr =
       index === "0" || index === "0U"
         ? `((${ctx.result}) & 1)`
         : `((${ctx.result} >> ${index}) & 1)`;
+    // MISRA 10.3: Add narrowing cast if expected type is narrower than int
+    const targetType = CodeGenState.expectedType;
+    if (targetType) {
+      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    }
+    output.result = expr;
   } else {
     output.result = `${ctx.result}[${index}]`;
   }
@@ -1806,10 +1825,27 @@ const handleBitRangeSubscript = (
   } else {
     const mask = orchestrator.generateBitMask(width);
     // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)
+    let expr: string;
     if (start === "0" || start === "0U") {
-      output.result = `((${ctx.result}) & ${mask})`;
+      expr = `((${ctx.result}) & ${mask})`;
     } else {
-      output.result = `((${ctx.result} >> ${start}) & ${mask})`;
+      expr = `((${ctx.result} >> ${start}) & ${mask})`;
+    }
+
+    // MISRA 10.3: Add narrowing cast if expected type is known
+    // Bit operations promote to int, so wrap with cast when assigning to narrower types
+    const targetType = CodeGenState.expectedType;
+    if (targetType && ctx.primaryTypeInfo?.baseType) {
+      const promotedSourceType = NarrowingCastHelper.getPromotedType(
+        ctx.primaryTypeInfo.baseType,
+      );
+      output.result = NarrowingCastHelper.wrap(
+        expr,
+        promotedSourceType,
+        targetType,
+      );
+    } else {
+      output.result = expr;
     }
   }
 

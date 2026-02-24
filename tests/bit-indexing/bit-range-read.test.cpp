@@ -9,7 +9,7 @@
 // Tests: reading multiple bits with [start, width] syntax
 int main(void) {
     uint8_t config = 0b11110101U;
-    uint8_t lowNibble = ((config) & ((1U << 4U) - 1));
-    uint8_t highNibble = ((config >> 4U) & ((1U << 4U) - 1));
-    uint8_t midBits = ((config >> 2U) & ((1U << 3U) - 1));
+    uint8_t lowNibble = static_cast<uint8_t>(((config) & ((1U << 4U) - 1)));
+    uint8_t highNibble = static_cast<uint8_t>(((config >> 4U) & ((1U << 4U) - 1)));
+    uint8_t midBits = static_cast<uint8_t>(((config >> 2U) & ((1U << 3U) - 1)));
 }

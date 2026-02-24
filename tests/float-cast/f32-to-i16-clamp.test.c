@@ -12,11 +12,11 @@ int main(void) {
     float over = 40000.0;
     float under = -40000.0;
     float in_range = 10000.0;
-    int16_t result = ((over) > ((float)INT16_MAX) ? INT16_MAX : (over) < ((float)INT16_MIN) ? INT16_MIN : (int16_t)(over));
+    int16_t result = ((over) > ((float)INT16_MAX) ? (int16_t)INT16_MAX : (over) < ((float)INT16_MIN) ? (int16_t)INT16_MIN : (int16_t)(over));
     if (result != 32767) return 1;
-    result = ((under) > ((float)INT16_MAX) ? INT16_MAX : (under) < ((float)INT16_MIN) ? INT16_MIN : (int16_t)(under));
+    result = ((under) > ((float)INT16_MAX) ? (int16_t)INT16_MAX : (under) < ((float)INT16_MIN) ? (int16_t)INT16_MIN : (int16_t)(under));
     if (result != -32768) return 2;
-    result = ((in_range) > ((float)INT16_MAX) ? INT16_MAX : (in_range) < ((float)INT16_MIN) ? INT16_MIN : (int16_t)(in_range));
+    result = ((in_range) > ((float)INT16_MAX) ? (int16_t)INT16_MAX : (in_range) < ((float)INT16_MIN) ? (int16_t)INT16_MIN : (int16_t)(in_range));
     if (result != 10000) return 3;
     return 0;
 }

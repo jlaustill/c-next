@@ -9,13 +9,13 @@
 // Test conversions between float and integer types
 void test_int_to_float(void) {
     int32_t int_val = 42;
-    float float_val = int_val;
+    float float_val = (float)int_val;
     uint32_t uint_val = 100U;
-    float_val = uint_val;
-    double double_val = int_val;
-    double_val = uint_val;
-    float_val = 123;
-    double_val = 456;
+    float_val = (float)uint_val;
+    double double_val = (double)int_val;
+    double_val = (double)uint_val;
+    float_val = (float)123;
+    double_val = (double)456;
 }
 
 void test_f32_to_f64(void) {
@@ -25,9 +25,9 @@ void test_f32_to_f64(void) {
 
 void test_explicit_cast(void) {
     float a = 3.14;
-    int32_t truncated = ((a) > ((float)INT32_MAX) ? INT32_MAX : (a) < ((float)INT32_MIN) ? INT32_MIN : (int32_t)(a));
+    int32_t truncated = ((a) > ((float)INT32_MAX) ? (int32_t)INT32_MAX : (a) < ((float)INT32_MIN) ? (int32_t)INT32_MIN : (int32_t)(a));
     double b = 99.99;
-    uint32_t unsigned_val = ((b) > ((double)UINT32_MAX) ? UINT32_MAX : (b) < 0.0 ? 0 : (uint32_t)(b));
+    uint32_t unsigned_val = ((b) > ((double)UINT32_MAX) ? (uint32_t)UINT32_MAX : (b) < 0.0 ? 0 : (uint32_t)(b));
     double big = 3.141592653589793;
     float small = (float)big;
 }

@@ -1,3 +1,12 @@
+import TYPE_MAP from "../transpiler/output/codegen/types/TYPE_MAP";
+
+/**
+ * Types that need explicit cast for MISRA 10.3 compliance.
+ * These types are narrower than int (32-bit) and need casts after
+ * bit manipulation operations which promote to int.
+ */
+const NARROW_TYPES = new Set(["u8", "u16", "i8", "i16"]);
+
 /**
  * Bit manipulation utilities for C code generation.
  * Pure functions that generate C code strings for bit operations.
@@ -103,6 +112,22 @@ class BitUtils {
   }
 
   /**
+   * Wrap an expression with a cast for MISRA 10.3 compliance on narrow types.
+   * Bit manipulation operations promote to int; this casts back to the target type.
+   *
+   * @param expr - The expression to potentially wrap
+   * @param targetType - The C-Next type name (e.g., "u8", "u16")
+   * @returns Expression wrapped with cast if narrow, or original expression
+   */
+  private static wrapNarrowCast(expr: string, targetType?: string): string {
+    if (!targetType || !NARROW_TYPES.has(targetType)) {
+      return expr;
+    }
+    const cType = TYPE_MAP[targetType] ?? targetType;
+    return `(${cType})(${expr})`;
+  }
+
+  /**
    * Generate code to read a single bit from a value.
    * Pattern: ((target >> offset) & 1)
    *
@@ -162,7 +187,8 @@ class BitUtils {
     const valueShift = is64Bit
       ? `((uint64_t)${intValue} << ${offset})`
       : `(${intValue} << ${offset})`;
-    return `${target} = (${target} & ~(${one} << ${offset})) | ${valueShift};`;
+    const rhs = `(${target} & ~(${one} << ${offset})) | ${valueShift}`;
+    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
   }
 
   /**
@@ -184,7 +210,8 @@ class BitUtils {
     targetType?: string,
   ): string {
     const mask = BitUtils.generateMask(width, targetType);
-    return `${target} = (${target} & ~(${mask} << ${offset})) | ((${value} & ${mask}) << ${offset});`;
+    const rhs = `(${target} & ~(${mask} << ${offset})) | ((${value} & ${mask}) << ${offset})`;
+    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
   }
 
   /**
@@ -209,7 +236,8 @@ class BitUtils {
     // boolToInt already returns unsigned values (1U/0U) for MISRA 10.1 compliance
     const castPrefix =
       targetType === "u64" || targetType === "i64" ? "(uint64_t)" : "";
-    return `${target} = (${castPrefix}${intValue} << ${offset});`;
+    const rhs = `(${castPrefix}${intValue} << ${offset})`;
+    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
   }
 
   /**
@@ -232,7 +260,8 @@ class BitUtils {
     targetType?: string,
   ): string {
     const mask = BitUtils.generateMask(width, targetType);
-    return `${target} = ((${value} & ${mask}) << ${offset});`;
+    const rhs = `((${value} & ${mask}) << ${offset})`;
+    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
   }
 }
 

@@ -10,37 +10,37 @@
 // Tests: Character literal usage in various contexts
 // Character literals work with u8 type (which maps to uint8_t in C)
 int main(void) {
-    uint8_t letter = 'A';
+    uint8_t letter = (uint8_t)'A';
     if (letter != 65) return 1;
-    uint8_t lower = 'z';
+    uint8_t lower = (uint8_t)'z';
     if (lower != 122) return 2;
-    uint8_t digit = '0';
+    uint8_t digit = (uint8_t)'0';
     if (digit != 48) return 3;
-    uint8_t space = ' ';
+    uint8_t space = (uint8_t)' ';
     if (space != 32) return 4;
-    uint8_t c = 'X';
+    uint8_t c = (uint8_t)'X';
     if (c != 'X') return 5;
     if (c == 'Y') return 6;
     if ('A' >= 'B') return 7;
     if ('Z' <= 'A') return 8;
-    uint8_t first = 'a';
-    uint8_t second = 'b';
+    uint8_t first = (uint8_t)'a';
+    uint8_t second = (uint8_t)'b';
     if (first >= second) return 9;
-    uint8_t vowels[5] = {'a', 'e', 'i', 'o', 'u'};
+    uint8_t vowels[5] = {(uint8_t)'a', (uint8_t)'e', (uint8_t)'i', (uint8_t)'o', (uint8_t)'u'};
     if (vowels[0U] != 'a') return 10;
     if (vowels[1U] != 'e') return 11;
     if (vowels[2U] != 'i') return 12;
     if (vowels[3U] != 'o') return 13;
     if (vowels[4U] != 'u') return 14;
     uint8_t buffer[4] = {0};
-    buffer[0] = 'H';
-    buffer[1] = 'i';
-    buffer[2] = '!';
+    buffer[0] = (uint8_t)'H';
+    buffer[1] = (uint8_t)'i';
+    buffer[2] = (uint8_t)'!';
     buffer[3] = 0U;
     if (buffer[0U] != 72) return 15;
     if (buffer[1U] != 105) return 16;
     if (buffer[2U] != 33) return 17;
-    uint8_t grade = 'B';
+    uint8_t grade = (uint8_t)'B';
     uint32_t points = 0U;
     switch (grade) {
         case 'A': {
@@ -61,7 +61,7 @@ int main(void) {
         }
     }
     if (points != 3) return 18;
-    uint8_t dir = 'N';
+    uint8_t dir = (uint8_t)'N';
     uint32_t heading = 0U;
     switch (dir) {
         case 'N': {
@@ -86,7 +86,7 @@ int main(void) {
         }
     }
     if (heading != 0) return 19;
-    dir = 'S';
+    dir = (uint8_t)'S';
     switch (dir) {
         case 'N': {
             heading = 0U;
@@ -110,10 +110,10 @@ int main(void) {
         }
     }
     if (heading != 180) return 20;
-    uint8_t upperA = 'A';
+    uint8_t upperA = (uint8_t)'A';
     uint8_t lowerA = upperA + 32U;
     if (lowerA != 'a') return 21;
-    uint8_t lowerZ = 'z';
+    uint8_t lowerZ = (uint8_t)'z';
     uint8_t upperZ = lowerZ - 32U;
     if (upperZ != 'Z') return 22;
     return 0;
