@@ -12,6 +12,21 @@ import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 
+/**
+ * Options for struct collection.
+ * Consolidates optional parameters to avoid exceeding 7-parameter limit.
+ */
+interface ICollectOptions {
+  /** Optional typedef name for anonymous structs */
+  typedefName?: string;
+  /** Whether this is part of a typedef declaration */
+  isTypedef?: boolean;
+  /** Array to collect warnings */
+  warnings?: string[];
+  /** Issue #957: True if typedef has pointer declarator (typedef struct X *Y) */
+  isPointerTypedef?: boolean;
+}
+
 class StructCollector {
   /**
    * Collect a struct or union symbol from a specifier context.
@@ -20,21 +35,16 @@ class StructCollector {
    * @param sourceFile Source file path
    * @param line Source line number
    * @param symbolTable Optional symbol table for field tracking
-   * @param typedefName Optional typedef name for anonymous structs
-   * @param isTypedef Whether this is part of a typedef declaration
-   * @param warnings Array to collect warnings
-   * @param isPointerTypedef Issue #957: True if typedef has pointer declarator (typedef struct X *Y)
+   * @param options Optional collection options (typedef info, warnings)
    */
   static collect(
     structSpec: StructOrUnionSpecifierContext,
     sourceFile: string,
     line: number,
     symbolTable: SymbolTable | null,
-    typedefName?: string,
-    isTypedef?: boolean,
-    warnings?: string[],
-    isPointerTypedef?: boolean,
+    options: ICollectOptions = {},
   ): ICStructSymbol | null {
+    const { typedefName, isTypedef, warnings, isPointerTypedef } = options;
     const identifier = structSpec.Identifier();
 
     // Use typedef name for anonymous structs (e.g., typedef struct { ... } AppConfig;)
@@ -60,16 +70,13 @@ class StructCollector {
     const needsStructKeyword = Boolean(identifier && !isTypedef);
 
     if (symbolTable) {
-      StructCollector.updateSymbolTable(
-        symbolTable,
-        name,
-        needsStructKeyword,
+      StructCollector.updateSymbolTable(symbolTable, name, needsStructKeyword, {
         hasBody,
         isTypedef,
         typedefName,
-        identifier?.getText(),
+        structTag: identifier?.getText(),
         isPointerTypedef,
-      );
+      });
     }
 
     return {
@@ -86,19 +93,23 @@ class StructCollector {
   }
 
   /**
-   * Update symbol table with struct metadata.
-   * Extracted to reduce cognitive complexity of collect().
+   * Options for updating symbol table with struct metadata.
    */
   private static updateSymbolTable(
     symbolTable: SymbolTable,
     name: string,
     needsStructKeyword: boolean,
-    hasBody: boolean,
-    isTypedef?: boolean,
-    typedefName?: string,
-    structTag?: string,
-    isPointerTypedef?: boolean,
+    options: {
+      hasBody: boolean;
+      isTypedef?: boolean;
+      typedefName?: string;
+      structTag?: string;
+      isPointerTypedef?: boolean;
+    },
   ): void {
+    const { hasBody, isTypedef, typedefName, structTag, isPointerTypedef } =
+      options;
+
     if (needsStructKeyword) {
       symbolTable.markNeedsStructKeyword(name);
     }

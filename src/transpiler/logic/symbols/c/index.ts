@@ -191,10 +191,12 @@ class CResolver {
       ctx.sourceFile,
       ctx.line,
       symbolTable,
-      typedefName,
-      ctx.isTypedef,
-      warnings,
-      isPointerTypedef,
+      {
+        typedefName,
+        isTypedef: ctx.isTypedef,
+        warnings,
+        isPointerTypedef,
+      },
     );
     if (structSymbol) {
       ctx.symbols.push(structSymbol);
