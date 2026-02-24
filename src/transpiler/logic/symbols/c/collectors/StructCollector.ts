@@ -93,7 +93,8 @@ class StructCollector {
   }
 
   /**
-   * Options for updating symbol table with struct metadata.
+   * Update symbol table with struct metadata.
+   * Extracted to reduce cognitive complexity of collect().
    */
   private static updateSymbolTable(
     symbolTable: SymbolTable,
