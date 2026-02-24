@@ -13,6 +13,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ITargetCapabilities from "../../types/ITargetCapabilities";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
+import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
 
 /**
  * Maps C-Next types to C types (for atomic operations)
@@ -55,22 +56,6 @@ const STREX_MAP: Record<string, string> = {
 };
 
 /**
- * Map compound operators to simple operators
- */
-const SIMPLE_OP_MAP: Record<string, string> = {
-  "+=": "+",
-  "-=": "-",
-  "*=": "*",
-  "/=": "/",
-  "%=": "%",
-  "&=": "&",
-  "|=": "|",
-  "^=": "^",
-  "<<=": "<<",
-  ">>=": ">>",
-};
-
-/**
  * Map compound operators to clamp helper operation names
  */
 const CLAMP_OP_MAP: Record<string, string> = {
@@ -106,7 +91,7 @@ function generateInnerAtomicOp(
   typeInfo: TTypeInfo,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
-  const simpleOp = SIMPLE_OP_MAP[cOp] || "+";
+  const simpleOp = COMPOUND_TO_BINARY[cOp] || "+";
 
   // Handle clamp behavior for arithmetic operations (integers only)
   const helperOp = getClampHelperOp(cOp, typeInfo);

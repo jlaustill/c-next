@@ -15,6 +15,7 @@ import NarrowingCastHelper from "../../helpers/NarrowingCastHelper.js";
 import TypeResolver from "../../TypeResolver.js";
 import TYPE_MAP from "../../types/TYPE_MAP.js";
 import CppModeHelper from "../../helpers/CppModeHelper.js";
+import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY.js";
 
 /** Get typed generator reference */
 function gen(): ICodeGenApi {
@@ -22,20 +23,73 @@ function gen(): ICodeGenApi {
 }
 
 /**
- * Map compound assignment operator to its binary operator equivalent.
+ * Try to handle compound assignment on narrow types (MISRA 10.3).
+ * Returns the generated code if handled, null otherwise.
  */
-const COMPOUND_TO_BINARY: Record<string, string> = {
-  "+=": "+",
-  "-=": "-",
-  "*=": "*",
-  "/=": "/",
-  "%=": "%",
-  "&=": "&",
-  "|=": "|",
-  "^=": "^",
-  "<<=": "<<",
-  ">>=": ">>",
-};
+function tryHandleCompoundNarrowingCast(
+  ctx: IAssignmentContext,
+  target: string,
+): string | null {
+  if (!ctx.isCompound || !ctx.firstIdTypeInfo) {
+    return null;
+  }
+
+  const baseType = ctx.firstIdTypeInfo.baseType;
+  const promotedType = NarrowingCastHelper.getPromotedType(baseType);
+
+  if (promotedType !== "int" || baseType === "int") {
+    return null;
+  }
+
+  const binaryOp = COMPOUND_TO_BINARY[ctx.cOp];
+  if (!binaryOp) {
+    return null;
+  }
+
+  const cType = TYPE_MAP[baseType] ?? baseType;
+  const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
+  const castExpr = CppModeHelper.cast(cType, expr);
+  return `${target} = ${castExpr};`;
+}
+
+/**
+ * Try to handle cross-type-category conversion (int <-> float).
+ * Returns the generated code if handled, null otherwise.
+ */
+function tryHandleIntToFloatConversion(
+  ctx: IAssignmentContext,
+  target: string,
+): string | null {
+  if (ctx.isCompound || !ctx.firstIdTypeInfo || !ctx.valueCtx) {
+    return null;
+  }
+
+  const targetType = ctx.firstIdTypeInfo.baseType;
+  const valueType = TypeResolver.getExpressionType(ctx.valueCtx);
+
+  if (!valueType) {
+    return null;
+  }
+
+  if (
+    !NarrowingCastHelper.isCrossTypeCategoryConversion(valueType, targetType)
+  ) {
+    return null;
+  }
+
+  if (
+    !NarrowingCastHelper.isIntegerType(valueType) ||
+    !NarrowingCastHelper.isFloatType(targetType)
+  ) {
+    return null;
+  }
+
+  const castedValue = NarrowingCastHelper.wrapIntToFloat(
+    ctx.generatedValue,
+    targetType,
+  );
+  return `${target} ${ctx.cOp} ${castedValue};`;
+}
 
 /**
  * Handle simple variable assignment.
@@ -48,45 +102,16 @@ const COMPOUND_TO_BINARY: Record<string, string> = {
 function handleSimpleAssignment(ctx: IAssignmentContext): string {
   const target = gen().generateAssignmentTarget(ctx.targetCtx);
 
-  // For compound assignments on narrower types, expand to explicit cast
-  if (ctx.isCompound && ctx.firstIdTypeInfo) {
-    const baseType = ctx.firstIdTypeInfo.baseType;
-    const promotedType = NarrowingCastHelper.getPromotedType(baseType);
-
-    // If the type gets promoted to int, we need explicit cast
-    if (promotedType === "int" && baseType !== "int") {
-      const binaryOp = COMPOUND_TO_BINARY[ctx.cOp];
-      if (binaryOp) {
-        const cType = TYPE_MAP[baseType] ?? baseType;
-        // Parenthesize the expression to ensure cast applies to full expression
-        const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
-        const castExpr = CppModeHelper.cast(cType, expr);
-        return `${target} = ${castExpr};`;
-      }
-    }
+  // Try compound assignment narrowing cast (MISRA 10.3)
+  const compoundResult = tryHandleCompoundNarrowingCast(ctx, target);
+  if (compoundResult) {
+    return compoundResult;
   }
 
-  // For non-compound assignments, check for cross-type-category (int <-> float)
-  if (!ctx.isCompound && ctx.firstIdTypeInfo && ctx.valueCtx) {
-    const targetType = ctx.firstIdTypeInfo.baseType;
-    const valueType = TypeResolver.getExpressionType(ctx.valueCtx);
-
-    if (
-      valueType &&
-      NarrowingCastHelper.isCrossTypeCategoryConversion(valueType, targetType)
-    ) {
-      // Int to float: add explicit cast
-      if (
-        NarrowingCastHelper.isIntegerType(valueType) &&
-        NarrowingCastHelper.isFloatType(targetType)
-      ) {
-        const castedValue = NarrowingCastHelper.wrapIntToFloat(
-          ctx.generatedValue,
-          targetType,
-        );
-        return `${target} ${ctx.cOp} ${castedValue};`;
-      }
-    }
+  // Try int-to-float conversion
+  const conversionResult = tryHandleIntToFloatConversion(ctx, target);
+  if (conversionResult) {
+    return conversionResult;
   }
 
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
