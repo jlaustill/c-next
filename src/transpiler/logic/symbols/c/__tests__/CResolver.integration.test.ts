@@ -639,3 +639,40 @@ describe("CResolver - Without SymbolTable", () => {
 });
 
 // ADR-055 Phase 7: CTSymbolAdapter tests removed - adapter deleted
+
+describe("CResolver - Opaque Type Detection (Issue #948)", () => {
+  it("marks forward-declared typedef struct as opaque", () => {
+    const tree = TestHelpers.parseC(`typedef struct _widget_t widget_t;`);
+    const symbolTable = new SymbolTable();
+    CResolver.resolve(tree!, "test.h", symbolTable);
+    expect(symbolTable.isOpaqueType("widget_t")).toBe(true);
+  });
+
+  it("does not mark typedef struct with body as opaque", () => {
+    const tree = TestHelpers.parseC(`typedef struct { int x; } point_t;`);
+    const symbolTable = new SymbolTable();
+    CResolver.resolve(tree!, "test.h", symbolTable);
+    expect(symbolTable.isOpaqueType("point_t")).toBe(false);
+  });
+
+  it("unmarks opaque type when full definition follows typedef", () => {
+    const tree = TestHelpers.parseC(`
+      typedef struct _point_t point_t;
+      struct _point_t { int x; int y; };
+    `);
+    const symbolTable = new SymbolTable();
+    CResolver.resolve(tree!, "test.h", symbolTable);
+    expect(symbolTable.isOpaqueType("point_t")).toBe(false);
+  });
+
+  it("handles multiple forward declarations", () => {
+    const tree = TestHelpers.parseC(`
+      typedef struct _handle_t handle_t;
+      typedef struct _context_t context_t;
+    `);
+    const symbolTable = new SymbolTable();
+    CResolver.resolve(tree!, "test.h", symbolTable);
+    expect(symbolTable.isOpaqueType("handle_t")).toBe(true);
+    expect(symbolTable.isOpaqueType("context_t")).toBe(true);
+  });
+});

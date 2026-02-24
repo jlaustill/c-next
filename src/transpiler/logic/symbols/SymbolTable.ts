@@ -84,6 +84,14 @@ class SymbolTable {
   private readonly opaqueTypes: Set<string> = new Set();
 
   /**
+   * Issue #948: Track struct tag -> typedef name relationships.
+   * When a typedef declares an alias for a struct tag (e.g., typedef struct _foo foo_t),
+   * we record structTagAliases["_foo"] = "foo_t". This allows us to unmark the typedef
+   * as opaque when the full struct definition is later found.
+   */
+  private readonly structTagAliases: Map<string, string> = new Map();
+
+  /**
    * Issue #208: Track enum backing type bit widths
    * C++14 typed enums: enum Name : uint8_t { ... } have explicit bit widths
    */
@@ -909,6 +917,26 @@ class SymbolTable {
     }
   }
 
+  /**
+   * Issue #948: Register a struct tag -> typedef name relationship.
+   * Called when processing: typedef struct _foo foo_t;
+   * This allows unmarking foo_t when struct _foo { ... } is later defined.
+   * @param structTag The struct tag name (e.g., "_foo")
+   * @param typedefName The typedef alias name (e.g., "foo_t")
+   */
+  registerStructTagAlias(structTag: string, typedefName: string): void {
+    this.structTagAliases.set(structTag, typedefName);
+  }
+
+  /**
+   * Issue #948: Get the typedef alias for a struct tag, if any.
+   * @param structTag The struct tag name
+   * @returns The typedef alias name, or undefined if none registered
+   */
+  getStructTagAlias(structTag: string): string | undefined {
+    return this.structTagAliases.get(structTag);
+  }
+
   // ========================================================================
   // Enum Bit Width Tracking
   // ========================================================================
@@ -1059,6 +1087,7 @@ class SymbolTable {
     this.structFields.clear();
     this.needsStructKeyword.clear();
     this.opaqueTypes.clear();
+    this.structTagAliases.clear();
     this.enumBitWidth.clear();
   }
 }

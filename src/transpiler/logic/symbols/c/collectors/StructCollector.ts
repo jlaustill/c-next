@@ -41,6 +41,9 @@ class StructCollector {
 
     const isUnion = structSpec.structOrUnion()?.getText() === "union";
 
+    // Issue #948: Detect forward declaration (struct with no body)
+    const hasBody = structSpec.structDeclarationList() !== null;
+
     // Extract fields if struct has a body
     const fields = StructCollector.collectFields(
       structSpec,
@@ -54,8 +57,39 @@ class StructCollector {
     // But "typedef struct { ... } Rectangle;" -> just "Rectangle var"
     const needsStructKeyword = Boolean(identifier && !isTypedef);
 
-    if (symbolTable && needsStructKeyword) {
-      symbolTable.markNeedsStructKeyword(name);
+    if (symbolTable) {
+      if (needsStructKeyword) {
+        symbolTable.markNeedsStructKeyword(name);
+      }
+
+      // Issue #948: Track opaque types (forward-declared typedef structs)
+      // e.g., typedef struct _widget_t widget_t; marks "widget_t" as opaque
+      if (isTypedef && !hasBody && typedefName) {
+        symbolTable.markOpaqueType(typedefName);
+        // Register the struct tag -> typedef alias relationship so we can
+        // unmark the typedef when the full struct definition is found later
+        const structTag = identifier?.getText();
+        if (structTag) {
+          symbolTable.registerStructTagAlias(structTag, typedefName);
+        }
+      }
+
+      // Issue #948: Unmark opaque type if full definition is found
+      // This handles: typedef struct _foo foo; struct _foo { ... };
+      if (hasBody) {
+        const structTag = identifier?.getText();
+        if (structTag) {
+          symbolTable.unmarkOpaqueType(structTag);
+          // Also unmark any typedef alias for this struct tag
+          const typedefAlias = symbolTable.getStructTagAlias(structTag);
+          if (typedefAlias) {
+            symbolTable.unmarkOpaqueType(typedefAlias);
+          }
+        }
+        if (typedefName) {
+          symbolTable.unmarkOpaqueType(typedefName);
+        }
+      }
     }
 
     return {
