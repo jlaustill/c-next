@@ -23,6 +23,7 @@ class StructCollector {
    * @param typedefName Optional typedef name for anonymous structs
    * @param isTypedef Whether this is part of a typedef declaration
    * @param warnings Array to collect warnings
+   * @param isPointerTypedef Issue #957: True if typedef has pointer declarator (typedef struct X *Y)
    */
   static collect(
     structSpec: StructOrUnionSpecifierContext,
@@ -32,6 +33,7 @@ class StructCollector {
     typedefName?: string,
     isTypedef?: boolean,
     warnings?: string[],
+    isPointerTypedef?: boolean,
   ): ICStructSymbol | null {
     const identifier = structSpec.Identifier();
 
@@ -66,6 +68,7 @@ class StructCollector {
         isTypedef,
         typedefName,
         identifier?.getText(),
+        isPointerTypedef,
       );
     }
 
@@ -94,13 +97,16 @@ class StructCollector {
     isTypedef?: boolean,
     typedefName?: string,
     structTag?: string,
+    isPointerTypedef?: boolean,
   ): void {
     if (needsStructKeyword) {
       symbolTable.markNeedsStructKeyword(name);
     }
 
     // Issue #948: Track opaque types (forward-declared typedef structs)
-    if (isTypedef && !hasBody && typedefName) {
+    // Issue #957: Don't mark pointer typedefs as opaque.
+    // For "typedef struct X *Y", Y is already a pointer type, not an opaque struct.
+    if (isTypedef && !hasBody && typedefName && !isPointerTypedef) {
       symbolTable.markOpaqueType(typedefName);
       if (structTag) {
         symbolTable.registerStructTagAlias(structTag, typedefName);
