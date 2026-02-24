@@ -7,11 +7,12 @@
 
 ## Test Progress
 
-| Test                | Status      | Notes                                 |
-| ------------------- | ----------- | ------------------------------------- |
-| FreeRTOSConfig.h    | **Ready**   | Will be plain C file (per ADR-061)    |
-| freertos_wrapper.c  | **Ready**   | C boundary layer for void\* callbacks |
-| task-typed.test.cnx | Not started | C-Next code calling through wrapper   |
+| Test                | Status   | Notes                                  |
+| ------------------- | -------- | -------------------------------------- |
+| FreeRTOSConfig.h    | **Done** | Plain C config file                    |
+| task_types.h        | **Done** | Shared types for C and C-Next          |
+| freertos_wrapper.c  | **Done** | C boundary layer for void\* callbacks  |
+| task-typed.test.cnx | **PASS** | C-Next code with typed TaskData struct |
 
 ## Discoveries
 
@@ -69,12 +70,20 @@ public void myTask_typed(TaskData data) {
 
 **Key principle:** C-Next will never have `unsafe` blocks. All unsafe operations (void\* casts, #define values) belong in C files at the boundary layer.
 
-## Next Steps
+## Validation Complete
 
-1. Create `FreeRTOSConfig.h` (plain C)
-2. Create `freertos_wrapper.c` (C boundary layer)
-3. Create `task-typed.test.cnx` (C-Next test)
-4. Verify the pattern works end-to-end
+The ADR-061 pattern has been validated:
+
+1. **FreeRTOSConfig.h** — Plain C config file (uses #define values)
+2. **task_types.h** — Shared types between C and C-Next
+3. **freertos_wrapper.c/.h** — C boundary layer (handles void\* casts)
+4. **task-typed.test.cnx** — C-Next test using typed structs
+
+The test passes, proving that:
+
+- C-Next can work with C library types
+- The boundary layer pattern isolates unsafe operations
+- Type safety is maintained in C-Next code
 
 ## Related
 
