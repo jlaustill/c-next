@@ -390,6 +390,20 @@ interface IOrchestrator {
 
   /** Check if a float shadow has current value */
   isFloatShadowCurrent(shadowName: string): boolean;
+
+  // === Issue #948: Opaque Type Helpers ===
+
+  /**
+   * Check if a type is an opaque (forward-declared) struct type.
+   * Opaque types can only be used as pointers (cannot be instantiated).
+   */
+  isOpaqueType(typeName: string): boolean;
+
+  /**
+   * Mark a scope variable as having an opaque type.
+   * These variables are generated as pointers with NULL initialization.
+   */
+  markOpaqueScopeVariable(qualifiedName: string): void;
 }
 
 export default IOrchestrator;
