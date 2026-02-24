@@ -3,86 +3,78 @@
 **Library:** FreeRTOS-Kernel V11.2.0
 **Issue:** #931
 **Started:** 2026-02-24
-**Status:** Blocked on ADR-061
+**Status:** ADR-061 Accepted — Ready to implement with C boundary layer
 
 ## Test Progress
 
-| Test                 | Status      | Notes                                       |
-| -------------------- | ----------- | ------------------------------------------- |
-| FreeRTOSConfig.cnx   | **Blocked** | Requires `#define` values — see Discovery 1 |
-| task-handle.test.cnx | Not started | Blocked by config                           |
-| task-create.test.cnx | **Blocked** | Requires `void*` — see Discovery 2          |
+| Test                | Status      | Notes                                 |
+| ------------------- | ----------- | ------------------------------------- |
+| FreeRTOSConfig.h    | **Ready**   | Will be plain C file (per ADR-061)    |
+| freertos_wrapper.c  | **Ready**   | C boundary layer for void\* callbacks |
+| task-typed.test.cnx | Not started | C-Next code calling through wrapper   |
 
 ## Discoveries
 
 ### Discovery 1: `#define` Value Constants
 
-**Test:** FreeRTOSConfig.cnx (not yet created)
+**Problem:** C-Next forbids `#define NAME value` (ADR-037 error E0502)
 
-**Error:** Would produce E0502 — C-Next forbids `#define NAME value` (ADR-037)
-
-**Analysis:**
-
-FreeRTOS requires configuration via preprocessor defines:
+**Solution (ADR-061):** Configuration files stay in C. C-Next includes them directly.
 
 ```c
+// FreeRTOSConfig.h — stays as C
 #define configUSE_PREEMPTION 1
-#define configMAX_PRIORITIES 5
 ```
 
-These are used in `#if` conditionals in FreeRTOS.h:
-
-```c
-#if ( configUSE_PREEMPTION == 0 )
+```c-next
+// app.cnx — includes C config
+#include "FreeRTOSConfig.h"
 ```
-
-C-Next's recommended alternative (`const u32 configUSE_PREEMPTION <- 1`) transpiles to C `const`, which **cannot** be used in preprocessor `#if` directives.
-
-**Action:** ADR-061 created to research solutions
 
 ---
 
 ### Discovery 2: `void*` Generic Pointers
 
-**Test:** task-create.test.cnx (not yet created)
+**Problem:** C-Next has no `void*` type (memory safety by design)
 
-**Error:** No C-Next syntax for `void*` parameters or callbacks
-
-**Analysis:**
-
-FreeRTOS task function signature requires `void*`:
+**Solution (ADR-061):** C boundary layer handles unsafe casts, calls typed C-Next functions.
 
 ```c
-typedef void (*TaskFunction_t)(void* pvParameters);
-
-BaseType_t xTaskCreate(
-    TaskFunction_t pxTaskCode,
-    const char* pcName,
-    configSTACK_DEPTH_TYPE usStackDepth,
-    void* pvParameters,      // <-- void*
-    UBaseType_t uxPriority,
-    TaskHandle_t* pxCreatedTask
-);
+// freertos_wrapper.c — C BOUNDARY LAYER
+void myTask_wrapper(void* pvParameters) {
+    TaskData* data = (TaskData*)pvParameters;  // Unsafe cast in C
+    myTask_typed(data);                         // Call typed C-Next function
+}
 ```
 
-C-Next intentionally has no `void*` type (memory safety). There's currently no way to:
-
-- Declare a function accepting `void*`
-- Pass typed data where `void*` is expected
-- Receive `void*` in a callback and use it as typed data
-
-**Action:** ADR-061 created to research solutions
+```c-next
+// my_task.cnx — C-NEXT (SAFE)
+public void myTask_typed(TaskData data) {
+    data.counter <- data.counter + 1;
+}
+```
 
 ---
 
-## Conclusion
+## Decision: C is the Escape Hatch
 
-FreeRTOS integration is **blocked** pending ADR-061 decisions on:
+**ADR-061 Accepted** — C-Next follows the TypeScript model:
 
-1. How C-Next handles C library configuration (`#define` values)
-2. How C-Next handles `void*` in C callbacks
+| TypeScript           | C-Next                 |
+| -------------------- | ---------------------- |
+| `.ts` files          | `.cnx` files           |
+| Safe, typed code     | Safe, typed code       |
+| `.d.ts` declarations | `.h/.c` boundary layer |
+| JavaScript runtime   | C libraries            |
 
-These are fundamental C interop questions that affect all C libraries, not just FreeRTOS.
+**Key principle:** C-Next will never have `unsafe` blocks. All unsafe operations (void\* casts, #define values) belong in C files at the boundary layer.
+
+## Next Steps
+
+1. Create `FreeRTOSConfig.h` (plain C)
+2. Create `freertos_wrapper.c` (C boundary layer)
+3. Create `task-typed.test.cnx` (C-Next test)
+4. Verify the pattern works end-to-end
 
 ## Related
 

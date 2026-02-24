@@ -2,7 +2,7 @@
 
 ## Status
 
-**Research** — Discovered via Issue #931 (Real-world library integration tests)
+**Accepted** — C is the escape hatch; C-Next stays pure
 
 ## Context
 
@@ -45,12 +45,6 @@ const u32 configUSE_PREEMPTION <- 1;  // Transpiles to C const, not #define
 
 **The problem:** C `const` variables cannot be used in `#if` preprocessor conditionals. The preprocessor runs before the compiler sees `const` declarations.
 
-### Impact
-
-- Cannot write FreeRTOSConfig in C-Next
-- Cannot configure any C library that uses `#define` for settings
-- Must use plain C headers for all library configuration
-
 ## Problem 2: `void*` Generic Pointers
 
 ### What C Libraries Need
@@ -74,21 +68,6 @@ BaseType_t xTaskCreate(
 
 Pattern: Pass typed data in, receive `void*` in callback, cast back to original type.
 
-```c
-// C usage pattern
-typedef struct { int counter; } TaskData;
-
-void myTask(void* params) {
-    TaskData* data = (TaskData*)params;  // Cast back
-    data->counter++;
-}
-
-void createTask() {
-    TaskData data = {0};
-    xTaskCreate(myTask, "test", 128, &data, 1, NULL);  // Pass as void*
-}
-```
-
 ### What C-Next Does
 
 C-Next has no `void*` type — it's intentionally memory-unsafe:
@@ -97,97 +76,217 @@ C-Next has no `void*` type — it's intentionally memory-unsafe:
 - No way to cast to/from `void*`
 - No way to call C functions that expect `void*` callbacks
 
-### Impact
+## Research
 
-- Cannot implement FreeRTOS task functions
-- Cannot use any C callback API that uses `void*` for user data
-- Affects: FreeRTOS, POSIX threads, most event systems, GUI callbacks
+### How Other Safe Languages Handle void\*
 
-## Research Questions
+**Rust** ([Rust Closures in FFI](https://adventures.michaelfbryan.com/posts/rust-closures-in-ffi)):
 
-### For `#define` Values
+- Uses `*mut c_void` with `unsafe` blocks
+- Trampoline pattern: generic function captures type at compile time
+- Cast isolated in one `unsafe` location
 
-1. **Allow `#define` in `.config.cnx` files?** — Special file type for C library config
-2. **Pass-through syntax?** — `#pragma c_define configUSE_PREEMPTION 1`
-3. **Accept plain C headers?** — Document that config files must be C, not C-Next
-4. **Hybrid approach?** — C-Next wrapper that `#include`s a C config header
+**Zig** ([Callback with userdata Zig way](https://ziggit.dev/t/callback-with-userdata-zig-way/5203)):
 
-### For `void*` Handling
+- Uses `*anyopaque` (equivalent to `void*`)
+- Wrapper structs with init methods encapsulate the cast
+- Type safety thrown away at cast point
 
-1. **How do other safe languages handle this?**
-   - Rust: `*mut c_void` with unsafe blocks
-   - Zig: `*anyopaque` with explicit casts
-   - Ada: `System.Address` with unchecked conversions
+### Key Insight
 
-2. **Type tracking through void\*?**
-   - Track what type was passed to void\* parameter
-   - When void\* returns (in callback), infer original type
-   - Requires flow analysis across call boundaries
+Both languages accept that `void*` loses type information. They provide mechanisms to:
 
-3. **Explicit opaque annotation?**
+1. Isolate the unsafe cast in a small, auditable location
+2. Use generics to maintain type info at compile time
+3. Trust the developer to cast correctly when void\* returns
 
-   ```c-next
-   // Hypothetical syntax
-   void myTask(opaque<TaskData> params) {
-       params.counter <- params.counter + 1;
-   }
-   ```
+The question: should C-Next have `unsafe` blocks like Rust?
 
-4. **Require C wrapper functions?**
-   - User writes thin C shim that casts void\* to typed pointer
-   - C-Next calls the typed C function
-   - Pushes unsafe code to C boundary
-
-5. **MISRA implications?**
-   - MISRA C:2012 Rule 11.5: Conversion from void\* to pointer requires care
-   - Any solution should maintain MISRA compliance where possible
-
-## Patterns in Real Embedded Code
-
-### Pattern A: Callback with User Data (Most Common)
-
-```c
-// Registration
-void register_callback(void (*callback)(void* user_data), void* user_data);
-
-// Usage
-typedef struct { int pin; } LedState;
-void led_callback(void* data) { LedState* s = data; toggle(s->pin); }
-LedState state = {13};
-register_callback(led_callback, &state);
-```
-
-### Pattern B: Generic Container
-
-```c
-// FreeRTOS queue - stores void* to any data
-QueueHandle_t xQueueCreate(UBaseType_t length, UBaseType_t itemSize);
-BaseType_t xQueueSend(QueueHandle_t queue, const void* item, TickType_t wait);
-BaseType_t xQueueReceive(QueueHandle_t queue, void* buffer, TickType_t wait);
-```
-
-### Pattern C: Opaque Handle (Already Supported)
-
-```c
-// Handle is pointer to incomplete type - C-Next handles this
-typedef struct TaskControlBlock* TaskHandle_t;
-```
+**Answer: No.** C-Next will never have unsafe blocks. C is the escape hatch.
 
 ## Decision
 
-**TBD** — Requires discussion and decision on:
+### C is the Escape Hatch
 
-1. Approach for `#define` value constants in library configs
-2. Approach for `void*` in callback signatures and generic APIs
-3. Whether these need separate solutions or a unified approach
-4. Acceptable safety/ergonomics tradeoffs
+C-Next follows the **TypeScript model**:
+
+| TypeScript                | C-Next                 |
+| ------------------------- | ---------------------- |
+| `.ts` files               | `.cnx` files           |
+| Safe, typed code          | Safe, typed code       |
+| `.d.ts` declaration files | `.h/.c` boundary layer |
+| JavaScript runtime        | C libraries            |
+
+**The architecture:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  C-Next (.cnx)                                          │
+│  - No void*                                             │
+│  - No #define values                                    │
+│  - No unsafe blocks                                     │
+│  - Type-safe, MISRA-compliant                           │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          │ includes / calls
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  C Boundary Layer (.h/.c)                               │
+│  - void* casts                                          │
+│  - #define config values                                │
+│  - Thin wrappers that call typed C-Next functions       │
+│  - All unsafe operations isolated here                  │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          │ calls
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  C Library (FreeRTOS, etc.)                             │
+│  - void* callbacks                                      │
+│  - #define configuration                                │
+│  - Unchanged, unaware of C-Next                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Solution for void\* Callbacks
+
+User writes a thin C wrapper that handles the unsafe cast:
+
+```c
+// freertos_wrapper.c — C BOUNDARY LAYER
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "my_task.h"  // Generated from my_task.cnx
+
+// C wrapper - handles void* cast
+void myTask_wrapper(void* pvParameters) {
+    TaskData* data = (TaskData*)pvParameters;  // Unsafe cast in C
+    myTask_typed(data);                         // Call typed C-Next function
+}
+
+// Registration helper
+void createMyTask(TaskData* data, TaskHandle_t* handle) {
+    xTaskCreate(myTask_wrapper, "myTask", 128, data, 1, handle);
+}
+```
+
+```c-next
+// my_task.cnx — C-NEXT (SAFE)
+
+struct TaskData {
+    u32 counter;
+    u32 maxCount;
+}
+
+// Typed function - no void*, fully safe
+public void myTask_typed(TaskData data) {
+    data.counter <- data.counter + 1;
+}
+```
+
+### Solution for #define Configuration
+
+Configuration files stay in C:
+
+```c
+// FreeRTOSConfig.h — C BOUNDARY LAYER
+
+#ifndef FREERTOS_CONFIG_H
+#define FREERTOS_CONFIG_H
+
+#define configUSE_PREEMPTION 1
+#define configMAX_PRIORITIES 5
+#define configTICK_RATE_HZ 1000
+// ... other config
+
+#endif
+```
+
+```c-next
+// app.cnx — C-NEXT (SAFE)
+
+#include "FreeRTOSConfig.h"  // Include C config
+#include "FreeRTOS.h"
+#include "task.h"
+#include "freertos_wrapper.h"  // Include C wrapper
+
+void startApp() {
+    TaskData data <- {counter: 0, maxCount: 100};
+    TaskHandle_t handle;
+    createMyTask(data, handle);  // Call through typed wrapper
+}
+```
+
+### Benefits
+
+1. **No language changes** — C-Next stays pure, no `unsafe` blocks
+2. **Unified solution** — Same pattern solves both `void*` and `#define`
+3. **Explicit boundary** — Clear where unsafe code lives (C files)
+4. **Auditable** — Unsafe casts are in small, dedicated files
+5. **MISRA compliance** — C-Next code remains fully compliant
+6. **Familiar pattern** — Same as TypeScript's `.d.ts` approach
+
+### Tradeoffs
+
+1. **More files** — Requires C wrapper files for void\* callbacks
+2. **Manual maintenance** — Wrappers must match C-Next signatures
+3. **Learning curve** — Users must understand the boundary pattern
 
 ## Consequences
 
-**TBD** — Will depend on chosen approach.
+### For Users
+
+- Library configuration files (FreeRTOSConfig.h, etc.) are written in C
+- Callbacks using `void*` require thin C wrappers
+- C-Next code calls typed wrapper functions, not raw library APIs
+- Documentation should provide wrapper templates for common libraries
+
+### For the Transpiler
+
+- No changes required — existing behavior is correct
+- ADR-037 (`#define` value restriction) remains unchanged
+- No `void*` type will ever be added
+
+### For Documentation
+
+- Add "C Library Integration" guide explaining the boundary pattern
+- Provide wrapper templates for FreeRTOS, Arduino, STM32 HAL
+- Document that unsafe operations belong in C, not C-Next
+
+## Examples
+
+### FreeRTOS Task with Typed Callback
+
+See the Solution sections above for complete example.
+
+### Event Handler Pattern
+
+```c
+// event_wrapper.c — C BOUNDARY LAYER
+#include "event_handler.h"
+
+void onEvent_wrapper(void* user_data, int event_type) {
+    EventContext* ctx = (EventContext*)user_data;
+    onEvent_typed(ctx, event_type);
+}
+```
+
+```c-next
+// event_handler.cnx — C-NEXT (SAFE)
+struct EventContext {
+    u32 count;
+}
+
+public void onEvent_typed(EventContext ctx, i32 eventType) {
+    ctx.count <- ctx.count + 1;
+}
+```
 
 ## Related
 
-- ADR-037: Preprocessor Directive Handling (forbids `#define` values)
-- ADR-006: No Raw Pointers (design principle)
+- ADR-037: Preprocessor Directive Handling (forbids `#define` values — unchanged)
+- ADR-006: No Raw Pointers (design principle — reinforced)
 - Issue #931: Real-world C/C++ library integration tests (discovery source)
+- [Rust Closures in FFI](https://adventures.michaelfbryan.com/posts/rust-closures-in-ffi) — research reference
+- [Zig Callback Patterns](https://ziggit.dev/t/callback-with-userdata-zig-way/5203) — research reference
