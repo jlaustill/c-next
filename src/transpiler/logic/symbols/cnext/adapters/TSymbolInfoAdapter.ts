@@ -445,68 +445,6 @@ class TSymbolInfoAdapter {
   }
 
   /**
-   * Create a shallow copy of ICodeGenSymbols with optional field overrides.
-   * This eliminates code duplication between mergeExternalEnums and mergeOpaqueTypes.
-   *
-   * @param base The base ICodeGenSymbols to copy from
-   * @param overrides Fields to override in the copy
-   * @returns New ICodeGenSymbols with overridden fields
-   */
-  private static _copyWithOverrides(
-    base: ICodeGenSymbols,
-    overrides: Partial<ICodeGenSymbols>,
-  ): ICodeGenSymbols {
-    return {
-      // Type sets
-      knownScopes: overrides.knownScopes ?? base.knownScopes,
-      knownStructs: overrides.knownStructs ?? base.knownStructs,
-      knownEnums: overrides.knownEnums ?? base.knownEnums,
-      knownBitmaps: overrides.knownBitmaps ?? base.knownBitmaps,
-      knownRegisters: overrides.knownRegisters ?? base.knownRegisters,
-      // Scope info
-      scopeMembers: overrides.scopeMembers ?? base.scopeMembers,
-      scopeMemberVisibility:
-        overrides.scopeMemberVisibility ?? base.scopeMemberVisibility,
-      scopeVariableUsage:
-        overrides.scopeVariableUsage ?? base.scopeVariableUsage,
-      // Struct info
-      structFields: overrides.structFields ?? base.structFields,
-      structFieldArrays: overrides.structFieldArrays ?? base.structFieldArrays,
-      structFieldDimensions:
-        overrides.structFieldDimensions ?? base.structFieldDimensions,
-      // Enum info
-      enumMembers: overrides.enumMembers ?? base.enumMembers,
-      // Bitmap info
-      bitmapFields: overrides.bitmapFields ?? base.bitmapFields,
-      bitmapBackingType: overrides.bitmapBackingType ?? base.bitmapBackingType,
-      bitmapBitWidth: overrides.bitmapBitWidth ?? base.bitmapBitWidth,
-      // Register info
-      scopedRegisters: overrides.scopedRegisters ?? base.scopedRegisters,
-      registerMemberAccess:
-        overrides.registerMemberAccess ?? base.registerMemberAccess,
-      registerMemberTypes:
-        overrides.registerMemberTypes ?? base.registerMemberTypes,
-      registerBaseAddresses:
-        overrides.registerBaseAddresses ?? base.registerBaseAddresses,
-      registerMemberOffsets:
-        overrides.registerMemberOffsets ?? base.registerMemberOffsets,
-      registerMemberCTypes:
-        overrides.registerMemberCTypes ?? base.registerMemberCTypes,
-      // Private const values
-      scopePrivateConstValues:
-        overrides.scopePrivateConstValues ?? base.scopePrivateConstValues,
-      // Function return types
-      functionReturnTypes:
-        overrides.functionReturnTypes ?? base.functionReturnTypes,
-      // Opaque types
-      opaqueTypes: overrides.opaqueTypes ?? base.opaqueTypes,
-      // Methods - always delegate to base
-      getSingleFunctionForVariable: base.getSingleFunctionForVariable,
-      hasPublicSymbols: base.hasPublicSymbols,
-    };
-  }
-
-  /**
    * Merge a single external source into the merged data structures
    */
   private static _mergeExternalSource(
@@ -580,12 +518,13 @@ class TSymbolInfoAdapter {
     }
 
     // Return new ICodeGenSymbols with merged enum data and scope info
-    return this._copyWithOverrides(base, {
+    return {
+      ...base,
       knownScopes: mergedKnownScopes,
       knownEnums: mergedKnownEnums,
       enumMembers: mergedEnumMembers,
       functionReturnTypes: mergedFunctionReturnTypes,
-    });
+    };
   }
 
   /**
@@ -616,9 +555,7 @@ class TSymbolInfoAdapter {
     }
 
     // Return new ICodeGenSymbols with merged opaque types
-    return this._copyWithOverrides(base, {
-      opaqueTypes: mergedOpaqueTypes,
-    });
+    return { ...base, opaqueTypes: mergedOpaqueTypes };
   }
 }
 

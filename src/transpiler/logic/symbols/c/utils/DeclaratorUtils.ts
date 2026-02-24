@@ -14,6 +14,7 @@ import type {
   StructDeclarationListContext,
   StructDeclarationContext,
   StructDeclaratorContext,
+  InitDeclaratorListContext,
 } from "../../../parser/c/grammar/CParser";
 import SymbolUtils from "../../SymbolUtils";
 import IExtractedParameter from "../../shared/IExtractedParameter";
@@ -367,7 +368,9 @@ class DeclaratorUtils {
    * For "typedef struct _widget_t widget_t;", this returns "widget_t".
    * Used for Issue #948 opaque type detection.
    */
-  static extractFirstDeclaratorName(initDeclList: any): string | undefined {
+  static extractFirstDeclaratorName(
+    initDeclList: InitDeclaratorListContext,
+  ): string | undefined {
     const initDeclarators = initDeclList.initDeclarator?.();
     if (!initDeclarators || initDeclarators.length === 0) return undefined;
 
