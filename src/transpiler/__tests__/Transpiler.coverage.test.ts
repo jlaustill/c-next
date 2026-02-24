@@ -1314,4 +1314,99 @@ describe("Transpiler coverage integration tests", () => {
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
   });
+
+  it("preprocesses header with conditional patterns when preprocessor available", async () => {
+    const srcDir = join(testDir, "src");
+    const includeDir = join(testDir, "include");
+    mkdirSync(srcDir, { recursive: true });
+    mkdirSync(includeDir, { recursive: true });
+
+    // Create a config header that defines the feature
+    writeFileSync(
+      join(includeDir, "config.h"),
+      `
+      #ifndef CONFIG_H
+      #define CONFIG_H
+      #define MY_FEATURE 1
+      #endif
+    `,
+    );
+
+    // Create a header with #if MACRO != 0 pattern that needs preprocessing
+    writeFileSync(
+      join(includeDir, "feature.h"),
+      `
+      #ifndef FEATURE_H
+      #define FEATURE_H
+      #include "config.h"
+
+      void always_available(void);
+
+      #if MY_FEATURE != 0
+      void feature_func(void);
+      #endif
+      #endif
+    `,
+    );
+
+    writeFileSync(
+      join(srcDir, "main.cnx"),
+      `
+      #include "feature.h"
+      void test() { always_available(); }
+    `,
+    );
+
+    const transpiler = new Transpiler({
+      inputs: [join(srcDir, "main.cnx")],
+      includeDirs: [includeDir],
+      noCache: true,
+    });
+
+    const result = await transpiler.transpile({ kind: "files" });
+    expect(result.success).toBe(true);
+  });
+
+  it("falls back to raw content when preprocessing fails (invalid include)", async () => {
+    const srcDir = join(testDir, "src");
+    const includeDir = join(testDir, "include");
+    mkdirSync(srcDir, { recursive: true });
+    mkdirSync(includeDir, { recursive: true });
+
+    // Create a header that includes a non-existent file (will cause preprocessing to fail)
+    writeFileSync(
+      join(includeDir, "broken.h"),
+      `
+      #ifndef BROKEN_H
+      #define BROKEN_H
+      #include "nonexistent_config.h"
+
+      #if SOME_MACRO != 0
+      void some_func(void);
+      #endif
+
+      void available_func(void);
+      #endif
+    `,
+    );
+
+    writeFileSync(
+      join(srcDir, "main.cnx"),
+      `
+      #include "broken.h"
+      void test() { available_func(); }
+    `,
+    );
+
+    const transpiler = new Transpiler({
+      inputs: [join(srcDir, "main.cnx")],
+      includeDirs: [includeDir],
+      noCache: true,
+    });
+
+    // Should succeed even if preprocessing fails (falls back to raw content)
+    const result = await transpiler.transpile({ kind: "files" });
+    // The transpiler should still succeed and add a warning
+    expect(result.success).toBe(true);
+  });
 });
