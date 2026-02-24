@@ -543,6 +543,78 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_ARRAY);
   });
+
+  // Issue #954: Scope variable bit access should be classified as THIS_BIT/THIS_BIT_RANGE
+  it("classifies this.flags[3] as THIS_BIT for integer type", () => {
+    setupSymbols();
+    CodeGenState.currentScope = "Sensor";
+    // Register Sensor_flags as a non-array integer type
+    CodeGenState.setVariableTypeInfo(
+      "Sensor_flags",
+      createTypeInfo({ baseType: "u8", isArray: false }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["flags"],
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasThis: true,
+      hasArrayAccess: true,
+      postfixOpsCount: 1,
+      isSimpleIdentifier: false,
+      lastSubscriptExprCount: 1, // single bit
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_BIT);
+  });
+
+  it("classifies this.value[0, 8] as THIS_BIT_RANGE for integer type", () => {
+    setupSymbols();
+    CodeGenState.currentScope = "Sensor";
+    // Register Sensor_value as a non-array integer type
+    CodeGenState.setVariableTypeInfo(
+      "Sensor_value",
+      createTypeInfo({ baseType: "u16", isArray: false }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["value"],
+      subscripts: [
+        {} as IAssignmentContext["subscripts"][0],
+        {} as IAssignmentContext["subscripts"][0],
+      ],
+      hasThis: true,
+      hasArrayAccess: true,
+      postfixOpsCount: 1,
+      isSimpleIdentifier: false,
+      lastSubscriptExprCount: 2, // bit range
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.THIS_BIT_RANGE,
+    );
+  });
+
+  it("classifies this.data[i] as THIS_ARRAY for array type", () => {
+    setupSymbols();
+    CodeGenState.currentScope = "Buffer";
+    // Register Buffer_data as an array type
+    CodeGenState.setVariableTypeInfo(
+      "Buffer_data",
+      createTypeInfo({ baseType: "u8", isArray: true, arrayDimensions: [10] }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["data"],
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasThis: true,
+      hasArrayAccess: true,
+      postfixOpsCount: 1,
+      isSimpleIdentifier: false,
+      lastSubscriptExprCount: 1,
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_ARRAY);
+  });
 });
 
 // ========================================================================

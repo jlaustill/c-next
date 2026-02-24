@@ -1,0 +1,55 @@
+// test-execution
+// Issue #954: Single bit write on scope variables not lowered to C
+// Tests: scope variable LHS single bit write should use read-modify-write pattern
+
+scope Flags {
+    u8 status;
+
+    public void setReady() {
+        this.status[0] <- true;
+    }
+
+    public void clearReady() {
+        this.status[0] <- false;
+    }
+
+    public void setError() {
+        this.status[7] <- true;
+    }
+
+    public u8 getStatus() {
+        return this.status;
+    }
+
+    public void reset() {
+        this.status <- 0;
+    }
+}
+
+u32 main() {
+    u8 result;
+
+    // Test 1: Set bit 0
+    Flags.reset();
+    Flags.setReady();
+    result <- Flags.getStatus();
+    if (result != 0x01) {
+        return 1;
+    }
+
+    // Test 2: Set bit 7 (preserves bit 0)
+    Flags.setError();
+    result <- Flags.getStatus();
+    if (result != 0x81) {
+        return 2;
+    }
+
+    // Test 3: Clear bit 0 (preserves bit 7)
+    Flags.clearReady();
+    result <- Flags.getStatus();
+    if (result != 0x80) {
+        return 3;
+    }
+
+    return 0;
+}
