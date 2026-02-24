@@ -4,6 +4,7 @@
  */
 
 // test-cpp-only
+// test-execution
 // Issue #924: Single instance initialization of C++ class with constructor
 // Should use field assignment pattern, not designated initializers
 #include "DefaultConstructible.hpp"

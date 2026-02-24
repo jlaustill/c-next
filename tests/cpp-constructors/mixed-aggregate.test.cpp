@@ -4,6 +4,7 @@
  */
 
 // test-cpp-only
+// test-execution
 // Issue #924: Mixed aggregate and non-aggregate types
 // Aggregate types can use designated initializers, non-aggregates cannot
 #include "DefaultConstructible.hpp"

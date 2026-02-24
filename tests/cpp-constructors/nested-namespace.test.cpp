@@ -4,6 +4,7 @@
  */
 
 // test-cpp-only
+// test-execution
 // Issue #924: Nested namespace C++ class with constructor
 // Classes in nested namespaces should also use field assignment pattern
 #include "NestedNamespace.hpp"

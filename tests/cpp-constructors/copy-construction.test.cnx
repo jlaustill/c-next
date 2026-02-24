@@ -1,4 +1,5 @@
 // test-cpp-only
+// test-execution
 // Issue #924: Copy construction of C++ class instances
 // When initializing from another instance, should use copy semantics
 

@@ -4,6 +4,7 @@
  */
 
 // test-cpp-only
+// test-execution
 // Issue #924: Default construction of C++ class arrays
 // Arrays of classes with constructors should default-construct each element
 #include "DefaultConstructible.hpp"
