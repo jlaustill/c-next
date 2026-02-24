@@ -16,6 +16,7 @@
     "vitest",
     "cppcheck",
     "misra",
+    "misparses",
     "codegen",
     "preprocessor",
     "lexer",
