@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-02-24
+
+### Fixed
+
+- Missing GCC extension keywords (`__asm__`, `__const__`, `__volatile__`, `__signed__`) in ANTLR C grammar causing incorrect parsing of GCC-preprocessed system headers (Issue #964)
+
+### Changed
+
+- Additive-only struct symbol collection with immer immutability — replaces mark/unmark pattern with query-time resolution (Issue #958)
+- `setSymbols` parameters grouped into options object (SonarCloud S107)
+- `isTypedefStructType` made required in `IFromASTDeps`
+
+### Added
+
+- ADR-061: C is the escape hatch — C library interop pattern (Issue #931)
+- FreeRTOS-Kernel V11.2.0 vendored for real-library integration tests (Issue #931)
+- Real-library integration test infrastructure and design (Issue #931)
+
 ## [0.2.11] - 2026-02-24
 
 ### Fixed
