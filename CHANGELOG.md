@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-02-24
+
+### Fixed
+
+- Pointer typedefs (`typedef struct X *Y`) incorrectly marked as opaque (Issue #957)
+- Complete struct types with cross-file definitions generate by-value instead of by-pointer (Issue #958)
+
+### Changed
+
+- Refactor StructCollector to use options objects for cleaner parameter passing
+
 ## [0.2.10] - 2026-02-24
 
 ### Fixed
