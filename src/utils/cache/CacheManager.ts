@@ -32,7 +32,7 @@ import ESourceLanguage from "../types/ESourceLanguage";
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 6; // Issue #958: Add typedefStructTypes to cache
+const CACHE_VERSION = 7; // Issue #958: Add structTagAliases, structTagsWithBodies to cache
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -136,6 +136,8 @@ class CacheManager {
     enumBitWidth: Map<string, number>;
     opaqueTypes: string[];
     typedefStructTypes: Array<[string, string]>;
+    structTagAliases: Array<[string, string]>;
+    structTagsWithBodies: string[];
   } | null {
     if (!this.cache) return null;
 
@@ -177,6 +179,8 @@ class CacheManager {
       enumBitWidth,
       opaqueTypes: cachedEntry.opaqueTypes ?? [],
       typedefStructTypes: cachedEntry.typedefStructTypes ?? [],
+      structTagAliases: cachedEntry.structTagAliases ?? [],
+      structTagsWithBodies: cachedEntry.structTagsWithBodies ?? [],
     };
   }
 
@@ -192,6 +196,8 @@ class CacheManager {
     enumBitWidth?: Map<string, number>,
     opaqueTypes?: string[],
     typedefStructTypes?: Array<[string, string]>,
+    structTagAliases?: Array<[string, string]>,
+    structTagsWithBodies?: string[],
   ): void {
     if (!this.cache) return;
 
@@ -237,6 +243,8 @@ class CacheManager {
       enumBitWidth: serializedEnumBitWidth,
       opaqueTypes,
       typedefStructTypes,
+      structTagAliases,
+      structTagsWithBodies,
     };
 
     this.cache.setKey(filePath, entry);
@@ -280,6 +288,10 @@ class CacheManager {
     // Issue #958: Extract typedef struct types (all typedef'd structs)
     const typedefStructTypes = symbolTable.getAllTypedefStructTypes();
 
+    // Issue #958: Extract struct tag aliases and body tracking
+    const structTagAliases = symbolTable.getAllStructTagAliases();
+    const structTagsWithBodies = symbolTable.getAllStructTagsWithBodies();
+
     // Delegate to existing setSymbols method
     this.setSymbols(
       filePath,
@@ -289,6 +301,8 @@ class CacheManager {
       enumBitWidth,
       opaqueTypes,
       typedefStructTypes,
+      structTagAliases,
+      structTagsWithBodies,
     );
   }
 

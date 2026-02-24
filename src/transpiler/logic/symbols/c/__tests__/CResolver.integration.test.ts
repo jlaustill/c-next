@@ -664,7 +664,7 @@ describe("CResolver - Opaque Type Detection (Issue #948)", () => {
     expect(symbolTable.isOpaqueType("point_t")).toBe(false);
   });
 
-  it("unmarks opaque type when full definition is found in separate parse", () => {
+  it("resolves opaque type as non-opaque when full definition is found in separate parse", () => {
     // Forward declaration first
     const tree1 = TestHelpers.parseC(`typedef struct _foo foo_t;`);
     const symbolTable = new SymbolTable();
@@ -672,14 +672,14 @@ describe("CResolver - Opaque Type Detection (Issue #948)", () => {
 
     expect(symbolTable.isOpaqueType("foo_t")).toBe(true);
 
-    // Full definition later
+    // Full definition later — query-time resolution sees body
     const tree2 = TestHelpers.parseC(`struct _foo { int value; };`);
     CResolver.resolve(tree2!, "test.h", symbolTable);
 
     expect(symbolTable.isOpaqueType("foo_t")).toBe(false);
   });
 
-  it("unmarks opaque type when full definition follows typedef in same parse", () => {
+  it("resolves opaque type as non-opaque when full definition follows typedef in same parse", () => {
     const tree = TestHelpers.parseC(`
       typedef struct _point_t point_t;
       struct _point_t { int x; int y; };

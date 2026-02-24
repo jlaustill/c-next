@@ -621,11 +621,23 @@ describe("SymbolTable", () => {
       expect(symbolTable.isOpaqueType("other_t")).toBe(false);
     });
 
-    it("should unmark opaque types when full definition found", () => {
+    it("should resolve opaque type as non-opaque when struct tag has body", () => {
+      // typedef struct _point point_t; → mark opaque + register alias
       symbolTable.markOpaqueType("point_t");
+      symbolTable.registerStructTagAlias("_point", "point_t");
       expect(symbolTable.isOpaqueType("point_t")).toBe(true);
-      symbolTable.unmarkOpaqueType("point_t");
+
+      // struct _point { int x; int y; }; → mark body
+      symbolTable.markStructTagHasBody("_point");
+      // Query-time resolution: no longer opaque
       expect(symbolTable.isOpaqueType("point_t")).toBe(false);
+    });
+
+    it("should keep opaque type when no body found for struct tag", () => {
+      symbolTable.markOpaqueType("handle_t");
+      symbolTable.registerStructTagAlias("_handle", "handle_t");
+      // No markStructTagHasBody call → stays opaque
+      expect(symbolTable.isOpaqueType("handle_t")).toBe(true);
     });
 
     it("should get all opaque types", () => {
@@ -662,20 +674,14 @@ describe("SymbolTable", () => {
       expect(symbolTable.isTypedefStructType("other_t")).toBe(false);
     });
 
-    it("should unmark typedef struct type when definition is in same file", () => {
+    it("should always return true for typedef struct types (additive only)", () => {
+      // Issue #958: typedef struct types are never unmarked
       symbolTable.markTypedefStructType("point_t", "point.h");
       expect(symbolTable.isTypedefStructType("point_t")).toBe(true);
-      // Same file - should unmark
-      symbolTable.unmarkTypedefStructType("point_t", "point.h");
-      expect(symbolTable.isTypedefStructType("point_t")).toBe(false);
-    });
-
-    it("should retain typedef struct type when definition is in different file", () => {
-      symbolTable.markTypedefStructType("widget_t", "widget_types.h");
-      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
-      // Different file - should NOT unmark (cross-file pattern)
-      symbolTable.unmarkTypedefStructType("widget_t", "widget_private.h");
-      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
+      // Even after marking the body, typedef struct type stays marked
+      symbolTable.registerStructTagAlias("_point", "point_t");
+      symbolTable.markStructTagHasBody("_point");
+      expect(symbolTable.isTypedefStructType("point_t")).toBe(true);
     });
 
     it("should get all typedef struct types", () => {
@@ -701,6 +707,54 @@ describe("SymbolTable", () => {
       expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
       expect(symbolTable.isTypedefStructType("handle_t")).toBe(true);
       expect(symbolTable.getAllTypedefStructTypes()).toHaveLength(2);
+    });
+  });
+
+  // ========================================================================
+  // Struct Tag Aliases and Body Tracking (Issue #958)
+  // ========================================================================
+
+  describe("Struct Tag Aliases and Body Tracking", () => {
+    it("should register and retrieve struct tag aliases", () => {
+      symbolTable.registerStructTagAlias("_widget", "widget_t");
+      expect(symbolTable.getStructTagAlias("_widget")).toBe("widget_t");
+      expect(symbolTable.getStructTagAlias("_unknown")).toBeUndefined();
+    });
+
+    it("should populate forward and reverse alias maps", () => {
+      symbolTable.registerStructTagAlias("_foo", "foo_t");
+      const aliases = symbolTable.getAllStructTagAliases();
+      expect(aliases).toContainEqual(["_foo", "foo_t"]);
+    });
+
+    it("should track struct tags with bodies", () => {
+      symbolTable.markStructTagHasBody("_widget");
+      const bodies = symbolTable.getAllStructTagsWithBodies();
+      expect(bodies).toContain("_widget");
+    });
+
+    it("should restore struct tag aliases from cache", () => {
+      symbolTable.restoreStructTagAliases([
+        ["_foo", "foo_t"],
+        ["_bar", "bar_t"],
+      ]);
+      expect(symbolTable.getStructTagAlias("_foo")).toBe("foo_t");
+      expect(symbolTable.getStructTagAlias("_bar")).toBe("bar_t");
+    });
+
+    it("should restore struct tags with bodies from cache", () => {
+      symbolTable.restoreStructTagsWithBodies(["_foo", "_bar"]);
+      const bodies = symbolTable.getAllStructTagsWithBodies();
+      expect(bodies).toContain("_foo");
+      expect(bodies).toContain("_bar");
+    });
+
+    it("should clear all struct state on clear()", () => {
+      symbolTable.registerStructTagAlias("_foo", "foo_t");
+      symbolTable.markStructTagHasBody("_foo");
+      symbolTable.clear();
+      expect(symbolTable.getStructTagAlias("_foo")).toBeUndefined();
+      expect(symbolTable.getAllStructTagsWithBodies()).toHaveLength(0);
     });
   });
 

@@ -137,47 +137,17 @@ class StructCollector {
       }
     }
 
-    // Issue #958: Track ALL typedef struct types (forward-declared OR complete)
-    // Records source file to enable same-file vs cross-file distinction
+    // Issue #958: Track forward-declared typedef struct types (no body).
+    // These always need pointer semantics (ADR-006). Inline typedefs with
+    // bodies (typedef struct { ... } X;) are concrete value types.
     // Issue #957: Don't track pointer typedefs - they're already pointers.
-    if (isTypedef && typedefName && !isPointerTypedef) {
+    if (isTypedef && !hasBody && typedefName && !isPointerTypedef) {
       symbolTable.markTypedefStructType(typedefName, sourceFile);
     }
 
-    // Issue #948: Unmark opaque type if full definition is found
-    if (hasBody) {
-      StructCollector.unmarkOpaqueTypesOnDefinition(
-        symbolTable,
-        sourceFile,
-        structTag,
-        typedefName,
-      );
-    }
-  }
-
-  /**
-   * Unmark opaque and typedef struct types when a full struct definition is encountered.
-   * Handles: typedef struct _foo foo; struct _foo { ... };
-   * Issue #958: Only unmarks typedefStructTypes when definition is in SAME file.
-   */
-  private static unmarkOpaqueTypesOnDefinition(
-    symbolTable: SymbolTable,
-    sourceFile: string,
-    structTag?: string,
-    typedefName?: string,
-  ): void {
-    if (structTag) {
-      const typedefAlias = symbolTable.getStructTagAlias(structTag);
-      symbolTable.unmarkOpaqueType(structTag);
-      symbolTable.unmarkTypedefStructType(structTag, sourceFile);
-      if (typedefAlias) {
-        symbolTable.unmarkOpaqueType(typedefAlias);
-        symbolTable.unmarkTypedefStructType(typedefAlias, sourceFile);
-      }
-    }
-    if (typedefName) {
-      symbolTable.unmarkOpaqueType(typedefName);
-      symbolTable.unmarkTypedefStructType(typedefName, sourceFile);
+    // Issue #958: Record struct tag body for query-time opaque resolution
+    if (hasBody && structTag) {
+      symbolTable.markStructTagHasBody(structTag);
     }
   }
 

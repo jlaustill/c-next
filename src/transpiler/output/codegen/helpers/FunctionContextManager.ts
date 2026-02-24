@@ -160,18 +160,26 @@ class FunctionContextManager {
     const isCallbackPointerParam =
       callbackTypedefInfo?.shouldBePointer ?? false;
 
+    // Issue #958: Check if type is a typedef'd struct from C headers
+    const isTypedefStruct =
+      callbacks.isTypedefStructType?.(typeInfo.typeName) ?? false;
+
     // Determine isStruct: for callback-compatible params, both typedef AND type info matter
     // - If typedef says pointer AND it's actually a struct, use -> access (isStruct=true)
     // - If typedef says pointer BUT it's a primitive (like u8), don't treat as struct
     //   (primitives use forcePointerSemantics for dereference instead)
+    // Issue #958: C-header typedef struct types are always treated as struct (pointer semantics)
     const isStruct = callbackTypedefInfo
       ? isCallbackPointerParam && typeInfo.isStruct
-      : typeInfo.isStruct;
+      : typeInfo.isStruct || isTypedefStruct;
 
     // Issue #895: Primitive types that become pointers need dereferencing when used as values
     // e.g., "u8 buf" becoming "uint8_t* buf" requires "*buf" when accessing the value
     const isCallbackPointerPrimitive =
       isCallbackPointerParam && !typeInfo.isStruct && !isArray;
+
+    // Issue #958: typedef struct params need pointer semantics (like callback pointer params)
+    const forcePointerSemantics = isCallbackPointerParam || isTypedefStruct;
 
     // Register in currentParameters
     const paramInfo = {
@@ -183,8 +191,8 @@ class FunctionContextManager {
       isCallback: typeInfo.isCallback,
       isString: typeInfo.isString,
       isCallbackPointerPrimitive,
-      // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
-      forcePointerSemantics: isCallbackPointerParam,
+      // Issue #895/#958: Force pointer semantics for callback-compatible and typedef struct params
+      forcePointerSemantics,
     };
     CodeGenState.currentParameters.set(name, paramInfo);
 
@@ -195,6 +203,7 @@ class FunctionContextManager {
       param,
       isArray,
       isConst,
+      isTypedefStruct,
     );
   }
 
@@ -320,6 +329,7 @@ class FunctionContextManager {
     param: Parser.ParameterContext,
     isArray: boolean,
     isConst: boolean,
+    isTypedefStruct = false,
   ): void {
     const { typeName, isString } = typeInfo;
     const typeCtx = param.type();
@@ -358,6 +368,8 @@ class FunctionContextManager {
       isString,
       stringCapacity,
       isParameter: true,
+      // Issue #958: typedef struct params are already pointers — prevent &arg in call sites
+      isPointer: isTypedefStruct || undefined,
     };
     CodeGenState.setVariableTypeInfo(name, registeredType);
   }

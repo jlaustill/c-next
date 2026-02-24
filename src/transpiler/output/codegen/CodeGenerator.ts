@@ -3675,6 +3675,8 @@ export default class CodeGenerator implements IOrchestrator {
       isStructType: (typeName: string) => this.isStructType(typeName),
       resolveQualifiedType: (identifiers: string[]) =>
         this.resolveQualifiedType(identifiers),
+      isTypedefStructType: (t: string) =>
+        CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
     };
   }
 
@@ -3766,6 +3768,8 @@ export default class CodeGenerator implements IOrchestrator {
       isCallbackCompatible,
       forcePassByReference,
       forceConst,
+      isTypedefStructType: (t) =>
+        CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
     });
 
     // Use shared builder with C/C++ mode
@@ -3891,6 +3895,11 @@ export default class CodeGenerator implements IOrchestrator {
     name: string,
   ): string {
     const type = this.generateType(ctx.type());
+
+    // Issue #958: C-header typedef struct types always need pointer semantics
+    if (CodeGenState.symbolTable?.isTypedefStructType(type)) {
+      return `${type}*`;
+    }
 
     if (!ctx.expression()) {
       return type;
