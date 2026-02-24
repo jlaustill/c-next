@@ -53,7 +53,7 @@ interface IFromASTDeps {
   forcePassByReference?: boolean;
 
   /** Issue #958: Check if a type name is a typedef'd struct from C headers */
-  isTypedefStructType?: (typeName: string) => boolean;
+  isTypedefStructType: (typeName: string) => boolean;
 
   /**
    * Issue #895: Force const qualifier from callback typedef signature.
@@ -141,7 +141,7 @@ class ParameterInputAdapter {
     const isKnownStruct = deps.isKnownStruct(typeName);
     const isKnownPrimitive = !!deps.typeMap[typeName];
     // Issue #958: C-header typedef struct types need pointer semantics
-    const isTypedefStruct = deps.isTypedefStructType?.(typeName) ?? false;
+    const isTypedefStruct = deps.isTypedefStructType(typeName);
     // Issue #895: Don't add auto-const for callback-compatible functions
     // because it would change the signature and break typedef compatibility
     const isAutoConst =

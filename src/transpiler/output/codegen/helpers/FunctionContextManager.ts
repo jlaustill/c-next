@@ -369,7 +369,7 @@ class FunctionContextManager {
       stringCapacity,
       isParameter: true,
       // Issue #958: typedef struct params are already pointers — prevent &arg in call sites
-      isPointer: isTypedefStruct || undefined,
+      ...(isTypedefStruct && { isPointer: true }),
     };
     CodeGenState.setVariableTypeInfo(name, registeredType);
   }

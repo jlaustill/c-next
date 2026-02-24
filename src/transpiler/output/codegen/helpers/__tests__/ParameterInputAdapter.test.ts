@@ -62,6 +62,7 @@ function createDefaultASTDeps(overrides?: {
     isModified: overrides?.isModified ?? false,
     isPassByValue: overrides?.isPassByValue ?? false,
     isCallbackCompatible: false,
+    isTypedefStructType: () => false,
   };
 }
 

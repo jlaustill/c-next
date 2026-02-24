@@ -742,6 +742,17 @@ describe("SymbolTable", () => {
       expect(symbolTable.getStructTagAlias("_bar")).toBe("bar_t");
     });
 
+    it("should restore reverse map (typedefToTag) so isOpaqueType resolves after cache restore", () => {
+      // Simulate cache restore: aliases + opaque types + bodies
+      symbolTable.restoreStructTagAliases([["_widget", "widget_t"]]);
+      symbolTable.restoreOpaqueTypes(["widget_t"]);
+      // widget_t is opaque (no body for _widget)
+      expect(symbolTable.isOpaqueType("widget_t")).toBe(true);
+      // Now restore body — isOpaqueType should resolve via typedefToTag
+      symbolTable.restoreStructTagsWithBodies(["_widget"]);
+      expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
+    });
+
     it("should restore struct tags with bodies from cache", () => {
       symbolTable.restoreStructTagsWithBodies(["_foo", "_bar"]);
       const bodies = symbolTable.getAllStructTagsWithBodies();

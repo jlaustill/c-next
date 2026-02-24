@@ -361,7 +361,9 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(testFile, [], new Map(), ["Point", "Rectangle"]);
+      cacheManager.setSymbols(testFile, [], new Map(), {
+        needsStructKeyword: ["Point", "Rectangle"],
+      });
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached!.needsStructKeyword).toEqual(["Point", "Rectangle"]);
@@ -391,7 +393,7 @@ describe("CacheManager", () => {
       enumBitWidth.set("Status", 8);
       enumBitWidth.set("Mode", 16);
 
-      cacheManager.setSymbols(testFile, [], new Map(), undefined, enumBitWidth);
+      cacheManager.setSymbols(testFile, [], new Map(), { enumBitWidth });
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached!.enumBitWidth.get("Status")).toBe(8);
@@ -405,7 +407,7 @@ describe("CacheManager", () => {
       const enumBitWidth = new Map<string, number>();
       enumBitWidth.set("Priority", 32);
 
-      cacheManager.setSymbols(testFile, [], new Map(), undefined, enumBitWidth);
+      cacheManager.setSymbols(testFile, [], new Map(), { enumBitWidth });
       await cacheManager.flush();
 
       // Reload
