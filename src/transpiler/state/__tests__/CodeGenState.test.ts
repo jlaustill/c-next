@@ -69,6 +69,7 @@ function createMockSymbols(
     structFieldArrays: Map<string, Set<string>>;
     functionReturnTypes: Map<string, string>;
     scopeMemberVisibility: Map<string, Map<string, "public" | "private">>;
+    opaqueTypes: Set<string>;
   }> = {},
 ): ICodeGenSymbols {
   return {
@@ -95,6 +96,7 @@ function createMockSymbols(
     scopeVariableUsage: new Map(),
     scopePrivateConstValues: new Map(),
     functionReturnTypes: overrides.functionReturnTypes ?? new Map(),
+    opaqueTypes: overrides.opaqueTypes ?? new Set(),
     getSingleFunctionForVariable: () => null,
     hasPublicSymbols: () => false,
   };
@@ -846,6 +848,42 @@ describe("CodeGenState", () => {
 
       // Simple struct should have its field
       expect(result.get("Simple")?.has("value")).toBe(true);
+    });
+  });
+
+  describe("Opaque Scope Variable Helpers (Issue #948)", () => {
+    it("markOpaqueScopeVariable adds to opaqueScopeVariables", () => {
+      CodeGenState.markOpaqueScopeVariable("MyScope_widget");
+      expect(CodeGenState.isOpaqueScopeVariable("MyScope_widget")).toBe(true);
+    });
+
+    it("isOpaqueScopeVariable returns false for unknown variable", () => {
+      expect(CodeGenState.isOpaqueScopeVariable("Unknown_var")).toBe(false);
+    });
+
+    it("isOpaqueScopeVariable returns true for marked variable", () => {
+      CodeGenState.markOpaqueScopeVariable("Gui_display");
+      expect(CodeGenState.isOpaqueScopeVariable("Gui_display")).toBe(true);
+    });
+
+    it("reset clears opaqueScopeVariables", () => {
+      CodeGenState.markOpaqueScopeVariable("Test_opaque");
+      expect(CodeGenState.isOpaqueScopeVariable("Test_opaque")).toBe(true);
+
+      CodeGenState.reset();
+
+      expect(CodeGenState.isOpaqueScopeVariable("Test_opaque")).toBe(false);
+    });
+
+    it("handles multiple opaque scope variables", () => {
+      CodeGenState.markOpaqueScopeVariable("Scope1_widget");
+      CodeGenState.markOpaqueScopeVariable("Scope1_display");
+      CodeGenState.markOpaqueScopeVariable("Scope2_handle");
+
+      expect(CodeGenState.isOpaqueScopeVariable("Scope1_widget")).toBe(true);
+      expect(CodeGenState.isOpaqueScopeVariable("Scope1_display")).toBe(true);
+      expect(CodeGenState.isOpaqueScopeVariable("Scope2_handle")).toBe(true);
+      expect(CodeGenState.isOpaqueScopeVariable("Scope1_other")).toBe(false);
     });
   });
 });
