@@ -1,0 +1,40 @@
+// test-execution
+// Bug #950: array[data[N] - 1] misparses subscript as u8[8] instead of u8
+
+struct TInput {
+    u8 assignedValue;
+}
+
+TInput[8] inputs;
+
+scope Test {
+    public void setInput(const u8[8] data) {
+        // E0852: Subscript index must be an unsigned integer type; got 'u8[8]'
+        // But data[2] - 1 should resolve to u8, not u8[8]
+        inputs[data[2] - 1].assignedValue <- data[1];
+    }
+
+    public void setInputExtracted(const u8[8] data) {
+        // This already compiles — extracting to a local variable works
+        u8 idx <- data[2] - 1;
+        inputs[idx].assignedValue <- data[1];
+    }
+}
+
+i32 main() {
+    // data[1] = 99 (value to assign), data[2] = 3 (index + 1 = 3, so we write to inputs[2])
+    u8[8] testData <- [0, 99, 3, 0, 0, 0, 0, 0];
+
+    // Test with extracted variable approach (already works)
+    Test.setInputExtracted(testData);
+    if (inputs[2].assignedValue != 99) return 1;
+
+    // Reset
+    inputs[2].assignedValue <- 0;
+
+    // Test with nested expression (bug fix)
+    Test.setInput(testData);
+    if (inputs[2].assignedValue != 99) return 2;
+
+    return 0;
+}

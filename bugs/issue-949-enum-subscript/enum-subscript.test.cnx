@@ -1,0 +1,39 @@
+// test-execution
+// Bug #949: E0852 incorrectly rejects enum type as array subscript index
+
+enum EColor { RED, GREEN, BLUE, COUNT }
+
+struct TValue {
+    u32 data;
+}
+
+TValue[4] values;
+
+scope Test {
+    public u32 getValue(EColor color) {
+        // E0852: Subscript index must be an unsigned integer type; got 'EColor'
+        return values[color].data;
+    }
+
+    public void setValue(EColor color, u32 val) {
+        values[color].data <- val;
+    }
+}
+
+i32 main() {
+    Test.setValue(EColor.GREEN, 42);
+    u32 result <- Test.getValue(EColor.GREEN);
+    if (result != 42) return 1;
+
+    // Test with RED (index 0)
+    Test.setValue(EColor.RED, 10);
+    u32 redVal <- Test.getValue(EColor.RED);
+    if (redVal != 10) return 2;
+
+    // Test with BLUE (index 2)
+    Test.setValue(EColor.BLUE, 99);
+    u32 blueVal <- Test.getValue(EColor.BLUE);
+    if (blueVal != 99) return 3;
+
+    return 0;
+}

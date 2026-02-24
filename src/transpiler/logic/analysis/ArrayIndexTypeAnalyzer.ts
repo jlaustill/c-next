@@ -127,6 +127,11 @@ class IndexTypeListener extends CNextListener {
         continue;
       }
 
+      // Enum types are valid indices (ADR-054: transpile to unsigned constants)
+      if (CodeGenState.isKnownEnum(resolvedType)) {
+        continue;
+      }
+
       // Other non-integer types (e.g., string, struct) - E0852
       const { line, column } = ParserUtils.getPosition(ctx);
       this.analyzer.addError(line, column, "E0852", resolvedType);
@@ -277,7 +282,13 @@ class IndexTypeListener extends CNextListener {
       if (TypeConstants.SIGNED_TYPES.includes(currentType)) {
         return "bool";
       }
-      // Array element type — strip array suffix
+      // Array element type — strip rightmost array dimension
+      // e.g., "u8[8]" → "u8", "u8[8][4]" → "u8[8]", "u8[CONST]" → "u8"
+      const strippedType = currentType.replace(/\[[^\]]*\]$/, "");
+      if (strippedType !== currentType) {
+        return strippedType;
+      }
+      // Not an array type (e.g., struct), return as-is
       return currentType;
     }
 

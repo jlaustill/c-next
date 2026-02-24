@@ -136,6 +136,38 @@ describe("ArrayIndexTypeAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
+    it("should allow enum-typed variable as array index (Issue #949)", () => {
+      const tree = parse(`
+        enum EColor { RED, GREEN, BLUE, COUNT }
+        void getValue(EColor color) {
+          u8[4] arr;
+          arr[color] <- 1;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["EColor"]),
+      });
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow enum-typed parameter as array index (Issue #949)", () => {
+      const tree = parse(`
+        enum EState { IDLE, RUNNING, STOPPED }
+        u32[3] stateCounts;
+        void incrementState(EState state) {
+          stateCounts[state] <- stateCounts[state] + 1;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["EState"]),
+      });
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
     it("should allow unsigned for-loop variable as index", () => {
       const tree = parse(`
         void main() {
@@ -522,6 +554,145 @@ describe("ArrayIndexTypeAnalyzer", () => {
       expect(errors).toHaveLength(2);
       expect(errors[0].code).toBe("E0850");
       expect(errors[1].code).toBe("E0850");
+    });
+  });
+
+  // ========================================================================
+  // Nested array subscript (Issue #950)
+  // ========================================================================
+
+  describe("nested array subscript", () => {
+    it("should allow arr[data[i]] where data is u8[8] (Issue #950)", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[8] data <- [0, 0, 3, 0, 0, 0, 0, 0];
+          arr[data[2]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow arr[data[i] - 1] where data is u8[8] (Issue #950)", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[8] data <- [0, 0, 3, 0, 0, 0, 0, 0];
+          arr[data[2] - 1] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow nested subscript with const array param (Issue #950)", () => {
+      const tree = parse(`
+        void process(const u8[8] data) {
+          u8[10] inputs;
+          inputs[data[2] - 1] <- data[1];
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should reject nested subscript when inner array is signed", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          i8[8] data;
+          arr[data[2]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0850");
+      expect(errors[0].actualType).toBe("i8");
+    });
+
+    it("should allow multi-dimensional array index access", () => {
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[4][4] matrix;
+          arr[matrix[1][2]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should handle constant-dimension arrays (PR #951 review)", () => {
+      // Regression test: regex must handle non-numeric dimensions
+      // e.g., "u8[DEVICE_COUNT]" should strip to "u8"
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[4] lookup;
+          arr[lookup[0]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should reject unknown type as index with E0852 (branch coverage)", () => {
+      // Tests the branch where isKnownEnum returns false for non-enum types
+      // This triggers E0852 for types that aren't signed, float, unsigned, or enum
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          UnknownType x;
+          arr[x] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      // No mock symbols - UnknownType is not a known enum
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0852");
+      expect(errors[0].actualType).toBe("UnknownType");
+    });
+
+    it("should handle struct type in subscript chain (branch coverage)", () => {
+      // Tests the branch where array stripping doesn't find brackets
+      // Covers the case where strippedType === currentType (not an array)
+      CodeGenState.symbols = createMockSymbols({
+        knownStructs: new Set(["Wrapper"]),
+        structFields: new Map([["Wrapper", new Map([["idx", "u32"]])]]),
+      });
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          Wrapper w;
+          arr[w.idx] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow bit index from signed integer as array index (branch coverage)", () => {
+      // Tests the SIGNED_TYPES branch in resolvePostfixOpType for LBRACKET
+      // i32[bit] returns "bool", which is valid for array indexing
+      const tree = parse(`
+        void main() {
+          u8[2] arr;
+          i32 signedFlags <- 1;
+          arr[signedFlags[0]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
     });
   });
 
