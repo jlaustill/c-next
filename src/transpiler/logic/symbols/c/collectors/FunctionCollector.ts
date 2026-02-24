@@ -28,6 +28,19 @@ class FunctionCollector {
   }
 
   /**
+   * Resolve return type, appending '*' if declarator has a pointer.
+   * Issue #895 Bug B / Issue #945: C grammar puts pointer before directDeclarator
+   * (e.g., `widget_t *func()` has declarator.pointer() !== null)
+   */
+  private static _resolveReturnType(
+    baseType: string,
+    declarator: DeclaratorContext,
+  ): string {
+    const hasPointer = declarator.pointer() !== null;
+    return hasPointer ? `${baseType}*` : baseType;
+  }
+
+  /**
    * Collect a function symbol from a function definition.
    *
    * @param funcDef The function definition context
@@ -47,9 +60,14 @@ class FunctionCollector {
 
     // Get return type from declaration specifiers
     const declSpecs = funcDef.declarationSpecifiers();
-    const returnType = declSpecs
+    const baseType = declSpecs
       ? DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs)
       : "int";
+
+    const returnType = FunctionCollector._resolveReturnType(
+      baseType,
+      declarator,
+    );
 
     const parameters = FunctionCollector._mapParameters(
       DeclaratorUtils.extractFunctionParameters(declarator),
@@ -90,10 +108,10 @@ class FunctionCollector {
       DeclaratorUtils.extractFunctionParameters(declarator),
     );
 
-    // Issue #895 Bug B: Check if declarator has pointer - means function returns pointer
-    // In C grammar: widget_t *func() has declarator with pointer() before directDeclarator
-    const hasPointer = declarator.pointer() !== null;
-    const returnType = hasPointer ? `${baseType}*` : baseType;
+    const returnType = FunctionCollector._resolveReturnType(
+      baseType,
+      declarator,
+    );
 
     return {
       kind: "function",

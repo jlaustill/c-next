@@ -352,7 +352,9 @@
     "testuser",
     "pathnorm",
     "DEADBEEFU",
-    "dedup"
+    "dedup",
+    "LVGL",
+    "FreeRTOS"
   ],
   "ignorePaths": [
     "node_modules/**",

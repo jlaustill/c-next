@@ -214,7 +214,8 @@ class Transpiler {
     result: ITranspilerResult,
   ): Promise<void> {
     // Stage 2: Collect symbols from C/C++ headers and build analyzer context
-    this._collectAllHeaderSymbols(input.headerFiles, result);
+    // Issue #945: Now async for preprocessing support
+    await this._collectAllHeaderSymbols(input.headerFiles, result);
     CodeGenState.buildExternalStructFields();
 
     // Stage 3: Collect symbols from C-Next files
@@ -596,14 +597,15 @@ class Transpiler {
 
   /**
    * Stage 2: Collect symbols from all C/C++ headers
+   * Issue #945: Made async for preprocessing support.
    */
-  private _collectAllHeaderSymbols(
+  private async _collectAllHeaderSymbols(
     headerFiles: IDiscoveredFile[],
     result: ITranspilerResult,
-  ): void {
+  ): Promise<void> {
     for (const file of headerFiles) {
       try {
-        this.doCollectHeaderSymbols(file);
+        await this.doCollectHeaderSymbols(file);
         result.filesProcessed++;
       } catch (err) {
         this.warnings.push(`Failed to process header ${file.path}: ${err}`);
@@ -989,9 +991,10 @@ class Transpiler {
   /**
    * Stage 2: Collect symbols from a single C/C++ header
    * Issue #592: Recursive include processing moved to IncludeResolver.resolveHeadersTransitively()
+   * Issue #945: Added preprocessing support for conditional compilation
    * SonarCloud S3776: Refactored to use helper methods for reduced complexity.
    */
-  private doCollectHeaderSymbols(file: IDiscoveredFile): void {
+  private async doCollectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
     // Track as processed (for cycle detection)
     const absolutePath = resolve(file.path);
     this.state.markHeaderProcessed(absolutePath);
@@ -1001,8 +1004,8 @@ class Transpiler {
       return; // Cache hit - skip full parsing
     }
 
-    // Read content and parse
-    const content = this.fs.readFile(file.path);
+    // Issue #945: Preprocess header to evaluate #if/#ifdef directives
+    const content = await this.getHeaderContent(file);
     this.parseHeaderFile(file, content);
 
     // Debug: Show symbols found
@@ -1047,6 +1050,80 @@ class Transpiler {
     this.detectCppFromFileType(file);
 
     return true;
+  }
+
+  /**
+   * Get header content, optionally preprocessed.
+   * Issue #945: Evaluates #if/#ifdef directives using system preprocessor.
+   *
+   * Only preprocesses when necessary to avoid side effects from full expansion.
+   * Preprocessing is needed when the file has conditional compilation patterns
+   * like #if MACRO != 0 that require expression evaluation.
+   */
+  private async getHeaderContent(file: IDiscoveredFile): Promise<string> {
+    const rawContent = this.fs.readFile(file.path);
+
+    // Check if preprocessing is disabled
+    if (this.config.preprocess === false) {
+      return rawContent;
+    }
+
+    // Check if preprocessing is available
+    if (!this.preprocessor.isAvailable()) {
+      return rawContent;
+    }
+
+    // Issue #945: Only preprocess if file has conditional compilation patterns
+    // that require expression evaluation (e.g., #if MACRO != 0, #if MACRO == 1)
+    // Simple #ifdef/#ifndef patterns are already handled by the parser
+    if (!this.needsConditionalPreprocessing(rawContent)) {
+      return rawContent;
+    }
+
+    // Preprocess the header file
+    const result = await this.preprocessor.preprocess(file.path, {
+      defines: this.config.defines,
+      includePaths: this.config.includeDirs,
+      keepLineDirectives: false, // We don't need line mappings for symbol collection
+    });
+
+    if (!result.success) {
+      // Log warning but fall back to raw content
+      this.warnings.push(
+        `Preprocessing failed for ${file.path}: ${result.error}. Using raw content.`,
+      );
+      return rawContent;
+    }
+
+    return result.content;
+  }
+
+  /**
+   * Check if a header file needs conditional preprocessing.
+   * Issue #945: Only preprocess files with #if expressions that need evaluation.
+   */
+  private needsConditionalPreprocessing(content: string): boolean {
+    // Patterns that require the preprocessor for expression evaluation:
+    // - #if MACRO != 0
+    // - #if MACRO == 1
+    // - #if MACRO > 0
+    // - #if MACRO (bare macro as truthy check)
+    // - #elif MACRO != 0
+    // - #if defined(X) && MACRO
+    // - etc.
+    //
+    // Simple patterns handled by the parser without preprocessing:
+    // - #ifdef MACRO
+    // - #ifndef MACRO
+    // - #if defined(MACRO) (single defined check)
+    // - #if 1
+    // - #if 0
+    //
+    // Look for #if/#elif followed by an expression (not just defined() or 0/1)
+    // Also match bare macro names used as truthy checks (common in config headers)
+    const ifExpressionPattern =
+      /#(?:if|elif)\s+(?!defined\s*\()(?![01]\s*(?:$|\n|\/\*|\/\/))\w+/m;
+    return ifExpressionPattern.test(content);
   }
 
   /**
