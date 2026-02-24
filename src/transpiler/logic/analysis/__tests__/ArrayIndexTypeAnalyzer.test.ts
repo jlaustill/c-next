@@ -56,6 +56,7 @@ function createMockSymbols(
     scopeVariableUsage: new Map(),
     scopePrivateConstValues: new Map(),
     functionReturnTypes: overrides.functionReturnTypes ?? new Map(),
+    opaqueTypes: new Set(),
     getSingleFunctionForVariable: () => null,
     hasPublicSymbols: () => false,
   };
