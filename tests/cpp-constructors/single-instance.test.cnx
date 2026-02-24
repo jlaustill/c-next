@@ -1,0 +1,17 @@
+// test-cpp-only
+// test-execution
+// Issue #924: Single instance initialization of C++ class with constructor
+// Should use field assignment pattern, not designated initializers
+
+#include "DefaultConstructible.hpp"
+
+i32 main() {
+    // Single instance with field initialization
+    // Should generate: DefaultConstructible obj = {}; obj.value = 42;
+    // NOT: DefaultConstructible obj = (DefaultConstructible){ .value = 42 };
+    DefaultConstructible obj <- { value: 42, name: "test" };
+
+    if (obj.value != 42) return 1;
+
+    return 0;
+}

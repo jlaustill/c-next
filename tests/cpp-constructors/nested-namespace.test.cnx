@@ -1,0 +1,22 @@
+// test-cpp-only
+// test-execution
+// Issue #924: Nested namespace C++ class with constructor
+// Classes in nested namespaces should also use field assignment pattern
+
+#include "NestedNamespace.hpp"
+
+i32 main() {
+    // Nested namespace class with constructor
+    // Should generate: Outer::Inner::Widget w = {}; w.x = 10; w.y = 20;
+    Outer.Inner.Widget w <- { x: 10, y: 20 };
+
+    if (w.x != 10) return 1;
+    if (w.y != 20) return 2;
+
+    // Second instance to verify pattern works consistently
+    Outer.Inner.Widget w2 <- { x: 100, y: 200 };
+    if (w2.x != 100) return 3;
+    if (w2.y != 200) return 4;
+
+    return 0;
+}

@@ -1,0 +1,23 @@
+// test-cpp-only
+// test-execution
+// Issue #924: Default construction of C++ class arrays
+// Arrays of classes with constructors should default-construct each element
+
+#include "DefaultConstructible.hpp"
+
+i32 main() {
+    // Array of default-constructible class - each element default constructed
+    DefaultConstructible[3] arr;
+
+    // Assign values to verify array works
+    arr[0].value <- 10;
+    arr[1].value <- 20;
+    arr[2].value <- 30;
+
+    // Verify values
+    if (arr[0].value != 10) return 1;
+    if (arr[1].value != 20) return 2;
+    if (arr[2].value != 30) return 3;
+
+    return 0;
+}

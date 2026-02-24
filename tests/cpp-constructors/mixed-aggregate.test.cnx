@@ -1,0 +1,20 @@
+// test-cpp-only
+// test-execution
+// Issue #924: Mixed aggregate and non-aggregate types
+// Aggregate types can use designated initializers, non-aggregates cannot
+
+#include "DefaultConstructible.hpp"
+#include "AggregateType.hpp"
+
+i32 main() {
+    // Non-aggregate (has constructor) - must use field assignment
+    DefaultConstructible nonAgg <- { value: 42, name: "test" };
+
+    // Aggregate (no constructor) - can use designated initializers
+    AggregateType agg <- { value: 99, label: "agg" };
+
+    if (nonAgg.value != 42) return 1;
+    if (agg.value != 99) return 2;
+
+    return 0;
+}
