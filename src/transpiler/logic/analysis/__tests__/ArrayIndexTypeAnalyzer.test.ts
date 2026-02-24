@@ -627,6 +627,21 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
+
+    it("should handle constant-dimension arrays (PR #951 review)", () => {
+      // Regression test: regex must handle non-numeric dimensions
+      // e.g., "u8[DEVICE_COUNT]" should strip to "u8"
+      const tree = parse(`
+        void main() {
+          u8[10] arr;
+          u8[4] lookup;
+          arr[lookup[0]] <- 5;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
   });
 
   // ========================================================================
