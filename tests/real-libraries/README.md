@@ -4,17 +4,17 @@ Tests C-Next interop against real C/C++ library headers (not stubs).
 
 ## Purpose
 
-Synthetic tests verify what we *think* might break. Real libraries expose what *actually* breaks:
+Synthetic tests verify what we _think_ might break. Real libraries expose what _actually_ breaks:
 
 - Header complexity (nested includes, macros, conditionals)
 - Callback patterns (how real APIs expect callbacks registered)
 - Type aliasing (typedef chains, platform-specific types)
-- void* handling (opaque parameter passing)
+- void\* handling (opaque parameter passing)
 
 ## Libraries
 
-| Library | Version | Location | Status | Findings |
-|---------|---------|----------|--------|----------|
+| Library         | Version | Location               | Status      | Findings                            |
+| --------------- | ------- | ---------------------- | ----------- | ----------------------------------- |
 | FreeRTOS-Kernel | V11.2.0 | `tests/libs/FreeRTOS/` | In Progress | [findings.md](freertos/findings.md) |
 
 ## Running Tests

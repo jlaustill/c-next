@@ -14,7 +14,7 @@ for Arm M-profile architecture. Please get the details from this [link](https://
 
 # Derivation of the source code
 
-* `os_wrapper_freertos.c`
+- `os_wrapper_freertos.c`
   The implementation of APIs which are defined in `/interface/include/os_wrapper/mutex.h`
   in trusted-firmware-m (tag: TF-Mv2.0.0). The implementation is based on
   FreeRTOS mutex type semaphore.
@@ -22,8 +22,9 @@ for Arm M-profile architecture. Please get the details from this [link](https://
 # Usage notes
 
 To build a project based on this port:
-* Step 1: build the secure image. Please follow the **Build the Secure Side** section for details.
-* Step 2: build the nonsecure image. Please follow the **Build the Non-Secure Side** for details.
+
+- Step 1: build the secure image. Please follow the **Build the Secure Side** section for details.
+- Step 2: build the nonsecure image. Please follow the **Build the Non-Secure Side** for details.
 
 ## Build the Secure Side
 
@@ -44,37 +45,35 @@ Please call the API `tfm_ns_interface_init()` which is defined in `/interface/sr
 
 ### Configuration in FreeRTOS kernel
 
-* `configRUN_FREERTOS_SECURE_ONLY`
-This macro should be configured as 0. In this port, TF-M runs in the Secure Side while FreeRTOS
-Kernel runs in the Non-Secure Side.
+- `configRUN_FREERTOS_SECURE_ONLY`
+  This macro should be configured as 0. In this port, TF-M runs in the Secure Side while FreeRTOS
+  Kernel runs in the Non-Secure Side.
 
-* `configENABLE_FPU`
-The setting of this macro is decided by the setting in Secure Side which is platform-specific.
-If the Secure Side enables Non-Secure access to FPU, then this macro can be configured as 0 or 1. Otherwise, this macro can only be configured as 0.
-Please note that Cortex-M23 does not support FPU.
-Please refer to [TF-M documentation](https://tf-m-user-guide.trustedfirmware.org/integration_guide/tfm_fpu_support.html) for FPU usage on the Non-Secure side.
+- `configENABLE_FPU`
+  The setting of this macro is decided by the setting in Secure Side which is platform-specific.
+  If the Secure Side enables Non-Secure access to FPU, then this macro can be configured as 0 or 1. Otherwise, this macro can only be configured as 0.
+  Please note that Cortex-M23 does not support FPU.
+  Please refer to [TF-M documentation](https://tf-m-user-guide.trustedfirmware.org/integration_guide/tfm_fpu_support.html) for FPU usage on the Non-Secure side.
 
-* `configENABLE_MVE`
-The setting of this macro is decided by the setting in Secure Side which is platform-specific.
-If the Secure Side enables Non-Secure access to MVE, then this macro can be configured as 0 or 1. Otherwise, this macro can only be configured as 0.
-Please note that only Cortex-M55 and Cortex-M85 support MVE.
-Please refer to [TF-M documentation](https://tf-m-user-guide.trustedfirmware.org/integration_guide/tfm_fpu_support.html) for MVE usage on the Non-Secure side.
+- `configENABLE_MVE`
+  The setting of this macro is decided by the setting in Secure Side which is platform-specific.
+  If the Secure Side enables Non-Secure access to MVE, then this macro can be configured as 0 or 1. Otherwise, this macro can only be configured as 0.
+  Please note that only Cortex-M55 and Cortex-M85 support MVE.
+  Please refer to [TF-M documentation](https://tf-m-user-guide.trustedfirmware.org/integration_guide/tfm_fpu_support.html) for MVE usage on the Non-Secure side.
 
-* `configENABLE_TRUSTZONE`
-This macro should be configured as 0 because TF-M doesn't use the secure context management function of FreeRTOS. New secure context management might be introduced when TF-M supports multiple secure context.
-
+- `configENABLE_TRUSTZONE`
+  This macro should be configured as 0 because TF-M doesn't use the secure context management function of FreeRTOS. New secure context management might be introduced when TF-M supports multiple secure context.
 
 ### Integrate TF-M Non-Secure interface with FreeRTOS project
 
 To enable calling TF-M services by the Non-Secure Side, the files below should be included in the FreeRTOS project and built together.
-* files in `trusted-firmware-m/build/api_ns/interface/src`
+
+- files in `trusted-firmware-m/build/api_ns/interface/src`
   These files contain the implementation of PSA Functional Developer APIs which can be called by Non-Secure Side directly and PSA Firmware Framework APIs in the IPC model. These files should be taken as part of the Non-Secure source code.
-* files in `trusted-firmware-m/build/api_ns/interface/include`
+- files in `trusted-firmware-m/build/api_ns/interface/include`
   These files are the necessary header files to call TF-M services.
-* `trusted-firmware-m/build/api_ns/interface/lib/s_veneers.o`
+- `trusted-firmware-m/build/api_ns/interface/lib/s_veneers.o`
   This object file contains all the Non-Secure callable functions exported by
   TF-M and it should be linked when generating the Non-Secure image.
 
-
-
-*Copyright (c) 2020-2024, Arm Limited. All rights reserved.*
+_Copyright (c) 2020-2024, Arm Limited. All rights reserved._

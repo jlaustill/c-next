@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Set up FreeRTOS-Kernel integration tests to discover C-Next interop limitations, particularly around void* handling.
+**Goal:** Set up FreeRTOS-Kernel integration tests to discover C-Next interop limitations, particularly around void\* handling.
 
-**Architecture:** Vendor real FreeRTOS headers into `tests/libs/`, write C-Next tests that include them, use `// test-no-exec` marker for compile-only verification. Document discoveries in findings.md, create ADR when void* blocks us.
+**Architecture:** Vendor real FreeRTOS headers into `tests/libs/`, write C-Next tests that include them, use `// test-no-exec` marker for compile-only verification. Document discoveries in findings.md, create ADR when void\* blocks us.
 
 **Tech Stack:** FreeRTOS-Kernel V11.2.0, C-Next transpiler, GCC (Posix port)
 
@@ -13,6 +13,7 @@
 ## Task 1: Download and Vendor FreeRTOS-Kernel
 
 **Files:**
+
 - Create: `tests/libs/FreeRTOS/` directory structure
 - Create: `tests/libs/FreeRTOS/VERSION.txt`
 
@@ -60,6 +61,7 @@ git commit -m "chore: vendor FreeRTOS-Kernel V11.2.0 for real-library tests (Iss
 ## Task 2: Create Test Directory and README
 
 **Files:**
+
 - Create: `tests/real-libraries/README.md`
 - Create: `tests/real-libraries/freertos/findings.md`
 
@@ -73,23 +75,24 @@ mkdir -p tests/real-libraries/freertos
 
 Create `tests/real-libraries/README.md`:
 
-```markdown
+````markdown
 # Real-World Library Integration Tests
 
 Tests C-Next interop against real C/C++ library headers (not stubs).
 
 ## Purpose
 
-Synthetic tests verify what we *think* might break. Real libraries expose what *actually* breaks:
+Synthetic tests verify what we _think_ might break. Real libraries expose what _actually_ breaks:
+
 - Header complexity (nested includes, macros, conditionals)
 - Callback patterns (how real APIs expect callbacks registered)
 - Type aliasing (typedef chains, platform-specific types)
-- void* handling (opaque parameter passing)
+- void\* handling (opaque parameter passing)
 
 ## Libraries
 
-| Library | Version | Status | Findings |
-|---------|---------|--------|----------|
+| Library         | Version | Status      | Findings                            |
+| --------------- | ------- | ----------- | ----------------------------------- |
 | FreeRTOS-Kernel | V11.2.0 | In Progress | [findings.md](freertos/findings.md) |
 
 ## Running Tests
@@ -101,6 +104,7 @@ npm test -- tests/real-libraries/
 # Run specific library
 npm test -- tests/real-libraries/freertos/
 ```
+````
 
 ## Test Markers
 
@@ -112,7 +116,8 @@ All tests use `// test-no-exec` - they transpile and compile but don't execute (
 2. Create `tests/real-libraries/<library>/` with tests
 3. Document findings in `findings.md`
 4. Update this README
-```
+
+````
 
 **Step 3: Create findings.md**
 
@@ -144,7 +149,7 @@ Create `tests/real-libraries/freertos/findings.md`:
 ---
 
 *This file is updated as tests are run and issues discovered.*
-```
+````
 
 **Step 4: Commit**
 
@@ -158,6 +163,7 @@ git commit -m "docs: add real-library test infrastructure (Issue #931)"
 ## Task 3: Analyze FreeRTOSConfig.h Requirements
 
 **Files:**
+
 - Read: `tests/libs/FreeRTOS/include/FreeRTOS.h`
 - Read: `tests/libs/FreeRTOS/portable/ThirdParty/GCC/Posix/portmacro.h`
 
@@ -192,6 +198,7 @@ Update `findings.md` with the list of required `config*` macros discovered.
 ## Task 4: Create FreeRTOSConfig.cnx
 
 **Files:**
+
 - Create: `tests/real-libraries/freertos/FreeRTOSConfig.cnx`
 - Create: `tests/real-libraries/freertos/FreeRTOSConfig.expected.h`
 
@@ -284,6 +291,7 @@ git commit -m "test: add FreeRTOSConfig.cnx for FreeRTOS interop (Issue #931)"
 ## Task 5: Create task-handle.test.cnx (Type Resolution)
 
 **Files:**
+
 - Create: `tests/real-libraries/freertos/task-handle.test.cnx`
 - Create: `tests/real-libraries/freertos/task-handle.expected.c`
 - Create: `tests/real-libraries/freertos/task-handle.expected.h`
@@ -321,10 +329,12 @@ npx tsx src/index.ts tests/real-libraries/freertos/task-handle.test.cnx \
 **Step 3: Analyze result**
 
 If SUCCESS:
+
 - Create expected files from output
 - Run test suite to verify
 
 If FAILURE:
+
 - Document exact error in findings.md
 - Analyze what's blocking (opaque types? typedef chains?)
 - Decide: fix transpiler or document limitation
@@ -342,9 +352,10 @@ Document whether type resolution works and any issues found.
 
 ---
 
-## Task 6: Create task-create.test.cnx (void* Callback Test)
+## Task 6: Create task-create.test.cnx (void\* Callback Test)
 
 **Files:**
+
 - Create: `tests/real-libraries/freertos/task-create.test.cnx`
 
 **Step 1: Write the test (expected to fail)**
@@ -403,18 +414,19 @@ npx tsx src/index.ts tests/real-libraries/freertos/task-create.test.cnx \
 **Step 3: Document the failure**
 
 Expected failure modes:
-- Callback signature mismatch (C-Next func vs void(*)(void*))
-- void* parameter type error
+
+- Callback signature mismatch (C-Next func vs void(_)(void_))
+- void\* parameter type error
 - Type coercion failure
 
 Update `findings.md` with exact error message.
 
-**Step 4: Create void* interop ADR**
+**Step 4: Create void\* interop ADR**
 
-If blocked by void*, create `docs/decisions/adr-XXX-void-pointer-interop.md`:
+If blocked by void\*, create `docs/decisions/adr-XXX-void-pointer-interop.md`:
 
 ```markdown
-# ADR-XXX: void* Interoperability for C Libraries
+# ADR-XXX: void\* Interoperability for C Libraries
 
 **Status:** Research
 **Created:** 2026-02-24
@@ -429,6 +441,7 @@ intentionally does not support `void*` as it's memory-unsafe.
 ## Problem
 
 FreeRTOS `xTaskCreate` expects:
+
 - Callback: `void (*TaskFunction_t)(void* pvParameters)`
 - Parameter: `void* pvParameters`
 
@@ -440,7 +453,7 @@ C-Next cannot directly express either of these.
 
 ## Research Questions
 
-1. How do other safe languages handle C void* interop?
+1. How do other safe languages handle C void\* interop?
    - Rust: ?
    - Zig: ?
    - Ada: ?
@@ -451,7 +464,7 @@ C-Next cannot directly express either of these.
    - Event handlers
 
 3. Possible approaches:
-   - Type tracking through void* (transpiler infers type at call site)
+   - Type tracking through void\* (transpiler infers type at call site)
    - Explicit opaque<T> annotation
    - Generic pointer type with safety constraints
    - Require wrapper functions in C
@@ -480,6 +493,7 @@ git commit -m "research: document void* interop limitation, create ADR (Issue #9
 ## Task 7: Final Documentation
 
 **Files:**
+
 - Update: `tests/real-libraries/freertos/findings.md`
 - Update: `tests/real-libraries/README.md`
 
@@ -513,19 +527,19 @@ git commit -m "docs: finalize Phase 1 real-library test findings (Issue #931)"
 
 ## Checkpoint Summary
 
-| Task | Description | Commit |
-|------|-------------|--------|
-| 1 | Vendor FreeRTOS-Kernel | Yes |
-| 2 | Create test infrastructure | Yes |
-| 3 | Analyze config requirements | No (research) |
-| 4 | FreeRTOSConfig.cnx | Yes |
-| 5 | task-handle.test.cnx | Yes (if passes) |
-| 6 | task-create.test.cnx | Yes (with ADR) |
-| 7 | Final documentation | Yes |
+| Task | Description                 | Commit          |
+| ---- | --------------------------- | --------------- |
+| 1    | Vendor FreeRTOS-Kernel      | Yes             |
+| 2    | Create test infrastructure  | Yes             |
+| 3    | Analyze config requirements | No (research)   |
+| 4    | FreeRTOSConfig.cnx          | Yes             |
+| 5    | task-handle.test.cnx        | Yes (if passes) |
+| 6    | task-create.test.cnx        | Yes (with ADR)  |
+| 7    | Final documentation         | Yes             |
 
 ## Exit Criteria
 
 - FreeRTOS vendored and version-pinned
 - At least FreeRTOSConfig.cnx working
-- void* limitation documented in ADR
+- void\* limitation documented in ADR
 - Findings documented for future work

@@ -12,7 +12,7 @@ Create integration tests using real C/C++ libraries (starting with FreeRTOS) to 
 
 1. Test C-Next against **real library headers**, not simplified stubs
 2. Discover what breaks with real-world C patterns
-3. Document findings to inform future ADRs (especially void* interop)
+3. Document findings to inform future ADRs (especially void\* interop)
 4. Prove bidirectional interop: C-Next includes C headers, C includes C-Next headers
 
 ## Non-Goals
@@ -78,7 +78,7 @@ TaskHandle_t myHandle;
 **Tests:** Can C-Next parse FreeRTOS typedefs and use opaque handle types?
 **Expected:** May hit issues with opaque handle types
 
-### Step 3: task-create.test.cnx (void* Callback Test)
+### Step 3: task-create.test.cnx (void\* Callback Test)
 
 ```c-next
 // test-no-exec
@@ -101,7 +101,7 @@ void createTask() {
 }
 ```
 
-**Tests:** The void* callback parameter problem
+**Tests:** The void\* callback parameter problem
 **Expected:** Will fail—this triggers ADR research
 
 ## ADR Transition
@@ -114,9 +114,9 @@ When Step 3 fails:
 
 ### ADR Research Questions
 
-- How do other safe languages handle C void* interop? (Rust, Zig, etc.)
-- What patterns exist in real embedded code for void* usage?
-- Should C-Next track types through void* at transpile time?
+- How do other safe languages handle C void\* interop? (Rust, Zig, etc.)
+- What patterns exist in real embedded code for void\* usage?
+- Should C-Next track types through void\* at transpile time?
 - Should there be an explicit `opaque<T>` annotation?
 - What are the MISRA implications?
 
@@ -130,12 +130,12 @@ When Step 3 fails:
 - [ ] FreeRTOS-Kernel vendored at `tests/libs/FreeRTOS/` with pinned version
 - [ ] `FreeRTOSConfig.cnx` transpiles to valid header FreeRTOS accepts
 - [ ] Type resolution test passes (or failure documented)
-- [ ] void* test failure triggers ADR with clear problem statement
+- [ ] void\* test failure triggers ADR with clear problem statement
 - [ ] All findings documented in `findings.md`
 
 ## Out of Scope for Phase 1
 
-- cJSON testing (deferred until void* ADR resolved)
+- cJSON testing (deferred until void\* ADR resolved)
 - Execution tests (compile-check only)
 - Transpiler changes (those come from ADR decisions)
 - Other FreeRTOS APIs beyond xTaskCreate

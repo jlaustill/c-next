@@ -7,13 +7,13 @@ This repository contains FreeRTOS kernel source/header files and kernel
 ports only. This repository is referenced as a submodule in
 [FreeRTOS/FreeRTOS](https://github.com/FreeRTOS/FreeRTOS)
 repository, which contains pre-configured demo application projects under
-```FreeRTOS/Demo``` directory.
+`FreeRTOS/Demo` directory.
 
 The easiest way to use FreeRTOS is to start with one of the pre-configured demo
-application projects.  That way you will have the correct FreeRTOS source files
+application projects. That way you will have the correct FreeRTOS source files
 included, and the correct include paths configured. Once a demo application is
 building and executing you can remove the demo application files, and start to
-add in your own application source files.  See the
+add in your own application source files. See the
 [FreeRTOS Kernel Quick Start Guide](https://www.freertos.org/Documentation/01-FreeRTOS-quick-start/01-Beginners-guide/02-Quick-start-guide)
 for detailed instructions and other useful links.
 
@@ -121,17 +121,17 @@ git clone git@github.com:FreeRTOS/FreeRTOS-Kernel.git
 ## Repository structure
 
 - The root of this repository contains the three files that are common to
-every port - list.c, queue.c and tasks.c.  The kernel is contained within these
-three files.  croutine.c implements the optional co-routine functionality - which
-is normally only used on very memory limited systems.
+  every port - list.c, queue.c and tasks.c. The kernel is contained within these
+  three files. croutine.c implements the optional co-routine functionality - which
+  is normally only used on very memory limited systems.
 
-- The ```./portable``` directory contains the files that are specific to a particular microcontroller and/or compiler.
-See the readme file in the ```./portable``` directory for more information.
+- The `./portable` directory contains the files that are specific to a particular microcontroller and/or compiler.
+  See the readme file in the `./portable` directory for more information.
 
-- The ```./include``` directory contains the real time kernel header files.
+- The `./include` directory contains the real time kernel header files.
 
-- The ```./template_configuration``` directory contains a sample `FreeRTOSConfig.h` to help jumpstart a new project.
-See the [FreeRTOSConfig.h](examples/template_configuration/FreeRTOSConfig.h) file for instructions.
+- The `./template_configuration` directory contains a sample `FreeRTOSConfig.h` to help jumpstart a new project.
+  See the [FreeRTOSConfig.h](examples/template_configuration/FreeRTOSConfig.h) file for instructions.
 
 ### Code Formatting
 
@@ -175,12 +175,12 @@ spelling check. The config file for which can be found at [cspell.config.yaml](c
 There is additionally a
 [cSpell plugin for VSCode](https://marketplace.visualstudio.com/items?itemName=streetsidesoftware.code-spell-checker)
 that can be used as well.
-*[.cSpellWords.txt](.github/.cSpellWords.txt)* contains words that are not
+_[.cSpellWords.txt](.github/.cSpellWords.txt)_ contains words that are not
 traditionally found in an English dictionary. It is used by the spellchecker
 to verify the various jargon, variable names, and other odd words used in the
 FreeRTOS code base are correct. If your pull request fails to pass the spelling
 and you believe this is a mistake, then add the word to
-*[.cSpellWords.txt](.github/.cSpellWords.txt)*. When adding a word please
+_[.cSpellWords.txt](.github/.cSpellWords.txt)_. When adding a word please
 then sort the list, which can be done by running the bash command:
 `sort -u .cSpellWords.txt -o .cSpellWords.txt`
 Note that only the FreeRTOS-Kernel Source Files, [include](include),
@@ -188,5 +188,6 @@ Note that only the FreeRTOS-Kernel Source Files, [include](include),
 files are checked for proper spelling, and formatting at this time.
 
 ## Third Party Tools
+
 Visit [this link](.github/third_party_tools.md) for detailed information about
 third-party tools with FreeRTOS support.

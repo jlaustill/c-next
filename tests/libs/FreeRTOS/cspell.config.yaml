@@ -1,6 +1,6 @@
 ---
 $schema: https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json
-version: '0.2'
+version: "0.2"
 # Allows things like stringLength
 allowCompoundWords: true
 
@@ -17,7 +17,7 @@ languageSettings:
 # Add a dictionary, and the path to the word list
 dictionaryDefinitions:
   - name: freertos-words
-    path: '.github/.cSpellWords.txt'
+    path: ".github/.cSpellWords.txt"
     addWords: true
 
 dictionaries:
@@ -25,7 +25,7 @@ dictionaries:
 
 # Paths and files to ignore
 ignorePaths:
-  - 'dependency'
-  - 'docs'
-  - 'ThirdParty'
-  - 'History.txt'
+  - "dependency"
+  - "docs"
+  - "ThirdParty"
+  - "History.txt"
