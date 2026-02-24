@@ -1042,7 +1042,8 @@ class SymbolTable {
    * @returns true if this is a typedef'd struct type from C headers
    */
   isTypedefStructType(typeName: string): boolean {
-    return this.structState.typedefStructTypes.has(typeName);
+    const result = this.structState.typedefStructTypes.has(typeName);
+    return result;
   }
 
   /**
