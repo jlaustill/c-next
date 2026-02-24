@@ -529,6 +529,15 @@ export default class CodeGenState {
   }
 
   /**
+   * Issue #958: Check if a type name is an external typedef struct type.
+   * External typedef struct types should use pointer semantics for scope variables.
+   * Unlike isOpaqueType, this returns true for both forward-declared and complete structs.
+   */
+  static isTypedefStructType(typeName: string): boolean {
+    return this.symbolTable?.isTypedefStructType(typeName) ?? false;
+  }
+
+  /**
    * Get type info for a variable.
    * Checks local typeRegistry first, then falls back to SymbolTable
    * for cross-file variables from included .cnx files.

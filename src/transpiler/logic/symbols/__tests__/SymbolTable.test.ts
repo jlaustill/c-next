@@ -652,6 +652,59 @@ describe("SymbolTable", () => {
   });
 
   // ========================================================================
+  // Typedef Struct Type Tracking (Issue #958)
+  // ========================================================================
+
+  describe("Typedef Struct Type Tracking", () => {
+    it("should mark and check typedef struct types", () => {
+      symbolTable.markTypedefStructType("widget_t", "widget_types.h");
+      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
+      expect(symbolTable.isTypedefStructType("other_t")).toBe(false);
+    });
+
+    it("should unmark typedef struct type when definition is in same file", () => {
+      symbolTable.markTypedefStructType("point_t", "point.h");
+      expect(symbolTable.isTypedefStructType("point_t")).toBe(true);
+      // Same file - should unmark
+      symbolTable.unmarkTypedefStructType("point_t", "point.h");
+      expect(symbolTable.isTypedefStructType("point_t")).toBe(false);
+    });
+
+    it("should retain typedef struct type when definition is in different file", () => {
+      symbolTable.markTypedefStructType("widget_t", "widget_types.h");
+      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
+      // Different file - should NOT unmark (cross-file pattern)
+      symbolTable.unmarkTypedefStructType("widget_t", "widget_private.h");
+      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
+    });
+
+    it("should get all typedef struct types", () => {
+      symbolTable.markTypedefStructType("handle_t", "handle.h");
+      symbolTable.markTypedefStructType("context_t", "context.h");
+      const all = symbolTable.getAllTypedefStructTypes();
+      expect(all).toHaveLength(2);
+      expect(all).toContainEqual(["handle_t", "handle.h"]);
+      expect(all).toContainEqual(["context_t", "context.h"]);
+    });
+
+    it("should clear typedef struct types on clear()", () => {
+      symbolTable.markTypedefStructType("widget_t", "widget.h");
+      symbolTable.clear();
+      expect(symbolTable.isTypedefStructType("widget_t")).toBe(false);
+    });
+
+    it("should restore typedef struct types from cache", () => {
+      symbolTable.restoreTypedefStructTypes([
+        ["widget_t", "widget_types.h"],
+        ["handle_t", "handle.h"],
+      ]);
+      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
+      expect(symbolTable.isTypedefStructType("handle_t")).toBe(true);
+      expect(symbolTable.getAllTypedefStructTypes()).toHaveLength(2);
+    });
+  });
+
+  // ========================================================================
   // Clear
   // ========================================================================
 
@@ -675,6 +728,7 @@ describe("SymbolTable", () => {
       symbolTable.markNeedsStructKeyword("RawStruct");
       symbolTable.markOpaqueType("widget_t");
       symbolTable.addEnumBitWidth("SmallEnum", 8);
+      symbolTable.markTypedefStructType("handle_t", "handle.h");
 
       symbolTable.clear();
 
@@ -683,6 +737,7 @@ describe("SymbolTable", () => {
       expect(symbolTable.checkNeedsStructKeyword("RawStruct")).toBe(false);
       expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
       expect(symbolTable.getEnumBitWidth("SmallEnum")).toBeUndefined();
+      expect(symbolTable.isTypedefStructType("handle_t")).toBe(false);
     });
   });
 });

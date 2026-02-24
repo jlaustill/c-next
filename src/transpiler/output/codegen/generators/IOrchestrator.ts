@@ -400,6 +400,12 @@ interface IOrchestrator {
   isOpaqueType(typeName: string): boolean;
 
   /**
+   * Issue #958: Check if a type is an external typedef struct type.
+   * Used for scope variables which should always be pointers for external struct types.
+   */
+  isTypedefStructType(typeName: string): boolean;
+
+  /**
    * Mark a scope variable as having an opaque type.
    * These variables are generated as pointers with NULL initialization.
    */

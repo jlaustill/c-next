@@ -20,6 +20,8 @@ interface ICachedFileEntry {
   enumBitWidth?: Record<string, number>;
   /** Issue #948: Opaque types (forward-declared struct types) */
   opaqueTypes?: string[];
+  /** Issue #958: Typedef struct types with source files ([typeName, sourceFile] pairs) */
+  typedefStructTypes?: Array<[string, string]>;
 }
 
 export default ICachedFileEntry;

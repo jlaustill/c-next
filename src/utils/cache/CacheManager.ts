@@ -32,7 +32,7 @@ import ESourceLanguage from "../types/ESourceLanguage";
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 5; // Issue #948: Add opaqueTypes to cache
+const CACHE_VERSION = 6; // Issue #958: Add typedefStructTypes to cache
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -135,6 +135,7 @@ class CacheManager {
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
     opaqueTypes: string[];
+    typedefStructTypes: Array<[string, string]>;
   } | null {
     if (!this.cache) return null;
 
@@ -175,6 +176,7 @@ class CacheManager {
       needsStructKeyword: cachedEntry.needsStructKeyword ?? [],
       enumBitWidth,
       opaqueTypes: cachedEntry.opaqueTypes ?? [],
+      typedefStructTypes: cachedEntry.typedefStructTypes ?? [],
     };
   }
 
@@ -189,6 +191,7 @@ class CacheManager {
     needsStructKeyword?: string[],
     enumBitWidth?: Map<string, number>,
     opaqueTypes?: string[],
+    typedefStructTypes?: Array<[string, string]>,
   ): void {
     if (!this.cache) return;
 
@@ -233,6 +236,7 @@ class CacheManager {
       needsStructKeyword,
       enumBitWidth: serializedEnumBitWidth,
       opaqueTypes,
+      typedefStructTypes,
     };
 
     this.cache.setKey(filePath, entry);
@@ -273,6 +277,9 @@ class CacheManager {
     // Issue #948: Extract opaque types (forward-declared structs)
     const opaqueTypes = symbolTable.getAllOpaqueTypes();
 
+    // Issue #958: Extract typedef struct types (all typedef'd structs)
+    const typedefStructTypes = symbolTable.getAllTypedefStructTypes();
+
     // Delegate to existing setSymbols method
     this.setSymbols(
       filePath,
@@ -281,6 +288,7 @@ class CacheManager {
       needsStructKeyword,
       enumBitWidth,
       opaqueTypes,
+      typedefStructTypes,
     );
   }
 
