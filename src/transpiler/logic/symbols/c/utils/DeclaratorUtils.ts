@@ -379,6 +379,23 @@ class DeclaratorUtils {
 
     return DeclaratorUtils.extractDeclaratorName(firstDeclarator) ?? undefined;
   }
+
+  /**
+   * Check if the first declarator in an init-declarator-list has a pointer.
+   * For "typedef struct X *handle_t;", the declarator is "*handle_t" which has a pointer.
+   * Used for Issue #957 to distinguish pointer typedefs from opaque struct typedefs.
+   */
+  static firstDeclaratorHasPointer(
+    initDeclList: InitDeclaratorListContext,
+  ): boolean {
+    const initDeclarators = initDeclList.initDeclarator?.();
+    if (!initDeclarators || initDeclarators.length === 0) return false;
+
+    const firstDeclarator = initDeclarators[0].declarator?.();
+    if (!firstDeclarator) return false;
+
+    return Boolean(firstDeclarator.pointer?.());
+  }
 }
 
 export default DeclaratorUtils;

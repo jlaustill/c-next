@@ -179,14 +179,24 @@ class CResolver {
       ? CResolver.extractTypedefName(decl, declSpecs)
       : undefined;
 
+    // Issue #957: Check if the typedef's declarator has a pointer prefix.
+    // For "typedef struct X *Y", Y is already a pointer type, NOT an opaque struct.
+    // Don't mark pointer typedefs as opaque.
+    const isPointerTypedef = ctx.isTypedef
+      ? CResolver.isPointerTypedef(decl)
+      : false;
+
     const structSymbol = StructCollector.collect(
       structSpec,
       ctx.sourceFile,
       ctx.line,
       symbolTable,
-      typedefName,
-      ctx.isTypedef,
-      warnings,
+      {
+        typedefName,
+        isTypedef: ctx.isTypedef,
+        warnings,
+        isPointerTypedef,
+      },
     );
     if (structSymbol) {
       ctx.symbols.push(structSymbol);
@@ -207,6 +217,18 @@ class CResolver {
       if (name) return name;
     }
     return DeclaratorUtils.extractTypedefNameFromSpecs(declSpecs);
+  }
+
+  /**
+   * Check if a typedef declaration has a pointer declarator.
+   * For "typedef struct X *Y", the declarator is "*Y" which has a pointer.
+   * Used for Issue #957 to distinguish pointer typedefs from opaque struct typedefs.
+   */
+  private static isPointerTypedef(decl: DeclarationContext): boolean {
+    const initDeclList = decl.initDeclaratorList();
+    if (!initDeclList) return false;
+
+    return DeclaratorUtils.firstDeclaratorHasPointer(initDeclList);
   }
 
   /**

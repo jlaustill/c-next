@@ -1,0 +1,25 @@
+// test-transpile-only
+// Issue #957: ESP-IDF style handle with no struct definition
+//
+// When typedef is `typedef struct X *Y` and struct X is NEVER defined,
+// the type is ALREADY a pointer. No extra * should be added.
+
+#include "esp_style.h"
+
+scope SPI {
+    spi_device_handle_t device;
+
+    public void init() {
+        global.spi_device_init(this.device);
+    }
+
+    public void write(u8 data) {
+        global.spi_device_write(this.device, data);
+    }
+}
+
+i32 main() {
+    SPI.init();
+    SPI.write(42);
+    return 0;
+}
