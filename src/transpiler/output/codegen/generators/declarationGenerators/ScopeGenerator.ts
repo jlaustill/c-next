@@ -187,8 +187,17 @@ function generateRegularVariable(
   const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
 
   // ADR-016: All scope variables are emitted at file scope (static-like persistence)
-  const type = orchestrator.generateType(varDecl.type());
+  let type = orchestrator.generateType(varDecl.type());
   const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
+
+  // Issue #948: Check if this is an opaque (forward-declared) struct type
+  // Opaque types must be declared as pointers with NULL initialization
+  const isOpaque = orchestrator.isOpaqueType(type);
+  if (isOpaque) {
+    type = `${type}*`;
+    orchestrator.markOpaqueScopeVariable(fullName);
+  }
+
   // Issue #282: Add 'const' modifier for const variables
   const constPrefix = isConst ? "const " : "";
   const prefix = isPrivate ? "static " : "";
@@ -207,7 +216,13 @@ function generateRegularVariable(
 
   // ADR-045: Add string capacity dimension for string arrays
   decl += ArrayDimensionUtils.generateStringCapacityDim(varDecl.type());
-  decl += generateInitializer(varDecl, isArray, orchestrator);
+
+  // Issue #948: Opaque types use NULL initialization instead of {0}
+  if (isOpaque) {
+    decl += " = NULL";
+  } else {
+    decl += generateInitializer(varDecl, isArray, orchestrator);
+  }
 
   return decl + ";";
 }

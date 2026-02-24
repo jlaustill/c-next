@@ -114,42 +114,7 @@ class CResolver {
     const isTypedef = DeclaratorUtils.hasStorageClass(declSpecs, "typedef");
     const isExtern = DeclaratorUtils.hasStorageClass(declSpecs, "extern");
 
-    // Check for struct/union
-    const structSpec = DeclaratorUtils.findStructOrUnionSpecifier(declSpecs);
-    if (structSpec) {
-      // For typedef struct, extract the typedef name from declarationSpecifiers
-      const typedefName = isTypedef
-        ? DeclaratorUtils.extractTypedefNameFromSpecs(declSpecs)
-        : undefined;
-
-      const structSymbol = StructCollector.collect(
-        structSpec,
-        sourceFile,
-        line,
-        symbolTable,
-        typedefName,
-        isTypedef,
-        warnings,
-      );
-      if (structSymbol) {
-        symbols.push(structSymbol);
-      }
-    }
-
-    // Check for enum
-    const enumSpec = DeclaratorUtils.findEnumSpecifier(declSpecs);
-    if (enumSpec) {
-      const enumResult = EnumCollector.collect(enumSpec, sourceFile, line);
-      if (enumResult) {
-        symbols.push(enumResult.enum);
-        // Also add enum member symbols
-        for (const member of enumResult.members) {
-          symbols.push(member);
-        }
-      }
-    }
-
-    // Collect declarators (variables, function prototypes, typedefs)
+    // Build context early for reuse across helper methods
     const ctx: IDeclarationContext = {
       sourceFile,
       line,
@@ -157,6 +122,30 @@ class CResolver {
       isExtern,
       symbols,
     };
+
+    // Check for struct/union
+    const structSpec = DeclaratorUtils.findStructOrUnionSpecifier(declSpecs);
+    if (structSpec) {
+      CResolver.collectStructSymbol(
+        structSpec,
+        decl,
+        declSpecs,
+        ctx,
+        symbolTable,
+        warnings,
+      );
+    }
+
+    // Check for enum
+    const enumSpec = DeclaratorUtils.findEnumSpecifier(declSpecs);
+    if (enumSpec) {
+      CResolver.collectEnumSymbols(
+        enumSpec,
+        ctx.sourceFile,
+        ctx.line,
+        ctx.symbols,
+      );
+    }
 
     const initDeclList = decl.initDeclaratorList();
     if (initDeclList) {
@@ -170,6 +159,72 @@ class CResolver {
         enumSpec,
         ctx,
       );
+    }
+  }
+
+  /**
+   * Collect struct symbol from a struct specifier.
+   * Extracted to reduce cognitive complexity of collectDeclaration().
+   */
+  private static collectStructSymbol(
+    structSpec: any,
+    decl: DeclarationContext,
+    declSpecs: DeclarationSpecifiersContext,
+    ctx: IDeclarationContext,
+    symbolTable: SymbolTable | null,
+    warnings: string[],
+  ): void {
+    // For typedef struct, extract the typedef name
+    const typedefName = ctx.isTypedef
+      ? CResolver.extractTypedefName(decl, declSpecs)
+      : undefined;
+
+    const structSymbol = StructCollector.collect(
+      structSpec,
+      ctx.sourceFile,
+      ctx.line,
+      symbolTable,
+      typedefName,
+      ctx.isTypedef,
+      warnings,
+    );
+    if (structSymbol) {
+      ctx.symbols.push(structSymbol);
+    }
+  }
+
+  /**
+   * Extract typedef name from declaration.
+   * First try from init-declarator-list, then fall back to specifiers.
+   */
+  private static extractTypedefName(
+    decl: DeclarationContext,
+    declSpecs: DeclarationSpecifiersContext,
+  ): string | undefined {
+    const initDeclList = decl.initDeclaratorList();
+    if (initDeclList) {
+      const name = DeclaratorUtils.extractFirstDeclaratorName(initDeclList);
+      if (name) return name;
+    }
+    return DeclaratorUtils.extractTypedefNameFromSpecs(declSpecs);
+  }
+
+  /**
+   * Collect enum symbols from an enum specifier.
+   * Extracted to reduce cognitive complexity of collectDeclaration().
+   */
+  private static collectEnumSymbols(
+    enumSpec: any,
+    sourceFile: string,
+    line: number,
+    symbols: TCSymbol[],
+  ): void {
+    const enumResult = EnumCollector.collect(enumSpec, sourceFile, line);
+    if (!enumResult) return;
+
+    symbols.push(enumResult.enum);
+    for (const member of enumResult.members) {
+      symbols.push(member);
     }
   }
 

@@ -78,6 +78,20 @@ class SymbolTable {
   private readonly needsStructKeyword: Set<string> = new Set();
 
   /**
+   * Issue #948: Track typedef names that alias incomplete (forward-declared) struct types.
+   * These are "opaque" types that can only be used as pointers.
+   */
+  private readonly opaqueTypes: Set<string> = new Set();
+
+  /**
+   * Issue #948: Track struct tag -> typedef name relationships.
+   * When a typedef declares an alias for a struct tag (e.g., typedef struct _foo foo_t),
+   * we record structTagAliases["_foo"] = "foo_t". This allows us to unmark the typedef
+   * as opaque when the full struct definition is later found.
+   */
+  private readonly structTagAliases: Map<string, string> = new Map();
+
+  /**
    * Issue #208: Track enum backing type bit widths
    * C++14 typed enums: enum Name : uint8_t { ... } have explicit bit widths
    */
@@ -856,6 +870,74 @@ class SymbolTable {
   }
 
   // ========================================================================
+  // Opaque Type Tracking (Issue #948)
+  // ========================================================================
+
+  /**
+   * Issue #948: Mark a typedef as aliasing an opaque (forward-declared) struct type.
+   * @param typeName Typedef name (e.g., "widget_t")
+   */
+  markOpaqueType(typeName: string): void {
+    this.opaqueTypes.add(typeName);
+  }
+
+  /**
+   * Issue #948: Unmark a typedef when full struct definition is found.
+   * Handles edge case: typedef before definition.
+   * @param typeName Typedef name
+   */
+  unmarkOpaqueType(typeName: string): void {
+    this.opaqueTypes.delete(typeName);
+  }
+
+  /**
+   * Issue #948: Check if a typedef aliases an opaque struct type.
+   * @param typeName Typedef name
+   * @returns true if the type is opaque (forward-declared)
+   */
+  isOpaqueType(typeName: string): boolean {
+    return this.opaqueTypes.has(typeName);
+  }
+
+  /**
+   * Issue #948: Get all opaque type names for cache serialization.
+   * @returns Array of opaque typedef names
+   */
+  getAllOpaqueTypes(): string[] {
+    return Array.from(this.opaqueTypes);
+  }
+
+  /**
+   * Issue #948: Restore opaque types from cache.
+   * @param typeNames Array of opaque typedef names
+   */
+  restoreOpaqueTypes(typeNames: string[]): void {
+    for (const name of typeNames) {
+      this.opaqueTypes.add(name);
+    }
+  }
+
+  /**
+   * Issue #948: Register a struct tag -> typedef name relationship.
+   * Called when processing: typedef struct _foo foo_t;
+   * This allows unmarking foo_t when struct _foo { ... } is later defined.
+   * @param structTag The struct tag name (e.g., "_foo")
+   * @param typedefName The typedef alias name (e.g., "foo_t")
+   */
+  registerStructTagAlias(structTag: string, typedefName: string): void {
+    this.structTagAliases.set(structTag, typedefName);
+  }
+
+  /**
+   * Issue #948: Get the typedef alias for a struct tag, if any.
+   * @param structTag The struct tag name
+   * @returns The typedef alias name, or undefined if none registered
+   */
+  getStructTagAlias(structTag: string): string | undefined {
+    return this.structTagAliases.get(structTag);
+  }
+
+  // ========================================================================
   // Enum Bit Width Tracking
   // ========================================================================
 
@@ -1004,6 +1086,8 @@ class SymbolTable {
     // Auxiliary
     this.structFields.clear();
     this.needsStructKeyword.clear();
+    this.opaqueTypes.clear();
+    this.structTagAliases.clear();
     this.enumBitWidth.clear();
   }
 }

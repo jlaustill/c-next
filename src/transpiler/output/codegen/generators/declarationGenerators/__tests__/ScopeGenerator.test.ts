@@ -466,6 +466,9 @@ function createMockOrchestrator(
     generateCallbackTypedef: vi.fn(() => null),
     isConstValue: vi.fn(() => true),
     tryEvaluateConstant: vi.fn(() => undefined),
+    // Issue #948: Opaque type helpers
+    isOpaqueType: vi.fn(() => false),
+    markOpaqueScopeVariable: vi.fn(),
     ...overrides,
   } as unknown as IOrchestrator;
 }
@@ -720,6 +723,52 @@ describe("ScopeGenerator", () => {
 
       expect(result.code).toContain("static uint32_t Device_status = 0;");
       expect(orchestrator.getZeroInitializer).toHaveBeenCalled();
+    });
+
+    it("generates opaque type variable as pointer with NULL (Issue #948)", () => {
+      const varDecl = createMockVariableDecl({
+        name: "widget",
+        type: "widget_t",
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("GUI", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        ...createMockOrchestrator(),
+        isOpaqueType: vi.fn(() => true),
+        markOpaqueScopeVariable: vi.fn(),
+      });
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      // Should generate as pointer with NULL initialization
+      expect(result.code).toContain("static widget_t* GUI_widget = NULL;");
+      // Should call markOpaqueScopeVariable
+      expect(orchestrator.markOpaqueScopeVariable).toHaveBeenCalledWith(
+        "GUI_widget",
+      );
+    });
+
+    it("does not generate pointer for non-opaque struct types", () => {
+      const varDecl = createMockVariableDecl({
+        name: "point",
+        type: "Point",
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("Canvas", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        ...createMockOrchestrator(),
+        isOpaqueType: vi.fn(() => false),
+      });
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      // Should generate as value with {0} initialization
+      expect(result.code).toContain("static Point Canvas_point = 0;");
+      expect(result.code).not.toContain("Point*");
     });
   });
 

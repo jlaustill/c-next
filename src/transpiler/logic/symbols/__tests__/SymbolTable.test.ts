@@ -611,6 +611,47 @@ describe("SymbolTable", () => {
   });
 
   // ========================================================================
+  // Opaque Type Tracking (Issue #948)
+  // ========================================================================
+
+  describe("Opaque Type Tracking", () => {
+    it("should mark and check opaque types", () => {
+      symbolTable.markOpaqueType("widget_t");
+      expect(symbolTable.isOpaqueType("widget_t")).toBe(true);
+      expect(symbolTable.isOpaqueType("other_t")).toBe(false);
+    });
+
+    it("should unmark opaque types when full definition found", () => {
+      symbolTable.markOpaqueType("point_t");
+      expect(symbolTable.isOpaqueType("point_t")).toBe(true);
+      symbolTable.unmarkOpaqueType("point_t");
+      expect(symbolTable.isOpaqueType("point_t")).toBe(false);
+    });
+
+    it("should get all opaque types", () => {
+      symbolTable.markOpaqueType("handle_t");
+      symbolTable.markOpaqueType("context_t");
+      const all = symbolTable.getAllOpaqueTypes();
+      expect(all).toContain("handle_t");
+      expect(all).toContain("context_t");
+      expect(all).toHaveLength(2);
+    });
+
+    it("should clear opaque types on clear()", () => {
+      symbolTable.markOpaqueType("widget_t");
+      symbolTable.clear();
+      expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
+    });
+
+    it("should restore opaque types from cache", () => {
+      symbolTable.restoreOpaqueTypes(["widget_t", "handle_t"]);
+      expect(symbolTable.isOpaqueType("widget_t")).toBe(true);
+      expect(symbolTable.isOpaqueType("handle_t")).toBe(true);
+      expect(symbolTable.getAllOpaqueTypes()).toHaveLength(2);
+    });
+  });
+
+  // ========================================================================
   // Clear
   // ========================================================================
 
@@ -632,6 +673,7 @@ describe("SymbolTable", () => {
 
       symbolTable.addStructField("Point", "x", "int");
       symbolTable.markNeedsStructKeyword("RawStruct");
+      symbolTable.markOpaqueType("widget_t");
       symbolTable.addEnumBitWidth("SmallEnum", 8);
 
       symbolTable.clear();
@@ -639,6 +681,7 @@ describe("SymbolTable", () => {
       expect(symbolTable.getAllSymbols().length).toBe(0);
       expect(symbolTable.getStructFieldType("Point", "x")).toBeUndefined();
       expect(symbolTable.checkNeedsStructKeyword("RawStruct")).toBe(false);
+      expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
       expect(symbolTable.getEnumBitWidth("SmallEnum")).toBeUndefined();
     });
   });

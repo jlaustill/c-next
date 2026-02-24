@@ -279,6 +279,18 @@ export default class CodeGenState {
   static needsIrqWrappers: boolean = false;
 
   // ===========================================================================
+  // OPAQUE TYPE SCOPE VARIABLES (Issue #948)
+  // ===========================================================================
+
+  /**
+   * Tracks scope variables with opaque (forward-declared) struct types.
+   * These are generated as pointers with NULL initialization and should
+   * be passed directly (not with &) since they're already pointers.
+   * Maps qualified name (e.g., "MyScope_widget") to true.
+   */
+  private static opaqueScopeVariables: Set<string> = new Set();
+
+  // ===========================================================================
   // C++ MODE STATE (Issue #250)
   // ===========================================================================
 
@@ -400,6 +412,9 @@ export default class CodeGenState {
     this.pendingCppClassAssignments = [];
     this.selfIncludeAdded = false;
 
+    // Issue #948: Opaque scope variables (reset per-file)
+    this.opaqueScopeVariables = new Set();
+
     // Source paths
     this.sourcePath = null;
     this.includeDirs = [];
@@ -502,6 +517,15 @@ export default class CodeGenState {
    */
   static isKnownRegister(name: string): boolean {
     return this.symbols?.knownRegisters.has(name) ?? false;
+  }
+
+  /**
+   * Issue #948: Check if a type name is an opaque (forward-declared) struct type.
+   * Opaque types are incomplete types that can only be used as pointers.
+   * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
+   */
+  static isOpaqueType(typeName: string): boolean {
+    return this.symbols?.opaqueTypes.has(typeName) ?? false;
   }
 
   /**
@@ -1044,6 +1068,31 @@ export default class CodeGenState {
    */
   static isFloatShadowCurrent(name: string): boolean {
     return this.floatShadowCurrent.has(name);
+  }
+
+  // ===========================================================================
+  // OPAQUE SCOPE VARIABLE HELPERS (Issue #948)
+  // ===========================================================================
+
+  /**
+   * Mark a scope variable as having an opaque (forward-declared) struct type.
+   * These are generated as pointers with NULL initialization.
+   *
+   * @param qualifiedName - The fully qualified variable name (e.g., "MyScope_widget")
+   */
+  static markOpaqueScopeVariable(qualifiedName: string): void {
+    this.opaqueScopeVariables.add(qualifiedName);
+  }
+
+  /**
+   * Check if a scope variable has an opaque type (and is thus a pointer).
+   * Used during access generation to determine if & prefix is needed.
+   *
+   * @param qualifiedName - The fully qualified variable name (e.g., "MyScope_widget")
+   * @returns true if this is an opaque scope variable (already a pointer)
+   */
+  static isOpaqueScopeVariable(qualifiedName: string): boolean {
+    return this.opaqueScopeVariables.has(qualifiedName);
   }
 
   // ===========================================================================

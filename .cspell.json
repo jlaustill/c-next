@@ -354,7 +354,9 @@
     "DEADBEEFU",
     "dedup",
     "LVGL",
-    "FreeRTOS"
+    "FreeRTOS",
+    "unmarks",
+    "unmarking"
   ],
   "ignorePaths": [
     "node_modules/**",

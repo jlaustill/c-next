@@ -1918,6 +1918,24 @@ export default class CodeGenerator implements IOrchestrator {
     return CodeGenState.floatShadowCurrent.has(shadowName);
   }
 
+  /**
+   * Issue #948: Check if a type is an opaque (forward-declared) struct type.
+   * Opaque types can only be used as pointers (cannot be instantiated).
+   * Part of IOrchestrator interface.
+   */
+  isOpaqueType(typeName: string): boolean {
+    return CodeGenState.isOpaqueType(typeName);
+  }
+
+  /**
+   * Issue #948: Mark a scope variable as having an opaque type.
+   * These variables are generated as pointers with NULL initialization.
+   * Part of IOrchestrator interface.
+   */
+  markOpaqueScopeVariable(qualifiedName: string): void {
+    CodeGenState.markOpaqueScopeVariable(qualifiedName);
+  }
+
   // ===========================================================================
   // End IOrchestrator Implementation
   // ===========================================================================

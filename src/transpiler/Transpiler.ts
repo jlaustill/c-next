@@ -366,6 +366,16 @@ class Transpiler {
         );
       }
 
+      // Issue #948: Merge opaque types from C/C++ headers
+      // These are forward-declared struct types that need pointer semantics
+      const externalOpaqueTypes = CodeGenState.symbolTable.getAllOpaqueTypes();
+      if (externalOpaqueTypes.length > 0) {
+        symbolInfo = TSymbolInfoAdapter.mergeOpaqueTypes(
+          symbolInfo,
+          externalOpaqueTypes,
+        );
+      }
+
       // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
       CodeGenState.symbols = symbolInfo;
 
@@ -1045,6 +1055,9 @@ class Transpiler {
       cached.needsStructKeyword,
     );
     CodeGenState.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
+
+    // Issue #948: Restore opaque types (forward-declared structs)
+    CodeGenState.symbolTable.restoreOpaqueTypes(cached.opaqueTypes);
 
     // Issue #211: Still check for C++ syntax even on cache hit
     this.detectCppFromFileType(file);

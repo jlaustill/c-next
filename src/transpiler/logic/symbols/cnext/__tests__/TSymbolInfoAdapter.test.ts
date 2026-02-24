@@ -658,6 +658,96 @@ describe("TSymbolInfoAdapter", () => {
     });
   });
 
+  describe("mergeOpaqueTypes (Issue #948)", () => {
+    it("should return base unchanged when no external opaque types", () => {
+      const base = TSymbolInfoAdapter.convert([]);
+
+      const result = TSymbolInfoAdapter.mergeOpaqueTypes(base, []);
+
+      expect(result).toBe(base);
+    });
+
+    it("should add external opaque types to opaqueTypes set", () => {
+      const base = TSymbolInfoAdapter.convert([]);
+
+      const result = TSymbolInfoAdapter.mergeOpaqueTypes(base, [
+        "widget_t",
+        "display_t",
+      ]);
+
+      expect(result.opaqueTypes.has("widget_t")).toBe(true);
+      expect(result.opaqueTypes.has("display_t")).toBe(true);
+      expect(result.opaqueTypes.size).toBe(2);
+    });
+
+    it("should preserve existing opaque types when merging", () => {
+      // Create base with existing opaque type
+      const base = TSymbolInfoAdapter.convert([]);
+      // Manually create a symbols object with existing opaque types
+      const withExisting = TSymbolInfoAdapter.mergeOpaqueTypes(base, [
+        "existing_t",
+      ]);
+
+      // Merge additional opaque types
+      const result = TSymbolInfoAdapter.mergeOpaqueTypes(withExisting, [
+        "widget_t",
+      ]);
+
+      expect(result.opaqueTypes.has("existing_t")).toBe(true);
+      expect(result.opaqueTypes.has("widget_t")).toBe(true);
+      expect(result.opaqueTypes.size).toBe(2);
+    });
+
+    it("should handle duplicate opaque types gracefully", () => {
+      const base = TSymbolInfoAdapter.convert([]);
+      const withWidget = TSymbolInfoAdapter.mergeOpaqueTypes(base, [
+        "widget_t",
+      ]);
+
+      // Try to add the same opaque type again
+      const result = TSymbolInfoAdapter.mergeOpaqueTypes(withWidget, [
+        "widget_t",
+      ]);
+
+      expect(result.opaqueTypes.has("widget_t")).toBe(true);
+      expect(result.opaqueTypes.size).toBe(1);
+    });
+
+    it("should preserve all other fields unchanged", () => {
+      const struct: IStructSymbol = {
+        kind: "struct",
+        name: "Point",
+        scope: globalScope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        fields: new Map([
+          [
+            "x",
+            {
+              name: "x",
+              type: TypeResolver.resolve("i32"),
+              isArray: false,
+              isConst: false,
+              isAtomic: false,
+            },
+          ],
+        ]),
+      };
+
+      const base = TSymbolInfoAdapter.convert([struct]);
+      const result = TSymbolInfoAdapter.mergeOpaqueTypes(base, ["widget_t"]);
+
+      // Verify struct info preserved
+      expect(result.knownStructs.has("Point")).toBe(true);
+      expect(result.structFields.get("Point")?.get("x")).toBe("i32");
+
+      // Verify opaque type added
+      expect(result.opaqueTypes.has("widget_t")).toBe(true);
+    });
+  });
+
   describe("mixed symbols", () => {
     it("should handle array of different symbol types", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
