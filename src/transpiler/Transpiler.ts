@@ -366,9 +366,11 @@ class Transpiler {
         );
       }
 
-      // Issue #948: Merge opaque types from C/C++ headers
-      // These are forward-declared struct types that need pointer semantics
-      const externalOpaqueTypes = CodeGenState.symbolTable.getAllOpaqueTypes();
+      // Issue #948/#958: Merge truly opaque types from C/C++ headers
+      // Query-time resolution filters out types whose struct body has been found
+      const externalOpaqueTypes = CodeGenState.symbolTable
+        .getAllOpaqueTypes()
+        .filter((t) => CodeGenState.symbolTable.isOpaqueType(t));
       if (externalOpaqueTypes.length > 0) {
         symbolInfo = TSymbolInfoAdapter.mergeOpaqueTypes(
           symbolInfo,
@@ -1062,6 +1064,12 @@ class Transpiler {
     // Issue #958: Restore typedef struct types (all typedef'd structs)
     CodeGenState.symbolTable.restoreTypedefStructTypes(
       cached.typedefStructTypes,
+    );
+
+    // Issue #958: Restore struct tag aliases and body tracking
+    CodeGenState.symbolTable.restoreStructTagAliases(cached.structTagAliases);
+    CodeGenState.symbolTable.restoreStructTagsWithBodies(
+      cached.structTagsWithBodies,
     );
 
     // Issue #211: Still check for C++ syntax even on cache hit

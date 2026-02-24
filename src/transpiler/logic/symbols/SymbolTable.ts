@@ -8,6 +8,7 @@
  * - TCppSymbol: C++ header symbols (string types)
  */
 
+import { produce, enableMapSet } from "immer";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "../../types/IConflict";
@@ -22,6 +23,38 @@ import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../utils/TypeResolver";
 import SymbolNameUtils from "./cnext/utils/SymbolNameUtils";
+
+// Enable immer support for Map and Set (must be called once at module scope)
+enableMapSet();
+
+/**
+ * Issue #958: Immutable struct symbol state managed via immer produce().
+ * All mutations are additive-only — no unmark/delete operations.
+ * Resolution (e.g., "is this type truly opaque?") happens at query time.
+ */
+interface IStructSymbolState {
+  /** Typedef names declared with forward-declared structs (additive only) */
+  opaqueTypes: Set<string>;
+  /** ALL typedef struct types from C headers: name → sourceFile (additive only) */
+  typedefStructTypes: Map<string, string>;
+  /** Struct tag → typedef name (e.g., "_widget_t" → "widget_t") */
+  structTagAliases: Map<string, string>;
+  /** Typedef name → struct tag (reverse of structTagAliases) */
+  typedefToTag: Map<string, string>;
+  /** Struct tags that have full definitions (bodies) */
+  structTagsWithBodies: Set<string>;
+}
+
+/** Create a fresh initial struct symbol state */
+function createInitialStructState(): IStructSymbolState {
+  return {
+    opaqueTypes: new Set(),
+    typedefStructTypes: new Map(),
+    structTagAliases: new Map(),
+    typedefToTag: new Map(),
+    structTagsWithBodies: new Set(),
+  };
+}
 
 /**
  * Central symbol table for cross-language interoperability
@@ -78,27 +111,10 @@ class SymbolTable {
   private readonly needsStructKeyword: Set<string> = new Set();
 
   /**
-   * Issue #948: Track typedef names that alias incomplete (forward-declared) struct types.
-   * These are "opaque" types that can only be used as pointers.
+   * Issue #958: Immutable struct symbol state — additive only, query-time resolution.
+   * Replaces separate opaqueTypes, typedefStructTypes, structTagAliases fields.
    */
-  private readonly opaqueTypes: Set<string> = new Set();
-
-  /**
-   * Issue #958: Track typedef struct type names with their source files.
-   * Maps typeName -> sourceFile. Used for scope variables which should be pointers
-   * when the struct definition comes from a different file than the typedef.
-   * If definition is in the same file as typedef, the entry is removed (value type).
-   * If definition is in a different file, the entry remains (pointer type).
-   */
-  private readonly typedefStructTypes: Map<string, string> = new Map();
-
-  /**
-   * Issue #948: Track struct tag -> typedef name relationships.
-   * When a typedef declares an alias for a struct tag (e.g., typedef struct _foo foo_t),
-   * we record structTagAliases["_foo"] = "foo_t". This allows us to unmark the typedef
-   * as opaque when the full struct definition is later found.
-   */
-  private readonly structTagAliases: Map<string, string> = new Map();
+  private structState: IStructSymbolState = createInitialStructState();
 
   /**
    * Issue #208: Track enum backing type bit widths
@@ -879,7 +895,7 @@ class SymbolTable {
   }
 
   // ========================================================================
-  // Opaque Type Tracking (Issue #948)
+  // Struct Symbol State (Issue #948, #958) — immer-managed, additive only
   // ========================================================================
 
   /**
@@ -887,33 +903,32 @@ class SymbolTable {
    * @param typeName Typedef name (e.g., "widget_t")
    */
   markOpaqueType(typeName: string): void {
-    this.opaqueTypes.add(typeName);
+    this.structState = produce(this.structState, (draft) => {
+      draft.opaqueTypes.add(typeName);
+    });
   }
 
   /**
-   * Issue #948: Unmark a typedef when full struct definition is found.
-   * Handles edge case: typedef before definition.
+   * Issue #948/#958: Check if a typedef aliases a truly opaque struct type.
+   * Query-time resolution: if the underlying struct tag has a body, it's not opaque.
    * @param typeName Typedef name
-   */
-  unmarkOpaqueType(typeName: string): void {
-    this.opaqueTypes.delete(typeName);
-  }
-
-  /**
-   * Issue #948: Check if a typedef aliases an opaque struct type.
-   * @param typeName Typedef name
-   * @returns true if the type is opaque (forward-declared)
+   * @returns true if the type is opaque (forward-declared with no body found)
    */
   isOpaqueType(typeName: string): boolean {
-    return this.opaqueTypes.has(typeName);
+    if (!this.structState.opaqueTypes.has(typeName)) return false;
+    // Resolve: if the underlying struct tag has a body, it's not truly opaque
+    const tag = this.structState.typedefToTag.get(typeName);
+    if (tag && this.structState.structTagsWithBodies.has(tag)) return false;
+    return true;
   }
 
   /**
    * Issue #948: Get all opaque type names for cache serialization.
+   * Returns the raw set — resolution happens at query time via isOpaqueType().
    * @returns Array of opaque typedef names
    */
   getAllOpaqueTypes(): string[] {
-    return Array.from(this.opaqueTypes);
+    return Array.from(this.structState.opaqueTypes);
   }
 
   /**
@@ -921,20 +936,25 @@ class SymbolTable {
    * @param typeNames Array of opaque typedef names
    */
   restoreOpaqueTypes(typeNames: string[]): void {
-    for (const name of typeNames) {
-      this.opaqueTypes.add(name);
-    }
+    this.structState = produce(this.structState, (draft) => {
+      for (const name of typeNames) {
+        draft.opaqueTypes.add(name);
+      }
+    });
   }
 
   /**
    * Issue #948: Register a struct tag -> typedef name relationship.
    * Called when processing: typedef struct _foo foo_t;
-   * This allows unmarking foo_t when struct _foo { ... } is later defined.
+   * Populates both forward (tag→typedef) and reverse (typedef→tag) maps.
    * @param structTag The struct tag name (e.g., "_foo")
    * @param typedefName The typedef alias name (e.g., "foo_t")
    */
   registerStructTagAlias(structTag: string, typedefName: string): void {
-    this.structTagAliases.set(structTag, typedefName);
+    this.structState = produce(this.structState, (draft) => {
+      draft.structTagAliases.set(structTag, typedefName);
+      draft.typedefToTag.set(typedefName, structTag);
+    });
   }
 
   /**
@@ -943,7 +963,59 @@ class SymbolTable {
    * @returns The typedef alias name, or undefined if none registered
    */
   getStructTagAlias(structTag: string): string | undefined {
-    return this.structTagAliases.get(structTag);
+    return this.structState.structTagAliases.get(structTag);
+  }
+
+  /**
+   * Issue #958: Record that a struct tag has a full definition (body).
+   * Used by query-time resolution: opaque types with bodies are not truly opaque.
+   * @param structTag The struct tag name (e.g., "_widget_t")
+   */
+  markStructTagHasBody(structTag: string): void {
+    this.structState = produce(this.structState, (draft) => {
+      draft.structTagsWithBodies.add(structTag);
+    });
+  }
+
+  /**
+   * Issue #958: Get all struct tags with bodies for cache serialization.
+   * @returns Array of struct tag names
+   */
+  getAllStructTagsWithBodies(): string[] {
+    return Array.from(this.structState.structTagsWithBodies);
+  }
+
+  /**
+   * Issue #958: Restore struct tags with bodies from cache.
+   * @param tags Array of struct tag names
+   */
+  restoreStructTagsWithBodies(tags: string[]): void {
+    this.structState = produce(this.structState, (draft) => {
+      for (const tag of tags) {
+        draft.structTagsWithBodies.add(tag);
+      }
+    });
+  }
+
+  /**
+   * Issue #958: Get all struct tag aliases for cache serialization.
+   * @returns Array of [structTag, typedefName] pairs
+   */
+  getAllStructTagAliases(): Array<[string, string]> {
+    return Array.from(this.structState.structTagAliases.entries());
+  }
+
+  /**
+   * Issue #958: Restore struct tag aliases from cache.
+   * @param entries Array of [structTag, typedefName] pairs
+   */
+  restoreStructTagAliases(entries: Array<[string, string]>): void {
+    this.structState = produce(this.structState, (draft) => {
+      for (const [tag, typedefName] of entries) {
+        draft.structTagAliases.set(tag, typedefName);
+        draft.typedefToTag.set(typedefName, tag);
+      }
+    });
   }
 
   // ========================================================================
@@ -952,36 +1024,26 @@ class SymbolTable {
 
   /**
    * Issue #958: Mark a typedef as aliasing a struct type.
-   * Records the source file to enable same-file vs cross-file distinction.
+   * Records the source file. Additive only — never removed.
    * @param typedefName The typedef name (e.g., "widget_t")
    * @param sourceFile The file where the typedef was declared
    */
   markTypedefStructType(typedefName: string, sourceFile: string): void {
-    this.typedefStructTypes.set(typedefName, sourceFile);
-  }
-
-  /**
-   * Issue #958: Unmark a typedef struct type when full definition is found.
-   * Only unmarks if the definition is in the SAME file as the typedef declaration.
-   * Cross-file definitions keep the typedef marked (pointer semantics).
-   * @param typeName The typedef name to unmark
-   * @param sourceFile The file where the definition was found
-   */
-  unmarkTypedefStructType(typeName: string, sourceFile: string): void {
-    const typedefFile = this.typedefStructTypes.get(typeName);
-    if (typedefFile === sourceFile) {
-      this.typedefStructTypes.delete(typeName);
-    }
+    this.structState = produce(this.structState, (draft) => {
+      draft.typedefStructTypes.set(typedefName, sourceFile);
+    });
   }
 
   /**
    * Issue #958: Check if a typedef aliases a struct type.
-   * Used for scope variables which should be pointers for external struct types.
+   * Used for scope variables, function parameters, and local variables
+   * which should be pointers for C-header struct types.
    * @param typeName The type name to check
    * @returns true if this is a typedef'd struct type from C headers
    */
   isTypedefStructType(typeName: string): boolean {
-    return this.typedefStructTypes.has(typeName);
+    const result = this.structState.typedefStructTypes.has(typeName);
+    return result;
   }
 
   /**
@@ -989,7 +1051,7 @@ class SymbolTable {
    * @returns Map entries as [typeName, sourceFile] pairs
    */
   getAllTypedefStructTypes(): Array<[string, string]> {
-    return Array.from(this.typedefStructTypes.entries());
+    return Array.from(this.structState.typedefStructTypes.entries());
   }
 
   /**
@@ -997,9 +1059,11 @@ class SymbolTable {
    * @param entries Array of [typeName, sourceFile] pairs
    */
   restoreTypedefStructTypes(entries: Array<[string, string]>): void {
-    for (const [name, sourceFile] of entries) {
-      this.typedefStructTypes.set(name, sourceFile);
-    }
+    this.structState = produce(this.structState, (draft) => {
+      for (const [name, sourceFile] of entries) {
+        draft.typedefStructTypes.set(name, sourceFile);
+      }
+    });
   }
 
   // ========================================================================
@@ -1151,10 +1215,8 @@ class SymbolTable {
     // Auxiliary
     this.structFields.clear();
     this.needsStructKeyword.clear();
-    this.opaqueTypes.clear();
-    this.structTagAliases.clear();
+    this.structState = createInitialStructState();
     this.enumBitWidth.clear();
-    this.typedefStructTypes.clear();
   }
 }
 

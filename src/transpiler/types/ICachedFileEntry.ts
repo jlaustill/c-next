@@ -22,6 +22,10 @@ interface ICachedFileEntry {
   opaqueTypes?: string[];
   /** Issue #958: Typedef struct types with source files ([typeName, sourceFile] pairs) */
   typedefStructTypes?: Array<[string, string]>;
+  /** Issue #958: Struct tag → typedef name aliases ([structTag, typedefName] pairs) */
+  structTagAliases?: Array<[string, string]>;
+  /** Issue #958: Struct tags that have full definitions (bodies) */
+  structTagsWithBodies?: string[];
 }
 
 export default ICachedFileEntry;

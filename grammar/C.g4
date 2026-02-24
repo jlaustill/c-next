@@ -213,6 +213,7 @@ typeSpecifier
     | 'float'
     | 'double'
     | 'signed'
+    | '__signed__'   // GCC extension
     | 'unsigned'
     | '_Bool'
     | '_Complex'
@@ -283,8 +284,14 @@ atomicTypeSpecifier
 
 typeQualifier
     : 'const'
+    | '__const'      // GCC extension
+    | '__const__'    // GCC extension
     | 'restrict'
+    | '__restrict'   // GCC extension
+    | '__restrict__' // GCC extension
     | 'volatile'
+    | '__volatile'   // GCC extension
+    | '__volatile__' // GCC extension
     | '_Atomic'
     ;
 
@@ -329,7 +336,7 @@ vcSpecificModifer
     ;
 
 gccDeclaratorExtension
-    : '__asm' '(' StringLiteral+ ')'
+    : ('__asm' | '__asm__') '(' StringLiteral+ ')' // GCC asm in declarators
     | gccAttributeSpecifier
     ;
 
