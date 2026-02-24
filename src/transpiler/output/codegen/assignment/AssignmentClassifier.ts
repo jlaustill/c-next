@@ -460,19 +460,39 @@ class AssignmentClassifier {
   }
 
   /**
-   * Classify this.reg[bit] / this.arr[i] patterns with array access.
+   * Classify this.reg[bit] / this.arr[i] / this.flags[3] patterns with array access.
+   * Issue #954: Uses SubscriptClassifier to distinguish array vs bit access.
    */
   private static classifyThisWithArrayAccess(
     ctx: IAssignmentContext,
     scopedRegName: string,
   ): AssignmentKind {
+    // Check for scoped register first
     if (CodeGenState.symbols!.knownRegisters.has(scopedRegName)) {
       const hasBitRange = ctx.postfixOps.some((op) => op.COMMA() !== null);
       return hasBitRange
         ? AssignmentKind.SCOPED_REGISTER_BIT_RANGE
         : AssignmentKind.SCOPED_REGISTER_BIT;
     }
-    return AssignmentKind.THIS_ARRAY;
+
+    // Get type info using resolved scoped name (e.g., "Sensor_value")
+    const typeInfo = CodeGenState.getVariableTypeInfo(scopedRegName);
+
+    // Use shared classifier to determine array vs bit access
+    const subscriptKind = SubscriptClassifier.classify({
+      typeInfo: typeInfo ?? null,
+      subscriptCount: ctx.lastSubscriptExprCount,
+      isRegisterAccess: false,
+    });
+
+    switch (subscriptKind) {
+      case "bit_single":
+        return AssignmentKind.THIS_BIT;
+      case "bit_range":
+        return AssignmentKind.THIS_BIT_RANGE;
+      default:
+        return AssignmentKind.THIS_ARRAY;
+    }
   }
 
   /**

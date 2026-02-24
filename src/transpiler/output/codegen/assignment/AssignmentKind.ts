@@ -113,6 +113,12 @@ enum AssignmentKind {
   /** this.arr[i] <- value (scoped array element) */
   THIS_ARRAY,
 
+  /** this.flags[3] <- true (scoped integer bit access) */
+  THIS_BIT,
+
+  /** this.value[0, 8] <- byte (scoped integer bit range) */
+  THIS_BIT_RANGE,
+
   // === Complex access patterns ===
 
   /** struct.field.subfield <- value (member chain) */

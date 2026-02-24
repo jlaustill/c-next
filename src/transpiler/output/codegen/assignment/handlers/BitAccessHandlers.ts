@@ -206,10 +206,14 @@ function handleStructChainBitRange(ctx: IAssignmentContext): string {
 
 /**
  * All bit access handlers for registration.
+ * Issue #954: THIS_BIT and THIS_BIT_RANGE reuse the integer bit handlers
+ * since they use resolvedBaseIdentifier which includes the scope prefix.
  */
 const bitAccessHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
   [AssignmentKind.INTEGER_BIT, handleIntegerBit],
   [AssignmentKind.INTEGER_BIT_RANGE, handleIntegerBitRange],
+  [AssignmentKind.THIS_BIT, handleIntegerBit],
+  [AssignmentKind.THIS_BIT_RANGE, handleIntegerBitRange],
   [AssignmentKind.STRUCT_MEMBER_BIT, handleStructMemberBit],
   [AssignmentKind.ARRAY_ELEMENT_BIT, handleArrayElementBit],
   [AssignmentKind.STRUCT_CHAIN_BIT_RANGE, handleStructChainBitRange],

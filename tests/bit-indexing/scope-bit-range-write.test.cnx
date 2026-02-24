@@ -1,0 +1,53 @@
+// test-execution
+// Issue #954: Bit-index write on scope variables not lowered to C
+// Tests: scope variable LHS bit-write should use read-modify-write pattern
+
+scope Sensor {
+    u16 value;
+
+    public void setLowByte(u8 byte) {
+        this.value[0, 8] <- byte;
+    }
+
+    public void setHighNibble(u8 nibble) {
+        this.value[12, 4] <- nibble;
+    }
+
+    public u16 getValue() {
+        return this.value;
+    }
+
+    public void reset(u16 v) {
+        this.value <- v;
+    }
+}
+
+u32 main() {
+    u16 result;
+
+    // Test 1: Set low byte
+    Sensor.reset(0xF000);
+    Sensor.setLowByte(0xAB);
+    result <- Sensor.getValue();
+    if (result != 0xF0AB) {
+        return 1;  // Low byte not set correctly
+    }
+
+    // Test 2: Set high nibble (bits 12-15)
+    Sensor.reset(0x0FFF);
+    Sensor.setHighNibble(0x05);
+    result <- Sensor.getValue();
+    if (result != 0x5FFF) {
+        return 2;  // High nibble not set correctly
+    }
+
+    // Test 3: Multiple writes preserve other bits
+    Sensor.reset(0x1234);
+    Sensor.setLowByte(0xFF);  // Should become 0x12FF
+    result <- Sensor.getValue();
+    if (result != 0x12FF) {
+        return 3;  // Other bits not preserved
+    }
+
+    return 0;
+}
