@@ -136,6 +136,38 @@ describe("ArrayIndexTypeAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
+    it("should allow enum-typed variable as array index (Issue #949)", () => {
+      const tree = parse(`
+        enum EColor { RED, GREEN, BLUE, COUNT }
+        void getValue(EColor color) {
+          u8[4] arr;
+          arr[color] <- 1;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["EColor"]),
+      });
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow enum-typed parameter as array index (Issue #949)", () => {
+      const tree = parse(`
+        enum EState { IDLE, RUNNING, STOPPED }
+        u32[3] stateCounts;
+        void incrementState(EState state) {
+          stateCounts[state] <- stateCounts[state] + 1;
+        }
+      `);
+      const analyzer = new ArrayIndexTypeAnalyzer();
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["EState"]),
+      });
+      const errors = analyzer.analyze(tree);
+      expect(errors).toHaveLength(0);
+    });
+
     it("should allow unsigned for-loop variable as index", () => {
       const tree = parse(`
         void main() {

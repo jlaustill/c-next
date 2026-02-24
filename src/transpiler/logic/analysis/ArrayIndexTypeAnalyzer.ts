@@ -127,6 +127,11 @@ class IndexTypeListener extends CNextListener {
         continue;
       }
 
+      // Enum types are valid indices (ADR-054: transpile to unsigned constants)
+      if (CodeGenState.isKnownEnum(resolvedType)) {
+        continue;
+      }
+
       // Other non-integer types (e.g., string, struct) - E0852
       const { line, column } = ParserUtils.getPosition(ctx);
       this.analyzer.addError(line, column, "E0852", resolvedType);
