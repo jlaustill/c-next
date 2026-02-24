@@ -1239,4 +1239,79 @@ describe("Transpiler coverage integration tests", () => {
     expect(result.outputFiles.some((f) => f.endsWith(".c"))).toBe(true);
     expect(result.outputFiles.some((f) => f.endsWith(".h"))).toBe(true);
   });
+
+  // ==========================================================================
+  // Issue #945: getHeaderContent preprocessing tests
+  // ==========================================================================
+
+  it("skips preprocessing when preprocess config is false", async () => {
+    const srcDir = join(testDir, "src");
+    const includeDir = join(testDir, "include");
+    mkdirSync(srcDir, { recursive: true });
+    mkdirSync(includeDir, { recursive: true });
+
+    // Create a header with conditional that would trigger preprocessing
+    writeFileSync(
+      join(includeDir, "config.h"),
+      `
+      #if FEATURE_ENABLED != 0
+      void enabled_func(void);
+      #endif
+      void always_available(void);
+    `,
+    );
+
+    writeFileSync(
+      join(srcDir, "main.cnx"),
+      `
+      #include "config.h"
+      void test() { always_available(); }
+    `,
+    );
+
+    const transpiler = new Transpiler({
+      inputs: [join(srcDir, "main.cnx")],
+      includeDirs: [includeDir],
+      preprocess: false, // Explicitly disable preprocessing
+      noCache: true,
+    });
+
+    const result = await transpiler.transpile({ kind: "files" });
+    expect(result.success).toBe(true);
+  });
+
+  it("handles header without conditional patterns (no preprocessing needed)", async () => {
+    const srcDir = join(testDir, "src");
+    const includeDir = join(testDir, "include");
+    mkdirSync(srcDir, { recursive: true });
+    mkdirSync(includeDir, { recursive: true });
+
+    // Create a simple header without #if MACRO patterns
+    writeFileSync(
+      join(includeDir, "simple.h"),
+      `
+      #ifndef SIMPLE_H
+      #define SIMPLE_H
+      void simple_func(void);
+      #endif
+    `,
+    );
+
+    writeFileSync(
+      join(srcDir, "main.cnx"),
+      `
+      #include "simple.h"
+      void test() { simple_func(); }
+    `,
+    );
+
+    const transpiler = new Transpiler({
+      inputs: [join(srcDir, "main.cnx")],
+      includeDirs: [includeDir],
+      noCache: true,
+    });
+
+    const result = await transpiler.transpile({ kind: "files" });
+    expect(result.success).toBe(true);
+  });
 });

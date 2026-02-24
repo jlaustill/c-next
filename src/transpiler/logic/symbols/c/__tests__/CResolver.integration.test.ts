@@ -573,6 +573,33 @@ describe("CResolver - Additional Edge Cases", () => {
     expect(result.symbols[0].kind).toBe("function");
   });
 
+  it("collects pointer return type from function definition (Issue #945)", () => {
+    // Tests that collectFromDefinition detects pointer return types
+    const tree = TestHelpers.parseC(
+      `widget_t *create_label(void *parent) { return 0; }`,
+    );
+    const result = CResolver.resolve(tree!, "test.h");
+
+    expect(result.symbols).toHaveLength(1);
+    const symbol = result.symbols[0];
+    expect(symbol.name).toBe("create_label");
+    expect(symbol.kind).toBe("function");
+    if (symbol.kind === "function") {
+      expect(symbol.type).toBe("widget_t*");
+      expect(symbol.isDeclaration).toBe(false);
+    }
+  });
+
+  it("collects non-pointer return type from function definition (Issue #945)", () => {
+    const tree = TestHelpers.parseC(`int getValue(void) { return 42; }`);
+    const result = CResolver.resolve(tree!, "test.h");
+
+    if (result.symbols[0].kind === "function") {
+      expect(result.symbols[0].type).toBe("int");
+      expect(result.symbols[0].isDeclaration).toBe(false);
+    }
+  });
+
   it("collects pointer return type from function prototype (Issue #895 Bug B)", () => {
     const tree = TestHelpers.parseC(`widget_t *widget_create(int w, int h);`);
     const result = CResolver.resolve(tree!, "test.h");
