@@ -84,6 +84,15 @@ class SymbolTable {
   private readonly opaqueTypes: Set<string> = new Set();
 
   /**
+   * Issue #958: Track typedef struct type names with their source files.
+   * Maps typeName -> sourceFile. Used for scope variables which should be pointers
+   * when the struct definition comes from a different file than the typedef.
+   * If definition is in the same file as typedef, the entry is removed (value type).
+   * If definition is in a different file, the entry remains (pointer type).
+   */
+  private readonly typedefStructTypes: Map<string, string> = new Map();
+
+  /**
    * Issue #948: Track struct tag -> typedef name relationships.
    * When a typedef declares an alias for a struct tag (e.g., typedef struct _foo foo_t),
    * we record structTagAliases["_foo"] = "foo_t". This allows us to unmark the typedef
@@ -938,6 +947,62 @@ class SymbolTable {
   }
 
   // ========================================================================
+  // Issue #958: Typedef Struct Type Tracking
+  // ========================================================================
+
+  /**
+   * Issue #958: Mark a typedef as aliasing a struct type.
+   * Records the source file to enable same-file vs cross-file distinction.
+   * @param typedefName The typedef name (e.g., "widget_t")
+   * @param sourceFile The file where the typedef was declared
+   */
+  markTypedefStructType(typedefName: string, sourceFile: string): void {
+    this.typedefStructTypes.set(typedefName, sourceFile);
+  }
+
+  /**
+   * Issue #958: Unmark a typedef struct type when full definition is found.
+   * Only unmarks if the definition is in the SAME file as the typedef declaration.
+   * Cross-file definitions keep the typedef marked (pointer semantics).
+   * @param typeName The typedef name to unmark
+   * @param sourceFile The file where the definition was found
+   */
+  unmarkTypedefStructType(typeName: string, sourceFile: string): void {
+    const typedefFile = this.typedefStructTypes.get(typeName);
+    if (typedefFile === sourceFile) {
+      this.typedefStructTypes.delete(typeName);
+    }
+  }
+
+  /**
+   * Issue #958: Check if a typedef aliases a struct type.
+   * Used for scope variables which should be pointers for external struct types.
+   * @param typeName The type name to check
+   * @returns true if this is a typedef'd struct type from C headers
+   */
+  isTypedefStructType(typeName: string): boolean {
+    return this.typedefStructTypes.has(typeName);
+  }
+
+  /**
+   * Issue #958: Get all typedef struct types for cache serialization.
+   * @returns Map entries as [typeName, sourceFile] pairs
+   */
+  getAllTypedefStructTypes(): Array<[string, string]> {
+    return Array.from(this.typedefStructTypes.entries());
+  }
+
+  /**
+   * Issue #958: Restore typedef struct types from cache.
+   * @param entries Array of [typeName, sourceFile] pairs
+   */
+  restoreTypedefStructTypes(entries: Array<[string, string]>): void {
+    for (const [name, sourceFile] of entries) {
+      this.typedefStructTypes.set(name, sourceFile);
+    }
+  }
+
+  // ========================================================================
   // Enum Bit Width Tracking
   // ========================================================================
 
@@ -1089,6 +1154,7 @@ class SymbolTable {
     this.opaqueTypes.clear();
     this.structTagAliases.clear();
     this.enumBitWidth.clear();
+    this.typedefStructTypes.clear();
   }
 }
 

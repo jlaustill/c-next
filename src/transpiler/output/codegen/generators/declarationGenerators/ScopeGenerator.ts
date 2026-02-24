@@ -191,10 +191,15 @@ function generateRegularVariable(
   const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
 
   // Issue #948: Check if this is an opaque (forward-declared) struct type
-  // Opaque types must be declared as pointers with NULL initialization
+  // Issue #958: Also check for external typedef struct types (complete definitions)
+  // Both opaque and external typedef struct types must be declared as pointers
   const isOpaque = orchestrator.isOpaqueType(type);
-  if (isOpaque) {
+  const isExternalStruct = orchestrator.isTypedefStructType(type);
+  if (isOpaque || isExternalStruct) {
     type = `${type}*`;
+    // Mark as "opaque" scope variable so CallExprGenerator knows this is already
+    // a pointer and doesn't add '&' when passing to functions. The name is historical
+    // but the tracking applies to any scope variable declared as a pointer type.
     orchestrator.markOpaqueScopeVariable(fullName);
   }
 
@@ -218,7 +223,8 @@ function generateRegularVariable(
   decl += ArrayDimensionUtils.generateStringCapacityDim(varDecl.type());
 
   // Issue #948: Opaque types use NULL initialization instead of {0}
-  if (isOpaque) {
+  // Issue #958: External typedef struct types also use NULL initialization
+  if (isOpaque || isExternalStruct) {
     decl += " = NULL";
   } else {
     decl += generateInitializer(varDecl, isArray, orchestrator);

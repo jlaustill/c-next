@@ -1928,6 +1928,15 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #958: Check if a type is an external typedef struct type.
+   * Used for scope variables which should always be pointers for external struct types.
+   * Part of IOrchestrator interface.
+   */
+  isTypedefStructType(typeName: string): boolean {
+    return CodeGenState.isTypedefStructType(typeName);
+  }
+
+  /**
    * Issue #948: Mark a scope variable as having an opaque type.
    * These variables are generated as pointers with NULL initialization.
    * Part of IOrchestrator interface.

@@ -1059,6 +1059,11 @@ class Transpiler {
     // Issue #948: Restore opaque types (forward-declared structs)
     CodeGenState.symbolTable.restoreOpaqueTypes(cached.opaqueTypes);
 
+    // Issue #958: Restore typedef struct types (all typedef'd structs)
+    CodeGenState.symbolTable.restoreTypedefStructTypes(
+      cached.typedefStructTypes,
+    );
+
     // Issue #211: Still check for C++ syntax even on cache hit
     this.detectCppFromFileType(file);
 

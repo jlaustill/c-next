@@ -468,6 +468,8 @@ function createMockOrchestrator(
     tryEvaluateConstant: vi.fn(() => undefined),
     // Issue #948: Opaque type helpers
     isOpaqueType: vi.fn(() => false),
+    // Issue #958: Typedef struct type helper
+    isTypedefStructType: vi.fn(() => false),
     markOpaqueScopeVariable: vi.fn(),
     ...overrides,
   } as unknown as IOrchestrator;

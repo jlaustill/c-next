@@ -27,6 +27,17 @@ interface ICollectOptions {
   isPointerTypedef?: boolean;
 }
 
+/** Options for symbol table updates */
+interface IUpdateOptions {
+  needsStructKeyword: boolean;
+  hasBody: boolean;
+  isTypedef?: boolean;
+  typedefName?: string;
+  structTag?: string;
+  /** Issue #957: True if typedef has pointer declarator */
+  isPointerTypedef?: boolean;
+}
+
 class StructCollector {
   /**
    * Collect a struct or union symbol from a specifier context.
@@ -70,7 +81,8 @@ class StructCollector {
     const needsStructKeyword = Boolean(identifier && !isTypedef);
 
     if (symbolTable) {
-      StructCollector.updateSymbolTable(symbolTable, name, needsStructKeyword, {
+      StructCollector.updateSymbolTable(symbolTable, name, sourceFile, {
+        needsStructKeyword,
         hasBody,
         isTypedef,
         typedefName,
@@ -99,17 +111,17 @@ class StructCollector {
   private static updateSymbolTable(
     symbolTable: SymbolTable,
     name: string,
-    needsStructKeyword: boolean,
-    options: {
-      hasBody: boolean;
-      isTypedef?: boolean;
-      typedefName?: string;
-      structTag?: string;
-      isPointerTypedef?: boolean;
-    },
+    sourceFile: string,
+    options: IUpdateOptions,
   ): void {
-    const { hasBody, isTypedef, typedefName, structTag, isPointerTypedef } =
-      options;
+    const {
+      needsStructKeyword,
+      hasBody,
+      isTypedef,
+      typedefName,
+      structTag,
+      isPointerTypedef,
+    } = options;
 
     if (needsStructKeyword) {
       symbolTable.markNeedsStructKeyword(name);
@@ -125,10 +137,18 @@ class StructCollector {
       }
     }
 
+    // Issue #958: Track ALL typedef struct types (forward-declared OR complete)
+    // Records source file to enable same-file vs cross-file distinction
+    // Issue #957: Don't track pointer typedefs - they're already pointers.
+    if (isTypedef && typedefName && !isPointerTypedef) {
+      symbolTable.markTypedefStructType(typedefName, sourceFile);
+    }
+
     // Issue #948: Unmark opaque type if full definition is found
     if (hasBody) {
       StructCollector.unmarkOpaqueTypesOnDefinition(
         symbolTable,
+        sourceFile,
         structTag,
         typedefName,
       );
@@ -136,23 +156,28 @@ class StructCollector {
   }
 
   /**
-   * Unmark opaque types when a full struct definition is encountered.
+   * Unmark opaque and typedef struct types when a full struct definition is encountered.
    * Handles: typedef struct _foo foo; struct _foo { ... };
+   * Issue #958: Only unmarks typedefStructTypes when definition is in SAME file.
    */
   private static unmarkOpaqueTypesOnDefinition(
     symbolTable: SymbolTable,
+    sourceFile: string,
     structTag?: string,
     typedefName?: string,
   ): void {
     if (structTag) {
-      symbolTable.unmarkOpaqueType(structTag);
       const typedefAlias = symbolTable.getStructTagAlias(structTag);
+      symbolTable.unmarkOpaqueType(structTag);
+      symbolTable.unmarkTypedefStructType(structTag, sourceFile);
       if (typedefAlias) {
         symbolTable.unmarkOpaqueType(typedefAlias);
+        symbolTable.unmarkTypedefStructType(typedefAlias, sourceFile);
       }
     }
     if (typedefName) {
       symbolTable.unmarkOpaqueType(typedefName);
+      symbolTable.unmarkTypedefStructType(typedefName, sourceFile);
     }
   }
 
