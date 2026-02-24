@@ -375,6 +375,7 @@
     "dependency-graph.svg",
     "bugs/**",
     "examples/**",
+    "tests/libs/**",
     "tests/**/*.cnx",
     "tests/**/*.c",
     "tests/**/*.h",
