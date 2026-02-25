@@ -1,5 +1,5 @@
 import { resolve, extname, basename } from "node:path";
-import { existsSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 
 /**
  * Input expansion for C-Next CLI
@@ -23,12 +23,8 @@ class InputExpansion {
         throw new Error(`Input not found: ${input}`);
       }
 
-      const stats = statSync(resolvedPath);
-
-      if (stats.isFile()) {
-        this.validateFileExtension(resolvedPath);
-        files.push(resolvedPath);
-      }
+      this.validateFileExtension(resolvedPath);
+      files.push(resolvedPath);
     }
 
     return Array.from(new Set(files));
