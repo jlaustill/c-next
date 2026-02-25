@@ -122,4 +122,4 @@ function(add_cnext_cpp_test TEST_NAME)
 endfunction()
 
 # Add subdirectories for test categories
-# add_subdirectory(cpp-entry)  # Will be added in next task
+add_subdirectory(cpp-entry)
