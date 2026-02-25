@@ -49,6 +49,7 @@ void LED_toggle(void) {
 C-Next transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
 
 This means:
+
 - **50+ years of GCC optimizations** work out of the box
 - **Existing debuggers and profilers** just work (GDB, Ozone, etc.)
 - **No new runtime** — the generated C is what runs on your hardware
@@ -179,22 +180,22 @@ This creates a pre-build script that automatically transpiles `.cnx` files befor
 
 ## Projects Using C-Next
 
-| Project | Description |
-| ------- | ----------- |
-| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control |
-| [test-teensy](test-teensy/) | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
+| Project                                   | Description                                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control         |
+| [test-teensy](test-teensy/)               | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
 
 _Using C-Next in your project? Open an issue to get listed!_
 
 ## Documentation
 
-| Resource | Description |
-| -------- | ----------- |
-| [Language Guide](docs/language-guide.md) | Complete reference for all C-Next features |
-| [Architecture Decisions](docs/architecture-decisions.md) | 50+ ADRs documenting design choices |
-| [Learn C-Next in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview |
-| [Error Codes](docs/error-codes.md) | Compiler error reference |
-| [MISRA Compliance](docs/misra-compliance.md) | MISRA C:2012 compliance details |
+| Resource                                                      | Description                                |
+| ------------------------------------------------------------- | ------------------------------------------ |
+| [Language Guide](docs/language-guide.md)                      | Complete reference for all C-Next features |
+| [Architecture Decisions](docs/architecture-decisions.md)      | 50+ ADRs documenting design choices        |
+| [Learn C-Next in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview                      |
+| [Error Codes](docs/error-codes.md)                            | Compiler error reference                   |
+| [MISRA Compliance](docs/misra-compliance.md)                  | MISRA C:2012 compliance details            |
 
 ## Project Structure
 
