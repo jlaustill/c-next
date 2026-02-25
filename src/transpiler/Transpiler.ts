@@ -1353,6 +1353,7 @@ class Transpiler {
       typeInputWithSymbolTable,
       passByValueParams,
       allKnownEnums,
+      basename(sourcePath),
     );
   }
 

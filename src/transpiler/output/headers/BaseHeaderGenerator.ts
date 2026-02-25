@@ -38,6 +38,14 @@ abstract class BaseHeaderGenerator {
 
   /**
    * Generate a header file from symbols
+   *
+   * @param symbols - Array of symbols to include in header
+   * @param filename - Output filename (used for include guard)
+   * @param options - Header generation options (includes cppMode)
+   * @param typeInput - Optional type information for full definitions
+   * @param passByValueParams - Map of function names to pass-by-value parameter names
+   * @param allKnownEnums - All known enum names from entire compilation
+   * @param sourcePath - Optional source file path for header comment
    */
   generate(
     symbols: IHeaderSymbol[],
@@ -46,6 +54,7 @@ abstract class BaseHeaderGenerator {
     typeInput?: IHeaderTypeInput,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
+    sourcePath?: string,
   ): string {
     const guard = HeaderGeneratorUtils.makeGuard(filename, options.guardPrefix);
 
@@ -98,7 +107,7 @@ abstract class BaseHeaderGenerator {
 
     // Build header sections using utility methods
     const lines: string[] = [
-      ...HeaderGeneratorUtils.generateHeaderStart(guard),
+      ...HeaderGeneratorUtils.generateHeaderStart(guard, sourcePath),
       ...HeaderGeneratorUtils.generateIncludes(options, headersToInclude),
       ...HeaderGeneratorUtils.generateCppWrapperStart(),
       ...HeaderGeneratorUtils.generateForwardDeclarations(

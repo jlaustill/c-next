@@ -37,6 +37,7 @@ class HeaderGenerator {
    * @param typeInput - Optional type information for full definitions
    * @param passByValueParams - Map of function names to pass-by-value parameter names
    * @param allKnownEnums - All known enum names from entire compilation
+   * @param sourcePath - Optional source file path for header comment
    */
   generate(
     symbols: IHeaderSymbol[],
@@ -45,6 +46,7 @@ class HeaderGenerator {
     typeInput?: IHeaderTypeInput,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
+    sourcePath?: string,
   ): string {
     const generator = options.cppMode ? this.cppGenerator : this.cGenerator;
 
@@ -55,6 +57,7 @@ class HeaderGenerator {
       typeInput,
       passByValueParams,
       allKnownEnums,
+      sourcePath,
     );
   }
 
