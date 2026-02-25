@@ -18,7 +18,7 @@ describe("CodeGenerator requireInclude", () => {
 
   describe("stdint includes", () => {
     it("includes stdint.h for u8 type", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({ kind: "source", source: "u8 value <- 0;" })
@@ -29,7 +29,7 @@ describe("CodeGenerator requireInclude", () => {
     });
 
     it("includes stdint.h for u16 type", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -43,7 +43,7 @@ describe("CodeGenerator requireInclude", () => {
     });
 
     it("includes stdint.h for u32 type", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -57,7 +57,7 @@ describe("CodeGenerator requireInclude", () => {
     });
 
     it("includes stdint.h for i32 type", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -71,7 +71,7 @@ describe("CodeGenerator requireInclude", () => {
     });
 
     it("includes stdint.h for bitmap types", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -94,7 +94,7 @@ describe("CodeGenerator requireInclude", () => {
 
   describe("stdbool includes", () => {
     it("includes stdbool.h for bool type", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -110,7 +110,7 @@ describe("CodeGenerator requireInclude", () => {
 
   describe("string includes", () => {
     it("includes string.h for bounded string type", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -124,7 +124,7 @@ describe("CodeGenerator requireInclude", () => {
     });
 
     it("includes string.h for const string inference", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -140,7 +140,7 @@ describe("CodeGenerator requireInclude", () => {
 
   describe("isr includes", () => {
     it("generates ISR typedef for ISR type", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -156,7 +156,7 @@ describe("CodeGenerator requireInclude", () => {
 
   describe("float static assert includes", () => {
     it("generates static assert for float bit indexing write", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -177,7 +177,7 @@ describe("CodeGenerator requireInclude", () => {
     });
 
     it("generates static assert for float bit indexing read (no string.h)", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -201,7 +201,7 @@ describe("CodeGenerator requireInclude", () => {
 
   describe("limits includes", () => {
     it("includes limits.h for float-to-int clamp cast", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -221,7 +221,7 @@ describe("CodeGenerator requireInclude", () => {
 
   describe("multiple includes", () => {
     it("includes multiple headers when needed", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
@@ -241,7 +241,7 @@ describe("CodeGenerator requireInclude", () => {
     });
 
     it("does not include unused headers", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({

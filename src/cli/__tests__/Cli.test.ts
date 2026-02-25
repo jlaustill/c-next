@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { existsSync, statSync } from "node:fs";
 import Cli from "../Cli";
 import ArgParser from "../ArgParser";
 import ConfigLoader from "../ConfigLoader";
@@ -31,6 +32,14 @@ vi.mock("../PathNormalizer", () => ({
     normalizeConfig: (config: unknown) => config,
   },
 }));
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    existsSync: vi.fn(() => true),
+    statSync: vi.fn(() => ({ isDirectory: () => false })),
+  };
+});
 
 describe("Cli", () => {
   let mockParsedArgs: IParsedArgs;
@@ -62,6 +71,10 @@ describe("Cli", () => {
     // Default mocks
     vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
     vi.mocked(ConfigLoader.load).mockReturnValue({});
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(statSync).mockReturnValue({
+      isDirectory: () => false,
+    } as ReturnType<typeof statSync>);
 
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -71,13 +84,13 @@ describe("Cli", () => {
   });
 
   describe("run", () => {
-    it("returns shouldRun: true with config when inputs are provided", () => {
+    it("returns shouldRun: true with config when input is provided", () => {
       const result = Cli.run();
 
       expect(result.shouldRun).toBe(true);
       expect(result.exitCode).toBe(0);
       expect(result.config).toBeDefined();
-      expect(result.config?.inputs).toEqual(["input.cnx"]);
+      expect(result.config?.input).toBe("input.cnx");
     });
 
     it("handles --pio-install flag", () => {
@@ -135,7 +148,46 @@ describe("Cli", () => {
       expect(result.exitCode).toBe(0);
     });
 
-    it("returns error when no input files specified", () => {
+    it("returns error when multiple input files specified", () => {
+      mockParsedArgs.inputFiles = ["a.cnx", "b.cnx"];
+      vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
+
+      const result = Cli.run();
+
+      expect(result.shouldRun).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Error: Only one entry point file is supported",
+      );
+    });
+
+    it("returns error when input file does not exist", () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = Cli.run();
+
+      expect(result.shouldRun).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Input not found"),
+      );
+    });
+
+    it("returns error when input is a directory", () => {
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+
+      const result = Cli.run();
+
+      expect(result.shouldRun).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Error: Directory input not supported. Specify an entry point file.",
+      );
+    });
+
+    it("returns error when no input file specified", () => {
       mockParsedArgs.inputFiles = [];
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 
@@ -144,7 +196,7 @@ describe("Cli", () => {
       expect(result.shouldRun).toBe(false);
       expect(result.exitCode).toBe(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Error: No input files specified",
+        "Error: No input file specified",
       );
     });
 
@@ -157,7 +209,7 @@ describe("Cli", () => {
       expect(ConfigLoader.load).toHaveBeenCalledWith("/path/to/src");
     });
 
-    it("loads config from cwd when no input files", () => {
+    it("loads config from cwd when no input file", () => {
       mockParsedArgs.inputFiles = [];
       mockParsedArgs.showConfig = true; // To avoid error path
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
@@ -294,7 +346,7 @@ describe("Cli", () => {
 
     it("passes through all config fields", () => {
       mockParsedArgs = {
-        inputFiles: ["a.cnx", "b.cnx"],
+        inputFiles: ["a.cnx"],
         outputPath: "build/",
         includeDirs: ["inc/"],
         defines: { DEBUG: true },
@@ -318,7 +370,7 @@ describe("Cli", () => {
       const result = Cli.run();
 
       expect(result.config).toEqual({
-        inputs: ["a.cnx", "b.cnx"],
+        input: "a.cnx",
         outputPath: "build/",
         includeDirs: ["inc/"],
         defines: { DEBUG: true },

@@ -35,7 +35,7 @@ describe("CleanCommand", () => {
 
   describe("execute", () => {
     it("reports no output directory when outDir is empty", () => {
-      CleanCommand.execute(["src/"], "", undefined);
+      CleanCommand.execute("src/", "", undefined);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         "No output directory specified. Nothing to clean.",
@@ -45,7 +45,7 @@ describe("CleanCommand", () => {
     it("reports no files found when no .cnx files exist", () => {
       vi.mocked(InputExpansion.expandInputs).mockReturnValue([]);
 
-      CleanCommand.execute(["src/"], "build/", undefined);
+      CleanCommand.execute("src/", "build/", undefined);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         "No .cnx files found. Nothing to clean.",
@@ -57,7 +57,7 @@ describe("CleanCommand", () => {
         throw new Error("Path not found");
       });
 
-      CleanCommand.execute(["nonexistent/"], "build/", undefined);
+      CleanCommand.execute("nonexistent/", "build/", undefined);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Error: Error: Path not found",
@@ -72,7 +72,7 @@ describe("CleanCommand", () => {
       // Mock unlinkSync to succeed for all calls
       vi.mocked(fs.unlinkSync).mockImplementation(() => {});
 
-      CleanCommand.execute(["/project/src/"], "/project/build/", undefined);
+      CleanCommand.execute("/project/src/", "/project/build/", undefined);
 
       // Should try to delete .c, .cpp, .h, .hpp files
       expect(fs.unlinkSync).toHaveBeenCalledTimes(4);
@@ -89,7 +89,7 @@ describe("CleanCommand", () => {
       vi.mocked(fs.unlinkSync).mockImplementation(() => {});
 
       CleanCommand.execute(
-        ["/project/src/"],
+        "/project/src/",
         "/project/build/",
         "/project/include/",
       );
@@ -127,7 +127,7 @@ describe("CleanCommand", () => {
         throw enoentError;
       });
 
-      CleanCommand.execute(["/project/src/"], "/project/build/", undefined);
+      CleanCommand.execute("/project/src/", "/project/build/", undefined);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         "No generated files found to delete.",
@@ -146,7 +146,7 @@ describe("CleanCommand", () => {
         throw permError;
       });
 
-      CleanCommand.execute(["/project/src/"], "/project/build/", undefined);
+      CleanCommand.execute("/project/src/", "/project/build/", undefined);
 
       expect(consoleErrorSpy).toHaveBeenCalled();
       expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -168,7 +168,7 @@ describe("CleanCommand", () => {
       vi.mocked(fs.unlinkSync).mockImplementation(() => {});
 
       CleanCommand.execute(
-        ["/project/src/main.cnx"],
+        "/project/src/main.cnx",
         "/project/build/",
         undefined,
       );
@@ -187,7 +187,7 @@ describe("CleanCommand", () => {
 
       vi.mocked(fs.unlinkSync).mockImplementation(() => {});
 
-      CleanCommand.execute(["/project/src/"], "/project/build/", undefined);
+      CleanCommand.execute("/project/src/", "/project/build/", undefined);
 
       const unlinkCalls = vi.mocked(fs.unlinkSync).mock.calls;
       const paths = unlinkCalls.map((call) => call[0] as string);
@@ -204,7 +204,7 @@ describe("CleanCommand", () => {
 
       vi.mocked(fs.unlinkSync).mockImplementation(() => {});
 
-      CleanCommand.execute(["/project/src/"], "/project/build/", undefined);
+      CleanCommand.execute("/project/src/", "/project/build/", undefined);
 
       const unlinkCalls = vi.mocked(fs.unlinkSync).mock.calls;
       const paths = unlinkCalls.map((call) => call[0] as string);

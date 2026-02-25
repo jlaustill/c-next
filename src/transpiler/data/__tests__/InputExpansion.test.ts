@@ -1,8 +1,8 @@
 /**
  * Unit tests for InputExpansion
  *
- * Tests CLI input expansion functionality - converting file paths and directories
- * into lists of .cnx files.
+ * Tests CLI input expansion functionality - converting file paths
+ * into validated lists of .cnx files.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -13,14 +13,12 @@ import InputExpansion from "../InputExpansion";
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
   statSync: vi.fn(),
-  readdirSync: vi.fn(),
 }));
 
-import { existsSync, statSync, readdirSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 
 const mockExistsSync = vi.mocked(existsSync);
 const mockStatSync = vi.mocked(statSync);
-const mockReaddirSync = vi.mocked(readdirSync);
 
 // ============================================================================
 // Test Helpers
@@ -168,196 +166,6 @@ describe("InputExpansion", () => {
       expect(() =>
         InputExpansion.validateFileExtension("/path/to/file.js"),
       ).toThrow("C-Next only accepts .cnx or .cnext files");
-    });
-  });
-
-  describe("findCNextFiles", () => {
-    it("finds .cnx files in directory", () => {
-      mockReaddirSync.mockReturnValue([
-        { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        { name: "util.cnx", isFile: () => true, isDirectory: () => false },
-      ] as unknown as ReturnType<typeof readdirSync>);
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(2);
-      expect(result).toContainEqual(resolve("/project", "main.cnx"));
-      expect(result).toContainEqual(resolve("/project", "util.cnx"));
-    });
-
-    it("finds .cnext files in directory", () => {
-      mockReaddirSync.mockReturnValue([
-        { name: "main.cnext", isFile: () => true, isDirectory: () => false },
-      ] as unknown as ReturnType<typeof readdirSync>);
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toContain("main.cnext");
-    });
-
-    it("ignores non-cnx files", () => {
-      mockReaddirSync.mockReturnValue([
-        { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        { name: "readme.md", isFile: () => true, isDirectory: () => false },
-        { name: "config.json", isFile: () => true, isDirectory: () => false },
-      ] as unknown as ReturnType<typeof readdirSync>);
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toContain("main.cnx");
-    });
-
-    it("skips hidden directories", () => {
-      mockReaddirSync.mockImplementation((dir) => {
-        if (String(dir).includes(".git")) {
-          return [
-            {
-              name: "hidden.cnx",
-              isFile: () => true,
-              isDirectory: () => false,
-            },
-          ] as unknown as ReturnType<typeof readdirSync>;
-        }
-        return [
-          { name: ".git", isFile: () => false, isDirectory: () => true },
-          { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        ] as unknown as ReturnType<typeof readdirSync>;
-      });
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toContain("main.cnx");
-    });
-
-    it("skips node_modules directory", () => {
-      mockReaddirSync.mockImplementation((dir) => {
-        if (String(dir).includes("node_modules")) {
-          return [
-            { name: "dep.cnx", isFile: () => true, isDirectory: () => false },
-          ] as unknown as ReturnType<typeof readdirSync>;
-        }
-        return [
-          {
-            name: "node_modules",
-            isFile: () => false,
-            isDirectory: () => true,
-          },
-          { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        ] as unknown as ReturnType<typeof readdirSync>;
-      });
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toContain("main.cnx");
-    });
-
-    it("skips build directory", () => {
-      mockReaddirSync.mockImplementation((dir) => {
-        if (String(dir).includes("build")) {
-          return [
-            {
-              name: "output.cnx",
-              isFile: () => true,
-              isDirectory: () => false,
-            },
-          ] as unknown as ReturnType<typeof readdirSync>;
-        }
-        return [
-          { name: "build", isFile: () => false, isDirectory: () => true },
-          { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        ] as unknown as ReturnType<typeof readdirSync>;
-      });
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(1);
-    });
-
-    it("skips .pio directory (PlatformIO)", () => {
-      mockReaddirSync.mockImplementation((dir) => {
-        if (String(dir).includes(".pio")) {
-          return [
-            {
-              name: "cached.cnx",
-              isFile: () => true,
-              isDirectory: () => false,
-            },
-          ] as unknown as ReturnType<typeof readdirSync>;
-        }
-        return [
-          { name: ".pio", isFile: () => false, isDirectory: () => true },
-          { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        ] as unknown as ReturnType<typeof readdirSync>;
-      });
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(1);
-    });
-
-    it("skips dist directory", () => {
-      mockReaddirSync.mockImplementation((dir) => {
-        if (String(dir).includes("dist")) {
-          return [
-            {
-              name: "bundled.cnx",
-              isFile: () => true,
-              isDirectory: () => false,
-            },
-          ] as unknown as ReturnType<typeof readdirSync>;
-        }
-        return [
-          { name: "dist", isFile: () => false, isDirectory: () => true },
-          { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        ] as unknown as ReturnType<typeof readdirSync>;
-      });
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(1);
-    });
-
-    it("recursively scans subdirectories", () => {
-      mockReaddirSync.mockImplementation((dir) => {
-        const dirStr = String(dir);
-        if (dirStr.endsWith("src")) {
-          return [
-            { name: "util.cnx", isFile: () => true, isDirectory: () => false },
-          ] as unknown as ReturnType<typeof readdirSync>;
-        }
-        return [
-          { name: "src", isFile: () => false, isDirectory: () => true },
-          { name: "main.cnx", isFile: () => true, isDirectory: () => false },
-        ] as unknown as ReturnType<typeof readdirSync>;
-      });
-
-      const result = InputExpansion.findCNextFiles("/project");
-
-      expect(result).toHaveLength(2);
-    });
-
-    it("throws error when directory scan fails", () => {
-      mockReaddirSync.mockImplementation(() => {
-        throw new Error("Permission denied");
-      });
-
-      expect(() => InputExpansion.findCNextFiles("/protected")).toThrow(
-        "Failed to scan directory /protected",
-      );
-    });
-
-    it("returns empty array for empty directory", () => {
-      mockReaddirSync.mockReturnValue(
-        [] as unknown as ReturnType<typeof readdirSync>,
-      );
-
-      const result = InputExpansion.findCNextFiles("/empty");
-
-      expect(result).toHaveLength(0);
     });
   });
 });

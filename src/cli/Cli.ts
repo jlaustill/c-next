@@ -5,6 +5,7 @@
  */
 
 import { dirname, resolve } from "node:path";
+import { existsSync, statSync } from "node:fs";
 import ArgParser from "./ArgParser";
 import ConfigLoader from "./ConfigLoader";
 import ConfigPrinter from "./ConfigPrinter";
@@ -65,17 +66,39 @@ class Cli {
       return { shouldRun: false, exitCode: 0 };
     }
 
-    // Validate inputs
-    if (config.inputs.length === 0) {
-      console.error("Error: No input files specified");
-      console.error("Run 'cnext --help' for usage information");
+    // Validate single entry point
+    if (args.inputFiles.length > 1) {
+      console.error("Error: Only one entry point file is supported");
+      console.error(
+        "Other files are discovered automatically via #include directives",
+      );
+      return { shouldRun: false, exitCode: 1 };
+    }
+
+    if (!config.input) {
+      console.error("Error: No input file specified");
+      console.error("Usage: cnext <file.cnx>");
+      return { shouldRun: false, exitCode: 1 };
+    }
+
+    const resolvedInput = resolve(config.input);
+    if (!existsSync(resolvedInput)) {
+      console.error(`Error: Input not found: ${config.input}`);
+      return { shouldRun: false, exitCode: 1 };
+    }
+
+    if (statSync(resolvedInput).isDirectory()) {
+      console.error(
+        "Error: Directory input not supported. Specify an entry point file.",
+      );
+      console.error(`Example: cnext ${config.input}/main.cnx`);
       return { shouldRun: false, exitCode: 1 };
     }
 
     // Handle --clean: delete generated files
     if (args.cleanMode) {
       CleanCommand.execute(
-        config.inputs,
+        config.input,
         config.outputPath,
         config.headerOutDir,
       );
@@ -94,7 +117,7 @@ class Cli {
     fileConfig: IFileConfig,
   ): ICliConfig {
     const rawConfig: ICliConfig = {
-      inputs: args.inputFiles,
+      input: args.inputFiles[0] ?? "",
       outputPath: args.outputPath || fileConfig.output || "",
       // Merge include dirs: config includes come first, CLI includes override/append
       includeDirs: [...(fileConfig.include ?? []), ...args.includeDirs],

@@ -41,7 +41,7 @@ describe("ConfigPrinter", () => {
 
     it("displays config file path when provided", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -63,7 +63,7 @@ describe("ConfigPrinter", () => {
 
     it("displays (none) when no config file is loaded", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -83,7 +83,7 @@ describe("ConfigPrinter", () => {
 
     it("displays cppRequired value", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -102,7 +102,7 @@ describe("ConfigPrinter", () => {
 
     it("displays debugMode value", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -122,7 +122,7 @@ describe("ConfigPrinter", () => {
 
     it("displays target value when set", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -142,7 +142,7 @@ describe("ConfigPrinter", () => {
 
     it("displays (none) for target when not set", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -161,7 +161,7 @@ describe("ConfigPrinter", () => {
 
     it("displays output path when set", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "build/",
         includeDirs: [],
         defines: {},
@@ -180,7 +180,7 @@ describe("ConfigPrinter", () => {
 
     it("displays (same dir as input) when output not set", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -199,7 +199,7 @@ describe("ConfigPrinter", () => {
 
     it("displays include directories", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: ["lib/", "vendor/include/"],
         defines: {},
@@ -219,7 +219,7 @@ describe("ConfigPrinter", () => {
 
     it("displays (none) when no include directories", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -238,7 +238,7 @@ describe("ConfigPrinter", () => {
 
     it("displays defines with values", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: { DEBUG: true, VERSION: "1.0" },
@@ -258,7 +258,7 @@ describe("ConfigPrinter", () => {
 
     it("displays header text", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [],
         defines: {},

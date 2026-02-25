@@ -5,8 +5,8 @@
  * configuration interface that supports both single-file and multi-file builds.
  */
 interface ITranspilerConfig {
-  /** Input paths - files or directories to transpile */
-  inputs: string[];
+  /** Entry point .cnx file to transpile */
+  input: string;
 
   /** Include directories for C/C++ header discovery */
   includeDirs?: string[];

@@ -1,13 +1,11 @@
 /**
  * File Discovery
- * Scans directories for source files using fast-glob
+ * Classifies source files by type
  */
 
-import fg from "fast-glob";
 import { extname, resolve } from "node:path";
 import EFileType from "./types/EFileType";
 import IDiscoveredFile from "./types/IDiscoveredFile";
-import IDiscoveryOptions from "./types/IDiscoveryOptions";
 import IFileSystem from "../types/IFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
@@ -31,34 +29,9 @@ const EXTENSION_MAP: Record<string, EFileType> = {
 };
 
 /**
- * Default ignore patterns for fast-glob
- * Issue #355: Exclude .pio/build (compiled artifacts) but allow .pio/libdeps (library headers)
- */
-const DEFAULT_IGNORE_GLOBS = [
-  "**/node_modules/**",
-  "**/.git/**",
-  "**/.build/**",
-  "**/.pio/build/**",
-];
-
-/**
- * Discovers source files in directories
+ * Classifies and discovers source files
  */
 class FileDiscovery {
-  /**
-   * Convert RegExp patterns to glob ignore patterns
-   */
-  private static regexToGlob(pattern: RegExp): string {
-    // Convert common patterns
-    const src = pattern.source;
-    if (src === "node_modules") return "**/node_modules/**";
-    if (src === String.raw`\.git`) return "**/.git/**";
-    if (src === String.raw`\.build`) return "**/.build/**";
-    if (src === String.raw`\.pio[/\\]build`) return "**/.pio/build/**";
-    // Fallback: wrap in wildcards
-    return `**/*${src.replaceAll("\\", "")}*/**`;
-  }
-
   /**
    * Classify a file path into a discovered file
    */
@@ -70,82 +43,6 @@ class FileDiscovery {
       type,
       extension: ext,
     };
-  }
-
-  /**
-   * Discover files in the given directories
-   *
-   * Issue #331: Uses fast-glob's unique option to avoid duplicates
-   * when overlapping directories are provided.
-   *
-   * Note: fast-glob accesses the filesystem directly; the fs parameter
-   * is used only for directory existence checks.
-   *
-   * @param directories - Directories to scan
-   * @param options - Discovery options
-   * @param fs - File system abstraction (defaults to NodeFileSystem)
-   */
-  static discover(
-    directories: string[],
-    options: IDiscoveryOptions = {},
-    fs: IFileSystem = defaultFs,
-  ): IDiscoveredFile[] {
-    const recursive = options.recursive ?? true;
-    const extensions = options.extensions ?? Object.keys(EXTENSION_MAP);
-
-    // Build ignore patterns
-    let ignorePatterns: string[];
-    if (options.excludePatterns) {
-      ignorePatterns = options.excludePatterns.map((r) => this.regexToGlob(r));
-    } else {
-      ignorePatterns = DEFAULT_IGNORE_GLOBS;
-    }
-
-    // Build glob pattern for extensions
-    const extPattern =
-      extensions.length === 1
-        ? `*${extensions[0]}`
-        : `*{${extensions.join(",")}}`;
-    const pattern = recursive ? `**/${extPattern}` : extPattern;
-
-    const allFiles: IDiscoveredFile[] = [];
-
-    for (const dir of directories) {
-      const resolvedDir = resolve(dir);
-
-      if (!fs.exists(resolvedDir)) {
-        console.warn(`Warning: Directory not found: ${dir}`);
-        continue;
-      }
-
-      try {
-        // Use fast-glob to find files
-        const files = fg.sync(pattern, {
-          cwd: resolvedDir,
-          absolute: true,
-          ignore: ignorePatterns,
-          deep: recursive ? Infinity : 1,
-          onlyFiles: true,
-          followSymbolicLinks: false,
-        });
-
-        for (const file of files) {
-          allFiles.push(this.classifyFile(file));
-        }
-      } catch {
-        console.warn(`Warning: Cannot read directory: ${dir}`);
-      }
-    }
-
-    // Issue #331: Remove duplicates from overlapping directories
-    const seenPaths = new Set<string>();
-    return allFiles.filter((file) => {
-      if (seenPaths.has(file.path)) {
-        return false;
-      }
-      seenPaths.add(file.path);
-      return true;
-    });
   }
 
   /**

@@ -92,7 +92,7 @@ class Transpiler {
     this.fs = fs ?? new NodeFileSystem();
     // Apply defaults
     this.config = {
-      inputs: config.inputs,
+      input: config.input,
       includeDirs: config.includeDirs ?? [],
       outDir: config.outDir ?? "",
       headerOutDir: config.headerOutDir ?? "",
@@ -118,7 +118,7 @@ class Transpiler {
     // Issue #586: Initialize path resolver
     this.pathResolver = new PathResolver(
       {
-        inputs: this.config.inputs,
+        inputs: [dirname(resolve(this.config.input))],
         outDir: this.config.outDir,
         headerOutDir: this.config.headerOutDir,
         basePath: this.config.basePath,
@@ -401,6 +401,7 @@ class Transpiler {
         sourcePath,
         cppMode: this.cppDetected,
         symbolInfo,
+        sourceRelativePath: this.pathResolver.getSourceRelativePath(sourcePath),
       });
 
       // Collect user includes
@@ -753,41 +754,6 @@ class Transpiler {
   /**
    * Discover C-Next files from a single input (file or directory).
    */
-  private _discoverCNextFromInput(
-    input: string,
-    cnextFiles: IDiscoveredFile[],
-    fileByPath: Map<string, IDiscoveredFile>,
-  ): void {
-    const resolvedInput = resolve(input);
-
-    if (!this.fs.exists(resolvedInput)) {
-      throw new Error(`Input not found: ${input}`);
-    }
-
-    const file = FileDiscovery.discoverFile(resolvedInput, this.fs);
-    if (file?.type === EFileType.CNext) {
-      cnextFiles.push(file);
-      fileByPath.set(resolve(file.path), file);
-      return;
-    }
-
-    if (file?.type !== EFileType.Unknown && file !== null) {
-      // Other supported file type (direct header input) - skip for now
-      return;
-    }
-
-    // It's a directory - scan for C-Next files
-    const discovered = FileDiscovery.discover(
-      [resolvedInput],
-      { recursive: true },
-      this.fs,
-    );
-    for (const f of FileDiscovery.getCNextFiles(discovered)) {
-      cnextFiles.push(f);
-      fileByPath.set(resolve(f.path), f);
-    }
-  }
-
   /**
    * Collect headers from resolved includes, filtering out generated ones.
    */
@@ -935,17 +901,19 @@ class Transpiler {
    * includes, not by blindly scanning include directories.
    */
   private async _discoverFromFiles(): Promise<IPipelineInput> {
-    // Step 1: Discover C-Next files from inputs (files or directories)
+    // Step 1: Discover entry point file
     const cnextFiles: IDiscoveredFile[] = [];
     const fileByPath = new Map<string, IDiscoveredFile>();
 
-    for (const input of this.config.inputs) {
-      this._discoverCNextFromInput(input, cnextFiles, fileByPath);
-    }
-
-    if (cnextFiles.length === 0) {
+    const entryFile = FileDiscovery.discoverFile(
+      resolve(this.config.input),
+      this.fs,
+    );
+    if (entryFile?.type !== EFileType.CNext) {
       return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
     }
+    cnextFiles.push(entryFile);
+    fileByPath.set(resolve(entryFile.path), entryFile);
 
     // Step 2: For each C-Next file, resolve its #include directives
     const headerSet = new Map<string, IDiscoveredFile>();
@@ -1595,7 +1563,7 @@ class Transpiler {
    */
   private determineProjectRoot(): string | undefined {
     // Start from first input
-    const firstInput = this.config.inputs[0];
+    const firstInput = this.config.input;
     if (!firstInput) {
       return undefined;
     }

@@ -1,17 +1,16 @@
 import { resolve, extname, basename } from "node:path";
-import { existsSync, statSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 
 /**
  * Input expansion for C-Next CLI
  *
- * Expands file paths and directories into a list of .cnx files to compile.
- * Handles recursive directory scanning and file validation.
+ * Validates and resolves file paths for compilation.
  */
 class InputExpansion {
   /**
-   * Expand inputs (files or directories) to list of .cnx files
+   * Expand inputs (files) to list of .cnx files
    *
-   * @param inputs - Array of file paths or directories
+   * @param inputs - Array of file paths
    * @returns Array of .cnx file paths
    */
   static expandInputs(inputs: string[]): string[] {
@@ -24,68 +23,11 @@ class InputExpansion {
         throw new Error(`Input not found: ${input}`);
       }
 
-      const stats = statSync(resolvedPath);
-
-      if (stats.isDirectory()) {
-        // Recursively find .cnx files
-        const cnextFiles = this.findCNextFiles(resolvedPath);
-        files.push(...cnextFiles);
-      } else if (stats.isFile()) {
-        // Validate and add file
-        this.validateFileExtension(resolvedPath);
-        files.push(resolvedPath);
-      }
+      this.validateFileExtension(resolvedPath);
+      files.push(resolvedPath);
     }
 
-    // Remove duplicates
     return Array.from(new Set(files));
-  }
-
-  /**
-   * Recursively find .cnx files in directory
-   *
-   * @param dir - Directory to scan
-   * @returns Array of .cnx file paths
-   */
-  static findCNextFiles(dir: string): string[] {
-    const files: string[] = [];
-
-    try {
-      const entries = readdirSync(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = resolve(dir, entry.name);
-
-        // Skip hidden directories and common build/dependency directories
-        if (entry.isDirectory()) {
-          const dirName = entry.name;
-          if (
-            dirName.startsWith(".") ||
-            dirName === "node_modules" ||
-            dirName === "build" ||
-            dirName === ".pio" ||
-            dirName === "dist"
-          ) {
-            continue;
-          }
-
-          // Recursively scan subdirectory
-          const subFiles = this.findCNextFiles(fullPath);
-          files.push(...subFiles);
-        } else if (entry.isFile()) {
-          const ext = extname(entry.name);
-          if (ext === ".cnx" || ext === ".cnext") {
-            files.push(fullPath);
-          }
-        }
-      }
-    } catch (error) {
-      throw new Error(`Failed to scan directory ${dir}: ${error}`, {
-        cause: error,
-      });
-    }
-
-    return files;
   }
 
   /**

@@ -80,7 +80,7 @@ async function runTest() {
   console.log("\n=== Test 1: --header-out option ===\n");
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: join(sourceDir, "test.cnx"),
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [],
@@ -118,7 +118,7 @@ async function runTest() {
   check(existsSync(join(headerOutDir, "test.h")), "test.h exists before clean");
 
   // Run clean
-  CleanCommand.execute([sourceDir], codeOutDir, headerOutDir);
+  CleanCommand.execute(join(sourceDir, "test.cnx"), codeOutDir, headerOutDir);
 
   // Verify files are removed
   check(!existsSync(join(codeOutDir, "test.c")), "test.c removed after clean");
@@ -132,7 +132,7 @@ async function runTest() {
 
   // Regenerate files to same directory
   const pipeline2 = new Transpiler({
-    inputs: [sourceDir],
+    input: join(sourceDir, "test.cnx"),
     outDir: codeOutDir,
     includeDirs: [],
   });
@@ -151,7 +151,7 @@ async function runTest() {
   );
 
   // Clean without headerOutDir
-  CleanCommand.execute([sourceDir], codeOutDir, undefined);
+  CleanCommand.execute(join(sourceDir, "test.cnx"), codeOutDir, undefined);
 
   check(
     !existsSync(join(codeOutDir, "test.c")),
@@ -166,7 +166,7 @@ async function runTest() {
   console.log("\n=== Test 4: Edge cases ===\n");
 
   // This should handle gracefully without errors
-  CleanCommand.execute([], codeOutDir, headerOutDir);
+  CleanCommand.execute("", codeOutDir, headerOutDir);
   check(true, "Empty input list handled without error");
 
   // Summary

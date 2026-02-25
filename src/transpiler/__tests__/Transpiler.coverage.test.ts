@@ -40,7 +40,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
@@ -58,7 +58,7 @@ describe("Transpiler coverage tests", () => {
 
     it("transpileSource respects cppRequired config", async () => {
       const transpiler = new Transpiler(
-        { inputs: [], cppRequired: true, noCache: true },
+        { input: "", cppRequired: true, noCache: true },
         mockFs,
       );
 
@@ -90,7 +90,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
@@ -118,7 +118,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
@@ -154,7 +154,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           debugMode: true,
@@ -199,7 +199,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
@@ -227,7 +227,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
@@ -259,7 +259,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
@@ -283,7 +283,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           outDir: "/project/build",
           parseOnly: true,
           noCache: true,
@@ -306,7 +306,7 @@ describe("Transpiler coverage tests", () => {
   describe("Result builders", () => {
     it("buildCatchResult handles Error objects", async () => {
       // Create a transpiler that will fail during generation
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       // Mock an internal failure by transpiling invalid code that passes parsing
       // but fails in a later stage
@@ -324,7 +324,7 @@ describe("Transpiler coverage tests", () => {
 
     it("buildCatchResult handles non-Error objects", async () => {
       // Use transpileSource with a scenario that might throw
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       // Test with valid code to ensure normal path works
       const result = (
@@ -353,7 +353,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           noCache: true,
         },
         mockFs,
@@ -383,7 +383,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/file2.cnx"],
+          input: "/project/src/file2.cnx",
           includeDirs: ["/project/src"],
           outDir: "/project/build",
           noCache: true,
@@ -420,7 +420,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/bad.cnx"],
+          input: "/project/src/bad.cnx",
           outDir: "/project/build",
           noCache: true,
         },
@@ -455,7 +455,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           outDir: "/project/build",
           noCache: true,
         },
@@ -487,7 +487,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
@@ -513,7 +513,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/internal.cnx"],
+          input: "/project/src/internal.cnx",
           outDir: "/project/build",
           noCache: true,
         },
@@ -544,7 +544,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/lib.cnx"],
+          input: "/project/src/lib.cnx",
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
@@ -570,7 +570,7 @@ describe("Transpiler coverage tests", () => {
   describe("Target configuration", () => {
     it("passes target to code generator", async () => {
       const transpiler = new Transpiler(
-        { inputs: [], target: "esp32", noCache: true },
+        { input: "", target: "esp32", noCache: true },
         mockFs,
       );
 
@@ -594,7 +594,7 @@ describe("Transpiler coverage tests", () => {
       // Use transpileSource which works better with MockFileSystem
       const transpiler = new Transpiler(
         {
-          inputs: [],
+          input: "",
           cppRequired: true,
           noCache: true,
         },
@@ -639,7 +639,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
@@ -660,7 +660,7 @@ describe("Transpiler coverage tests", () => {
 
   describe("getSymbolTable", () => {
     it("returns the symbol table instance", () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const symbolTable = transpiler.getSymbolTable();
 
@@ -680,7 +680,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/main.cnx"], // Needed for project root detection
+          input: "/project/main.cnx", // Needed for project root detection
           noCache: false, // Enable cache
         },
         mockFs,
@@ -717,7 +717,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/lib.cnx"],
+          input: "/project/src/lib.cnx",
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
@@ -740,7 +740,7 @@ describe("Transpiler coverage tests", () => {
 
   describe("Analyzer errors", () => {
     it("returns error result for MISRA violations", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       // Code with MISRA violation - function call in if condition (Rule 13.5)
       // Note: This may or may not trigger depending on analyzer config
@@ -762,7 +762,7 @@ describe("Transpiler coverage tests", () => {
     });
 
     it("returns error result for analyzer errors via transpileSource", async () => {
-      const transpiler = new Transpiler({ inputs: [], noCache: true }, mockFs);
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       // Code that triggers initialization analyzer error
       const result = (
@@ -806,7 +806,7 @@ describe("Transpiler coverage tests", () => {
 
       // First run populates cache
       const config = {
-        inputs: ["/project/src/main.cnx"],
+        input: "/project/src/main.cnx",
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
@@ -837,7 +837,7 @@ describe("Transpiler coverage tests", () => {
       );
 
       const config = {
-        inputs: ["/project/src/main.cnx"],
+        input: "/project/src/main.cnx",
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
@@ -877,7 +877,7 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          inputs: ["/project/src/main.cnx"],
+          input: "/project/src/main.cnx",
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           debugMode: true,
@@ -922,7 +922,7 @@ describe("Transpiler coverage tests", () => {
       );
 
       const config = {
-        inputs: ["/project/src/main.cnx"],
+        input: "/project/src/main.cnx",
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
@@ -964,7 +964,7 @@ describe("Transpiler coverage tests", () => {
       );
 
       const config = {
-        inputs: ["/project/src/main.cnx"],
+        input: "/project/src/main.cnx",
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
@@ -1011,22 +1011,22 @@ describe("Transpiler coverage integration tests", () => {
   });
 
   // ==========================================================================
-  // Directory discovery tests (covers lines 414-415)
+  // Entry point discovery tests
   // ==========================================================================
 
-  it("discovers C-Next files from directory input", async () => {
-    // Create a directory with multiple .cnx files
+  it("discovers included files from entry point", async () => {
+    // Create a directory with entry point that includes other files
     const srcDir = join(testDir, "src");
     mkdirSync(srcDir, { recursive: true });
 
-    writeFileSync(join(srcDir, "file1.cnx"), "void func1() { }");
-    writeFileSync(join(srcDir, "file2.cnx"), "void func2() { }");
-    writeFileSync(join(srcDir, "file3.cnx"), "void func3() { }");
+    writeFileSync(
+      join(srcDir, "main.cnx"),
+      '#include "helper.cnx"\nvoid main() { }',
+    );
+    writeFileSync(join(srcDir, "helper.cnx"), "void helper() { }");
 
-    // Use directory as input (not individual files)
-    // This exercises the FileDiscovery.discover() path at lines 408-416
     const transpiler = new Transpiler({
-      inputs: [srcDir], // Directory input triggers discovery loop
+      input: join(srcDir, "main.cnx"),
       outDir: testDir,
       noCache: true,
     });
@@ -1034,29 +1034,7 @@ describe("Transpiler coverage integration tests", () => {
     const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(true);
-    // Should have processed all 3 files
-    expect(result.filesProcessed).toBe(3);
-  });
-
-  it("discovers C-Next files recursively from directory", async () => {
-    // Create nested directory structure
-    const srcDir = join(testDir, "src");
-    const subDir = join(srcDir, "submodule");
-    mkdirSync(subDir, { recursive: true });
-
-    writeFileSync(join(srcDir, "main.cnx"), "void main() { }");
-    writeFileSync(join(subDir, "helper.cnx"), "void helper() { }");
-
-    const transpiler = new Transpiler({
-      inputs: [srcDir],
-      outDir: testDir,
-      noCache: true,
-    });
-
-    const result = await transpiler.transpile({ kind: "files" });
-
-    expect(result.success).toBe(true);
-    // Should find files in subdirectories too
+    // Should have processed entry point + included file
     expect(result.filesProcessed).toBe(2);
   });
 
@@ -1086,7 +1064,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const config = {
-      inputs: [join(testDir, "main.cnx")],
+      input: join(testDir, "main.cnx"),
       includeDirs: [includeDir],
       outDir: testDir,
       noCache: false, // Enable caching
@@ -1126,7 +1104,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const config = {
-      inputs: [join(testDir, "main.cnx")],
+      input: join(testDir, "main.cnx"),
       includeDirs: [includeDir],
       outDir: testDir,
       noCache: false, // Enable caching
@@ -1165,7 +1143,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const transpiler = new Transpiler({
-      inputs: [join(testDir, "main.cnx")],
+      input: join(testDir, "main.cnx"),
       includeDirs: [testDir],
       outDir: testDir,
       noCache: true,
@@ -1190,7 +1168,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const config = {
-      inputs: [join(testDir, "main.cnx")],
+      input: join(testDir, "main.cnx"),
       includeDirs: [testDir],
       outDir: testDir,
       noCache: false, // Enable cache
@@ -1224,7 +1202,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const transpiler = new Transpiler({
-      inputs: [join(srcDir, "lib.cnx")],
+      input: join(srcDir, "lib.cnx"),
       outDir: buildDir,
       headerOutDir: includeDir,
       noCache: true,
@@ -1270,7 +1248,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const transpiler = new Transpiler({
-      inputs: [join(srcDir, "main.cnx")],
+      input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
       preprocess: false, // Explicitly disable preprocessing
       noCache: true,
@@ -1306,7 +1284,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const transpiler = new Transpiler({
-      inputs: [join(srcDir, "main.cnx")],
+      input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
       noCache: true,
     });
@@ -1358,7 +1336,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const transpiler = new Transpiler({
-      inputs: [join(srcDir, "main.cnx")],
+      input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
       noCache: true,
     });
@@ -1399,7 +1377,7 @@ describe("Transpiler coverage integration tests", () => {
     );
 
     const transpiler = new Transpiler({
-      inputs: [join(srcDir, "main.cnx")],
+      input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
       noCache: true,
     });

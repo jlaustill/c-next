@@ -30,7 +30,7 @@ describe("needsConditionalPreprocessing", () => {
 
   beforeEach(() => {
     transpiler = new TestableTranspiler(
-      { inputs: [], noCache: true },
+      { input: "", noCache: true },
       new MockFileSystem(),
     );
   });

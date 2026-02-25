@@ -11,7 +11,7 @@ import Transpiler from "../../../Transpiler";
  * Helper to transpile C-Next source and return the C output
  */
 async function transpileSource(source: string): Promise<string> {
-  const transpiler = new Transpiler({ inputs: [] });
+  const transpiler = new Transpiler({ input: "" });
   const result = (
     await transpiler.transpile({ kind: "source", source: source })
   ).files[0];

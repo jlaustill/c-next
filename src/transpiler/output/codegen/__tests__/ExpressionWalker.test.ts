@@ -311,7 +311,7 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpiler = new Transpiler({ inputs: [] });
+    const transpiler = new Transpiler({ input: "" });
     const transpileResult = (
       await transpiler.transpile({ kind: "source", source: source })
     ).files[0];
@@ -341,7 +341,7 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpiler = new Transpiler({ inputs: [] });
+    const transpiler = new Transpiler({ input: "" });
     const transpileResult = (
       await transpiler.transpile({ kind: "source", source: source })
     ).files[0];
@@ -370,7 +370,7 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpiler = new Transpiler({ inputs: [] });
+    const transpiler = new Transpiler({ input: "" });
     const transpileResult = (
       await transpiler.transpile({ kind: "source", source: source })
     ).files[0];

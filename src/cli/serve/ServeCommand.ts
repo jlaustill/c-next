@@ -247,7 +247,7 @@ class ServeCommand {
     const config = ConfigLoader.load(workspacePath);
 
     ServeCommand.transpiler = new Transpiler({
-      inputs: [],
+      input: "",
       includeDirs: config.include ?? [],
       cppRequired: config.cppRequired ?? false,
       target: config.target ?? "",

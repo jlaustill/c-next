@@ -16,9 +16,8 @@ import {
   mkdirSync,
   rmSync,
   readdirSync,
-  statSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import Transpiler from "../../src/transpiler/Transpiler";
 
 // Test source files matching the bug report structure
@@ -111,7 +110,7 @@ async function testPipelineWithDirectory() {
   setup();
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir], // Directory as input - should work
+    input: join(sourceDir, "main.cnx"),
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
@@ -164,9 +163,9 @@ async function testPipelineWithExpandedFiles() {
   console.log(
     "\n=== Test 2: CLI simulation (correct behavior after fix) ===\n",
   );
-  console.log("This simulates what the CLI should do after the fix:");
-  console.log("- Identify directory inputs");
-  console.log("- Pass directories and explicit files to Pipeline inputs\n");
+  console.log("This simulates what the CLI should do:");
+  console.log("- Pass entry file to Pipeline input");
+  console.log("- Include directories resolve dependencies\n");
 
   setup();
 
@@ -176,26 +175,12 @@ async function testPipelineWithExpandedFiles() {
   mkdirSync(codeOutDir, { recursive: true });
   mkdirSync(headerOutDir, { recursive: true });
 
-  // Simulate CLI behavior: identify directory inputs (Issue #337 fix)
-  const inputs = [sourceDir];
-  const srcDirs: string[] = [];
-  const explicitFiles: string[] = [];
+  // Pass entry file as input
+  const entryFile = join(sourceDir, "main.cnx");
+  console.log("Entry file:", entryFile);
 
-  for (const input of inputs) {
-    const resolvedPath = resolve(input);
-    if (existsSync(resolvedPath) && statSync(resolvedPath).isDirectory()) {
-      srcDirs.push(resolvedPath);
-    } else {
-      explicitFiles.push(resolvedPath);
-    }
-  }
-
-  console.log("Input directories (srcDirs):", srcDirs);
-  console.log("Explicit files:", explicitFiles);
-
-  // This is what the CLI does - combine directories and files into inputs
   const pipeline = new Transpiler({
-    inputs: [...srcDirs, ...explicitFiles],
+    input: entryFile,
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -248,9 +233,9 @@ async function testPipelineWithSrcDirs() {
   mkdirSync(codeOutDir, { recursive: true });
   mkdirSync(headerOutDir, { recursive: true });
 
-  // Pass directory as input
+  // Pass entry file as input
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: join(sourceDir, "main.cnx"),
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -291,7 +276,7 @@ async function testCompilationOrder() {
   mkdirSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: join(sourceDir, "main.cnx"),
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],

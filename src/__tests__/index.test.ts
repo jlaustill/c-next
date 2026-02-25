@@ -48,7 +48,7 @@ describe("index.ts (CLI entry point)", () => {
 
   it("calls Runner.execute when shouldRun is true", async () => {
     const mockConfig = {
-      inputs: ["test.cnx"],
+      input: "test.cnx",
       outputPath: "",
       includeDirs: [],
       defines: {},

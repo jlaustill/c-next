@@ -3,7 +3,7 @@
  * Deletes generated files (.c, .cpp, .h, .hpp) that have matching .cnx sources
  */
 
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { unlinkSync } from "node:fs";
 import InputExpansion from "../transpiler/data/InputExpansion";
 import PathResolver from "../transpiler/data/PathResolver";
@@ -13,12 +13,12 @@ import PathResolver from "../transpiler/data/PathResolver";
  */
 class CleanCommand {
   /**
-   * Discover CNX files from inputs.
+   * Discover CNX files from entry point.
    * Returns null if none found or on error.
    */
-  private static discoverCnxFiles(inputs: string[]): string[] | null {
+  private static discoverCnxFiles(input: string): string[] | null {
     try {
-      const cnxFiles = InputExpansion.expandInputs(inputs);
+      const cnxFiles = InputExpansion.expandInputs([input]);
       if (cnxFiles.length === 0) {
         console.log("No .cnx files found. Nothing to clean.");
         return null;
@@ -54,21 +54,17 @@ class CleanCommand {
   /**
    * Execute the clean command
    *
-   * @param inputs - Input files or directories (source locations)
+   * @param input - Entry point .cnx file
    * @param outDir - Output directory for code files
    * @param headerOutDir - Optional separate output directory for headers
    */
-  static execute(
-    inputs: string[],
-    outDir: string,
-    headerOutDir?: string,
-  ): void {
+  static execute(input: string, outDir: string, headerOutDir?: string): void {
     if (!outDir) {
       console.log("No output directory specified. Nothing to clean.");
       return;
     }
 
-    const cnxFiles = this.discoverCnxFiles(inputs);
+    const cnxFiles = this.discoverCnxFiles(input);
     if (!cnxFiles) return;
 
     const resolvedOutDir = resolve(outDir);
@@ -77,7 +73,7 @@ class CleanCommand {
       : resolvedOutDir;
 
     const pathResolver = new PathResolver({
-      inputs,
+      inputs: [dirname(resolve(input))],
       outDir,
       headerOutDir,
     });
