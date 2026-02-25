@@ -99,7 +99,7 @@ async function testSiblingAngleBracketInclude() {
   writeFileSync(join(displayDir, "main.cnx"), mainSource, "utf-8");
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: sourceDir,
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
@@ -156,7 +156,7 @@ i32 main() {
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: sourceDir,
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
@@ -199,7 +199,7 @@ async function testRootLevelAngleBracketInclude() {
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: sourceDir,
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
@@ -253,7 +253,7 @@ i32 main() {
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: sourceDir,
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
@@ -316,7 +316,7 @@ i32 main() {
   if (existsSync(headerOutDir)) rmSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    inputs: [sourceDir],
+    input: sourceDir,
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],

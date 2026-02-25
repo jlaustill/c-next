@@ -42,7 +42,7 @@ describe("Transpiler.determineProjectRoot", () => {
   describe("no inputs", () => {
     it("returns undefined when inputs array is empty", () => {
       const transpiler = new Transpiler({
-        inputs: [],
+        input: "",
       });
 
       expect(getProjectRoot(transpiler)).toBeUndefined();
@@ -50,7 +50,7 @@ describe("Transpiler.determineProjectRoot", () => {
 
     it("disables caching when inputs array is empty", () => {
       const transpiler = new Transpiler({
-        inputs: [],
+        input: "",
       });
 
       expect(hasCacheManager(transpiler)).toBe(false);
@@ -66,7 +66,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "main.cnx")],
+        input: join(projectDir, "main.cnx"),
         noCache: true, // Disable cache to avoid side effects
       });
 
@@ -82,7 +82,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(srcDir, "main.cnx")],
+        input: join(srcDir, "main.cnx"),
         noCache: true,
       });
 
@@ -97,7 +97,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(srcDir, "main.cnx")],
+        input: join(srcDir, "main.cnx"),
         noCache: true,
       });
 
@@ -112,7 +112,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(srcDir, "main.cnx")],
+        input: join(srcDir, "main.cnx"),
         noCache: true,
       });
 
@@ -127,7 +127,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(srcDir, "main.cnx")],
+        input: join(srcDir, "main.cnx"),
         noCache: true,
       });
 
@@ -142,7 +142,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(deepDir, "helper.cnx"), "void helper() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(deepDir, "helper.cnx")],
+        input: join(deepDir, "helper.cnx"),
         noCache: true,
       });
 
@@ -159,7 +159,7 @@ describe("Transpiler.determineProjectRoot", () => {
       // Note: newfile.cnx does NOT exist
 
       const transpiler = new Transpiler({
-        inputs: [join(srcDir, "newfile.cnx")],
+        input: join(srcDir, "newfile.cnx"),
         noCache: true,
       });
 
@@ -173,7 +173,7 @@ describe("Transpiler.determineProjectRoot", () => {
       // Note: the nested directories and file do NOT exist
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "src", "deep", "nested", "file.cnx")],
+        input: join(projectDir, "src", "deep", "nested", "file.cnx"),
         noCache: true,
       });
 
@@ -188,7 +188,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "cnext.config.json"), "{}");
 
       const transpiler = new Transpiler({
-        inputs: [projectDir],
+        input: projectDir,
         noCache: true,
       });
 
@@ -202,7 +202,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "cnext.config.json"), "{}");
 
       const transpiler = new Transpiler({
-        inputs: [srcDir],
+        input: srcDir,
         noCache: true,
       });
 
@@ -220,7 +220,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "main.cnx")],
+        input: join(projectDir, "main.cnx"),
         noCache: true,
       });
 
@@ -238,7 +238,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(innerDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(innerDir, "main.cnx")],
+        input: join(innerDir, "main.cnx"),
         noCache: true,
       });
 
@@ -257,7 +257,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(isolatedDir, "orphan.cnx"), "void orphan() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(isolatedDir, "orphan.cnx")],
+        input: join(isolatedDir, "orphan.cnx"),
         noCache: true,
       });
 
@@ -280,7 +280,7 @@ describe("Transpiler.determineProjectRoot", () => {
       // This is hard to test in practice because we're inside the c-next repo
       // We can at least verify the noCache flag works
       const transpiler = new Transpiler({
-        inputs: [join(testDir, "some.cnx")],
+        input: join(testDir, "some.cnx"),
         noCache: true,
       });
 
@@ -296,7 +296,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "main.cnx")],
+        input: join(projectDir, "main.cnx"),
         noCache: true,
       });
 
@@ -313,7 +313,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "main.cnx")],
+        input: join(projectDir, "main.cnx"),
         noCache: false,
       });
 
@@ -333,7 +333,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const relativePath = join("test-project-root-tmp", "project", "main.cnx");
 
       const transpiler = new Transpiler({
-        inputs: [relativePath],
+        input: relativePath,
         noCache: true,
       });
 
@@ -352,7 +352,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(srcDir, "main.cnx")],
+        input: join(srcDir, "main.cnx"),
         noCache: true,
       });
 
@@ -367,7 +367,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "main.cnx")],
+        input: join(projectDir, "main.cnx"),
         noCache: true,
       });
 
@@ -385,7 +385,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(project2, "b.cnx"), "void b() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(project1, "a.cnx"), join(project2, "b.cnx")],
+        input: join(project1, "a.cnx"),
         noCache: true,
       });
 
@@ -400,7 +400,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "main.cnx")],
+        input: join(projectDir, "main.cnx"),
         noCache: true,
       });
 
@@ -417,7 +417,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(srcDir, "main.cnx")],
+        input: join(srcDir, "main.cnx"),
         noCache: false,
       });
 
@@ -436,7 +436,7 @@ describe("Transpiler.determineProjectRoot", () => {
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        inputs: [join(projectDir, "main.cnx")],
+        input: join(projectDir, "main.cnx"),
         noCache: true,
       });
 

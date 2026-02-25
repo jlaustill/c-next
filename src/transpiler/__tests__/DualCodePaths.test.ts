@@ -26,9 +26,9 @@ describe("Dual Code Paths (Issue #634)", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  function createTranspiler(inputs: string[]): Transpiler {
+  function createTranspiler(input: string): Transpiler {
     const config: ITranspilerConfig = {
-      inputs,
+      input,
       includeDirs: [tempDir],
       outDir: tempDir,
       headerOutDir: tempDir,
@@ -53,11 +53,11 @@ void main() {
       writeFileSync(filePath, source);
 
       // Path 1: Via run()
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
       // Path 2: Via transpileSource()
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -89,10 +89,10 @@ void main() {
       const filePath = join(tempDir, "structs.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -119,10 +119,10 @@ void main() {
       const filePath = join(tempDir, "const-array.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -155,10 +155,10 @@ void main() {
       const filePath = join(tempDir, "enums.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -195,10 +195,10 @@ void main() {
       const filePath = join(tempDir, "scopes.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -246,7 +246,7 @@ void main() {
       writeFileSync(mainPath, mainSource);
 
       // run() should handle cross-file references
-      const transpiler = createTranspiler([mainPath]);
+      const transpiler = createTranspiler(mainPath);
       const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
@@ -283,7 +283,7 @@ void main() {
       const mainPath = join(tempDir, "main.cnx");
       writeFileSync(mainPath, mainSource);
 
-      const transpiler = createTranspiler([mainPath]);
+      const transpiler = createTranspiler(mainPath);
       const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
@@ -310,7 +310,7 @@ void main() {
       const mainPath = join(tempDir, "main.cnx");
       writeFileSync(mainPath, mainSource);
 
-      const transpiler = createTranspiler([mainPath]);
+      const transpiler = createTranspiler(mainPath);
       const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
@@ -347,7 +347,7 @@ void main() {
       writeFileSync(consumerPath, consumerSource);
 
       // Via run()
-      const transpiler1 = createTranspiler([consumerPath]);
+      const transpiler1 = createTranspiler(consumerPath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
       expect(result1.success).toBe(true);
@@ -362,7 +362,7 @@ void main() {
       expect(consumerFile!.code).toContain("Consumer_fetch()");
 
       // Via transpileSource() with context from run()
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -406,7 +406,7 @@ void main() {
       writeFileSync(writerPath, writerSource);
 
       // Via run()
-      const transpiler1 = createTranspiler([writerPath]);
+      const transpiler1 = createTranspiler(writerPath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
       expect(result1.success).toBe(true);
@@ -419,7 +419,7 @@ void main() {
       expect(writerFile!.code).toContain("Storage_value = data");
 
       // Via transpileSource()
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -447,7 +447,7 @@ void main() {}
 `;
 
       // Two separate standalone transpileSource calls
-      const transpiler = createTranspiler([]);
+      const transpiler = createTranspiler("");
 
       const result1 = (
         await transpiler.transpile({
@@ -482,7 +482,7 @@ void main() {}
       const filePath = join(tempDir, "test.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler = createTranspiler([filePath]);
+      const transpiler = createTranspiler(filePath);
 
       // First run
       const result1 = await transpiler.transpile({ kind: "files" });
@@ -520,10 +520,10 @@ void main() {
       const filePath = join(tempDir, "same-file-struct.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -564,10 +564,10 @@ void main() {
       const filePath = join(tempDir, "same-file-enum.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -607,10 +607,10 @@ void main() {
       const filePath = join(tempDir, "nested-struct.cnx");
       writeFileSync(filePath, source);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = (
         await transpiler2.transpile({
           kind: "source",
@@ -634,10 +634,10 @@ u8 x <- ;  // Parse error: missing expression
       const filePath = join(tempDir, "invalid.cnx");
       writeFileSync(filePath, invalidSource);
 
-      const transpiler1 = createTranspiler([filePath]);
+      const transpiler1 = createTranspiler(filePath);
       const result1 = await transpiler1.transpile({ kind: "files" });
 
-      const transpiler2 = createTranspiler([]);
+      const transpiler2 = createTranspiler("");
       const result2 = await transpiler2.transpile({
         kind: "source",
         source: invalidSource,

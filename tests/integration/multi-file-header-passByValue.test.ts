@@ -85,7 +85,7 @@ async function runTest() {
   // Configure pipeline with header generation (process both files explicitly)
   // Use explicit file list to ensure deterministic processing order
   const pipeline = new Transpiler({
-    inputs: [file1Path, file2Path], // Explicit files instead of directory
+    input: file1Path,
     outDir: testDir,
     includeDirs: [],
   });

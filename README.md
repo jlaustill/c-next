@@ -149,10 +149,10 @@ cnext examples/blink.cnx --cpp
 cnext examples/blink.cnx --target teensy41
 
 # Separate output directories for code and headers
-cnext src/ -o build/src --header-out build/include
+cnext src/main.cnx -o build/src --header-out build/include
 
 # Clean generated files
-cnext src/ -o build/src --header-out build/include --clean
+cnext src/main.cnx -o build/src --header-out build/include --clean
 
 # Show all options
 cnext --help

@@ -5,17 +5,10 @@
 
 import { dirname, resolve } from "node:path";
 import { existsSync, statSync, renameSync } from "node:fs";
-import InputExpansion from "../transpiler/data/InputExpansion";
 import Transpiler from "../transpiler/Transpiler";
 import ICliConfig from "./types/ICliConfig";
 import ResultPrinter from "./ResultPrinter";
 import ITranspilerResult from "../transpiler/types/ITranspilerResult";
-
-/** Result of categorizing inputs into directories and files */
-interface ICategorizedInputs {
-  srcDirs: string[];
-  explicitFiles: string[];
-}
 
 /** Result of determining output path */
 interface IOutputPathResult {
@@ -32,19 +25,21 @@ class Runner {
    * @param config - CLI configuration
    */
   static async execute(config: ICliConfig): Promise<void> {
-    const { srcDirs, explicitFiles } = this._categorizeInputs(config.inputs);
-    const files = this._expandInputFiles(config.inputs);
+    const resolvedInput = resolve(config.input);
     const { outDir, explicitOutputFile } = this._determineOutputPath(
       config,
-      files,
+      resolvedInput,
     );
 
+    // Infer basePath from entry file's parent directory if not set
+    const basePath = config.basePath || dirname(resolvedInput);
+
     const pipeline = new Transpiler({
-      inputs: [...srcDirs, ...explicitFiles],
+      input: resolvedInput,
       includeDirs: config.includeDirs,
       outDir,
       headerOutDir: config.headerOutDir,
-      basePath: config.basePath,
+      basePath,
       preprocess: config.preprocess,
       defines: config.defines,
       cppRequired: config.cppRequired,
@@ -62,55 +57,14 @@ class Runner {
   }
 
   /**
-   * Categorize inputs into directories and explicit files.
-   */
-  private static _categorizeInputs(inputs: string[]): ICategorizedInputs {
-    const srcDirs: string[] = [];
-    const explicitFiles: string[] = [];
-
-    for (const input of inputs) {
-      const resolvedPath = resolve(input);
-      const isDir =
-        existsSync(resolvedPath) && statSync(resolvedPath).isDirectory();
-      if (isDir) {
-        srcDirs.push(resolvedPath);
-      } else {
-        explicitFiles.push(resolvedPath);
-      }
-    }
-
-    return { srcDirs, explicitFiles };
-  }
-
-  /**
-   * Expand input paths to .cnx files.
-   */
-  private static _expandInputFiles(inputs: string[]): string[] {
-    let files: string[];
-    try {
-      files = InputExpansion.expandInputs(inputs);
-    } catch (error) {
-      console.error(`Error: ${error}`);
-      process.exit(1);
-    }
-
-    if (files.length === 0) {
-      console.error("Error: No .cnx files found");
-      process.exit(1);
-    }
-
-    return files;
-  }
-
-  /**
    * Determine output directory and explicit filename from config.
    */
   private static _determineOutputPath(
     config: ICliConfig,
-    files: string[],
+    resolvedInput: string,
   ): IOutputPathResult {
     if (!config.outputPath) {
-      return { outDir: dirname(files[0]), explicitOutputFile: null };
+      return { outDir: dirname(resolvedInput), explicitOutputFile: null };
     }
 
     const isExplicitFile =
@@ -127,13 +81,6 @@ class Runner {
 
     // Explicit output file
     if (isExplicitFile) {
-      if (files.length > 1) {
-        console.error(
-          "Error: Cannot use explicit output filename with multiple input files",
-        );
-        console.error("Use a directory path instead: -o <directory>/");
-        process.exit(1);
-      }
       return {
         outDir: dirname(config.outputPath),
         explicitOutputFile: resolve(config.outputPath),

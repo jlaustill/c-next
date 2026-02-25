@@ -5,8 +5,8 @@
  * CLI flags with config file settings. CLI flags take precedence.
  */
 interface ICliConfig {
-  /** Input files or directories to transpile */
-  inputs: string[];
+  /** Entry point .cnx file to transpile */
+  input: string;
   /** Output path (file or directory) */
   outputPath: string;
   /** Additional include directories */

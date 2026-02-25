@@ -70,7 +70,7 @@ async function runTest() {
   writeFileSync(consumerPath, consumerSource, "utf-8");
 
   const pipeline = new Transpiler({
-    inputs: [srcDir],
+    input: srcDir,
     outDir: testDir,
     includeDirs: [srcDir],
   });

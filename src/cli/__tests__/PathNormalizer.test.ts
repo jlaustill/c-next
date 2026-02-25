@@ -321,7 +321,7 @@ describe("PathNormalizer", () => {
       };
 
       const config: ICliConfig = {
-        inputs: ["file.cnx"],
+        input: "file.cnx",
         outputPath: "~/build",
         includeDirs: ["~/sdk/include"],
         defines: {},
@@ -344,7 +344,7 @@ describe("PathNormalizer", () => {
 
     it("handles undefined optional fields", () => {
       const config: ICliConfig = {
-        inputs: ["file.cnx"],
+        input: "file.cnx",
         outputPath: "",
         includeDirs: [],
         defines: {},
@@ -363,7 +363,7 @@ describe("PathNormalizer", () => {
 
     it("expands ** in include paths", () => {
       const config: ICliConfig = {
-        inputs: [],
+        input: "",
         outputPath: "",
         includeDirs: [`${tempDir}/include/**`],
         defines: {},
@@ -382,7 +382,7 @@ describe("PathNormalizer", () => {
 
     it("preserves non-path fields unchanged", () => {
       const config: ICliConfig = {
-        inputs: ["a.cnx", "b.cnx"],
+        input: "a.cnx",
         outputPath: "",
         includeDirs: [],
         defines: { DEBUG: true },
@@ -397,7 +397,7 @@ describe("PathNormalizer", () => {
 
       const result = PathNormalizer.normalizeConfig(config);
 
-      expect(result.inputs).toEqual(["a.cnx", "b.cnx"]);
+      expect(result.input).toBe("a.cnx");
       expect(result.defines).toEqual({ DEBUG: true });
       expect(result.preprocess).toBe(true);
       expect(result.verbose).toBe(true);

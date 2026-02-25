@@ -57,7 +57,7 @@ async function runTest() {
 
   // Configure pipeline with C++ output and header generation
   const pipeline = new Transpiler({
-    inputs: [testFile],
+    input: testFile,
     outDir: testDir,
     includeDirs: [],
     cppRequired: true, // Force C++ output

@@ -63,7 +63,7 @@ async function runTest() {
 
   // Configure pipeline with header generation
   const pipeline = new Transpiler({
-    inputs: [filePath],
+    input: filePath,
     outDir: testDir,
     includeDirs: [],
   });
