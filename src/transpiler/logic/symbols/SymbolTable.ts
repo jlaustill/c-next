@@ -157,7 +157,7 @@ class SymbolTable {
    * Called automatically when adding struct symbols.
    */
   private registerStructFields(struct: IStructSymbol): void {
-    const mangledName = SymbolNameUtils.getMangledName(struct);
+    const mangledName = SymbolNameUtils.getTranspiledCName(struct);
 
     for (const [fieldName, fieldInfo] of struct.fields) {
       // Convert TType to string for structFields map

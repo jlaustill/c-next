@@ -239,8 +239,9 @@ class TSymbolInfoAdapter {
 
   // === Private Processing Methods ===
 
-  // Use shared utility for name mangling
-  private static readonly getMangledName = SymbolNameUtils.getMangledName;
+  // Use shared utility for transpiled C names
+  private static readonly getTranspiledCName =
+    SymbolNameUtils.getTranspiledCName;
 
   private static processStruct(
     struct: IStructSymbol,
@@ -250,7 +251,7 @@ class TSymbolInfoAdapter {
     structFieldDimensions: Map<string, Map<string, number[]>>,
   ): void {
     // Use mangled name for lookups (e.g., "Geometry_Point")
-    const mangledName = TSymbolInfoAdapter.getMangledName(struct);
+    const mangledName = TSymbolInfoAdapter.getTranspiledCName(struct);
     knownStructs.add(mangledName);
 
     const fields = new Map<string, string>();
@@ -289,7 +290,7 @@ class TSymbolInfoAdapter {
     knownEnums: Set<string>,
     enumMembers: Map<string, Map<string, number>>,
   ): void {
-    const mangledName = TSymbolInfoAdapter.getMangledName(enumSym);
+    const mangledName = TSymbolInfoAdapter.getTranspiledCName(enumSym);
     knownEnums.add(mangledName);
     enumMembers.set(mangledName, new Map(enumSym.members));
   }
@@ -301,7 +302,7 @@ class TSymbolInfoAdapter {
     bitmapBackingType: Map<string, string>,
     bitmapBitWidth: Map<string, number>,
   ): void {
-    const mangledName = TSymbolInfoAdapter.getMangledName(bitmap);
+    const mangledName = TSymbolInfoAdapter.getTranspiledCName(bitmap);
     knownBitmaps.add(mangledName);
     bitmapBackingType.set(mangledName, bitmap.backingType);
     bitmapBitWidth.set(mangledName, bitmap.bitWidth);
@@ -338,7 +339,7 @@ class TSymbolInfoAdapter {
     knownBitmaps: Set<string>,
     maps: IRegisterMaps,
   ): void {
-    const mangledName = TSymbolInfoAdapter.getMangledName(register);
+    const mangledName = TSymbolInfoAdapter.getTranspiledCName(register);
     maps.knownRegisters.add(mangledName);
     maps.registerBaseAddresses.set(mangledName, register.baseAddress);
 
@@ -370,7 +371,7 @@ class TSymbolInfoAdapter {
     scopeMembers: Map<string, Set<string>>,
     scopePrivateConstValues: Map<string, string>,
   ): void {
-    const mangledName = TSymbolInfoAdapter.getMangledName(variable);
+    const mangledName = TSymbolInfoAdapter.getTranspiledCName(variable);
     const scopeName = variable.scope.name;
     const isScoped = scopeName !== "";
 
@@ -406,7 +407,7 @@ class TSymbolInfoAdapter {
     // Track function return types for enum validation in assignments
     // This enables recognizing that Motor.getMode() returns Motor_EMode
     // Use mangled name (e.g., "Motor_getMode") for lookup consistency
-    const mangledName = TSymbolInfoAdapter.getMangledName(func);
+    const mangledName = TSymbolInfoAdapter.getTranspiledCName(func);
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
     functionReturnTypes.set(mangledName, returnTypeStr);
   }

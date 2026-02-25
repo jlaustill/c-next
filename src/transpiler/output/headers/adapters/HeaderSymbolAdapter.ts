@@ -55,7 +55,7 @@ class HeaderSymbolAdapter {
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
 
     // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getMangledName(func);
+    const mangledName = SymbolNameUtils.getTranspiledCName(func);
     const isGlobal = func.scope.name === "";
 
     // Convert parameters to IParameterSymbol[]
@@ -93,7 +93,7 @@ class HeaderSymbolAdapter {
     variable: import("../../../types/symbols/IVariableSymbol").default,
   ): IHeaderSymbol {
     // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getMangledName(variable);
+    const mangledName = SymbolNameUtils.getTranspiledCName(variable);
     const isGlobal = variable.scope.name === "";
 
     // Convert TType to string
@@ -125,7 +125,7 @@ class HeaderSymbolAdapter {
     struct: import("../../../types/symbols/IStructSymbol").default,
   ): IHeaderSymbol {
     // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getMangledName(struct);
+    const mangledName = SymbolNameUtils.getTranspiledCName(struct);
     const isGlobal = struct.scope.name === "";
 
     return {
@@ -142,7 +142,7 @@ class HeaderSymbolAdapter {
     enumSym: import("../../../types/symbols/IEnumSymbol").default,
   ): IHeaderSymbol {
     // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getMangledName(enumSym);
+    const mangledName = SymbolNameUtils.getTranspiledCName(enumSym);
     const isGlobal = enumSym.scope.name === "";
 
     return {
@@ -159,7 +159,7 @@ class HeaderSymbolAdapter {
     bitmap: import("../../../types/symbols/IBitmapSymbol").default,
   ): IHeaderSymbol {
     // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getMangledName(bitmap);
+    const mangledName = SymbolNameUtils.getTranspiledCName(bitmap);
     const isGlobal = bitmap.scope.name === "";
 
     return {
@@ -177,7 +177,7 @@ class HeaderSymbolAdapter {
     register: import("../../../types/symbols/IRegisterSymbol").default,
   ): IHeaderSymbol {
     // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getMangledName(register);
+    const mangledName = SymbolNameUtils.getTranspiledCName(register);
     const isGlobal = register.scope.name === "";
 
     return {
