@@ -74,7 +74,7 @@ unaryExpression
     : ('++' | '--' | 'sizeof')* (
         postfixExpression
         | unaryOperator castExpression
-        | ('sizeof' | '_Alignof') '(' typeName ')'
+        | ('sizeof' | '_Alignof' | '__alignof__' | '__alignof') '(' typeName ')'
         | '&&' Identifier // GCC extension address of label
     )
     ;
@@ -200,6 +200,7 @@ storageClassSpecifier
     | 'extern'
     | 'static'
     | '_Thread_local'
+    | '__thread'      // GCC extension
     | 'auto'
     | 'register'
     ;
@@ -213,6 +214,7 @@ typeSpecifier
     | 'float'
     | 'double'
     | 'signed'
+    | '__signed'     // GCC extension
     | '__signed__'   // GCC extension
     | 'unsigned'
     | '_Bool'
@@ -220,12 +222,15 @@ typeSpecifier
     | '__m128'
     | '__m128d'
     | '__m128i'
+    | '__int128'     // GCC 128-bit integer
+    | '__int128_t'   // GCC 128-bit signed
+    | '__uint128_t'  // GCC 128-bit unsigned
     | '__extension__' '(' ('__m128' | '__m128d' | '__m128i') ')'
     | atomicTypeSpecifier
     | structOrUnionSpecifier
     | enumSpecifier
     | typedefName
-    | '__typeof__' '(' constantExpression ')' // GCC extension
+    | ('__typeof__' | '__typeof') '(' constantExpression ')' // GCC extension
     ;
 
 structOrUnionSpecifier
@@ -298,6 +303,7 @@ typeQualifier
 functionSpecifier
     : 'inline'
     | '_Noreturn'
+    | '__inline'   // GCC extension
     | '__inline__' // GCC extension
     | '__stdcall'
     | gccAttributeSpecifier
@@ -438,7 +444,7 @@ statement
     | selectionStatement
     | iterationStatement
     | jumpStatement
-    | ('__asm' | '__asm__') ('volatile' | '__volatile__') '(' (
+    | ('__asm' | '__asm__') ('volatile' | '__volatile' | '__volatile__') '(' (
         logicalOrExpression (',' logicalOrExpression)*
     )? (':' (logicalOrExpression (',' logicalOrExpression)*)?)* ')' ';'
     ;

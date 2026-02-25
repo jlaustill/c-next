@@ -181,28 +181,30 @@ describe("Transpiler.determineProjectRoot", () => {
     });
   });
 
-  describe("input is a directory", () => {
-    it("uses directory directly when input is a directory with marker", () => {
+  describe("input file in project root", () => {
+    it("finds marker in same directory as input file", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
       writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        input: projectDir,
+        input: join(projectDir, "main.cnx"),
         noCache: true,
       });
 
       expect(getProjectRoot(transpiler)).toBe(projectDir);
     });
 
-    it("finds marker in parent when input is a subdirectory", () => {
+    it("finds marker in parent when input file is in subdirectory", () => {
       const projectDir = join(testDir, "project");
       const srcDir = join(projectDir, "src");
       mkdirSync(srcDir, { recursive: true });
       writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
-        input: srcDir,
+        input: join(srcDir, "main.cnx"),
         noCache: true,
       });
 

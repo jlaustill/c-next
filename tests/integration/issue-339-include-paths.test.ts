@@ -110,7 +110,7 @@ async function testSelfIncludePathsWithPipeline() {
   setup();
 
   const pipeline = new Transpiler({
-    input: sourceDir,
+    input: join(sourceDir, "main.cnx"),
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
@@ -192,7 +192,7 @@ async function testSelfIncludePathsWithPipelineDirectory() {
   mkdirSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    input: sourceDir,
+    input: join(sourceDir, "main.cnx"),
     includeDirs: [sourceDir],
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
@@ -252,7 +252,7 @@ scope RootModule {
   mkdirSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    input: sourceDir,
+    input: join(sourceDir, "RootModule.cnx"),
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
@@ -310,7 +310,7 @@ scope Deep {
   mkdirSync(headerOutDir, { recursive: true });
 
   const pipeline = new Transpiler({
-    input: sourceDir,
+    input: join(deepDir, "Deep.cnx"),
     outDir: codeOutDir,
     headerOutDir: headerOutDir,
     includeDirs: [sourceDir],
