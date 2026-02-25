@@ -364,6 +364,7 @@
   "ignorePaths": [
     "node_modules/**",
     "dist/**",
+    "tests-gtest/**",
     "vscode-extension/node_modules/**",
     "vscode-extension/dist/**",
     "src/antlr_parser/**",
