@@ -77,6 +77,7 @@ Transpile in dependency order
 ### 3. Bootstrap Requirement
 
 Developers must run `cnext file.cnx` once initially to generate the header with the marker. This is intentional:
+
 - Avoids false positives from coincidental `.cnx`/`.h` name matches
 - Provides explicit confirmation that a file is C-Next managed
 - Simple two-step adoption path
@@ -91,6 +92,7 @@ Developers must run `cnext file.cnx` once initially to generate the header with 
 ### 5. CLI Messages
 
 **Success case:**
+
 ```
 Scanning main.cpp for C-Next includes...
 Found 2 C-Next source files: led.cnx, config.cnx
@@ -99,6 +101,7 @@ Transpiling config.cnx... done
 ```
 
 **No C-Next files found:**
+
 ```
 Scanning main.cpp for C-Next includes...
 No C-Next files found in include tree. To get started:
@@ -110,39 +113,40 @@ No C-Next files found in include tree. To get started:
 
 ## Error Handling
 
-| Scenario | Behavior |
-|----------|----------|
-| Entry file doesn't exist | Error: `File not found: main.cpp` |
+| Scenario                        | Behavior                                                        |
+| ------------------------------- | --------------------------------------------------------------- |
+| Entry file doesn't exist        | Error: `File not found: main.cpp`                               |
 | Marker points to missing `.cnx` | Error: `C-Next source not found: led.cnx (referenced by led.h)` |
-| `.cnx` file has syntax errors | Normal transpilation error |
-| Circular `.cnx` dependencies | Existing `DependencyGraph` handles this |
-| Header not readable | Warning, skip and continue |
+| `.cnx` file has syntax errors   | Normal transpilation error                                      |
+| Circular `.cnx` dependencies    | Existing `DependencyGraph` handles this                         |
+| Header not readable             | Warning, skip and continue                                      |
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `InputExpansion.ts` | Accept C/C++ extensions as entry points |
-| `IncludeResolver.ts` | Add marker detection and `.cnx` path extraction |
-| `Transpiler.ts` | New discovery flow for C/C++ entry points |
-| `HeaderGeneratorUtils.ts` | Add source path to generation marker |
-| `CodeGenerator.ts` | Add source path to generation marker |
+| File                      | Changes                                         |
+| ------------------------- | ----------------------------------------------- |
+| `InputExpansion.ts`       | Accept C/C++ extensions as entry points         |
+| `IncludeResolver.ts`      | Add marker detection and `.cnx` path extraction |
+| `Transpiler.ts`           | New discovery flow for C/C++ entry points       |
+| `HeaderGeneratorUtils.ts` | Add source path to generation marker            |
+| `CodeGenerator.ts`        | Add source path to generation marker            |
 
 ## Testing Strategy
 
 **Integration tests:**
 
-| Test | Description |
-|------|-------------|
-| `cpp-entry-basic` | `main.cpp` → `led.h` (marker) → transpiles `led.cnx` |
-| `cpp-entry-transitive` | `main.cpp` → `utils.h` → `led.h` → transpiles `led.cnx` |
-| `cpp-entry-cnx-chain` | `main.cpp` → `middleware.h` → `middleware.cnx` → `led.h` → both |
-| `cpp-entry-no-cnx` | No C-Next includes → helpful message |
-| `cpp-entry-missing-source` | Marker points to nonexistent `.cnx` → clear error |
-| `cpp-entry-multiple` | Multiple `.cnx` files → all transpiled in order |
-| `c-entry-basic` | Same with `.c` entry point |
+| Test                       | Description                                                     |
+| -------------------------- | --------------------------------------------------------------- |
+| `cpp-entry-basic`          | `main.cpp` → `led.h` (marker) → transpiles `led.cnx`            |
+| `cpp-entry-transitive`     | `main.cpp` → `utils.h` → `led.h` → transpiles `led.cnx`         |
+| `cpp-entry-cnx-chain`      | `main.cpp` → `middleware.h` → `middleware.cnx` → `led.h` → both |
+| `cpp-entry-no-cnx`         | No C-Next includes → helpful message                            |
+| `cpp-entry-missing-source` | Marker points to nonexistent `.cnx` → clear error               |
+| `cpp-entry-multiple`       | Multiple `.cnx` files → all transpiled in order                 |
+| `c-entry-basic`            | Same with `.c` entry point                                      |
 
 **Unit tests:**
+
 - `InputExpansion`: Accept C/C++ extensions, classify correctly
 - `IncludeResolver`: Marker detection, path extraction
 - `Transpiler`: C/C++ entry point flow
@@ -150,6 +154,7 @@ No C-Next files found in include tree. To get started:
 ## Reusable Infrastructure
 
 The following existing components can be reused:
+
 - `FileDiscovery` — Already classifies C/C++ files correctly
 - `IncludeDiscovery.extractIncludesWithInfo()` — Works on any C-family source
 - `IncludeResolver.resolveHeadersTransitively()` — Cycle-safe tree walking

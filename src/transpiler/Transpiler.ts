@@ -397,13 +397,17 @@ class Transpiler {
       this._setupCrossFileModifications();
 
       // Generate code
+      // Use file's sourceRelativePath (source mode) or compute from PathResolver (files mode)
+      const sourceRelativePath =
+        file.sourceRelativePath ??
+        this.pathResolver.getSourceRelativePath(sourcePath);
       const code = this.codeGenerator.generate(tree, tokenStream, {
         debugMode: this.config.debugMode,
         target: this.config.target,
         sourcePath,
         cppMode: this.cppDetected,
         symbolInfo,
-        sourceRelativePath: this.pathResolver.getSourceRelativePath(sourcePath),
+        sourceRelativePath,
       });
 
       // Collect user includes
@@ -538,6 +542,7 @@ class Transpiler {
     );
 
     // Build the main file (with in-memory source and cnextIncludes for enum resolution)
+    // Source mode uses basename for self-include to match files mode behavior
     const mainFile: IPipelineFile = {
       path: sourcePath,
       source,
@@ -547,6 +552,7 @@ class Transpiler {
         extension: ".cnx",
       },
       cnextIncludes: resolved.cnextIncludes,
+      sourceRelativePath: basename(sourcePath),
     };
 
     // Includes first (symbols must be collected before main file code gen),
