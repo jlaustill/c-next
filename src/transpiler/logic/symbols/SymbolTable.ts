@@ -651,17 +651,29 @@ class SymbolTable {
       (s) => s.sourceLanguage === ESourceLanguage.Cpp,
     );
 
-    if (cnextDefs.length > 0 && (cDefs.length > 0 || cppDefs.length > 0)) {
-      const locations = globalDefinitions.map(
+    // Issue #967: Only global-scope C-Next symbols can conflict with C/C++ symbols.
+    // Scoped symbols (e.g., Touch.read) live in a namespace and don't compete
+    // with C's global symbols (e.g., POSIX read()).
+    const conflictingCnextDefs = cnextDefs.filter((s) => {
+      const tSymbol = s as TSymbol;
+      return tSymbol.scope.name === "";
+    });
+
+    if (
+      conflictingCnextDefs.length > 0 &&
+      (cDefs.length > 0 || cppDefs.length > 0)
+    ) {
+      const conflictingDefs = [...conflictingCnextDefs, ...cDefs, ...cppDefs];
+      const locations = conflictingDefs.map(
         (s) =>
           `${s.sourceLanguage.toUpperCase()} (${s.sourceFile}:${s.sourceLine})`,
       );
 
       return {
-        symbolName: globalDefinitions[0].name,
-        definitions: globalDefinitions,
+        symbolName: conflictingDefs[0].name,
+        definitions: conflictingDefs,
         severity: "error",
-        message: `Symbol conflict: '${globalDefinitions[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\nRename the C-Next symbol to resolve.`,
+        message: `Symbol conflict: '${conflictingDefs[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\nRename the C-Next symbol to resolve.`,
       };
     }
 

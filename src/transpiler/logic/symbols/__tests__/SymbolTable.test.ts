@@ -478,6 +478,84 @@ describe("SymbolTable", () => {
       // Two globals with same name IS a conflict
       expect(symbolTable.hasConflict("globalVar")).toBe(true);
     });
+
+    // Issue #967: Scoped C-Next symbols live in a namespace and don't conflict
+    // with C's global symbols. Only global-scope C-Next symbols can conflict.
+    it("should NOT detect conflict for scoped C-Next method vs C function with same bare name", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+      const touchScope = TestScopeUtils.createMockScope("Touch", globalScope);
+
+      // Add C-Next scoped function 'read' in scope 'Touch'
+      // This transpiles to Touch_read()
+      symbolTable.addTSymbol({
+        kind: "function",
+        name: "read",
+        sourceFile: "touch.cnx",
+        sourceLine: 28,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        returnType: TTypeUtils.createPrimitive("u8"),
+        parameters: [],
+        scope: touchScope,
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
+
+      // Add C function 'read' from POSIX headers
+      // This stays as read()
+      symbolTable.addCSymbol({
+        kind: "function",
+        name: "read",
+        sourceFile: "lv_pthread.h",
+        sourceLine: 80,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+        type: "ssize_t",
+        parameters: [
+          { name: "fd", type: "int", isConst: false, isArray: false },
+          { name: "buf", type: "void*", isConst: false, isArray: false },
+          { name: "count", type: "size_t", isConst: false, isArray: false },
+        ],
+      });
+
+      // Touch.read() is in a namespace — does NOT conflict with C's global read()
+      expect(symbolTable.hasConflict("read")).toBe(false);
+    });
+
+    // Issue #967: Global C-Next functions SHOULD still conflict with C functions
+    it("should detect conflict for global C-Next function vs C function", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+
+      // Add global C-Next function 'read'
+      symbolTable.addTSymbol({
+        kind: "function",
+        name: "read",
+        sourceFile: "utils.cnx",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        returnType: TTypeUtils.createPrimitive("u8"),
+        parameters: [],
+        scope: globalScope,
+        visibility: "public",
+        body: null,
+      } as IFunctionSymbol);
+
+      // Add C function 'read'
+      symbolTable.addCSymbol({
+        kind: "function",
+        name: "read",
+        sourceFile: "unistd.h",
+        sourceLine: 100,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+        type: "ssize_t",
+        parameters: [],
+      });
+
+      // Global C-Next read() DOES conflict with C's read()
+      expect(symbolTable.hasConflict("read")).toBe(true);
+    });
   });
 
   // ========================================================================

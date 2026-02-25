@@ -357,7 +357,9 @@
     "LVGL",
     "FreeRTOS",
     "unmarks",
-    "unmarking"
+    "unmarking",
+    "pthread",
+    "ssize"
   ],
   "ignorePaths": [
     "node_modules/**",
