@@ -82,7 +82,12 @@ class Cli {
     }
 
     const resolvedInput = resolve(config.input);
-    if (existsSync(resolvedInput) && statSync(resolvedInput).isDirectory()) {
+    if (!existsSync(resolvedInput)) {
+      console.error(`Error: Input not found: ${config.input}`);
+      return { shouldRun: false, exitCode: 1 };
+    }
+
+    if (statSync(resolvedInput).isDirectory()) {
       console.error(
         "Error: Directory input not supported. Specify an entry point file.",
       );
