@@ -138,10 +138,25 @@ class CppEntryPointScanner {
 
   /**
    * Handle a C-Next generation marker found in a header.
+   *
+   * Resolves the source path by first checking relative to the header location,
+   * then searching the include paths. This supports both default behavior (header
+   * next to source) and --header-out (header in separate directory).
    */
   private _handleCNextMarker(sourcePath: string, headerPath: string): void {
     const headerDir = dirname(headerPath);
-    const absoluteSourcePath = resolve(join(headerDir, sourcePath));
+    let absoluteSourcePath = resolve(join(headerDir, sourcePath));
+
+    // If not found next to header, search include paths (supports --header-out)
+    if (!this.fs.exists(absoluteSourcePath)) {
+      for (const searchPath of this.searchPaths) {
+        const candidate = resolve(join(searchPath, sourcePath));
+        if (this.fs.exists(candidate)) {
+          absoluteSourcePath = candidate;
+          break;
+        }
+      }
+    }
 
     if (!this.fs.exists(absoluteSourcePath)) {
       this.errors.push(

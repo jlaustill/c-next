@@ -996,8 +996,9 @@ class Transpiler {
     const scanResult = scanner.scan(entryPath);
 
     // Report errors and warnings
+    // Prefix errors to distinguish from informational warnings
     for (const error of scanResult.errors) {
-      this.warnings.push(error);
+      this.warnings.push(`Error: ${error}`);
     }
     this.warnings.push(...scanResult.warnings);
 
@@ -1022,6 +1023,9 @@ class Transpiler {
       cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
     );
 
+    // Scanner discovers .cnx files via header markers in the C/C++ include tree.
+    // _processFileIncludes then resolves direct .cnx-to-.cnx includes (e.g.,
+    // #include "utils.cnx") which the scanner visits but doesn't add to sources.
     for (const cnxFile of cnextFiles) {
       fileByPath.set(resolve(cnxFile.path), cnxFile);
       this._processFileIncludes(
