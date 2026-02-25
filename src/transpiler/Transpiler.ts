@@ -45,6 +45,8 @@ import IncludeResolver from "./data/IncludeResolver";
 import IncludeTreeWalker from "./data/IncludeTreeWalker";
 import DependencyGraph from "./data/DependencyGraph";
 import PathResolver from "./data/PathResolver";
+import InputExpansion from "./data/InputExpansion";
+import CppEntryPointScanner from "./data/CppEntryPointScanner";
 
 import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
@@ -901,14 +903,18 @@ class Transpiler {
    * includes, not by blindly scanning include directories.
    */
   private async _discoverFromFiles(): Promise<IPipelineInput> {
-    // Step 1: Discover entry point file
+    const entryPath = resolve(this.config.input);
+
+    // Check if this is a C/C++ entry point
+    if (InputExpansion.isCppEntryPoint(entryPath)) {
+      return this._discoverFromCppEntryPoint(entryPath);
+    }
+
+    // Step 1: Discover entry point file (original .cnx entry point logic)
     const cnextFiles: IDiscoveredFile[] = [];
     const fileByPath = new Map<string, IDiscoveredFile>();
 
-    const entryFile = FileDiscovery.discoverFile(
-      resolve(this.config.input),
-      this.fs,
-    );
+    const entryFile = FileDiscovery.discoverFile(entryPath, this.fs);
     if (!entryFile || entryFile.type !== EFileType.CNext) {
       return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
     }
@@ -956,6 +962,95 @@ class Transpiler {
     this.warnings.push(...headerWarnings);
 
     // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
+    const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
+      path: f.path,
+      discoveredFile: f,
+    }));
+
+    return {
+      cnextFiles: pipelineFiles,
+      headerFiles: allHeaders,
+      writeOutputToDisk: true,
+    };
+  }
+
+  /**
+   * Discover C-Next files from a C/C++ entry point.
+   *
+   * Scans the include tree for headers with C-Next generation markers,
+   * extracts the source .cnx paths, and returns them for transpilation.
+   */
+  private _discoverFromCppEntryPoint(entryPath: string): IPipelineInput {
+    const entryDir = dirname(entryPath);
+    const searchPaths = IncludeResolver.buildSearchPaths(
+      entryDir,
+      this.config.includeDirs,
+      [],
+      undefined,
+      this.fs,
+    );
+
+    const scanner = new CppEntryPointScanner(searchPaths, this.fs);
+    const scanResult = scanner.scan(entryPath);
+
+    // Report errors and warnings
+    for (const error of scanResult.errors) {
+      this.warnings.push(error);
+    }
+    this.warnings.push(...scanResult.warnings);
+
+    if (scanResult.noCNextFound) {
+      return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
+    }
+
+    // Convert discovered .cnx paths to IDiscoveredFile array
+    const cnextFiles: IDiscoveredFile[] = scanResult.cnextSources.map(
+      (path) => ({
+        path,
+        type: EFileType.CNext,
+        extension: ".cnx",
+      }),
+    );
+
+    // Build dependency graph and process includes for each .cnx file
+    const headerSet = new Map<string, IDiscoveredFile>();
+    const depGraph = new DependencyGraph();
+    const fileByPath = new Map<string, IDiscoveredFile>();
+    const cnextBaseNames = new Set(
+      cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
+    );
+
+    for (const cnxFile of cnextFiles) {
+      fileByPath.set(resolve(cnxFile.path), cnxFile);
+      this._processFileIncludes(
+        cnxFile,
+        depGraph,
+        cnextFiles,
+        cnextBaseNames,
+        headerSet,
+        fileByPath,
+      );
+    }
+
+    // Sort files topologically
+    const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
+
+    // Resolve headers transitively
+    const { headers: allHeaders, warnings: headerWarnings } =
+      IncludeResolver.resolveHeadersTransitively(
+        [...headerSet.values()],
+        this.config.includeDirs,
+        {
+          onDebug: this.config.debugMode
+            ? (msg) => console.log(`[DEBUG] ${msg}`)
+            : undefined,
+          processedPaths: this.state.getProcessedHeadersSet(),
+          fs: this.fs,
+        },
+      );
+    this.warnings.push(...headerWarnings);
+
+    // Convert to pipeline files
     const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
       path: f.path,
       discoveredFile: f,
