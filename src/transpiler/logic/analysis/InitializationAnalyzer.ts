@@ -548,11 +548,11 @@ class InitializationAnalyzer {
     if (!memberVar) return;
 
     const varName = memberVar.IDENTIFIER().getText();
-    const fullName = `${scopeName}_${varName}`; // Mangled name
+    const fullName = `${scopeName}_${varName}`; // Transpiled C name
     const { line, column } = ParserUtils.getPosition(memberVar);
     const typeName = this._extractUserTypeName(memberVar.type());
 
-    // Register with both raw name and mangled name for scope resolution
+    // Register with both raw name and transpiled C name for scope resolution
     this.declareVariable(varName, line, column, true, typeName);
     this.declareVariable(fullName, line, column, true, typeName);
   }

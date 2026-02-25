@@ -153,7 +153,7 @@ describe("IFunctionSymbol", () => {
     });
   });
 
-  describe("FunctionUtils.getCMangledName", () => {
+  describe("FunctionUtils.getTranspiledCName", () => {
     it("returns bare name for global scope function", () => {
       const global = ScopeUtils.createGlobalScope();
 
@@ -168,7 +168,7 @@ describe("IFunctionSymbol", () => {
         sourceLine: 1,
       });
 
-      expect(FunctionUtils.getCMangledName(func)).toBe("main");
+      expect(FunctionUtils.getTranspiledCName(func)).toBe("main");
     });
 
     it("returns scope-prefixed name for scoped function", () => {
@@ -186,7 +186,7 @@ describe("IFunctionSymbol", () => {
         sourceLine: 10,
       });
 
-      expect(FunctionUtils.getCMangledName(func)).toBe("Test_fillData");
+      expect(FunctionUtils.getTranspiledCName(func)).toBe("Test_fillData");
     });
 
     it("returns nested scope-prefixed name for nested scope function", () => {
@@ -205,7 +205,9 @@ describe("IFunctionSymbol", () => {
         sourceLine: 20,
       });
 
-      expect(FunctionUtils.getCMangledName(func)).toBe("Outer_Inner_process");
+      expect(FunctionUtils.getTranspiledCName(func)).toBe(
+        "Outer_Inner_process",
+      );
     });
   });
 

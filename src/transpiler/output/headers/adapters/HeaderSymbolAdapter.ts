@@ -54,8 +54,8 @@ class HeaderSymbolAdapter {
     // Convert TType return type to string
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
 
-    // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getTranspiledCName(func);
+    // Get transpiled C name (scope-prefixed)
+    const cName = SymbolNameUtils.getTranspiledCName(func);
     const isGlobal = func.scope.name === "";
 
     // Convert parameters to IParameterSymbol[]
@@ -74,10 +74,10 @@ class HeaderSymbolAdapter {
     const paramTypes = func.parameters.map((p) =>
       TypeResolver.getTypeName(p.type),
     );
-    const signature = `${returnTypeStr} ${mangledName}(${paramTypes.join(", ")})`;
+    const signature = `${returnTypeStr} ${cName}(${paramTypes.join(", ")})`;
 
     return {
-      name: mangledName,
+      name: cName,
       kind: "function",
       type: returnTypeStr,
       isExported: func.isExported,
@@ -92,8 +92,8 @@ class HeaderSymbolAdapter {
   private static convertVariable(
     variable: import("../../../types/symbols/IVariableSymbol").default,
   ): IHeaderSymbol {
-    // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getTranspiledCName(variable);
+    // Get transpiled C name (scope-prefixed)
+    const cName = SymbolNameUtils.getTranspiledCName(variable);
     const isGlobal = variable.scope.name === "";
 
     // Convert TType to string
@@ -107,7 +107,7 @@ class HeaderSymbolAdapter {
     );
 
     return {
-      name: mangledName,
+      name: cName,
       kind: "variable",
       type: typeStr,
       isExported: variable.isExported,
@@ -124,12 +124,12 @@ class HeaderSymbolAdapter {
   private static convertStruct(
     struct: import("../../../types/symbols/IStructSymbol").default,
   ): IHeaderSymbol {
-    // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getTranspiledCName(struct);
+    // Get transpiled C name (scope-prefixed)
+    const cName = SymbolNameUtils.getTranspiledCName(struct);
     const isGlobal = struct.scope.name === "";
 
     return {
-      name: mangledName,
+      name: cName,
       kind: "struct",
       isExported: struct.isExported,
       parent: isGlobal ? undefined : struct.scope.name,
@@ -141,12 +141,12 @@ class HeaderSymbolAdapter {
   private static convertEnum(
     enumSym: import("../../../types/symbols/IEnumSymbol").default,
   ): IHeaderSymbol {
-    // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getTranspiledCName(enumSym);
+    // Get transpiled C name (scope-prefixed)
+    const cName = SymbolNameUtils.getTranspiledCName(enumSym);
     const isGlobal = enumSym.scope.name === "";
 
     return {
-      name: mangledName,
+      name: cName,
       kind: "enum",
       isExported: enumSym.isExported,
       parent: isGlobal ? undefined : enumSym.scope.name,
@@ -158,12 +158,12 @@ class HeaderSymbolAdapter {
   private static convertBitmap(
     bitmap: import("../../../types/symbols/IBitmapSymbol").default,
   ): IHeaderSymbol {
-    // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getTranspiledCName(bitmap);
+    // Get transpiled C name (scope-prefixed)
+    const cName = SymbolNameUtils.getTranspiledCName(bitmap);
     const isGlobal = bitmap.scope.name === "";
 
     return {
-      name: mangledName,
+      name: cName,
       kind: "bitmap",
       type: bitmap.backingType,
       isExported: bitmap.isExported,
@@ -176,12 +176,12 @@ class HeaderSymbolAdapter {
   private static convertRegister(
     register: import("../../../types/symbols/IRegisterSymbol").default,
   ): IHeaderSymbol {
-    // Get mangled name (scope-prefixed)
-    const mangledName = SymbolNameUtils.getTranspiledCName(register);
+    // Get transpiled C name (scope-prefixed)
+    const cName = SymbolNameUtils.getTranspiledCName(register);
     const isGlobal = register.scope.name === "";
 
     return {
-      name: mangledName,
+      name: cName,
       kind: "register",
       isExported: register.isExported,
       parent: isGlobal ? undefined : register.scope.name,

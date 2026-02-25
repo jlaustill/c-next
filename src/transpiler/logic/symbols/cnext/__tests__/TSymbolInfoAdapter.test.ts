@@ -466,7 +466,7 @@ describe("TSymbolInfoAdapter", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "MAX_SPEED", // Bare name - adapter computes mangled name
+        name: "MAX_SPEED", // Bare name - adapter computes transpiled C name
         scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -481,7 +481,7 @@ describe("TSymbolInfoAdapter", () => {
 
       const info = TSymbolInfoAdapter.convert([variable]);
 
-      // Adapter stores using mangled name (scope + bare name)
+      // Adapter stores using transpiled C name (scope + bare name)
       expect(info.scopePrivateConstValues.get("Motor_MAX_SPEED")).toBe("255");
     });
 
@@ -489,7 +489,7 @@ describe("TSymbolInfoAdapter", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "PUBLIC_CONST", // Bare name - adapter computes mangled name
+        name: "PUBLIC_CONST", // Bare name - adapter computes transpiled C name
         scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -513,7 +513,7 @@ describe("TSymbolInfoAdapter", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "counter", // Bare name - adapter computes mangled name
+        name: "counter", // Bare name - adapter computes transpiled C name
         scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -535,7 +535,7 @@ describe("TSymbolInfoAdapter", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "LOOKUP_TABLE", // Bare name - adapter computes mangled name
+        name: "LOOKUP_TABLE", // Bare name - adapter computes transpiled C name
         scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,
@@ -562,7 +562,7 @@ describe("TSymbolInfoAdapter", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         kind: "variable",
-        name: "MATRIX", // Bare name - adapter computes mangled name
+        name: "MATRIX", // Bare name - adapter computes transpiled C name
         scope: motorScope,
         sourceFile: "test.cnx",
         sourceLine: 1,

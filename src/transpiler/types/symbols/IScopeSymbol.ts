@@ -16,7 +16,7 @@ interface IScopeSymbol extends IBaseSymbol {
   /** Parent scope (global scope's parent is itself) */
   readonly parent: IScopeSymbol;
 
-  /** List of member names (local names, not mangled) */
+  /** List of member names (local names, not transpiled C names) */
   readonly members: string[];
 
   /** Functions in this scope */

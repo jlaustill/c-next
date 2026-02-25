@@ -48,7 +48,7 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.parent).toBeUndefined();
     });
 
-    it("should convert scoped variable with mangled name", () => {
+    it("should convert scoped variable with transpiled C name", () => {
       const tSymbol: IVariableSymbol = {
         kind: "variable",
         name: "speed",
@@ -235,7 +235,7 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.parent).toBeUndefined();
     });
 
-    it("should convert scoped struct with mangled name", () => {
+    it("should convert scoped struct with transpiled C name", () => {
       const geometryScope = ScopeUtils.createScope("Geometry", globalScope);
       const tSymbol: IStructSymbol = {
         kind: "struct",
@@ -279,7 +279,7 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.isExported).toBe(true);
     });
 
-    it("should convert scoped enum with mangled name", () => {
+    it("should convert scoped enum with transpiled C name", () => {
       const tSymbol: IEnumSymbol = {
         kind: "enum",
         name: "EMode",
@@ -327,7 +327,7 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.isExported).toBe(true);
     });
 
-    it("should convert scoped bitmap with mangled name", () => {
+    it("should convert scoped bitmap with transpiled C name", () => {
       const tSymbol: IBitmapSymbol = {
         kind: "bitmap",
         name: "Status",
@@ -373,7 +373,7 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.isExported).toBe(true);
     });
 
-    it("should convert scoped register with mangled name", () => {
+    it("should convert scoped register with transpiled C name", () => {
       const tSymbol: IRegisterSymbol = {
         kind: "register",
         name: "CTRL",
