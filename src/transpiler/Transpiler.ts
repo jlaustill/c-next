@@ -909,15 +909,11 @@ class Transpiler {
       resolve(this.config.input),
       this.fs,
     );
-    if (!entryFile || entryFile.type !== EFileType.CNext) {
+    if (entryFile?.type !== EFileType.CNext) {
       return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
     }
     cnextFiles.push(entryFile);
     fileByPath.set(resolve(entryFile.path), entryFile);
-
-    if (cnextFiles.length === 0) {
-      return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
-    }
 
     // Step 2: For each C-Next file, resolve its #include directives
     const headerSet = new Map<string, IDiscoveredFile>();
