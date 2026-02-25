@@ -508,8 +508,7 @@ class PassByValueAnalyzer {
     bareCalleeName: string,
   ): string {
     // Try to resolve using SymbolRegistry (new type system)
-    const callerScope =
-      SymbolRegistry.getScopeByMangledFunctionName(callerFuncName);
+    const callerScope = SymbolRegistry.getScopeByCFunctionName(callerFuncName);
     if (callerScope) {
       // Use SymbolRegistry.resolveFunction to find the callee in scope chain
       const callee = SymbolRegistry.resolveFunction(
@@ -517,8 +516,8 @@ class PassByValueAnalyzer {
         callerScope,
       );
       if (callee) {
-        // Use FunctionUtils to get the C-mangled name (types layer, not output layer)
-        return FunctionUtils.getCMangledName(callee);
+        // Use FunctionUtils to get the transpiled C name (types layer, not output layer)
+        return FunctionUtils.getTranspiledCName(callee);
       }
     }
 
@@ -541,7 +540,7 @@ class PassByValueAnalyzer {
 
   /**
    * Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
-   * Track member accesses to build the mangled callee name (e.g., Storage_load)
+   * Track member accesses to build the transpiled C name (e.g., Storage_load)
    */
   private static handleScopeQualifiedCalls(
     funcName: string,

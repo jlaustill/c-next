@@ -1,8 +1,8 @@
 /**
  * QualifiedNameGenerator - C-style name generation for C-Next symbols
  *
- * Provides C-style mangled name generation for use in the output layer.
- * Delegates to FunctionUtils.getCMangledName() for the actual implementation
+ * Provides transpiled C name generation for use in the output layer.
+ * Delegates to FunctionUtils.getTranspiledCName() for the actual implementation
  * to avoid duplication with the types layer.
  *
  * Design decisions:
@@ -24,16 +24,16 @@ class QualifiedNameGenerator {
   // ============================================================================
 
   /**
-   * Generate the C-style mangled name for a function.
+   * Generate the transpiled C name for a function.
    *
    * For global scope functions, returns the bare name (e.g., "main").
    * For scoped functions, returns "Scope_name" (e.g., "Test_fillData").
    * For nested scopes, returns "Outer_Inner_name" (e.g., "Outer_Inner_deepFunc").
    *
-   * Delegates to FunctionUtils.getCMangledName() to avoid duplication.
+   * Delegates to FunctionUtils.getTranspiledCName() to avoid duplication.
    */
   static forFunction(func: IFunctionSymbol): string {
-    return FunctionUtils.getCMangledName(func);
+    return FunctionUtils.getTranspiledCName(func);
   }
 
   /**
@@ -61,7 +61,7 @@ class QualifiedNameGenerator {
    *
    * @param scopeName Scope name (e.g., "Test", "Outer.Inner") or undefined for global
    * @param funcName Bare function name (e.g., "fillData")
-   * @returns C-mangled name (e.g., "Test_fillData")
+   * @returns Transpiled C name (e.g., "Test_fillData")
    */
   static forFunctionStrings(
     scopeName: string | undefined,
@@ -100,7 +100,7 @@ class QualifiedNameGenerator {
    *
    * @param scopeName Scope name or undefined for global
    * @param memberName Member name
-   * @returns C-mangled name
+   * @returns Transpiled C name
    */
   static forMember(scopeName: string | undefined, memberName: string): string {
     if (!scopeName) {

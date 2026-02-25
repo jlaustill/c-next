@@ -130,7 +130,7 @@ describe("trackVariableTypeWithName helpers", () => {
         }
       `;
       const code = await transpileSource(source);
-      // Scoped type should be mangled to Motor_State
+      // Scoped type should be transpiled to Motor_State
       expect(code).toContain("Motor_State");
     });
 

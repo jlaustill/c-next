@@ -133,27 +133,27 @@ class SymbolRegistry {
   // ============================================================================
 
   /**
-   * Find a function by its C-mangled name (e.g., "Test_fillData").
+   * Find a function by its transpiled C name (e.g., "Test_fillData").
    *
    * This is a bridge method for gradual migration. New code should use
    * resolveFunction() with bare names and scope references instead.
    *
-   * @param mangledName C-mangled function name (e.g., "Test_fillData", "main")
+   * @param cName Transpiled C function name (e.g., "Test_fillData", "main")
    * @returns The function symbol, or null if not found
    */
-  static findByMangledName(mangledName: string): IFunctionSymbol | null {
+  static findByCName(cName: string): IFunctionSymbol | null {
     // Check global scope first (no underscore = global function)
     for (const func of this.globalScope.functions) {
-      if (func.name === mangledName) {
+      if (func.name === cName) {
         return func;
       }
     }
 
-    // Check all scopes - the mangled name should match scope_name pattern
+    // Check all scopes - the C name should match scope_name pattern
     for (const [scopePath, scope] of this.scopes) {
       const prefix = scopePath.replaceAll(".", "_") + "_";
       for (const func of scope.functions) {
-        if (prefix + func.name === mangledName) {
+        if (prefix + func.name === cName) {
           return func;
         }
       }
@@ -163,17 +163,15 @@ class SymbolRegistry {
   }
 
   /**
-   * Get the scope of a function given its C-mangled name.
+   * Get the scope of a function given its transpiled C name.
    *
    * This is a bridge method for gradual migration.
    *
-   * @param mangledName C-mangled function name
+   * @param cName Transpiled C function name
    * @returns The scope the function belongs to, or null if not found
    */
-  static getScopeByMangledFunctionName(
-    mangledName: string,
-  ): IScopeSymbol | null {
-    const func = this.findByMangledName(mangledName);
+  static getScopeByCFunctionName(cName: string): IScopeSymbol | null {
+    const func = this.findByCName(cName);
     return func?.scope ?? null;
   }
 }

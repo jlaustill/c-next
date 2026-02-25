@@ -141,7 +141,7 @@ describe("SymbolRegistry", () => {
     });
   });
 
-  describe("findByMangledName", () => {
+  describe("findByCName", () => {
     it("finds global function by bare name", () => {
       const global = SymbolRegistry.getGlobalScope();
       const func = FunctionUtils.create({
@@ -156,11 +156,11 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const found = SymbolRegistry.findByMangledName("main");
+      const found = SymbolRegistry.findByCName("main");
       expect(found).toBe(func);
     });
 
-    it("finds scoped function by mangled name", () => {
+    it("finds scoped function by transpiled C name", () => {
       const scope = SymbolRegistry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
@@ -174,11 +174,11 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const found = SymbolRegistry.findByMangledName("Test_fillData");
+      const found = SymbolRegistry.findByCName("Test_fillData");
       expect(found).toBe(func);
     });
 
-    it("finds nested scope function by mangled name", () => {
+    it("finds nested scope function by transpiled C name", () => {
       const scope = SymbolRegistry.getOrCreateScope("Outer.Inner");
       const func = FunctionUtils.create({
         name: "deepFunc",
@@ -192,17 +192,17 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const found = SymbolRegistry.findByMangledName("Outer_Inner_deepFunc");
+      const found = SymbolRegistry.findByCName("Outer_Inner_deepFunc");
       expect(found).toBe(func);
     });
 
     it("returns null for unknown function", () => {
-      const found = SymbolRegistry.findByMangledName("Unknown_func");
+      const found = SymbolRegistry.findByCName("Unknown_func");
       expect(found).toBeNull();
     });
   });
 
-  describe("getScopeByMangledFunctionName", () => {
+  describe("getScopeByCFunctionName", () => {
     it("returns scope for scoped function", () => {
       const scope = SymbolRegistry.getOrCreateScope("Motor");
       const func = FunctionUtils.create({
@@ -217,8 +217,7 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const foundScope =
-        SymbolRegistry.getScopeByMangledFunctionName("Motor_init");
+      const foundScope = SymbolRegistry.getScopeByCFunctionName("Motor_init");
       expect(foundScope).toBe(scope);
     });
 
@@ -236,13 +235,12 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const foundScope = SymbolRegistry.getScopeByMangledFunctionName("helper");
+      const foundScope = SymbolRegistry.getScopeByCFunctionName("helper");
       expect(foundScope).toBe(global);
     });
 
     it("returns null for unknown function", () => {
-      const foundScope =
-        SymbolRegistry.getScopeByMangledFunctionName("Unknown_func");
+      const foundScope = SymbolRegistry.getScopeByCFunctionName("Unknown_func");
       expect(foundScope).toBeNull();
     });
   });

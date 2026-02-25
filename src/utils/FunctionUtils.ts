@@ -52,17 +52,17 @@ class FunctionUtils {
   }
 
   // ============================================================================
-  // Name Mangling
+  // Transpiled C Names
   // ============================================================================
 
   /**
-   * Get the C-mangled name for a function.
+   * Get the transpiled C name for a function.
    *
    * For global scope functions, returns the bare name.
    * For scoped functions, returns "Scope_name" (e.g., "Test_fillData").
    * For nested scopes, returns "Outer_Inner_name".
    */
-  static getCMangledName(func: IFunctionSymbol): string {
+  static getTranspiledCName(func: IFunctionSymbol): string {
     const scopePath = ScopeUtils.getScopePath(func.scope);
     if (scopePath.length === 0) {
       return func.name;

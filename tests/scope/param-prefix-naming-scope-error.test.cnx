@@ -1,5 +1,5 @@
 // Test: Scoped function parameters cannot start with function name prefix
-// Issue #227: Validation uses bare function name, not mangled name
+// Issue #227: Validation uses bare function name, not transpiled C name
 //
 // The function "add" in scope "Math" has a parameter "add_value"
 // which starts with "add_" - this should be an error

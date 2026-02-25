@@ -3,13 +3,13 @@
  */
 
 /**
- * Get the C-mangled name for a symbol (e.g., "Geometry_Point" for Point in Geometry scope).
- * Works with any symbol that has a name and scope reference.
+ * Get the transpiled C name for a symbol (e.g., "Geometry_Point" for Point in Geometry scope).
+ * Use only at the output layer for C code generation, not for input-side logic.
  *
  * @param symbol Object with name and scope.name properties
- * @returns The mangled name (e.g., "Motor_init") or bare name if global scope
+ * @returns The C output name (e.g., "Motor_init") or bare name if global scope
  */
-function getMangledName(symbol: {
+function getTranspiledCName(symbol: {
   name: string;
   scope: { name: string };
 }): string {
@@ -21,7 +21,7 @@ function getMangledName(symbol: {
 }
 
 class SymbolNameUtils {
-  static readonly getMangledName = getMangledName;
+  static readonly getTranspiledCName = getTranspiledCName;
 }
 
 export default SymbolNameUtils;

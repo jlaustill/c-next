@@ -1,7 +1,7 @@
 /**
  * Tests for QualifiedNameGenerator
  *
- * QualifiedNameGenerator is the ONLY place that constructs C-style mangled names
+ * QualifiedNameGenerator is the ONLY place that constructs transpiled C names
  * like "Test_fillData" from function symbols.
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -120,7 +120,7 @@ describe("QualifiedNameGenerator", () => {
       );
     });
 
-    it("returns mangled name for simple scope", () => {
+    it("returns transpiled C name for simple scope", () => {
       expect(
         QualifiedNameGenerator.forFunctionStrings("Test", "fillData"),
       ).toBe("Test_fillData");
@@ -168,7 +168,7 @@ describe("QualifiedNameGenerator", () => {
       );
     });
 
-    it("returns mangled name for simple scope", () => {
+    it("returns transpiled C name for simple scope", () => {
       expect(QualifiedNameGenerator.forMember("Test", "counter")).toBe(
         "Test_counter",
       );

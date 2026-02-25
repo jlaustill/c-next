@@ -164,7 +164,7 @@ class CNextResolver {
           globalScope,
         );
         symbols.push(symbol);
-        // Use mangled name (global bitmaps have no scope prefix)
+        // Use transpiled C name (global bitmaps have no scope prefix)
         knownBitmaps.add(symbol.name);
       }
 
@@ -200,9 +200,9 @@ class CNextResolver {
         const bitmapCtx = member.bitmapDeclaration()!;
         const symbol = BitmapCollector.collect(bitmapCtx, sourceFile, scope);
         symbols.push(symbol);
-        // Use mangled name (e.g., "Timer_ControlBits") for scoped bitmaps
-        const mangledName = `${scopeName}_${symbol.name}`;
-        knownBitmaps.add(mangledName);
+        // Use transpiled C name (e.g., "Timer_ControlBits") for scoped bitmaps
+        const cName = `${scopeName}_${symbol.name}`;
+        knownBitmaps.add(cName);
       }
 
       // Collect structs early so they're available as types

@@ -57,14 +57,14 @@ function convertBitmap(
   bitmap: import("../transpiler/types/symbols/IBitmapSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const mangledName = SymbolNameUtils.getMangledName(bitmap);
+  const cName = SymbolNameUtils.getTranspiledCName(bitmap);
   const parent = bitmap.scope.name || undefined;
   const bitmapId = getDotPathId(bitmap);
   const bitmapParentId = getParentId(bitmap.scope);
 
   result.push({
     name: bitmap.name,
-    fullName: mangledName,
+    fullName: cName,
     kind: "bitmap",
     type: bitmap.backingType,
     parent,
@@ -77,9 +77,9 @@ function convertBitmap(
   for (const [fieldName, fieldInfo] of bitmap.fields) {
     result.push({
       name: fieldName,
-      fullName: `${mangledName}.${fieldName}`,
+      fullName: `${cName}.${fieldName}`,
       kind: "bitmapField",
-      parent: mangledName,
+      parent: cName,
       id: `${bitmapId}.${fieldName}`,
       parentId: bitmapId,
       line: bitmap.sourceLine,
@@ -94,14 +94,14 @@ function convertEnum(
   enumSym: import("../transpiler/types/symbols/IEnumSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const mangledName = SymbolNameUtils.getMangledName(enumSym);
+  const cName = SymbolNameUtils.getTranspiledCName(enumSym);
   const parent = enumSym.scope.name || undefined;
   const enumId = getDotPathId(enumSym);
   const enumParentId = getParentId(enumSym.scope);
 
   result.push({
     name: enumSym.name,
-    fullName: mangledName,
+    fullName: cName,
     kind: "enum",
     parent,
     id: enumId,
@@ -113,9 +113,9 @@ function convertEnum(
   for (const [memberName] of enumSym.members) {
     result.push({
       name: memberName,
-      fullName: `${mangledName}_${memberName}`,
+      fullName: `${cName}_${memberName}`,
       kind: "enumMember",
-      parent: mangledName,
+      parent: cName,
       id: `${enumId}.${memberName}`,
       parentId: enumId,
       line: enumSym.sourceLine,
@@ -129,14 +129,14 @@ function convertStruct(
   struct: import("../transpiler/types/symbols/IStructSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const mangledName = SymbolNameUtils.getMangledName(struct);
+  const cName = SymbolNameUtils.getTranspiledCName(struct);
   const parent = struct.scope.name || undefined;
   const structId = getDotPathId(struct);
   const structParentId = getParentId(struct.scope);
 
   result.push({
     name: struct.name,
-    fullName: mangledName,
+    fullName: cName,
     kind: "struct",
     parent,
     id: structId,
@@ -148,10 +148,10 @@ function convertStruct(
   for (const [fieldName, fieldInfo] of struct.fields) {
     result.push({
       name: fieldName,
-      fullName: `${mangledName}.${fieldName}`,
+      fullName: `${cName}.${fieldName}`,
       kind: "field",
       type: TypeResolver.getTypeName(fieldInfo.type),
-      parent: mangledName,
+      parent: cName,
       id: `${structId}.${fieldName}`,
       parentId: structId,
       line: struct.sourceLine,
@@ -165,7 +165,7 @@ function convertFunction(
   func: import("../transpiler/types/symbols/IFunctionSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const mangledName = SymbolNameUtils.getMangledName(func);
+  const cName = SymbolNameUtils.getTranspiledCName(func);
   const parent = func.scope.name || undefined;
   const returnType = TypeResolver.getTypeName(func.returnType);
 
@@ -173,11 +173,11 @@ function convertFunction(
   const paramTypes = func.parameters.map((p) =>
     TypeResolver.getTypeName(p.type),
   );
-  const signature = `${returnType} ${mangledName}(${paramTypes.join(", ")})`;
+  const signature = `${returnType} ${cName}(${paramTypes.join(", ")})`;
 
   result.push({
     name: func.name,
-    fullName: mangledName,
+    fullName: cName,
     kind: "function",
     type: returnType,
     parent,
@@ -194,13 +194,13 @@ function convertFunction(
 function convertVariable(
   variable: import("../transpiler/types/symbols/IVariableSymbol").default,
 ): ISymbolInfo {
-  const mangledName = SymbolNameUtils.getMangledName(variable);
+  const cName = SymbolNameUtils.getTranspiledCName(variable);
   const parent = variable.scope.name || undefined;
   const typeStr = TypeResolver.getTypeName(variable.type);
 
   return {
     name: variable.name,
-    fullName: mangledName,
+    fullName: cName,
     kind: "variable",
     type: typeStr,
     parent,
@@ -214,14 +214,14 @@ function convertRegister(
   register: import("../transpiler/types/symbols/IRegisterSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const mangledName = SymbolNameUtils.getMangledName(register);
+  const cName = SymbolNameUtils.getTranspiledCName(register);
   const parent = register.scope.name || undefined;
   const registerId = getDotPathId(register);
   const registerParentId = getParentId(register.scope);
 
   result.push({
     name: register.name,
-    fullName: mangledName,
+    fullName: cName,
     kind: "register",
     parent,
     id: registerId,
@@ -233,9 +233,9 @@ function convertRegister(
   for (const [memberName, memberInfo] of register.members) {
     result.push({
       name: memberName,
-      fullName: `${mangledName}.${memberName}`,
+      fullName: `${cName}.${memberName}`,
       kind: "registerMember",
-      parent: mangledName,
+      parent: cName,
       id: `${registerId}.${memberName}`,
       parentId: registerId,
       accessModifier: memberInfo.access,
