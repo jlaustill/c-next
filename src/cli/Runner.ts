@@ -3,12 +3,13 @@
  * Executes the transpiler with the given configuration
  */
 
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { existsSync, statSync, renameSync } from "node:fs";
 import Transpiler from "../transpiler/Transpiler";
 import ICliConfig from "./types/ICliConfig";
 import ResultPrinter from "./ResultPrinter";
 import ITranspilerResult from "../transpiler/types/ITranspilerResult";
+import InputExpansion from "../transpiler/data/InputExpansion";
 
 /** Result of determining output path */
 interface IOutputPathResult {
@@ -49,7 +50,16 @@ class Runner {
       debugMode: config.debugMode,
     });
 
+    if (InputExpansion.isCppEntryPoint(resolvedInput)) {
+      console.log(`Scanning ${basename(resolvedInput)} for C-Next includes...`);
+    }
+
     const result = await pipeline.transpile({ kind: "files" });
+
+    if (InputExpansion.isCppEntryPoint(resolvedInput)) {
+      this._printCppEntryPointResult(result, resolvedInput);
+    }
+
     this._renameOutputIfNeeded(result, explicitOutputFile);
 
     ResultPrinter.print(result);
@@ -110,6 +120,29 @@ class Runner {
     if (generatedFile !== explicitOutputFile) {
       renameSync(generatedFile, explicitOutputFile);
       result.outputFiles[0] = explicitOutputFile;
+    }
+  }
+
+  /**
+   * Print result message for C/C++ entry point scanning.
+   */
+  private static _printCppEntryPointResult(
+    result: ITranspilerResult,
+    resolvedInput: string,
+  ): void {
+    if (result.filesProcessed === 0) {
+      console.log("No C-Next files found in include tree. To get started:");
+      console.log("  1. Create a .cnx file (e.g., led.cnx)");
+      console.log("  2. Run: cnext led.cnx");
+      console.log("  3. Include the generated header in your C/C++ code");
+      console.log(`  4. Re-run: cnext ${basename(resolvedInput)}`);
+    } else {
+      const fileNames = result.files
+        .map((f) => basename(f.sourcePath))
+        .join(", ");
+      console.log(
+        `Found ${result.filesProcessed} C-Next source file(s): ${fileNames}`,
+      );
     }
   }
 }
