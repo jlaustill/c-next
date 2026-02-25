@@ -7,6 +7,14 @@ import { existsSync, statSync } from "node:fs";
  * Validates and resolves file paths for compilation.
  */
 class InputExpansion {
+  private static readonly CPP_EXTENSIONS = [
+    ".c",
+    ".cpp",
+    ".cc",
+    ".cxx",
+    ".c++",
+  ];
+  private static readonly CNEXT_EXTENSIONS = [".cnx", ".cnext"];
   /**
    * Expand inputs (files) to list of .cnx files
    *
@@ -37,8 +45,7 @@ class InputExpansion {
   /**
    * Validate file extension
    *
-   * Accepts: .cnx, .cnext
-   * Rejects: .c, .cpp, .cc, .cxx, .c++ (implementation files)
+   * Accepts: .cnx, .cnext, .c, .cpp, .cc, .cxx, .c++
    *
    * @param path - File path to validate
    * @throws Error if extension is invalid
@@ -47,24 +54,31 @@ class InputExpansion {
     const ext = extname(path);
     const fileName = basename(path);
 
-    // Reject implementation files
-    const rejectedExtensions = [".c", ".cpp", ".cc", ".cxx", ".c++"];
-    if (rejectedExtensions.includes(ext)) {
-      throw new Error(
-        `Cannot process implementation file '${fileName}'. ` +
-          `C-Next only compiles .cnx files. ` +
-          `If you need to include this file, create a header (.h) instead.`,
-      );
+    // Accept C-Next source files
+    if (InputExpansion.CNEXT_EXTENSIONS.includes(ext)) {
+      return;
     }
 
-    // Accept C-Next source files
-    const acceptedExtensions = [".cnx", ".cnext"];
-    if (!acceptedExtensions.includes(ext)) {
-      throw new Error(
-        `Invalid file extension '${ext}' for file '${fileName}'. ` +
-          `C-Next only accepts .cnx or .cnext files.`,
-      );
+    // Accept C/C++ entry point files
+    if (InputExpansion.CPP_EXTENSIONS.includes(ext)) {
+      return;
     }
+
+    throw new Error(
+      `Invalid file extension '${ext}' for file '${fileName}'. ` +
+        `C-Next only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files.`,
+    );
+  }
+
+  /**
+   * Check if a file is a C/C++ entry point
+   *
+   * @param path - File path to check
+   * @returns true if the file has a C/C++ extension
+   */
+  static isCppEntryPoint(path: string): boolean {
+    const ext = extname(path);
+    return InputExpansion.CPP_EXTENSIONS.includes(ext);
   }
 }
 

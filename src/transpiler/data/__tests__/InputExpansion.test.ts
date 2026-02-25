@@ -112,34 +112,34 @@ describe("InputExpansion", () => {
       ).not.toThrow();
     });
 
-    it("rejects .c files", () => {
+    it("accepts .c files as entry points", () => {
       expect(() =>
-        InputExpansion.validateFileExtension("/path/to/file.c"),
-      ).toThrow("Cannot process implementation file 'file.c'");
+        InputExpansion.validateFileExtension("/path/to/main.c"),
+      ).not.toThrow();
     });
 
-    it("rejects .cpp files", () => {
+    it("accepts .cpp files as entry points", () => {
       expect(() =>
-        InputExpansion.validateFileExtension("/path/to/file.cpp"),
-      ).toThrow("Cannot process implementation file 'file.cpp'");
+        InputExpansion.validateFileExtension("/path/to/main.cpp"),
+      ).not.toThrow();
     });
 
-    it("rejects .cc files", () => {
+    it("accepts .cc files as entry points", () => {
       expect(() =>
-        InputExpansion.validateFileExtension("/path/to/file.cc"),
-      ).toThrow("Cannot process implementation file 'file.cc'");
+        InputExpansion.validateFileExtension("/path/to/main.cc"),
+      ).not.toThrow();
     });
 
-    it("rejects .cxx files", () => {
+    it("accepts .cxx files as entry points", () => {
       expect(() =>
-        InputExpansion.validateFileExtension("/path/to/file.cxx"),
-      ).toThrow("Cannot process implementation file 'file.cxx'");
+        InputExpansion.validateFileExtension("/path/to/main.cxx"),
+      ).not.toThrow();
     });
 
-    it("rejects .c++ files", () => {
+    it("accepts .c++ files as entry points", () => {
       expect(() =>
-        InputExpansion.validateFileExtension("/path/to/file.c++"),
-      ).toThrow("Cannot process implementation file 'file.c++'");
+        InputExpansion.validateFileExtension("/path/to/main.c++"),
+      ).not.toThrow();
     });
 
     it("rejects unknown extensions", () => {
@@ -154,18 +154,42 @@ describe("InputExpansion", () => {
       ).toThrow("Invalid file extension '.h'");
     });
 
-    it("provides helpful message for implementation files", () => {
-      expect(() =>
-        InputExpansion.validateFileExtension("/path/to/impl.c"),
-      ).toThrow(
-        "If you need to include this file, create a header (.h) instead",
-      );
-    });
-
     it("provides helpful message for unknown extensions", () => {
       expect(() =>
         InputExpansion.validateFileExtension("/path/to/file.js"),
-      ).toThrow("C-Next only accepts .cnx or .cnext files");
+      ).toThrow(
+        "C-Next only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files",
+      );
+    });
+  });
+
+  describe("isCppEntryPoint", () => {
+    it("returns true for .c files", () => {
+      expect(InputExpansion.isCppEntryPoint("/path/to/main.c")).toBe(true);
+    });
+
+    it("returns true for .cpp files", () => {
+      expect(InputExpansion.isCppEntryPoint("/path/to/main.cpp")).toBe(true);
+    });
+
+    it("returns true for .cc files", () => {
+      expect(InputExpansion.isCppEntryPoint("/path/to/main.cc")).toBe(true);
+    });
+
+    it("returns true for .cxx files", () => {
+      expect(InputExpansion.isCppEntryPoint("/path/to/main.cxx")).toBe(true);
+    });
+
+    it("returns true for .c++ files", () => {
+      expect(InputExpansion.isCppEntryPoint("/path/to/main.c++")).toBe(true);
+    });
+
+    it("returns false for .cnx files", () => {
+      expect(InputExpansion.isCppEntryPoint("/path/to/file.cnx")).toBe(false);
+    });
+
+    it("returns false for .cnext files", () => {
+      expect(InputExpansion.isCppEntryPoint("/path/to/file.cnext")).toBe(false);
     });
   });
 });
