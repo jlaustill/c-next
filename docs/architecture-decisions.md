@@ -6,8 +6,8 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 
 ## Implemented
 
-| ADR                                                             | Title                      | Description                                                  |
-| --------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------ |
+| ADR                                                              | Title                      | Description                                                  |
+| ---------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------ |
 | [ADR-001](decisions/adr-001-assignment-operator.md)              | Assignment Operator        | `<-` for assignment, `=` for comparison                      |
 | [ADR-003](decisions/adr-003-static-allocation.md)                | Static Allocation          | No dynamic memory after init                                 |
 | [ADR-004](decisions/adr-004-register-bindings.md)                | Register Bindings          | Type-safe hardware access                                    |
@@ -49,57 +49,57 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 
 ## Accepted
 
-| ADR                                                            | Title                 | Description                                           |
-| -------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
+| ADR                                                             | Title                 | Description                                           |
+| --------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
 | [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection   |
 | [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion |
 
 ## Superseded
 
-| ADR                                           | Title              | Description                                                 |
-| --------------------------------------------- | ------------------ | ----------------------------------------------------------- |
+| ADR                                            | Title              | Description                                                 |
+| ---------------------------------------------- | ------------------ | ----------------------------------------------------------- |
 | [ADR-047](decisions/adr-047-nullable-types.md) | NULL for C Interop | `NULL` keyword for C stream functions (replaced by ADR-046) |
 
 ## Research (v1 Roadmap)
 
-| ADR                                                            | Title                         | Description                                      |
-| -------------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
-| [ADR-008](decisions/adr-008-language-bug-prevention.md)         | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
-| [ADR-009](decisions/adr-009-isr-safety.md)                      | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
-| [ADR-054](decisions/adr-054-array-index-overflow.md)            | Array Index Overflow          | Overflow semantics for array index expressions   |
-| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)          | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
-| [ADR-060](decisions/adr-060-vscode-extension-separation.md)     | VS Code Extension Separation  | Separate repository for VS Code extension        |
-| [ADR-109](decisions/adr-109-codegenerator-decomposition.md)     | CodeGenerator Decomposition   | Breaking down CodeGenerator into modules         |
-| [ADR-110](decisions/adr-110-do178c-compliance.md)               | DO-178C Compliance            | Safety-critical software certification framework |
+| ADR                                                         | Title                         | Description                                      |
+| ----------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| [ADR-008](decisions/adr-008-language-bug-prevention.md)     | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
+| [ADR-009](decisions/adr-009-isr-safety.md)                  | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
+| [ADR-054](decisions/adr-054-array-index-overflow.md)        | Array Index Overflow          | Overflow semantics for array index expressions   |
+| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)      | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
+| [ADR-060](decisions/adr-060-vscode-extension-separation.md) | VS Code Extension Separation  | Separate repository for VS Code extension        |
+| [ADR-109](decisions/adr-109-codegenerator-decomposition.md) | CodeGenerator Decomposition   | Breaking down CodeGenerator into modules         |
+| [ADR-110](decisions/adr-110-do178c-compliance.md)           | DO-178C Compliance            | Safety-critical software certification framework |
 
 ## Research (v2 Roadmap)
 
-| ADR                                                           | Title                      | Description                               |
-| ------------------------------------------------------------- | -------------------------- | ----------------------------------------- |
-| [ADR-100](decisions/adr-100-multi-core-synchronization.md)     | Multi-Core Synchronization | ESP32/RP2040 spinlock patterns            |
-| [ADR-101](decisions/adr-101-heap-allocation.md)                | Heap Allocation            | Dynamic memory for desktop targets        |
-| [ADR-102](decisions/adr-102-critical-section-analysis.md)      | Critical Section Analysis  | Complexity warnings and cycle analysis    |
-| [ADR-103](decisions/adr-103-stream-handling.md)                | Stream Handling            | FILE* and fopen patterns for file I/O     |
-| [ADR-104](decisions/adr-104-isr-queues.md)                     | ISR-Safe Queues            | Producer-consumer patterns for ISR/main   |
-| [ADR-105](decisions/adr-105-prefixed-includes.md)              | Prefixed Includes          | Namespace control for includes            |
-| [ADR-106](decisions/adr-106-isr-vector-bindings.md)            | Vector Table Bindings      | Register bindings for ISR vector tables   |
-| [ADR-111](decisions/adr-111-safe-hardware-abstraction.md)      | Safe Hardware Abstraction  | Type-safe hardware abstraction primitives |
+| ADR                                                        | Title                      | Description                               |
+| ---------------------------------------------------------- | -------------------------- | ----------------------------------------- |
+| [ADR-100](decisions/adr-100-multi-core-synchronization.md) | Multi-Core Synchronization | ESP32/RP2040 spinlock patterns            |
+| [ADR-101](decisions/adr-101-heap-allocation.md)            | Heap Allocation            | Dynamic memory for desktop targets        |
+| [ADR-102](decisions/adr-102-critical-section-analysis.md)  | Critical Section Analysis  | Complexity warnings and cycle analysis    |
+| [ADR-103](decisions/adr-103-stream-handling.md)            | Stream Handling            | FILE\* and fopen patterns for file I/O    |
+| [ADR-104](decisions/adr-104-isr-queues.md)                 | ISR-Safe Queues            | Producer-consumer patterns for ISR/main   |
+| [ADR-105](decisions/adr-105-prefixed-includes.md)          | Prefixed Includes          | Namespace control for includes            |
+| [ADR-106](decisions/adr-106-isr-vector-bindings.md)        | Vector Table Bindings      | Register bindings for ISR vector tables   |
+| [ADR-111](decisions/adr-111-safe-hardware-abstraction.md)  | Safe Hardware Abstraction  | Type-safe hardware abstraction primitives |
 
 ## Rejected
 
-| ADR                                                            | Title               | Description                                                             |
-| -------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------- |
-| [ADR-041](decisions/adr-041-inline-assembly.md)                 | Inline Assembly     | Write assembly in C files; C-Next transpiles to C anyway                |
-| [ADR-042](decisions/adr-042-error-handling.md)                  | Error Handling      | Works with existing features (enums, pass-by-reference, struct returns) |
-| [ADR-039](decisions/adr-039-null-safety.md)                     | Null Safety         | Emergent from ADR-003 + ADR-006 + ADR-015; no additional feature needed |
-| [ADR-020](decisions/adr-020-size-type.md)                       | Size Type           | Fixed-width types are more predictable than platform-sized              |
-| [ADR-019](decisions/adr-019-type-aliases.md)                    | Type Aliases        | Fixed-width primitives already solve the problem                        |
-| [ADR-021](decisions/adr-021-increment-decrement.md)             | Increment/Decrement | Use `+<- 1` instead; separation of concerns                             |
-| [ADR-002](decisions/adr-002-namespaces.md)                      | Namespaces          | Replaced by `scope` keyword (ADR-016)                                   |
-| [ADR-005](decisions/adr-005-classes-without-inheritance.md)     | Classes             | Use structs + free functions instead (ADR-016)                          |
-| [ADR-018](decisions/adr-018-unions.md)                          | Unions              | Use ADR-004 register bindings or explicit byte manipulation             |
-| [ADR-038](decisions/adr-038-static-extern.md)                   | Static/Extern       | Use `scope` for visibility; no `static` keyword in v1                   |
-| [ADR-026](decisions/adr-026-break-continue.md)                  | Break/Continue      | Use structured loop conditions instead                                  |
-| [ADR-028](decisions/adr-028-goto.md)                            | Goto                | Permanently rejected; use structured alternatives                       |
-| [ADR-031](decisions/adr-031-inline-functions.md)                | Inline Functions    | Trust compiler; `inline` is just a hint anyway                          |
-| [ADR-033](decisions/adr-033-packed-structs.md)                  | Packed Structs      | Use ADR-004 register bindings or explicit serialization                 |
+| ADR                                                         | Title               | Description                                                             |
+| ----------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| [ADR-041](decisions/adr-041-inline-assembly.md)             | Inline Assembly     | Write assembly in C files; C-Next transpiles to C anyway                |
+| [ADR-042](decisions/adr-042-error-handling.md)              | Error Handling      | Works with existing features (enums, pass-by-reference, struct returns) |
+| [ADR-039](decisions/adr-039-null-safety.md)                 | Null Safety         | Emergent from ADR-003 + ADR-006 + ADR-015; no additional feature needed |
+| [ADR-020](decisions/adr-020-size-type.md)                   | Size Type           | Fixed-width types are more predictable than platform-sized              |
+| [ADR-019](decisions/adr-019-type-aliases.md)                | Type Aliases        | Fixed-width primitives already solve the problem                        |
+| [ADR-021](decisions/adr-021-increment-decrement.md)         | Increment/Decrement | Use `+<- 1` instead; separation of concerns                             |
+| [ADR-002](decisions/adr-002-namespaces.md)                  | Namespaces          | Replaced by `scope` keyword (ADR-016)                                   |
+| [ADR-005](decisions/adr-005-classes-without-inheritance.md) | Classes             | Use structs + free functions instead (ADR-016)                          |
+| [ADR-018](decisions/adr-018-unions.md)                      | Unions              | Use ADR-004 register bindings or explicit byte manipulation             |
+| [ADR-038](decisions/adr-038-static-extern.md)               | Static/Extern       | Use `scope` for visibility; no `static` keyword in v1                   |
+| [ADR-026](decisions/adr-026-break-continue.md)              | Break/Continue      | Use structured loop conditions instead                                  |
+| [ADR-028](decisions/adr-028-goto.md)                        | Goto                | Permanently rejected; use structured alternatives                       |
+| [ADR-031](decisions/adr-031-inline-functions.md)            | Inline Functions    | Trust compiler; `inline` is just a hint anyway                          |
+| [ADR-033](decisions/adr-033-packed-structs.md)              | Packed Structs      | Use ADR-004 register bindings or explicit serialization                 |

@@ -6,6 +6,7 @@
 ## Problem Statement
 
 The README received feedback that:
+
 1. Length (~870 lines) is overwhelming for first-time visitors
 2. "Thought exercise" tagline undersells the project's maturity
 3. Missing direct "Why not Rust?" answer
@@ -40,6 +41,7 @@ The README received feedback that:
 C-Next transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
 
 This means:
+
 - **50+ years of GCC optimizations** work out of the box
 - **Existing debuggers and profilers** just work (GDB, Ozone, etc.)
 - **No new runtime** — the generated C is what runs on your hardware
@@ -50,18 +52,19 @@ Other memory-safe languages require adopting an entirely new toolchain, build sy
 
 ## Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `README.md` | Restructure per design |
-| `docs/language-guide.md` | NEW — move Core Features content |
-| `docs/architecture-decisions.md` | NEW — move ADR tables |
-| GitHub repo description | Update via `gh repo edit` |
+| File                             | Action                           |
+| -------------------------------- | -------------------------------- |
+| `README.md`                      | Restructure per design           |
+| `docs/language-guide.md`         | NEW — move Core Features content |
+| `docs/architecture-decisions.md` | NEW — move ADR tables            |
+| GitHub repo description          | Update via `gh repo edit`        |
 
 ## Content Migration
 
 ### Moves to `docs/language-guide.md`
 
 All "Core Features" content:
+
 - Assignment vs Equality
 - Fixed-Width Types
 - Register Bindings
@@ -82,6 +85,7 @@ All "Core Features" content:
 ### Moves to `docs/architecture-decisions.md`
 
 All ADR tables:
+
 - Implemented (40+ ADRs)
 - Accepted
 - Superseded
@@ -97,10 +101,10 @@ All ADR tables:
 
 ## Expanded Projects Table
 
-| Project | Description |
-|---------|-------------|
-| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control |
-| [test-teensy](test-teensy/) | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
+| Project                                   | Description                                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control         |
+| [test-teensy](test-teensy/)               | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
 
 ## GitHub Repo Description
 
