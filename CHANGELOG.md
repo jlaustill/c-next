@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-02-26
+
+### Fixed
+
+- Generated `.hpp` headers incorrectly used `.h` extension for `.cnx` include directives in C++ mode (PR #976)
+- `--pio-install` generated build script used outdated per-file glob pattern instead of entry-point approach (PR #976)
+- CLI help text and ADR docs updated to reflect single entry-point usage (PR #976)
+
 ## [0.2.13] - 2026-02-25
 
 ### Added
@@ -1223,6 +1231,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.13...HEAD
+[0.2.14]: https://github.com/jlaustill/c-next/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/jlaustill/c-next/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/jlaustill/c-next/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/jlaustill/c-next/compare/v0.2.10...v0.2.11
