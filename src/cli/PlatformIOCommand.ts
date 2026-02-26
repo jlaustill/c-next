@@ -46,7 +46,7 @@ class PlatformIOCommand {
     // Create cnext_build.py script
     // Issue #833: Run transpilation at import time (before compilation),
     // not as a pre-action on buildprog (which runs after compilation)
-    const buildScript = `Import("env")
+    const buildScript = String.raw`Import("env")
 import subprocess
 import sys
 from pathlib import Path
@@ -67,7 +67,7 @@ def transpile_cnext():
             text=True
         )
         if result.stdout:
-            lines = result.stdout.strip().split("\\n")
+            lines = result.stdout.strip().split("\n")
             for line in lines:
                 if line.startswith(("Compiled", "Collected", "Generated")):
                     print(f"  {line}")

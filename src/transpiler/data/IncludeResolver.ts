@@ -62,6 +62,12 @@ class IncludeResolver {
   private readonly fs: IFileSystem;
   private readonly cppMode: boolean;
 
+  /**
+   * @param cppMode Controls .h vs .hpp extension for .cnx include directives.
+   *   Note: In the Transpiler, cppDetected may change after IncludeResolver runs
+   *   (e.g., when a .hpp header is discovered during Stage 2). HeaderGeneratorUtils
+   *   uses stem-based dedup to handle any resulting .h/.hpp mismatch.
+   */
   constructor(
     private readonly searchPaths: string[],
     fs: IFileSystem = defaultFs,
