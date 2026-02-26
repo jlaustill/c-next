@@ -571,17 +571,31 @@ describe("HeaderGeneratorUtils", () => {
       expect(lines).toContain('#include "types.hpp"');
     });
 
-    it("deduplicates headersToInclude against userIncludes with .h/.hpp normalization in C++ mode", () => {
+    it("deduplicates headersToInclude against userIncludes by basename in C++ mode", () => {
       const result = HeaderGeneratorUtils.generateIncludes(
         {
-          userIncludes: ['#include "types.hpp"'],
+          userIncludes: ["#include <AppConfig.hpp>"],
           cppMode: true,
         },
-        new Set(['#include "types.h"']),
+        new Set(['#include "../AppConfig.hpp"']),
       );
-      // Should NOT have duplicate - the .h version should be filtered
-      const typeIncludes = result.filter((l) => l.includes("types"));
-      expect(typeIncludes).toEqual(['#include "types.hpp"']);
+      // Should NOT have duplicate - different path styles for same file should dedup
+      const configIncludes = result.filter((l) => l.includes("AppConfig"));
+      expect(configIncludes).toEqual(["#include <AppConfig.hpp>"]);
+    });
+
+    it("deduplicates .h vs .hpp extension mismatch from timing difference", () => {
+      // IncludeExtractor produces .hpp (after cppDetected), IncludeResolver
+      // produces .h (before cppDetected) — stem-based dedup handles this
+      const result = HeaderGeneratorUtils.generateIncludes(
+        {
+          userIncludes: ["#include <Display/AppData.hpp>"],
+          cppMode: true,
+        },
+        new Set(["#include <Display/AppData.h>"]),
+      );
+      const appDataIncludes = result.filter((l) => l.includes("AppData"));
+      expect(appDataIncludes).toEqual(["#include <Display/AppData.hpp>"]);
     });
   });
 

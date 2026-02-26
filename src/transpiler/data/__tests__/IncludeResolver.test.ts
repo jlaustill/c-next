@@ -316,6 +316,56 @@ describe("IncludeResolver", () => {
   });
 
   // ========================================================================
+  // C++ Mode (cppMode) — Issue: .hpp vs .h in headerIncludeDirectives
+  // ========================================================================
+
+  describe("cppMode header directive extension", () => {
+    it("should use .h extension for cnx includes in C mode (default)", () => {
+      const resolver = new IncludeResolver([includeDir]);
+      const content = '#include "shared.cnx"';
+
+      const result = resolver.resolve(content);
+
+      const directives = [...result.headerIncludeDirectives.values()];
+      expect(directives).toHaveLength(1);
+      expect(directives[0]).toBe('#include "shared.h"');
+    });
+
+    it("should use .hpp extension for cnx includes in C++ mode", () => {
+      const resolver = new IncludeResolver([includeDir], undefined, true);
+      const content = '#include "shared.cnx"';
+
+      const result = resolver.resolve(content);
+
+      const directives = [...result.headerIncludeDirectives.values()];
+      expect(directives).toHaveLength(1);
+      expect(directives[0]).toBe('#include "shared.hpp"');
+    });
+
+    it("should use .hpp for angle-bracket cnx includes in C++ mode", () => {
+      const resolver = new IncludeResolver([includeDir], undefined, true);
+      const content = "#include <shared.cnx>";
+
+      const result = resolver.resolve(content);
+
+      const directives = [...result.headerIncludeDirectives.values()];
+      expect(directives).toHaveLength(1);
+      expect(directives[0]).toBe("#include <shared.hpp>");
+    });
+
+    it("should not affect C/C++ header directives (only cnx includes)", () => {
+      const resolver = new IncludeResolver([includeDir], undefined, true);
+      const content = '#include "types.h"';
+
+      const result = resolver.resolve(content);
+
+      const directives = [...result.headerIncludeDirectives.values()];
+      expect(directives).toHaveLength(1);
+      expect(directives[0]).toBe('#include "types.h"');
+    });
+  });
+
+  // ========================================================================
   // Edge Cases
   // ========================================================================
 

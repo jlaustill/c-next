@@ -491,7 +491,11 @@ class Transpiler {
     );
 
     // Resolve includes from source content
-    const resolver = new IncludeResolver(searchPaths, this.fs);
+    const resolver = new IncludeResolver(
+      searchPaths,
+      this.fs,
+      this.cppDetected,
+    );
     const resolved = resolver.resolve(source, sourcePath);
     this.warnings.push(...resolved.warnings);
 
@@ -864,7 +868,11 @@ class Transpiler {
     );
 
     // Resolve includes
-    const resolver = new IncludeResolver(searchPaths, this.fs);
+    const resolver = new IncludeResolver(
+      searchPaths,
+      this.fs,
+      this.cppDetected,
+    );
     const resolved = resolver.resolve(content, cnxFile.path);
 
     this._collectHeaders(resolved, cnextBaseNames, headerSet);

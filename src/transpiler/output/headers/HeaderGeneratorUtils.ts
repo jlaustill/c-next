@@ -289,22 +289,29 @@ class HeaderGeneratorUtils {
     }
 
     // External type header includes (skip duplicates of user includes)
-    // Note: headersToInclude comes from IncludeResolver which always produces .h
-    // (it runs before cppDetected is set). We need to match against userIncludes
-    // which may have .hpp in C++ mode, so normalize both for deduplication.
+    // Dedup by basename stem to handle:
+    // - Different path styles (e.g., <AppConfig.hpp> vs "../AppConfig.hpp")
+    // - Extension mismatch from timing (.h from IncludeResolver before cppDetected,
+    //   .hpp from IncludeExtractor after cppDetected)
     const userIncludeSet = new Set(options.userIncludes ?? []);
-    // Issue #941: Also add .h variants for dedup since headersToInclude uses .h
-    if (options.cppMode && options.userIncludes) {
-      for (const inc of options.userIncludes) {
-        // Add the .h version so we can match against headersToInclude
-        const hVersion = inc.replace(/\.hpp"/, '.h"').replace(/\.hpp>/, ".h>");
-        userIncludeSet.add(hVersion);
-      }
-    }
+    const extractStem = (inc: string): string => {
+      const match = /["<]([^">]+)[">]/.exec(inc);
+      if (!match) return inc;
+      return match[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
+    };
+    const userIncludeStems = new Set(
+      (options.userIncludes ?? []).map(extractStem),
+    );
     for (const directive of headersToInclude) {
-      if (!userIncludeSet.has(directive)) {
-        lines.push(directive);
+      if (userIncludeSet.has(directive)) {
+        continue;
       }
+      // Check if a user include already covers the same file
+      const stem = extractStem(directive);
+      if (stem && userIncludeStems.has(stem)) {
+        continue;
+      }
+      lines.push(directive);
     }
 
     // Add blank line if any includes were added

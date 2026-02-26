@@ -68,6 +68,29 @@ describe("PlatformIOCommand", () => {
       expect(scriptCall?.[1]).toContain("transpile_cnext");
     });
 
+    it("generates script that uses entry point, not per-file loop", () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+
+      PlatformIOCommand.install();
+
+      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+      const scriptCall = writeCalls.find((call) =>
+        (call[0] as string).includes("cnext_build.py"),
+      );
+
+      expect(scriptCall).toBeDefined();
+      const scriptContent = scriptCall?.[1] as string;
+
+      // Should use entry point approach
+      expect(scriptContent).toContain('Path("src/main.cnx")');
+      expect(scriptContent).toContain('["cnext", str(entry)]');
+
+      // Should NOT loop over individual .cnx files
+      expect(scriptContent).not.toContain("for cnx_file");
+      expect(scriptContent).not.toContain("rglob");
+    });
+
     it("generates script that runs at import time, not as buildprog pre-action (issue #833)", () => {
       // Issue #833: buildprog fires AFTER compilation, so transpile runs too late
       // The script should run transpilation at import time (before compilation)

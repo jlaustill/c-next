@@ -46,37 +46,36 @@ class PlatformIOCommand {
     // Create cnext_build.py script
     // Issue #833: Run transpilation at import time (before compilation),
     // not as a pre-action on buildprog (which runs after compilation)
-    const buildScript = `Import("env")
+    const buildScript = String.raw`Import("env")
 import subprocess
 import sys
 from pathlib import Path
 
 def transpile_cnext():
-    """Transpile all .cnx files before build"""
-    # Find all .cnx files in src directory
-    src_dir = Path("src")
-    if not src_dir.exists():
+    """Transpile from main.cnx entry point — cnext follows includes"""
+    entry = Path("src/main.cnx")
+    if not entry.exists():
         return
 
-    cnx_files = list(src_dir.rglob("*.cnx"))
-    if not cnx_files:
-        return
+    print("Transpiling from main.cnx...")
 
-    print(f"Transpiling {len(cnx_files)} c-next files...")
-
-    for cnx_file in cnx_files:
-        try:
-            result = subprocess.run(
-                ["cnext", str(cnx_file)],
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            print(f"  ✓ {cnx_file.name}")
-        except subprocess.CalledProcessError as e:
-            print(f"  ✗ Error: {cnx_file.name}")
-            print(e.stderr)
-            sys.exit(1)
+    try:
+        result = subprocess.run(
+            ["cnext", str(entry)],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        if result.stdout:
+            lines = result.stdout.strip().split("\n")
+            for line in lines:
+                if line.startswith(("Compiled", "Collected", "Generated")):
+                    print(f"  {line}")
+        print("  ✓ Transpilation complete")
+    except subprocess.CalledProcessError as e:
+        print(f"  ✗ Transpilation failed")
+        print(e.stderr)
+        sys.exit(1)
 
 # Run transpilation at import time (before compilation starts)
 transpile_cnext()
@@ -119,13 +118,12 @@ transpile_cnext()
     console.log("✓ PlatformIO integration configured!");
     console.log("");
     console.log("Next steps:");
-    console.log(
-      "  1. Create .cnx files in src/ (alongside your .c/.cpp files)",
-    );
-    console.log("  2. Run: pio run");
+    console.log("  1. Create src/main.cnx as your entry point");
+    console.log("  2. Use #include to pull in other .cnx files");
+    console.log("  3. Run: pio run");
     console.log("");
     console.log(
-      "The transpiler will automatically convert .cnx → .c before each build.",
+      "The transpiler will follow includes from main.cnx automatically.",
     );
     console.log("Commit both .cnx and generated .c files to version control.");
   }

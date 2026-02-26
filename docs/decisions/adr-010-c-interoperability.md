@@ -294,8 +294,7 @@ Build process:
 3. **Build system integration** ✅
    - **Decision:** Remove `--project` flag, always use unified parsing
    - **Behavior:**
-     - `cnext file.cnx` → Parses file.cnx + discovers and parses headers referenced by `#include` directives
-     - `cnext src/*.cnx` → Multi-file mode (parses all .cnx files + their included headers)
+     - `cnext src/main.cnx` → Parses entry point + discovers and parses all files referenced by `#include` directives
      - Always builds unified symbol table
    - **Include Path Resolution:**
      - Parse .cnx files first, extract `#include "..."` and `#include <...>` directives
