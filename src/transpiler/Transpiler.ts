@@ -927,53 +927,8 @@ class Transpiler {
     cnextFiles.push(entryFile);
     fileByPath.set(resolve(entryFile.path), entryFile);
 
-    // Step 2: For each C-Next file, resolve its #include directives
-    const headerSet = new Map<string, IDiscoveredFile>();
-    const depGraph = new DependencyGraph();
-    const cnextBaseNames = new Set(
-      cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
-    );
-
-    for (const cnxFile of cnextFiles) {
-      this._processFileIncludes(
-        cnxFile,
-        depGraph,
-        cnextFiles,
-        cnextBaseNames,
-        headerSet,
-        fileByPath,
-      );
-    }
-
-    // Issue #580: Sort files topologically for correct cross-file const inference
-    const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
-
-    // Resolve headers transitively
-    const { headers: allHeaders, warnings: headerWarnings } =
-      IncludeResolver.resolveHeadersTransitively(
-        [...headerSet.values()],
-        this.config.includeDirs,
-        {
-          onDebug: this.config.debugMode
-            ? (msg) => console.log(`[DEBUG] ${msg}`)
-            : undefined,
-          processedPaths: this.state.getProcessedHeadersSet(),
-          fs: this.fs,
-        },
-      );
-    this.warnings.push(...headerWarnings);
-
-    // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
-    const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
-      path: f.path,
-      discoveredFile: f,
-    }));
-
-    return {
-      cnextFiles: pipelineFiles,
-      headerFiles: allHeaders,
-      writeOutputToDisk: true,
-    };
+    // Step 2: Build dependency graph, resolve headers, and return pipeline input
+    return this._buildPipelineInput(cnextFiles, fileByPath);
   }
 
   /**
@@ -1015,19 +970,35 @@ class Transpiler {
       }),
     );
 
-    // Build dependency graph and process includes for each .cnx file
+    // Build fileByPath map for dependency resolution
+    const fileByPath = new Map<string, IDiscoveredFile>();
+    for (const cnxFile of cnextFiles) {
+      fileByPath.set(resolve(cnxFile.path), cnxFile);
+    }
+
+    // Scanner discovers .cnx files via header markers in the C/C++ include tree.
+    // _buildPipelineInput then resolves direct .cnx-to-.cnx includes (e.g.,
+    // #include "utils.cnx") which the scanner visits but doesn't add to sources.
+    return this._buildPipelineInput(cnextFiles, fileByPath);
+  }
+
+  /**
+   * Shared helper: Build pipeline input from discovered C-Next files.
+   *
+   * Processes includes, builds dependency graph, resolves headers transitively,
+   * and converts to pipeline files. Used by both .cnx and C/C++ entry point paths.
+   */
+  private _buildPipelineInput(
+    cnextFiles: IDiscoveredFile[],
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): IPipelineInput {
     const headerSet = new Map<string, IDiscoveredFile>();
     const depGraph = new DependencyGraph();
-    const fileByPath = new Map<string, IDiscoveredFile>();
     const cnextBaseNames = new Set(
       cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
     );
 
-    // Scanner discovers .cnx files via header markers in the C/C++ include tree.
-    // _processFileIncludes then resolves direct .cnx-to-.cnx includes (e.g.,
-    // #include "utils.cnx") which the scanner visits but doesn't add to sources.
     for (const cnxFile of cnextFiles) {
-      fileByPath.set(resolve(cnxFile.path), cnxFile);
       this._processFileIncludes(
         cnxFile,
         depGraph,
@@ -1038,7 +1009,7 @@ class Transpiler {
       );
     }
 
-    // Sort files topologically
+    // Issue #580: Sort files topologically for correct cross-file const inference
     const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
     // Resolve headers transitively
@@ -1056,7 +1027,7 @@ class Transpiler {
       );
     this.warnings.push(...headerWarnings);
 
-    // Convert to pipeline files
+    // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
     const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
       path: f.path,
       discoveredFile: f,
