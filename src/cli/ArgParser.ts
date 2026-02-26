@@ -42,10 +42,8 @@ function configureYargs(args: string[], argv: string[]) {
       .scriptName("cnext")
       .usage(
         `Usage:
-  cnext <file.cnx>                          Single file (outputs file.c)
+  cnext <file.cnx>                          Entry point file (follows includes)
   cnext <file.cnx> -o <output.c>            Single file with explicit output
-  cnext <files...> -o <dir>                 Multi-file mode
-  cnext <dir>                               Directory mode (recursive)
 
 A safer C for embedded systems development.`,
       )
@@ -156,10 +154,8 @@ A safer C for embedded systems development.`,
       // Config file documentation (shown in help)
       .epilogue(
         `Examples:
-  cnext main.cnx                            # Outputs main.c (same dir)
+  cnext src/main.cnx                        # Entry point (follows includes)
   cnext main.cnx -o build/main.c            # Explicit output path
-  cnext src/*.cnx -o build/                 # Multiple files to directory
-  cnext src/                                # Compile all .cnx files in src/ (recursive)
 
 Target platforms: teensy41, cortex-m7, cortex-m4, cortex-m3, cortex-m0+, cortex-m0, avr
 

@@ -199,9 +199,8 @@ node dist/index.js input.cnx -o output.c
 Proposed behavior:
 
 ```bash
-cnext input.cnx           # Outputs input.c in same directory
+cnext src/main.cnx        # Entry point (follows includes)
 cnext input.cnx -o out.c  # Outputs to specified path
-cnext src/*.cnx           # Outputs .c files alongside each .cnx
 ```
 
 ### Implementation
