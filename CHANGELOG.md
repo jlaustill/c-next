@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-02-25
+
+### Added
+
+- Single entry point file replaces directory input — files are discovered automatically via `#include` directives (PR #972)
+
+### Fixed
+
+- Generated `.c`/`.cpp` files now include headers with paths relative to `--header-out`, fixing include path proliferation in PlatformIO projects (Issue #339, PR #972)
+- Scoped C-Next symbols excluded from cross-language conflict detection (Issue #967, PR #969)
+
+### Changed
+
+- CLI now requires a single `.cnx` entry point file instead of directory input (PR #972)
+- `getMangledName` renamed to `getTranspiledCName` for clarity (Issue #968, PR #970)
+- README.md restructured with links to separate documentation files (PR #971)
+
 ## [0.2.12] - 2026-02-24
 
 ### Fixed
@@ -1205,7 +1222,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.10...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.13...HEAD
+[0.2.13]: https://github.com/jlaustill/c-next/compare/v0.2.12...v0.2.13
+[0.2.12]: https://github.com/jlaustill/c-next/compare/v0.2.11...v0.2.12
+[0.2.11]: https://github.com/jlaustill/c-next/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/jlaustill/c-next/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/jlaustill/c-next/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/jlaustill/c-next/compare/v0.2.7...v0.2.8
