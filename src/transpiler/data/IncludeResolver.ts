@@ -60,12 +60,15 @@ class IncludeResolver {
 
   private readonly resolvedPaths: Set<string> = new Set();
   private readonly fs: IFileSystem;
+  private readonly cppMode: boolean;
 
   constructor(
     private readonly searchPaths: string[],
     fs: IFileSystem = defaultFs,
+    cppMode: boolean = false,
   ) {
     this.fs = fs;
+    this.cppMode = cppMode;
   }
 
   /**
@@ -164,7 +167,8 @@ class IncludeResolver {
       // Issue #854: Track header directive for cnext includes so their types
       // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
       // forward declarations (MISRA Rule 5.6)
-      const headerPath = includeInfo.path.replace(/\.cnx$|\.cnext$/, ".h");
+      const ext = this.cppMode ? ".hpp" : ".h";
+      const headerPath = includeInfo.path.replace(/\.cnx$|\.cnext$/, ext);
       const directive = includeInfo.isLocal
         ? `#include "${headerPath}"`
         : `#include <${headerPath}>`;
