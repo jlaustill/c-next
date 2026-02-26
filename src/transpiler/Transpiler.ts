@@ -45,6 +45,8 @@ import IncludeResolver from "./data/IncludeResolver";
 import IncludeTreeWalker from "./data/IncludeTreeWalker";
 import DependencyGraph from "./data/DependencyGraph";
 import PathResolver from "./data/PathResolver";
+import InputExpansion from "./data/InputExpansion";
+import CppEntryPointScanner from "./data/CppEntryPointScanner";
 
 import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
@@ -395,13 +397,17 @@ class Transpiler {
       this._setupCrossFileModifications();
 
       // Generate code
+      // Use file's sourceRelativePath (source mode) or compute from PathResolver (files mode)
+      const sourceRelativePath =
+        file.sourceRelativePath ??
+        this.pathResolver.getSourceRelativePath(sourcePath);
       const code = this.codeGenerator.generate(tree, tokenStream, {
         debugMode: this.config.debugMode,
         target: this.config.target,
         sourcePath,
         cppMode: this.cppDetected,
         symbolInfo,
-        sourceRelativePath: this.pathResolver.getSourceRelativePath(sourcePath),
+        sourceRelativePath,
       });
 
       // Collect user includes
@@ -536,6 +542,7 @@ class Transpiler {
     );
 
     // Build the main file (with in-memory source and cnextIncludes for enum resolution)
+    // Source mode uses basename for self-include to match files mode behavior
     const mainFile: IPipelineFile = {
       path: sourcePath,
       source,
@@ -545,6 +552,7 @@ class Transpiler {
         extension: ".cnx",
       },
       cnextIncludes: resolved.cnextIncludes,
+      sourceRelativePath: basename(sourcePath),
     };
 
     // Includes first (symbols must be collected before main file code gen),
@@ -901,21 +909,89 @@ class Transpiler {
    * includes, not by blindly scanning include directories.
    */
   private async _discoverFromFiles(): Promise<IPipelineInput> {
-    // Step 1: Discover entry point file
+    const entryPath = resolve(this.config.input);
+
+    // Check if this is a C/C++ entry point
+    if (InputExpansion.isCppEntryPoint(entryPath)) {
+      return this._discoverFromCppEntryPoint(entryPath);
+    }
+
+    // Step 1: Discover entry point file (original .cnx entry point logic)
     const cnextFiles: IDiscoveredFile[] = [];
     const fileByPath = new Map<string, IDiscoveredFile>();
 
-    const entryFile = FileDiscovery.discoverFile(
-      resolve(this.config.input),
-      this.fs,
-    );
+    const entryFile = FileDiscovery.discoverFile(entryPath, this.fs);
     if (entryFile?.type !== EFileType.CNext) {
       return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
     }
     cnextFiles.push(entryFile);
     fileByPath.set(resolve(entryFile.path), entryFile);
 
-    // Step 2: For each C-Next file, resolve its #include directives
+    // Step 2: Build dependency graph, resolve headers, and return pipeline input
+    return this._buildPipelineInput(cnextFiles, fileByPath);
+  }
+
+  /**
+   * Discover C-Next files from a C/C++ entry point.
+   *
+   * Scans the include tree for headers with C-Next generation markers,
+   * extracts the source .cnx paths, and returns them for transpilation.
+   */
+  private _discoverFromCppEntryPoint(entryPath: string): IPipelineInput {
+    const entryDir = dirname(entryPath);
+    const searchPaths = IncludeResolver.buildSearchPaths(
+      entryDir,
+      this.config.includeDirs,
+      [],
+      undefined,
+      this.fs,
+    );
+
+    const scanner = new CppEntryPointScanner(searchPaths, this.fs);
+    const scanResult = scanner.scan(entryPath);
+
+    // Report errors and warnings
+    // Prefix errors to distinguish from informational warnings
+    for (const error of scanResult.errors) {
+      this.warnings.push(`Error: ${error}`);
+    }
+    this.warnings.push(...scanResult.warnings);
+
+    if (scanResult.noCNextFound) {
+      return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
+    }
+
+    // Convert discovered .cnx paths to IDiscoveredFile array
+    const cnextFiles: IDiscoveredFile[] = scanResult.cnextSources.map(
+      (path) => ({
+        path,
+        type: EFileType.CNext,
+        extension: ".cnx",
+      }),
+    );
+
+    // Build fileByPath map for dependency resolution
+    const fileByPath = new Map<string, IDiscoveredFile>();
+    for (const cnxFile of cnextFiles) {
+      fileByPath.set(resolve(cnxFile.path), cnxFile);
+    }
+
+    // Scanner discovers .cnx files via header markers in the C/C++ include tree.
+    // _buildPipelineInput then resolves direct .cnx-to-.cnx includes (e.g.,
+    // #include "utils.cnx") which the scanner visits but doesn't add to sources.
+    return this._buildPipelineInput(cnextFiles, fileByPath);
+  }
+
+  /**
+   * Shared helper: Build pipeline input from discovered C-Next files.
+   *
+   * Processes includes, builds dependency graph, resolves headers transitively,
+   * and converts to pipeline files. Used by both .cnx and C/C++ entry point paths.
+   */
+  private _buildPipelineInput(
+    cnextFiles: IDiscoveredFile[],
+    fileByPath: Map<string, IDiscoveredFile>,
+  ): IPipelineInput {
     const headerSet = new Map<string, IDiscoveredFile>();
     const depGraph = new DependencyGraph();
     const cnextBaseNames = new Set(
@@ -1349,6 +1425,7 @@ class Transpiler {
       typeInputWithSymbolTable,
       passByValueParams,
       allKnownEnums,
+      basename(sourcePath),
     );
   }
 

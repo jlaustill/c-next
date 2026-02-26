@@ -22,6 +22,9 @@ interface IPipelineFile {
 
   /** C-Next includes for transitive enum resolution */
   readonly cnextIncludes?: ReadonlyArray<{ path: string }>;
+
+  /** Override for source-relative path (used in source mode) */
+  readonly sourceRelativePath?: string;
 }
 
 export default IPipelineFile;

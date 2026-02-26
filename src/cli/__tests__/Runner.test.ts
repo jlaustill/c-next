@@ -7,11 +7,13 @@ import Runner from "../Runner";
 import Transpiler from "../../transpiler/Transpiler";
 import ResultPrinter from "../ResultPrinter";
 import ICliConfig from "../types/ICliConfig";
+import InputExpansion from "../../transpiler/data/InputExpansion";
 import * as fs from "node:fs";
 
 // Mock dependencies
 vi.mock("../../transpiler/Transpiler");
 vi.mock("../ResultPrinter");
+vi.mock("../../transpiler/data/InputExpansion");
 vi.mock("node:fs", async () => {
   const actual = await vi.importActual("node:fs");
   return {
@@ -69,6 +71,9 @@ describe("Runner", () => {
     vi.mocked(Transpiler).mockImplementation(function () {
       return mockTranspilerInstance as unknown as Transpiler;
     });
+
+    // Default: not a C++ entry point
+    vi.mocked(InputExpansion.isCppEntryPoint).mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -220,6 +225,103 @@ describe("Runner", () => {
       );
 
       expect(fs.renameSync).not.toHaveBeenCalled();
+    });
+
+    describe("C++ entry point", () => {
+      beforeEach(() => {
+        vi.mocked(InputExpansion.isCppEntryPoint).mockReturnValue(true);
+        mockConfig.input = "src/main.cpp";
+      });
+
+      it("prints scanning message for C++ entry point", async () => {
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: true,
+          outputFiles: [],
+          errors: [],
+          filesProcessed: 1,
+          files: [{ sourcePath: "/project/src/led.cnx" }],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          "process.exit(0)",
+        );
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("Scanning main.cpp for C-Next includes..."),
+        );
+      });
+
+      it("prints found files when C-Next sources discovered", async () => {
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: true,
+          outputFiles: ["/project/src/led.c"],
+          errors: [],
+          filesProcessed: 2,
+          files: [
+            { sourcePath: "/project/src/led.cnx" },
+            { sourcePath: "/project/src/motor.cnx" },
+          ],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          "process.exit(0)",
+        );
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("Found 2 C-Next source file(s)"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("led.cnx"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("motor.cnx"),
+        );
+      });
+
+      it("prints getting started guide when no C-Next files found", async () => {
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: true,
+          outputFiles: [],
+          errors: [],
+          filesProcessed: 0,
+          files: [],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          "process.exit(0)",
+        );
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("No C-Next files found"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("Create a .cnx file"),
+        );
+      });
+
+      it("does not print C++ entry point messages for .cnx files", async () => {
+        vi.mocked(InputExpansion.isCppEntryPoint).mockReturnValue(false);
+        mockConfig.input = "src/main.cnx";
+
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: true,
+          outputFiles: ["/project/src/main.c"],
+          errors: [],
+          filesProcessed: 1,
+          files: [{ sourcePath: "/project/src/main.cnx" }],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          "process.exit(0)",
+        );
+
+        expect(consoleLogSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining("Scanning"),
+        );
+        expect(consoleLogSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining("Found"),
+        );
+      });
     });
   });
 });

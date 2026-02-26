@@ -1,0 +1,31 @@
+/**
+ * LED scope for testing C/C++ entry point workflow
+ *
+ * This test verifies:
+ * 1. Scopes transpile correctly to C functions
+ * 2. State variables work as expected
+ * 3. The generated header has the source path marker
+ */
+scope LED {
+    u8 state <- 0;
+
+    public void on() {
+        state <- 1;
+    }
+
+    public void off() {
+        state <- 0;
+    }
+
+    public u8 getState() {
+        return state;
+    }
+
+    public void toggle() {
+        if (state = 0) {
+            state <- 1;
+        } else {
+            state <- 0;
+        }
+    }
+}
