@@ -182,6 +182,34 @@ describe("CResolver - Variable Declarations", () => {
       }
     });
   });
+
+  it("detects pointer type in variable declaration (Issue #978)", () => {
+    const tree = TestHelpers.parseC(
+      `typedef struct { int x; } point_t;\nextern const point_t *origin;`,
+    );
+    const result = CResolver.resolve(tree!, "test.h");
+
+    const varSymbol = result.symbols.find((s) => s.name === "origin");
+    expect(varSymbol).toBeDefined();
+    expect(varSymbol?.kind).toBe("variable");
+    if (varSymbol?.kind === "variable") {
+      expect(varSymbol.type).toBe("point_t*");
+    }
+  });
+
+  it("does not add pointer suffix for non-pointer variables (Issue #978)", () => {
+    const tree = TestHelpers.parseC(
+      `typedef struct { int x; } point_t;\nextern const point_t origin;`,
+    );
+    const result = CResolver.resolve(tree!, "test.h");
+
+    const varSymbol = result.symbols.find((s) => s.name === "origin");
+    expect(varSymbol).toBeDefined();
+    expect(varSymbol?.kind).toBe("variable");
+    if (varSymbol?.kind === "variable") {
+      expect(varSymbol.type).toBe("point_t");
+    }
+  });
 });
 
 describe("CResolver - Typedefs", () => {
