@@ -564,7 +564,7 @@ export default class CodeGenState {
     // C types would cause regressions (e.g., array indexing misread as bit extraction).
     const cSymbol = this.symbolTable.getCSymbol(name);
     if (cSymbol?.kind === "variable" && cSymbol.type) {
-      const baseType = cSymbol.type.replace(/\*+$/, "").trim();
+      const baseType = CodeGenState.stripTrailingPointers(cSymbol.type);
       if (
         this.symbolTable.isTypedefStructType(baseType) ||
         this.symbolTable.getStructFields(baseType)
@@ -605,7 +605,7 @@ export default class CodeGenState {
     // Issue #978: Check C symbols for external struct globals only
     const cSymbol = this.symbolTable.getCSymbol(name);
     if (cSymbol?.kind === "variable" && cSymbol.type) {
-      const baseType = cSymbol.type.replace(/\*+$/, "").trim();
+      const baseType = CodeGenState.stripTrailingPointers(cSymbol.type);
       return (
         this.symbolTable.isTypedefStructType(baseType) ||
         !!this.symbolTable.getStructFields(baseType)
@@ -641,6 +641,18 @@ export default class CodeGenState {
    * Convert a TSymbol IVariableSymbol to TTypeInfo for unified type lookups.
    * ADR-055 Phase 7: Works with typed TSymbol instead of ISymbol.
    */
+  /**
+   * Strip trailing pointer stars from a C type string (e.g., "font_t*" → "font_t").
+   * Uses string operations instead of regex to avoid SonarCloud ReDoS flag (S5852).
+   */
+  private static stripTrailingPointers(type: string): string {
+    let end = type.length;
+    while (end > 0 && type[end - 1] === "*") {
+      end--;
+    }
+    return type.slice(0, end).trim();
+  }
+
   private static convertTSymbolToTypeInfo(
     symbol: import("../types/symbols/IVariableSymbol").default,
   ): TTypeInfo {

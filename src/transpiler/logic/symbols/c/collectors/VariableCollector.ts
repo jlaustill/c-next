@@ -57,6 +57,10 @@ class VariableCollector {
    * Collect a variable from declaration specifiers (when identifier appears as typedefName).
    * This handles the C grammar ambiguity where variable names can be parsed as typedef names.
    *
+   * Note: No pointer detection here — this path handles declarations without an
+   * initDeclaratorList. Pointer declarations (e.g., `font_t *ptr`) always produce
+   * an initDeclaratorList (the `*` creates a declarator), so they go through collect().
+   *
    * @param name Variable name
    * @param baseType Variable type
    * @param sourceFile Source file path
