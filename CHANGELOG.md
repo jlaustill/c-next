@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.15] - 2026-02-26
+
+### Fixed
+
+- External global struct variables passed by value instead of by reference when calling C functions expecting pointers (Issue #978, PR #979)
+- C variable resolver now detects pointer types from declarators, preventing incorrect `&` insertion on pointer-typed extern variables (PR #979)
+
 ## [0.2.14] - 2026-02-26
 
 ### Fixed
