@@ -554,11 +554,29 @@ export default class CodeGenState {
     }
 
     // ADR-055 Phase 7: Fall back to SymbolTable for cross-file C-Next variables only.
-    // C/C++ header symbols don't have complete type info (e.g., isArray),
-    // so we only use C-Next TSymbols from SymbolTable.
     const symbol = this.symbolTable.getTSymbol(name);
     if (symbol?.kind === "variable" && symbol.type) {
       return this.convertTSymbolToTypeInfo(symbol);
+    }
+
+    // Issue #978: Fall back to C symbols for external struct globals from .h headers.
+    // Only return type info for struct-typed variables — returning info for all
+    // C types would cause regressions (e.g., array indexing misread as bit extraction).
+    const cSymbol = this.symbolTable.getCSymbol(name);
+    if (cSymbol?.kind === "variable" && cSymbol.type) {
+      const baseType = cSymbol.type.replace(/\*+$/, "").trim();
+      if (
+        this.symbolTable.isTypedefStructType(baseType) ||
+        this.symbolTable.getStructFields(baseType)
+      ) {
+        return {
+          baseType,
+          bitWidth: 0,
+          isArray: cSymbol.isArray || false,
+          isConst: cSymbol.isConst || false,
+          isPointer: cSymbol.type.endsWith("*"),
+        };
+      }
     }
 
     return undefined;
@@ -581,7 +599,19 @@ export default class CodeGenState {
       return true;
     }
     const symbol = this.symbolTable.getTSymbol(name);
-    return symbol?.kind === "variable" && symbol.type !== undefined;
+    if (symbol?.kind === "variable" && symbol.type !== undefined) {
+      return true;
+    }
+    // Issue #978: Check C symbols for external struct globals only
+    const cSymbol = this.symbolTable.getCSymbol(name);
+    if (cSymbol?.kind === "variable" && cSymbol.type) {
+      const baseType = cSymbol.type.replace(/\*+$/, "").trim();
+      return (
+        this.symbolTable.isTypedefStructType(baseType) ||
+        !!this.symbolTable.getStructFields(baseType)
+      );
+    }
+    return false;
   }
 
   /**

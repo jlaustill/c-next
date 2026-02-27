@@ -32,6 +32,13 @@ class VariableCollector {
       ? DeclaratorUtils.extractArrayDimensions(declarator)
       : [];
 
+    // Issue #978: Detect pointer variables (e.g., `font_t *ptr`).
+    // C grammar puts `*` in the declarator, not the type specifier.
+    // Same pattern as FunctionCollector._resolveReturnType().
+    const hasPointer =
+      declarator?.pointer?.() !== null && declarator?.pointer?.() !== undefined;
+    const resolvedType = hasPointer ? `${baseType}*` : baseType;
+
     return {
       kind: "variable",
       name,
@@ -39,7 +46,7 @@ class VariableCollector {
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
       isExported: !isExtern,
-      type: baseType,
+      type: resolvedType,
       isArray: arrayDimensions.length > 0,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
       isExtern,

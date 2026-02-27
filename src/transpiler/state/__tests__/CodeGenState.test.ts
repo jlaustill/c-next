@@ -105,6 +105,7 @@ function createMockSymbols(
 describe("CodeGenState", () => {
   beforeEach(() => {
     CodeGenState.reset();
+    CodeGenState.symbolTable.clear();
   });
 
   describe("reset()", () => {
@@ -435,8 +436,8 @@ describe("CodeGenState", () => {
       expect(result?.arrayDimensions).toEqual([10]);
     });
 
-    it("getVariableTypeInfo does not use C header symbols", () => {
-      // Add a C header variable (should NOT be used)
+    it("getVariableTypeInfo does not use C header symbols for primitive types", () => {
+      // Add a C header variable with primitive type (should NOT be used)
       CodeGenState.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "cHeaderVar",
@@ -445,6 +446,110 @@ describe("CodeGenState", () => {
       );
 
       expect(CodeGenState.getVariableTypeInfo("cHeaderVar")).toBeUndefined();
+    });
+
+    it("getVariableTypeInfo returns type info for C header struct variables (Issue #978)", () => {
+      // Register font_t as a typedef struct type
+      CodeGenState.symbolTable.markTypedefStructType("font_t", "fake_lib.h");
+
+      // Add a C header variable with struct type
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "big_font",
+          type: "font_t",
+          isConst: true,
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("big_font");
+      expect(result).toBeDefined();
+      expect(result?.baseType).toBe("font_t");
+      expect(result?.isConst).toBe(true);
+      expect(result?.bitWidth).toBe(0);
+      expect(result?.isPointer).toBe(false);
+    });
+
+    it("getVariableTypeInfo returns type info for C struct via getStructFields path (Issue #978)", () => {
+      // Register struct fields directly (non-typedef struct, e.g., `struct point`)
+      CodeGenState.symbolTable.addStructField("point", "x", "int32_t");
+      CodeGenState.symbolTable.addStructField("point", "y", "int32_t");
+
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "origin",
+          type: "point",
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("origin");
+      expect(result).toBeDefined();
+      expect(result?.baseType).toBe("point");
+      expect(result?.bitWidth).toBe(0);
+    });
+
+    it("getVariableTypeInfo detects pointer type from C symbol (Issue #978)", () => {
+      // Register font_t as a struct
+      CodeGenState.symbolTable.markTypedefStructType("font_t", "lib.h");
+
+      // Pointer variable: type includes * (set by VariableCollector)
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "font_ptr",
+          type: "font_t*",
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("font_ptr");
+      expect(result).toBeDefined();
+      expect(result?.baseType).toBe("font_t");
+      expect(result?.isPointer).toBe(true);
+    });
+
+    it("getVariableTypeInfo ignores C array variables with primitive types", () => {
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "lookup_table",
+          type: "uint8_t",
+          isArray: true,
+          arrayDimensions: [16],
+        }),
+      );
+
+      expect(CodeGenState.getVariableTypeInfo("lookup_table")).toBeUndefined();
+    });
+
+    it("getVariableTypeInfo ignores C volatile register variables", () => {
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "status_reg",
+          type: "uint32_t",
+        }),
+      );
+
+      expect(CodeGenState.getVariableTypeInfo("status_reg")).toBeUndefined();
+    });
+
+    it("getVariableTypeInfo prefers TSymbol over CSymbol with same name (Issue #978)", () => {
+      // Both C-Next and C symbols exist with same name
+      CodeGenState.symbolTable.markTypedefStructType("config_t", "config.h");
+
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
+          name: "config",
+          type: TTypeUtils.createPrimitive("u32"),
+        }),
+      );
+
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "config",
+          type: "config_t",
+        }),
+      );
+
+      // TSymbol should win (checked first in priority order)
+      const result = CodeGenState.getVariableTypeInfo("config");
+      expect(result?.baseType).toBe("u32");
     });
 
     it("getVariableTypeInfo prefers local registry over SymbolTable", () => {
@@ -496,7 +601,7 @@ describe("CodeGenState", () => {
       expect(CodeGenState.hasVariableTypeInfo("unknownVar")).toBe(false);
     });
 
-    it("hasVariableTypeInfo returns false for C header variable", () => {
+    it("hasVariableTypeInfo returns false for C header primitive variable", () => {
       CodeGenState.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "cVar",
@@ -505,6 +610,43 @@ describe("CodeGenState", () => {
       );
 
       expect(CodeGenState.hasVariableTypeInfo("cVar")).toBe(false);
+    });
+
+    it("hasVariableTypeInfo returns true for C header struct variable (Issue #978)", () => {
+      CodeGenState.symbolTable.markTypedefStructType("widget_t", "widget.h");
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "my_widget",
+          type: "widget_t",
+        }),
+      );
+
+      expect(CodeGenState.hasVariableTypeInfo("my_widget")).toBe(true);
+    });
+
+    it("hasVariableTypeInfo returns true for C struct via getStructFields path (Issue #978)", () => {
+      CodeGenState.symbolTable.addStructField("vec2", "x", "float");
+      CodeGenState.symbolTable.addStructField("vec2", "y", "float");
+
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "position",
+          type: "vec2",
+        }),
+      );
+
+      expect(CodeGenState.hasVariableTypeInfo("position")).toBe(true);
+    });
+
+    it("hasVariableTypeInfo returns false for C pointer to non-struct type", () => {
+      CodeGenState.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "data_ptr",
+          type: "uint8_t*",
+        }),
+      );
+
+      expect(CodeGenState.hasVariableTypeInfo("data_ptr")).toBe(false);
     });
 
     it("setVariableTypeInfo and deleteVariableTypeInfo work correctly", () => {
