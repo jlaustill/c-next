@@ -217,8 +217,9 @@ class DeclaratorUtils {
 
   /**
    * Extract array dimensions from a declarator.
+   * Issue #981: Returns (number | string)[] to support macro-sized arrays.
    */
-  static extractArrayDimensions(declarator: any): number[] {
+  static extractArrayDimensions(declarator: any): (number | string)[] {
     // For C++, we need to check both pointer and no-pointer declarators
     const ptrDecl = declarator.pointerDeclarator?.();
     if (ptrDecl) {
@@ -238,8 +239,9 @@ class DeclaratorUtils {
 
   /**
    * Extract array dimensions from a noPointerDeclarator.
+   * Issue #981: Returns (number | string)[] to support macro-sized arrays.
    */
-  static extractArrayDimensionsFromNoPtr(noPtr: any): number[] {
+  static extractArrayDimensionsFromNoPtr(noPtr: any): (number | string)[] {
     // Use shared utility for regex-based extraction
     return SymbolUtils.parseArrayDimensions(noPtr.getText());
   }

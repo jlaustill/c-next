@@ -33,9 +33,10 @@ describe("SymbolUtils", () => {
       expect(SymbolUtils.parseArrayDimensions("uint8_t data[10];")).toEqual([
         10,
       ]);
+      // Issue #981: macro-sized arrays are captured as strings
       expect(
         SymbolUtils.parseArrayDimensions("char buffer[BUFFER_SIZE]"),
-      ).toEqual([]);
+      ).toEqual(["BUFFER_SIZE"]);
     });
   });
 

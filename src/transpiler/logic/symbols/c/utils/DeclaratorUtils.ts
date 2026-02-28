@@ -131,8 +131,9 @@ class DeclaratorUtils {
 
   /**
    * Extract array dimensions from a declarator.
+   * Issue #981: Returns (number | string)[] to support macro-sized arrays.
    */
-  static extractArrayDimensions(declarator: any): number[] {
+  static extractArrayDimensions(declarator: any): (number | string)[] {
     const directDecl = declarator.directDeclarator?.();
     if (!directDecl) return [];
 

@@ -9,8 +9,12 @@ interface ICFieldInfo {
   /** Field type as string (e.g., "int", "char*") */
   readonly type: string;
 
-  /** Array dimensions if this field is an array */
-  readonly arrayDimensions?: ReadonlyArray<number>;
+  /**
+   * Array dimensions if this field is an array.
+   * Issue #981: Numbers for resolved dimensions, strings for macro names.
+   * Example: [8] for numeric, ["BUF_SIZE"] for macro-sized.
+   */
+  readonly arrayDimensions?: ReadonlyArray<number | string>;
 }
 
 export default ICFieldInfo;

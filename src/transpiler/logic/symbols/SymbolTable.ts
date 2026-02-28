@@ -155,6 +155,7 @@ class SymbolTable {
   /**
    * Register struct fields in structFields map for cross-file type resolution.
    * Called automatically when adding struct symbols.
+   * Issue #981: Now preserves string dimensions (macro names) for proper array detection.
    */
   private registerStructFields(struct: IStructSymbol): void {
     const cName = SymbolNameUtils.getTranspiledCName(struct);
@@ -163,16 +164,13 @@ class SymbolTable {
       // Convert TType to string for structFields map
       const typeString = TypeResolver.getTypeName(fieldInfo.type);
 
-      // Filter to only numeric dimensions (structFields doesn't support string dims)
-      const numericDims = fieldInfo.dimensions?.filter(
-        (d): d is number => typeof d === "number",
-      );
-
       this.addStructField(
         cName,
         fieldName,
         typeString,
-        numericDims && numericDims.length > 0 ? numericDims : undefined,
+        fieldInfo.dimensions && fieldInfo.dimensions.length > 0
+          ? fieldInfo.dimensions
+          : undefined,
       );
     }
   }
@@ -302,6 +300,7 @@ class SymbolTable {
 
   /**
    * Add a C symbol to the table
+   * Issue #981: Also register struct fields for type resolution
    */
   addCSymbol(symbol: TCSymbol): void {
     // Add to name index
@@ -318,6 +317,32 @@ class SymbolTable {
       fileSymbols.push(symbol);
     } else {
       this.cSymbolsByFile.set(symbol.sourceFile, [symbol]);
+    }
+
+    // Issue #981: Register struct fields for getMemberTypeInfo() lookups
+    if (symbol.kind === "struct" && symbol.fields) {
+      this.registerCStructFields(symbol.name, symbol.fields);
+    }
+  }
+
+  /**
+   * Register C struct fields in structFields map for cross-file type resolution.
+   * Issue #981: Required for macro-sized array field detection on local struct variables.
+   */
+  private registerCStructFields(
+    structName: string,
+    fields: ReadonlyMap<
+      string,
+      import("../../types/symbols/c/ICFieldInfo").default
+    >,
+  ): void {
+    for (const [fieldName, fieldInfo] of fields) {
+      this.addStructField(
+        structName,
+        fieldName,
+        fieldInfo.type,
+        fieldInfo.arrayDimensions,
+      );
     }
   }
 
@@ -747,17 +772,18 @@ class SymbolTable {
   // ========================================================================
 
   /**
-   * Add struct field information
+   * Add struct field information.
+   * Issue #981: Accept (number | string)[] for arrayDimensions to support macro-sized arrays.
    * @param structName Name of the struct
    * @param fieldName Name of the field
    * @param fieldType Type of the field (e.g., "uint32_t")
-   * @param arrayDimensions Optional array dimensions if field is an array
+   * @param arrayDimensions Optional array dimensions - numbers for resolved, strings for macros
    */
   addStructField(
     structName: string,
     fieldName: string,
     fieldType: string,
-    arrayDimensions?: number[],
+    arrayDimensions?: readonly (number | string)[],
   ): void {
     let fields = this.structFields.get(structName);
     if (!fields) {
@@ -765,9 +791,10 @@ class SymbolTable {
       this.structFields.set(structName, fields);
     }
 
+    // Copy to mutable array for storage
     fields.set(fieldName, {
       type: fieldType,
-      arrayDimensions,
+      arrayDimensions: arrayDimensions ? [...arrayDimensions] : undefined,
     });
   }
 

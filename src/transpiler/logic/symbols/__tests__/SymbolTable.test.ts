@@ -658,6 +658,39 @@ describe("SymbolTable", () => {
       const fields = symbolTable.getStructFields("Point");
       expect(fields?.size).toBe(2);
     });
+
+    it("Issue #981: addCSymbol should register struct fields with macro dimensions", () => {
+      // When a C struct with macro-sized array fields is added via addCSymbol,
+      // the fields should be registered in structFields for getMemberTypeInfo lookups
+      const cStructSymbol: TCSymbol = {
+        kind: "struct",
+        name: "msg_t",
+        sourceFile: "fake_lib.h",
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+        isUnion: false,
+        fields: new Map([
+          [
+            "data",
+            { name: "data", type: "uint8_t", arrayDimensions: ["BUF_SIZE"] },
+          ],
+        ]),
+      };
+
+      symbolTable.addCSymbol(cStructSymbol);
+
+      // Struct fields should now be registered
+      const fields = symbolTable.getStructFields("msg_t");
+      expect(fields).toBeDefined();
+      expect(fields?.size).toBe(1);
+
+      // Field info should include the macro-sized array dimension
+      const dataField = symbolTable.getStructFieldInfo("msg_t", "data");
+      expect(dataField).toBeDefined();
+      expect(dataField?.type).toBe("uint8_t");
+      expect(dataField?.arrayDimensions).toEqual(["BUF_SIZE"]);
+    });
   });
 
   // ========================================================================

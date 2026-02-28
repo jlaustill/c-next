@@ -14,20 +14,33 @@ const RESERVED_FIELD_NAMES = new Set<string>([]);
 
 /**
  * Parse array dimensions from declarator text using regex.
- * Extracts numeric values from square bracket notation like [8] or [32].
+ * Extracts both numeric values and macro names from square bracket notation.
+ *
+ * Issue #981: Support macro-sized array dimensions like [BUF_SIZE].
+ * Without this, struct fields with macro-sized arrays are incorrectly treated
+ * as non-arrays, causing bit extraction instead of array access.
  *
  * @param text - The declarator text containing array notation
- * @returns Array of dimension sizes, e.g., [8] returns [8], [2][3] returns [2, 3]
+ * @returns Array of dimension sizes (numbers) or macro names (strings),
+ *          e.g., [8] returns [8], [BUF_SIZE] returns ["BUF_SIZE"], [2][N] returns [2, "N"]
  */
-function parseArrayDimensions(text: string): number[] {
-  const dimensions: number[] = [];
-  const arrayMatches = text.match(/\[(\d+)\]/g);
+function parseArrayDimensions(text: string): (number | string)[] {
+  const dimensions: (number | string)[] = [];
+  // Match any bracket content: digits, identifiers, or expressions
+  // Captures: [8], [BUF_SIZE], [N], [SIZE + 1], etc.
+  const arrayMatches = text.match(/\[([^\]]+)\]/g);
 
   if (arrayMatches) {
     for (const match of arrayMatches) {
-      const size = Number.parseInt(match.slice(1, -1), 10);
-      if (!Number.isNaN(size)) {
-        dimensions.push(size);
+      const content = match.slice(1, -1).trim();
+      // Try to parse as numeric first
+      const numericValue = Number.parseInt(content, 10);
+      if (!Number.isNaN(numericValue) && String(numericValue) === content) {
+        // Pure numeric dimension
+        dimensions.push(numericValue);
+      } else {
+        // Macro name or expression - store as string
+        dimensions.push(content);
       }
     }
   }
