@@ -1,0 +1,19 @@
+// test-execution
+#include "fake_lib.h"
+
+scope Test {
+    // BUG: msg is a local with macro-sized array → generates bit extraction
+    public u8 from_local(u8 idx) {
+        msg_t msg;
+        global.fill_msg(msg);
+        return msg.data[idx];
+    }
+}
+
+i32 main() {
+    // fill_msg sets data[i] = i + 1, so data[5] = 6
+    // Bit extraction would give: (data >> 5) & 1, which is NOT 6
+    u8 result <- Test.from_local(5);
+    if (result != 6) return 1;  // FAILS due to bit extraction bug
+    return 0;
+}

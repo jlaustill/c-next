@@ -9,8 +9,11 @@ interface ICppFieldInfo {
   /** Field type as string (e.g., "int", "std::string") */
   readonly type: string;
 
-  /** Array dimensions if this field is an array */
-  readonly arrayDimensions?: ReadonlyArray<number>;
+  /**
+   * Array dimensions if this field is an array.
+   * Issue #981: Supports both numeric literals and macro names.
+   */
+  readonly arrayDimensions?: ReadonlyArray<number | string>;
 }
 
 export default ICppFieldInfo;
