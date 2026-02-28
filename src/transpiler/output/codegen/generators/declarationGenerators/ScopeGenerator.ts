@@ -338,7 +338,13 @@ function processScopeMember(
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): string[] {
-  const visibility = member.visibilityModifier()?.getText() || "private";
+  // ADR-016: Member-type-aware visibility defaults
+  // Functions: public by default (API surface)
+  // Variables/types: private by default (internal state)
+  const explicitVisibility = member.visibilityModifier()?.getText();
+  const isFunction = member.functionDeclaration() !== null;
+  const defaultVisibility = isFunction ? "public" : "private";
+  const visibility = explicitVisibility ?? defaultVisibility;
   const isPrivate = visibility === "private";
 
   // Handle variable declarations

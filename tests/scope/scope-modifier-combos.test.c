@@ -133,11 +133,11 @@ void ModifierCombos_decreasePublicClampSigned(void) {
     ModifierCombos_publicClampSigned = cnx_clamp_sub_i8(ModifierCombos_publicClampSigned, 50);
 }
 
-static void ModifierCombos_increasePrivateClampByte(void) {
+void ModifierCombos_increasePrivateClampByte(void) {
     ModifierCombos_privateClampByte = cnx_clamp_add_u8(ModifierCombos_privateClampByte, 220U);
 }
 
-static void ModifierCombos_decreasePrivateClampWord(void) {
+void ModifierCombos_decreasePrivateClampWord(void) {
     ModifierCombos_privateClampWord = cnx_clamp_sub_u16(ModifierCombos_privateClampWord, 15000U);
 }
 
@@ -149,11 +149,11 @@ void ModifierCombos_incrementPublicWrapWord(void) {
     ModifierCombos_publicWrapWord += 10U;
 }
 
-static void ModifierCombos_decrementPrivateWrapByte(void) {
+void ModifierCombos_decrementPrivateWrapByte(void) {
     ModifierCombos_privateWrapByte -= 10U;
 }
 
-static void ModifierCombos_decrementPrivateWrapWord(void) {
+void ModifierCombos_decrementPrivateWrapWord(void) {
     ModifierCombos_privateWrapWord -= 150U;
 }
 

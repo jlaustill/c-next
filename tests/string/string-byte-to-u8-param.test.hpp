@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
+uint32_t ByteProcessor_processByte(uint32_t crc, uint8_t byte);
 uint32_t ByteProcessor_processBuffer(void);
 
 #ifdef __cplusplus

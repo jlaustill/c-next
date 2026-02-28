@@ -69,10 +69,16 @@ class ScopeCollector {
     const memberSymbols: TSymbol[] = [];
 
     for (const member of ctx.scopeMember()) {
-      // ADR-016: Extract visibility (private by default)
+      // ADR-016: Extract visibility with member-type-aware defaults
+      // Functions: public by default (API surface)
+      // Variables/types: private by default (internal state)
       const visibilityMod = member.visibilityModifier();
-      const visibility: TVisibility =
-        (visibilityMod?.getText() as TVisibility) ?? "private";
+      const explicitVisibility = visibilityMod?.getText() as
+        | TVisibility
+        | undefined;
+      const isFunction = member.functionDeclaration() !== null;
+      const defaultVisibility: TVisibility = isFunction ? "public" : "private";
+      const visibility: TVisibility = explicitVisibility ?? defaultVisibility;
       const isPublic = visibility === "public";
 
       // Handle variable declarations

@@ -13,7 +13,7 @@
 // The body should use 'val' directly, not '(*val)'
 /* Scope: Test */
 
-static uint32_t Test_helper(uint32_t x) {
+uint32_t Test_helper(uint32_t x) {
     return x + 1;
 }
 

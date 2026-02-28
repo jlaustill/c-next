@@ -29,57 +29,57 @@ uint32_t PrivateMethodTest_publicResult = 0U;
 bool PrivateMethodTest_publicFlag = false;
 int32_t PrivateMethodTest_publicAccumulator = 0;
 
-static uint32_t PrivateMethodTest_getPrivateState(void) {
+uint32_t PrivateMethodTest_getPrivateState(void) {
     return PrivateMethodTest_privateState;
 }
 
-static bool PrivateMethodTest_getPrivateFlag(void) {
+bool PrivateMethodTest_getPrivateFlag(void) {
     return PrivateMethodTest_privateFlag;
 }
 
-static int32_t PrivateMethodTest_getPrivateAccumulator(void) {
+int32_t PrivateMethodTest_getPrivateAccumulator(void) {
     return PrivateMethodTest_privateAccumulator;
 }
 
-static void PrivateMethodTest_incrementCallCount(void) {
+void PrivateMethodTest_incrementCallCount(void) {
     PrivateMethodTest_callCount = PrivateMethodTest_callCount + 1U;
 }
 
-static uint8_t PrivateMethodTest_getCallCount(void) {
+uint8_t PrivateMethodTest_getCallCount(void) {
     return PrivateMethodTest_callCount;
 }
 
-static uint32_t PrivateMethodTest_readGlobalCounter(void) {
+uint32_t PrivateMethodTest_readGlobalCounter(void) {
     return globalCounter;
 }
 
-static bool PrivateMethodTest_readGlobalFlag(void) {
+bool PrivateMethodTest_readGlobalFlag(void) {
     return globalFlag;
 }
 
-static int32_t PrivateMethodTest_readGlobalOffset(void) {
+int32_t PrivateMethodTest_readGlobalOffset(void) {
     return globalOffset;
 }
 
-static uint32_t PrivateMethodTest_combineStateAndGlobal(void) {
+uint32_t PrivateMethodTest_combineStateAndGlobal(void) {
     return PrivateMethodTest_privateState + globalCounter;
 }
 
-static bool PrivateMethodTest_checkBothFlags(void) {
+bool PrivateMethodTest_checkBothFlags(void) {
     return PrivateMethodTest_privateFlag && globalFlag;
 }
 
-static uint32_t PrivateMethodTest_getStateViaHelper(void) {
+uint32_t PrivateMethodTest_getStateViaHelper(void) {
     return PrivateMethodTest_getPrivateState();
 }
 
-static void PrivateMethodTest_performPrivateChain(void) {
+void PrivateMethodTest_performPrivateChain(void) {
     PrivateMethodTest_incrementCallCount();
     PrivateMethodTest_privateState = PrivateMethodTest_privateState + 10U;
     PrivateMethodTest_privateFlag = !PrivateMethodTest_privateFlag;
 }
 
-static void PrivateMethodTest_addValue(int32_t amount) {
+void PrivateMethodTest_addValue(int32_t amount) {
     PrivateMethodTest_privateAccumulator = PrivateMethodTest_privateAccumulator + amount;
     PrivateMethodTest_incrementCallCount();
 }

@@ -15,7 +15,7 @@
 
 /* Scope: Renderer */
 
-static void Renderer_my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
+void Renderer_my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
     widget_flush_was_called = true;
     widget_flush_area_x = area->x;
     widget_flush_buf_first_byte = (*buf);

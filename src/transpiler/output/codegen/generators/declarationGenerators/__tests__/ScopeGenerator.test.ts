@@ -857,7 +857,11 @@ describe("ScopeGenerator", () => {
         name: "helper",
         returnType: "void",
       });
-      const member = createMockScopeMember({ functionDecl: funcDecl });
+      // ADR-016: Functions are public by default, so explicit 'private' needed
+      const member = createMockScopeMember({
+        visibility: "private",
+        functionDecl: funcDecl,
+      });
       const ctx = createMockScopeContext("Utils", [member]);
       const input = createMockInput();
       const state = createMockState();

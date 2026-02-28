@@ -24,6 +24,7 @@ uint8_t Handler_setValue(Config* cfg, uint32_t val);
 uint8_t Handler_setSecond(uint32_t dummy, Config* cfg);
 uint32_t Handler_getValue(const Config* cfg);
 uint8_t Handler_wrapSetValue(Config* cfg, uint32_t val);
+uint8_t Processor_helper(Config* cfg);
 void Processor_process(Config* config);
 
 #ifdef __cplusplus

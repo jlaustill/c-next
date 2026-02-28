@@ -16,7 +16,7 @@
 
 /* Scope: Port */
 
-static void Port_my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
+void Port_my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
     int32_t x2 = area->x2 + 1;
     int32_t y2 = area->y2 + 1;
     draw_bitmap(0, area->x1, area->y1, x2, y2, buf);

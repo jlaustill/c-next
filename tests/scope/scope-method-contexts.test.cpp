@@ -54,67 +54,67 @@ uint16_t MethodContexts_publicWrapValue = 65530U;
 bool MethodContexts_publicFlag = true;
 int32_t MethodContexts_publicOffset = -1000;
 
-static uint8_t MethodContexts_getPrivateValue(void) {
+uint8_t MethodContexts_getPrivateValue(void) {
     return MethodContexts_privateValue;
 }
 
-static uint8_t MethodContexts_getPublicValueInternal(void) {
+uint8_t MethodContexts_getPublicValueInternal(void) {
     return MethodContexts_publicValue;
 }
 
-static uint8_t MethodContexts_getPrivateClampValue(void) {
+uint8_t MethodContexts_getPrivateClampValue(void) {
     return MethodContexts_privateClampValue;
 }
 
-static uint8_t MethodContexts_getPrivateWrapValue(void) {
+uint8_t MethodContexts_getPrivateWrapValue(void) {
     return MethodContexts_privateWrapValue;
 }
 
-static void MethodContexts_incrementPrivateClamp(void) {
+void MethodContexts_incrementPrivateClamp(void) {
     MethodContexts_privateClampValue = cnx_clamp_add_u8(MethodContexts_privateClampValue, 100U);
 }
 
-static void MethodContexts_incrementPrivateWrap(void) {
+void MethodContexts_incrementPrivateWrap(void) {
     MethodContexts_privateWrapValue += 10U;
 }
 
-static bool MethodContexts_getPrivateFlag(void) {
+bool MethodContexts_getPrivateFlag(void) {
     return MethodContexts_privateFlag;
 }
 
-static int16_t MethodContexts_getPrivateOffset(void) {
+int16_t MethodContexts_getPrivateOffset(void) {
     return MethodContexts_privateOffset;
 }
 
-static uint8_t MethodContexts_getGlobalMaxInternal(void) {
+uint8_t MethodContexts_getGlobalMaxInternal(void) {
     return GLOBAL_MAX;
 }
 
-static uint8_t MethodContexts_getGlobalCounterInternal(void) {
+uint8_t MethodContexts_getGlobalCounterInternal(void) {
     return globalCounter;
 }
 
-static bool MethodContexts_getGlobalEnabledInternal(void) {
+bool MethodContexts_getGlobalEnabledInternal(void) {
     return globalEnabled;
 }
 
-static int16_t MethodContexts_getGlobalOffsetInternal(void) {
+int16_t MethodContexts_getGlobalOffsetInternal(void) {
     return globalOffset;
 }
 
-static float MethodContexts_getGlobalScaleInternal(void) {
+float MethodContexts_getGlobalScaleInternal(void) {
     return globalScale;
 }
 
-static uint8_t MethodContexts_computePrivateSum(void) {
+uint8_t MethodContexts_computePrivateSum(void) {
     return MethodContexts_privateValue + globalCounter;
 }
 
-static bool MethodContexts_privateValueBelowMax(void) {
+bool MethodContexts_privateValueBelowMax(void) {
     return MethodContexts_privateValue < GLOBAL_MAX;
 }
 
-static int16_t MethodContexts_computePrivateWithOffset(void) {
+int16_t MethodContexts_computePrivateWithOffset(void) {
     return MethodContexts_privateOffset + globalOffset;
 }
 

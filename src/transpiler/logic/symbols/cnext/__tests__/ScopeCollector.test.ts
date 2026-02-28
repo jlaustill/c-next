@@ -32,11 +32,12 @@ describe("ScopeCollector", () => {
     });
 
     it("collects scope with functions", () => {
+      // ADR-016: Functions are public by default, use explicit 'private' for internal functions
       const code = `
         scope Motor {
-          public void init() {
+          void init() {
           }
-          void update() {
+          private void update() {
           }
         }
       `;
@@ -45,7 +46,9 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
       expect(result.scopeSymbol.members).toEqual(["init", "update"]);
+      // init() is public by default (no modifier)
       expect(result.scopeSymbol.memberVisibility.get("init")).toBe("public");
+      // update() has explicit 'private' keyword
       expect(result.scopeSymbol.memberVisibility.get("update")).toBe("private");
 
       expect(result.memberSymbols.length).toBe(2);

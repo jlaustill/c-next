@@ -20,6 +20,12 @@ extern uint32_t globalReadIndex;
 extern bool globalBufferLock;
 
 /* Function prototypes */
+void CriticalTest_internalEnqueue(uint8_t data);
+uint8_t CriticalTest_internalDequeue(void);
+void CriticalTest_internalUpdateGlobal(void);
+void CriticalTest_internalTransfer(void);
+bool CriticalTest_internalTryLock(void);
+void CriticalTest_internalUnlock(void);
 void CriticalTest_enqueue(uint8_t data);
 uint8_t CriticalTest_dequeue(void);
 void CriticalTest_updateGlobalIndex(void);

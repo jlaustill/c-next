@@ -85,7 +85,7 @@ static uint32_t CriticalTest_readIndex = 0U;
 static uint8_t CriticalTest_count = 0U;
 static bool CriticalTest_locked = false;
 
-static void CriticalTest_internalEnqueue(uint8_t data) {
+void CriticalTest_internalEnqueue(uint8_t data) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
@@ -96,7 +96,7 @@ static void CriticalTest_internalEnqueue(uint8_t data) {
     }
 }
 
-static uint8_t CriticalTest_internalDequeue(void) {
+uint8_t CriticalTest_internalDequeue(void) {
     uint8_t result = 0U;
     {
         uint32_t __primask = __cnx_get_PRIMASK();
@@ -111,7 +111,7 @@ static uint8_t CriticalTest_internalDequeue(void) {
     return result;
 }
 
-static void CriticalTest_internalUpdateGlobal(void) {
+void CriticalTest_internalUpdateGlobal(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
@@ -121,7 +121,7 @@ static void CriticalTest_internalUpdateGlobal(void) {
     }
 }
 
-static void CriticalTest_internalTransfer(void) {
+void CriticalTest_internalTransfer(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
@@ -133,7 +133,7 @@ static void CriticalTest_internalTransfer(void) {
     }
 }
 
-static bool CriticalTest_internalTryLock(void) {
+bool CriticalTest_internalTryLock(void) {
     bool acquired = false;
     {
         uint32_t __primask = __cnx_get_PRIMASK();
@@ -147,7 +147,7 @@ static bool CriticalTest_internalTryLock(void) {
     return acquired;
 }
 
-static void CriticalTest_internalUnlock(void) {
+void CriticalTest_internalUnlock(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();

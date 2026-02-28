@@ -502,9 +502,10 @@ describe("CodeGenerator Coverage Tests", () => {
     });
 
     it("should generate scope with private function", () => {
+      // ADR-016: Functions are public by default, so explicit 'private' needed
       const source = `
         scope Motor {
-          void internalUpdate() {}
+          private void internalUpdate() {}
         }
       `;
       const { code } = setupGenerator(source);

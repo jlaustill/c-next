@@ -18,6 +18,7 @@ void LED_on(void);
 void LED_off(void);
 void LED_setBrightness(uint8_t level);
 uint8_t LED_getBrightness(void);
+void LED_privateReset(void);
 
 #ifdef __cplusplus
 }

@@ -17,7 +17,7 @@
 
 /* Scope: ByteProcessor */
 
-static uint32_t ByteProcessor_processByte(uint32_t crc, uint8_t byte) {
+uint32_t ByteProcessor_processByte(uint32_t crc, uint8_t byte) {
     return crc ^ byte;
 }
 

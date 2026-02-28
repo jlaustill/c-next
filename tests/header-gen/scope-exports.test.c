@@ -28,7 +28,7 @@ uint8_t LED_getBrightness(void) {
     return LED_brightness;
 }
 
-static void LED_privateReset(void) {
+void LED_privateReset(void) {
     LED_brightness = 128U;
 }
 

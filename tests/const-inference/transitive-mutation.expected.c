@@ -10,7 +10,7 @@
 // Issue #797: Transpiler incorrectly infers const when function delegates mutation
 /* Scope: Test */
 
-static void Test_fillData(Data* d) {
+void Test_fillData(Data* d) {
     d->value = 42U;
 }
 

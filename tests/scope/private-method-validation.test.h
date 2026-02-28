@@ -22,6 +22,19 @@ extern bool PrivateMethodTest_publicFlag;
 extern int32_t PrivateMethodTest_publicAccumulator;
 
 /* Function prototypes */
+uint32_t PrivateMethodTest_getPrivateState(void);
+bool PrivateMethodTest_getPrivateFlag(void);
+int32_t PrivateMethodTest_getPrivateAccumulator(void);
+void PrivateMethodTest_incrementCallCount(void);
+uint8_t PrivateMethodTest_getCallCount(void);
+uint32_t PrivateMethodTest_readGlobalCounter(void);
+bool PrivateMethodTest_readGlobalFlag(void);
+int32_t PrivateMethodTest_readGlobalOffset(void);
+uint32_t PrivateMethodTest_combineStateAndGlobal(void);
+bool PrivateMethodTest_checkBothFlags(void);
+uint32_t PrivateMethodTest_getStateViaHelper(void);
+void PrivateMethodTest_performPrivateChain(void);
+void PrivateMethodTest_addValue(int32_t amount);
 uint32_t PrivateMethodTest_exposePrivateState(void);
 void PrivateMethodTest_setPrivateState(uint32_t val);
 bool PrivateMethodTest_exposePrivateFlag(void);

@@ -11,6 +11,7 @@
 // test-execution
 // Test: ADR-016 public and private visibility modifiers on scope members and methods
 // Verifies public members are accessible from outside scope and private are only internal
+// NEW DEFAULTS: Functions are public by default, variables are private by default
 /* Scope: Visibility */
 static uint8_t Visibility_privateCounter = 0U;
 static bool Visibility_privateFlag = false;

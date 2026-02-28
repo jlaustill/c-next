@@ -40,46 +40,49 @@ This conflicts with C-Next's goal of embracing C patterns with safety improvemen
 
 Introduce a `scope` keyword to replace `namespace`. The term "scope" has minimal baggage — it simply means "a bucket for organizing related code."
 
-### Current Behavior (Preserved)
+### Visibility Defaults
 
-The `scope` keyword initially behaves exactly like the current `namespace` implementation:
+C-Next uses **member-type-aware visibility defaults** to reduce boilerplate:
+
+- **Functions**: Public by default (API surface), use `private` keyword to hide
+- **Variables/types**: Private by default (internal state), use `public` keyword to expose
+
+This design reflects typical usage patterns — functions are almost always public (they form the API), while variables are almost always private (they hold internal state).
 
 ```cnx
 scope LED {
-    u32 brightness;              // private by default
+    u8 brightness;              // private by default (variable)
+    public u8 maxBrightness;    // public (explicit)
 
-    public void on() {
-        global.GPIO7.DR_SET[global.LED_BIT] <- true;
-    }
-
-    public void off() {
-        global.GPIO7.DR_CLEAR[this.brightness] <- true;
-    }
+    void on() { }               // public by default (function)
+    void off() { }              // public by default (function)
+    private void reset() { }    // private (explicit)
 }
 
 // Usage from outside:
-LED.on();
-LED.off();
+LED.on();                       // OK - public by default
+LED.off();                      // OK - public by default
+LED.maxBrightness <- 100;       // OK - explicitly public variable
+// LED.brightness <- 50;        // ERROR - private variable
+// LED.reset();                 // ERROR - explicitly private function
 ```
 
 Transpiles to:
 
 ```c
-static uint32_t LED_brightness;
+static uint8_t LED_brightness;        // private → static
+uint8_t LED_maxBrightness;            // public → extern linkage
 
-void LED_on(void) {
-    GPIO7_DR_SET = (1 << LED_BIT);
-}
-
-void LED_off(void) {
-    GPIO7_DR_CLEAR = (1 << LED_brightness);
-}
+void LED_on(void) { }                 // public → extern linkage
+void LED_off(void) { }                // public → extern linkage
+static void LED_reset(void) { }       // private → static
 ```
 
 ### Key Properties
 
-- **Private by default** — Only members marked `public` are accessible outside
+- **Member-type-aware defaults** — Functions public, variables/types private
 - **Name prefixing** — Members become `Scope_member` in generated C
+- **Static linkage** — Private members use `static` for file-local visibility
 - **Not a type** — Cannot create instances of a scope
 - **Minimal expectations** — No baggage from C++ namespaces or classes
 
