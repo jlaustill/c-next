@@ -4,6 +4,7 @@
  * Provides utilities for creating and inspecting C-Next scopes.
  */
 import type IScopeSymbol from "../transpiler/types/symbols/IScopeSymbol";
+import type TVisibility from "../transpiler/types/TVisibility";
 import ESourceLanguage from "./types/ESourceLanguage";
 
 class ScopeUtils {
@@ -77,6 +78,24 @@ class ScopeUtils {
    */
   static isGlobalScope(scope: IScopeSymbol): boolean {
     return scope.name === "" && scope.parent === scope;
+  }
+
+  // ============================================================================
+  // Visibility Utilities
+  // ============================================================================
+
+  /**
+   * ADR-016: Get the default visibility for a scope member based on its type.
+   *
+   * Member-type-aware defaults reduce boilerplate:
+   * - Functions: public by default (API surface)
+   * - Variables/types: private by default (internal state)
+   *
+   * @param isFunction - Whether the member is a function declaration
+   * @returns The default visibility for this member type
+   */
+  static getDefaultVisibility(isFunction: boolean): TVisibility {
+    return isFunction ? "public" : "private";
   }
 
   // ============================================================================

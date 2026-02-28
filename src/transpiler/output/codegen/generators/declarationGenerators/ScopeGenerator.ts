@@ -25,6 +25,7 @@ import BitmapCommentUtils from "./BitmapCommentUtils";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import CodeGenState from "../../../../state/CodeGenState";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /**
  * Generate initializer expression for a variable declaration.
@@ -338,13 +339,11 @@ function processScopeMember(
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): string[] {
-  // ADR-016: Member-type-aware visibility defaults
-  // Functions: public by default (API surface)
-  // Variables/types: private by default (internal state)
+  // ADR-016: Member-type-aware visibility defaults via ScopeUtils
   const explicitVisibility = member.visibilityModifier()?.getText();
   const isFunction = member.functionDeclaration() !== null;
-  const defaultVisibility = isFunction ? "public" : "private";
-  const visibility = explicitVisibility ?? defaultVisibility;
+  const visibility =
+    explicitVisibility ?? ScopeUtils.getDefaultVisibility(isFunction);
   const isPrivate = visibility === "private";
 
   // Handle variable declarations
