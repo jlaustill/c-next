@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
+uint32_t Test_helper(uint32_t x);
 uint32_t Test_process(uint32_t& val);
 
 #ifdef __cplusplus

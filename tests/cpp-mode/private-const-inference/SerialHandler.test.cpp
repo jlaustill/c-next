@@ -18,7 +18,7 @@
 
 /* Scope: SerialHandler */
 
-static void SerialHandler_handleSet(Config& config) {
+void SerialHandler_handleSet(Config& config) {
     uint8_t result = CommandHandler_setValue(config, 42U);
 }
 

@@ -50,4 +50,14 @@ describe("IScopeSymbol", () => {
       expect(ScopeUtils.isGlobalScope(scope)).toBe(false);
     });
   });
+
+  describe("getDefaultVisibility", () => {
+    it("returns 'public' for functions (API surface)", () => {
+      expect(ScopeUtils.getDefaultVisibility(true)).toBe("public");
+    });
+
+    it("returns 'private' for non-functions (internal state)", () => {
+      expect(ScopeUtils.getDefaultVisibility(false)).toBe("private");
+    });
+  });
 });

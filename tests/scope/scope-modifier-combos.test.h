@@ -44,8 +44,12 @@ uint8_t ModifierCombos_getPrivateConst(void);
 bool ModifierCombos_getPrivateFlag(void);
 void ModifierCombos_increasePublicClampByte(void);
 void ModifierCombos_decreasePublicClampSigned(void);
+void ModifierCombos_increasePrivateClampByte(void);
+void ModifierCombos_decreasePrivateClampWord(void);
 void ModifierCombos_incrementPublicWrapByte(void);
 void ModifierCombos_incrementPublicWrapWord(void);
+void ModifierCombos_decrementPrivateWrapByte(void);
+void ModifierCombos_decrementPrivateWrapWord(void);
 void ModifierCombos_adjustAllClamp(void);
 void ModifierCombos_adjustAllWrap(void);
 

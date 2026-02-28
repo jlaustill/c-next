@@ -24,11 +24,11 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 static int32_t Counter_value = 100;
 static int32_t Counter_values[4] = {0};
 
-static void Counter_increment(void) {
+void Counter_increment(void) {
     Counter_value = cnx_clamp_add_i32(Counter_value, 10);
 }
 
-static void Counter_incrementArray(void) {
+void Counter_incrementArray(void) {
     Counter_values[0] = 50;
     Counter_values[0] += 25;
 }

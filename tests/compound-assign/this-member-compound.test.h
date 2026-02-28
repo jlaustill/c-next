@@ -14,6 +14,15 @@ extern "C" {
 #endif
 
 /* Function prototypes */
+int32_t Calculator_testSubtraction(void);
+int32_t Calculator_testMultiplication(void);
+int32_t Calculator_testDivision(void);
+int32_t Calculator_testModulo(void);
+int32_t Calculator_testBitwiseAnd(void);
+int32_t Calculator_testBitwiseOr(void);
+int32_t Calculator_testBitwiseXor(void);
+int32_t Calculator_testLeftShift(void);
+int32_t Calculator_testRightShift(void);
 int32_t Calculator_runAllTests(void);
 
 #ifdef __cplusplus

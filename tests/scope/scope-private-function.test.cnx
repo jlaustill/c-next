@@ -1,0 +1,48 @@
+// test-execution
+// Test: Private functions (with explicit 'private' keyword) generate 'static' and are callable within scope
+// ADR-016: Functions are public by default, use 'private' keyword for internal helpers
+
+scope Calculator {
+    // Private helper function - generates static, only callable within scope
+    private u32 square(u32 n) {
+        return n * n;
+    }
+
+    // Private helper that calls another private helper
+    private u32 cube(u32 n) {
+        return n * this.square(n);
+    }
+
+    // Public function (default) that uses private helpers
+    u32 computeSquare(u32 n) {
+        return this.square(n);
+    }
+
+    // Public function that uses private helpers
+    u32 computeCube(u32 n) {
+        return this.cube(n);
+    }
+
+    // Public function that combines results
+    u32 sumOfSquareAndCube(u32 n) {
+        return this.square(n) + this.cube(n);
+    }
+}
+
+u32 main() {
+    // Test 1: Public function calling private helper
+    u32 result1 <- Calculator.computeSquare(5);
+    if (result1 != 25) return 1;
+
+    // Test 2: Public function calling nested private helpers
+    u32 result2 <- Calculator.computeCube(3);
+    if (result2 != 27) return 2;
+
+    // Test 3: Public function combining private helper results
+    // square(2) = 4, cube(2) = 8, sum = 12
+    u32 result3 <- Calculator.sumOfSquareAndCube(2);
+    if (result3 != 12) return 3;
+
+    // All tests passed
+    return 0;
+}

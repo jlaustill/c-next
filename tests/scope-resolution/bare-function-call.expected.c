@@ -12,11 +12,11 @@
 /* Scope: Calculator */
 static uint32_t Calculator_result = 0U;
 
-static void Calculator_reset(void) {
+void Calculator_reset(void) {
     Calculator_result = 0U;
 }
 
-static void Calculator_addTen(void) {
+void Calculator_addTen(void) {
     Calculator_result += 10U;
 }
 

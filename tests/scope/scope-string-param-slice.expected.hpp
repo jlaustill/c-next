@@ -14,6 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
+void StringSliceTest_copyToBuffer(char* buffer, uint16_t value);
+void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t value);
 uint32_t StringSliceTest_testSliceAssignment(void);
 
 #ifdef __cplusplus

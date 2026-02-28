@@ -95,14 +95,15 @@ describe("CNextResolver Integration", () => {
 
   describe("scope handling", () => {
     it("resolves scope with members", () => {
+      // ADR-016: Functions are public by default, variables are private by default
       const code = `
         scope Motor {
           u32 position;
 
-          public void init() {
+          void init() {
           }
 
-          void update() {
+          private void update() {
           }
         }
       `;
@@ -122,6 +123,7 @@ describe("CNextResolver Integration", () => {
       expect(SymbolGuards.isVariable(positionVar!)).toBe(true);
       expect(positionVar!.scope.name).toBe("Motor");
 
+      // init() is public by default (no modifier needed)
       const initFunc = symbols.find((s) => s.name === "init");
       expect(initFunc).toBeDefined();
       if (SymbolGuards.isFunction(initFunc!)) {
@@ -129,6 +131,7 @@ describe("CNextResolver Integration", () => {
         expect(initFunc.scope.name).toBe("Motor");
       }
 
+      // update() has explicit 'private' keyword
       const updateFunc = symbols.find((s) => s.name === "update");
       expect(updateFunc).toBeDefined();
       if (SymbolGuards.isFunction(updateFunc!)) {

@@ -1,78 +1,79 @@
 // test-execution
 // Test: ADR-016 public and private visibility modifiers on scope members and methods
 // Verifies public members are accessible from outside scope and private are only internal
+// NEW DEFAULTS: Functions are public by default, variables are private by default
 
 scope Visibility {
-    // Private variables (default - no modifier)
+    // Private variables (default - no modifier needed)
     u8 privateCounter <- 0;
     bool privateFlag <- false;
 
-    // Public variables (explicit public modifier)
+    // Public variables (explicit public modifier required)
     public u8 publicCounter <- 10;
     public bool publicFlag <- true;
 
-    // Private method (default - no modifier)
-    u8 getPrivateCounterInternal() {
+    // Private method (explicit private modifier required - functions are public by default)
+    private u8 getPrivateCounterInternal() {
         return this.privateCounter;
     }
 
     // Private method that modifies private state
-    void incrementPrivateCounter() {
+    private void incrementPrivateCounter() {
         this.privateCounter <- this.privateCounter + 1;
     }
 
     // Private method that uses private flag
-    bool checkPrivateFlag() {
+    private bool checkPrivateFlag() {
         return this.privateFlag;
     }
 
-    // Public method that accesses private members
-    public u8 getPrivateCounter() {
+    // Public method that accesses private members (no modifier needed - default)
+    u8 getPrivateCounter() {
         return this.privateCounter;
     }
 
-    // Public method that calls private method
-    public u8 getPrivateCounterViaInternal() {
+    // Public method that calls private method (no modifier needed - default)
+    u8 getPrivateCounterViaInternal() {
         return this.getPrivateCounterInternal();
     }
 
-    // Public method that accesses public members
-    public u8 getPublicCounter() {
+    // Public method that accesses public members (no modifier needed - default)
+    u8 getPublicCounter() {
         return this.publicCounter;
     }
 
-    // Public method that modifies public state
-    public void setPublicCounter(u8 value) {
+    // Public method that modifies public state (no modifier needed - default)
+    void setPublicCounter(u8 value) {
         this.publicCounter <- value;
     }
 
     // Public method that modifies private state (encapsulation)
-    public void incrementPrivate() {
+    void incrementPrivate() {
         this.incrementPrivateCounter();
     }
 
     // Public method that tests both private and public members
-    public u8 getSum() {
+    u8 getSum() {
         return this.privateCounter + this.publicCounter;
     }
 
     // Public method that uses private and public flags
-    public bool getBothFlags() {
+    bool getBothFlags() {
         return this.privateFlag && this.publicFlag;
     }
 
     // Public setter for private flag (encapsulation)
-    public void setPrivateFlag(bool value) {
+    void setPrivateFlag(bool value) {
         this.privateFlag <- value;
     }
 
     // Public setter for public flag
-    public void setPublicFlag(bool value) {
+    void setPublicFlag(bool value) {
         this.publicFlag <- value;
     }
 
     // Public method to set private counter
-    public void setPrivateCounter(u8 value) {
+    void setPrivateCounter(u8 value) {
         this.privateCounter <- value;
     }
 }

@@ -8,12 +8,14 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "widget.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Function prototypes */
+void Renderer_my_flush(widget_t* w, const rect_t* area, uint8_t* buf);
 void Renderer_init(void);
 
 #ifdef __cplusplus

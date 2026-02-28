@@ -342,22 +342,33 @@ u8 mode <- flags.Mode;
 // Organize code with automatic name prefixing
 // scopes are purely optional in c-next
 scope LED {
-    const u32 BIT <- 3;
+    u8 brightness;             // private by default (variable)
+    public u8 maxBrightness;   // public (explicit)
+    const u32 BIT <- 3;        // private const (inlined)
 
-    public void on() {
+    void on() {                // public by default (function)
         GPIO.DR_SET[BIT] <- true;
     }
 
-    public void off() {
+    void off() {               // public by default (function)
         GPIO.DR_CLEAR[BIT] <- true;
+    }
+
+    private void reset() {     // private (explicit)
+        this.brightness <- 0;
     }
 }
 
-// Usage: dot syntax
-LED.on();
-LED.off();
+// Visibility defaults:
+//   Functions: public by default, use 'private' to hide
+//   Variables: private by default, use 'public' to expose
 
-// Generates: LED_on(), LED_off()
+// Usage: dot syntax
+LED.on();                      // OK - public by default
+LED.off();                     // OK - public by default
+// LED.reset();                // ERROR - explicitly private
+
+// Generates: LED_on(), LED_off(), static void LED_reset()
 
 // =============================================================================
 // 14. REGISTER BINDINGS
@@ -433,7 +444,7 @@ const u32 LED_PIN <- 13;
 const u32 LED_BIT <- 3;
 
 scope LED {
-    public void toggle() {
+    void toggle() {            // public by default
         GPIO7.DR_TOGGLE[LED_BIT] <- true;
     }
 }

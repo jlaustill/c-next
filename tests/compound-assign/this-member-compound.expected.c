@@ -33,7 +33,7 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 static int32_t Calculator_value = 0;
 static uint32_t Calculator_bits = 0U;
 
-static int32_t Calculator_testSubtraction(void) {
+int32_t Calculator_testSubtraction(void) {
     Calculator_value = 100;
     Calculator_value = cnx_clamp_sub_i32(Calculator_value, 30);
     if (Calculator_value != 70) return 1;
@@ -43,7 +43,7 @@ static int32_t Calculator_testSubtraction(void) {
     return 0;
 }
 
-static int32_t Calculator_testMultiplication(void) {
+int32_t Calculator_testMultiplication(void) {
     Calculator_value = 7;
     Calculator_value = cnx_clamp_mul_i32(Calculator_value, 6);
     if (Calculator_value != 42) return 10;
@@ -56,7 +56,7 @@ static int32_t Calculator_testMultiplication(void) {
     return 0;
 }
 
-static int32_t Calculator_testDivision(void) {
+int32_t Calculator_testDivision(void) {
     Calculator_value = 100;
     Calculator_value /= 5;
     if (Calculator_value != 20) return 20;
@@ -69,7 +69,7 @@ static int32_t Calculator_testDivision(void) {
     return 0;
 }
 
-static int32_t Calculator_testModulo(void) {
+int32_t Calculator_testModulo(void) {
     Calculator_value = 17;
     Calculator_value %= 5;
     if (Calculator_value != 2) return 30;
@@ -82,7 +82,7 @@ static int32_t Calculator_testModulo(void) {
     return 0;
 }
 
-static int32_t Calculator_testBitwiseAnd(void) {
+int32_t Calculator_testBitwiseAnd(void) {
     Calculator_bits = 0xFFU;
     Calculator_bits &= 0x0FU;
     if (Calculator_bits != 0x0F) return 40;
@@ -95,7 +95,7 @@ static int32_t Calculator_testBitwiseAnd(void) {
     return 0;
 }
 
-static int32_t Calculator_testBitwiseOr(void) {
+int32_t Calculator_testBitwiseOr(void) {
     Calculator_bits = 0xF0U;
     Calculator_bits |= 0x0FU;
     if (Calculator_bits != 0xFF) return 50;
@@ -108,7 +108,7 @@ static int32_t Calculator_testBitwiseOr(void) {
     return 0;
 }
 
-static int32_t Calculator_testBitwiseXor(void) {
+int32_t Calculator_testBitwiseXor(void) {
     Calculator_bits = 0xFFU;
     Calculator_bits ^= 0xFFU;
     if (Calculator_bits != 0) return 60;
@@ -121,7 +121,7 @@ static int32_t Calculator_testBitwiseXor(void) {
     return 0;
 }
 
-static int32_t Calculator_testLeftShift(void) {
+int32_t Calculator_testLeftShift(void) {
     Calculator_bits = 1U;
     Calculator_bits <<= 4U;
     if (Calculator_bits != 16) return 70;
@@ -134,7 +134,7 @@ static int32_t Calculator_testLeftShift(void) {
     return 0;
 }
 
-static int32_t Calculator_testRightShift(void) {
+int32_t Calculator_testRightShift(void) {
     Calculator_bits = 256U;
     Calculator_bits >>= 4U;
     if (Calculator_bits != 16) return 80;

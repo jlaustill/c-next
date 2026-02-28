@@ -21,6 +21,6 @@ uint8_t decoder_getByte(const uint8_t data[8], uint8_t index) {
     return data[index];
 }
 
-static uint8_t decoder_internalHelper(uint8_t val) {
+uint8_t decoder_internalHelper(uint8_t val) {
     return val + 1;
 }

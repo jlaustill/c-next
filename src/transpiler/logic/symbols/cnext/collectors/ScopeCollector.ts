@@ -8,6 +8,7 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TSymbol from "../../../../types/symbols/TSymbol";
 import TVisibility from "../../../../types/TVisibility";
 import IScopeCollectorResult from "../types/IScopeCollectorResult";
@@ -69,10 +70,14 @@ class ScopeCollector {
     const memberSymbols: TSymbol[] = [];
 
     for (const member of ctx.scopeMember()) {
-      // ADR-016: Extract visibility (private by default)
+      // ADR-016: Extract visibility with member-type-aware defaults
       const visibilityMod = member.visibilityModifier();
+      const explicitVisibility = visibilityMod?.getText() as
+        | TVisibility
+        | undefined;
+      const isFunction = member.functionDeclaration() !== null;
       const visibility: TVisibility =
-        (visibilityMod?.getText() as TVisibility) ?? "private";
+        explicitVisibility ?? ScopeUtils.getDefaultVisibility(isFunction);
       const isPublic = visibility === "public";
 
       // Handle variable declarations

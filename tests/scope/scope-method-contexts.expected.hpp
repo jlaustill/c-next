@@ -27,6 +27,22 @@ extern bool MethodContexts_publicFlag;
 extern int32_t MethodContexts_publicOffset;
 
 /* Function prototypes */
+uint8_t MethodContexts_getPrivateValue(void);
+uint8_t MethodContexts_getPublicValueInternal(void);
+uint8_t MethodContexts_getPrivateClampValue(void);
+uint8_t MethodContexts_getPrivateWrapValue(void);
+void MethodContexts_incrementPrivateClamp(void);
+void MethodContexts_incrementPrivateWrap(void);
+bool MethodContexts_getPrivateFlag(void);
+int16_t MethodContexts_getPrivateOffset(void);
+uint8_t MethodContexts_getGlobalMaxInternal(void);
+uint8_t MethodContexts_getGlobalCounterInternal(void);
+bool MethodContexts_getGlobalEnabledInternal(void);
+int16_t MethodContexts_getGlobalOffsetInternal(void);
+float MethodContexts_getGlobalScaleInternal(void);
+uint8_t MethodContexts_computePrivateSum(void);
+bool MethodContexts_privateValueBelowMax(void);
+int16_t MethodContexts_computePrivateWithOffset(void);
 uint8_t MethodContexts_getPrivateValueExternal(void);
 uint8_t MethodContexts_getPublicValue(void);
 uint16_t MethodContexts_getPublicClampValue(void);

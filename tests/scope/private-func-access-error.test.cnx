@@ -1,8 +1,10 @@
+// test-error
 // Test: Calling private scope function from outside should error
 // This should fail with a visibility error per ADR-016
+// Functions are public by default, so we need explicit 'private' keyword
 
 scope Service {
-    void internalHelper() { }  // private by default
+    private void internalHelper() { }  // private with explicit keyword
 }
 
 void main() {

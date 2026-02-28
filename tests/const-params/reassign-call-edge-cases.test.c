@@ -132,7 +132,7 @@ void handleCritical(Config* config) {
 // Edge case 5: this.method() call in reassignment (within a scope)
 /* Scope: Processor */
 
-static uint8_t Processor_helper(Config* cfg) {
+uint8_t Processor_helper(Config* cfg) {
     cfg->value = 50U;
     return 0;
 }

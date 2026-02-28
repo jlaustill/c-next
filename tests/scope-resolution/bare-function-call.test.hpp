@@ -14,6 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
+void Calculator_reset(void);
+void Calculator_addTen(void);
 void Calculator_compute(void);
 uint32_t Calculator_getResult(void);
 
