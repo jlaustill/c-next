@@ -772,14 +772,7 @@ class SymbolTable {
   // ========================================================================
 
   /**
-   * Add struct field information
-   * @param structName Name of the struct
-   * @param fieldName Name of the field
-   * @param fieldType Type of the field (e.g., "uint32_t")
-   * @param arrayDimensions Optional array dimensions if field is an array
-   */
-  /**
-   * Add struct field information
+   * Add struct field information.
    * Issue #981: Accept (number | string)[] for arrayDimensions to support macro-sized arrays.
    * @param structName Name of the struct
    * @param fieldName Name of the field
