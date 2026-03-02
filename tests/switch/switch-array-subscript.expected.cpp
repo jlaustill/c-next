@@ -10,7 +10,7 @@
 // Verifies that switch(array[index]) correctly resolves as element type, not bool
 uint32_t result = 0;
 
-void handleByArray(const uint8_t data[4], uint8_t idx) {
+void handleByArray(uint8_t data[4], uint8_t idx) {
     switch (data[idx]) {
         case 1: {
             result = 10U;

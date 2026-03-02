@@ -296,14 +296,15 @@ class ParameterInputAdapter {
       }
     }
 
-    const isAutoConst = !deps.isModified && !isConst;
-
+    // ADR-006: Arrays are pass-by-reference and mutable by default.
+    // Never apply auto-const to arrays - only explicit const from source code.
+    // Auto-const would break compatibility with C APIs expecting mutable pointers.
     return {
       name,
       baseType: typeName,
       mappedType,
       isConst,
-      isAutoConst,
+      isAutoConst: false,
       isArray: true,
       arrayDimensions: dims,
       isCallback: false,

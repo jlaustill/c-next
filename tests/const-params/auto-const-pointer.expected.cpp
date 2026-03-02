@@ -28,8 +28,9 @@ void arrayMod(uint8_t arr[4]) {
     arr[0] = 99U;
 }
 
-// Array parameter read-only
-uint8_t arrayReadOnly(const uint8_t arr[4]) {
+// Array parameter read-only - arrays never get auto-const per ADR-006
+// (arrays are mutable by default; use explicit const if needed)
+uint8_t arrayReadOnly(uint8_t arr[4]) {
     return arr[0U];
 }
 

@@ -12,12 +12,12 @@
 // C-style allowed for string arrays (grammar limitation)
 char globalNames[5][33] = {0};
 
-uint32_t getArrayLength(const char arr[5][33]) {
+uint32_t getArrayLength(char arr[5][33]) {
     return 5;
 }
 
 // Issue #136 fixed: arr[index].char_count now correctly returns strlen
-uint32_t getElementLength(const char arr[5][33], uint32_t index) {
+uint32_t getElementLength(char arr[5][33], uint32_t index) {
     return strlen(arr[index]);
 }
 

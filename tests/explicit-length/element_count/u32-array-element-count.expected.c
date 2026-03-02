@@ -24,7 +24,7 @@ uint32_t TestScope_getScopeArrayElementCount(void) {
 }
 uint32_t TestScope_publicArr[16] = {0};
 
-uint32_t checkArrayElementCount(const uint32_t arr[16]) {
+uint32_t checkArrayElementCount(uint32_t arr[16]) {
     return 16;
 }
 
