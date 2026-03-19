@@ -1521,6 +1521,9 @@ class Transpiler {
       const unmodified = unmodifiedParams.get(headerSymbol.name);
       if (unmodified) {
         const updatedParams = headerSymbol.parameters.map((param) => {
+          // ADR-006: Only non-array pointer params get auto-const.
+          // Arrays are pass-by-reference and mutable by default - auto-const would
+          // break compatibility with C APIs expecting mutable pointers (issue #986).
           const isPointerParam =
             !param.isConst &&
             !param.isArray &&
@@ -1528,9 +1531,8 @@ class Transpiler {
             param.type !== "f64" &&
             param.type !== "ISR" &&
             !knownEnums.has(param.type ?? "");
-          const isArrayParam = param.isArray && !param.isConst;
 
-          if ((isPointerParam || isArrayParam) && unmodified.has(param.name)) {
+          if (isPointerParam && unmodified.has(param.name)) {
             return { ...param, isAutoConst: true };
           }
           return param;

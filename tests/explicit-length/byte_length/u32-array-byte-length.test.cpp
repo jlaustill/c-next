@@ -25,7 +25,7 @@ uint32_t TestScope_getScopeArrayByteLength(void) {
 }
 uint32_t TestScope_publicArr[16] = {0};
 
-uint32_t checkArrayByteLength(const uint32_t arr[16]) {
+uint32_t checkArrayByteLength(uint32_t arr[16]) {
     return 64;
 }
 

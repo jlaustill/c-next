@@ -22,9 +22,10 @@ void arrayMod(u8[4] arr) {
     arr[0] <- 99;  // Array element modified - no const on arr
 }
 
-// Array parameter read-only
+// Array parameter read-only - arrays never get auto-const per ADR-006
+// (arrays are mutable by default; use explicit const if needed)
 u8 arrayReadOnly(u8[4] arr) {
-    return arr[0];  // Only reads - should get const
+    return arr[0];  // Only reads, but no auto-const for arrays
 }
 
 u32 main() {

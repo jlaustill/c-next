@@ -15,7 +15,7 @@ void writeI32(int32_t arr[4], uint32_t index, int32_t value) {
 }
 
 // Read from array
-int32_t readI32(const int32_t arr[4], uint32_t index) {
+int32_t readI32(int32_t arr[4], uint32_t index) {
     return arr[index];
 }
 

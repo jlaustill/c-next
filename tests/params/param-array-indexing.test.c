@@ -58,7 +58,7 @@ uint8_t getHighByte(uint16_t value) {
 // Test 8: Local array with bit access after consuming all dimensions
 // This tests the currentStructType fix for primitive array elements
 // matrix[i][j] is array access, then [BIT] should be bit access
-uint8_t getArrayBit(const uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit) {
+uint8_t getArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit) {
     return ((matrix[row][col] >> bit) & 1);
 }
 

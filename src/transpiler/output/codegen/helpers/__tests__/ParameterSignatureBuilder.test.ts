@@ -44,15 +44,20 @@ describe("ParameterSignatureBuilder", () => {
     });
   });
 
+  // Note: These tests verify the builder respects isAutoConst when explicitly set.
+  // Per ADR-006 and issue #986, ParameterInputAdapter now sets isAutoConst=false
+  // for arrays (arrays are mutable by default). These tests still pass because
+  // they test the builder's behavior when isAutoConst IS requested (e.g., for
+  // explicit const arrays or legacy code paths).
   describe("array parameters", () => {
-    it("generates single dimension array", () => {
+    it("generates const array when isAutoConst is true", () => {
       const input = createInput({
         name: "arr",
         baseType: "u32",
         mappedType: "uint32_t",
         isArray: true,
         arrayDimensions: ["10"],
-        isAutoConst: true,
+        isAutoConst: true, // Explicit request for const
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");

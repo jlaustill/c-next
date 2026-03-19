@@ -1,0 +1,33 @@
+// test-execution
+// Issue #986: Array params transpile as const when passed to C APIs
+// ADR-006 says all params are pass-by-reference as mutable, but array params
+// that are not directly modified get auto-const, breaking C API compatibility.
+
+#include "fake_lib.h"
+
+scope Handler {
+    // This function receives an array and passes it to a C API
+    // The C-Next code does NOT directly modify `data`, but the C API does.
+    // ADR-006 says params are mutable, so this should work.
+    void process(u8[8] data) {
+        // BUG: data is NOT modified here, so transpiler adds `const`
+        // This generates: void Handler_process(const uint8_t data[8])
+        // But process_data() expects: uint8_t data[8] (mutable)
+        // Causes compile error: const uint8_t* to uint8_t* conversion
+        global.process_data(data);
+    }
+}
+
+u32 main() {
+    u8[8] buffer;
+    buffer[0] <- 0;
+    buffer[1] <- 0;
+
+    Handler.process(buffer);
+
+    // Verify the C API modified the buffer
+    if (buffer[0] != 0xAA) return 1;
+    if (buffer[1] != 0xBB) return 2;
+
+    return 0;
+}
