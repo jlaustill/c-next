@@ -1,0 +1,8 @@
+// test-error
+// Issue #985: global.X() with undeclared function should produce error
+
+scope Test {
+    void run() {
+        u32 now <- global.millis();
+    }
+}
