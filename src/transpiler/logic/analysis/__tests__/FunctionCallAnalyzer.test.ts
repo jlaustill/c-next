@@ -1239,6 +1239,10 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0422");
       expect(errors[0].functionName).toBe("Motor_undefinedMethod");
+      expect(errors[0].message).toContain("called before definition");
+      expect(errors[0].message).not.toContain(
+        "not declared in any included header",
+      );
     });
 
     it("should NOT resolve global.helper() to scope method Test_helper", () => {

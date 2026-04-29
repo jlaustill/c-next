@@ -360,7 +360,7 @@ class FunctionCallListener extends CNextListener {
     baseName: string,
   ): { resolvedName: string; foundCall: boolean; isGlobalCall: boolean } {
     let resolvedName = baseName;
-    const isGlobalCall = baseName === "global";
+    let isGlobalCall = baseName === "global";
 
     for (const op of ops) {
       // Member access: check if it's Scope.member or this.member pattern
@@ -368,6 +368,11 @@ class FunctionCallListener extends CNextListener {
         const resolved = this.resolveMemberAccess(resolvedName, op);
         if (resolved === null) {
           return { resolvedName, foundCall: false, isGlobalCall };
+        }
+        // If resolution went through a known scope, this is a scope
+        // method call, not a global function lookup
+        if (isGlobalCall && this.analyzer.isScope(resolvedName)) {
+          isGlobalCall = false;
         }
         resolvedName = resolved;
         continue;
