@@ -1241,6 +1241,27 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors[0].functionName).toBe("Motor_undefinedMethod");
     });
 
+    it("should NOT resolve global.helper() to scope method Test_helper", () => {
+      const code = `
+        scope Test {
+          void helper() {
+          }
+          void run() {
+            global.helper();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].functionName).toBe("helper");
+    });
+
     it("should allow global.func() for external C function", () => {
       const code = `
         scope Test {

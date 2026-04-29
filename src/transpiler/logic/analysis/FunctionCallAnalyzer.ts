@@ -996,7 +996,8 @@ class FunctionCallAnalyzer {
     // ADR-057: Allow implicit scope function calls without this. prefix
     // Check if this is an unqualified call to a scope function
     // e.g., calling helper() instead of this.helper() inside a scope
-    if (currentScope) {
+    // Skip for global. calls — global. explicitly means global scope
+    if (currentScope && !isGlobalCall) {
       const qualifiedName = `${currentScope}_${name}`;
       if (this.definedFunctions.has(qualifiedName)) {
         return; // OK - implicit resolution will handle it
