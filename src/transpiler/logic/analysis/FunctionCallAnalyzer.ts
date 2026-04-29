@@ -1005,11 +1005,14 @@ class FunctionCallAnalyzer {
     }
 
     // Not defined - report error with optional hint
+    // If the function is local (defined later in this file), it's a
+    // define-before-use error regardless of global. prefix
+    const isLocalFunction = this.allLocalFunctions.has(name);
     const header = this.findStdlibHeader(name);
     const message = this.buildUndefinedFunctionMessage(
       name,
       header,
-      isGlobalCall,
+      isGlobalCall && !isLocalFunction,
     );
 
     this.errors.push({

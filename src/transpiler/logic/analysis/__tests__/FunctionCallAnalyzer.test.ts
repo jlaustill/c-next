@@ -1262,6 +1262,30 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors[0].functionName).toBe("helper");
     });
 
+    it("should say 'called before definition' for global.func() on local function", () => {
+      const code = `
+        scope Test {
+          void run() {
+            global.helper();
+          }
+        }
+        void helper() {
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("called before definition");
+      expect(errors[0].message).not.toContain(
+        "not declared in any included header",
+      );
+    });
+
     it("should allow global.func() for external C function", () => {
       const code = `
         scope Test {
