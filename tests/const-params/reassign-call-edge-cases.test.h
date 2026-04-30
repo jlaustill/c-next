@@ -14,18 +14,18 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct ConstEdge_Config {
     uint32_t value;
     bool enabled;
-} Config;
+} ConstEdge_Config;
 
 /* Function prototypes */
-uint8_t Handler_setValue(Config* cfg, uint32_t val);
-uint8_t Handler_setSecond(uint32_t dummy, Config* cfg);
-uint32_t Handler_getValue(const Config* cfg);
-uint8_t Handler_wrapSetValue(Config* cfg, uint32_t val);
-uint8_t Processor_helper(Config* cfg);
-void Processor_process(Config* config);
+uint8_t Handler_setValue(ConstEdge_Config* cfg, uint32_t val);
+uint8_t Handler_setSecond(uint32_t dummy, ConstEdge_Config* cfg);
+uint32_t Handler_getValue(const ConstEdge_Config* cfg);
+uint8_t Handler_wrapSetValue(ConstEdge_Config* cfg, uint32_t val);
+uint8_t Processor_helper(ConstEdge_Config* cfg);
+void Processor_process(ConstEdge_Config* config);
 
 #ifdef __cplusplus
 }

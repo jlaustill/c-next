@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bool-byte-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -11,9 +13,7 @@
 // Bool storage size is 1 byte
 bool globalBool = true;
 
-typedef struct TestStruct {
-    bool flag;
-} TestStruct;
+/* Scope: BoolByteLen */
 
 int main(void) {
     if (1 != 1) {
@@ -23,7 +23,7 @@ int main(void) {
     if (1 != 1) {
         return 2;
     }
-    TestStruct ts = {0};
+    BoolByteLen_TestStruct ts = {0};
     ts.flag = true;
     if (1 != 1) {
         return 3;

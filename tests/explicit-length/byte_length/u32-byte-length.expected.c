@@ -28,6 +28,8 @@ uint32_t checkParamByteLength(uint32_t param) {
     return 4;
 }
 
+/* Scope: U32ByteLen */
+
 int main(void) {
     if (4 != 4) {
         return 1;
@@ -52,7 +54,7 @@ int main(void) {
     if (result != 4) {
         return 6;
     }
-    TestStruct ts = {0};
+    U32ByteLen_TestStruct ts = {0};
     ts.member = 100000U;
     if (4 != 4) {
         return 7;

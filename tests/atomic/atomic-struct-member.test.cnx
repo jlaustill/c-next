@@ -10,14 +10,16 @@ struct SharedState {
     u32 regularValue;
 }
 
-struct DeviceState {
+scope AtomicMember {
+    public struct DeviceState {
     u32 id;
     atomic u32 accessCount;
     atomic wrap u16 sequence;
 }
+}
 
 SharedState state;
-DeviceState device;
+AtomicMember.DeviceState device;
 
 void incrementStateCounter() {
     state.counter +<- 1;

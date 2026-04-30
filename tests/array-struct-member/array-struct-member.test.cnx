@@ -5,16 +5,18 @@ struct Point {
     i32 y;
 }
 
-struct ArraySensor {
+scope ArrayStructMember {
+    public struct Sensor {
     u16 id;
     i32 value;
     bool active;
+}
 }
 
 // Test arrays
 Point[3] points;
 
-ArraySensor[4] sensors;
+ArrayStructMember.Sensor sensors[4];
 
 // Test function to verify array-of-struct assignment
 i32 main() {

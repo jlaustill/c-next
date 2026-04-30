@@ -14,15 +14,15 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct ArrayMemberInit_Config {
     uint8_t flags[4];
     uint32_t version;
-} Config;
-typedef struct Packet {
+} ArrayMemberInit_Config;
+typedef struct ArrayMemberInit_Packet {
     uint8_t header[4];
     uint8_t payload[8];
     uint32_t checksum;
-} Packet;
+} ArrayMemberInit_Packet;
 
 #ifdef __cplusplus
 }

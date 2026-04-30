@@ -20,9 +20,9 @@ typedef enum {
 } EPressureType;
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct EnumUnqualRef_Config {
     EPressureType pType;
-} Config;
+} EnumUnqualRef_Config;
 
 #ifdef __cplusplus
 }

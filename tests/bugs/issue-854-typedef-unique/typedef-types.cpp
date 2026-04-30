@@ -3,10 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include <stdint.h>
+#include "typedef-types.hpp"
 
 // Helper: defines a struct used by the test file
-typedef struct TypedefSensor {
-    uint32_t id;
-    uint16_t value;
-} TypedefSensor;
+/* Scope: TypedefTypes */

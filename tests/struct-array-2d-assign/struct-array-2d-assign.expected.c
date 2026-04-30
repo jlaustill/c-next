@@ -10,7 +10,9 @@
 
 // test-execution
 // Tests: 2D struct array member assignment through global prefix (Issue #387)
-TReading readings[4][4] = {0};
+/* Scope: StructArr2D */
+
+StructArr2D_TReading readings[4][4] = {0};
 
 /* Scope: Test */
 

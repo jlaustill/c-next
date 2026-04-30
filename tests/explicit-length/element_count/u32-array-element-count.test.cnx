@@ -19,8 +19,10 @@ u32 checkArrayElementCount(u32[16] arr) {
     return arr.element_count;
 }
 
-struct TestStruct {
+scope U32ArrayElementCount {
+    public struct TestStruct {
     u32[16] arr;
+}
 }
 
 i32 main() {
@@ -63,7 +65,7 @@ i32 main() {
     }
 
     // Test struct member array
-    TestStruct ts;
+    U32ArrayElementCount.TestStruct ts;
     ts.arr[0] <- 100000;
     if (ts.arr.element_count != 16) {
         return 7;

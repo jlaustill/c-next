@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct TypedefSensor {
+typedef struct TypedefTypes_Sensor {
     uint32_t id;
     uint16_t value;
-} TypedefSensor;
+} TypedefTypes_Sensor;
 
 #ifdef __cplusplus
 }

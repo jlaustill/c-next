@@ -6,21 +6,21 @@
 #include <typedef-types.cnx>
 
 scope Reader {
-    TypedefSensor current;
+    TypedefTypes.Sensor current;
 
-    public void update(TypedefSensor s) {
+    public void update(TypedefTypes.Sensor s) {
         this.current <- s;
     }
 
-    public TypedefSensor read() {
+    public TypedefTypes.Sensor read() {
         return this.current;
     }
 }
 
 u32 main() {
-    TypedefSensor s <- {id: 42, value: 100};
+    TypedefTypes.Sensor s <- {id: 42, value: 100};
     Reader.update(s);
-    TypedefSensor result <- Reader.read();
+    TypedefTypes.Sensor result <- Reader.read();
     if (result.id != 42) return 1;
     if (result.value != 100) return 2;
     return 0;

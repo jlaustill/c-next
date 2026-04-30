@@ -16,21 +16,23 @@ bitmap16 Status {
     Progress[8] // bits 8-15
 }
 
-struct Device {
+scope BitmapMember {
+    public struct Device {
     u32 id;
     Flags flags;
     Status status;
     u32 value;
 }
 
-struct BitmapController {
+    public struct Controller {
     Flags controlFlags;
     u32 counter;
 }
+}
 
-Device device;
+BitmapMember.Device device;
 
-BitmapController ctrl;
+BitmapMember.Controller ctrl;
 
 u32 main() {
     // Initialize device

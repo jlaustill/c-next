@@ -18,8 +18,10 @@ u32 checkParamBitLength(u32 param) {
     return param.bit_length;
 }
 
-struct TestStruct {
+scope U32BitLen {
+    public struct TestStruct {
     u32 member;
+}
 }
 
 i32 main() {
@@ -52,7 +54,7 @@ i32 main() {
         return 6;
     }
 
-    TestStruct ts;
+    U32BitLen.TestStruct ts;
     ts.member <- 100000;
     if (ts.member.bit_length != 32) {
         return 7;

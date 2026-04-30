@@ -3,18 +3,17 @@
  * A safer C for embedded systems
  */
 
+#include "issue-68-length-in-serialization.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Regression test for issue #68: Real-world serialization pattern
 // Verifies config.magic.bit_length correctly returns 32 (was returning 0)
-typedef struct Config {
-    uint32_t magic;
-    uint8_t version;
-} Config;
+/* Scope: SerialLength */
 
 int main(void) {
-    Config config = {0};
+    SerialLength_Config config = {0};
     config.magic = 0x12345678U;
     config.version = 0x42U;
     uint32_t length = 32 / 8U;

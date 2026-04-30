@@ -13,12 +13,12 @@ typedef struct Point {
     int32_t y;
 } Point;
 
-typedef struct SizedSensor {
+typedef struct Sensor {
     uint8_t id;
     uint16_t value;
     uint32_t timestamp;
     float temperature;
-} SizedSensor;
+} Sensor;
 
 typedef struct DataBuffer {
     uint8_t data[64];
@@ -27,7 +27,7 @@ typedef struct DataBuffer {
 
 Point globalPoint = {0};
 
-SizedSensor globalSizedSensor = {0};
+Sensor globalSensor = {0};
 
 DataBuffer globalBuffer = {0};
 
@@ -39,7 +39,7 @@ int main(void) {
     if (xSize != 4) return 2;
     uint32_t ySize = sizeof(p.y);
     if (ySize != 4) return 3;
-    SizedSensor s = {0};
+    Sensor s = {0};
     uint32_t sensorSize = sizeof(s);
     uint32_t idSize = sizeof(s.id);
     if (idSize != 1) return 4;
@@ -56,7 +56,7 @@ int main(void) {
     if (lenSize != 4) return 9;
     uint32_t globalXSize = sizeof(globalPoint.x);
     if (globalXSize != 4) return 10;
-    uint32_t globalIdSize = sizeof(globalSizedSensor.id);
+    uint32_t globalIdSize = sizeof(globalSensor.id);
     if (globalIdSize != 1) return 11;
     uint32_t globalDataSize = sizeof(globalBuffer.data);
     if (globalDataSize != 64) return 12;

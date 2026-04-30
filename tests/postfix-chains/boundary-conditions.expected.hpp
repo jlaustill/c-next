@@ -14,15 +14,15 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Data {
+typedef struct BoundaryTest_Data {
     uint8_t byte;
     uint16_t word;
     uint32_t dword;
     uint64_t qword;
-} Data;
+} BoundaryTest_Data;
 
 /* External variables */
-extern Data items[16];
+extern BoundaryTest_Data items[16];
 
 #ifdef __cplusplus
 }

@@ -3,23 +3,13 @@
  * A safer C for embedded systems
  */
 
-#include <stdint.h>
+#include "struct-declaration.test.hpp"
 
 // ADR-014: Basic struct declaration
 // Tests: struct definition and declaration
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Color {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
-} Color;
+/* Scope: StructDecl */
 
 int main(void) {
     Point p = {0};
-    Color c = {0};
+    StructDecl_Color c = {0};
 }

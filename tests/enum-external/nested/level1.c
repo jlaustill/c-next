@@ -3,13 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "level1.h"
+
 // Middle level - includes level2 and uses its enum
 #include "level2.h"
 
-typedef struct Config {
-    ELevel level;
-} Config;
+/* Scope: NestedExtEnum */
 
-void setMedium(Config* cfg) {
+void setMedium(NestedExtEnum_Config* cfg) {
     cfg->level = ELevel_LEVEL_MEDIUM;
 }

@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct SliceFields_Config {
     uint32_t magic;
     uint16_t version;
     uint8_t flags;
     uint64_t timestamp;
-} Config;
+} SliceFields_Config;
 
 #ifdef __cplusplus
 }

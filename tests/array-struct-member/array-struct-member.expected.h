@@ -14,19 +14,19 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct ArrayStructMember_Sensor {
+    uint16_t id;
+    int32_t value;
+    bool active;
+} ArrayStructMember_Sensor;
 typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
-typedef struct ArraySensor {
-    uint16_t id;
-    int32_t value;
-    bool active;
-} ArraySensor;
 
 /* External variables */
 extern Point points[3];
-extern ArraySensor sensors[4];
+extern ArrayStructMember_Sensor sensors[4];
 
 #ifdef __cplusplus
 }

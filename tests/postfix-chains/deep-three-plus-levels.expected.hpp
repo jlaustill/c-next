@@ -14,27 +14,27 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Color {
+typedef struct DeepThreeLevel_Color {
     uint8_t r;
     uint8_t g;
     uint8_t b;
-} Color;
-typedef struct Material {
-    Color ambient;
-    Color diffuse;
+} DeepThreeLevel_Color;
+typedef struct DeepThreeLevel_Material {
+    DeepThreeLevel_Color ambient;
+    DeepThreeLevel_Color diffuse;
     uint8_t opacity;
-} Material;
-typedef struct Object {
-    Material material;
+} DeepThreeLevel_Material;
+typedef struct DeepThreeLevel_Object {
+    DeepThreeLevel_Material material;
     int32_t id;
-} Object;
-typedef struct Scene {
-    Object objects[4];
+} DeepThreeLevel_Object;
+typedef struct DeepThreeLevel_Scene {
+    DeepThreeLevel_Object objects[4];
     uint32_t count;
-} Scene;
+} DeepThreeLevel_Scene;
 
 /* External variables */
-extern Scene scenes[2];
+extern DeepThreeLevel_Scene scenes[2];
 
 #ifdef __cplusplus
 }

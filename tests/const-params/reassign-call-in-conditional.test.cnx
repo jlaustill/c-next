@@ -3,19 +3,21 @@
 // When a variable is declared first and later reassigned with a modifying call
 // inside a conditional, the const analyzer should still detect the modification.
 
-struct Config {
+scope ConstCond {
+    public struct Config {
     u32 value;
     bool enabled;
+}
 }
 
 // A scope with a method that modifies its config parameter
 scope CommandHandler {
-    public u8 setValue(Config cfg, u32 val) {
+    public u8 setValue(ConstCond.Config cfg, u32 val) {
         cfg.value <- val;
         return 0;
     }
 
-    public u8 enable(Config cfg) {
+    public u8 enable(ConstCond.Config cfg) {
         cfg.enabled <- true;
         return 0;
     }
@@ -23,7 +25,7 @@ scope CommandHandler {
 
 // BUG: Declaration first, reassignment with modifying call inside if
 // This pattern triggers issue #565 - the reassignment's RHS isn't walked for calls
-void handleEnableSpn(Config config) {
+void handleEnableSpn(ConstCond.Config config) {
     bool enable <- true;
     u8 errorCode <- 0;  // Declaration
     if (enable) {
@@ -34,7 +36,7 @@ void handleEnableSpn(Config config) {
 }
 
 // Variant: reassignment inside else branch
-void handleElseBranch(Config config) {
+void handleElseBranch(ConstCond.Config config) {
     bool enable <- false;
     u8 errorCode <- 0;
     if (enable) {
@@ -45,7 +47,7 @@ void handleElseBranch(Config config) {
 }
 
 // Variant: reassignment inside while loop
-void handleWhileLoop(Config config) {
+void handleWhileLoop(ConstCond.Config config) {
     u8 errorCode <- 0;
     u32 count <- 0;
     while (count < 1) {
@@ -55,7 +57,7 @@ void handleWhileLoop(Config config) {
 }
 
 // Variant: reassignment inside for loop
-void handleForLoop(Config config) {
+void handleForLoop(ConstCond.Config config) {
     u8 errorCode <- 0;
     for (u32 i <- 0; i < 1; i <- i + 1) {
         errorCode <- global.CommandHandler.setValue(config, 200);
@@ -63,7 +65,7 @@ void handleForLoop(Config config) {
 }
 
 // Control case: declaration with modifying call (this already works)
-void handleDeclaration(Config config) {
+void handleDeclaration(ConstCond.Config config) {
     bool enable <- true;
     if (enable) {
         u8 errorCode <- global.CommandHandler.setValue(config, 42);  // Declaration
@@ -71,13 +73,13 @@ void handleDeclaration(Config config) {
 }
 
 // Control case: top-level reassignment (outside conditional)
-void handleTopLevel(Config config) {
+void handleTopLevel(ConstCond.Config config) {
     u8 errorCode <- 0;
     errorCode <- global.CommandHandler.setValue(config, 300);  // Top-level reassignment
 }
 
 u32 main() {
-    Config cfg;
+    ConstCond.Config cfg;
     cfg.value <- 0;
     cfg.enabled <- false;
 

@@ -3,46 +3,19 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap-struct-member.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-coverage: 11-bitmap-struct-member
 // test-execution
 // Tests: Bitmap as struct member
-/* Bitmap: Flags */
-/* Fields:
- *   Active: bit 0 (1 bit)
- *   Ready: bit 1 (1 bit)
- *   Error: bit 2 (1 bit)
- *   Mode: bits 3-7 (5 bits)
- */
-typedef uint8_t Flags;
+/* Scope: BitmapMember */
 
-/* Bitmap: Status */
-/* Fields:
- *   Running: bit 0 (1 bit)
- *   Paused: bit 1 (1 bit)
- *   Complete: bit 2 (1 bit)
- *   Reserved: bits 3-7 (5 bits)
- *   Progress: bits 8-15 (8 bits)
- */
-typedef uint16_t Status;
+BitmapMember_Device device = {0};
 
-typedef struct Device {
-    uint32_t id;
-    Flags flags;
-    Status status;
-    uint32_t value;
-} Device;
-
-typedef struct BitmapController {
-    Flags controlFlags;
-    uint32_t counter;
-} BitmapController;
-
-Device device = {0};
-
-BitmapController ctrl = {0};
+BitmapMember_Controller ctrl = {0};
 
 int main(void) {
     device.id = 12345U;

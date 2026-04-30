@@ -3,29 +3,17 @@
  * A safer C for embedded systems
  */
 
+#include "enum-bit-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // test-c-only
 // Tests .bit_length property for enum type (ADR-058)
 // Enums are 32 bits by default (ADR-017)
-typedef enum {
-    Color_Red = 0,
-    Color_Green = 1,
-    Color_Blue = 2
-} Color;
-
-typedef enum {
-    State_IDLE = 0,
-    State_RUNNING = 1,
-    State_STOPPED = 2
-} State;
-
 Color globalColor = Color_Red;
 
-typedef struct TestStruct {
-    State state;
-} TestStruct;
+/* Scope: EnumBitLen */
 
 int main(void) {
     if (32 != 32) {
@@ -35,7 +23,7 @@ int main(void) {
     if (32 != 32) {
         return 2;
     }
-    TestStruct ts = {0};
+    EnumBitLen_TestStruct ts = {0};
     ts.state = State_RUNNING;
     if (32 != 32) {
         return 3;

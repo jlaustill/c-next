@@ -28,6 +28,8 @@ uint32_t checkArrayElementCount(uint32_t arr[16]) {
     return 16;
 }
 
+/* Scope: U32ArrayElementCount */
+
 int main(void) {
     globalArr[0] = 100000U;
     if (16 != 16) {
@@ -55,7 +57,7 @@ int main(void) {
     if (result != 16) {
         return 6;
     }
-    TestStruct ts = {0};
+    U32ArrayElementCount_TestStruct ts = {0};
     ts.arr[0] = 100000U;
     if (16 != 16) {
         return 7;

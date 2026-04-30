@@ -1,6 +1,7 @@
 // Test: All compound assignment operators on struct members
 // Covers: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
-struct Data {
+scope CompoundOps {
+    public struct Data {
     u32 add_val;
     u32 sub_val;
     u32 mul_val;
@@ -12,8 +13,9 @@ struct Data {
     u32 shl_val;
     u32 shr_val;
 }
+}
 
-Data d;
+CompoundOps.Data d;
 
 i32 main() {
     // Initialize struct members

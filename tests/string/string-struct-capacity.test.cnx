@@ -9,9 +9,11 @@ struct Person {
     u32 age;
 }
 
-struct Config {
+scope StrCapacity {
+    public struct Config {
     string<32> key;
     string<256> value;
+}
 }
 
 i32 main() {
@@ -29,7 +31,7 @@ i32 main() {
     if (alice.bio.size != 129) return 4;
 
 // Test 3: Different struct, different capacities
-    Config cfg;
+    StrCapacity.Config cfg;
     cfg.key <- "api_url";
     cfg.value <- "https://example.com";
 

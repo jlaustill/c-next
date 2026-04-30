@@ -9,17 +9,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <chain-types-mid.hpp>
-#include <chain-types-base.hpp>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* External type dependencies - include appropriate headers */
+typedef struct ChainTypesBase_Coordinate ChainTypesBase_Coordinate;
+
 /* Function prototypes */
 void Navigator_setDestination(const Waypoint& wp);
 Waypoint Navigator_getDestination(void);
-void Navigator_moveTo(const Coordinate& pos);
-Coordinate Navigator_getCurrentPosition(void);
+void Navigator_moveTo(const ChainTypesBase_Coordinate& pos);
+ChainTypesBase_Coordinate Navigator_getCurrentPosition(void);
 
 #ifdef __cplusplus
 }

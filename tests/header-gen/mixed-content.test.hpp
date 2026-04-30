@@ -21,14 +21,14 @@ typedef enum {
 } EStatus;
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct HeaderMixed_Config {
     uint32_t timeout;
     uint8_t retries;
     EStatus status;
-} Config;
+} HeaderMixed_Config;
 
 /* External variables */
-extern Config globalConfig;
+extern HeaderMixed_Config globalConfig;
 
 #ifdef __cplusplus
 }

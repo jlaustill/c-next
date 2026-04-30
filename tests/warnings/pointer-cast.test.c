@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "pointer-cast.test.h"
+
 #include <stdint.h>
 
 /* test-no-warnings */
@@ -10,40 +12,32 @@
 // Tests: Struct pass-by-reference should not trigger pointer warnings
 // Validates: Implicit pointer handling is warning-free
 // Coverage: Struct parameters, struct returns, nested access
-typedef struct Data {
-    uint32_t value;
-    uint8_t flags;
-} Data;
+/* Scope: PtrCast */
 
-typedef struct Container {
-    Data inner;
-    uint32_t count;
-} Container;
-
-void modifyData(Data* d) {
+void modifyData(PtrCast_Data* d) {
     d->value = 999U;
     d->flags = 0xFFU;
 }
 
-Data createData(uint32_t val, uint8_t flg) {
-    Data result = (Data){ .value = val, .flags = flg };
+PtrCast_Data createData(uint32_t val, uint8_t flg) {
+    PtrCast_Data result = (PtrCast_Data){ .value = val, .flags = flg };
     return result;
 }
 
-void updateContainer(Container* c, uint32_t newCount) {
+void updateContainer(PtrCast_Container* c, uint32_t newCount) {
     c->count = newCount;
     c->inner.value = newCount * 10U;
 }
 
 int main(void) {
-    Data d = (Data){ .value = 100U, .flags = 0x0FU };
+    PtrCast_Data d = (PtrCast_Data){ .value = 100U, .flags = 0x0FU };
     modifyData(&d);
     if (d.value != 999) return 1;
     if (d.flags != 0xFF) return 2;
-    Data created = createData(42U, 0xABU);
+    PtrCast_Data created = createData(42U, 0xABU);
     if (created.value != 42) return 3;
     if (created.flags != 0xAB) return 4;
-    Container c = (Container){ .inner = (Data){ .value = 0U, .flags = 0U }, .count = 0U };
+    PtrCast_Container c = (PtrCast_Container){ .inner = (PtrCast_Data){ .value = 0U, .flags = 0U }, .count = 0U };
     updateContainer(&c, 5U);
     if (c.count != 5) return 5;
     if (c.inner.value != 50) return 6;

@@ -7,9 +7,11 @@ struct Person {
     u32 age;
 }
 
-struct Config {
+scope StrMember {
+    public struct Config {
     string<32> key;
     string<256> value;
+}
 }
 
 u32 getNameLength(Person p) {
@@ -77,8 +79,8 @@ i32 main() {
     if (compareName(alice, "Bob")) return 16; // Should not match
 
    
-// Test 10: Config struct (different capacities)
-    Config cfg;
+// Test 10: StrMember.Config struct (different capacities)
+    StrMember.Config cfg;
     cfg.key <- "api_url";
     cfg.value <- "https://example.com/api/v1";
 

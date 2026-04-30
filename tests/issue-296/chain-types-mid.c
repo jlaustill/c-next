@@ -4,12 +4,12 @@
  */
 
 // Issue #404: Mid-level types for chained forward declaration test
-// Level 2: Uses Coordinate from base
+// Level 2: Uses ChainTypesBase.Coordinate from base
 #include <chain-types-base.h>
 
 #include <stdint.h>
 
 typedef struct Waypoint {
-    Coordinate position;
+    ChainTypesBase_Coordinate position;
     uint32_t id;
 } Waypoint;

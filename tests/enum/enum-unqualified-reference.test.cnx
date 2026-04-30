@@ -10,17 +10,19 @@ enum EPressureType {
     PRESSURE_TYPE_PSIG <- 1
 }
 
-struct Config {
+scope EnumUnqualRef {
+    public struct Config {
     EPressureType pType;
 }
+}
 
-void setDefault(Config config) {
+void setDefault(EnumUnqualRef.Config config) {
     // Unqualified reference - should generate EPressureType_PRESSURE_TYPE_PSIG
     config.pType <- PRESSURE_TYPE_PSIG;
 }
 
 u32 main() {
-    Config cfg <- {pType: EPressureType.PRESSURE_TYPE_PSIA};
+    EnumUnqualRef.Config cfg <- {pType: EPressureType.PRESSURE_TYPE_PSIA};
 
     // Test 1: Verify initial value
     if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 1;

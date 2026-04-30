@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct TestStruct {
+typedef struct FloatBitLen_TestStruct {
     float x;
     double y;
-} TestStruct;
+} FloatBitLen_TestStruct;
 
 /* External variables */
 extern float globalF32;

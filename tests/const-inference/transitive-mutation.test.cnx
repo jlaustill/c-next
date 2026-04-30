@@ -1,23 +1,25 @@
 // Issue #797: Transpiler incorrectly infers const when function delegates mutation
 
-struct Data {
+scope TransMutation {
+    public struct Data {
     u8 value;
+}
 }
 
 scope Test {
     // Directly mutates — transpiler correctly generates non-const
-    void fillData(Data d) {
+    void fillData(TransMutation.Data d) {
         d.value <- 42;
     }
 
     // Delegates mutation — transpiler should generate non-const
-    public void loadData(Data d) {
+    public void loadData(TransMutation.Data d) {
         fillData(d);  // passes to non-const function, so d must be non-const
     }
 }
 
 u32 main() {
-    Data d <- {value: 0};
+    TransMutation.Data d <- {value: 0};
 
     // Verify initial value
     if (d.value != 0) return 1;

@@ -3,23 +3,22 @@
  * A safer C for embedded systems
  */
 
+#include "const-struct-array-inferred.test.hpp"
+
 #include <stdint.h>
 
 // Tests: Issue #636 - Const struct array with inferred size must include dimension in header
 // This is a regression test to ensure headers correctly declare array dimensions
 // when the size is inferred from an initializer.
-typedef struct TItem {
-    uint32_t id;
-    uint16_t value;
-} TItem;
+/* Scope: ConstInferred */
 
 // Key case: const struct array with inferred size []
-// Header MUST generate: extern const TItem ITEMS[3];
-// NOT: extern const TItem ITEMS;  (this breaks cross-file compilation)
-extern const TItem ITEMS[3] = {(TItem){ .id = 1U, .value = 100U }, (TItem){ .id = 2U, .value = 200U }, (TItem){ .id = 3U, .value = 300U }};
+// Header MUST generate: extern const ConstInferred.TItem ITEMS[3];
+// NOT: extern const ConstInferred.TItem ITEMS;  (this breaks cross-file compilation)
+extern const ConstInferred_TItem ITEMS[3] = {(ConstInferred_TItem){ .id = 1U, .value = 100U }, (ConstInferred_TItem){ .id = 2U, .value = 200U }, (ConstInferred_TItem){ .id = 3U, .value = 300U }};
 
 // Also test: non-const struct array with inferred size
-TItem mutableItems[2] = {(TItem){ .id = 10U, .value = 1000U }, (TItem){ .id = 20U, .value = 2000U }};
+ConstInferred_TItem mutableItems[2] = {(ConstInferred_TItem){ .id = 10U, .value = 1000U }, (ConstInferred_TItem){ .id = 20U, .value = 2000U }};
 
 // Also test: const primitive array with inferred size
 extern const uint8_t SIZES[4] = {10U, 20U, 30U, 40U};
@@ -32,7 +31,7 @@ extern const uint8_t ITEM_COUNT = 3U;
 int main(void) {
     uint32_t total = 0U;
     for (uint8_t i = 0; i < ITEM_COUNT; i = i + 1) {
-        TItem item = ITEMS[i];
+        ConstInferred_TItem item = ITEMS[i];
         total = total + item.value;
     }
 }

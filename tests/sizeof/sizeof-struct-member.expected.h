@@ -18,12 +18,12 @@ typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
-typedef struct SizedSensor {
+typedef struct Sensor {
     uint8_t id;
     uint16_t value;
     uint32_t timestamp;
     float temperature;
-} SizedSensor;
+} Sensor;
 typedef struct DataBuffer {
     uint8_t data[64];
     uint32_t len;
@@ -31,7 +31,7 @@ typedef struct DataBuffer {
 
 /* External variables */
 extern Point globalPoint;
-extern SizedSensor globalSizedSensor;
+extern Sensor globalSensor;
 extern DataBuffer globalBuffer;
 
 #ifdef __cplusplus

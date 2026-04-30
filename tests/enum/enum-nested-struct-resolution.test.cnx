@@ -2,7 +2,7 @@
 // test-coverage: issue-452-nested-struct-resolution
 // Tests: Type-aware enum resolution through nested struct access
 // For config.nested.status <- RED, should correctly walk the chain:
-// config -> Config -> nested -> NestedConfig -> status -> Status
+// config -> EnumNestedRes.Config -> nested -> NestedConfig -> status -> Status
 
 enum Color {
     RED <- 0,
@@ -14,27 +14,29 @@ enum Status {
     GREEN <- 20
 }
 
-struct NestedConfig {
+scope EnumNestedRes {
+    public struct NestedConfig {
     Status status;
     Color color;
 }
 
-struct Config {
-    NestedConfig nested;
+    public struct Config {
+    this.NestedConfig nested;
+}
 }
 
-void setNestedStatus(Config cfg) {
+void setNestedStatus(EnumNestedRes.Config cfg) {
     // Should resolve RED to Status_RED (value 10) via nested struct chain
     cfg.nested.status <- RED;
 }
 
-void setNestedColor(Config cfg) {
+void setNestedColor(EnumNestedRes.Config cfg) {
     // Should resolve GREEN to Color_GREEN (value 1) via nested struct chain
     cfg.nested.color <- GREEN;
 }
 
 u32 main() {
-    Config cfg <- {nested: {status: Status.GREEN, color: Color.RED}};
+    EnumNestedRes.Config cfg <- {nested: {status: Status.GREEN, color: Color.RED}};
 
     // Test 1: Verify initial nested status
     if ((u32)cfg.nested.status != 20) return 1;  // Status_GREEN = 20

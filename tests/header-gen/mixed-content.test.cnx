@@ -7,13 +7,15 @@ enum EStatus {
     STATUS_ERROR <- 2
 }
 
-struct Config {
+scope HeaderMixed {
+    public struct Config {
     u32 timeout;
     u8 retries;
     EStatus status;
 }
+}
 
-Config globalConfig <- {timeout: 1000, retries: 3, status: STATUS_IDLE};
+HeaderMixed.Config globalConfig <- {timeout: 1000, retries: 3, status: STATUS_IDLE};
 
 void initConfig() {
     globalConfig.timeout <- 5000;

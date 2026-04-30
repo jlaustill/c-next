@@ -3,15 +3,15 @@
  * A safer C for embedded systems
  */
 
+#include "compound-assign-bug.test.h"
+
 #include <stdint.h>
 
 // Regression test: Compound assignment on array-of-struct member
 // Verifies arr[i].field +<- value generates += correctly (was losing the +=)
-typedef struct Counter {
-    int32_t value;
-} Counter;
+/* Scope: CompoundBug */
 
-Counter counters[2] = {0};
+CompoundBug_Counter counters[2] = {0};
 
 int main(void) {
     counters[0].value = 100;

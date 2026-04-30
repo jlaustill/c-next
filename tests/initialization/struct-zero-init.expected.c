@@ -3,26 +3,19 @@
  * A safer C for embedded systems
  */
 
+#include "struct-zero-init.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // ADR-015: Struct zero initialization
 // Tests: struct members are automatically zero-initialized
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Config {
-    uint32_t baudRate;
-    uint8_t dataBits;
-    bool enabled;
-} Config;
+/* Scope: ZeroInit */
 
 Point origin = {0};
 
-Config settings = {0};
+ZeroInit_Config settings = {0};
 
 int main(void) {
     if (origin.x == 0 && origin.y == 0) {

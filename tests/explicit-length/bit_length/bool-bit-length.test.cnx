@@ -4,8 +4,10 @@
 
 bool globalBool <- true;
 
-struct TestStruct {
+scope BoolBitLen {
+    public struct TestStruct {
     bool flag;
+}
 }
 
 i32 main() {
@@ -21,7 +23,7 @@ i32 main() {
     }
 
     // Test struct member
-    TestStruct ts;
+    BoolBitLen.TestStruct ts;
     ts.flag <- true;
     if (ts.flag.bit_length != 8) {
         return 3;

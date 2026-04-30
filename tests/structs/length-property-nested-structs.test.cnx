@@ -1,25 +1,27 @@
 // test-execution
 // Regression test: .length on nested struct members
 // Ensures the fix handles deep member chains correctly
-struct Inner {
+scope LengthNested {
+    public struct Inner {
     u32 value;
     u16 status;
 }
 
-struct Outer {
-    Inner inner;
+    public struct Outer {
+    this.Inner inner;
     u8 flags;
+}
 }
 
 struct DeepNest {
-    Outer outer;
+    LengthNested.Outer outer;
     u64 timestamp;
 }
 
 u32 main() {
    
 // Test 2-level nesting: outer.inner.field.bit_length
-    Outer config;
+    LengthNested.Outer config;
     config.inner.value <- 0x12345678;
     config.inner.status <- 100;
     config.flags <- 0xFF;

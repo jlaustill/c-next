@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "enum-unqualified-reference.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
@@ -11,21 +13,14 @@
 // Bug: When referencing an enum value without EnumType.VALUE syntax,
 //      the generated C was missing the required EnumType_ prefix.
 // Issue: https://github.com/jlaustill/c-next/issues/452
-typedef enum {
-    EPressureType_PRESSURE_TYPE_PSIA = 0,
-    EPressureType_PRESSURE_TYPE_PSIG = 1
-} EPressureType;
+/* Scope: EnumUnqualRef */
 
-typedef struct Config {
-    EPressureType pType;
-} Config;
-
-void setDefault(Config& config) {
+void setDefault(EnumUnqualRef_Config& config) {
     config.pType = EPressureType_PRESSURE_TYPE_PSIG;
 }
 
 int main(void) {
-    Config cfg = (Config){ .pType = EPressureType_PRESSURE_TYPE_PSIA };
+    EnumUnqualRef_Config cfg = (EnumUnqualRef_Config){ .pType = EPressureType_PRESSURE_TYPE_PSIA };
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 1;
     setDefault(cfg);
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIG) return 2;

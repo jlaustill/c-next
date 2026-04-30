@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "struct-init.test.h"
+
 #include <stdint.h>
 
 /* test-no-warnings */
@@ -10,21 +12,7 @@
 // Tests: Struct initialization should not trigger GCC warnings
 // Validates: Struct initializers are complete and warning-free
 // Coverage: Full struct init, nested structs, struct with mixed types
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Rectangle {
-    Point topLeft;
-    Point bottomRight;
-} Rectangle;
-
-typedef struct Data {
-    uint32_t id;
-    uint8_t flags;
-    uint16_t count;
-} Data;
+/* Scope: StructInit */
 
 int main(void) {
     Point p = (Point){ .x = 10, .y = 20 };
@@ -33,7 +21,7 @@ int main(void) {
     Rectangle rect = (Rectangle){ .topLeft = (Point){ .x = 0, .y = 0 }, .bottomRight = (Point){ .x = 100, .y = 100 } };
     if (rect.topLeft.x != 0) return 3;
     if (rect.bottomRight.y != 100) return 4;
-    Data d = (Data){ .id = 42U, .flags = 0xFFU, .count = 1000U };
+    StructInit_Data d = (StructInit_Data){ .id = 42U, .flags = 0xFFU, .count = 1000U };
     if (d.id != 42) return 5;
     if (d.flags != 0xFF) return 6;
     if (d.count != 1000) return 7;

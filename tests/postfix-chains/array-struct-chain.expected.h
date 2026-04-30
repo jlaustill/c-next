@@ -14,29 +14,29 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Vec3 {
+typedef struct ArrayChain_Vec3 {
     float x;
     float y;
     float z;
-} Vec3;
-typedef struct Transform {
-    Vec3 position;
-    Vec3 rotation;
-    Vec3 scale;
-} Transform;
-typedef struct Entity {
-    Transform transform;
+} ArrayChain_Vec3;
+typedef struct ArrayChain_Transform {
+    ArrayChain_Vec3 position;
+    ArrayChain_Vec3 rotation;
+    ArrayChain_Vec3 scale;
+} ArrayChain_Transform;
+typedef struct ArrayChain_Entity {
+    ArrayChain_Transform transform;
     uint32_t id;
     uint8_t flags;
-} Entity;
-typedef struct Mesh {
-    Vec3 vertices[8];
+} ArrayChain_Entity;
+typedef struct ArrayChain_Mesh {
+    ArrayChain_Vec3 vertices[8];
     uint32_t indices[12];
-} Mesh;
+} ArrayChain_Mesh;
 
 /* External variables */
-extern Entity grid[4][4];
-extern Mesh meshes[3];
+extern ArrayChain_Entity grid[4][4];
+extern ArrayChain_Mesh meshes[3];
 
 #ifdef __cplusplus
 }

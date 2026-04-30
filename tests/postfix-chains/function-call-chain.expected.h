@@ -14,18 +14,18 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Vec3 {
+typedef struct FuncCallChain_Vec3 {
     float x;
     float y;
     float z;
-} Vec3;
-typedef struct Transform {
-    Vec3 position;
-    Vec3 scale;
-} Transform;
+} FuncCallChain_Vec3;
+typedef struct FuncCallChain_Transform {
+    FuncCallChain_Vec3 position;
+    FuncCallChain_Vec3 scale;
+} FuncCallChain_Transform;
 
 /* External variables */
-extern Transform transforms[4];
+extern FuncCallChain_Transform transforms[4];
 
 #ifdef __cplusplus
 }

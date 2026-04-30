@@ -10,15 +10,17 @@ bitmap8 DeviceFlags {
     Reserved[3]     // bits 5-7
 }
 
-struct DeviceSensor {
+scope MixedAccess {
+    public struct Sensor {
     u32 id;
     u8[8] data;
     DeviceFlags flags;
 }
 
-struct DeviceController {
-    DeviceSensor[4] sensors;
+    public struct Controller {
+    this.Sensor[4] sensors;
     u32 status;
+}
 }
 
 register PERIPH @ 0x50000000 {
@@ -27,7 +29,7 @@ register PERIPH @ 0x50000000 {
 }
 
 scope Device {
-    DeviceController[2] controllers;
+    MixedAccess.Controller[2] controllers;
 
     register HW @ 0x60000000 {
         STATUS: DeviceFlags rw @ 0x00,
@@ -50,7 +52,7 @@ scope Device {
     }
 }
 
-DeviceController globalCtrl;
+MixedAccess.Controller globalCtrl;
 
 void main() {
     // Chain 1: global.Scope.array[i].struct.array[j].bitmap.field (7 levels)
@@ -108,7 +110,7 @@ void main() {
 
     // Call scoped function that uses mega chains internally
     Device.configure();
-    bool isDeviceSensorActive <- Device.isActive(0, 1);
+    bool isSensorActive <- Device.isActive(0, 1);
 
     // Chain with register DATA field bit indexing
     PERIPH.DATA[0] <- true;

@@ -20,13 +20,15 @@ u32 processBool(bool val) {
 }
 
 // Struct for struct parameter test
-struct Point {
+scope CallbackParamType {
+    public struct Point {
     u32 x;
     u32 y;
 }
+}
 
 // Callback with struct parameter
-u32 processPoint(Point p) {
+u32 processPoint(CallbackParamType.Point p) {
     return p.x + p.y;
 }
 
@@ -84,7 +86,7 @@ u32 main() {
    
 // Test 7: struct parameter
     PointHandler ph;
-    Point pt;
+    CallbackParamType.Point pt;
     pt.x <- 10;
     pt.y <- 20;
     result <- ph.handler(pt);

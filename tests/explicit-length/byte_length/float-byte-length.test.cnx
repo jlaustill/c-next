@@ -5,9 +5,11 @@
 f32 globalF32 <- 3.14;
 f64 globalF64 <- 3.14159265359;
 
-struct TestStruct {
+scope FloatByteLen {
+    public struct TestStruct {
     f32 x;
     f64 y;
+}
 }
 
 i32 main() {
@@ -33,7 +35,7 @@ i32 main() {
     }
 
     // Test struct members
-    TestStruct ts;
+    FloatByteLen.TestStruct ts;
     ts.x <- 1.0;
     ts.y <- 2.0;
     if (ts.x.byte_length != 4) {

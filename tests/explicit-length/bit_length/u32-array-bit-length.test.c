@@ -29,6 +29,8 @@ uint32_t checkArrayBitLength(uint32_t arr[16]) {
     return 512;
 }
 
+/* Scope: U32ArrayBitLength */
+
 int main(void) {
     globalArr[0] = 100000U;
     if (512 != 512) {
@@ -56,7 +58,7 @@ int main(void) {
     if (result != 512) {
         return 6;
     }
-    TestStruct ts = {0};
+    U32ArrayBitLength_TestStruct ts = {0};
     ts.arr[0] = 100000U;
     if (512 != 512) {
         return 7;
