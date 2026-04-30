@@ -5,7 +5,7 @@ struct Point {
     i32 y;
 }
 
-struct Sensor {
+struct ArraySensor {
     u16 id;
     i32 value;
     bool active;
@@ -14,7 +14,7 @@ struct Sensor {
 // Test arrays
 Point[3] points;
 
-Sensor[4] sensors;
+ArraySensor[4] sensors;
 
 // Test function to verify array-of-struct assignment
 i32 main() {

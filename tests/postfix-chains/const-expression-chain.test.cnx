@@ -8,12 +8,12 @@ const u32 SENSOR_COUNT <- 4;
 const u32 LED_BIT <- 3;
 const u32 STATUS_BIT <- 7;
 
-struct Sensor {
+struct ChainSensor {
     u32 id;
     u8 data;
 }
 
-Sensor[SENSOR_COUNT] sensors;
+ChainSensor[SENSOR_COUNT] sensors;
 
 register GPIO @ 0x40000000 {
     DR:     u32 rw @ 0x00,

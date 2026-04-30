@@ -23,16 +23,16 @@ typedef struct Point {
     int32_t y;
 } Point;
 
-typedef struct Sensor {
+typedef struct ArraySensor {
     uint16_t id;
     int32_t value;
     bool active;
-} Sensor;
+} ArraySensor;
 
 // Test arrays
 Point points[3] = {0};
 
-Sensor sensors[4] = {0};
+ArraySensor sensors[4] = {0};
 
 // Test function to verify array-of-struct assignment
 int main(void) {

@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // Helper: defines a struct used by the test file
-typedef struct Sensor {
+typedef struct TypedefSensor {
     uint32_t id;
     uint16_t value;
-} Sensor;
+} TypedefSensor;

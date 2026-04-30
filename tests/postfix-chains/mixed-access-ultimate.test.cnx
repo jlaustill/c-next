@@ -10,14 +10,14 @@ bitmap8 DeviceFlags {
     Reserved[3]     // bits 5-7
 }
 
-struct Sensor {
+struct DeviceSensor {
     u32 id;
     u8[8] data;
     DeviceFlags flags;
 }
 
 struct Controller {
-    Sensor[4] sensors;
+    DeviceSensor[4] sensors;
     u32 status;
 }
 
@@ -108,7 +108,7 @@ void main() {
 
     // Call scoped function that uses mega chains internally
     Device.configure();
-    bool isSensorActive <- Device.isActive(0, 1);
+    bool isDeviceSensorActive <- Device.isActive(0, 1);
 
     // Chain with register DATA field bit indexing
     PERIPH.DATA[0] <- true;

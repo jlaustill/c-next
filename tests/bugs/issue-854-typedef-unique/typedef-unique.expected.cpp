@@ -15,20 +15,20 @@
 #include <stdint.h>
 
 /* Scope: Reader */
-static Sensor Reader_current = {0};
+static TypedefSensor Reader_current = {0};
 
-void Reader_update(const Sensor& s) {
+void Reader_update(const TypedefSensor& s) {
     Reader_current = s;
 }
 
-Sensor Reader_read(void) {
+TypedefSensor Reader_read(void) {
     return Reader_current;
 }
 
 int main(void) {
-    Sensor s = (Sensor){ .id = 42U, .value = 100U };
+    TypedefSensor s = (TypedefSensor){ .id = 42U, .value = 100U };
     Reader_update(s);
-    Sensor result = Reader_read();
+    TypedefSensor result = Reader_read();
     if (result.id != 42) return 1;
     if (result.value != 100) return 2;
     return 0;

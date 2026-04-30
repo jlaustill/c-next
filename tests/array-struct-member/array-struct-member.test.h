@@ -18,15 +18,15 @@ typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
-typedef struct Sensor {
+typedef struct ArraySensor {
     uint16_t id;
     int32_t value;
     bool active;
-} Sensor;
+} ArraySensor;
 
 /* External variables */
 extern Point points[3];
-extern Sensor sensors[4];
+extern ArraySensor sensors[4];
 
 #ifdef __cplusplus
 }

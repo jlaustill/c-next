@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Sensor {
+typedef struct ChainSensor {
     uint32_t id;
     uint8_t data;
-} Sensor;
+} ChainSensor;
 
 /* External variables */
 extern const uint32_t INDEX_0;
@@ -26,7 +26,7 @@ extern const uint32_t INDEX_2;
 extern const uint32_t SENSOR_COUNT;
 extern const uint32_t LED_BIT;
 extern const uint32_t STATUS_BIT;
-extern Sensor sensors[4];
+extern ChainSensor sensors[4];
 
 #ifdef __cplusplus
 }

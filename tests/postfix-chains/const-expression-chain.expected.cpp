@@ -20,12 +20,12 @@ extern const uint32_t LED_BIT = 3U;
 
 extern const uint32_t STATUS_BIT = 7U;
 
-typedef struct Sensor {
+typedef struct ChainSensor {
     uint32_t id;
     uint8_t data;
-} Sensor;
+} ChainSensor;
 
-Sensor sensors[4] = {0};
+ChainSensor sensors[4] = {0};
 
 /* Register: GPIO @ 0x40000000 */
 #define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))

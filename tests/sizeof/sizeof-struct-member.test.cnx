@@ -6,7 +6,7 @@ struct Point {
     i32 y;
 }
 
-struct Sensor {
+struct SizedSensor {
     u8 id;
     u16 value;
     u32 timestamp;
@@ -20,7 +20,7 @@ struct DataBuffer {
 
 Point globalPoint;
 
-Sensor globalSensor;
+SizedSensor globalSizedSensor;
 
 DataBuffer globalBuffer;
 
@@ -41,7 +41,7 @@ u32 main() {
 
    
 // Test sizeof on sensor struct
-    Sensor s;
+    SizedSensor s;
     u32 sensorSize <- sizeof(s);
 
     // Note: May have padding - check each member instead
@@ -71,7 +71,7 @@ u32 main() {
     u32 globalXSize <- sizeof(globalPoint.x);
     if (globalXSize != 4) return 10;
 
-    u32 globalIdSize <- sizeof(globalSensor.id);
+    u32 globalIdSize <- sizeof(globalSizedSensor.id);
     if (globalIdSize != 1) return 11;
 
     u32 globalDataSize <- sizeof(globalBuffer.data);
