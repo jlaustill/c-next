@@ -192,6 +192,8 @@ function runCppcheck() {
     // intentional (e.g., `bool a = true; if (a) { ... }` in edge-case tests)
     "--suppress=identicalInnerCondition",
     "--suppress=identicalConditionAfterEarlyExit",
+    // Float clamp macros use ternary guards that cppcheck can't reason through
+    "--suppress=floatConversionOverflow",
     "--quiet",
   ];
 
