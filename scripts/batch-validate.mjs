@@ -185,6 +185,13 @@ function runCppcheck() {
     "--suppress=missingIncludeSystem",
     "--suppress=unusedVariable",
     "--suppress=uninitMemberVar:*fixtures/*",
+    // CTU ODR false positives: test files are independent translation units
+    // that are never linked together, so cross-file struct name reuse is fine
+    "--suppress=ctuOneDefinitionRuleViolation",
+    // Generated test code patterns that cppcheck flags as redundant but are
+    // intentional (e.g., `bool a = true; if (a) { ... }` in edge-case tests)
+    "--suppress=identicalInnerCondition",
+    "--suppress=identicalConditionAfterEarlyExit",
     "--quiet",
   ];
 

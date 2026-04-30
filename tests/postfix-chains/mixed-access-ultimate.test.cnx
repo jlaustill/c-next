@@ -16,7 +16,7 @@ struct DeviceSensor {
     DeviceFlags flags;
 }
 
-struct Controller {
+struct DeviceController {
     DeviceSensor[4] sensors;
     u32 status;
 }
@@ -27,7 +27,7 @@ register PERIPH @ 0x50000000 {
 }
 
 scope Device {
-    Controller[2] controllers;
+    DeviceController[2] controllers;
 
     register HW @ 0x60000000 {
         STATUS: DeviceFlags rw @ 0x00,
@@ -50,7 +50,7 @@ scope Device {
     }
 }
 
-Controller globalCtrl;
+DeviceController globalCtrl;
 
 void main() {
     // Chain 1: global.Scope.array[i].struct.array[j].bitmap.field (7 levels)

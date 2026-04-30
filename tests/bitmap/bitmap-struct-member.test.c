@@ -35,14 +35,14 @@ typedef struct Device {
     uint32_t value;
 } Device;
 
-typedef struct Controller {
+typedef struct BitmapController {
     Flags controlFlags;
     uint32_t counter;
-} Controller;
+} BitmapController;
 
 Device device = {0};
 
-Controller ctrl = {0};
+BitmapController ctrl = {0};
 
 int main(void) {
     device.id = 12345U;

@@ -37,14 +37,14 @@ typedef struct Device {
     Status status;
     uint32_t value;
 } Device;
-typedef struct Controller {
+typedef struct BitmapController {
     Flags controlFlags;
     uint32_t counter;
-} Controller;
+} BitmapController;
 
 /* External variables */
 extern Device device;
-extern Controller ctrl;
+extern BitmapController ctrl;
 
 #ifdef __cplusplus
 }

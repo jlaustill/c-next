@@ -23,14 +23,14 @@ struct Device {
     u32 value;
 }
 
-struct Controller {
+struct BitmapController {
     Flags controlFlags;
     u32 counter;
 }
 
 Device device;
 
-Controller ctrl;
+BitmapController ctrl;
 
 u32 main() {
     // Initialize device
