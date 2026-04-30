@@ -1,0 +1,8 @@
+// test-error
+// Issue #985: bare millis() without global. prefix should produce error with hint
+
+scope Test {
+    void run() {
+        u32 now <- millis();
+    }
+}

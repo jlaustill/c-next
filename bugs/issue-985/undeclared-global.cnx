@@ -1,0 +1,9 @@
+// Issue #985: Transpiler silently accepts undeclared global. function calls
+// Before fix: transpiler would generate code referencing millis() with no declaration
+// After fix: transpiler emits error telling user to include the appropriate header
+
+scope Test {
+    void run() {
+        u32 now <- global.millis();
+    }
+}
