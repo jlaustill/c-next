@@ -3508,28 +3508,10 @@ export default class CodeGenerator implements IOrchestrator {
 
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();
-
-      // Compute expected type for nested initializers
-      let fieldType: string | undefined;
-      if (structFieldTypes?.has(fieldName)) {
-        // Issue #502: Convert underscore format to correct output format
-        // C-Next struct fields may store C++ types with _ separator (e.g., SeaDash_Parse_ParseResult)
-        // but code generation needs :: for C++ types (e.g., SeaDash::Parse::ParseResult)
-        fieldType = structFieldTypes.get(fieldName)!;
-        if (fieldType.includes("_")) {
-          // Check if this looks like a qualified type (contains _) and convert
-          const parts = fieldType.split("_");
-          if (parts.length > 1 && this.isCppScopeSymbol(parts[0])) {
-            // It's a C++ namespaced type - convert _ to ::
-            fieldType = parts.join("::");
-          }
-        }
-      }
-
+      const fieldType = this._resolveFieldType(fieldName, structFieldTypes);
       const value = CodeGenState.withExpectedType(fieldType, () =>
         this.generateExpression(field.expression()),
       );
-
       return { fieldName, value };
     });
 
@@ -3564,6 +3546,25 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return `(${castType}){ ${fieldInits.join(", ")} }`;
+  }
+
+  /**
+   * Resolve the C type string for a named struct field, converting C++ underscore-separated
+   * names to :: notation. Returns undefined if the field is not in the type map.
+   * Issue #502: C-Next stores C++ types with _ separator; codegen needs ::.
+   */
+  private _resolveFieldType(
+    fieldName: string,
+    structFieldTypes: Map<string, string> | undefined,
+  ): string | undefined {
+    if (!structFieldTypes?.has(fieldName)) return undefined;
+    const fieldType = structFieldTypes.get(fieldName)!;
+    if (!fieldType.includes("_")) return fieldType;
+    const parts = fieldType.split("_");
+    if (parts.length > 1 && this.isCppScopeSymbol(parts[0])) {
+      return parts.join("::");
+    }
+    return fieldType;
   }
 
   /**
