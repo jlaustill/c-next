@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct AutoConst_Config {
+    uint32_t value;
+    bool enabled;
+} AutoConst_Config;
 typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
-typedef struct Config {
-    uint32_t value;
-    bool enabled;
-} Config;
 
 #ifdef __cplusplus
 }

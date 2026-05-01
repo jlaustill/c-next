@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Data {
+typedef struct CompoundOps_Data {
     uint32_t add_val;
     uint32_t sub_val;
     uint32_t mul_val;
@@ -25,10 +25,10 @@ typedef struct Data {
     uint32_t xor_val;
     uint32_t shl_val;
     uint32_t shr_val;
-} Data;
+} CompoundOps_Data;
 
 /* External variables */
-extern Data d;
+extern CompoundOps_Data d;
 
 #ifdef __cplusplus
 }

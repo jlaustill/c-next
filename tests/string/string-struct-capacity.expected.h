@@ -14,15 +14,15 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct StrCapacity_Config {
+    char key[33];
+    char value[257];
+} StrCapacity_Config;
 typedef struct Person {
     char name[65];
     char bio[129];
     uint32_t age;
 } Person;
-typedef struct Config {
-    char key[33];
-    char value[257];
-} Config;
 
 #ifdef __cplusplus
 }

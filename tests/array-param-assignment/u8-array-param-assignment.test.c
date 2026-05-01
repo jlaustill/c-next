@@ -20,7 +20,7 @@ void writeFirst(uint8_t data[8], uint8_t value) {
 }
 
 // Function that reads and writes array elements
-void copyElement(const uint8_t src[4], uint8_t dst[4], uint32_t index) {
+void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t index) {
     dst[index] = src[index];
 }
 

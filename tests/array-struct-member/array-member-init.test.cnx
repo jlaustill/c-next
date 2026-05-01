@@ -2,20 +2,22 @@
 // Tests: Array member initialization patterns
 // Coverage: Struct initialization with array members
 
-struct Config {
+scope ArrayMemberInit {
+    public struct Config {
     u8[4] flags;
     u32 version;
 }
 
-struct Packet {
+    public struct Packet {
     u8[4] header;
     u8[8] payload;
     u32 checksum;
 }
+}
 
 u32 main() {
     // Test struct with array - individual assignment
-    Config cfg;
+    ArrayMemberInit.Config cfg;
     cfg.version <- 1;
     cfg.flags[0] <- 0x01;
     cfg.flags[1] <- 0x02;
@@ -29,7 +31,7 @@ u32 main() {
     if (cfg.flags[3] != 0x08) return 5;
 
     // Test struct with multiple arrays
-    Packet pkt;
+    ArrayMemberInit.Packet pkt;
     pkt.checksum <- 0;
 
     // Initialize header

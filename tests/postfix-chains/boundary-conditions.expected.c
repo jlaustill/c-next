@@ -3,19 +3,16 @@
  * A safer C for embedded systems
  */
 
+#include "boundary-conditions.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // Postfix Chain Test: Boundary Conditions
 // Tests: Edge cases at type boundaries, max indices, etc.
-typedef struct Data {
-    uint8_t byte;
-    uint16_t word;
-    uint32_t dword;
-    uint64_t qword;
-} Data;
+/* Scope: BoundaryTest */
 
-Data items[16] = {0};
+BoundaryTest_Data items[16] = {0};
 
 // Max reasonable array size for testing
 int main(void) {

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "array-struct-member.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -18,21 +20,12 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 
 // Regression test: Array-of-struct member assignment
 // Verifies arr[i].field generates correctly (was generating arr.field[i])
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Sensor {
-    uint16_t id;
-    int32_t value;
-    bool active;
-} Sensor;
+/* Scope: ArrayStructMember */
 
 // Test arrays
 Point points[3] = {0};
 
-Sensor sensors[4] = {0};
+ArrayStructMember_Sensor sensors[4] = {0};
 
 // Test function to verify array-of-struct assignment
 int main(void) {

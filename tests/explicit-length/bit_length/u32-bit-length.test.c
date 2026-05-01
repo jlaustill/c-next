@@ -28,6 +28,8 @@ uint32_t checkParamBitLength(uint32_t param) {
     return 32;
 }
 
+/* Scope: U32BitLen */
+
 int main(void) {
     if (32 != 32) {
         return 1;
@@ -52,7 +54,7 @@ int main(void) {
     if (result != 32) {
         return 6;
     }
-    TestStruct ts = {0};
+    U32BitLen_TestStruct ts = {0};
     ts.member = 100000U;
     if (32 != 32) {
         return 7;

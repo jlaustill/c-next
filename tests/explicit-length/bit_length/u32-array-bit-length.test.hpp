@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct TestStruct {
+typedef struct U32ArrayBitLength_TestStruct {
     uint32_t arr[16];
-} TestStruct;
+} U32ArrayBitLength_TestStruct;
 
 /* External variables */
 extern uint32_t globalArr[16];

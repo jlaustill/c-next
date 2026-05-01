@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "simple-struct.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,17 +12,8 @@
 // Tests: Basic struct definition and usage
 // Demonstrates: struct definition, field access, initialization, pass-by-reference
 // Simple struct definition
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 // Struct with different field types
-typedef struct Sensor {
-    uint16_t id;
-    float temperature;
-    bool active;
-} Sensor;
+/* Scope: SimpleStruct */
 
 // Function that reads struct fields (pass-by-reference, ADR-006)
 int32_t getPointX(const Point* p) {
@@ -67,7 +60,7 @@ int main(void) {
     Point p4 = { .x = -3, .y = 4 };
     int32_t dist = manhattanDistance(&p4);
     if (dist != 7) return 10;
-    Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
+    SimpleStruct_Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
     if (s1.id != 42) return 11;
     if (s1.active != true) return 12;
     return 0;

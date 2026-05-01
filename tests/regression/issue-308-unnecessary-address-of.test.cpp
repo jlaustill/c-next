@@ -37,7 +37,7 @@ uint32_t sumFourBytes(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
 // Scenario 2: Struct member array (THE FIX)
 // Array should decay to pointer, NOT have & added
 // ============================================================
-uint8_t sumArray(const uint8_t arr[6], uint8_t len) {
+uint8_t sumArray(uint8_t arr[6], uint8_t len) {
     uint8_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {

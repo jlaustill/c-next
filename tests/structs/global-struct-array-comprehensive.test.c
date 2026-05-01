@@ -13,12 +13,14 @@
 
 // C-Next defined struct with array field
 // Nested struct
+/* Scope: GlobalStruct */
+
 // Global variables
 ExternalStruct globalExternal = {0};
 
 CNextStruct globalCNext = {0};
 
-Outer globalOuter = {0};
+GlobalStruct_Outer globalOuter = {0};
 
 /* Scope: ArrayTests */
 static ExternalStruct ArrayTests_scopeExternal = {0};

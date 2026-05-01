@@ -13,7 +13,7 @@ void write2D(uint32_t arr[2][3], uint32_t row, uint32_t col, uint32_t value) {
     arr[row][col] = value;
 }
 
-uint32_t read2D(const uint32_t arr[2][3], uint32_t row, uint32_t col) {
+uint32_t read2D(uint32_t arr[2][3], uint32_t row, uint32_t col) {
     return arr[row][col];
 }
 
@@ -23,7 +23,7 @@ void fillRow(uint32_t arr[2][3], uint32_t row, uint32_t val0, uint32_t val1, uin
     arr[row][2] = val2;
 }
 
-uint32_t sumRow(const uint32_t arr[2][3], uint32_t row) {
+uint32_t sumRow(uint32_t arr[2][3], uint32_t row) {
     return arr[row][0U] + arr[row][1U] + arr[row][2U];
 }
 

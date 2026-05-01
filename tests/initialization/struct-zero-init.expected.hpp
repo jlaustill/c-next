@@ -14,19 +14,19 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct ZeroInit_Config {
+    uint32_t baudRate;
+    uint8_t dataBits;
+    bool enabled;
+} ZeroInit_Config;
 typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
-typedef struct Config {
-    uint32_t baudRate;
-    uint8_t dataBits;
-    bool enabled;
-} Config;
 
 /* External variables */
 extern Point origin;
-extern Config settings;
+extern ZeroInit_Config settings;
 
 #ifdef __cplusplus
 }

@@ -10,12 +10,12 @@
 
 #include <stdint.h>
 
-void setHigh(Config& cfg) {
+void setHigh(NestedExtEnum_Config& cfg) {
     cfg.level = ELevel_LEVEL_HIGH;
 }
 
 int main(void) {
-    Config cfg = { .level = ELevel_LEVEL_LOW };
+    NestedExtEnum_Config cfg = { .level = ELevel_LEVEL_LOW };
     if (cfg.level != ELevel_LEVEL_LOW) return 1;
     cfg.level = ELevel_LEVEL_MEDIUM;
     if (cfg.level != ELevel_LEVEL_MEDIUM) return 2;

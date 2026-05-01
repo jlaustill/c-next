@@ -16,7 +16,7 @@ extern "C" {
 
 /* Struct definitions */
 typedef struct Waypoint {
-    Coordinate position;
+    ChainTypesBase_Coordinate position;
     uint32_t id;
 } Waypoint;
 

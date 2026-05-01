@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct ConstCond_Config {
     uint32_t value;
     bool enabled;
-} Config;
+} ConstCond_Config;
 
 /* Function prototypes */
-uint8_t CommandHandler_setValue(Config& cfg, uint32_t val);
-uint8_t CommandHandler_enable(Config& cfg);
+uint8_t CommandHandler_setValue(ConstCond_Config& cfg, uint32_t val);
+uint8_t CommandHandler_enable(ConstCond_Config& cfg);
 
 #ifdef __cplusplus
 }

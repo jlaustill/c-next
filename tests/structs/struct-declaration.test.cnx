@@ -5,14 +5,16 @@ struct Point {
     i32 y;
 }
 
-struct Color {
+scope StructDecl {
+    public struct Color {
     u8 r;
     u8 g;
     u8 b;
     u8 a;
 }
+}
 
 void main() {
     Point p;
-    Color c;
+    StructDecl.Color c;
 }

@@ -14,10 +14,12 @@ struct Rectangle {
     Point bottomRight;
 }
 
-struct Data {
+scope StructInit {
+    public struct Data {
     u32 id;
     u8 flags;
     u16 count;
+}
 }
 
 u32 main() {
@@ -32,7 +34,7 @@ u32 main() {
     if (rect.bottomRight.y != 100) return 4;
 
     // Test struct with mixed types
-    Data d <- {id: 42, flags: 0xFF, count: 1000};
+    StructInit.Data d <- {id: 42, flags: 0xFF, count: 1000};
     if (d.id != 42) return 5;
     if (d.flags != 0xFF) return 6;
     if (d.count != 1000) return 7;

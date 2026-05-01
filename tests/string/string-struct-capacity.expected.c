@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-struct-capacity.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -10,16 +12,7 @@
 // Tests: .capacity and .size on struct member strings
 // Bug: these were resolving against the primary variable's type (struct)
 // instead of the struct field's type (string)
-typedef struct Person {
-    char name[65];
-    char bio[129];
-    uint32_t age;
-} Person;
-
-typedef struct Config {
-    char key[33];
-    char value[257];
-} Config;
+/* Scope: StrCapacity */
 
 int main(void) {
     Person alice = {0};
@@ -30,7 +23,7 @@ int main(void) {
     if (128 != 128) return 2;
     if (65 != 65) return 3;
     if (129 != 129) return 4;
-    Config cfg = {0};
+    StrCapacity_Config cfg = {0};
     strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
     strncpy(cfg.value, "https://example.com", 256); cfg.value[256] = '\0';
     if (32 != 32) return 5;

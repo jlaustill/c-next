@@ -7,9 +7,11 @@ struct Point {
     i32 y;
 }
 
-struct Config {
+scope AutoConst {
+    public struct Config {
     u32 value;
     bool enabled;
+}
 }
 
 // Read-only struct parameter - should get const
@@ -24,12 +26,12 @@ void movePoint(Point p, i32 dx, i32 dy) {
 }
 
 // Read-only config - should get const
-u32 getConfigValue(Config c) {
+u32 getConfigValue(AutoConst.Config c) {
     return c.value;
 }
 
 // Mixed: read one field, modify another - should NOT get const
-void toggleAndRead(Config c) {
+void toggleAndRead(AutoConst.Config c) {
     u32 temp <- c.value;  // Read
     c.enabled <- !c.enabled;  // Modify
 }
@@ -58,7 +60,7 @@ u32 main() {
     if (pt.y != 17) return 5;
 
     // Test config read
-    Config cfg <- {value: 42, enabled: true};
+    AutoConst.Config cfg <- {value: 42, enabled: true};
     u32 val <- getConfigValue(cfg);
     if (val != 42) return 6;
 

@@ -1117,4 +1117,204 @@ describe("FunctionCallAnalyzer", () => {
       );
     });
   });
+
+  // ========================================================================
+  // Issue #985: global. prefix function call validation
+  // ========================================================================
+
+  describe("global prefix function calls (Issue #985)", () => {
+    it("should detect undeclared global.func() call", () => {
+      const code = `
+        scope Test {
+          void run() {
+            u32 now <- global.millis();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("'millis'");
+      expect(errors[0].message).toContain(
+        "not declared in any included header",
+      );
+      expect(errors[0].message).toContain("#include <Arduino.h>");
+    });
+
+    it("should detect undeclared global.func() with unknown function", () => {
+      const code = `
+        scope Test {
+          void run() {
+            u32 result <- global.unknownFunc();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("'unknownFunc'");
+      expect(errors[0].message).toContain(
+        "not declared in any included header",
+      );
+      expect(errors[0].message).not.toContain("#include");
+    });
+
+    it("should allow global.func() when function is defined", () => {
+      const code = `
+        void helper() {
+          u32 x <- 5;
+        }
+        scope Test {
+          void run() {
+            global.helper();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow global.func() when header is included", () => {
+      const code = `
+        #include <Arduino.h>
+        scope Test {
+          void run() {
+            u32 now <- global.millis();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow global.Scope.method() when scope is defined", () => {
+      const code = `
+        scope Motor {
+          public void start() {
+            u32 x <- 5;
+          }
+        }
+        scope Controller {
+          void run() {
+            global.Motor.start();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect undeclared global.Scope.method() call", () => {
+      const code = `
+        scope Motor {
+          public void start() {
+            u32 x <- 5;
+          }
+        }
+        scope Controller {
+          void run() {
+            global.Motor.undefinedMethod();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].functionName).toBe("Motor_undefinedMethod");
+      expect(errors[0].message).toContain("called before definition");
+      expect(errors[0].message).not.toContain(
+        "not declared in any included header",
+      );
+    });
+
+    it("should NOT resolve global.helper() to scope method Test_helper", () => {
+      const code = `
+        scope Test {
+          void helper() {
+          }
+          void run() {
+            global.helper();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].functionName).toBe("helper");
+    });
+
+    it("should say 'called before definition' for global.func() on local function", () => {
+      const code = `
+        scope Test {
+          void run() {
+            global.helper();
+          }
+        }
+        void helper() {
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0422");
+      expect(errors[0].message).toContain("called before definition");
+      expect(errors[0].message).not.toContain(
+        "not declared in any included header",
+      );
+    });
+
+    it("should allow global.func() for external C function", () => {
+      const code = `
+        scope Test {
+          void run() {
+            global.externalFunc();
+          }
+        }
+      `;
+      const tree = parse(code);
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "externalFunc",
+        kind: "function",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "external.h",
+        sourceLine: 1,
+        isExported: true,
+        type: "void",
+        parameters: [],
+      });
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(tree, symbolTable);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
 });

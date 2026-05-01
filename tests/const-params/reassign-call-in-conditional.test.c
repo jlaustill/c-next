@@ -12,22 +12,24 @@
 // Tests: Issue #565 - const inference fails for reassignment inside conditionals
 // When a variable is declared first and later reassigned with a modifying call
 // inside a conditional, the const analyzer should still detect the modification.
+/* Scope: ConstCond */
+
 // A scope with a method that modifies its config parameter
 /* Scope: CommandHandler */
 
-uint8_t CommandHandler_setValue(Config* cfg, uint32_t val) {
+uint8_t CommandHandler_setValue(ConstCond_Config* cfg, uint32_t val) {
     cfg->value = val;
     return 0;
 }
 
-uint8_t CommandHandler_enable(Config* cfg) {
+uint8_t CommandHandler_enable(ConstCond_Config* cfg) {
     cfg->enabled = true;
     return 0;
 }
 
 // BUG: Declaration first, reassignment with modifying call inside if
 // This pattern triggers issue #565 - the reassignment's RHS isn't walked for calls
-void handleEnableSpn(Config* config) {
+void handleEnableSpn(ConstCond_Config* config) {
     bool enable = true;
     uint8_t errorCode = 0U;
     if (enable) {
@@ -38,7 +40,7 @@ void handleEnableSpn(Config* config) {
 }
 
 // Variant: reassignment inside else branch
-void handleElseBranch(Config* config) {
+void handleElseBranch(ConstCond_Config* config) {
     bool enable = false;
     uint8_t errorCode = 0U;
     if (enable) {
@@ -49,7 +51,7 @@ void handleElseBranch(Config* config) {
 }
 
 // Variant: reassignment inside while loop
-void handleWhileLoop(Config* config) {
+void handleWhileLoop(ConstCond_Config* config) {
     uint8_t errorCode = 0U;
     uint32_t count = 0U;
     while (count < 1) {
@@ -59,7 +61,7 @@ void handleWhileLoop(Config* config) {
 }
 
 // Variant: reassignment inside for loop
-void handleForLoop(Config* config) {
+void handleForLoop(ConstCond_Config* config) {
     uint8_t errorCode = 0U;
     for (uint32_t i = 0; i < 1; i = i + 1) {
         errorCode = CommandHandler_setValue(config, 200U);
@@ -67,7 +69,7 @@ void handleForLoop(Config* config) {
 }
 
 // Control case: declaration with modifying call (this already works)
-void handleDeclaration(Config* config) {
+void handleDeclaration(ConstCond_Config* config) {
     bool enable = true;
     if (enable) {
         uint8_t errorCode = CommandHandler_setValue(config, 42U);
@@ -75,13 +77,13 @@ void handleDeclaration(Config* config) {
 }
 
 // Control case: top-level reassignment (outside conditional)
-void handleTopLevel(Config* config) {
+void handleTopLevel(ConstCond_Config* config) {
     uint8_t errorCode = 0U;
     errorCode = CommandHandler_setValue(config, 300U);
 }
 
 int main(void) {
-    Config cfg = {0};
+    ConstCond_Config cfg = {0};
     cfg.value = 0U;
     cfg.enabled = false;
     handleEnableSpn(&cfg);

@@ -16,17 +16,17 @@ scope Navigator {
         return this.destination;
     }
 
-    public void moveTo(Coordinate pos) {
+    public void moveTo(ChainTypesBase.Coordinate pos) {
         this.current.position <- pos;
     }
 
-    public Coordinate getCurrentPosition() {
+    public ChainTypesBase.Coordinate getCurrentPosition() {
         return this.current.position;
     }
 }
 
 u32 main() {
-    Coordinate dest <- {x: 100, y: 200, z: 50};
+    ChainTypesBase.Coordinate dest <- {x: 100, y: 200, z: 50};
     Waypoint wp <- {position: dest, id: 42};
 
     Navigator.setDestination(wp);
@@ -37,10 +37,10 @@ u32 main() {
     if (retrieved.position.y != 200) return 3;
     if (retrieved.position.z != 50) return 4;
 
-    Coordinate newPos <- {x: 10, y: 20, z: 5};
+    ChainTypesBase.Coordinate newPos <- {x: 10, y: 20, z: 5};
     Navigator.moveTo(newPos);
 
-    Coordinate currentPos <- Navigator.getCurrentPosition();
+    ChainTypesBase.Coordinate currentPos <- Navigator.getCurrentPosition();
     if (currentPos.x != 10) return 5;
     if (currentPos.y != 20) return 6;
     if (currentPos.z != 5) return 7;

@@ -3,24 +3,15 @@
  * A safer C for embedded systems
  */
 
+#include "struct-compound-all-ops.test.h"
+
 #include <stdint.h>
 
 // Test: All compound assignment operators on struct members
 // Covers: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
-typedef struct Data {
-    uint32_t add_val;
-    uint32_t sub_val;
-    uint32_t mul_val;
-    uint32_t div_val;
-    uint32_t mod_val;
-    uint32_t and_val;
-    uint32_t or_val;
-    uint32_t xor_val;
-    uint32_t shl_val;
-    uint32_t shr_val;
-} Data;
+/* Scope: CompoundOps */
 
-Data d = {0};
+CompoundOps_Data d = {0};
 
 int main(void) {
     d.add_val = 100U;

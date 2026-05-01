@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bool-bit-length.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -11,9 +13,7 @@
 // Bool storage size is 8 bits (1 byte)
 bool globalBool = true;
 
-typedef struct TestStruct {
-    bool flag;
-} TestStruct;
+/* Scope: BoolBitLen */
 
 int main(void) {
     if (8 != 8) {
@@ -23,7 +23,7 @@ int main(void) {
     if (8 != 8) {
         return 2;
     }
-    TestStruct ts = {0};
+    BoolBitLen_TestStruct ts = {0};
     ts.flag = true;
     if (8 != 8) {
         return 3;

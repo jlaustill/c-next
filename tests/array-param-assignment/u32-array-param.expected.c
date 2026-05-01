@@ -14,7 +14,7 @@ void writeU32(uint32_t arr[4], uint32_t index, uint32_t value) {
 }
 
 // Read and return from array parameter
-uint32_t readU32(const uint32_t arr[4], uint32_t index) {
+uint32_t readU32(uint32_t arr[4], uint32_t index) {
     return arr[index];
 }
 
@@ -24,7 +24,7 @@ void incrementU32(uint32_t arr[4], uint32_t index) {
 }
 
 // Copy between arrays
-void copyU32(const uint32_t src[4], uint32_t dst[4], uint32_t index) {
+void copyU32(uint32_t src[4], uint32_t dst[4], uint32_t index) {
     dst[index] = src[index];
 }
 

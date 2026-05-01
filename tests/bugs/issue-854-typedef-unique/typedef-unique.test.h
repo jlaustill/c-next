@@ -14,9 +14,12 @@
 extern "C" {
 #endif
 
+/* External type dependencies - include appropriate headers */
+typedef struct TypedefTypes_Sensor TypedefTypes_Sensor;
+
 /* Function prototypes */
-void Reader_update(const Sensor* s);
-Sensor Reader_read(void);
+void Reader_update(const TypedefTypes_Sensor* s);
+TypedefTypes_Sensor Reader_read(void);
 
 #ifdef __cplusplus
 }

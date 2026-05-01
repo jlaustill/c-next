@@ -5,8 +5,10 @@ struct Point {
     i32 y;
 }
 
-struct Color {
+scope HelperTypes {
+    public struct Color {
     u8 red;
     u8 green;
     u8 blue;
+}
 }

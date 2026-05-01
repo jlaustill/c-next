@@ -3,42 +3,27 @@
  * A safer C for embedded systems
  */
 
+#include "enum-nested-struct-resolution.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // test-coverage: issue-452-nested-struct-resolution
 // Tests: Type-aware enum resolution through nested struct access
 // For config.nested.status <- RED, should correctly walk the chain:
-// config -> Config -> nested -> NestedConfig -> status -> Status
-typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1
-} Color;
+// config -> EnumNestedRes.Config -> nested -> NestedConfig -> status -> Status
+/* Scope: EnumNestedRes */
 
-typedef enum {
-    Status_RED = 10,
-    Status_GREEN = 20
-} Status;
-
-typedef struct NestedConfig {
-    Status status;
-    Color color;
-} NestedConfig;
-
-typedef struct Config {
-    NestedConfig nested;
-} Config;
-
-void setNestedStatus(Config* cfg) {
+void setNestedStatus(EnumNestedRes_Config* cfg) {
     cfg->nested.status = Status_RED;
 }
 
-void setNestedColor(Config* cfg) {
+void setNestedColor(EnumNestedRes_Config* cfg) {
     cfg->nested.color = Color_GREEN;
 }
 
 int main(void) {
-    Config cfg = { .nested = { .status = Status_GREEN, .color = Color_RED } };
+    EnumNestedRes_Config cfg = { .nested = { .status = Status_GREEN, .color = Color_RED } };
     if ((uint32_t)cfg.nested.status != 20) return 1;
     setNestedStatus(&cfg);
     if ((uint32_t)cfg.nested.status != 10) return 2;

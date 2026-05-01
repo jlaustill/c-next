@@ -1,29 +1,31 @@
 // Postfix Chain Test: Deep nesting (3+ levels)
 // Tests: Complex chains with multiple member/array/bit accesses
 
-struct Color {
+scope DeepThreeLevel {
+    public struct Color {
     u8 r;
     u8 g;
     u8 b;
 }
 
-struct Material {
-    Color ambient;
-    Color diffuse;
+    public struct Material {
+    this.Color ambient;
+    this.Color diffuse;
     u8 opacity;
 }
 
-struct Object {
-    Material material;
+    public struct Object {
+    this.Material material;
     i32 id;
 }
 
-struct Scene {
-    Object[4] objects;
+    public struct Scene {
+    this.Object objects[4];
     u32 count;
 }
+}
 
-Scene[2] scenes;
+DeepThreeLevel.Scene scenes[2];
 
 void main() {
     // 4-level deep write: scenes[i].objects[j].material.ambient.r

@@ -25,16 +25,16 @@ Waypoint Navigator_getDestination(void) {
     return Navigator_destination;
 }
 
-void Navigator_moveTo(const Coordinate& pos) {
+void Navigator_moveTo(const ChainTypesBase_Coordinate& pos) {
     Navigator_current.position = pos;
 }
 
-Coordinate Navigator_getCurrentPosition(void) {
+ChainTypesBase_Coordinate Navigator_getCurrentPosition(void) {
     return Navigator_current.position;
 }
 
 int main(void) {
-    Coordinate dest = { .x = 100, .y = 200, .z = 50 };
+    ChainTypesBase_Coordinate dest = { .x = 100, .y = 200, .z = 50 };
     Waypoint wp = { .position = dest, .id = 42U };
     Navigator_setDestination(wp);
     Waypoint retrieved = Navigator_getDestination();
@@ -42,9 +42,9 @@ int main(void) {
     if (retrieved.position.x != 100) return 2;
     if (retrieved.position.y != 200) return 3;
     if (retrieved.position.z != 50) return 4;
-    Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
+    ChainTypesBase_Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
     Navigator_moveTo(newPos);
-    Coordinate currentPos = Navigator_getCurrentPosition();
+    ChainTypesBase_Coordinate currentPos = Navigator_getCurrentPosition();
     if (currentPos.x != 10) return 5;
     if (currentPos.y != 20) return 6;
     if (currentPos.z != 5) return 7;

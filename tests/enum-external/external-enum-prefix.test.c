@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "external-enum-prefix.test.h"
+
 // test-execution
 // Issue #465: Enum values from external files should get type prefix
 // Tests that PRESSURE_TYPE_PSIG from types.cnx becomes EPressureType_PRESSURE_TYPE_PSIG
@@ -10,20 +12,18 @@
 
 #include <stdint.h>
 
-typedef struct Config {
-    EPressureType pType;
-} Config;
+/* Scope: ExtEnumPrefix */
 
-void setDefault(Config* config) {
+void setDefault(ExtEnumPrefix_Config* config) {
     config->pType = EPressureType_PRESSURE_TYPE_PSIG;
 }
 
-void setExplicit(Config* config) {
+void setExplicit(ExtEnumPrefix_Config* config) {
     config->pType = EPressureType_PRESSURE_TYPE_PSIA;
 }
 
 int main(void) {
-    Config cfg = { .pType = EPressureType_PRESSURE_TYPE_PSIA };
+    ExtEnumPrefix_Config cfg = { .pType = EPressureType_PRESSURE_TYPE_PSIA };
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 1;
     setDefault(&cfg);
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIG) return 2;

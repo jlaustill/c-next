@@ -1,13 +1,15 @@
 // test-execution
 // Regression test for issue #68: Real-world serialization pattern
 // Verifies config.magic.bit_length correctly returns 32 (was returning 0)
-struct Config {
+scope SerialLength {
+    public struct Config {
     u32 magic;
     u8 version;
 }
+}
 
 u32 main() {
-    Config config;
+    SerialLength.Config config;
     config.magic <- 0x12345678;
     config.version <- 0x42;
 

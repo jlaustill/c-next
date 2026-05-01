@@ -404,6 +404,18 @@ describe("ParameterInputAdapter", () => {
       expect(result.arrayDimensions).toEqual(["4", "4"]);
     });
 
+    // Issue #986: ADR-006 says arrays are mutable by default.
+    // Arrays should never get auto-const, even when unmodified.
+    it("does not set auto-const for unmodified array parameter", () => {
+      const ctx = getParameterContext("void foo(u8[8] data) {}");
+      const deps = createDefaultASTDeps({ isModified: false });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isArray).toBe(true);
+      expect(result.isAutoConst).toBe(false); // Arrays never get auto-const
+    });
+
     it("converts non-array string parameter", () => {
       const ctx = getParameterContext("void foo(string<32> name) {}");
       const deps = createDefaultASTDeps();

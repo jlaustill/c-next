@@ -315,7 +315,10 @@ class FunctionCallListener extends CNextListener {
     if (!baseName) return;
 
     // Walk through postfix ops to find the call and resolve the name
-    const { resolvedName, foundCall } = this.resolveCallTarget(ops, baseName);
+    const { resolvedName, foundCall, isGlobalCall } = this.resolveCallTarget(
+      ops,
+      baseName,
+    );
     if (!foundCall) return;
 
     // Check if the function is defined
@@ -325,6 +328,7 @@ class FunctionCallListener extends CNextListener {
       line,
       column,
       this.currentScope,
+      isGlobalCall,
     );
   };
 
@@ -340,6 +344,9 @@ class FunctionCallListener extends CNextListener {
     if (primary.THIS()) {
       return "this";
     }
+    if (primary.GLOBAL()) {
+      return "global";
+    }
     return null;
   }
 
@@ -351,15 +358,21 @@ class FunctionCallListener extends CNextListener {
   private resolveCallTarget(
     ops: Parser.PostfixOpContext[],
     baseName: string,
-  ): { resolvedName: string; foundCall: boolean } {
+  ): { resolvedName: string; foundCall: boolean; isGlobalCall: boolean } {
     let resolvedName = baseName;
+    let isGlobalCall = baseName === "global";
 
     for (const op of ops) {
       // Member access: check if it's Scope.member or this.member pattern
       if (op.IDENTIFIER()) {
         const resolved = this.resolveMemberAccess(resolvedName, op);
         if (resolved === null) {
-          return { resolvedName, foundCall: false };
+          return { resolvedName, foundCall: false, isGlobalCall };
+        }
+        // If resolution went through a known scope, this is a scope
+        // method call, not a global function lookup
+        if (isGlobalCall && this.analyzer.isScope(resolvedName)) {
+          isGlobalCall = false;
         }
         resolvedName = resolved;
         continue;
@@ -369,12 +382,12 @@ class FunctionCallListener extends CNextListener {
       if (op.argumentList() || op.getChildCount() === 2) {
         const text = op.getText();
         if (text.startsWith("(")) {
-          return { resolvedName, foundCall: true };
+          return { resolvedName, foundCall: true, isGlobalCall };
         }
       }
     }
 
-    return { resolvedName, foundCall: false };
+    return { resolvedName, foundCall: false, isGlobalCall };
   }
 
   /**
@@ -389,6 +402,11 @@ class FunctionCallListener extends CNextListener {
     // Handle this.member -> CurrentScope_member (when inside a scope)
     if (resolvedName === "this" && this.currentScope) {
       return `${this.currentScope}_${memberName}`;
+    }
+
+    // Issue #985: Handle global.member -> member (strip global prefix)
+    if (resolvedName === "global") {
+      return memberName;
     }
 
     // Check if base is a known scope
@@ -934,12 +952,14 @@ class FunctionCallAnalyzer {
    * @param line Source line number
    * @param column Source column number
    * @param currentScope The current scope name (if inside a scope)
+   * @param isGlobalCall Whether the call used global. prefix
    */
   public checkFunctionCall(
     name: string,
     line: number,
     column: number,
     currentScope: string | null,
+    isGlobalCall: boolean = false,
   ): void {
     // Check for self-recursion (MISRA C:2012 Rule 17.2)
     if (this.currentFunctionName && name === this.currentFunctionName) {
@@ -981,7 +1001,8 @@ class FunctionCallAnalyzer {
     // ADR-057: Allow implicit scope function calls without this. prefix
     // Check if this is an unqualified call to a scope function
     // e.g., calling helper() instead of this.helper() inside a scope
-    if (currentScope) {
+    // Skip for global. calls — global. explicitly means global scope
+    if (currentScope && !isGlobalCall) {
       const qualifiedName = `${currentScope}_${name}`;
       if (this.definedFunctions.has(qualifiedName)) {
         return; // OK - implicit resolution will handle it
@@ -989,11 +1010,15 @@ class FunctionCallAnalyzer {
     }
 
     // Not defined - report error with optional hint
+    // If the function is local (defined later in this file), it's a
+    // define-before-use error regardless of global. prefix
+    const isLocalFunction = this.allLocalFunctions.has(name);
     const header = this.findStdlibHeader(name);
-    let message = `function '${name}' called before definition`;
-    if (header) {
-      message += `; hint: '${name}' is available from ${header} — try global.${name}()`;
-    }
+    const message = this.buildUndefinedFunctionMessage(
+      name,
+      header,
+      isGlobalCall && !isLocalFunction,
+    );
 
     this.errors.push({
       code: "E0422",
@@ -1002,6 +1027,28 @@ class FunctionCallAnalyzer {
       column,
       message,
     });
+  }
+
+  /**
+   * Issue #985: Build error message for undefined function calls.
+   * Adjusts hint based on whether the call used global. prefix.
+   */
+  private buildUndefinedFunctionMessage(
+    name: string,
+    header: string | null,
+    isGlobalCall: boolean,
+  ): string {
+    if (isGlobalCall && header) {
+      return `'${name}' is not declared in any included header; add #include <${header}>`;
+    }
+    if (isGlobalCall) {
+      return `'${name}' is not declared in any included header`;
+    }
+    let message = `function '${name}' called before definition`;
+    if (header) {
+      message += `; hint: '${name}' is available from ${header} — try global.${name}()`;
+    }
+    return message;
   }
 
   /**

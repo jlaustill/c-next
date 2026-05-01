@@ -3,24 +3,17 @@
  * A safer C for embedded systems
  */
 
+#include "array-member-init.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Array member initialization patterns
 // Coverage: Struct initialization with array members
-typedef struct Config {
-    uint8_t flags[4];
-    uint32_t version;
-} Config;
-
-typedef struct Packet {
-    uint8_t header[4];
-    uint8_t payload[8];
-    uint32_t checksum;
-} Packet;
+/* Scope: ArrayMemberInit */
 
 int main(void) {
-    Config cfg = {0};
+    ArrayMemberInit_Config cfg = {0};
     cfg.version = 1U;
     cfg.flags[0] = 0x01U;
     cfg.flags[1] = 0x02U;
@@ -31,7 +24,7 @@ int main(void) {
     if (cfg.flags[1U] != 0x02) return 3;
     if (cfg.flags[2U] != 0x04) return 4;
     if (cfg.flags[3U] != 0x08) return 5;
-    Packet pkt = {0};
+    ArrayMemberInit_Packet pkt = {0};
     pkt.checksum = 0U;
     pkt.header[0] = 0xAAU;
     pkt.header[1] = 0xBBU;

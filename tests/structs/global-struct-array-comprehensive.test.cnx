@@ -10,15 +10,17 @@ struct CNextStruct {
 }
 
 // Nested struct
-struct Outer {
+scope GlobalStruct {
+    public struct Outer {
     ExternalStruct inner;
     u8[8] direct;
+}
 }
 
 // Global variables
 ExternalStruct globalExternal;
 CNextStruct globalCNext;
-Outer globalOuter;
+GlobalStruct.Outer globalOuter;
 
 scope ArrayTests {
     // Scope-level struct variable

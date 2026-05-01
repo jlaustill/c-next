@@ -3,18 +3,20 @@
 // Validates copying struct fields into buffers with compile-time offsets
 // Layout: [magic:4][version:2][flags:1][timestamp:8] = 15 bytes total
 
-struct Config {
+scope SliceFields {
+    public struct Config {
     u32 magic;
     u16 version;
     u8 flags;
     u64 timestamp;
+}
 }
 
 u32 main() {
     u8[256] buffer;
 
     // Create a config struct
-    Config config;
+    SliceFields.Config config;
     config.magic <- 0x43534E58;
     config.version <- 0x0101;
     config.flags <- 0x0F;

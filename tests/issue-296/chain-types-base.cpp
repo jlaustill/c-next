@@ -3,12 +3,8 @@
  * A safer C for embedded systems
  */
 
-#include <stdint.h>
+#include "chain-types-base.hpp"
 
 // Issue #404: Base types for chained forward declaration test
 // Level 1: Basic coordinate type
-typedef struct Coordinate {
-    int32_t x;
-    int32_t y;
-    int32_t z;
-} Coordinate;
+/* Scope: ChainTypesBase */

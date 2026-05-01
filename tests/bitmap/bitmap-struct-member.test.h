@@ -31,20 +31,20 @@ typedef uint8_t Flags;
 typedef uint16_t Status;
 
 /* Struct definitions */
-typedef struct Device {
+typedef struct BitmapMember_Device {
     uint32_t id;
     Flags flags;
     Status status;
     uint32_t value;
-} Device;
-typedef struct Controller {
+} BitmapMember_Device;
+typedef struct BitmapMember_Controller {
     Flags controlFlags;
     uint32_t counter;
-} Controller;
+} BitmapMember_Controller;
 
 /* External variables */
-extern Device device;
-extern Controller ctrl;
+extern BitmapMember_Device device;
+extern BitmapMember_Controller ctrl;
 
 #ifdef __cplusplus
 }

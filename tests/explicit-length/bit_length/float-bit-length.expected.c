@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-bit-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -12,10 +14,7 @@ float globalF32 = 3.14;
 
 double globalF64 = 3.14159265359;
 
-typedef struct TestStruct {
-    float x;
-    double y;
-} TestStruct;
+/* Scope: FloatBitLen */
 
 int main(void) {
     if (32 != 32) {
@@ -32,7 +31,7 @@ int main(void) {
     if (64 != 64) {
         return 4;
     }
-    TestStruct ts = {0};
+    FloatBitLen_TestStruct ts = {0};
     ts.x = 1.0;
     ts.y = 2.0;
     if (32 != 32) {

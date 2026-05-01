@@ -3,17 +3,14 @@
  * A safer C for embedded systems
  */
 
-#include <stdint.h>
+#include "struct-with-array.test.hpp"
 
 // ADR-014: Struct with array member
 // Tests: array fields inside structs
-typedef struct Buffer {
-    uint8_t data[16];
-    uint32_t len;
-} Buffer;
+/* Scope: StructWithArray */
 
 int main(void) {
-    Buffer buf = {0};
+    StructWithArray_Buffer buf = {0};
     buf.len = 0U;
     buf.data[0] = 0x41U;
     buf.data[1] = 0x42U;

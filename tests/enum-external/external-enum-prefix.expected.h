@@ -15,9 +15,9 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct ExtEnumPrefix_Config {
     EPressureType pType;
-} Config;
+} ExtEnumPrefix_Config;
 
 #ifdef __cplusplus
 }

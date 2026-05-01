@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Inner {
+typedef struct NestedOps_Inner {
     uint32_t add_val;
     uint32_t sub_val;
     uint32_t mul_val;
@@ -25,18 +25,18 @@ typedef struct Inner {
     uint32_t xor_val;
     uint32_t shl_val;
     uint32_t shr_val;
-} Inner;
-typedef struct Middle {
-    Inner inner;
+} NestedOps_Inner;
+typedef struct NestedOps_Middle {
+    NestedOps_Inner inner;
     uint32_t value;
-} Middle;
-typedef struct Outer {
-    Middle middle;
+} NestedOps_Middle;
+typedef struct NestedOps_Outer {
+    NestedOps_Middle middle;
     uint32_t top_val;
-} Outer;
+} NestedOps_Outer;
 
 /* External variables */
-extern Outer o;
+extern NestedOps_Outer o;
 
 #ifdef __cplusplus
 }

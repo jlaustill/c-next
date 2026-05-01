@@ -25,9 +25,11 @@ uint32_t TestScope_getScopeArrayByteLength(void) {
 }
 uint32_t TestScope_publicArr[16] = {0};
 
-uint32_t checkArrayByteLength(const uint32_t arr[16]) {
+uint32_t checkArrayByteLength(uint32_t arr[16]) {
     return 64;
 }
+
+/* Scope: U32ArrayByteLength */
 
 int main(void) {
     globalArr[0] = 100000U;
@@ -56,7 +58,7 @@ int main(void) {
     if (result != 64) {
         return 6;
     }
-    TestStruct ts = {0};
+    U32ArrayByteLength_TestStruct ts = {0};
     ts.arr[0] = 100000U;
     if (64 != 64) {
         return 7;

@@ -26,9 +26,9 @@ typedef enum {
 } State;
 
 /* Struct definitions */
-typedef struct TestStruct {
+typedef struct EnumByteLen_TestStruct {
     State state;
-} TestStruct;
+} EnumByteLen_TestStruct;
 
 /* External variables */
 extern Color globalColor;

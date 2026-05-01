@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Buffer {
+typedef struct StructWithArray_Buffer {
     uint8_t data[16];
     uint32_t len;
-} Buffer;
+} StructWithArray_Buffer;
 
 #ifdef __cplusplus
 }

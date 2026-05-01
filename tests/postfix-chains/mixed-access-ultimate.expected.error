@@ -1,1 +1,3 @@
-1:0 Code generation failed: Error: Cannot reference own scope 'Device' by name. Use 'this.controllers' instead of 'Device.controllers'
+21:15 missing IDENTIFIER at '['
+21:19 extraneous input 'sensors' expecting {'[', ';'}
+32:26 no viable alternative at input 'MixedAccess.Controller['

@@ -1,6 +1,7 @@
 // Test: All compound assignment operators on nested struct members
 // Covers deeply nested member access with compound assignments
-struct Inner {
+scope NestedOps {
+    public struct Inner {
     u32 add_val;
     u32 sub_val;
     u32 mul_val;
@@ -13,17 +14,18 @@ struct Inner {
     u32 shr_val;
 }
 
-struct Middle {
-    Inner inner;
+    public struct Middle {
+    this.Inner inner;
     u32 value;
 }
 
-struct Outer {
-    Middle middle;
+    public struct Outer {
+    this.Middle middle;
     u32 top_val;
 }
+}
 
-Outer o;
+NestedOps.Outer o;
 
 i32 main() {
     // Initialize deeply nested struct members

@@ -8,18 +8,20 @@
 #include <stdint.h>
 
 // Issue #797: Transpiler incorrectly infers const when function delegates mutation
+/* Scope: TransMutation */
+
 /* Scope: Test */
 
-void Test_fillData(Data& d) {
+void Test_fillData(TransMutation_Data& d) {
     d.value = 42U;
 }
 
-void Test_loadData(Data& d) {
+void Test_loadData(TransMutation_Data& d) {
     Test_fillData(d);
 }
 
 int main(void) {
-    Data d = { .value = 0U };
+    TransMutation_Data d = { .value = 0U };
     if (d.value != 0) return 1;
     Test_loadData(d);
     if (d.value != 42) return 2;

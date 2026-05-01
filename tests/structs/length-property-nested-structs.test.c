@@ -3,28 +3,17 @@
  * A safer C for embedded systems
  */
 
+#include "length-property-nested-structs.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Regression test: .length on nested struct members
 // Ensures the fix handles deep member chains correctly
-typedef struct Inner {
-    uint32_t value;
-    uint16_t status;
-} Inner;
-
-typedef struct Outer {
-    Inner inner;
-    uint8_t flags;
-} Outer;
-
-typedef struct DeepNest {
-    Outer outer;
-    uint64_t timestamp;
-} DeepNest;
+/* Scope: LengthNested */
 
 int main(void) {
-    Outer config = {0};
+    LengthNested_Outer config = {0};
     config.inner.value = 0x12345678U;
     config.inner.status = 100U;
     config.flags = 0xFFU;

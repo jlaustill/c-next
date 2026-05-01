@@ -24,13 +24,13 @@ typedef enum {
 } Status;
 
 /* Struct definitions */
-typedef struct NestedConfig {
+typedef struct EnumNestedRes_NestedConfig {
     Status status;
     Color color;
-} NestedConfig;
-typedef struct Config {
-    NestedConfig nested;
-} Config;
+} EnumNestedRes_NestedConfig;
+typedef struct EnumNestedRes_Config {
+    EnumNestedRes_NestedConfig nested;
+} EnumNestedRes_Config;
 
 #ifdef __cplusplus
 }

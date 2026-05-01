@@ -1,12 +1,14 @@
 // ADR-014: Struct with array member
 // Tests: array fields inside structs
-struct Buffer {
+scope StructWithArray {
+    public struct Buffer {
     u8[16] data;
     u32 len;
 }
+}
 
 void main() {
-    Buffer buf;
+    StructWithArray.Buffer buf;
     buf.len <- 0;
     buf.data[0] <- 0x41;
     buf.data[1] <- 0x42;

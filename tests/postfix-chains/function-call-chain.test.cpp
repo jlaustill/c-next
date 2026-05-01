@@ -3,24 +3,17 @@
  * A safer C for embedded systems
  */
 
+#include "function-call-chain.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // Postfix Chain Test: Function Calls in Chains
 // Tests: Function calls with complex chained parameters
 // HIGH RISK: Float parameters in postfix chains (line 6260 in CodeGenerator.ts)
-typedef struct Vec3 {
-    float x;
-    float y;
-    float z;
-} Vec3;
+/* Scope: FuncCallChain */
 
-typedef struct Transform {
-    Vec3 position;
-    Vec3 scale;
-} Transform;
-
-Transform transforms[4] = {0};
+FuncCallChain_Transform transforms[4] = {0};
 
 // Functions with various parameter types
 uint32_t addU32(uint32_t a, uint32_t b) {
@@ -35,11 +28,8 @@ float multiplyF32(float a, float b) {
     return a * b;
 }
 
-Vec3 scaleVec3(const Vec3& v, float scale) {
-    Vec3 result = {0};
-    result.x = v.x * scale;
-    result.y = v.y * scale;
-    result.z = v.z * scale;
+FuncCallChain_Vec3 scaleVec3(const FuncCallChain_Vec3& v, float scale) {
+    FuncCallChain_Vec3 result = { .x = v.x * scale, .y = v.y * scale, .z = v.z * scale };
     return result;
 }
 
@@ -47,7 +37,7 @@ bool isGreater(float a, float b) {
     return a > b;
 }
 
-void setTransform(const Transform& t, uint32_t index) {
+void setTransform(const FuncCallChain_Transform& t, uint32_t index) {
     transforms[index] = t;
 }
 
@@ -63,10 +53,10 @@ int main(void) {
     float sumZ = addF32(transforms[0U].position.z, transforms[0U].scale.z);
     float product = multiplyF32(transforms[1U].position.x, transforms[1U].scale.x);
     float nestedSum = addF32(multiplyF32(transforms[0U].position.x, 2.0), transforms[0U].position.y);
-    Vec3 scaled = scaleVec3(transforms[0U].position, 2.0);
+    FuncCallChain_Vec3 scaled = scaleVec3(transforms[0U].position, 2.0);
     float scaledX = scaled.x;
     bool result = isGreater(transforms[0U].position.x, transforms[1U].position.x);
-    Transform temp = {0};
+    FuncCallChain_Transform temp = {0};
     temp.position = transforms[0U].position;
     temp.scale = transforms[0U].scale;
     setTransform(temp, 2U);

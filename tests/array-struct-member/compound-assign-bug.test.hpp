@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Counter {
+typedef struct CompoundBug_Counter {
     int32_t value;
-} Counter;
+} CompoundBug_Counter;
 
 /* External variables */
-extern Counter counters[2];
+extern CompoundBug_Counter counters[2];
 
 #ifdef __cplusplus
 }

@@ -56,28 +56,30 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: Issue #565 edge cases - comprehensive coverage for reassignment const inference
 // Covers: nested conditionals, switch, do-while, critical, compound assignments,
 // this.method calls, nested calls, multiple params
+/* Scope: ConstEdge */
+
 /* Scope: Handler */
 
-uint8_t Handler_setValue(Config* cfg, uint32_t val) {
+uint8_t Handler_setValue(ConstEdge_Config* cfg, uint32_t val) {
     cfg->value = val;
     return 0;
 }
 
-uint8_t Handler_setSecond(uint32_t dummy, Config* cfg) {
+uint8_t Handler_setSecond(uint32_t dummy, ConstEdge_Config* cfg) {
     cfg->value = 999U;
     return 0;
 }
 
-uint32_t Handler_getValue(const Config* cfg) {
+uint32_t Handler_getValue(const ConstEdge_Config* cfg) {
     return cfg->value;
 }
 
-uint8_t Handler_wrapSetValue(Config* cfg, uint32_t val) {
+uint8_t Handler_wrapSetValue(ConstEdge_Config* cfg, uint32_t val) {
     return Handler_setValue(cfg, val);
 }
 
 // Edge case 1: Nested conditionals
-void handleNestedIf(Config* config) {
+void handleNestedIf(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     bool a = true;
     bool b = true;
@@ -89,7 +91,7 @@ void handleNestedIf(Config* config) {
 }
 
 // Edge case 2: Switch statement
-void handleSwitch(Config* config) {
+void handleSwitch(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     uint32_t choice = 1U;
     switch (choice) {
@@ -109,7 +111,7 @@ void handleSwitch(Config* config) {
 }
 
 // Edge case 3: do-while loop
-void handleDoWhile(Config* config) {
+void handleDoWhile(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     uint32_t count = 0U;
     do {
@@ -119,7 +121,7 @@ void handleDoWhile(Config* config) {
 }
 
 // Edge case 4: Critical block
-void handleCritical(Config* config) {
+void handleCritical(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     {
         uint32_t __primask = __cnx_get_PRIMASK();
@@ -132,37 +134,37 @@ void handleCritical(Config* config) {
 // Edge case 5: this.method() call in reassignment (within a scope)
 /* Scope: Processor */
 
-uint8_t Processor_helper(Config* cfg) {
+uint8_t Processor_helper(ConstEdge_Config* cfg) {
     cfg->value = 50U;
     return 0;
 }
 
-void Processor_process(Config* config) {
+void Processor_process(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     errorCode = Processor_helper(config);
 }
 
 // Edge case 6: Second parameter is modified (not first)
-void handleSecondParam(Config* config) {
+void handleSecondParam(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     uint32_t dummy = 0U;
     errorCode = Handler_setSecond(dummy, config);
 }
 
 // Edge case 7: Nested function call in RHS
-void handleNestedCall(const Config* config) {
+void handleNestedCall(const ConstEdge_Config* config) {
     uint32_t result = 0U;
     result = Handler_getValue(config);
 }
 
 // Edge case 8: Transitive modification via wrapper
-void handleTransitive(Config* config) {
+void handleTransitive(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     errorCode = Handler_wrapSetValue(config, 60U);
 }
 
 // Edge case 9: Multiple reassignments, only one modifies
-void handleMultipleReassign(Config* config) {
+void handleMultipleReassign(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     uint32_t readVal = 0U;
     readVal = Handler_getValue(config);
@@ -172,30 +174,30 @@ void handleMultipleReassign(Config* config) {
 // Edge case 10: Compound assignment with modifying call
 // Note: compound assignment like a +<- b is equivalent to a <- a + b
 // The RHS here is an expression, so we need to ensure it's walked
-void handleCompoundAssign(const Config* config) {
+void handleCompoundAssign(const ConstEdge_Config* config) {
     uint32_t total = 0U;
     total = cnx_clamp_add_u32(total, Handler_getValue(config));
 }
 
 // Edge case 11: Compound assignment where the call modifies
-void handleCompoundModify(Config* config) {
+void handleCompoundModify(ConstEdge_Config* config) {
     uint32_t total = 0U;
     uint8_t code = Handler_setValue(config, 80U);
     total = cnx_clamp_add_u32(total, code);
 }
 
 // Edge case 12: Bare function call (expression statement, no assignment)
-void handleBareCall(Config* config) {
+void handleBareCall(ConstEdge_Config* config) {
     Handler_setValue(config, 90U);
 }
 
 // Edge case 13: Bare function call that only reads (should be const)
-void handleBareReadOnly(const Config* config) {
+void handleBareReadOnly(const ConstEdge_Config* config) {
     Handler_getValue(config);
 }
 
 int main(void) {
-    Config cfg = {0};
+    ConstEdge_Config cfg = {0};
     cfg.value = 0U;
     handleNestedIf(&cfg);
     if (cfg.value != 10) return 1;
