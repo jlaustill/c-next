@@ -3211,7 +3211,7 @@ export default class CodeGenerator implements IOrchestrator {
     decl += this._getStringCapacityDimension(varDecl.type());
 
     if (varDecl.expression()) {
-      decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
+      decl += ` = ${CodeGenState.withDeclarationInit(() => this.generateExpression(varDecl.expression()!))}`;
     } else {
       // ADR-015: Zero initialization for uninitialized scope variables
       decl += ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
@@ -3495,8 +3495,9 @@ export default class CodeGenerator implements IOrchestrator {
     );
 
     if (!fieldList) {
-      // Empty initializer: Point {} -> (Point){ 0 } or {} for C++ classes
-      return isCppClass ? "{}" : `(${castType}){ 0 }`;
+      // Empty initializer: Point {} -> { 0 } in declaration context, (Point){ 0 } elsewhere
+      if (isCppClass) return "{}";
+      return CodeGenState.inDeclarationInit ? "{ 0 }" : `(${castType}){ 0 }`;
     }
 
     // Get field type info for nested initializers
@@ -3507,28 +3508,10 @@ export default class CodeGenerator implements IOrchestrator {
 
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();
-
-      // Compute expected type for nested initializers
-      let fieldType: string | undefined;
-      if (structFieldTypes?.has(fieldName)) {
-        // Issue #502: Convert underscore format to correct output format
-        // C-Next struct fields may store C++ types with _ separator (e.g., SeaDash_Parse_ParseResult)
-        // but code generation needs :: for C++ types (e.g., SeaDash::Parse::ParseResult)
-        fieldType = structFieldTypes.get(fieldName)!;
-        if (fieldType.includes("_")) {
-          // Check if this looks like a qualified type (contains _) and convert
-          const parts = fieldType.split("_");
-          if (parts.length > 1 && this.isCppScopeSymbol(parts[0])) {
-            // It's a C++ namespaced type - convert _ to ::
-            fieldType = parts.join("::");
-          }
-        }
-      }
-
+      const fieldType = this._resolveFieldType(fieldName, structFieldTypes);
       const value = CodeGenState.withExpectedType(fieldType, () =>
         this.generateExpression(field.expression()),
       );
-
       return { fieldName, value };
     });
 
@@ -3545,6 +3528,13 @@ export default class CodeGenerator implements IOrchestrator {
     // For C-Next/C structs, generate designated initializer
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
 
+    // In a declaration initializer context, use plain designated initializer — no type cast
+    // prefix needed, and compound literals are not C99 constant expressions so they fail
+    // at file scope on GCC < 13.
+    if (CodeGenState.inDeclarationInit) {
+      return `{ ${fieldInits.join(", ")} }`;
+    }
+
     // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
     // Compound literals like (struct { ... }){ ... } create incompatible types in C++
     // because each struct { ... } definition creates a distinct nominal type.
@@ -3556,6 +3546,25 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return `(${castType}){ ${fieldInits.join(", ")} }`;
+  }
+
+  /**
+   * Resolve the C type string for a named struct field, converting C++ underscore-separated
+   * names to :: notation. Returns undefined if the field is not in the type map.
+   * Issue #502: C-Next stores C++ types with _ separator; codegen needs ::.
+   */
+  private _resolveFieldType(
+    fieldName: string,
+    structFieldTypes: Map<string, string> | undefined,
+  ): string | undefined {
+    if (!structFieldTypes?.has(fieldName)) return undefined;
+    const fieldType = structFieldTypes.get(fieldName)!;
+    if (!fieldType.includes("_")) return fieldType;
+    const parts = fieldType.split("_");
+    if (parts.length > 1 && this.isCppScopeSymbol(parts[0])) {
+      return parts.join("::");
+    }
+    return fieldType;
   }
 
   /**

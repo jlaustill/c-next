@@ -648,12 +648,15 @@ describe("CodeGenerator Coverage Tests", () => {
   // Issue #834: generateStructInitializer with named struct tags
   // ==========================================================================
   describe("generateStructInitializer() with named struct tags", () => {
-    it("should include struct keyword in compound literal for named struct tags", () => {
-      // Test the fix for issue #834: named struct tags need 'struct' prefix in cast
+    it("should include struct keyword in compound literal for named struct tags (assignment context)", () => {
+      // Test the fix for issue #834: named struct tags need 'struct' prefix in cast.
+      // In declaration context, no compound literal is emitted.
+      // In assignment (expression) context, the struct keyword must be present.
       const source = `
         struct NamedPoint { i32 x; i32 y; }
         void test() {
-          NamedPoint p <- {x: 10, y: 20};
+          NamedPoint p <- {x: 0, y: 0};
+          p <- {x: 10, y: 20};
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -673,10 +676,10 @@ describe("CodeGenerator Coverage Tests", () => {
         cppMode: false,
       });
 
-      // The compound literal cast should include 'struct' keyword
-      expect(code).toContain("(struct NamedPoint)");
-      expect(code).toContain(".x = 10");
-      expect(code).toContain(".y = 20");
+      // Declaration uses plain designated initializer (no compound literal)
+      expect(code).toContain("p = { .x = 0, .y = 0 }");
+      // Assignment (expression context) must keep compound literal with struct keyword
+      expect(code).toContain("(struct NamedPoint){ .x = 10, .y = 20 }");
     });
 
     it("should include struct keyword in empty initializer via return statement", () => {
@@ -708,12 +711,14 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain("(struct ReturnStruct){ 0 }");
     });
 
-    it("should NOT include struct keyword for typedef'd structs in C mode", () => {
-      // This tests the branch where checkNeedsStructKeyword returns false
+    it("should NOT include struct keyword for typedef'd structs in assignment context", () => {
+      // This tests the branch where checkNeedsStructKeyword returns false.
+      // Compound literals (expression context) for typedef'd structs must NOT have 'struct'.
       const source = `
         struct TypedefPoint { i32 x; i32 y; }
         void test() {
-          TypedefPoint p <- {x: 1, y: 2};
+          TypedefPoint p <- {x: 0, y: 0};
+          p <- {x: 1, y: 2};
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -732,22 +737,23 @@ describe("CodeGenerator Coverage Tests", () => {
         cppMode: false,
       });
 
-      // Should NOT have 'struct' keyword since it's not marked
+      // Assignment (expression context) should use plain type, no 'struct' keyword
       expect(code).not.toContain("(struct TypedefPoint)");
-      expect(code).toContain("(TypedefPoint)");
+      expect(code).toContain("(TypedefPoint){ .x = 1, .y = 2 }");
     });
 
-    it("should NOT include struct keyword in C++ mode", () => {
+    it("should NOT include struct keyword in C++ mode (assignment context)", () => {
+      // Even if marked, C++ mode should not use struct keyword in compound literals.
       const source = `
         struct CppPoint { i32 x; i32 y; }
         void test() {
-          CppPoint p <- {x: 5, y: 10};
+          CppPoint p <- {x: 0, y: 0};
+          p <- {x: 5, y: 10};
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      // Even if marked, C++ mode should not use struct keyword
       symbolTable.markNeedsStructKeyword("CppPoint");
 
       const tSymbols = CNextResolver.resolve(tree, "test.cnx");
@@ -761,9 +767,9 @@ describe("CodeGenerator Coverage Tests", () => {
         cppMode: true,
       });
 
-      // In C++ mode, struct keyword should NOT be in the cast
+      // Assignment (expression context) in C++ mode must not use 'struct' keyword
       expect(code).not.toContain("(struct CppPoint)");
-      expect(code).toContain("(CppPoint)");
+      expect(code).toContain("(CppPoint){ .x = 5, .y = 10 }");
     });
   });
 

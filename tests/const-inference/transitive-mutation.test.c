@@ -21,7 +21,7 @@ void Test_loadData(TransMutation_Data* d) {
 }
 
 int main(void) {
-    TransMutation_Data d = (TransMutation_Data){ .value = 0U };
+    TransMutation_Data d = { .value = 0U };
     if (d.value != 0) return 1;
     Test_loadData(&d);
     if (d.value != 42) return 2;

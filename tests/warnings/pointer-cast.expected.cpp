@@ -20,7 +20,7 @@ void modifyData(PtrCast_Data& d) {
 }
 
 PtrCast_Data createData(uint32_t val, uint8_t flg) {
-    PtrCast_Data result = (PtrCast_Data){ .value = val, .flags = flg };
+    PtrCast_Data result = { .value = val, .flags = flg };
     return result;
 }
 
@@ -30,14 +30,14 @@ void updateContainer(PtrCast_Container& c, uint32_t newCount) {
 }
 
 int main(void) {
-    PtrCast_Data d = (PtrCast_Data){ .value = 100U, .flags = 0x0FU };
+    PtrCast_Data d = { .value = 100U, .flags = 0x0FU };
     modifyData(d);
     if (d.value != 999) return 1;
     if (d.flags != 0xFF) return 2;
     PtrCast_Data created = createData(42U, 0xABU);
     if (created.value != 42) return 3;
     if (created.flags != 0xAB) return 4;
-    PtrCast_Container c = (PtrCast_Container){ .inner = (PtrCast_Data){ .value = 0U, .flags = 0U }, .count = 0U };
+    PtrCast_Container c = { .inner = { .value = 0U, .flags = 0U }, .count = 0U };
     updateContainer(c, 5U);
     if (c.count != 5) return 5;
     if (c.inner.value != 50) return 6;

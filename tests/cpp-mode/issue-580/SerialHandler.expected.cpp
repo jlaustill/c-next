@@ -37,6 +37,6 @@ void SerialHandler_handleSave(Config& config) {
 }
 
 int main(void) {
-    Config c = (Config){ .value = 0U };
+    Config c = { .value = 0U };
     SerialHandler_handleReset(c);
 }

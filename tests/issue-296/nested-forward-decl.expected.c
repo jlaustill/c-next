@@ -32,15 +32,15 @@ bool Collision_contains(const Vector2D* point) {
 }
 
 int main(void) {
-    Vector2D minPt = (Vector2D){ .x = 0.0, .y = 0.0 };
-    Vector2D maxPt = (Vector2D){ .x = 100.0, .y = 100.0 };
-    BoundingBox box = (BoundingBox){ .min = minPt, .max = maxPt };
+    Vector2D minPt = { .x = 0.0, .y = 0.0 };
+    Vector2D maxPt = { .x = 100.0, .y = 100.0 };
+    BoundingBox box = { .min = minPt, .max = maxPt };
     Collision_setBounds(&box);
     BoundingBox retrieved = Collision_getBounds();
     if (retrieved.min.x != 0.0) return 1;
     if (retrieved.max.x != 100.0) return 2;
-    Vector2D inside = (Vector2D){ .x = 50.0, .y = 50.0 };
-    Vector2D outside = (Vector2D){ .x = 150.0, .y = 50.0 };
+    Vector2D inside = { .x = 50.0, .y = 50.0 };
+    Vector2D outside = { .x = 150.0, .y = 50.0 };
     bool insideResult = Collision_contains(&inside);
     if (insideResult != true) return 3;
     bool outsideResult = Collision_contains(&outside);

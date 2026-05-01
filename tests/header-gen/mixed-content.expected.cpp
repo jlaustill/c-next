@@ -9,7 +9,7 @@
 // Tests header generation with enums, structs, and functions.
 /* Scope: HeaderMixed */
 
-HeaderMixed_Config globalConfig = (HeaderMixed_Config){ .timeout = 1000U, .retries = 3U, .status = EStatus_STATUS_IDLE };
+HeaderMixed_Config globalConfig = { .timeout = 1000U, .retries = 3U, .status = EStatus_STATUS_IDLE };
 
 void initConfig(void) {
     globalConfig.timeout = 5000U;

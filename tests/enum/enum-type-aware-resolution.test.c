@@ -39,10 +39,10 @@ void setStatusRed(StatusConfig* cfg) {
 }
 
 int main(void) {
-    ColorConfig colorCfg = (ColorConfig){ .color = Color_BLUE };
+    ColorConfig colorCfg = { .color = Color_BLUE };
     setColorRed(&colorCfg);
     if ((uint32_t)colorCfg.color != 0) return 1;
-    StatusConfig statusCfg = (StatusConfig){ .status = Status_YELLOW };
+    StatusConfig statusCfg = { .status = Status_YELLOW };
     setStatusRed(&statusCfg);
     if ((uint32_t)statusCfg.status != 10) return 2;
     colorCfg.color = Color_GREEN;

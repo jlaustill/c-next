@@ -17,6 +17,6 @@ void processResult(const SeaDash::Parse::ParseResult& result) {
 
 // Function returning namespaced type
 SeaDash::Parse::ParseResult createResult(void) {
-    SeaDash::Parse::ParseResult r = (SeaDash::Parse::ParseResult){ .data = {0}, .count = 0, .success = true };
+    SeaDash::Parse::ParseResult r = { .data = {0}, .count = 0, .success = true };
     return r;
 }

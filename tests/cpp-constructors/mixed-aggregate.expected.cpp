@@ -16,7 +16,7 @@ int main(void) {
     DefaultConstructible nonAgg = {};
     nonAgg.value = 42;
     nonAgg.name = "test";
-    AggregateType agg = (AggregateType){ .value = 99, .label = "agg" };
+    AggregateType agg = { .value = 99, .label = "agg" };
     if (nonAgg.value != 42) return 1;
     if (agg.value != 99) return 2;
     return 0;

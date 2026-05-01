@@ -19,12 +19,12 @@ void my_point_handler(Point p) {
 
 int main(void) {
     PointCallback cb = my_point_handler;
-    Point p1 = (Point){ .x = 3, .y = 7 };
+    Point p1 = { .x = 3, .y = 7 };
     cb(p1);
     if (handler_sum != 10) return 1;
     handler_sum = 0;
-    PointHandler handler = (PointHandler){ .on_point = my_point_handler };
-    Point p2 = (Point){ .x = 5, .y = 15 };
+    PointHandler handler = { .on_point = my_point_handler };
+    Point p2 = { .x = 5, .y = 15 };
     handler.on_point(p2);
     if (handler_sum != 20) return 2;
     handler_sum = 0;

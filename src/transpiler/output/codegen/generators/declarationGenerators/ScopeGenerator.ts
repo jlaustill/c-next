@@ -38,10 +38,12 @@ function generateInitializer(
 ): string {
   if (varDecl.expression()) {
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
+    // Issue #992: withDeclarationInit suppresses compound literals at file scope (GCC 9-12 compat)
     const typeName = orchestrator.generateType(varDecl.type());
-    return CodeGenState.withExpectedType(
-      typeName,
-      () => ` = ${orchestrator.generateExpression(varDecl.expression()!)}`,
+    return CodeGenState.withExpectedType(typeName, () =>
+      CodeGenState.withDeclarationInit(
+        () => ` = ${orchestrator.generateExpression(varDecl.expression()!)}`,
+      ),
     );
   }
   // ADR-015: Zero initialization for uninitialized scope variables

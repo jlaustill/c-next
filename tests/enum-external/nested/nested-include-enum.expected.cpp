@@ -15,7 +15,7 @@ void setHigh(NestedExtEnum_Config& cfg) {
 }
 
 int main(void) {
-    NestedExtEnum_Config cfg = (NestedExtEnum_Config){ .level = ELevel_LEVEL_LOW };
+    NestedExtEnum_Config cfg = { .level = ELevel_LEVEL_LOW };
     if (cfg.level != ELevel_LEVEL_LOW) return 1;
     cfg.level = ELevel_LEVEL_MEDIUM;
     if (cfg.level != ELevel_LEVEL_MEDIUM) return 2;

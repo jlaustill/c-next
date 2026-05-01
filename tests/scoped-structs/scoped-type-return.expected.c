@@ -13,19 +13,19 @@
 /* Scope: Geometry */
 
 Geometry_Point Geometry_makePoint(int32_t x, int32_t y) {
-    Geometry_Point p = (Geometry_Point){ .x = x, .y = y };
+    Geometry_Point p = { .x = x, .y = y };
     return p;
 }
 
 Geometry_Point Geometry_origin(void) {
-    Geometry_Point p = (Geometry_Point){ .x = 0, .y = 0 };
+    Geometry_Point p = { .x = 0, .y = 0 };
     return p;
 }
 
 Geometry_Point Geometry_midpoint(const Geometry_Point* a, const Geometry_Point* b) {
     int32_t mx = (a->x + b->x) / 2;
     int32_t my = (a->y + b->y) / 2;
-    Geometry_Point m = (Geometry_Point){ .x = mx, .y = my };
+    Geometry_Point m = { .x = mx, .y = my };
     return m;
 }
 
@@ -37,7 +37,7 @@ void movePoint(Geometry_Point* p, int32_t dx, int32_t dy) {
 
 // Function outside scope returning Scope.Type
 Geometry_Point createPoint(int32_t x, int32_t y) {
-    Geometry_Point result = (Geometry_Point){ .x = x, .y = y };
+    Geometry_Point result = { .x = x, .y = y };
     return result;
 }
 

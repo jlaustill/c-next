@@ -15,13 +15,13 @@
 /* Scope: StructInit */
 
 int main(void) {
-    Point p = (Point){ .x = 10, .y = 20 };
+    Point p = { .x = 10, .y = 20 };
     if (p.x != 10) return 1;
     if (p.y != 20) return 2;
-    Rectangle rect = (Rectangle){ .topLeft = (Point){ .x = 0, .y = 0 }, .bottomRight = (Point){ .x = 100, .y = 100 } };
+    Rectangle rect = { .topLeft = { .x = 0, .y = 0 }, .bottomRight = { .x = 100, .y = 100 } };
     if (rect.topLeft.x != 0) return 3;
     if (rect.bottomRight.y != 100) return 4;
-    StructInit_Data d = (StructInit_Data){ .id = 42U, .flags = 0xFFU, .count = 1000U };
+    StructInit_Data d = { .id = 42U, .flags = 0xFFU, .count = 1000U };
     if (d.id != 42) return 5;
     if (d.flags != 0xFF) return 6;
     if (d.count != 1000) return 7;

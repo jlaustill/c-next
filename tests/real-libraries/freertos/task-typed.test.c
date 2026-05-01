@@ -25,6 +25,6 @@ void counterTask_typed(TaskData* data) {
 
 // Test function demonstrating typed usage
 void testTypedAccess(void) {
-    TaskData data = (TaskData){ .counter = 0U, .maxCount = 10U, .taskRan = false };
+    TaskData data = { .counter = 0U, .maxCount = 10U, .taskRan = false };
     counterTask_typed(&data);
 }

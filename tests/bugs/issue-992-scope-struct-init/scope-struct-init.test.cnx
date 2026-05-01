@@ -1,0 +1,13 @@
+// test-c-only
+// test-no-warnings
+// Bug #992: Scope variables with struct initializers must use designated initializers
+// (no compound literals at file scope) to compile on GCC 9-12
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+scope Origin {
+    public Point p <- {x: 0, y: 0};
+}

@@ -26,7 +26,7 @@ TypedefTypes_Sensor Reader_read(void) {
 }
 
 int main(void) {
-    TypedefTypes_Sensor s = (TypedefTypes_Sensor){ .id = 42U, .value = 100U };
+    TypedefTypes_Sensor s = { .id = 42U, .value = 100U };
     Reader_update(&s);
     TypedefTypes_Sensor result = Reader_read();
     if (result.id != 42) return 1;
