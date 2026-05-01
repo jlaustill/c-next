@@ -11,12 +11,12 @@
 /* Scope: Geometry */
 
 Point Geometry_getOrigin(void) {
-    Point p = (Point){ .x = 0, .y = 0 };
+    Point p = { .x = 0, .y = 0 };
     return p;
 }
 
 Line Geometry_makeLine(const Point& start, const Point& end) {
-    Line l = (Line){ .start = start, .end = end };
+    Line l = { .start = start, .end = end };
     return l;
 }
 

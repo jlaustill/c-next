@@ -29,9 +29,9 @@ void Port_init(void) {
 
 int main(void) {
     Port_init();
-    rect_t r = (rect_t){ .x1 = 10, .y1 = 20, .x2 = 100, .y2 = 200 };
+    rect_t r = { .x1 = 10, .y1 = 20, .x2 = 100, .y2 = 200 };
     uint8_t buffer[4] = {0xAAU, 0xBBU, 0xCCU, 0xDDU};
-    widget_t dummy_widget = (widget_t){ .dummy = 42 };
+    widget_t dummy_widget = { .dummy = 42 };
     int32_t invoked = invoke_registered_cb(&dummy_widget, &r, buffer);
     if (invoked == 0) return 1;
     if (last_x1 != 10) return 2;

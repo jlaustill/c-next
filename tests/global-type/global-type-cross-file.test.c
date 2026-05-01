@@ -23,7 +23,7 @@ int32_t TaskManager_priorityToInt(EPriority p) {
 }
 
 Vec2 TaskManager_getPosition(void) {
-    Vec2 pos = (Vec2){ .x = 100, .y = 200 };
+    Vec2 pos = { .x = 100, .y = 200 };
     return pos;
 }
 
@@ -39,7 +39,7 @@ int main(void) {
     Vec2 pos = TaskManager_getPosition();
     if (pos.x != 100) return 3;
     if (pos.y != 200) return 4;
-    Vec2 v = (Vec2){ .x = 15, .y = 25 };
+    Vec2 v = { .x = 15, .y = 25 };
     int32_t total = TaskManager_sumVec(&v);
     if (total != 40) return 5;
     return 0;

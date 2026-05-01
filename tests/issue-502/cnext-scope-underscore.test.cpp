@@ -17,7 +17,7 @@
 /* Scope: Sensor */
 
 // Test: C-Next nested types must use _ not ::
-Sensor_Reading reading = (Sensor_Reading){ .motorState = (Motor_State){ .position = 0, .running = false }, .value = 42 };
+Sensor_Reading reading = { .motorState = { .position = 0, .running = false }, .value = 42 };
 
 int main(void) {
     if (reading.value != 42) return 1;

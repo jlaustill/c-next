@@ -38,7 +38,7 @@ void setNestedColor(Config* cfg) {
 }
 
 int main(void) {
-    Config cfg = (Config){ .nested = (NestedConfig){ .status = Status_GREEN, .color = Color_RED } };
+    Config cfg = { .nested = { .status = Status_GREEN, .color = Color_RED } };
     if ((uint32_t)cfg.nested.status != 20) return 1;
     setNestedStatus(&cfg);
     if ((uint32_t)cfg.nested.status != 10) return 2;

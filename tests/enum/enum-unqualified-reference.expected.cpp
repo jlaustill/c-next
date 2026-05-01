@@ -25,7 +25,7 @@ void setDefault(Config& config) {
 }
 
 int main(void) {
-    Config cfg = (Config){ .pType = EPressureType_PRESSURE_TYPE_PSIA };
+    Config cfg = { .pType = EPressureType_PRESSURE_TYPE_PSIA };
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 1;
     setDefault(cfg);
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIG) return 2;

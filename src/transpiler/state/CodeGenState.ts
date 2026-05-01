@@ -217,6 +217,12 @@ export default class CodeGenState {
   /** Whether we're inside a function body */
   static inFunctionBody: boolean = false;
 
+  /** Whether we're generating the RHS of a variable declaration initializer.
+   *  When true, struct literals use { .field = value } instead of (Type){ .field = value }
+   *  because plain designated initializers are valid C99 at any scope, while compound
+   *  literals are not constant expressions and fail at file scope on GCC < 13. */
+  static inDeclarationInit: boolean = false;
+
   /** Expected type for struct initializers and enum inference */
   static expectedType: string | null = null;
 
@@ -381,6 +387,7 @@ export default class CodeGenState {
     // Generation state
     this.indentLevel = 0;
     this.inFunctionBody = false;
+    this.inDeclarationInit = false;
     this.expectedType = null;
     this.suppressBareEnumResolution = false;
     this.mainArgsName = null;
@@ -473,6 +480,17 @@ export default class CodeGenState {
     } finally {
       this.expectedType = savedType;
       this.suppressBareEnumResolution = savedSuppress;
+    }
+  }
+
+  /** Execute fn with inDeclarationInit=true, restoring prior value on exit. */
+  static withDeclarationInit<T>(fn: () => T): T {
+    const saved = this.inDeclarationInit;
+    this.inDeclarationInit = true;
+    try {
+      return fn();
+    } finally {
+      this.inDeclarationInit = saved;
     }
   }
 

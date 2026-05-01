@@ -19,7 +19,7 @@ void Test_loadData(Data* d) {
 }
 
 int main(void) {
-    Data d = (Data){ .value = 0U };
+    Data d = { .value = 0U };
     if (d.value != 0) return 1;
     Test_loadData(&d);
     if (d.value != 42) return 2;

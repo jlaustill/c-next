@@ -3211,7 +3211,7 @@ export default class CodeGenerator implements IOrchestrator {
     decl += this._getStringCapacityDimension(varDecl.type());
 
     if (varDecl.expression()) {
-      decl += ` = ${this.generateExpression(varDecl.expression()!)}`;
+      decl += ` = ${CodeGenState.withDeclarationInit(() => this.generateExpression(varDecl.expression()!))}`;
     } else {
       // ADR-015: Zero initialization for uninitialized scope variables
       decl += ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
@@ -3495,8 +3495,9 @@ export default class CodeGenerator implements IOrchestrator {
     );
 
     if (!fieldList) {
-      // Empty initializer: Point {} -> (Point){ 0 } or {} for C++ classes
-      return isCppClass ? "{}" : `(${castType}){ 0 }`;
+      // Empty initializer: Point {} -> { 0 } in declaration context, (Point){ 0 } elsewhere
+      if (isCppClass) return "{}";
+      return CodeGenState.inDeclarationInit ? "{ 0 }" : `(${castType}){ 0 }`;
     }
 
     // Get field type info for nested initializers
@@ -3544,6 +3545,13 @@ export default class CodeGenerator implements IOrchestrator {
 
     // For C-Next/C structs, generate designated initializer
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
+
+    // In a declaration initializer context, use plain designated initializer — no type cast
+    // prefix needed, and compound literals are not C99 constant expressions so they fail
+    // at file scope on GCC < 13.
+    if (CodeGenState.inDeclarationInit) {
+      return `{ ${fieldInits.join(", ")} }`;
+    }
 
     // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
     // Compound literals like (struct { ... }){ ... } create incompatible types in C++

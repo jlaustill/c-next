@@ -17,6 +17,6 @@ void moveRight(Point& p) {
 }
 
 int main(void) {
-    Point cursor = (Point){ .x = 0, .y = 0 };
+    Point cursor = { .x = 0, .y = 0 };
     moveRight(cursor);
 }

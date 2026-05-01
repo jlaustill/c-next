@@ -47,7 +47,7 @@ int32_t manhattanDistance(const Point& p) {
 }
 
 int main(void) {
-    Point origin = (Point){ .x = 0, .y = 0 };
+    Point origin = { .x = 0, .y = 0 };
     if (origin.x != 0) return 1;
     if (origin.y != 0) return 2;
     Point p1 = {0};
@@ -55,19 +55,19 @@ int main(void) {
     p1.y = 20;
     if (p1.x != 10) return 3;
     if (p1.y != 20) return 4;
-    Point p2 = (Point){ .x = 5, .y = -3 };
+    Point p2 = { .x = 5, .y = -3 };
     if (p2.x != 5) return 5;
     if (p2.y != -3) return 6;
     int32_t xVal = getPointX(p2);
     if (xVal != 5) return 7;
-    Point p3 = (Point){ .x = 100, .y = 200 };
+    Point p3 = { .x = 100, .y = 200 };
     setPointOrigin(p3);
     if (p3.x != 0) return 8;
     if (p3.y != 0) return 9;
-    Point p4 = (Point){ .x = -3, .y = 4 };
+    Point p4 = { .x = -3, .y = 4 };
     int32_t dist = manhattanDistance(p4);
     if (dist != 7) return 10;
-    Sensor s1 = (Sensor){ .id = 42U, .temperature = 23.5, .active = true };
+    Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
     if (s1.id != 42) return 11;
     if (s1.active != true) return 12;
     return 0;

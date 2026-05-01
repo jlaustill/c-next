@@ -10,4 +10,4 @@
 #include <stdbool.h>
 
 // Variable with struct initializer using named fields
-SeaDash::Parse::ParseResult parsed = (SeaDash::Parse::ParseResult){ .data = {0}, .count = 0, .success = false };
+SeaDash::Parse::ParseResult parsed = { .data = {0}, .count = 0, .success = false };

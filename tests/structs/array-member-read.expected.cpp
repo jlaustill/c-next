@@ -29,9 +29,9 @@ typedef struct Container {
 
 int main(void) {
     Container cfg = {0};
-    Item item0 = (Item){ .value = 100U, .flags = 0U };
-    Item item1 = (Item){ .value = 200U, .flags = 0U };
-    Item item2 = (Item){ .value = 300U, .flags = 0U };
+    Item item0 = { .value = 100U, .flags = 0U };
+    Item item1 = { .value = 200U, .flags = 0U };
+    Item item2 = { .value = 300U, .flags = 0U };
     cfg.items[0] = item0;
     cfg.items[1] = item1;
     cfg.items[2] = item2;

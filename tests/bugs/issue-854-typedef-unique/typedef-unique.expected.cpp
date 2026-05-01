@@ -26,7 +26,7 @@ Sensor Reader_read(void) {
 }
 
 int main(void) {
-    Sensor s = (Sensor){ .id = 42U, .value = 100U };
+    Sensor s = { .id = 42U, .value = 100U };
     Reader_update(s);
     Sensor result = Reader_read();
     if (result.id != 42) return 1;

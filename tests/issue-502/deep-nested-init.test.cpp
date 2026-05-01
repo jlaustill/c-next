@@ -18,4 +18,4 @@ typedef struct Outer {
 } Outer;
 
 // Deep nesting: Outer -> Inner -> ParseResult
-Outer o = (Outer){ .inner = (Inner){ .result = (SeaDash::Parse::ParseResult){ .data = {0}, .count = 0, .success = false } } };
+Outer o = { .inner = { .result = { .data = {0}, .count = 0, .success = false } } };

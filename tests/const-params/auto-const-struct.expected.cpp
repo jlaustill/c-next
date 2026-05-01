@@ -52,7 +52,7 @@ void wrapMovePoint(Point& p) {
 }
 
 int main(void) {
-    Point pt = (Point){ .x = 10, .y = 20 };
+    Point pt = { .x = 10, .y = 20 };
     int32_t sum = getPointSum(pt);
     if (sum != 30) return 1;
     if (pt.x != 10) return 2;
@@ -60,12 +60,12 @@ int main(void) {
     movePoint(pt, 5, -3);
     if (pt.x != 15) return 4;
     if (pt.y != 17) return 5;
-    Config cfg = (Config){ .value = 42U, .enabled = true };
+    Config cfg = { .value = 42U, .enabled = true };
     uint32_t val = getConfigValue(cfg);
     if (val != 42) return 6;
     toggleAndRead(cfg);
     if (cfg.enabled != false) return 7;
-    Point pt2 = (Point){ .x = 100, .y = 200 };
+    Point pt2 = { .x = 100, .y = 200 };
     sum = wrapGetSum(pt2);
     if (sum != 300) return 8;
     if (pt2.x != 100) return 9;

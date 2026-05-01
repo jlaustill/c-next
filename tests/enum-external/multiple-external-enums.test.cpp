@@ -21,7 +21,7 @@ void configure(DeviceState& state) {
 }
 
 int main(void) {
-    DeviceState dev = (DeviceState){ .pressure = EPressureType_PRESSURE_TYPE_PSIA, .status = EStatus_STATUS_IDLE };
+    DeviceState dev = { .pressure = EPressureType_PRESSURE_TYPE_PSIA, .status = EStatus_STATUS_IDLE };
     if (dev.pressure != EPressureType_PRESSURE_TYPE_PSIA) return 1;
     if (dev.status != EStatus_STATUS_IDLE) return 2;
     configure(dev);
