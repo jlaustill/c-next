@@ -3,24 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "types.h"
+
 #include <stdint.h>
 
 // Helper file: enum and struct definitions for cross-file struct member test
-typedef enum {
-    MyEnum_A = 0,
-    MyEnum_B = 1,
-    MyEnum_NONE = 255
-} MyEnum;
-
-typedef struct TItem {
-    MyEnum assigned;
-    uint8_t padding;
-} TItem;
-
-typedef struct Config {
-    TItem items[4];
-} Config;
+/* Scope: CrossFileEnum */
 
 const uint8_t COUNT = 4U;
 
-Config config = {0};
+CrossFileEnum_Config config = {0};

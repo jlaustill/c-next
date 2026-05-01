@@ -15,19 +15,19 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct GlobalStruct_Outer {
+    ExternalStruct inner;
+    uint8_t direct[8];
+} GlobalStruct_Outer;
 typedef struct CNextStruct {
     uint8_t buffer[16];
     uint32_t values[4];
 } CNextStruct;
-typedef struct Outer {
-    ExternalStruct inner;
-    uint8_t direct[8];
-} Outer;
 
 /* External variables */
 extern ExternalStruct globalExternal;
 extern CNextStruct globalCNext;
-extern Outer globalOuter;
+extern GlobalStruct_Outer globalOuter;
 
 /* Function prototypes */
 uint8_t ArrayTests_testGlobalExternal(void);

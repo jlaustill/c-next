@@ -14,6 +14,11 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct StructInit_Data {
+    uint32_t id;
+    uint8_t flags;
+    uint16_t count;
+} StructInit_Data;
 typedef struct Point {
     int32_t x;
     int32_t y;
@@ -22,11 +27,6 @@ typedef struct Rectangle {
     Point topLeft;
     Point bottomRight;
 } Rectangle;
-typedef struct Data {
-    uint32_t id;
-    uint8_t flags;
-    uint16_t count;
-} Data;
 
 #ifdef __cplusplus
 }

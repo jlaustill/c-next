@@ -21,17 +21,17 @@ typedef enum {
 } MyEnum;
 
 /* Struct definitions */
-typedef struct TItem {
+typedef struct CrossFileEnum_TItem {
     MyEnum assigned;
     uint8_t padding;
-} TItem;
-typedef struct Config {
-    TItem items[4];
-} Config;
+} CrossFileEnum_TItem;
+typedef struct CrossFileEnum_Config {
+    CrossFileEnum_TItem items[4];
+} CrossFileEnum_Config;
 
 /* External variables */
 extern const uint8_t COUNT;
-extern Config config;
+extern CrossFileEnum_Config config;
 
 #ifdef __cplusplus
 }

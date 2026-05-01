@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Config {
+typedef struct LengthPropMembers_Config {
     uint32_t magic;
     uint16_t version;
     uint8_t flags;
-} Config;
+} LengthPropMembers_Config;
 
 #ifdef __cplusplus
 }

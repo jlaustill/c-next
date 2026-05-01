@@ -2,10 +2,12 @@
 
 #include "level2.cnx"
 
-struct Config {
+scope NestedExtEnum {
+    public struct Config {
     ELevel level;
 }
+}
 
-void setMedium(Config cfg) {
+void setMedium(NestedExtEnum.Config cfg) {
     cfg.level <- ELevel.LEVEL_MEDIUM;
 }

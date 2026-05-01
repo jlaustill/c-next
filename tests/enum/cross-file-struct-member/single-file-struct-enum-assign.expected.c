@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "single-file-struct-enum-assign.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -18,24 +20,11 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // test-c-only
 // test-execution
 // Tests: single-file version of struct member enum assignment
-typedef enum {
-    MyEnum_A = 0,
-    MyEnum_B = 1,
-    MyEnum_NONE = 255
-} MyEnum;
-
-typedef struct TItem {
-    MyEnum assigned;
-    uint8_t padding;
-} TItem;
-
-typedef struct Config {
-    TItem items[4];
-} Config;
+/* Scope: SingleFileEnum */
 
 const uint8_t COUNT = 4U;
 
-Config config = {0};
+SingleFileEnum_Config config = {0};
 
 int main(void) {
     config.items[0].assigned = MyEnum_A;

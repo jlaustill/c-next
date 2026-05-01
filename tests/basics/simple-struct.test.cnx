@@ -9,10 +9,12 @@ struct Point {
 }
 
 // Struct with different field types
-struct Sensor {
+scope SimpleStruct {
+    public struct Sensor {
     u16 id;
     f32 temperature;
     bool active;
+}
 }
 
 // Function that reads struct fields (pass-by-reference, ADR-006)
@@ -73,7 +75,7 @@ u32 main() {
     if (dist != 7) return 10;
 
     // Struct with mixed types
-    Sensor s1 <- {id: 42, temperature: 23.5, active: true};
+    SimpleStruct.Sensor s1 <- {id: 42, temperature: 23.5, active: true};
     if (s1.id != 42) return 11;
     if (s1.active != true) return 12;
 

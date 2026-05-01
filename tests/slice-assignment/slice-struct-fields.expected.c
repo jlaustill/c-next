@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "slice-struct-fields.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -10,16 +12,11 @@
 // Tests: Slice assignment for struct field serialization
 // Validates copying struct fields into buffers with compile-time offsets
 // Layout: [magic:4][version:2][flags:1][timestamp:8] = 15 bytes total
-typedef struct Config {
-    uint32_t magic;
-    uint16_t version;
-    uint8_t flags;
-    uint64_t timestamp;
-} Config;
+/* Scope: SliceFields */
 
 int main(void) {
     uint8_t buffer[256] = {0};
-    Config config = {0};
+    SliceFields_Config config = {0};
     config.magic = 0x43534E58U;
     config.version = 0x0101U;
     config.flags = 0x0FU;

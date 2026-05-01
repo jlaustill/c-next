@@ -1,14 +1,16 @@
 // Postfix Chain Test: Boundary Conditions
 // Tests: Edge cases at type boundaries, max indices, etc.
 
-struct Data {
+scope BoundaryTest {
+    public struct Data {
     u8 byte;
     u16 word;
     u32 dword;
     u64 qword;
 }
+}
 
-Data[16] items;  // Max reasonable array size for testing
+BoundaryTest.Data items[16];  // Max reasonable array size for testing
 
 void main() {
    

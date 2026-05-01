@@ -8,18 +8,20 @@ enum MyEnum {
     NONE <- 0xFF
 }
 
-struct TItem {
+scope SingleFileEnum {
+    public struct TItem {
     MyEnum assigned;
     u8 padding;
 }
 
-struct Config {
-    TItem[4] items;
+    public struct Config {
+    this.TItem items[4];
+}
 }
 
 const u8 COUNT <- 4;
 
-Config config;
+SingleFileEnum.Config config;
 
 u32 main() {
     // Initialize config

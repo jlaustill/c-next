@@ -1,14 +1,16 @@
 // test-execution
 // Regression test: .length property on struct member access
 // Verifies cfg.magic.bit_length correctly returns 32 (was returning 0)
-struct Config {
+scope LengthPropMembers {
+    public struct Config {
     u32 magic;
     u16 version;
     u8 flags;
 }
+}
 
 i32 main() {
-    Config cfg;
+    LengthPropMembers.Config cfg;
     cfg.magic <- 0x12345678;
     cfg.version <- 1;
     cfg.flags <- 0xFF;

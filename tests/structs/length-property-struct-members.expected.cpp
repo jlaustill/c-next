@@ -3,19 +3,17 @@
  * A safer C for embedded systems
  */
 
+#include "length-property-struct-members.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Regression test: .length property on struct member access
 // Verifies cfg.magic.bit_length correctly returns 32 (was returning 0)
-typedef struct Config {
-    uint32_t magic;
-    uint16_t version;
-    uint8_t flags;
-} Config;
+/* Scope: LengthPropMembers */
 
 int main(void) {
-    Config cfg = {0};
+    LengthPropMembers_Config cfg = {0};
     cfg.magic = 0x12345678U;
     cfg.version = 1U;
     cfg.flags = 0xFFU;

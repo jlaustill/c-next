@@ -3,33 +3,15 @@
  * A safer C for embedded systems
  */
 
+#include "deep-three-plus-levels.test.h"
+
 #include <stdint.h>
 
 // Postfix Chain Test: Deep nesting (3+ levels)
 // Tests: Complex chains with multiple member/array/bit accesses
-typedef struct Color {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-} Color;
+/* Scope: DeepThreeLevel */
 
-typedef struct Material {
-    Color ambient;
-    Color diffuse;
-    uint8_t opacity;
-} Material;
-
-typedef struct Object {
-    Material material;
-    int32_t id;
-} Object;
-
-typedef struct Scene {
-    Object objects[4];
-    uint32_t count;
-} Scene;
-
-Scene scenes[2] = {0};
+DeepThreeLevel_Scene scenes[2] = {0};
 
 int main(void) {
     scenes[0].objects[0].material.ambient.r = 255U;

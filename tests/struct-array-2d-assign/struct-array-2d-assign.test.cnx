@@ -1,13 +1,15 @@
 // test-execution
 // Tests: 2D struct array member assignment through global prefix (Issue #387)
 
-struct TReading {
+scope StructArr2D {
+    public struct TReading {
     i16 value;
     u32 timestamp;
     bool valid;
 }
+}
 
-TReading[4] readings[4];
+StructArr2D.TReading readings[4][4];
 
 scope Test {
     public u32 run() {

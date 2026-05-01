@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "f32-all-contexts.test.hpp"
+
 #include <stdint.h>
 
 // test-coverage: 1.3-f32-global-variable-declaration, 1.3-f32-global-variable-with-init
@@ -16,10 +18,7 @@ float global_f = 3.14;
 float global_uninit = 0.0f;
 
 // Struct member
-typedef struct Point {
-    float x;
-    float y;
-} Point;
+/* Scope: F32AllCtx */
 
 // Array element type
 float samples[4] = {0};

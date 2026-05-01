@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-byte-length.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -12,10 +14,7 @@ float globalF32 = 3.14;
 
 double globalF64 = 3.14159265359;
 
-typedef struct TestStruct {
-    float x;
-    double y;
-} TestStruct;
+/* Scope: FloatByteLen */
 
 int main(void) {
     if (4 != 4) {
@@ -32,7 +31,7 @@ int main(void) {
     if (8 != 8) {
         return 4;
     }
-    TestStruct ts = {0};
+    FloatByteLen_TestStruct ts = {0};
     ts.x = 1.0;
     ts.y = 2.0;
     if (4 != 4) {

@@ -2,18 +2,20 @@
 // Tests: Function calls with complex chained parameters
 // HIGH RISK: Float parameters in postfix chains (line 6260 in CodeGenerator.ts)
 
-struct Vec3 {
+scope FuncCallChain {
+    public struct Vec3 {
     f32 x;
     f32 y;
     f32 z;
 }
 
-struct Transform {
-    Vec3 position;
-    Vec3 scale;
+    public struct Transform {
+    this.Vec3 position;
+    this.Vec3 scale;
+}
 }
 
-Transform[4] transforms;
+FuncCallChain.Transform transforms[4];
 
 // Functions with various parameter types
 u32 addU32(u32 a, u32 b) {
@@ -28,11 +30,8 @@ f32 multiplyF32(f32 a, f32 b) {
     return a * b;
 }
 
-Vec3 scaleVec3(Vec3 v, f32 scale) {
-    Vec3 result;
-    result.x <- v.x * scale;
-    result.y <- v.y * scale;
-    result.z <- v.z * scale;
+FuncCallChain.Vec3 scaleVec3(FuncCallChain.Vec3 v, f32 scale) {
+    FuncCallChain.Vec3 result <- {x: v.x * scale, y: v.y * scale, z: v.z * scale};
     return result;
 }
 
@@ -40,7 +39,7 @@ bool isGreater(f32 a, f32 b) {
     return a > b;
 }
 
-void setTransform(Transform t, u32 index) {
+void setTransform(FuncCallChain.Transform t, u32 index) {
     transforms[index] <- t;
 }
 
@@ -67,14 +66,14 @@ void main() {
     );
 
     // Function returning struct, then accessing members
-    Vec3 scaled <- scaleVec3(transforms[0].position, 2.0);
+    FuncCallChain.Vec3 scaled <- scaleVec3(transforms[0].position, 2.0);
     f32 scaledX <- scaled.x;
 
     // Boolean function with chained float params
     bool result <- isGreater(transforms[0].position.x, transforms[1].position.x);
 
     // Function call taking struct as parameter (constructed from chained access)
-    Transform temp;
+    FuncCallChain.Transform temp;
     temp.position <- transforms[0].position;
     temp.scale <- transforms[0].scale;
     setTransform(temp, 2);

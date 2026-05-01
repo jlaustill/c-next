@@ -4,21 +4,23 @@
 
 #include "types.cnx"
 
-struct Config {
+scope ExtEnumPrefix {
+    public struct Config {
     EPressureType pType;
 }
+}
 
-void setDefault(Config config) {
+void setDefault(ExtEnumPrefix.Config config) {
     config.pType <- PRESSURE_TYPE_PSIG;
 }
 
-void setExplicit(Config config) {
+void setExplicit(ExtEnumPrefix.Config config) {
     // Qualified access should also work
     config.pType <- EPressureType.PRESSURE_TYPE_PSIA;
 }
 
 u32 main() {
-    Config cfg <- {pType: PRESSURE_TYPE_PSIA};
+    ExtEnumPrefix.Config cfg <- {pType: PRESSURE_TYPE_PSIA};
 
     // Test 1: Initial value via struct initializer
     if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 1;

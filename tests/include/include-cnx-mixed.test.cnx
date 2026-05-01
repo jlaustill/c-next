@@ -10,7 +10,7 @@ u32 main() {
     Point p;
     p.x <- 10;
 
-    Color c;
+    HelperTypes.Color c;
     c.red <- 255;
 
     return 0;

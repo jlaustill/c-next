@@ -3,23 +3,13 @@
  * A safer C for embedded systems
  */
 
-#include <stdint.h>
+#include "mixed-content.test.h"
 
 // Issue #403: Mixed content header generation test
 // Tests header generation with enums, structs, and functions.
-typedef enum {
-    EStatus_STATUS_IDLE = 0,
-    EStatus_STATUS_RUNNING = 1,
-    EStatus_STATUS_ERROR = 2
-} EStatus;
+/* Scope: HeaderMixed */
 
-typedef struct Config {
-    uint32_t timeout;
-    uint8_t retries;
-    EStatus status;
-} Config;
-
-Config globalConfig = (Config){ .timeout = 1000U, .retries = 3U, .status = EStatus_STATUS_IDLE };
+HeaderMixed_Config globalConfig = (HeaderMixed_Config){ .timeout = 1000U, .retries = 3U, .status = EStatus_STATUS_IDLE };
 
 void initConfig(void) {
     globalConfig.timeout = 5000U;

@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct TReading {
+typedef struct StructArr2D_TReading {
     int16_t value;
     uint32_t timestamp;
     bool valid;
-} TReading;
+} StructArr2D_TReading;
 
 /* External variables */
-extern TReading readings[4][4];
+extern StructArr2D_TReading readings[4][4];
 
 /* Function prototypes */
 uint32_t Test_run(void);

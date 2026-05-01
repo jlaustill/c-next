@@ -3,21 +3,15 @@
  * A safer C for embedded systems
  */
 
+#include "auto-const-struct.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // Tests: Auto-const inference for struct parameters
 // Coverage: Struct parameters get const when not modified
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Config {
-    uint32_t value;
-    bool enabled;
-} Config;
+/* Scope: AutoConst */
 
 // Read-only struct parameter - should get const
 int32_t getPointSum(const Point* p) {
@@ -31,12 +25,12 @@ void movePoint(Point* p, int32_t dx, int32_t dy) {
 }
 
 // Read-only config - should get const
-uint32_t getConfigValue(const Config* c) {
+uint32_t getConfigValue(const AutoConst_Config* c) {
     return c->value;
 }
 
 // Mixed: read one field, modify another - should NOT get const
-void toggleAndRead(Config* c) {
+void toggleAndRead(AutoConst_Config* c) {
     uint32_t temp = c->value;
     c->enabled = !c->enabled;
 }
@@ -60,7 +54,7 @@ int main(void) {
     movePoint(&pt, 5, -3);
     if (pt.x != 15) return 4;
     if (pt.y != 17) return 5;
-    Config cfg = (Config){ .value = 42U, .enabled = true };
+    AutoConst_Config cfg = (AutoConst_Config){ .value = 42U, .enabled = true };
     uint32_t val = getConfigValue(&cfg);
     if (val != 42) return 6;
     toggleAndRead(&cfg);

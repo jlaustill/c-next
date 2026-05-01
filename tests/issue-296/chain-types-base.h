@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Coordinate {
+typedef struct ChainTypesBase_Coordinate {
     int32_t x;
     int32_t y;
     int32_t z;
-} Coordinate;
+} ChainTypesBase_Coordinate;
 
 #ifdef __cplusplus
 }

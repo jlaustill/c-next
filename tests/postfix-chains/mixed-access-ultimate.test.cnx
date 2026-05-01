@@ -10,15 +10,17 @@ bitmap8 DeviceFlags {
     Reserved[3]     // bits 5-7
 }
 
-struct Sensor {
+scope MixedAccess {
+    public struct Sensor {
     u32 id;
     u8[8] data;
     DeviceFlags flags;
 }
 
-struct Controller {
-    Sensor[4] sensors;
+    public struct Controller {
+    this.Sensor[4] sensors;
     u32 status;
+}
 }
 
 register PERIPH @ 0x50000000 {
@@ -27,7 +29,7 @@ register PERIPH @ 0x50000000 {
 }
 
 scope Device {
-    Controller[2] controllers;
+    MixedAccess.Controller[2] controllers;
 
     register HW @ 0x60000000 {
         STATUS: DeviceFlags rw @ 0x00,
@@ -50,7 +52,7 @@ scope Device {
     }
 }
 
-Controller globalCtrl;
+MixedAccess.Controller globalCtrl;
 
 void main() {
     // Chain 1: global.Scope.array[i].struct.array[j].bitmap.field (7 levels)

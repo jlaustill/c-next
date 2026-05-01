@@ -1,10 +1,12 @@
 // Regression test: Compound assignment on array-of-struct member
 // Verifies arr[i].field +<- value generates += correctly (was losing the +=)
-struct Counter {
+scope CompoundBug {
+    public struct Counter {
     i32 value;
 }
+}
 
-Counter[2] counters;
+CompoundBug.Counter counters[2];
 
 i32 main() {
     // Initialize

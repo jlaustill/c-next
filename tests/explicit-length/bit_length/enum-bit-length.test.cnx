@@ -8,8 +8,10 @@ enum State { IDLE, RUNNING, STOPPED }
 
 Color globalColor <- Color.Red;
 
-struct TestStruct {
+scope EnumBitLen {
+    public struct TestStruct {
     State state;
+}
 }
 
 i32 main() {
@@ -25,7 +27,7 @@ i32 main() {
     }
 
     // Test struct member enum
-    TestStruct ts;
+    EnumBitLen.TestStruct ts;
     ts.state <- State.RUNNING;
     if (ts.state.bit_length != 32) {
         return 3;

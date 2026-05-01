@@ -3,17 +3,16 @@
  * A safer C for embedded systems
  */
 
+#include "string-assign-struct.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
 // test-execution
 // Issue #139: Test struct member string assignment
-typedef struct Config {
-    char name[33];
-    uint32_t value;
-} Config;
+/* Scope: StrAssign */
 
-Config config = {0};
+StrAssign_Config config = {0};
 
 void setConfigName(void) {
     strncpy(config.name, "TestConfig", 32); config.name[32] = '\0';

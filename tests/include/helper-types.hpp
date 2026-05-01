@@ -14,15 +14,15 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct HelperTypes_Color {
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+} HelperTypes_Color;
 typedef struct Point {
     int32_t x;
     int32_t y;
 } Point;
-typedef struct Color {
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
-} Color;
 
 #ifdef __cplusplus
 }

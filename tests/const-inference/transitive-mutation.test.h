@@ -14,13 +14,13 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Data {
+typedef struct TransMutation_Data {
     uint8_t value;
-} Data;
+} TransMutation_Data;
 
 /* Function prototypes */
-void Test_fillData(Data* d);
-void Test_loadData(Data* d);
+void Test_fillData(TransMutation_Data* d);
+void Test_loadData(TransMutation_Data* d);
 
 #ifdef __cplusplus
 }

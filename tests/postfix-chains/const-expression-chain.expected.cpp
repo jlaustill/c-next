@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-expression-chain.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -20,12 +22,9 @@ extern const uint32_t LED_BIT = 3U;
 
 extern const uint32_t STATUS_BIT = 7U;
 
-typedef struct Sensor {
-    uint32_t id;
-    uint8_t data;
-} Sensor;
+/* Scope: ConstExprChain */
 
-Sensor sensors[4] = {0};
+ConstExprChain_Sensor sensors[4] = {0};
 
 /* Register: GPIO @ 0x40000000 */
 #define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))

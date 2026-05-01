@@ -3,34 +3,15 @@
  * A safer C for embedded systems
  */
 
+#include "nested-compound-all-ops.test.hpp"
+
 #include <stdint.h>
 
 // Test: All compound assignment operators on nested struct members
 // Covers deeply nested member access with compound assignments
-typedef struct Inner {
-    uint32_t add_val;
-    uint32_t sub_val;
-    uint32_t mul_val;
-    uint32_t div_val;
-    uint32_t mod_val;
-    uint32_t and_val;
-    uint32_t or_val;
-    uint32_t xor_val;
-    uint32_t shl_val;
-    uint32_t shr_val;
-} Inner;
+/* Scope: NestedOps */
 
-typedef struct Middle {
-    Inner inner;
-    uint32_t value;
-} Middle;
-
-typedef struct Outer {
-    Middle middle;
-    uint32_t top_val;
-} Outer;
-
-Outer o = {0};
+NestedOps_Outer o = {0};
 
 int main(void) {
     o.middle.inner.add_val = 100U;

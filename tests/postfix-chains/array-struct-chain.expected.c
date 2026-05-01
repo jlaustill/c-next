@@ -3,39 +3,20 @@
  * A safer C for embedded systems
  */
 
+#include "array-struct-chain.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // Postfix Chain Test: Arrays + Struct Members
 // Tests: Complex chains involving multi-dimensional arrays and struct members
-typedef struct Vec3 {
-    float x;
-    float y;
-    float z;
-} Vec3;
-
-typedef struct Transform {
-    Vec3 position;
-    Vec3 rotation;
-    Vec3 scale;
-} Transform;
-
-typedef struct Entity {
-    Transform transform;
-    uint32_t id;
-    uint8_t flags;
-} Entity;
+/* Scope: ArrayChain */
 
 // 2D array of structs
-Entity grid[4][4] = {0};
+ArrayChain_Entity grid[4][4] = {0};
 
 // Array of struct containing arrays
-typedef struct Mesh {
-    Vec3 vertices[8];
-    uint32_t indices[12];
-} Mesh;
-
-Mesh meshes[3] = {0};
+ArrayChain_Mesh meshes[3] = {0};
 
 int main(void) {
     grid[0][0].transform.position.x = 1.0;

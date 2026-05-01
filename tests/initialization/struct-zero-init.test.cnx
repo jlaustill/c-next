@@ -6,15 +6,17 @@ struct Point {
     i32 y;
 }
 
-struct Config {
+scope ZeroInit {
+    public struct Config {
     u32 baudRate;
     u8 dataBits;
     bool enabled;
 }
+}
 
 Point origin;
 
-Config settings;
+ZeroInit.Config settings;
 
 u32 main() {
     // All struct fields should be zero

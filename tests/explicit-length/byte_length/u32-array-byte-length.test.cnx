@@ -20,8 +20,10 @@ u32 checkArrayByteLength(u32[16] arr) {
     return arr.byte_length;
 }
 
-struct TestStruct {
+scope U32ArrayByteLength {
+    public struct TestStruct {
     u32[16] arr;
+}
 }
 
 i32 main() {
@@ -64,7 +66,7 @@ i32 main() {
     }
 
     // Test struct member array
-    TestStruct ts;
+    U32ArrayByteLength.TestStruct ts;
     ts.arr[0] <- 100000;
     if (ts.arr.byte_length != 64) {
         return 7;

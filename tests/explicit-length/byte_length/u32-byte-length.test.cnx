@@ -18,8 +18,10 @@ u32 checkParamByteLength(u32 param) {
     return param.byte_length;
 }
 
-struct TestStruct {
+scope U32ByteLen {
+    public struct TestStruct {
     u32 member;
+}
 }
 
 i32 main() {
@@ -52,7 +54,7 @@ i32 main() {
         return 6;
     }
 
-    TestStruct ts;
+    U32ByteLen.TestStruct ts;
     ts.member <- 100000;
     if (ts.member.byte_length != 4) {
         return 7;
