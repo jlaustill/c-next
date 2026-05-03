@@ -4750,8 +4750,7 @@ export default class CodeGenerator implements IOrchestrator {
     // MISRA 10.3: Cast limit macros to target type (they have type 'int')
     const finalCast = CppModeHelper.cast(targetType, `(${expr})`);
     const castMax = CppModeHelper.cast(targetType, maxValue);
-    const castMin =
-      minValue === "0" ? "0" : CppModeHelper.cast(targetType, minValue);
+    const castMin = CppModeHelper.cast(targetType, minValue);
     return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
   }
 
