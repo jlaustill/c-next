@@ -27,7 +27,7 @@ void test_explicit_cast(void) {
     float a = 3.14;
     int32_t truncated = ((a) > ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (a) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((a)));
     double b = 99.99;
-    uint32_t unsigned_val = ((b) > ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (b) < 0.0 ? 0 : static_cast<uint32_t>((b)));
+    uint32_t unsigned_val = ((b) > ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (b) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((b)));
     double big = 3.141592653589793;
     float small = static_cast<float>(big);
 }
