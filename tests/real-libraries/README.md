@@ -16,6 +16,7 @@ Synthetic tests verify what we _think_ might break. Real libraries expose what _
 | Library         | Version | Location               | Status      | Findings                            |
 | --------------- | ------- | ---------------------- | ----------- | ----------------------------------- |
 | FreeRTOS-Kernel | V11.2.0 | `tests/libs/FreeRTOS/` | In Progress | [findings.md](freertos/findings.md) |
+| cJSON           | v1.7.19 | `tests/libs/cJSON/`    | In Progress | [findings.md](cjson/findings.md)    |
 
 ## Running Tests
 
@@ -25,11 +26,12 @@ npm test -- tests/real-libraries/
 
 # Run specific library
 npm test -- tests/real-libraries/freertos/
+npm test -- tests/real-libraries/cjson/
 ```
 
 ## Test Markers
 
-All tests use `// test-no-exec` - they transpile and compile but don't execute (no RTOS environment available).
+Real-library tests generally use `// test-no-exec` when runtime dependencies are unavailable, or `// test-transpile-only` when validating boundary-layer transpilation snapshots without compiling linked library objects.
 
 ## Adding New Libraries
 
