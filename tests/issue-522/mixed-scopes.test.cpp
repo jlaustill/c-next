@@ -18,4 +18,4 @@
 int32_t MyScope_scopeVar = 10;
 
 // C++ namespace type - should NOT appear in header
-Lib::Sub::Data cppVar = (Lib::Sub::Data){ .value = 20, .active = true };
+Lib::Sub::Data cppVar = { .value = 20, .active = true };

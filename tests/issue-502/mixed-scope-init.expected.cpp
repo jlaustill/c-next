@@ -16,4 +16,4 @@
 
 // Wrapper combining C-Next scope type and C++ namespace type
 // Initialize with both types - Motor.State should use _, SeaDash.Parse.ParseResult should use ::
-MixedWrapper mw = (MixedWrapper){ .motor = (Motor_State){ .position = 0, .running = false }, .parsed = (SeaDash::Parse::ParseResult){ .data = {0}, .count = 0, .success = false } };
+MixedWrapper mw = { .motor = { .position = 0, .running = false }, .parsed = { .data = {0}, .count = 0, .success = false } };
