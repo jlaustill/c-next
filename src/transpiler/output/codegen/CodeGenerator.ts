@@ -3555,6 +3555,10 @@ export default class CodeGenerator implements IOrchestrator {
       return `{ ${fieldInits.join(", ")} }`;
     }
 
+    if (!CodeGenState.inFunctionBody) {
+      return `{ ${fieldInits.join(", ")} }`;
+    }
+
     return `(${castType}){ ${fieldInits.join(", ")} }`;
   }
 

@@ -18,7 +18,7 @@ typedef struct Line {
 } Line;
 
 // Initialize
-Line segment = (Line){ .start = (Point){ .x = 0, .y = 0 }, .end = (Point){ .x = 100, .y = 100 } };
+Line segment = { .start = { .x = 0, .y = 0 }, .end = { .x = 100, .y = 100 } };
 
 void moveEndPoint(void) {
     segment.end.x = 200;

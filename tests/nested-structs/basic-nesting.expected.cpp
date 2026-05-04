@@ -23,9 +23,9 @@ typedef struct Rectangle {
 } Rectangle;
 
 // Global nested struct instance
-Line segment = (Line){ .start = (Point){ .x = 0, .y = 0 }, .end = (Point){ .x = 100, .y = 100 } };
+Line segment = { .start = { .x = 0, .y = 0 }, .end = { .x = 100, .y = 100 } };
 
-Rectangle bounds = (Rectangle){ .topLeft = (Point){ .x = 10, .y = 20 }, .bottomRight = (Point){ .x = 110, .y = 120 } };
+Rectangle bounds = { .topLeft = { .x = 10, .y = 20 }, .bottomRight = { .x = 110, .y = 120 } };
 
 int main(void) {
     int32_t startX = segment.start.x;
