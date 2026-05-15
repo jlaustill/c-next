@@ -586,13 +586,13 @@ class TestUtils {
   }
 
   static findLinkedSourceFiles(testFile: string, source: string): string[] {
-    const testDir = dirname(testFile);
+    const testDir: string = dirname(testFile);
     const linkedFiles: string[] = [];
-    const linkRegex = /^\s*\/\/\s*test-link:\s*(.+)$/gim;
-    let match;
+    const linkRegex: RegExp = /^\s*\/\/\s*test-link:\s*(.+)$/gim;
+    let match: RegExpExecArray | null;
 
     while ((match = linkRegex.exec(source)) !== null) {
-      const files = match[1].split(/\s+/).filter(Boolean);
+      const files: string[] = match[1].split(/\s+/).filter(Boolean);
       for (const file of files) {
         linkedFiles.push(join(testDir, file));
       }
@@ -965,7 +965,7 @@ class TestUtils {
       }
 
       const execPath = TestUtils.getExecutablePath(cnxFile);
-      const sourceFiles = [
+      const sourceFiles: string[] = [
         expectedImplPath,
         ...helperImplFiles,
         ...TestUtils.findLinkedSourceFiles(cnxFile, source),

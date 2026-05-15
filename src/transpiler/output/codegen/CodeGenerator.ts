@@ -3553,7 +3553,7 @@ export default class CodeGenerator implements IOrchestrator {
     castType: string,
     fieldInits: string[],
   ): string {
-    const initializer = `{ ${fieldInits.join(", ")} }`;
+    const initializer: string = `{ ${fieldInits.join(", ")} }`;
 
     // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
     // Compound literals like (struct { ... }){ ... } create incompatible types in C++
