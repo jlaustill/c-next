@@ -22,5 +22,6 @@ int cnext_cjson_is_string(const cJSON* item);
 double cnext_cjson_get_number_value(const cJSON* item);
 char* cnext_cjson_get_string_value(const cJSON* item);
 int cnext_cjson_get_valueint(const cJSON* item);
+int cnext_cjson_string_equals(const char* actual, const char* expected);
 
 #endif /* CJSON_API_H */

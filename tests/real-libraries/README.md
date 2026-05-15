@@ -31,7 +31,9 @@ npm test -- tests/real-libraries/cjson/
 
 ## Test Markers
 
-Real-library tests generally use `// test-no-exec` when runtime dependencies are unavailable, or `// test-transpile-only` when validating boundary-layer transpilation snapshots without compiling linked library objects.
+Real-library tests should use `// test-execution` when the vendored library can be linked into the test binary. Use `// test-no-exec` only when runtime dependencies are unavailable, or `// test-transpile-only` when validating boundary-layer transpilation snapshots without compiling linked library objects.
+
+Use `// test-link: <file.c> <relative/path/file.c>` on execution tests that need extra C/C++ implementation files linked with the generated test binary.
 
 ## Adding New Libraries
 

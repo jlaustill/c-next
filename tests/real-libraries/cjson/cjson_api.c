@@ -1,4 +1,5 @@
 #include "cjson_api.h"
+#include <string.h>
 
 cJSON* cnext_cjson_parse(const char* text) {
     return cJSON_Parse(text);
@@ -74,4 +75,8 @@ char* cnext_cjson_get_string_value(const cJSON* item) {
 
 int cnext_cjson_get_valueint(const cJSON* item) {
     return item->valueint;
+}
+
+int cnext_cjson_string_equals(const char* actual, const char* expected) {
+    return strcmp(actual, expected) == 0;
 }

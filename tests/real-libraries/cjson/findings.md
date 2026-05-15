@@ -6,12 +6,12 @@
 
 ## Test Progress
 
-| Test                    | Status   | Notes                                                            |
-| ----------------------- | -------- | ---------------------------------------------------------------- |
-| cJSON vendored source   | **Done** | Real `cJSON.c`/`cJSON.h` under `tests/libs/cJSON/`               |
-| cjson_api.h/c           | **Done** | C boundary layer for macro-declared APIs and string/free helpers |
-| array-handling.test.cnx | **PASS** | Parses JSON array, reads items and numeric values                |
-| json-building.test.cnx  | **PASS** | Builds object with scalar and array values, prints JSON          |
+| Test                    | Status   | Notes                                                                                          |
+| ----------------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| cJSON vendored source   | **Done** | Real `cJSON.c`/`cJSON.h` under `tests/libs/cJSON/`                                             |
+| cjson_api.h/c           | **Done** | C boundary layer for macro-declared APIs and string/free helpers                               |
+| array-handling.test.cnx | **PASS** | Executes against cJSON in C/C++ modes; parses JSON array, reads items and numeric values       |
+| json-building.test.cnx  | **PASS** | Executes against cJSON in C/C++ modes; builds object with scalar and array values, prints JSON |
 
 ## Discoveries
 
