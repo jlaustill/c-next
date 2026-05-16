@@ -494,6 +494,19 @@ export default class CodeGenState {
     }
   }
 
+  /** Execute fn with inDeclarationInit=false, restoring prior value on exit.
+   *  Used in sub-expression contexts (function args, ternary arms) where
+   *  plain designated initializers are not valid C. */
+  static withoutDeclarationInit<T>(fn: () => T): T {
+    const saved = this.inDeclarationInit;
+    this.inDeclarationInit = false;
+    try {
+      return fn();
+    } finally {
+      this.inDeclarationInit = saved;
+    }
+  }
+
   // ===========================================================================
   // CONVENIENCE LOOKUP METHODS
   // ===========================================================================

@@ -284,50 +284,54 @@ const generateFunctionCall = (
   // Get function signature once for all arguments
   const sig = input.functionSignatures.get(funcExpr);
 
-  const args = argExprs
-    .map((e, idx) => {
-      // Get parameter type info from local signature or cross-file SymbolTable
-      const resolved = CallExprUtils.resolveTargetParam(
-        sig,
-        idx,
-        funcExpr,
-        input.symbolTable,
-      );
-      const targetParam = resolved.param;
-
-      // C/C++ function: use pass-by-value semantics
-      if (!isCNextFunc) {
-        return _generateCFunctionArg(e, targetParam, input, orchestrator);
-      }
-
-      // C-Next function: check if target parameter should be passed by value
-      if (
-        _shouldPassByValue(
-          funcExpr,
+  // Issue #992: Clear inDeclarationInit for function call arguments — struct
+  // initializers inside function args need compound literals, not plain designated initializers.
+  const args = CodeGenState.withoutDeclarationInit(() =>
+    argExprs
+      .map((e, idx) => {
+        // Get parameter type info from local signature or cross-file SymbolTable
+        const resolved = CallExprUtils.resolveTargetParam(
+          sig,
           idx,
-          targetParam,
-          resolved.isCrossFile,
-          orchestrator,
-        )
-      ) {
-        // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
-        const argCode = CodeGenState.withExpectedType(
-          targetParam?.baseType,
-          () => orchestrator.generateExpression(e),
-          true, // suppressEnumResolution
+          funcExpr,
+          input.symbolTable,
         );
-        return wrapWithCppEnumCast(
-          argCode,
-          e,
-          targetParam?.baseType,
-          orchestrator,
-        );
-      }
+        const targetParam = resolved.param;
 
-      // Target parameter is pass-by-reference: use & logic
-      return orchestrator.generateFunctionArg(e, targetParam?.baseType);
-    })
-    .join(", ");
+        // C/C++ function: use pass-by-value semantics
+        if (!isCNextFunc) {
+          return _generateCFunctionArg(e, targetParam, input, orchestrator);
+        }
+
+        // C-Next function: check if target parameter should be passed by value
+        if (
+          _shouldPassByValue(
+            funcExpr,
+            idx,
+            targetParam,
+            resolved.isCrossFile,
+            orchestrator,
+          )
+        ) {
+          // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
+          const argCode = CodeGenState.withExpectedType(
+            targetParam?.baseType,
+            () => orchestrator.generateExpression(e),
+            true, // suppressEnumResolution
+          );
+          return wrapWithCppEnumCast(
+            argCode,
+            e,
+            targetParam?.baseType,
+            orchestrator,
+          );
+        }
+
+        // Target parameter is pass-by-reference: use & logic
+        return orchestrator.generateFunctionArg(e, targetParam?.baseType);
+      })
+      .join(", "),
+  );
 
   return { code: `${funcExpr}(${args})`, effects };
 };

@@ -15,6 +15,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Generate C code for an expression (entry point).
@@ -74,9 +75,15 @@ const generateTernaryExpr = (
   orchestrator.validateTernaryConditionNoFunctionCall(condition);
 
   // Generate C output - parentheses already present from grammar
+  // Issue #992: Clear inDeclarationInit in ternary arms — struct initializers
+  // inside ternary branches need compound literals, not plain designated initializers.
   const condCode = orchestrator.generateOrExpr(condition);
-  const trueCode = orchestrator.generateOrExpr(trueExpr);
-  const falseCode = orchestrator.generateOrExpr(falseExpr);
+  const trueCode = CodeGenState.withoutDeclarationInit(() =>
+    orchestrator.generateOrExpr(trueExpr),
+  );
+  const falseCode = CodeGenState.withoutDeclarationInit(() =>
+    orchestrator.generateOrExpr(falseExpr),
+  );
 
   return { code: `(${condCode}) ? ${trueCode} : ${falseCode}`, effects };
 };
