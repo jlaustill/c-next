@@ -14,4 +14,4 @@ typedef struct Wrapper {
 } Wrapper;
 
 // This should trigger nested struct field lookup
-Wrapper w = (Wrapper){ .result = (SeaDash::Parse::ParseResult){ .data = {0}, .count = 0, .success = false } };
+Wrapper w = { .result = { .data = {0}, .count = 0, .success = false } };

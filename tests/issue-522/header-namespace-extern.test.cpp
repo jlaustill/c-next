@@ -11,4 +11,4 @@
 #include <stdbool.h>
 
 // Variable with C++ namespaced struct type
-Lib::Sub::Data globalData = (Lib::Sub::Data){ .value = 42, .active = true };
+Lib::Sub::Data globalData = { .value = 42, .active = true };

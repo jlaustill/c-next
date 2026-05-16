@@ -42,4 +42,4 @@ void moveRect(Rectangle& rect, int32_t dx, int32_t dy) {
 }
 
 // Test instance
-Rectangle bounds = (Rectangle){ .topLeft = (Point){ .x = 10, .y = 20 }, .bottomRight = (Point){ .x = 60, .y = 70 } };
+Rectangle bounds = { .topLeft = { .x = 10, .y = 20 }, .bottomRight = { .x = 60, .y = 70 } };

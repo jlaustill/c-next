@@ -1,0 +1,61 @@
+// test-execution
+// test-link: cjson_api.c ../../libs/cJSON/cJSON.c
+// Tests: cJSON object/array construction through ADR-061 C boundary layer
+// Issue #931: Real-world library integration tests
+
+#include "cjson_api.h"
+
+u32 main() {
+    string<32> rpmKey <- "rpm";
+    string<32> samplesKey <- "samples";
+    i32[3] samples <- [1000, 1250, 1500];
+
+    cJSON root <- global.cnext_cjson_create_object();
+    cJSON rpm <- global.cnext_cjson_create_number(1250.0);
+    cJSON sampleArray <- global.cnext_cjson_create_int_array(samples, 3);
+
+    bool addedRpm <- global.cnext_cjson_add_item_to_object(root, rpmKey, rpm) != 0;
+    bool addedSamples <- global.cnext_cjson_add_item_to_object(root, samplesKey, sampleArray) != 0;
+    if (addedRpm = false) {
+        global.cnext_cjson_delete(root);
+        return 1;
+    }
+    if (addedSamples = false) {
+        global.cnext_cjson_delete(root);
+        return 2;
+    }
+
+    cJSON savedRpm <- global.cnext_cjson_get_object_item(root, rpmKey);
+    i32 savedRpmValue <- global.cnext_cjson_get_valueint(savedRpm);
+    if (savedRpmValue != 1250) {
+        global.cnext_cjson_delete(root);
+        return 3;
+    }
+
+    cJSON savedSamples <- global.cnext_cjson_get_object_item(root, samplesKey);
+    i32 sampleCount <- global.cnext_cjson_get_array_size(savedSamples);
+    if (sampleCount != 3) {
+        global.cnext_cjson_delete(root);
+        return 4;
+    }
+
+    cJSON finalSample <- global.cnext_cjson_get_array_item(savedSamples, 2);
+    i32 finalValue <- global.cnext_cjson_get_valueint(finalSample);
+    if (finalValue != 1500) {
+        global.cnext_cjson_delete(root);
+        return 5;
+    }
+
+    char jsonText <- global.cnext_cjson_print_unformatted(root);
+    string<64> expectedJson <- "{\"rpm\":1250,\"samples\":[1000,1250,1500]}";
+    bool jsonMatches <- global.cnext_cjson_string_equals(jsonText, expectedJson) != 0;
+    if (jsonMatches = false) {
+        global.cnext_cjson_free_string(jsonText);
+        global.cnext_cjson_delete(root);
+        return 6;
+    }
+
+    global.cnext_cjson_free_string(jsonText);
+    global.cnext_cjson_delete(root);
+    return 0;
+}

@@ -1,0 +1,48 @@
+// test-execution
+// test-link: cjson_api.c ../../libs/cJSON/cJSON.c
+// Tests: cJSON array handling through ADR-061 C boundary layer
+// Issue #931: Real-world library integration tests
+
+#include "cjson_api.h"
+
+u32 main() {
+    string<64> payload <- "[10,20,30]";
+
+    cJSON root <- global.cnext_cjson_parse(payload);
+    i32 itemCount <- global.cnext_cjson_get_array_size(root);
+    if (itemCount != 3) {
+        global.cnext_cjson_delete(root);
+        return 1;
+    }
+
+    cJSON first <- global.cnext_cjson_get_array_item(root, 0);
+    cJSON second <- global.cnext_cjson_get_array_item(root, 1);
+    cJSON third <- global.cnext_cjson_get_array_item(root, 2);
+
+    bool firstIsNumber <- global.cnext_cjson_is_number(first) != 0;
+    if (firstIsNumber = false) {
+        global.cnext_cjson_delete(root);
+        return 2;
+    }
+
+    f64 firstValue <- global.cnext_cjson_get_number_value(first);
+    if (firstValue != 10.0) {
+        global.cnext_cjson_delete(root);
+        return 3;
+    }
+
+    i32 secondValue <- global.cnext_cjson_get_valueint(second);
+    if (secondValue != 20) {
+        global.cnext_cjson_delete(root);
+        return 4;
+    }
+
+    i32 thirdValue <- global.cnext_cjson_get_valueint(third);
+    if (thirdValue != 30) {
+        global.cnext_cjson_delete(root);
+        return 5;
+    }
+
+    global.cnext_cjson_delete(root);
+    return 0;
+}

@@ -1,0 +1,3 @@
+cJSON v1.7.19
+Source: https://github.com/DaveGamble/cJSON/releases/tag/v1.7.19
+Vendored for real-library integration tests.
