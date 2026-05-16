@@ -329,6 +329,9 @@ function runMisra() {
           "--error-exitcode=1",
           "--suppress=missingIncludeSystem",
           "--suppress=unusedFunction",
+          // Float clamp ternary guards that cppcheck can't reason through
+          // (same suppression as the cppcheck runner above)
+          "--suppress=floatConversionOverflow",
           "--quiet",
           "-I",
           INCLUDE_DIR,

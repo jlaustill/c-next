@@ -3528,11 +3528,21 @@ export default class CodeGenerator implements IOrchestrator {
     // For C-Next/C structs, generate designated initializer
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
 
+    return this.formatStructInitializer(typeName, castType, fieldInits);
+  }
+
+  private formatStructInitializer(
+    typeName: string,
+    castType: string,
+    fieldInits: string[],
+  ): string {
+    const initializer: string = `{ ${fieldInits.join(", ")} }`;
+
     // In a declaration initializer context, use plain designated initializer — no type cast
     // prefix needed, and compound literals are not C99 constant expressions so they fail
     // at file scope on GCC < 13.
     if (CodeGenState.inDeclarationInit) {
-      return `{ ${fieldInits.join(", ")} }`;
+      return initializer;
     }
 
     // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
@@ -3542,10 +3552,14 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.cppMode &&
       (typeName.startsWith("struct {") || typeName.startsWith("union {"))
     ) {
-      return `{ ${fieldInits.join(", ")} }`;
+      return initializer;
     }
 
-    return `(${castType}){ ${fieldInits.join(", ")} }`;
+    if (!CodeGenState.inFunctionBody) {
+      return initializer;
+    }
+
+    return `(${castType})${initializer}`;
   }
 
   /**
@@ -4759,8 +4773,7 @@ export default class CodeGenerator implements IOrchestrator {
     // MISRA 10.3: Cast limit macros to target type (they have type 'int')
     const finalCast = CppModeHelper.cast(targetType, `(${expr})`);
     const castMax = CppModeHelper.cast(targetType, maxValue);
-    const castMin =
-      minValue === "0" ? "0" : CppModeHelper.cast(targetType, minValue);
+    const castMin = CppModeHelper.cast(targetType, minValue);
     return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
   }
 

@@ -585,6 +585,22 @@ class TestUtils {
     return helperFiles;
   }
 
+  static findLinkedSourceFiles(testFile: string, source: string): string[] {
+    const testDir: string = dirname(testFile);
+    const linkedFiles: string[] = [];
+    const linkRegex: RegExp = /^\s*\/\/\s*test-link:\s*(.+)$/gim;
+    let match: RegExpExecArray | null;
+
+    while ((match = linkRegex.exec(source)) !== null) {
+      const files: string[] = match[1].split(/\s+/).filter(Boolean);
+      for (const file of files) {
+        linkedFiles.push(join(testDir, file));
+      }
+    }
+
+    return linkedFiles;
+  }
+
   /**
    * Compile and execute a C file, validating exit code
    *
@@ -949,7 +965,11 @@ class TestUtils {
       }
 
       const execPath = TestUtils.getExecutablePath(cnxFile);
-      const sourceFiles = [expectedImplPath, ...helperImplFiles];
+      const sourceFiles: string[] = [
+        expectedImplPath,
+        ...helperImplFiles,
+        ...TestUtils.findLinkedSourceFiles(cnxFile, source),
+      ];
 
       try {
         // Compile to executable (reuse auto-detected compiler from above)

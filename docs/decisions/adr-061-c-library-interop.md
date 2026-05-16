@@ -104,6 +104,24 @@ The question: should C-Next have `unsafe` blocks like Rust?
 
 **Answer: No.** C-Next will never have unsafe blocks. C is the escape hatch.
 
+### Follow-up: cJSON Public API Macros
+
+Phase 2 issue #931 testing against cJSON v1.7.19 found another boundary-layer use case: cJSON declares public functions through the `CJSON_PUBLIC(type)` function-like macro.
+
+```c
+CJSON_PUBLIC(cJSON *) cJSON_Parse(const char *value);
+CJSON_PUBLIC(cJSON *) cJSON_CreateArray(void);
+```
+
+C-Next does not collect these macro-wrapped declarations as direct callable symbols from the raw header. The same ADR-061 pattern works: expose plain typed wrapper prototypes in a C boundary header, and delegate to cJSON from the `.c` implementation.
+
+```c
+cJSON* cnext_cjson_parse(const char* text);
+cJSON* cnext_cjson_create_array(void);
+```
+
+This also keeps cJSON ownership details (`cJSON_Delete`, `cJSON_free`) in the C boundary layer while C-Next uses typed `cJSON` handles inferred as `cJSON*`.
+
 ## Decision
 
 ### C is the Escape Hatch

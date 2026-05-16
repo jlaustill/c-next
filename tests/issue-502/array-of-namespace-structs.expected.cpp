@@ -10,4 +10,4 @@
 #include <stdbool.h>
 
 // Array of C++ namespace structs
-SeaDash::Parse::ParseResult results[3] = {(SeaDash::Parse::ParseResult){ .data = {0}, .count = 0, .success = false }, (SeaDash::Parse::ParseResult){ .data = {1}, .count = 1, .success = true }, (SeaDash::Parse::ParseResult){ .data = {2}, .count = 2, .success = true }};
+SeaDash::Parse::ParseResult results[3] = {{ .data = {0}, .count = 0, .success = false }, { .data = {1}, .count = 1, .success = true }, { .data = {2}, .count = 2, .success = true }};
