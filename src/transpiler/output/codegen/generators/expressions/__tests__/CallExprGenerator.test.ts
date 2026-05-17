@@ -1477,4 +1477,48 @@ describe("CallExprGenerator", () => {
       expect(result.code).toBe("use_handle(my_handle)");
     });
   });
+
+  describe("inDeclarationInit clearing (Issue #992)", () => {
+    it("clears inDeclarationInit during function argument generation", () => {
+      CodeGenState.inDeclarationInit = true;
+
+      const argExprs = [createMockExpressionContext("myArg")];
+      const argCtx = createMockArgListContext(argExprs);
+      const input = createMockInput();
+      const state = createMockState();
+
+      let flagDuringArg = true;
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => false),
+        generateExpression: vi.fn((ctx: Parser.ExpressionContext) => {
+          flagDuringArg = CodeGenState.inDeclarationInit;
+          return ctx.getText();
+        }),
+      });
+
+      generateFunctionCall("myFunc", argCtx, input, state, orchestrator);
+
+      expect(flagDuringArg).toBe(false);
+      expect(CodeGenState.inDeclarationInit).toBe(true);
+    });
+
+    it("restores inDeclarationInit after argument generation", () => {
+      CodeGenState.inDeclarationInit = true;
+
+      const argExprs = [
+        createMockExpressionContext("a"),
+        createMockExpressionContext("b"),
+      ];
+      const argCtx = createMockArgListContext(argExprs);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => false),
+      });
+
+      generateFunctionCall("myFunc", argCtx, input, state, orchestrator);
+
+      expect(CodeGenState.inDeclarationInit).toBe(true);
+    });
+  });
 });
