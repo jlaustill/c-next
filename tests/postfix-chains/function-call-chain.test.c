@@ -29,7 +29,7 @@ float multiplyF32(float a, float b) {
 }
 
 FuncCallChain_Vec3 scaleVec3(const FuncCallChain_Vec3* v, float scale) {
-    FuncCallChain_Vec3 result = (FuncCallChain_Vec3){ .x = v->x * scale, .y = v->y * scale, .z = v->z * scale };
+    FuncCallChain_Vec3 result = { .x = v->x * scale, .y = v->y * scale, .z = v->z * scale };
     return result;
 }
 

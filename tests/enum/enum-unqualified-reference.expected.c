@@ -20,7 +20,7 @@ void setDefault(EnumUnqualRef_Config* config) {
 }
 
 int main(void) {
-    EnumUnqualRef_Config cfg = (EnumUnqualRef_Config){ .pType = EPressureType_PRESSURE_TYPE_PSIA };
+    EnumUnqualRef_Config cfg = { .pType = EPressureType_PRESSURE_TYPE_PSIA };
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 1;
     setDefault(&cfg);
     if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIG) return 2;

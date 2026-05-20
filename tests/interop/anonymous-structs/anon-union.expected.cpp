@@ -11,10 +11,10 @@
 #include <stdint.h>
 
 int main(void) {
-    Variant v1 = (Variant){ .type = 1, .data = { .int_val = 42 } };
+    Variant v1 = { .type = 1, .data = { .int_val = 42 } };
     if (v1.type != 1) return 1;
     if (v1.data.int_val != 42) return 2;
-    Variant v2 = (Variant){ .type = 3, .data = { .point = { .x = 100, .y = 200 } } };
+    Variant v2 = { .type = 3, .data = { .point = { .x = 100, .y = 200 } } };
     if (v2.type != 3) return 3;
     if (v2.data.point.x != 100) return 4;
     if (v2.data.point.y != 200) return 5;

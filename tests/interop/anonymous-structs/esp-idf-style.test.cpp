@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 int main(void) {
-    PanelConfig panel = (PanelConfig){ .clk_src = 1, .timings = { .pclk_hz = 16000000, .h_res = 800, .v_res = 480 }, .flags = { .fb_in_psram = 1, .double_fb = 0, .no_fb = 0, .bb_invalidate_cache = 1 } };
+    PanelConfig panel = { .clk_src = 1, .timings = { .pclk_hz = 16000000, .h_res = 800, .v_res = 480 }, .flags = { .fb_in_psram = 1, .double_fb = 0, .no_fb = 0, .bb_invalidate_cache = 1 } };
     if (panel.clk_src != 1) return 1;
     if (panel.timings.pclk_hz != 16000000) return 2;
     if (panel.timings.h_res != 800) return 3;
@@ -19,7 +19,7 @@ int main(void) {
     if (panel.flags.fb_in_psram != 1) return 5;
     if (panel.flags.double_fb != 0) return 6;
     if (panel.flags.bb_invalidate_cache != 1) return 7;
-    PanelConfig panel2 = (PanelConfig){ .clk_src = 0, .timings = { .pclk_hz = 8000000, .h_res = 320, .v_res = 240 }, .flags = { .fb_in_psram = 0 } };
+    PanelConfig panel2 = { .clk_src = 0, .timings = { .pclk_hz = 8000000, .h_res = 320, .v_res = 240 }, .flags = { .fb_in_psram = 0 } };
     if (panel2.clk_src != 0) return 8;
     if (panel2.timings.pclk_hz != 8000000) return 9;
     if (panel2.timings.h_res != 320) return 10;

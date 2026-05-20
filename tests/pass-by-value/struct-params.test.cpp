@@ -55,14 +55,14 @@ bool isCounterAtMax(const Counter& c) {
 }
 
 int main(void) {
-    Point pt = (Point){ .x = 10, .y = 20 };
+    Point pt = { .x = 10, .y = 20 };
     movePoint(pt, 5, -3);
     if (pt.x != 15) return 1;
     if (pt.y != 17) return 2;
     resetPoint(pt);
     if (pt.x != 0) return 3;
     if (pt.y != 0) return 4;
-    Counter cnt = (Counter){ .value = 0U, .maxValue = 5U };
+    Counter cnt = { .value = 0U, .maxValue = 5U };
     incrementCounter(cnt);
     if (cnt.value != 1) return 5;
     incrementCounter(cnt);
@@ -75,12 +75,12 @@ int main(void) {
     if (cnt.maxValue != 10) return 8;
     incrementCounter(cnt);
     if (cnt.value != 6) return 9;
-    Point readPt = (Point){ .x = 100, .y = 200 };
+    Point readPt = { .x = 100, .y = 200 };
     int32_t sum = getPointSum(readPt);
     if (sum != 300) return 10;
     if (readPt.x != 100) return 11;
     if (readPt.y != 200) return 12;
-    Counter readCnt = (Counter){ .value = 42U, .maxValue = 100U };
+    Counter readCnt = { .value = 42U, .maxValue = 100U };
     uint32_t val = getCounterValue(readCnt);
     if (val != 42) return 13;
     bool atMax = isCounterAtMax(readCnt);

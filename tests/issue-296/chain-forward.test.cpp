@@ -34,15 +34,15 @@ ChainTypesBase_Coordinate Navigator_getCurrentPosition(void) {
 }
 
 int main(void) {
-    ChainTypesBase_Coordinate dest = (ChainTypesBase_Coordinate){ .x = 100, .y = 200, .z = 50 };
-    Waypoint wp = (Waypoint){ .position = dest, .id = 42U };
+    ChainTypesBase_Coordinate dest = { .x = 100, .y = 200, .z = 50 };
+    Waypoint wp = { .position = dest, .id = 42U };
     Navigator_setDestination(wp);
     Waypoint retrieved = Navigator_getDestination();
     if (retrieved.id != 42) return 1;
     if (retrieved.position.x != 100) return 2;
     if (retrieved.position.y != 200) return 3;
     if (retrieved.position.z != 50) return 4;
-    ChainTypesBase_Coordinate newPos = (ChainTypesBase_Coordinate){ .x = 10, .y = 20, .z = 5 };
+    ChainTypesBase_Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
     Navigator_moveTo(newPos);
     ChainTypesBase_Coordinate currentPos = Navigator_getCurrentPosition();
     if (currentPos.x != 10) return 5;

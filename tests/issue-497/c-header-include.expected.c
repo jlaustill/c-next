@@ -10,7 +10,7 @@
 /* Scope: Manager */
 
 Data Manager_getData(void) {
-    Data d = (Data){ .value = 0 };
+    Data d = { .value = 0 };
     return d;
 }
 

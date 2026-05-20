@@ -249,6 +249,22 @@ c-next/
 
 ## Development
 
+### Toolchain Requirements
+
+C-Next has two separate toolchain contexts with different requirements:
+
+**End users** (transpiling `.cnx` files and compiling the generated C/C++ output):
+
+- Any C99-compatible compiler — GCC, Clang, IAR, `arm-none-eabi-gcc`, etc. No minimum version.
+- The generated code uses standard C99 and C++14 with no compiler-specific extensions.
+
+**Contributors** (running the test suite locally):
+
+- **GCC 9+** (or equivalent Clang) — the minimum verified to compile all generated test files
+- Verified on: GCC 9.4 (Ubuntu 20.04), GCC 11.4 (Ubuntu 22.04), GCC 12.3 (Ubuntu 22.04), GCC 13.3 (Ubuntu 24.04)
+- Ubuntu 22.04 users: `sudo apt install gcc g++` gives GCC 11, which works
+- The test suite uses `-Wall -Wextra -Werror` for `// test-no-warnings` tests, so warning behavior differences between GCC versions may surface edge cases not seen on older compilers
+
 ### Setup
 
 ```bash

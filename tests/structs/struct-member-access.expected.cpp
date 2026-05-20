@@ -14,7 +14,7 @@ typedef struct Point {
 } Point;
 
 int main(void) {
-    Point p = (Point){ .x = 10, .y = 20 };
+    Point p = { .x = 10, .y = 20 };
     if (p.x != 10) {
         return 1;
     }

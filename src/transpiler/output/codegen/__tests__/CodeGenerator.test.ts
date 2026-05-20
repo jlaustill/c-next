@@ -15632,4 +15632,94 @@ describe("CodeGenerator", () => {
       }).toThrow("Error: enum generator not registered");
     });
   });
+
+  describe("struct initializer — declaration vs expression context", () => {
+    it("should use designated initializer without type cast for global struct declaration", () => {
+      const source = `
+        struct Point { i32 x; i32 y; }
+        Point origin <- {x: 0, y: 0};
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      // Must use plain designated initializer — (Point){...} is not a C99 constant expression
+      // and fails to compile at file scope on GCC < 13
+      expect(code).toContain("origin = { .x = 0, .y = 0 }");
+      expect(code).not.toContain("(Point)");
+    });
+
+    it("should use designated initializer without type cast for local struct declaration", () => {
+      const source = `
+        struct Point { i32 x; i32 y; }
+        void foo() {
+          Point p <- {x: 10, y: 20};
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      expect(code).toContain("p = { .x = 10, .y = 20 }");
+      expect(code).not.toContain("(Point)");
+    });
+
+    it("should use designated initializer for nested struct literals in declaration", () => {
+      const source = `
+        struct Point { i32 x; i32 y; }
+        struct Line { Point start; Point end; }
+        Line seg <- {start: {x: 0, y: 0}, end: {x: 100, y: 100}};
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      // Neither outer nor inner initializer should have a type cast prefix
+      expect(code).toContain(
+        "{ .start = { .x = 0, .y = 0 }, .end = { .x = 100, .y = 100 } }",
+      );
+      expect(code).not.toContain("(Line)");
+      expect(code).not.toContain("(Point)");
+    });
+
+    it("should keep compound literal type cast for struct re-assignment (expression context)", () => {
+      const source = `
+        struct Point { i32 x; i32 y; }
+        void foo() {
+          Point p <- {x: 0, y: 0};
+          p <- {x: 10, y: 20};
+        }
+      `;
+      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const generator = new CodeGenerator();
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      // Re-assignment must use compound literal — plain { } is not valid as an expression
+      expect(code).toContain("p = (Point){ .x = 10, .y = 20 }");
+    });
+  });
 });

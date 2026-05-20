@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import expressionGenerators from "../ExpressionGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
+import CodeGenState from "../../../../../state/CodeGenState";
 
 // ========================================================================
 // Test Helpers
@@ -452,6 +453,86 @@ describe("ExpressionGenerator", () => {
         ).toThrow(
           "Error[E0702]: Function calls not allowed in ternary condition",
         );
+      });
+    });
+
+    describe("inDeclarationInit clearing (Issue #992)", () => {
+      beforeEach(() => {
+        CodeGenState.reset();
+      });
+
+      it("clears inDeclarationInit in ternary true and false arms", () => {
+        CodeGenState.inDeclarationInit = true;
+
+        const condition = createMockOrExpr("x > 0");
+        const trueExpr = createMockOrExpr("a");
+        const falseExpr = createMockOrExpr("b");
+        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
+
+        const input = createMockInput();
+        const state = createMockState();
+
+        const flagDuringTrue: boolean[] = [];
+        const flagDuringFalse: boolean[] = [];
+
+        const orchestrator = createMockOrchestrator();
+        let callCount = 0;
+        (
+          orchestrator.generateOrExpr as ReturnType<typeof vi.fn>
+        ).mockImplementation((ctx: Parser.OrExpressionContext) => {
+          callCount++;
+          if (callCount === 2) {
+            flagDuringTrue.push(CodeGenState.inDeclarationInit);
+          } else if (callCount === 3) {
+            flagDuringFalse.push(CodeGenState.inDeclarationInit);
+          }
+          return ctx.getText();
+        });
+
+        expressionGenerators.generateTernaryExpr(
+          ctx,
+          input,
+          state,
+          orchestrator,
+        );
+
+        expect(flagDuringTrue).toEqual([false]);
+        expect(flagDuringFalse).toEqual([false]);
+        expect(CodeGenState.inDeclarationInit).toBe(true);
+      });
+
+      it("does not affect condition generation", () => {
+        CodeGenState.inDeclarationInit = true;
+
+        const condition = createMockOrExpr("x > 0");
+        const trueExpr = createMockOrExpr("a");
+        const falseExpr = createMockOrExpr("b");
+        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
+
+        const input = createMockInput();
+        const state = createMockState();
+
+        let flagDuringCondition = false;
+        const orchestrator = createMockOrchestrator();
+        let callCount = 0;
+        (
+          orchestrator.generateOrExpr as ReturnType<typeof vi.fn>
+        ).mockImplementation((ctx: Parser.OrExpressionContext) => {
+          callCount++;
+          if (callCount === 1) {
+            flagDuringCondition = CodeGenState.inDeclarationInit;
+          }
+          return ctx.getText();
+        });
+
+        expressionGenerators.generateTernaryExpr(
+          ctx,
+          input,
+          state,
+          orchestrator,
+        );
+
+        expect(flagDuringCondition).toBe(true);
       });
     });
 

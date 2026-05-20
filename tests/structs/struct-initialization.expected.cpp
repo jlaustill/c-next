@@ -13,6 +13,6 @@ typedef struct Point {
 } Point;
 
 int main(void) {
-    Point origin = (Point){ .x = 0, .y = 0 };
-    Point p = (Point){ .x = 100, .y = 200 };
+    Point origin = { .x = 0, .y = 0 };
+    Point p = { .x = 100, .y = 200 };
 }

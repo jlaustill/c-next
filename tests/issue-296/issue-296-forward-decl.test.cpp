@@ -26,7 +26,7 @@ AppData DataHandler_getData(void) {
 }
 
 int main(void) {
-    AppData input = (AppData){ .humidity = 65.5, .temperature = 22.3 };
+    AppData input = { .humidity = 65.5, .temperature = 22.3 };
     DataHandler_initialize(input);
     AppData output = DataHandler_getData();
     if (output.humidity != 65.5) return 1;

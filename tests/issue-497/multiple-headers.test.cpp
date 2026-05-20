@@ -12,12 +12,12 @@
 /* Scope: Graphics */
 
 Color Graphics_getDefaultColor(void) {
-    Color c = (Color){ .r = 255U, .g = 255U, .b = 255U };
+    Color c = { .r = 255U, .g = 255U, .b = 255U };
     return c;
 }
 
 Size Graphics_getDefaultSize(void) {
-    Size s = (Size){ .width = 100, .height = 100 };
+    Size s = { .width = 100, .height = 100 };
     return s;
 }
 

@@ -23,7 +23,7 @@ void setNestedColor(EnumNestedRes_Config& cfg) {
 }
 
 int main(void) {
-    EnumNestedRes_Config cfg = (EnumNestedRes_Config){ .nested = (EnumNestedRes_NestedConfig){ .status = Status_GREEN, .color = Color_RED } };
+    EnumNestedRes_Config cfg = { .nested = { .status = Status_GREEN, .color = Color_RED } };
     if (static_cast<uint32_t>(cfg.nested.status) != 20) return 1;
     setNestedStatus(cfg);
     if (static_cast<uint32_t>(cfg.nested.status) != 10) return 2;

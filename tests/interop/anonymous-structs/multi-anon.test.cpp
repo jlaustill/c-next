@@ -11,12 +11,12 @@
 #include <stdint.h>
 
 int main(void) {
-    DisplayConfig display = (DisplayConfig){ .resolution = { .width = 1920, .height = 1080 }, .settings = { .brightness = 80, .contrast = 50 } };
+    DisplayConfig display = { .resolution = { .width = 1920, .height = 1080 }, .settings = { .brightness = 80, .contrast = 50 } };
     if (display.resolution.width != 1920) return 1;
     if (display.resolution.height != 1080) return 2;
     if (display.settings.brightness != 80) return 3;
     if (display.settings.contrast != 50) return 4;
-    DisplayConfig display2 = (DisplayConfig){ .resolution = { .width = 800, .height = 600 } };
+    DisplayConfig display2 = { .resolution = { .width = 800, .height = 600 } };
     if (display2.resolution.width != 800) return 5;
     if (display2.resolution.height != 600) return 6;
     return 0;

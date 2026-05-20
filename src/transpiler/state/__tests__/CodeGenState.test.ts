@@ -1043,4 +1043,120 @@ describe("CodeGenState", () => {
       expect(CodeGenState.isOpaqueScopeVariable("Scope1_other")).toBe(false);
     });
   });
+
+  describe("withDeclarationInit()", () => {
+    it("sets inDeclarationInit to true during callback", () => {
+      CodeGenState.inDeclarationInit = false;
+      let valueInside = false;
+
+      CodeGenState.withDeclarationInit(() => {
+        valueInside = CodeGenState.inDeclarationInit;
+      });
+
+      expect(valueInside).toBe(true);
+    });
+
+    it("restores prior value after callback", () => {
+      CodeGenState.inDeclarationInit = false;
+
+      CodeGenState.withDeclarationInit(() => {
+        // inside: true
+      });
+
+      expect(CodeGenState.inDeclarationInit).toBe(false);
+    });
+
+    it("restores prior value even when already true", () => {
+      CodeGenState.inDeclarationInit = true;
+
+      CodeGenState.withDeclarationInit(() => {
+        expect(CodeGenState.inDeclarationInit).toBe(true);
+      });
+
+      expect(CodeGenState.inDeclarationInit).toBe(true);
+    });
+
+    it("returns the callback result", () => {
+      const result = CodeGenState.withDeclarationInit(() => "hello");
+      expect(result).toBe("hello");
+    });
+
+    it("restores prior value on exception", () => {
+      CodeGenState.inDeclarationInit = false;
+
+      expect(() =>
+        CodeGenState.withDeclarationInit(() => {
+          throw new Error("test error");
+        }),
+      ).toThrow("test error");
+
+      expect(CodeGenState.inDeclarationInit).toBe(false);
+    });
+  });
+
+  describe("withoutDeclarationInit()", () => {
+    it("sets inDeclarationInit to false during callback", () => {
+      CodeGenState.inDeclarationInit = true;
+      let valueInside = true;
+
+      CodeGenState.withoutDeclarationInit(() => {
+        valueInside = CodeGenState.inDeclarationInit;
+      });
+
+      expect(valueInside).toBe(false);
+    });
+
+    it("restores prior value after callback", () => {
+      CodeGenState.inDeclarationInit = true;
+
+      CodeGenState.withoutDeclarationInit(() => {
+        // inside: false
+      });
+
+      expect(CodeGenState.inDeclarationInit).toBe(true);
+    });
+
+    it("restores prior value even when already false", () => {
+      CodeGenState.inDeclarationInit = false;
+
+      CodeGenState.withoutDeclarationInit(() => {
+        expect(CodeGenState.inDeclarationInit).toBe(false);
+      });
+
+      expect(CodeGenState.inDeclarationInit).toBe(false);
+    });
+
+    it("returns the callback result", () => {
+      const result = CodeGenState.withoutDeclarationInit(() => 42);
+      expect(result).toBe(42);
+    });
+
+    it("restores prior value on exception", () => {
+      CodeGenState.inDeclarationInit = true;
+
+      expect(() =>
+        CodeGenState.withoutDeclarationInit(() => {
+          throw new Error("test error");
+        }),
+      ).toThrow("test error");
+
+      expect(CodeGenState.inDeclarationInit).toBe(true);
+    });
+
+    it("nests correctly with withDeclarationInit", () => {
+      CodeGenState.inDeclarationInit = false;
+
+      CodeGenState.withDeclarationInit(() => {
+        expect(CodeGenState.inDeclarationInit).toBe(true);
+
+        CodeGenState.withoutDeclarationInit(() => {
+          expect(CodeGenState.inDeclarationInit).toBe(false);
+        });
+
+        expect(CodeGenState.inDeclarationInit).toBe(true);
+      });
+
+      expect(CodeGenState.inDeclarationInit).toBe(false);
+    });
+  });
 });

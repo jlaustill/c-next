@@ -537,7 +537,9 @@ class VariableDeclHelper {
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
     // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
     return CodeGenState.withExpectedType(typeName, () => {
-      let exprCode = callbacks.generateExpression(ctx.expression()!);
+      let exprCode = CodeGenState.withDeclarationInit(() =>
+        callbacks.generateExpression(ctx.expression()!),
+      );
 
       // MISRA 10.3: Check for cross-type-category conversions (int <-> float)
       const exprType = callbacks.getExpressionType(ctx.expression()!);
