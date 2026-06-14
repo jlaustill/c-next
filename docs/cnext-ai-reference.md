@@ -7,7 +7,8 @@ A complete reference for AI code generation. C-Next transpiles to C/C++. Every r
 # Project Setup
 
 Before writing `.cnx`, make sure the project is configured (full guide:
-`docs/platformio-integration.md`):
+`docs/platformio-integration.md`; for a quick syntax tour, see
+`docs/learn-cnext-in-y-minutes.md`):
 
 - **`cnext.config.json`** drives the transpiler; `cnext --pio-install` writes a
   working default. The field that matters most for codegen is **`include`** — it
