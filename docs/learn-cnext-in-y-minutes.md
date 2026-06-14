@@ -355,13 +355,17 @@ scope LED {
     }
 
     private void reset() {     // private (explicit)
-        this.brightness <- 0;
+        brightness <- 0;       // bare name resolves to the scope member
     }
 }
 
 // Visibility defaults:
 //   Functions: public by default, use 'private' to hide
 //   Variables: private by default, use 'public' to expose
+
+// Name resolution: bare names resolve local -> scope -> global automatically.
+// Use this. / global. ONLY to break a real naming conflict (e.g. a local
+// shadowing a scope member) -- qualifying everything by default is just noise.
 
 // Usage: dot syntax
 LED.on();                      // OK - public by default
@@ -473,5 +477,7 @@ void loop() {
 
 ## Further Reading
 
+- [Project setup & PlatformIO integration](platformio-integration.md) — `cnext.config.json`, C/C++ auto-detection, build hook
+- [AI codegen reference](cnext-ai-reference.md) — comprehensive cheatsheet
 - [GitHub Repository](https://github.com/jlaustill/c-next)
 - [Architecture Decision Records](https://github.com/jlaustill/c-next/tree/main/docs/decisions)

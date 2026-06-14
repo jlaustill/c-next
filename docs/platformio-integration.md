@@ -14,6 +14,47 @@ This command:
 
 - Creates `cnext_build.py` (pre-build transpilation script)
 - Modifies `platformio.ini` to add `extra_scripts = pre:cnext_build.py`
+- Creates/updates `cnext.config.json` (adds `.pio/libdeps` to `include`, sets `headerOut: include`)
+
+## Project Configuration (`cnext.config.json`)
+
+C-Next reads `cnext.config.json` (or `.cnext.json` / `.cnextrc`) from the project
+root. `--pio-install` writes a working default; the fields you'll touch most:
+
+| Field         | Purpose                                                                                                                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Critical for C++ auto-detection (below). |
+| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                   |
+| `basePath`    | Base path stripped from header output paths (only used with `headerOut`; e.g. `src`).                                                                                                               |
+| `target`      | Target platform for ISR/atomic codegen (e.g. `teensy41`, `cortex-m0`).                                                                                                                              |
+| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                 |
+| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                   |
+| `cppRequired` | **Force** C++ output. Normally unnecessary — see auto-detection below.                                                                                                                              |
+
+Example (Teensy + a C++ library such as FlexCAN_T4):
+
+```json
+{
+  "target": "teensy41",
+  "include": ["include/", ".pio/libdeps/"],
+  "headerOut": "include",
+  "basePath": "src",
+  "noCache": true
+}
+```
+
+## C vs C++ Output (auto-detection)
+
+C-Next emits **C++** (`.cpp` + `.hpp`) when it parses a C++ header that your `.cnx`
+`#include`s — templates, classes, namespaces (e.g. `FlexCAN_T4.h`, Arduino classes).
+Otherwise it emits **C** (`.c` + `.h`). You do **not** normally need `cppRequired`.
+
+> **Gotcha:** auto-detection only works on headers cnext can actually **find**. If
+> you `#include <Arduino.h>` but it isn't on an `include` path, cnext can't see that
+> it's C++ and falls back to C mode — and your C++ calls won't compile. Keep your
+> C++ headers reachable via `include` (this is why `--pio-install` adds
+> `.pio/libdeps`). Use `cppRequired: true` only as a manual override for when a
+> needed C++ header genuinely can't be placed on the search path.
 
 ## Usage
 
