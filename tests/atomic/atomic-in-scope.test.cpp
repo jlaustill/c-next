@@ -29,8 +29,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 /* Scope: Counter */
-static uint32_t Counter_value = 0U;
-static uint8_t Counter_overflowCount = 0U;
+static volatile uint32_t Counter_value = 0U;
+static volatile uint8_t Counter_overflowCount = 0U;
 
 void Counter_increment(void) {
     Counter_value = cnx_clamp_add_u32(Counter_value, 1U);
@@ -49,8 +49,8 @@ uint32_t Counter_get(void) {
 }
 
 /* Scope: Timer */
-static uint32_t Timer_ticks = 0U;
-static uint16_t Timer_period = 1000U;
+static volatile uint32_t Timer_ticks = 0U;
+static volatile uint16_t Timer_period = 1000U;
 
 void Timer_tick(void) {
     Timer_ticks += 1U;

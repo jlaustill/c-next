@@ -208,10 +208,13 @@ function generateRegularVariable(
 
   // Issue #282: Add 'const' modifier for const variables
   const constPrefix = isConst ? "const " : "";
+  // Issue #998: Add 'volatile' modifier for atomic variables (ISR-safety)
+  const isAtomic = varDecl.atomicModifier() !== null;
+  const atomicPrefix = isAtomic ? "volatile " : "";
   const prefix = isPrivate ? "static " : "";
 
   // Build declaration with all dimensions
-  let decl = `${prefix}${constPrefix}${type} ${fullName}`;
+  let decl = `${prefix}${atomicPrefix}${constPrefix}${type} ${fullName}`;
   decl += ArrayDimensionUtils.generateArrayTypeDimension(
     arrayTypeCtx,
     orchestrator,

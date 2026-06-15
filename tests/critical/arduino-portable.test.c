@@ -49,7 +49,7 @@ static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 #endif
 
 /* Scope: CriticalTest */
-static bool CriticalTest_flag = false;
+static volatile bool CriticalTest_flag = false;
 static uint8_t CriticalTest_value = 0U;
 
 void CriticalTest_safeWrite(uint8_t newValue) {
