@@ -1509,6 +1509,9 @@ class Transpiler {
 
       // Issue #914: For callback-compatible functions, bake pointer/const overrides
       // onto each parameter. Skip auto-const (matches CodeGenerator path).
+      // Note: isOpaqueHandle is not set here because callback params get their
+      // pointer/const semantics from the typedef signature via isCallbackPointer/
+      // isCallbackConst, which take precedence over opaque handling in the builder.
       if (callbackTypedefType) {
         const updatedParams = TypedefParamParser.resolveCallbackParams(
           headerSymbol.parameters,
