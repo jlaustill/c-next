@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void UI_reposition(widget_t& w, int32_t x);
+void UI_reposition(widget_t* w, int32_t x);
 int32_t UI_run(void);
 
 #ifdef __cplusplus

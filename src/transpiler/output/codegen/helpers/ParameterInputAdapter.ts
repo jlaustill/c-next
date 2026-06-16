@@ -176,10 +176,10 @@ class ParameterInputAdapter {
       isString: false,
       isPassByValue: deps.isPassByValue,
       isPassByReference,
-      // Issue #895/#958: Force pointer syntax in C++ mode for callback-compatible
-      // and typedef struct params (C types expect pointers, not C++ references)
+      // Issue #895/#958/#995: Force pointer syntax in C++ mode for callback-compatible,
+      // typedef struct, and opaque handle params (C types expect pointers, not C++ references)
       forcePointerSyntax:
-        deps.forcePassByReference || isTypedefStruct || undefined,
+        deps.forcePassByReference || isTypedefStruct || isOpaque || undefined,
       // Issue #895: Preserve const from callback typedef signature
       forceConst: deps.forceConst,
     };
@@ -233,19 +233,24 @@ class ParameterInputAdapter {
 
     // Issue #914: Callback typedef overrides — param carries resolved pointer/const info
     const isCallbackPointer = param.isCallbackPointer ?? false;
+    // Issue #995: Opaque handle info resolved onto symbol — needs pointer syntax, no auto-const
+    const isOpaqueHandle = param.isOpaqueHandle ?? false;
+    // Either callback or opaque handle needs pointer treatment
+    const needsPointerSemantics = isCallbackPointer || isOpaqueHandle;
 
     return {
       name: param.name,
       baseType: param.type,
       mappedType,
       isConst: param.isConst,
-      isAutoConst: param.isAutoConst ?? false,
+      // Issue #995: Opaque handles never get auto-const (resolved value may still be true from symbol)
+      isAutoConst: isOpaqueHandle ? false : (param.isAutoConst ?? false),
       isArray: false,
       isCallback: false,
       isString: false,
-      isPassByValue: isCallbackPointer ? false : deps.isPassByValue,
-      isPassByReference: isCallbackPointer ? true : !deps.isPassByValue,
-      forcePointerSyntax: isCallbackPointer || undefined,
+      isPassByValue: needsPointerSemantics ? false : deps.isPassByValue,
+      isPassByReference: needsPointerSemantics ? true : !deps.isPassByValue,
+      forcePointerSyntax: needsPointerSemantics || undefined,
       forceConst: param.isCallbackConst || undefined,
     };
   }

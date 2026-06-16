@@ -334,6 +334,52 @@ describe("ParameterInputAdapter", () => {
       expect(result.forcePointerSyntax).toBeUndefined();
       expect(result.forceConst).toBeUndefined();
     });
+
+    // Issue #995: Opaque handle support in fromSymbol
+    it("forces pointer when isOpaqueHandle is set", () => {
+      const param: IParameterSymbol = {
+        name: "widget",
+        type: "widget_t",
+        isConst: false,
+        isArray: false,
+        isOpaqueHandle: true,
+      };
+
+      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
+
+      expect(result.forcePointerSyntax).toBe(true);
+      expect(result.isPassByValue).toBe(false);
+      expect(result.isPassByReference).toBe(true);
+    });
+
+    it("suppresses auto-const when isOpaqueHandle is set even if isAutoConst was true", () => {
+      const param: IParameterSymbol = {
+        name: "widget",
+        type: "widget_t",
+        isConst: false,
+        isArray: false,
+        isOpaqueHandle: true,
+        isAutoConst: true, // Would have been set, but opaque overrides
+      };
+
+      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
+
+      expect(result.isAutoConst).toBe(false);
+      expect(result.forcePointerSyntax).toBe(true);
+    });
+
+    it("does not force pointer when isOpaqueHandle is not set", () => {
+      const param: IParameterSymbol = {
+        name: "point",
+        type: "Point",
+        isConst: false,
+        isArray: false,
+      };
+
+      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
+
+      expect(result.forcePointerSyntax).toBeUndefined();
+    });
   });
 
   describe("fromAST", () => {
@@ -532,6 +578,19 @@ describe("ParameterInputAdapter", () => {
       const result = ParameterInputAdapter.fromAST(ctx, deps);
 
       expect(result.isAutoConst).toBe(false);
+    });
+
+    // Issue #995: Opaque handles need pointer syntax in C++ mode
+    it("sets forcePointerSyntax for opaque type parameter", () => {
+      const ctx = getParameterContext("void foo(widget_t w) {}");
+      const deps = {
+        ...createDefaultASTDeps({ isModified: false }),
+        isOpaqueType: (typeName: string) => typeName === "widget_t",
+      };
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.forcePointerSyntax).toBe(true);
     });
 
     // Issue #995: Verify non-opaque types still get auto-const
