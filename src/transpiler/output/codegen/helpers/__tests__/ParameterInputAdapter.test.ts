@@ -520,5 +520,41 @@ describe("ParameterInputAdapter", () => {
 
       expect(result.forceConst).toBeUndefined();
     });
+
+    // Issue #995: Opaque handles should not get auto-const
+    it("does not set auto-const for opaque type parameter", () => {
+      const ctx = getParameterContext("void foo(widget_t w) {}");
+      const deps = {
+        ...createDefaultASTDeps({ isModified: false }),
+        isOpaqueType: (typeName: string) => typeName === "widget_t",
+      };
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isAutoConst).toBe(false);
+    });
+
+    // Issue #995: Verify non-opaque types still get auto-const
+    it("sets auto-const for non-opaque type when isOpaqueType returns false", () => {
+      const ctx = getParameterContext("void foo(Point p) {}");
+      const deps = {
+        ...createDefaultASTDeps({ isModified: false }),
+        isOpaqueType: () => false,
+      };
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isAutoConst).toBe(true);
+    });
+
+    // Issue #995: When isOpaqueType is not provided, auto-const still works
+    it("sets auto-const when isOpaqueType is not provided", () => {
+      const ctx = getParameterContext("void foo(Point p) {}");
+      const deps = createDefaultASTDeps({ isModified: false });
+
+      const result = ParameterInputAdapter.fromAST(ctx, deps);
+
+      expect(result.isAutoConst).toBe(true);
+    });
   });
 });

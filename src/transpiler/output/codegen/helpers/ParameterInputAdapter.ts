@@ -60,6 +60,13 @@ interface IFromASTDeps {
    * When the C typedef has `const T*`, this preserves const on the generated param.
    */
   forceConst?: boolean;
+
+  /**
+   * Issue #995: Check if a type is an opaque handle (incomplete struct typedef).
+   * Opaque handles should not get auto-const because they must be passed to
+   * C APIs that expect non-const pointers.
+   */
+  isOpaqueType?: (typeName: string) => boolean;
 }
 
 /**
@@ -142,10 +149,14 @@ class ParameterInputAdapter {
     const isKnownPrimitive = !!deps.typeMap[typeName];
     // Issue #958: C-header typedef struct types need pointer semantics
     const isTypedefStruct = deps.isTypedefStructType(typeName);
+    // Issue #995: Opaque handles (incomplete struct typedefs) should not get auto-const
+    const isOpaque = deps.isOpaqueType?.(typeName) ?? false;
     // Issue #895: Don't add auto-const for callback-compatible functions
     // because it would change the signature and break typedef compatibility
+    // Issue #995: Don't add auto-const for opaque handles because they must be
+    // passed to C APIs that expect non-const pointers (like LVGL's lv_obj_t)
     const isAutoConst =
-      !deps.isCallbackCompatible && !deps.isModified && !isConst;
+      !deps.isCallbackCompatible && !deps.isModified && !isConst && !isOpaque;
 
     // Issue #895/#958: Force pass-by-reference for callback or typedef struct types
     const isPassByReference =
