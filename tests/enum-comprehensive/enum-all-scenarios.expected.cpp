@@ -22,7 +22,7 @@ EGlobalState globalState = EGlobalState_IDLE;
 // === SCOPE WITH ENUM ===
 /* Scope: Motor */
 static Motor_EMode Motor_mode = Motor_EMode_OFF;
-static Motor_EMode Motor_atomicMode = Motor_EMode_OFF;
+static volatile Motor_EMode Motor_atomicMode = Motor_EMode_OFF;
 
 Motor_EMode Motor_getMode(void) {
     return Motor_mode;

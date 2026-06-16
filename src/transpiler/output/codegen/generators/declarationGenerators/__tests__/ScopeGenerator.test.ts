@@ -126,6 +126,8 @@ function createMockVariableDecl(options: {
   name: string;
   type: string;
   isConst?: boolean;
+  isAtomic?: boolean;
+  isVolatile?: boolean;
   initialValue?: string;
   arrayDims?: string[];
   hasStringType?: boolean;
@@ -142,6 +144,10 @@ function createMockVariableDecl(options: {
         options.arrayTypeSize,
       ),
     constModifier: () => createMockConstModifier(options.isConst ?? false),
+    // Issue #998: atomic and volatile modifiers for scope variables
+    // Uses VariableModifierBuilder for consistent handling
+    atomicModifier: () => (options.isAtomic ? ({} as unknown) : null),
+    volatileModifier: () => (options.isVolatile ? ({} as unknown) : null),
     expression: () =>
       options.initialValue ? createMockExpression(options.initialValue) : null,
     arrayDimension: () =>
@@ -771,6 +777,86 @@ describe("ScopeGenerator", () => {
       // Should generate as value with {0} initialization
       expect(result.code).toContain("static Point Canvas_point = 0;");
       expect(result.code).not.toContain("Point*");
+    });
+
+    it("generates atomic variable with volatile modifier (Issue #998)", () => {
+      const varDecl = createMockVariableDecl({
+        name: "counter",
+        type: "u32",
+        isAtomic: true,
+        initialValue: "0",
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("ISR", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator();
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain(
+        "static volatile uint32_t ISR_counter = 0;",
+      );
+    });
+
+    it("generates public atomic variable with volatile but without static (Issue #998)", () => {
+      const varDecl = createMockVariableDecl({
+        name: "flag",
+        type: "bool",
+        isAtomic: true,
+        initialValue: "false",
+      });
+      const member = createMockScopeMember({
+        visibility: "public",
+        variableDecl: varDecl,
+      });
+      const ctx = createMockScopeContext("Shared", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator();
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("volatile bool Shared_flag = false;");
+      expect(result.code).not.toContain("static volatile bool Shared_flag");
+    });
+
+    it("generates volatile-keyword variable with volatile modifier (Issue #998)", () => {
+      const varDecl = createMockVariableDecl({
+        name: "reg",
+        type: "u8",
+        isVolatile: true,
+        initialValue: "0",
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("HW", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator();
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("static volatile uint8_t HW_reg = 0;");
+    });
+
+    it("throws error when both atomic and volatile are specified (Issue #998)", () => {
+      const varDecl = createMockVariableDecl({
+        name: "bad",
+        type: "u8",
+        isAtomic: true,
+        isVolatile: true,
+        initialValue: "0",
+        startLine: 10,
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("Test", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator();
+
+      expect(() => generateScope(ctx, input, state, orchestrator)).toThrow(
+        /Cannot use both 'atomic' and 'volatile' modifiers/,
+      );
     });
   });
 
