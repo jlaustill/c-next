@@ -8,12 +8,14 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "fake_lib.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Function prototypes */
+void UI_reposition(widget_t& w, int32_t x);
 int32_t UI_run(void);
 
 #ifdef __cplusplus

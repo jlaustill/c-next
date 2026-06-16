@@ -1524,9 +1524,13 @@ class Transpiler {
           // ADR-006: Only non-array pointer params get auto-const.
           // Arrays are pass-by-reference and mutable by default - auto-const would
           // break compatibility with C APIs expecting mutable pointers (issue #986).
+          // Issue #995: Opaque handles should not get auto-const because they must
+          // be passed to C APIs that expect non-const pointers.
+          const isOpaque = CodeGenState.isOpaqueType(param.type ?? "");
           const isPointerParam =
             !param.isConst &&
             !param.isArray &&
+            !isOpaque &&
             param.type !== "f32" &&
             param.type !== "f64" &&
             param.type !== "ISR" &&

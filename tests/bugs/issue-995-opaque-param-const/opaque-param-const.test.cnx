@@ -11,7 +11,8 @@
 scope UI {
     // Pass an opaque handle as a parameter, then hand it to a mutating C API.
     // The parameter MUST be `widget_t* w`, NOT `const widget_t* w`.
-    private void reposition(widget_t w, i32 x) {
+    // Using PUBLIC to test both .c and .h generation paths (issue #995 dual code path fix).
+    public void reposition(widget_t w, i32 x) {
         global.widget_move(w, x);
     }
 

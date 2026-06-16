@@ -19,7 +19,7 @@
 
 /* Scope: UI */
 
-static void UI_reposition(widget_t* w, int32_t x) {
+void UI_reposition(widget_t* w, int32_t x) {
     widget_move(w, x);
 }
 
