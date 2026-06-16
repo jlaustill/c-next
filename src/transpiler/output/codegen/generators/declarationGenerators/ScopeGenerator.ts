@@ -26,6 +26,7 @@ import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import CodeGenState from "../../../../state/CodeGenState";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
 
 /**
  * Generate initializer expression for a variable declaration.
@@ -206,15 +207,23 @@ function generateRegularVariable(
     orchestrator.markOpaqueScopeVariable(fullName);
   }
 
-  // Issue #282: Add 'const' modifier for const variables
+  // Issue #998: Use VariableModifierBuilder for consistent modifier handling
+  // This handles const, atomic, volatile, and validates mutual exclusion
+  // Scope variables are always at file scope (not in function body), no initializer for modifier purposes
+  const modifiers = VariableModifierBuilder.build(
+    varDecl,
+    false, // inFunctionBody - scope vars are file scope
+    false, // hasInitializer - doesn't affect volatile/atomic handling
+    false, // cppMode - doesn't affect volatile/atomic handling
+  );
+  // For scope variables: static for private, no modifier for public
+  // Then add volatile (from atomic or volatile keyword), then const
+  const staticPrefix = isPrivate ? "static " : "";
+  const volatilePrefix = modifiers.atomic || modifiers.volatile;
   const constPrefix = isConst ? "const " : "";
-  // Issue #998: Add 'volatile' modifier for atomic variables (ISR-safety)
-  const isAtomic = varDecl.atomicModifier() !== null;
-  const atomicPrefix = isAtomic ? "volatile " : "";
-  const prefix = isPrivate ? "static " : "";
 
   // Build declaration with all dimensions
-  let decl = `${prefix}${atomicPrefix}${constPrefix}${type} ${fullName}`;
+  let decl = `${staticPrefix}${volatilePrefix}${constPrefix}${type} ${fullName}`;
   decl += ArrayDimensionUtils.generateArrayTypeDimension(
     arrayTypeCtx,
     orchestrator,
