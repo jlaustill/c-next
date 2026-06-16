@@ -66,6 +66,13 @@ interface IParameterInput {
    * When the C typedef has `const T*`, this preserves const on the generated param.
    */
   forceConst?: boolean;
+
+  /**
+   * Issue #995: Whether the parameter type is an opaque handle (incomplete struct typedef).
+   * This is a pass-through flag; the rule (suppress auto-const, force pointer) is applied
+   * in ParameterSignatureBuilder to avoid dual code paths.
+   */
+  isOpaqueHandle?: boolean;
 }
 
 export default IParameterInput;

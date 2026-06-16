@@ -60,6 +60,13 @@ interface IFromASTDeps {
    * When the C typedef has `const T*`, this preserves const on the generated param.
    */
   forceConst?: boolean;
+
+  /**
+   * Issue #995: Check if a type is an opaque handle (incomplete struct typedef).
+   * Opaque handles should not get auto-const because they must be passed to
+   * C APIs that expect non-const pointers.
+   */
+  isOpaqueType?: (typeName: string) => boolean;
 }
 
 /**
@@ -142,6 +149,8 @@ class ParameterInputAdapter {
     const isKnownPrimitive = !!deps.typeMap[typeName];
     // Issue #958: C-header typedef struct types need pointer semantics
     const isTypedefStruct = deps.isTypedefStructType(typeName);
+    // Issue #995: Detect opaque handles — rule applied in ParameterSignatureBuilder
+    const isOpaque = deps.isOpaqueType?.(typeName) ?? false;
     // Issue #895: Don't add auto-const for callback-compatible functions
     // because it would change the signature and break typedef compatibility
     const isAutoConst =
@@ -171,6 +180,8 @@ class ParameterInputAdapter {
         deps.forcePassByReference || isTypedefStruct || undefined,
       // Issue #895: Preserve const from callback typedef signature
       forceConst: deps.forceConst,
+      // Issue #995: Pass through opaque handle detection — rule applied in builder
+      isOpaqueHandle: isOpaque || undefined,
     };
   }
 
@@ -236,6 +247,8 @@ class ParameterInputAdapter {
       isPassByReference: isCallbackPointer ? true : !deps.isPassByValue,
       forcePointerSyntax: isCallbackPointer || undefined,
       forceConst: param.isCallbackConst || undefined,
+      // Issue #995: Pass through opaque handle detection — rule applied in builder
+      isOpaqueHandle: param.isOpaqueHandle || undefined,
     };
   }
 

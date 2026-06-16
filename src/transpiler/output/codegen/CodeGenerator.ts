@@ -3799,6 +3799,8 @@ export default class CodeGenerator implements IOrchestrator {
       forceConst,
       isTypedefStructType: (t) =>
         CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
+      // Issue #995: Opaque handles should not get auto-const
+      isOpaqueType: (t) => CodeGenState.isOpaqueType(t),
     });
 
     // Use shared builder with C/C++ mode

@@ -1509,6 +1509,9 @@ class Transpiler {
 
       // Issue #914: For callback-compatible functions, bake pointer/const overrides
       // onto each parameter. Skip auto-const (matches CodeGenerator path).
+      // Note: isOpaqueHandle is not set here because callback params get their
+      // pointer/const semantics from the typedef signature via isCallbackPointer/
+      // isCallbackConst, which take precedence over opaque handling in the builder.
       if (callbackTypedefType) {
         const updatedParams = TypedefParamParser.resolveCallbackParams(
           headerSymbol.parameters,
@@ -1517,31 +1520,41 @@ class Transpiler {
         return { ...headerSymbol, parameters: updatedParams };
       }
 
-      // Apply auto-const to non-callback function parameters
+      // Apply auto-const and resolve opaque type info for non-callback function parameters
       const unmodified = unmodifiedParams.get(headerSymbol.name);
-      if (unmodified) {
-        const updatedParams = headerSymbol.parameters.map((param) => {
-          // ADR-006: Only non-array pointer params get auto-const.
-          // Arrays are pass-by-reference and mutable by default - auto-const would
-          // break compatibility with C APIs expecting mutable pointers (issue #986).
-          const isPointerParam =
-            !param.isConst &&
-            !param.isArray &&
-            param.type !== "f32" &&
-            param.type !== "f64" &&
-            param.type !== "ISR" &&
-            !knownEnums.has(param.type ?? "");
+      const updatedParams = headerSymbol.parameters.map((param) => {
+        // Issue #995: Resolve opaque type info ONCE onto the symbol.
+        // This is the single source of truth for both body (.c/.cpp) and header (.h/.hpp).
+        const isOpaque = CodeGenState.isOpaqueType(param.type ?? "");
 
-          if (isPointerParam && unmodified.has(param.name)) {
-            return { ...param, isAutoConst: true };
-          }
-          return param;
-        });
+        // ADR-006: Only non-array pointer params get auto-const.
+        // Arrays are pass-by-reference and mutable by default - auto-const would
+        // break compatibility with C APIs expecting mutable pointers (issue #986).
+        // Note: isAutoConst may be set here, but ParameterSignatureBuilder will
+        // suppress it for opaque handles (Issue #995) — single source of truth.
+        const isPointerParam =
+          !param.isConst &&
+          !param.isArray &&
+          param.type !== "f32" &&
+          param.type !== "f64" &&
+          param.type !== "ISR" &&
+          !knownEnums.has(param.type ?? "");
 
-        return { ...headerSymbol, parameters: updatedParams };
-      }
+        const shouldAutoConst =
+          unmodified && isPointerParam && unmodified.has(param.name);
 
-      return headerSymbol;
+        // Return updated param with resolved flags
+        if (shouldAutoConst || isOpaque) {
+          return {
+            ...param,
+            isAutoConst: shouldAutoConst || undefined,
+            isOpaqueHandle: isOpaque || undefined,
+          };
+        }
+        return param;
+      });
+
+      return { ...headerSymbol, parameters: updatedParams };
     });
   }
 

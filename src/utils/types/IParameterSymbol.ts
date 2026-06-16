@@ -10,6 +10,7 @@ interface IParameterSymbol {
   isAutoConst?: boolean; // Issue #268: true if parameter should get auto-const (unmodified pointer)
   isCallbackPointer?: boolean; // Issue #914: typedef says this param must be a pointer
   isCallbackConst?: boolean; // Issue #914: typedef says this param must be const
+  isOpaqueHandle?: boolean; // Issue #995: type is opaque (incomplete struct), needs pointer not reference
 }
 
 export default IParameterSymbol;
