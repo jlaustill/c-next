@@ -21,9 +21,12 @@ There are NO exceptions. Do not ignore, dismiss, or defer bugs without creating 
 
 **NEVER create or perpetuate duplicate code paths.** If changing something in one place requires a corresponding change in another place, that is a bug in the architecture. Fix it immediately.
 
+**This applies whether the duplication is newly introduced OR pre-existing — if you touch code containing a duplicate path, you fix it.** "It pre-dates this change," "it follows an existing pattern," and "it's really just a misleading comment" are NOT reasons to defer, downgrade, or merge around it. Touching it means owning it.
+
 - If two interfaces need the same fields, extract a shared type or push the data onto the shared model (e.g., `IParameterSymbol`)
 - If two code paths must produce identical output, they MUST share the same logic — not copy it
 - When fixing a bug caused by divergent paths, **unify the paths** rather than patching both independently
+- **Single source of truth means the _decision_, not just the data.** Sharing one detection function (or setting one flag on a shared model) is NOT enough if each path then re-derives the _consequences_ independently. Paths that agree only "by coincidence" — e.g. because some unrelated predicate currently happens to hold — are a latent divergence, not a unified path
 - **Example (Issue #914):** `.c` and `.h` generation had separate callback-handling logic. The fix resolved callback info ONCE onto `IParameterSymbol`, eliminating the duplicate path entirely
 
 Having to update something in 2 places instead of 1 is the WORST anti-pattern in this project. When you find it, fix it.
