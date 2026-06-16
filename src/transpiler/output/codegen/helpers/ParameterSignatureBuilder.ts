@@ -47,6 +47,11 @@ class ParameterSignatureBuilder {
       return this._buildStringParam(param);
     }
 
+    // Issue #995: Opaque handles are always pass-by-reference with pointer syntax
+    if (param.isOpaqueHandle) {
+      return this._buildRefParam(param, refSuffix);
+    }
+
     // Known struct or known primitive: pass by reference
     if (param.isPassByReference) {
       return this._buildRefParam(param, refSuffix);
@@ -103,18 +108,21 @@ class ParameterSignatureBuilder {
   /**
    * Build pass-by-reference parameter signature.
    * C mode: const Point* p
-   * C++ mode: const Point& p (unless forcePointerSyntax)
+   * C++ mode: const Point& p (unless forcePointerSyntax or isOpaqueHandle)
    *
    * Issue #895: When forcePointerSyntax is set, always use pointer syntax
    * because C callback typedefs expect pointers, not C++ references.
+   * Issue #995: Opaque handles must use pointer syntax because C APIs
+   * expect pointers to incomplete struct types (e.g., widget_t*).
    */
   private static _buildRefParam(
     param: IParameterInput,
     refSuffix: string,
   ): string {
     const constPrefix = this._getConstPrefix(param);
-    // Issue #895: Override refSuffix for callback-compatible functions
-    const actualSuffix = param.forcePointerSyntax ? "*" : refSuffix;
+    // Issue #895/#995: Override refSuffix for callback-compatible or opaque handle params
+    const actualSuffix =
+      param.forcePointerSyntax || param.isOpaqueHandle ? "*" : refSuffix;
     return `${constPrefix}${param.mappedType}${actualSuffix} ${param.name}`;
   }
 
@@ -130,10 +138,15 @@ class ParameterSignatureBuilder {
    * Get const prefix combining explicit const, auto-const, and forced const.
    * Priority: forceConst > isConst > isAutoConst
    * Issue #895: forceConst preserves const from callback typedef signature.
+   * Issue #995: Opaque handles suppress auto-const (they must be passed to
+   * C APIs that expect non-const pointers).
    */
   private static _getConstPrefix(param: IParameterInput): string {
+    // Issue #995: Opaque handles never get auto-const — they're passed to C APIs
+    // expecting mutable pointers (e.g., LVGL's lv_obj_t)
+    const effectiveAutoConst = param.isOpaqueHandle ? false : param.isAutoConst;
     // Any source of const results in "const " prefix
-    if (param.forceConst || param.isConst || param.isAutoConst) {
+    if (param.forceConst || param.isConst || effectiveAutoConst) {
       return "const ";
     }
     return "";

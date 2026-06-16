@@ -336,7 +336,9 @@ describe("ParameterInputAdapter", () => {
     });
 
     // Issue #995: Opaque handle support in fromSymbol
-    it("forces pointer when isOpaqueHandle is set", () => {
+    it("passes through isOpaqueHandle when set (Issue #995)", () => {
+      // The adapter passes through isOpaqueHandle; ParameterSignatureBuilder
+      // applies the rule (suppress auto-const, force pointer syntax)
       const param: IParameterSymbol = {
         name: "widget",
         type: "widget_t",
@@ -347,25 +349,26 @@ describe("ParameterInputAdapter", () => {
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
 
-      expect(result.forcePointerSyntax).toBe(true);
-      expect(result.isPassByValue).toBe(false);
-      expect(result.isPassByReference).toBe(true);
+      expect(result.isOpaqueHandle).toBe(true);
     });
 
-    it("suppresses auto-const when isOpaqueHandle is set even if isAutoConst was true", () => {
+    it("passes through isAutoConst even when isOpaqueHandle is set (builder applies rule)", () => {
+      // The adapter passes through both flags; the builder suppresses auto-const
+      // for opaque handles — this is NOT the adapter's responsibility
       const param: IParameterSymbol = {
         name: "widget",
         type: "widget_t",
         isConst: false,
         isArray: false,
         isOpaqueHandle: true,
-        isAutoConst: true, // Would have been set, but opaque overrides
+        isAutoConst: true,
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
 
-      expect(result.isAutoConst).toBe(false);
-      expect(result.forcePointerSyntax).toBe(true);
+      // Adapter passes through isAutoConst as-is; builder will suppress it
+      expect(result.isAutoConst).toBe(true);
+      expect(result.isOpaqueHandle).toBe(true);
     });
 
     it("does not force pointer when isOpaqueHandle is not set", () => {
@@ -567,8 +570,8 @@ describe("ParameterInputAdapter", () => {
       expect(result.forceConst).toBeUndefined();
     });
 
-    // Issue #995: Opaque handles should not get auto-const
-    it("does not set auto-const for opaque type parameter", () => {
+    // Issue #995: Opaque handles pass through isOpaqueHandle; builder applies rule
+    it("passes through isOpaqueHandle for opaque type parameter", () => {
       const ctx = getParameterContext("void foo(widget_t w) {}");
       const deps = {
         ...createDefaultASTDeps({ isModified: false }),
@@ -577,20 +580,27 @@ describe("ParameterInputAdapter", () => {
 
       const result = ParameterInputAdapter.fromAST(ctx, deps);
 
-      expect(result.isAutoConst).toBe(false);
+      // Adapter passes through detection; builder applies rule
+      expect(result.isOpaqueHandle).toBe(true);
+      // isAutoConst computed normally; builder will suppress it for opaque handles
+      expect(result.isAutoConst).toBe(true);
     });
 
-    // Issue #995: Opaque handles need pointer syntax in C++ mode
-    it("sets forcePointerSyntax for opaque type parameter", () => {
+    // Issue #995: Opaque handles don't set forcePointerSyntax — builder handles it
+    it("does not set forcePointerSyntax for opaque type (builder handles it)", () => {
       const ctx = getParameterContext("void foo(widget_t w) {}");
       const deps = {
         ...createDefaultASTDeps({ isModified: false }),
         isOpaqueType: (typeName: string) => typeName === "widget_t",
+        isTypedefStructType: () => false, // Not a typedef struct
       };
 
       const result = ParameterInputAdapter.fromAST(ctx, deps);
 
-      expect(result.forcePointerSyntax).toBe(true);
+      // forcePointerSyntax not set by adapter for opaque handles
+      // (builder uses isOpaqueHandle instead)
+      expect(result.forcePointerSyntax).toBeUndefined();
+      expect(result.isOpaqueHandle).toBe(true);
     });
 
     // Issue #995: Verify non-opaque types still get auto-const

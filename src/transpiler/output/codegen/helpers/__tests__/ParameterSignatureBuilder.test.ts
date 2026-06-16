@@ -318,6 +318,93 @@ describe("ParameterSignatureBuilder", () => {
     });
   });
 
+  describe("opaque handle parameters (Issue #995)", () => {
+    it("suppresses auto-const for opaque handles", () => {
+      // Opaque handles should not get const because they must be passed
+      // to C APIs expecting non-const pointers (like LVGL's lv_obj_t)
+      const input = createInput({
+        name: "widget",
+        baseType: "widget_t",
+        mappedType: "widget_t",
+        isPassByReference: true,
+        isAutoConst: true, // Would normally add const
+        isOpaqueHandle: true, // But opaque overrides
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "*");
+
+      // auto-const should be suppressed
+      expect(result).toBe("widget_t* widget");
+    });
+
+    it("uses pointer syntax for opaque handles in C++ mode", () => {
+      // Opaque handles must use pointer syntax even in C++ mode
+      // because C APIs expect pointers to incomplete struct types
+      const input = createInput({
+        name: "w",
+        baseType: "widget_t",
+        mappedType: "widget_t",
+        isPassByReference: true,
+        isOpaqueHandle: true,
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "&");
+
+      // Should use pointer (not reference) in C++ mode
+      expect(result).toBe("widget_t* w");
+    });
+
+    it("routes opaque handles through pass-by-reference path", () => {
+      // Even if isPassByReference is false, opaque handles should
+      // still generate pointer syntax
+      const input = createInput({
+        name: "ctx",
+        baseType: "context_t",
+        mappedType: "context_t",
+        isPassByReference: false, // Not explicitly set
+        isPassByValue: false, // Not explicitly set
+        isOpaqueHandle: true,
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "*");
+
+      // Should still get pointer syntax from opaque handle routing
+      expect(result).toBe("context_t* ctx");
+    });
+
+    it("preserves explicit const on opaque handles", () => {
+      // If the user explicitly marks it const, that should be preserved
+      const input = createInput({
+        name: "widget",
+        baseType: "widget_t",
+        mappedType: "widget_t",
+        isConst: true, // Explicit const
+        isOpaqueHandle: true,
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "*");
+
+      expect(result).toBe("const widget_t* widget");
+    });
+
+    it("isOpaqueHandle overrides forcePointerSyntax check", () => {
+      // isOpaqueHandle should force pointer even without forcePointerSyntax
+      const input = createInput({
+        name: "widget",
+        baseType: "widget_t",
+        mappedType: "widget_t",
+        isPassByReference: true,
+        forcePointerSyntax: false, // Not set
+        isOpaqueHandle: true, // But opaque overrides
+      });
+
+      const result = ParameterSignatureBuilder.build(input, "&");
+
+      // Should use pointer (not reference) due to isOpaqueHandle
+      expect(result).toBe("widget_t* widget");
+    });
+  });
+
   describe("callback-compatible parameters (Issue #895)", () => {
     it("forceConst adds const from typedef signature", () => {
       const input = createInput({

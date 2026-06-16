@@ -149,14 +149,12 @@ class ParameterInputAdapter {
     const isKnownPrimitive = !!deps.typeMap[typeName];
     // Issue #958: C-header typedef struct types need pointer semantics
     const isTypedefStruct = deps.isTypedefStructType(typeName);
-    // Issue #995: Opaque handles (incomplete struct typedefs) should not get auto-const
+    // Issue #995: Detect opaque handles — rule applied in ParameterSignatureBuilder
     const isOpaque = deps.isOpaqueType?.(typeName) ?? false;
     // Issue #895: Don't add auto-const for callback-compatible functions
     // because it would change the signature and break typedef compatibility
-    // Issue #995: Don't add auto-const for opaque handles because they must be
-    // passed to C APIs that expect non-const pointers (like LVGL's lv_obj_t)
     const isAutoConst =
-      !deps.isCallbackCompatible && !deps.isModified && !isConst && !isOpaque;
+      !deps.isCallbackCompatible && !deps.isModified && !isConst;
 
     // Issue #895/#958: Force pass-by-reference for callback or typedef struct types
     const isPassByReference =
@@ -176,12 +174,14 @@ class ParameterInputAdapter {
       isString: false,
       isPassByValue: deps.isPassByValue,
       isPassByReference,
-      // Issue #895/#958/#995: Force pointer syntax in C++ mode for callback-compatible,
-      // typedef struct, and opaque handle params (C types expect pointers, not C++ references)
+      // Issue #895/#958: Force pointer syntax in C++ mode for callback-compatible
+      // and typedef struct params (C types expect pointers, not C++ references)
       forcePointerSyntax:
-        deps.forcePassByReference || isTypedefStruct || isOpaque || undefined,
+        deps.forcePassByReference || isTypedefStruct || undefined,
       // Issue #895: Preserve const from callback typedef signature
       forceConst: deps.forceConst,
+      // Issue #995: Pass through opaque handle detection — rule applied in builder
+      isOpaqueHandle: isOpaque || undefined,
     };
   }
 
@@ -233,25 +233,22 @@ class ParameterInputAdapter {
 
     // Issue #914: Callback typedef overrides — param carries resolved pointer/const info
     const isCallbackPointer = param.isCallbackPointer ?? false;
-    // Issue #995: Opaque handle info resolved onto symbol — needs pointer syntax, no auto-const
-    const isOpaqueHandle = param.isOpaqueHandle ?? false;
-    // Either callback or opaque handle needs pointer treatment
-    const needsPointerSemantics = isCallbackPointer || isOpaqueHandle;
 
     return {
       name: param.name,
       baseType: param.type,
       mappedType,
       isConst: param.isConst,
-      // Issue #995: Opaque handles never get auto-const (resolved value may still be true from symbol)
-      isAutoConst: isOpaqueHandle ? false : (param.isAutoConst ?? false),
+      isAutoConst: param.isAutoConst ?? false,
       isArray: false,
       isCallback: false,
       isString: false,
-      isPassByValue: needsPointerSemantics ? false : deps.isPassByValue,
-      isPassByReference: needsPointerSemantics ? true : !deps.isPassByValue,
-      forcePointerSyntax: needsPointerSemantics || undefined,
+      isPassByValue: isCallbackPointer ? false : deps.isPassByValue,
+      isPassByReference: isCallbackPointer ? true : !deps.isPassByValue,
+      forcePointerSyntax: isCallbackPointer || undefined,
       forceConst: param.isCallbackConst || undefined,
+      // Issue #995: Pass through opaque handle detection — rule applied in builder
+      isOpaqueHandle: param.isOpaqueHandle || undefined,
     };
   }
 
