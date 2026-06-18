@@ -1,0 +1,23 @@
+// test-transpile-only
+// Issue #996: Array of opaque handles
+//
+// A fixed-size array of opaque handles (widget_t[3]) must generate:
+//   1. A brace initializer `= {0}`, NOT a scalar `= NULL`.
+//   2. Plain element access `arr[i]` (widget_t*) when passed to a
+//      function expecting widget_t* — NOT `&arr[i]` (widget_t**).
+
+#include "fake_lib.h"
+
+scope UI {
+    // A fixed-size array of opaque handles, stored and then used by index.
+    widget_t[3] widgets;
+
+    void run() {
+        u8 i <- 0;
+        while (i < 3) {
+            this.widgets[i] <- global.widget_create();
+            global.widget_move(this.widgets[i], 5);
+            i +<- 1;
+        }
+    }
+}
