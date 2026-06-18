@@ -1167,14 +1167,29 @@ export default class CodeGenState {
   }
 
   /**
-   * Check if a scope variable has an opaque type (and is thus a pointer).
-   * Used during access generation to determine if & prefix is needed.
+   * Check if generated code accesses an opaque scope variable (and is thus
+   * already a pointer). Used during argument generation to decide whether an
+   * address-of (&) prefix is needed.
    *
-   * @param qualifiedName - The fully qualified variable name (e.g., "MyScope_widget")
-   * @returns true if this is an opaque scope variable (already a pointer)
+   * Handles two forms:
+   * - Direct access:        "MyScope_widget"     → the handle itself (pointer)
+   * - Array-element access: "MyScope_widgets[i]" → an element of an opaque
+   *   handle array, which is itself a pointer (Issue #996)
+   *
+   * @param generatedCode - The generated access expression (e.g. "UI_widgets[i]")
+   * @returns true if this resolves to an opaque scope variable (already a pointer)
    */
-  static isOpaqueScopeVariable(qualifiedName: string): boolean {
-    return this.opaqueScopeVariables.has(qualifiedName);
+  static isOpaqueScopeVariableAccess(generatedCode: string): boolean {
+    if (this.opaqueScopeVariables.has(generatedCode)) {
+      return true;
+    }
+    // Issue #996: An element of an opaque-handle array is already a pointer.
+    // Match on the base array name that precedes the subscript.
+    const bracketIndex = generatedCode.indexOf("[");
+    if (bracketIndex === -1) {
+      return false;
+    }
+    return this.opaqueScopeVariables.has(generatedCode.slice(0, bracketIndex));
   }
 
   // ===========================================================================

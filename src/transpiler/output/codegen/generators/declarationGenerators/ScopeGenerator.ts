@@ -239,7 +239,12 @@ function generateRegularVariable(
 
   // Issue #948: Opaque types use NULL initialization instead of {0}
   // Issue #958: External typedef struct types also use NULL initialization
-  if (isOpaque || isExternalStruct) {
+  // Issue #996: ...but only for SCALAR handles, which are single pointers. An
+  // *array* of opaque handles needs a brace initializer ({0}), not a scalar
+  // NULL. Route arrays through generateInitializer, which uses
+  // getZeroInitializer(type, isArray) — the single source of truth for
+  // zero-initialization (ADR-015).
+  if ((isOpaque || isExternalStruct) && !isArray) {
     decl += " = NULL";
   } else {
     decl += generateInitializer(varDecl, isArray, orchestrator);
