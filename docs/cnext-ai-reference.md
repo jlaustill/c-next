@@ -821,6 +821,7 @@ u32 count <- 0;                      // always valid
 
 - `c_` prefix REQUIRED for variables holding nullable C pointer returns
 - `c_` prefix FORBIDDEN on non-nullable types (error E0906)
+- A `c_` variable must be **NULL-checked before use** — using it unguarded is `E0908` (`FILE c_file <- fopen(...); fclose(c_file);` ✗ → wrap in `if (c_file != NULL) { … }`)
 - NULL comparison only allowed on `c_`-prefixed variables
 - `malloc`/`calloc`/`realloc`/`free` FORBIDDEN (ADR-003)
 
@@ -915,15 +916,19 @@ scope NeedleImg {
 
 Nested struct init with C enum constants works — enum values resolve inside nested fields.
 
-## Anonymous Struct Flags Workaround
+## Anonymous Nested Structs (ESP-IDF style)
 
-C structs with anonymous nested structs (common in ESP-IDF) can't use compound literal initialization for the nested part in C++. Set flags separately:
+C structs with anonymous nested structs (common in ESP-IDF) **can be initialized inline** with nested `{ … }` (Issue #882):
 
 ```cnx
-// Can't init flags inline due to C++ anonymous struct limitation
-esp_lcd_rgb_panel_config_t cfg <- { /* other fields */ };
-cfg.flags.fb_in_psram <- true;       // set flag after init
+PanelConfig panel <- {
+    clk_src: 1,
+    timings: { pclk_hz: 16000000, h_res: 800, v_res: 480 },
+    flags:   { fb_in_psram: 1, double_fb: 0 }      // nested anon-struct init works
+};
 ```
+
+Partial init of the nested part is fine. (Setting fields after construction — `panel.flags.fb_in_psram <- true;` — also works.)
 
 ---
 
