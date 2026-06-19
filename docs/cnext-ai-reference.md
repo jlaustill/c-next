@@ -281,9 +281,10 @@ do {
 } while (byte != END_MARKER);
 // } while (byte);           // ERROR: bare bool not allowed
 
-// Ternary (condition MUST be comparison or logical op)
+// Ternary (condition MUST be PARENTHESIZED and a comparison or logical op)
 u32 max <- (a > b) ? a : b;
 // u32 y <- flag ? 1 : 0;   // ERROR: bare bool
+// u32 z <- a > b ? a : b;   // ERROR: condition must be parenthesized
 // Nested ternary FORBIDDEN
 
 // Switch (braces, no colons, no fallthrough, no break needed)
