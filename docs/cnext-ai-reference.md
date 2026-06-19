@@ -391,6 +391,21 @@ switch (cmd) {
 }
 ```
 
+**Switch rules (ADR-025):**
+
+- **≥2 clauses** required (MISRA 16.6) — a single-case switch is an error; use `if`.
+- **No `switch` on a boolean** (16.7) — use `if/else`. Switch on an **integral or enum** type; case labels are **constant** expressions.
+- **No duplicate** case values; **`default` must be last** (16.5).
+- **Enums must be exhaustive:** cover every variant explicitly, or use a **counted default** `default(n)` where `n` = how many variants the default covers (adding a variant later breaks the build until you bump `n` or add a case). Non-enum switches require a plain `default`.
+
+```cnx
+switch (state) {                 // enum with 4 variants
+    case EState.IDLE { start(); }
+    case EState.RUNNING { check(); }
+    default(2) { other(); }      // explicitly covers the remaining 2 variants
+}
+```
+
 ## Scopes
 
 Scopes are singleton modules with automatic name prefixing.
