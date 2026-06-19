@@ -502,7 +502,8 @@ Scopes **cannot be nested** (`scope A { scope B { } }` is a compile error, ADR-0
 - Quoted `.cnx` includes resolve **relative to the including file**
 - Angle bracket `.cnx` includes resolve via **cnext config `include` array** (for external libraries like PlatformIO lib_deps)
 - In C++ mode (`cppRequired: true`), `.cnx` includes transpile to `.hpp`. In C mode, `.h`
-- C/C++ headers pass through unchanged
+- C/C++ headers pass through unchanged — but if a `.cnx` version of a file exists, include the **`.cnx`** (including its generated `.h`/`.hpp` directly is `E0504`); a plain C/C++ header is fine only when no `.cnx` exists for it
+- Including a `.c` / implementation file is forbidden (`E0503`)
 
 ## Preprocessor
 
@@ -518,7 +519,16 @@ Scopes **cannot be nested** (`scope A { scope B { } }` is a compile error, ADR-0
 const u32 MAX_SIZE <- 100;          // correct
 ```
 
-`#define` with values is forbidden. Use `const` for values, `#define` only for flags.
+`#define` with a value is forbidden (`E0502`) — use `const`. **Function-like macros** are forbidden too (`E0501`) — use an inline function. `#define` is only for bare flags; `#ifdef`/`#ifndef`/`#else`/`#endif` (including nested) pass through to the C preprocessor.
+
+## Comments
+
+- `//` line and `/* … */` block comments are preserved in the generated C.
+- `///` triple-slash becomes a **Doxygen** doc comment (`@param`, `@return`, …).
+- **No nested block markers** — a `/*` inside any comment is an error (MISRA 3.1).
+- **No line comment ending in a backslash `\`** (MISRA 3.2).
+- `://` (e.g. `https://…`) is allowed in comments (MISRA Amendment 4 exception).
+- Comments may appear mid-expression: `x <- 10 /* */ + 20;`.
 
 ## Constants
 
