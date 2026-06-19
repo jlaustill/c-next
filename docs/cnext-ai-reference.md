@@ -23,7 +23,7 @@ COMPOUND:      x +<- 1         →  x += 1
                x ^<- mask      →  x ^= mask
                x <<<- 1        →  x <<= 1
                x >><- 1        →  x >>= 1
-ARITHMETIC:    + - * / %       (same as C)
+ARITHMETIC:    + - * / %       (% is integer-only — see notes below)
 BITWISE:       & | ^ ~          (signed & unsigned, same as C)
 SHIFT:         << >>            (UNSIGNED operands only — see below)
 LOGICAL:       && || !          (same as C)
@@ -33,6 +33,7 @@ LOGICAL:       && || !          (same as C)
 
 - A **compile-time-zero** divisor — a literal `0`, or a `const` known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `const u32 ZERO <- 0; x / ZERO`.
 - A **runtime** divisor compiles to plain C division with no implicit guard (`10 / divisor` → `10U / divisor`).
+- **Floats:** `%` is **forbidden** on floats (`E0804` — `%` is integer-only). Float **division by zero is allowed** (yields `inf`/`NaN`) — the `E0800` compile-time-zero check applies to integer `/` and `%` only.
 - For guarded runtime division/modulo, use the `safe_div` / `safe_mod` built-ins (ADR-051):
 
 ```cnx
@@ -87,6 +88,8 @@ u8 lo <- 'A' + 32;    // 'a'
 ```
 
 Standard char escape sequences work in `'...'` literals: newline (10), tab (9), carriage return (13), null (0), backslash (92), single-quote (39), double-quote (34).
+
+**Float literals**: decimal (`3.14`, `-0.0`), scientific/`e` notation (`1.5e-10`, `3.0e8`), and `f32`/`f64` type suffixes (case-insensitive — `3.14f32`, `6.022e23f64`, `100.5F32`).
 
 ## Variable Declarations
 
