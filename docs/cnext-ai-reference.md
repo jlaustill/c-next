@@ -152,8 +152,10 @@ const string VERSION <- "1.0.0";    // auto-sized
 - A literal or concat that exceeds the destination capacity is a compile error.
 - Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗ — use `s <- s + x`).
 - String literals accept the same escape sequences as char literals (newline, tab, carriage return, backslash, quote).
+- **Concat (`+`) and substring (`s[off, len]`) emit runtime code (`strncpy`/`strncat`)** — they may only appear **inside a function**, never at global/initializer scope (a global string initializes from a literal).
+- Substring `s[off, len]` is bounds-checked at compile time: `off + len` must fit the source's capacity, and the destination string must be large enough to hold `len`.
 
-**Slice assignment into byte buffers:** `buf[byteOffset, byteCount] <- value` copies `byteCount` **little-endian** bytes of an integer `value` into a `u8[]`/string buffer. Offset and length must be **compile-time constants** (bounds-checked at compile time). On a byte _array_, `[off, len]` means BYTES; on a scalar/float, `[start, width]` means BITS.
+**Slice assignment into byte buffers:** `buf[byteOffset, byteCount] <- value` copies `byteCount` **little-endian** bytes of an integer `value` into a `u8[]`/string buffer. Offset and length must be **compile-time constants** (bounds-checked at compile time). On a byte _array_, `[off, len]` means BYTES; on a scalar/float, `[start, width]` means BITS. A **single** subscript on a string/byte buffer — `s[i]` — reads or writes one byte (`u8`) at index `i` (`s[0]` → first byte; `s[i] <- 'X'`), distinct from the two-subscript substring/slice.
 
 ```cnx
 u8[64] buf;
