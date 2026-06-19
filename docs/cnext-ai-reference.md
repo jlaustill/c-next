@@ -259,6 +259,26 @@ POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 
 **Enum → integer** requires an explicit cast: `u32 v <- (u32)Priority.HIGH;` (to any integer width).
 
+## sizeof (ADR-023)
+
+`sizeof(...)` returns the byte size (a compile-time constant) of a type, variable, struct, struct member, or array:
+
+```cnx
+u32 a <- sizeof(u32);        // 4   (bool = 1, f64 = 8, ...)
+u32 b <- sizeof(myVar);      // size of a variable
+u32 c <- sizeof(Point);      // size of a struct type (or instance: sizeof(p))
+u32 d <- sizeof(p.x);        // size of a struct member
+u32 e <- sizeof(buffer);     // total bytes of an array  (u32[8] → 32)
+u8[sizeof(u32)] buf;         // usable as an array dimension
+```
+
+Usable in any constant expression (arithmetic, comparison, ternary, array sizes). Errors:
+
+- `sizeof` on an **array parameter** (`u8 data[]`) → `E0601` (it would measure the pointer, not the array).
+- `sizeof` of an expression **with side effects** (e.g. a function call) → `E0602`.
+
+(Arrays also expose `.byte_length` / `.element_count`; `sizeof` additionally covers types, structs, and members.)
+
 ## Functions
 
 ```cnx
