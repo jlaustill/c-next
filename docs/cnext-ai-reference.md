@@ -211,6 +211,11 @@ switch (s) {
 }
 ```
 
+**Rules:**
+
+- Enums are **strongly typed**: you cannot assign or compare an enum with a raw integer (`s <- 1` ✗, `if (s = 0)` ✗) — convert explicitly with `(u32)State.X`. Negative enum values are not allowed.
+- **Qualify** members as `State.IDLE`. An unqualified member (`IDLE`) is accepted only where the target type is already known (assignment to an enum-typed variable/field, or an enum-typed argument); it is an error in comparisons or a `switch` on a non-enum. Prefer qualified everywhere.
+
 ## Bitmaps
 
 ```cnx
