@@ -689,6 +689,8 @@ void setup() {
 }
 ```
 
+C library **globals** are usable directly by their C name: `extern` variables (read / write / compound-assign), `const` externs, extern arrays, and `#define` macro constants from included headers — e.g. `extern_counter <- 42;`, `u32 m <- MAX_SIZE;`. (Defining a _value_ macro is still forbidden in your own C-Next code — that rule doesn't apply to C headers.)
+
 ## Using C Struct Types
 
 C struct types from headers work with named field initialization:
@@ -735,6 +737,24 @@ twai_general_config_t cfg <- {
 ```
 
 **Important:** C++ is strict about int-to-enum conversion. Use the enum constants (`GPIO_NUM_19`) not bare integers (`19`), or the C++ compiler will reject it.
+
+## Constructing C++ Objects
+
+In C++ mode you can instantiate C++ library classes (e.g. Adafruit drivers) two ways:
+
+```cnx
+// Constructor arguments — args must be const variables, NOT literals
+const u8 csPin <- 10;
+Adafruit_MAX31856 tc(csPin);              // → Adafruit_MAX31856 tc(csPin);
+
+// Aggregate / field initialization
+DefaultConstructible obj <- { value: 42, name: "label" };
+
+// Arrays default-construct each element
+DefaultConstructible[3] sensors;
+```
+
+A bare literal constructor argument (`tc(10)`) is a parse error — bind a `const` first. Works inside scopes too.
 
 ## C Struct Member Access
 
