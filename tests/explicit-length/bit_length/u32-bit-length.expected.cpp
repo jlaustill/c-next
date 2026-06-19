@@ -54,12 +54,12 @@ int main(void) {
     if (result != 32) {
         return 6;
     }
-    U32BitLen_TestStruct ts = {0};
+    U32BitLen_TestStruct ts = {};
     ts.member = 100000U;
     if (32 != 32) {
         return 7;
     }
-    uint32_t arr[4] = {0};
+    uint32_t arr[4] = {};
     arr[0] = 100000U;
     if (32 != 32) {
         return 8;

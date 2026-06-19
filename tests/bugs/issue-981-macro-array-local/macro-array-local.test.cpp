@@ -13,7 +13,7 @@
 /* Scope: Test */
 
 uint8_t Test_from_local(uint8_t idx) {
-    msg_t msg = {0};
+    msg_t msg = {};
     fill_msg(&msg);
     return msg.data[idx];
 }

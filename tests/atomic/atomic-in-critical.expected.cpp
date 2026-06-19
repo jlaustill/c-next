@@ -57,7 +57,7 @@ volatile uint32_t sharedCounter = 0U;
 
 volatile uint16_t sequence = 0U;
 
-uint8_t buffer[64] = {0};
+uint8_t buffer[64] = {};
 
 uint32_t writeIdx = 0U;
 

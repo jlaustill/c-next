@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 
-uint32_t devices[DEVICE_COUNT] = {0};
+uint32_t devices[DEVICE_COUNT] = {};
 
 int main(void) {
     return 0;

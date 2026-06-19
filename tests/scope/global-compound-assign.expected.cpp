@@ -22,7 +22,7 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Tests global array access with compound operators
 int32_t counter = 100;
 
-int32_t values[4] = {0};
+int32_t values[4] = {};
 
 /* Scope: Worker */
 

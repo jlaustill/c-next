@@ -11,7 +11,7 @@
 // Validates non-overlapping regions with compile-time constant offsets
 // Simulates real-world buffer building with explicit layout
 int main(void) {
-    uint8_t buffer[256] = {0};
+    uint8_t buffer[256] = {};
     uint32_t magic = 0x50415255U;
     memcpy(&buffer[0], &magic, 4);
     uint16_t version = 0x0100U;

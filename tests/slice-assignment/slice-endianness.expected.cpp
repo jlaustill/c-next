@@ -11,7 +11,7 @@
 // Validates that bytes are copied in correct endianness
 // Embedded systems typically use little-endian
 int main(void) {
-    uint8_t buffer[128] = {0};
+    uint8_t buffer[128] = {};
     uint32_t value32 = 0x12345678U;
     memcpy(&buffer[0], &value32, 4);
     if (buffer[0U] != 0x78) return 1;

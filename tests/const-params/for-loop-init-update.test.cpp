@@ -36,7 +36,7 @@ void handleForInit(Config& config) {
 }
 
 int main(void) {
-    Config cfg = {0};
+    Config cfg = {};
     cfg.value = 0U;
     handleForUpdate(cfg);
     if (cfg.value != 1) return 1;

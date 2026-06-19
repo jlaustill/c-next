@@ -10,25 +10,25 @@
 // test-execution
 // Tests: sizeof on local arrays
 int main(void) {
-    uint8_t byteArray[10] = {0};
+    uint8_t byteArray[10] = {};
     uint32_t byteArraySize = sizeof(byteArray);
     if (byteArraySize != 10) return 1;
-    uint16_t shortArray[5] = {0};
+    uint16_t shortArray[5] = {};
     uint32_t shortArraySize = sizeof(shortArray);
     if (shortArraySize != 10) return 2;
-    uint32_t intArray[8] = {0};
+    uint32_t intArray[8] = {};
     uint32_t intArraySize = sizeof(intArray);
     if (intArraySize != 32) return 3;
-    uint64_t longArray[4] = {0};
+    uint64_t longArray[4] = {};
     uint32_t longArraySize = sizeof(longArray);
     if (longArraySize != 32) return 4;
-    bool boolArray[16] = {0};
+    bool boolArray[16] = {};
     uint32_t boolArraySize = sizeof(boolArray);
     if (boolArraySize != 16) return 5;
-    float floatArray[3] = {0};
+    float floatArray[3] = {};
     uint32_t floatArraySize = sizeof(floatArray);
     if (floatArraySize != 12) return 6;
-    double doubleArray[2] = {0};
+    double doubleArray[2] = {};
     uint32_t doubleArraySize = sizeof(doubleArray);
     if (doubleArraySize != 16) return 7;
     return 0;

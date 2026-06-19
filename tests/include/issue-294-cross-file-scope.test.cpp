@@ -27,7 +27,7 @@ uint8_t handler_extractByte(const uint8_t data[8], uint8_t idx) {
 }
 
 int main(void) {
-    uint8_t testData[8] = {0};
+    uint8_t testData[8] = {};
     testData[0] = 0x34U;
     testData[1] = 0x12U;
     testData[2] = 0xABU;

@@ -12,7 +12,7 @@ typedef struct Image {
     uint8_t pixels[240][320];
 } Image;
 
-Image screen = {0};
+Image screen = {};
 
 int main(void) {
     screen.width = 320U;

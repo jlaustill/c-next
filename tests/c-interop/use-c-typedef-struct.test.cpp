@@ -12,18 +12,18 @@
 #include <stdint.h>
 
 int main(void) {
-    Point2D p = {0};
+    Point2D p = {};
     p.x = 10;
     p.y = 20;
     if (p.x != 10) return 1;
     if (p.y != 20) return 2;
-    Record r = {0};
+    Record r = {};
     r.id = 12345U;
     r.flags = 0xFFU;
     r.status = 1U;
     if (r.id != 12345) return 3;
     if (r.flags != 0xFF) return 4;
-    SizedFields sf = {0};
+    SizedFields sf = {};
     sf.byte_field = 255U;
     sf.word_field = 65535U;
     sf.dword_field = 0xFFFFFFFFU;

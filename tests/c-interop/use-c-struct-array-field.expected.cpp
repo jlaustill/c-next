@@ -22,7 +22,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 int main(void) {
-    DataBuffer buf = {0};
+    DataBuffer buf = {};
     buf.len = 4U;
     for (uint32_t i = 0; i < buf.len; i += 1) {
         buf.data[i] = i * 10U;
@@ -31,7 +31,7 @@ int main(void) {
     if (buf.data[1U] != 10) return 2;
     if (buf.data[2U] != 20) return 3;
     if (buf.data[3U] != 30) return 4;
-    ValueArray va = {0};
+    ValueArray va = {};
     va.count = 8U;
     for (uint32_t i = 0; i < va.count; i += 1) {
         va.values[i] = i * 100U;

@@ -53,7 +53,7 @@ typedef struct TStatusRegister {
     uint32_t value;
 } TStatusRegister;
 
-TStatusRegister status = {0};
+TStatusRegister status = {};
 
 void testNullLikeCheck(void) {
     status.enabled = 0U;

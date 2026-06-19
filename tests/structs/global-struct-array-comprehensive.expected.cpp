@@ -16,15 +16,15 @@
 /* Scope: GlobalStruct */
 
 // Global variables
-ExternalStruct globalExternal = {0};
+ExternalStruct globalExternal = {};
 
-CNextStruct globalCNext = {0};
+CNextStruct globalCNext = {};
 
-GlobalStruct_Outer globalOuter = {0};
+GlobalStruct_Outer globalOuter = {};
 
 /* Scope: ArrayTests */
-static ExternalStruct ArrayTests_scopeExternal = {0};
-static CNextStruct ArrayTests_scopeCNext = {0};
+static ExternalStruct ArrayTests_scopeExternal = {};
+static CNextStruct ArrayTests_scopeCNext = {};
 
 uint8_t ArrayTests_testGlobalExternal(void) {
     return globalExternal.data[2U];

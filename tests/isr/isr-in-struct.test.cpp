@@ -61,7 +61,7 @@ void invokeStructHolder(const IsrHolder& hld) {
 }
 
 int main(void) {
-    IsrHolder holder = {0};
+    IsrHolder holder = {};
     holder.primary = structHandler1;
     holder.secondary = structHandler1;
     structCallCount = 0U;

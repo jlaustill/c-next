@@ -1311,9 +1311,10 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-017: Handle enum types by initializing to first member
    */
   getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string {
-    // Issue #379: Arrays need element type checking for C++ classes
+    // Issue #379 / #1004: arrays zero-init with the aggregate brace ({} in
+    // C++, {0} in C) regardless of element type.
     if (isArray) {
-      return this._getArrayZeroInitializer(typeCtx);
+      return this._getAggregateZeroInitBrace();
     }
 
     // Handle named types (scoped, global, qualified, user)
@@ -1323,11 +1324,10 @@ export default class CodeGenerator implements IOrchestrator {
       if (CodeGenState.symbols!.knownEnums.has(resolved.name)) {
         return this._getEnumZeroValue(resolved.name, resolved.separator);
       }
-      // Check if C++ type needing {} (only for userType, not qualified/scoped/global)
-      if (resolved.checkCppType && this._needsEmptyBraceInit(resolved.name)) {
-        return "{}";
-      }
-      return "{0}";
+      // Issue #1004: struct/class zero-init. C++ value-initialization ({})
+      // works for every aggregate (including ones whose first field is an
+      // enum, where {0} is an invalid int->enum narrowing); C uses {0}.
+      return this._getAggregateZeroInitBrace();
     }
 
     // Issue #295: C++ template types use value initialization {}
@@ -2083,15 +2083,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     // C-Next scope type: join all parts with _
     return identifiers.join("_");
-  }
-
-  /**
-   * Issue #304: Check if a type name is from a C++ header
-   * Used to determine whether to use {} or {0} for initialization.
-   * C++ types with constructors may fail with {0} but work with {}.
-   */
-  private isCppType(typeName: string): boolean {
-    return SymbolLookupHelper.isCppType(CodeGenState.symbolTable, typeName);
   }
 
   /**
@@ -4127,31 +4118,13 @@ export default class CodeGenerator implements IOrchestrator {
   // and _generateConstructorDecl have been extracted to VariableDeclHelper.ts
 
   /**
-   * Get zero initializer for array types.
-   * Issue #379: C++ class arrays must use {} instead of {0}
+   * Brace initializer that zero-initializes an aggregate (struct or array).
+   * Issue #379 / #1004: C++ uses value-initialization ({}), which is valid for
+   * any aggregate element type (POD, struct, class) including enum-first
+   * structs where {0} is an invalid int->enum narrowing; C uses {0}.
    */
-  private _getArrayZeroInitializer(typeCtx: Parser.TypeContext): string {
-    // Check if element type is a C++ class or template type
-    if (typeCtx.userType()) {
-      const typeName = typeCtx.userType()!.getText();
-      if (this._needsEmptyBraceInit(typeName)) {
-        return "{}";
-      }
-    }
-    // Also check C-Next style array type (e.g., CppClass[4]) where
-    // the userType is nested inside arrayType.
-    if (typeCtx.arrayType()?.userType()) {
-      const typeName = typeCtx.arrayType()!.userType()!.getText();
-      if (this._needsEmptyBraceInit(typeName)) {
-        return "{}";
-      }
-    }
-    // Template types are always C++ classes
-    if (typeCtx.templateType()) {
-      return "{}";
-    }
-    // Default: POD arrays use {0}
-    return "{0}";
+  private _getAggregateZeroInitBrace(): string {
+    return CodeGenState.cppMode ? "{}" : "{0}";
   }
 
   /**
@@ -4183,20 +4156,19 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Resolve full type name from any TypeContext variant.
-   * Returns { name, separator, checkCppType } or null if not a named type.
+   * Returns { name, separator } or null if not a named type.
    * ADR-016: Handles scoped, global, qualified, and user types
-   * checkCppType: only true for userType (original behavior preserved)
    */
   private _resolveTypeNameFromContext(
     typeCtx: Parser.TypeContext,
-  ): { name: string; separator: string; checkCppType: boolean } | null {
+  ): { name: string; separator: string } | null {
     // ADR-016: Check for scoped types (this.Type)
     if (typeCtx.scopedType()) {
       const localName = typeCtx.scopedType()!.IDENTIFIER().getText();
       const name = CodeGenState.currentScope
         ? `${CodeGenState.currentScope}_${localName}`
         : localName;
-      return { name, separator: "_", checkCppType: false };
+      return { name, separator: "_" };
     }
 
     // Issue #478: Check for global types (global.Type)
@@ -4204,7 +4176,6 @@ export default class CodeGenerator implements IOrchestrator {
       return {
         name: typeCtx.globalType()!.IDENTIFIER().getText(),
         separator: "_",
-        checkCppType: false,
       };
     }
 
@@ -4214,7 +4185,7 @@ export default class CodeGenerator implements IOrchestrator {
       const parts = typeCtx.qualifiedType()!.IDENTIFIER();
       const name = this.resolveQualifiedType(parts.map((id) => id.getText()));
       const separator = name.includes("::") ? "::" : "_";
-      return { name, separator, checkCppType: false };
+      return { name, separator };
     }
 
     // Check for user-defined types (structs/classes/enums)
@@ -4222,26 +4193,10 @@ export default class CodeGenerator implements IOrchestrator {
       return {
         name: typeCtx.userType()!.getText(),
         separator: "_",
-        checkCppType: true,
       };
     }
 
     return null;
-  }
-
-  /**
-   * Check if a type needs empty brace initialization {}.
-   * Issue #304: C++ types with constructors may fail with {0}
-   * Issue #309: Unknown user types in C++ mode may have non-trivial constructors
-   */
-  private _needsEmptyBraceInit(typeName: string): boolean {
-    // C++ types (external libraries with constructors)
-    if (this.isCppType(typeName)) {
-      return true;
-    }
-    // In C++ mode, unknown user types may have non-trivial constructors
-    // Known structs (C-Next or C headers) are POD types where {0} works
-    return CodeGenState.cppMode && !this.isKnownStruct(typeName);
   }
 
   /**

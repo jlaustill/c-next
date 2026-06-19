@@ -50,7 +50,7 @@ uint32_t Calculator_getResult(void) {
 }
 
 /* Scope: ArrayOps */
-static uint32_t ArrayOps_data[10] = {0};
+static uint32_t ArrayOps_data[10] = {};
 static uint32_t ArrayOps_sum = 0U;
 
 void ArrayOps_initialize(void) {

@@ -22,7 +22,7 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Tests lines 4336 and 4338 in CodeGenerator.ts
 /* Scope: Counter */
 static int32_t Counter_value = 100;
-static int32_t Counter_values[4] = {0};
+static int32_t Counter_values[4] = {};
 
 void Counter_increment(void) {
     Counter_value = cnx_clamp_add_i32(Counter_value, 10);

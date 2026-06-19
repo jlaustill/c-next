@@ -25,7 +25,7 @@ int main(void) {
     if (d.id != 42) return 5;
     if (d.flags != 0xFF) return 6;
     if (d.count != 1000) return 7;
-    Point p2 = {0};
+    Point p2 = {};
     p2.x = 10;
     p2.y = 20;
     if (p2.x != 10) return 8;

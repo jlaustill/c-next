@@ -14,7 +14,7 @@
 CppTestClass items[4] = {};
 
 // C-Next style array of primitive (should still generate = {0})
-uint32_t counters[8] = {0};
+uint32_t counters[8] = {};
 
 int main(void) {
     uint8_t dummy = 0U;

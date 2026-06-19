@@ -7,7 +7,7 @@
 
 // Test: Compound assignment on 3D arrays
 // Covers all compound operators on deeply indexed array elements
-uint32_t cube[3][3][3] = {0};
+uint32_t cube[3][3][3] = {};
 
 int main(void) {
     cube[0][0][0] = 100U;

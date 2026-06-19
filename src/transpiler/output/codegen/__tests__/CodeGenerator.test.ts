@@ -6932,7 +6932,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain("ExternalClass obj = {}");
       });
 
-      it("should initialize known structs to {0} even in C++ mode", () => {
+      it("should initialize known structs to {} in C++ mode (Issue #1004)", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void main() {
@@ -6950,8 +6950,10 @@ describe("CodeGenerator", () => {
           cppMode: true,
         });
 
-        // Known C-Next structs are POD types, {0} works fine
-        expect(code).toContain("Point p = {0}");
+        // Issue #1004: C++ value-initialization ({}) is valid for any struct,
+        // including ones whose first field is an enum where {0} would be an
+        // invalid int->enum narrowing.
+        expect(code).toContain("Point p = {}");
       });
 
       // Note: Template type tests skipped - template argument transformation
@@ -7023,7 +7025,7 @@ describe("CodeGenerator", () => {
         expect(code).not.toContain("uint8_t* buf");
       });
 
-      it("should generate primitive C-Next style arrays with {0} in C++ mode", () => {
+      it("should generate primitive C-Next style arrays with {} in C++ mode (Issue #1004)", () => {
         const source = `
           void main() {
               u32[8] counters;
@@ -7040,8 +7042,9 @@ describe("CodeGenerator", () => {
           cppMode: true,
         });
 
-        // Primitive type arrays should still use {0}
-        expect(code).toContain("uint32_t counters[8] = {0}");
+        // Issue #1004: C++ arrays value-initialize with {} regardless of
+        // element type (one unified aggregate zero-init rule).
+        expect(code).toContain("uint32_t counters[8] = {}");
       });
 
       it("should generate unknown user type C-Next style arrays with {} in C++ mode", () => {
@@ -7065,7 +7068,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain("UnknownType items[4] = {}");
       });
 
-      it("should generate known C-Next struct arrays with {0} in C++ mode", () => {
+      it("should generate known C-Next struct arrays with {} in C++ mode (Issue #1004)", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void main() {
@@ -7083,8 +7086,9 @@ describe("CodeGenerator", () => {
           cppMode: true,
         });
 
-        // Known C-Next structs are POD types, {0} is correct
-        expect(code).toContain("Point pts[3] = {0}");
+        // Issue #1004: C++ struct arrays value-initialize with {}, valid even
+        // when the struct's first field is an enum.
+        expect(code).toContain("Point pts[3] = {}");
       });
     });
   });

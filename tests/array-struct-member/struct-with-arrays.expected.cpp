@@ -29,7 +29,7 @@ typedef struct WideBuffer {
 } WideBuffer;
 
 int main(void) {
-    ByteBuffer bytes = {0};
+    ByteBuffer bytes = {};
     bytes.len = 4U;
     bytes.data[0] = 0x10U;
     bytes.data[1] = 0x20U;
@@ -40,7 +40,7 @@ int main(void) {
     if (bytes.data[1U] != 0x20) return 3;
     if (bytes.data[2U] != 0x30) return 4;
     if (bytes.data[3U] != 0x40) return 5;
-    WordBuffer words = {0};
+    WordBuffer words = {};
     words.count = 3U;
     words.values[0] = 1000U;
     words.values[1] = 2000U;
@@ -49,14 +49,14 @@ int main(void) {
     if (words.values[0U] != 1000) return 7;
     if (words.values[1U] != 2000) return 8;
     if (words.values[2U] != 3000) return 9;
-    LongBuffer longs = {0};
+    LongBuffer longs = {};
     longs.cap = 2U;
     longs.items[0] = 100000U;
     longs.items[1] = 200000U;
     if (longs.cap != 2) return 10;
     if (longs.items[0U] != 100000) return 11;
     if (longs.items[1U] != 200000) return 12;
-    WideBuffer wides = {0};
+    WideBuffer wides = {};
     wides.used = 2U;
     wides.entries[0] = 1000000000ULL;
     wides.entries[1] = 2000000000ULL;

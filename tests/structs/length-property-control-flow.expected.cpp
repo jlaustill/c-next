@@ -27,7 +27,7 @@ typedef struct Packet {
 } Packet;
 
 int main(void) {
-    Packet pkt = {0};
+    Packet pkt = {};
     pkt.header = 0xDEADBEEFU;
     pkt.pktLength = 256U;
     pkt.type = 1U;

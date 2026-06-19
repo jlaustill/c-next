@@ -29,22 +29,22 @@ uint8_t sumFirstTwo(uint8_t buf[8], const uint8_t ref[4]) {
 }
 
 int main(void) {
-    uint8_t buffer[8] = {0};
+    uint8_t buffer[8] = {};
     fillBuffer(buffer);
     if (buffer[0U] != 0xAA) return 1;
     if (buffer[1U] != 0xBB) return 2;
-    uint8_t data[8] = {0};
+    uint8_t data[8] = {};
     data[0] = 42U;
     uint8_t val = readFirst(data);
     if (val != 42) return 3;
-    uint8_t small[4] = {0};
+    uint8_t small[4] = {};
     small[1] = 99U;
     uint8_t val2 = readSecond(small);
     if (val2 != 99) return 4;
-    uint8_t ref[4] = {0};
+    uint8_t ref[4] = {};
     ref[0] = 10U;
     ref[1] = 20U;
-    uint8_t dest[8] = {0};
+    uint8_t dest[8] = {};
     uint8_t sum = sumFirstTwo(dest, ref);
     if (sum != 30) return 5;
     return 0;

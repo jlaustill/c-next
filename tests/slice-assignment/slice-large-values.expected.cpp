@@ -11,7 +11,7 @@
 // Validates copying maximum values and large data structures
 // Ensures no truncation or overflow in memory operations
 int main(void) {
-    uint8_t buffer[256] = {0};
+    uint8_t buffer[256] = {};
     uint64_t maxU64 = 0xFFFFFFFFFFFFFFFFULL;
     memcpy(&buffer[0], &maxU64, 8);
     if (buffer[0U] != 0xFF) return 1;

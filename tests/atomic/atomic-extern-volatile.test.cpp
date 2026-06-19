@@ -24,7 +24,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // Global atomic variables should generate volatile extern declarations
-volatile TReading readings[4] = {0};
+volatile TReading readings[4] = {};
 
 volatile uint32_t counter = 0U;
 

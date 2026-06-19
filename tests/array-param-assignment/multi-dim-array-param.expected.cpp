@@ -28,7 +28,7 @@ uint32_t sumRow(uint32_t arr[2][3], uint32_t row) {
 }
 
 int main(void) {
-    uint32_t matrix[2][3] = {0};
+    uint32_t matrix[2][3] = {};
     matrix[0][0] = 0U;
     matrix[0][1] = 0U;
     matrix[0][2] = 0U;

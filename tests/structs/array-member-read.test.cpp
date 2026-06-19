@@ -28,7 +28,7 @@ typedef struct Container {
 } Container;
 
 int main(void) {
-    Container cfg = {0};
+    Container cfg = {};
     Item item0 = { .value = 100U, .flags = 0U };
     Item item1 = { .value = 200U, .flags = 0U };
     Item item2 = { .value = 300U, .flags = 0U };

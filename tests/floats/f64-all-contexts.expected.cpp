@@ -19,7 +19,7 @@ typedef struct Vector {
 } Vector;
 
 // Array element type
-double measurements[8] = {0};
+double measurements[8] = {};
 
 // Function with f64 parameter and return
 double multiply(double a, double b) {

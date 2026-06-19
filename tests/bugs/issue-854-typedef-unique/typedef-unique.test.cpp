@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 /* Scope: Reader */
-static TypedefTypes_Sensor Reader_current = {0};
+static TypedefTypes_Sensor Reader_current = {};
 
 void Reader_update(const TypedefTypes_Sensor& s) {
     Reader_current = s;

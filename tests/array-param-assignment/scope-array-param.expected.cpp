@@ -20,7 +20,7 @@ void Test_writeAtIndex(uint8_t data[8], uint32_t index, uint8_t value) {
 }
 
 int main(void) {
-    uint8_t buffer[8] = {0};
+    uint8_t buffer[8] = {};
     buffer[0] = 0U;
     buffer[1] = 0U;
     buffer[2] = 0U;

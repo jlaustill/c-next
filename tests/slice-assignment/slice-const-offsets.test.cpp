@@ -23,7 +23,7 @@ extern const uint8_t LEN_VERSION = 2U;
 extern const uint8_t LEN_FLAGS = 1U;
 
 int main(void) {
-    uint8_t buffer[64] = {0};
+    uint8_t buffer[64] = {};
     uint32_t magic = 0x12345678U;
     memcpy(&buffer[0], &magic, 4);
     if (buffer[0U] != 0x78) return 1;

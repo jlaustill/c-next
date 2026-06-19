@@ -42,7 +42,7 @@ void directLoad(AppConfig& config) {
 }
 
 int main(void) {
-    AppConfig cfg = {0};
+    AppConfig cfg = {};
     cfg.value = 0U;
     cfg.enabled = false;
     loadConfig(cfg);

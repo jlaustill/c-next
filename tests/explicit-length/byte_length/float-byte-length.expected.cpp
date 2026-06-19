@@ -31,7 +31,7 @@ int main(void) {
     if (8 != 8) {
         return 4;
     }
-    FloatByteLen_TestStruct ts = {0};
+    FloatByteLen_TestStruct ts = {};
     ts.x = 1.0;
     ts.y = 2.0;
     if (4 != 4) {

@@ -10,6 +10,6 @@
 /* Scope: StructDecl */
 
 int main(void) {
-    Point p = {0};
-    StructDecl_Color c = {0};
+    Point p = {};
+    StructDecl_Color c = {};
 }

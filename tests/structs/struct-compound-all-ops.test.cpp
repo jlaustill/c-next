@@ -11,7 +11,7 @@
 // Covers: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
 /* Scope: CompoundOps */
 
-CompoundOps_Data d = {0};
+CompoundOps_Data d = {};
 
 int main(void) {
     d.add_val = 100U;

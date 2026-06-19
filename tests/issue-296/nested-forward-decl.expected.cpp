@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 /* Scope: Collision */
-static BoundingBox Collision_bounds = {0};
+static BoundingBox Collision_bounds = {};
 
 void Collision_setBounds(const BoundingBox& newBounds) {
     Collision_bounds = newBounds;

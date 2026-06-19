@@ -11,6 +11,6 @@
 
 void test(void) {
     SeaDash::Parse::ParseResult result = { .data = {0}, .count = 0, .success = false };
-    SeaDash::Parse::ParseResult result2 = {0};
+    SeaDash::Parse::ParseResult result2 = {};
     result2 = (SeaDash::Parse::ParseResult){ .data = {1, 2, 3}, .count = 3, .success = true };
 }

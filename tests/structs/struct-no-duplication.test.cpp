@@ -17,7 +17,7 @@ uint8_t Handler_process(const MyData& data) {
 }
 
 int main(void) {
-    MyData data = {0};
+    MyData data = {};
     data.value = 42U;
     data.count = 1U;
     uint8_t result = Handler_process(data);

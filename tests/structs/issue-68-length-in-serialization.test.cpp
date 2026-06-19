@@ -13,7 +13,7 @@
 /* Scope: SerialLength */
 
 int main(void) {
-    SerialLength_Config config = {0};
+    SerialLength_Config config = {};
     config.magic = 0x12345678U;
     config.version = 0x42U;
     uint32_t length = 32 / 8U;

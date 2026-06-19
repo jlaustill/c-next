@@ -1,0 +1,38 @@
+// test-execution
+// Issue #1004: C++ struct zero-init must use {} not {0} when the first field is an enum.
+// In C++ a brace-with-zero (= {0}) is an invalid int->enum narrowing conversion;
+// value-initialization (= {}) zero-initializes every field including the enum.
+
+enum EValueId {
+    VALUE_A,
+    VALUE_B,
+    VALUE_UNASSIGNED <- 0xFF
+}
+
+struct TInput {
+    EValueId assignedValue;
+    u32 count;
+}
+
+// No initializer -> generator emits the zero initializer for the struct.
+TInput input;
+
+// Array of enum-first structs: same zero-init path, same C++ {0} bug.
+TInput[2] inputs;
+
+u32 main() {
+    // Zero-initialization makes the first (enum) field VALUE_A (value 0).
+    if (global.input.assignedValue != EValueId.VALUE_A) {
+        return 1;
+    }
+    if (global.input.count != 0) {
+        return 2;
+    }
+    if (global.inputs[0].assignedValue != EValueId.VALUE_A) {
+        return 3;
+    }
+    if (global.inputs[1].assignedValue != EValueId.VALUE_A) {
+        return 4;
+    }
+    return 0;
+}

@@ -24,7 +24,7 @@ typedef struct Pixel {
     uint8_t b;
 } Pixel;
 
-Pixel image[4][4] = {0};
+Pixel image[4][4] = {};
 
 int main(void) {
     uint32_t y = 0U;

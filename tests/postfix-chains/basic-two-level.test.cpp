@@ -22,9 +22,9 @@ typedef struct Line {
 #define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 #define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
-Point points[4] = {0};
+Point points[4] = {};
 
-Line lines[2] = {0};
+Line lines[2] = {};
 
 int main(void) {
     lines[0].start.x = 10;

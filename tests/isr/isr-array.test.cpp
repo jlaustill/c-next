@@ -17,7 +17,7 @@ void hardFaultHandler(void) {
 }
 
 // Array of ISR pointers
-ISR vectorTable[3] = {0};
+ISR vectorTable[3] = {};
 
 void initVectors(void) {
     vectorTable[0] = resetHandler;

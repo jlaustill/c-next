@@ -18,9 +18,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // ADR-015: Array zero initialization
 // Tests: arrays are automatically zero-initialized
-uint8_t buffer[16] = {0};
+uint8_t buffer[16] = {};
 
-int32_t values[4] = {0};
+int32_t values[4] = {};
 
 int main(void) {
     uint32_t i = 0U;

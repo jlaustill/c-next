@@ -15,17 +15,17 @@ typedef struct Point {
 } Point;
 
 Point addPoints(const Point& a, const Point& b) {
-    Point result = {0};
+    Point result = {};
     result.x = a.x + b.x;
     result.y = a.y + b.y;
     return result;
 }
 
 int main(void) {
-    Point p1 = {0};
+    Point p1 = {};
     p1.x = 10;
     p1.y = 20;
-    Point p2 = {0};
+    Point p2 = {};
     p2.x = 5;
     p2.y = 15;
     Point sum = addPoints(p1, p2);

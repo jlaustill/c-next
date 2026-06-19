@@ -51,7 +51,7 @@ uint32_t Handler_handleMutableMessage(const CAN_message_t& msg) {
 }
 
 uint32_t testNamedTypedefConstArrayMember(void) {
-    CAN_message_t msg = {0};
+    CAN_message_t msg = {};
     msg.id = 1234U;
     msg.buf[0] = 10U;
     msg.buf[1] = 20U;
@@ -67,7 +67,7 @@ uint32_t testNamedTypedefConstArrayMember(void) {
 }
 
 uint32_t testMultipleArrayMembers(void) {
-    MultiArray_t multi = {0};
+    MultiArray_t multi = {};
     multi.header[0] = 1U;
     multi.header[1] = 2U;
     multi.header[2] = 3U;
@@ -82,7 +82,7 @@ uint32_t testMultipleArrayMembers(void) {
 }
 
 uint32_t testNonConstArrayMember(void) {
-    CAN_message_t msg = {0};
+    CAN_message_t msg = {};
     msg.id = 999U;
     msg.buf[0] = 100U;
     msg.buf[1] = 50U;

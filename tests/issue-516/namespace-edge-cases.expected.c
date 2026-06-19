@@ -14,13 +14,13 @@
 #include <stdbool.h>
 
 // Global variable with namespace type
-SeaDash::Parse::ParseResult globalResult = {0};
+SeaDash::Parse::ParseResult globalResult = {};
 
 /* Scope: EdgeCases */
-static SeaDash::Config EdgeCases_scopeConfig = {0};
+static SeaDash::Config EdgeCases_scopeConfig = {};
 
 void EdgeCases_testAssignmentTarget(void) {
-    SeaDash::Parse::ParseResult result = {0};
+    SeaDash::Parse::ParseResult result = {};
     result = SeaDash::Parse::parse("test", ',');
 }
 

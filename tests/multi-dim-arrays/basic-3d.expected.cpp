@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-036: 3D array declaration
-uint8_t voxels[4][4][4] = {0};
+uint8_t voxels[4][4][4] = {};
 
 void init(void) {
     voxels[0][0][0] = 1U;

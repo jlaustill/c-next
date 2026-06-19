@@ -13,10 +13,10 @@
 /* Scope: ArrayChain */
 
 // 2D array of structs
-ArrayChain_Entity grid[4][4] = {0};
+ArrayChain_Entity grid[4][4] = {};
 
 // Array of struct containing arrays
-ArrayChain_Mesh meshes[3] = {0};
+ArrayChain_Mesh meshes[3] = {};
 
 int main(void) {
     grid[0][0].transform.position.x = 1.0;

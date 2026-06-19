@@ -44,7 +44,7 @@ uint32_t testParam(const AllTypes& data) {
 }
 
 int main(void) {
-    AllTypes data = {0};
+    AllTypes data = {};
     data.field_u8 = 1U;
     data.field_u16 = 2U;
     data.field_u32 = 3U;

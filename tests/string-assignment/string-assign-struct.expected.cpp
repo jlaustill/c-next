@@ -12,7 +12,7 @@
 // Issue #139: Test struct member string assignment
 /* Scope: StrAssign */
 
-StrAssign_Config config = {0};
+StrAssign_Config config = {};
 
 void setConfigName(void) {
     strncpy(config.name, "TestConfig", 32); config.name[32] = '\0';

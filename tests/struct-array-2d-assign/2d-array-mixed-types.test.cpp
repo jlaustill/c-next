@@ -20,7 +20,7 @@ typedef struct MixedData {
     bool flag;
 } MixedData;
 
-MixedData matrix[2][2] = {0};
+MixedData matrix[2][2] = {};
 
 int main(void) {
     matrix[0][0].byteVal = 255U;

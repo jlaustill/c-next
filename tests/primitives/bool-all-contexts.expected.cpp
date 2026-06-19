@@ -21,7 +21,7 @@ typedef struct Flags {
 } Flags;
 
 // 3. Bool arrays
-bool flagArray[4] = {0};
+bool flagArray[4] = {};
 
 // 4. Function with bool param and return
 bool negate(bool value) {
@@ -46,7 +46,7 @@ int main(void) {
     if (idResult != true) return 5;
     bool localBool = true;
     if (localBool != true) return 6;
-    Flags flags = {0};
+    Flags flags = {};
     flags.enabled = true;
     flags.active = false;
     if (flags.enabled != true) return 7;

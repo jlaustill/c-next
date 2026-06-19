@@ -32,7 +32,7 @@ int main(void) {
     if (vowels[2U] != 'i') return 12;
     if (vowels[3U] != 'o') return 13;
     if (vowels[4U] != 'u') return 14;
-    uint8_t buffer[4] = {0};
+    uint8_t buffer[4] = {};
     buffer[0] = static_cast<uint8_t>('H');
     buffer[1] = static_cast<uint8_t>('i');
     buffer[2] = static_cast<uint8_t>('!');

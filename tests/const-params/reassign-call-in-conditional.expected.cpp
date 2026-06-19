@@ -83,7 +83,7 @@ void handleTopLevel(ConstCond_Config& config) {
 }
 
 int main(void) {
-    ConstCond_Config cfg = {0};
+    ConstCond_Config cfg = {};
     cfg.value = 0U;
     cfg.enabled = false;
     handleEnableSpn(cfg);

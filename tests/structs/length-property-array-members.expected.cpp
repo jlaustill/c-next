@@ -21,7 +21,7 @@ typedef struct Dataset {
 } Dataset;
 
 int main(void) {
-    Dataset data = {0};
+    Dataset data = {};
     data.id = 12345U;
     data.count = 5U;
     data.samples[0].timestamp = 1000U;

@@ -43,7 +43,7 @@ int main(void) {
     Point origin = { .x = 0, .y = 0 };
     if (origin.x != 0) return 1;
     if (origin.y != 0) return 2;
-    Point p1 = {0};
+    Point p1 = {};
     p1.x = 10;
     p1.y = 20;
     if (p1.x != 10) return 3;

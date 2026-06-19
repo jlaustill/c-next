@@ -13,12 +13,12 @@
 #include <stdbool.h>
 
 int main(void) {
-    SimpleRecord sr = {0};
+    SimpleRecord sr = {};
     sr.id = 99999U;
     sr.flags = 0x1234U;
     if (sr.id != 99999) return 1;
     if (sr.flags != 0x1234) return 2;
-    DataBuffer buf = {0};
+    DataBuffer buf = {};
     buf.len = 5U;
     buf.data[0] = 0x11U;
     buf.data[1] = 0x22U;
@@ -28,7 +28,7 @@ int main(void) {
     if (buf.len != 5) return 3;
     if (buf.data[0U] != 0x11) return 4;
     if (buf.data[4U] != 0x55) return 5;
-    MixedTypes mt = {0};
+    MixedTypes mt = {};
     mt.active = true;
     mt.byte_val = 255U;
     mt.word_val = 1000U;

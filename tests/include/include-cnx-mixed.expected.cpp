@@ -14,9 +14,9 @@
 #include <stdint.h>
 
 int main(void) {
-    Point p = {0};
+    Point p = {};
     p.x = 10;
-    HelperTypes_Color c = {0};
+    HelperTypes_Color c = {};
     c.red = 255U;
     return 0;
 }

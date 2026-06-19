@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 /* Scope: DataHandler */
-static AppData DataHandler_storedData = {0};
+static AppData DataHandler_storedData = {};
 
 void DataHandler_initialize(const AppData& data) {
     DataHandler_storedData = data;
