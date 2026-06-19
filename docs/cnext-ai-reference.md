@@ -218,6 +218,7 @@ switch (s) {
 
 - Enums are **strongly typed**: you cannot assign or compare an enum with a raw integer (`s <- 1` ✗, `if (s = 0)` ✗) — convert explicitly with `(u32)State.X`. Negative enum values are not allowed.
 - **Qualify** members as `State.IDLE`. An unqualified member (`IDLE`) is accepted only where the target type is already known (assignment to an enum-typed variable/field, or an enum-typed argument); it is an error in comparisons or a `switch` on a non-enum. Prefer qualified everywhere.
+- An enum member is a **compile-time integer constant**, so it can directly size an array — no cast: `enum E { A, B, C, COUNT } ... u8[E.COUNT] table;` (a trailing `COUNT` sentinel gives self-sizing tables). It works cross-file too. (Elsewhere, converting an enum to an integer still needs `(u32)E.X`.)
 
 ## Bitmaps
 
@@ -415,7 +416,7 @@ Scopes are singleton modules with automatic name prefixing.
 
 ```cnx
 scope Counter {
-    private u32 value <- 0;         // private — must be explicit
+    private u32 value <- 0;         // private (also the default for variables)
 
     void increment() {              // public (default for scope functions)
         this.value +<- 1;
@@ -454,6 +455,7 @@ scope Foo {
 - `this.name` forces scope resolution
 - `global.name` forces global resolution
 - `global.ScopeName.function()` calls another scope's public function
+- **Visibility defaults:** variables and nested types (struct/enum/register) are **private by default**; functions are **public by default**. Add `public` to expose a variable/type; add `private` to hide a function. Only `public` members are reachable as `Scope.member` from outside the scope.
 
 ### Scope Transpilation
 
