@@ -1150,7 +1150,7 @@ i32 wide <- raw[0, 16];                 // explicit 16-bit extraction → i32
 | `x <- 5`                          | `x = 5`                                                   |
 | `if (x = 5)`                      | `if (x == 5)`                                             |
 | `x +<- 1`                         | `x += 1`                                                  |
-| `void f(u32 x)`                   | `void f(uint32_t *x)`                                     |
+| `void f(u32 x)` (x modified)      | `void f(uint32_t *x)` — or `uint32_t x` if read-only      |
 | `f(myVar)`                        | `f(&myVar)`                                               |
 | `scope S { private void f() {} }` | `static void S_f(void) {}`                                |
 | `scope S { void f() {} }`         | `void S_f(void) {}` + header (public by default)          |
@@ -1163,6 +1163,7 @@ i32 wide <- raw[0, 16];                 // explicit 16-bit extraction → i32
 | `val[0, 8]`                       | `(val >> 0) & 0xFF`                                       |
 | `x[8,8] <- v[0,4]`                | clear 8-bit window + write 4-bit value (zero-extended)    |
 | `atomic u32 x`                    | `volatile uint32_t x` + LDREX/STREX                       |
+| `volatile u32 x`                  | `volatile uint32_t x` (no atomics)                        |
 | `critical { ... }`                | PRIMASK save/disable/restore                              |
 | `#include "x.cnx"`                | `#include "x.hpp"` (C++ mode) / `#include "x.h"` (C mode) |
 | `#include <x.cnx>`                | `#include <x.hpp>` (C++ mode) / `#include <x.h>` (C mode) |
