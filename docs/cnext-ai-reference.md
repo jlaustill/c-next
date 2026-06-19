@@ -612,7 +612,19 @@ GPIO7.DR_SET[3] <- true;            // atomic set bit 3
 bool bit <- GPIO7.PSR[3];           // read bit 3
 ```
 
-Access modes: `rw` (read-write), `ro` (read-only), `wo` (write-only), `w1c` (write-1-to-clear), `w1s` (write-1-to-set).
+Access modes: `rw` (read-write), `ro` (read-only), `wo` (write-only), `w1c` (write-1-to-clear), `w1s` (write-1-to-set). Violating a mode (reading a `wo`, writing a `ro`) is a compile error.
+
+A register field can be typed by a **bitmap** for named bit-field access:
+
+```cnx
+bitmap8 UartControl { Enable, TxEnable, RxEnable, Parity, StopBits, DataBits[2], Reserved }
+register UART @ 0x40010000 {
+    CTRL: UartControl rw @ 0x00,
+}
+UART.CTRL.Enable   <- true;     // named field write
+UART.CTRL.DataBits <- 3;
+bool en <- UART.CTRL.Enable;    // named field read
+```
 
 ## MISRA Compliance
 
