@@ -251,9 +251,13 @@ WIDENING (implicit, safe):     u8 → u32, i8 → i32  (same sign only)
 NARROWING (FORBIDDEN):         u32 → u8   — use bit indexing: val[0, 8]
 SIGN CHANGE (FORBIDDEN):       i32 → u32  — use bit indexing: val[0, 32]
 CROSS-SIGN WIDEN (FORBIDDEN):  u16 → i32  — use bit indexing: val[0, 16]
-FLOAT TRUNCATION (allowed):    (u32)floatVal — truncates fractional part
+FLOAT→INT (allowed):           (u32)f — truncates fraction, THEN clamps to range
 POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 ```
+
+**Literal range checking:** an out-of-range or wrong-sign literal in a declaration/assignment is a compile error — `u8 x <- 256;` ("Value 256 exceeds u8 range"), `u8 y <- -1;` ("Negative value … to unsigned u8"). In-range literals are fine.
+
+**Enum → integer** requires an explicit cast: `u32 v <- (u32)Priority.HIGH;` (to any integer width).
 
 ## Functions
 
