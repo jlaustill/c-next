@@ -129,7 +129,7 @@ u32 bytes <- buffer.byte_length;    // 256 (compile-time)
 
 - Use `[]` for array literals, NOT `{}`
 - Partial initialization forbidden (MISRA 9.3) — provide all elements or use `[val*]`
-- **Size inference (ADR-035):** omit the size with empty `[]` after the name to infer it from the initializer — `u8 data[] <- [1, 2, 3];` (size 3)
+- **Size inference (ADR-035):** omit the size with empty `[]` in the **type position** to infer it from the initializer — `u8[] data <- [1, 2, 3];` (size 3). Brackets always go before the name, never after.
 - **Compile-time bounds checking (ADR-036):** a constant index past the end is a compile error — `u8[5] a; a[5] <- 1;` fails with `index 5 >= array size 5`
 - **Indices must be unsigned integers** — a signed index errors `E0850`, a float index errors `E0851` (applies to both array `a[i]` and bit `x[i]` indexing)
 - Size goes BEFORE the name: `u8[256] buffer` not `u8 buffer[256]`
@@ -307,7 +307,7 @@ u8[sizeof(u32)] buf;         // usable as an array dimension
 
 Usable in any constant expression (arithmetic, comparison, ternary, array sizes). Errors:
 
-- `sizeof` on an **array parameter** (`u8 data[]`) → `E0601` (it would measure the pointer, not the array).
+- `sizeof` on an **array parameter** (`u8[16] data`) → `E0601` (it would measure the pointer, not the array — use `data.element_count`).
 - `sizeof` of an expression **with side effects** (e.g. a function call) → `E0602`.
 
 (Arrays also expose `.byte_length` / `.element_count`; `sizeof` additionally covers types, structs, and members.)
