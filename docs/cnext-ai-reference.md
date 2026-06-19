@@ -59,6 +59,8 @@ SIZE:      usize               → size_t
 STRING:    string<N>           → char[N+1]
 ```
 
+Scalar values also expose **`.bit_length`** — the compile-time bit width: `u32 x; x.bit_length` → 32, `f64 d; d.bit_length` → 64, `bool b; b.bit_length` → 8. (Arrays additionally expose `.byte_length`/`.element_count` — see Arrays.)
+
 ## Variable Declarations
 
 ```cnx
@@ -77,6 +79,8 @@ All variables are zero-initialized. No uninitialized variables exist.
 - **Default is clamp** (saturating): `u8 x <- 200; x +<- 100;` → x = 255
 - **opt-in wrap**: `wrap u32 c <- 0; c -<- 1;` → c = UINT32_MAX
 - Combine with atomic: `atomic clamp u8 brightness <- 0;`
+
+Clamp/wrap apply to **signed** types too: `clamp i8` saturates at both `-128` and `127`; `wrap` uses natural two's-complement wraparound.
 
 ## Arrays
 
