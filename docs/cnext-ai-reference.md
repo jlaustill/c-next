@@ -329,7 +329,7 @@ u32 add(u32 a, u32 b) {
 
 ## Pass-by-Reference (ADR-006)
 
-**ALL parameters are pass-by-reference automatically.** No pointer syntax exists.
+**Pass-by-reference semantics, no pointer syntax** — modify a parameter and the caller's variable changes (e.g. `swap` works). The transpiler picks the C form automatically (auto-const): a parameter you **modify** becomes a pointer (`uint32_t* x`; caller passes `&var`); one you only **read** is passed **by value** (scalars) or const (structs). Literals still can't be passed (see below).
 
 ```cnx
 void increment(u32 x) {     // transpiles to: void increment(uint32_t *x)
