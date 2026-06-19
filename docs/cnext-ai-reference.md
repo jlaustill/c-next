@@ -774,7 +774,7 @@ DefaultConstructible obj <- { value: 42, name: "label" };
 DefaultConstructible[3] sensors;
 ```
 
-A bare literal constructor argument (`tc(10)`) is a parse error — bind a `const` first. Works inside scopes too.
+A bare literal constructor argument (`tc(10)`) is a parse error — bind a `const` first. Works inside scopes too. The `obj(constArgs)` form is valid at global scope (the usual pattern for driver objects), but the **`<- { field: val }` field-init form for a class that has a constructor is function-only** — it lowers to field assignments, so it can't run at global/initializer scope (put it in `setup()` or another function).
 
 ## C++ Template Types
 
@@ -783,7 +783,10 @@ C++ template-instantiation syntax is parsed and passed through to C++ unchanged 
 ```cnx
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> canBus;   // identifier args
 Buffer<256, 16> buf;                                 // integer args
+Container<Pair<Element, Element> > nested;           // nested: note the space before the final >
 ```
+
+Nested templates need a **space before the final `>`** (`Foo<Bar<T> >`, not `Foo<Bar<T>>`) so the lexer doesn't read `>>` as a right-shift.
 
 ## C Struct Member Access
 
