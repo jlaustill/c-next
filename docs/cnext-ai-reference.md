@@ -19,7 +19,8 @@ COMPOUND:      x +<- 1         →  x += 1
                x |<- flags     →  x |= flags
                x <<<- 1        →  x <<= 1
 ARITHMETIC:    + - * / %       (same as C)
-BITWISE:       & | ^ ~ << >>   (same as C)
+BITWISE:       & | ^ ~          (signed & unsigned, same as C)
+SHIFT:         << >>            (UNSIGNED operands only — see below)
 LOGICAL:       && || !          (same as C)
 ```
 
@@ -36,6 +37,11 @@ bool err2 <- safe_mod(result, 10, divisor, result);  // pass current value as de
 ```
 
 `safe_div(out, numerator, divisor, defaultValue)` (and `safe_mod`) return a `bool` error flag: on a zero divisor they write `defaultValue` into `out` and return `true`; otherwise they write the quotient/remainder and return `false`. The transpiler emits a per-type helper (`cnx_safe_div_u32`, …).
+
+**Shift operators (`<<`, `>>`) require unsigned operands** (unlike C):
+
+- Shifting a **signed** value (`i8`/`i16`/`i32`/`i64`) is a compile error (`E0805`, MISRA 10.1) — left-shift of a signed value is UB and right-shift is implementation-defined in C, so C-Next forbids it. Bitwise `& | ^ ~` _are_ allowed on signed values (two's-complement, same as C).
+- The shift amount must be **non-negative** and **less than the operand's bit width** (MISRA 12.2): `x << -1` and `u8val << 8` are both compile errors. Widen first: `u16 wide <- val; u16 r <- wide << 8;`.
 
 ## Types
 
