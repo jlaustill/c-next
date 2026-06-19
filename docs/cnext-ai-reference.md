@@ -145,6 +145,21 @@ string<96> joined <- name + " World"; // concat (capacity >= sum of operand capa
 const string VERSION <- "1.0.0";    // auto-sized
 ```
 
+**Rules:**
+
+- Non-`const` strings must be sized (`string<64> s;`); only `const string` auto-sizes from its initializer.
+- A literal or concat that exceeds the destination capacity is a compile error.
+- Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗ — use `s <- s + x`).
+- String literals accept the same escape sequences as char literals (newline, tab, carriage return, backslash, quote).
+
+**Slice assignment into byte buffers:** `buf[byteOffset, byteCount] <- value` copies `byteCount` **little-endian** bytes of an integer `value` into a `u8[]`/string buffer. Offset and length must be **compile-time constants** (bounds-checked at compile time). On a byte _array_, `[off, len]` means BYTES; on a scalar/float, `[start, width]` means BITS.
+
+```cnx
+u8[64] buf;
+buf[0, 4]  <- 0x12345678;   // bytes 78 56 34 12 at indices 0..3 (LE)
+buf[10, 2] <- 0xCDEFu16;    // bytes EF CD at indices 10..11
+```
+
 ## Structs
 
 ```cnx
