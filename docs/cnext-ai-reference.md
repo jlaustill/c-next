@@ -234,6 +234,8 @@ f.Mode <- 5;
 bool r <- f.Running;
 ```
 
+Access bitmap fields by **name** (`f.Mode`); bracket-indexing a bitmap (`f[3]`) is an error.
+
 ## Bit Manipulation
 
 ```cnx
@@ -248,6 +250,12 @@ u32 big <- 0xDEADBEEF;
 u8 low <- big[0, 8];          // bits 0-7 → 0xEF
 u8 high <- big[24, 8];        // bits 24-31 → 0xDE
 ```
+
+Bit indexing also works on **floats** (`f32`/`f64`): `f32val[24, 8]` reads/writes IEEE-754 bytes (union-based, MISRA 21.15) — the way to build a float from wire bytes.
+
+**Compound assignment is not supported on a bit-index target:** `flags[0, 4] +<- 3;` is a compile error — read, modify, then write back.
+
+(On a byte _array_, `buf[off, len]` means BYTES — see Strings/slice assignment; on a scalar/float, `[start, width]` means BITS.)
 
 ### Zero-Extension on Wider Target Fields
 
