@@ -117,6 +117,36 @@ class SignedShiftListener extends CNextListener {
   };
 
   /**
+   * Check compound shift-assign statements for signed targets
+   * assignmentStatement: assignmentTarget assignmentOperator expression ';'
+   * Issue #1008: <<<- and >><- must also be rejected on signed types
+   */
+  override enterAssignmentStatement = (
+    ctx: Parser.AssignmentStatementContext,
+  ): void => {
+    const opCtx = ctx.assignmentOperator();
+    if (!opCtx) return;
+
+    const isLeftShiftAssign = opCtx.LSHIFT_ASSIGN() !== null;
+    const isRightShiftAssign = opCtx.RSHIFT_ASSIGN() !== null;
+    if (!isLeftShiftAssign && !isRightShiftAssign) return;
+
+    const target = ctx.assignmentTarget();
+    if (!target) return;
+
+    // Get the identifier from the assignment target
+    const identifier = target.IDENTIFIER();
+    if (!identifier) return;
+
+    // Check if the target variable is a signed type
+    if (this.signedVars.has(identifier.getText())) {
+      const operator = isLeftShiftAssign ? "<<<-" : ">><-";
+      const { line, column } = ParserUtils.getPosition(target);
+      this.analyzer.addError(line, column, operator);
+    }
+  };
+
+  /**
    * Check if an additive expression contains a signed type operand
    */
   private isSignedOperand(ctx: Parser.AdditiveExpressionContext): boolean {

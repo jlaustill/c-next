@@ -1,0 +1,1 @@
+6:4 error[E0805]: Shift operator '<<<-' not allowed on signed integer types

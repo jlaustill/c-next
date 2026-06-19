@@ -32,7 +32,8 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 
 // test-execution
 // Tests: i32 compound assignment operators
-// Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
+// Validates: 8 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-)
+// Note: Shift operators (<<<-, >><-) are rejected on signed types per MISRA C:2012 Rule 10.1
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: -2147483648 to 2147483647
 int main(void) {
@@ -156,35 +157,5 @@ int main(void) {
     xorVal = 0x55555555;
     xorVal ^= 0x2AAAAAAA;
     if (xorVal != 0x7FFFFFFF) return 73;
-    int32_t shl = 1;
-    shl <<= 0;
-    if (shl != 1) return 80;
-    shl = 1;
-    shl <<= 1;
-    if (shl != 2) return 81;
-    shl = 1;
-    shl <<= 16;
-    if (shl != 65536) return 82;
-    shl = 1;
-    shl <<= 30;
-    if (shl != 1073741824) return 83;
-    shl = -1;
-    shl <<= 4;
-    if (shl != -16) return 84;
-    int32_t shr = 65536;
-    shr >>= 0;
-    if (shr != 65536) return 90;
-    shr = 65536;
-    shr >>= 1;
-    if (shr != 32768) return 91;
-    shr = 65536;
-    shr >>= 16;
-    if (shr != 1) return 92;
-    shr = -16;
-    shr >>= 2;
-    if (shr != -4) return 93;
-    shr = -1;
-    shr >>= 10;
-    if (shr != -1) return 94;
     return 0;
 }

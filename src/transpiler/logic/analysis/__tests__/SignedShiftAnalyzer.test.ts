@@ -411,4 +411,155 @@ describe("SignedShiftAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // Compound Shift-Assign (Issue #1008)
+  // ========================================================================
+
+  describe("compound shift-assign (issue #1008)", () => {
+    it("should detect left shift compound-assign with i8 target", () => {
+      const code = `
+        void main() {
+          i8 x <- 1;
+          x <<<- 2;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0805");
+      expect(errors[0].message).toContain("Shift operator '<<<-'");
+      expect(errors[0].message).toContain("signed integer types");
+    });
+
+    it("should detect right shift compound-assign with i8 target", () => {
+      const code = `
+        void main() {
+          i8 x <- 64;
+          x >><- 2;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0805");
+      expect(errors[0].message).toContain("Shift operator '>><-'");
+    });
+
+    it("should detect left shift compound-assign with i16 target", () => {
+      const code = `
+        void main() {
+          i16 x <- 1;
+          x <<<- 4;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0805");
+    });
+
+    it("should detect left shift compound-assign with i32 target", () => {
+      const code = `
+        void main() {
+          i32 x <- 1;
+          x <<<- 8;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0805");
+    });
+
+    it("should detect left shift compound-assign with i64 target", () => {
+      const code = `
+        void main() {
+          i64 x <- 1;
+          x <<<- 16;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0805");
+    });
+
+    it("should not flag left shift compound-assign with u8 target", () => {
+      const code = `
+        void main() {
+          u8 x <- 1;
+          x <<<- 2;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should not flag right shift compound-assign with u32 target", () => {
+      const code = `
+        void main() {
+          u32 x <- 256;
+          x >><- 4;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect multiple compound shift-assign violations", () => {
+      const code = `
+        void main() {
+          i8 a <- 1;
+          a <<<- 2;
+          i16 b <- 64;
+          b >><- 3;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(2);
+      expect(errors[0].message).toContain("<<<-");
+      expect(errors[1].message).toContain(">><-");
+    });
+
+    it("should not flag other compound-assign operators on signed types", () => {
+      const code = `
+        void main() {
+          i32 x <- 10;
+          x +<- 5;
+          x -<- 2;
+          x *<- 3;
+          x /<- 2;
+          x %<- 3;
+          x &<- 0xFF;
+          x |<- 0x0F;
+          x ^<- 0xAA;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new SignedShiftAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
 });
