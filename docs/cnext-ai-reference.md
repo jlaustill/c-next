@@ -12,12 +12,17 @@ A complete reference for AI code generation. C-Next transpiles to C/C++. Every r
 ASSIGNMENT:    x <- 5          →  x = 5
 COMPARISON:    if (x = 5)      →  if (x == 5)
 NOT EQUAL:     if (x != 5)     →  if (x != 5)
+RELATIONAL:    < > <= >=       (same as C)
 COMPOUND:      x +<- 1         →  x += 1
                x -<- 1         →  x -= 1
                x *<- 2         →  x *= 2
+               x /<- 2         →  x /= 2
+               x %<- 2         →  x %= 2
                x &<- mask      →  x &= mask
                x |<- flags     →  x |= flags
+               x ^<- mask      →  x ^= mask
                x <<<- 1        →  x <<= 1
+               x >><- 1        →  x >>= 1
 ARITHMETIC:    + - * / %       (same as C)
 BITWISE:       & | ^ ~          (signed & unsigned, same as C)
 SHIFT:         << >>            (UNSIGNED operands only — see below)
