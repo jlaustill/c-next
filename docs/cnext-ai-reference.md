@@ -451,6 +451,25 @@ scope LED {
 - Public members → non-static + header prototype
 - Names prefixed: `ScopeName_memberName`
 
+### Scoped Types
+
+Structs, enums, and registers can be declared **inside** a scope. Refer to the type as `this.Name` within the scope and `ScopeName.Name` from outside; a `private` scoped type is only usable inside its scope.
+
+```cnx
+scope Motor {
+    public enum State { IDLE, RUNNING }
+    public this.State current <- this.State.IDLE;   // member typed by a scoped enum
+
+    public void start() { this.current <- this.State.RUNNING; }
+}
+
+Motor.State s <- Motor.State.IDLE;        // refer to the scoped type from outside
+Motor.start();
+bool running <- Motor.current = Motor.State.RUNNING;
+```
+
+Scopes **cannot be nested** (`scope A { scope B { } }` is a compile error, ADR-016).
+
 ## Includes
 
 ```cnx
