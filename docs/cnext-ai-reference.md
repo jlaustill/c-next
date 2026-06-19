@@ -61,6 +61,33 @@ STRING:    string<N>           → char[N+1]
 
 Scalar values also expose **`.bit_length`** — the compile-time bit width: `u32 x; x.bit_length` → 32, `f64 d; d.bit_length` → 64, `bool b; b.bit_length` → 8. (Arrays additionally expose `.byte_length`/`.element_count` — see Arrays.)
 
+## Literals
+
+Number bases — prefix is case-insensitive; type inferred from context:
+
+```cnx
+u8 a <- 200;          // decimal
+u8 b <- 0xFF;         // hex     (0x / 0X; digits case-insensitive)
+u8 c <- 0b10101010;   // binary  (0b / 0B)
+```
+
+Integer **type suffixes** force a literal's type (case-insensitive), with any base — `u8 u16 u32 i8 i16 i32`:
+
+```cnx
+u8  d <- 42u8;
+u16 e <- 0xABCDu16;
+i32 f <- 100I32;
+```
+
+**Char literals** are `u8` — the character's byte value — and work anywhere a `u8` does (init, comparison, array elements, `switch` cases, arithmetic):
+
+```cnx
+u8 ch <- 'A';         // 65
+u8 lo <- 'A' + 32;    // 'a'
+```
+
+Standard char escape sequences work in `'...'` literals: newline (10), tab (9), carriage return (13), null (0), backslash (92), single-quote (39), double-quote (34).
+
 ## Variable Declarations
 
 ```cnx
