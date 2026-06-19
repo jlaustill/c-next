@@ -4,25 +4,6 @@ A complete reference for AI code generation. C-Next transpiles to C/C++. Every r
 
 ---
 
-# Project Setup
-
-Before writing `.cnx`, make sure the project is configured (full guide:
-`docs/platformio-integration.md`; for a quick syntax tour, see
-`docs/learn-cnext-in-y-minutes.md`):
-
-- **`cnext.config.json`** drives the transpiler; `cnext --pio-install` writes a
-  working default. The field that matters most for codegen is **`include`** — it
-  must list every directory holding C/C++ headers you `#include` (e.g. `include/`,
-  `.pio/libdeps/`).
-- **C vs C++ output is auto-detected.** C-Next emits `.cpp`/`.hpp` when it parses a
-  C++ header you include (templates/classes), otherwise `.c`/`.h`. You normally do
-  **NOT** set `cppRequired`. Auto-detection only works on headers cnext can
-  **find**, so keep your C++ headers on the `include` path — a `.cnx` that includes
-  only a header cnext cannot find (e.g. `<Arduino.h>` not on a search path)
-  silently falls back to C mode.
-
----
-
 # Part 1: Core Language
 
 ## Operators
@@ -303,11 +284,11 @@ scope Counter {
     private u32 value <- 0;         // private — must be explicit
 
     void increment() {              // public (default for scope functions)
-        value +<- 1;               // bare name resolves to the scope member
+        this.value +<- 1;
     }
 
     u32 get() {
-        return value;
+        return this.value;
     }
 }
 
@@ -315,10 +296,6 @@ scope Counter {
 Counter.increment();                // → Counter_increment()
 u32 v <- Counter.get();             // → Counter_get()
 ```
-
-Prefer **bare names** inside a scope — they resolve to the scope member
-automatically. Use `this.` / `global.` only to break a real naming conflict (see
-Name Resolution below), not as a default style — qualifying everything is noise.
 
 ### Name Resolution (ADR-057)
 
@@ -339,10 +316,9 @@ scope Foo {
 
 **Rules:**
 
-- **Default to bare names** — reach for `this.`/`global.` ONLY to disambiguate an actual conflict; qualifying by default is noise.
 - Inside a scope, bare names resolve local first, then scope, then global
-- `this.name` forces scope resolution (use when a local shadows a scope member)
-- `global.name` forces global resolution (use when a scope member shadows a global)
+- `this.name` forces scope resolution
+- `global.name` forces global resolution
 - `global.ScopeName.function()` calls another scope's public function
 
 ### Scope Transpilation
@@ -466,10 +442,6 @@ critical {
 }
 // No return/break/continue inside critical blocks
 ```
-
-On Arduino/ARM targets `critical {}` expands to `noInterrupts()` / PRIMASK
-wrappers, so a `.cnx` that uses it must `#include <Arduino.h>` (or the platform
-header providing those) — otherwise the generated code won't compile.
 
 ## Register Bindings (ADR-004)
 
