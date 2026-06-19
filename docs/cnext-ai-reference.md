@@ -131,6 +131,7 @@ u32 bytes <- buffer.byte_length;    // 256 (compile-time)
 - Partial initialization forbidden (MISRA 9.3) — provide all elements or use `[val*]`
 - **Size inference (ADR-035):** omit the size with empty `[]` after the name to infer it from the initializer — `u8 data[] <- [1, 2, 3];` (size 3)
 - **Compile-time bounds checking (ADR-036):** a constant index past the end is a compile error — `u8[5] a; a[5] <- 1;` fails with `index 5 >= array size 5`
+- **Indices must be unsigned integers** — a signed index errors `E0850`, a float index errors `E0851` (applies to both array `a[i]` and bit `x[i]` indexing)
 - Size goes BEFORE the name: `u8[256] buffer` not `u8 buffer[256]`
 
 ## Strings
@@ -770,6 +771,15 @@ DefaultConstructible[3] sensors;
 ```
 
 A bare literal constructor argument (`tc(10)`) is a parse error — bind a `const` first. Works inside scopes too.
+
+## C++ Template Types
+
+C++ template-instantiation syntax is parsed and passed through to C++ unchanged — use it for templated library types (Issue #291):
+
+```cnx
+FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> canBus;   // identifier args
+Buffer<256, 16> buf;                                 // integer args
+```
 
 ## C Struct Member Access
 
