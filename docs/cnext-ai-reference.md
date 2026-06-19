@@ -923,7 +923,7 @@ C structs with anonymous nested structs (common in ESP-IDF) **can be initialized
 ```cnx
 PanelConfig panel <- {
     clk_src: 1,
-    timings: { pclk_hz: 16000000, h_res: 800, v_res: 480 },
+    timings: { clock_hz: 16000000, h_res: 800, v_res: 480 },
     flags:   { fb_in_psram: 1, double_fb: 0 }      // nested anon-struct init works
 };
 ```
