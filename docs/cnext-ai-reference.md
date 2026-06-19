@@ -33,7 +33,7 @@ LOGICAL:       && || !          (same as C)
 
 - A **compile-time-zero** divisor — a literal `0`, or a `const` known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `const u32 ZERO <- 0; x / ZERO`.
 - A **runtime** divisor compiles to plain C division with no implicit guard (`10 / divisor` → `10U / divisor`).
-- **Floats:** `%` is **forbidden** on floats (`E0804` — `%` is integer-only). Float **division by zero is allowed** (yields `inf`/`NaN`) — the `E0800` compile-time-zero check applies to integer `/` and `%` only.
+- **Floats:** `%` is **forbidden** on floats (`E0804` — `%` is integer-only).
 - For guarded runtime division/modulo, use the `safe_div` / `safe_mod` built-ins (ADR-051):
 
 ```cnx
