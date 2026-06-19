@@ -23,6 +23,20 @@ BITWISE:       & | ^ ~ << >>   (same as C)
 LOGICAL:       && || !          (same as C)
 ```
 
+**Division and modulo guard against divide-by-zero** (unlike C):
+
+- A **compile-time-zero** divisor — a literal `0`, or a `const` known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `const u32 ZERO <- 0; x / ZERO`.
+- A **runtime** divisor compiles to plain C division with no implicit guard (`10 / divisor` → `10U / divisor`).
+- For guarded runtime division/modulo, use the `safe_div` / `safe_mod` built-ins (ADR-051):
+
+```cnx
+u32 result <- 0;
+bool err  <- safe_div(result, 10, divisor, 99);      // divisor == 0 → result = 99, err = true
+bool err2 <- safe_mod(result, 10, divisor, result);  // pass current value as default = preserve-on-error
+```
+
+`safe_div(out, numerator, divisor, defaultValue)` (and `safe_mod`) return a `bool` error flag: on a zero divisor they write `defaultValue` into `out` and return `true`; otherwise they write the quotient/remainder and return `false`. The transpiler emits a per-type helper (`cnx_safe_div_u32`, …).
+
 ## Types
 
 ```
