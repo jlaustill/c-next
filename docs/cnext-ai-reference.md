@@ -190,6 +190,8 @@ Rect r <- {
 - All fields public (structs are data containers)
 - Zero-initialized by default
 
+Don't repeat the struct type in an initializer — `Point p <- {x: 1, y: 2};`, not `Point p <- Point {x: 1, y: 2};` (ADR-014: redundant type is an error).
+
 ## Enums
 
 ```cnx
