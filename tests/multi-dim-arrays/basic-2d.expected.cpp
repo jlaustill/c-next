@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ADR-036: Basic 2D array declaration and access
-uint8_t matrix[4][8] = {0};
+uint8_t matrix[4][8] = {};
 
 void init(void) {
     matrix[0][0] = 1U;

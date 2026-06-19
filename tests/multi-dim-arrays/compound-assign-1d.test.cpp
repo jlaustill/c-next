@@ -7,7 +7,7 @@
 
 // Test: Compound assignment on 1D arrays
 // Covers all compound operators: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
-uint32_t data[10] = {0};
+uint32_t data[10] = {};
 
 int main(void) {
     data[0] = 100U;

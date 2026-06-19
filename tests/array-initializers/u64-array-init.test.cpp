@@ -64,7 +64,7 @@ int main(void) {
     uint64_t large_vals[3] = {9000000000000000000ULL, 8000000000000000000ULL, 7000000000000000000ULL};
     if (large_vals[0U] != 9000000000000000000) return 21;
     if (large_vals[2U] != 7000000000000000000) return 22;
-    uint64_t sequence[10] = {0};
+    uint64_t sequence[10] = {};
     for (uint32_t i = 0; i < 10; i += 1) {
         sequence[i] = i * 1000000ULL;
     }
@@ -76,7 +76,7 @@ int main(void) {
     if (100 != 100) return 28;
     if (64 != 64) return 29;
     if (64 != 64) return 30;
-    uint64_t computed[3] = {0};
+    uint64_t computed[3] = {};
     computed[0] = 1000ULL * 1000ULL;
     computed[1] = 1000ULL * 1000000ULL;
     computed[2] = computed[0U] + computed[1U];

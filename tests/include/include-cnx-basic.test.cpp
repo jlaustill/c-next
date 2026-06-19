@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 int main(void) {
-    Point p = {0};
+    Point p = {};
     p.x = 10;
     p.y = 20;
     return 0;

@@ -25,7 +25,7 @@ void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t index) {
 }
 
 int main(void) {
-    uint8_t buffer[8] = {0};
+    uint8_t buffer[8] = {};
     buffer[0] = 0U;
     buffer[1] = 0U;
     writeAt(buffer, 0U, 42U);
@@ -34,8 +34,8 @@ int main(void) {
     if (buffer[1U] != 99) return 2;
     writeFirst(buffer, 123U);
     if (buffer[0U] != 123) return 3;
-    uint8_t source[4] = {0};
-    uint8_t dest[4] = {0};
+    uint8_t source[4] = {};
+    uint8_t dest[4] = {};
     source[0] = 0U;
     source[1] = 0U;
     source[2] = 0U;

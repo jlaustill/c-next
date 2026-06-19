@@ -10,9 +10,9 @@
 // test-execution
 // Tests: Multiple scoped structs in the same scope
 /* Scope: DataManager */
-DataManager_Point DataManager_cursor = {0};
-DataManager_Size DataManager_screenSize = {0};
-DataManager_Rect DataManager_viewport = {0};
+DataManager_Point DataManager_cursor = {};
+DataManager_Size DataManager_screenSize = {};
+DataManager_Rect DataManager_viewport = {};
 
 void DataManager_setCursor(int16_t x, int16_t y) {
     DataManager_cursor.x = x;

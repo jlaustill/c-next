@@ -28,7 +28,7 @@ int main(void) {
     if (136 != 136) {
         return 3;
     }
-    TestStruct ts = {0};
+    TestStruct ts = {};
     strncpy(ts.name, "Test", 32); ts.name[32] = '\0';
     if (264 != 264) {
         return 4;

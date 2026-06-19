@@ -6,9 +6,9 @@
 #include <stdint.h>
 
 // Test float arrays
-float samples_f32[10] = {0};
+float samples_f32[10] = {};
 
-double measurements_f64[5] = {0};
+double measurements_f64[5] = {};
 
 void test_f32_array(void) {
     samples_f32[0] = 1.1;

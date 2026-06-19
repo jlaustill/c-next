@@ -11,13 +11,13 @@
 #include "MockLib.hpp"
 
 // Test 1: Two-level namespace type (MockLib::Parse::ParseResult)
-MockLib::Parse::ParseResult parsed = {0};
+MockLib::Parse::ParseResult parsed = {};
 
 // Test 2: Single-level namespace type (MockLib::Config)
-MockLib::Config config = {0};
+MockLib::Config config = {};
 
 // Test 3: Triple-level namespace type (Deep::Level1::Level2::DeepType)
-Deep::Level1::Level2::DeepType deep = {0};
+Deep::Level1::Level2::DeepType deep = {};
 
 /* Scope: Test */
 

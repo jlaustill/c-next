@@ -29,7 +29,7 @@ void copyU32(uint32_t src[4], uint32_t dst[4], uint32_t index) {
 }
 
 int main(void) {
-    uint32_t buffer[4] = {0};
+    uint32_t buffer[4] = {};
     buffer[0] = 0U;
     buffer[1] = 0U;
     buffer[2] = 0U;
@@ -50,8 +50,8 @@ int main(void) {
     incrementU32(buffer, 2U);
     incrementU32(buffer, 2U);
     if (buffer[2U] != 53) return 7;
-    uint32_t source[4] = {0};
-    uint32_t dest[4] = {0};
+    uint32_t source[4] = {};
+    uint32_t dest[4] = {};
     source[0] = 12345U;
     source[1] = 67890U;
     dest[0] = 0U;

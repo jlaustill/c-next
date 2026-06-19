@@ -23,7 +23,7 @@ int main(void) {
     if (8 != 8) {
         return 2;
     }
-    BoolBitLen_TestStruct ts = {0};
+    BoolBitLen_TestStruct ts = {};
     ts.flag = true;
     if (8 != 8) {
         return 3;

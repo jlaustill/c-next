@@ -9,9 +9,9 @@
 // Tests: multi-dimensional f32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor readings, graphics coordinates, physics simulations
-float matrix2d[4][8] = {0};
+float matrix2d[4][8] = {};
 
-float cube3d[2][3][4] = {0};
+float cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = 3.125;
@@ -62,7 +62,7 @@ int main(void) {
     if (matrix2d[2U][4U] != -1000.0) return 22;
     matrix2d[3][7] = 42.5;
     if (matrix2d[3U][7U] != 42.5) return 23;
-    float testArray[4][2] = {0};
+    float testArray[4][2] = {};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0.0;
@@ -80,7 +80,7 @@ int main(void) {
     if (testArray[1U][1U] != -1.0) return 27;
     if (testArray[2U][0U] != 0.125) return 28;
     if (testArray[3U][1U] != -0.125) return 29;
-    float temps[3][3] = {0};
+    float temps[3][3] = {};
     for (uint32_t tei = 0; tei < 3; tei += 1) {
         for (uint32_t tej = 0; tej < 3; tej += 1) {
             temps[tei][tej] = 0.0;
@@ -98,7 +98,7 @@ int main(void) {
     if (temps[0U][2U] != 100.0) return 32;
     if (temps[1U][0U] != 37.0) return 33;
     if (temps[2U][0U] != -40.0) return 34;
-    float precise[2][2] = {0};
+    float precise[2][2] = {};
     for (uint32_t pi = 0; pi < 2; pi += 1) {
         for (uint32_t pj = 0; pj < 2; pj += 1) {
             precise[pi][pj] = 0.0;
@@ -112,7 +112,7 @@ int main(void) {
     if (precise[0U][1U] != 0.0625) return 36;
     if (precise[1U][0U] != 1000.0) return 37;
     if (precise[1U][1U] != -123.5) return 38;
-    float calc[2][2] = {0};
+    float calc[2][2] = {};
     for (uint32_t ci = 0; ci < 2; ci += 1) {
         for (uint32_t cj = 0; cj < 2; cj += 1) {
             calc[ci][cj] = 0.0;
@@ -122,7 +122,7 @@ int main(void) {
     calc[0][1] = 5.25;
     float calcSum = calc[0U][0U] + calc[0U][1U];
     if (calcSum != 15.75) return 39;
-    float coords[2][4] = {0};
+    float coords[2][4] = {};
     for (uint32_t coi = 0; coi < 2; coi += 1) {
         for (uint32_t coj = 0; coj < 4; coj += 1) {
             coords[coi][coj] = 0.0;

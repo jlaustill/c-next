@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 /* Scope: ByteCaller */
-static ByteData ByteCaller_data = {0};
+static ByteData ByteCaller_data = {};
 
 void ByteCaller_init(void) {
     ByteCaller_data.value1 = 0U;

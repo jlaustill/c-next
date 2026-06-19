@@ -21,7 +21,7 @@ float global_uninit = 0.0f;
 /* Scope: F32AllCtx */
 
 // Array element type
-float samples[4] = {0};
+float samples[4] = {};
 
 // Function with f32 parameter and return
 float add(float a, float b) {

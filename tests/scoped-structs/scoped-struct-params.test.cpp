@@ -39,9 +39,9 @@ void Math_copy(Math_Vec2& dest, const Math_Vec2& src) {
 }
 
 int main(void) {
-    Math_Vec2 v1 = {0};
-    Math_Vec2 v2 = {0};
-    Math_Vec2 result = {0};
+    Math_Vec2 v1 = {};
+    Math_Vec2 v2 = {};
+    Math_Vec2 result = {};
     v1.x = 3;
     v1.y = 4;
     v2.x = 1;

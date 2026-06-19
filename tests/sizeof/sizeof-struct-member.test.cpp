@@ -25,21 +25,21 @@ typedef struct DataBuffer {
     uint32_t len;
 } DataBuffer;
 
-Point globalPoint = {0};
+Point globalPoint = {};
 
-Sensor globalSensor = {0};
+Sensor globalSensor = {};
 
-DataBuffer globalBuffer = {0};
+DataBuffer globalBuffer = {};
 
 int main(void) {
-    Point p = {0};
+    Point p = {};
     uint32_t pointSize = sizeof(p);
     if (pointSize != 8) return 1;
     uint32_t xSize = sizeof(p.x);
     if (xSize != 4) return 2;
     uint32_t ySize = sizeof(p.y);
     if (ySize != 4) return 3;
-    Sensor s = {0};
+    Sensor s = {};
     uint32_t sensorSize = sizeof(s);
     uint32_t idSize = sizeof(s.id);
     if (idSize != 1) return 4;
@@ -49,7 +49,7 @@ int main(void) {
     if (timestampSize != 4) return 6;
     uint32_t tempSize = sizeof(s.temperature);
     if (tempSize != 4) return 7;
-    DataBuffer buf = {0};
+    DataBuffer buf = {};
     uint32_t dataSize = sizeof(buf.data);
     if (dataSize != 64) return 8;
     uint32_t lenSize = sizeof(buf.len);

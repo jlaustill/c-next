@@ -22,7 +22,7 @@
 typedef uint8_t Flags;
 
 int main(void) {
-    Flags f = {0};
+    Flags f = {};
     f = (f & ~(1U << 0)) | (1U << 0);
     if (((f >> 0) & 1) != true) return 1;
     f = (f & ~(1U << 1)) | (0U << 1);

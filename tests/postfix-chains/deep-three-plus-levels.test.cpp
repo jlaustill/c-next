@@ -11,7 +11,7 @@
 // Tests: Complex chains with multiple member/array/bit accesses
 /* Scope: DeepThreeLevel */
 
-DeepThreeLevel_Scene scenes[2] = {0};
+DeepThreeLevel_Scene scenes[2] = {};
 
 int main(void) {
     scenes[0].objects[0].material.ambient.r = 255U;

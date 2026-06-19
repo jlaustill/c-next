@@ -7,7 +7,7 @@
 
 // Test: Compound assignment on multi-dimensional arrays
 // Verifies fix for line 4073 in CodeGenerator.ts
-uint8_t matrix[4][4] = {0};
+uint8_t matrix[4][4] = {};
 
 int main(void) {
     matrix[0][0] = 10U;

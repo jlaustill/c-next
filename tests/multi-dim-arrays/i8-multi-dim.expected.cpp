@@ -19,9 +19,9 @@ static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
 // Tests: multi-dimensional i8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: temperature sensors, small signed offsets, delta values
-int8_t matrix2d[4][8] = {0};
+int8_t matrix2d[4][8] = {};
 
-int8_t cube3d[2][3][4] = {0};
+int8_t cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = -128;
@@ -72,7 +72,7 @@ int main(void) {
     if (matrix2d[2U][4U] != -128) return 22;
     matrix2d[3][7] = -1;
     if (matrix2d[3U][7U] != -1) return 23;
-    int8_t testArray[4][2] = {0};
+    int8_t testArray[4][2] = {};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0;
@@ -90,7 +90,7 @@ int main(void) {
     if (testArray[1U][1U] != -1) return 27;
     if (testArray[2U][0U] != 1) return 28;
     if (testArray[3U][1U] != -50) return 29;
-    int8_t temps[3][3] = {0};
+    int8_t temps[3][3] = {};
     for (uint32_t tei = 0; tei < 3; tei += 1) {
         for (uint32_t tej = 0; tej < 3; tej += 1) {
             temps[tei][tej] = 0;
@@ -108,7 +108,7 @@ int main(void) {
     if (temps[1U][1U] != 20) return 33;
     if (temps[2U][0U] != 37) return 34;
     if (temps[2U][1U] != 100) return 35;
-    int8_t deltas[2][2] = {0};
+    int8_t deltas[2][2] = {};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 2; dj += 1) {
             deltas[di][dj] = 0;

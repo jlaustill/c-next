@@ -9,9 +9,9 @@
 // Tests: multi-dimensional f64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: scientific calculations, high-precision measurements, astronomy
-double matrix2d[4][8] = {0};
+double matrix2d[4][8] = {};
 
-double cube3d[2][3][4] = {0};
+double cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = 3.14159265359;
@@ -62,7 +62,7 @@ int main(void) {
     if (matrix2d[2U][4U] != -999999.999999) return 22;
     matrix2d[3][7] = 42.123456789;
     if (matrix2d[3U][7U] != 42.123456789) return 23;
-    double testArray[4][2] = {0};
+    double testArray[4][2] = {};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0.0;
@@ -80,7 +80,7 @@ int main(void) {
     if (testArray[1U][1U] != -1.0) return 27;
     if (testArray[2U][0U] != 0.123456789012345) return 28;
     if (testArray[3U][1U] != -0.123456789012345) return 29;
-    double constants[3][3] = {0};
+    double constants[3][3] = {};
     for (uint32_t coi = 0; coi < 3; coi += 1) {
         for (uint32_t coj = 0; coj < 3; coj += 1) {
             constants[coi][coj] = 0.0;
@@ -100,7 +100,7 @@ int main(void) {
     if (constants[1U][1U] != 299792458.0) return 34;
     if (constants[2U][0U] != 6.67430e-11) return 35;
     if (constants[2U][1U] != 9.80665) return 36;
-    double precise[2][2] = {0};
+    double precise[2][2] = {};
     for (uint32_t pi = 0; pi < 2; pi += 1) {
         for (uint32_t pj = 0; pj < 2; pj += 1) {
             precise[pi][pj] = 0.0;
@@ -114,7 +114,7 @@ int main(void) {
     if (precise[0U][1U] != 0.000000000000001) return 38;
     if (precise[1U][0U] != 999999.999999999) return 39;
     if (precise[1U][1U] != -123456.789012345) return 40;
-    double calc[2][2] = {0};
+    double calc[2][2] = {};
     for (uint32_t ci = 0; ci < 2; ci += 1) {
         for (uint32_t cj = 0; cj < 2; cj += 1) {
             calc[ci][cj] = 0.0;
@@ -124,7 +124,7 @@ int main(void) {
     calc[0][1] = 5.987654321;
     double calcSum = calc[0U][0U] + calc[0U][1U];
     if (calcSum != 16.11111111) return 41;
-    double distances[2][3] = {0};
+    double distances[2][3] = {};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 3; dj += 1) {
             distances[di][dj] = 0.0;
@@ -139,7 +139,7 @@ int main(void) {
     if (distances[0U][0U] != 9.461e15) return 42;
     if (distances[0U][1U] != 1.496e11) return 43;
     if (distances[1U][0U] != 4.0e26) return 44;
-    double quantum[2][2] = {0};
+    double quantum[2][2] = {};
     for (uint32_t qi = 0; qi < 2; qi += 1) {
         for (uint32_t qj = 0; qj < 2; qj += 1) {
             quantum[qi][qj] = 0.0;

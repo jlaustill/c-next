@@ -25,7 +25,7 @@ int main(void) {
     if (values[2U] != 0) return 3;
     if (values[3U] != 1000000000000) return 4;
     if (values[4U] != 9223372036854775807) return 5;
-    int64_t data[4] = {0};
+    int64_t data[4] = {};
     data[0] = -5000000000000;
     data[1] = 5000000000000;
     data[2] = -10000000000000;

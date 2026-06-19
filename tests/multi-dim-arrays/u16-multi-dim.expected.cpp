@@ -19,9 +19,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: multi-dimensional u16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor data, medium-range counters, port numbers
-uint16_t matrix2d[4][8] = {0};
+uint16_t matrix2d[4][8] = {};
 
-uint16_t cube3d[2][3][4] = {0};
+uint16_t cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = 1000U;
@@ -72,7 +72,7 @@ int main(void) {
     if (matrix2d[2U][4U] != 60000) return 22;
     matrix2d[3][7] = 555U;
     if (matrix2d[3U][7U] != 555) return 23;
-    uint16_t testArray[3][2] = {0};
+    uint16_t testArray[3][2] = {};
     for (uint32_t ti = 0; ti < 3; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0U;
@@ -86,7 +86,7 @@ int main(void) {
     if (testArray[0U][1U] != 65535) return 25;
     if (testArray[1U][0U] != 32768) return 26;
     if (testArray[2U][1U] != 1000) return 27;
-    uint16_t ports[3][3] = {0};
+    uint16_t ports[3][3] = {};
     for (uint32_t pi = 0; pi < 3; pi += 1) {
         for (uint32_t pj = 0; pj < 3; pj += 1) {
             ports[pi][pj] = 0U;
@@ -104,7 +104,7 @@ int main(void) {
     if (ports[1U][1U] != 3306) return 31;
     if (ports[2U][0U] != 5432) return 32;
     if (ports[2U][1U] != 8080) return 33;
-    uint16_t data[2][2] = {0};
+    uint16_t data[2][2] = {};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 2; dj += 1) {
             data[di][dj] = 0U;

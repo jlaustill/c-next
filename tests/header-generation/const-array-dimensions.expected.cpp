@@ -18,19 +18,19 @@ extern const uint8_t CHANNEL_COUNT = 2U;
 bool enabled[4] = {false, false, false, false};
 
 // Multi-dimensional with constants - should generate: extern TReading readings[4][4];
-TReading readings[4][4] = {0};
+TReading readings[4][4] = {};
 
 // Mixed: constant first, literal second - should generate: extern i32 mixed[4][8];
-int32_t mixed[4][8] = {0};
+int32_t mixed[4][8] = {};
 
 // Mixed: literal first, constant second - should generate: extern i32 mixed2[8][4];
-int32_t mixed2[8][4] = {0};
+int32_t mixed2[8][4] = {};
 
 // Both dimensions constant - should generate: extern u16 both[4][2];
-uint16_t both[4][2] = {0};
+uint16_t both[4][2] = {};
 
 // Literal dimension (control case - should already work)
-bool literal_arr[4] = {0};
+bool literal_arr[4] = {};
 
 /* Scope: Manager */
 

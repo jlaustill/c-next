@@ -24,7 +24,7 @@ typedef struct Cell {
     uint32_t data;
 } Cell;
 
-Cell grid[3][4] = {0};
+Cell grid[3][4] = {};
 
 int main(void) {
     uint32_t r = 0U;

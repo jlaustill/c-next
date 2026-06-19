@@ -25,7 +25,7 @@ int main(void) {
     if (values[2U] != 0) return 3;
     if (values[3U] != 1000) return 4;
     if (values[4U] != 32767) return 5;
-    int16_t data[4] = {0};
+    int16_t data[4] = {};
     data[0] = -5000;
     data[1] = 5000;
     data[2] = -10000;

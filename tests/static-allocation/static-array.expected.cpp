@@ -18,9 +18,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // ADR-003: Static array allocation
 // Tests: compile-time sized arrays are valid (no heap allocation)
-uint8_t rxBuffer[256] = {0};
+uint8_t rxBuffer[256] = {};
 
-uint8_t txBuffer[128] = {0};
+uint8_t txBuffer[128] = {};
 
 void fillBuffer(void) {
     uint32_t i = 0U;

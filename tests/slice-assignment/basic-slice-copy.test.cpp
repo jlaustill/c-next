@@ -11,7 +11,7 @@
 // Validates copying u8, u16, u32, u64 values into string buffers
 // Each byte is verified individually to ensure correct memory layout
 int main(void) {
-    uint8_t buffer[64] = {0};
+    uint8_t buffer[64] = {};
     uint32_t value32 = 0x12345678U;
     memcpy(&buffer[0], &value32, 4);
     if (buffer[0U] != 0x78) return 1;

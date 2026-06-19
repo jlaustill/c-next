@@ -19,9 +19,9 @@ static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
 // Tests: multi-dimensional i32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large counters, financial data, coordinate systems
-int32_t matrix2d[4][8] = {0};
+int32_t matrix2d[4][8] = {};
 
-int32_t cube3d[2][3][4] = {0};
+int32_t cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = (int32_t)INT32_MIN;
@@ -72,7 +72,7 @@ int main(void) {
     if (matrix2d[2U][4U] != (int32_t)INT32_MIN) return 22;
     matrix2d[3][7] = -100000;
     if (matrix2d[3U][7U] != -100000) return 23;
-    int32_t testArray[4][2] = {0};
+    int32_t testArray[4][2] = {};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0;
@@ -90,7 +90,7 @@ int main(void) {
     if (testArray[1U][1U] != -1) return 27;
     if (testArray[2U][0U] != 1) return 28;
     if (testArray[3U][1U] != -1000000) return 29;
-    int32_t balances[3][3] = {0};
+    int32_t balances[3][3] = {};
     for (uint32_t bi = 0; bi < 3; bi += 1) {
         for (uint32_t bj = 0; bj < 3; bj += 1) {
             balances[bi][bj] = 0;
@@ -108,7 +108,7 @@ int main(void) {
     if (balances[1U][1U] != 1000000) return 33;
     if (balances[2U][0U] != -250000) return 34;
     if (balances[2U][1U] != 500000000) return 35;
-    int32_t deltas[2][2] = {0};
+    int32_t deltas[2][2] = {};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 2; dj += 1) {
             deltas[di][dj] = 0;
@@ -118,7 +118,7 @@ int main(void) {
     deltas[0][1] = 750000;
     int64_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
     if (deltaSum != -250000) return 36;
-    int32_t offsets[2][3] = {0};
+    int32_t offsets[2][3] = {};
     for (uint32_t oi = 0; oi < 2; oi += 1) {
         for (uint32_t oj = 0; oj < 3; oj += 1) {
             offsets[oi][oj] = 0;

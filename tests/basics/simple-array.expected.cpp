@@ -10,7 +10,7 @@
 // Tests: Basic array declaration, initialization, and indexing
 // Demonstrates: array literals, element access, array.length
 int main(void) {
-    uint32_t numbers[5] = {0};
+    uint32_t numbers[5] = {};
     numbers[0] = 10U;
     numbers[1] = 20U;
     numbers[2] = 30U;

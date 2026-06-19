@@ -26,7 +26,7 @@ typedef struct TData {
     int32_t value;
 } TData;
 
-TData data = {0};
+TData data = {};
 
 int main(void) {
     data.buffer[0] = 1U;

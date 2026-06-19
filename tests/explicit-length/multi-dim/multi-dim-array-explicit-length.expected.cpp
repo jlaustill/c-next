@@ -8,7 +8,7 @@
 // test-execution
 // Tests explicit length properties on multi-dimensional arrays (ADR-058)
 // u8[8][8] = 8 x 8 x 8 bits = 512 bits total
-uint8_t matrix[8][8] = {0};
+uint8_t matrix[8][8] = {};
 
 int main(void) {
     matrix[0][0] = 1U;

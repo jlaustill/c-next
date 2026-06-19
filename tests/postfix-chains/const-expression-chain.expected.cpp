@@ -24,7 +24,7 @@ extern const uint32_t STATUS_BIT = 7U;
 
 /* Scope: ConstExprChain */
 
-ConstExprChain_Sensor sensors[4] = {0};
+ConstExprChain_Sensor sensors[4] = {};
 
 /* Register: GPIO @ 0x40000000 */
 #define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
@@ -53,7 +53,7 @@ int main(void) {
     const uint32_t ROW = 0U;
     const uint32_t COL = 1U;
     const uint32_t FIELD_BIT = 5U;
-    uint8_t matrix[4][4] = {0};
+    uint8_t matrix[4][4] = {};
     matrix[ROW][COL] = 0xFFU;
     matrix[ROW][COL] = (matrix[ROW][COL] & ~(1U << FIELD_BIT)) | (0U << FIELD_BIT);
     uint8_t value = matrix[ROW][COL];

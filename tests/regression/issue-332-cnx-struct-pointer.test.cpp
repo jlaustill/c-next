@@ -15,8 +15,8 @@
 #include "issue-332-external-processor.hpp"
 
 /* Scope: Issue332Storage */
-static Issue332AppData Issue332Storage_appData = {0};
-static struct Issue332AppConfig Issue332Storage_appConfig = {0};
+static Issue332AppData Issue332Storage_appData = {};
+static struct Issue332AppConfig Issue332Storage_appConfig = {};
 
 void Issue332Storage_setup(void) {
     Issue332Storage_appConfig.setting = 100;

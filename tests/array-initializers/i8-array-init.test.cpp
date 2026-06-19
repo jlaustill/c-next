@@ -25,7 +25,7 @@ int main(void) {
     if (values[2U] != 0) return 3;
     if (values[3U] != 1) return 4;
     if (values[4U] != 127) return 5;
-    int8_t data[4] = {0};
+    int8_t data[4] = {};
     data[0] = -50;
     data[1] = 50;
     data[2] = -100;

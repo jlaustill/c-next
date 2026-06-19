@@ -31,10 +31,10 @@ typedef struct TDeviceStatus {
 } TDeviceStatus;
 
 int main(void) {
-    TPressureInputConfig config = {0};
+    TPressureInputConfig config = {};
     config.assignedSpn = 100U;
     config.pressureType = EPressureType_PRESSURE_TYPE_PSIA;
-    TDeviceStatus status = {0};
+    TDeviceStatus status = {};
     status.deviceId = 1U;
     status.state = EDeviceState_STATE_IDLE;
 }

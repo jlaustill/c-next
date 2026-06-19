@@ -19,9 +19,9 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
 // Tests: multi-dimensional u8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: small data buffers, pixel data, byte arrays
-uint8_t matrix2d[4][8] = {0};
+uint8_t matrix2d[4][8] = {};
 
-uint8_t cube3d[2][3][4] = {0};
+uint8_t cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = 10U;
@@ -67,7 +67,7 @@ int main(void) {
     if (matrix2d[2U][4U] != 255) return 22;
     matrix2d[3][7] = 111U;
     if (matrix2d[3U][7U] != 111) return 23;
-    uint8_t testArray[3][2] = {0};
+    uint8_t testArray[3][2] = {};
     for (uint32_t ti = 0; ti < 3; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0U;
@@ -81,7 +81,7 @@ int main(void) {
     if (testArray[0U][1U] != 255) return 25;
     if (testArray[1U][0U] != 128) return 26;
     if (testArray[2U][1U] != 1) return 27;
-    uint8_t buffer[4][4] = {0};
+    uint8_t buffer[4][4] = {};
     for (uint32_t bi = 0; bi < 4; bi += 1) {
         for (uint32_t bj = 0; bj < 4; bj += 1) {
             buffer[bi][bj] = 0U;

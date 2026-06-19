@@ -88,27 +88,6 @@ class SymbolLookupHelper {
   }
 
   /**
-   * Check if a type name is from a C++ header.
-   * Issue #304: Used to determine whether to use {} or {0} for initialization.
-   * C++ types with constructors may fail with {0} but work with {}.
-   */
-  static isCppType(
-    symbolTable: ISymbolTable | null | undefined,
-    typeName: string,
-  ): boolean {
-    if (!symbolTable) return false;
-
-    const symbols = symbolTable.getOverloads(typeName);
-    const cppTypeKinds = new Set<TSymbolKind>(["struct", "class", "type"]);
-
-    return symbols.some(
-      (sym) =>
-        sym.sourceLanguage === ESourceLanguage.Cpp &&
-        cppTypeKinds.has(sym.kind),
-    );
-  }
-
-  /**
    * Check if a function is a C-Next function (uses pass-by-reference semantics).
    * Returns true if the function is found in symbol table as C-Next.
    */

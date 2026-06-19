@@ -12,7 +12,7 @@
 // Tests: Edge cases at type boundaries, max indices, etc.
 /* Scope: BoundaryTest */
 
-BoundaryTest_Data items[16] = {0};
+BoundaryTest_Data items[16] = {};
 
 // Max reasonable array size for testing
 int main(void) {

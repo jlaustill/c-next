@@ -30,6 +30,6 @@ Controller Controller_init(void) {
 }
 
 void test(void) {
-    Controller c = {0};
+    Controller c = {};
     c._handler = myHandler;
 }

@@ -14,12 +14,12 @@
 #include <stdint.h>
 
 int main(void) {
-    struct NamedPoint pt = {0};
+    struct NamedPoint pt = {};
     pt.x = 100;
     pt.y = 200;
     if (pt.x != 100) return 1;
     if (pt.y != 200) return 2;
-    struct NamedConfig cfg = {0};
+    struct NamedConfig cfg = {};
     cfg.magic = 0xCAFEBABEU;
     cfg.version = 0x0102U;
     cfg.flags = 0xFFU;
@@ -32,7 +32,7 @@ int main(void) {
     if (32 != 32) return 8;
     if (16 != 16) return 9;
     if (8 != 8) return 10;
-    struct NamedPoint pt2 = {0};
+    struct NamedPoint pt2 = {};
     pt2.x = pt.x;
     pt2.y = pt.y;
     if (pt2.x != 100) return 11;

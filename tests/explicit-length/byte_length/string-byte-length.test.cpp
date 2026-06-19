@@ -28,7 +28,7 @@ int main(void) {
     if (17 != 17) {
         return 3;
     }
-    TestStruct ts = {0};
+    TestStruct ts = {};
     strncpy(ts.name, "Test", 32); ts.name[32] = '\0';
     if (33 != 33) {
         return 4;

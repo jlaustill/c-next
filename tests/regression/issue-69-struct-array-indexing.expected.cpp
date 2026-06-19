@@ -50,7 +50,7 @@ void initializeAll(Configuration& conf, uint16_t spnValue, float coeffValue) {
 }
 
 int main(void) {
-    Configuration cfg = {0};
+    Configuration cfg = {};
     cfg.tempInputs[0].assignedSpn = 100U;
     cfg.tempInputs[0].coeffA = 1.5;
     cfg.tempInputs[1].assignedSpn = 200U;

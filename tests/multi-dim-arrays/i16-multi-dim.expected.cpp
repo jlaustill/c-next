@@ -19,9 +19,9 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Tests: multi-dimensional i16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor readings, coordinate systems, signed offsets
-int16_t matrix2d[4][8] = {0};
+int16_t matrix2d[4][8] = {};
 
-int16_t cube3d[2][3][4] = {0};
+int16_t cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = -32768;
@@ -72,7 +72,7 @@ int main(void) {
     if (matrix2d[2U][4U] != -32768) return 22;
     matrix2d[3][7] = -1000;
     if (matrix2d[3U][7U] != -1000) return 23;
-    int16_t testArray[4][2] = {0};
+    int16_t testArray[4][2] = {};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0;
@@ -90,7 +90,7 @@ int main(void) {
     if (testArray[1U][1U] != -1) return 27;
     if (testArray[2U][0U] != 1) return 28;
     if (testArray[3U][1U] != -15000) return 29;
-    int16_t coords[3][3] = {0};
+    int16_t coords[3][3] = {};
     for (uint32_t ci = 0; ci < 3; ci += 1) {
         for (uint32_t cj = 0; cj < 3; cj += 1) {
             coords[ci][cj] = 0;
@@ -108,7 +108,7 @@ int main(void) {
     if (coords[1U][1U] != 0) return 33;
     if (coords[2U][0U] != 2000) return 34;
     if (coords[2U][1U] != -3000) return 35;
-    int16_t deltas[2][2] = {0};
+    int16_t deltas[2][2] = {};
     for (uint32_t di = 0; di < 2; di += 1) {
         for (uint32_t dj = 0; dj < 2; dj += 1) {
             deltas[di][dj] = 0;
@@ -118,7 +118,7 @@ int main(void) {
     deltas[0][1] = 3000;
     int32_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
     if (deltaSum != -2000) return 36;
-    int16_t altitudes[2][3] = {0};
+    int16_t altitudes[2][3] = {};
     for (uint32_t ai = 0; ai < 2; ai += 1) {
         for (uint32_t aj = 0; aj < 3; aj += 1) {
             altitudes[ai][aj] = 0;

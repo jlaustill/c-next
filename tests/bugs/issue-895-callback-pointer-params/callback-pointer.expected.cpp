@@ -25,7 +25,7 @@ void my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
 int main(void) {
     widget_t* w = widget_create();
     widget_set_flush_cb(w, my_flush);
-    rect_t area = {0};
+    rect_t area = {};
     area.x = 10U;
     area.y = 20U;
     area.width = 100U;

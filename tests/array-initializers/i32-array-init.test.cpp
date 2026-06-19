@@ -26,7 +26,7 @@ int main(void) {
     if (values[2U] != 0) return 3;
     if (values[3U] != 100000) return 4;
     if (values[4U] != 2147483647) return 5;
-    int32_t data[4] = {0};
+    int32_t data[4] = {};
     data[0] = -500000;
     data[1] = 500000;
     data[2] = -1000000;

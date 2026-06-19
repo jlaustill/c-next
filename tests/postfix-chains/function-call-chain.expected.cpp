@@ -13,7 +13,7 @@
 // HIGH RISK: Float parameters in postfix chains (line 6260 in CodeGenerator.ts)
 /* Scope: FuncCallChain */
 
-FuncCallChain_Transform transforms[4] = {0};
+FuncCallChain_Transform transforms[4] = {};
 
 // Functions with various parameter types
 uint32_t addU32(uint32_t a, uint32_t b) {
@@ -56,7 +56,7 @@ int main(void) {
     FuncCallChain_Vec3 scaled = scaleVec3(transforms[0U].position, 2.0);
     float scaledX = scaled.x;
     bool result = isGreater(transforms[0U].position.x, transforms[1U].position.x);
-    FuncCallChain_Transform temp = {0};
+    FuncCallChain_Transform temp = {};
     temp.position = transforms[0U].position;
     temp.scale = transforms[0U].scale;
     setTransform(temp, 2U);

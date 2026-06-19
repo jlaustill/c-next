@@ -10,6 +10,6 @@
 #include <stdbool.h>
 
 void test(void) {
-    SeaDash::Parse::ParseResult result = {0};
+    SeaDash::Parse::ParseResult result = {};
     result = (SeaDash::Parse::ParseResult){ .data = {1, 2, 3}, .count = 3, .success = true };
 }

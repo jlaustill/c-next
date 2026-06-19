@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 int main(void) {
-    Rectangle rect = {0};
+    Rectangle rect = {};
     rect.origin.x = 10;
     rect.origin.y = 20;
     rect.width = 100U;
@@ -25,7 +25,7 @@ int main(void) {
     if (32 != 32) return 6;
     uint32_t area = rect.width * rect.height;
     if (area != 5000) return 7;
-    Rectangle rect2 = {0};
+    Rectangle rect2 = {};
     rect2.origin.x = rect.origin.x;
     rect2.origin.y = rect.origin.y;
     rect2.width = rect.width;

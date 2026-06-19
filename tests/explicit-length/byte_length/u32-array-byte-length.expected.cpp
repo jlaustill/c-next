@@ -11,19 +11,19 @@
 // Tests .byte_length property for arrays (ADR-058)
 // byte_length returns total bytes of storage
 // u32[16] = 16 elements x 4 bytes = 64 bytes
-uint32_t globalArr[16] = {0};
+uint32_t globalArr[16] = {};
 
 /* Scope: TestScope */
 
 uint32_t TestScope_getGlobalArrayByteLength(void) {
     return 64;
 }
-static uint32_t TestScope_scopeArr[16] = {0};
+static uint32_t TestScope_scopeArr[16] = {};
 
 uint32_t TestScope_getScopeArrayByteLength(void) {
     return 64;
 }
-uint32_t TestScope_publicArr[16] = {0};
+uint32_t TestScope_publicArr[16] = {};
 
 uint32_t checkArrayByteLength(uint32_t arr[16]) {
     return 64;
@@ -47,18 +47,18 @@ int main(void) {
     if (64 != 64) {
         return 4;
     }
-    uint32_t localArr[16] = {0};
+    uint32_t localArr[16] = {};
     localArr[0] = 100000U;
     if (64 != 64) {
         return 5;
     }
-    uint32_t testArr[16] = {0};
+    uint32_t testArr[16] = {};
     testArr[0] = 100000U;
     result = checkArrayByteLength(testArr);
     if (result != 64) {
         return 6;
     }
-    U32ArrayByteLength_TestStruct ts = {0};
+    U32ArrayByteLength_TestStruct ts = {};
     ts.arr[0] = 100000U;
     if (64 != 64) {
         return 7;

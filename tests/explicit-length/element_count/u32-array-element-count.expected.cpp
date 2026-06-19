@@ -10,19 +10,19 @@
 // test-execution
 // Tests .element_count property for arrays (ADR-058)
 // element_count returns the number of elements in an array
-uint32_t globalArr[16] = {0};
+uint32_t globalArr[16] = {};
 
 /* Scope: TestScope */
 
 uint32_t TestScope_getGlobalArrayElementCount(void) {
     return 16;
 }
-static uint32_t TestScope_scopeArr[16] = {0};
+static uint32_t TestScope_scopeArr[16] = {};
 
 uint32_t TestScope_getScopeArrayElementCount(void) {
     return 16;
 }
-uint32_t TestScope_publicArr[16] = {0};
+uint32_t TestScope_publicArr[16] = {};
 
 uint32_t checkArrayElementCount(uint32_t arr[16]) {
     return 16;
@@ -46,18 +46,18 @@ int main(void) {
     if (16 != 16) {
         return 4;
     }
-    uint32_t localArr[16] = {0};
+    uint32_t localArr[16] = {};
     localArr[0] = 100000U;
     if (16 != 16) {
         return 5;
     }
-    uint32_t testArr[16] = {0};
+    uint32_t testArr[16] = {};
     testArr[0] = 100000U;
     result = checkArrayElementCount(testArr);
     if (result != 16) {
         return 6;
     }
-    U32ArrayElementCount_TestStruct ts = {0};
+    U32ArrayElementCount_TestStruct ts = {};
     ts.arr[0] = 100000U;
     if (16 != 16) {
         return 7;

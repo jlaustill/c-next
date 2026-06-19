@@ -97,6 +97,11 @@ Point origin = {0};
 UART uart1 = {0};
 ```
 
+> **C++ mode (Issue #1004):** aggregates (structs and arrays) are zero-initialized
+> with C++ value-initialization `= {}` rather than `= {0}`. `{0}` is an invalid
+> `int`→enum narrowing when the aggregate's first field is an enum, whereas `{}`
+> is valid for every aggregate. Scalars are unaffected (`count = 0`, `flag = false`).
+
 ### Local Variables (Error on Use Before Init)
 
 Local variables inside functions follow Rust-style checking:

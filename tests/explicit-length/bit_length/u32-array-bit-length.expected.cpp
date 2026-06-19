@@ -11,19 +11,19 @@
 // Tests .bit_length property for arrays (ADR-058)
 // bit_length returns total bits of storage (elements x element bit width)
 // u32[16] = 16 elements x 32 bits = 512 bits
-uint32_t globalArr[16] = {0};
+uint32_t globalArr[16] = {};
 
 /* Scope: TestScope */
 
 uint32_t TestScope_getGlobalArrayBitLength(void) {
     return 512;
 }
-static uint32_t TestScope_scopeArr[16] = {0};
+static uint32_t TestScope_scopeArr[16] = {};
 
 uint32_t TestScope_getScopeArrayBitLength(void) {
     return 512;
 }
-uint32_t TestScope_publicArr[16] = {0};
+uint32_t TestScope_publicArr[16] = {};
 
 uint32_t checkArrayBitLength(uint32_t arr[16]) {
     return 512;
@@ -47,18 +47,18 @@ int main(void) {
     if (512 != 512) {
         return 4;
     }
-    uint32_t localArr[16] = {0};
+    uint32_t localArr[16] = {};
     localArr[0] = 100000U;
     if (512 != 512) {
         return 5;
     }
-    uint32_t testArr[16] = {0};
+    uint32_t testArr[16] = {};
     testArr[0] = 100000U;
     result = checkArrayBitLength(testArr);
     if (result != 512) {
         return 6;
     }
-    U32ArrayBitLength_TestStruct ts = {0};
+    U32ArrayBitLength_TestStruct ts = {};
     ts.arr[0] = 100000U;
     if (512 != 512) {
         return 7;

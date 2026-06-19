@@ -12,7 +12,7 @@ typedef struct Buffer {
     int32_t counts[4];
 } Buffer;
 
-Buffer buf = {0};
+Buffer buf = {};
 
 int main(void) {
     buf.data[0] = 50U;

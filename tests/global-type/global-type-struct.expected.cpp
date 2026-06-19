@@ -12,7 +12,7 @@
 // Issue #478: global.EnumType not recognized as type reference inside scope
 // Define struct in same file to avoid cross-file header conflicts
 /* Scope: PointManager */
-static Point2D PointManager_point = {0};
+static Point2D PointManager_point = {};
 
 void PointManager_setPoint(int32_t px, int32_t py) {
     PointManager_point.x = px;

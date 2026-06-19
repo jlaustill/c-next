@@ -7,7 +7,7 @@
 
 // Test: Compound assignment on 10D arrays (extreme depth test)
 // Ensures transpiler correctly handles deeply nested array indexing
-uint32_t hyper[2][2][2][2][2][2][2][2][2][2] = {0};
+uint32_t hyper[2][2][2][2][2][2][2][2][2][2] = {};
 
 int main(void) {
     hyper[0][0][0][0][0][0][0][0][0][0] = 100U;

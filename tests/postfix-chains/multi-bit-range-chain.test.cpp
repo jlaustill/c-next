@@ -14,7 +14,7 @@ typedef struct Device {
     uint32_t config;
 } Device;
 
-Device devices[4] = {0};
+Device devices[4] = {};
 
 uint8_t flags = 0U;
 

@@ -28,9 +28,9 @@ uint32_t readBaudRate(const ExternalSerialConfig& cfg) {
 }
 
 int main(void) {
-    ExternalSerialConfig serial = {0};
+    ExternalSerialConfig serial = {};
     configureSerial(serial);
-    ExternalI2CConfig i2c = {0};
+    ExternalI2CConfig i2c = {};
     configureI2C(i2c);
     uint32_t baud = readBaudRate(serial);
 }

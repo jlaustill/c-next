@@ -18,9 +18,9 @@ static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
 // Tests: multi-dimensional i64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: timestamps, large counters, high-precision measurements
-int64_t matrix2d[4][8] = {0};
+int64_t matrix2d[4][8] = {};
 
-int64_t cube3d[2][3][4] = {0};
+int64_t cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = -9000000000000000000;
@@ -71,7 +71,7 @@ int main(void) {
     if (matrix2d[2U][4U] != -9000000000000000000) return 22;
     matrix2d[3][7] = -555;
     if (matrix2d[3U][7U] != -555) return 23;
-    int64_t testArray[4][2] = {0};
+    int64_t testArray[4][2] = {};
     for (uint32_t ti = 0; ti < 4; ti += 1) {
         for (uint32_t tj = 0; tj < 2; tj += 1) {
             testArray[ti][tj] = 0;
@@ -89,7 +89,7 @@ int main(void) {
     if (testArray[1U][1U] != -1) return 27;
     if (testArray[2U][0U] != 1) return 28;
     if (testArray[3U][1U] != -1000000000000) return 29;
-    int64_t timestamps[3][3] = {0};
+    int64_t timestamps[3][3] = {};
     for (uint32_t tsi = 0; tsi < 3; tsi += 1) {
         for (uint32_t tsj = 0; tsj < 3; tsj += 1) {
             timestamps[tsi][tsj] = 0;
@@ -111,7 +111,7 @@ int main(void) {
     if (diff != 1609459200000) return 36;
     int64_t negDiff = timestamps[0U][0U] - timestamps[0U][1U];
     if (negDiff != -2208988800000) return 37;
-    int64_t nanos[2][2] = {0};
+    int64_t nanos[2][2] = {};
     for (uint32_t ni = 0; ni < 2; ni += 1) {
         for (uint32_t nj = 0; nj < 2; nj += 1) {
             nanos[ni][nj] = 0;
@@ -125,7 +125,7 @@ int main(void) {
     if (nanos[0U][1U] != 1609459200123456789) return 39;
     if (nanos[1U][0U] != -1000000000) return 40;
     if (nanos[1U][1U] != 1000000000) return 41;
-    int64_t balances[2][2] = {0};
+    int64_t balances[2][2] = {};
     for (uint32_t bi = 0; bi < 2; bi += 1) {
         for (uint32_t bj = 0; bj < 2; bj += 1) {
             balances[bi][bj] = 0;

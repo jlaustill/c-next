@@ -13,7 +13,7 @@
 /* Scope: ArrayMemberInit */
 
 int main(void) {
-    ArrayMemberInit_Config cfg = {0};
+    ArrayMemberInit_Config cfg = {};
     cfg.version = 1U;
     cfg.flags[0] = 0x01U;
     cfg.flags[1] = 0x02U;
@@ -24,7 +24,7 @@ int main(void) {
     if (cfg.flags[1U] != 0x02) return 3;
     if (cfg.flags[2U] != 0x04) return 4;
     if (cfg.flags[3U] != 0x08) return 5;
-    ArrayMemberInit_Packet pkt = {0};
+    ArrayMemberInit_Packet pkt = {};
     pkt.checksum = 0U;
     pkt.header[0] = 0xAAU;
     pkt.header[1] = 0xBBU;

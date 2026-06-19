@@ -13,14 +13,14 @@
 /* Scope: LengthNested */
 
 int main(void) {
-    LengthNested_Outer config = {0};
+    LengthNested_Outer config = {};
     config.inner.value = 0x12345678U;
     config.inner.status = 100U;
     config.flags = 0xFFU;
     if (32 != 32) return 1;
     if (16 != 16) return 2;
     if (8 != 8) return 3;
-    DeepNest deep = {0};
+    DeepNest deep = {};
     deep.outer.inner.value = 0xABCDEFU;
     deep.outer.inner.status = 200U;
     deep.outer.flags = 0x42U;

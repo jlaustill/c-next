@@ -14,8 +14,8 @@
 #include <stdint.h>
 
 /* Scope: Navigator */
-static Waypoint Navigator_current = {0};
-static Waypoint Navigator_destination = {0};
+static Waypoint Navigator_current = {};
+static Waypoint Navigator_destination = {};
 
 void Navigator_setDestination(const Waypoint& wp) {
     Navigator_destination = wp;

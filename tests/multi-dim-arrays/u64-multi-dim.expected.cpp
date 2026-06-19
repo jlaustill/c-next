@@ -19,9 +19,9 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 // Tests: multi-dimensional u64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: large data buffers, matrices for embedded systems
-uint64_t matrix2d[4][8] = {0};
+uint64_t matrix2d[4][8] = {};
 
-uint64_t cube3d[2][3][4] = {0};
+uint64_t cube3d[2][3][4] = {};
 
 int main(void) {
     matrix2d[0][0] = 1000000000000ULL;
@@ -72,7 +72,7 @@ int main(void) {
     if (matrix2d[2U][4U] != 9000000000000000000) return 22;
     matrix2d[3][7] = 555ULL;
     if (matrix2d[3U][7U] != 555) return 23;
-    uint64_t timestamps[3][2] = {0};
+    uint64_t timestamps[3][2] = {};
     timestamps[0][0] = 1609459200000ULL;
     timestamps[0][1] = 1612137600000ULL;
     timestamps[1][0] = 1614556800000ULL;

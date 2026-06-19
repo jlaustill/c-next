@@ -12,7 +12,7 @@
 
 #include <stdint.h>
 
-ExternalStruct globalExt = {0};
+ExternalStruct globalExt = {};
 
 /* Scope: Test */
 

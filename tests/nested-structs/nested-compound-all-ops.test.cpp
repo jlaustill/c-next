@@ -11,7 +11,7 @@
 // Covers deeply nested member access with compound assignments
 /* Scope: NestedOps */
 
-NestedOps_Outer o = {0};
+NestedOps_Outer o = {};
 
 int main(void) {
     o.middle.inner.add_val = 100U;

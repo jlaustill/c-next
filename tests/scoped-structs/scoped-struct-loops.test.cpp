@@ -10,7 +10,7 @@
 // test-execution
 // Tests: Scoped structs in loops - reading and writing in for/while loops
 /* Scope: Sensor */
-Sensor_Reading Sensor_buffer[4] = {0};
+Sensor_Reading Sensor_buffer[4] = {};
 uint8_t Sensor_count = 0U;
 
 void Sensor_addReading(uint16_t val, uint8_t ch) {

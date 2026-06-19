@@ -28,8 +28,8 @@ int64_t Provider_valI64 = (int64_t)INT64_MIN;
 float Provider_valF32 = 3.14;
 double Provider_valF64 = 3.141592653589793;
 bool Provider_valBool = true;
-uint32_t Provider_arrayU32[3] = {0};
-int16_t Provider_arrayI16[3] = {0};
+uint32_t Provider_arrayU32[3] = {};
+int16_t Provider_arrayI16[3] = {};
 uint8_t Provider_clampVal = 200U;
 uint8_t Provider_wrapVal = 250U;
 

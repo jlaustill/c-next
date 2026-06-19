@@ -13,7 +13,7 @@
 // instead of array access when array is sized by enum
 // Test 1: Basic enum-sized array with enum index (original bug)
 /* Scope: Test */
-static float Test_values[EIndex_COUNT] = {0};
+static float Test_values[EIndex_COUNT] = {};
 
 void Test_set(EIndex idx, float value) {
     Test_values[idx] = value;
@@ -25,7 +25,7 @@ float Test_get(EIndex idx) {
 
 // Test 2: Enum-sized array with integer index
 /* Scope: TestIntIndex */
-static int32_t TestIntIndex_data[EIndex_COUNT] = {0};
+static int32_t TestIntIndex_data[EIndex_COUNT] = {};
 
 void TestIntIndex_set(uint8_t idx, int32_t value) {
     TestIntIndex_data[idx] = value;
@@ -37,7 +37,7 @@ int32_t TestIntIndex_get(uint8_t idx) {
 
 // Test 3: Literal-sized array (regression check - should still work)
 /* Scope: TestLiteral */
-static uint16_t TestLiteral_items[4] = {0};
+static uint16_t TestLiteral_items[4] = {};
 
 void TestLiteral_set(uint8_t idx, uint16_t value) {
     TestLiteral_items[idx] = value;
@@ -49,8 +49,8 @@ uint16_t TestLiteral_get(uint8_t idx) {
 
 // Test 4: Multiple arrays in same scope
 /* Scope: TestMultiple */
-static uint8_t TestMultiple_first[EIndex_COUNT] = {0};
-static uint8_t TestMultiple_second[EIndex_COUNT] = {0};
+static uint8_t TestMultiple_first[EIndex_COUNT] = {};
+static uint8_t TestMultiple_second[EIndex_COUNT] = {};
 
 void TestMultiple_setFirst(EIndex idx, uint8_t value) {
     TestMultiple_first[idx] = value;
@@ -70,7 +70,7 @@ uint8_t TestMultiple_getSecond(EIndex idx) {
 
 // Test 5: Return with index arithmetic
 /* Scope: TestArithmetic */
-static int32_t TestArithmetic_arr[EIndex_COUNT] = {0};
+static int32_t TestArithmetic_arr[EIndex_COUNT] = {};
 
 void TestArithmetic_set(uint8_t idx, int32_t value) {
     TestArithmetic_arr[idx] = value;

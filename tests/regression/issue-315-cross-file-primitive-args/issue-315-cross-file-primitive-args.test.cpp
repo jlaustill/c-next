@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 /* Scope: TestCaller */
-static TestData TestCaller_data = {0};
+static TestData TestCaller_data = {};
 
 void TestCaller_init(void) {
     TestCaller_data.value1 = 0.0;

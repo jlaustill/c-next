@@ -48,14 +48,14 @@ uint8_t sumArray(uint8_t arr[6], uint8_t len) {
 }
 
 int main(void) {
-    uint8_t data[8] = {0};
+    uint8_t data[8] = {};
     data[0] = 0x12U;
     data[1] = 0x34U;
     data[2] = 0x56U;
     data[3] = 0x78U;
     uint32_t sum = sumFourBytes(data[0U], data[1U], data[2U], data[3U]);
     if (sum != 276) return 1;
-    DataResult result = {0};
+    DataResult result = {};
     result.errorCode = 0U;
     result.data[0] = 10U;
     result.data[1] = 20U;

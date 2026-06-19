@@ -11,7 +11,7 @@
 // test-execution
 // Tests: Basic scoped struct declaration, read and write operations
 /* Scope: Motor */
-Motor_Config Motor_current = {0};
+Motor_Config Motor_current = {};
 
 void Motor_setSpeed(uint8_t s) {
     Motor_current.speed = s;

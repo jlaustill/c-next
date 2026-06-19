@@ -30,7 +30,7 @@ void addToI32(int32_t arr[4], uint32_t index, int32_t delta) {
 }
 
 int main(void) {
-    int32_t buffer[4] = {0};
+    int32_t buffer[4] = {};
     buffer[0] = 0;
     buffer[1] = 0;
     buffer[2] = 0;
