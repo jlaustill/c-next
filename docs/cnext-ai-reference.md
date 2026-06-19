@@ -129,6 +129,8 @@ u32 bytes <- buffer.byte_length;    // 256 (compile-time)
 
 - Use `[]` for array literals, NOT `{}`
 - Partial initialization forbidden (MISRA 9.3) — provide all elements or use `[val*]`
+- **Size inference (ADR-035):** omit the size with empty `[]` after the name to infer it from the initializer — `u8 data[] <- [1, 2, 3];` (size 3)
+- **Compile-time bounds checking (ADR-036):** a constant index past the end is a compile error — `u8[5] a; a[5] <- 1;` fails with `index 5 >= array size 5`
 - Size goes BEFORE the name: `u8[256] buffer` not `u8 buffer[256]`
 
 ## Strings
