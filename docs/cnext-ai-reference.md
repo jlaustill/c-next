@@ -849,6 +849,7 @@ u32 count <- 0;                      // always valid
 **Rules:**
 
 - `c_` prefix REQUIRED for variables holding nullable C pointer returns
+- You must **capture** a NULL-returning C call's result — calling it bare and ignoring the return is `E0901` ("can return NULL - must check result")
 - `c_` prefix FORBIDDEN on non-nullable types (error E0906)
 - A `c_` variable must be **NULL-checked before use** — using it unguarded is `E0908` (`FILE c_file <- fopen(...); fclose(c_file);` ✗ → wrap in `if (c_file != NULL) { … }`)
 - NULL comparison only allowed on `c_`-prefixed variables
