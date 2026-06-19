@@ -553,6 +553,22 @@ scope LvglPort {
 
 `this.functionName` passes the scope function as a callback.
 
+## ISR (ADR-040)
+
+`ISR` is a built-in type for `void(void)` functions (interrupt handlers). Any `void name()` function is an `ISR`. Use it as a parameter or struct-field type, pass a handler by name, and invoke it:
+
+```cnx
+void timerHandler() { }
+
+void registerHandler(ISR handler) { handler(); }   // invoke via the param
+
+struct InterruptController {
+    ISR onTick;                                     // ISR-typed field
+}
+
+registerHandler(timerHandler);                       // pass by name
+```
+
 ## Atomic Types (ADR-049)
 
 ```cnx
@@ -567,6 +583,8 @@ u32 val <- counter;                  // atomic load
 ```
 
 Transpiles to LDREX/STREX loops on Cortex-M3+, critical sections on Cortex-M0.
+
+`volatile` is a separate modifier (ADR-108) that stops the compiler caching a variable (C `volatile` semantics) — for memory-mapped/shared flags that aren't lock-free atomics: `volatile u32 status <- 0;`. It is **distinct from `atomic`** (lock-free ISR-safe ops); combining them (`atomic volatile`) is a compile error.
 
 ## Critical Sections (ADR-050)
 
