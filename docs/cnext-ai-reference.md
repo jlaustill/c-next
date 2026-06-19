@@ -102,7 +102,7 @@ wrap u32 counter <- 0;           // wrapping arithmetic (opt-in)
 atomic u32 shared <- 0;          // ISR-safe
 ```
 
-**Initialization (ADR-015):** globals, scope/namespace variables, and aggregates (structs/arrays) are **zero-initialized** (not garbage). **Locals are NOT auto-zeroed** — reading a local before it's assigned is a **compile error**, including when it's assigned on only some branches (`u32 x; y <- x + 1;` ✗).
+All variables are zero-initialized. No uninitialized variables exist.
 
 ## Overflow Behavior
 
