@@ -307,6 +307,107 @@ describe("LiteralUtils", () => {
   });
 
   // ========================================================================
+  // isZero: Float Literals (Issue #1010)
+  // ========================================================================
+
+  describe("isZero - float literals (Issue #1010)", () => {
+    it("should return true for float zero (0.0)", () => {
+      const literal = extractFloatLiteral("0.0");
+      expect(literal).not.toBeNull();
+      expect(LiteralUtils.isZero(literal!)).toBe(true);
+    });
+
+    it("should return true for float zero with suffix (0.0f)", () => {
+      const literal = extractFloatLiteral("0.0f");
+      expect(literal).not.toBeNull();
+      expect(LiteralUtils.isZero(literal!)).toBe(true);
+    });
+
+    it("should return true for float zero with uppercase suffix (0.0F)", () => {
+      const literal = extractFloatLiteral("0.0F");
+      expect(literal).not.toBeNull();
+      expect(LiteralUtils.isZero(literal!)).toBe(true);
+    });
+
+    it("should return true for leading-dot zero (.0)", () => {
+      const literal = extractFloatLiteral(".0");
+      expect(literal).not.toBeNull();
+      expect(LiteralUtils.isZero(literal!)).toBe(true);
+    });
+
+    it("should return false for non-zero float (1.0)", () => {
+      const literal = extractFloatLiteral("1.0");
+      expect(literal).not.toBeNull();
+      expect(LiteralUtils.isZero(literal!)).toBe(false);
+    });
+
+    it("should return false for small non-zero float (0.001)", () => {
+      const literal = extractFloatLiteral("0.001");
+      expect(literal).not.toBeNull();
+      expect(LiteralUtils.isZero(literal!)).toBe(false);
+    });
+
+    it("should return false for negative float (-0.5)", () => {
+      const literal = extractFloatLiteral("-0.5");
+      // Note: -0.5 may not parse as a single literal due to negation
+      // This is expected - the unary minus is a separate operator
+      if (literal) {
+        expect(LiteralUtils.isZero(literal!)).toBe(false);
+      }
+    });
+  });
+
+  // ========================================================================
+  // isFloatZero (Issue #1010)
+  // ========================================================================
+
+  describe("isFloatZero - static method (Issue #1010)", () => {
+    it("should return true for 0.0", () => {
+      expect(LiteralUtils.isFloatZero("0.0")).toBe(true);
+    });
+
+    it("should return true for .0", () => {
+      expect(LiteralUtils.isFloatZero(".0")).toBe(true);
+    });
+
+    it("should return true for 0.", () => {
+      expect(LiteralUtils.isFloatZero("0.")).toBe(true);
+    });
+
+    it("should return true for 0.0f", () => {
+      expect(LiteralUtils.isFloatZero("0.0f")).toBe(true);
+    });
+
+    it("should return true for 0.0F", () => {
+      expect(LiteralUtils.isFloatZero("0.0F")).toBe(true);
+    });
+
+    it("should return true for scientific notation zero (0.0e0)", () => {
+      expect(LiteralUtils.isFloatZero("0.0e0")).toBe(true);
+    });
+
+    it("should return true for scientific notation zero (0e0)", () => {
+      expect(LiteralUtils.isFloatZero("0e0")).toBe(true);
+    });
+
+    it("should return false for 1.0", () => {
+      expect(LiteralUtils.isFloatZero("1.0")).toBe(false);
+    });
+
+    it("should return false for 0.5", () => {
+      expect(LiteralUtils.isFloatZero("0.5")).toBe(false);
+    });
+
+    it("should return false for 3.14", () => {
+      expect(LiteralUtils.isFloatZero("3.14")).toBe(false);
+    });
+
+    it("should return false for scientific notation non-zero (1e-10)", () => {
+      expect(LiteralUtils.isFloatZero("1e-10")).toBe(false);
+    });
+  });
+
+  // ========================================================================
   // isFloat
   // ========================================================================
 

@@ -1,0 +1,7 @@
+// test-error
+// Test: Float division by literal zero should be rejected (E0800)
+// Issue #1010: Float division by zero should error like integer division
+
+void demo() {
+    f32 r <- 1.0 / 0.0;  // ERROR: Division by zero
+}

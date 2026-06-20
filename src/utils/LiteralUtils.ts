@@ -68,7 +68,30 @@ class LiteralUtils {
       );
     }
 
+    // Issue #1010: Float literals (0.0, 0.0f, .0, etc.)
+    if (ctx.FLOAT_LITERAL()) {
+      return LiteralUtils.isFloatZero(text);
+    }
+
     return false;
+  }
+
+  /**
+   * Check if a float literal string represents zero.
+   * Issue #1010: Detect float zero for division-by-zero checking.
+   *
+   * Handles: 0.0, .0, 0., 0.0f, 0.0F, 0.0e0, 0.0E0, etc.
+   *
+   * @param text - The float literal text
+   * @returns true if the float is zero
+   */
+  static isFloatZero(text: string): boolean {
+    // Remove optional float suffix (f, F)
+    const withoutSuffix = text.replace(/[fF]$/, "");
+
+    // Parse to number and check if zero
+    const value = Number.parseFloat(withoutSuffix);
+    return value === 0;
   }
 
   /**

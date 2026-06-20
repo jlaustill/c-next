@@ -1,0 +1,6 @@
+13:22 error[E0800]: Division by zero
+17:24 error[E0800]: Division by zero
+24:22 error[E0800]: Division by zero
+28:24 error[E0800]: Division by zero
+33:24 error[E0800]: Division by zero
+34:24 error[E0800]: Division by zero
