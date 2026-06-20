@@ -166,6 +166,46 @@ jobs:
             tests/**/*.test.cpp
             tests/**/*.test.h
 
+  bugs-transpile:
+    name: Bugs Regression Transpile
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [build]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Transpile bugs/ tests (snapshot comparison only)
+        run: npm run integration:bugs:transpile
+
+      - name: Upload generated bugs test files
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-bugs-files
+          retention-days: 1
+          path: |
+            bugs/**/*.test.c
+            bugs/**/*.test.cpp
+            bugs/**/*.test.h
+
   # ============================================================================
   # STAGE 2b (parallel): Execute tests + other test suites
   # ============================================================================
@@ -204,6 +244,42 @@ jobs:
 
       - name: Execute tests (compile + run)
         run: npm run integration:execute
+
+  bugs-execute:
+    name: Bugs Regression Execute
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [bugs-transpile]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Download generated bugs test files
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-bugs-files
+          path: bugs
+
+      - name: Execute bugs/ tests (compile + run)
+        run: npm run integration:bugs:execute
 
   unit-tests:
     name: Unit Tests
@@ -339,6 +415,37 @@ jobs:
           fi
           echo "✅ No uncommitted changes"
 
+  bugs-verify-clean:
+    name: Bugs Verify Clean
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [bugs-transpile]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Download generated bugs test files
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-bugs-files
+          path: bugs
+
+      - name: Check for uncommitted changes in bugs/
+        run: |
+          if [ -n "$(git status --porcelain bugs/)" ]; then
+            echo "::error::Uncommitted changes detected in bugs/!"
+            git status --porcelain bugs/
+            echo ""
+            echo "Run 'npm run test:bugs' locally, then commit generated files."
+            exit 1
+          fi
+          echo "✅ No uncommitted changes in bugs/"
+
   # ============================================================================
   # STAGE 3 (parallel): Analysis that needs generated files
   # ============================================================================
@@ -423,10 +530,13 @@ jobs:
         build,
         integration-transpile,
         integration-execute,
+        bugs-transpile,
+        bugs-execute,
         unit-tests,
         cli-tests,
         grammar-coverage,
         verify-clean,
+        bugs-verify-clean,
         c-validation,
         sonar,
       ]
@@ -441,10 +551,13 @@ jobs:
           [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
           [ "${{ needs.integration-transpile.result }}" != "success" ] && echo "❌ Integration Transpile" && FAILED=1 || echo "✅ Integration Transpile"
           [ "${{ needs.integration-execute.result }}" != "success" ] && echo "❌ Integration Execute" && FAILED=1 || echo "✅ Integration Execute"
+          [ "${{ needs.bugs-transpile.result }}" != "success" ] && echo "❌ Bugs Regression Transpile" && FAILED=1 || echo "✅ Bugs Regression Transpile"
+          [ "${{ needs.bugs-execute.result }}" != "success" ] && echo "❌ Bugs Regression Execute" && FAILED=1 || echo "✅ Bugs Regression Execute"
           [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
           [ "${{ needs.cli-tests.result }}" != "success" ] && echo "❌ CLI Tests" && FAILED=1 || echo "✅ CLI Tests"
           [ "${{ needs.grammar-coverage.result }}" != "success" ] && echo "❌ Grammar Coverage" && FAILED=1 || echo "✅ Grammar Coverage"
           [ "${{ needs.verify-clean.result }}" != "success" ] && echo "❌ Verify Clean" && FAILED=1 || echo "✅ Verify Clean"
+          [ "${{ needs.bugs-verify-clean.result }}" != "success" ] && echo "❌ Bugs Verify Clean" && FAILED=1 || echo "✅ Bugs Verify Clean"
           [ "${{ needs.c-validation.result }}" != "success" ] && echo "⚠️ C Static Analysis (advisory)" || echo "✅ C Static Analysis"
           [ "${{ needs.sonar.result }}" != "success" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
           [ $FAILED -eq 1 ] && exit 1 || echo "::notice::All checks passed!"
