@@ -279,12 +279,6 @@ class VariableDeclHelper {
       return; // Size inference pattern allowed
     }
 
-    // Allow C-style for multi-dimensional arrays: u8 matrix[4][4]
-    // The arrayType grammar only supports single dimension, so multi-dim needs C-style
-    if (arrayDims.length > 1) {
-      return; // Multi-dimensional arrays need C-style
-    }
-
     // Allow C-style for types that don't support arrayType syntax:
     // - Qualified types (Scope.Type, Namespace::Type)
     // - Scoped types (this.Type)

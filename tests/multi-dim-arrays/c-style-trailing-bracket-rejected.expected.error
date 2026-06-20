@@ -1,0 +1,1 @@
+7:4 Code generation failed: C-style array declaration is not allowed. Use 'u8[4][8] matrix' instead of 'u8 matrix[4][8]'

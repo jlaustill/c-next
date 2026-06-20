@@ -11313,10 +11313,30 @@ describe("CodeGenerator", () => {
         expect(code).toContain("uint8_t data[3]");
       });
 
-      it("should allow multi-dimensional C-style arrays", () => {
+      it("should reject multi-dimensional C-style arrays (Issue #1014)", () => {
         const source = `
           void test() {
             u8 matrix[4][4];
+            matrix[0][0] <- 0;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const generator = new CodeGenerator();
+        const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        expect(() =>
+          generator.generate(tree, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("C-style array declaration is not allowed");
+      });
+
+      it("should allow multi-dimensional C-Next style arrays", () => {
+        const source = `
+          void test() {
+            u8[4][4] matrix;
             matrix[0][0] <- 0;
           }
         `;

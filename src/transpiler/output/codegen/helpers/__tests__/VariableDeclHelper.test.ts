@@ -139,7 +139,7 @@ describe("VariableDeclHelper", () => {
       }).not.toThrow();
     });
 
-    it("allows multi-dimensional C-style", () => {
+    it("rejects multi-dimensional C-style (Issue #1014)", () => {
       const varDecl = parseVarDecl("u8 matrix[4][4];");
       const typeCtx = varDecl.type();
       expect(() => {
@@ -148,7 +148,7 @@ describe("VariableDeclHelper", () => {
           typeCtx,
           "matrix",
         );
-      }).not.toThrow();
+      }).toThrow("C-style array declaration is not allowed");
     });
 
     it("allows string type with C-style", () => {
