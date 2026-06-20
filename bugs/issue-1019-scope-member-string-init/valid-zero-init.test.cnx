@@ -1,0 +1,22 @@
+// test-execution
+// Issue #1019 Bug #2: Scope-member string should emit valid C for zero-init
+// When scope-member string IS initialized before read, codegen must be valid
+
+scope S {
+    string<16> buf;
+
+    public void init() {
+        buf <- "";
+    }
+
+    public u8 len() {
+        return buf.char_count;
+    }
+}
+
+u32 main() {
+    S.init();
+    u8 length <- S.len();
+    if (length != 0) return 1;
+    return 0;
+}

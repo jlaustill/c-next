@@ -526,15 +526,140 @@ class InitializationAnalyzer {
 
   /**
    * Process scope member variable declarations (ADR-016)
+   * Issue #1019: Scope members require explicit initialization like locals
    */
   private _processScopeMembers(decl: Parser.DeclarationContext): void {
     const scopeDecl = decl.scopeDeclaration();
     if (!scopeDecl) return;
 
     const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    // Phase 1: Find all members assigned in any scope function
+    const assignedMembers = this._findAssignedScopeMembers(scopeDecl);
+
+    // Phase 2: Process each member with assignment info
     for (const member of scopeDecl.scopeMember()) {
-      this._processScopeMemberVariable(member, scopeName);
+      this._processScopeMemberVariable(member, scopeName, assignedMembers);
     }
+  }
+
+  /**
+   * Scan all functions in a scope to find which members are assigned.
+   * Issue #1019: A member assigned in ANY function is considered initialized
+   * for reads in other functions within the same scope.
+   */
+  private _findAssignedScopeMembers(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): Set<string> {
+    const assigned = new Set<string>();
+
+    for (const member of scopeDecl.scopeMember()) {
+      const funcDecl = member.functionDeclaration();
+      if (!funcDecl) continue;
+
+      const body = funcDecl.block();
+      if (!body) continue;
+
+      // Scan the function body for assignments to scope members
+      this._collectAssignmentsInBlock(body, assigned);
+    }
+
+    return assigned;
+  }
+
+  /**
+   * Recursively collect variable names that are assigned in a block.
+   * Looks for assignment statements targeting bare identifiers or this.member.
+   */
+  private _collectAssignmentsInBlock(
+    block: Parser.BlockContext,
+    assigned: Set<string>,
+  ): void {
+    for (const stmt of block.statement()) {
+      this._collectAssignmentsInStatement(stmt, assigned);
+    }
+  }
+
+  /**
+   * Collect assignments from a single statement, recursing into nested blocks.
+   */
+  private _collectAssignmentsInStatement(
+    stmt: Parser.StatementContext,
+    assigned: Set<string>,
+  ): void {
+    // Check for assignment statement
+    const assignStmt = stmt.assignmentStatement();
+    if (assignStmt) {
+      const target = this._getAssignmentTarget(assignStmt);
+      if (target) {
+        assigned.add(target);
+      }
+    }
+
+    // Recurse into nested statements/blocks (if, while, for, etc.)
+    const ifStmt = stmt.ifStatement();
+    if (ifStmt) {
+      for (const childStmt of ifStmt.statement()) {
+        this._collectAssignmentsInStatement(childStmt, assigned);
+      }
+    }
+
+    const whileStmt = stmt.whileStatement();
+    if (whileStmt) {
+      const childStmt = whileStmt.statement();
+      if (childStmt) {
+        this._collectAssignmentsInStatement(childStmt, assigned);
+      }
+    }
+
+    const forStmt = stmt.forStatement();
+    if (forStmt) {
+      const childStmt = forStmt.statement();
+      if (childStmt) {
+        this._collectAssignmentsInStatement(childStmt, assigned);
+      }
+    }
+
+    const switchStmt = stmt.switchStatement();
+    if (switchStmt) {
+      for (const switchCase of switchStmt.switchCase()) {
+        const caseBlock = switchCase.block();
+        if (caseBlock) {
+          this._collectAssignmentsInBlock(caseBlock, assigned);
+        }
+      }
+      const defaultCase = switchStmt.defaultCase();
+      if (defaultCase?.block()) {
+        this._collectAssignmentsInBlock(defaultCase.block()!, assigned);
+      }
+    }
+
+    // Standalone block
+    const block = stmt.block();
+    if (block) {
+      this._collectAssignmentsInBlock(block, assigned);
+    }
+  }
+
+  /**
+   * Extract the target variable name from an assignment statement.
+   * Returns the bare member name for `this.member` or `member` patterns.
+   */
+  private _getAssignmentTarget(
+    assignStmt: Parser.AssignmentStatementContext,
+  ): string | null {
+    const target = assignStmt.assignmentTarget();
+    if (!target) return null;
+
+    // Handle bare identifier: `member <- value`
+    // Check if it's NOT a this.member pattern (no THIS token)
+    if (!target.THIS()) {
+      return target.IDENTIFIER()?.getText() ?? null;
+    }
+
+    // Handle this.member: `this.member <- value`
+    // When THIS is present, the IDENTIFIER is the member name after the dot
+    return target.IDENTIFIER()?.getText() ?? null;
   }
 
   /**
@@ -543,6 +668,7 @@ class InitializationAnalyzer {
   private _processScopeMemberVariable(
     member: Parser.ScopeMemberContext,
     scopeName: string,
+    assignedMembers: Set<string>,
   ): void {
     const memberVar = member.variableDeclaration();
     if (!memberVar) return;
@@ -552,9 +678,15 @@ class InitializationAnalyzer {
     const { line, column } = ParserUtils.getPosition(memberVar);
     const typeName = this._extractUserTypeName(memberVar.type());
 
+    // Issue #1019: Scope members are initialized if they have an inline
+    // initializer OR are assigned in any function within the scope
+    const hasInlineInit = memberVar.expression() !== null;
+    const isAssignedInScope = assignedMembers.has(varName);
+    const hasInitializer = hasInlineInit || isAssignedInScope;
+
     // Register with both raw name and transpiled C name for scope resolution
-    this.declareVariable(varName, line, column, true, typeName);
-    this.declareVariable(fullName, line, column, true, typeName);
+    this.declareVariable(varName, line, column, hasInitializer, typeName);
+    this.declareVariable(fullName, line, column, hasInitializer, typeName);
   }
 
   /**
