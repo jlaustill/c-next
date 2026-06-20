@@ -44,27 +44,23 @@ void testEmptyInitAndUpdate(void) {
     }
 }
 
-// Test 4: Empty condition (infinite loop with break)
-void testEmptyCondition(void) {
+// Test 4: Use explicit condition instead of infinite loop + break
+// C-Next doesn't have break; use structured conditions
+void testExplicitCondition(void) {
     uint32_t count = 0U;
-    for (uint32_t i = 0; ; i = i + 1) {
+    for (uint32_t i = 0; i < 5; i = i + 1) {
         count = cnx_clamp_add_u32(count, 1U);
-        if (i >= 4) {
-            break;
-        }
     }
     globalCounter = cnx_clamp_add_u32(globalCounter, count);
 }
 
-// Test 5: All empty (infinite loop with break)
-void testAllEmpty(void) {
+// Test 5: All parts present (structured approach)
+// C-Next doesn't have break; always use explicit loop conditions
+void testStructuredLoop(void) {
     uint32_t i = 0U;
-    for (; ; ) {
+    for (; i < 3; ) {
         globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
         i = cnx_clamp_add_u32(i, 1U);
-        if (i >= 3) {
-            break;
-        }
     }
 }
 
@@ -72,6 +68,6 @@ int main(void) {
     testEmptyInit();
     testEmptyUpdate();
     testEmptyInitAndUpdate();
-    testEmptyCondition();
-    testAllEmpty();
+    testExplicitCondition();
+    testStructuredLoop();
 }

@@ -1781,7 +1781,17 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     if (ctx.IDENTIFIER()) {
-      return this._resolveIdentifierExpression(ctx.IDENTIFIER()!.getText());
+      const id = ctx.IDENTIFIER()!.getText();
+      // Issue #1011: break/continue are not part of C-Next - use structured conditions
+      // ADR-026 (Status: Rejected) explicitly excludes break/continue from the language
+      if (id === "break" || id === "continue") {
+        const line = ctx.start?.line ?? 0;
+        const col = ctx.start?.column ?? 0;
+        throw new Error(
+          `${line}:${col} error[E0703]: '${id}' is not supported in C-Next - use structured conditions instead`,
+        );
+      }
+      return this._resolveIdentifierExpression(id);
     }
     if (ctx.literal()) {
       return this._generateLiteralExpression(ctx.literal()!);

@@ -1,0 +1,8 @@
+// test-error
+// Bug #1011: continue is not part of C-Next — use structured conditions
+
+void demo() {
+    for (u32 i <- 0; i < 10; i +<- 1) {
+        if (i = 5) { continue; }
+    }
+}

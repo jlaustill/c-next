@@ -14896,8 +14896,8 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("break and continue statements", () => {
-      it("should generate break in loop", () => {
+    describe("break and continue rejection (Issue #1011)", () => {
+      it("should reject break - not part of C-Next spec", () => {
         const source = `
           void test() {
             while (true) {
@@ -14910,15 +14910,15 @@ describe("CodeGenerator", () => {
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("break;");
+        expect(() =>
+          generator.generate(tree, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("'break' is not supported in C-Next");
       });
 
-      it("should generate continue in loop", () => {
+      it("should reject continue - not part of C-Next spec", () => {
         const source = `
           void test() {
             u32 i <- 0;
@@ -14935,12 +14935,12 @@ describe("CodeGenerator", () => {
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("continue;");
+        expect(() =>
+          generator.generate(tree, tokenStream, {
+            symbolInfo: symbols,
+            sourcePath: "test.cnx",
+          }),
+        ).toThrow("'continue' is not supported in C-Next");
       });
     });
 
