@@ -31,7 +31,8 @@ static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
 
 // test-execution
 // Tests: i64 compound assignment operators
-// Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
+// Validates: 8 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-)
+// Note: Shift operators (<<<-, >><-) are rejected on signed types per MISRA C:2012 Rule 10.1
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 int main(void) {
     int64_t val = 1000000000000;
@@ -148,35 +149,5 @@ int main(void) {
     val = 0x7FFFFFFFFFFFFFFF;
     val ^= 0x7FFFFFFFFFFFFFFF;
     if (val != 0) return 73;
-    val = 1;
-    val <<= 0;
-    if (val != 1) return 80;
-    val = 1;
-    val <<= 1;
-    if (val != 2) return 81;
-    val = 1;
-    val <<= 32;
-    if (val != 4294967296) return 82;
-    val = 1;
-    val <<= 62;
-    if (val != 4611686018427387904) return 83;
-    val = -1;
-    val <<= 4;
-    if (val != -16) return 84;
-    val = 256;
-    val >>= 0;
-    if (val != 256) return 90;
-    val = 256;
-    val >>= 1;
-    if (val != 128) return 91;
-    val = 4294967296;
-    val >>= 32;
-    if (val != 1) return 92;
-    val = -16;
-    val >>= 2;
-    if (val != -4) return 93;
-    val = -1;
-    val >>= 10;
-    if (val != -1) return 94;
     return 0;
 }

@@ -1,6 +1,7 @@
 // test-execution
 // Tests: i16 compound assignment operators
-// Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
+// Validates: 8 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-)
+// Note: Shift operators (<<<-, >><-) are rejected on signed types per MISRA C:2012 Rule 10.1
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: -32768 to 32767
 u32 main() {
@@ -172,47 +173,9 @@ u32 main() {
     xorVal ^<- 0x2AAA; // 0x5555 ^ 0x2AAA = 0x7FFF
     if (xorVal != 0x7FFF) return 73;
 
-    // ===== LEFT SHIFT (<<<-) =====
-    i16 shl <- 1;
-    shl <<<- 0; // Shift by 0 = identity
-    if (shl != 1) return 80;
-
-    shl <- 1;
-    shl <<<- 1; // 1 << 1 = 2
-    if (shl != 2) return 81;
-
-    shl <- 1;
-    shl <<<- 8; // 1 << 8 = 256
-    if (shl != 256) return 82;
-
-    shl <- 1;
-    shl <<<- 14; // 1 << 14 = 16384
-    if (shl != 16384) return 83;
-
-    shl <- -1;
-    shl <<<- 4; // -1 << 4 = -16
-    if (shl != -16) return 84;
-
-    // ===== RIGHT SHIFT (>><-) =====
-    i16 shr <- 256;
-    shr >><- 0; // Shift by 0 = identity
-    if (shr != 256) return 90;
-
-    shr <- 256;
-    shr >><- 1; // 256 >> 1 = 128
-    if (shr != 128) return 91;
-
-    shr <- 256;
-    shr >><- 8; // 256 >> 8 = 1
-    if (shr != 1) return 92;
-
-    shr <- -16;
-    shr >><- 2; // -16 >> 2 = -4 (arithmetic shift)
-    if (shr != -4) return 93;
-
-    shr <- -1;
-    shr >><- 10; // -1 >> 10 = -1 (sign extends)
-    if (shr != -1) return 94;
+    // Note: Shift compound-assignment (<<<-, >><-) on signed types (i16) is rejected
+    // per MISRA C:2012 Rule 10.1 (E0805). See tests/bitwise/i16-compound-shift-assign.test.cnx
+    // Shift operations are tested with unsigned types in tests/compound-assign/u16-compound-assign.test.cnx
 
     return 0;
 }

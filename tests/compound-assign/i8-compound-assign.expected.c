@@ -31,7 +31,8 @@ static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
 
 // test-execution
 // Tests: i8 compound assignment operators
-// Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
+// Validates: 8 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-)
+// Note: Shift operators (<<<-, >><-) are rejected on signed types per MISRA C:2012 Rule 10.1
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: -128 to 127
 int main(void) {
@@ -155,35 +156,5 @@ int main(void) {
     xorVal = 0x55;
     xorVal = (int8_t)(xorVal ^ 0x2A);
     if (xorVal != 0x7F) return 73;
-    int8_t shl = 1;
-    shl = (int8_t)(shl << 0);
-    if (shl != 1) return 80;
-    shl = 1;
-    shl = (int8_t)(shl << 1);
-    if (shl != 2) return 81;
-    shl = 1;
-    shl = (int8_t)(shl << 4);
-    if (shl != 16) return 82;
-    shl = 1;
-    shl = (int8_t)(shl << 6);
-    if (shl != 64) return 83;
-    shl = -1;
-    shl = (int8_t)(shl << 2);
-    if (shl != -4) return 84;
-    int8_t shr = 64;
-    shr = (int8_t)(shr >> 0);
-    if (shr != 64) return 90;
-    shr = 64;
-    shr = (int8_t)(shr >> 1);
-    if (shr != 32) return 91;
-    shr = 64;
-    shr = (int8_t)(shr >> 6);
-    if (shr != 1) return 92;
-    shr = -8;
-    shr = (int8_t)(shr >> 2);
-    if (shr != -2) return 93;
-    shr = -1;
-    shr = (int8_t)(shr >> 4);
-    if (shr != -1) return 94;
     return 0;
 }

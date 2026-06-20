@@ -21,6 +21,7 @@ import ISignedShiftError from "./types/ISignedShiftError";
 import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
+import CodeGenState from "../../state/CodeGenState";
 
 /**
  * First pass: Collect variable declarations with their types
@@ -28,25 +29,36 @@ import ExpressionUtils from "../../../utils/ExpressionUtils";
 class SignedVariableCollector extends CNextListener {
   private readonly signedVars: Set<string> = new Set();
 
+  // Track all variable types (for resolving struct member chains)
+  private readonly varTypes: Map<string, string> = new Map();
+
   public getSignedVars(): Set<string> {
     return this.signedVars;
   }
 
+  public getVarTypes(): Map<string, string> {
+    return this.varTypes;
+  }
+
   /**
-   * Track a typed identifier if it has a signed type
+   * Track a typed identifier - add to signedVars if signed, always track type
    */
-  private trackIfSigned(
+  private trackType(
     typeCtx: Parser.TypeContext | null,
     identifier: { getText(): string } | null,
   ): void {
-    if (!typeCtx) return;
+    if (!typeCtx || !identifier) return;
 
     const typeName = typeCtx.getText();
-    if (!TypeConstants.SIGNED_TYPES.includes(typeName)) return;
+    const varName = identifier.getText();
 
-    if (!identifier) return;
+    // Always track the variable's type for member chain resolution
+    this.varTypes.set(varName, typeName);
 
-    this.signedVars.add(identifier.getText());
+    // Also track in signedVars if it's a signed type
+    if (TypeConstants.SIGNED_TYPES.includes(typeName)) {
+      this.signedVars.add(varName);
+    }
   }
 
   /**
@@ -55,21 +67,21 @@ class SignedVariableCollector extends CNextListener {
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    this.trackIfSigned(ctx.type(), ctx.IDENTIFIER());
+    this.trackType(ctx.type(), ctx.IDENTIFIER());
   };
 
   /**
    * Track function parameters with signed types
    */
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.trackIfSigned(ctx.type(), ctx.IDENTIFIER());
+    this.trackType(ctx.type(), ctx.IDENTIFIER());
   };
 
   /**
    * Track for-loop variable declarations with signed types
    */
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.trackIfSigned(ctx.type(), ctx.IDENTIFIER());
+    this.trackType(ctx.type(), ctx.IDENTIFIER());
   };
 }
 
@@ -82,10 +94,18 @@ class SignedShiftListener extends CNextListener {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly signedVars: Set<string>;
 
-  constructor(analyzer: SignedShiftAnalyzer, signedVars: Set<string>) {
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly varTypes: Map<string, string>;
+
+  constructor(
+    analyzer: SignedShiftAnalyzer,
+    signedVars: Set<string>,
+    varTypes: Map<string, string>,
+  ) {
     super();
     this.analyzer = analyzer;
     this.signedVars = signedVars;
+    this.varTypes = varTypes;
   }
 
   /**
@@ -115,6 +135,97 @@ class SignedShiftListener extends CNextListener {
       }
     }
   };
+
+  /**
+   * Check compound shift-assign statements for signed targets
+   * assignmentStatement: assignmentTarget assignmentOperator expression ';'
+   * Issue #1008: <<<- and >><- must also be rejected on signed types
+   *
+   * Handles both simple identifiers (x <<<- 2) and member chains (s.x <<<- 2)
+   */
+  override enterAssignmentStatement = (
+    ctx: Parser.AssignmentStatementContext,
+  ): void => {
+    const opCtx = ctx.assignmentOperator();
+    if (!opCtx) return;
+
+    const isLeftShiftAssign = opCtx.LSHIFT_ASSIGN() !== null;
+    const isRightShiftAssign = opCtx.RSHIFT_ASSIGN() !== null;
+    if (!isLeftShiftAssign && !isRightShiftAssign) return;
+
+    const target = ctx.assignmentTarget();
+    if (!target) return;
+
+    // Get the base identifier from the assignment target
+    const identifier = target.IDENTIFIER();
+    if (!identifier) return;
+
+    const baseName = identifier.getText();
+    const postfixOps = target.postfixTargetOp();
+
+    // Check if the final target type is signed
+    if (this.isSignedTarget(baseName, postfixOps)) {
+      const operator = isLeftShiftAssign ? "<<<-" : ">><-";
+      const { line, column } = ParserUtils.getPosition(target);
+      this.analyzer.addError(line, column, operator);
+    }
+  };
+
+  /**
+   * Resolve the final type of an assignment target, handling member chains.
+   * Returns true if the final target is a signed type.
+   *
+   * Examples:
+   *   - "x" with no postfix ops → check if x is signed
+   *   - "s" with postfixOps [".x"] → check if s.x field is signed
+   *   - "arr" with postfixOps ["[0]", ".field"] → check if field is signed
+   */
+  private isSignedTarget(
+    baseName: string,
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): boolean {
+    // Simple case: no member access, just a variable
+    if (postfixOps.length === 0) {
+      return this.signedVars.has(baseName);
+    }
+
+    // Member chain case: resolve through the chain
+    let currentType = this.varTypes.get(baseName);
+    if (!currentType) {
+      // Unknown base type - can't resolve, skip
+      return false;
+    }
+
+    // Walk through the postfix operations
+    for (const op of postfixOps) {
+      const memberIdent = op.IDENTIFIER();
+      if (memberIdent) {
+        // Member access: .fieldName
+        const fieldName = memberIdent.getText();
+        const fieldType = CodeGenState.getStructFieldType(
+          currentType,
+          fieldName,
+        );
+        if (!fieldType) {
+          // Unknown field - can't resolve, skip
+          return false;
+        }
+        currentType = fieldType;
+      } else {
+        // Array subscript: [expr] - doesn't change the base type for primitives
+        // For arrays like u8[4], after [i] we still have u8
+        // Strip array dimensions if present
+        const bracketIndex = currentType.indexOf("[");
+        if (bracketIndex !== -1) {
+          currentType = currentType.substring(0, bracketIndex);
+        }
+        // Otherwise keep the type as-is (e.g., bit indexing on u8)
+      }
+    }
+
+    // Check if the final resolved type is signed
+    return TypeConstants.SIGNED_TYPES.includes(currentType);
+  }
 
   /**
    * Check if an additive expression contains a signed type operand
@@ -202,13 +313,14 @@ class SignedShiftAnalyzer {
   public analyze(tree: Parser.ProgramContext): ISignedShiftError[] {
     this.errors = [];
 
-    // First pass: collect signed variables
+    // First pass: collect signed variables and all variable types
     const collector = new SignedVariableCollector();
     ParseTreeWalker.DEFAULT.walk(collector, tree);
     const signedVars = collector.getSignedVars();
+    const varTypes = collector.getVarTypes();
 
     // Second pass: detect shift with signed operands
-    const listener = new SignedShiftListener(this, signedVars);
+    const listener = new SignedShiftListener(this, signedVars, varTypes);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;

@@ -31,7 +31,8 @@ static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
 
 // test-execution
 // Tests: i16 compound assignment operators
-// Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
+// Validates: 8 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-)
+// Note: Shift operators (<<<-, >><-) are rejected on signed types per MISRA C:2012 Rule 10.1
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 // Range: -32768 to 32767
 int main(void) {
@@ -155,35 +156,5 @@ int main(void) {
     xorVal = 0x5555;
     xorVal = static_cast<int16_t>((xorVal ^ 0x2AAA));
     if (xorVal != 0x7FFF) return 73;
-    int16_t shl = 1;
-    shl = static_cast<int16_t>((shl << 0));
-    if (shl != 1) return 80;
-    shl = 1;
-    shl = static_cast<int16_t>((shl << 1));
-    if (shl != 2) return 81;
-    shl = 1;
-    shl = static_cast<int16_t>((shl << 8));
-    if (shl != 256) return 82;
-    shl = 1;
-    shl = static_cast<int16_t>((shl << 14));
-    if (shl != 16384) return 83;
-    shl = -1;
-    shl = static_cast<int16_t>((shl << 4));
-    if (shl != -16) return 84;
-    int16_t shr = 256;
-    shr = static_cast<int16_t>((shr >> 0));
-    if (shr != 256) return 90;
-    shr = 256;
-    shr = static_cast<int16_t>((shr >> 1));
-    if (shr != 128) return 91;
-    shr = 256;
-    shr = static_cast<int16_t>((shr >> 8));
-    if (shr != 1) return 92;
-    shr = -16;
-    shr = static_cast<int16_t>((shr >> 2));
-    if (shr != -4) return 93;
-    shr = -1;
-    shr = static_cast<int16_t>((shr >> 10));
-    if (shr != -1) return 94;
     return 0;
 }

@@ -1,0 +1,12 @@
+// test-error
+// Signed compound shift-assign on struct members should be rejected (MISRA C:2012 Rule 10.1)
+// Issue #1008: s.signedField <<<- 2 must also be caught
+struct Data {
+    i8 signedField;
+    u8 unsignedField;
+}
+
+void main() {
+    Data d <- {signedField: 1, unsignedField: 1};
+    d.signedField <<<- 2; // E0805: signed shift not allowed
+}

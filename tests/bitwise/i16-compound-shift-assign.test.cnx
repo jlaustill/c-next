@@ -1,0 +1,7 @@
+// test-error
+// Signed compound shift-assign should be rejected (MISRA C:2012 Rule 10.1)
+// Issue #1008: <<<- and >><- bypass E0805 check
+void main() {
+    i16 a <- 1;
+    a <<<- 2; // E0805: signed shift not allowed
+}
