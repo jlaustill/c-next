@@ -1006,4 +1006,237 @@ describe("InitializationAnalyzer", () => {
       expect(errors[0].variable).toBe("e");
     });
   });
+
+  // ========================================================================
+  // Issue #1019: Scope Member Initialization
+  // ========================================================================
+
+  describe("scope member initialization (Issue #1019)", () => {
+    it("should allow reading scope member with inline initializer", () => {
+      const code = `
+        scope S {
+          u32 value <- 42;
+          public u32 get() { return value; }
+        }
+        void main() {
+          u32 v <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should allow reading scope member assigned in another function", () => {
+      const code = `
+        scope S {
+          u32 value;
+          public void init() { value <- 10; }
+          public u32 get() { return value; }
+        }
+        void main() {
+          S.init();
+          u32 v <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // value is assigned in init(), so get() can read it
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should flag uninitialized scope member read", () => {
+      const code = `
+        scope S {
+          u32 value;
+          public u32 get() { return value; }
+        }
+        void main() {
+          u32 v <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // value is never assigned - should error
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("value");
+    });
+
+    it("should detect assignment in do-while body", () => {
+      const code = `
+        scope S {
+          u32 count;
+          public void init() {
+            u32 i <- 0;
+            do {
+              count <- i;
+              i <- i + 1;
+            } while (i < 1);
+          }
+          public u32 get() { return count; }
+        }
+        void main() {
+          S.init();
+          u32 c <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // count is assigned inside do-while in init()
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect assignment in if statement", () => {
+      const code = `
+        scope S {
+          u32 value;
+          public void set(bool flag) {
+            if (flag = true) {
+              value <- 1;
+            }
+          }
+          public u32 get() { return value; }
+        }
+        void main() {
+          S.set(true);
+          u32 v <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // value is assigned in if branch
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect assignment in for loop", () => {
+      const code = `
+        scope S {
+          u32 total;
+          public void calc() {
+            for (u32 i <- 0; i < 5; i <- i + 1) {
+              total <- i;
+            }
+          }
+          public u32 get() { return total; }
+        }
+        void main() {
+          S.calc();
+          u32 t <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // total is assigned in for loop
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect assignment via this.member", () => {
+      const code = `
+        scope S {
+          u32 data;
+          public void set() { this.data <- 100; }
+          public u32 get() { return data; }
+        }
+        void main() {
+          S.set();
+          u32 d <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // data is assigned via this.data
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect assignment in switch case", () => {
+      const code = `
+        scope S {
+          u32 result;
+          public void choose(u32 opt) {
+            switch (opt) {
+              case 1 { result <- 10; }
+              case 2 { result <- 20; }
+            }
+          }
+          public u32 get() { return result; }
+        }
+        void main() {
+          S.choose(1);
+          u32 r <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // result is assigned in switch cases
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect assignment in while loop", () => {
+      const code = `
+        scope S {
+          u32 counter;
+          public void loop() {
+            u32 i <- 0;
+            while (i < 3) {
+              counter <- i;
+              i <- i + 1;
+            }
+          }
+          public u32 get() { return counter; }
+        }
+        void main() {
+          S.loop();
+          u32 c <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // counter is assigned in while loop
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should detect assignment in switch default case", () => {
+      const code = `
+        scope S {
+          u32 result;
+          public void choose(u32 opt) {
+            switch (opt) {
+              case 1 { result <- 10; }
+              default { result <- 99; }
+            }
+          }
+          public u32 get() { return result; }
+        }
+        void main() {
+          S.choose(5);
+          u32 r <- S.get();
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // result is assigned in default case
+      expect(errors).toHaveLength(0);
+    });
+  });
 });

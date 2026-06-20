@@ -1335,6 +1335,11 @@ export default class CodeGenerator implements IOrchestrator {
       return "{}";
     }
 
+    // Issue #1019: string<N> types use empty string initializer
+    if (typeCtx.stringType()) {
+      return '""';
+    }
+
     // Primitive types use lookup map
     if (typeCtx.primitiveType()) {
       const primType = typeCtx.primitiveType()!.getText();
