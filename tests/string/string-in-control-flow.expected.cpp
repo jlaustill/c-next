@@ -33,7 +33,7 @@ int main(void) {
         result = 5U;
     }
     if (result != 5) return 5;
-    char items[4] = {};
+    char items[4][33] = {0};
     strncpy(items[0], "One", 32);
     strncpy(items[1], "Two", 32);
     strncpy(items[2], "Three", 32);

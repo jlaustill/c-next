@@ -9,7 +9,7 @@
 // test-execution
 // Issue #1029: .element_count should work on string arrays inside functions
 int main(void) {
-    char items[4] = {0};
+    char items[4][33] = {0};
     strncpy(items[0], "One", 32);
     strncpy(items[1], "Two", 32);
     strncpy(items[2], "Three", 32);

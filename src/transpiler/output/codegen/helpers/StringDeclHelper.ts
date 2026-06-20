@@ -98,6 +98,21 @@ class StringDeclHelper {
     isConst: boolean,
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
+    // Issue #1029: Check for string array in arrayType syntax first
+    // For `string<32>[4] items`, the structure is: arrayType -> stringType arrayTypeDimension+
+    const arrayTypeCtx = typeCtx.arrayType?.();
+    if (arrayTypeCtx?.stringType?.()) {
+      return StringDeclHelper._generateStringArrayFromArrayType(
+        name,
+        arrayTypeCtx,
+        expression,
+        arrayDims,
+        modifiers,
+        isConst,
+        callbacks,
+      );
+    }
+
     const stringCtx = typeCtx.stringType();
     if (!stringCtx) {
       return { code: "", handled: false };
@@ -127,6 +142,157 @@ class StringDeclHelper {
         callbacks,
       );
     }
+  }
+
+  /**
+   * Issue #1029: Generate string array declaration from arrayType syntax.
+   * Handles: string<32>[4] items -> char items[4][33] = {0};
+   */
+  private static _generateStringArrayFromArrayType(
+    name: string,
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    expression: Parser.ExpressionContext | null,
+    trailingArrayDims: Parser.ArrayDimensionContext[],
+    modifiers: IStringDeclModifiers,
+    isConst: boolean,
+    callbacks: IStringDeclCallbacks,
+  ): IStringDeclResult {
+    const stringCtx = arrayTypeCtx.stringType()!;
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (!intLiteral) {
+      // Unsized string array - not supported
+      throw new Error(
+        "Error: String arrays require explicit capacity, e.g., string<64>[4]",
+      );
+    }
+
+    const capacity = Number.parseInt(intLiteral.getText(), 10);
+    const {
+      extern,
+      const: constMod,
+      atomic,
+      volatile: volatileMod,
+    } = modifiers;
+
+    // Build array dimensions from arrayType (e.g., [4] from string<32>[4])
+    let arrayDimStr = "";
+    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
+      const sizeExpr = dim.expression();
+      if (sizeExpr) {
+        arrayDimStr += `[${sizeExpr.getText()}]`;
+      } else {
+        arrayDimStr += "[]";
+      }
+    }
+
+    // Add any trailing dimensions from variable declaration
+    arrayDimStr += callbacks.generateArrayDimensions(trailingArrayDims);
+
+    // Add string capacity dimension
+    arrayDimStr += `[${capacity + 1}]`;
+
+    let decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}${arrayDimStr}`;
+
+    // Track as local array
+    CodeGenState.localArrays.add(name);
+
+    // No initializer - zero-initialize
+    if (!expression) {
+      return { code: `${decl} = {0};`, handled: true };
+    }
+
+    // Reset array init tracking and generate initializer
+    CodeGenState.lastArrayInitCount = 0;
+    CodeGenState.lastArrayFillValue = undefined;
+    const initValue = callbacks.generateExpression(expression);
+
+    // Check if it was an array initializer
+    const isArrayInit =
+      CodeGenState.lastArrayInitCount > 0 ||
+      CodeGenState.lastArrayFillValue !== undefined;
+
+    if (!isArrayInit) {
+      throw new Error(
+        `Error: String array initialization from variables not supported`,
+      );
+    }
+
+    // Validate element count if declared size is available
+    const declaredSize =
+      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
+    if (declaredSize !== null) {
+      const isFillAll = CodeGenState.lastArrayFillValue !== undefined;
+      const elementCount = CodeGenState.lastArrayInitCount;
+
+      if (!isFillAll && elementCount !== declaredSize) {
+        throw new Error(
+          `Error: Array size mismatch - declared [${declaredSize}] but got ${elementCount} elements`,
+        );
+      }
+    }
+
+    // Handle fill-all expansion if needed
+    const finalInitValue = StringDeclHelper._expandFillAllForArrayType(
+      initValue,
+      arrayTypeCtx,
+    );
+
+    // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
+    // but C standard guarantees zero-initialization of remaining elements
+    const suppression =
+      "// cppcheck-suppress misra-c2012-9.3\n// cppcheck-suppress misra-c2012-9.4\n";
+    return {
+      code: `${suppression}${decl} = ${finalInitValue};`,
+      handled: true,
+    };
+  }
+
+  /**
+   * Get the numeric size from the first arrayTypeDimension, or null if not numeric.
+   */
+  private static _getArrayTypeDeclaredSize(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+  ): number | null {
+    const dims = arrayTypeCtx.arrayTypeDimension();
+    if (dims.length === 0) {
+      return null;
+    }
+    const firstDimExpr = dims[0].expression();
+    if (!firstDimExpr) {
+      return null;
+    }
+    const sizeText = firstDimExpr.getText();
+    if (!/^\d+$/.exec(sizeText)) {
+      return null;
+    }
+    return Number.parseInt(sizeText, 10);
+  }
+
+  /**
+   * Expand fill-all syntax for arrayType-based string arrays.
+   */
+  private static _expandFillAllForArrayType(
+    initValue: string,
+    arrayTypeCtx: Parser.ArrayTypeContext,
+  ): string {
+    const fillVal = CodeGenState.lastArrayFillValue;
+    if (fillVal === undefined) {
+      return initValue;
+    }
+
+    // Empty string fill doesn't need expansion (C handles {""} correctly)
+    if (fillVal === '""') {
+      return initValue;
+    }
+
+    const declaredSize =
+      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
+    if (declaredSize === null) {
+      return initValue;
+    }
+
+    const elements = new Array<string>(declaredSize).fill(fillVal);
+    return `{${elements.join(", ")}}`;
   }
 
   /**
