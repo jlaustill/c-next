@@ -1073,6 +1073,15 @@ class TestUtils {
 
     // Error tests: single-mode (transpilation error is mode-independent)
     if (existsSync(expectedErrorFile)) {
+      // Guard: test-error cases must not have committed .test.* artifacts
+      const staleArtifactCheck = TestUtils.checkForStaleErrorTestArtifacts(
+        basePath,
+        cnxFile,
+      );
+      if (staleArtifactCheck) {
+        return staleArtifactCheck;
+      }
+
       return TestUtils.runErrorTest(
         cnxFile,
         basePath,
@@ -1105,6 +1114,42 @@ class TestUtils {
       modes as TTestMode[],
       updateMode,
     );
+  }
+
+  /**
+   * Check if a test-error case has stale .test.* artifacts committed
+   *
+   * A test-error case stops at the expected compile error and emits no generated
+   * output, so any committed .test.c/.test.cpp/.test.h/.test.hpp is stale by
+   * definition and actively misleading (shows successful compile of failing code).
+   *
+   * @returns ITestResult with failure if stale artifacts found, null otherwise
+   */
+  static checkForStaleErrorTestArtifacts(
+    basePath: string,
+    _cnxFile: string,
+  ): ITestResult | null {
+    const staleExtensions = ["test.c", "test.cpp", "test.h", "test.hpp"];
+    const staleFiles: string[] = [];
+
+    for (const ext of staleExtensions) {
+      const artifactPath = `${basePath}.${ext}`;
+      if (existsSync(artifactPath)) {
+        staleFiles.push(artifactPath);
+      }
+    }
+
+    if (staleFiles.length > 0) {
+      const fileList = staleFiles.map((f) => basename(f)).join(", ");
+      return {
+        passed: false,
+        message: `test-error case has stale generated artifacts: ${fileList}`,
+        expected: "(no .test.c/.test.cpp/.test.h/.test.hpp files)",
+        actual: `Found: ${fileList}\nRun: git rm ${staleFiles.join(" ")}`,
+      };
+    }
+
+    return null;
   }
 
   /**

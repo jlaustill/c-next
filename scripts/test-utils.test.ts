@@ -543,3 +543,98 @@ extern uint32_t goodVar;
     expect(result.passed).toBe(true);
   });
 });
+
+describe("checkForStaleErrorTestArtifacts", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-stale-artifacts-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("should return null when no stale artifacts exist", () => {
+    const basePath = join(tempDir, "test-error");
+    const cnxFile = `${basePath}.test.cnx`;
+    writeFileSync(cnxFile, "// test-error\n");
+
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    expect(result).toBeNull();
+  });
+
+  it("should detect stale .test.c file", () => {
+    const basePath = join(tempDir, "test-error");
+    const cnxFile = `${basePath}.test.cnx`;
+    writeFileSync(cnxFile, "// test-error\n");
+    writeFileSync(`${basePath}.test.c`, "// stale artifact\n");
+
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    expect(result).not.toBeNull();
+    expect(result?.passed).toBe(false);
+    expect(result?.message).toContain("stale generated artifacts");
+    expect(result?.message).toContain("test-error.test.c");
+  });
+
+  it("should detect stale .test.cpp file", () => {
+    const basePath = join(tempDir, "test-error");
+    const cnxFile = `${basePath}.test.cnx`;
+    writeFileSync(cnxFile, "// test-error\n");
+    writeFileSync(`${basePath}.test.cpp`, "// stale artifact\n");
+
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    expect(result).not.toBeNull();
+    expect(result?.passed).toBe(false);
+    expect(result?.message).toContain("test-error.test.cpp");
+  });
+
+  it("should detect stale .test.h file", () => {
+    const basePath = join(tempDir, "test-error");
+    const cnxFile = `${basePath}.test.cnx`;
+    writeFileSync(cnxFile, "// test-error\n");
+    writeFileSync(`${basePath}.test.h`, "// stale artifact\n");
+
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    expect(result).not.toBeNull();
+    expect(result?.passed).toBe(false);
+    expect(result?.message).toContain("test-error.test.h");
+  });
+
+  it("should detect stale .test.hpp file", () => {
+    const basePath = join(tempDir, "test-error");
+    const cnxFile = `${basePath}.test.cnx`;
+    writeFileSync(cnxFile, "// test-error\n");
+    writeFileSync(`${basePath}.test.hpp`, "// stale artifact\n");
+
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    expect(result).not.toBeNull();
+    expect(result?.passed).toBe(false);
+    expect(result?.message).toContain("test-error.test.hpp");
+  });
+
+  it("should detect multiple stale artifacts", () => {
+    const basePath = join(tempDir, "test-error");
+    const cnxFile = `${basePath}.test.cnx`;
+    writeFileSync(cnxFile, "// test-error\n");
+    writeFileSync(`${basePath}.test.c`, "// stale C\n");
+    writeFileSync(`${basePath}.test.h`, "// stale H\n");
+
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    expect(result).not.toBeNull();
+    expect(result?.passed).toBe(false);
+    expect(result?.message).toContain("test-error.test.c");
+    expect(result?.message).toContain("test-error.test.h");
+  });
+
+  it("should include git rm command in error message", () => {
+    const basePath = join(tempDir, "test-error");
+    const cnxFile = `${basePath}.test.cnx`;
+    writeFileSync(cnxFile, "// test-error\n");
+    writeFileSync(`${basePath}.test.c`, "// stale artifact\n");
+
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    expect(result).not.toBeNull();
+    expect(result?.actual).toContain("git rm");
+  });
+});
