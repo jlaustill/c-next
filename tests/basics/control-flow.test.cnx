@@ -57,23 +57,19 @@ u32 main() {
     } while (counter < 3);
     if (counter != 3) return 6;
 
-    // Break in loop
+    // Structured loop (instead of break, use condition in loop)
     sum <- 0;
-    for (u32 i <- 0; i < 100; i <- i + 1) {
-        if (i = 5) {
-            break;
-        }
+    for (u32 i <- 0; i < 5; i <- i + 1) {
         sum <- sum + 1;
     }
     if (sum != 5) return 7;
 
-    // Continue in loop
+    // Structured condition (instead of continue, use if to filter)
     sum <- 0;
     for (u32 i <- 0; i < 5; i <- i + 1) {
-        if (i = 2) {
-            continue;
+        if (i != 2) {
+            sum <- sum + 1;
         }
-        sum <- sum + 1;
     }
     if (sum != 4) return 8;  // Skipped i=2, so 4 iterations counted
 

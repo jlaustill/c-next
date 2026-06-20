@@ -266,11 +266,8 @@ int main(void) {
     counter = 0U;
     for (uint32_t aa = 0; aa < 3; aa = aa + 1) {
         for (uint32_t bb = 0; bb < 3; bb = bb + 1) {
-            for (uint32_t cc = 0; cc < 10; cc = cc + 1) {
+            for (uint32_t cc = 0; cc < 2; cc = cc + 1) {
                 counter = cnx_clamp_add_u32(counter, 1U);
-                if (cc == 1) {
-                    break;
-                }
             }
         }
     }
@@ -279,10 +276,9 @@ int main(void) {
     for (uint32_t dd = 0; dd < 2; dd = dd + 1) {
         for (uint32_t ee = 0; ee < 2; ee = ee + 1) {
             for (uint32_t ff = 0; ff < 3; ff = ff + 1) {
-                if (ff == 1) {
-                    continue;
+                if (ff != 1) {
+                    result = cnx_clamp_add_u32(result, 1U);
                 }
-                result = cnx_clamp_add_u32(result, 1U);
             }
         }
     }

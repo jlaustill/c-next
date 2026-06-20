@@ -27,27 +27,23 @@ void testEmptyInitAndUpdate() {
     }
 }
 
-// Test 4: Empty condition (infinite loop with break)
-void testEmptyCondition() {
+// Test 4: Use explicit condition instead of infinite loop + break
+// C-Next doesn't have break; use structured conditions
+void testExplicitCondition() {
     u32 count <- 0;
-    for (u32 i <- 0; ; i <- i + 1) {
+    for (u32 i <- 0; i < 5; i <- i + 1) {
         count +<- 1;
-        if (i >= 4) {
-            break;
-        }
     }
     globalCounter +<- count;
 }
 
-// Test 5: All empty (infinite loop with break)
-void testAllEmpty() {
+// Test 5: All parts present (structured approach)
+// C-Next doesn't have break; always use explicit loop conditions
+void testStructuredLoop() {
     u32 i <- 0;
-    for (; ; ) {
+    for (; i < 3; ) {
         globalCounter +<- 1;
         i +<- 1;
-        if (i >= 3) {
-            break;
-        }
     }
 }
 
@@ -55,6 +51,6 @@ void main() {
     testEmptyInit();
     testEmptyUpdate();
     testEmptyInitAndUpdate();
-    testEmptyCondition();
-    testAllEmpty();
+    testExplicitCondition();
+    testStructuredLoop();
 }

@@ -51,19 +51,15 @@ int main(void) {
     } while (counter < 3);
     if (counter != 3) return 6;
     sum = 0U;
-    for (uint32_t i = 0; i < 100; i = i + 1) {
-        if (i == 5) {
-            break;
-        }
+    for (uint32_t i = 0; i < 5; i = i + 1) {
         sum = sum + 1U;
     }
     if (sum != 5) return 7;
     sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
-        if (i == 2) {
-            continue;
+        if (i != 2) {
+            sum = sum + 1U;
         }
-        sum = sum + 1U;
     }
     if (sum != 4) return 8;
     return 0;
