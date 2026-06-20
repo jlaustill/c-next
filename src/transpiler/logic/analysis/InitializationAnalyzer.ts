@@ -587,16 +587,40 @@ class InitializationAnalyzer {
     stmt: Parser.StatementContext,
     assigned: Set<string>,
   ): void {
-    // Check for assignment statement
-    const assignStmt = stmt.assignmentStatement();
-    if (assignStmt) {
-      const target = this._getAssignmentTarget(assignStmt);
-      if (target) {
-        assigned.add(target);
-      }
-    }
+    this._collectDirectAssignment(stmt, assigned);
+    this._collectFromControlFlow(stmt, assigned);
+    this._collectFromSwitch(stmt, assigned);
+    this._collectFromBlock(stmt, assigned);
+  }
 
-    // Recurse into nested statements/blocks (if, while, for, etc.)
+  /**
+   * Collect assignment from the statement itself (if it's an assignment).
+   */
+  private _collectDirectAssignment(
+    stmt: Parser.StatementContext,
+    assigned: Set<string>,
+  ): void {
+    const assignStmt = stmt.assignmentStatement();
+    if (!assignStmt) return;
+
+    const target = assignStmt.assignmentTarget();
+    if (!target) return;
+
+    // Both bare identifier and this.member use the same IDENTIFIER token
+    const id = target.IDENTIFIER()?.getText();
+    if (id) {
+      assigned.add(id);
+    }
+  }
+
+  /**
+   * Recurse into control flow statements (if, while, do-while, for).
+   */
+  private _collectFromControlFlow(
+    stmt: Parser.StatementContext,
+    assigned: Set<string>,
+  ): void {
+    // if statement
     const ifStmt = stmt.ifStatement();
     if (ifStmt) {
       for (const childStmt of ifStmt.statement()) {
@@ -604,62 +628,58 @@ class InitializationAnalyzer {
       }
     }
 
+    // while statement
     const whileStmt = stmt.whileStatement();
-    if (whileStmt) {
-      const childStmt = whileStmt.statement();
-      if (childStmt) {
-        this._collectAssignmentsInStatement(childStmt, assigned);
-      }
+    if (whileStmt?.statement()) {
+      this._collectAssignmentsInStatement(whileStmt.statement()!, assigned);
     }
 
+    // do-while statement (Issue #1019 review feedback)
+    const doWhileStmt = stmt.doWhileStatement();
+    if (doWhileStmt?.block()) {
+      this._collectAssignmentsInBlock(doWhileStmt.block(), assigned);
+    }
+
+    // for statement
     const forStmt = stmt.forStatement();
-    if (forStmt) {
-      const childStmt = forStmt.statement();
-      if (childStmt) {
-        this._collectAssignmentsInStatement(childStmt, assigned);
-      }
-    }
-
-    const switchStmt = stmt.switchStatement();
-    if (switchStmt) {
-      for (const switchCase of switchStmt.switchCase()) {
-        const caseBlock = switchCase.block();
-        if (caseBlock) {
-          this._collectAssignmentsInBlock(caseBlock, assigned);
-        }
-      }
-      const defaultCase = switchStmt.defaultCase();
-      if (defaultCase?.block()) {
-        this._collectAssignmentsInBlock(defaultCase.block()!, assigned);
-      }
-    }
-
-    // Standalone block
-    const block = stmt.block();
-    if (block) {
-      this._collectAssignmentsInBlock(block, assigned);
+    if (forStmt?.statement()) {
+      this._collectAssignmentsInStatement(forStmt.statement()!, assigned);
     }
   }
 
   /**
-   * Extract the target variable name from an assignment statement.
-   * Returns the bare member name for `this.member` or `member` patterns.
+   * Recurse into switch statement cases.
    */
-  private _getAssignmentTarget(
-    assignStmt: Parser.AssignmentStatementContext,
-  ): string | null {
-    const target = assignStmt.assignmentTarget();
-    if (!target) return null;
+  private _collectFromSwitch(
+    stmt: Parser.StatementContext,
+    assigned: Set<string>,
+  ): void {
+    const switchStmt = stmt.switchStatement();
+    if (!switchStmt) return;
 
-    // Handle bare identifier: `member <- value`
-    // Check if it's NOT a this.member pattern (no THIS token)
-    if (!target.THIS()) {
-      return target.IDENTIFIER()?.getText() ?? null;
+    for (const switchCase of switchStmt.switchCase()) {
+      const caseBlock = switchCase.block();
+      if (caseBlock) {
+        this._collectAssignmentsInBlock(caseBlock, assigned);
+      }
     }
+    const defaultCase = switchStmt.defaultCase();
+    if (defaultCase?.block()) {
+      this._collectAssignmentsInBlock(defaultCase.block()!, assigned);
+    }
+  }
 
-    // Handle this.member: `this.member <- value`
-    // When THIS is present, the IDENTIFIER is the member name after the dot
-    return target.IDENTIFIER()?.getText() ?? null;
+  /**
+   * Recurse into standalone block statement.
+   */
+  private _collectFromBlock(
+    stmt: Parser.StatementContext,
+    assigned: Set<string>,
+  ): void {
+    const block = stmt.block();
+    if (block) {
+      this._collectAssignmentsInBlock(block, assigned);
+    }
   }
 
   /**
