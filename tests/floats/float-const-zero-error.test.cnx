@@ -1,0 +1,21 @@
+// test-error
+// Test: Const float zero division should be rejected (E0800)
+// Issue #1010: Float division by zero should error like integer division
+// Previously this was "valid" but now const zero detection applies to floats
+
+void test_const_zero_float() {
+    const f32 ZERO <- 0.0;
+    const f64 ZERO_D <- 0.0;
+
+    // These should now ERROR for floats (parity with integers)
+    f32 result_f <- 10.0 / ZERO;
+    f64 result_d <- 100.0 / ZERO_D;
+
+    // Even 0.0 / 0.0 is now an error
+    result_f <- ZERO / ZERO;
+    result_d <- ZERO_D / ZERO_D;
+}
+
+void main() {
+    test_const_zero_float();
+}
