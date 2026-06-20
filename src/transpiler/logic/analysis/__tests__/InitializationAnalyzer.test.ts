@@ -822,7 +822,159 @@ describe("InitializationAnalyzer", () => {
   });
 
   // ========================================================================
-  // Group I: C++ Non-Struct Symbol
+  // Group I: Compound Assignment (Issue #1012)
+  // ========================================================================
+
+  describe("compound assignment (Issue #1012)", () => {
+    it("should flag compound assignment on uninitialized variable", () => {
+      const code = `
+        void main() {
+          u32 sum;
+          sum +<- 5;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("sum");
+    });
+
+    it("should not flag compound assignment on initialized variable", () => {
+      const code = `
+        void main() {
+          u32 sum <- 0;
+          sum +<- 5;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should flag compound assignment on uninitialized struct field", () => {
+      const code = `
+        struct Point {
+          u32 x;
+          u32 y;
+        }
+        void main() {
+          Point p;
+          p.x +<- 10;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toContain("p.x");
+    });
+
+    it("should not flag compound assignment on initialized struct field", () => {
+      const code = `
+        struct Point {
+          u32 x;
+          u32 y;
+        }
+        void main() {
+          Point p <- {x: 10, y: 20};
+          p.x +<- 5;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should flag all compound operators on uninitialized variable", () => {
+      const operators = [
+        "+<-",
+        "-<-",
+        "*<-",
+        "/<-",
+        "%<-",
+        "&<-",
+        "|<-",
+        "^<-",
+        "<<<-",
+        ">><-",
+      ];
+
+      for (const op of operators) {
+        const code = `
+          void main() {
+            u32 x;
+            x ${op} 1;
+          }
+        `;
+        const tree = parse(code);
+        const analyzer = new InitializationAnalyzer();
+        const errors = analyzer.analyze(tree);
+
+        expect(errors.length).toBeGreaterThan(0);
+        expect(errors[0].code).toBe("E0381");
+        expect(errors[0].variable).toBe("x");
+      }
+    });
+
+    it("should not flag simple assignment on uninitialized variable", () => {
+      const code = `
+        void main() {
+          u32 x;
+          x <- 5;
+          u32 y <- x;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Simple assignment initializes the variable, so no error
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should flag compound assignment on array element with uninitialized array", () => {
+      const code = `
+        void main() {
+          u32[4] arr;
+          arr[0] +<- 5;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      // Array is uninitialized, reading arr[0] for compound assignment is an error
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0381");
+      expect(errors[0].variable).toBe("arr");
+    });
+
+    it("should not flag compound assignment on array element with initialized array", () => {
+      const code = `
+        void main() {
+          u32[4] arr <- [1, 2, 3, 4];
+          arr[0] +<- 5;
+        }
+      `;
+      const tree = parse(code);
+      const analyzer = new InitializationAnalyzer();
+      const errors = analyzer.analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Group J: C++ Non-Struct Symbol
   // ========================================================================
 
   describe("C++ non-struct symbol", () => {

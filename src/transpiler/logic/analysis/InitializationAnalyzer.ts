@@ -157,10 +157,32 @@ class InitializationListener extends CNextListener {
       return;
     }
 
-    // Simple variable assignment: x <- value (no postfix ops)
+    // Resolve the assignment target ONCE (single source of truth)
+    const target = this._resolveAssignmentTarget(baseId, postfixOps);
+
+    // Issue #1012: Compound assignment reads the LHS before writing.
+    // Check if the assignment operator is a compound operator (not simple `<-`).
+    const isCompoundAssignment = ctx.assignmentOperator().ASSIGN() === null;
+    if (isCompoundAssignment) {
+      const { line, column } = ParserUtils.getPosition(ctx);
+      this.analyzer.checkRead(target.varName, line, column, target.fieldName);
+    }
+
+    // Record the assignment to the resolved target
+    this.analyzer.recordAssignment(target.varName, target.fieldName);
+  };
+
+  /**
+   * Resolve an assignment target to its variable name and optional field name.
+   * Single classification path used by both read checks and assignment recording.
+   */
+  private _resolveAssignmentTarget(
+    baseId: string,
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): { varName: string; fieldName?: string } {
+    // Simple variable: x <- value (no postfix ops)
     if (postfixOps.length === 0) {
-      this.analyzer.recordAssignment(baseId);
-      return;
+      return { varName: baseId };
     }
 
     // Analyze postfix operations
@@ -168,15 +190,13 @@ class InitializationListener extends CNextListener {
 
     // Member access: p.x <- value (struct field)
     if (identifiers.length >= 2 && !hasSubscript) {
-      const varName = identifiers[0];
-      const fieldName = identifiers[1];
-      this.analyzer.recordAssignment(varName, fieldName);
-    } else {
-      // Array access or mixed: arr[i] <- value or arr[i].field <- value
-      // Consider the array/base as a whole initialized
-      this.analyzer.recordAssignment(baseId);
+      return { varName: identifiers[0], fieldName: identifiers[1] };
     }
-  };
+
+    // Array access or mixed: arr[i] <- value or arr[i].field <- value
+    // Consider the array/base as a whole
+    return { varName: baseId };
+  }
 
   // ========================================================================
   // Function Call Arguments (ADR-006: pass-by-reference may initialize)
