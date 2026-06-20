@@ -6,6 +6,7 @@
 #include "const-array-param.test.hpp"
 
 // test-execution
+// test-link: fake_lib.c
 // Issue #986: Array params transpile as const when passed to C APIs
 // ADR-006 says all params are pass-by-reference as mutable, but array params
 // that are not directly modified get auto-const, breaking C API compatibility.
@@ -20,7 +21,7 @@ void Handler_process(uint8_t data[8]) {
 }
 
 int main(void) {
-    uint8_t buffer[8] = {0};
+    uint8_t buffer[8] = {};
     buffer[0] = 0U;
     buffer[1] = 0U;
     Handler_process(buffer);
