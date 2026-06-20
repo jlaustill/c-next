@@ -4,25 +4,6 @@ A complete reference for AI code generation. C-Next transpiles to C/C++. Every r
 
 ---
 
-# Project Setup
-
-Before writing `.cnx`, make sure the project is configured (full guide:
-`docs/platformio-integration.md`; for a quick syntax tour, see
-`docs/learn-cnext-in-y-minutes.md`):
-
-- **`cnext.config.json`** drives the transpiler; `cnext --pio-install` writes a
-  working default. The field that matters most for codegen is **`include`** — it
-  must list every directory holding C/C++ headers you `#include` (e.g. `include/`,
-  `.pio/libdeps/`).
-- **C vs C++ output is auto-detected.** C-Next emits `.cpp`/`.hpp` when it parses a
-  C++ header you include (templates/classes), otherwise `.c`/`.h`. You normally do
-  **NOT** set `cppRequired`. Auto-detection only works on headers cnext can
-  **find**, so keep your C++ headers on the `include` path — a `.cnx` that includes
-  only a header cnext cannot find (e.g. `<Arduino.h>` not on a search path)
-  silently falls back to C mode.
-
----
-
 # Part 1: Core Language
 
 ## Operators
@@ -31,16 +12,42 @@ Before writing `.cnx`, make sure the project is configured (full guide:
 ASSIGNMENT:    x <- 5          →  x = 5
 COMPARISON:    if (x = 5)      →  if (x == 5)
 NOT EQUAL:     if (x != 5)     →  if (x != 5)
+RELATIONAL:    < > <= >=       (same as C)
 COMPOUND:      x +<- 1         →  x += 1
                x -<- 1         →  x -= 1
                x *<- 2         →  x *= 2
+               x /<- 2         →  x /= 2
+               x %<- 2         →  x %= 2
                x &<- mask      →  x &= mask
                x |<- flags     →  x |= flags
+               x ^<- mask      →  x ^= mask
                x <<<- 1        →  x <<= 1
-ARITHMETIC:    + - * / %       (same as C)
-BITWISE:       & | ^ ~ << >>   (same as C)
+               x >><- 1        →  x >>= 1
+ARITHMETIC:    + - * / %       (% is integer-only — see notes below)
+BITWISE:       & | ^ ~          (signed & unsigned, same as C)
+SHIFT:         << >>            (UNSIGNED operands only — see below)
 LOGICAL:       && || !          (same as C)
 ```
+
+**Division and modulo guard against divide-by-zero** (unlike C):
+
+- A **compile-time-zero** divisor — a literal `0`, or a `const` known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `const u32 ZERO <- 0; x / ZERO`.
+- A **runtime** divisor compiles to plain C division with no implicit guard (`10 / divisor` → `10U / divisor`).
+- **Floats:** `%` is **forbidden** on floats (`E0804` — `%` is integer-only).
+- For guarded runtime division/modulo, use the `safe_div` / `safe_mod` built-ins (ADR-051):
+
+```cnx
+u32 result <- 0;
+bool err  <- safe_div(result, 10, divisor, 99);      // divisor == 0 → result = 99, err = true
+bool err2 <- safe_mod(result, 10, divisor, result);  // pass current value as default = preserve-on-error
+```
+
+`safe_div(out, numerator, divisor, defaultValue)` (and `safe_mod`) return a `bool` error flag: on a zero divisor they write `defaultValue` into `out` and return `true`; otherwise they write the quotient/remainder and return `false`. The transpiler emits a per-type helper (`cnx_safe_div_u32`, …).
+
+**Shift operators (`<<`, `>>`) require unsigned operands** (unlike C):
+
+- Shifting a **signed** value (`i8`/`i16`/`i32`/`i64`) is a compile error (`E0805`, MISRA 10.1) — left-shift of a signed value is UB and right-shift is implementation-defined in C, so C-Next forbids it. Bitwise `& | ^ ~` _are_ allowed on signed values (two's-complement, same as C).
+- The shift amount must be **non-negative** and **less than the operand's bit width** (MISRA 12.2): `x << -1` and `u8val << 8` are both compile errors. Widen first: `u16 wide <- val; u16 r <- wide << 8;`.
 
 ## Types
 
@@ -52,6 +59,37 @@ BOOL:      bool                → bool
 SIZE:      usize               → size_t
 STRING:    string<N>           → char[N+1]
 ```
+
+Scalar values also expose **`.bit_length`** — the compile-time bit width: `u32 x; x.bit_length` → 32, `f64 d; d.bit_length` → 64, `bool b; b.bit_length` → 8. (Arrays additionally expose `.byte_length`/`.element_count` — see Arrays.)
+
+## Literals
+
+Number bases — prefix is case-insensitive; type inferred from context:
+
+```cnx
+u8 a <- 200;          // decimal
+u8 b <- 0xFF;         // hex     (0x / 0X; digits case-insensitive)
+u8 c <- 0b10101010;   // binary  (0b / 0B)
+```
+
+Integer **type suffixes** force a literal's type (case-insensitive), with any base — `u8 u16 u32 i8 i16 i32`:
+
+```cnx
+u8  d <- 42u8;
+u16 e <- 0xABCDu16;
+i32 f <- 100I32;
+```
+
+**Char literals** are `u8` — the character's byte value — and work anywhere a `u8` does (init, comparison, array elements, `switch` cases, arithmetic):
+
+```cnx
+u8 ch <- 'A';         // 65
+u8 lo <- 'A' + 32;    // 'a'
+```
+
+Standard char escape sequences work in `'...'` literals: newline (10), tab (9), carriage return (13), null (0), backslash (92), single-quote (39), double-quote (34).
+
+**Float literals**: decimal (`3.14`, `-0.0`), scientific/`e` notation (`1.5e-10`, `3.0e8`), and `f32`/`f64` type suffixes (case-insensitive — `3.14f32`, `6.022e23f64`, `100.5F32`).
 
 ## Variable Declarations
 
@@ -72,6 +110,8 @@ All variables are zero-initialized. No uninitialized variables exist.
 - **opt-in wrap**: `wrap u32 c <- 0; c -<- 1;` → c = UINT32_MAX
 - Combine with atomic: `atomic clamp u8 brightness <- 0;`
 
+Clamp/wrap apply to **signed** types too: `clamp i8` saturates at both `-128` and `127`; `wrap` uses natural two's-complement wraparound.
+
 ## Arrays
 
 ```cnx
@@ -89,6 +129,9 @@ u32 bytes <- buffer.byte_length;    // 256 (compile-time)
 
 - Use `[]` for array literals, NOT `{}`
 - Partial initialization forbidden (MISRA 9.3) — provide all elements or use `[val*]`
+- **Size inference (ADR-035):** omit the size with empty `[]` in the **type position** to infer it from the initializer — `u8[] data <- [1, 2, 3];` (size 3). Brackets always go before the name, never after.
+- **Compile-time bounds checking (ADR-036):** a constant index past the end is a compile error — `u8[5] a; a[5] <- 1;` fails with `index 5 >= array size 5`
+- **Indices must be unsigned integers** — a signed index errors `E0850`, a float index errors `E0851` (applies to both array `a[i]` and bit `x[i]` indexing)
 - Size goes BEFORE the name: `u8[256] buffer` not `u8 buffer[256]`
 
 ## Strings
@@ -101,6 +144,23 @@ u32 sz <- name.size;                // compile-time: 65 (capacity + null termina
 string<5> sub <- name[0, 5];        // substring
 string<96> joined <- name + " World"; // concat (capacity >= sum of operand capacities)
 const string VERSION <- "1.0.0";    // auto-sized
+```
+
+**Rules:**
+
+- Non-`const` strings must be sized (`string<64> s;`); only `const string` auto-sizes from its initializer.
+- A literal or concat that exceeds the destination capacity is a compile error.
+- Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗ — use `s <- s + x`).
+- String literals accept the same escape sequences as char literals (newline, tab, carriage return, backslash, quote).
+- **Concat (`+`) and substring (`s[off, len]`) emit runtime code (`strncpy`/`strncat`)** — they may only appear **inside a function**, never at global/initializer scope (a global string initializes from a literal).
+- Substring `s[off, len]` is bounds-checked at compile time: `off + len` must fit the source's capacity, and the destination string must be large enough to hold `len`.
+
+**Slice assignment into byte buffers:** `buf[byteOffset, byteCount] <- value` copies `byteCount` **little-endian** bytes of an integer `value` into any integer array (`u8[]`/`u16[]`/`u32[]`/`u64[]`) or string buffer. Offset and length must be **compile-time constants** — literals, `const` variables, or `const` expressions (a runtime offset/length, or a zero length, is a compile error); the write is bounds-checked at compile time. On a byte _array_, `[off, len]` means BYTES; on a scalar/float, `[start, width]` means BITS. A **single** subscript `s[i]` accesses one element: a `u8` byte value in numeric context (`u8 b <- s[0]`, or passed to a `u8` parameter) and the target of a byte write (`s[i] <- 'X'`); assigned to a `string<1>` it instead yields a one-character substring.
+
+```cnx
+u8[64] buf;
+buf[0, 4]  <- 0x12345678;   // bytes 78 56 34 12 at indices 0..3 (LE)
+buf[10, 2] <- 0xCDEFu16;    // bytes EF CD at indices 10..11
 ```
 
 ## Structs
@@ -133,6 +193,8 @@ Rect r <- {
 - All fields public (structs are data containers)
 - Zero-initialized by default
 
+Don't repeat the struct type in an initializer — `Point p <- {x: 1, y: 2};`, not `Point p <- Point {x: 1, y: 2};` (ADR-014: redundant type is an error).
+
 ## Enums
 
 ```cnx
@@ -152,6 +214,12 @@ switch (s) {
 }
 ```
 
+**Rules:**
+
+- Enums are **strongly typed**: you cannot assign or compare an enum with a raw integer (`s <- 1` ✗, `if (s = 0)` ✗) — convert explicitly with `(u32)State.X`. Negative enum values are not allowed.
+- **Qualify** members as `State.IDLE`. An unqualified member (`IDLE`) is accepted only where the target type is already known (assignment to an enum-typed variable/field, or an enum-typed argument); it is an error in comparisons or a `switch` on a non-enum. Prefer qualified everywhere.
+- An enum member is a **compile-time integer constant**, so it can directly size an array — no cast: `enum E { A, B, C, COUNT } ... u8[E.COUNT] table;` (a trailing `COUNT` sentinel gives self-sizing tables). It works cross-file too. (Elsewhere, converting an enum to an integer still needs `(u32)E.X`.)
+
 ## Bitmaps
 
 ```cnx
@@ -170,6 +238,8 @@ f.Mode <- 5;
 bool r <- f.Running;
 ```
 
+Access bitmap fields by **name** (`f.Mode`); bracket-indexing a bitmap (`f[3]`) is an error.
+
 ## Bit Manipulation
 
 ```cnx
@@ -184,6 +254,12 @@ u32 big <- 0xDEADBEEF;
 u8 low <- big[0, 8];          // bits 0-7 → 0xEF
 u8 high <- big[24, 8];        // bits 24-31 → 0xDE
 ```
+
+Bit indexing also works on **floats** (`f32`/`f64`): `f32val[24, 8]` reads/writes IEEE-754 bytes (union-based, MISRA 21.15) — the way to build a float from wire bytes.
+
+**Compound assignment is not supported on a bit-index target:** `flags[0, 4] +<- 3;` is a compile error — read, modify, then write back.
+
+(On a byte _array_, `buf[off, len]` means BYTES — see Strings/slice assignment; on a scalar/float, `[start, width]` means BITS.)
 
 ### Zero-Extension on Wider Target Fields
 
@@ -211,9 +287,33 @@ WIDENING (implicit, safe):     u8 → u32, i8 → i32  (same sign only)
 NARROWING (FORBIDDEN):         u32 → u8   — use bit indexing: val[0, 8]
 SIGN CHANGE (FORBIDDEN):       i32 → u32  — use bit indexing: val[0, 32]
 CROSS-SIGN WIDEN (FORBIDDEN):  u16 → i32  — use bit indexing: val[0, 16]
-FLOAT TRUNCATION (allowed):    (u32)floatVal — truncates fractional part
+FLOAT→INT (allowed):           (u32)f — truncates fraction, THEN clamps to range
 POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 ```
+
+**Literal range checking:** an out-of-range or wrong-sign literal in a declaration/assignment is a compile error — `u8 x <- 256;` ("Value 256 exceeds u8 range"), `u8 y <- -1;` ("Negative value … to unsigned u8"). In-range literals are fine.
+
+**Enum → integer** requires an explicit cast: `u32 v <- (u32)Priority.HIGH;` (to any integer width).
+
+## sizeof (ADR-023)
+
+`sizeof(...)` returns the byte size (a compile-time constant) of a type, variable, struct, struct member, or array:
+
+```cnx
+u32 a <- sizeof(u32);        // 4   (bool = 1, f64 = 8, ...)
+u32 b <- sizeof(myVar);      // size of a variable
+u32 c <- sizeof(Point);      // size of a struct type (or instance: sizeof(p))
+u32 d <- sizeof(p.x);        // size of a struct member
+u32 e <- sizeof(buffer);     // total bytes of an array  (u32[8] → 32)
+u8[sizeof(u32)] buf;         // usable as an array dimension
+```
+
+Usable in any constant expression (arithmetic, comparison, ternary, array sizes). Errors:
+
+- `sizeof` on an **array parameter** (`u8[16] data`) → `E0601` (it would measure the pointer, not the array — use `data.element_count`).
+- `sizeof` of an expression **with side effects** (e.g. a function call) → `E0602`.
+
+(Arrays also expose `.byte_length` / `.element_count`; `sizeof` additionally covers types, structs, and members.)
 
 ## Functions
 
@@ -233,7 +333,7 @@ u32 add(u32 a, u32 b) {
 
 ## Pass-by-Reference (ADR-006)
 
-**ALL parameters are pass-by-reference automatically.** No pointer syntax exists.
+**Pass-by-reference semantics, no pointer syntax** — modify a parameter and the caller's variable changes (e.g. `swap` works). The transpiler picks the C form automatically (auto-const): a parameter you **modify** becomes a pointer (`uint32_t* x`; caller passes `&var`); one you only **read** is passed **by value** (scalars) or const (structs). Literals still can't be passed (see below).
 
 ```cnx
 void increment(u32 x) {     // transpiles to: void increment(uint32_t *x)
@@ -275,9 +375,10 @@ do {
 } while (byte != END_MARKER);
 // } while (byte);           // ERROR: bare bool not allowed
 
-// Ternary (condition MUST be comparison or logical op)
+// Ternary (condition MUST be PARENTHESIZED and a comparison or logical op)
 u32 max <- (a > b) ? a : b;
 // u32 y <- flag ? 1 : 0;   // ERROR: bare bool
+// u32 z <- a > b ? a : b;   // ERROR: condition must be parenthesized
 // Nested ternary FORBIDDEN
 
 // Switch (braces, no colons, no fallthrough, no break needed)
@@ -294,16 +395,31 @@ switch (cmd) {
 }
 ```
 
+**Switch rules (ADR-025):**
+
+- **≥2 clauses** required (MISRA 16.6) — a single-case switch is an error; use `if`.
+- **No `switch` on a boolean** (16.7) — use `if/else`. Switch on an **integral or enum** type; case labels are **constant** expressions.
+- **No duplicate** case values; **`default` must be last** (16.5).
+- **Enums must be exhaustive:** cover every variant explicitly, or use a **counted default** `default(n)` where `n` = how many variants the default covers (adding a variant later breaks the build until you bump `n` or add a case). Non-enum switches require a plain `default`.
+
+```cnx
+switch (state) {                 // enum with 4 variants
+    case EState.IDLE { start(); }
+    case EState.RUNNING { check(); }
+    default(2) { other(); }      // explicitly covers the remaining 2 variants
+}
+```
+
 ## Scopes
 
 Scopes are singleton modules with automatic name prefixing.
 
 ```cnx
 scope Counter {
-    private u32 value <- 0;         // private — must be explicit
+    private u32 value <- 0;         // private (also the default for variables)
 
     void increment() {              // public (default for scope functions)
-        value +<- 1;               // bare name resolves to the scope member
+        value +<- 1;                // bare name resolves to the scope member
     }
 
     u32 get() {
@@ -344,6 +460,7 @@ scope Foo {
 - `this.name` forces scope resolution (use when a local shadows a scope member)
 - `global.name` forces global resolution (use when a scope member shadows a global)
 - `global.ScopeName.function()` calls another scope's public function
+- **Visibility defaults:** variables and nested types (struct/enum/register) are **private by default**; functions are **public by default**. Add `public` to expose a variable/type; add `private` to hide a function. Only `public` members are reachable as `Scope.member` from outside the scope.
 
 ### Scope Transpilation
 
@@ -359,6 +476,25 @@ scope LED {
 - Public members → non-static + header prototype
 - Names prefixed: `ScopeName_memberName`
 
+### Scoped Types
+
+Structs, enums, and registers can be declared **inside** a scope. Refer to the type as `this.Name` within the scope and `ScopeName.Name` from outside; a `private` scoped type is only usable inside its scope.
+
+```cnx
+scope Motor {
+    public enum State { IDLE, RUNNING }
+    public this.State current <- this.State.IDLE;   // member typed by a scoped enum
+
+    public void start() { this.current <- this.State.RUNNING; }
+}
+
+Motor.State s <- Motor.State.IDLE;        // refer to the scoped type from outside
+Motor.start();
+bool running <- Motor.current = Motor.State.RUNNING;
+```
+
+Scopes **cannot be nested** (`scope A { scope B { } }` is a compile error, ADR-016).
+
 ## Includes
 
 ```cnx
@@ -371,7 +507,8 @@ scope LED {
 - Quoted `.cnx` includes resolve **relative to the including file**
 - Angle bracket `.cnx` includes resolve via **cnext config `include` array** (for external libraries like PlatformIO lib_deps)
 - In C++ mode (`cppRequired: true`), `.cnx` includes transpile to `.hpp`. In C mode, `.h`
-- C/C++ headers pass through unchanged
+- C/C++ headers pass through unchanged — but if a `.cnx` version of a file exists, include the **`.cnx`** (including its generated `.h`/`.hpp` directly is `E0504`); a plain C/C++ header is fine only when no `.cnx` exists for it
+- Including a `.c` / implementation file is forbidden (`E0503`)
 
 ## Preprocessor
 
@@ -387,7 +524,16 @@ scope LED {
 const u32 MAX_SIZE <- 100;          // correct
 ```
 
-`#define` with values is forbidden. Use `const` for values, `#define` only for flags.
+`#define` with a value is forbidden (`E0502`) — use `const`. **Function-like macros** are forbidden too (`E0501`) — use an inline function. `#define` is only for bare flags; `#ifdef`/`#ifndef`/`#else`/`#endif` (including nested) pass through to the C preprocessor.
+
+## Comments
+
+- `//` line and `/* … */` block comments are preserved in the generated C.
+- `///` triple-slash becomes a **Doxygen** doc comment (`@param`, `@return`, …).
+- **No nested block markers** — a `/*` inside any comment is an error (MISRA 3.1).
+- **No line comment ending in a backslash `\`** (MISRA 3.2).
+- `://` (e.g. `https://…`) is allowed in comments (MISRA Amendment 4 exception).
+- Comments may appear mid-expression: `x <- 10 /* */ + 20;`.
 
 ## Constants
 
@@ -442,6 +588,22 @@ scope LvglPort {
 
 `this.functionName` passes the scope function as a callback.
 
+## ISR (ADR-040)
+
+`ISR` is a built-in type for `void(void)` functions (interrupt handlers). Any `void name()` function is an `ISR`. Use it as a parameter or struct-field type, pass a handler by name, and invoke it:
+
+```cnx
+void timerHandler() { }
+
+void registerHandler(ISR handler) { handler(); }   // invoke via the param
+
+struct InterruptController {
+    ISR onTick;                                     // ISR-typed field
+}
+
+registerHandler(timerHandler);                       // pass by name
+```
+
 ## Atomic Types (ADR-049)
 
 ```cnx
@@ -457,6 +619,8 @@ u32 val <- counter;                  // atomic load
 
 Transpiles to LDREX/STREX loops on Cortex-M3+, critical sections on Cortex-M0.
 
+`volatile` is a separate modifier (ADR-108) that stops the compiler caching a variable (C `volatile` semantics) — for memory-mapped/shared flags that aren't lock-free atomics: `volatile u32 status <- 0;`. It is **distinct from `atomic`** (lock-free ISR-safe ops); combining them (`atomic volatile`) is a compile error.
+
 ## Critical Sections (ADR-050)
 
 ```cnx
@@ -466,10 +630,6 @@ critical {
 }
 // No return/break/continue inside critical blocks
 ```
-
-On Arduino/ARM targets `critical {}` expands to `noInterrupts()` / PRIMASK
-wrappers, so a `.cnx` that uses it must `#include <Arduino.h>` (or the platform
-header providing those) — otherwise the generated code won't compile.
 
 ## Register Bindings (ADR-004)
 
@@ -487,7 +647,19 @@ GPIO7.DR_SET[3] <- true;            // atomic set bit 3
 bool bit <- GPIO7.PSR[3];           // read bit 3
 ```
 
-Access modes: `rw` (read-write), `ro` (read-only), `wo` (write-only), `w1c` (write-1-to-clear), `w1s` (write-1-to-set).
+Access modes: `rw` (read-write), `ro` (read-only), `wo` (write-only), `w1c` (write-1-to-clear), `w1s` (write-1-to-set). Violating a mode (reading a `wo`, writing a `ro`) is a compile error.
+
+A register field can be typed by a **bitmap** for named bit-field access:
+
+```cnx
+bitmap8 UartControl { Enable, TxEnable, RxEnable, Parity, StopBits, DataBits[2], Reserved }
+register UART @ 0x40010000 {
+    CTRL: UartControl rw @ 0x00,
+}
+UART.CTRL.Enable   <- true;     // named field write
+UART.CTRL.DataBits <- 3;
+bool en <- UART.CTRL.Enable;    // named field read
+```
 
 ## MISRA Compliance
 
@@ -552,6 +724,8 @@ void setup() {
 }
 ```
 
+C library **globals** are usable directly by their C name: `extern` variables (read / write / compound-assign), `const` externs, extern arrays, and `#define` macro constants from included headers — e.g. `extern_counter <- 42;`, `u32 m <- MAX_SIZE;`. (Defining a _value_ macro is still forbidden in your own C-Next code — that rule doesn't apply to C headers.)
+
 ## Using C Struct Types
 
 C struct types from headers work with named field initialization:
@@ -598,6 +772,36 @@ twai_general_config_t cfg <- {
 ```
 
 **Important:** C++ is strict about int-to-enum conversion. Use the enum constants (`GPIO_NUM_19`) not bare integers (`19`), or the C++ compiler will reject it.
+
+## Constructing C++ Objects
+
+In C++ mode you can instantiate C++ library classes (e.g. Adafruit drivers) two ways:
+
+```cnx
+// Constructor arguments — args must be const variables, NOT literals
+const u8 csPin <- 10;
+Adafruit_MAX31856 tc(csPin);              // → Adafruit_MAX31856 tc(csPin);
+
+// Aggregate / field initialization
+DefaultConstructible obj <- { value: 42, name: "label" };
+
+// Arrays default-construct each element
+DefaultConstructible[3] sensors;
+```
+
+A bare literal constructor argument (`tc(10)`) is a parse error — bind a `const` first. Works inside scopes too. The `obj(constArgs)` form is valid at global scope (the usual pattern for driver objects), but the **`<- { field: val }` field-init form for a class that has a constructor is function-only** — it lowers to field assignments, so it can't run at global/initializer scope (put it in `setup()` or another function).
+
+## C++ Template Types
+
+C++ template-instantiation syntax is parsed and passed through to C++ unchanged — use it for templated library types (Issue #291):
+
+```cnx
+FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> canBus;   // identifier args
+Buffer<256, 16> buf;                                 // integer args
+Container<Pair<Element, Element> > nested;           // nested: note the space before the final >
+```
+
+Nested templates need a **space before the final `>`** (`Foo<Bar<T> >`, not `Foo<Bar<T>>`) so the lexer doesn't read `>>` as a right-shift.
 
 ## C Struct Member Access
 
@@ -663,7 +867,9 @@ u32 count <- 0;                      // always valid
 **Rules:**
 
 - `c_` prefix REQUIRED for variables holding nullable C pointer returns
+- You must **capture** a NULL-returning C call's result — calling it bare and ignoring the return is `E0901` ("can return NULL - must check result")
 - `c_` prefix FORBIDDEN on non-nullable types (error E0906)
+- A `c_` variable must be **NULL-checked before use** — using it unguarded is `E0908` (`FILE c_file <- fopen(...); fclose(c_file);` ✗ → wrap in `if (c_file != NULL) { … }`)
 - NULL comparison only allowed on `c_`-prefixed variables
 - `malloc`/`calloc`/`realloc`/`free` FORBIDDEN (ADR-003)
 
@@ -758,15 +964,19 @@ scope NeedleImg {
 
 Nested struct init with C enum constants works — enum values resolve inside nested fields.
 
-## Anonymous Struct Flags Workaround
+## Anonymous Nested Structs (ESP-IDF style)
 
-C structs with anonymous nested structs (common in ESP-IDF) can't use compound literal initialization for the nested part in C++. Set flags separately:
+C structs with anonymous nested structs (common in ESP-IDF) **can be initialized inline** with nested `{ … }` (Issue #882):
 
 ```cnx
-// Can't init flags inline due to C++ anonymous struct limitation
-esp_lcd_rgb_panel_config_t cfg <- { /* other fields */ };
-cfg.flags.fb_in_psram <- true;       // set flag after init
+PanelConfig panel <- {
+    clk_src: 1,
+    timings: { clock_hz: 16000000, h_res: 800, v_res: 480 },
+    flags:   { fb_in_psram: 1, double_fb: 0 }      // nested anon-struct init works
+};
 ```
+
+Partial init of the nested part is fine. (Setting fields after construction — `panel.flags.fb_in_psram <- true;` — also works.)
 
 ---
 
@@ -988,7 +1198,7 @@ i32 wide <- raw[0, 16];                 // explicit 16-bit extraction → i32
 | `x <- 5`                          | `x = 5`                                                   |
 | `if (x = 5)`                      | `if (x == 5)`                                             |
 | `x +<- 1`                         | `x += 1`                                                  |
-| `void f(u32 x)`                   | `void f(uint32_t *x)`                                     |
+| `void f(u32 x)` (x modified)      | `void f(uint32_t *x)` — or `uint32_t x` if read-only      |
 | `f(myVar)`                        | `f(&myVar)`                                               |
 | `scope S { private void f() {} }` | `static void S_f(void) {}`                                |
 | `scope S { void f() {} }`         | `void S_f(void) {}` + header (public by default)          |
@@ -1001,6 +1211,7 @@ i32 wide <- raw[0, 16];                 // explicit 16-bit extraction → i32
 | `val[0, 8]`                       | `(val >> 0) & 0xFF`                                       |
 | `x[8,8] <- v[0,4]`                | clear 8-bit window + write 4-bit value (zero-extended)    |
 | `atomic u32 x`                    | `volatile uint32_t x` + LDREX/STREX                       |
+| `volatile u32 x`                  | `volatile uint32_t x` (no atomics)                        |
 | `critical { ... }`                | PRIMASK save/disable/restore                              |
 | `#include "x.cnx"`                | `#include "x.hpp"` (C++ mode) / `#include "x.h"` (C mode) |
 | `#include <x.cnx>`                | `#include <x.hpp>` (C++ mode) / `#include <x.h>` (C mode) |
