@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 /* Scope: App */
-static widget_t* App_root = NULL;
+static widget_t App_root = {};
 
 void App_on_change(widget_t* w) {
     int32_t val = widget_get_value(w);

@@ -205,6 +205,7 @@ jobs:
             bugs/**/*.test.c
             bugs/**/*.test.cpp
             bugs/**/*.test.h
+            bugs/**/*.test.hpp
 
   # ============================================================================
   # STAGE 2b (parallel): Execute tests + other test suites
