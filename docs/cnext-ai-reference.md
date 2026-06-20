@@ -419,11 +419,11 @@ scope Counter {
     private u32 value <- 0;         // private (also the default for variables)
 
     void increment() {              // public (default for scope functions)
-        this.value +<- 1;
+        value +<- 1;                // bare name resolves to the scope member
     }
 
     u32 get() {
-        return this.value;
+        return value;
     }
 }
 
@@ -431,6 +431,10 @@ scope Counter {
 Counter.increment();                // → Counter_increment()
 u32 v <- Counter.get();             // → Counter_get()
 ```
+
+Prefer **bare names** inside a scope — they resolve to the scope member
+automatically. Use `this.` / `global.` only to break a real naming conflict (see
+Name Resolution below), not as a default style — qualifying everything is noise.
 
 ### Name Resolution (ADR-057)
 
@@ -451,9 +455,10 @@ scope Foo {
 
 **Rules:**
 
+- **Default to bare names** — reach for `this.`/`global.` ONLY to disambiguate an actual conflict; qualifying by default is noise.
 - Inside a scope, bare names resolve local first, then scope, then global
-- `this.name` forces scope resolution
-- `global.name` forces global resolution
+- `this.name` forces scope resolution (use when a local shadows a scope member)
+- `global.name` forces global resolution (use when a scope member shadows a global)
 - `global.ScopeName.function()` calls another scope's public function
 - **Visibility defaults:** variables and nested types (struct/enum/register) are **private by default**; functions are **public by default**. Add `public` to expose a variable/type; add `private` to hide a function. Only `public` members are reachable as `Scope.member` from outside the scope.
 
