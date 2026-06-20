@@ -1,0 +1,11 @@
+// test-error
+// Test: Compound assignment should check use-before-init on LHS
+// Issue #1012: Compound assignment bypasses E0381 check
+
+// All compound assignment operators read their LHS, so they should
+// trigger E0381 when the LHS is uninitialized.
+
+void demoAdd() {
+    u32 sum;      // Declared but not initialized
+    sum +<- 5;    // ERROR: reads sum before init
+}

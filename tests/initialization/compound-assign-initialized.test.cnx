@@ -1,0 +1,59 @@
+// test-execution
+// Test: Compound assignment on initialized variables should work
+// Issue #1012: Ensure we didn't break the happy path
+
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+u32 main() {
+    // Simple variable - initialized
+    u32 sum <- 0;
+    sum +<- 5;
+    if (sum != 5) return 1;
+
+    // All operators work on initialized var
+    u32 v <- 10;
+    v -<- 3;
+    if (v != 7) return 2;
+
+    v <- 5;
+    v *<- 2;
+    if (v != 10) return 3;
+
+    v <- 20;
+    v /<- 4;
+    if (v != 5) return 4;
+
+    v <- 17;
+    v %<- 5;
+    if (v != 2) return 5;
+
+    v <- 0xFF00;
+    v &<- 0x00FF;
+    if (v != 0) return 6;
+
+    v <- 0xF0;
+    v |<- 0x0F;
+    if (v != 0xFF) return 7;
+
+    v <- 0xFF;
+    v ^<- 0xF0;
+    if (v != 0x0F) return 8;
+
+    v <- 1;
+    v <<<- 4;
+    if (v != 16) return 9;
+
+    v <- 32;
+    v >><- 3;
+    if (v != 4) return 10;
+
+    // Struct field - initialized
+    Point p <- {x: 10, y: 20};
+    p.x +<- 5;
+    if (p.x != 15) return 11;
+
+    return 0;
+}

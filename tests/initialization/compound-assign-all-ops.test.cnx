@@ -1,0 +1,53 @@
+// test-error
+// Test: All compound assignment operators should check use-before-init
+// Issue #1012: Compound assignment bypasses E0381 check
+
+void testAdd() {
+    u32 x;
+    x +<- 1;    // ERROR: reads x
+}
+
+void testSub() {
+    u32 x;
+    x -<- 1;    // ERROR: reads x
+}
+
+void testMul() {
+    u32 x;
+    x *<- 2;    // ERROR: reads x
+}
+
+void testDiv() {
+    u32 x;
+    x /<- 2;    // ERROR: reads x
+}
+
+void testMod() {
+    u32 x;
+    x %<- 2;    // ERROR: reads x
+}
+
+void testBitAnd() {
+    u32 x;
+    x &<- 0xFF; // ERROR: reads x
+}
+
+void testBitOr() {
+    u32 x;
+    x |<- 0xFF; // ERROR: reads x
+}
+
+void testBitXor() {
+    u32 x;
+    x ^<- 0xFF; // ERROR: reads x
+}
+
+void testLeftShift() {
+    u32 x;
+    x <<<- 1;   // ERROR: reads x
+}
+
+void testRightShift() {
+    u32 x;
+    x >><- 1;   // ERROR: reads x
+}

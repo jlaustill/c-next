@@ -1,0 +1,13 @@
+// test-error
+// Test: Compound assignment on struct field checks use-before-init
+// Issue #1012: Compound assignment bypasses E0381 check
+
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+void testStructField() {
+    Point p;      // p.x and p.y are uninitialized
+    p.x +<- 10;   // ERROR: reads p.x
+}
