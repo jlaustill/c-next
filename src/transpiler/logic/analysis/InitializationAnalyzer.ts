@@ -629,21 +629,21 @@ class InitializationAnalyzer {
     }
 
     // while statement
-    const whileStmt = stmt.whileStatement();
-    if (whileStmt?.statement()) {
-      this._collectAssignmentsInStatement(whileStmt.statement()!, assigned);
+    const whileBody = stmt.whileStatement()?.statement();
+    if (whileBody) {
+      this._collectAssignmentsInStatement(whileBody, assigned);
     }
 
     // do-while statement (Issue #1019 review feedback)
-    const doWhileStmt = stmt.doWhileStatement();
-    if (doWhileStmt?.block()) {
-      this._collectAssignmentsInBlock(doWhileStmt.block(), assigned);
+    const doWhileBody = stmt.doWhileStatement()?.block();
+    if (doWhileBody) {
+      this._collectAssignmentsInBlock(doWhileBody, assigned);
     }
 
     // for statement
-    const forStmt = stmt.forStatement();
-    if (forStmt?.statement()) {
-      this._collectAssignmentsInStatement(forStmt.statement()!, assigned);
+    const forBody = stmt.forStatement()?.statement();
+    if (forBody) {
+      this._collectAssignmentsInStatement(forBody, assigned);
     }
   }
 
@@ -663,9 +663,9 @@ class InitializationAnalyzer {
         this._collectAssignmentsInBlock(caseBlock, assigned);
       }
     }
-    const defaultCase = switchStmt.defaultCase();
-    if (defaultCase?.block()) {
-      this._collectAssignmentsInBlock(defaultCase.block()!, assigned);
+    const defaultBlock = switchStmt.defaultCase()?.block();
+    if (defaultBlock) {
+      this._collectAssignmentsInBlock(defaultBlock, assigned);
     }
   }
 
