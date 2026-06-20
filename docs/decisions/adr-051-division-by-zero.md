@@ -620,20 +620,26 @@ void testSafeDivAllTypes() {
 }
 ```
 
-### 4. Floating-Point Division (IEEE 754 Behavior)
+### 4. Floating-Point Division by Zero (Issue #1010)
 
-**File:** `tests/arithmetic/float-division-by-zero.test.cnx`
+**Update (Issue #1010):** Floating-point division by literal zero is now also rejected, for parity with integer division. While IEEE 754 defines float division by zero (producing ±Inf/NaN), C-Next chooses to reject it at compile time because:
+
+1. **Consistency** — Integer and float division should behave the same way
+2. **Safety** — Division by zero is almost always a bug, not intentional
+3. **Embedded focus** — C-Next targets safety-critical systems where undefined/infinite values are problematic
+
+**File:** `tests/floats/float-division-by-literal-zero.test.cnx`
 
 ```cnx
 void testFloatDivisionByZero() {
-    // Floating-point division by zero is well-defined (IEEE 754)
-    f32 result1 <- 10.0 / 0.0;   // +Inf
-    f32 result2 <- -10.0 / 0.0;  // -Inf
-    f32 result3 <- 0.0 / 0.0;    // NaN
-
-    f64 result4 <- 10.0 / 0.0;   // +Inf
+    // ❌ COMPILE ERROR - Float division by literal zero is now rejected
+    f32 result1 <- 10.0 / 0.0;   // Error: Division by zero
+    f32 result2 <- -10.0 / 0.0;  // Error: Division by zero
+    f32 result3 <- 0.0 / 0.0;    // Error: Division by zero
 }
 ```
+
+**Note:** Runtime float division by a variable that happens to be zero still follows IEEE 754 (produces ±Inf/NaN), as runtime checking is opt-in via `safe_div()`.
 
 ---
 
