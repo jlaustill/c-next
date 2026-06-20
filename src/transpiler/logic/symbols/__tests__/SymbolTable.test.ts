@@ -785,14 +785,16 @@ describe("SymbolTable", () => {
       expect(symbolTable.isTypedefStructType("other_t")).toBe(false);
     });
 
-    it("should always return true for typedef struct types (additive only)", () => {
-      // Issue #958: typedef struct types are never unmarked
+    it("should return false when underlying struct tag has body (issue #948)", () => {
+      // Issue #948: Query-time resolution - if the underlying struct tag
+      // has a full body definition, this is NOT an external typedef struct
       symbolTable.markTypedefStructType("point_t", "point.h");
       expect(symbolTable.isTypedefStructType("point_t")).toBe(true);
-      // Even after marking the body, typedef struct type stays marked
+      // After marking the body, typedef struct type should return false
+      // because it's now a complete type (value semantics, not pointer)
       symbolTable.registerStructTagAlias("_point", "point_t");
       symbolTable.markStructTagHasBody("_point");
-      expect(symbolTable.isTypedefStructType("point_t")).toBe(true);
+      expect(symbolTable.isTypedefStructType("point_t")).toBe(false);
     });
 
     it("should get all typedef struct types", () => {
