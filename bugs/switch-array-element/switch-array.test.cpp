@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "switch-array.test.h"
+#include "switch-array.test.hpp"
 
 #include <stdint.h>
 

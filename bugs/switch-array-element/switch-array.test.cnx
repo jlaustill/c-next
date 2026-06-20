@@ -9,7 +9,7 @@ scope Test {
     }
 
     public void failing() {
-        u8 data[4] <- [1, 2, 3, 4];
+        u8[4] data <- [1, 2, 3, 4];
         switch (data[0]) {
             case 1 { }
             default { }
