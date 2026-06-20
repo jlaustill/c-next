@@ -557,20 +557,16 @@ describe("checkForStaleErrorTestArtifacts", () => {
 
   it("should return null when no stale artifacts exist", () => {
     const basePath = join(tempDir, "test-error");
-    const cnxFile = `${basePath}.test.cnx`;
-    writeFileSync(cnxFile, "// test-error\n");
 
-    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).toBeNull();
   });
 
   it("should detect stale .test.c file", () => {
     const basePath = join(tempDir, "test-error");
-    const cnxFile = `${basePath}.test.cnx`;
-    writeFileSync(cnxFile, "// test-error\n");
     writeFileSync(`${basePath}.test.c`, "// stale artifact\n");
 
-    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).not.toBeNull();
     expect(result?.passed).toBe(false);
     expect(result?.message).toContain("stale generated artifacts");
@@ -579,11 +575,9 @@ describe("checkForStaleErrorTestArtifacts", () => {
 
   it("should detect stale .test.cpp file", () => {
     const basePath = join(tempDir, "test-error");
-    const cnxFile = `${basePath}.test.cnx`;
-    writeFileSync(cnxFile, "// test-error\n");
     writeFileSync(`${basePath}.test.cpp`, "// stale artifact\n");
 
-    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).not.toBeNull();
     expect(result?.passed).toBe(false);
     expect(result?.message).toContain("test-error.test.cpp");
@@ -591,11 +585,9 @@ describe("checkForStaleErrorTestArtifacts", () => {
 
   it("should detect stale .test.h file", () => {
     const basePath = join(tempDir, "test-error");
-    const cnxFile = `${basePath}.test.cnx`;
-    writeFileSync(cnxFile, "// test-error\n");
     writeFileSync(`${basePath}.test.h`, "// stale artifact\n");
 
-    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).not.toBeNull();
     expect(result?.passed).toBe(false);
     expect(result?.message).toContain("test-error.test.h");
@@ -603,11 +595,9 @@ describe("checkForStaleErrorTestArtifacts", () => {
 
   it("should detect stale .test.hpp file", () => {
     const basePath = join(tempDir, "test-error");
-    const cnxFile = `${basePath}.test.cnx`;
-    writeFileSync(cnxFile, "// test-error\n");
     writeFileSync(`${basePath}.test.hpp`, "// stale artifact\n");
 
-    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).not.toBeNull();
     expect(result?.passed).toBe(false);
     expect(result?.message).toContain("test-error.test.hpp");
@@ -615,12 +605,10 @@ describe("checkForStaleErrorTestArtifacts", () => {
 
   it("should detect multiple stale artifacts", () => {
     const basePath = join(tempDir, "test-error");
-    const cnxFile = `${basePath}.test.cnx`;
-    writeFileSync(cnxFile, "// test-error\n");
     writeFileSync(`${basePath}.test.c`, "// stale C\n");
     writeFileSync(`${basePath}.test.h`, "// stale H\n");
 
-    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).not.toBeNull();
     expect(result?.passed).toBe(false);
     expect(result?.message).toContain("test-error.test.c");
@@ -629,11 +617,9 @@ describe("checkForStaleErrorTestArtifacts", () => {
 
   it("should include git rm command in error message", () => {
     const basePath = join(tempDir, "test-error");
-    const cnxFile = `${basePath}.test.cnx`;
-    writeFileSync(cnxFile, "// test-error\n");
     writeFileSync(`${basePath}.test.c`, "// stale artifact\n");
 
-    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath, cnxFile);
+    const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).not.toBeNull();
     expect(result?.actual).toContain("git rm");
   });

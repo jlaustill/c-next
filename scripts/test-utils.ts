@@ -1074,10 +1074,8 @@ class TestUtils {
     // Error tests: single-mode (transpilation error is mode-independent)
     if (existsSync(expectedErrorFile)) {
       // Guard: test-error cases must not have committed .test.* artifacts
-      const staleArtifactCheck = TestUtils.checkForStaleErrorTestArtifacts(
-        basePath,
-        cnxFile,
-      );
+      const staleArtifactCheck =
+        TestUtils.checkForStaleErrorTestArtifacts(basePath);
       if (staleArtifactCheck) {
         return staleArtifactCheck;
       }
@@ -1125,10 +1123,7 @@ class TestUtils {
    *
    * @returns ITestResult with failure if stale artifacts found, null otherwise
    */
-  static checkForStaleErrorTestArtifacts(
-    basePath: string,
-    _cnxFile: string,
-  ): ITestResult | null {
+  static checkForStaleErrorTestArtifacts(basePath: string): ITestResult | null {
     const staleExtensions = ["test.c", "test.cpp", "test.h", "test.hpp"];
     const staleFiles: string[] = [];
 
