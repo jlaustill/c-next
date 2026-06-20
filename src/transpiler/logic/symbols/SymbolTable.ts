@@ -1077,12 +1077,27 @@ class SymbolTable {
    * Issue #958: Check if a typedef aliases a struct type.
    * Used for scope variables, function parameters, and local variables
    * which should be pointers for C-header struct types.
+   *
+   * Issue #948: Performs query-time resolution - if the underlying struct
+   * tag has a full body definition, this is NOT an external typedef struct
+   * (it's a complete type that can use value semantics).
+   *
    * @param typeName The type name to check
    * @returns true if this is a typedef'd struct type from C headers
    */
   isTypedefStructType(typeName: string): boolean {
-    const result = this.structState.typedefStructTypes.has(typeName);
-    return result;
+    if (!this.structState.typedefStructTypes.has(typeName)) {
+      return false;
+    }
+    // Issue #948: Query-time resolution - if the underlying struct tag
+    // has a body definition, this typedef is NOT an external struct type.
+    // Example: `typedef struct _point_t point_t;` followed by `struct _point_t { ... };`
+    // The second declaration provides the body, so point_t is a complete type.
+    const tag = this.structState.typedefToTag.get(typeName);
+    if (tag && this.structState.structTagsWithBodies.has(tag)) {
+      return false;
+    }
+    return true;
   }
 
   /**
