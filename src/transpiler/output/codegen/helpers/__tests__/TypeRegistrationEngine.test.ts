@@ -183,5 +183,46 @@ describe("TypeRegistrationEngine", () => {
 
       expect(mockCallbacks.requireInclude).toHaveBeenCalledWith("string");
     });
+
+    it("registers string array types with correct dimensions (Issue #1029)", () => {
+      const source = `string<32>[4] items;`;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      const info = CodeGenState.getVariableTypeInfo("items");
+      expect(info).not.toBeNull();
+      expect(info?.baseType).toBe("char");
+      expect(info?.isArray).toBe(true);
+      expect(info?.isString).toBe(true);
+      expect(info?.stringCapacity).toBe(32);
+      // Dimensions: [4] for array, [33] for string capacity + null terminator
+      expect(info?.arrayDimensions).toEqual([4, 33]);
+    });
+
+    it("registers multi-dimensional string arrays (Issue #1029)", () => {
+      const source = `string<16>[2][3] matrix;`;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      const info = CodeGenState.getVariableTypeInfo("matrix");
+      expect(info).not.toBeNull();
+      expect(info?.baseType).toBe("char");
+      expect(info?.isArray).toBe(true);
+      expect(info?.isString).toBe(true);
+      expect(info?.stringCapacity).toBe(16);
+      // Dimensions: [2][3] for array, [17] for string capacity + null terminator
+      expect(info?.arrayDimensions).toEqual([2, 3, 17]);
+    });
+
+    it("requires string include for string array types (Issue #1029)", () => {
+      const source = `string<32>[4] items;`;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      expect(mockCallbacks.requireInclude).toHaveBeenCalledWith("string");
+    });
   });
 });
