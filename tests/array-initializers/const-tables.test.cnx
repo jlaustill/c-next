@@ -1,7 +1,7 @@
 // ADR-035: Const Lookup Tables Test
 // Tests: const arrays for ROM placement
 // Simple lookup table
-const u8 hexDigits[] <- [
+const u8[] hexDigits <- [
     0x30,
     0x31,
     0x32,

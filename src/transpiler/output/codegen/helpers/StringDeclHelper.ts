@@ -98,22 +98,16 @@ class StringDeclHelper {
     isConst: boolean,
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
-    // Issue #1029: Check for string array in arrayType syntax first
-    // For `string<32>[4] items`, the structure is: arrayType -> stringType arrayTypeDimension+
-    const arrayTypeCtx = typeCtx.arrayType?.();
-    if (arrayTypeCtx?.stringType?.()) {
-      return StringDeclHelper._generateStringArrayFromArrayType(
-        name,
-        arrayTypeCtx,
-        expression,
-        arrayDims,
-        modifiers,
-        isConst,
-        callbacks,
-      );
+    // Check for direct stringType or stringType inside arrayType (string<8>[3])
+    let stringCtx = typeCtx.stringType();
+    let arrayTypeCtx = typeCtx.arrayType();
+    let arrayTypeDims: Parser.ArrayTypeDimensionContext[] = [];
+
+    if (!stringCtx && arrayTypeCtx?.stringType()) {
+      stringCtx = arrayTypeCtx.stringType()!;
+      arrayTypeDims = arrayTypeCtx.arrayTypeDimension();
     }
 
-    const stringCtx = typeCtx.stringType();
     if (!stringCtx) {
       return { code: "", handled: false };
     }
@@ -128,6 +122,7 @@ class StringDeclHelper {
         capacity,
         expression,
         arrayDims,
+        arrayTypeDims,
         modifiers,
         isConst,
         callbacks,
@@ -145,182 +140,6 @@ class StringDeclHelper {
   }
 
   /**
-   * Issue #1029: Generate string array declaration from arrayType syntax.
-   * Handles: string<32>[4] items -> char items[4][33] = {0};
-   */
-  private static _generateStringArrayFromArrayType(
-    name: string,
-    arrayTypeCtx: Parser.ArrayTypeContext,
-    expression: Parser.ExpressionContext | null,
-    trailingArrayDims: Parser.ArrayDimensionContext[],
-    modifiers: IStringDeclModifiers,
-    isConst: boolean,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
-    const stringCtx = arrayTypeCtx.stringType()!;
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    if (!intLiteral) {
-      // Unsized string array - not supported
-      throw new Error(
-        "Error: String arrays require explicit capacity, e.g., string<64>[4]",
-      );
-    }
-
-    const capacity = Number.parseInt(intLiteral.getText(), 10);
-    // Ensure string.h is included for strncpy operations
-    callbacks.requireStringInclude();
-
-    const {
-      extern,
-      const: constMod,
-      atomic,
-      volatile: volatileMod,
-    } = modifiers;
-
-    // Build array dimensions from arrayType (e.g., [4] from string<32>[4])
-    let arrayDimStr = "";
-    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        arrayDimStr += `[${sizeExpr.getText()}]`;
-      } else {
-        arrayDimStr += "[]";
-      }
-    }
-
-    // Add any trailing dimensions from variable declaration
-    arrayDimStr += callbacks.generateArrayDimensions(trailingArrayDims);
-
-    // Add string capacity dimension
-    arrayDimStr += `[${capacity + 1}]`;
-
-    let decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}${arrayDimStr}`;
-
-    // Track as local array
-    CodeGenState.localArrays.add(name);
-
-    // No initializer - zero-initialize
-    if (!expression) {
-      return { code: `${decl} = {0};`, handled: true };
-    }
-
-    // Reset array init tracking and generate initializer
-    CodeGenState.lastArrayInitCount = 0;
-    CodeGenState.lastArrayFillValue = undefined;
-    const initValue = callbacks.generateExpression(expression);
-
-    // Check if it was an array initializer
-    const isArrayInit =
-      CodeGenState.lastArrayInitCount > 0 ||
-      CodeGenState.lastArrayFillValue !== undefined;
-
-    if (!isArrayInit) {
-      throw new Error(
-        `Error: String array initialization from variables not supported`,
-      );
-    }
-
-    // Validate element count if declared size is available
-    const declaredSize =
-      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
-    if (declaredSize !== null) {
-      const isFillAll = CodeGenState.lastArrayFillValue !== undefined;
-      const elementCount = CodeGenState.lastArrayInitCount;
-
-      if (!isFillAll && elementCount !== declaredSize) {
-        throw new Error(
-          `Error: Array size mismatch - declared [${declaredSize}] but got ${elementCount} elements`,
-        );
-      }
-    }
-
-    // Handle fill-all expansion if needed
-    const finalInitValue = StringDeclHelper._expandFillAllForArrayType(
-      initValue,
-      arrayTypeCtx,
-    );
-
-    // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
-    // but C standard guarantees zero-initialization of remaining elements
-    const suppression =
-      "// cppcheck-suppress misra-c2012-9.3\n// cppcheck-suppress misra-c2012-9.4\n";
-    return {
-      code: `${suppression}${decl} = ${finalInitValue};`,
-      handled: true,
-    };
-  }
-
-  /**
-   * Get the numeric size from the first arrayTypeDimension, or null if not numeric.
-   * Used by arrayType-based string arrays (string<N>[M]).
-   */
-  private static _getArrayTypeDeclaredSize(
-    arrayTypeCtx: Parser.ArrayTypeContext,
-  ): number | null {
-    const dims = arrayTypeCtx.arrayTypeDimension();
-    if (dims.length === 0) {
-      return null;
-    }
-    const firstDimExpr = dims[0].expression();
-    return StringDeclHelper._parseNumericSize(firstDimExpr);
-  }
-
-  /**
-   * Expand fill-all syntax for arrayType-based string arrays.
-   * Delegates to the common fill-all expansion logic with size from arrayType.
-   */
-  private static _expandFillAllForArrayType(
-    initValue: string,
-    arrayTypeCtx: Parser.ArrayTypeContext,
-  ): string {
-    const declaredSize =
-      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
-    return StringDeclHelper._expandFillAll(initValue, declaredSize);
-  }
-
-  /**
-   * Common fill-all expansion logic shared between arrayType and arrayDimension paths.
-   */
-  private static _expandFillAll(
-    initValue: string,
-    declaredSize: number | null,
-  ): string {
-    const fillVal = CodeGenState.lastArrayFillValue;
-    if (fillVal === undefined) {
-      return initValue;
-    }
-
-    // Empty string fill doesn't need expansion (C handles {""} correctly)
-    if (fillVal === '""') {
-      return initValue;
-    }
-
-    if (declaredSize === null) {
-      return initValue;
-    }
-
-    const elements = new Array<string>(declaredSize).fill(fillVal);
-    return `{${elements.join(", ")}}`;
-  }
-
-  /**
-   * Parse a numeric size from an expression, or return null if not numeric.
-   * Shared helper to eliminate duplicate parsing logic.
-   */
-  private static _parseNumericSize(
-    expr: Parser.ExpressionContext | null | undefined,
-  ): number | null {
-    if (!expr) {
-      return null;
-    }
-    const sizeText = expr.getText();
-    if (!/^\d+$/.exec(sizeText)) {
-      return null;
-    }
-    return Number.parseInt(sizeText, 10);
-  }
-
-  /**
    * Generate bounded string declaration (string<N>).
    */
   private static _generateBoundedStringDecl(
@@ -328,19 +147,22 @@ class StringDeclHelper {
     capacity: number,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
+    arrayTypeDims: Parser.ArrayTypeDimensionContext[],
     modifiers: IStringDeclModifiers,
     isConst: boolean,
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     const { extern, const: constMod } = modifiers;
 
-    // String arrays: string<64> arr[4] -> char arr[4][65] = {0};
-    if (arrayDims.length > 0) {
+    // String arrays: string<64>[4] -> char NAME[4][65] = {0};
+    // Or old style: string<64> arr[4] -> char arr[4][65] = {0};
+    if (arrayDims.length > 0 || arrayTypeDims.length > 0) {
       return StringDeclHelper._generateStringArrayDecl(
         name,
         capacity,
         expression,
         arrayDims,
+        arrayTypeDims,
         modifiers,
         isConst,
         callbacks,
@@ -398,66 +220,14 @@ class StringDeclHelper {
       );
     }
 
-    const exprText = expression.getText();
-
-    // Check for string variable initialization (not a literal)
-    // Issue #1030: string<N> dest <- source generates invalid C
-    const srcCapacity = callbacks.getStringExprCapacity(exprText);
-    const isStringLiteral = exprText.startsWith('"') && exprText.endsWith('"');
-    if (srcCapacity !== null && !isStringLiteral) {
-      return StringDeclHelper._generateStringVarInit(
-        name,
-        capacity,
-        srcCapacity,
-        expression,
-        constMod,
-        callbacks,
-      );
-    }
-
-    // Validate and generate simple assignment (string literals only)
-    StringDeclHelper._validateStringInit(exprText, capacity, callbacks);
+    // Validate and generate simple assignment
+    StringDeclHelper._validateStringInit(
+      expression.getText(),
+      capacity,
+      callbacks,
+    );
     const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${callbacks.generateExpression(expression)};`;
     return { code, handled: true };
-  }
-
-  /**
-   * Generate string variable initialization using strcpy.
-   * Issue #1030: C does not allow array initialization from another array.
-   */
-  private static _generateStringVarInit(
-    name: string,
-    capacity: number,
-    srcCapacity: number,
-    expression: Parser.ExpressionContext,
-    constMod: string,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
-    // String variable initialization requires runtime function calls (strncpy)
-    // which cannot exist at global scope in C
-    if (!CodeGenState.inFunctionBody) {
-      throw new Error(
-        `Error: String initialization from variable cannot be used at global scope. ` +
-          `Move the declaration inside a function, or use an empty initializer and assign later.`,
-      );
-    }
-
-    // Validate capacity: dest >= source
-    if (srcCapacity > capacity) {
-      throw new Error(
-        `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
-      );
-    }
-
-    // Generate safe string copy code
-    const indent = FormatUtils.indent(CodeGenState.indentLevel);
-    const sourceExpr = callbacks.generateExpression(expression);
-    const lines: string[] = [];
-    lines.push(
-      `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `${indent}${StringUtils.copyWithNull(name, sourceExpr, capacity)}`,
-    );
-    return { code: lines.join("\n"), handled: true };
   }
 
   /**
@@ -495,6 +265,7 @@ class StringDeclHelper {
     capacity: number,
     expression: Parser.ExpressionContext | null,
     arrayDims: Parser.ArrayDimensionContext[],
+    arrayTypeDims: Parser.ArrayTypeDimensionContext[],
     modifiers: IStringDeclModifiers,
     isConst: boolean,
     callbacks: IStringDeclCallbacks,
@@ -507,9 +278,23 @@ class StringDeclHelper {
     } = modifiers;
     let decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}`;
 
+    // Generate array dimensions from either arrayTypeDims (C-Next style: string<8>[3])
+    // or arrayDims (C-style: string<8> arr[3])
+    const generateDims = (): string => {
+      if (arrayTypeDims.length > 0) {
+        return arrayTypeDims
+          .map((d) => {
+            const expr = d.expression();
+            return expr ? `[${callbacks.generateExpression(expr)}]` : "[]";
+          })
+          .join("");
+      }
+      return callbacks.generateArrayDimensions(arrayDims);
+    };
+
     // No initializer - zero-initialize
     if (!expression) {
-      decl += callbacks.generateArrayDimensions(arrayDims);
+      decl += generateDims();
       decl += `[${capacity + 1}]`;
       return { code: `${decl} = {0};`, handled: true };
     }
@@ -533,18 +318,29 @@ class StringDeclHelper {
     // Track as local array
     CodeGenState.localArrays.add(name);
 
+    // Check for empty dims (size inference)
+    const hasEmptyArrayTypeDim = arrayTypeDims.some((dim) => !dim.expression());
     const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
-    if (hasEmptyArrayDim) {
+    if (hasEmptyArrayTypeDim || hasEmptyArrayDim) {
       decl += StringDeclHelper._handleSizeInference(name, capacity, isConst);
+    } else if (arrayTypeDims.length > 0) {
+      // C-Next style with explicit dims: string<8>[3]
+      decl += arrayTypeDims
+        .map((d) => `[${callbacks.generateExpression(d.expression()!)}]`)
+        .join("");
     } else {
+      // Old style: string<8> arr[3]
       decl += StringDeclHelper._handleExplicitSize(arrayDims, callbacks);
     }
 
     decl += `[${capacity + 1}]`; // String capacity + null terminator
 
+    // Use arrayDims for expand fill (use arrayTypeDims as fallback for length)
+    const effectiveArrayDims =
+      arrayDims.length > 0 ? arrayDims : (arrayTypeDims as unknown[]);
     const finalInitValue = StringDeclHelper._expandFillAllIfNeeded(
       initValue,
-      arrayDims,
+      effectiveArrayDims as Parser.ArrayDimensionContext[],
     );
     // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
     // but C standard guarantees zero-initialization of remaining elements
@@ -616,25 +412,47 @@ class StringDeclHelper {
   /**
    * Expand fill-all syntax if needed.
    * ["Hello"*] with size 3 -> {"Hello", "Hello", "Hello"}
-   * Delegates to the common fill-all expansion logic with size from arrayDimension.
    */
   private static _expandFillAllIfNeeded(
     initValue: string,
     arrayDims: Parser.ArrayDimensionContext[],
   ): string {
+    const fillVal = CodeGenState.lastArrayFillValue;
+    if (fillVal === undefined) {
+      return initValue;
+    }
+
+    // Empty string fill doesn't need expansion (C handles {""} correctly)
+    if (fillVal === '""') {
+      return initValue;
+    }
+
     const declaredSize = StringDeclHelper._getFirstDimNumericSize(arrayDims);
-    return StringDeclHelper._expandFillAll(initValue, declaredSize);
+    if (declaredSize === null) {
+      return initValue;
+    }
+
+    const elements = new Array<string>(declaredSize).fill(fillVal);
+    return `{${elements.join(", ")}}`;
   }
 
   /**
    * Get the numeric size from the first array dimension, or null if not numeric.
-   * Used by arrayDimension-based string arrays (string<N> arr[M]).
    */
   private static _getFirstDimNumericSize(
     arrayDims: Parser.ArrayDimensionContext[],
   ): number | null {
     const firstDimExpr = arrayDims[0]?.expression();
-    return StringDeclHelper._parseNumericSize(firstDimExpr);
+    if (!firstDimExpr) {
+      return null;
+    }
+
+    const sizeText = firstDimExpr.getText();
+    if (!/^\d+$/.exec(sizeText)) {
+      return null;
+    }
+
+    return Number.parseInt(sizeText, 10);
   }
 
   /**

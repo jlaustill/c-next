@@ -24,7 +24,7 @@ u32 main() {
     if (data[3] != 10000000000000) return 9;
 
     // i64 array with inferred size
-    i64 inferred[] <- [100000000000, 200000000000, 300000000000];
+    i64[] inferred <- [100000000000, 200000000000, 300000000000];
     if (inferred[0] != 100000000000) return 10;
     if (inferred[1] != 200000000000) return 11;
     if (inferred[2] != 300000000000) return 12;

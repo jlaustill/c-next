@@ -15,7 +15,7 @@ scope ConstExprChain {
 }
 }
 
-ConstExprChain.Sensor sensors[SENSOR_COUNT];
+ConstExprChain.Sensor[SENSOR_COUNT] sensors;
 
 register GPIO @ 0x40000000 {
     DR:     u32 rw @ 0x00,

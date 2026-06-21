@@ -12,5 +12,5 @@ const string<16> STRING_CONST <- "Hello";
 // Const array
 const u8[4] BYTE_ARRAY <- [1, 2, 3, 4];
 
-// Const string array (C-style allowed for string arrays - grammar limitation)
-const string<8> STRING_ARRAY[3] <- ["one", "two", "three"];
+// Const string array
+const string<8>[3] STRING_ARRAY <- ["one", "two", "three"];

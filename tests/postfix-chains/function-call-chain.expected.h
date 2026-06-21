@@ -24,9 +24,6 @@ typedef struct FuncCallChain_Transform {
     FuncCallChain_Vec3 scale;
 } FuncCallChain_Transform;
 
-/* External variables */
-extern FuncCallChain_Transform transforms[4];
-
 #ifdef __cplusplus
 }
 #endif

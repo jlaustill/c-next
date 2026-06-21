@@ -10,22 +10,22 @@ scope ConstInferred {
 }
 
 // Key case: const struct array with inferred size []
-// Header MUST generate: extern const ConstInferred.TItem ITEMS[3];
-// NOT: extern const ConstInferred.TItem ITEMS;  (this breaks cross-file compilation)
-const ConstInferred.TItem ITEMS[] <- [
+// Header MUST generate: extern const ConstInferred_TItem ITEMS[3];
+// NOT: extern const ConstInferred_TItem ITEMS;  (this breaks cross-file compilation)
+const ConstInferred.TItem[] ITEMS <- [
     { id: 1, value: 100 },
     { id: 2, value: 200 },
     { id: 3, value: 300 }
 ];
 
 // Also test: non-const struct array with inferred size
-ConstInferred.TItem mutableItems[] <- [
+ConstInferred.TItem[] mutableItems <- [
     { id: 10, value: 1000 },
     { id: 20, value: 2000 }
 ];
 
 // Also test: const primitive array with inferred size
-const u8 SIZES[] <- [10, 20, 30, 40];
+const u8[] SIZES <- [10, 20, 30, 40];
 
 // Also test: const array with explicit size (control case)
 const i32[2] EXPLICIT <- [100, 200];

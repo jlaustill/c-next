@@ -26,7 +26,6 @@ typedef struct Point {
 
 /* External variables */
 extern Point points[3];
-extern ArrayStructMember_Sensor sensors[4];
 
 #ifdef __cplusplus
 }

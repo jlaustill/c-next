@@ -12,7 +12,7 @@ struct MixedData {
     bool flag;
 }
 
-MixedData[2] matrix[2];
+MixedData[2][2] matrix;
 
 u32 main() {
     // Set first element with all types

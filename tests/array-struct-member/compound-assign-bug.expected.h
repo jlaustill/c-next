@@ -18,9 +18,6 @@ typedef struct CompoundBug_Counter {
     int32_t value;
 } CompoundBug_Counter;
 
-/* External variables */
-extern CompoundBug_Counter counters[2];
-
 #ifdef __cplusplus
 }
 #endif

@@ -24,7 +24,7 @@ u32 main() {
     if (data[3] != 100) return 9;
 
     // i8 array with inferred size
-    i8 inferred[] <- [10, 20, 30];
+    i8[] inferred <- [10, 20, 30];
     if (inferred[0] != 10) return 10;
     if (inferred[1] != 20) return 11;
     if (inferred[2] != 30) return 12;

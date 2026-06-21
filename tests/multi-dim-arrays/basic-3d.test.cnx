@@ -1,5 +1,5 @@
 // ADR-036: 3D array declaration
-u8[4] voxels[4][4];
+u8[4][4][4] voxels;
 
 void init() {
     voxels[0][0][0] <- 1;

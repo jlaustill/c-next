@@ -20,12 +20,12 @@ scope DeepThreeLevel {
 }
 
     public struct Scene {
-    this.Object objects[4];
+    this.Object[4] objects;
     u32 count;
 }
 }
 
-DeepThreeLevel.Scene scenes[2];
+DeepThreeLevel.Scene[2] scenes;
 
 void main() {
     // 4-level deep write: scenes[i].objects[j].material.ambient.r

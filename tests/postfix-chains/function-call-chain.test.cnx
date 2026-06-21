@@ -15,7 +15,7 @@ scope FuncCallChain {
 }
 }
 
-FuncCallChain.Transform transforms[4];
+FuncCallChain.Transform[4] transforms;
 
 // Functions with various parameter types
 u32 addU32(u32 a, u32 b) {

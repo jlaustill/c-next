@@ -34,7 +34,7 @@ int main(void) {
     if (data[1U] != 50) return 7;
     if (data[2U] != -100) return 8;
     if (data[3U] != 100) return 9;
-    int8_t inferred[3] = {10, 20, 30};
+    int8_t inferred[][3] = {10, 20, 30};
     if (inferred[0U] != 10) return 10;
     if (inferred[1U] != 20) return 11;
     if (inferred[2U] != 30) return 12;

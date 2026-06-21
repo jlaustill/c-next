@@ -21,16 +21,16 @@ scope ArrayChain {
 }
 
     public struct Mesh {
-    this.Vec3 vertices[8];
-    u32 indices[12];
+    this.Vec3[8] vertices;
+    u32[12] indices;
 }
 }
 
 // 2D array of structs
-ArrayChain.Entity grid[4][4];
+ArrayChain.Entity[4][4] grid;
 
 // Array of struct containing arrays
-ArrayChain.Mesh meshes[3];
+ArrayChain.Mesh[3] meshes;
 
 void main() {
     // Chain: 2D_array[i][j].struct_member.field (5 levels)

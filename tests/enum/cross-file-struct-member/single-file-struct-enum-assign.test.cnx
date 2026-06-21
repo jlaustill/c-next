@@ -15,7 +15,7 @@ scope SingleFileEnum {
 }
 
     public struct Config {
-    this.TItem items[4];
+    this.TItem[4] items;
 }
 }
 

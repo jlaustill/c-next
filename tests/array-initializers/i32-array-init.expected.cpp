@@ -35,7 +35,7 @@ int main(void) {
     if (data[1U] != 500000) return 7;
     if (data[2U] != -1000000) return 8;
     if (data[3U] != 1000000) return 9;
-    int32_t inferred[3] = {10000, 20000, 30000};
+    int32_t inferred[][3] = {10000, 20000, 30000};
     if (inferred[0U] != 10000) return 10;
     if (inferred[1U] != 20000) return 11;
     if (inferred[2U] != 30000) return 12;

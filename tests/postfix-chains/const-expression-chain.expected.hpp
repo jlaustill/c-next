@@ -26,7 +26,6 @@ extern const uint32_t INDEX_2;
 extern const uint32_t SENSOR_COUNT;
 extern const uint32_t LED_BIT;
 extern const uint32_t STATUS_BIT;
-extern ConstExprChain_Sensor sensors[4];
 
 #ifdef __cplusplus
 }

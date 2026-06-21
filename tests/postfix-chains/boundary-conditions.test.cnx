@@ -10,7 +10,7 @@ scope BoundaryTest {
 }
 }
 
-BoundaryTest.Data items[16];  // Max reasonable array size for testing
+BoundaryTest.Data[16] items;  // Max reasonable array size for testing
 
 void main() {
    

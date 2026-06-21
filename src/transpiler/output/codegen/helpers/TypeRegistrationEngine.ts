@@ -419,6 +419,47 @@ class TypeRegistrationEngine {
     if (arrayTypeCtx.primitiveType()) {
       baseType = arrayTypeCtx.primitiveType()!.getText();
       bitWidth = TYPE_WIDTH[baseType] || 0;
+    } else if (arrayTypeCtx.stringType()) {
+      // String array: string<64>[3] -> char colors[3][65]
+      const stringCtx = arrayTypeCtx.stringType()!;
+      const intLiteral = stringCtx.INTEGER_LITERAL();
+      const capacity = intLiteral
+        ? Number.parseInt(intLiteral.getText(), 10)
+        : 0;
+
+      const arrayDimensions = TypeRegistrationEngine._collectArrayDimensions(
+        arrayTypeCtx,
+        arrayDim,
+        callbacks,
+      );
+      // Add string capacity + 1 for null terminator
+      if (capacity > 0) {
+        arrayDimensions.push(capacity + 1);
+      }
+
+      CodeGenState.setVariableTypeInfo(registryName, {
+        baseType: "char",
+        bitWidth: 8,
+        isArray: true,
+        arrayDimensions:
+          arrayDimensions.length > 0 ? arrayDimensions : undefined,
+        isConst,
+        isString: true,
+        stringCapacity: capacity,
+        overflowBehavior,
+        isAtomic,
+      });
+      return;
+    } else if (arrayTypeCtx.qualifiedType()) {
+      // Scope-qualified array: Scope.Type[3]
+      const parts = arrayTypeCtx.qualifiedType()!.IDENTIFIER();
+      baseType = parts.map((p) => p.getText()).join("_");
+    } else if (arrayTypeCtx.scopedType()) {
+      // Scoped array: this.Type[3]
+      const typeName = arrayTypeCtx.scopedType()!.IDENTIFIER().getText();
+      baseType = CodeGenState.currentScope
+        ? `${CodeGenState.currentScope}_${typeName}`
+        : typeName;
     } else if (arrayTypeCtx.userType()) {
       baseType = arrayTypeCtx.userType()!.getText();
 

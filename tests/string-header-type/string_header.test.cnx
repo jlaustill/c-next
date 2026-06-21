@@ -3,7 +3,7 @@
 
 string<32> greeting <- "Hello";
 // C-style allowed for string arrays (grammar limitation)
-const string<16> labels[3] <- ["one", "two", "three"];
+const string<16>[3] labels <- ["one", "two", "three"];
 
 void main() {
     // Access globals to ensure they're included in output
