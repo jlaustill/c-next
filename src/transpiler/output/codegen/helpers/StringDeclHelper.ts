@@ -167,6 +167,9 @@ class StringDeclHelper {
     }
 
     const capacity = Number.parseInt(intLiteral.getText(), 10);
+    // Ensure string.h is included for strncpy operations
+    callbacks.requireStringInclude();
+
     const {
       extern,
       const: constMod,
@@ -249,6 +252,7 @@ class StringDeclHelper {
 
   /**
    * Get the numeric size from the first arrayTypeDimension, or null if not numeric.
+   * Used by arrayType-based string arrays (string<N>[M]).
    */
   private static _getArrayTypeDeclaredSize(
     arrayTypeCtx: Parser.ArrayTypeContext,
@@ -258,22 +262,28 @@ class StringDeclHelper {
       return null;
     }
     const firstDimExpr = dims[0].expression();
-    if (!firstDimExpr) {
-      return null;
-    }
-    const sizeText = firstDimExpr.getText();
-    if (!/^\d+$/.exec(sizeText)) {
-      return null;
-    }
-    return Number.parseInt(sizeText, 10);
+    return StringDeclHelper._parseNumericSize(firstDimExpr);
   }
 
   /**
    * Expand fill-all syntax for arrayType-based string arrays.
+   * Delegates to the common fill-all expansion logic with size from arrayType.
    */
   private static _expandFillAllForArrayType(
     initValue: string,
     arrayTypeCtx: Parser.ArrayTypeContext,
+  ): string {
+    const declaredSize =
+      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
+    return StringDeclHelper._expandFillAll(initValue, declaredSize);
+  }
+
+  /**
+   * Common fill-all expansion logic shared between arrayType and arrayDimension paths.
+   */
+  private static _expandFillAll(
+    initValue: string,
+    declaredSize: number | null,
   ): string {
     const fillVal = CodeGenState.lastArrayFillValue;
     if (fillVal === undefined) {
@@ -285,14 +295,29 @@ class StringDeclHelper {
       return initValue;
     }
 
-    const declaredSize =
-      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
     if (declaredSize === null) {
       return initValue;
     }
 
     const elements = new Array<string>(declaredSize).fill(fillVal);
     return `{${elements.join(", ")}}`;
+  }
+
+  /**
+   * Parse a numeric size from an expression, or return null if not numeric.
+   * Shared helper to eliminate duplicate parsing logic.
+   */
+  private static _parseNumericSize(
+    expr: Parser.ExpressionContext | null | undefined,
+  ): number | null {
+    if (!expr) {
+      return null;
+    }
+    const sizeText = expr.getText();
+    if (!/^\d+$/.exec(sizeText)) {
+      return null;
+    }
+    return Number.parseInt(sizeText, 10);
   }
 
   /**
@@ -539,47 +564,25 @@ class StringDeclHelper {
   /**
    * Expand fill-all syntax if needed.
    * ["Hello"*] with size 3 -> {"Hello", "Hello", "Hello"}
+   * Delegates to the common fill-all expansion logic with size from arrayDimension.
    */
   private static _expandFillAllIfNeeded(
     initValue: string,
     arrayDims: Parser.ArrayDimensionContext[],
   ): string {
-    const fillVal = CodeGenState.lastArrayFillValue;
-    if (fillVal === undefined) {
-      return initValue;
-    }
-
-    // Empty string fill doesn't need expansion (C handles {""} correctly)
-    if (fillVal === '""') {
-      return initValue;
-    }
-
     const declaredSize = StringDeclHelper._getFirstDimNumericSize(arrayDims);
-    if (declaredSize === null) {
-      return initValue;
-    }
-
-    const elements = new Array<string>(declaredSize).fill(fillVal);
-    return `{${elements.join(", ")}}`;
+    return StringDeclHelper._expandFillAll(initValue, declaredSize);
   }
 
   /**
    * Get the numeric size from the first array dimension, or null if not numeric.
+   * Used by arrayDimension-based string arrays (string<N> arr[M]).
    */
   private static _getFirstDimNumericSize(
     arrayDims: Parser.ArrayDimensionContext[],
   ): number | null {
     const firstDimExpr = arrayDims[0]?.expression();
-    if (!firstDimExpr) {
-      return null;
-    }
-
-    const sizeText = firstDimExpr.getText();
-    if (!/^\d+$/.exec(sizeText)) {
-      return null;
-    }
-
-    return Number.parseInt(sizeText, 10);
+    return StringDeclHelper._parseNumericSize(firstDimExpr);
   }
 
   /**

@@ -363,21 +363,15 @@ class TypeRegistrationEngine {
     const stringDim = capacity + 1;
 
     // Collect dimensions: arrayTypeDimension from arrayType, then string capacity
-    const dimensions: number[] = [];
-    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size)) {
-          dimensions.push(size);
-        }
-      }
-    }
-    // Add any additional trailing dimensions from arrayDim
+    // Build all dimensions at once to avoid multiple push() calls (SonarCloud S7778)
+    const arrayTypeDims = arrayTypeCtx
+      .arrayTypeDimension()
+      .map((dim) => dim.expression())
+      .filter((expr): expr is Parser.ExpressionContext => expr !== null)
+      .map((expr) => Number.parseInt(expr.getText(), 10))
+      .filter((size) => !Number.isNaN(size));
     const additionalDims = ArrayDimensionParser.parseSimpleDimensions(arrayDim);
-    dimensions.push(...additionalDims);
-    // String capacity comes last (innermost dimension)
-    dimensions.push(stringDim);
+    const dimensions = [...arrayTypeDims, ...additionalDims, stringDim];
 
     CodeGenState.setVariableTypeInfo(registryName, {
       baseType: "char",
