@@ -212,6 +212,30 @@ class TypeGenerationHelper {
       if (arrCtx.stringType()) {
         return "char";
       }
+      // Scoped type array (this.Type[N])
+      if (arrCtx.scopedType()) {
+        const typeName = arrCtx.scopedType()!.IDENTIFIER().getText();
+        return TypeGenerationHelper.generateScopedType(
+          typeName,
+          deps.currentScope,
+        );
+      }
+      // Qualified type array (Scope.Type[N])
+      if (arrCtx.qualifiedType()) {
+        const identifiers = arrCtx.qualifiedType()!.IDENTIFIER();
+        const identifierNames = identifiers.map((id) => id.getText());
+        const isCpp = deps.isCppScopeSymbol(identifierNames[0]);
+        return TypeGenerationHelper.generateQualifiedType(
+          identifierNames,
+          isCpp,
+          deps.validateCrossScopeVisibility,
+        );
+      }
+      // Global type array (global.Type[N])
+      if (arrCtx.globalType()) {
+        const typeName = arrCtx.globalType()!.IDENTIFIER().getText();
+        return TypeGenerationHelper.generateGlobalType(typeName);
+      }
       const primitiveText = arrCtx.primitiveType()?.getText() ?? null;
       const userTypeName = arrCtx.userType()?.getText() ?? null;
       const needsStruct = userTypeName

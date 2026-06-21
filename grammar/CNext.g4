@@ -538,10 +538,14 @@ stringType
 
 // C-Next style array type: dimensions in type position
 // Supports: u8[8], u8[4][4], u8[] (unbounded), string<32>[5]
+// Also supports scoped/qualified types: this.Type[4], Scope.Type[4], global.Type[4]
 arrayType
     : primitiveType arrayTypeDimension+
     | userType arrayTypeDimension+
     | stringType arrayTypeDimension+
+    | scopedType arrayTypeDimension+       // this.Type[4] - scoped type array
+    | qualifiedType arrayTypeDimension+    // Scope.Type[4] - qualified type array
+    | globalType arrayTypeDimension+       // global.Type[4] - global type array
     ;
 
 arrayTypeDimension

@@ -1,0 +1,42 @@
+// Test: Scoped type arrays in struct fields (Issue #1038)
+// Tests this.Type[N] syntax in struct field declarations
+
+scope Container {
+    public struct Item {
+        i32 value;
+        u8 flags;
+    }
+
+    // Test this.Type[N] syntax - array dimension on type
+    public struct Collection {
+        this.Item[4] items;
+        u32 count;
+    }
+
+}
+
+// Test qualified type array from outside scope
+scope User {
+    public struct Data {
+        Container.Item[2] cached;
+        u32 version;
+    }
+}
+
+Container.Collection collection;
+User.Data userData;
+
+void main() {
+    // Access through scoped type arrays
+    collection.items[0].value <- 42;
+    collection.items[0].flags <- 0xFF;
+    collection.count <- 1;
+
+    // Access through qualified type arrays
+    userData.cached[0].value <- 100;
+    userData.version <- 1;
+
+    // Read back values
+    i32 val <- collection.items[0].value;
+    u32 cnt <- collection.count;
+}

@@ -26,13 +26,34 @@ function resolveStringType(stringCtx: Parser.StringTypeContext): string {
 
 /**
  * Extract inner type from arrayType context.
+ * Handles primitive, user, scoped, qualified, and global types as array element types.
  */
-function resolveArrayInnerType(arrayTypeCtx: Parser.ArrayTypeContext): string {
+function resolveArrayInnerType(
+  arrayTypeCtx: Parser.ArrayTypeContext,
+  scopeName?: string,
+): string {
   if (arrayTypeCtx.primitiveType()) {
     return arrayTypeCtx.primitiveType()!.getText();
   }
   if (arrayTypeCtx.userType()) {
     return arrayTypeCtx.userType()!.getText();
+  }
+  // Handle scoped type array: this.Type[N]
+  if (arrayTypeCtx.scopedType()) {
+    return resolveScopedType(arrayTypeCtx.scopedType()!, scopeName);
+  }
+  // Handle qualified type array: Scope.Type[N]
+  if (arrayTypeCtx.qualifiedType()) {
+    const identifiers = arrayTypeCtx.qualifiedType()!.IDENTIFIER();
+    return identifiers.map((id) => id.getText()).join("_");
+  }
+  // Handle global type array: global.Type[N]
+  if (arrayTypeCtx.globalType()) {
+    return arrayTypeCtx.globalType()!.IDENTIFIER().getText();
+  }
+  // Handle string type array: string<N>[M]
+  if (arrayTypeCtx.stringType()) {
+    return resolveStringType(arrayTypeCtx.stringType()!);
   }
   // Fallback for other nested types - strip the dimension part
   const text = arrayTypeCtx.getText();
@@ -91,7 +112,7 @@ class TypeUtils {
     // Handle arrayType: Type[size] - extract the inner type without dimension
     // The dimension is tracked separately in arrayDimensions
     if (ctx.arrayType()) {
-      return resolveArrayInnerType(ctx.arrayType()!);
+      return resolveArrayInnerType(ctx.arrayType()!, scopeName);
     }
 
     // Fallback
