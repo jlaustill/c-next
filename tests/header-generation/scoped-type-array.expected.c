@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // Test: Scoped type arrays in struct fields (Issue #1038)
-// Tests this.Type[N] syntax in struct field declarations
+// Tests this.Type[N] and Scope.Type[N] syntax
 /* Scope: Container */
 
 // Test qualified type array from outside scope

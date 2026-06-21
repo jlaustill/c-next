@@ -6,14 +6,16 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 
 /**
- * Resolve scoped type (this.Type) to full name.
+ * Common interface for type contexts that share the same type accessors.
+ * Both TypeContext and ArrayTypeContext have these methods.
  */
-function resolveScopedType(
-  scopedTypeCtx: Parser.ScopedTypeContext,
-  scopeName?: string,
-): string {
-  const typeName = scopedTypeCtx.IDENTIFIER().getText();
-  return scopeName ? `${scopeName}_${typeName}` : typeName;
+interface ITypeAccessors {
+  primitiveType(): Parser.PrimitiveTypeContext | null;
+  userType(): Parser.UserTypeContext | null;
+  stringType(): Parser.StringTypeContext | null;
+  scopedType(): Parser.ScopedTypeContext | null;
+  qualifiedType(): Parser.QualifiedTypeContext | null;
+  globalType(): Parser.GlobalTypeContext | null;
 }
 
 /**
@@ -25,40 +27,50 @@ function resolveStringType(stringCtx: Parser.StringTypeContext): string {
 }
 
 /**
- * Extract inner type from arrayType context.
- * Handles primitive, user, scoped, qualified, and global types as array element types.
+ * Dispatch type resolution for contexts that share common type accessors.
+ * Handles scoped, qualified, global, primitive, string, and user types.
+ * Used by both bare type contexts and array element type contexts.
+ *
+ * @returns The resolved type name, or null if no matching type accessor found
  */
-function resolveArrayInnerType(
-  arrayTypeCtx: Parser.ArrayTypeContext,
+function dispatchTypeResolution(
+  accessors: ITypeAccessors,
   scopeName?: string,
-): string {
-  if (arrayTypeCtx.primitiveType()) {
-    return arrayTypeCtx.primitiveType()!.getText();
+): string | null {
+  // Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+  if (accessors.scopedType()) {
+    const typeName = accessors.scopedType()!.IDENTIFIER().getText();
+    return scopeName ? `${scopeName}_${typeName}` : typeName;
   }
-  if (arrayTypeCtx.userType()) {
-    return arrayTypeCtx.userType()!.getText();
+
+  // Handle global.Type for global types inside scope
+  // global.ECategory -> ECategory (just the type name, no scope prefix)
+  if (accessors.globalType()) {
+    return accessors.globalType()!.IDENTIFIER().getText();
   }
-  // Handle scoped type array: this.Type[N]
-  if (arrayTypeCtx.scopedType()) {
-    return resolveScopedType(arrayTypeCtx.scopedType()!, scopeName);
-  }
-  // Handle qualified type array: Scope.Type[N]
-  if (arrayTypeCtx.qualifiedType()) {
-    const identifiers = arrayTypeCtx.qualifiedType()!.IDENTIFIER();
+
+  // Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
+  if (accessors.qualifiedType()) {
+    const identifiers = accessors.qualifiedType()!.IDENTIFIER();
     return identifiers.map((id) => id.getText()).join("_");
   }
-  // Handle global type array: global.Type[N]
-  if (arrayTypeCtx.globalType()) {
-    return arrayTypeCtx.globalType()!.IDENTIFIER().getText();
+
+  // Handle user-defined types
+  if (accessors.userType()) {
+    return accessors.userType()!.getText();
   }
-  // Handle string type array: string<N>[M]
-  if (arrayTypeCtx.stringType()) {
-    return resolveStringType(arrayTypeCtx.stringType()!);
+
+  // Handle primitive types
+  if (accessors.primitiveType()) {
+    return accessors.primitiveType()!.getText();
   }
-  // Fallback for other nested types - strip the dimension part
-  const text = arrayTypeCtx.getText();
-  const bracketIdx = text.indexOf("[");
-  return bracketIdx > 0 ? text.substring(0, bracketIdx) : text;
+
+  // Handle string types - preserve capacity for validation (Issue #139)
+  if (accessors.stringType()) {
+    return resolveStringType(accessors.stringType()!);
+  }
+
+  return null;
 }
 
 class TypeUtils {
@@ -77,42 +89,23 @@ class TypeUtils {
   ): string {
     if (!ctx) return "void";
 
-    // Handle this.Type for scoped types (e.g., this.State -> Motor_State)
-    if (ctx.scopedType()) {
-      return resolveScopedType(ctx.scopedType()!, scopeName);
-    }
-
-    // Issue #478: Handle global.Type for global types inside scope
-    // global.ECategory -> ECategory (just the type name, no scope prefix)
-    if (ctx.globalType()) {
-      return ctx.globalType()!.IDENTIFIER().getText();
-    }
-
-    // Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
-    if (ctx.qualifiedType()) {
-      const identifiers = ctx.qualifiedType()!.IDENTIFIER();
-      return identifiers.map((id) => id.getText()).join("_");
-    }
-
-    // Handle user-defined types
-    if (ctx.userType()) {
-      return ctx.userType()!.getText();
-    }
-
-    // Handle primitive types
-    if (ctx.primitiveType()) {
-      return ctx.primitiveType()!.getText();
-    }
-
-    // Handle string types - preserve capacity for validation (Issue #139)
-    if (ctx.stringType()) {
-      return resolveStringType(ctx.stringType()!);
-    }
-
     // Handle arrayType: Type[size] - extract the inner type without dimension
     // The dimension is tracked separately in arrayDimensions
     if (ctx.arrayType()) {
-      return resolveArrayInnerType(ctx.arrayType()!, scopeName);
+      const result = dispatchTypeResolution(ctx.arrayType()!, scopeName);
+      if (result !== null) {
+        return result;
+      }
+      // Fallback for unrecognized array types - strip the dimension part
+      const text = ctx.arrayType()!.getText();
+      const bracketIdx = text.indexOf("[");
+      return bracketIdx > 0 ? text.substring(0, bracketIdx) : text;
+    }
+
+    // Non-array types - dispatch directly
+    const result = dispatchTypeResolution(ctx, scopeName);
+    if (result !== null) {
+      return result;
     }
 
     // Fallback

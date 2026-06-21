@@ -29,6 +29,19 @@ interface ITypeGenerationDeps {
   validateCrossScopeVisibility: (scope: string, member: string) => void;
 }
 
+/**
+ * Common interface for type contexts that share the same type accessors.
+ * Both TypeContext and ArrayTypeContext have these methods.
+ */
+interface ITypeAccessors {
+  primitiveType(): Parser.PrimitiveTypeContext | null;
+  userType(): Parser.UserTypeContext | null;
+  stringType(): Parser.StringTypeContext | null;
+  scopedType(): Parser.ScopedTypeContext | null;
+  qualifiedType(): Parser.QualifiedTypeContext | null;
+  globalType(): Parser.GlobalTypeContext | null;
+}
+
 class TypeGenerationHelper {
   /**
    * Generate C type for a primitive type.
@@ -154,41 +167,35 @@ class TypeGenerationHelper {
   }
 
   /**
-   * Full type generation using all dependencies.
-   * This is the main entry point that handles all type contexts.
+   * Dispatch type generation for contexts that share common type accessors.
+   * Handles scoped, qualified, global, primitive, string, and user types.
+   * Used by both bare type contexts and array element type contexts.
+   *
+   * @returns The resolved C type string, or null if no matching type accessor found
    */
-  static generate(ctx: Parser.TypeContext, deps: ITypeGenerationDeps): string {
-    // Primitive type
-    if (ctx.primitiveType()) {
-      const type = ctx.primitiveType()!.getText();
-      const result = TypeGenerationHelper.generatePrimitiveType(type);
-      // Note: caller is responsible for handling the include
-      return result.cType;
-    }
-
-    // Bounded string type
-    if (ctx.stringType()) {
+  private static dispatchTypeGeneration(
+    accessors: ITypeAccessors,
+    deps: ITypeGenerationDeps,
+  ): string | null {
+    if (accessors.stringType()) {
       return TypeGenerationHelper.generateStringType();
     }
 
-    // Scoped type (this.Type)
-    if (ctx.scopedType()) {
-      const typeName = ctx.scopedType()!.IDENTIFIER().getText();
+    if (accessors.scopedType()) {
+      const typeName = accessors.scopedType()!.IDENTIFIER().getText();
       return TypeGenerationHelper.generateScopedType(
         typeName,
         deps.currentScope,
       );
     }
 
-    // Global type (global.Type)
-    if (ctx.globalType()) {
-      const typeName = ctx.globalType()!.IDENTIFIER().getText();
+    if (accessors.globalType()) {
+      const typeName = accessors.globalType()!.IDENTIFIER().getText();
       return TypeGenerationHelper.generateGlobalType(typeName);
     }
 
-    // Qualified type (Scope.Type or Namespace::Type)
-    if (ctx.qualifiedType()) {
-      const identifiers = ctx.qualifiedType()!.IDENTIFIER();
+    if (accessors.qualifiedType()) {
+      const identifiers = accessors.qualifiedType()!.IDENTIFIER();
       const identifierNames = identifiers.map((id) => id.getText());
       const isCpp = deps.isCppScopeSymbol(identifierNames[0]);
       return TypeGenerationHelper.generateQualifiedType(
@@ -198,54 +205,40 @@ class TypeGenerationHelper {
       );
     }
 
-    // User type
-    if (ctx.userType()) {
-      const typeName = ctx.userType()!.getText();
+    if (accessors.primitiveType()) {
+      const type = accessors.primitiveType()!.getText();
+      return TYPE_MAP[type] || type;
+    }
+
+    if (accessors.userType()) {
+      const typeName = accessors.userType()!.getText();
       const needsStruct = deps.checkNeedsStructKeyword(typeName);
       return TypeGenerationHelper.generateUserType(typeName, needsStruct);
     }
 
-    // Array type
+    return null;
+  }
+
+  /**
+   * Full type generation using all dependencies.
+   * This is the main entry point that handles all type contexts.
+   */
+  static generate(ctx: Parser.TypeContext, deps: ITypeGenerationDeps): string {
+    // Array type - dispatch on the element type
     if (ctx.arrayType()) {
       const arrCtx = ctx.arrayType()!;
-      // String arrays have base type "char"
-      if (arrCtx.stringType()) {
-        return "char";
+      const result = TypeGenerationHelper.dispatchTypeGeneration(arrCtx, deps);
+      if (result !== null) {
+        return result;
       }
-      // Scoped type array (this.Type[N])
-      if (arrCtx.scopedType()) {
-        const typeName = arrCtx.scopedType()!.IDENTIFIER().getText();
-        return TypeGenerationHelper.generateScopedType(
-          typeName,
-          deps.currentScope,
-        );
-      }
-      // Qualified type array (Scope.Type[N])
-      if (arrCtx.qualifiedType()) {
-        const identifiers = arrCtx.qualifiedType()!.IDENTIFIER();
-        const identifierNames = identifiers.map((id) => id.getText());
-        const isCpp = deps.isCppScopeSymbol(identifierNames[0]);
-        return TypeGenerationHelper.generateQualifiedType(
-          identifierNames,
-          isCpp,
-          deps.validateCrossScopeVisibility,
-        );
-      }
-      // Global type array (global.Type[N])
-      if (arrCtx.globalType()) {
-        const typeName = arrCtx.globalType()!.IDENTIFIER().getText();
-        return TypeGenerationHelper.generateGlobalType(typeName);
-      }
-      const primitiveText = arrCtx.primitiveType()?.getText() ?? null;
-      const userTypeName = arrCtx.userType()?.getText() ?? null;
-      const needsStruct = userTypeName
-        ? deps.checkNeedsStructKeyword(userTypeName)
-        : false;
-      return TypeGenerationHelper.generateArrayBaseType(
-        primitiveText,
-        userTypeName,
-        needsStruct,
-      );
+      // Fallback for array types without recognized element type
+      return ctx.getText();
+    }
+
+    // Non-array types - dispatch directly
+    const result = TypeGenerationHelper.dispatchTypeGeneration(ctx, deps);
+    if (result !== null) {
+      return result;
     }
 
     // Void or fallback
