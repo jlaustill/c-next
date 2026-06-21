@@ -9,7 +9,7 @@ scope StructArr2D {
 }
 }
 
-StructArr2D.TReading readings[4][4];
+StructArr2D.TReading[4][4] readings;
 
 scope Test {
     public u32 run() {

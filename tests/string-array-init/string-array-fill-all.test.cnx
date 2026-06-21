@@ -2,10 +2,10 @@
 // Tests: ["value"*] expands to fill all elements
 
 // Fill all 3 elements with "Hello" (C-style allowed for string arrays)
-string<10> greetings[3] <- ["Hello"*];
+string<10>[3] greetings <- ["Hello"*];
 
 // Fill with empty string (should use {""} which C handles)
-string<8> empty[2] <- [""*];
+string<8>[2] empty <- [""*];
 
 u32 main() {
     // Test 1: greetings array should have 3 elements

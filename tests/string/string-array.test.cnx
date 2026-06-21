@@ -2,7 +2,7 @@
 // ADR-045: Test array of strings
 // Validates: declaration, element access, array.length, element.length, loops
 // C-style allowed for string arrays (grammar limitation)
-string<32> globalNames[5];
+string<32>[5] globalNames;
 
 u32 getArrayLength(string<32>[5] arr) {
     return arr.element_count;
@@ -49,7 +49,7 @@ i32 main() {
 
    
 // Test 7: Array element-to-element comparison (issue #137 fixed)
-    string<32> dupes[3];
+    string<32>[3] dupes;
     dupes[0] <- "Alice";
     dupes[1] <- "Alice";
     dupes[2] <- "Bob";
@@ -58,7 +58,7 @@ i32 main() {
 
    
 // Test 8: Local array of strings
-    string<64> colors[3];
+    string<64>[3] colors;
     colors[0] <- "Red";
     colors[1] <- "Green";
     colors[2] <- "Blue";
@@ -106,7 +106,7 @@ i32 main() {
 
    
 // Test 13: Empty string in array
-    string<32> sparse[3];
+    string<32>[3] sparse;
 
     // sparse[0] is empty by default
     sparse[1] <- "Middle";

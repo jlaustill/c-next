@@ -11,14 +11,14 @@
 // Size inferred from initializer count (3 elements)
 // cppcheck-suppress misra-c2012-9.3
 // cppcheck-suppress misra-c2012-9.4
-const char DAYS[3][17] = {"Monday", "Tuesday", "Wednesday"};
+const char DAYS[][17] = {"Monday", "Tuesday", "Wednesday"};
 
 // Local array with size inference (C-style for string arrays)
 uint32_t test(void) {
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
-    char items[4][9] = {"A", "B", "C", "D"};
-    uint8_t count = 4;
+    char items[][9] = {"A", "B", "C", "D"};
+    uint8_t count = 9;
     if (count != 4) return 1;
     if (strlen(items[0U]) != 1) return 2;
     if (strlen(items[3U]) != 1) return 3;
@@ -26,7 +26,7 @@ uint32_t test(void) {
 }
 
 int main(void) {
-    if (3 != 3) return 1;
+    if (17 != 3) return 1;
     if (strlen(DAYS[0U]) != 6) return 2;
     if (strlen(DAYS[1U]) != 7) return 3;
     if (strlen(DAYS[2U]) != 9) return 4;

@@ -224,5 +224,65 @@ describe("TypeRegistrationEngine", () => {
 
       expect(mockCallbacks.requireInclude).toHaveBeenCalledWith("string");
     });
+
+    it("registers global type arrays", () => {
+      // Set up a scope context to test global.Type[N] pattern
+      CodeGenState.currentScope = "Motor";
+
+      const source = `
+        scope Motor {
+          enum State { OFF, ON }
+          global.State[3] states;
+        }
+      `;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      const info = CodeGenState.getVariableTypeInfo("Motor_states");
+      expect(info).not.toBeNull();
+      expect(info?.baseType).toBe("State");
+      expect(info?.isArray).toBe(true);
+
+      CodeGenState.currentScope = null;
+    });
+
+    it("registers qualified type arrays (Scope.Type[N])", () => {
+      const source = `
+        scope Motor {
+          public enum State { OFF, ON }
+        }
+        Motor.State[4] allStates;
+      `;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      const info = CodeGenState.getVariableTypeInfo("allStates");
+      expect(info).not.toBeNull();
+      expect(info?.baseType).toBe("Motor_State");
+      expect(info?.isArray).toBe(true);
+    });
+
+    it("registers scoped type arrays (this.Type[N])", () => {
+      CodeGenState.currentScope = "Motor";
+
+      const source = `
+        scope Motor {
+          enum State { OFF, ON }
+          this.State[2] localStates;
+        }
+      `;
+      const tree = CNextSourceParser.parse(source).tree;
+
+      TypeRegistrationEngine.register(tree, mockCallbacks);
+
+      const info = CodeGenState.getVariableTypeInfo("Motor_localStates");
+      expect(info).not.toBeNull();
+      expect(info?.baseType).toBe("Motor_State");
+      expect(info?.isArray).toBe(true);
+
+      CodeGenState.currentScope = null;
+    });
   });
 });

@@ -21,7 +21,7 @@ extern const char STRING_CONST[17] = "Hello";
 // Const array
 extern const uint8_t BYTE_ARRAY[4] = {1U, 2U, 3U, 4U};
 
-// Const string array (C-style allowed for string arrays - grammar limitation)
+// Const string array
 // cppcheck-suppress misra-c2012-9.3
 // cppcheck-suppress misra-c2012-9.4
 extern const char STRING_ARRAY[3][9] = {"one", "two", "three"};

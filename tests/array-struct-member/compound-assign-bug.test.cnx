@@ -6,7 +6,7 @@ scope CompoundBug {
 }
 }
 
-CompoundBug.Counter counters[2];
+CompoundBug.Counter[2] counters;
 
 i32 main() {
     // Initialize

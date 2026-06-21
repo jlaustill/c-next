@@ -11,7 +11,7 @@ u64[4] timestamps <- [
 ];
 
 // Size inference
-u64 counters[] <- [100, 200, 300, 400, 500];
+u64[] counters <- [100, 200, 300, 400, 500];
 
 // Fill syntax - zero initialized buffer
 u64[100] buffer <- [0*];
@@ -20,7 +20,7 @@ u64[100] buffer <- [0*];
 u64[50] ones <- [1*];
 
 // Const lookup table (factorials)
-const u64 factorials[] <- [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880];
+const u64[] factorials <- [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880];
 
 u32 main() {
    

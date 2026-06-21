@@ -16,7 +16,7 @@ scope ArrayStructMember {
 // Test arrays
 Point[3] points;
 
-ArrayStructMember.Sensor sensors[4];
+ArrayStructMember.Sensor[4] sensors;
 
 // Test function to verify array-of-struct assignment
 i32 main() {

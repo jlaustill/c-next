@@ -75,16 +75,28 @@ class VariableCollector {
   }
 
   /**
-   * Collect dimensions from C-Next style arrayType syntax (u16[8] arr, u16[4][4] arr).
+   * Collect dimensions from C-Next style arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr).
+   * Handles size inference from initializer when dimension is empty.
    */
   private static collectArrayTypeDimensions(
     arrayTypeCtx: Parser.ArrayTypeContext,
     constValues: Map<string, number> | undefined,
+    initExpr: Parser.ExpressionContext | null,
   ): (number | string)[] {
     const dimensions: (number | string)[] = [];
     for (const dim of arrayTypeCtx.arrayTypeDimension()) {
       const sizeExpr = dim.expression();
-      if (!sizeExpr) continue;
+
+      if (!sizeExpr) {
+        // Issue #636: Empty dimension [] - infer size from array initializer
+        if (initExpr) {
+          const inferredSize = ArrayInitializerUtils.getInferredSize(initExpr);
+          if (inferredSize !== undefined) {
+            dimensions.push(inferredSize);
+          }
+        }
+        continue;
+      }
 
       const dimText = sizeExpr.getText();
       const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
@@ -146,6 +158,7 @@ class VariableCollector {
         ...VariableCollector.collectArrayTypeDimensions(
           arrayTypeCtx,
           constValues,
+          initExpr,
         ),
       );
     }

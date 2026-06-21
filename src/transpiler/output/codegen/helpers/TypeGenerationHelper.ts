@@ -212,6 +212,10 @@ class TypeGenerationHelper {
 
     if (accessors.userType()) {
       const typeName = accessors.userType()!.getText();
+      // ADR-046: cstring maps to char* for C library interop
+      if (typeName === "cstring") {
+        return "char*";
+      }
       const needsStruct = deps.checkNeedsStructKeyword(typeName);
       return TypeGenerationHelper.generateUserType(typeName, needsStruct);
     }

@@ -15,7 +15,7 @@ scope ConstExprChain {
 }
 }
 
-ConstExprChain.Sensor sensors[SENSOR_COUNT];
+ConstExprChain.Sensor[SENSOR_COUNT] sensors;
 
 register GPIO @ 0x40000000 {
     DR:     u32 rw @ 0x00,
@@ -64,7 +64,7 @@ void main() {
     const u32 FIELD_BIT <- 5;
 
     // Nested array with const indices
-    u8 matrix[4][4];
+    u8[4][4] matrix;
     matrix[ROW][COL] <- 0xFF;
     matrix[ROW][COL][FIELD_BIT] <- false;
 

@@ -27,7 +27,7 @@ describe("trackVariableTypeWithName helpers", () => {
   describe("extractArrayDimensionsSimple", () => {
     it("handles string array with single dimension", async () => {
       const source = `
-        string<32> messages[4];
+        string<32>[4] messages;
         void main() {
           messages[0] <- "Hello";
         }
@@ -39,7 +39,7 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("handles string array with multiple dimensions", async () => {
       const source = `
-        string<16> grid[2][3];
+        string<16>[2][3] grid;
         void main() {
           grid[0][0] <- "test";
         }

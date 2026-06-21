@@ -268,49 +268,27 @@ class VariableDeclHelper {
       return; // Not an array declaration
     }
 
-    // If type already has arrayType, additional dimensions are allowed (multi-dim)
-    if (typeCtx.arrayType()) {
-      return; // Valid C-Next style: u16[4] arr[2] -> uint16_t arr[4][2]
-    }
-
-    // Allow empty first dimension for size inference: u8 arr[] <- [1, 2, 3]
-    // The grammar doesn't support u8[] arr syntax, so this is the only way
-    if (arrayDims.length === 1 && !arrayDims[0].expression()) {
-      return; // Size inference pattern allowed
-    }
-
-    // Allow C-style for multi-dimensional arrays: u8 matrix[4][4]
-    // The arrayType grammar only supports single dimension, so multi-dim needs C-style
-    if (arrayDims.length > 1) {
-      return; // Multi-dimensional arrays need C-style
-    }
-
-    // Allow C-style for types that don't support arrayType syntax:
-    // - Qualified types (Scope.Type, Namespace::Type)
-    // - Scoped types (this.Type)
-    // - Global types (global.Type)
-    // - String types (string<N>)
-    // - Bitmap types (code generator doesn't yet handle arrayType for bitmaps)
-    if (
-      typeCtx.qualifiedType() ||
-      typeCtx.scopedType() ||
-      typeCtx.globalType() ||
-      typeCtx.stringType()
-    ) {
-      return; // Grammar limitation - these can't use arrayType
-    }
-
-    // C-style array declaration detected - reject with helpful error
+    // Issues #1014-#1017: ALL trailing brackets after the variable name are rejected.
+    // The only valid form is dimensions in type position: u8[4][8] matrix, string<32>[5] names
+    // No mixed forms (u8[4] matrix[8]), no C-style (u8 matrix[4][8]), no trailing inference (u8 arr[])
     const baseType = VariableDeclHelper.extractBaseTypeName(typeCtx);
-    const dimensions = arrayDims
+    const existingDims = typeCtx.arrayType()
+      ? typeCtx
+          .arrayType()!
+          .arrayTypeDimension()
+          .map((d) => `[${d.expression()?.getText() ?? ""}]`)
+          .join("")
+      : "";
+    const trailingDims = arrayDims
       .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
       .join("");
+    const allDims = existingDims + trailingDims;
     const line = ctx.start?.line ?? 0;
     const col = ctx.start?.column ?? 0;
 
     throw new Error(
       `${line}:${col} C-style array declaration is not allowed. ` +
-        `Use '${baseType}${dimensions} ${name}' instead of '${baseType} ${name}${dimensions}'`,
+        `Use '${baseType}${allDims} ${name}' instead of '${baseType}${existingDims} ${name}${trailingDims}'`,
     );
   }
 
@@ -456,7 +434,22 @@ class VariableDeclHelper {
       callbacks,
     );
 
-    const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
+    // Check for empty dimensions in both trailing brackets and arrayType
+    const hasEmptyArrayDim =
+      arrayDims.some((dim) => !dim.expression()) ||
+      (typeCtx
+        .arrayType()
+        ?.arrayTypeDimension()
+        .some((dim) => !dim.expression()) ??
+        false);
+
+    // Check if the empty dimension is specifically in arrayType (vs trailing arrayDims)
+    const hasEmptyArrayTypeDim =
+      typeCtx
+        .arrayType()
+        ?.arrayTypeDimension()
+        .some((dim) => !dim.expression()) ?? false;
+
     const declaredSize =
       VariableDeclHelper.parseArrayTypeDimension(typeCtx) ??
       VariableDeclHelper.parseFirstArrayDimension(arrayDims);
@@ -481,8 +474,11 @@ class VariableDeclHelper {
       if (arrayInitResult) {
         // Track as local array for type resolution
         CodeGenState.localArrays.add(name);
-        // Include arrayType dimension before arrayDimension dimensions
-        const fullDimSuffix = arrayTypeDimStr + arrayInitResult.dimensionSuffix;
+        // When size inference happens and the empty dim is in arrayType,
+        // dimensionSuffix already contains the inferred size - don't duplicate
+        const fullDimSuffix = hasEmptyArrayTypeDim
+          ? arrayInitResult.dimensionSuffix
+          : arrayTypeDimStr + arrayInitResult.dimensionSuffix;
         return {
           handled: true,
           code: `${decl}${fullDimSuffix} = ${arrayInitResult.initValue};`,

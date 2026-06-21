@@ -24,7 +24,7 @@ u32 main() {
     if (data[3] != 10000) return 9;
 
     // i16 array with inferred size
-    i16 inferred[] <- [100, 200, 300];
+    i16[] inferred <- [100, 200, 300];
     if (inferred[0] != 100) return 10;
     if (inferred[1] != 200) return 11;
     if (inferred[2] != 300) return 12;

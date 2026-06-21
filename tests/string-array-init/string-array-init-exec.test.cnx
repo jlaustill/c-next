@@ -3,13 +3,13 @@
 // Tests: array access, .length, .capacity after inline initialization
 
 // C-style allowed for string arrays (grammar limitation)
-const string<10> LABELS[3] <- [
+const string<10>[3] LABELS <- [
     "One",
     "Two",
     "Three"
 ];
 
-string<8> colors[4] <- [
+string<8>[4] colors <- [
     "Red",
     "Green",
     "Blue",
