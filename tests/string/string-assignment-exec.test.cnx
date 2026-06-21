@@ -18,7 +18,7 @@ i32 main() {
 
    
 // Test 7-9: Assignment of empty string
-    string<32> emptySource;
+    string<32> emptySource <- "";
     string<64> emptyDest <- emptySource;
     if (emptyDest.char_count != 0) return 6;
     if (emptyDest != "") return 7;

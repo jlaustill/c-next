@@ -310,9 +310,11 @@ describe("StringDeclHelper", () => {
     });
 
     it("allows assignment when source capacity fits", () => {
+      // Issue #1030: String variable initialization now uses strcpy
       const callbacks = {
         ...defaultCallbacks,
         getStringExprCapacity: vi.fn(() => 20),
+        generateExpression: vi.fn(() => "smallString"),
       };
 
       const typeCtx = {
@@ -336,7 +338,43 @@ describe("StringDeclHelper", () => {
       );
 
       expect(result.handled).toBe(true);
-      expect(result.code).toContain("char dest[33] = smallString;");
+      // Issue #1030: Now generates strcpy instead of invalid array initialization
+      expect(result.code).toContain('char dest[33] = "";');
+      expect(result.code).toContain("strncpy(dest, smallString, 32)");
+      expect(result.code).toContain("dest[32] = '\\0'");
+    });
+
+    it("throws error for string variable initialization at global scope", () => {
+      // Issue #1030: String variable initialization requires function body
+      CodeGenState.inFunctionBody = false;
+      const callbacks = {
+        ...defaultCallbacks,
+        getStringExprCapacity: vi.fn(() => 20),
+      };
+
+      const typeCtx = {
+        stringType: () => ({
+          INTEGER_LITERAL: () => ({ getText: () => "32" }),
+        }),
+      } as never;
+
+      const expression = {
+        getText: () => "sourceVar",
+      } as never;
+
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          typeCtx,
+          "dest",
+          expression,
+          [],
+          { extern: "", const: "", atomic: "", volatile: "" },
+          false,
+          callbacks,
+        ),
+      ).toThrow(
+        "String initialization from variable cannot be used at global scope",
+      );
     });
   });
 
