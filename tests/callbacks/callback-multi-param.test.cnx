@@ -41,6 +41,7 @@ u32 main() {
    
 // Test 1: Two-param addition
     TwoParamHandler tph;
+    tph.handler <- addTwo;
     u32 result <- tph.handler(10, 20);
     if (result != 30) return 1;
 
@@ -58,6 +59,7 @@ u32 main() {
    
 // Test 4: Three-param callback
     ThreeParamHandler thph;
+    thph.handler <- addThree;
     result <- thph.handler(10, 20, 30);
     if (result != 60) return 4;
 
@@ -69,6 +71,7 @@ u32 main() {
    
 // Test 6: Mixed types - flag true
     MixedHandler mh;
+    mh.handler <- mixedParams;
     result <- mh.handler(50, true);
     if (result != 100) return 6;
 

@@ -376,6 +376,7 @@ describe("CodeGenState", () => {
             isArray: false,
             isConst: false,
             isPointer: false,
+            isStruct: false,
             arrayDims: "",
           },
         ],

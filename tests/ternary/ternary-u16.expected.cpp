@@ -53,7 +53,7 @@ int main(void) {
     if (zero_result != 0) {
         return 7;
     }
-    uint16_t equal_test = (a == 100U) ? 1000U : 2000U;
+    uint16_t equal_test = (a == 100) ? 1000U : 2000U;
     if (equal_test != 1000) {
         return 8;
     }

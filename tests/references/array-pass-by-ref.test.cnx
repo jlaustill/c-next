@@ -27,7 +27,7 @@ void zeroArray(u32[8] arr, u32 count) {
 }
 
 // Function that copies arrays
-void copyArray(u32[4] src, u32 dst[4], u32 count) {
+void copyArray(u32[4] src, u32[4] dst, u32 count) {
     u32 i <- 0;
     while (i < count) {
         dst[i] <- src[i];

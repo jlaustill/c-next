@@ -54,7 +54,7 @@ int main(void) {
     if (zero_result != 0) {
         return 7;
     }
-    uint64_t equal_test = (a == 1000ULL) ? 100000ULL : 200000ULL;
+    uint64_t equal_test = (a == 1000) ? 100000ULL : 200000ULL;
     if (equal_test != 100000) {
         return 8;
     }

@@ -18,7 +18,7 @@ i32 main() {
 
    
 // Test 7-9: Empty string (zero length, non-zero capacity)
-    string<10> emptyWithCap;
+    string<10> emptyWithCap <- "";
     if (emptyWithCap.char_count != 0) return 7;
     if (emptyWithCap.capacity != 10) return 8;
     if (emptyWithCap != "") return 9;

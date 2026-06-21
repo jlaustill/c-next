@@ -31,8 +31,8 @@ i32 main() {
 
    
 // Test 11-12: Empty string comparisons
-    string<32> empty1;
-    string<32> empty2;
+    string<32> empty1 <- "";
+    string<32> empty2 <- "";
     if (empty1 != empty2) return 11; // Both empty, should be equal
     if (empty1 = a) return 12; // Empty != "Hello"
 

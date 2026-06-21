@@ -5,11 +5,11 @@
 
 // Const volatile - can be read but not modified by this code
 // Used for hardware status registers that change externally
-const volatile u32 hardware_status <- 0x0000FFFF;
+volatile const u32 hardware_status <- 0x0000FFFF;
 
 u32 main() {
    
-// Test 1: Read const volatile
+// Test 1: Read volatile const
     u32 status <- hardware_status;
     if (status != 0x0000FFFF) return 1;
 
@@ -30,8 +30,8 @@ u32 main() {
     if (masked != 0x00FF) return 5;
 
    
-// Test 4: Local const volatile
-    const volatile u32 local_status <- 42;
+// Test 4: Local volatile const
+    volatile const u32 local_status <- 42;
     if (local_status != 42) return 6;
 
     return 0;  // All tests passed

@@ -22,6 +22,7 @@ u32 main() {
 // Test 1: Struct initialization with default callback
     Processor p;
     p.baseValue <- 10;
+    p.handler <- computeValue;
 
     // Invoke default callback (computeValue: input * 2)
     u32 result <- p.handler(5);

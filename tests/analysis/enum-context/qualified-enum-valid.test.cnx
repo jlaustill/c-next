@@ -43,14 +43,20 @@ u32 main() {
     if (p != Priority.HIGH) return 2;
 
     // Test comparison with enum parameter (qualified)
-    if (priorityToValue(Priority.LOW) != 1) return 3;
-    if (priorityToValue(Priority.MEDIUM) != 2) return 4;
-    if (priorityToValue(Priority.HIGH) != 3) return 5;
+    u32 lowVal <- priorityToValue(Priority.LOW);
+    if (lowVal != 1) return 3;
+    u32 medVal <- priorityToValue(Priority.MEDIUM);
+    if (medVal != 2) return 4;
+    u32 highVal <- priorityToValue(Priority.HIGH);
+    if (highVal != 3) return 5;
 
     // Test switch on enum
-    if (switchPriority(Priority.LOW) != 10) return 6;
-    if (switchPriority(Priority.MEDIUM) != 20) return 7;
-    if (switchPriority(Priority.HIGH) != 30) return 8;
+    u32 switchLow <- switchPriority(Priority.LOW);
+    if (switchLow != 10) return 6;
+    u32 switchMed <- switchPriority(Priority.MEDIUM);
+    if (switchMed != 20) return 7;
+    u32 switchHigh <- switchPriority(Priority.HIGH);
+    if (switchHigh != 30) return 8;
 
     return 0;
 }

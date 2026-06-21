@@ -18,6 +18,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import BinaryExprUtils from "./BinaryExprUtils";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Generator context passed to child generators.
@@ -116,6 +117,7 @@ const generateAndExpr = (
  * ADR-001: = becomes == in C
  * ADR-017: Enum type safety validation
  * ADR-045: String comparison via strcmp()
+ * Issue #1032: Clear expectedType for comparison operands
  */
 const generateEqualityExpr = (
   node: Parser.EqualityExpressionContext,
@@ -151,18 +153,26 @@ const generateEqualityExpr = (
       // Generate strcmp for string comparison - needs string.h
       effects.push({ type: "include", header: "string" });
 
-      const leftResult = generateRelationalExpr(
-        exprs[0],
-        input,
-        state,
-        orchestrator,
-      );
-      const rightResult = generateRelationalExpr(
-        exprs[1],
-        input,
-        state,
-        orchestrator,
-      );
+      // Issue #1032: Clear expectedType for equality comparisons
+      const stateForComparison: IGeneratorState = {
+        ...state,
+        expectedType: null,
+      };
+
+      const [leftResult, rightResult] = CodeGenState.withoutExpectedType(() => [
+        generateRelationalExpr(
+          exprs[0],
+          input,
+          stateForComparison,
+          orchestrator,
+        ),
+        generateRelationalExpr(
+          exprs[1],
+          input,
+          stateForComparison,
+          orchestrator,
+        ),
+      ]);
       effects.push(...leftResult.effects, ...rightResult.effects);
 
       const fullText = node.getText();
@@ -183,18 +193,28 @@ const generateEqualityExpr = (
   // Issue #152: Extract operators in order from parse tree children
   // ADR-001: C-Next uses = for equality, transpile to ==
   const operators = orchestrator.getOperatorsFromChildren(node);
-  return accumulateBinaryExprs(
-    exprs,
-    operators,
-    "=",
-    generateRelationalExpr,
-    { input, state, orchestrator },
-    BinaryExprUtils.mapEqualityOperator,
+
+  // Issue #1032: Clear expectedType for equality comparisons.
+  // The U suffix for MISRA 7.2 compliance applies to assignments, not comparisons.
+  const stateForComparison: IGeneratorState = { ...state, expectedType: null };
+
+  return CodeGenState.withoutExpectedType(() =>
+    accumulateBinaryExprs(
+      exprs,
+      operators,
+      "=",
+      generateRelationalExpr,
+      { input, state: stateForComparison, orchestrator },
+      BinaryExprUtils.mapEqualityOperator,
+    ),
   );
 };
 
 /**
  * Generate C code for a relational expression.
+ * Issue #1032: Clear expectedType for comparison operands - MISRA 7.2 suffix
+ * should not apply to comparisons, only to assignments. This prevents
+ * `i32 < 0` from becoming `signedIdx < 0U` which changes comparison semantics.
  */
 const generateRelationalExpr = (
   node: Parser.RelationalExpressionContext,
@@ -210,11 +230,20 @@ const generateRelationalExpr = (
 
   // Issue #152: Extract operators in order from parse tree children
   const operators = orchestrator.getOperatorsFromChildren(node);
-  return accumulateBinaryExprs(exprs, operators, "<", generateBitwiseOrExpr, {
-    input,
-    state,
-    orchestrator,
-  });
+
+  // Issue #1032: Clear expectedType for relational comparisons.
+  // The U suffix for MISRA 7.2 compliance applies to assignments, not comparisons.
+  // Comparing `i32 < 0` should NOT generate `signedIdx < 0U` because that
+  // changes semantics due to C's integer promotion rules.
+  // Use CodeGenState.withoutExpectedType to clear the global state that
+  // generators read via getState().
+  return CodeGenState.withoutExpectedType(() =>
+    accumulateBinaryExprs(exprs, operators, "<", generateBitwiseOrExpr, {
+      input,
+      state: { ...state, expectedType: null },
+      orchestrator,
+    }),
+  );
 };
 
 /**

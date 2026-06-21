@@ -338,10 +338,9 @@ describe("StringDeclHelper", () => {
       );
 
       expect(result.handled).toBe(true);
-      // Issue #1030: Now generates strcpy instead of invalid array initialization
+      // Issue #1030: String variable initialization uses strcpy
       expect(result.code).toContain('char dest[33] = "";');
-      expect(result.code).toContain("strncpy(dest, smallString, 32)");
-      expect(result.code).toContain("dest[32] = '\\0'");
+      expect(result.code).toContain("strcpy(dest, smallString)");
     });
 
     it("throws error for string variable initialization at global scope", () => {

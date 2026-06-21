@@ -15,9 +15,9 @@ int main(void) {
     uint32_t max = (a > b) ? a : b;
     if (max != 20) return 1;
     uint32_t x = 5U;
-    uint32_t result = (x == 5U) ? 100U : 200U;
+    uint32_t result = (x == 5) ? 100U : 200U;
     if (result != 100) return 2;
-    result = (x == 10U) ? 100U : 200U;
+    result = (x == 10) ? 100U : 200U;
     if (result != 200) return 3;
     int32_t negative = -42;
     int32_t positive = 42;

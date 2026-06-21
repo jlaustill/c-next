@@ -726,6 +726,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    * ADR-045: Used to detect string comparisons and generate strcmp().
    * Issue #137: Extended to handle array element access (e.g., names[0])
+   * Issue #1030: Extended to handle struct member access (e.g., person.name)
    */
   isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
     const text = ctx.getText();
@@ -741,6 +742,11 @@ export default class CodeGenerator implements IOrchestrator {
       if (typeInfo?.isString) {
         return true;
       }
+    }
+
+    // Issue #1030: Check for struct member access (e.g., person.name)
+    if (this._isStructMemberStringExpression(text)) {
+      return true;
     }
 
     // Issue #137: Check for array element access (e.g., names[0], arr[i])
@@ -798,6 +804,59 @@ export default class CodeGenerator implements IOrchestrator {
       typeInfo.baseType &&
       TypeCheckUtils.isString(typeInfo.baseType),
     );
+  }
+
+  /**
+   * Check if struct member access expression evaluates to a string.
+   * Issue #1030: Handles patterns like person.name, config.key
+   */
+  private _isStructMemberStringExpression(text: string): boolean {
+    // Pattern: identifier.identifier (simple member access)
+    // Must not end with a property that returns a number
+    if (
+      text.endsWith(".char_count") ||
+      text.endsWith(".capacity") ||
+      text.endsWith(".size") ||
+      text.endsWith(".length") ||
+      text.endsWith(".bit_length") ||
+      text.endsWith(".byte_length") ||
+      text.endsWith(".element_count")
+    ) {
+      return false;
+    }
+
+    // Match simple struct.member pattern
+    const memberMatch = /^([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)$/.exec(text);
+    if (!memberMatch) {
+      return false;
+    }
+
+    const [, varName, fieldName] = memberMatch;
+
+    // Get the struct variable's type
+    const typeInfo = CodeGenState.getVariableTypeInfo(varName);
+    if (!typeInfo) {
+      return false;
+    }
+
+    // Get the struct type name - it might be directly the baseType
+    // or we might need to look it up by the variable's type
+    const structTypeName = typeInfo.baseType;
+    if (!structTypeName) {
+      return false;
+    }
+
+    // Look up the field type from the struct
+    const fieldType = CodeGenState.getStructFieldType(
+      structTypeName,
+      fieldName,
+    );
+    if (!fieldType) {
+      return false;
+    }
+
+    // Check if the field is a string type (e.g., "string<64>")
+    return fieldType.startsWith("string");
   }
 
   /**
@@ -1495,9 +1554,9 @@ export default class CodeGenerator implements IOrchestrator {
               if (p.isArray) {
                 // Array parameters: type name[]
                 return `${constMod}${p.type} ${p.name}${p.arrayDims}`;
-              } else if (p.isPointer) {
-                // ADR-006: Non-array, non-callback parameters become pointers
-                // In C++ mode, use reference (&) instead of pointer (*)
+              } else if (p.isStruct) {
+                // ADR-006: Struct parameters become pointers (C) or references (C++)
+                // Only struct types get pointer/reference semantics, not primitives
                 const ptrOrRef = this.isCppMode() ? "&" : "*";
                 return `${constMod}${p.type}${ptrOrRef}`;
               } else {
@@ -2695,6 +2754,7 @@ export default class CodeGenerator implements IOrchestrator {
       type: string;
       isConst: boolean;
       isPointer: boolean;
+      isStruct: boolean;
       isArray: boolean;
       arrayDims: string;
     }> = [];
@@ -2710,6 +2770,8 @@ export default class CodeGenerator implements IOrchestrator {
 
         // ADR-029: Check if parameter type is itself a callback type
         const isCallbackParam = CodeGenState.callbackTypes.has(typeName);
+        // ADR-006: Check if parameter type is a struct (for pointer/reference semantics)
+        const isStruct = this.isStructType(typeName);
 
         let paramType: string;
         let isPointer: boolean;
@@ -2721,8 +2783,8 @@ export default class CodeGenerator implements IOrchestrator {
           isPointer = false; // Function pointers are already pointers
         } else {
           paramType = this.generateType(param.type());
-          // ADR-006: Non-array parameters become pointers
-          isPointer = !isArray;
+          // ADR-006: Non-array struct parameters become pointers in C mode
+          isPointer = !isArray && isStruct;
         }
 
         let arrayDims: string;
@@ -2745,6 +2807,7 @@ export default class CodeGenerator implements IOrchestrator {
           type: paramType,
           isConst,
           isPointer,
+          isStruct,
           isArray,
           arrayDims,
         });

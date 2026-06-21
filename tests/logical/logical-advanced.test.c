@@ -42,9 +42,9 @@ int main(void) {
     uint32_t val2 = (t == false) ? 100U : 200U;
     if (val2 != 200) return 12;
     uint32_t x = 5U;
-    uint32_t val3 = (x != 10U) ? 100U : 200U;
+    uint32_t val3 = (x != 10) ? 100U : 200U;
     if (val3 != 100) return 13;
-    uint32_t val4 = (x != 5U) ? 100U : 200U;
+    uint32_t val4 = (x != 5) ? 100U : 200U;
     if (val4 != 200) return 14;
     bool double_neg1 = !!t;
     if (double_neg1 != true) return 15;

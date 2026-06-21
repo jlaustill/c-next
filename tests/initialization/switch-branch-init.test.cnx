@@ -13,23 +13,23 @@ u32 calculatePower(Mode mode) {
     u32 power <- 0;
 
     switch (mode) {
-        case Mode.OFF: {
+        case Mode.OFF {
             u32 offValue <- 0;  // Init in case block
             power <- offValue;
         }
-        case Mode.LOW: {
+        case Mode.LOW {
             u32 lowValue <- 10;  // Different init in different case
             power <- lowValue;
         }
-        case Mode.MEDIUM: {
+        case Mode.MEDIUM {
             u32 medValue <- 50;
             power <- medValue;
         }
-        case Mode.HIGH: {
+        case Mode.HIGH {
             u32 highValue <- 100;
             power <- highValue;
         }
-        default: {
+        default {
             u32 defaultValue <- 25;
             power <- defaultValue;
         }
@@ -39,10 +39,14 @@ u32 calculatePower(Mode mode) {
 }
 
 u32 main() {
-    if (calculatePower(Mode.OFF) != 0) return 1;
-    if (calculatePower(Mode.LOW) != 10) return 2;
-    if (calculatePower(Mode.MEDIUM) != 50) return 3;
-    if (calculatePower(Mode.HIGH) != 100) return 4;
+    u32 offPower <- calculatePower(Mode.OFF);
+    if (offPower != 0) return 1;
+    u32 lowPower <- calculatePower(Mode.LOW);
+    if (lowPower != 10) return 2;
+    u32 medPower <- calculatePower(Mode.MEDIUM);
+    if (medPower != 50) return 3;
+    u32 highPower <- calculatePower(Mode.HIGH);
+    if (highPower != 100) return 4;
 
     return 0;
 }

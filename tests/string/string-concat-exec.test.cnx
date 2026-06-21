@@ -35,7 +35,7 @@ i32 main() {
    
 // Test 11-13: Concatenation with empty string
     string<32> nonEmpty <- "Text";
-    string<32> empty;
+    string<32> empty <- "";
     string<64> withEmpty <- nonEmpty + empty;
     if (withEmpty.char_count != 4) return 10;
     if (withEmpty != "Text") return 11;

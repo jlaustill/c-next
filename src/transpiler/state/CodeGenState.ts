@@ -507,6 +507,25 @@ export default class CodeGenState {
     }
   }
 
+  /**
+   * Execute fn with expectedType=null, restoring prior value on exit.
+   * Issue #1032: Used in comparison contexts (relational/equality expressions)
+   * where MISRA 7.2 U suffix should NOT be applied - comparing `i32 < 0`
+   * should not generate `signedIdx < 0U` which changes comparison semantics.
+   */
+  static withoutExpectedType<T>(fn: () => T): T {
+    const savedType = this.expectedType;
+    const savedSuppress = this.suppressBareEnumResolution;
+    this.expectedType = null;
+    this.suppressBareEnumResolution = false;
+    try {
+      return fn();
+    } finally {
+      this.expectedType = savedType;
+      this.suppressBareEnumResolution = savedSuppress;
+    }
+  }
+
   // ===========================================================================
   // CONVENIENCE LOOKUP METHODS
   // ===========================================================================

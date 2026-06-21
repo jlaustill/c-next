@@ -12,6 +12,52 @@ import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 const { mapType } = typeUtils;
 
 /**
+ * Resolve the C type for a struct field, checking for callback types first.
+ */
+function resolveFieldCType(fieldType: string, input: IHeaderTypeInput): string {
+  // ADR-029: Check if field type is a callback type and use typedef name
+  const callbackInfo = input.callbackTypes?.get(fieldType);
+  if (callbackInfo) {
+    return callbackInfo.typedefName;
+  }
+  // Issue #502/#522: Convert C++ namespace types from _ to :: format
+  const convertedType = CppNamespaceUtils.convertToCppNamespace(
+    fieldType,
+    input.symbolTable,
+  );
+  return mapType(convertedType);
+}
+
+/**
+ * Generate the field line for a struct member, handling embedded dimensions.
+ *
+ * Issue #461: Handle string<N> types which map to char[N+1]
+ * The embedded dimension must come after array dimensions in C syntax.
+ * Example: string<64> arr[4] -> char arr[4][65], not char[65] arr[4]
+ */
+function generateFieldLine(
+  fieldName: string,
+  cType: string,
+  dims: readonly number[] | undefined,
+): string {
+  const dimSuffix =
+    dims && dims.length > 0 ? dims.map((d) => `[${d}]`).join("") : "";
+  const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
+
+  if (!embeddedMatch) {
+    return `    ${cType} ${fieldName}${dimSuffix};`;
+  }
+
+  const baseType = embeddedMatch[1];
+  const embeddedDim = embeddedMatch[2];
+  // When dims are provided, they already include string capacity from StructCollector
+  if (dims && dims.length > 0) {
+    return `    ${baseType} ${fieldName}${dimSuffix};`;
+  }
+  return `    ${baseType} ${fieldName}[${embeddedDim}];`;
+}
+
+/**
  * Generate a C typedef struct declaration for the given struct name.
  *
  * Output format (Issue #296: uses named struct for forward declaration compatibility):
@@ -41,35 +87,9 @@ function generateStructHeader(name: string, input: IHeaderTypeInput): string {
 
   // Iterate fields in insertion order (Map preserves order)
   for (const [fieldName, fieldType] of fields) {
-    // Issue #502/#522: Convert C++ namespace types from _ to :: format using shared utility
-    const convertedType = CppNamespaceUtils.convertToCppNamespace(
-      fieldType,
-      input.symbolTable,
-    );
-    const cType = mapType(convertedType);
+    const cType = resolveFieldCType(fieldType, input);
     const dims = dimensions?.get(fieldName);
-    const dimSuffix =
-      dims && dims.length > 0 ? dims.map((d) => `[${d}]`).join("") : "";
-
-    // Issue #461: Handle string<N> types which map to char[N+1]
-    // The embedded dimension must come after array dimensions in C syntax
-    // Example: string<64> arr[4] -> char arr[4][65], not char[65] arr[4]
-    //
-    // Fix: When dims already include the string capacity (from StructCollector),
-    // use dimSuffix directly. Only extract embedded dim when no dims provided.
-    const embeddedMatch = /^(\w+)\[(\d+)\]$/.exec(cType);
-    if (embeddedMatch) {
-      const baseType = embeddedMatch[1];
-      const embeddedDim = embeddedMatch[2];
-      // dims already includes string capacity, so just use dimSuffix
-      if (dims && dims.length > 0) {
-        lines.push(`    ${baseType} ${fieldName}${dimSuffix};`);
-      } else {
-        lines.push(`    ${baseType} ${fieldName}[${embeddedDim}];`);
-      }
-    } else {
-      lines.push(`    ${cType} ${fieldName}${dimSuffix};`);
-    }
+    lines.push(generateFieldLine(fieldName, cType, dims));
   }
 
   lines.push(`} ${name};`);

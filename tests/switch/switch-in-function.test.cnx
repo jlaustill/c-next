@@ -115,19 +115,15 @@ u32 sumWithSwitchInLoop(u32 count, u32 mode) {
     return sum;
 }
 
-// Recursive function with switch
+// Iterative factorial using switch (recursive calls forbidden by MISRA 17.2)
 u32 factorial(u32 n) {
-    switch (n) {
-        case 0 {
-            return 1;
-        }
-        case 1 {
-            return 1;
-        }
-    default {
-            return n * factorial(n - 1);
-        }
+    u32 result <- 1;
+    u32 current <- n;
+    while (current > 1) {
+        result *<- current;
+        current -<- 1;
     }
+    return result;
 }
 
 // Function that returns different types based on switch (positive case labels only)
@@ -150,23 +146,31 @@ i16 categorize(i16 value) {
 
 u32 main() {
     // === DIRECT RETURN TESTS (4 validations: codes 1-4) ===
-    if (getValue(0) != 100) return 1;
-    if (getValue(1) != 200) return 2;
-    if (getValue(2) != 300) return 3;
-    if (getValue(99) != 999) return 4;
+    u32 v0 <- getValue(0);
+    if (v0 != 100) return 1;
+    u32 v1 <- getValue(1);
+    if (v1 != 200) return 2;
+    u32 v2 <- getValue(2);
+    if (v2 != 300) return 3;
+    u32 v99 <- getValue(99);
+    if (v99 != 999) return 4;
 
     // === COMPUTE TESTS (4 validations: codes 5-8) ===
     // base=100, operation=0: 100 + 10 = 110
-    if (computeWithSwitch(100, 0) != 110) return 5;
+    u32 c0 <- computeWithSwitch(100, 0);
+    if (c0 != 110) return 5;
 
     // base=100, operation=1: 100 * 2 = 200
-    if (computeWithSwitch(100, 1) != 200) return 6;
+    u32 c1 <- computeWithSwitch(100, 1);
+    if (c1 != 200) return 6;
 
     // base=100, operation=2: 100 - 5 = 95
-    if (computeWithSwitch(100, 2) != 95) return 7;
+    u32 c2 <- computeWithSwitch(100, 2);
+    if (c2 != 95) return 7;
 
     // base=100, operation=99: result = 0
-    if (computeWithSwitch(100, 99) != 0) return 8;
+    u32 cDef <- computeWithSwitch(100, 99);
+    if (cDef != 0) return 8;
 
     // === SIGNED RETURN TESTS (4 validations: codes 9-12) ===
     // Note: Using positive case labels; negative selectors fall to default
@@ -175,10 +179,14 @@ u32 main() {
     i8 sel_fifty <- 50;
     i8 sel_neg <- -1;
 
-    if (getSignedValue(sel_zero) != 0) return 9;
-    if (getSignedValue(sel_one) != 127) return 10;
-    if (getSignedValue(sel_fifty) != -128) return 11;
-    if (getSignedValue(sel_neg) != -1) return 12;
+    i8 s0 <- getSignedValue(sel_zero);
+    if (s0 != 0) return 9;
+    i8 s1 <- getSignedValue(sel_one);
+    if (s1 != 127) return 10;
+    i8 s50 <- getSignedValue(sel_fifty);
+    if (s50 != -128) return 11;
+    i8 sNeg <- getSignedValue(sel_neg);
+    if (sNeg != -1) return 12;
 
     // === BOOL RETURN TESTS (4 validations: codes 13-16) ===
     u16 bval0 <- 0;
@@ -186,10 +194,14 @@ u32 main() {
     u16 bvalMax <- 65535;
     u16 bvalOther <- 5000;
 
-    if (!isSpecialValue(bval0)) return 13;
-    if (!isSpecialValue(bval100)) return 14;
-    if (!isSpecialValue(bvalMax)) return 15;
-    if (isSpecialValue(bvalOther)) return 16;
+    bool sp0 <- isSpecialValue(bval0);
+    if (!sp0) return 13;
+    bool sp100 <- isSpecialValue(bval100);
+    if (!sp100) return 14;
+    bool spMax <- isSpecialValue(bvalMax);
+    if (!spMax) return 15;
+    bool spOther <- isSpecialValue(bvalOther);
+    if (spOther) return 16;
 
     // === LARGE VALUE TESTS (4 validations: codes 17-20) ===
     u8 idx0 <- 0;
@@ -197,26 +209,37 @@ u32 main() {
     u8 idx2 <- 2;
     u8 idxOther <- 99;
 
-    if (getLargeValue(idx0) != 1000000000000) return 17;
-    if (getLargeValue(idx1) != 2000000000000) return 18;
-    if (getLargeValue(idx2) != 9000000000000000000) return 19;
-    if (getLargeValue(idxOther) != 0) return 20;
+    u64 lv0 <- getLargeValue(idx0);
+    if (lv0 != 1000000000000) return 17;
+    u64 lv1 <- getLargeValue(idx1);
+    if (lv1 != 2000000000000) return 18;
+    u64 lv2 <- getLargeValue(idx2);
+    if (lv2 != 9000000000000000000) return 19;
+    u64 lvOther <- getLargeValue(idxOther);
+    if (lvOther != 0) return 20;
 
     // === LOOP TESTS (3 validations: codes 21-23) ===
     // count=5, mode=0: 5 * 1 = 5
-    if (sumWithSwitchInLoop(5, 0) != 5) return 21;
+    u32 loop0 <- sumWithSwitchInLoop(5, 0);
+    if (loop0 != 5) return 21;
 
     // count=5, mode=1: 5 * 2 = 10
-    if (sumWithSwitchInLoop(5, 1) != 10) return 22;
+    u32 loop1 <- sumWithSwitchInLoop(5, 1);
+    if (loop1 != 10) return 22;
 
     // count=3, mode=99 (default): 3 * 10 = 30
-    if (sumWithSwitchInLoop(3, 99) != 30) return 23;
+    u32 loopDef <- sumWithSwitchInLoop(3, 99);
+    if (loopDef != 30) return 23;
 
-    // === RECURSIVE TESTS (4 validations: codes 24-27) ===
-    if (factorial(0) != 1) return 24;
-    if (factorial(1) != 1) return 25;
-    if (factorial(5) != 120) return 26;
-    if (factorial(6) != 720) return 27;
+    // === ITERATIVE FACTORIAL TESTS (4 validations: codes 24-27) ===
+    u32 f0 <- factorial(0);
+    if (f0 != 1) return 24;
+    u32 f1 <- factorial(1);
+    if (f1 != 1) return 25;
+    u32 f5 <- factorial(5);
+    if (f5 != 120) return 26;
+    u32 f6 <- factorial(6);
+    if (f6 != 720) return 27;
 
     // === CATEGORIZE TESTS (4 validations: codes 28-31) ===
     // Note: Using positive case labels; negative values fall to default
@@ -225,10 +248,14 @@ u32 main() {
     i16 cat_200 <- 200;
     i16 cat_neg <- -100;
 
-    if (categorize(cat_zero) != 0) return 28;
-    if (categorize(cat_100) != 1) return 29;
-    if (categorize(cat_200) != 2) return 30;
-    if (categorize(cat_neg) != 99) return 31;
+    i16 catR0 <- categorize(cat_zero);
+    if (catR0 != 0) return 28;
+    i16 catR100 <- categorize(cat_100);
+    if (catR100 != 1) return 29;
+    i16 catR200 <- categorize(cat_200);
+    if (catR200 != 2) return 30;
+    i16 catRNeg <- categorize(cat_neg);
+    if (catRNeg != 99) return 31;
 
     return 0;
 }

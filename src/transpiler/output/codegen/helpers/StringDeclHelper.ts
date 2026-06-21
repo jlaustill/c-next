@@ -398,43 +398,22 @@ class StringDeclHelper {
       );
     }
 
+    // Validate and check if it's a literal or variable
     const exprText = expression.getText();
+    const isLiteral = StringDeclHelper._validateStringInit(
+      exprText,
+      capacity,
+      callbacks,
+    );
 
-    // Check for string variable initialization (not a literal)
-    // Issue #1030: string<N> dest <- source generates invalid C
-    const srcCapacity = callbacks.getStringExprCapacity(exprText);
-    const isStringLiteral = exprText.startsWith('"') && exprText.endsWith('"');
-    if (srcCapacity !== null && !isStringLiteral) {
-      return StringDeclHelper._generateStringVarInit(
-        name,
-        capacity,
-        srcCapacity,
-        expression,
-        constMod,
-        callbacks,
-      );
+    if (isLiteral) {
+      // String literal: can use direct initialization
+      const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${callbacks.generateExpression(expression)};`;
+      return { code, handled: true };
     }
 
-    // Validate and generate simple assignment (string literals only)
-    StringDeclHelper._validateStringInit(exprText, capacity, callbacks);
-    const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${callbacks.generateExpression(expression)};`;
-    return { code, handled: true };
-  }
-
-  /**
-   * Generate string variable initialization using strcpy.
-   * Issue #1030: C does not allow array initialization from another array.
-   */
-  private static _generateStringVarInit(
-    name: string,
-    capacity: number,
-    srcCapacity: number,
-    expression: Parser.ExpressionContext,
-    constMod: string,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
-    // String variable initialization requires runtime function calls (strncpy)
-    // which cannot exist at global scope in C
+    // String variable: need strcpy (cannot use array initialization in C)
+    // Issue #1030: string-to-string initialization
     if (!CodeGenState.inFunctionBody) {
       throw new Error(
         `Error: String initialization from variable cannot be used at global scope. ` +
@@ -442,32 +421,25 @@ class StringDeclHelper {
       );
     }
 
-    // Validate capacity: dest >= source
-    if (srcCapacity > capacity) {
-      throw new Error(
-        `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
-      );
-    }
-
-    // Generate safe string copy code
+    const srcExpr = callbacks.generateExpression(expression);
     const indent = FormatUtils.indent(CodeGenState.indentLevel);
-    const sourceExpr = callbacks.generateExpression(expression);
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `${indent}${StringUtils.copyWithNull(name, sourceExpr, capacity)}`,
+      `${indent}strcpy(${name}, ${srcExpr});`,
     );
     return { code: lines.join("\n"), handled: true };
   }
 
   /**
    * Validate string initialization (literal length and variable capacity)
+   * Returns true if the expression is a string literal, false if it's a variable.
    */
   private static _validateStringInit(
     exprText: string,
     capacity: number,
     callbacks: IStringDeclCallbacks,
-  ): void {
+  ): boolean {
     // Validate string literal fits capacity
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
       const content = StringUtils.literalLength(exprText);
@@ -476,6 +448,7 @@ class StringDeclHelper {
           `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
         );
       }
+      return true; // Is a literal
     }
 
     // Check for string variable assignment
@@ -485,6 +458,7 @@ class StringDeclHelper {
         `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
       );
     }
+    return false; // Is a variable (not a literal)
   }
 
   /**

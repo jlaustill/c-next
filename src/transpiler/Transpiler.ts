@@ -1410,8 +1410,15 @@ class Transpiler {
       CodeGenState.symbolTable,
     );
 
+    // ADR-029: Convert callback types to header format
+    const callbackTypesForHeader = this._buildCallbackTypesForHeader();
+
     const typeInputWithSymbolTable = typeInput
-      ? { ...typeInput, symbolTable: CodeGenState.symbolTable }
+      ? {
+          ...typeInput,
+          symbolTable: CodeGenState.symbolTable,
+          callbackTypes: callbackTypesForHeader,
+        }
       : undefined;
 
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
@@ -1435,6 +1442,52 @@ class Transpiler {
       allKnownEnums,
       basename(sourcePath),
     );
+  }
+
+  /**
+   * ADR-029: Build callback types for header generation.
+   * Only includes callbacks that are actually used as struct field types.
+   * Converts CodeGenState.callbackTypes to the format expected by IHeaderTypeInput.
+   */
+  private _buildCallbackTypesForHeader(): ReadonlyMap<
+    string,
+    {
+      typedefName: string;
+      returnType: string;
+      parameters: ReadonlyArray<{ type: string; isStruct: boolean }>;
+    }
+  > {
+    const result = new Map<
+      string,
+      {
+        typedefName: string;
+        returnType: string;
+        parameters: ReadonlyArray<{ type: string; isStruct: boolean }>;
+      }
+    >();
+
+    // Collect callback function names that are actually used as struct field types
+    const usedCallbackTypes = new Set<string>();
+    for (const [, funcName] of CodeGenState.callbackFieldTypes) {
+      usedCallbackTypes.add(funcName);
+    }
+
+    // Only include callbacks that are used as struct field types
+    for (const funcName of usedCallbackTypes) {
+      const cbInfo = CodeGenState.callbackTypes.get(funcName);
+      if (cbInfo) {
+        result.set(funcName, {
+          typedefName: cbInfo.typedefName,
+          returnType: cbInfo.returnType,
+          parameters: cbInfo.parameters.map((p) => ({
+            type: p.type,
+            isStruct: p.isStruct,
+          })),
+        });
+      }
+    }
+
+    return result;
   }
 
   /**

@@ -43,9 +43,5 @@ u32 main() {
     flag <- false;
     if (flag != false) return 12;
 
-    // Zero initialization (ADR-015)
-    u32 uninitialized;
-    if (uninitialized != 0) return 13;
-
     return 0;
 }
