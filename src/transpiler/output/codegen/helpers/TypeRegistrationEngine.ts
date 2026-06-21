@@ -413,86 +413,26 @@ class TypeRegistrationEngine {
       return;
     }
 
-    let baseType = "";
-    let bitWidth = 0;
-
-    if (arrayTypeCtx.primitiveType()) {
-      baseType = arrayTypeCtx.primitiveType()!.getText();
-      bitWidth = TYPE_WIDTH[baseType] || 0;
-    } else if (arrayTypeCtx.stringType()) {
-      // String array: string<64>[3] -> char colors[3][65]
-      const stringCtx = arrayTypeCtx.stringType()!;
-      const intLiteral = stringCtx.INTEGER_LITERAL();
-      const capacity = intLiteral
-        ? Number.parseInt(intLiteral.getText(), 10)
-        : 0;
-
-      const arrayDimensions = TypeRegistrationEngine._collectArrayDimensions(
+    // Try to register enum/bitmap user type arrays separately
+    if (arrayTypeCtx.userType()) {
+      const registered = TypeRegistrationEngine._tryRegisterUserTypeArray(
+        registryName,
         arrayTypeCtx,
         arrayDim,
-        callbacks,
-      );
-      // Add string capacity + 1 for null terminator
-      if (capacity > 0) {
-        arrayDimensions.push(capacity + 1);
-      }
-
-      CodeGenState.setVariableTypeInfo(registryName, {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions:
-          arrayDimensions.length > 0 ? arrayDimensions : undefined,
         isConst,
-        isString: true,
-        stringCapacity: capacity,
         overflowBehavior,
         isAtomic,
-      });
-      return;
-    } else if (arrayTypeCtx.qualifiedType()) {
-      // Scope-qualified array: Scope.Type[3]
-      const parts = arrayTypeCtx.qualifiedType()!.IDENTIFIER();
-      baseType = parts.map((p) => p.getText()).join("_");
-    } else if (arrayTypeCtx.scopedType()) {
-      // Scoped array: this.Type[3]
-      const typeName = arrayTypeCtx.scopedType()!.IDENTIFIER().getText();
-      baseType = CodeGenState.currentScope
-        ? `${CodeGenState.currentScope}_${typeName}`
-        : typeName;
-    } else if (arrayTypeCtx.userType()) {
-      baseType = arrayTypeCtx.userType()!.getText();
-
-      const combinedArrayDim = arrayDim ?? [];
-      if (
-        TypeRegistrationEngine._tryRegisterEnumOrBitmapType(
-          registryName,
-          baseType,
-          isConst,
-          combinedArrayDim,
-          overflowBehavior,
-          isAtomic,
-          callbacks,
-        )
-      ) {
-        const existingInfo = CodeGenState.getVariableTypeInfo(registryName);
-        if (existingInfo) {
-          const arrayTypeDim =
-            TypeRegistrationEngine.parseArrayTypeDimension(arrayTypeCtx);
-          const allDims = arrayTypeDim
-            ? [arrayTypeDim, ...(existingInfo.arrayDimensions ?? [])]
-            : existingInfo.arrayDimensions;
-          CodeGenState.setVariableTypeInfo(registryName, {
-            ...existingInfo,
-            isArray: true,
-            arrayDimensions: allDims,
-          });
-        }
+        callbacks,
+      );
+      if (registered) {
         return;
       }
     }
 
-    if (!baseType) {
+    // Extract base type and bit width from array type
+    const typeInfo =
+      TypeRegistrationEngine._extractArrayBaseTypeInfo(arrayTypeCtx);
+    if (!typeInfo.baseType) {
       return;
     }
 
@@ -503,14 +443,99 @@ class TypeRegistrationEngine {
     );
 
     CodeGenState.setVariableTypeInfo(registryName, {
-      baseType,
-      bitWidth,
+      baseType: typeInfo.baseType,
+      bitWidth: typeInfo.bitWidth,
       isArray: true,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
       isConst,
       overflowBehavior,
       isAtomic,
     });
+  }
+
+  /**
+   * Extract base type and bit width from an array type context.
+   * Handles primitive, qualified, scoped, and user types.
+   */
+  private static _extractArrayBaseTypeInfo(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+  ): { baseType: string; bitWidth: number } {
+    if (arrayTypeCtx.primitiveType()) {
+      const baseType = arrayTypeCtx.primitiveType()!.getText();
+      return { baseType, bitWidth: TYPE_WIDTH[baseType] || 0 };
+    }
+
+    if (arrayTypeCtx.qualifiedType()) {
+      const parts = arrayTypeCtx.qualifiedType()!.IDENTIFIER();
+      return { baseType: parts.map((p) => p.getText()).join("_"), bitWidth: 0 };
+    }
+
+    if (arrayTypeCtx.scopedType()) {
+      const typeName = arrayTypeCtx.scopedType()!.IDENTIFIER().getText();
+      const baseType = CodeGenState.currentScope
+        ? `${CodeGenState.currentScope}_${typeName}`
+        : typeName;
+      return { baseType, bitWidth: 0 };
+    }
+
+    if (arrayTypeCtx.globalType()) {
+      const typeName = arrayTypeCtx.globalType()!.IDENTIFIER().getText();
+      return { baseType: typeName, bitWidth: 0 };
+    }
+
+    if (arrayTypeCtx.userType()) {
+      return { baseType: arrayTypeCtx.userType()!.getText(), bitWidth: 0 };
+    }
+
+    return { baseType: "", bitWidth: 0 };
+  }
+
+  /**
+   * Try to register a user type array as enum or bitmap.
+   * Returns true if registration was handled, false if it should fall through.
+   */
+  private static _tryRegisterUserTypeArray(
+    registryName: string,
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+    isConst: boolean,
+    overflowBehavior: TOverflowBehavior,
+    isAtomic: boolean,
+    callbacks: ITypeRegistrationCallbacks,
+  ): boolean {
+    const baseType = arrayTypeCtx.userType()!.getText();
+    const combinedArrayDim = arrayDim ?? [];
+
+    const registered = TypeRegistrationEngine._tryRegisterEnumOrBitmapType(
+      registryName,
+      baseType,
+      isConst,
+      combinedArrayDim,
+      overflowBehavior,
+      isAtomic,
+      callbacks,
+    );
+
+    if (!registered) {
+      return false;
+    }
+
+    // Add arrayType dimensions to existing info
+    const existingInfo = CodeGenState.getVariableTypeInfo(registryName);
+    if (existingInfo) {
+      const arrayTypeDim =
+        TypeRegistrationEngine.parseArrayTypeDimension(arrayTypeCtx);
+      const allDims = arrayTypeDim
+        ? [arrayTypeDim, ...(existingInfo.arrayDimensions ?? [])]
+        : existingInfo.arrayDimensions;
+      CodeGenState.setVariableTypeInfo(registryName, {
+        ...existingInfo,
+        isArray: true,
+        arrayDimensions: allDims,
+      });
+    }
+
+    return true;
   }
 
   private static _collectArrayDimensions(
