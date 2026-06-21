@@ -153,25 +153,13 @@ const generateEqualityExpr = (
       // Generate strcmp for string comparison - needs string.h
       effects.push({ type: "include", header: "string" });
 
-      // Issue #1032: Clear expectedType for equality comparisons
-      const stateForComparison: IGeneratorState = {
-        ...state,
-        expectedType: null,
-      };
-
+      // Issue #1032: Clear expectedType for equality comparisons.
+      // Use CodeGenState.withoutExpectedType() to clear the global state that
+      // generators read via getState(). The passed state is not used for
+      // expectedType lookup - generators read from CodeGenState directly.
       const [leftResult, rightResult] = CodeGenState.withoutExpectedType(() => [
-        generateRelationalExpr(
-          exprs[0],
-          input,
-          stateForComparison,
-          orchestrator,
-        ),
-        generateRelationalExpr(
-          exprs[1],
-          input,
-          stateForComparison,
-          orchestrator,
-        ),
+        generateRelationalExpr(exprs[0], input, state, orchestrator),
+        generateRelationalExpr(exprs[1], input, state, orchestrator),
       ]);
       effects.push(...leftResult.effects, ...rightResult.effects);
 
@@ -196,15 +184,16 @@ const generateEqualityExpr = (
 
   // Issue #1032: Clear expectedType for equality comparisons.
   // The U suffix for MISRA 7.2 compliance applies to assignments, not comparisons.
-  const stateForComparison: IGeneratorState = { ...state, expectedType: null };
-
+  // Use CodeGenState.withoutExpectedType() to clear the global state that
+  // generators read via getState(). The passed state is not used for
+  // expectedType lookup - generators read from CodeGenState directly.
   return CodeGenState.withoutExpectedType(() =>
     accumulateBinaryExprs(
       exprs,
       operators,
       "=",
       generateRelationalExpr,
-      { input, state: stateForComparison, orchestrator },
+      { input, state, orchestrator },
       BinaryExprUtils.mapEqualityOperator,
     ),
   );
@@ -235,12 +224,13 @@ const generateRelationalExpr = (
   // The U suffix for MISRA 7.2 compliance applies to assignments, not comparisons.
   // Comparing `i32 < 0` should NOT generate `signedIdx < 0U` because that
   // changes semantics due to C's integer promotion rules.
-  // Use CodeGenState.withoutExpectedType to clear the global state that
-  // generators read via getState().
+  // Use CodeGenState.withoutExpectedType() to clear the global state that
+  // generators read via getState(). The passed state is not used for
+  // expectedType lookup - generators read from CodeGenState directly.
   return CodeGenState.withoutExpectedType(() =>
     accumulateBinaryExprs(exprs, operators, "<", generateBitwiseOrExpr, {
       input,
-      state: { ...state, expectedType: null },
+      state,
       orchestrator,
     }),
   );

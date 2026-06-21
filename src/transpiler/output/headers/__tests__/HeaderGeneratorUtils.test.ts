@@ -804,4 +804,284 @@ describe("HeaderGeneratorUtils", () => {
       expect(lines).toContain("#endif /* MY_FILE_H */");
     });
   });
+
+  describe("generateCallbackStructForwardDecls", () => {
+    it("returns empty array when no callback types provided", () => {
+      const result = HeaderGeneratorUtils.generateCallbackStructForwardDecls(
+        [],
+      );
+      expect(result).toEqual([]);
+    });
+
+    it("returns empty array when callback types is undefined", () => {
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: undefined,
+      };
+      const result = HeaderGeneratorUtils.generateCallbackStructForwardDecls(
+        [],
+        input,
+      );
+      expect(result).toEqual([]);
+    });
+
+    it("generates forward declarations for struct parameters", () => {
+      const structs = [makeSymbol({ name: "DataStruct", kind: "struct" })];
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "processData",
+            {
+              typedefName: "processData_t",
+              returnType: "void",
+              parameters: [
+                { type: "DataStruct", isStruct: true },
+                { type: "uint32_t", isStruct: false },
+              ],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackStructForwardDecls(
+        structs,
+        input,
+      );
+      expect(result).toContain("typedef struct DataStruct DataStruct;");
+    });
+
+    it("deduplicates struct forward declarations", () => {
+      const structs = [makeSymbol({ name: "MyStruct", kind: "struct" })];
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "handler1",
+            {
+              typedefName: "handler1_t",
+              returnType: "void",
+              parameters: [{ type: "MyStruct", isStruct: true }],
+            },
+          ],
+          [
+            "handler2",
+            {
+              typedefName: "handler2_t",
+              returnType: "void",
+              parameters: [{ type: "MyStruct", isStruct: true }],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackStructForwardDecls(
+        structs,
+        input,
+      );
+      const myStructDecls = result.filter((l) => l.includes("MyStruct"));
+      expect(myStructDecls.length).toBe(1);
+    });
+
+    it("ignores non-struct parameters", () => {
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "handler",
+            {
+              typedefName: "handler_t",
+              returnType: "uint32_t",
+              parameters: [
+                { type: "uint32_t", isStruct: false },
+                { type: "bool", isStruct: false },
+              ],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackStructForwardDecls(
+        [],
+        input,
+      );
+      expect(result).toEqual([]);
+    });
+
+    it("only includes local structs in forward declarations", () => {
+      // ExternalStruct is not in the local structs list
+      const structs = [makeSymbol({ name: "LocalStruct", kind: "struct" })];
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "handler",
+            {
+              typedefName: "handler_t",
+              returnType: "void",
+              parameters: [
+                { type: "LocalStruct", isStruct: true },
+                { type: "ExternalStruct", isStruct: true },
+              ],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackStructForwardDecls(
+        structs,
+        input,
+      );
+      expect(result).toContain("typedef struct LocalStruct LocalStruct;");
+      expect(result).not.toContain("ExternalStruct");
+    });
+  });
+
+  describe("generateCallbackTypedefSection", () => {
+    it("returns empty array when no callback types provided", () => {
+      const result = HeaderGeneratorUtils.generateCallbackTypedefSection();
+      expect(result).toEqual([]);
+    });
+
+    it("returns empty array when callback types is undefined", () => {
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: undefined,
+      };
+      const result = HeaderGeneratorUtils.generateCallbackTypedefSection(
+        input,
+        false,
+      );
+      expect(result).toEqual([]);
+    });
+
+    it("generates C-style function pointer typedef", () => {
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "processU32",
+            {
+              typedefName: "processU32_t",
+              returnType: "uint32_t",
+              parameters: [{ type: "uint32_t", isStruct: false }],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackTypedefSection(
+        input,
+        false,
+      );
+      expect(result.join("\n")).toContain(
+        "typedef uint32_t (*processU32_t)(uint32_t);",
+      );
+    });
+
+    it("generates C++ reference for struct parameters", () => {
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "processPoint",
+            {
+              typedefName: "processPoint_t",
+              returnType: "uint32_t",
+              parameters: [{ type: "Point", isStruct: true }],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackTypedefSection(
+        input,
+        true,
+      );
+      expect(result.join("\n")).toContain("Point&");
+    });
+
+    it("generates C pointer for struct parameters", () => {
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "processPoint",
+            {
+              typedefName: "processPoint_t",
+              returnType: "uint32_t",
+              parameters: [{ type: "Point", isStruct: true }],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackTypedefSection(
+        input,
+        false,
+      );
+      expect(result.join("\n")).toContain("Point*");
+    });
+
+    it("handles multiple parameters", () => {
+      const input = {
+        structFields: new Map(),
+        structFieldDimensions: new Map(),
+        enumMembers: new Map(),
+        bitmapBackingType: new Map(),
+        bitmapFields: new Map(),
+        callbackTypes: new Map([
+          [
+            "multiParam",
+            {
+              typedefName: "multiParam_t",
+              returnType: "void",
+              parameters: [
+                { type: "uint32_t", isStruct: false },
+                { type: "Point", isStruct: true },
+                { type: "bool", isStruct: false },
+              ],
+            },
+          ],
+        ]),
+      };
+      const result = HeaderGeneratorUtils.generateCallbackTypedefSection(
+        input,
+        false,
+      );
+      const typedef = result.find((l) => l.includes("multiParam_t"));
+      expect(typedef).toContain("uint32_t");
+      expect(typedef).toContain("Point*");
+      expect(typedef).toContain("bool");
+    });
+  });
 });
