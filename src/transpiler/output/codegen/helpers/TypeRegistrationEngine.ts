@@ -332,6 +332,60 @@ class TypeRegistrationEngine {
     return true;
   }
 
+  /**
+   * Issue #1029: Register type info for string arrays (string<N>[M]).
+   *
+   * String arrays are parsed as arrayType with stringType inside:
+   *   arrayType -> stringType arrayTypeDimension+
+   *
+   * For `string<32>[4] items`:
+   *   - stringType gives capacity 32
+   *   - arrayTypeDimension gives [4]
+   *   - Result: char items[4][33] with dimensions [4, 33]
+   */
+  private static _registerStringArrayType(
+    registryName: string,
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    arrayDim: Parser.ArrayDimensionContext[] | null,
+    isConst: boolean,
+    overflowBehavior: TOverflowBehavior,
+    isAtomic: boolean,
+    callbacks: ITypeRegistrationCallbacks,
+  ): void {
+    const stringCtx = arrayTypeCtx.stringType()!;
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (!intLiteral) {
+      return; // No capacity specified - can't register
+    }
+
+    const capacity = Number.parseInt(intLiteral.getText(), 10);
+    callbacks.requireInclude("string");
+    const stringDim = capacity + 1;
+
+    // Collect dimensions: arrayTypeDimension from arrayType, then string capacity
+    // Build all dimensions at once to avoid multiple push() calls (SonarCloud S7778)
+    const arrayTypeDims = arrayTypeCtx
+      .arrayTypeDimension()
+      .map((dim) => dim.expression())
+      .filter((expr): expr is Parser.ExpressionContext => expr !== null)
+      .map((expr) => Number.parseInt(expr.getText(), 10))
+      .filter((size) => !Number.isNaN(size));
+    const additionalDims = ArrayDimensionParser.parseSimpleDimensions(arrayDim);
+    const dimensions = [...arrayTypeDims, ...additionalDims, stringDim];
+
+    CodeGenState.setVariableTypeInfo(registryName, {
+      baseType: "char",
+      bitWidth: 8,
+      isArray: true,
+      arrayDimensions: dimensions,
+      isConst,
+      isString: true,
+      stringCapacity: capacity,
+      overflowBehavior,
+      isAtomic,
+    });
+  }
+
   // ============================================================================
   // Array and standard type registration
   // ============================================================================
@@ -345,6 +399,20 @@ class TypeRegistrationEngine {
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
   ): void {
+    // Issue #1029: Handle string arrays (string<N>[M]) - must check before primitiveType/userType
+    if (arrayTypeCtx.stringType()) {
+      TypeRegistrationEngine._registerStringArrayType(
+        registryName,
+        arrayTypeCtx,
+        arrayDim,
+        isConst,
+        overflowBehavior,
+        isAtomic,
+        callbacks,
+      );
+      return;
+    }
+
     let baseType = "";
     let bitWidth = 0;
 

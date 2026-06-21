@@ -1154,4 +1154,234 @@ describe("StringDeclHelper", () => {
       expect(CodeGenState.localArrays.has("tracked")).toBe(true);
     });
   });
+
+  describe("string arrays from arrayType syntax (Issue #1029)", () => {
+    it("generates string array from arrayType without initializer", () => {
+      // Simulates: string<32>[4] items;
+      const typeCtx = {
+        stringType: () => null, // Not directly on typeCtx
+        arrayType: () => ({
+          stringType: () => ({
+            INTEGER_LITERAL: () => ({ getText: () => "32" }),
+          }),
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "4" }) },
+          ],
+        }),
+      } as never;
+
+      const result = StringDeclHelper.generateStringDecl(
+        typeCtx,
+        "items",
+        null,
+        [],
+        { extern: "", const: "", atomic: "", volatile: "" },
+        false,
+        defaultCallbacks,
+      );
+
+      expect(result.handled).toBe(true);
+      expect(result.code).toBe("char items[4][33] = {0};");
+    });
+
+    it("generates string array from arrayType with initializer", () => {
+      const callbacks = {
+        ...defaultCallbacks,
+        generateExpression: vi.fn(() => {
+          CodeGenState.lastArrayInitCount = 2;
+          CodeGenState.lastArrayFillValue = undefined;
+          return '{"One", "Two"}';
+        }),
+      };
+
+      // Simulates: string<10>[2] labels <- ["One", "Two"];
+      const typeCtx = {
+        stringType: () => null,
+        arrayType: () => ({
+          stringType: () => ({
+            INTEGER_LITERAL: () => ({ getText: () => "10" }),
+          }),
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "2" }) },
+          ],
+        }),
+      } as never;
+
+      const expression = {
+        getText: () => '["One", "Two"]',
+      } as never;
+
+      const result = StringDeclHelper.generateStringDecl(
+        typeCtx,
+        "labels",
+        expression,
+        [],
+        { extern: "", const: "", atomic: "", volatile: "" },
+        false,
+        callbacks,
+      );
+
+      expect(result.handled).toBe(true);
+      expect(result.code).toContain("[2]");
+      expect(result.code).toContain("[11]"); // capacity + 1
+      expect(result.code).toContain('{"One", "Two"}');
+    });
+
+    it("generates string array from arrayType with trailing dimensions", () => {
+      // Simulates: string<10>[2] matrix[3]; (2D string array)
+      const typeCtx = {
+        stringType: () => null,
+        arrayType: () => ({
+          stringType: () => ({
+            INTEGER_LITERAL: () => ({ getText: () => "10" }),
+          }),
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "2" }) },
+          ],
+        }),
+      } as never;
+
+      const trailingDims = [
+        { expression: () => ({ getText: () => "3" }) },
+      ] as never[];
+
+      const result = StringDeclHelper.generateStringDecl(
+        typeCtx,
+        "matrix",
+        null,
+        trailingDims,
+        { extern: "", const: "", atomic: "", volatile: "" },
+        false,
+        defaultCallbacks,
+      );
+
+      expect(result.handled).toBe(true);
+      expect(result.code).toBe("char matrix[2][3][11] = {0};");
+    });
+
+    it("throws error for unsized string array from arrayType", () => {
+      // Simulates: string[4] items; (missing capacity)
+      const typeCtx = {
+        stringType: () => null,
+        arrayType: () => ({
+          stringType: () => ({
+            INTEGER_LITERAL: () => null, // No capacity
+          }),
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "4" }) },
+          ],
+        }),
+      } as never;
+
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          typeCtx,
+          "items",
+          null,
+          [],
+          { extern: "", const: "", atomic: "", volatile: "" },
+          false,
+          defaultCallbacks,
+        ),
+      ).toThrow("String arrays require explicit capacity");
+    });
+
+    it("validates element count matches declared size from arrayType", () => {
+      const callbacks = {
+        ...defaultCallbacks,
+        generateExpression: vi.fn(() => {
+          CodeGenState.lastArrayInitCount = 2; // Only 2 elements
+          CodeGenState.lastArrayFillValue = undefined;
+          return '{"One", "Two"}';
+        }),
+      };
+
+      // Simulates: string<10>[4] items <- ["One", "Two"]; (size mismatch)
+      const typeCtx = {
+        stringType: () => null,
+        arrayType: () => ({
+          stringType: () => ({
+            INTEGER_LITERAL: () => ({ getText: () => "10" }),
+          }),
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "4" }) }, // Declared size = 4
+          ],
+        }),
+      } as never;
+
+      const expression = {
+        getText: () => '["One", "Two"]',
+      } as never;
+
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          typeCtx,
+          "items",
+          expression,
+          [],
+          { extern: "", const: "", atomic: "", volatile: "" },
+          false,
+          callbacks,
+        ),
+      ).toThrow("Array size mismatch - declared [4] but got 2 elements");
+    });
+
+    it("tracks local arrays from arrayType in localArrays set", () => {
+      const typeCtx = {
+        stringType: () => null,
+        arrayType: () => ({
+          stringType: () => ({
+            INTEGER_LITERAL: () => ({ getText: () => "20" }),
+          }),
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "3" }) },
+          ],
+        }),
+      } as never;
+
+      StringDeclHelper.generateStringDecl(
+        typeCtx,
+        "tracked",
+        null,
+        [],
+        { extern: "", const: "", atomic: "", volatile: "" },
+        false,
+        defaultCallbacks,
+      );
+
+      expect(CodeGenState.localArrays.has("tracked")).toBe(true);
+    });
+
+    it("generates string array from arrayType with modifiers", () => {
+      const typeCtx = {
+        stringType: () => null,
+        arrayType: () => ({
+          stringType: () => ({
+            INTEGER_LITERAL: () => ({ getText: () => "8" }),
+          }),
+          arrayTypeDimension: () => [
+            { expression: () => ({ getText: () => "2" }) },
+          ],
+        }),
+      } as never;
+
+      const result = StringDeclHelper.generateStringDecl(
+        typeCtx,
+        "data",
+        null,
+        [],
+        {
+          extern: "extern ",
+          const: "const ",
+          atomic: "",
+          volatile: "volatile ",
+        },
+        true,
+        defaultCallbacks,
+      );
+
+      expect(result.handled).toBe(true);
+      expect(result.code).toContain("extern const volatile char data[2][9]");
+    });
+  });
 });
