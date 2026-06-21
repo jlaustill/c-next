@@ -17,7 +17,8 @@ i32 main() {
     if (dest != "Hello World") return 5;
 
    
-// Test 7-9: Assignment of empty string
+// Test 7-9: Assignment of empty string variable
+// Note: Tests explicit empty init, not uninitialized (E0381 catches uninitialized vars)
     string<32> emptySource <- "";
     string<64> emptyDest <- emptySource;
     if (emptyDest.char_count != 0) return 6;
