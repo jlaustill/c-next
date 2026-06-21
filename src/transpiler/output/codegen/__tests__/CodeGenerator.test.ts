@@ -9424,7 +9424,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("(x > 3U) ? 10U : 20U");
+        // Issue #1032: Comparison operands don't get U suffix (would change semantics)
+        // but ternary arms do (they're assigned to u32 result)
+        expect(code).toContain("(x > 3) ? 10U : 20U");
       });
     });
 

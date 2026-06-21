@@ -43,7 +43,7 @@ u32 main() {
     if (sizeof(u8) != 1) return 9;
 
     // sizeof in ternary condition
-    u32 larger <- sizeof(u64) > sizeof(u32) ? 1 : 0;
+    u32 larger <- (sizeof(u64) > sizeof(u32)) ? 1 : 0;
     if (larger != 1) return 10;
 
     // Calculate array element count from sizes

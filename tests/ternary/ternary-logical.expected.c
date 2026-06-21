@@ -10,7 +10,7 @@
 void test(void) {
     uint32_t a = 5U;
     uint32_t b = 10U;
-    uint32_t both = (a > 0U && b > 0U) ? 1U : 0U;
-    uint32_t either = (a == 0U || b == 0U) ? 1U : 0U;
-    uint32_t complex = (a > 0U && b > 0U || a < 0U) ? a : b;
+    uint32_t both = (a > 0 && b > 0) ? 1U : 0U;
+    uint32_t either = (a == 0 || b == 0) ? 1U : 0U;
+    uint32_t complex = (a > 0 && b > 0 || a < 0) ? a : b;
 }

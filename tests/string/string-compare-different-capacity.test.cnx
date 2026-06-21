@@ -20,8 +20,8 @@ i32 main() {
 
    
 // Test 7-9: Empty strings with different capacities
-    string<8> emptySmall;
-    string<128> emptyLarge;
+    string<8> emptySmall <- "";
+    string<128> emptyLarge <- "";
     if (emptySmall != emptyLarge) return 7;
     if (emptySmall != "") return 8;
     if (emptyLarge != "") return 9;

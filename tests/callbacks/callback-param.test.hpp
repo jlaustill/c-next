@@ -13,12 +13,17 @@
 extern "C" {
 #endif
 
+typedef struct Message Message;
+
+/* Callback typedefs */
+typedef void (*onReceive_fp)(Message&);
+
 /* Struct definitions */
 typedef struct Message {
     uint32_t id;
 } Message;
 typedef struct Controller {
-    onReceive _handler;
+    onReceive_fp _handler;
 } Controller;
 
 #ifdef __cplusplus

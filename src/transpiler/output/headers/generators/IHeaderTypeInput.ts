@@ -31,6 +31,19 @@ interface IHeaderTypeInput {
     string,
     ReadonlyMap<string, { readonly offset: number; readonly width: number }>
   >;
+
+  /** Callback types: functionName -> typedef info for header generation */
+  readonly callbackTypes?: ReadonlyMap<
+    string,
+    {
+      readonly typedefName: string;
+      readonly returnType: string;
+      readonly parameters: ReadonlyArray<{
+        readonly type: string;
+        readonly isStruct: boolean;
+      }>;
+    }
+  >;
 }
 
 export default IHeaderTypeInput;

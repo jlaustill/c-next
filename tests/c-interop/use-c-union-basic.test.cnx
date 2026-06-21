@@ -1,7 +1,7 @@
-// test-execution
+// test-error
 // test-coverage: 30-use-c-union-basic
-// Tests: Using named C unions
-// ADR-010: Union import from C headers
+// Tests: Using named C unions (NOT YET SUPPORTED)
+// ADR-010: Union import from C headers - grammar doesn't support `union` keyword yet
 
 #include "c-interop/unions.h"
 

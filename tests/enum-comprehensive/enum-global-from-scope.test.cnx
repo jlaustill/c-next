@@ -31,7 +31,8 @@ u32 main() {
     if (fromScope != EGlobal.A) return 1;
 
     // Test using global function from scope
-    if (!Test.testGlobalFunction()) return 2;
+    bool testResult <- Test.testGlobalFunction();
+    if (!testResult) return 2;
 
     return 0;
 }

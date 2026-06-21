@@ -10,7 +10,8 @@ interface ICallbackTypeInfo {
     name: string;
     type: string; // C type
     isConst: boolean;
-    isPointer: boolean; // Non-array params become pointers
+    isPointer: boolean; // Non-array params become pointers (C mode only for structs)
+    isStruct: boolean; // True if parameter type is a struct (ADR-006 reference semantics)
     isArray: boolean; // Array parameters pass naturally as pointers
     arrayDims: string; // Array dimensions if applicable
   }>;

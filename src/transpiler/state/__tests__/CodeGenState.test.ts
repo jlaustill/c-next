@@ -376,6 +376,7 @@ describe("CodeGenState", () => {
             isArray: false,
             isConst: false,
             isPointer: false,
+            isStruct: false,
             arrayDims: "",
           },
         ],
@@ -1203,6 +1204,85 @@ describe("CodeGenState", () => {
       });
 
       expect(CodeGenState.inDeclarationInit).toBe(false);
+    });
+  });
+
+  describe("withoutExpectedType()", () => {
+    it("clears expectedType during callback", () => {
+      CodeGenState.expectedType = "u32";
+      let typeInside: string | null = "notCleared";
+
+      CodeGenState.withoutExpectedType(() => {
+        typeInside = CodeGenState.expectedType;
+      });
+
+      expect(typeInside).toBeNull();
+    });
+
+    it("clears suppressBareEnumResolution during callback", () => {
+      CodeGenState.suppressBareEnumResolution = true;
+      let suppressInside = true;
+
+      CodeGenState.withoutExpectedType(() => {
+        suppressInside = CodeGenState.suppressBareEnumResolution;
+      });
+
+      expect(suppressInside).toBe(false);
+    });
+
+    it("restores expectedType after callback", () => {
+      CodeGenState.expectedType = "i32";
+
+      CodeGenState.withoutExpectedType(() => {
+        // inside: null
+      });
+
+      expect(CodeGenState.expectedType).toBe("i32");
+    });
+
+    it("restores suppressBareEnumResolution after callback", () => {
+      CodeGenState.suppressBareEnumResolution = true;
+
+      CodeGenState.withoutExpectedType(() => {
+        // inside: false
+      });
+
+      expect(CodeGenState.suppressBareEnumResolution).toBe(true);
+    });
+
+    it("returns the callback result", () => {
+      const result = CodeGenState.withoutExpectedType(() => 123);
+      expect(result).toBe(123);
+    });
+
+    it("restores values on exception", () => {
+      CodeGenState.expectedType = "bool";
+      CodeGenState.suppressBareEnumResolution = true;
+
+      expect(() =>
+        CodeGenState.withoutExpectedType(() => {
+          throw new Error("test error");
+        }),
+      ).toThrow("test error");
+
+      expect(CodeGenState.expectedType).toBe("bool");
+      expect(CodeGenState.suppressBareEnumResolution).toBe(true);
+    });
+
+    it("handles null expectedType correctly", () => {
+      CodeGenState.expectedType = null;
+      CodeGenState.suppressBareEnumResolution = false;
+
+      let executed = false;
+      CodeGenState.withoutExpectedType(() => {
+        executed = true;
+        expect(CodeGenState.expectedType).toBeNull();
+        expect(CodeGenState.suppressBareEnumResolution).toBe(false);
+      });
+
+      expect(executed).toBe(true);
+      expect(CodeGenState.expectedType).toBeNull();
+      expect(CodeGenState.suppressBareEnumResolution).toBe(false);
     });
   });
 });

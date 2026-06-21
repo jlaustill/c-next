@@ -417,6 +417,81 @@ class HeaderGeneratorUtils {
   }
 
   /**
+   * ADR-029: Generate forward declarations for structs used in callback typedefs.
+   * This ensures struct types can be used in callback parameter types before
+   * the full struct definition.
+   */
+  static generateCallbackStructForwardDecls(
+    structs: IHeaderSymbol[],
+    typeInput?: IHeaderTypeInput,
+  ): string[] {
+    if (!typeInput?.callbackTypes || typeInput.callbackTypes.size === 0) {
+      return [];
+    }
+
+    // Collect struct types that are used in callback parameters
+    const usedStructTypes = new Set<string>();
+    for (const [, cbInfo] of typeInput.callbackTypes) {
+      for (const p of cbInfo.parameters) {
+        if (p.isStruct) {
+          usedStructTypes.add(p.type);
+        }
+      }
+    }
+
+    if (usedStructTypes.size === 0) {
+      return [];
+    }
+
+    // Get local struct names to only forward-declare those
+    const localStructNames = new Set(structs.map((s) => s.name));
+
+    const lines: string[] = [];
+    for (const structType of usedStructTypes) {
+      if (localStructNames.has(structType)) {
+        lines.push(`typedef struct ${structType} ${structType};`);
+      }
+    }
+
+    return lines.length > 0 ? [...lines, ""] : [];
+  }
+
+  /**
+   * ADR-029: Generate callback typedef section
+   * Generates function pointer typedefs for callbacks used as struct field types
+   */
+  static generateCallbackTypedefSection(
+    typeInput?: IHeaderTypeInput,
+    isCppMode?: boolean,
+  ): string[] {
+    if (!typeInput?.callbackTypes || typeInput.callbackTypes.size === 0) {
+      return [];
+    }
+
+    const lines: string[] = ["/* Callback typedefs */"];
+    for (const [, cbInfo] of typeInput.callbackTypes) {
+      const params =
+        cbInfo.parameters.length > 0
+          ? cbInfo.parameters
+              .map((p) => {
+                // ADR-006: Struct parameters become pointers (C) or references (C++)
+                if (p.isStruct) {
+                  const ptrOrRef = isCppMode ? "&" : "*";
+                  return `${p.type}${ptrOrRef}`;
+                }
+                return p.type;
+              })
+              .join(", ")
+          : "void";
+      lines.push(
+        `typedef ${cbInfo.returnType} (*${cbInfo.typedefName})(${params});`,
+      );
+    }
+    lines.push("");
+    return lines;
+  }
+
+  /**
    * Generate struct and class definitions section
    */
   static generateStructSection(

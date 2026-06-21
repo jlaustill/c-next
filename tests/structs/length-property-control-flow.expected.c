@@ -48,7 +48,7 @@ int main(void) {
         totalBits = cnx_clamp_add_u32(totalBits, 8);
     }
     if (totalBits != 32) return 5;
-    uint32_t fieldSize = ((32 > 16U) != false) ? 4U : 2U;
+    uint32_t fieldSize = ((32 > 16) != false) ? 4U : 2U;
     if (fieldSize != 4) return 6;
     uint32_t headerBytes = 32 / 8U;
     if (headerBytes != 4) {

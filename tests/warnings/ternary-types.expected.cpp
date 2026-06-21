@@ -14,10 +14,10 @@ int main(void) {
     uint32_t a = 10U;
     uint32_t b = 20U;
     uint32_t flag = 1U;
-    uint32_t result = (flag == 1U) ? a : b;
+    uint32_t result = (flag == 1) ? a : b;
     if (result != 10) return 1;
     flag = 0U;
-    result = (flag == 1U) ? a : b;
+    result = (flag == 1) ? a : b;
     if (result != 20) return 2;
     uint32_t x = 5U;
     uint32_t y = 10U;
@@ -28,13 +28,13 @@ int main(void) {
     uint8_t small_result = (small_a < small_b) ? small_a : small_b;
     if (small_result != 100) return 4;
     uint32_t val = 50U;
-    uint32_t is_large = (val > 100U) ? 1U : 0U;
+    uint32_t is_large = (val > 100) ? 1U : 0U;
     if (is_large != 0) return 5;
     int32_t sign = (val > 0) ? 1 : -1;
     if (sign != 1) return 6;
-    uint32_t both = (a > 0U && b > 0U) ? 1U : 0U;
+    uint32_t both = (a > 0 && b > 0) ? 1U : 0U;
     if (both != 1) return 7;
-    uint32_t either = (a == 0U || b > 0U) ? 1U : 0U;
+    uint32_t either = (a == 0 || b > 0) ? 1U : 0U;
     if (either != 1) return 8;
     return 0;
 }

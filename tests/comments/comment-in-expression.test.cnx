@@ -22,7 +22,7 @@ u32 main() {
     if (arr[0] != 200) return 4;
 
     // Comment in ternary
-    u32 d <- a > b /* compare */ ? a /* true case */ : b /* false case */;
+    u32 d <- (a > b /* compare */) ? a /* true case */ : b /* false case */;
     if (d != 30) return 5;
 
     // Comment in comparison

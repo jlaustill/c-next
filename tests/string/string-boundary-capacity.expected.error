@@ -1,2 +1,0 @@
-23:8 error[E0381]: use of uninitialized variable 'emptyWithCap'
-24:8 error[E0381]: use of uninitialized variable 'emptyWithCap'

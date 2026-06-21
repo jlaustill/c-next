@@ -1,4 +1,0 @@
-9:17 error[E0381]: use of uninitialized variable 'i'
-15:17 error[E0381]: use of uninitialized variable 'i'
-16:12 error[E0381]: use of uninitialized variable 'i'
-18:19 error[E0381]: use of uninitialized variable 'i'

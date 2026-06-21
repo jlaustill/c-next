@@ -116,7 +116,7 @@ u32 main() {
 
    
 // Test 15: Ternary in both array index and value
-    writeArr[(true) ? 0 : 2] <- (false) ? 111 : 222;
+    writeArr[(true = true) ? 0 : 2] <- (false = true) ? 111 : 222;
     if (writeArr[0] != 222) return 15;
 
     return 0;

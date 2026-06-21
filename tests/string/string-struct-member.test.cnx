@@ -70,13 +70,17 @@ i32 main() {
 
    
 // Test 8: Pass struct to function, access member
-    if (getNameLength(alice) != 5) return 13;
-    if (getNameLength(bob) != 3) return 14;
+    u32 aliceLen <- getNameLength(alice);
+    if (aliceLen != 5) return 13;
+    u32 bobLen <- getNameLength(bob);
+    if (bobLen != 3) return 14;
 
-   
+
 // Test 9: Function with comparison
-    if (!compareName(alice, "Alice")) return 15;
-    if (compareName(alice, "Bob")) return 16; // Should not match
+    bool aliceMatch <- compareName(alice, "Alice");
+    if (!aliceMatch) return 15;
+    bool bobMatch <- compareName(alice, "Bob");
+    if (bobMatch) return 16; // Should not match
 
    
 // Test 10: StrMember.Config struct (different capacities)
@@ -91,8 +95,9 @@ i32 main() {
 
    
 // Test 11: Empty string member
-    Person empty;
-    if (empty.name.char_count != 0) return 21;
+    Person emptyPerson;
+    emptyPerson.name <- "";
+    if (emptyPerson.name.char_count != 0) return 21;
 
    
 // Test 12: Reassign struct member

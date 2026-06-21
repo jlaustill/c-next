@@ -42,8 +42,8 @@ u32 main() {
 
    
 // Test 4: Combine flags with bitwise OR
-    i32 rw <- read | write;
-    if (rw != 3) return 12;
+    i32 readWrite <- read | write;
+    if (readWrite != 3) return 12;
 
     return 0;  // All tests passed
 }
