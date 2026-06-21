@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.17] - 2026-06-21
+
+### Changed
+
+- Array declarations now reject C-style bracket syntax — trailing `[N]` and multi-dimensional `[N][M]` brackets are errors; use C-Next prefix array syntax (Issues #1014–#1017)
+- `break` and `continue` are now rejected; they are not part of the C-Next spec (Issue #1011)
+- Float division/modulo by a literal zero is now a compile error (E0800, Issue #1010)
+- Signed compound shift-assignment (`<<<-`, `>><-`) is now rejected (E0805, Issue #1008)
+- Use-before-init analysis (E0381) now covers compound assignments and struct-member compound shift-assignments
+
+### Fixed
+
+- String variable initialization now generates `strcpy` rather than an invalid direct assignment (Issue #1030)
+- `string<N>[M]` arrays register type info and generate correct dimensions (Issue #1029)
+- Scope-member string initialization and use-before-init handled correctly (Issue #1019)
+- Scoped-type arrays now allowed in struct fields (Issue #1038)
+- Size inference corrected for prefix `arrayType` syntax
+- Arrays of opaque handles no longer mis-generate initialization or element address-of (Issue #996)
+- Array parameters no longer receive automatic `const`, per ADR-006 (Issue #986)
+- Opaque-handle parameters: type resolved onto the parameter symbol so `.c` and `.h` paths agree; auto-const skipped (Issue #995)
+- Signed comparison literals and C++ callback typedefs generate correctly (Issue #1032)
+- C++ struct/array zero-initialization emits `{}` instead of `{0}` (Issue #1004)
+- `atomic` scope variables emit the `volatile` modifier (Issue #998)
+- Undeclared `global.` function calls are detected, and `global.`-prefixed locals report "called before definition" (Issue #985)
+- Global struct initializers emitted as constants; declarations use designated initializers instead of compound literals
+- Value semantics restored via query-time resolution (Issue #948)
+- MISRA: clamp minimum cast to the target unsigned type; `floatConversionOverflow` false positive suppressed in the MISRA runner (Issue #990)
+
 ## [0.2.16] - 2026-02-28
 
 ### Changed
@@ -1248,6 +1276,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.16...HEAD
+[0.2.17]: https://github.com/jlaustill/c-next/compare/v0.2.16...v0.2.17
 [0.2.16]: https://github.com/jlaustill/c-next/compare/v0.2.15...v0.2.16
 [0.2.15]: https://github.com/jlaustill/c-next/compare/v0.2.14...v0.2.15
 [0.2.14]: https://github.com/jlaustill/c-next/compare/v0.2.13...v0.2.14
