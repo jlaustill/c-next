@@ -442,6 +442,14 @@ class VariableDeclHelper {
         ?.arrayTypeDimension()
         .some((dim) => !dim.expression()) ??
         false);
+
+    // Check if the empty dimension is specifically in arrayType (vs trailing arrayDims)
+    const hasEmptyArrayTypeDim =
+      typeCtx
+        .arrayType()
+        ?.arrayTypeDimension()
+        .some((dim) => !dim.expression()) ?? false;
+
     const declaredSize =
       VariableDeclHelper.parseArrayTypeDimension(typeCtx) ??
       VariableDeclHelper.parseFirstArrayDimension(arrayDims);
@@ -466,8 +474,11 @@ class VariableDeclHelper {
       if (arrayInitResult) {
         // Track as local array for type resolution
         CodeGenState.localArrays.add(name);
-        // Include arrayType dimension before arrayDimension dimensions
-        const fullDimSuffix = arrayTypeDimStr + arrayInitResult.dimensionSuffix;
+        // When size inference happens and the empty dim is in arrayType,
+        // dimensionSuffix already contains the inferred size - don't duplicate
+        const fullDimSuffix = hasEmptyArrayTypeDim
+          ? arrayInitResult.dimensionSuffix
+          : arrayTypeDimStr + arrayInitResult.dimensionSuffix;
         return {
           handled: true,
           code: `${decl}${fullDimSuffix} = ${arrayInitResult.initValue};`,

@@ -127,8 +127,8 @@ describe("VariableDeclHelper", () => {
       }).not.toThrow();
     });
 
-    it("allows empty dimension for size inference", () => {
-      const varDecl = parseVarDecl("u8 arr[] <- [1, 2, 3];");
+    it("allows empty dimension for size inference in arrayType", () => {
+      const varDecl = parseVarDecl("u8[] arr <- [1, 2, 3];");
       const typeCtx = varDecl.type();
       expect(() => {
         VariableDeclHelper.validateArrayDeclarationSyntax(
@@ -137,6 +137,18 @@ describe("VariableDeclHelper", () => {
           "arr",
         );
       }).not.toThrow();
+    });
+
+    it("rejects empty dimension with C-style trailing brackets (Issue #1017)", () => {
+      const varDecl = parseVarDecl("u8 arr[] <- [1, 2, 3];");
+      const typeCtx = varDecl.type();
+      expect(() => {
+        VariableDeclHelper.validateArrayDeclarationSyntax(
+          varDecl,
+          typeCtx,
+          "arr",
+        );
+      }).toThrow("C-style array declaration is not allowed");
     });
 
     it("rejects multi-dimensional C-style (Issue #1014)", () => {
@@ -151,8 +163,8 @@ describe("VariableDeclHelper", () => {
       }).toThrow("C-style array declaration is not allowed");
     });
 
-    it("allows string type with C-style", () => {
-      const varDecl = parseVarDecl("string<32> names[4];");
+    it("allows string type with arrayType syntax", () => {
+      const varDecl = parseVarDecl("string<32>[4] names;");
       const typeCtx = varDecl.type();
       expect(() => {
         VariableDeclHelper.validateArrayDeclarationSyntax(
@@ -161,6 +173,18 @@ describe("VariableDeclHelper", () => {
           "names",
         );
       }).not.toThrow();
+    });
+
+    it("rejects string type with C-style trailing brackets (Issue #1016)", () => {
+      const varDecl = parseVarDecl("string<32> names[4];");
+      const typeCtx = varDecl.type();
+      expect(() => {
+        VariableDeclHelper.validateArrayDeclarationSyntax(
+          varDecl,
+          typeCtx,
+          "names",
+        );
+      }).toThrow("C-style array declaration is not allowed");
     });
 
     it("rejects C-style single dimension for primitives", () => {

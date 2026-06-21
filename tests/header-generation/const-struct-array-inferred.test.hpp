@@ -20,7 +20,9 @@ typedef struct ConstInferred_TItem {
 } ConstInferred_TItem;
 
 /* External variables */
-extern const uint8_t SIZES;
+extern const ConstInferred_TItem ITEMS[3];
+extern ConstInferred_TItem mutableItems[2];
+extern const uint8_t SIZES[4];
 extern const int32_t EXPLICIT[2];
 extern const uint8_t ITEM_COUNT;
 

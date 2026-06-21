@@ -20,6 +20,9 @@ typedef struct StructArr2D_TReading {
     bool valid;
 } StructArr2D_TReading;
 
+/* External variables */
+extern StructArr2D_TReading readings[4][4];
+
 /* Function prototypes */
 uint32_t Test_run(void);
 

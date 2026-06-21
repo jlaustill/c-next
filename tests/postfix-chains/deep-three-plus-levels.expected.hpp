@@ -29,9 +29,12 @@ typedef struct DeepThreeLevel_Object {
     int32_t id;
 } DeepThreeLevel_Object;
 typedef struct DeepThreeLevel_Scene {
-    this.Object objects[4];
+    DeepThreeLevel_Object objects[4];
     uint32_t count;
 } DeepThreeLevel_Scene;
+
+/* External variables */
+extern DeepThreeLevel_Scene scenes[2];
 
 #ifdef __cplusplus
 }

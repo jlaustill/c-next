@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t data;
-extern uint16_t words;
-extern int32_t nums;
+extern uint8_t data[5];
+extern uint16_t words[3];
+extern int32_t nums[11];
 
 #ifdef __cplusplus
 }

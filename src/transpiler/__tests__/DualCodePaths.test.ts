@@ -110,7 +110,7 @@ void main() {
 
     it("produces identical code for const arrays with inferred size", async () => {
       const source = `
-const u8 VALUES[] <- [1, 2, 3, 4, 5];
+const u8[] VALUES <- [1, 2, 3, 4, 5];
 
 void main() {
     u8 x <- VALUES[0];

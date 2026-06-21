@@ -1504,7 +1504,7 @@ describe("CodeGenerator", () => {
 
     it("should generate multi-dimensional array", () => {
       const source = `
-        u32[3] matrix[3];
+        u32[3][3] matrix;
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -2944,7 +2944,7 @@ describe("CodeGenerator", () => {
   describe("Inferred array size", () => {
     it("should generate array with inferred size from initializer", () => {
       const source = `
-        u32 values[] <- [1, 2, 3, 4, 5];
+        u32[] values <- [1, 2, 3, 4, 5];
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -3799,7 +3799,7 @@ describe("CodeGenerator", () => {
   describe("Nested array initializers", () => {
     it("should generate 2D array initializer", () => {
       const source = `
-        u32[2] matrix[3] <- [[1, 2, 3], [4, 5, 6]];
+        u32[2][3] matrix <- [[1, 2, 3], [4, 5, 6]];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -4097,7 +4097,7 @@ describe("CodeGenerator", () => {
   describe("Multi-dimensional array", () => {
     it("should generate 3D array declaration", () => {
       const source = `
-        u8[2] cube[3][4];
+        u8[2][3][4] cube;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       const generator = new CodeGenerator();
@@ -8487,7 +8487,7 @@ describe("CodeGenerator", () => {
       it("should handle multi-dimensional array access", () => {
         const source = `
           void test() {
-            u32[3] matrix[3];
+            u32[3][3] matrix;
             u32 val <- matrix[1][2];
           }
         `;
@@ -11297,7 +11297,7 @@ describe("CodeGenerator", () => {
       it("should allow empty brackets for size inference", () => {
         const source = `
           void test() {
-            u8 data[] <- [1, 2, 3];
+            u8[] data <- [1, 2, 3];
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
@@ -14066,7 +14066,7 @@ describe("CodeGenerator", () => {
       it("should detect array element of string array", () => {
         const source = `
           void test() {
-            string<32> names[3];
+            string<32>[3] names;
             names[0] <- "Alice";
             bool check <- (names[0] = "Alice");
           }
@@ -14110,7 +14110,7 @@ describe("CodeGenerator", () => {
       it("should register multi-dimensional array", () => {
         const source = `
           void test() {
-            u8[10] matrix[20];
+            u8[10][20] matrix;
             matrix[0][0] <- 0;
           }
         `;

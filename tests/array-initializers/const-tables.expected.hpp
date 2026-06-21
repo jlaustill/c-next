@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint8_t hexDigits;
+extern const uint8_t hexDigits[16];
 extern const uint16_t crcTable[8];
 
 #ifdef __cplusplus

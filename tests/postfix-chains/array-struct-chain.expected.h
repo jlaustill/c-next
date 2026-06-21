@@ -30,9 +30,13 @@ typedef struct ArrayChain_Entity {
     uint8_t flags;
 } ArrayChain_Entity;
 typedef struct ArrayChain_Mesh {
-    this.Vec3 vertices[8];
+    ArrayChain_Vec3 vertices[8];
     uint32_t indices[12];
 } ArrayChain_Mesh;
+
+/* External variables */
+extern ArrayChain_Entity grid[4][4];
+extern ArrayChain_Mesh meshes[3];
 
 #ifdef __cplusplus
 }

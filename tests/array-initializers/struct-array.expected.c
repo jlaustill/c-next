@@ -16,4 +16,4 @@ typedef struct Command {
 const Command commands[3] = {{ .code = 0x01U, .len = 4U }, { .code = 0x02U, .len = 8U }, { .code = 0x03U, .len = 2U }};
 
 // Array of structs with size inference
-Command moreCommands[][2] = {{ .code = 0x10U, .len = 1U }, { .code = 0x20U, .len = 2U }};
+Command moreCommands[2] = {{ .code = 0x10U, .len = 1U }, { .code = 0x20U, .len = 2U }};

@@ -21,6 +21,9 @@ typedef struct BoundaryTest_Data {
     uint64_t qword;
 } BoundaryTest_Data;
 
+/* External variables */
+extern BoundaryTest_Data items[16];
+
 #ifdef __cplusplus
 }
 #endif

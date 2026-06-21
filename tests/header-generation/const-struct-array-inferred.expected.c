@@ -15,13 +15,13 @@
 // Key case: const struct array with inferred size []
 // Header MUST generate: extern const ConstInferred_TItem ITEMS[3];
 // NOT: extern const ConstInferred_TItem ITEMS;  (this breaks cross-file compilation)
-const ConstInferred_TItem ITEMS[][3] = {{ .id = 1, .value = 100 }, { .id = 2, .value = 200 }, { .id = 3, .value = 300 }};
+const ConstInferred_TItem ITEMS[3] = {{ .id = 1, .value = 100 }, { .id = 2, .value = 200 }, { .id = 3, .value = 300 }};
 
 // Also test: non-const struct array with inferred size
-ConstInferred_TItem mutableItems[][2] = {{ .id = 10, .value = 1000 }, { .id = 20, .value = 2000 }};
+ConstInferred_TItem mutableItems[2] = {{ .id = 10, .value = 1000 }, { .id = 20, .value = 2000 }};
 
 // Also test: const primitive array with inferred size
-const uint8_t SIZES[][4] = {10U, 20U, 30U, 40U};
+const uint8_t SIZES[4] = {10U, 20U, 30U, 40U};
 
 // Also test: const array with explicit size (control case)
 const int32_t EXPLICIT[2] = {100, 200};
