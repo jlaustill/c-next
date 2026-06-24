@@ -29,7 +29,7 @@ typedef uint32_t (*processU32_fp)(uint32_t);
 
 // Callback with bool parameter
 uint32_t processBool(bool val) {
-    if (val) {
+    if (val == true) {
         return 1;
     }
     return 0;

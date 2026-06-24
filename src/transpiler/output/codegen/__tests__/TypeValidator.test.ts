@@ -1740,15 +1740,37 @@ describe("TypeValidator", () => {
   // ========================================================================
 
   describe("validateTernaryCondition", () => {
-    it("allows conditions with || operator", () => {
+    it("throws for || of bare value operands (each operand must be a comparison)", () => {
       setupState();
       const ctx = createMockOrExpression("a || b", { hasOr: true });
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
+        "E0701",
+      );
+    });
+
+    it("allows || of comparison operands", () => {
+      setupState();
+      const ctx = createMockOrExpression("a = 1 || b = 2", {
+        hasOr: true,
+        hasEquality: true,
+      });
       expect(() => TypeValidator.validateTernaryCondition(ctx)).not.toThrow();
     });
 
-    it("allows conditions with && operator", () => {
+    it("throws for && of bare value operands (each operand must be a comparison)", () => {
       setupState();
       const ctx = createMockOrExpression("a && b", { hasAnd: true });
+      expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
+        "E0701",
+      );
+    });
+
+    it("allows && of comparison operands", () => {
+      setupState();
+      const ctx = createMockOrExpression("a = 1 && b = 2", {
+        hasAnd: true,
+        hasEquality: true,
+      });
       expect(() => TypeValidator.validateTernaryCondition(ctx)).not.toThrow();
     });
 
@@ -1768,7 +1790,7 @@ describe("TypeValidator", () => {
       setupState();
       const ctx = createMockOrExpression("flag");
       expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
-        "Ternary condition must be a boolean expression",
+        "E0701",
       );
     });
 
@@ -1779,7 +1801,7 @@ describe("TypeValidator", () => {
         andExpression: antlrArray([]),
       } as unknown as Parser.OrExpressionContext;
       expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
-        "Ternary condition must be a boolean expression",
+        "E0701",
       );
     });
 
@@ -1791,7 +1813,7 @@ describe("TypeValidator", () => {
         andExpression: antlrArray([andExpr]),
       } as unknown as Parser.OrExpressionContext;
       expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
-        "Ternary condition must be a boolean expression",
+        "E0701",
       );
     });
 
@@ -1804,7 +1826,7 @@ describe("TypeValidator", () => {
         andExpression: antlrArray([andExpr]),
       } as unknown as Parser.OrExpressionContext;
       expect(() => TypeValidator.validateTernaryCondition(ctx)).toThrow(
-        "Ternary condition must be a boolean expression",
+        "E0701",
       );
     });
   });
@@ -1898,17 +1920,39 @@ describe("TypeValidator", () => {
       ).not.toThrow();
     });
 
-    it("allows conditions with && operator", () => {
+    it("throws for && of bare value operands (each operand must be a comparison)", () => {
       setupState();
       const ctx = createFullDoWhileExpression("a && b", { hasAnd: true });
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("E0701");
+    });
+
+    it("allows && of comparison operands", () => {
+      setupState();
+      const ctx = createFullDoWhileExpression("a = 1 && b = 2", {
+        hasAnd: true,
+        hasEquality: true,
+      });
       expect(() =>
         TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
       ).not.toThrow();
     });
 
-    it("allows conditions with || operator", () => {
+    it("throws for || of bare value operands (each operand must be a comparison)", () => {
       setupState();
       const ctx = createFullDoWhileExpression("a || b", { hasOr: true });
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("E0701");
+    });
+
+    it("allows || of comparison operands", () => {
+      setupState();
+      const ctx = createFullDoWhileExpression("a = 1 || b = 2", {
+        hasOr: true,
+        hasEquality: true,
+      });
       expect(() =>
         TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
       ).not.toThrow();
@@ -1938,7 +1982,7 @@ describe("TypeValidator", () => {
       ).toThrow("E0701");
     });
 
-    it("allows boolean literals", () => {
+    it("throws for boolean literal condition (Issue #1042)", () => {
       setupState();
       // Create full mock expression tree where getText returns "true"
       const bitwiseOrExpr = {
@@ -1969,10 +2013,10 @@ describe("TypeValidator", () => {
       } as unknown as Parser.ExpressionContext;
       expect(() =>
         TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
-      ).not.toThrow();
+      ).toThrow("E0701");
     });
 
-    it("allows negation expressions", () => {
+    it("throws for negation expression (Issue #1042)", () => {
       setupState();
       const bitwiseOrExpr = {
         bitwiseXorExpression: antlrArray([]),
@@ -2002,10 +2046,10 @@ describe("TypeValidator", () => {
       } as unknown as Parser.ExpressionContext;
       expect(() =>
         TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
-      ).not.toThrow();
+      ).toThrow("E0701");
     });
 
-    it("allows bool type variables", () => {
+    it("throws for bare bool type variable (Issue #1042)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "isReady",
@@ -2041,7 +2085,7 @@ describe("TypeValidator", () => {
       } as unknown as Parser.ExpressionContext;
       expect(() =>
         TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
-      ).not.toThrow();
+      ).toThrow("E0701");
     });
 
     it("shows help message in error", () => {
@@ -2050,6 +2094,34 @@ describe("TypeValidator", () => {
       expect(() =>
         TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
       ).toThrow("help: use explicit comparison: count > 0 or count != 0");
+    });
+
+    it("suggests `= true` for a bare bool operand (Issue #1042)", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "ready",
+          { baseType: "bool", bitWidth: 8, isArray: false, isConst: false },
+        ],
+      ]);
+      setupState({ typeRegistry });
+      const ctx = createFullDoWhileExpression("ready");
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("help: use explicit comparison: ready = true");
+    });
+
+    it("suggests `= false` for a negated bool operand (Issue #1042)", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "ready",
+          { baseType: "bool", bitWidth: 8, isArray: false, isConst: false },
+        ],
+      ]);
+      setupState({ typeRegistry });
+      const ctx = createFullDoWhileExpression("!ready");
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("help: use explicit comparison: ready = false");
     });
 
     it("throws when no andExpression", () => {

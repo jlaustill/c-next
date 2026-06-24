@@ -237,13 +237,13 @@ int main(void) {
     uint16_t bvalMax = 65535U;
     uint16_t bvalOther = 5000U;
     bool sp0 = isSpecialValue(bval0);
-    if (!sp0) return 13;
+    if (sp0 == false) return 13;
     bool sp100 = isSpecialValue(bval100);
-    if (!sp100) return 14;
+    if (sp100 == false) return 14;
     bool spMax = isSpecialValue(bvalMax);
-    if (!spMax) return 15;
+    if (spMax == false) return 15;
     bool spOther = isSpecialValue(bvalOther);
-    if (spOther) return 16;
+    if (spOther == true) return 16;
     uint8_t idx0 = 0U;
     uint8_t idx1 = 1U;
     uint8_t idx2 = 2U;

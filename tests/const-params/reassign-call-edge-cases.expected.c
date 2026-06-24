@@ -83,8 +83,8 @@ void handleNestedIf(ConstEdge_Config* config) {
     uint8_t errorCode = 0U;
     bool a = true;
     bool b = true;
-    if (a) {
-        if (b) {
+    if (a == true) {
+        if (b == true) {
             errorCode = Handler_setValue(config, 10U);
         }
     }

@@ -1,0 +1,5 @@
+// Issue #1042: a bare boolean parameter in a condition must be rejected (E0701).
+bool h(bool flag) {
+    if (flag) { return true; }
+    return false;
+}

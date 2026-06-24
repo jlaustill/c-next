@@ -10,5 +10,5 @@ void menuLoop(void) {
     bool running = true;
     do {
         running = false;
-    } while (running);
+    } while (running == true);
 }

@@ -1,0 +1,7 @@
+// Issue #1042: a bare boolean local in a condition must be rejected (E0701).
+// Use an explicit comparison instead: if (b = true).
+u32 main() {
+    bool b <- false;
+    if (b) { return 1; }
+    return 0;
+}

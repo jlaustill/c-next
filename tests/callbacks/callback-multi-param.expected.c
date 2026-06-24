@@ -30,7 +30,7 @@ typedef uint32_t (*addThree_fp)(uint32_t, uint32_t, uint32_t);
 
 // Mixed type two-parameter callback
 uint32_t mixedParams(uint32_t val, bool flag) {
-    if (flag) {
+    if (flag == true) {
         return val * 2;
     }
     return val;

@@ -39,13 +39,13 @@ int main(void) {
     int16_t min_val = -32768;
     bool max_gt_min = max_val > min_val;
     bool min_lt_max = min_val < max_val;
-    if (eq1 && !eq2 && eq3) {
-        if (neq1 && !neq2 && neq3) {
-            if (lt1 && !lt2 && lt3 && lt4) {
-                if (gt1 && !gt2 && gt3 && gt4) {
-                    if (lte1 && lte2 && !lte3) {
-                        if (gte1 && gte2 && !gte3) {
-                            if (max_gt_min && min_lt_max) {
+    if (eq1 == true && eq2 == false && eq3 == true) {
+        if (neq1 == true && neq2 == false && neq3 == true) {
+            if (lt1 == true && lt2 == false && lt3 == true && lt4 == true) {
+                if (gt1 == true && gt2 == false && gt3 == true && gt4 == true) {
+                    if (lte1 == true && lte2 == true && lte3 == false) {
+                        if (gte1 == true && gte2 == true && gte3 == false) {
+                            if (max_gt_min == true && min_lt_max == true) {
                                 return 0;
                             }
                         }

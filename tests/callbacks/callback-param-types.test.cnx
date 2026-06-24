@@ -15,7 +15,7 @@ u32 processU32(u32 val) {
 
 // Callback with bool parameter
 u32 processBool(bool val) {
-    if (val) {
+    if (val = true) {
         return 1;
     }
     return 0;

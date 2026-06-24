@@ -18,7 +18,7 @@ u32 addThree(u32 a, u32 b, u32 c) {
 
 // Mixed type two-parameter callback
 u32 mixedParams(u32 val, bool flag) {
-    if (flag) {
+    if (flag = true) {
         return val * 2;
     }
     return val;

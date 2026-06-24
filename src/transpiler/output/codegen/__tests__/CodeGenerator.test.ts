@@ -14922,7 +14922,8 @@ describe("CodeGenerator", () => {
       it("should reject break - not part of C-Next spec", () => {
         const source = `
           void test() {
-            while (true) {
+            u32 i <- 0;
+            while (i < 10) {
               break;
             }
           }

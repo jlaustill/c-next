@@ -28,7 +28,7 @@ scope CommandHandler {
 void handleEnableSpn(ConstCond.Config config) {
     bool enable <- true;
     u8 errorCode <- 0;  // Declaration
-    if (enable) {
+    if (enable = true) {
         errorCode <- global.CommandHandler.setValue(config, 42);  // Reassignment in conditional
     } else {
         errorCode <- global.CommandHandler.setValue(config, 0);
@@ -39,7 +39,7 @@ void handleEnableSpn(ConstCond.Config config) {
 void handleElseBranch(ConstCond.Config config) {
     bool enable <- false;
     u8 errorCode <- 0;
-    if (enable) {
+    if (enable = true) {
         errorCode <- 1;  // No modifying call here
     } else {
         errorCode <- global.CommandHandler.enable(config);  // Modifying call in else
@@ -67,7 +67,7 @@ void handleForLoop(ConstCond.Config config) {
 // Control case: declaration with modifying call (this already works)
 void handleDeclaration(ConstCond.Config config) {
     bool enable <- true;
-    if (enable) {
+    if (enable = true) {
         u8 errorCode <- global.CommandHandler.setValue(config, 42);  // Declaration
     }
 }

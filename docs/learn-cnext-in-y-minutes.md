@@ -65,10 +65,14 @@ x <- ~a;            // NOT
 x <- a << 2;        // Left shift
 x <- a >> 2;        // Right shift
 
-// Logical (same as C)
-if (a && b) { }     // AND
-if (a || b) { }     // OR
-if (!a) { }         // NOT
+// Logical - every operand must itself be an explicit comparison (MISRA 14.4).
+// A bare boolean, a literal, or a negation (!x) in a condition is an error;
+// write the comparison out instead.
+if (x > 0 && y < 10) { }    // AND
+if (x = 0 || y = 0) { }     // OR
+if (flag = false) { }       // NOT: compare against false, not !flag
+// if (a && b) { }          // ERROR: a, b are bare booleans, not comparisons
+// if (!a) { }              // ERROR: use a = false
 
 // Ternary - parentheses required, must be boolean comparison
 u32 max <- (a > b) ? a : b;     // OK
@@ -120,8 +124,8 @@ if (x > 0) {
     doDefault();
 }
 
-// While loop
-while (running) {
+// While loop (condition must be an explicit comparison, not a bare boolean)
+while (running = true) {
     process();
 }
 
@@ -162,7 +166,7 @@ switch (cmd) {
 
 // No break/continue - use structured conditions
 // Instead of: while (true) { if (done) break; }
-while (!done) {
+while (done = false) {
     process();
 }
 

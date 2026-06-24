@@ -50,9 +50,9 @@ int main(void) {
     uint32_t bobLen = getNameLength(bob);
     if (bobLen != 3) return 14;
     bool aliceMatch = compareName(alice, "Alice");
-    if (!aliceMatch) return 15;
+    if (aliceMatch == false) return 15;
     bool bobMatch = compareName(alice, "Bob");
-    if (bobMatch) return 16;
+    if (bobMatch == true) return 16;
     StrMember_Config cfg = {};
     strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
     strncpy(cfg.value, "https://example.com/api/v1", 256); cfg.value[256] = '\0';

@@ -3,5 +3,5 @@ void menuLoop() {
     bool running <- true;
     do {
         running <- false; // Simulated quit
-    } while (running);
+    } while (running = true);
 }

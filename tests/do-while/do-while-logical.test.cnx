@@ -7,5 +7,5 @@ void retryLoop() {
     do {
         attempts +<- 1;
         success <- true; // Simulated result
-    } while (!success && attempts < MAX_RETRIES);
+    } while (success = false && attempts < MAX_RETRIES);
 }

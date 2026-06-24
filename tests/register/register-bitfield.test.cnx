@@ -70,7 +70,7 @@ void main() {
     configureUART();
 
     bool uartReady <- isUARTReady();
-    if (uartReady) {
+    if (uartReady = true) {
         UART.DATA <- 0x55;
     }
 
