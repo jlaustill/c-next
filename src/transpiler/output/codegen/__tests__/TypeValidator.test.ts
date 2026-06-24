@@ -2096,6 +2096,34 @@ describe("TypeValidator", () => {
       ).toThrow("help: use explicit comparison: count > 0 or count != 0");
     });
 
+    it("suggests `= true` for a bare bool operand (Issue #1042)", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "ready",
+          { baseType: "bool", bitWidth: 8, isArray: false, isConst: false },
+        ],
+      ]);
+      setupState({ typeRegistry });
+      const ctx = createFullDoWhileExpression("ready");
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("help: use explicit comparison: ready = true");
+    });
+
+    it("suggests `= false` for a negated bool operand (Issue #1042)", () => {
+      const typeRegistry = new Map<string, TTypeInfo>([
+        [
+          "ready",
+          { baseType: "bool", bitWidth: 8, isArray: false, isConst: false },
+        ],
+      ]);
+      setupState({ typeRegistry });
+      const ctx = createFullDoWhileExpression("!ready");
+      expect(() =>
+        TypeValidator.validateConditionIsBoolean(ctx, "do-while"),
+      ).toThrow("help: use explicit comparison: ready = false");
+    });
+
     it("throws when no andExpression", () => {
       setupState();
       const orExpr = {

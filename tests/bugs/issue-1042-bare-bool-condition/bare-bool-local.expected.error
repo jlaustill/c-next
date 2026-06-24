@@ -1,2 +1,2 @@
 1:0 Code generation failed: Error E0701: if condition must be a boolean expression (comparison or logical operation), not 'b' (MISRA C:2012 Rule 14.4)
-  help: use explicit comparison: b > 0 or b != 0
+  help: use explicit comparison: b = true

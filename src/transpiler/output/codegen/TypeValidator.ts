@@ -757,8 +757,25 @@ class TypeValidator {
   ): void {
     const text = node.getText();
     throw new Error(
-      `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: use explicit comparison: ${text} > 0 or ${text} != 0`,
+      `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: ${TypeValidator._conditionHelp(text)}`,
     );
+  }
+
+  /**
+   * Builds a context-aware "help" suggestion for a rejected condition. For a
+   * boolean operand the correct explicit form is `flag = true` (or `flag = false`
+   * for a negated `!flag`), not a numeric `> 0` comparison. Non-boolean operands
+   * keep the generic `> 0 or != 0` guidance. A member access (`this.flag`) that
+   * does not resolve to a known type falls back to the generic form.
+   */
+  private static _conditionHelp(text: string): string {
+    const isNegated = text.startsWith("!");
+    const base = isNegated ? text.slice(1) : text;
+    const typeInfo = CodeGenState.getVariableTypeInfo(base);
+    if (typeInfo?.baseType === "bool") {
+      return `use explicit comparison: ${base} = ${isNegated ? "false" : "true"}`;
+    }
+    return `use explicit comparison: ${text} > 0 or ${text} != 0`;
   }
 
   // ========================================================================
