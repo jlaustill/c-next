@@ -412,7 +412,10 @@ class StringDeclHelper {
       return { code, handled: true };
     }
 
-    // String variable: need strcpy (cannot use array initialization in C)
+    // String variable: cannot use C array initialization, so declare empty and
+    // copy. Issue #1044: use the same bounded copy as the reassignment path
+    // (strncpy + explicit null terminator via StringUtils.copyWithNull) rather
+    // than an unbounded strcpy, which flawfinder flags as CWE-120.
     // Issue #1030: string-to-string initialization
     if (!CodeGenState.inFunctionBody) {
       throw new Error(
@@ -426,7 +429,7 @@ class StringDeclHelper {
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `${indent}strcpy(${name}, ${srcExpr});`,
+      `${indent}${StringUtils.copyWithNull(name, srcExpr, capacity)}`,
     );
     return { code: lines.join("\n"), handled: true };
   }

@@ -310,7 +310,8 @@ describe("StringDeclHelper", () => {
     });
 
     it("allows assignment when source capacity fits", () => {
-      // Issue #1030: String variable initialization now uses strcpy
+      // Issue #1044: String variable initialization uses a bounded strncpy
+      // (shared with the reassignment path), not an unsafe strcpy (CWE-120).
       const callbacks = {
         ...defaultCallbacks,
         getStringExprCapacity: vi.fn(() => 20),
@@ -338,9 +339,11 @@ describe("StringDeclHelper", () => {
       );
 
       expect(result.handled).toBe(true);
-      // Issue #1030: String variable initialization uses strcpy
+      // Issue #1044: bounded copy, not strcpy
       expect(result.code).toContain('char dest[33] = "";');
-      expect(result.code).toContain("strcpy(dest, smallString)");
+      expect(result.code).toContain("strncpy(dest, smallString, 32);");
+      expect(result.code).toContain("dest[32] = '\\0';");
+      expect(result.code).not.toContain("strcpy(dest, smallString)");
     });
 
     it("throws error for string variable initialization at global scope", () => {
