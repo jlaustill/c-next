@@ -33,9 +33,9 @@ int main(void) {
     int32_t sumInt = static_cast<int32_t>(sum);
     if (sumInt != 4) return 1;
     bool okResult = Api_isOk(Status_Ok);
-    if (!okResult) return 2;
+    if (okResult == false) return 2;
     bool errResult = Api_isOk(Status_Error);
-    if (errResult) return 3;
+    if (errResult == true) return 3;
     uint32_t val = 10U;
     Api_updateValue(val);
     if (val != 11) return 4;

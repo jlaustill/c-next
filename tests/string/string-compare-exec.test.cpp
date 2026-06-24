@@ -12,15 +12,15 @@ int main(void) {
     char a[33] = "Hello";
     char b[33] = "Hello";
     if (strcmp(a, b) != 0) return 1;
-    if (!(strcmp(a, b) == 0)) return 2;
+    if (strcmp(a, b) != 0) return 2;
     if (strcmp(a, "Hello") != 0) return 3;
     char c[33] = "World";
     if (strcmp(a, c) == 0) return 4;
-    if (!(strcmp(a, c) != 0)) return 5;
+    if (strcmp(a, c) == 0) return 5;
     if (strcmp(c, "World") != 0) return 6;
     char upper[33] = "HELLO";
     if (strcmp(a, upper) == 0) return 7;
-    if (!(strcmp(a, upper) != 0)) return 8;
+    if (strcmp(a, upper) == 0) return 8;
     char prefix[33] = "Hell";
     char suffix[33] = "ello";
     if (strcmp(a, prefix) == 0) return 9;
@@ -31,7 +31,7 @@ int main(void) {
     if (strcmp(empty1, a) == 0) return 12;
     char bigHello[65] = "Hello";
     if (strcmp(a, bigHello) != 0) return 13;
-    if (!(strcmp(a, bigHello) == 0)) return 14;
+    if (strcmp(a, bigHello) != 0) return 14;
     if (strcmp("Hello", a) != 0) return 15;
     return 0;
 }

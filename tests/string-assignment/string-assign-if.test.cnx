@@ -3,7 +3,7 @@
 string<32> status <- "Unknown";
 
 void setStatus(bool ok) {
-    if (ok) {
+    if (ok = true) {
         status <- "Success";
     } else {
         status <- "Failure";

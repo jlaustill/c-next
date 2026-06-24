@@ -127,11 +127,11 @@ int main(void) {
         errors = errors + 8U;
     }
     bool isOff = Motor_isOff();
-    if (isOff) {
+    if (isOff == true) {
         errors = errors + 16U;
     }
     bool isLow = Motor_isMode(Motor_EMode_LOW);
-    if (!isLow) {
+    if (isLow == false) {
         errors = errors + 32U;
     }
     Motor_setAtomicMode(Motor_EMode_HIGH);

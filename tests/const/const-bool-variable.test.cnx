@@ -9,22 +9,22 @@ u32 main() {
    
 // Test 1: Read true const into local variable
     bool enabled <- FEATURE_ENABLED;
-    if (!enabled) return 1;
+    if (enabled = false) return 1;
 
    
 // Test 2: Read false const
     bool debug <- DEBUG_MODE;
-    if (debug) return 2;
+    if (debug = true) return 2;
 
    
 // Test 3: Use const in conditional
-    if (!FEATURE_ENABLED) return 3;
-    if (DEBUG_MODE) return 4;
+    if (FEATURE_ENABLED = false) return 3;
+    if (DEBUG_MODE = true) return 4;
 
    
 // Test 4: Use const in logical expression
     bool result <- FEATURE_ENABLED && !DEBUG_MODE;
-    if (!result) return 5;
+    if (result = false) return 5;
 
    
 // Test 5: Use const in ternary

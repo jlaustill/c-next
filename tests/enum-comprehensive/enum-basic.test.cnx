@@ -48,7 +48,7 @@ u32 main() {
 
     // Test 4: Scope enum comparison
     bool isOff <- Motor.isOff();
-    if (isOff) return 4;  // Should NOT be off
+    if (isOff = true) return 4;  // Should NOT be off
 
     return 0;
 }

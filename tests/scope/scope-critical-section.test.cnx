@@ -65,7 +65,7 @@ scope CriticalTest {
     bool internalTryLock() {
         bool acquired <- false;
         critical {
-            if (!this.locked) {
+            if (this.locked = false) {
                 this.locked <- true;
                 acquired <- true;
             }
@@ -138,7 +138,7 @@ scope CriticalTest {
     public bool tryLock() {
         bool acquired <- false;
         critical {
-            if (!this.locked) {
+            if (this.locked = false) {
                 this.locked <- true;
                 acquired <- true;
             }

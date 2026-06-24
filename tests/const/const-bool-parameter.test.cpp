@@ -18,7 +18,7 @@ bool notConstBool(const bool value) {
 }
 
 uint32_t selectByBool(const bool flag, uint32_t ifTrue, uint32_t ifFalse) {
-    if (flag) {
+    if (flag == true) {
         return ifTrue;
     }
     return ifFalse;
@@ -26,13 +26,13 @@ uint32_t selectByBool(const bool flag, uint32_t ifTrue, uint32_t ifFalse) {
 
 int main(void) {
     bool result = readConstBool(true);
-    if (!result) return 1;
+    if (result == false) return 1;
     bool falseResult = readConstBool(false);
-    if (falseResult) return 2;
+    if (falseResult == true) return 2;
     bool notTrue = notConstBool(true);
-    if (notTrue) return 3;
+    if (notTrue == true) return 3;
     bool notFalse = notConstBool(false);
-    if (!notFalse) return 4;
+    if (notFalse == false) return 4;
     uint32_t selected = selectByBool(true, 100U, 200U);
     if (selected != 100) return 5;
     uint32_t selected2 = selectByBool(false, 100U, 200U);

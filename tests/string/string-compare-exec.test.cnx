@@ -6,21 +6,21 @@ i32 main() {
     string<32> a <- "Hello";
     string<32> b <- "Hello";
     if (a != b) return 1; // Should be equal
-    if (!(a = b)) return 2; // Explicit equality check
+    if (a != b) return 2; // Explicit equality check
     if (a != "Hello") return 3; // Compare to literal
 
    
 // Test 4-6: Different strings
     string<32> c <- "World";
     if (a = c) return 4; // Should NOT be equal
-    if (!(a != c)) return 5; // Explicit inequality
+    if (a = c) return 5; // Explicit inequality
     if (c != "World") return 6;
 
    
 // Test 7-9: Case sensitivity
     string<32> upper <- "HELLO";
     if (a = upper) return 7; // "Hello" != "HELLO"
-    if (!(a != upper)) return 8;
+    if (a = upper) return 8;
 
    
 // Test 10-12: Prefix/suffix differences
@@ -40,7 +40,7 @@ i32 main() {
 // Test 13-14: Same content, different capacity
     string<64> bigHello <- "Hello";
     if (a != bigHello) return 13; // Content should match
-    if (!(a = bigHello)) return 14;
+    if (a != bigHello) return 14;
 
    
 // Test 15: Literal comparison both ways

@@ -78,9 +78,9 @@ i32 main() {
 
 // Test 9: Function with comparison
     bool aliceMatch <- compareName(alice, "Alice");
-    if (!aliceMatch) return 15;
+    if (aliceMatch = false) return 15;
     bool bobMatch <- compareName(alice, "Bob");
-    if (bobMatch) return 16; // Should not match
+    if (bobMatch = true) return 16; // Should not match
 
    
 // Test 10: StrMember.Config struct (different capacities)

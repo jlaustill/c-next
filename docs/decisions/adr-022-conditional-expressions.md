@@ -263,6 +263,52 @@ Direct pass-through to C:
 
 ---
 
+## Controlling-Expression Rule (Issue #1042)
+
+**Status: Implemented.** Every controlling expression — `if`, `while`, `for`,
+`do-while`, and the ternary condition — must be an **explicit comparison**.
+After decomposing the expression by `||` and `&&`, **every leaf operand must
+itself be an equality (`=`, `!=`) or relational (`<`, `>`, `<=`, `>=`)
+comparison.** This is enforced uniformly through a single shared validator
+(`TypeValidator.validateConditionIsBoolean` / `validateTernaryCondition` both
+delegate to one recursive check), so a local, a parameter, and a `this.`/
+`global.` scope member are all treated identically — error **E0701**.
+
+This is intentionally **stricter than MISRA C:2012 Rule 14.4**. Rule 14.4 only
+requires the controlling expression to have _essentially Boolean type_, which
+would permit a bare `bool` variable. C-Next additionally forbids the bare form
+so that the comparison is always visible at the point of decision.
+
+```cnx
+bool flag <- false;
+
+// ERROR (E0701): bare boolean — local, parameter, or member alike
+if (flag) { }
+if (this.flag) { }
+while (running) { }
+
+// ERROR (E0701): negation is not a comparison
+if (!flag) { }
+while (!done && tries < MAX) { }   // use: done = false && tries < MAX
+
+// ERROR (E0701): each operand of a logical combination must be a comparison
+if (a && b) { }                    // use: a = true && b = true
+
+// ERROR (E0701): a literal is not a comparison
+if (true) { }
+
+// OK: explicit comparisons
+if (flag = true) { }
+if (this.flag = false) { }
+while (running = true) { }
+if (x > 0 && y != 0) { }
+```
+
+Before this fix only the `this.`/`global.` member form was rejected (member
+access did not resolve through the variable-type lookup that whitelisted bare
+booleans), while bare locals and parameters silently compiled — a divergent
+code path that this change unified.
+
 ## References
 
 - C conditional statements

@@ -25,5 +25,5 @@ void retryLoop(void) {
     do {
         attempts = cnx_clamp_add_u32(attempts, 1U);
         success = true;
-    } while (!success && attempts < MAX_RETRIES);
+    } while (success == false && attempts < MAX_RETRIES);
 }

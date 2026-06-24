@@ -27,7 +27,7 @@ int main(void) {
     char alice[33] = "Alice";
     char bob[65] = "Bob";
     if (strcmp(alice, bob) == 0) return 10;
-    if (!(strcmp(alice, bob) != 0)) return 11;
+    if (strcmp(alice, bob) == 0) return 11;
     char longSmall[33] = "The quick brown fox";
     char longLarge[129] = "The quick brown fox";
     if (strcmp(longSmall, longLarge) != 0) return 12;

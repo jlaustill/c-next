@@ -33,7 +33,7 @@ int main(void) {
     uint8_t buffer[4] = {0xABU, 0xCDU, 0xEFU, 0x12U};
     widget_trigger_flush(w, &area, buffer);
     bool called = widget_flush_was_called;
-    if (!called) return 1;
+    if (called == false) return 1;
     uint16_t ax = widget_flush_area_x;
     if (ax != 10) return 2;
     uint16_t ay = widget_flush_area_y;

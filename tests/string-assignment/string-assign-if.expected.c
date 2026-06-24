@@ -12,7 +12,7 @@
 char status[33] = "Unknown";
 
 void setStatus(bool ok) {
-    if (ok) {
+    if (ok == true) {
         strncpy(status, "Success", 32); status[32] = '\0';
     } else {
         strncpy(status, "Failure", 32); status[32] = '\0';

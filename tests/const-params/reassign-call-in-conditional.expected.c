@@ -32,7 +32,7 @@ uint8_t CommandHandler_enable(ConstCond_Config* cfg) {
 void handleEnableSpn(ConstCond_Config* config) {
     bool enable = true;
     uint8_t errorCode = 0U;
-    if (enable) {
+    if (enable == true) {
         errorCode = CommandHandler_setValue(config, 42U);
     } else {
         errorCode = CommandHandler_setValue(config, 0U);
@@ -43,7 +43,7 @@ void handleEnableSpn(ConstCond_Config* config) {
 void handleElseBranch(ConstCond_Config* config) {
     bool enable = false;
     uint8_t errorCode = 0U;
-    if (enable) {
+    if (enable == true) {
         errorCode = 1U;
     } else {
         errorCode = CommandHandler_enable(config);
@@ -71,7 +71,7 @@ void handleForLoop(ConstCond_Config* config) {
 // Control case: declaration with modifying call (this already works)
 void handleDeclaration(ConstCond_Config* config) {
     bool enable = true;
-    if (enable) {
+    if (enable == true) {
         uint8_t errorCode = CommandHandler_setValue(config, 42U);
     }
 }

@@ -138,7 +138,7 @@ bool CriticalTest_internalTryLock(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        if (!CriticalTest_locked) {
+        if (CriticalTest_locked == false) {
             CriticalTest_locked = true;
             acquired = true;
         }
@@ -221,7 +221,7 @@ bool CriticalTest_tryLock(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        if (!CriticalTest_locked) {
+        if (CriticalTest_locked == false) {
             CriticalTest_locked = true;
             acquired = true;
         }

@@ -31,6 +31,6 @@ int main(void) {
     EGlobal fromScope = Test_getGlobalEnum();
     if (fromScope != EGlobal_A) return 1;
     bool testResult = Test_testGlobalFunction();
-    if (!testResult) return 2;
+    if (testResult == false) return 2;
     return 0;
 }

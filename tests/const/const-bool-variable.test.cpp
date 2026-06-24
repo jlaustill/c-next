@@ -15,13 +15,13 @@ extern const bool DEBUG_MODE = false;
 
 int main(void) {
     bool enabled = FEATURE_ENABLED;
-    if (!enabled) return 1;
+    if (enabled == false) return 1;
     bool debug = DEBUG_MODE;
-    if (debug) return 2;
-    if (!FEATURE_ENABLED) return 3;
-    if (DEBUG_MODE) return 4;
+    if (debug == true) return 2;
+    if (FEATURE_ENABLED == false) return 3;
+    if (DEBUG_MODE == true) return 4;
     bool result = FEATURE_ENABLED && !DEBUG_MODE;
-    if (!result) return 5;
+    if (result == false) return 5;
     uint32_t value = (FEATURE_ENABLED == true) ? 100U : 0U;
     if (value != 100) return 6;
     uint32_t debugVal = (DEBUG_MODE == true) ? 1U : 0U;

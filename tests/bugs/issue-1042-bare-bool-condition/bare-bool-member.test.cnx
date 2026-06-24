@@ -1,0 +1,9 @@
+// Issue #1042: a bare boolean scope member in a condition must be rejected (E0701).
+// (Already rejected before the fix; kept as a regression guard for consistency.)
+scope S {
+    bool flag <- false;
+    public bool g() {
+        if (this.flag) { return true; }
+        return false;
+    }
+}

@@ -32,7 +32,7 @@ u32 main() {
 
     // Test using global function from scope
     bool testResult <- Test.testGlobalFunction();
-    if (!testResult) return 2;
+    if (testResult = false) return 2;
 
     return 0;
 }

@@ -36,6 +36,6 @@ int main(void) {
     Motor_EMode motorMode = Motor_getMode();
     if (motorMode != Motor_EMode_LOW) return 3;
     bool isOff = Motor_isOff();
-    if (isOff) return 4;
+    if (isOff == true) return 4;
     return 0;
 }

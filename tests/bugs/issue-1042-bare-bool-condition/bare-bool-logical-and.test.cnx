@@ -1,0 +1,6 @@
+// Issue #1042: each operand of a logical condition must itself be a comparison.
+// 'a && b' has no comparison; must be rejected (E0701). Use (a = true) && (b = true).
+bool h(bool a, bool b) {
+    if (a && b) { return true; }
+    return false;
+}

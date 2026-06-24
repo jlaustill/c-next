@@ -35,7 +35,7 @@ u32 main() {
 
     // Verify callback was called
     bool called <- global.widget_flush_was_called;
-    if (!called) return 1;
+    if (called = false) return 1;
 
     // Verify area was passed correctly
     u16 ax <- global.widget_flush_area_x;

@@ -40,8 +40,8 @@ void handleNestedIf(ConstEdge.Config config) {
     u8 errorCode <- 0;
     bool a <- true;
     bool b <- true;
-    if (a) {
-        if (b) {
+    if (a = true) {
+        if (b = true) {
             errorCode <- global.Handler.setValue(config, 10);  // Deeply nested
         }
     }

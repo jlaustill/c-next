@@ -657,48 +657,7 @@ class TypeValidator {
   // ========================================================================
 
   static validateTernaryCondition(ctx: Parser.OrExpressionContext): void {
-    const text = ctx.getText();
-
-    if (ctx.andExpression().length > 1) {
-      return;
-    }
-
-    const andExpr = ctx.andExpression(0);
-    if (!andExpr) {
-      throw new Error(
-        `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-      );
-    }
-
-    if (andExpr.equalityExpression().length > 1) {
-      return;
-    }
-
-    const equalityExpr = andExpr.equalityExpression(0);
-    if (!equalityExpr) {
-      throw new Error(
-        `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-      );
-    }
-
-    if (equalityExpr.relationalExpression().length > 1) {
-      return;
-    }
-
-    const relationalExpr = equalityExpr.relationalExpression(0);
-    if (!relationalExpr) {
-      throw new Error(
-        `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-      );
-    }
-
-    if (relationalExpr.bitwiseOrExpression().length > 1) {
-      return;
-    }
-
-    throw new Error(
-      `Error: Ternary condition must be a boolean expression (comparison or logical operation), not '${text}'`,
-    );
+    TypeValidator._validateConditionOrExpression(ctx, "ternary");
   }
 
   static validateNoNestedTernary(
@@ -730,75 +689,76 @@ class TypeValidator {
       );
     }
 
-    const orExpr = orExprs[0];
-    const text = orExpr.getText();
+    TypeValidator._validateConditionOrExpression(orExprs[0], conditionType);
+  }
 
-    if (orExpr.andExpression().length > 1) {
-      return;
+  /**
+   * MISRA C:2012 Rule 14.4 (Issue #1042): a controlling expression must be an
+   * explicit comparison. Every leaf operand — after decomposing `||` and `&&` —
+   * must itself be an equality (`=`, `!=`) or relational (`<`, `>`, `<=`, `>=`)
+   * comparison. A bare value, a bare boolean (local, parameter, or `this.`/
+   * `global.` member), a literal, or a negation (`!x`) is rejected; use an
+   * explicit form such as `x = true`. This is the single decision point shared
+   * by `if`/`while`/`for`/`do-while` and ternary conditions.
+   */
+  private static _validateConditionOrExpression(
+    orExpr: Parser.OrExpressionContext,
+    conditionType: string,
+  ): void {
+    const andExprs = orExpr.andExpression();
+    if (andExprs.length === 0) {
+      TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
     }
 
-    const andExpr = orExpr.andExpression(0);
-    if (!andExpr) {
-      throw new Error(
-        `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
-      );
-    }
+    for (const andExpr of andExprs) {
+      const equalityExprs = andExpr.equalityExpression();
+      if (equalityExprs.length === 0) {
+        TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
+      }
 
-    if (andExpr.equalityExpression().length > 1) {
-      return;
+      for (const equalityExpr of equalityExprs) {
+        TypeValidator._validateConditionIsComparison(
+          equalityExpr,
+          orExpr,
+          conditionType,
+        );
+      }
     }
+  }
 
-    const equalityExpr = andExpr.equalityExpression(0);
-    if (!equalityExpr) {
-      throw new Error(
-        `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
-      );
-    }
-
+  private static _validateConditionIsComparison(
+    equalityExpr: Parser.EqualityExpressionContext,
+    orExpr: Parser.OrExpressionContext,
+    conditionType: string,
+  ): void {
+    // An equality operator (`=`, `!=`) makes this operand a comparison.
     if (equalityExpr.relationalExpression().length > 1) {
       return;
     }
 
     const relationalExpr = equalityExpr.relationalExpression(0);
     if (!relationalExpr) {
-      throw new Error(
-        `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)`,
-      );
+      TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
+      return;
     }
 
+    // A relational operator (`<`, `>`, `<=`, `>=`) makes this operand a comparison.
     if (relationalExpr.bitwiseOrExpression().length > 1) {
       return;
     }
 
-    const bitwiseOrExpr = relationalExpr.bitwiseOrExpression(0);
-    if (bitwiseOrExpr && TypeValidator._isBooleanExpression(bitwiseOrExpr)) {
-      return;
-    }
+    // No comparison operator: a bare value, bare boolean, literal, or negation.
+    TypeValidator._throwConditionNotBoolean(equalityExpr, conditionType);
+  }
 
+  private static _throwConditionNotBoolean(
+    node: Parser.OrExpressionContext | Parser.EqualityExpressionContext,
+    conditionType: string,
+  ): void {
+    const text = node.getText();
     throw new Error(
       `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: use explicit comparison: ${text} > 0 or ${text} != 0`,
     );
-  }
-
-  private static _isBooleanExpression(
-    ctx: Parser.BitwiseOrExpressionContext,
-  ): boolean {
-    const text = ctx.getText();
-
-    if (text === "true" || text === "false") {
-      return true;
-    }
-
-    if (text.startsWith("!")) {
-      return true;
-    }
-
-    const typeInfo = CodeGenState.getVariableTypeInfo(text);
-    if (typeInfo?.baseType === "bool") {
-      return true;
-    }
-
-    return false;
   }
 
   // ========================================================================

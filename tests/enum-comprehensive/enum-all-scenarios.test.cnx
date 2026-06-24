@@ -127,13 +127,13 @@ u32 main() {
 
     // --- Test 6: Scope enum direct comparison ---
     bool isOff <- Motor.isOff();
-    if (isOff) {
+    if (isOff = true) {
         errors <- errors + 16;  // Should NOT be off (it's LOW)
     }
 
     // --- Test 7: Scope enum parameter comparison ---
     bool isLow <- Motor.isMode(Motor.EMode.LOW);
-    if (!isLow) {
+    if (isLow = false) {
         errors <- errors + 32;
     }
 

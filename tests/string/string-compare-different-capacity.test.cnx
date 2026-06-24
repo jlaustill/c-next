@@ -31,7 +31,7 @@ i32 main() {
     string<32> alice <- "Alice";
     string<64> bob <- "Bob";
     if (alice = bob) return 10; // Should NOT be equal
-    if (!(alice != bob)) return 11; // Should be different
+    if (alice = bob) return 11; // Should be different
 
    
 // Test 13-14: Longer strings with different capacities
