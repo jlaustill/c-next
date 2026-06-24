@@ -9,6 +9,6 @@
 void test(void) {
     char source[65] = "Hello, World!";
     char greeting[6] = "";
-        strncpy(greeting, source + 0, 5);
-        greeting[5] = '\0';
+    strncpy(greeting, source + 0, 5);
+    greeting[5] = '\0';
 }
