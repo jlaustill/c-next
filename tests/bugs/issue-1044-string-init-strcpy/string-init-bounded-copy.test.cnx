@@ -1,0 +1,12 @@
+// test-execution
+// Issue #1044: initializing a string from another string variable must use a
+// bounded copy (strncpy + null terminator), not an unbounded strcpy (CWE-120,
+// flawfinder MS-banned). This must match the reassignment code path exactly.
+i32 main() {
+    string<32> small <- "Test";
+    string<64> big <- small;          // init from variable
+    if (big != "Test") return 1;
+    if (big.char_count != 4) return 2;
+    if (big.capacity != 64) return 3;
+    return 0;
+}
