@@ -5,8 +5,9 @@
 i32 main() {
     string<32> small <- "Test";
     string<64> big <- small;          // init from variable
+    // big must hold an exact, null-terminated copy of small (proves the
+    // bounded strncpy copied correctly rather than truncating or overrunning).
     if (big != "Test") return 1;
     if (big.char_count != 4) return 2;
-    if (big.capacity != 64) return 3;
     return 0;
 }

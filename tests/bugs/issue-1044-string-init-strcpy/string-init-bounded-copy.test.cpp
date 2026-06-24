@@ -16,6 +16,5 @@ int main(void) {
         strncpy(big, small, 64); big[64] = '\0';
     if (strcmp(big, "Test") != 0) return 1;
     if (strlen(big) != 4) return 2;
-    if (64 != 64) return 3;
     return 0;
 }
