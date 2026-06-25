@@ -1,13 +1,13 @@
 /**
- * Test execution options for CI optimization
+ * Test execution options.
  *
- * These flags allow splitting the test pipeline:
- * - transpileOnly: Only run transpilation + snapshot comparison (no compile/execute)
- * - executeOnly: Skip transpilation, assume .test.c files exist (compile/execute only)
+ * - transpileOnly: Only run transpilation + snapshot comparison (no compile/execute).
+ *   Useful as a fast local check. The full pipeline (transpile + compile + execute)
+ *   is the default and is what CI runs, so every test-execution test is always
+ *   re-transpiled in the same pass that compiles and runs it (Issue #1018).
  */
 interface ITestOptions {
   transpileOnly?: boolean;
-  executeOnly?: boolean;
 }
 
 export default ITestOptions;
