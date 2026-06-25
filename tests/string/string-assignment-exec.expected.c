@@ -11,18 +11,18 @@
 int main(void) {
     char small[33] = "Test";
     char big[65] = "";
-        strncpy(big, small, 64); big[64] = '\0';
+    strncpy(big, small, 64); big[64] = '\0';
     if (strlen(big) != 4) return 1;
     if (strcmp(big, "Test") != 0) return 2;
     if (64 != 64) return 3;
     char source[17] = "Hello World";
     char dest[33] = "";
-        strncpy(dest, source, 32); dest[32] = '\0';
+    strncpy(dest, source, 32); dest[32] = '\0';
     if (strlen(dest) != 11) return 4;
     if (strcmp(dest, "Hello World") != 0) return 5;
     char emptySource[33] = "";
     char emptyDest[65] = "";
-        strncpy(emptyDest, emptySource, 64); emptyDest[64] = '\0';
+    strncpy(emptyDest, emptySource, 64); emptyDest[64] = '\0';
     if (strlen(emptyDest) != 0) return 6;
     if (strcmp(emptyDest, "") != 0) return 7;
     char local[33] = "First";

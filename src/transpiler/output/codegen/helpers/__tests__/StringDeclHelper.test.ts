@@ -346,6 +346,44 @@ describe("StringDeclHelper", () => {
       expect(result.code).not.toContain("strcpy(dest, smallString)");
     });
 
+    it("does not indent continuation lines (the block emitter owns indentation) — Issue #1037", () => {
+      // indentLevel = 1 (beforeEach). generateBlock prefixes every line of a
+      // statement, so the helper must NOT add its own indent or continuation
+      // lines double-indent.
+      const callbacks = {
+        ...defaultCallbacks,
+        getStringExprCapacity: vi.fn(() => 20),
+        generateExpression: vi.fn(() => "smallString"),
+      };
+
+      const typeCtx = {
+        stringType: () => ({
+          INTEGER_LITERAL: () => ({ getText: () => "32" }),
+        }),
+      } as never;
+
+      const expression = {
+        getText: () => "smallString",
+      } as never;
+
+      const result = StringDeclHelper.generateStringDecl(
+        typeCtx,
+        "dest",
+        expression,
+        [],
+        { extern: "", const: "", atomic: "", volatile: "" },
+        false,
+        callbacks,
+      );
+
+      const lines = result.code.split("\n");
+      expect(lines[0]).toBe('char dest[33] = "";');
+      // Continuation line must have no leading whitespace of its own.
+      expect(lines[1]).toBe(
+        "strncpy(dest, smallString, 32); dest[32] = '\\0';",
+      );
+    });
+
     it("throws error for string variable initialization at global scope", () => {
       // Issue #1030: String variable initialization requires function body
       CodeGenState.inFunctionBody = false;
@@ -414,12 +452,15 @@ describe("StringDeclHelper", () => {
       );
 
       expect(result.handled).toBe(true);
-      expect(result.code).toContain('char combined[33] = "";');
-      expect(result.code).toContain("strncpy(combined, str1, 32)");
-      expect(result.code).toContain(
-        "strncat(combined, str2, 32 - strlen(combined))",
+      // Issue #1037: every line carries no indent of its own (the block emitter
+      // prefixes each line); continuation lines must not double-indent.
+      const concatLines = result.code.split("\n");
+      expect(concatLines[0]).toBe('char combined[33] = "";');
+      expect(concatLines[1]).toBe("strncpy(combined, str1, 32);");
+      expect(concatLines[2]).toBe(
+        "strncat(combined, str2, 32 - strlen(combined));",
       );
-      expect(result.code).toContain("combined[32] = '\\0';");
+      expect(concatLines[3]).toBe("combined[32] = '\\0';");
     });
 
     it("throws error for concatenation at global scope", () => {
@@ -563,9 +604,11 @@ describe("StringDeclHelper", () => {
       );
 
       expect(result.handled).toBe(true);
-      expect(result.code).toContain('char sub[11] = "";');
-      expect(result.code).toContain("strncpy(sub, srcStr + 0, 5)");
-      expect(result.code).toContain("sub[5] = '\\0';");
+      // Issue #1037: continuation lines carry no indent of their own.
+      const subLines = result.code.split("\n");
+      expect(subLines[0]).toBe('char sub[11] = "";');
+      expect(subLines[1]).toBe("strncpy(sub, srcStr + 0, 5);");
+      expect(subLines[2]).toBe("sub[5] = '\\0';");
     });
 
     it("throws error for substring at global scope", () => {

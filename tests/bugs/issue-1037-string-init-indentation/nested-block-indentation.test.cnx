@@ -1,0 +1,18 @@
+// test-execution
+// Issue #1037: string init / concatenation / substring DECLARATIONS inside a
+// nested block (depth 2) must keep their continuation lines aligned with the
+// declaration line. This is the recursive-indent case the multi-line emitter
+// is most fragile at — generateBlock prefixes every line per nesting level.
+i32 main() {
+    bool gate <- true;
+    if (gate = true) {
+        string<16> base <- "Hello";
+        string<32> copied <- base;          // init from variable
+        string<32> joined <- base + base;   // concatenation
+        string<8> part <- base[0, 3];       // substring
+        if (copied != "Hello") return 1;
+        if (joined != "HelloHello") return 2;
+        if (part != "Hel") return 3;
+    }
+    return 0;
+}

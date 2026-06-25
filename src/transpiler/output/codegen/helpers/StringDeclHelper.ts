@@ -13,7 +13,6 @@
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
-import FormatUtils from "../../../../utils/FormatUtils.js";
 import StringUtils from "../../../../utils/StringUtils.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 
@@ -425,11 +424,12 @@ class StringDeclHelper {
     }
 
     const srcExpr = callbacks.generateExpression(expression);
-    const indent = FormatUtils.indent(CodeGenState.indentLevel);
+    // Issue #1037: continuation lines carry no indent of their own — the block
+    // emitter (CodeGenerator.generateBlock) prefixes every line.
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `${indent}${StringUtils.copyWithNull(name, srcExpr, capacity)}`,
+      StringUtils.copyWithNull(name, srcExpr, capacity),
     );
     return { code: lines.join("\n"), handled: true };
   }
@@ -640,14 +640,14 @@ class StringDeclHelper {
       );
     }
 
-    // Generate safe concatenation code
-    const indent = FormatUtils.indent(CodeGenState.indentLevel);
+    // Generate safe concatenation code. Issue #1037: continuation lines carry
+    // no indent of their own — the block emitter prefixes every line.
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `${indent}strncpy(${name}, ${concatOps.left}, ${capacity});`,
-      `${indent}strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`,
-      `${indent}${name}[${capacity}] = ${C_NULL_CHAR};`,
+      `strncpy(${name}, ${concatOps.left}, ${capacity});`,
+      `strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`,
+      `${name}[${capacity}] = ${C_NULL_CHAR};`,
     );
     return { code: lines.join("\n"), handled: true };
   }
@@ -691,13 +691,13 @@ class StringDeclHelper {
       );
     }
 
-    // Generate safe substring extraction code
-    const indent = FormatUtils.indent(CodeGenState.indentLevel);
+    // Generate safe substring extraction code. Issue #1037: continuation lines
+    // carry no indent of their own — the block emitter prefixes every line.
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `${indent}strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`,
-      `${indent}${name}[${substringOps.length}] = ${C_NULL_CHAR};`,
+      `strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`,
+      `${name}[${substringOps.length}] = ${C_NULL_CHAR};`,
     );
     return { code: lines.join("\n"), handled: true };
   }
