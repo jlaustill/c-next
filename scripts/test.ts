@@ -26,7 +26,6 @@
  *   npm test -- --jobs 4                  # Run with 4 parallel workers
  *   npm test -- --jobs 1                  # Run sequentially (no parallelism)
  *   npm test -- --transpile-only          # Transpile + snapshot comparison only (no compile/execute)
- *   npm test -- --execute-only            # Compile + execute only (assumes transpiled files exist)
  *   npm test -- tests/enum                # Run specific directory
  *   npm test -- tests/enum/my.test.cnx    # Run single test file
  */
@@ -413,22 +412,10 @@ async function main(): Promise<void> {
   const updateMode = args.includes("--update") || args.includes("-u");
   const quietMode = args.includes("--quiet") || args.includes("-q");
   const transpileOnly = args.includes("--transpile-only");
-  const executeOnly = args.includes("--execute-only");
-
-  // Validate mutually exclusive options
-  if (transpileOnly && executeOnly) {
-    console.error(
-      chalk.red(
-        "Error: --transpile-only and --execute-only are mutually exclusive",
-      ),
-    );
-    process.exit(1);
-  }
 
   // Build test options
   const testOptions: ITestOptions = {
     transpileOnly,
-    executeOnly,
   };
 
   // Parse --jobs argument
@@ -496,8 +483,6 @@ async function main(): Promise<void> {
     // Show test mode
     if (transpileOnly) {
       console.log(chalk.cyan("Mode: transpile-only (skip compile/execute)"));
-    } else if (executeOnly) {
-      console.log(chalk.cyan("Mode: execute-only (skip transpilation)"));
     } else {
       // Show available validation tools
       console.log(chalk.cyan(`Validation: ${tools.gcc ? "gcc" : "(no gcc)"}`));

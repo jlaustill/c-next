@@ -263,7 +263,6 @@ export default new Registry();
 | `// test-cpp-only`       | C++ mode only                                           |
 | `// test-execution`      | Execute and validate (MUST use `if (x != y) return N;`) |
 | `// test-error`          | Expect compile error (create `.expected.error`)         |
-| `// test-no-exec`        | Compile only, no execution                              |
 | `// test-transpile-only` | Skip compilation entirely                               |
 
 **Execution tests MUST validate every result** with unique return codes (1, 2, 3...). Return 0 only if ALL pass.

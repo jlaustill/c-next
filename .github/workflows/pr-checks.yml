@@ -124,10 +124,13 @@ jobs:
             src/transpiler/logic/parser/cpp/grammar/
 
   # ============================================================================
-  # STAGE 2a: Transpile tests (generates C/C++ files for validation)
+  # STAGE 2: Integration + bugs tests — full pipeline (transpile + compile +
+  # execute) in one pass, so every test-execution test is re-transpiled in the
+  # same run that compiles and executes it (Issue #1018). Also generates the
+  # C/C++ files consumed by the static-analysis stage.
   # ============================================================================
-  integration-transpile:
-    name: Integration Transpile
+  integration:
+    name: Integration Tests
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
@@ -153,8 +156,8 @@ jobs:
         with:
           name: build-output
 
-      - name: Transpile tests (snapshot comparison only)
-        run: npm run integration:transpile
+      - name: Run integration tests (transpile + compile + execute)
+        run: npm test
 
       - name: Upload generated test files
         uses: actions/upload-artifact@v4
@@ -166,8 +169,8 @@ jobs:
             tests/**/*.test.cpp
             tests/**/*.test.h
 
-  bugs-transpile:
-    name: Bugs Regression Transpile
+  bugs:
+    name: Bugs Regression
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
     needs: [build]
 
@@ -193,8 +196,8 @@ jobs:
         with:
           name: build-output
 
-      - name: Transpile bugs/ tests (snapshot comparison only)
-        run: npm run integration:bugs:transpile
+      - name: Run bugs/ regression tests (transpile + compile + execute)
+        run: npm run test:bugs
 
       - name: Upload generated bugs test files
         uses: actions/upload-artifact@v4
@@ -206,81 +209,6 @@ jobs:
             bugs/**/*.test.cpp
             bugs/**/*.test.h
             bugs/**/*.test.hpp
-
-  # ============================================================================
-  # STAGE 2b (parallel): Execute tests + other test suites
-  # ============================================================================
-  integration-execute:
-    name: Integration Execute
-    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
-    needs: [integration-transpile]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Volta
-        uses: volta-cli/action@v4
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-npm-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
-
-      - name: Download generated test files
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-test-files
-          path: tests
-
-      - name: Execute tests (compile + run)
-        run: npm run integration:execute
-
-  bugs-execute:
-    name: Bugs Regression Execute
-    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
-    needs: [bugs-transpile]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Volta
-        uses: volta-cli/action@v4
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-npm-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
-
-      - name: Download generated bugs test files
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-bugs-files
-          path: bugs
-
-      - name: Execute bugs/ tests (compile + run)
-        run: npm run integration:bugs:execute
 
   unit-tests:
     name: Unit Tests
@@ -388,7 +316,7 @@ jobs:
   verify-clean:
     name: Verify Clean
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
-    needs: [integration-transpile]
+    needs: [integration]
 
     steps:
       - name: Checkout code
@@ -419,7 +347,7 @@ jobs:
   bugs-verify-clean:
     name: Bugs Verify Clean
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
-    needs: [bugs-transpile]
+    needs: [bugs]
 
     steps:
       - name: Checkout code
@@ -453,7 +381,7 @@ jobs:
   c-validation:
     name: C Static Analysis (${{ matrix.tool }})
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
-    needs: [integration-transpile]
+    needs: [integration]
     # Advisory: pre-existing MISRA violations exist; don't block PR merges
     continue-on-error: true
     strategy:
@@ -529,10 +457,8 @@ jobs:
       [
         lint,
         build,
-        integration-transpile,
-        integration-execute,
-        bugs-transpile,
-        bugs-execute,
+        integration,
+        bugs,
         unit-tests,
         cli-tests,
         grammar-coverage,
@@ -550,10 +476,8 @@ jobs:
           FAILED=0
           [ "${{ needs.lint.result }}" != "success" ] && echo "❌ Static Analysis" && FAILED=1 || echo "✅ Static Analysis"
           [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
-          [ "${{ needs.integration-transpile.result }}" != "success" ] && echo "❌ Integration Transpile" && FAILED=1 || echo "✅ Integration Transpile"
-          [ "${{ needs.integration-execute.result }}" != "success" ] && echo "❌ Integration Execute" && FAILED=1 || echo "✅ Integration Execute"
-          [ "${{ needs.bugs-transpile.result }}" != "success" ] && echo "❌ Bugs Regression Transpile" && FAILED=1 || echo "✅ Bugs Regression Transpile"
-          [ "${{ needs.bugs-execute.result }}" != "success" ] && echo "❌ Bugs Regression Execute" && FAILED=1 || echo "✅ Bugs Regression Execute"
+          [ "${{ needs.integration.result }}" != "success" ] && echo "❌ Integration Tests" && FAILED=1 || echo "✅ Integration Tests"
+          [ "${{ needs.bugs.result }}" != "success" ] && echo "❌ Bugs Regression" && FAILED=1 || echo "✅ Bugs Regression"
           [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
           [ "${{ needs.cli-tests.result }}" != "success" ] && echo "❌ CLI Tests" && FAILED=1 || echo "✅ CLI Tests"
           [ "${{ needs.grammar-coverage.result }}" != "success" ] && echo "❌ Grammar Coverage" && FAILED=1 || echo "✅ Grammar Coverage"
