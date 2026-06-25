@@ -737,108 +737,102 @@ class TestUtils {
     // Always transpile via CLI: every test is re-transpiled in the same pass
     // that compiles and executes it, so a stale .cnx can never be silently
     // validated against pre-existing generated files (Issue #1018).
-    {
-      const transpileResult = transpileViaCli(cnxFile, rootDir, mode === "cpp");
+    const transpileResult = transpileViaCli(cnxFile, rootDir, mode === "cpp");
 
-      if (!transpileResult.success) {
-        const errors = transpileResult.errors
-          .map((e) => `${e.line}:${e.column} ${e.message}`)
-          .join("\n");
-        result.error = `Transpilation failed: ${errors || transpileResult.stderr}`;
-        return result;
+    if (!transpileResult.success) {
+      const errors = transpileResult.errors
+        .map((e) => `${e.line}:${e.column} ${e.message}`)
+        .join("\n");
+      result.error = `Transpilation failed: ${errors || transpileResult.stderr}`;
+      return result;
+    }
+
+    result.transpileSuccess = true;
+
+    // Transpile helper files via CLI
+    // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
+    // that would move tracked helper files to temp locations. Instead, let
+    // helpers generate in place (they're tracked in git anyway).
+    for (const helperCnx of helperCnxFiles) {
+      const helperBaseName = basename(helperCnx, ".cnx");
+      const implExt = mode === "cpp" ? "cpp" : "c";
+
+      // The helper file will be generated at the default location
+      const helperImplFile = join(
+        dirname(helperCnx),
+        `${helperBaseName}.${implExt}`,
+      );
+
+      // Transpile WITHOUT -o to avoid renaming tracked files
+      const helperResult = transpileViaCli(helperCnx, rootDir, mode === "cpp");
+
+      if (helperResult.success) {
+        helperImplFiles.push(helperImplFile);
       }
+    }
 
-      result.transpileSuccess = true;
+    // No cleanup needed - helper files are tracked in git and should persist
 
-      // Transpile helper files via CLI
-      // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
-      // that would move tracked helper files to temp locations. Instead, let
-      // helpers generate in place (they're tracked in git anyway).
-      for (const helperCnx of helperCnxFiles) {
-        const helperBaseName = basename(helperCnx, ".cnx");
-        const implExt = mode === "cpp" ? "cpp" : "c";
+    const hasExpectedImpl = existsSync(expectedImplPath);
+    const hasExpectedHeader = existsSync(expectedHeaderPath);
 
-        // The helper file will be generated at the default location
-        const helperImplFile = join(
-          dirname(helperCnx),
-          `${helperBaseName}.${implExt}`,
-        );
-
-        // Transpile WITHOUT -o to avoid renaming tracked files
-        const helperResult = transpileViaCli(
-          helperCnx,
-          rootDir,
-          mode === "cpp",
-        );
-
-        if (helperResult.success) {
-          helperImplFiles.push(helperImplFile);
-        }
-      }
-
-      // No cleanup needed - helper files are tracked in git and should persist
-
-      const hasExpectedImpl = existsSync(expectedImplPath);
-      const hasExpectedHeader = existsSync(expectedHeaderPath);
-
-      // Update mode: create/update snapshots
-      if (updateMode) {
-        writeFileSync(paths.expectedImpl, transpileResult.code);
-        if (transpileResult.headerCode) {
-          writeFileSync(paths.expectedHeader, transpileResult.headerCode);
-        }
-        result.snapshotMatch = true;
-        result.headerMatch = true;
-        result.compileSuccess = true;
-        result.execSuccess = true;
-        return result;
-      }
-
-      // No expected file - skip this mode
-      if (!hasExpectedImpl) {
-        result.error = `No expected file: ${paths.expectedImpl}`;
-        return result;
-      }
-
-      // Compare implementation snapshot
-      const expectedImpl = readFileSync(expectedImplPath, "utf-8");
-      if (
-        TestUtils.normalize(transpileResult.code) !==
-        TestUtils.normalize(expectedImpl)
-      ) {
-        result.error = `${mode.toUpperCase()} output mismatch`;
-        result.expected = expectedImpl;
-        result.actual = transpileResult.code;
-        return result;
+    // Update mode: create/update snapshots
+    if (updateMode) {
+      writeFileSync(paths.expectedImpl, transpileResult.code);
+      if (transpileResult.headerCode) {
+        writeFileSync(paths.expectedHeader, transpileResult.headerCode);
       }
       result.snapshotMatch = true;
-
-      // Compare header snapshot (if headers were generated)
-      if (transpileResult.headerCode) {
-        if (!hasExpectedHeader) {
-          result.error = `Missing ${expectedHeaderPath} - headers were generated but no snapshot exists`;
-          return result;
-        }
-        const expectedHeader = readFileSync(expectedHeaderPath, "utf-8");
-        if (
-          TestUtils.normalize(transpileResult.headerCode) !==
-          TestUtils.normalize(expectedHeader)
-        ) {
-          result.error = `${mode.toUpperCase()} header mismatch`;
-          result.expected = expectedHeader;
-          result.actual = transpileResult.headerCode;
-          return result;
-        }
-      }
       result.headerMatch = true;
+      result.compileSuccess = true;
+      result.execSuccess = true;
+      return result;
+    }
 
-      // transpileOnly mode: Skip compilation and execution
-      if (options.transpileOnly) {
-        result.compileSuccess = true;
-        result.execSuccess = true;
-        result.skippedExec = true;
+    // No expected file - skip this mode
+    if (!hasExpectedImpl) {
+      result.error = `No expected file: ${paths.expectedImpl}`;
+      return result;
+    }
+
+    // Compare implementation snapshot
+    const expectedImpl = readFileSync(expectedImplPath, "utf-8");
+    if (
+      TestUtils.normalize(transpileResult.code) !==
+      TestUtils.normalize(expectedImpl)
+    ) {
+      result.error = `${mode.toUpperCase()} output mismatch`;
+      result.expected = expectedImpl;
+      result.actual = transpileResult.code;
+      return result;
+    }
+    result.snapshotMatch = true;
+
+    // Compare header snapshot (if headers were generated)
+    if (transpileResult.headerCode) {
+      if (!hasExpectedHeader) {
+        result.error = `Missing ${expectedHeaderPath} - headers were generated but no snapshot exists`;
         return result;
       }
+      const expectedHeader = readFileSync(expectedHeaderPath, "utf-8");
+      if (
+        TestUtils.normalize(transpileResult.headerCode) !==
+        TestUtils.normalize(expectedHeader)
+      ) {
+        result.error = `${mode.toUpperCase()} header mismatch`;
+        result.expected = expectedHeader;
+        result.actual = transpileResult.headerCode;
+        return result;
+      }
+    }
+    result.headerMatch = true;
+
+    // transpileOnly mode: Skip compilation and execution
+    if (options.transpileOnly) {
+      result.compileSuccess = true;
+      result.execSuccess = true;
+      result.skippedExec = true;
+      return result;
     }
 
     // Skip compilation for transpile-only tests (per-file marker)
