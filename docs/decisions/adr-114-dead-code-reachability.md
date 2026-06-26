@@ -4,7 +4,7 @@
 **Date:** 2026-06-26
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-112 (All-Paths-Return), ADR-110 (DO-178C Compliance), ADR-113 (Forever Loops)
-**Related Issues:** #849 (MISRA C:2012 Rule 2.2 — No dead code), #839 (MISRA breakdown parent)
+**Related Issues:** #849 (MISRA 2.1/2.2 — No unreachable / dead code; the active issue) — formerly part of the now-closed #839 MISRA-breakdown parent
 
 ## Context
 
@@ -125,6 +125,9 @@ the rule's introduction.
   runs on the post-preprocessor tree so flagged-out code is not analyzed.
 - **Rollout.** Land behind a flag first, or straight to an error once the examples are clean?
 - **Error code:** confirm **E0706** (next free after E0704; E0705 is reserved by ADR-113).
+- **Back-reference ADR-112.** When this ADR is accepted/implemented, update ADR-112's
+  _Related ADRs_ to include ADR-114 — this pass reuses (the dual of) ADR-112's `definitelyReturns`
+  machinery. (Documentation counterpart, not a code change.)
 
 ## References
 

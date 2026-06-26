@@ -145,7 +145,7 @@ ADRs sharing a single divergence primitive**:
   pass (unreachable code after `return`, after fully-returning `if`/`else`, etc.). It is a
   **breaking** change and is independently motivated by MISRA 2.1/2.2 and DO-178C.
 
-Holding to one shared primitive (rather than ADR-114 re-deriving reachability) is required by
+Adhering to a single shared primitive (rather than ADR-114 re-deriving reachability) is required by
 the project's "No Duplicate Code Paths" rule.
 
 ## Migration Impact
@@ -193,6 +193,9 @@ transpiles correctly.)
   rewrite and the `void` conversion?
 - **Grammar placement:** add `foreverStatement` as a new alternative in the `statement` rule
   (alongside `whileStatement`/`forStatement`); new keyword token `FOREVER`.
+- **Back-reference ADR-112.** When this ADR is accepted/implemented, update ADR-112's
+  _Related ADRs_ to include ADR-113 — this ADR introduces the "divergent statement" concept into
+  ADR-112's `definitelyReturns` machinery. (Documentation counterpart, not a code change.)
 
 ## References
 
