@@ -148,6 +148,7 @@ import EnumTypeResolver from "./resolution/EnumTypeResolver";
 import ScopeResolver from "./resolution/ScopeResolver";
 // Issue #797: Centralized C-style name generation
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
+import MisraSuppressionUtils from "../MisraSuppressionUtils";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -2364,8 +2365,10 @@ export default class CodeGenerator implements IOrchestrator {
 
       // Issue #850: Add MISRA suppression for banned headers
       const includeText = includeDir.getText();
-      if (this.needsMisraSuppression(includeText)) {
-        output.push(this.getMisraSuppressionComment(includeText));
+      const suppression =
+        MisraSuppressionUtils.getMisraSuppressionComment(includeText);
+      if (suppression) {
+        output.push(suppression);
       }
       output.push(this.transformIncludeDirective(includeText));
     }
@@ -2540,35 +2543,6 @@ export default class CodeGenerator implements IOrchestrator {
       inputs: CodeGenState.inputs,
       cppMode: CodeGenState.cppMode,
     });
-  }
-
-  /**
-   * Issue #850: Headers that violate MISRA C:2012 rules and need suppression.
-   * Maps header name to the MISRA rule it violates.
-   */
-  private static readonly MISRA_BANNED_HEADERS: ReadonlyMap<string, string> =
-    new Map([
-      // MISRA Rule 21.6: Standard library I/O functions shall not be used
-      ["stdio.h", "misra-c2012-21.6"],
-    ]);
-
-  /**
-   * Issue #850: Check if an include directive needs MISRA suppression.
-   */
-  private needsMisraSuppression(includeText: string): boolean {
-    const match = /<([^>]+)>/.exec(includeText);
-    if (!match) return false;
-    return CodeGenerator.MISRA_BANNED_HEADERS.has(match[1]);
-  }
-
-  /**
-   * Issue #850: Get the appropriate MISRA suppression comment for an include.
-   */
-  private getMisraSuppressionComment(includeText: string): string {
-    const match = /<([^>]+)>/.exec(includeText);
-    if (!match) return "";
-    const rule = CodeGenerator.MISRA_BANNED_HEADERS.get(match[1]);
-    return rule ? `// cppcheck-suppress ${rule}` : "";
   }
 
   // Issue #63: validateIncludeNotImplementationFile moved to TypeValidator
