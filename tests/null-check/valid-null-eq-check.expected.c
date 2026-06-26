@@ -4,6 +4,7 @@
  */
 
 // ADR-046: Valid NULL check using = (equality) comparison with c_ prefix
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 #include <string.h>

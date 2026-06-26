@@ -5,6 +5,7 @@
 
 // test-coverage: 28-null-in-while
 // Tests: NULL check in while loop condition using c_ prefix pattern
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 #include <string.h>

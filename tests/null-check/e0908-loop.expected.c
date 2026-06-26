@@ -5,6 +5,7 @@
 
 // E0908: Loop with reassignment pattern (no error expected)
 // This is the idiomatic fgets-in-while pattern from ADR-046
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 #include <string.h>

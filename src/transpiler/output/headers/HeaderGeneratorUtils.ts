@@ -268,6 +268,27 @@ class HeaderGeneratorUtils {
   }
 
   /**
+   * Issue #850: Headers that violate MISRA C:2012 rules and need suppression.
+   * Maps header name to the MISRA rule it violates.
+   */
+  private static readonly MISRA_BANNED_HEADERS: ReadonlyMap<string, string> =
+    new Map([
+      // MISRA Rule 21.6: Standard library I/O functions shall not be used
+      ["stdio.h", "misra-c2012-21.6"],
+    ]);
+
+  /**
+   * Issue #850: Get MISRA suppression comment for a header include.
+   * Returns the suppression comment or null if not needed.
+   */
+  private static getMisraSuppression(includeText: string): string | null {
+    const match = /<([^>]+)>/.exec(includeText);
+    if (!match) return null;
+    const rule = HeaderGeneratorUtils.MISRA_BANNED_HEADERS.get(match[1]);
+    return rule ? `// cppcheck-suppress ${rule}` : null;
+  }
+
+  /**
    * Generate all include directives (system, user, and external type headers)
    */
   static generateIncludes(
@@ -284,6 +305,11 @@ class HeaderGeneratorUtils {
     // User includes (already have correct extension from IncludeExtractor)
     if (options.userIncludes && options.userIncludes.length > 0) {
       for (const include of options.userIncludes) {
+        // Issue #850: Add MISRA suppression for banned headers
+        const suppression = HeaderGeneratorUtils.getMisraSuppression(include);
+        if (suppression) {
+          lines.push(suppression);
+        }
         lines.push(include);
       }
     }

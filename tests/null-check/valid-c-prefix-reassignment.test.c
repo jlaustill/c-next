@@ -7,6 +7,7 @@
 // Tests that c_ prefixed variables can be reassigned (e.g., in while loops).
 // After reassignment, a new NULL check is required (stricter E0908 behavior).
 #include <string.h>
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 #include <string.h>

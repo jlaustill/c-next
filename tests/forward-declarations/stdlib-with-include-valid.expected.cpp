@@ -5,6 +5,7 @@
 
 // ADR-030: Standard library functions are recognized when header included
 // Tests: printf is allowed when stdio.h is included
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 int main(void) {
