@@ -6,7 +6,7 @@
  * the unit suite (CI) and fails the moment any example stops transpiling.
  */
 import { describe, it, expect } from "vitest";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,17 +26,21 @@ describe("examples transpile cleanly (Issue #1048)", () => {
 
   it.each(examples)("%s transpiles without errors", async (_label, file) => {
     const outDir = mkdtempSync(join(tmpdir(), "cnext-examples-"));
-    const pipeline = new Transpiler({
-      input: file,
-      outDir,
-      basePath: dirname(file),
-    });
+    try {
+      const pipeline = new Transpiler({
+        input: file,
+        outDir,
+        basePath: dirname(file),
+      });
 
-    const result = await pipeline.transpile({ kind: "files" });
+      const result = await pipeline.transpile({ kind: "files" });
 
-    const errorText = result.errors
-      .map((e) => `${e.line}:${e.column} ${e.message}`)
-      .join("\n");
-    expect(result.success, errorText).toBe(true);
+      const errorText = result.errors
+        .map((e) => `${e.line}:${e.column} ${e.message}`)
+        .join("\n");
+      expect(result.success, errorText).toBe(true);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
   });
 });
