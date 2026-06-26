@@ -292,12 +292,14 @@ foo.expected.error    # Expected error (if test-error)
 ### Gotchas
 
 - **Cross-file testing**: Always test with symbols in included files, not just same-file
-- **String indexing**: Avoid `str[0] != 'H'` — transpiler generates `strcmp()`. Use `u8` arrays
-- **Const array sizes**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails (C VLA). Use literals with initializers
+- **String comparison vs indexing**: `a = b` / `a != b` on whole `string<N>` values compiles to `strcmp` (value comparison, ADR-045). Indexing a string (`s[i]`) yields a `char` and compares as a `char` — e.g. `s[0] != 'H'` generates `s[0] != 'H'`, not `strcmp`. (Verified 2026-06-26; the prior note claiming `str[0]` generates `strcmp` was stale.)
+- **Array declarations**: use prefix syntax `u32[N] arr` — C-style `u32 arr[N]` is rejected. `N` may be a literal or a `const`; the transpiler resolves consts to their value (no C VLA), so const-sized arrays are fine
 - **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)
 - **Helper files**: Create `.expected.h` to prevent test framework cleanup
 - **Struct tests**: Need `.expected.h` alongside `.expected.c`
 - **Bug reproduction**: `bugs/issue-<name>/` directories — commit with fixes for regression prevention
+- **test-error stale artifacts**: a test that compiled before becoming `test-error` leaves `.test.c/.test.h` behind — `rm` them or the guard fails with "stale generated artifacts"
+- **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
 
 ### Transpiler Entry Point
 
@@ -412,6 +414,7 @@ Update both when adding new statement types.
 - Branch naming: `feature/`, `fix/`, `docs/`, `test/` + descriptive name
 - Commit generated `.test.c`/`.test.h` files — they're part of the test suite
 - **Never delete generated test files** or run `git restore tests/`
+- **Never squash-merge** — always use merge commits (`gh pr merge --merge`)
 
 ---
 

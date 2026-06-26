@@ -1,10 +1,10 @@
-// bit_test.cnx - Test bit access and .length syntax
+// bit_test.cnx - Test bit access and explicit length properties (ADR-058)
 #include <stdint.h>
 #include <stdbool.h>
 
 u8 flags <- 0;
 
-u8 buffer[16];
+u8[16] buffer;
 
 u32 counter <- 0;
 
@@ -21,8 +21,8 @@ void test_bits() {
     bool bit3 <- flags[3];
     u8 field <- flags[4, 3];
 
-    // .length property
-    u32 arrLen <- buffer.length; // Should be 16 (array element count)
-    u32 flagBits <- flags.length; // Should be 8 (u8 bit width)
-    u32 counterBits <- counter.length; // Should be 32 (u32 bit width)
+    // Explicit length properties (ADR-058)
+    u32 arrLen <- buffer.element_count; // Should be 16 (array element count)
+    u32 flagBits <- flags.bit_length; // Should be 8 (u8 bit width)
+    u32 counterBits <- counter.bit_length; // Should be 32 (u32 bit width)
 }

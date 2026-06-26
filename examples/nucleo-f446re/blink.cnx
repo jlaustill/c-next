@@ -60,8 +60,8 @@ scope SysTick {
         Reserved_30, // bit 30
         Reserved_31 // bit 31
     }
-    // SysTick registers
-    register SysTick @ 0xE000E010 {
+    // SysTick registers (named Regs to avoid colliding with the scope name)
+    register Regs @ 0xE000E010 {
         CTRL: ControlBits rw @ 0x00, // Control and Status
         LOAD: u32 rw @ 0x04, // Reload value (24-bit)
         VAL: u32 rw @ 0x08, // Current value (24-bit, write clears)
@@ -71,23 +71,23 @@ scope SysTick {
     /// Assumes 16 MHz HSI clock (default after reset)
     public void init() {
         // Disable SysTick during configuration
-        this.SysTick.CTRL.ENABLE <- false;
+        this.Regs.CTRL.ENABLE <- false;
 
         // Set reload value for 1ms at 16 MHz
         // 16,000,000 Hz / 1,000 = 16,000 ticks per millisecond
         // Reload register is 24-bit max (16,777,215), so 16,000 fits easily
-        this.SysTick.LOAD <- 16000 - 1; // -1 because countdown includes zero
+        this.Regs.LOAD <- 16000 - 1; // -1 because countdown includes zero
 
         // Clear current value
-        this.SysTick.VAL <- 0;
+        this.Regs.VAL <- 0;
 
         // Configure and enable:
         // - Use processor clock (CLKSOURCE = bit 2)
         // - Enable SysTick interrupt (TICKINT = bit 1)
         // - Enable counter (ENABLE = bit 0)
-        this.SysTick.CTRL.CLKSOURCE <- true;
-        this.SysTick.CTRL.TICKINT <- true; // Enable interrupt
-        this.SysTick.CTRL.ENABLE <- true;
+        this.Regs.CTRL.CLKSOURCE <- true;
+        this.Regs.CTRL.TICKINT <- true; // Enable interrupt
+        this.Regs.CTRL.ENABLE <- true;
     }
 }
 
@@ -235,7 +235,7 @@ scope LED {
         global.STM32F446.GPIOA.BitSetReset.LD2_RESET <- true;
     }
     public void toggle() {
-        if (global.STM32F446.GPIOA.OutputData.LD2) {
+        if (global.STM32F446.GPIOA.OutputData.LD2 = true) {
             this.off();
         } else {
             this.on();
@@ -286,7 +286,7 @@ void loop() {
 i32 main() {
     setup();
 
-    while (true) {
+    while (1 = 1) {
         loop();
     }
 
