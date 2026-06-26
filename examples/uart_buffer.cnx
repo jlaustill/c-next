@@ -106,10 +106,10 @@ u8 UART_read(UART self) {
     return data;
 }
 
-// Print a string
-void UART_print(UART self, const char msg[]) {
+// Print a string, character by character
+void UART_print(UART self, const string<64> msg) {
     u32 i <- 0;
-    while (msg[i] != 0) {
+    while (i < msg.char_count) {
         UART_write(self, msg[i]);
         i <- i + 1;
     }
@@ -148,7 +148,8 @@ void setup() {
 
 void loop() {
     // Echo from Serial1 to Serial2
-    if (UART_available(Serial1)) {
+    bool available <- UART_available(Serial1);
+    if (available = true) {
         u8 byte <- UART_read(Serial1);
         UART_write(Serial2, byte);
     }

@@ -292,7 +292,7 @@ foo.expected.error    # Expected error (if test-error)
 ### Gotchas
 
 - **Cross-file testing**: Always test with symbols in included files, not just same-file
-- **String indexing**: Avoid `str[0] != 'H'` — transpiler generates `strcmp()`. Use `u8` arrays
+- **String comparison vs indexing**: `a = b` / `a != b` on whole `string<N>` values compiles to `strcmp` (value comparison, ADR-045). Indexing a string (`s[i]`) yields a `char` and compares as a `char` — e.g. `s[0] != 'H'` generates `s[0] != 'H'`, not `strcmp`. (Verified 2026-06-26; the prior note claiming `str[0]` generates `strcmp` was stale.)
 - **Const array sizes**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails (C VLA). Use literals with initializers
 - **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)
 - **Helper files**: Create `.expected.h` to prevent test framework cleanup

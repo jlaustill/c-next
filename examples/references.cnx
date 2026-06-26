@@ -34,10 +34,11 @@ void divmod(const i32 dividend, const i32 divisor, i32 quotient, i32 remainder) 
     remainder <- dividend % divisor;
 }
 
-// Process an array (arrays naturally pass by reference)
-void zeroArray(u8 buffer[], const u32 size) {
+// Process an array (arrays naturally pass by reference). Array parameters must
+// have an explicit size; the element count comes from the array itself.
+void zeroArray(u8[16] buffer) {
     u32 i <- 0;
-    while (i < size) {
+    while (i < buffer.element_count) {
         buffer[i] <- 0;
         i <- i + 1;
     }
@@ -61,7 +62,6 @@ const i32 INITIAL_X <- 10;
 const i32 INITIAL_Y <- 20;
 const i32 DIVIDEND <- 17;
 const i32 DIVISOR <- 5;
-const u32 BUFFER_SIZE <- 16;
 const i32 MOVE_DX <- 5;
 const i32 MOVE_DY <- 10;
 
@@ -87,8 +87,8 @@ void main() {
     Console.printInt(r);  // Prints 2
 
     // Array
-    u8 data[16];
-    zeroArray(data, BUFFER_SIZE);
+    u8[16] data;
+    zeroArray(data);
 
     // Point with struct initializer (ADR-014 - inferred type)
     Point origin <- { x: 0, y: 0 };
