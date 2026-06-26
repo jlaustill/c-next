@@ -93,6 +93,17 @@ u32 add(u32 a, u32 b) {
     return a + b;
 }
 
+// A non-void function must return a value on EVERY path (E0704), or it's a
+// compile error. An `if` needs an `else`, a `switch` needs a `default`, and a
+// loop never counts as a guaranteed return — add an explicit trailing return.
+u8 classify(bool ready) {
+    if (ready = true) {
+        return 1;
+    } else {
+        return 0;       // without this else-return, E0704
+    }
+}
+
 // Structs passed by reference automatically (no pointers needed)
 struct Point { i32 x; i32 y; }
 

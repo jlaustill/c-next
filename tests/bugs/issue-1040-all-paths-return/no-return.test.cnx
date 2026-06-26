@@ -1,0 +1,7 @@
+// Issue #1040: a non-void function that falls off the end must be rejected (E0704).
+scope Demo {
+    u8 getValue() {
+        u8 someByte <- 123;
+        u8 nextByte <- someByte;
+    }
+}

@@ -49,10 +49,11 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 
 ## Accepted
 
-| ADR                                                             | Title                 | Description                                           |
-| --------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
-| [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection   |
-| [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion |
+| ADR                                                             | Title                 | Description                                                 |
+| --------------------------------------------------------------- | --------------------- | ----------------------------------------------------------- |
+| [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection         |
+| [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion       |
+| [ADR-112](decisions/adr-112-all-paths-return.md)                | All-Paths-Return      | Reject non-void functions that can fall off the end (E0704) |
 
 ## Superseded
 

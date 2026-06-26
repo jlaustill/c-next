@@ -1,0 +1,7 @@
+// Issue #1040: a while loop body is not guaranteed to execute (E0704).
+u8 countdown(u8 start) {
+    u8 i <- start;
+    while (i > 0) {
+        return i;
+    }
+}

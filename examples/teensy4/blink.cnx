@@ -131,6 +131,7 @@ scope Teensy4 {
         u8 someByte <- 123;
 
         u8 nextByte <- someByte;
+        return nextByte;
     }
 }
 

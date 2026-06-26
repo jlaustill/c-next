@@ -1,0 +1,7 @@
+// Issue #1040: a switch without a default is not a guaranteed return (E0704).
+u8 classify(u8 code) {
+    switch (code) {
+        case 1 { return 10; }
+        case 2 { return 20; }
+    }
+}
