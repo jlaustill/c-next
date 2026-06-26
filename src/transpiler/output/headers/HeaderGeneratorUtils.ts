@@ -271,11 +271,19 @@ class HeaderGeneratorUtils {
   /**
    * Extract header file stem from include directive for deduplication.
    * E.g., '#include <foo/bar.hpp>' -> 'bar'
+   * SonarCloud S8786: Avoid backtracking by using separate patterns.
    */
   private static extractIncludeStem(include: string): string {
-    const match = /["<]([^">]+)[">]/.exec(include);
-    if (!match) return include;
-    return match[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
+    // Try angle brackets first, then quotes - avoids backtracking regex
+    const angleMatch = /<([^<>]+)>/.exec(include);
+    if (angleMatch) {
+      return angleMatch[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
+    }
+    const quoteMatch = /"([^"]+)"/.exec(include);
+    if (quoteMatch) {
+      return quoteMatch[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
+    }
+    return include;
   }
 
   /**
