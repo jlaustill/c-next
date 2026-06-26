@@ -298,6 +298,8 @@ foo.expected.error    # Expected error (if test-error)
 - **Helper files**: Create `.expected.h` to prevent test framework cleanup
 - **Struct tests**: Need `.expected.h` alongside `.expected.c`
 - **Bug reproduction**: `bugs/issue-<name>/` directories — commit with fixes for regression prevention
+- **test-error stale artifacts**: a test that compiled before becoming `test-error` leaves `.test.c/.test.h` behind — `rm` them or the guard fails with "stale generated artifacts"
+- **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
 
 ### Transpiler Entry Point
 
@@ -412,6 +414,7 @@ Update both when adding new statement types.
 - Branch naming: `feature/`, `fix/`, `docs/`, `test/` + descriptive name
 - Commit generated `.test.c`/`.test.h` files — they're part of the test suite
 - **Never delete generated test files** or run `git restore tests/`
+- **Never squash-merge** — always use merge commits (`gh pr merge --merge`)
 
 ---
 
