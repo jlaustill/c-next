@@ -167,6 +167,67 @@ void main() {
 So the `void`-only restriction costs nothing in the current codebase. (`void main()` already
 transpiles correctly.)
 
+## Forbidding the Disguised Infinite Loop (follow-on)
+
+Once `forever` exists, the current `while (1 = 1)` hack has **zero** legitimate use. The natural
+follow-on is a compile error on an always-true loop condition that steers the author to
+`forever`, e.g.:
+
+```
+error[E0707]: loop condition is always true
+  help: this is an infinite loop — write `forever { … }` instead
+```
+
+(Error code `E0707` is a proposal, not yet allocated.)
+
+### Prior art
+
+Steering a disguised infinite loop toward a dedicated construct is an established pattern:
+
+| Tool                                   | Behavior                                                                                                                 | Level    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------- |
+| **Rust `while_true`** (built-in rustc) | Detects `while true`; message _"denote infinite loops with `loop { … }`"_                                                | warn     |
+| **Go Staticcheck `S1006`**             | `for true {}` → suggests the dedicated `for {}`                                                                          | lint     |
+| **ESLint `no-constant-condition`**     | default `allExceptWhileTrue`: flags `while (1==1)`, **exempts** `while (true)`                                           | lint     |
+| **MISRA C:2012 Rule 14.3**             | "Controlling expressions shall not be invariant"; blesses `true`/`1`/`for(;;)`, but a `1==1` comparison is non-compliant | Required |
+| SonarQube `S2189`                      | _Opposite_ stance — flags `while(true)` as a likely bug                                                                  | —        |
+
+Two consistent findings:
+
+1. **Elsewhere it is a warning, not a hard error.** Rust, Go, ESLint, C# all warn; no mainstream
+   toolchain blocks the build by default. MISRA is the only "must," and it _permits_ the idiom.
+2. **`while (1 == 1)` is treated differently from `while (true)`.** Everywhere, the bare literal
+   `true`/`1`/`for(;;)` is the _blessed intentional idiom_, while a constant _comparison_ like
+   `1==1` reads as an _accidental invariant / likely logic bug_ (ESLint flags it, MISRA's blessed
+   list excludes it).
+
+There is also a recurring _semantic_ payoff: Rust's `loop {}` and Go's `for {}` are recognized by
+the compiler as diverging/terminating, improving flow analysis — exactly the divergence primitive
+this ADR introduces.
+
+### Why C-Next can make it a single-tier error
+
+Every other tool needs a _two-tier_ rule (bless `while(true)`, flag `while(1==1)`). **C-Next does
+not** — `E0701` already forbids bare booleans/constants as conditions, so `while (true)` is not
+even writable today. C-Next's _only_ infinite-loop form is `while (1 = 1)` — precisely the
+constant-_comparison_ form that ESLint and MISRA flag as the suspicious case. With no literal-true
+idiom to protect, the two tiers collapse into one rule: **an always-true loop condition is an
+error; if you meant to loop forever, use `forever`.**
+
+That rule is exactly **MISRA Rule 14.3**, which C-Next currently marks **"Not Enforced"**
+(`docs/misra-compliance.md`). So the `forever` steering is the loop-true _facet_ of 14.3. A
+hard error here is stricter than any precedent, but defensible for C-Next: the language is
+hard-error-first, `E0701` already hard-errors the adjacent case, MISRA 14.3 is Required, and
+post-`forever` the form has no legitimate use.
+
+### Scope notes
+
+- Catching only the literal `1 = 1` is trivial; catching `2 = 2`, `5 > 3`, `true = true`, and
+  named-constant comparisons requires constant folding (i.e. real invariant analysis).
+- Full MISRA 14.3 is broader than infinite loops (always-_false_ conditions, invariant non-loop
+  `if`/`for`). The `forever` steering is one facet; full 14.3 enforcement is a separate, larger
+  effort worth its own tracking.
+
 ## Alternatives Considered
 
 1. **A `never` / bottom type (Rust `!`, Swift `Never`).** The idiomatic modern choice; lets a
@@ -193,6 +254,8 @@ transpiles correctly.)
   rewrite and the `void` conversion?
 - **Grammar placement:** add `foreverStatement` as a new alternative in the `statement` rule
   (alongside `whileStatement`/`forStatement`); new keyword token `FOREVER`.
+- **Disguised-loop steering (see section above):** hard error vs warning, and whether to ship the
+  trivial literal-`1 = 1` slice first or build full MISRA 14.3 invariant analysis. Proposed `E0707`.
 - **Back-reference ADR-112.** When this ADR is accepted/implemented, update ADR-112's
   _Related ADRs_ to include ADR-113 — this ADR introduces the "divergent statement" concept into
   ADR-112's `definitelyReturns` machinery. (Documentation counterpart, not a code change.)
