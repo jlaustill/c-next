@@ -148,6 +148,7 @@ import EnumTypeResolver from "./resolution/EnumTypeResolver";
 import ScopeResolver from "./resolution/ScopeResolver";
 // Issue #797: Centralized C-style name generation
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
+import MisraSuppressionUtils from "../MisraSuppressionUtils";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -2362,7 +2363,14 @@ export default class CodeGenerator implements IOrchestrator {
         includePaths,
       );
 
-      output.push(this.transformIncludeDirective(includeDir.getText()));
+      // Issue #850: Add MISRA suppression for banned headers
+      const includeText = includeDir.getText();
+      const suppression =
+        MisraSuppressionUtils.getMisraSuppressionComment(includeText);
+      if (suppression) {
+        output.push(suppression);
+      }
+      output.push(this.transformIncludeDirective(includeText));
     }
 
     if (tree.includeDirective().length > 0) {

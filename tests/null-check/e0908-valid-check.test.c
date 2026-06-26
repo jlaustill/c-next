@@ -4,6 +4,7 @@
  */
 
 // E0908: Valid NULL check before use (no error)
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 void testValidCheck(void) {

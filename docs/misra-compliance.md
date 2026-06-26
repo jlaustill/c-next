@@ -4,14 +4,15 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 
 ## Status Legend
 
-| Status           | Meaning                                    |
-| ---------------- | ------------------------------------------ |
-| **Enforced**     | Compiler produces an error if violated     |
-| **By Design**    | Language design makes violation impossible |
-| **Partial**      | Some cases enforced, others not yet        |
-| **Planned**      | On roadmap for future implementation       |
-| **N/A**          | Rule not applicable to C-Next              |
-| **Not Enforced** | Currently not checked                      |
+| Status           | Meaning                                                    |
+| ---------------- | ---------------------------------------------------------- |
+| **Enforced**     | Compiler produces an error if violated                     |
+| **By Design**    | Language design makes violation impossible                 |
+| **Partial**      | Some cases enforced, others not yet                        |
+| **Planned**      | On roadmap for future implementation                       |
+| **N/A**          | Rule not applicable to C-Next                              |
+| **Not Enforced** | Currently not checked                                      |
+| **Deviation**    | Documented deviation with inline suppression for valid use |
 
 ## Summary
 
@@ -330,20 +331,20 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 
 ## Rule 21 - Standard Libraries
 
-| Rule  | Description                      | Status        | Reference                    |
-| ----- | -------------------------------- | ------------- | ---------------------------- |
-| 21.1  | No #define/#undef reserved names | N/A           | No macros                    |
-| 21.2  | No reserved identifiers          | **By Design** | Scope prefixing              |
-| 21.3  | No stdlib memory functions       | **By Design** | ADR-003, ADR-101             |
-| 21.4  | No setjmp.h                      | **By Design** | Not accessible               |
-| 21.5  | No signal.h                      | **By Design** | Not accessible               |
-| 21.6  | No stdio.h for input             | Partial       | Stream functions restricted  |
-| 21.7  | No atof, atoi, atol, atoll       | **By Design** | Not accessible               |
-| 21.8  | No abort, exit, etc.             | Partial       | Some restrictions            |
-| 21.9  | No bsearch, qsort                | **By Design** | Function pointers restricted |
-| 21.10 | No time.h                        | Not Enforced  | Could restrict               |
-| 21.11 | No tgmath.h                      | N/A           | C11 feature                  |
-| 21.12 | No fenv.h exception functions    | Not Enforced  |                              |
+| Rule  | Description                      | Status        | Reference                                    |
+| ----- | -------------------------------- | ------------- | -------------------------------------------- |
+| 21.1  | No #define/#undef reserved names | N/A           | No macros                                    |
+| 21.2  | No reserved identifiers          | **By Design** | Scope prefixing                              |
+| 21.3  | No stdlib memory functions       | **By Design** | ADR-003, ADR-101                             |
+| 21.4  | No setjmp.h                      | **By Design** | Not accessible                               |
+| 21.5  | No signal.h                      | **By Design** | Not accessible                               |
+| 21.6  | No stdio.h for input             | **Deviation** | Issue #850: Inline suppression for C interop |
+| 21.7  | No atof, atoi, atol, atoll       | **By Design** | Not accessible                               |
+| 21.8  | No abort, exit, etc.             | Partial       | Some restrictions                            |
+| 21.9  | No bsearch, qsort                | **By Design** | Function pointers restricted                 |
+| 21.10 | No time.h                        | Not Enforced  | Could restrict                               |
+| 21.11 | No tgmath.h                      | N/A           | C11 feature                                  |
+| 21.12 | No fenv.h exception functions    | Not Enforced  |                                              |
 
 ---
 

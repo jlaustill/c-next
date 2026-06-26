@@ -6,6 +6,7 @@
 // test-execution
 // ADR-010: C Interoperability - Mixed includes
 // Tests: Mix of .cnx, .h, and standard library includes
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 #include <helper-types.h>
 #include "helper-types.h"

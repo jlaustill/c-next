@@ -6,6 +6,7 @@
 // test-execution
 // ADR-010: C Interoperability - Include passthrough
 // Tests: #include directives pass through to generated C
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 #include <string.h>
 

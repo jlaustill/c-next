@@ -1,0 +1,9 @@
+// test-transpile-only
+// Issue #850: MISRA 21.6 suppression for stdio.h includes
+// Verifies that stdio.h includes generate MISRA suppression comments
+
+#include <stdio.h>
+
+void test() {
+    // Using stdio functions is allowed when the include is present
+}

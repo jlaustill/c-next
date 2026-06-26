@@ -4,6 +4,7 @@
  */
 
 // E0908: Guard clause pattern (no error)
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 void testGuardClause(void) {

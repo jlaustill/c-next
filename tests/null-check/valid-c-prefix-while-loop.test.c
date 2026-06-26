@@ -7,6 +7,7 @@
 // Tests that c_ prefixed variables work correctly in while loops.
 // The while condition provides the NULL check, and reassignment is allowed.
 #include <string.h>
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 #include <string.h>

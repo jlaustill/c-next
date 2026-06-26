@@ -4,6 +4,7 @@
  */
 
 // Test: main function with command line arguments
+// cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
 #include <stdint.h>
