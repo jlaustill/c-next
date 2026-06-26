@@ -159,6 +159,20 @@ describe("ReturnPathAnalyzer", () => {
       ).toHaveLength(0);
     });
 
+    it("accepts a loop followed by a trailing return (the canonical E0704 fix)", () => {
+      // The loop never counts as a guaranteed return; the trailing return does.
+      // This is the shape users will most often write to satisfy E0704, and it
+      // guards against any future drift toward 'last statement must return'.
+      expect(
+        analyze(`
+        u8 firstPositive(u8 n) {
+          while (n > 0) { return n; }
+          return 0;
+        }
+      `),
+      ).toHaveLength(0);
+    });
+
     it("accepts a return after other statements (later statements unreachable)", () => {
       expect(
         analyze(`
