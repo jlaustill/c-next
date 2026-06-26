@@ -46,14 +46,14 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 | [ADR-057](decisions/adr-057-implicit-scope-resolution.md)        | Implicit Scope Resolution  | Bare identifiers resolve local -> scope -> global            |
 | [ADR-055](decisions/adr-055-symbol-parser-architecture.md)       | Symbol Parser Architecture | Unified symbol resolution with composable collectors         |
 | [ADR-058](decisions/adr-058-explicit-length-properties.md)       | Explicit Length Properties | `.bit_length`/`.byte_length`/`.element_count`/`.char_count`  |
+| [ADR-112](decisions/adr-112-all-paths-return.md)                 | All-Paths-Return           | Reject non-void functions that can fall off the end (E0704)  |
 
 ## Accepted
 
-| ADR                                                             | Title                 | Description                                                 |
-| --------------------------------------------------------------- | --------------------- | ----------------------------------------------------------- |
-| [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection         |
-| [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion       |
-| [ADR-112](decisions/adr-112-all-paths-return.md)                | All-Paths-Return      | Reject non-void functions that can fall off the end (E0704) |
+| ADR                                                             | Title                 | Description                                           |
+| --------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
+| [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection   |
+| [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion |
 
 ## Superseded
 
