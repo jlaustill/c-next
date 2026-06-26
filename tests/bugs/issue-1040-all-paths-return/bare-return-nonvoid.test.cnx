@@ -1,0 +1,5 @@
+// Issue #1040: a bare `return;` in a non-void function returns no value (E0704).
+u8 nothing(bool done) {
+    if (done = true) { return 5; }
+    return;
+}

@@ -12,10 +12,10 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E04xx     | Symbol Resolution       | 3      |
 | E05xx     | Include/Preprocessor    | 4      |
 | E06xx     | Sizeof Expressions      | 2      |
-| E07xx     | Control Flow            | 3      |
+| E07xx     | Control Flow            | 4      |
 | E08xx     | Arithmetic/Array Safety | 9      |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **32** |
+| **Total** |                         | **33** |
 
 ---
 
@@ -80,13 +80,14 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 
 ## E07xx — Control Flow Validation
 
-| Code  | Message                                | Help                                               | Source                                                       |
-| ----- | -------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
-| E0701 | Condition must be a boolean expression | Use explicit comparison: `expr > 0` or `expr != 0` | `output/codegen/TypeValidator.ts`                            |
-| E0702 | Function call in condition not allowed | Store function result in a variable first          | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts` |
-| E0703 | `break`/`continue` not supported       | Use structured conditions instead                  | `output/codegen/CodeGenerator.ts`                            |
+| Code  | Message                                    | Help                                                            | Source                                                       |
+| ----- | ------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------ |
+| E0701 | Condition must be a boolean expression     | Use explicit comparison: `expr > 0` or `expr != 0`              | `output/codegen/TypeValidator.ts`                            |
+| E0702 | Function call in condition not allowed     | Store function result in a variable first                       | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts` |
+| E0703 | `break`/`continue` not supported           | Use structured conditions instead                               | `output/codegen/CodeGenerator.ts`                            |
+| E0704 | Non-void function must return on all paths | Add an explicit `return <value>;` so every path returns a value | `logic/analysis/ReturnPathAnalyzer.ts`                       |
 
-**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703)
+**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-112 / Issue #1040 (E0704)
 
 ---
 

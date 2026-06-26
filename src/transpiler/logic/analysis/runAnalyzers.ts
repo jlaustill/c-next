@@ -16,6 +16,7 @@ import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
 import ArrayIndexTypeAnalyzer from "./ArrayIndexTypeAnalyzer";
 import SignedShiftAnalyzer from "./SignedShiftAnalyzer";
+import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
 import SymbolTable from "../symbols/SymbolTable";
@@ -154,7 +155,13 @@ function runAnalyzers(
     return errors;
   }
 
-  // 10. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 10. Return-path analysis (ADR-112: non-void functions must return on all paths)
+  const returnPathAnalyzer = new ReturnPathAnalyzer();
+  if (collectErrors(returnPathAnalyzer.analyze(tree), errors, formatWithCode)) {
+    return errors;
+  }
+
+  // 11. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   collectErrors(
     commentExtractor.validate(),

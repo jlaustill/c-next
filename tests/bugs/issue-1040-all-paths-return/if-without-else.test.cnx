@@ -1,0 +1,4 @@
+// Issue #1040: an if without else is not a guaranteed return (E0704).
+u8 ifOnly(bool ready) {
+    if (ready = true) { return 1; }
+}
