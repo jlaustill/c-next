@@ -92,6 +92,20 @@ forever {
 }
 ```
 
+The keyword is **`forever`** (decided 2026-06-26). It reads as plain English — "reads like a
+book" — and a C developer grasps its intent instantly. `loop` (Rust) was rejected as ambiguous
+with labels/calls and less recognizable to C developers; `for (;;)` and `while (1 = 1)` are
+treated as **hacks** to be forbidden in source (see "Forbidding the Disguised Infinite Loop"), so
+`forever` is the **single** way to write an infinite loop in C-Next.
+
+**Braces are always required** — `forever { … }`, never a single-statement form — matching
+C-Next's brace-always style (`switch`, `scope`, `critical`).
+
+**Source vs. generated C.** `forever` is the _source_ form; the transpiler still _emits_ the
+canonical `for (;;)` in the generated `.c`. The "hack" objection is about what a human authors in
+`.cnx`, not what the compiler outputs — `for (;;)` is the correct, MISRA 14.3-compliant C idiom to
+generate.
+
 ### Proposed semantics
 
 1. **Lowering.** `forever { … }` transpiles to `for (;;) { … }` — the idiom MISRA C:2012
@@ -169,9 +183,11 @@ transpiles correctly.)
 
 ## Forbidding the Disguised Infinite Loop (follow-on)
 
-Once `forever` exists, the current `while (1 = 1)` hack has **zero** legitimate use. The natural
-follow-on is a compile error on an always-true loop condition that steers the author to
-`forever`, e.g.:
+Once `forever` exists, the disguised infinite-loop forms — `while (1 = 1)` **and** `for (;;)` in
+source — have **zero** legitimate use. Both are forbidden in C-Next source and steered to
+`forever` (decided 2026-06-26), so there is exactly one source form. Note `for (;;)` compiles
+today, so forbidding it is a deliberate (tiny) breaking change — the repo audit found **zero**
+occurrences (see "Migration Impact"). The error reads, e.g.:
 
 ```
 error[E0707]: loop condition is always true
@@ -222,8 +238,10 @@ post-`forever` the form has no legitimate use.
 
 ### Scope notes
 
-- Catching only the literal `1 = 1` is trivial; catching `2 = 2`, `5 > 3`, `true = true`, and
-  named-constant comparisons requires constant folding (i.e. real invariant analysis).
+- Forbidding `for (;;)` and the literal `while (1 = 1)` / `while (true = true)` is purely
+  **syntactic** (no constant folding) and ships _with_ `forever`. Catching the general invariant
+  cases — `2 = 2`, `5 > 3`, named-constant comparisons — requires constant folding (real invariant
+  analysis) and can follow later.
 - Full MISRA 14.3 is broader than infinite loops (always-_false_ conditions, invariant non-loop
   `if`/`for`). The `forever` steering is one facet; full 14.3 enforcement is a separate, larger
   effort worth its own tracking.
@@ -246,8 +264,9 @@ post-`forever` the form has no legitimate use.
 
 ## Open Questions
 
-- **Keyword:** `forever` vs `loop`. `forever` matches Verilog and is unambiguous; `loop`
-  matches Rust/Ada/CoffeeScript and is shorter. Needs a decision.
+- **Keyword (resolved 2026-06-26):** `forever`. Chosen for readability over `loop` (which reads
+  ambiguously as a label/call); `for (;;)` and `while (1 = 1)` are forbidden hacks, so `forever`
+  is the single source form. See Decision.
 - **`void`-only vs bottom type:** confirm the `void`-only rule for v1, with the bottom type as
   a documented future fork (Alternative 1).
 - **Diagnostic wording for E0705:** should it actively suggest the `while`-with-condition
