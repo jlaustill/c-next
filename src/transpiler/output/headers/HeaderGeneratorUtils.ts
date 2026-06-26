@@ -269,6 +269,57 @@ class HeaderGeneratorUtils {
   }
 
   /**
+   * Extract header file stem from include directive for deduplication.
+   * E.g., '#include <foo/bar.hpp>' -> 'bar'
+   */
+  private static extractIncludeStem(include: string): string {
+    const match = /["<]([^">]+)[">]/.exec(include);
+    if (!match) return include;
+    return match[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
+  }
+
+  /**
+   * Add user includes with MISRA suppression comments.
+   * SonarCloud S3776: Extracted from generateIncludes.
+   */
+  private static addUserIncludes(
+    lines: string[],
+    userIncludes: string[] | undefined,
+  ): void {
+    if (!userIncludes || userIncludes.length === 0) return;
+    for (const include of userIncludes) {
+      // Issue #850: Add MISRA suppression for banned headers
+      const suppression =
+        MisraSuppressionUtils.getMisraSuppressionComment(include);
+      if (suppression) {
+        lines.push(suppression);
+      }
+      lines.push(include);
+    }
+  }
+
+  /**
+   * Add external type headers, deduplicating against user includes.
+   * SonarCloud S3776: Extracted from generateIncludes.
+   */
+  private static addExternalTypeHeaders(
+    lines: string[],
+    headersToInclude: Set<string>,
+    userIncludes: string[] | undefined,
+  ): void {
+    const userIncludeSet = new Set(userIncludes ?? []);
+    const userIncludeStems = new Set(
+      (userIncludes ?? []).map(HeaderGeneratorUtils.extractIncludeStem),
+    );
+    for (const directive of headersToInclude) {
+      if (userIncludeSet.has(directive)) continue;
+      const stem = HeaderGeneratorUtils.extractIncludeStem(directive);
+      if (stem && userIncludeStems.has(stem)) continue;
+      lines.push(directive);
+    }
+  }
+
+  /**
    * Generate all include directives (system, user, and external type headers)
    */
   static generateIncludes(
@@ -283,43 +334,18 @@ class HeaderGeneratorUtils {
     }
 
     // User includes (already have correct extension from IncludeExtractor)
-    if (options.userIncludes && options.userIncludes.length > 0) {
-      for (const include of options.userIncludes) {
-        // Issue #850: Add MISRA suppression for banned headers
-        const suppression =
-          MisraSuppressionUtils.getMisraSuppressionComment(include);
-        if (suppression) {
-          lines.push(suppression);
-        }
-        lines.push(include);
-      }
-    }
+    HeaderGeneratorUtils.addUserIncludes(lines, options.userIncludes);
 
     // External type header includes (skip duplicates of user includes)
     // Dedup by basename stem to handle:
     // - Different path styles (e.g., <AppConfig.hpp> vs "../AppConfig.hpp")
     // - Extension mismatch from timing (.h from IncludeResolver before cppDetected,
     //   .hpp from IncludeExtractor after cppDetected)
-    const userIncludeSet = new Set(options.userIncludes ?? []);
-    const extractStem = (inc: string): string => {
-      const match = /["<]([^">]+)[">]/.exec(inc);
-      if (!match) return inc;
-      return match[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
-    };
-    const userIncludeStems = new Set(
-      (options.userIncludes ?? []).map(extractStem),
+    HeaderGeneratorUtils.addExternalTypeHeaders(
+      lines,
+      headersToInclude,
+      options.userIncludes,
     );
-    for (const directive of headersToInclude) {
-      if (userIncludeSet.has(directive)) {
-        continue;
-      }
-      // Check if a user include already covers the same file
-      const stem = extractStem(directive);
-      if (stem && userIncludeStems.has(stem)) {
-        continue;
-      }
-      lines.push(directive);
-    }
 
     // Add blank line if any includes were added
     const hasIncludes =
