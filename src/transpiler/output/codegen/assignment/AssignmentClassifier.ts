@@ -415,7 +415,20 @@ class AssignmentClassifier {
     const firstId = ctx.identifiers[0];
 
     if (ctx.hasArrayAccess) {
+      // Direct register: global.REG.MEMBER[bit]
       if (CodeGenState.symbols!.knownRegisters.has(firstId)) {
+        return AssignmentKind.GLOBAL_REGISTER_BIT;
+      }
+      // Scoped register: global.Scope.REG.MEMBER[bit] — mirror
+      // classifyRegisterBitAccess so the bit-range mask/shift is expanded
+      // rather than emitting a literal subscript (Issue #1052).
+      if (
+        CodeGenState.isKnownScope(firstId) &&
+        ctx.identifiers.length >= 3 &&
+        CodeGenState.symbols!.knownRegisters.has(
+          `${firstId}_${ctx.identifiers[1]}`,
+        )
+      ) {
         return AssignmentKind.GLOBAL_REGISTER_BIT;
       }
       return AssignmentKind.GLOBAL_ARRAY;
