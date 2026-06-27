@@ -312,6 +312,24 @@ post-`forever` the form has no legitimate use.
   - literal-operand always-true comparisons); general-invariant detection is deferred — see
     _Scope notes_ above.
 
+## Implementation Notes (Issue #1074, 2026-06-27)
+
+The `forever` core shipped: grammar (`FOREVER` token + `foreverStatement : FOREVER block`),
+lowering to `for (;;)` with a MISRA 14.3 comment, the divergence primitive in
+`ReturnPathAnalyzer`, **E0705** (confirmed allocated), and the `blink.cnx` migration to
+`void main()` + `forever`. **Status remains _Accepted_ pending user confirmation of completeness.**
+
+Key finding for ADR-114 / #849 — **the divergence primitive is not inert in ADR-113**, contrary
+to the naive reading that "`forever` is void-only and `ReturnPathAnalyzer` only checks non-void
+functions, so it never sees a `forever`." A non-void function _can_ contain a `forever` loop in
+source; the analyzer runs **before** codegen, so without the primitive it emits the **misleading
+E0704** ("must return a value on all paths") instead of the precise **E0705**. Marking `forever`
+as a terminal/divergent path in `statementDefinitelyReturns` suppresses the wrong E0704 so E0705
+surfaces. This is exactly the shared decision ADR-114 must reuse rather than re-derive.
+
+Scope held: the unreachable-code-after-`forever` diagnostic (E0706) is **not** part of #1074 — it
+belongs to ADR-114's reachability pass. #1074 delivers only the divergence primitive + E0704 relief.
+
 ## Remaining
 
 - **Back-reference ADR-112:** ADR-113 added to ADR-112's _Related ADRs_ (2026-06-27, on

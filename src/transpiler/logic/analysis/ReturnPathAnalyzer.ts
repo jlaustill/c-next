@@ -45,6 +45,18 @@ function statementDefinitelyReturns(ctx: Parser.StatementContext): boolean {
     return blockDefinitelyReturns(doWhileStmt.block());
   }
 
+  if (ctx.foreverStatement()) {
+    // ADR-113: a `forever` loop is divergent — C-Next has no break/continue
+    // (ADR-026), so control never passes beyond it. It is therefore a terminal
+    // path, like an unconditional return, and the function never falls through
+    // here. This is the shared "divergence" primitive ADR-114 (#849) reuses.
+    //
+    // `forever` is void-only (E0705, enforced in codegen). Marking it terminal
+    // here keeps a non-void function containing a `forever` loop from emitting a
+    // misleading E0704 ("must return a value") instead of the precise E0705.
+    return true;
+  }
+
   const block = ctx.block();
   if (block) {
     return blockDefinitelyReturns(block);

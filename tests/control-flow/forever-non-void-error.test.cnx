@@ -1,0 +1,8 @@
+// Coverage: ADR-113 - forever loop only allowed in void functions (E0705)
+// test-error
+u8 alwaysLoops() {
+    u8 state <- 0;
+    forever {
+        state <- 1;
+    }
+}
