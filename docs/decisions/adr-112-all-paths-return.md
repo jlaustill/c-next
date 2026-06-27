@@ -3,7 +3,7 @@
 **Status:** Implemented
 **Date:** 2026-06-25
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-022 (Conditional Expressions), ADR-025 (Switch Statements), ADR-026 (Break and Continue), ADR-027 (Do-While)
+**Related ADRs:** ADR-022 (Conditional Expressions), ADR-025 (Switch Statements), ADR-026 (Break and Continue), ADR-027 (Do-While), ADR-113 (Forever Loops — extends `definitelyReturns` with a divergence primitive)
 
 ## Context
 

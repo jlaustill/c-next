@@ -1,6 +1,6 @@
 # ADR-113: Forever Loops
 
-**Status:** Research
+**Status:** Accepted
 **Date:** 2026-06-26
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-026 (Break and Continue), ADR-027 (Do-While), ADR-112 (All-Paths-Return), ADR-114 (Dead-Code / Reachability Analysis)
@@ -9,7 +9,7 @@
 
 C-Next has no dedicated construct for an intentionally infinite loop. Because loop
 conditions must be explicit comparisons (E0701 — bare booleans and bare constants are
-rejected), the only way to write "loop forever" today is a hack:
+rejected), the only ways to write "loop forever" today are hacks:
 
 ```cnx
 while (1 = 1) {   // `1 = 1` is equality in C-Next, i.e. `1 == 1`
@@ -21,6 +21,22 @@ which transpiles to:
 
 ```c
 while (1 == 1) {
+    Main_loop();
+}
+```
+
+or
+
+```cnx
+for (;;) {
+    loop();
+}
+```
+
+which transpiles to:
+
+```c
+for (;;) {
     Main_loop();
 }
 ```
@@ -79,10 +95,11 @@ The proposed C-Next rule below (`forever` only in `void` functions) is therefore
 The justification is that it is the _simplest sound_ option and, per the repo audit, costs
 nothing today (see "Migration Impact").
 
-## Decision (Proposed — Research)
+## Decision
 
-> This ADR is in **Research** status. The direction below reflects the current design
-> conversation; nothing here is approved or implemented. Open questions are listed explicitly.
+> This ADR is **Accepted** (2026-06-27). The design below is approved; implementation is
+> pending. The open questions raised during research are recorded as resolved in the
+> _Resolved (2026-06-26 design session)_ section.
 
 Add a dedicated infinite-loop statement:
 
@@ -92,11 +109,25 @@ forever {
 }
 ```
 
-### Proposed semantics
+The keyword is **`forever`** (decided 2026-06-26). It reads as plain English — "reads like a
+book" — and a C developer grasps its intent instantly. `loop` (Rust) was rejected as ambiguous
+with labels/calls and less recognizable to C developers; `for (;;)` and `while (1 = 1)` are
+treated as **hacks** to be forbidden in source (see "Forbidding the Disguised Infinite Loop"), so
+`forever` is the **single** way to write an infinite loop in C-Next.
+
+**Braces are always required** — `forever { … }`, never a single-statement form — matching
+C-Next's brace-always style (`switch`, `scope`, `critical`).
+
+**Source vs. generated C.** `forever` is the _source_ form; the transpiler still _emits_ the
+canonical `for (;;)` in the generated `.c`. The "hack" objection is about what a human authors in
+`.cnx`, not what the compiler outputs — `for (;;)` is the correct, MISRA 14.3-compliant C idiom to
+generate.
+
+### Semantics
 
 1. **Lowering.** `forever { … }` transpiles to `for (;;) { … }` — the idiom MISRA C:2012
    explicitly permits as an infinite loop (Rule 14.3 carve-out), with no controlling
-   expression to be flagged as invariant.
+   expression to be flagged as invariant. The lowered for statement will include a detailed comment specifying the MISRA 14.3 rule etc.
 2. **Divergent.** Because C-Next has no `break`/`continue` (ADR-026), `forever` never completes.
    The all-paths-return analyzer (ADR-112) treats it as a **divergent statement** — a terminal
    path, like an unconditional `return`. A function whose every path either returns a value or
@@ -124,12 +155,30 @@ forever {
 
 ### Proposed error codes (not yet allocated)
 
-| Code  | Meaning                                                                                        |
-| ----- | ---------------------------------------------------------------------------------------------- |
-| E0705 | `forever` loop in a non-`void` function (use `while` + condition, or make the function `void`) |
+Diagnostics follow the existing `Error EXXXX: <message>\n  help: <suggestion>` format (see E0701).
 
-(Unreachable-code-after-`forever` is proposed to be reported by ADR-114's reachability code,
-under the same code that flags all unreachable statements, rather than a `forever`-specific one.)
+| Code  | Trigger                                            | Message → help                                                                                                                                               |
+| ----- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| E0705 | `forever` in a non-`void` function                 | `forever loop in non-void function '<name>'` → `a forever loop never returns a value; make '<name>' return void, or use a while loop with an exit condition` |
+| E0707 | `for (;;)` in source                               | `empty for-loop header is an infinite loop` → `write 'forever { … }' for an intentional infinite loop`                                                       |
+| E0707 | always-true loop condition (`while (1 = 1)`, etc.) | `loop condition is always true` → `write 'forever { … }' for an intentional infinite loop`                                                                   |
+
+**E0706 is allocated to ADR-114** (unreachable code); "code after a `forever` loop" is reported
+there, not by a `forever`-specific diagnostic.
+
+### Grammar (proposed)
+
+```antlr
+FOREVER : 'forever';   // ADR-113
+
+foreverStatement : FOREVER block ;   // `block` requires braces — no single-statement form
+```
+
+`foreverStatement` is added to the `statement` rule's alternatives, alongside `whileStatement` /
+`doWhileStatement` / `forStatement`. `forever` becomes a reserved keyword (no existing identifier
+in the repo uses it). The forbidden `for (;;)` and always-true `while` forms are still **accepted
+by the grammar** and rejected in the analysis/codegen layer (E0707) — so the diagnostic can carry
+the steer-to-`forever` help text instead of a generic parse error.
 
 ## Relationship to ADR-114
 
@@ -169,9 +218,11 @@ transpiles correctly.)
 
 ## Forbidding the Disguised Infinite Loop (follow-on)
 
-Once `forever` exists, the current `while (1 = 1)` hack has **zero** legitimate use. The natural
-follow-on is a compile error on an always-true loop condition that steers the author to
-`forever`, e.g.:
+Once `forever` exists, the disguised infinite-loop forms — `while (1 = 1)` **and** `for (;;)` in
+source — have **zero** legitimate use. Both are forbidden in C-Next source and steered to
+`forever` (decided 2026-06-26), so there is exactly one source form. Note `for (;;)` compiles
+today, so forbidding it is a deliberate (tiny) breaking change — the repo audit found **zero**
+occurrences (see "Migration Impact"). The error reads, e.g.:
 
 ```
 error[E0707]: loop condition is always true
@@ -222,11 +273,13 @@ post-`forever` the form has no legitimate use.
 
 ### Scope notes
 
-- Catching only the literal `1 = 1` is trivial; catching `2 = 2`, `5 > 3`, `true = true`, and
-  named-constant comparisons requires constant folding (i.e. real invariant analysis).
-- Full MISRA 14.3 is broader than infinite loops (always-_false_ conditions, invariant non-loop
-  `if`/`for`). The `forever` steering is one facet; full 14.3 enforcement is a separate, larger
-  effort worth its own tracking.
+- **v0.2.18 (ships with `forever`):** `for (;;)`, plus any loop condition whose operands are all
+  **literals** — `1 = 1`, `2 = 2`, `5 > 3`, `true = true`. These are decided by evaluating the
+  comparison directly, with **no symbol resolution** required.
+- **v0.2.19 (separate full-MISRA-14.3 effort):** invariants involving **named constants or
+  non-literal operands** (`MAX > 0`, `CONST = CONST`), which need the symbol table + constant
+  folding; plus the non-loop 14.3 cases (always-_false_ conditions, invariant `if`/`for`). Full
+  14.3 is a separate, larger effort worth its own tracking and thus will get its own github issue in the next minor release.
 
 ## Alternatives Considered
 
@@ -241,24 +294,29 @@ post-`forever` the form has no legitimate use.
 2. **Pure syntactic sugar.** `forever` lowers to a loop but flow analysis is unchanged, so a
    non-void function still needs a dead trailing return. Rejected: it leaves the E0704
    dead-code wart in place, which is half the motivation.
-3. **Keyword `loop` (Rust/CoffeeScript) instead of `forever` (Verilog).** Open question — see
-   below.
+3. **Keyword `loop` (Rust/CoffeeScript) instead of `forever` (Verilog).**
 
-## Open Questions
+## Resolved (2026-06-26 design session)
 
-- **Keyword:** `forever` vs `loop`. `forever` matches Verilog and is unambiguous; `loop`
-  matches Rust/Ada/CoffeeScript and is shorter. Needs a decision.
-- **`void`-only vs bottom type:** confirm the `void`-only rule for v1, with the bottom type as
-  a documented future fork (Alternative 1).
-- **Diagnostic wording for E0705:** should it actively suggest the `while`-with-condition
-  rewrite and the `void` conversion?
-- **Grammar placement:** add `foreverStatement` as a new alternative in the `statement` rule
-  (alongside `whileStatement`/`forStatement`); new keyword token `FOREVER`.
-- **Disguised-loop steering (see section above):** hard error vs warning, and whether to ship the
-  trivial literal-`1 = 1` slice first or build full MISRA 14.3 invariant analysis. Proposed `E0707`.
-- **Back-reference ADR-112.** When this ADR is accepted/implemented, update ADR-112's
-  _Related ADRs_ to include ADR-113 — this ADR introduces the "divergent statement" concept into
-  ADR-112's `definitelyReturns` machinery. (Documentation counterpart, not a code change.)
+- **Keyword:** `forever` (over `loop`, which reads ambiguously as a label/call).
+- **Braces:** always required (`forever { … }`), matching `switch`/`scope`/`critical`.
+- **`void`-only:** adopted for v0.2.18; a `never`/bottom type is the documented future fork
+  (Alternatives Considered, #1).
+- **Single source form:** `for (;;)` and always-true `while` are forbidden, steered to `forever`.
+- **Diagnostics:** E0705 (`forever` in non-void) and E0707 (disguised loop) — wording in the
+  _Proposed error codes_ table; grammar in the _Grammar_ subsection.
+- **Steering is a hard error**, not a warning — consistent with C-Next's hard-error-first stance
+  (prior art warns, but C-Next already hard-errors the adjacent E0701, and the form has no
+  legitimate use post-`forever`).
+- **v0.2.18 scope / sequencing:** `forever` ships _with_ the syntactic disguised-loop slice (`for (;;)`
+  - literal-operand always-true comparisons); general-invariant detection is deferred — see
+    _Scope notes_ above.
+
+## Remaining
+
+- **Back-reference ADR-112:** ADR-113 added to ADR-112's _Related ADRs_ (2026-06-27, on
+  acceptance). ADR-114 still to be added when it is accepted/implemented — both extend
+  ADR-112's `definitelyReturns` machinery. Documentation counterpart, not a code change.
 
 ## References
 
