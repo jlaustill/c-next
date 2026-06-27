@@ -300,6 +300,10 @@ export default class CodeGenerator implements IOrchestrator {
       controlFlowGenerators.generateDoWhile,
     );
     this.registry.registerStatement("for", controlFlowGenerators.generateFor);
+    this.registry.registerStatement(
+      "forever",
+      controlFlowGenerators.generateForever,
+    );
     this.registry.registerStatement("switch", switchGenerators.generateSwitch);
     this.registry.registerStatement("critical", generateCriticalStatement);
 
@@ -1058,6 +1062,8 @@ export default class CodeGenerator implements IOrchestrator {
       result = this.generateDoWhile(ctx.doWhileStatement()!);
     } else if (ctx.forStatement()) {
       result = this.generateFor(ctx.forStatement()!);
+    } else if (ctx.foreverStatement()) {
+      result = this.generateForever(ctx.foreverStatement()!);
     } else if (ctx.switchStatement()) {
       result = this.generateSwitch(ctx.switchStatement()!);
     } else if (ctx.returnStatement()) {
@@ -4525,6 +4531,10 @@ export default class CodeGenerator implements IOrchestrator {
 
   private generateFor(ctx: Parser.ForStatementContext): string {
     return this.invokeStatement("for", ctx);
+  }
+
+  private generateForever(ctx: Parser.ForeverStatementContext): string {
+    return this.invokeStatement("forever", ctx);
   }
 
   private generateReturn(ctx: Parser.ReturnStatementContext): string {

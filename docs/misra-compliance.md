@@ -252,12 +252,12 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 14 - Control Statement Expressions
 
-| Rule | Description                                | Status        | Reference               |
-| ---- | ------------------------------------------ | ------------- | ----------------------- |
-| 14.1 | Loop counter float                         | **By Design** | Loop validation         |
-| 14.2 | For loop well-formed                       | Partial       | Some validation         |
-| 14.3 | Controlling expression not invariant       | Not Enforced  |                         |
-| 14.4 | Controlling expression essentially boolean | Partial       | E0701 for do-while only |
+| Rule | Description                                | Status        | Reference                                                                                       |
+| ---- | ------------------------------------------ | ------------- | ----------------------------------------------------------------------------------------------- |
+| 14.1 | Loop counter float                         | **By Design** | Loop validation                                                                                 |
+| 14.2 | For loop well-formed                       | Partial       | Some validation                                                                                 |
+| 14.3 | Controlling expression not invariant       | Not Enforced  | ADR-113 adds `forever` (compliant `for(;;)` idiom); forbidding disguised loops tracked in #1075 |
+| 14.4 | Controlling expression essentially boolean | Partial       | E0701 for do-while only                                                                         |
 
 ---
 

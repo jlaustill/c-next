@@ -152,6 +152,17 @@ do {
 } while (byte != END_MARKER);   // OK: comparison
 // } while (byte);              // ERROR: must be boolean
 
+// Forever - the one intentional infinite loop (ADR-113). Braces always required.
+// Lowers to MISRA-compliant for(;;). Allowed ONLY in void functions: a loop that
+// never ends can never honor a return type (E0705 otherwise).
+void main() {
+    setup();
+    forever {
+        loop();
+    }
+}
+// i32 main() { forever { } }   // ERROR E0705: forever in non-void function
+
 // Switch - braces replace break, no fallthrough, no colons!
 switch (state) {
     case State.IDLE {

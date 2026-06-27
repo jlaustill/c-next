@@ -14,6 +14,7 @@ import {
   WhileStatementContext,
   DoWhileStatementContext,
   ForStatementContext,
+  ForeverStatementContext,
   ForVarDeclContext,
   ForAssignmentContext,
   ExpressionContext,
@@ -357,6 +358,40 @@ const generateFor = (
   return { code: result, effects };
 };
 
+/**
+ * Generate C code for a forever statement (ADR-113).
+ *
+ * Lowers to the MISRA C:2012 Rule 14.3-compliant infinite-loop idiom `for (;;)`
+ * (the carve-out that rule explicitly permits — no controlling expression to be
+ * flagged as invariant). A `forever` loop may appear only in a void function
+ * (E0705): a value-returning function can never honor its return type if it
+ * loops forever.
+ */
+const generateForever = (
+  node: ForeverStatementContext,
+  _input: IGeneratorInput,
+  _state: IGeneratorState,
+  orchestrator: IOrchestrator,
+): IGeneratorOutput => {
+  const effects: TGeneratorEffect[] = [];
+
+  // ADR-113 E0705: forever is void-only.
+  const returnType = orchestrator.getCurrentFunctionReturnType();
+  if (returnType && returnType !== "void") {
+    throw new Error(
+      "Error E0705: forever loop in non-void function\n" +
+        "  help: a forever loop never returns a value; make the function return void, " +
+        "or use a while loop with an exit condition",
+    );
+  }
+
+  const body = orchestrator.generateBlock(node.block());
+  const comment =
+    "/* MISRA C:2012 Rule 14.3: infinite loop is intentional (C-Next `forever`) */";
+
+  return { code: `${comment}\nfor (;;) ${body}`, effects };
+};
+
 // Export all control flow generators
 const controlFlowGenerators = {
   generateReturn,
@@ -364,6 +399,7 @@ const controlFlowGenerators = {
   generateWhile,
   generateDoWhile,
   generateFor,
+  generateForever,
   generateForVarDecl,
   generateForAssignment,
 };

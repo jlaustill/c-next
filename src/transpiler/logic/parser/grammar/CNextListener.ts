@@ -45,6 +45,7 @@ import { IfStatementContext } from "./CNextParser.js";
 import { WhileStatementContext } from "./CNextParser.js";
 import { DoWhileStatementContext } from "./CNextParser.js";
 import { ForStatementContext } from "./CNextParser.js";
+import { ForeverStatementContext } from "./CNextParser.js";
 import { ForInitContext } from "./CNextParser.js";
 import { ForVarDeclContext } from "./CNextParser.js";
 import { ForAssignmentContext } from "./CNextParser.js";
@@ -518,6 +519,16 @@ export class CNextListener implements ParseTreeListener {
      * @param ctx the parse tree
      */
     exitForStatement?: (ctx: ForStatementContext) => void;
+    /**
+     * Enter a parse tree produced by `CNextParser.foreverStatement`.
+     * @param ctx the parse tree
+     */
+    enterForeverStatement?: (ctx: ForeverStatementContext) => void;
+    /**
+     * Exit a parse tree produced by `CNextParser.foreverStatement`.
+     * @param ctx the parse tree
+     */
+    exitForeverStatement?: (ctx: ForeverStatementContext) => void;
     /**
      * Enter a parse tree produced by `CNextParser.forInit`.
      * @param ctx the parse tree

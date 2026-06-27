@@ -45,6 +45,7 @@ import { IfStatementContext } from "./CNextParser.js";
 import { WhileStatementContext } from "./CNextParser.js";
 import { DoWhileStatementContext } from "./CNextParser.js";
 import { ForStatementContext } from "./CNextParser.js";
+import { ForeverStatementContext } from "./CNextParser.js";
 import { ForInitContext } from "./CNextParser.js";
 import { ForVarDeclContext } from "./CNextParser.js";
 import { ForAssignmentContext } from "./CNextParser.js";
@@ -353,6 +354,12 @@ export class CNextVisitor<Result> extends AbstractParseTreeVisitor<Result> {
      * @return the visitor result
      */
     visitForStatement?: (ctx: ForStatementContext) => Result;
+    /**
+     * Visit a parse tree produced by `CNextParser.foreverStatement`.
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    visitForeverStatement?: (ctx: ForeverStatementContext) => Result;
     /**
      * Visit a parse tree produced by `CNextParser.forInit`.
      * @param ctx the parse tree

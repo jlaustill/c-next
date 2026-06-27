@@ -202,4 +202,31 @@ describe("ReturnPathAnalyzer", () => {
       ).toHaveLength(0);
     });
   });
+
+  describe("treats `forever` as a divergent terminal path (ADR-113, the primitive #849 consumes)", () => {
+    // A `forever` loop never exits (C-Next has no break/continue, ADR-026), so a
+    // function whose terminal path is `forever` never falls through and must not
+    // be flagged E0704. (In real programs `forever` is void-only via E0705 in
+    // codegen; this is the shared divergence primitive ADR-114 reuses.)
+    it("does not flag a function whose only path is a forever loop", () => {
+      expect(
+        analyze(`
+        u8 f() {
+          forever { u8 x <- 1; }
+        }
+      `),
+      ).toHaveLength(0);
+    });
+
+    it("does not flag a forever loop after a non-returning if", () => {
+      expect(
+        analyze(`
+        u8 f(bool ready) {
+          if (ready = true) { return 1; }
+          forever { u8 y <- 0; }
+        }
+      `),
+      ).toHaveLength(0);
+    });
+  });
 });

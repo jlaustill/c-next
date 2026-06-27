@@ -1,0 +1,2 @@
+1:0 Code generation failed: Error E0705: forever loop in non-void function
+  help: a forever loop never returns a value; make the function return void, or use a while loop with an exit condition

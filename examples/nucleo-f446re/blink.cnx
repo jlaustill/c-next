@@ -283,12 +283,10 @@ void loop() {
     }
 }
 
-i32 main() {
+void main() {
     setup();
 
-    while (1 = 1) {
+    forever {
         loop();
     }
-
-    return 0;
 }
