@@ -54,7 +54,12 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 | --------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
 | [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection   |
 | [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion |
-| [ADR-113](decisions/adr-113-forever-loops.md)                   | Forever Loops         | `forever { }` divergent infinite loop (void-only)     |
+
+## WIP (Implementation In Progress)
+
+| ADR                                           | Title         | Description                                                                                    |
+| --------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| [ADR-113](decisions/adr-113-forever-loops.md) | Forever Loops | `forever { }` divergent infinite loop (void-only); core landed (#1074), completes with ADR-114 |
 
 ## Superseded
 
