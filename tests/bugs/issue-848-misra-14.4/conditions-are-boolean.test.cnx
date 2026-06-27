@@ -1,0 +1,81 @@
+// test-execution
+// Issue #848: MISRA C:2012 Rule 14.4 — the controlling expression of an `if`
+// statement and of an iteration-statement shall have essentially Boolean type.
+//
+// Every if/while/for/do-while condition below is an explicit comparison or a
+// logical combination of comparisons (never a bare value), so the generated C
+// is 14.4-compliant. This is the regression anchor for #848, which had 29
+// violations before they were eliminated at the C-Next source level by:
+//   - #884: E0701 boolean-condition validation for if/while/for/do-while
+//   - #1042: consistent rejection of bare booleans in conditions
+// The matching negative cases (bare conditions rejected with E0701) live in
+// tests/control-flow, tests/for-loops, tests/do-while, and
+// tests/bugs/issue-1042-bare-bool-condition.
+
+u32 countDownWhile(u32 start) {
+    u32 n <- start;
+    u32 iterations <- 0;
+    while (n > 0) {
+        n <- n - 1;
+        iterations <- iterations + 1;
+    }
+    return iterations;
+}
+
+u32 sumForLoop(u32 limit) {
+    u32 total <- 0;
+    for (u32 i <- 0; i < limit; i <- i + 1) {
+        total <- total + i;
+    }
+    return total;
+}
+
+u32 firstMultiple(u32 step) {
+    u32 value <- 0;
+    do {
+        value <- value + step;
+    } while (value < step);
+    return value;
+}
+
+bool bothPositive(i32 a, i32 b) {
+    bool result <- false;
+    if (a > 0 && b > 0) {
+        result <- true;
+    }
+    return result;
+}
+
+u32 main() {
+    // while with a relational condition
+    u32 iterations <- countDownWhile(5);
+    if (iterations != 5) {
+        return 1;
+    }
+
+    // for with a relational condition: 0 + 1 + 2 + 3 = 6
+    u32 total <- sumForLoop(4);
+    if (total != 6) {
+        return 2;
+    }
+
+    // do-while with an inequality condition (runs exactly once for step > 0)
+    u32 multiple <- firstMultiple(7);
+    if (multiple != 7) {
+        return 3;
+    }
+
+    // if with a logical-AND of two comparisons (result is true)
+    bool ok <- bothPositive(3, 4);
+    if (ok = false) {
+        return 4;
+    }
+
+    // if with an explicit boolean equality condition (result is false)
+    bool none <- bothPositive(-1, 2);
+    if (none = true) {
+        return 5;
+    }
+
+    return 0;
+}
