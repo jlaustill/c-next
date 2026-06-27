@@ -26,6 +26,26 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 
 ---
 
+## How violations are validated
+
+`npm run validate:c` runs cppcheck's MISRA addon over every generated C test
+file via `scripts/batch-validate.mjs`. cppcheck emits all MISRA findings at
+`style` severity, so the runner passes `--enable=style` — omitting it makes the
+check a silent no-op (issue #1057).
+
+The failure decision lives in `scripts/misra-baseline.mjs`:
+
+- **Generated-only**: cppcheck also flags transitively-included third-party libs
+  and hand-written fixtures; only violations in C-Next-generated output
+  (`*.test.c` / generated `*.test.h`) count.
+- **Per-rule baseline**: every rule that currently has generated violations is
+  listed in `BASELINE`, mapped to its tracking issue (#841–#869, #1059–#1072).
+  Baselined rules do not fail the build, so the check is green today but fails
+  on any **new** rule class. When a rule's issue is fixed, remove its entry from
+  `BASELINE` to start enforcing it.
+
+---
+
 ## Directives
 
 ### Dir 1 - Implementation Compliance
