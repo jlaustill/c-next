@@ -12,10 +12,10 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E04xx     | Symbol Resolution       | 3      |
 | E05xx     | Include/Preprocessor    | 4      |
 | E06xx     | Sizeof Expressions      | 2      |
-| E07xx     | Control Flow            | 5      |
+| E07xx     | Control Flow            | 6      |
 | E08xx     | Arithmetic/Array Safety | 9      |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **34** |
+| **Total** |                         | **35** |
 
 ---
 
@@ -80,15 +80,16 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 
 ## E07xx — Control Flow Validation
 
-| Code  | Message                                    | Help                                                                          | Source                                                         |
-| ----- | ------------------------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| E0701 | Condition must be a boolean expression     | Use explicit comparison: `expr > 0` or `expr != 0`                            | `output/codegen/TypeValidator.ts`                              |
-| E0702 | Function call in condition not allowed     | Store function result in a variable first                                     | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts`   |
-| E0703 | `break`/`continue` not supported           | Use structured conditions instead                                             | `output/codegen/CodeGenerator.ts`                              |
-| E0704 | Non-void function must return on all paths | Add an explicit `return <value>;` so every path returns a value               | `logic/analysis/ReturnPathAnalyzer.ts`                         |
-| E0705 | `forever` loop in non-void function        | Make the function return `void`, or use a `while` loop with an exit condition | `output/codegen/generators/statements/ControlFlowGenerator.ts` |
+| Code  | Message                                                             | Help                                                                          | Source                                                         |
+| ----- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| E0701 | Condition must be a boolean expression                              | Use explicit comparison: `expr > 0` or `expr != 0`                            | `output/codegen/TypeValidator.ts`                              |
+| E0702 | Function call in condition not allowed                              | Store function result in a variable first                                     | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts`   |
+| E0703 | `break`/`continue` not supported                                    | Use structured conditions instead                                             | `output/codegen/CodeGenerator.ts`                              |
+| E0704 | Non-void function must return on all paths                          | Add an explicit `return <value>;` so every path returns a value               | `logic/analysis/ReturnPathAnalyzer.ts`                         |
+| E0705 | `forever` loop in non-void function                                 | Make the function return `void`, or use a `while` loop with an exit condition | `output/codegen/generators/statements/ControlFlowGenerator.ts` |
+| E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition) | Write `forever { ... }` for an intentional infinite loop                      | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts`   |
 
-**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-112 / Issue #1040 (E0704), ADR-113 / Issue #1074 (E0705)
+**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-112 / Issue #1040 (E0704), ADR-113 / Issue #1074 (E0705), ADR-113 / Issue #1075 (E0707; E0706 reserved for ADR-114 unreachable code)
 
 ---
 

@@ -163,6 +163,11 @@ void main() {
 }
 // i32 main() { forever { } }   // ERROR E0705: forever in non-void function
 
+// `forever` is the ONLY way to write an infinite loop. The disguised forms are
+// rejected (E0707) and steered to `forever`:
+// for (;;) { }            // ERROR E0707: no controlling expression
+// while (1 = 1) { }       // ERROR E0707: loop condition is always true
+
 // Switch - braces replace break, no fallthrough, no colons!
 switch (state) {
     case State.IDLE {

@@ -1130,6 +1130,14 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * ADR-113 / #1075: reject an always-true literal loop condition (E0707).
+   * Part of IOrchestrator interface.
+   */
+  validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void {
+    TypeValidator.validateLoopConditionNotAlwaysTrue(ctx);
+  }
+
+  /**
    * Issue #254: Validate no function calls in condition (E0702).
    * Part of IOrchestrator interface (ADR-053 A3).
    */

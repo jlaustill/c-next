@@ -333,6 +333,21 @@ surfaces. This is exactly the shared decision ADR-114 must reuse rather than re-
 Scope held: the unreachable-code-after-`forever` diagnostic (E0706) is **not** part of #1074 — it
 belongs to ADR-114's reachability pass. #1074 delivers only the divergence primitive + E0704 relief.
 
+## Implementation Notes (Issue #1075, 2026-06-27)
+
+The v0.2.18 **disguised-loop slice** shipped as **E0707** (E0706 stays reserved for ADR-114):
+
+- **`for (;;)`** — a for-loop with no controlling expression is rejected in `generateFor`.
+- **Always-true literal conditions** — `while`/`for`/`do-while` conditions that are a single
+  comparison of integer/bool literals evaluating to true (`1 = 1`, `5 > 3`, `true = true`,
+  `1 != 2`) are rejected via `TypeValidator.validateLoopConditionNotAlwaysTrue`.
+
+Strictly the **literal** slice (no symbol resolution): named constants, non-literal/compound
+operands, floats, and always-**false** conditions are deliberately _not_ flagged — deferred to the
+full MISRA 14.3 effort (#1076). MISRA 14.3 moves Not Enforced → **Partial**. Repo audit confirmed
+zero pre-existing `for (;;)` or `while (1 = 1)` in source (only the one already migrated in #1074),
+so this breaking change flags nothing existing.
+
 ## Remaining
 
 - **Back-reference ADR-112:** ADR-113 added to ADR-112's _Related ADRs_ (2026-06-27, on

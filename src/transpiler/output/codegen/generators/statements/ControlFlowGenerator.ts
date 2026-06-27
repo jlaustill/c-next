@@ -168,6 +168,9 @@ const generateWhile = (
   // Issue #884: Validate condition is a boolean expression (E0701)
   orchestrator.validateConditionIsBoolean(node.expression(), "while");
 
+  // ADR-113 / #1075: reject always-true literal condition (E0707)
+  orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
+
   const condition = orchestrator.generateExpression(node.expression());
 
   // Issue #250: Flush any temp vars from condition BEFORE generating body
@@ -201,6 +204,9 @@ const generateDoWhile = (
 
   // Issue #884: Validate condition is a boolean expression (E0701)
   orchestrator.validateConditionIsBoolean(node.expression(), "do-while");
+
+  // ADR-113 / #1075: reject always-true literal condition (E0707)
+  orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
 
   const body = orchestrator.generateBlock(node.block());
   const condition = orchestrator.generateExpression(node.expression());
@@ -287,6 +293,15 @@ const generateFor = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
+  // ADR-113 / #1075 E0707: a for-loop with no controlling expression (`for (;;)`)
+  // is a disguised infinite loop. C-Next has one source form for that — `forever`.
+  if (!node.expression()) {
+    throw new Error(
+      "Error E0707: for-loop has no controlling expression (infinite loop)\n" +
+        "  help: write 'forever { ... }' for an intentional infinite loop",
+    );
+  }
+
   let init = "";
   const forInit = node.forInit();
   if (forInit) {
@@ -321,6 +336,9 @@ const generateFor = (
 
     // Issue #884: Validate condition is a boolean expression (E0701)
     orchestrator.validateConditionIsBoolean(node.expression()!, "for");
+
+    // ADR-113 / #1075: reject always-true literal condition (E0707)
+    orchestrator.validateLoopConditionNotAlwaysTrue(node.expression()!);
     condition = orchestrator.generateExpression(node.expression()!);
   }
 
