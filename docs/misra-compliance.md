@@ -39,8 +39,8 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
   and hand-written fixtures; only violations in C-Next-generated output
   (`*.test.c` / generated `*.test.h`) count.
 - **Per-rule baseline**: every rule that currently has generated violations is
-  listed in `BASELINE`, mapped to its tracking issue (#841–#869, #1059–#1072).
-  Baselined rules do not fail the build, so the check is green today but fails
+  listed in `BASELINE`, each mapped to its tracking issue. Baselined rules do
+  not fail the build, so the check is green today but fails
   on any **new** rule class. When a rule's issue is fixed, remove its entry from
   `BASELINE` to start enforcing it.
 

@@ -68,6 +68,9 @@ const BASELINE = new Map([
 
 // Matches a cppcheck finding line and captures the file path and MISRA rule id:
 //   path/to/file.test.c:12:8: style: misra violation ... [misra-c2012-14.4]
+// Paths in this suite are POSIX (the runner globs tests/), so the non-greedy
+// `(.+?)` up to the first `:` captures the whole path unambiguously. A Windows
+// drive-letter path (`C:\...`) would need a more specific anchor.
 const MISRA_LINE = /^(.+?):\d+:\d+:.*\[(misra-c2012-\d+\.\d+)\]/;
 
 class MisraBaseline {

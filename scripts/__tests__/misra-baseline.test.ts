@@ -44,7 +44,7 @@ describe("parseViolations", () => {
 
   it("returns an empty array when there are no MISRA findings", () => {
     const noise =
-      "probe.c:1:1: style: Variable unused. [unreadVariable]\nn" +
+      "probe.c:1:1: style: Variable unused. [unreadVariable]\n" +
       "probe.c:2:2: warning: something. [someWarning]";
     expect(MisraBaseline.parseViolations(noise)).toEqual([]);
   });
