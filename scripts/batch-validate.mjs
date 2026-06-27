@@ -20,6 +20,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import MisraBaseline from "./misra-baseline.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -319,36 +320,46 @@ function runMisra() {
   );
   console.log(`Running MISRA on ${misraFiles.length} C files...`);
 
+  // MisraBaseline owns the cppcheck invocation and the failure decision:
+  //   - buildArgs() enables `--enable=style` so the addon actually reports (#1057)
+  //   - findFailures() fails only on un-baselined rules in C-Next-generated code
+  // cppcheck exits 1 on ANY enabled finding (including non-MISRA style noise),
+  // so every match throws; we parse the captured output and decide ourselves.
   for (const file of misraFiles) {
+    let output;
     try {
-      execFileSync(
-        "cppcheck",
-        [
-          "--addon=misra",
-          "--inline-suppr",
-          "--error-exitcode=1",
-          "--suppress=missingIncludeSystem",
-          "--suppress=unusedFunction",
-          // Float clamp ternary guards that cppcheck can't reason through
-          // (same suppression as the cppcheck runner above)
-          "--suppress=floatConversionOverflow",
-          "--quiet",
-          "-I",
-          INCLUDE_DIR,
-          "-I",
-          dirname(file),
-          file,
-        ],
-        { encoding: "utf-8", timeout: 60000, stdio: "pipe" },
-      );
+      execFileSync("cppcheck", MisraBaseline.buildArgs(file, INCLUDE_DIR), {
+        encoding: "utf-8",
+        timeout: 60000,
+        stdio: "pipe",
+      });
+      continue; // exit 0 → no findings at all
     } catch (error) {
-      const output = error.stderr || error.stdout || error.message;
-      const issues = output
-        .split("\n")
-        .filter((line) => line.includes("misra") || line.includes("MISRA"))
-        .slice(0, 5)
-        .join("\n");
-      reportFailure("MISRA", file, issues);
+      // Exit 1 is the expected "findings present" signal; any other status
+      // means cppcheck itself failed to run, which must not pass silently.
+      if (error.status !== 1) {
+        reportFailure(
+          "MISRA",
+          file,
+          error.stderr || error.stdout || error.message,
+        );
+        continue;
+      }
+      output = `${error.stdout || ""}\n${error.stderr || ""}`;
+    }
+
+    const failures = MisraBaseline.findFailures(
+      MisraBaseline.parseViolations(output),
+    );
+    if (failures.length > 0) {
+      reportFailure(
+        "MISRA",
+        file,
+        failures
+          .slice(0, 5)
+          .map((violation) => violation.raw)
+          .join("\n"),
+      );
     }
   }
 }

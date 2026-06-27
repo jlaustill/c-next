@@ -371,7 +371,8 @@
     "unmarks",
     "unmarking",
     "pthread",
-    "ssize"
+    "ssize",
+    "baselined"
   ],
   "ignorePaths": [
     "node_modules/**",
