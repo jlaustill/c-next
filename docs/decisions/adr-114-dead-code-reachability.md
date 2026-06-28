@@ -74,12 +74,16 @@ on any control-flow path from the function entry (proposed **E0706 — unreachab
   `runAnalyzers.ts` like the existing analyzers (listener + `analyze(tree)` returning
   `IAnalyzerError[]`).
 - **Single source of truth for divergence.** The "is this statement divergent?" decision is
-  owned by **one** primitive (the `statementDefinitelyReturns` / divergence logic that ADR-113
-  introduces into `ReturnPathAnalyzer`). This analyzer _consumes_ that primitive; it does not
-  re-implement it. If sharing requires it, the divergence helpers are extracted into a shared
-  `logic/analysis/` control-flow module that both `ReturnPathAnalyzer` and `ReachabilityAnalyzer`
-  import. This is mandatory under the project's "No Duplicate Code Paths" rule — two passes that
-  each decide "what diverges" independently would be a latent divergence bug.
+  owned by **one** primitive. ADR-113 landed `statementDefinitelyReturns` in `ReturnPathAnalyzer`,
+  but research (see _Research Findings_ below) shows it is **not** directly reusable: it answers
+  _"does this path return a **value**?"_ and deliberately reports `false` for a bare `return;`.
+  Reachability needs _"does control fall through?"_, for which a bare `return;` **is** divergent.
+  The two predicates coincide everywhere except bare `return;`. The required refactor is to
+  extract a shared `statementDiverges(stmt)` base into a `logic/analysis/` control-flow module
+  and redefine `statementDefinitelyReturns` on top of it (`diverges && terminal-returns-a-value`).
+  `ReachabilityAnalyzer` consumes `statementDiverges` directly; it does not re-implement it. This
+  is mandatory under the project's "No Duplicate Code Paths" rule — two passes that each decide
+  "what diverges" independently would be a latent divergence bug.
 - Layer constraint respected: `logic/analysis/` does not import from `output/`.
 
 ### Proposed error codes (not yet allocated)
@@ -114,6 +118,50 @@ known offender is gone before the rule that would flag it turns on. A repo-wide 
 (which transpiles every example via `scripts/__tests__/examples-transpile.test.ts`) should gate
 the rule's introduction.
 
+## Research Findings (2026-06-28, #849)
+
+Code-verified investigation of the current `main` (post ADR-113 implementation). Status stays
+**Research** — nothing below is approved or implemented.
+
+1. **Blocker cleared — ADR-114 is now unblocked.** The sequencing blocker #1074 (ADR-113
+   `forever` core) is **closed** (2026-06-27); `forever` is implemented (commit `80dc4123`,
+   `feat: implement forever infinite-loop statement`). The dead `return 0;` offender in
+   `examples/nucleo-f446re/blink.cnx` is gone — that function now ends `void main() { setup();
+forever { loop(); } }`, with no statement after the `forever`. `scripts/__tests__/examples-transpile.test.ts`
+   exists and transpiles every example under `npm run unit`, so it can gate the rule's rollout.
+
+2. **The divergence primitive landed, but is NOT verbatim-reusable (key finding).**
+   `statementDefinitelyReturns()` in `src/transpiler/logic/analysis/ReturnPathAnalyzer.ts` already
+   special-cases `forever` (lines 48–58) with an explicit _"This is the shared 'divergence'
+   primitive ADR-114 (#849) reuses"_ comment. **However**, the predicate answers _"does this path
+   return a value?"_ and returns `false` for a bare `return;` (lines 28–29: `returnStmt.expression() !== null`).
+   For reachability, a bare `return;` **is** divergent — `return; side();` leaves `side()`
+   unreachable even in a `void` function. The predicates therefore diverge at exactly one leaf.
+   Reusing `statementDefinitelyReturns` verbatim would **miss unreachable code after a bare
+   `return;`**. Resolution: extract `statementDiverges(stmt)` (control cannot fall through:
+   any `return`, `forever`, exhaustive `if`/`else`, `switch` with `default` where all cases
+   diverge) as the shared base; express `statementDefinitelyReturns = statementDiverges && terminalReturnsValue`.
+   This keeps a single decision site and satisfies "No Duplicate Code Paths."
+
+3. **Analyzer wiring confirmed.** `ReachabilityAnalyzer` follows the `ReturnPathAnalyzer` pattern:
+   a `CNextListener` + `analyze(tree): IAnalyzerError[]`, registered in
+   `src/transpiler/logic/analysis/runAnalyzers.ts` (currently 11 steps; ReturnPath is step 10,
+   short-circuited via `collectErrors`). Layer constraint holds — `logic/analysis/` imports no
+   `output/`. Note: the related E0707 (disguised loops, #1075) was implemented in **`output/codegen`**
+   (`TypeValidator.ts` / `ControlFlowGenerator.ts`), a different layer. ADR-114 should follow the
+   **`ReturnPathAnalyzer` (logic/analysis)** pattern, not E0707's — reachability is structural CFG
+   analysis on the parse tree, not codegen.
+
+4. **Error code E0706 is free and already reserved** for this ADR (`docs/error-codes.md`:
+   _"E0706 reserved for ADR-114 unreachable code"_). E0705 = `forever` in non-void; E0707 =
+   disguised loop. Open question on the code number is **resolved: use E0706.**
+
+5. **Post-preprocessor concern is mild.** Analyzers run on the directly-parsed `.cnx` tree
+   (`CNextSourceParser.parse(source)` in `Transpiler._transpileFile`); C-Next conditional
+   compilation is a header/include mechanism, not intra-body statement deletion. Structural
+   reachability over the parsed function body is therefore well-defined. _(Still confirm no
+   source-level construct removes statements from a function body before accepting the ADR.)_
+
 ## Open Questions
 
 - **Function calls that never return.** Without a `never`/bottom type (see ADR-113,
@@ -121,10 +169,13 @@ the rule's introduction.
   it would be wrongly considered reachable. Scope this ADR to _structural_ divergence
   (`return` / `forever` / exhaustive `if`/`switch`) for v1, and revisit if a bottom type lands.
 - **Conditional compilation interaction.** Code removed by preprocessor flags is a separate
-  mechanism (configuration variance) from control-flow unreachability; confirm the analyzer
-  runs on the post-preprocessor tree so flagged-out code is not analyzed.
+  mechanism (configuration variance) from control-flow unreachability. **Partially resolved
+  (2026-06-28):** the analyzer runs on the directly-parsed `.cnx` tree and C-Next conditional
+  compilation is a header/include mechanism, not intra-body statement deletion (Research Finding
+  5). Remaining: confirm no source-level construct deletes function-body statements.
 - **Rollout.** Land behind a flag first, or straight to an error once the examples are clean?
-- **Error code:** confirm **E0706** (next free after E0704; E0705 is reserved by ADR-113).
+- ~~**Error code:** confirm **E0706**.~~ **Resolved (2026-06-28):** E0706 is free and already
+  reserved for this ADR in `docs/error-codes.md`. See Research Finding 4.
 - **Back-reference ADR-112.** When this ADR is accepted/implemented, update ADR-112's
   _Related ADRs_ to include ADR-114 — this pass reuses (the dual of) ADR-112's `definitelyReturns`
   machinery. (Documentation counterpart, not a code change.)
