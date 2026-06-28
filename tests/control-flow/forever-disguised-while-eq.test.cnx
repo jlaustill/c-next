@@ -1,0 +1,8 @@
+// Coverage: ADR-113 / #1075 - always-true literal while condition forbidden (E0707)
+// test-error
+void run() {
+    u8 state <- 0;
+    while (1 = 1) {
+        state <- 1;
+    }
+}

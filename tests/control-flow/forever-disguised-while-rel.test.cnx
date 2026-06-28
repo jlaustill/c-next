@@ -1,0 +1,8 @@
+// Coverage: ADR-113 / #1075 - always-true relational literal condition (E0707)
+// test-error
+void run() {
+    u8 state <- 0;
+    while (5 > 3) {
+        state <- 1;
+    }
+}

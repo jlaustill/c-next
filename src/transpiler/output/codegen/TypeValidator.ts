@@ -761,6 +761,127 @@ class TypeValidator {
     );
   }
 
+  // ========================================================================
+  // Disguised Infinite Loop Validation (ADR-113 / #1075, E0707)
+  // ========================================================================
+
+  /**
+   * ADR-113 / #1075 (E0707): reject a loop whose controlling expression is an
+   * always-TRUE comparison of literal operands (`while (1 = 1)`, `5 > 3`,
+   * `true = true`). C-Next has one source form for an intentional infinite loop —
+   * `forever`. This is the v0.2.18 *literal* slice only: named constants and
+   * non-literal operands need symbol resolution (out of scope), and always-FALSE
+   * conditions are a separate MISRA 14.3 case — both tracked in #1076.
+   *
+   * Runs after the E0701 boolean check, so the condition is already a comparison.
+   */
+  static validateLoopConditionNotAlwaysTrue(
+    ctx: Parser.ExpressionContext,
+  ): void {
+    const comparison = TypeValidator._asSingleLiteralComparison(ctx);
+    if (comparison && TypeValidator._comparisonIsAlwaysTrue(comparison)) {
+      throw new Error(
+        `Error E0707: loop condition '${ctx.getText()}' is always true\n` +
+          "  help: write 'forever { ... }' for an intentional infinite loop",
+      );
+    }
+  }
+
+  /**
+   * If `ctx` is a single comparison of two literal operands (no `||`/`&&`, no
+   * ternary, no chaining), return its operator and the two literal values.
+   * Otherwise null — anything involving identifiers, floats, or sub-expressions
+   * is left to the full MISRA 14.3 effort (#1076).
+   */
+  private static _asSingleLiteralComparison(
+    ctx: Parser.ExpressionContext,
+  ): { operator: string; left: number; right: number } | null {
+    const orExprs = ctx.ternaryExpression().orExpression();
+    if (orExprs.length !== 1) return null;
+    const andExprs = orExprs[0].andExpression();
+    if (andExprs.length !== 1) return null;
+    const equalityExprs = andExprs[0].equalityExpression();
+    if (equalityExprs.length !== 1) return null;
+    const equalityExpr = equalityExprs[0];
+
+    const relationalExprs = equalityExpr.relationalExpression();
+    if (relationalExprs.length === 2) {
+      // Equality comparison: relExpr ('=' | '!=') relExpr
+      return TypeValidator._buildLiteralComparison(
+        equalityExpr.getChild(1)?.getText(),
+        relationalExprs[0].getText(),
+        relationalExprs[1].getText(),
+      );
+    }
+    if (relationalExprs.length === 1) {
+      const bitwiseOrExprs = relationalExprs[0].bitwiseOrExpression();
+      if (bitwiseOrExprs.length === 2) {
+        // Relational comparison: orExpr ('<' | '>' | '<=' | '>=') orExpr
+        return TypeValidator._buildLiteralComparison(
+          relationalExprs[0].getChild(1)?.getText(),
+          bitwiseOrExprs[0].getText(),
+          bitwiseOrExprs[1].getText(),
+        );
+      }
+    }
+    return null;
+  }
+
+  private static _buildLiteralComparison(
+    operator: string | undefined,
+    leftText: string,
+    rightText: string,
+  ): { operator: string; left: number; right: number } | null {
+    const left = TypeValidator._literalValue(leftText);
+    const right = TypeValidator._literalValue(rightText);
+    if (operator === undefined || left === null || right === null) return null;
+    return { operator, left, right };
+  }
+
+  /**
+   * Strict literal-to-number for the E0707 literal slice: integer literals
+   * (decimal/hex/binary, optional type suffix) and `true`/`false`. Floats,
+   * strings, chars, identifiers, and any compound text return null so they are
+   * not treated as compile-time-known.
+   */
+  private static _literalValue(text: string): number | null {
+    if (text === "true") return 1;
+    if (text === "false") return 0;
+    if (text.includes(".")) return null;
+    // A leading-zero integer (`0777`) is emitted verbatim and read by C as an
+    // OCTAL constant, so a decimal parse would diverge from the generated code's
+    // value. Skip it (defer to #1076) rather than risk a wrong verdict. `0x`/`0b`
+    // and a bare `0` are unambiguous and still handled.
+    if (/^0\d/.test(text)) return null;
+    if (/^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.test(text)) {
+      return LiteralEvaluator.parseLiteral(text);
+    }
+    return null;
+  }
+
+  private static _comparisonIsAlwaysTrue(comparison: {
+    operator: string;
+    left: number;
+    right: number;
+  }): boolean {
+    switch (comparison.operator) {
+      case "=":
+        return comparison.left === comparison.right;
+      case "!=":
+        return comparison.left !== comparison.right;
+      case "<":
+        return comparison.left < comparison.right;
+      case ">":
+        return comparison.left > comparison.right;
+      case "<=":
+        return comparison.left <= comparison.right;
+      case ">=":
+        return comparison.left >= comparison.right;
+      default:
+        return false;
+    }
+  }
+
   /**
    * Builds a context-aware "help" suggestion for a rejected condition. For a
    * boolean operand the correct explicit form is `flag = true` (or `flag = false`

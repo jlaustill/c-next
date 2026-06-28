@@ -1,0 +1,2 @@
+1:0 Code generation failed: Error E0707: loop condition '1=1' is always true
+  help: write 'forever { ... }' for an intentional infinite loop

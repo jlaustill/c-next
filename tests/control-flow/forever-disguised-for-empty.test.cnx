@@ -1,0 +1,8 @@
+// Coverage: ADR-113 / #1075 - empty for(;;) is forbidden, steered to forever (E0707)
+// test-error
+void run() {
+    u8 state <- 0;
+    for (;;) {
+        state <- 1;
+    }
+}

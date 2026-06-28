@@ -1,0 +1,2 @@
+1:0 Code generation failed: Error E0707: for-loop has no controlling expression (infinite loop)
+  help: write 'forever { ... }' for an intentional infinite loop

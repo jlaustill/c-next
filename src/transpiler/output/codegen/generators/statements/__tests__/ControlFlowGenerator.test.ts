@@ -365,6 +365,7 @@ function createMockOrchestrator(options?: {
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
     validateConditionNoFunctionCall: vi.fn(),
     validateConditionIsBoolean: vi.fn(),
+    validateLoopConditionNotAlwaysTrue: vi.fn(),
     countStringLengthAccesses: vi.fn(() => new Map()),
     countBlockLengthAccesses: vi.fn(),
     setupLengthCache: vi.fn(() => options?.lengthCacheDecls ?? ""),
@@ -898,15 +899,15 @@ describe("ControlFlowGenerator", () => {
   // ========================================================================
 
   describe("generateFor", () => {
-    it("generates empty for loop (infinite loop)", () => {
-      const ctx = createMockForStatement();
+    it("rejects an empty for(;;) header as a disguised infinite loop (ADR-113 / #1075, E0707)", () => {
+      const ctx = createMockForStatement(); // no controlling expression
       const input = createMockInput();
       const state = createMockState();
       const orchestrator = createMockOrchestrator({ statementCode: "{ }" });
 
-      const result = generateFor(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("for (; ; ) { }");
+      expect(() => generateFor(ctx, input, state, orchestrator)).toThrow(
+        /E0707: for-loop has no controlling expression/,
+      );
     });
 
     it("generates for loop with all parts", () => {
@@ -947,6 +948,7 @@ describe("ControlFlowGenerator", () => {
             operator: createMockAssignmentOperator("<-"),
           }),
         }),
+        expr: createMockExpression({ text: "i < 10" }),
       });
       const input = createMockInput();
       const state = createMockState();
@@ -1007,6 +1009,7 @@ describe("ControlFlowGenerator", () => {
         init: createMockForInit({
           varDecl: createMockForVarDecl(),
         }),
+        expr: createMockExpression({ text: "i < 10" }),
       });
       const input = createMockInput();
       const state = createMockState();

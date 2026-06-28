@@ -1,0 +1,8 @@
+// Coverage: ADR-113 / #1075 - always-true for-loop literal condition (E0707)
+// test-error
+void run() {
+    u8 state <- 0;
+    for (u8 i <- 0; 1 = 1; i +<- 1) {
+        state <- 1;
+    }
+}

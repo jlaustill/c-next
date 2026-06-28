@@ -214,6 +214,9 @@ interface IOrchestrator {
     conditionType: string,
   ): void;
 
+  /** Reject an always-true literal loop condition (ADR-113 / #1075, E0707) */
+  validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void;
+
   /** Validate no function calls in condition (Issue #254, E0702) */
   validateConditionNoFunctionCall(
     ctx: Parser.ExpressionContext,

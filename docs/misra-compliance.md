@@ -21,7 +21,7 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 | Directives (1-4) | 0        | 2         | 0       | 2   | 0            |
 | Rules 1-5        | 3        | 5         | 1       | 8   | 6            |
 | Rules 6-10       | 2        | 3         | 2       | 5   | 8            |
-| Rules 11-15      | 1        | 12        | 1       | 8   | 5            |
+| Rules 11-15      | 1        | 12        | 2       | 8   | 4            |
 | Rules 16-22      | 4        | 8         | 2       | 12  | 6            |
 
 ---
@@ -252,12 +252,12 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 14 - Control Statement Expressions
 
-| Rule | Description                                | Status        | Reference                                                                                       |
-| ---- | ------------------------------------------ | ------------- | ----------------------------------------------------------------------------------------------- |
-| 14.1 | Loop counter float                         | **By Design** | Loop validation                                                                                 |
-| 14.2 | For loop well-formed                       | Partial       | Some validation                                                                                 |
-| 14.3 | Controlling expression not invariant       | Not Enforced  | ADR-113 adds `forever` (compliant `for(;;)` idiom); forbidding disguised loops tracked in #1075 |
-| 14.4 | Controlling expression essentially boolean | Partial       | E0701 for do-while only                                                                         |
+| Rule | Description                                | Status        | Reference                                                                                                                                                |
+| ---- | ------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 14.1 | Loop counter float                         | **By Design** | Loop validation                                                                                                                                          |
+| 14.2 | For loop well-formed                       | Partial       | Some validation                                                                                                                                          |
+| 14.3 | Controlling expression not invariant       | Partial       | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-113 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
+| 14.4 | Controlling expression essentially boolean | Partial       | E0701 for do-while only                                                                                                                                  |
 
 ---
 
