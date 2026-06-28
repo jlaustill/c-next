@@ -66,8 +66,8 @@ flags[0, 3] <- 5;           // Set 3 bits starting at bit 0
 bool isSet <- flags[3];     // Read bit 3
 
 // .length property
-u8 buffer[16];
-buffer.length;              // 16 (array element count)
+u8[16] bufArray;
+bufArray.length;            // 16 (array element count)
 flags.length;               // 8 (bit width of u8)
 ```
 
@@ -82,52 +82,53 @@ GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 Multi-byte serialization with compile-time validated, little-endian writes (Issue #234, #1081):
 
 ```cnx
-u8 buffer[256];
+u8[256] bufArray;
 u32 magic <- 0x12345678;
 
-// Copy 4 bytes from value into buffer at offset 0
-buffer[0, 4] <- magic;
+// Serialize 4 bytes of magic into bufArray at element 0
+bufArray[0, 4] <- magic;
 
 // Named offsets using const variables
 const u32 HEADER_OFFSET <- 0;
 const u32 DATA_OFFSET <- 8;
-buffer[HEADER_OFFSET, 4] <- magic;
-buffer[DATA_OFFSET, 8] <- timestamp;
+bufArray[HEADER_OFFSET, 4] <- magic;
+bufArray[DATA_OFFSET, 8] <- timestamp;
 ```
 
 Transpiles to explicit per-element little-endian writes, unrolled at compile time
 (bounds validated at compile time):
 
 ```c
-uint8_t buffer[256] = {0};
+uint8_t bufArray[256] = {0};
 uint32_t magic = 0x12345678;
 
 /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
 const uint32_t _tmp0 = (uint32_t)(magic);
-buffer[0] = (uint8_t)(_tmp0);
-buffer[1] = (uint8_t)(_tmp0 >> 8U);
-buffer[2] = (uint8_t)(_tmp0 >> 16U);
-buffer[3] = (uint8_t)(_tmp0 >> 24U);
+bufArray[0] = (uint8_t)(_tmp0);
+bufArray[1] = (uint8_t)(_tmp0 >> 8U);
+bufArray[2] = (uint8_t)(_tmp0 >> 16U);
+bufArray[3] = (uint8_t)(_tmp0 >> 24U);
 ```
 
 The source is materialized into a single unsigned temporary before the writes,
 so it is **evaluated exactly once** — even an impure source such as
-`buffer[0, 4] <- readSensor()` calls `readSensor()` a single time, not once per
+`bufArray[0, 4] <- readSensor()` calls `readSensor()` a single time, not once per
 byte. (A single-element slice, where the value is used only once, skips the
 temporary.) Shifting the unsigned temporary also keeps every write MISRA C:2012
 Rule 10.1-clean.
 
-The Rule 21.15 comment is emitted only when an equivalent `memcpy` would
-actually have passed incompatible pointer types (the source type differs from
-the destination element type). A same-type slice such as `u32[] <- u32` would be
-`memcpy`-compliant, so no rule is cited.
+The Rule 21.15 comment is emitted whenever an equivalent `memcpy` could have
+passed incompatible pointer types: when the source type differs from the
+destination element type (the comment names the two types), or, conservatively,
+when the source type cannot be resolved at compile time. A same-type slice such
+as `u32[] <- u32`, where the pointer types would have matched, omits the comment.
 
 **Key Features:**
 
 - **Compile-time bounds checking** prevents buffer overflows at compile time
 - Offset and length must be compile-time constants (literals or `const` variables)
 - Silent runtime failures are now compile-time errors
-- Works with struct fields: `buffer[0, 4] <- config.magic`
+- Works with struct fields: `bufArray[0, 4] <- config.magic`
 - The source must be an **integer** value (float/struct sources are a compile
   error), and the slice length may not exceed the source's width in bytes
 - **Deterministic little-endian byte order on every target** — the bytes are
@@ -383,7 +384,7 @@ void waitReady() {
 Multi-statement atomic blocks with automatic interrupt masking:
 
 ```cnx
-u8 buffer[64];
+u8[64] buffer;
 u32 writeIdx <- 0;
 
 void enqueue(u8 data) {

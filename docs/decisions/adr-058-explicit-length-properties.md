@@ -321,20 +321,20 @@ u32 width <- flags.bit_length;     // 32 — how many bits flags has
 
 The rename improves readability — `flags.bit_length` makes it obvious that the value relates to the bit indexing system.
 
-### `memcpy` Slice Interaction
+### Slice Assignment Interaction
 
-`byte_length` is directly useful for slice assignments (ADR-007, Issue #234):
+`byte_length` is directly useful for slice assignments (ADR-007, Issue #234). An array slice lowers to fully-unrolled per-element little-endian writes (not `memcpy`, which violated MISRA C:2012 Rule 21.15 — see ADR-007, Issue #1081), so `byte_length` indicates how many bytes will be spread across those per-element writes:
 
 ```cnx
-u8[256] buffer;
+u8[256] bufArray;
 u32 magic <- 0x12345678;
 
 // Before: had to manually calculate byte size
-buffer[0, 4] <- magic;
+bufArray[0, 4] <- magic;
 
 // After: byte_length makes intent clear in documentation/comments
-// magic.byte_length is 4, so this copies 4 bytes
-buffer[0, magic.byte_length] <- magic;
+// magic.byte_length is 4, so 4 bytes are serialized as per-element little-endian writes
+bufArray[0, magic.byte_length] <- magic;
 ```
 
 ---
@@ -350,7 +350,7 @@ Complete replacement of `.length` with explicit properties.
 - Follows Python's `int.bit_length()` and Elixir's `bit_size`/`byte_size` precedent
 - Unit is always in the name — zero ambiguity on any type
 - `.length` completely freed for user code
-- `byte_length` directly useful for `memcpy` calculations
+- `byte_length` directly useful for slice assignments to determine the write span
 - `snake_case` leaves `camelCase` available for user identifiers
 - Recursive array semantics are intuitive (`arr.bit_length` = total storage)
 - `element_count` is unambiguous — cannot be confused with bit or byte counts
