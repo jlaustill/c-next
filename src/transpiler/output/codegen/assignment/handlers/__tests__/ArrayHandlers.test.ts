@@ -241,6 +241,12 @@ describe("ArrayHandlers", () => {
     const getHandler = () =>
       arrayHandlers.find(([kind]) => kind === AssignmentKind.ARRAY_SLICE)?.[1];
 
+    // Every unrolled slice copy is prefixed with a comment naming the MISRA
+    // rule it satisfies and why the codegen looks the way it does (Issue #1081).
+    const SLICE_COMMENT =
+      "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
+      "(memcpy would pass incompatible pointer types: byte buffer vs wider integer). */";
+
     // Issue #1081: slice assignment lowers to per-element little-endian writes
     // (no memcpy), keeping MISRA C:2012 Rule 21.15 (compatible memcpy pointers)
     // satisfied because no incompatible pointer punning is emitted.
@@ -266,7 +272,8 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        "buffer[0] = (uint8_t)(source);\n" +
+        `${SLICE_COMMENT}\n` +
+          "buffer[0] = (uint8_t)(source);\n" +
           "buffer[1] = (uint8_t)(source >> 8U);\n" +
           "buffer[2] = (uint8_t)(source >> 16U);\n" +
           "buffer[3] = (uint8_t)(source >> 24U);",
@@ -297,7 +304,8 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        "arr16[0] = (uint16_t)(value);\n" +
+        `${SLICE_COMMENT}\n` +
+          "arr16[0] = (uint16_t)(value);\n" +
           "arr16[1] = (uint16_t)(value >> 16U);\n" +
           "arr16[2] = (uint16_t)(value >> 32U);\n" +
           "arr16[3] = (uint16_t)(value >> 48U);",
@@ -326,7 +334,8 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        "arrI[0] = (int32_t)(uint32_t)(value);\n" +
+        `${SLICE_COMMENT}\n` +
+          "arrI[0] = (int32_t)(uint32_t)(value);\n" +
           "arrI[1] = (int32_t)(uint32_t)(value >> 32U);",
       );
     });
@@ -361,7 +370,8 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        "str[5] = (char)(uint8_t)(data);\n" +
+        `${SLICE_COMMENT}\n` +
+          "str[5] = (char)(uint8_t)(data);\n" +
           "str[6] = (char)(uint8_t)(data >> 8U);",
       );
     });

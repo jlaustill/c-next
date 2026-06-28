@@ -21,6 +21,15 @@ function gen(): ICodeGenApi {
 }
 
 /**
+ * Comment emitted above an unrolled slice copy so the generated C is
+ * self-documenting: it names the MISRA rule the unrolling satisfies and why a
+ * plain `memcpy` is not used (Issue #1081).
+ */
+const SLICE_UNROLL_COMMENT =
+  "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
+  "(memcpy would pass incompatible pointer types: byte buffer vs wider integer). */";
+
+/**
  * Handle simple array element: arr[i] <- value
  *
  * Uses resolvedTarget which includes scope prefix and subscript,
@@ -216,7 +225,9 @@ function handleArraySlice(ctx: IAssignmentContext): string {
 
   const value = ctx.generatedValue;
   const elementCount = lengthValue / bytes;
-  const writes: string[] = [];
+  // Self-document the non-obvious codegen: name the MISRA rule that forces the
+  // unrolling and why a plain memcpy is not used (Issue #1081).
+  const writes: string[] = [SLICE_UNROLL_COMMENT];
   for (let k = 0; k < elementCount; k += 1) {
     const shiftBits = k * bytes * 8;
     const chunk =

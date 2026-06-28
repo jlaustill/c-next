@@ -102,11 +102,16 @@ Transpiles to explicit per-element little-endian writes, unrolled at compile tim
 uint8_t buffer[256] = {0};
 uint32_t magic = 0x12345678;
 
+/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
 buffer[0] = (uint8_t)(magic);
 buffer[1] = (uint8_t)(magic >> 8U);
 buffer[2] = (uint8_t)(magic >> 16U);
 buffer[3] = (uint8_t)(magic >> 24U);
 ```
+
+Each unrolled slice copy is prefixed with a comment naming the MISRA rule it
+satisfies and why the codegen takes this shape, so the generated C is
+self-documenting for downstream review and certification.
 
 **Key Features:**
 
