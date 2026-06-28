@@ -329,18 +329,20 @@ const generateFor = (
   // Issue #250: Flush temps from init before generating condition
   const initTemps = orchestrator.flushPendingTempDeclarations();
 
-  let condition = "";
-  if (node.expression()) {
-    // Issue #254: Validate no function calls in condition (E0702)
-    orchestrator.validateConditionNoFunctionCall(node.expression()!, "for");
+  // The empty-header case (`for (;;)`) already threw E0707 above, so the
+  // controlling expression is guaranteed present here.
+  const conditionExpr = node.expression()!;
 
-    // Issue #884: Validate condition is a boolean expression (E0701)
-    orchestrator.validateConditionIsBoolean(node.expression()!, "for");
+  // Issue #254: Validate no function calls in condition (E0702)
+  orchestrator.validateConditionNoFunctionCall(conditionExpr, "for");
 
-    // ADR-113 / #1075: reject always-true literal condition (E0707)
-    orchestrator.validateLoopConditionNotAlwaysTrue(node.expression()!);
-    condition = orchestrator.generateExpression(node.expression()!);
-  }
+  // Issue #884: Validate condition is a boolean expression (E0701)
+  orchestrator.validateConditionIsBoolean(conditionExpr, "for");
+
+  // ADR-113 / #1075: reject always-true literal condition (E0707)
+  orchestrator.validateLoopConditionNotAlwaysTrue(conditionExpr);
+
+  const condition = orchestrator.generateExpression(conditionExpr);
 
   // Issue #250: Flush temps from condition before generating update
   const conditionTemps = orchestrator.flushPendingTempDeclarations();

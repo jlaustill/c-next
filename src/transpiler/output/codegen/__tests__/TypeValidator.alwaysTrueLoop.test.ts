@@ -41,7 +41,9 @@ describe("TypeValidator.validateLoopConditionNotAlwaysTrue (E0707)", () => {
       "3 >= 3",
       "5 <= 5",
       "0x10 = 16",
+      "0XFF = 255", // uppercase hex prefix
       "0b10 = 2",
+      "5u8 = 5", // type-suffixed literal
     ])("flags %s", (condition) => {
       expect(isFlaggedAlwaysTrue(condition)).toBe(true);
     });
@@ -80,6 +82,8 @@ describe("TypeValidator.validateLoopConditionNotAlwaysTrue (E0707)", () => {
       "1 + 0 = 1", // compound left operand
       "1 = 1 || 0 > 5", // logical-or combination
       "1 = 1 && 2 = 2", // logical-and combination
+      "0777 = 777", // leading-zero literal: C reads it as octal (511), so a
+      // decimal parse (777) would diverge — skipped, not wrongly flagged
     ])("allows %s", (condition) => {
       expect(isFlaggedAlwaysTrue(condition)).toBe(false);
     });

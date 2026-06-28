@@ -848,6 +848,11 @@ class TypeValidator {
     if (text === "true") return 1;
     if (text === "false") return 0;
     if (text.includes(".")) return null;
+    // A leading-zero integer (`0777`) is emitted verbatim and read by C as an
+    // OCTAL constant, so a decimal parse would diverge from the generated code's
+    // value. Skip it (defer to #1076) rather than risk a wrong verdict. `0x`/`0b`
+    // and a bare `0` are unambiguous and still handled.
+    if (/^0[0-9]/.test(text)) return null;
     if (/^(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.test(text)) {
       return LiteralEvaluator.parseLiteral(text);
     }
