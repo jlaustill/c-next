@@ -42,6 +42,19 @@ class TypeConstants {
    * - ArrayIndexTypeAnalyzer: detecting signed integer subscript indexes
    */
   static readonly SIGNED_TYPES: readonly string[] = ["i8", "i16", "i32", "i64"];
+
+  /**
+   * Unsigned integer types (excludes `bool`, unlike `UNSIGNED_INDEX_TYPES`).
+   *
+   * Used by:
+   * - MixedTypeCategoryAnalyzer: classifying an operand's essential type category
+   */
+  static readonly UNSIGNED_INT_TYPES: readonly string[] = [
+    "u8",
+    "u16",
+    "u32",
+    "u64",
+  ];
 }
 
 export default TypeConstants;
