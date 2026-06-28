@@ -15,11 +15,11 @@
 /* Scope: StringSliceTest */
 
 void StringSliceTest_copyToBuffer(char* buffer, uint16_t value) {
-    memcpy(&buffer[0], &value, 2);
+    (void)memcpy(&buffer[0], &value, 2);
 }
 
 void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t value) {
-    memcpy(&buffer[2], &value, 2);
+    (void)memcpy(&buffer[2], &value, 2);
 }
 
 uint32_t StringSliceTest_testSliceAssignment(void) {

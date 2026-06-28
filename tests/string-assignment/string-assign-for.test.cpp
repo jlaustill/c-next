@@ -13,16 +13,16 @@ char result[17] = "";
 int main(void) {
     uint32_t i = 0U;
     for (i = 0; i < 3; i += 1) {
-        strncpy(result, "ForLoop", 16); result[16] = '\0';
+        (void)strncpy(result, "ForLoop", 16); result[16] = '\0';
     }
     if (strlen(result) != 7) return 1;
     for (i = 0; i < 3; i += 1) {
         if (i == 0) {
-            strncpy(result, "Zero", 16); result[16] = '\0';
+            (void)strncpy(result, "Zero", 16); result[16] = '\0';
         } else if (i == 1) {
-            strncpy(result, "One", 16); result[16] = '\0';
+            (void)strncpy(result, "One", 16); result[16] = '\0';
         } else {
-            strncpy(result, "Two", 16); result[16] = '\0';
+            (void)strncpy(result, "Two", 16); result[16] = '\0';
         }
     }
     if (strlen(result) != 3) return 2;

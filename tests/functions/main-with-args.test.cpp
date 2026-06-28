@@ -10,6 +10,6 @@
 #include <stdint.h>
 
 int main(int argc, char *argv[]) {
-    printf("Hello World, from %s\n", argv[0U]);
+    (void)printf("Hello World, from %s\n", argv[0U]);
     return 0;
 }

@@ -88,4 +88,10 @@ describe("BASELINE integrity", () => {
     // it if it ever reappears, so it must stay out of the baseline.
     expect(MisraBaseline.BASELINE.has("misra-c2012-10.3")).toBe(false);
   });
+
+  it("enforces Rule 17.7 — discarded non-void returns are cast (#847)", () => {
+    // #847 added (void) casts for discarded non-void calls in generated code,
+    // so 17.7 is enforced and must stay out of the baseline to catch regressions.
+    expect(MisraBaseline.BASELINE.has("misra-c2012-17.7")).toBe(false);
+  });
 });

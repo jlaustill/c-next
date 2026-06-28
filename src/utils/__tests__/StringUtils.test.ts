@@ -7,19 +7,19 @@ import StringUtils from "../StringUtils";
 describe("StringUtils.copyWithNull", () => {
   it("generates strncpy with null termination for simple variable", () => {
     expect(StringUtils.copyWithNull("str", '"hello"', 64)).toBe(
-      "strncpy(str, \"hello\", 64); str[64] = '\\0';",
+      "(void)strncpy(str, \"hello\", 64); str[64] = '\\0';",
     );
   });
 
   it("generates strncpy with null termination for struct field", () => {
     expect(StringUtils.copyWithNull("config.name", "value", 32)).toBe(
-      "strncpy(config.name, value, 32); config.name[32] = '\\0';",
+      "(void)strncpy(config.name, value, 32); config.name[32] = '\\0';",
     );
   });
 
   it("handles expression as value", () => {
     expect(StringUtils.copyWithNull("buf", "getInput()", 128)).toBe(
-      "strncpy(buf, getInput(), 128); buf[128] = '\\0';",
+      "(void)strncpy(buf, getInput(), 128); buf[128] = '\\0';",
     );
   });
 });
@@ -30,13 +30,13 @@ describe("StringUtils.copyWithNull", () => {
 describe("StringUtils.copy", () => {
   it("generates strncpy without null termination", () => {
     expect(StringUtils.copy("arr[0]", '"first"', 64)).toBe(
-      'strncpy(arr[0], "first", 64);',
+      '(void)strncpy(arr[0], "first", 64);',
     );
   });
 
   it("handles complex target expressions", () => {
     expect(StringUtils.copy("data.names[i]", "source", 32)).toBe(
-      "strncpy(data.names[i], source, 32);",
+      "(void)strncpy(data.names[i], source, 32);",
     );
   });
 });
@@ -48,8 +48,8 @@ describe("StringUtils.concat", () => {
   it("generates concatenation without indent", () => {
     const result = StringUtils.concat("result", '"Hello"', '" World"', 64);
     expect(result).toEqual([
-      'strncpy(result, "Hello", 64);',
-      'strncat(result, " World", 64 - strlen(result));',
+      '(void)strncpy(result, "Hello", 64);',
+      '(void)strncat(result, " World", 64 - strlen(result));',
       "result[64] = '\\0';",
     ]);
   });
@@ -57,16 +57,16 @@ describe("StringUtils.concat", () => {
   it("generates concatenation with indent", () => {
     const result = StringUtils.concat("msg", "a", "b", 128, "    ");
     expect(result).toEqual([
-      "    strncpy(msg, a, 128);",
-      "    strncat(msg, b, 128 - strlen(msg));",
+      "    (void)strncpy(msg, a, 128);",
+      "    (void)strncat(msg, b, 128 - strlen(msg));",
       "    msg[128] = '\\0';",
     ]);
   });
 
   it("handles variable expressions", () => {
     const result = StringUtils.concat("buf", "prefix", "suffix", 256);
-    expect(result[0]).toBe("strncpy(buf, prefix, 256);");
-    expect(result[1]).toBe("strncat(buf, suffix, 256 - strlen(buf));");
+    expect(result[0]).toBe("(void)strncpy(buf, prefix, 256);");
+    expect(result[1]).toBe("(void)strncat(buf, suffix, 256 - strlen(buf));");
     expect(result[2]).toBe("buf[256] = '\\0';");
   });
 });
@@ -78,7 +78,7 @@ describe("StringUtils.substring", () => {
   it("generates substring extraction without indent", () => {
     const result = StringUtils.substring("part", "source", "5", 10);
     expect(result).toEqual([
-      "strncpy(part, source + 5, 10);",
+      "(void)strncpy(part, source + 5, 10);",
       "part[10] = '\\0';",
     ]);
   });
@@ -86,14 +86,14 @@ describe("StringUtils.substring", () => {
   it("generates substring extraction with indent", () => {
     const result = StringUtils.substring("sub", "str", "offset", 20, "  ");
     expect(result).toEqual([
-      "  strncpy(sub, str + offset, 20);",
+      "  (void)strncpy(sub, str + offset, 20);",
       "  sub[20] = '\\0';",
     ]);
   });
 
   it("handles expression as start position", () => {
     const result = StringUtils.substring("out", "input", "i * 2", 8);
-    expect(result[0]).toBe("strncpy(out, input + i * 2, 8);");
+    expect(result[0]).toBe("(void)strncpy(out, input + i * 2, 8);");
   });
 });
 
@@ -103,13 +103,13 @@ describe("StringUtils.substring", () => {
 describe("StringUtils.copyToStructField", () => {
   it("generates strncpy for struct.field with null termination", () => {
     expect(StringUtils.copyToStructField("config", "name", '"test"', 32)).toBe(
-      "strncpy(config.name, \"test\", 32); config.name[32] = '\\0';",
+      "(void)strncpy(config.name, \"test\", 32); config.name[32] = '\\0';",
     );
   });
 
   it("handles nested struct path in structName", () => {
     expect(StringUtils.copyToStructField("a.b", "c", "val", 16)).toBe(
-      "strncpy(a.b.c, val, 16); a.b.c[16] = '\\0';",
+      "(void)strncpy(a.b.c, val, 16); a.b.c[16] = '\\0';",
     );
   });
 });
@@ -120,19 +120,19 @@ describe("StringUtils.copyToStructField", () => {
 describe("StringUtils.copyToArrayElement", () => {
   it("generates strncpy for array element", () => {
     expect(StringUtils.copyToArrayElement("names", "0", '"first"', 64)).toBe(
-      'strncpy(names[0], "first", 64);',
+      '(void)strncpy(names[0], "first", 64);',
     );
   });
 
   it("handles variable index", () => {
     expect(StringUtils.copyToArrayElement("arr", "i", "value", 32)).toBe(
-      "strncpy(arr[i], value, 32);",
+      "(void)strncpy(arr[i], value, 32);",
     );
   });
 
   it("handles expression index", () => {
     expect(StringUtils.copyToArrayElement("buf", "idx + 1", "src", 128)).toBe(
-      "strncpy(buf[idx + 1], src, 128);",
+      "(void)strncpy(buf[idx + 1], src, 128);",
     );
   });
 });
@@ -150,7 +150,7 @@ describe("StringUtils.copyToStructFieldArrayElement", () => {
         '"value"',
         64,
       ),
-    ).toBe('strncpy(config.names[0], "value", 64);');
+    ).toBe('(void)strncpy(config.names[0], "value", 64);');
   });
 
   it("handles variable index", () => {
@@ -162,7 +162,7 @@ describe("StringUtils.copyToStructFieldArrayElement", () => {
         "src",
         32,
       ),
-    ).toBe("strncpy(data.items[i], src, 32);");
+    ).toBe("(void)strncpy(data.items[i], src, 32);");
   });
 
   it("handles nested struct path", () => {
@@ -174,7 +174,7 @@ describe("StringUtils.copyToStructFieldArrayElement", () => {
         "text",
         128,
       ),
-    ).toBe("strncpy(app.settings.labels[idx], text, 128);");
+    ).toBe("(void)strncpy(app.settings.labels[idx], text, 128);");
   });
 });
 

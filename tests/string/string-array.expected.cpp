@@ -22,11 +22,11 @@ uint32_t getElementLength(char arr[5][33], uint32_t index) {
 }
 
 int main(void) {
-    strncpy(globalNames[0], "Alice", 32);
-    strncpy(globalNames[1], "Bob", 32);
-    strncpy(globalNames[2], "Charlie", 32);
-    strncpy(globalNames[3], "Diana", 32);
-    strncpy(globalNames[4], "Eve", 32);
+    (void)strncpy(globalNames[0], "Alice", 32);
+    (void)strncpy(globalNames[1], "Bob", 32);
+    (void)strncpy(globalNames[2], "Charlie", 32);
+    (void)strncpy(globalNames[3], "Diana", 32);
+    (void)strncpy(globalNames[4], "Eve", 32);
     if (5 != 5) return 1;
     if (strlen(globalNames[0U]) != 5) return 2;
     if (strlen(globalNames[1U]) != 3) return 3;
@@ -38,15 +38,15 @@ int main(void) {
     if (strcmp(globalNames[0U], "Alice") != 0) return 9;
     if (strcmp(globalNames[2U], "Charlie") != 0) return 10;
     char dupes[3][33] = {0};
-    strncpy(dupes[0], "Alice", 32);
-    strncpy(dupes[1], "Alice", 32);
-    strncpy(dupes[2], "Bob", 32);
+    (void)strncpy(dupes[0], "Alice", 32);
+    (void)strncpy(dupes[1], "Alice", 32);
+    (void)strncpy(dupes[2], "Bob", 32);
     if (strcmp(dupes[0U], dupes[1U]) != 0) return 11;
     if (strcmp(dupes[0U], dupes[2U]) == 0) return 12;
     char colors[3][65] = {0};
-    strncpy(colors[0], "Red", 64);
-    strncpy(colors[1], "Green", 64);
-    strncpy(colors[2], "Blue", 64);
+    (void)strncpy(colors[0], "Red", 64);
+    (void)strncpy(colors[1], "Green", 64);
+    (void)strncpy(colors[2], "Blue", 64);
     if (3 != 3) return 13;
     if (strlen(colors[0U]) != 3) return 14;
     if (strlen(colors[1U]) != 5) return 15;
@@ -70,11 +70,11 @@ int main(void) {
         i = i + 1U;
     }
     if (totalLength != 23) return 23;
-    strncpy(globalNames[1], "Benjamin", 32);
+    (void)strncpy(globalNames[1], "Benjamin", 32);
     if (strlen(globalNames[1U]) != 8) return 24;
     if (strcmp(globalNames[1U], "Benjamin") != 0) return 25;
     char sparse[3][33] = {0};
-    strncpy(sparse[1], "Middle", 32);
+    (void)strncpy(sparse[1], "Middle", 32);
     if (strlen(sparse[0U]) != 0) return 26;
     if (strlen(sparse[1U]) != 6) return 27;
     if (strlen(sparse[2U]) != 0) return 28;

@@ -341,7 +341,7 @@ describe("StringDeclHelper", () => {
       expect(result.handled).toBe(true);
       // Issue #1044: bounded copy, not strcpy
       expect(result.code).toContain('char dest[33] = "";');
-      expect(result.code).toContain("strncpy(dest, smallString, 32);");
+      expect(result.code).toContain("(void)strncpy(dest, smallString, 32);");
       expect(result.code).toContain("dest[32] = '\\0';");
       expect(result.code).not.toContain("strcpy(dest, smallString)");
     });
@@ -380,7 +380,7 @@ describe("StringDeclHelper", () => {
       expect(lines[0]).toBe('char dest[33] = "";');
       // Continuation line must have no leading whitespace of its own.
       expect(lines[1]).toBe(
-        "strncpy(dest, smallString, 32); dest[32] = '\\0';",
+        "(void)strncpy(dest, smallString, 32); dest[32] = '\\0';",
       );
     });
 
@@ -456,9 +456,9 @@ describe("StringDeclHelper", () => {
       // prefixes each line); continuation lines must not double-indent.
       const concatLines = result.code.split("\n");
       expect(concatLines[0]).toBe('char combined[33] = "";');
-      expect(concatLines[1]).toBe("strncpy(combined, str1, 32);");
+      expect(concatLines[1]).toBe("(void)strncpy(combined, str1, 32);");
       expect(concatLines[2]).toBe(
-        "strncat(combined, str2, 32 - strlen(combined));",
+        "(void)strncat(combined, str2, 32 - strlen(combined));",
       );
       expect(concatLines[3]).toBe("combined[32] = '\\0';");
     });
@@ -607,7 +607,7 @@ describe("StringDeclHelper", () => {
       // Issue #1037: continuation lines carry no indent of their own.
       const subLines = result.code.split("\n");
       expect(subLines[0]).toBe('char sub[11] = "";');
-      expect(subLines[1]).toBe("strncpy(sub, srcStr + 0, 5);");
+      expect(subLines[1]).toBe("(void)strncpy(sub, srcStr + 0, 5);");
       expect(subLines[2]).toBe("sub[5] = '\\0';");
     });
 
@@ -750,7 +750,7 @@ describe("StringDeclHelper", () => {
       );
 
       expect(result.handled).toBe(true);
-      expect(result.code).toContain("strncpy(sub, srcStr + startVar, 5)");
+      expect(result.code).toContain("(void)strncpy(sub, srcStr + startVar, 5)");
     });
 
     it("skips length check when length is not numeric", () => {
@@ -786,7 +786,7 @@ describe("StringDeclHelper", () => {
       );
 
       expect(result.handled).toBe(true);
-      expect(result.code).toContain("strncpy(sub, srcStr + 0, lenVar)");
+      expect(result.code).toContain("(void)strncpy(sub, srcStr + 0, lenVar)");
     });
 
     it("generates const substring declaration", () => {

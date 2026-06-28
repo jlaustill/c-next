@@ -17,7 +17,7 @@ char haystack[65] = "hello hello hello";
 void testWhileLoop(void) {
     char* c_pos = strstr(haystack, "hello");
     while (c_pos != nullptr) {
-        printf("Found at: %s\n", c_pos);
+        (void)printf("Found at: %s\n", c_pos);
         c_pos = strstr(c_pos + 1, "hello");
     }
 }

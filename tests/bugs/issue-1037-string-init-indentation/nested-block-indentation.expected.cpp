@@ -17,13 +17,13 @@ int main(void) {
     if (gate == true) {
         char base[17] = "Hello";
         char copied[33] = "";
-        strncpy(copied, base, 32); copied[32] = '\0';
+        (void)strncpy(copied, base, 32); copied[32] = '\0';
         char joined[33] = "";
-        strncpy(joined, base, 32);
-        strncat(joined, base, 32 - strlen(joined));
+        (void)strncpy(joined, base, 32);
+        (void)strncat(joined, base, 32 - strlen(joined));
         joined[32] = '\0';
         char part[9] = "";
-        strncpy(part, base + 0, 3);
+        (void)strncpy(part, base + 0, 3);
         part[3] = '\0';
         if (strcmp(copied, "Hello") != 0) return 1;
         if (strcmp(joined, "HelloHello") != 0) return 2;

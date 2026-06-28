@@ -24,12 +24,12 @@ uint32_t getLogLength(void) {
 
 // Issue #138 fixed: assignment from const parameter now generates valid C
 void copyMessage(const char* source) {
-    strncpy(messageBuffer, source, 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, source, 64); messageBuffer[64] = '\0';
 }
 
 // Issue #139 fixed: string literal assignment in function body now works
 void setDefaultMessage(void) {
-    strncpy(messageBuffer, "DefaultValue", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "DefaultValue", 64); messageBuffer[64] = '\0';
 }
 
 int main(void) {
@@ -45,7 +45,7 @@ int main(void) {
     if (msgLen != 7) return 9;
     uint32_t logLen = getLogLength();
     if (logLen != 13) return 10;
-    strncpy(messageBuffer, "Modified", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "Modified", 64); messageBuffer[64] = '\0';
     if (strlen(messageBuffer) != 8) return 11;
     if (strcmp(messageBuffer, "Modified") != 0) return 12;
     char source[65] = "FromParam";

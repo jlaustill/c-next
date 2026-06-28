@@ -9,10 +9,44 @@ const C_NULL_CHAR = String.raw`'\0'`;
 
 class StringUtils {
   /**
+   * Emit a single bounded `strncpy` call, cast to `(void)` so the discarded
+   * `char*` return is MISRA C:2012 Rule 17.7 compliant (#847). This is the one
+   * place strncpy text is produced for string lowering — both StringUtils and
+   * StringDeclHelper route through it so the cast lives in a single spot.
+   *
+   * @param target - The destination expression (may include subscripts)
+   * @param source - The source string expression
+   * @param length - Number of chars to copy (literal or C expression)
+   */
+  static boundedCopy(
+    target: string,
+    source: string,
+    length: number | string,
+  ): string {
+    return `(void)strncpy(${target}, ${source}, ${length});`;
+  }
+
+  /**
+   * Emit a single bounded `strncat` call, cast to `(void)` for MISRA Rule 17.7
+   * (#847). Companion to {@link boundedCopy}.
+   *
+   * @param target - The destination expression
+   * @param source - The source string expression
+   * @param length - Max chars to append (literal or C expression)
+   */
+  static boundedConcat(
+    target: string,
+    source: string,
+    length: number | string,
+  ): string {
+    return `(void)strncat(${target}, ${source}, ${length});`;
+  }
+
+  /**
    * Generate strncpy with explicit null termination.
    * Used for simple string assignments: str <- "hello"
    *
-   * Pattern: strncpy(target, value, capacity); target[capacity] = '\0';
+   * Pattern: (void)strncpy(target, value, capacity); target[capacity] = '\0';
    *
    * @param target - The destination variable/expression
    * @param value - The source string expression
@@ -20,14 +54,14 @@ class StringUtils {
    * @returns C code string for the copy operation
    */
   static copyWithNull(target: string, value: string, capacity: number): string {
-    return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = ${C_NULL_CHAR};`;
+    return `${StringUtils.boundedCopy(target, value, capacity)} ${target}[${capacity}] = ${C_NULL_CHAR};`;
   }
 
   /**
    * Generate strncpy without explicit null termination.
    * Used for string array elements where the buffer is pre-zeroed.
    *
-   * Pattern: strncpy(target, value, capacity);
+   * Pattern: (void)strncpy(target, value, capacity);
    *
    * @param target - The destination expression (may include subscripts)
    * @param value - The source string expression
@@ -35,7 +69,7 @@ class StringUtils {
    * @returns C code string for the copy operation
    */
   static copy(target: string, value: string, capacity: number): string {
-    return `strncpy(${target}, ${value}, ${capacity});`;
+    return StringUtils.boundedCopy(target, value, capacity);
   }
 
   /**
@@ -62,8 +96,8 @@ class StringUtils {
     indent: string = "",
   ): string[] {
     return [
-      `${indent}strncpy(${target}, ${left}, ${capacity});`,
-      `${indent}strncat(${target}, ${right}, ${capacity} - strlen(${target}));`,
+      `${indent}${StringUtils.boundedCopy(target, left, capacity)}`,
+      `${indent}${StringUtils.boundedConcat(target, right, `${capacity} - strlen(${target})`)}`,
       `${indent}${target}[${capacity}] = ${C_NULL_CHAR};`,
     ];
   }
@@ -91,7 +125,7 @@ class StringUtils {
     indent: string = "",
   ): string[] {
     return [
-      `${indent}strncpy(${target}, ${source} + ${start}, ${length});`,
+      `${indent}${StringUtils.boundedCopy(target, `${source} + ${start}`, length)}`,
       `${indent}${target}[${length}] = ${C_NULL_CHAR};`,
     ];
   }

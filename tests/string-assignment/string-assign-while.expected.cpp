@@ -23,16 +23,16 @@ char current[17] = "";
 int main(void) {
     uint32_t count = 0U;
     while (count < 3) {
-        strncpy(current, "Loop", 16); current[16] = '\0';
+        (void)strncpy(current, "Loop", 16); current[16] = '\0';
         count = cnx_clamp_add_u32(count, 1U);
     }
     if (strlen(current) != 4) return 1;
     count = 0U;
     while (count < 2) {
         if (count == 0) {
-            strncpy(current, "First", 16); current[16] = '\0';
+            (void)strncpy(current, "First", 16); current[16] = '\0';
         } else {
-            strncpy(current, "Second", 16); current[16] = '\0';
+            (void)strncpy(current, "Second", 16); current[16] = '\0';
         }
         count = cnx_clamp_add_u32(count, 1U);
     }

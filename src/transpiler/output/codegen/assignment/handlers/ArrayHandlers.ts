@@ -145,7 +145,8 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   // Mark that we need string.h for memcpy
   CodeGenState.needsString = true;
 
-  return `memcpy(&${name}[${offsetValue}], &${ctx.generatedValue}, ${lengthValue});`;
+  // #847: cast the discarded memcpy void* return for MISRA C:2012 Rule 17.7.
+  return `(void)memcpy(&${name}[${offsetValue}], &${ctx.generatedValue}, ${lengthValue});`;
 }
 
 /**

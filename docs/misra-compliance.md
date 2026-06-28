@@ -22,7 +22,7 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 | Rules 1-5        | 3        | 5         | 1       | 8   | 6            |
 | Rules 6-10       | 2        | 3         | 2       | 5   | 8            |
 | Rules 11-15      | 1        | 12        | 2       | 8   | 4            |
-| Rules 16-22      | 4        | 8         | 2       | 12  | 6            |
+| Rules 16-22      | 5        | 8         | 1       | 12  | 7            |
 
 ---
 
@@ -291,16 +291,16 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 17 - Functions
 
-| Rule | Description                        | Status        | Reference              |
-| ---- | ---------------------------------- | ------------- | ---------------------- |
-| 17.1 | No stdarg.h                        | **By Design** | No variadic functions  |
-| 17.2 | No recursion                       | Not Enforced  | Could add detection    |
-| 17.3 | Function declared before use       | **By Design** | Module system          |
-| 17.4 | All exit paths return value        | Partial       | Some detection         |
-| 17.5 | Array parameter size               | **By Design** | Arrays have size info  |
-| 17.6 | Array not modified via parameter   | **By Design** | ADR-006: pass-by-value |
-| 17.7 | Return value used or explicit void | Partial       | Some checking          |
-| 17.8 | Parameter not modified             | **By Design** | ADR-006: pass-by-value |
+| Rule | Description                        | Status        | Reference                                          |
+| ---- | ---------------------------------- | ------------- | -------------------------------------------------- |
+| 17.1 | No stdarg.h                        | **By Design** | No variadic functions                              |
+| 17.2 | No recursion                       | Not Enforced  | Could add detection                                |
+| 17.3 | Function declared before use       | **By Design** | Module system                                      |
+| 17.4 | All exit paths return value        | Partial       | Some detection                                     |
+| 17.5 | Array parameter size               | **By Design** | Arrays have size info                              |
+| 17.6 | Array not modified via parameter   | **By Design** | ADR-006: pass-by-value                             |
+| 17.7 | Return value used or explicit void | **Enforced**  | #847: discarded non-void calls get a `(void)` cast |
+| 17.8 | Parameter not modified             | **By Design** | ADR-006: pass-by-value                             |
 
 ---
 
@@ -351,20 +351,21 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 21 - Standard Libraries
 
-| Rule  | Description                      | Status        | Reference                                    |
-| ----- | -------------------------------- | ------------- | -------------------------------------------- |
-| 21.1  | No #define/#undef reserved names | N/A           | No macros                                    |
-| 21.2  | No reserved identifiers          | **By Design** | Scope prefixing                              |
-| 21.3  | No stdlib memory functions       | **By Design** | ADR-003, ADR-101                             |
-| 21.4  | No setjmp.h                      | **By Design** | Not accessible                               |
-| 21.5  | No signal.h                      | **By Design** | Not accessible                               |
-| 21.6  | No stdio.h for input             | **Deviation** | Issue #850: Inline suppression for C interop |
-| 21.7  | No atof, atoi, atol, atoll       | **By Design** | Not accessible                               |
-| 21.8  | No abort, exit, etc.             | Partial       | Some restrictions                            |
-| 21.9  | No bsearch, qsort                | **By Design** | Function pointers restricted                 |
-| 21.10 | No time.h                        | Not Enforced  | Could restrict                               |
-| 21.11 | No tgmath.h                      | N/A           | C11 feature                                  |
-| 21.12 | No fenv.h exception functions    | Not Enforced  |                                              |
+| Rule  | Description                                    | Status        | Reference                                                                                     |
+| ----- | ---------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------- |
+| 21.1  | No #define/#undef reserved names               | N/A           | No macros                                                                                     |
+| 21.2  | No reserved identifiers                        | **By Design** | Scope prefixing                                                                               |
+| 21.3  | No stdlib memory functions                     | **By Design** | ADR-003, ADR-101                                                                              |
+| 21.4  | No setjmp.h                                    | **By Design** | Not accessible                                                                                |
+| 21.5  | No signal.h                                    | **By Design** | Not accessible                                                                                |
+| 21.6  | No stdio.h for input                           | **Deviation** | Issue #850: Inline suppression for C interop                                                  |
+| 21.7  | No atof, atoi, atol, atoll                     | **By Design** | Not accessible                                                                                |
+| 21.8  | No abort, exit, etc.                           | Partial       | Some restrictions                                                                             |
+| 21.9  | No bsearch, qsort                              | **By Design** | Function pointers restricted                                                                  |
+| 21.10 | No time.h                                      | Not Enforced  | Could restrict                                                                                |
+| 21.11 | No tgmath.h                                    | N/A           | C11 feature                                                                                   |
+| 21.12 | No fenv.h exception functions                  | Not Enforced  |                                                                                               |
+| 21.15 | memcpy/memmove/memcmp compatible pointer types | Not Enforced  | #1081: slice-assignment memcpy reinterprets wider ints as bytes (baselined, unmasked by #847) |
 
 ---
 

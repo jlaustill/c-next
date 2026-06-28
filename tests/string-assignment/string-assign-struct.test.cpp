@@ -15,15 +15,15 @@
 StrAssign_Config config = {};
 
 void setConfigName(void) {
-    strncpy(config.name, "TestConfig", 32); config.name[32] = '\0';
+    (void)strncpy(config.name, "TestConfig", 32); config.name[32] = '\0';
 }
 
 void updateConfigName(void) {
-    strncpy(config.name, "Updated", 32); config.name[32] = '\0';
+    (void)strncpy(config.name, "Updated", 32); config.name[32] = '\0';
 }
 
 void clearConfigName(void) {
-    strncpy(config.name, "", 32); config.name[32] = '\0';
+    (void)strncpy(config.name, "", 32); config.name[32] = '\0';
 }
 
 int main(void) {
@@ -33,7 +33,7 @@ int main(void) {
     if (strlen(config.name) != 7) return 2;
     clearConfigName();
     if (strlen(config.name) != 0) return 3;
-    strncpy(config.name, "DirectAssign", 32); config.name[32] = '\0';
+    (void)strncpy(config.name, "DirectAssign", 32); config.name[32] = '\0';
     if (strlen(config.name) != 12) return 4;
     return 0;
 }

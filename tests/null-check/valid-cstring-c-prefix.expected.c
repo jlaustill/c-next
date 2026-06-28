@@ -15,6 +15,6 @@ char buffer[65] = "";
 void test(void) {
     char* c_result = fgets(buffer, 65, stdin);
     if (c_result != NULL) {
-        printf("Got: %s", buffer);
+        (void)printf("Got: %s", buffer);
     }
 }

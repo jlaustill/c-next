@@ -12,5 +12,5 @@ void testGuardClause(void) {
     if (c_file == nullptr) {
         return;
     }
-    fclose(c_file);
+    (void)fclose(c_file);
 }

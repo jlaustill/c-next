@@ -13,19 +13,19 @@ char level[33] = "";
 void setLevel(uint32_t code) {
     switch (code) {
         case 0: {
-            strncpy(level, "Low", 32); level[32] = '\0';
+            (void)strncpy(level, "Low", 32); level[32] = '\0';
             break;
         }
         case 1: {
-            strncpy(level, "Medium", 32); level[32] = '\0';
+            (void)strncpy(level, "Medium", 32); level[32] = '\0';
             break;
         }
         case 2: {
-            strncpy(level, "High", 32); level[32] = '\0';
+            (void)strncpy(level, "High", 32); level[32] = '\0';
             break;
         }
         default: {
-            strncpy(level, "Unknown", 32); level[32] = '\0';
+            (void)strncpy(level, "Unknown", 32); level[32] = '\0';
             break;
         }
     }

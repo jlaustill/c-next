@@ -94,6 +94,7 @@ import CppMemberHelper from "./helpers/CppMemberHelper";
 import IPostfixOp from "./helpers/types/IPostfixOp";
 // PR #715: Boolean conversion helper for improved testability
 import BooleanHelper from "./helpers/BooleanHelper";
+import ReturnValueCast from "./helpers/ReturnValueCast";
 // PR #715: C++ constructor detection helper for improved testability
 import CppConstructorHelper from "./helpers/CppConstructorHelper";
 // PR #715: Set/Map utilities for improved testability
@@ -1052,8 +1053,18 @@ export default class CodeGenerator implements IOrchestrator {
     } else if (ctx.assignmentStatement()) {
       result = this.generateAssignment(ctx.assignmentStatement()!);
     } else if (ctx.expressionStatement()) {
-      result =
-        this.generateExpression(ctx.expressionStatement()!.expression()) + ";";
+      const expr = ctx.expressionStatement()!.expression();
+      // #847: track the call generated for this statement so we can apply a
+      // MISRA Rule 17.7 (void) cast when a non-void return is discarded.
+      CodeGenState.lastCallTarget = null;
+      const code = this.generateExpression(expr);
+      const voidCast = ReturnValueCast.shouldVoidCast(
+        expr,
+        CodeGenState.lastCallTarget,
+      )
+        ? "(void)"
+        : "";
+      result = voidCast + code + ";";
     } else if (ctx.ifStatement()) {
       result = this.generateIf(ctx.ifStatement()!);
     } else if (ctx.whileStatement()) {

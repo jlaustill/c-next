@@ -262,7 +262,7 @@ describe("ArrayHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("memcpy(&buffer[0], &source, 10);");
+      expect(result).toBe("(void)memcpy(&buffer[0], &source, 10);");
       expect(CodeGenState.needsString).toBe(true);
     });
 
@@ -295,7 +295,7 @@ describe("ArrayHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("memcpy(&str[5], &data, 10);");
+      expect(result).toBe("(void)memcpy(&str[5], &data, 10);");
     });
 
     it("throws on compound assignment", () => {

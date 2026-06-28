@@ -10,6 +10,6 @@
 void testValidCheck(void) {
     FILE* c_file = fopen("test.txt", "r");
     if (c_file != nullptr) {
-        fclose(c_file);
+        (void)fclose(c_file);
     }
 }

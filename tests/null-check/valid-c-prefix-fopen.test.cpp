@@ -16,9 +16,9 @@ void readFile(void) {
     if (c_file != nullptr) {
         char* c_result = fgets(line, 257, c_file);
         while (c_result != nullptr) {
-            printf("%s", line);
+            (void)printf("%s", line);
             c_result = fgets(line, 257, c_file);
         }
-        fclose(c_file);
+        (void)fclose(c_file);
     }
 }

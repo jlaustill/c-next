@@ -13,7 +13,7 @@
 int main(void) {
     char small[33] = "Test";
     char big[65] = "";
-    strncpy(big, small, 64); big[64] = '\0';
+    (void)strncpy(big, small, 64); big[64] = '\0';
     if (strcmp(big, "Test") != 0) return 1;
     if (strlen(big) != 4) return 2;
     return 0;

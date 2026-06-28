@@ -645,8 +645,14 @@ class StringDeclHelper {
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `strncpy(${name}, ${concatOps.left}, ${capacity});`,
-      `strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`,
+      // #847: strncpy/strncat text + (void) cast come from StringUtils so the
+      // cast lives in one place shared with simple string assignments.
+      StringUtils.boundedCopy(name, concatOps.left, capacity),
+      StringUtils.boundedConcat(
+        name,
+        concatOps.right,
+        `${capacity} - strlen(${name})`,
+      ),
       `${name}[${capacity}] = ${C_NULL_CHAR};`,
     );
     return { code: lines.join("\n"), handled: true };
@@ -696,7 +702,12 @@ class StringDeclHelper {
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`,
+      // #847: shared strncpy emission (with MISRA 17.7 (void) cast).
+      StringUtils.boundedCopy(
+        name,
+        `${substringOps.source} + ${substringOps.start}`,
+        substringOps.length,
+      ),
       `${name}[${substringOps.length}] = ${C_NULL_CHAR};`,
     );
     return { code: lines.join("\n"), handled: true };

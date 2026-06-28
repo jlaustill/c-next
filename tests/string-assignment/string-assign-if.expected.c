@@ -13,18 +13,18 @@ char status[33] = "Unknown";
 
 void setStatus(bool ok) {
     if (ok == true) {
-        strncpy(status, "Success", 32); status[32] = '\0';
+        (void)strncpy(status, "Success", 32); status[32] = '\0';
     } else {
-        strncpy(status, "Failure", 32); status[32] = '\0';
+        (void)strncpy(status, "Failure", 32); status[32] = '\0';
     }
 }
 
 void setNested(uint32_t level) {
     if (level > 0) {
         if (level > 1) {
-            strncpy(status, "Nested", 32); status[32] = '\0';
+            (void)strncpy(status, "Nested", 32); status[32] = '\0';
         } else {
-            strncpy(status, "Level1", 32); status[32] = '\0';
+            (void)strncpy(status, "Level1", 32); status[32] = '\0';
         }
     }
 }

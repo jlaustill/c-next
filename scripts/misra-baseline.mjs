@@ -47,7 +47,8 @@ const BASELINE = new Map([
   ["misra-c2012-11.4", "#867"],
   ["misra-c2012-12.1", "#865"],
   ["misra-c2012-15.5", "#861"],
-  ["misra-c2012-17.7", "#847"],
+  // misra-c2012-17.7 (#847) fixed: discarded non-void calls now get a (void)
+  // cast in generated code, so this rule is enforced (no longer baselined).
   ["misra-c2012-18.4", "#859"],
   // --- rules surfaced by #1057, newly tracked (#1059–#1072) ---
   ["misra-c2012-8.6", "#1059"],
@@ -64,6 +65,10 @@ const BASELINE = new Map([
   ["misra-c2012-10.1", "#1070"],
   ["misra-c2012-14.1", "#1071"],
   ["misra-c2012-9.2", "#1072"],
+  // Unmasked by #847: slice-assignment memcpy passes incompatible pointer
+  // types (uint8_t* vs uintN_t*). cppcheck reports one rule per line, so this
+  // was hidden behind 17.7 until the (void) cast resolved 17.7.
+  ["misra-c2012-21.15", "#1081"],
 ]);
 
 // Matches a cppcheck finding line and captures the file path and MISRA rule id:

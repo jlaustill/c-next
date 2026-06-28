@@ -14,6 +14,6 @@ char buffer[65] = "";
 void handleEof(void) {
     char* c_result = fgets(buffer, 65, stdin);
     if (c_result == nullptr) {
-        printf("End of input\n");
+        (void)printf("End of input\n");
     }
 }

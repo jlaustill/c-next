@@ -12,15 +12,15 @@
 char messageBuffer[65] = "";
 
 void reset(void) {
-    strncpy(messageBuffer, "Direct", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "Direct", 64); messageBuffer[64] = '\0';
 }
 
 void setToHello(void) {
-    strncpy(messageBuffer, "Hello, World!", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "Hello, World!", 64); messageBuffer[64] = '\0';
 }
 
 void clear(void) {
-    strncpy(messageBuffer, "", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "", 64); messageBuffer[64] = '\0';
 }
 
 int main(void) {
@@ -30,11 +30,11 @@ int main(void) {
     if (strlen(messageBuffer) != 13) return 2;
     clear();
     if (strlen(messageBuffer) != 0) return 3;
-    strncpy(messageBuffer, "First", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "First", 64); messageBuffer[64] = '\0';
     if (strlen(messageBuffer) != 5) return 4;
-    strncpy(messageBuffer, "Second", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "Second", 64); messageBuffer[64] = '\0';
     if (strlen(messageBuffer) != 6) return 5;
-    strncpy(messageBuffer, "Third", 64); messageBuffer[64] = '\0';
+    (void)strncpy(messageBuffer, "Third", 64); messageBuffer[64] = '\0';
     if (strlen(messageBuffer) != 5) return 6;
     return 0;
 }

@@ -37,7 +37,7 @@ bool Motor_isRunning(void) {
 Motor_State externalState = Motor_State_IDLE;
 
 int main(void) {
-    Motor_start();
+    (void)Motor_start();
     if (Motor_current == Motor_State_RUNNING) {
         externalState = Motor_State_STALLED;
     }

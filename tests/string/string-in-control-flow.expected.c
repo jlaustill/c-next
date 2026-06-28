@@ -34,10 +34,10 @@ int main(void) {
     }
     if (result != 5) return 5;
     char items[4][33] = {0};
-    strncpy(items[0], "One", 32);
-    strncpy(items[1], "Two", 32);
-    strncpy(items[2], "Three", 32);
-    strncpy(items[3], "Four", 32);
+    (void)strncpy(items[0], "One", 32);
+    (void)strncpy(items[1], "Two", 32);
+    (void)strncpy(items[2], "Three", 32);
+    (void)strncpy(items[3], "Four", 32);
     uint32_t totalLen = 0U;
     uint32_t i = 0U;
     while (i < 4) {
@@ -50,7 +50,7 @@ int main(void) {
         result = 6U;
     }
     if (result != 6) return 7;
-    strncpy(maybeEmpty, "NotEmpty", 32); maybeEmpty[32] = '\0';
+    (void)strncpy(maybeEmpty, "NotEmpty", 32); maybeEmpty[32] = '\0';
     if (strlen(maybeEmpty) != 0) {
         result = 7U;
     }

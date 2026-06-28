@@ -10,10 +10,10 @@
 // Issue #1029: .element_count should work on string arrays inside functions
 int main(void) {
     char items[4][33] = {0};
-    strncpy(items[0], "One", 32);
-    strncpy(items[1], "Two", 32);
-    strncpy(items[2], "Three", 32);
-    strncpy(items[3], "Four", 32);
+    (void)strncpy(items[0], "One", 32);
+    (void)strncpy(items[1], "Two", 32);
+    (void)strncpy(items[2], "Three", 32);
+    (void)strncpy(items[3], "Four", 32);
     if (4 != 4) {
         return 1;
     }

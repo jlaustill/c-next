@@ -18,8 +18,8 @@ bool keepReading = true;
 void testWhileNullCheck(void) {
     FILE* c_file = fopen("data.txt", "r");
     while (c_file != nullptr) {
-        fclose(c_file);
-        printf("File was open\n");
+        (void)fclose(c_file);
+        (void)printf("File was open\n");
         c_file = fopen("nonexistent.txt", "r");
     }
 }

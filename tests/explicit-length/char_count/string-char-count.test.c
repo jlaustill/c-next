@@ -28,7 +28,7 @@ int main(void) {
         return 3;
     }
     TestStruct ts = {0};
-    strncpy(ts.name, "Test", 32); ts.name[32] = '\0';
+    (void)strncpy(ts.name, "Test", 32); ts.name[32] = '\0';
     if (strlen(ts.name) != 4) {
         return 4;
     }

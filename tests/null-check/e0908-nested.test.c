@@ -16,8 +16,8 @@ void testNested(void) {
     if (c_file != NULL) {
         char* c_line = fgets(buffer, 257, c_file);
         if (c_line != NULL) {
-            printf("%s", c_line);
+            (void)printf("%s", c_line);
         }
-        fclose(c_file);
+        (void)fclose(c_file);
     }
 }

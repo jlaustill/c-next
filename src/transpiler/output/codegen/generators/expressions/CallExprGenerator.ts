@@ -259,6 +259,12 @@ const generateFunctionCall = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
+  // #847: record the resolved callee so the expression-statement code path can
+  // decide whether a discarded statement-level call needs a MISRA 17.7 (void)
+  // cast. Set for every call (including the empty-arg early return below); the
+  // outermost call of a bare-call statement is the last one recorded.
+  CodeGenState.lastCallTarget = funcExpr;
+
   // Empty function call
   if (!argCtx) {
     return { code: `${funcExpr}()`, effects };

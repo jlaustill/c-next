@@ -17,9 +17,9 @@ void testLoopPattern(void) {
     if (c_file != NULL) {
         char* c_line = fgets(buffer, 257, c_file);
         while (c_line != NULL) {
-            printf("%s", buffer);
+            (void)printf("%s", buffer);
             c_line = fgets(buffer, 257, c_file);
         }
-        fclose(c_file);
+        (void)fclose(c_file);
     }
 }

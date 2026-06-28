@@ -21,10 +21,10 @@ int main(void) {
     config.version = 0x0101U;
     config.flags = 0x0FU;
     config.timestamp = 0x123456789ABCDEF0ULL;
-    memcpy(&buffer[0], &config.magic, 4);
-    memcpy(&buffer[4], &config.version, 2);
-    memcpy(&buffer[6], &config.flags, 1);
-    memcpy(&buffer[7], &config.timestamp, 8);
+    (void)memcpy(&buffer[0], &config.magic, 4);
+    (void)memcpy(&buffer[4], &config.version, 2);
+    (void)memcpy(&buffer[6], &config.flags, 1);
+    (void)memcpy(&buffer[7], &config.timestamp, 8);
     if (buffer[0U] != 0x58) return 1;
     if (buffer[1U] != 0x4E) return 2;
     if (buffer[2U] != 0x53) return 3;

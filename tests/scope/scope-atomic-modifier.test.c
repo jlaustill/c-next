@@ -117,12 +117,12 @@ void AtomicTest_incrementAll(void) {
 }
 
 int main(void) {
-    AtomicTest_getCounterU8();
-    AtomicTest_getCounterU16();
-    AtomicTest_getCounterU32();
-    AtomicTest_getBrightness();
-    AtomicTest_getPosition();
-    AtomicTest_getTicks();
+    (void)AtomicTest_getCounterU8();
+    (void)AtomicTest_getCounterU16();
+    (void)AtomicTest_getCounterU32();
+    (void)AtomicTest_getBrightness();
+    (void)AtomicTest_getPosition();
+    (void)AtomicTest_getTicks();
     AtomicTest_incrementU8();
     AtomicTest_incrementU16();
     AtomicTest_incrementU32();

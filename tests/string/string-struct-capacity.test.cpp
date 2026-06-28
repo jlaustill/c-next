@@ -16,16 +16,16 @@
 
 int main(void) {
     Person alice = {};
-    strncpy(alice.name, "Alice", 64); alice.name[64] = '\0';
-    strncpy(alice.bio, "Software engineer", 128); alice.bio[128] = '\0';
+    (void)strncpy(alice.name, "Alice", 64); alice.name[64] = '\0';
+    (void)strncpy(alice.bio, "Software engineer", 128); alice.bio[128] = '\0';
     alice.age = 30U;
     if (64 != 64) return 1;
     if (128 != 128) return 2;
     if (65 != 65) return 3;
     if (129 != 129) return 4;
     StrCapacity_Config cfg = {};
-    strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
-    strncpy(cfg.value, "https://example.com", 256); cfg.value[256] = '\0';
+    (void)strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
+    (void)strncpy(cfg.value, "https://example.com", 256); cfg.value[256] = '\0';
     if (32 != 32) return 5;
     if (256 != 256) return 6;
     if (33 != 33) return 7;

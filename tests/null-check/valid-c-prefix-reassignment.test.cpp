@@ -17,10 +17,10 @@ char haystack[65] = "hello world";
 void testReassignment(void) {
     char* c_found = strstr(haystack, "hello");
     if (c_found != nullptr) {
-        printf("Found: %s\n", c_found);
+        (void)printf("Found: %s\n", c_found);
     }
     c_found = strstr(haystack, "world");
     if (c_found != nullptr) {
-        printf("Found: %s\n", c_found);
+        (void)printf("Found: %s\n", c_found);
     }
 }

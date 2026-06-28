@@ -12,7 +12,7 @@
 char userName[51] = "";
 
 int main(int argc, char *argv[]) {
-    printf("What is your name in 50 characters or less? ");
+    (void)printf("What is your name in 50 characters or less? ");
     char* c_result = fgets(userName, 51, stdin);
     if (c_result != NULL) {
         size_t _userName_len = strlen(userName);
@@ -21,6 +21,6 @@ int main(int argc, char *argv[]) {
         }
     }
     uint8_t whoAmIByte = argv[0U][0U];
-    printf("Hello from %s %s! Your special character is %c\n", argv[0U], userName, whoAmIByte);
+    (void)printf("Hello from %s %s! Your special character is %c\n", argv[0U], userName, whoAmIByte);
     return 0;
 }

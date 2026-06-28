@@ -10,7 +10,7 @@ void test(void) {
     char first[33] = "Hello";
     char second[33] = " World";
     char result[65] = "";
-    strncpy(result, first, 64);
-    strncat(result, second, 64 - strlen(result));
+    (void)strncpy(result, first, 64);
+    (void)strncat(result, second, 64 - strlen(result));
     result[64] = '\0';
 }

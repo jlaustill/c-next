@@ -309,6 +309,15 @@ export default class CodeGenState {
   /** Pending temp variable declarations for C++ mode */
   static pendingTempDeclarations: string[] = [];
 
+  /**
+   * #847: resolved C name of the most recently generated function call. Set by
+   * CallExprGenerator on every call; read by the expression-statement code path
+   * to apply the MISRA Rule 17.7 `(void)` cast to a discarded statement-level
+   * call. The statement path resets this to null before generating so the value
+   * it reads back belongs to that statement's outermost call.
+   */
+  static lastCallTarget: string | null = null;
+
   /** Counter for unique temp variable names */
   static tempVarCounter: number = 0;
 
@@ -415,6 +424,7 @@ export default class CodeGenState {
     this.cppMode = false;
     this.debugMode = false;
     this.pendingTempDeclarations = [];
+    this.lastCallTarget = null;
     this.tempVarCounter = 0;
     this.pendingCppClassAssignments = [];
     this.selfIncludeAdded = false;

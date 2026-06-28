@@ -30,6 +30,6 @@ static inline bool cnx_safe_mod_u32(uint32_t* output, uint32_t numerator, uint32
 // Tests: safe_div and safe_mod are recognized as built-ins
 int main(void) {
     uint32_t result = 0;
-    cnx_safe_div_u32(&result, 100, 0, 999);
-    cnx_safe_mod_u32(&result, 100, 0, 0);
+    (void)cnx_safe_div_u32(&result, 100, 0, 999);
+    (void)cnx_safe_mod_u32(&result, 100, 0, 0);
 }

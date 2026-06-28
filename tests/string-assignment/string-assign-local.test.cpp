@@ -11,11 +11,11 @@
 int main(void) {
     char local[33] = "Initial";
     if (strlen(local) != 7) return 1;
-    strncpy(local, "Updated", 32); local[32] = '\0';
+    (void)strncpy(local, "Updated", 32); local[32] = '\0';
     if (strlen(local) != 7) return 2;
-    strncpy(local, "Short", 32); local[32] = '\0';
+    (void)strncpy(local, "Short", 32); local[32] = '\0';
     if (strlen(local) != 5) return 3;
-    strncpy(local, "This is a longer string", 32); local[32] = '\0';
+    (void)strncpy(local, "This is a longer string", 32); local[32] = '\0';
     if (strlen(local) != 23) return 4;
     return 0;
 }

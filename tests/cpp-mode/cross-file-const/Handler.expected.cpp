@@ -23,5 +23,5 @@ uint8_t Handler_reset(Config& cfg) {
 
 int main(void) {
     Config c = { .value = 0U };
-    Handler_reset(c);
+    (void)Handler_reset(c);
 }
