@@ -15,7 +15,6 @@ import type ICodeGenApi from "../../types/ICodeGenApi";
 import type TTypeInfo from "../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import TypeResolver from "../../TypeResolver";
-import ExpressionUnwrapper from "../../../../../utils/ExpressionUnwrapper";
 
 /** Get typed generator reference */
 function gen(): ICodeGenApi {
@@ -185,26 +184,6 @@ function resolveSliceSource(
     : null;
 
   if (sourceType === null) {
-    // A bare composite source (`a + b`, `x << 2`) has no statically-known width,
-    // so we cannot prove it fits the destination — and serializing it would force
-    // a cast across essential-type categories on a composite expression (MISRA
-    // Rule 10.8, the sibling of the Rule 21.15 this lowering removes). Reuse the
-    // source-size guidance: require an explicit, known-width value. Postfix
-    // sources (function calls, bit-extractions, indexed reads) carry a knowable
-    // width and keep the existing unresolved path — only operator-composite
-    // expressions are rejected here.
-    if (
-      ctx.valueCtx &&
-      ExpressionUnwrapper.getPostfixExpression(ctx.valueCtx) === null
-    ) {
-      const sourceText = ctx.valueCtx.getText();
-      throw new Error(
-        `${line}:0 Error: Slice assignment source for '${rawName}' is a composite ` +
-          `expression ('${sourceText}') whose width cannot be determined, so it may ` +
-          `not fit the destination. Give the value an explicit width first — assign ` +
-          `it to a typed variable, or extract a fixed width (e.g. '(${sourceText})[0, 32]').`,
-      );
-    }
     return { cType: null, bytes: UNRESOLVED_SOURCE_BYTES, unsignedCType: null };
   }
 

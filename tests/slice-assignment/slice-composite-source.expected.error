@@ -1,1 +1,0 @@
-10:0 Code generation failed: Error: Slice assignment source for 'buf' is a composite expression ('a+b') whose width cannot be determined, so it may not fit the destination. Give the value an explicit width first — assign it to a typed variable, or extract a fixed width (e.g. '(a+b)[0, 32]').
