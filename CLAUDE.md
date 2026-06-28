@@ -315,6 +315,22 @@ Header directive propagation is handled by `IncludeResolver.resolve()` for all i
 
 ## Code Generation
 
+### Compliance Annotations — C-Next STANDARD
+
+**Whenever codegen emits code whose shape is dictated by a safety standard (MISRA C:2012, DO-178C, CERT, AUTOSAR, …) rather than by the obvious/naive translation, it MUST emit an explanatory comment directly above the generated construct.** This is a C-Next standard, not optional.
+
+The comment names the **standard + specific rule** and gives a **short WHY** (what the naive form would have done and which rule it violates):
+
+```c
+/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+buffer[0] = (uint8_t)(magic);
+```
+
+- **Why:** the generated C is the certification artifact. An annotation traces each non-obvious construct back to the rule that shaped it, so reviewers/auditors don't mistake it for accidental complexity.
+- **Applies to** structural transformations and idiom substitutions: loop-idiom rewrites, compile-time unrolling, type-punning via unions, suppressions, etc. (Ubiquitous inline casts like a single narrowing `(uint8_t)` need not each carry a comment.)
+- **Existing examples to follow:** `ControlFlowGenerator` (`forever` → Rule 14.3) and `ArrayHandlers.handleArraySlice` (slice unroll → Rule 21.15). Use the `/* <Standard> Rule <N>: <what> (<why>). */` form for consistency.
+- **Format note:** use `/* … */` (house style for generated comments) and never nest `/*` inside the text (MISRA Rule 3.1).
+
 ### Essential Patterns
 
 - **expectedType**: Use `this.context.expectedType` to disambiguate (e.g., enum members)

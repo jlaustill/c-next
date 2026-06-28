@@ -179,6 +179,13 @@ npm run eslint:check
 - **Zero TypeScript errors**: All new code must compile cleanly
 - **Zero ESLint errors**: In files you touch (fix as you go)
 - **Formatting**: Use Prettier (automatic with `prettier:fix`)
+- **Compliance annotations**: When generated C is shaped by a safety standard
+  (MISRA C:2012, DO-178C, CERT, …) rather than the naive translation, emit an
+  explanatory comment above it naming the standard + rule and a short WHY. The
+  generated C is a certification artifact, so non-obvious constructs must be
+  self-documenting. See the examples in `ControlFlowGenerator` (`forever` →
+  MISRA Rule 14.3) and `ArrayHandlers.handleArraySlice` (slice unroll →
+  MISRA Rule 21.15), and the "Compliance Annotations" standard in `CLAUDE.md`.
 
 ### TypeScript Coding Standards
 
