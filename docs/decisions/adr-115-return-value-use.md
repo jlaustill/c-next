@@ -1,7 +1,7 @@
 # ADR-115: Mandatory Use of Non-Void Return Values
 
-**Status:** Research
-**Date:** 2026-06-27
+**Status:** Accepted
+**Date:** 2026-06-27 (accepted 2026-06-28)
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-051 (Safe Division), ADR-110 (DO-178C Compliance), ADR-112 (All-Paths-Return), ADR-113 (Forever Loops), ADR-114 (Dead-Code / Reachability)
 **Related Issues:** #1080 (this ADR), #847 (MISRA Rule 17.7 `(void)` casts in generated C — the codegen counterpart), #1081 (Rule 21.15, unmasked by the slice-`memcpy` cast)
@@ -45,11 +45,11 @@ This ADR governs **Case 2**. Case 1 is uncontroversial codegen (the compiler cas
 emitted calls) and can ship independently; it is in scope here only so the two are designed
 together and the relationship is explicit.
 
-## Decision (Proposed — Research)
+## Decision
 
-> This ADR is in **Research** status — nothing here is implemented. The owner has fixed the
-> design direction (see "Decided Direction"); what remains open is rollout and final
-> error-code/edge-case confirmation before it advances to Accepted.
+> This ADR is **Accepted** (2026-06-28): the design direction below is approved. It is **not yet
+> implemented** — the remaining items in "Open Questions" (rollout, unresolvable-return handling)
+> are implementation details to settle during the build, not open design decisions.
 
 Make it a **compile error (proposed E0708)** to discard the value of a non-void function call
 used as a bare expression statement, **unless** the discard is explicit. Concretely:
