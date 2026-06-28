@@ -1,0 +1,12 @@
+// test-error
+// Issue #1085 review: a bare composite source (a + b) has no statically-known
+// width, so the transpiler cannot prove it fits the destination and cannot
+// serialize it without a MISRA Rule 10.8 composite cast. It must be a compile
+// error directing the dev to give the value an explicit, known width.
+u32 main() {
+    u8[8] buf;
+    i32 a <- 5;
+    i32 b <- 7;
+    buf[0, 4] <- a + b;
+    return 0;
+}

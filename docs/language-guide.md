@@ -130,6 +130,12 @@ the destination element type). A same-type slice such as `u32[] <- u32` would be
 - Works with struct fields: `buffer[0, 4] <- config.magic`
 - The source must be an **integer** value (float/struct sources are a compile
   error), and the slice length may not exceed the source's width in bytes
+- The source must have a **statically-known width** so it can be proven to fit the
+  destination. A simple variable, literal, function call, or bit-extraction
+  (`(a + b)[0, 32]`) qualifies; a bare composite expression whose width cannot be
+  determined (e.g. `buf[0, 4] <- a + b`) is a compile error — assign it to a typed
+  variable first, or extract a fixed width. (Serializing an unsized composite would
+  also force a MISRA C:2012 Rule 10.8 cast across essential-type categories.)
 - **Deterministic little-endian byte order on every target** — the bytes are
   written least-significant-first regardless of host endianness (Issue #1081).
   Earlier versions emitted `memcpy`, which copied in native byte order and (a)

@@ -28,6 +28,20 @@ vi.mock("../../../TypeResolver", () => ({
   },
 }));
 
+// Slice codegen rejects bare composite sources (Issue #1085 review) by checking
+// whether the source is a postfix expression. Mock it so tests can control that
+// classification independently of a real parse tree. Default: a postfix exists
+// (i.e. NOT a bare composite), matching simple/call/bit-extraction sources.
+const { mockGetPostfixExpression } = vi.hoisted(() => ({
+  mockGetPostfixExpression: vi.fn(() => ({}) as never),
+}));
+
+vi.mock("../../../../../../utils/ExpressionUnwrapper", () => ({
+  default: {
+    getPostfixExpression: mockGetPostfixExpression,
+  },
+}));
+
 import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
@@ -78,6 +92,9 @@ describe("ArrayHandlers", () => {
     CodeGenState.reset();
     HandlerTestUtils.setupMockGenerator();
     HandlerTestUtils.setupMockSymbols();
+    // Default: source is a postfix expression (not a bare composite), so the
+    // Issue #1085 composite-source rejection does not fire unless a test opts in.
+    mockGetPostfixExpression.mockReturnValue({} as never);
   });
 
   describe("handler registration", () => {
@@ -517,8 +534,9 @@ describe("ArrayHandlers", () => {
       );
     });
 
-    it("sizes the temp to the slice length for an unresolved source type", () => {
-      mockGetExpressionType.mockReturnValue(null); // e.g. a computed expression
+    it("sizes the temp to the slice length for an unresolved postfix source", () => {
+      mockGetExpressionType.mockReturnValue(null); // type unknown...
+      mockGetPostfixExpression.mockReturnValue({} as never); // ...but a postfix (e.g. a call)
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
@@ -534,23 +552,51 @@ describe("ArrayHandlers", () => {
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
         ],
-        generatedValue: "expr",
+        generatedValue: "readSensor()",
       });
 
       const result = getHandler()!(ctx);
 
-      // Unknown source: generic comment (types unknown). The temp is sized to the
-      // 4-byte slice length (uint32_t), not the widest type — so the cast does
-      // not widen a composite expression like `a + b` (MISRA Rule 10.8), while
-      // every shift on the temp stays unsigned (10.1) and in range (Finding 3).
+      // Unknown source TYPE but a knowable-width postfix (function call,
+      // bit-extraction). Generic comment (types unknown). The temp is sized to
+      // the 4-byte slice length (uint32_t), not the widest type — so the cast
+      // does not widen the expression (MISRA Rule 10.8), while every shift on the
+      // temp stays unsigned (10.1) and in range (Finding 3).
       expect(result).toBe(
         "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
           "(memcpy would pass incompatible pointer types: destination element type vs source type). */\n" +
-          "const uint32_t _tmp0 = (uint32_t)(expr);\n" +
+          "const uint32_t _tmp0 = (uint32_t)(readSensor());\n" +
           "buffer[0] = (uint8_t)(_tmp0);\n" +
           "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
           "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
           "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
+      );
+    });
+
+    it("rejects a bare composite source whose width cannot be determined", () => {
+      mockGetExpressionType.mockReturnValue(null); // `a + b` has no resolved type
+      mockGetPostfixExpression.mockReturnValue(null as never); // ...and is NOT a postfix
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buf", { arrayDimensions: [8], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(4),
+      });
+      const ctx = createMockContext({
+        identifiers: ["buf"],
+        subscripts: [
+          { mockValue: "0", start: { line: 9 } } as never,
+          { mockValue: "4", start: { line: 9 } } as never,
+        ],
+        generatedValue: "a + b",
+        valueCtx: { getText: () => "a+b" } as never,
+      });
+
+      expect(() => getHandler()!(ctx)).toThrow(
+        "is a composite expression ('a+b') whose width cannot be determined",
       );
     });
 
