@@ -1,0 +1,24 @@
+// test-execution
+// Issue #1081 review: signed sources and signed destination arrays.
+// Verifies the source is cast to unsigned before shifting (MISRA Rule 10.1)
+// and that the resulting little-endian byte layout is correct.
+
+u32 main() {
+    // Signed source into a byte buffer: shift operand must be cast to unsigned.
+    u8[8] buf;
+    i32 sval <- 0x12345678;
+    buf[0, 4] <- sval;
+    if (buf[0] != 0x78) return 1;
+    if (buf[1] != 0x56) return 2;
+    if (buf[2] != 0x34) return 3;
+    if (buf[3] != 0x12) return 4;
+
+    // Signed destination array (element double-cast) with a signed source.
+    i16[4] sarr;
+    i32 packed <- 0x0A0B0C0D;
+    sarr[0, 4] <- packed;
+    if (sarr[0] != 0x0C0D) return 5;
+    if (sarr[1] != 0x0A0B) return 6;
+
+    return 0;
+}

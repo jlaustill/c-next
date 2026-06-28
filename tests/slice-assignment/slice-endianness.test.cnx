@@ -1,7 +1,7 @@
 // test-execution
 // Tests: Byte order verification for slice assignment
-// Validates that bytes are copied in correct endianness
-// Embedded systems typically use little-endian
+// Slice assignment writes bytes least-significant-first (little-endian) by
+// construction on every target — the unrolled shifts make this deterministic.
 
 u32 main() {
     u8[128] buffer;

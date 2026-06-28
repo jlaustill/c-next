@@ -12,7 +12,7 @@
 int main(void) {
     uint8_t buffer[256] = {0};
     uint64_t maxU64 = 0xFFFFFFFFFFFFFFFFULL;
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     buffer[0] = (uint8_t)(maxU64);
     buffer[1] = (uint8_t)(maxU64 >> 8U);
     buffer[2] = (uint8_t)(maxU64 >> 16U);
@@ -30,7 +30,7 @@ int main(void) {
     if (buffer[6U] != 0xFF) return 7;
     if (buffer[7U] != 0xFF) return 8;
     uint32_t maxU32 = 0xFFFFFFFFU;
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     buffer[10] = (uint8_t)(maxU32);
     buffer[11] = (uint8_t)(maxU32 >> 8U);
     buffer[12] = (uint8_t)(maxU32 >> 16U);
@@ -42,7 +42,7 @@ int main(void) {
     uint64_t val1 = 0x8000000000000000ULL;
     uint64_t val2 = 0x7FFFFFFFFFFFFFFFULL;
     uint64_t val3 = 0x0000000000000001ULL;
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     buffer[20] = (uint8_t)(val1);
     buffer[21] = (uint8_t)(val1 >> 8U);
     buffer[22] = (uint8_t)(val1 >> 16U);
@@ -51,7 +51,7 @@ int main(void) {
     buffer[25] = (uint8_t)(val1 >> 40U);
     buffer[26] = (uint8_t)(val1 >> 48U);
     buffer[27] = (uint8_t)(val1 >> 56U);
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     buffer[28] = (uint8_t)(val2);
     buffer[29] = (uint8_t)(val2 >> 8U);
     buffer[30] = (uint8_t)(val2 >> 16U);
@@ -60,7 +60,7 @@ int main(void) {
     buffer[33] = (uint8_t)(val2 >> 40U);
     buffer[34] = (uint8_t)(val2 >> 48U);
     buffer[35] = (uint8_t)(val2 >> 56U);
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     buffer[36] = (uint8_t)(val3);
     buffer[37] = (uint8_t)(val3 >> 8U);
     buffer[38] = (uint8_t)(val3 >> 16U);

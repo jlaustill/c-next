@@ -14,20 +14,38 @@ import TypeValidator from "../../TypeValidator";
 import type ICodeGenApi from "../../types/ICodeGenApi";
 import type TTypeInfo from "../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
+import TypeResolver from "../../TypeResolver";
 
 /** Get typed generator reference */
 function gen(): ICodeGenApi {
   return CodeGenState.generator as ICodeGenApi;
 }
 
+/** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
+const UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
+/** Matches the signed C-Next integer types (i8/i16/i32/i64). */
+const SIGNED_INT_RE = /^i(8|16|32|64)$/;
+
 /**
  * Comment emitted above an unrolled slice copy so the generated C is
- * self-documenting: it names the MISRA rule the unrolling satisfies and why a
- * plain `memcpy` is not used (Issue #1081).
+ * self-documenting (Issue #1081). It is emitted ONLY when the equivalent
+ * `memcpy` would actually violate MISRA C:2012 Rule 21.15 — i.e. when the
+ * destination element type differs from the source type, so the two `memcpy`
+ * pointer arguments would be incompatible. When the types match (`u32[] <- u32`)
+ * a `memcpy` would be perfectly compliant, so no rule is cited.
  */
-const SLICE_UNROLL_COMMENT =
-  "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
-  "(memcpy would pass incompatible pointer types: byte buffer vs wider integer). */";
+function sliceUnrollComment(
+  destCType: string,
+  srcCType: string | null,
+): string {
+  const detail = srcCType
+    ? `${destCType}* vs ${srcCType}*`
+    : "destination element type vs source type";
+  return (
+    `/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes ` +
+    `(memcpy would pass incompatible pointer types: ${detail}). */`
+  );
+}
 
 /**
  * Handle simple array element: arr[i] <- value
@@ -76,10 +94,12 @@ function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
  * The destination *element* type determines:
  *  - `bytes`: the element stride. `dest[off + k]` indexes elements, matching
  *    the old `&dest[off]` base address, so a u16[] slice writes whole u16s.
+ *  - `cType`: the C element type, used to detect whether an equivalent `memcpy`
+ *    would have violated MISRA Rule 21.15 (incompatible pointer types).
  *  - `wrap`: the cast applied to each extracted little-endian chunk. MISRA
- *    Rule 10.8 forbids casting a composite expression (the `>>`/`&` result)
- *    across essential-type categories, so `char` and signed destinations cast
- *    through a same-width unsigned type first.
+ *    Rule 10.8 forbids casting a composite expression (the `>>` result) across
+ *    essential-type categories, so `char` and signed destinations cast through
+ *    a same-width unsigned type first.
  *
  * Throws for element types that cannot be expressed as integer byte writes
  * (float/bool), which would require type punning and are unsupported.
@@ -88,30 +108,83 @@ function resolveSliceElement(
   typeInfo: TTypeInfo | undefined,
   line: number,
   rawName: string,
-): { bytes: number; wrap: (chunk: string) => string } {
+): { bytes: number; cType: string; wrap: (chunk: string) => string } {
   if (typeInfo?.isString) {
     // string buffers are char[]; cast through uint8_t to satisfy MISRA 10.8.
-    return { bytes: 1, wrap: (chunk) => `(char)(uint8_t)${chunk}` };
+    return {
+      bytes: 1,
+      cType: "char",
+      wrap: (chunk) => `(char)(uint8_t)${chunk}`,
+    };
   }
 
   const baseType = typeInfo?.baseType ?? "";
   const bytes = Math.floor((typeInfo?.bitWidth ?? 0) / 8);
 
-  if (/^u(8|16|32|64)$/.test(baseType)) {
+  if (bytes > 0 && UNSIGNED_INT_RE.test(baseType)) {
     const cType = CNEXT_TO_C_TYPE_MAP[baseType];
-    return { bytes, wrap: (chunk) => `(${cType})${chunk}` };
+    return { bytes, cType, wrap: (chunk) => `(${cType})${chunk}` };
   }
 
-  if (/^i(8|16|32|64)$/.test(baseType)) {
+  if (bytes > 0 && SIGNED_INT_RE.test(baseType)) {
     const cType = CNEXT_TO_C_TYPE_MAP[baseType];
     const uType = CNEXT_TO_C_TYPE_MAP[`u${baseType.slice(1)}`];
-    return { bytes, wrap: (chunk) => `(${cType})(${uType})${chunk}` };
+    return { bytes, cType, wrap: (chunk) => `(${cType})(${uType})${chunk}` };
   }
 
   throw new Error(
     `${line}:0 Error: Slice assignment is not supported for element type ` +
       `'${baseType}' of '${rawName}'. Only integer and string buffers can be sliced.`,
   );
+}
+
+/**
+ * Resolve the *source* value's type for a slice assignment (Issue #1081 review).
+ *
+ * The source drives correctness on the right-hand side of the unrolled writes:
+ *  - non-integer sources (float/struct/string) cannot be shifted — reject them
+ *    with a clear C-Next error instead of emitting non-compiling C;
+ *  - `bytes` lets the caller reject `length > sizeof(source)` (an over-read that
+ *    would otherwise emit an undefined out-of-range shift);
+ *  - `shiftCType` is the unsigned type the operand is cast to before shifting
+ *    (right-shifting a signed value violates MISRA Rule 10.1); it is null when
+ *    the source is already unsigned and needs no cast.
+ *
+ * `cType` is the source's actual C type (used to detect a Rule 21.15 mismatch
+ * against the destination element type). When the type can't be statically
+ * resolved (e.g. a computed expression), `cType`/`bytes` are null and the
+ * operand falls back to the widest unsigned type so the shift stays defined.
+ */
+function resolveSliceSource(
+  ctx: IAssignmentContext,
+  line: number,
+  rawName: string,
+): { cType: string | null; bytes: number | null; shiftCType: string | null } {
+  const sourceType = ctx.valueCtx
+    ? TypeResolver.getExpressionType(ctx.valueCtx)
+    : null;
+
+  if (sourceType === null) {
+    // Unknown source: widest unsigned keeps every shift defined and 10.1-clean.
+    return { cType: null, bytes: null, shiftCType: "uint64_t" };
+  }
+
+  const isUnsigned = UNSIGNED_INT_RE.test(sourceType);
+  const isSigned = SIGNED_INT_RE.test(sourceType);
+  if (!isUnsigned && !isSigned) {
+    throw new Error(
+      `${line}:0 Error: Slice assignment source must be an integer value, ` +
+        `but '${rawName}' is assigned a '${sourceType}'.`,
+    );
+  }
+
+  return {
+    cType: CNEXT_TO_C_TYPE_MAP[sourceType],
+    bytes: Number.parseInt(sourceType.slice(1), 10) / 8,
+    shiftCType: isSigned
+      ? CNEXT_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
+      : null,
+  };
 }
 
 /**
@@ -122,37 +195,52 @@ function resolveSliceElement(
  */
 function buildSliceWrites(
   name: string,
+  ctx: IAssignmentContext,
   typeInfo: TTypeInfo | undefined,
   offsetValue: number,
   lengthValue: number,
-  value: string,
   line: number,
   rawName: string,
 ): string {
-  const { bytes, wrap } = resolveSliceElement(typeInfo, line, rawName);
+  const dest = resolveSliceElement(typeInfo, line, rawName);
+  const src = resolveSliceSource(ctx, line, rawName);
 
-  if (bytes <= 0) {
-    throw new Error(
-      `${line}:0 Error: Cannot determine element size for '${rawName}'.`,
-    );
-  }
-
-  if (lengthValue % bytes !== 0) {
+  if (lengthValue % dest.bytes !== 0) {
     throw new Error(
       `${line}:0 Error: Slice assignment length (${lengthValue}) must be a ` +
-        `multiple of the element size (${bytes} bytes) for '${rawName}'.`,
+        `multiple of the element size (${dest.bytes} bytes) for '${rawName}'.`,
     );
   }
 
-  const elementCount = lengthValue / bytes;
-  // Self-document the non-obvious codegen: name the MISRA rule that forces the
-  // unrolling and why a plain memcpy is not used (Issue #1081).
-  const writes: string[] = [SLICE_UNROLL_COMMENT];
+  // A slice cannot copy more bytes than the source value holds — that would be
+  // an out-of-range shift (undefined behavior) baked in at compile time.
+  if (src.bytes !== null && lengthValue > src.bytes) {
+    throw new Error(
+      `${line}:0 Error: Slice assignment length (${lengthValue} bytes) exceeds ` +
+        `the source value width (${src.bytes} bytes) for '${rawName}'.`,
+    );
+  }
+
+  const elementCount = lengthValue / dest.bytes;
+  const writes: string[] = [];
+  // Self-document the codegen ONLY when a memcpy would actually have violated
+  // Rule 21.15 (source/destination pointer types differ). Same-type slices need
+  // no rule citation (Issue #1081 review).
+  if (src.cType === null || src.cType !== dest.cType) {
+    writes.push(sliceUnrollComment(dest.cType, src.cType));
+  }
   for (let k = 0; k < elementCount; k += 1) {
-    const shiftBits = k * bytes * 8;
-    const chunk =
-      shiftBits === 0 ? `(${value})` : `(${value} >> ${shiftBits}U)`;
-    writes.push(`${name}[${offsetValue + k}] = ${wrap(chunk)};`);
+    const shiftBits = k * dest.bytes * 8;
+    let chunk: string;
+    if (shiftBits === 0) {
+      chunk = `(${ctx.generatedValue})`;
+    } else if (src.shiftCType) {
+      // Cast a signed/unknown source to unsigned before shifting (MISRA 10.1).
+      chunk = `((${src.shiftCType})(${ctx.generatedValue}) >> ${shiftBits}U)`;
+    } else {
+      chunk = `(${ctx.generatedValue} >> ${shiftBits}U)`;
+    }
+    writes.push(`${name}[${offsetValue + k}] = ${dest.wrap(chunk)};`);
   }
 
   return writes.join("\n");
@@ -253,10 +341,10 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   // granularity with no library call.
   return buildSliceWrites(
     name,
+    ctx,
     typeInfo,
     offsetValue,
     lengthValue,
-    ctx.generatedValue,
     line,
     ctx.identifiers[0],
   );

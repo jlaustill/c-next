@@ -1,0 +1,16 @@
+// test-execution
+// Issue #1081 review: for arrays wider than a byte, the slice OFFSET is an
+// element index (matching the old &arr[offset] base) while the LENGTH is a byte
+// count. A non-zero offset must land on element boundaries, leaving earlier
+// elements untouched.
+
+u32 main() {
+    u16[8] arr;
+    u32 v <- 0x11223344;
+    arr[2, 4] <- v;
+    if (arr[0] != 0x0000) return 1;
+    if (arr[1] != 0x0000) return 2;
+    if (arr[2] != 0x3344) return 3;
+    if (arr[3] != 0x1122) return 4;
+    return 0;
+}

@@ -16,6 +16,18 @@ vi.mock("../../../TypeValidator", () => ({
   },
 }));
 
+// Slice codegen resolves the source value's type (Issue #1081 review) — mock it
+// so slice tests can control the source type independently of a real parse tree.
+const { mockGetExpressionType } = vi.hoisted(() => ({
+  mockGetExpressionType: vi.fn(),
+}));
+
+vi.mock("../../../TypeResolver", () => ({
+  default: {
+    getExpressionType: mockGetExpressionType,
+  },
+}));
+
 import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
@@ -42,6 +54,9 @@ function createMockContext(
     cOp: "=",
     generatedValue: "value",
     targetCtx: {} as never,
+    // Truthy so slice codegen resolves the source type via the mocked
+    // TypeResolver.getExpressionType (Issue #1081 review).
+    valueCtx: {} as never,
     hasThis: false,
     hasGlobal: false,
     hasMemberAccess: false,
@@ -243,14 +258,20 @@ describe("ArrayHandlers", () => {
 
     // Every unrolled slice copy is prefixed with a comment naming the MISRA
     // rule it satisfies and why the codegen looks the way it does (Issue #1081).
-    const SLICE_COMMENT =
+    // Mirror production sliceUnrollComment: the rule is cited ONLY when an
+    // equivalent memcpy would pass incompatible pointer types.
+    const sliceComment = (destCType: string, srcCType: string) =>
       "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
-      "(memcpy would pass incompatible pointer types: byte buffer vs wider integer). */";
+      `(memcpy would pass incompatible pointer types: ${destCType}* vs ${srcCType}*). */`;
+
+    // Default the source type to a wide unsigned; tests override per case.
+    beforeEach(() => mockGetExpressionType.mockReturnValue("u64"));
 
     // Issue #1081: slice assignment lowers to per-element little-endian writes
     // (no memcpy), keeping MISRA C:2012 Rule 21.15 (compatible memcpy pointers)
     // satisfied because no incompatible pointer punning is emitted.
     it("generates unrolled byte writes for a u8 slice (no memcpy/string.h)", () => {
+      mockGetExpressionType.mockReturnValue("u32");
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
@@ -272,7 +293,7 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        `${SLICE_COMMENT}\n` +
+        `${sliceComment("uint8_t", "uint32_t")}\n` +
           "buffer[0] = (uint8_t)(source);\n" +
           "buffer[1] = (uint8_t)(source >> 8U);\n" +
           "buffer[2] = (uint8_t)(source >> 16U);\n" +
@@ -283,6 +304,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("writes at element granularity for a u16 slice (offset = element index)", () => {
+      mockGetExpressionType.mockReturnValue("u64");
       HandlerTestUtils.setupMockTypeRegistry([
         ["arr16", { arrayDimensions: [16], baseType: "u16", bitWidth: 16 }],
       ]);
@@ -304,7 +326,7 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        `${SLICE_COMMENT}\n` +
+        `${sliceComment("uint16_t", "uint64_t")}\n` +
           "arr16[0] = (uint16_t)(value);\n" +
           "arr16[1] = (uint16_t)(value >> 16U);\n" +
           "arr16[2] = (uint16_t)(value >> 32U);\n" +
@@ -312,21 +334,48 @@ describe("ArrayHandlers", () => {
       );
     });
 
-    it("casts signed-array slices through a same-width unsigned type (MISRA 10.8)", () => {
+    it("omits the rule citation when source and element types match (no 21.15)", () => {
+      mockGetExpressionType.mockReturnValue("u32");
       HandlerTestUtils.setupMockTypeRegistry([
-        ["arrI", { arrayDimensions: [16], baseType: "i32", bitWidth: 32 }],
+        ["arr32", { arrayDimensions: [16], baseType: "u32", bitWidth: 32 }],
       ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
-          .mockReturnValueOnce(8),
+          .mockReturnValueOnce(4),
       });
       const ctx = createMockContext({
-        identifiers: ["arrI"],
+        identifiers: ["arr32"],
         subscripts: [
           { mockValue: "0", start: { line: 1 } } as never,
-          { mockValue: "8", start: { line: 1 } } as never,
+          { mockValue: "4", start: { line: 1 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      const result = getHandler()!(ctx);
+
+      // u32[] <- u32: an equivalent memcpy would be compliant, so no comment.
+      expect(result).toBe("arr32[0] = (uint32_t)(value);");
+    });
+
+    it("casts a signed source to unsigned before shifting (MISRA 10.1)", () => {
+      mockGetExpressionType.mockReturnValue("i32");
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(4),
+      });
+      const ctx = createMockContext({
+        identifiers: ["buffer"],
+        subscripts: [
+          { mockValue: "0", start: { line: 1 } } as never,
+          { mockValue: "4", start: { line: 1 } } as never,
         ],
         generatedValue: "value",
       });
@@ -334,13 +383,42 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        `${SLICE_COMMENT}\n` +
-          "arrI[0] = (int32_t)(uint32_t)(value);\n" +
-          "arrI[1] = (int32_t)(uint32_t)(value >> 32U);",
+        `${sliceComment("uint8_t", "int32_t")}\n` +
+          "buffer[0] = (uint8_t)(value);\n" +
+          "buffer[1] = (uint8_t)((uint32_t)(value) >> 8U);\n" +
+          "buffer[2] = (uint8_t)((uint32_t)(value) >> 16U);\n" +
+          "buffer[3] = (uint8_t)((uint32_t)(value) >> 24U);",
       );
     });
 
+    it("uses the signed-element double-cast for a signed destination (MISRA 10.8)", () => {
+      mockGetExpressionType.mockReturnValue("i32");
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["arrI", { arrayDimensions: [16], baseType: "i32", bitWidth: 32 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(4),
+      });
+      const ctx = createMockContext({
+        identifiers: ["arrI"],
+        subscripts: [
+          { mockValue: "0", start: { line: 1 } } as never,
+          { mockValue: "4", start: { line: 1 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      const result = getHandler()!(ctx);
+
+      // i32[] <- i32: same type, so no rule citation; dest cast still applies.
+      expect(result).toBe("arrI[0] = (int32_t)(uint32_t)(value);");
+    });
+
     it("generates double-cast char writes for a string slice (MISRA 10.8)", () => {
+      mockGetExpressionType.mockReturnValue("u16");
       HandlerTestUtils.setupMockTypeRegistry([
         [
           "str",
@@ -370,13 +448,48 @@ describe("ArrayHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe(
-        `${SLICE_COMMENT}\n` +
+        `${sliceComment("char", "uint16_t")}\n` +
           "str[5] = (char)(uint8_t)(data);\n" +
           "str[6] = (char)(uint8_t)(data >> 8U);",
       );
     });
 
+    it("falls back to a widest-unsigned shift for an unresolved source type", () => {
+      mockGetExpressionType.mockReturnValue(null); // e.g. a computed expression
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(4),
+      });
+      const ctx = createMockContext({
+        identifiers: ["buffer"],
+        subscripts: [
+          { mockValue: "0", start: { line: 1 } } as never,
+          { mockValue: "4", start: { line: 1 } } as never,
+        ],
+        generatedValue: "expr",
+      });
+
+      const result = getHandler()!(ctx);
+
+      // Unknown source: generic comment (types unknown) + uint64_t shift cast so
+      // every shift stays unsigned (MISRA 10.1) and well-defined.
+      expect(result).toBe(
+        "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
+          "(memcpy would pass incompatible pointer types: destination element type vs source type). */\n" +
+          "buffer[0] = (uint8_t)(expr);\n" +
+          "buffer[1] = (uint8_t)((uint64_t)(expr) >> 8U);\n" +
+          "buffer[2] = (uint8_t)((uint64_t)(expr) >> 16U);\n" +
+          "buffer[3] = (uint8_t)((uint64_t)(expr) >> 24U);",
+      );
+    });
+
     it("throws when slice length is not a multiple of the element size", () => {
+      mockGetExpressionType.mockReturnValue("u64");
       HandlerTestUtils.setupMockTypeRegistry([
         ["arr16", { arrayDimensions: [16], baseType: "u16", bitWidth: 16 }],
       ]);
@@ -397,6 +510,56 @@ describe("ArrayHandlers", () => {
 
       expect(() => getHandler()!(ctx)).toThrow(
         "must be a multiple of the element size",
+      );
+    });
+
+    it("throws when slice length exceeds the source value width", () => {
+      mockGetExpressionType.mockReturnValue("u32"); // 4-byte source
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(8), // copying 8 bytes from a 4-byte value
+      });
+      const ctx = createMockContext({
+        identifiers: ["buffer"],
+        subscripts: [
+          { mockValue: "0", start: { line: 8 } } as never,
+          { mockValue: "8", start: { line: 8 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      expect(() => getHandler()!(ctx)).toThrow(
+        "exceeds the source value width",
+      );
+    });
+
+    it("throws on a non-integer (float) slice source", () => {
+      mockGetExpressionType.mockReturnValue("f32");
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(4),
+      });
+      const ctx = createMockContext({
+        identifiers: ["buffer"],
+        subscripts: [
+          { mockValue: "0", start: { line: 9 } } as never,
+          { mockValue: "4", start: { line: 9 } } as never,
+        ],
+        generatedValue: "fval",
+      });
+
+      expect(() => getHandler()!(ctx)).toThrow(
+        "source must be an integer value",
       );
     });
 

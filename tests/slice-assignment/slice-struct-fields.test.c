@@ -20,17 +20,16 @@ int main(void) {
     config.version = 0x0101U;
     config.flags = 0x0FU;
     config.timestamp = 0x123456789ABCDEF0ULL;
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     buffer[0] = (uint8_t)(config.magic);
     buffer[1] = (uint8_t)(config.magic >> 8U);
     buffer[2] = (uint8_t)(config.magic >> 16U);
     buffer[3] = (uint8_t)(config.magic >> 24U);
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
     buffer[4] = (uint8_t)(config.version);
     buffer[5] = (uint8_t)(config.version >> 8U);
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
     buffer[6] = (uint8_t)(config.flags);
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     buffer[7] = (uint8_t)(config.timestamp);
     buffer[8] = (uint8_t)(config.timestamp >> 8U);
     buffer[9] = (uint8_t)(config.timestamp >> 16U);

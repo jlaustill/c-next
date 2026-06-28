@@ -102,16 +102,17 @@ Transpiles to explicit per-element little-endian writes, unrolled at compile tim
 uint8_t buffer[256] = {0};
 uint32_t magic = 0x12345678;
 
-/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
 buffer[0] = (uint8_t)(magic);
 buffer[1] = (uint8_t)(magic >> 8U);
 buffer[2] = (uint8_t)(magic >> 16U);
 buffer[3] = (uint8_t)(magic >> 24U);
 ```
 
-Each unrolled slice copy is prefixed with a comment naming the MISRA rule it
-satisfies and why the codegen takes this shape, so the generated C is
-self-documenting for downstream review and certification.
+The Rule 21.15 comment is emitted only when an equivalent `memcpy` would
+actually have passed incompatible pointer types (the source type differs from
+the destination element type). A same-type slice such as `u32[] <- u32` would be
+`memcpy`-compliant, so no rule is cited.
 
 **Key Features:**
 
@@ -119,14 +120,17 @@ self-documenting for downstream review and certification.
 - Offset and length must be compile-time constants (literals or `const` variables)
 - Silent runtime failures are now compile-time errors
 - Works with struct fields: `buffer[0, 4] <- config.magic`
+- The source must be an **integer** value (float/struct sources are a compile
+  error), and the slice length may not exceed the source's width in bytes
 - **Deterministic little-endian byte order on every target** — the bytes are
   written least-significant-first regardless of host endianness (Issue #1081).
   Earlier versions emitted `memcpy`, which copied in native byte order and (a)
   produced different output on big-endian targets and (b) violated MISRA C:2012
   Rule 21.15 by passing incompatible pointer types
-- Wider destination arrays write at element granularity: a `u16[]` slice writes
-  whole `uint16_t` elements, so the slice length must be a multiple of the
-  element size
+- **Offset and length use different units for wider arrays:** the offset is an
+  **element index** (`u16[] arr; arr[2, 4] <- v` starts at element 2), while the
+  length is always a **byte count**. A `u16[]` slice writes whole `uint16_t`
+  elements, so the length must be a multiple of the element size
 - Distinct from bit operations: array slices serialize a value into memory,
   scalar bit ranges use bit manipulation
 

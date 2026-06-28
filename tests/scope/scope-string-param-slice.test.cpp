@@ -16,13 +16,13 @@
 /* Scope: StringSliceTest */
 
 void StringSliceTest_copyToBuffer(char* buffer, uint16_t value) {
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: char* vs uint16_t*). */
     buffer[0] = (char)(uint8_t)(value);
     buffer[1] = (char)(uint8_t)(value >> 8U);
 }
 
 void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t value) {
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: char* vs uint16_t*). */
     buffer[2] = (char)(uint8_t)(value);
     buffer[3] = (char)(uint8_t)(value >> 8U);
 }

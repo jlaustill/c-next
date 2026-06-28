@@ -322,7 +322,7 @@ Header directive propagation is handled by `IncludeResolver.resolve()` for all i
 The comment names the **standard + specific rule** and gives a **short WHY** (what the naive form would have done and which rule it violates):
 
 ```c
-/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: byte buffer vs wider integer). */
+/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
 buffer[0] = (uint8_t)(magic);
 ```
 
