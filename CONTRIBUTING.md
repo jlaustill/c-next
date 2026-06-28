@@ -88,6 +88,8 @@ npm run typecheck
 
 **C-Next has transitioned from direct commits to main to a PR-based workflow.**
 
+**Picking what to work on:** Run `/issue-check` in Claude Code to triage open issues — it detects in-flight work (open PRs, assigned issues, recent pushes) and recommends the highest-value issue using c-next's label taxonomy and conventions.
+
 ### When to Create a Branch
 
 **Always create a branch for:**
