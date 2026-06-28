@@ -47,34 +47,34 @@ together and the relationship is explicit.
 
 ## Decision (Proposed — Research)
 
-> This ADR is in **Research** status. The direction below reflects the current design
-> conversation; nothing here is approved or implemented.
+> This ADR is in **Research** status — nothing here is implemented. The owner has fixed the
+> design direction (see "Decided Direction"); what remains open is rollout and final
+> error-code/edge-case confirmation before it advances to Accepted.
 
 Make it a **compile error (proposed E0708)** to discard the value of a non-void function call
 used as a bare expression statement, **unless** the discard is explicit. Concretely:
 
 ```cnx
 next();             // E0708 — return value of non-void 'next' is discarded
-_ <- next();        // OK — explicitly discarded
+(void) next();      // OK — explicitly discarded
 u32 v <- next();    // OK — used
 ```
 
-### Recommended model: safe-by-default + explicit discard + `discardable` opt-out
+### Recommended model: safe-by-default + explicit `(void)` discard, no exceptions
 
-This mirrors **Swift**, which reversed its original "ignore by default" behavior in Swift 3
-because silent discards caused real logic bugs, and now requires return-value use with an
-`@discardableResult` opt-out. Three sub-decisions:
+Two sub-decisions, with **no opt-out mechanism** — C-Next is C, and the project principle is
+that _exceptions to rules are where bugs come from._
 
 1. **Default — every non-void return must be used or explicitly discarded** (safe-by-default).
-   Strongest guarantee, fits C-Next's explicit-flow ethos.
-2. **Explicit discard syntax — `_ <- expr;`** (recommended). Reuses the `<-` "assignment is
-   flow" operator with a `_` sink: _"route this return into the void."_ It parses **today**
-   (`_` is already a valid `IDENTIFIER`; see Architecture), needs no new keyword, and matches
-   Rust's `let _ = expr;` / `_ = expr;` idiom. `_` becomes a magic discard target: never
-   declared, accepts any type, assignable repeatedly, generates no storage.
-3. **`discardable` opt-out** for the minority of functions whose return is genuinely optional
-   (fluent/builder APIs, logging). A `discardable`-annotated function may be discarded with no
-   error and no `_ <-`. This is the escape hatch that keeps idiomatic code ergonomic.
+   Strongest guarantee, fits C-Next's explicit-flow ethos. There is no opt-in/opt-out; the rule
+   holds uniformly for every non-void call whose return type C-Next can resolve.
+2. **Explicit discard syntax — `(void) expr;`** — the standard C cast-to-`void`. This is the
+   established C idiom for "I am intentionally not using this return value," e.g.
+   `(void) printf("not using the return value intentionally!");`. It **parses today**: it is the
+   existing ADR-017 cast expression (`'(' type ')' unaryExpression`, with `void` a valid
+   `type`), so no new syntax, keyword, or magic identifier is introduced. It is also the _exact
+   same token sequence_ the #847 codegen emits for Case 1 — so the author's explicit discard and
+   the compiler's auto-discard are one idiom in source and in generated C.
 
 ### Considered alternatives
 
@@ -82,56 +82,64 @@ because silent discards caused real logic bugs, and now requires return-value us
   error on discard; everything else is silently discardable. _Rejected as the default stance_ —
   unsafe-by-default contradicts C-Next's philosophy; the dangerous case (an un-annotated
   error-returning function) slips through.
-- **Always-error, no opt-out** (Rust's `unused_results`, allow-by-default for noise reasons):
-  maximal safety but forces `_ <- printf(...)` everywhere. _Rejected_ as too noisy without the
-  `discardable` escape hatch.
-- **`discard expr;` / `ignore expr;` keyword** instead of `_ <-`: clear, but adds a keyword and
-  a statement form for something `_ <-` already expresses. _Kept as a fallback_ if `_`-as-sink
-  proves objectionable.
+- **A `discardable` opt-out** (Swift's `@discardableResult`: annotate functions whose return is
+  "usually ignored" so they may be discarded silently). _Rejected._ The opt-out is itself the
+  silent-discard hole the rule exists to close — the moment a function is marked `discardable`,
+  every dropped return at every call site stops being checked, which is exactly the class of bug
+  (a dropped status/error code) this ADR targets. Exceptions to rules are where bugs come from;
+  there is no exception.
+- **`_ <- expr;` Rust-style sink, or a `discard`/`ignore` keyword** instead of `(void) expr;`:
+  _Rejected._ C-Next is C, not Swift or Rust — the C cast-to-`void` is the idiom C programmers
+  already know, it already parses, and it matches the generated output. A new sink identifier or
+  keyword would be a gratuitous divergence from C for no gain.
 
-### Standard-library / C-interop returns (the hard question)
+### Standard-library / C-interop returns
 
-Under safe-by-default, `printf(...)` as a statement would error (it returns `int`), which would
-break a great deal of ordinary code. Options:
+Under safe-by-default, `printf(...)` as a statement errors (it returns `int`). Options:
 
-- **(a) Curated `discardable` stdlib set** (recommended): treat the printf-family and similar
-  "result usually ignored" libc functions as `discardable`. This extends the `StdlibFunctions`
-  metadata module created in the #847 work (which already centralizes the stdlib header map and
-  void-ness) with a `DISCARDABLE` set — single source of truth, no parallel list.
-- **(b) Require `_ <- printf(...)`** everywhere — maximally explicit, maximally noisy.
-- **(c) Exempt all unparsed external C** (functions whose return type C-Next cannot see) — but
-  C-Next _does_ know many returns (C-Next funcs + parsed C headers via `CResolver` + the stdlib
-  map), so a blanket exemption under-enforces.
+- **(a) Curated `discardable` stdlib set**: treat the printf-family and similar
+  "result usually ignored" libc functions as silently discardable via a `DISCARDABLE` set in the
+  `StdlibFunctions` metadata module from #847. _Rejected_ — same reason as the `discardable`
+  opt-out above: a curated carve-out is a standing exception, and exceptions to rules are where
+  bugs come from.
+- **(b) Require `(void) printf(...)`** everywhere the return is dropped (chosen). Maximally
+  explicit and uniform: the rule has no special cases, and a discarded stdlib return reads
+  identically to a discarded C-Next return. The "noise" is the point — every intentional discard
+  is visible at its call site.
+- **(c) Exempt all unparsed external C** (functions whose return type C-Next cannot see): C-Next
+  _does_ know many returns (C-Next funcs + parsed C headers via `CResolver` + the stdlib map), so
+  a blanket exemption under-enforces. The enforce-where-resolvable boundary in (b) is not an
+  _exception_ to the rule — it is the rule's domain (you cannot check a return type you cannot
+  see); see Open Questions for the unresolvable-return case.
 
-Recommendation: **(a)**. Enforce where we know the return type; mark the handful of
-ignore-by-convention stdlib functions `discardable`.
+Decision: **(b)** — require an explicit `(void)` cast wherever the return type is known,
+including the stdlib. No curated exemption list.
 
-## Architecture (proposed)
+## Architecture
 
-- **New analyzer `ReturnValueUseAnalyzer`** in `src/transpiler/logic/analysis/`, registered in
-  `runAnalyzers.ts` like the others (listener + `analyze(tree)` returning `IAnalyzerError[]`,
-  error object per `IBaseAnalysisError` with `code`/`line`/`column`/`message`/`helpText`). This
-  follows the **ReturnPathAnalyzer (E0704)** precedent almost exactly — same pass, adjacent
-  concern.
-- **Detection:** for each `expressionStatement`, determine whether it is a single bare call
-  whose result is discarded (reuse `ExpressionUnwrapper.getPostfixExpression` +
-  `postfixOp` call classification, and `ExpressionUtils.hasFunctionCall`), and resolve the
-  callee's return type. Skip the statement when wrapped by the explicit `_ <-` discard target.
-- **Return-type knowledge at analysis time:** `CodeGenState.getFunctionReturnType` (C-Next
-  funcs + scope methods), parsed C symbols via the C resolver, and the `StdlibFunctions` map.
-  A callee whose return is `void` (or unknown/unresolvable external) does not error.
-- **Single source of truth for "is this a discarded non-void call?"** The detection predicate
-  is owned by **one** helper shared by the analyzer (Case 2, error) and the #847 codegen path
-  (Case 1, cast) — the two must never re-derive the decision independently (project "No
-  Duplicate Code Paths" rule). The branch `fix/847-misra-17.7-void-cast` (closed PR #1082)
-  already prototypes this predicate as `ReturnValueCast.isBareCallStatement` + the
-  `CodeGenState.lastCallTarget` plumbing; the same predicate drives both actions.
-- **`_` discard target:** add `_` as a recognized discard sink in `assignmentTarget` handling
-  (grammar already accepts it as an identifier; the change is semantic — treat assignment to
-  `_` as a typed discard rather than a variable write).
-- **`discardable` annotation:** grammar + symbol-model addition on function declarations;
-  stored on the function symbol and consulted by the analyzer.
-- Layer constraint respected: `logic/analysis/` does not import from `output/`.
+The rule lives in the **analysis layer** (`src/transpiler/logic/analysis/`) and is enforced by
+the existing analyzer-pass mechanism — a listener that walks the parse tree during
+`runAnalyzers.ts` and returns `IAnalyzerError[]`. `ReturnPathAnalyzer` (E0704) is the existing
+analyzer of the same shape and concern (a compile-time control-flow check over function bodies).
+
+Components and constraints:
+
+- **Enforcement component:** a new analyzer in the analysis layer, surfaced through the same
+  registration and error-reporting path (`IBaseAnalysisError`: `code`/`line`/`column`/`message`/
+  `helpText`) as the other analyzers.
+- **Inputs:** the analyzer needs callee return types at analysis time. Those come from the
+  return-type knowledge already available to analyzers — C-Next functions and scope methods,
+  parsed C symbols (via the C resolver), and the stdlib metadata map. A callee whose return is
+  `void`, or whose return type is unresolvable, is outside the rule's domain.
+- **Single source of truth:** "is this expression statement a discarded non-void call?" is one
+  decision, owned by one predicate, shared by the Case 2 enforcement (error) and the Case 1
+  codegen (`(void)` cast). The two paths must not re-derive it independently (project "No
+  Duplicate Code Paths" rule) — they agree because they consult the same predicate, not by
+  coincidence.
+- **Discard form:** the explicit discard is the existing `(void)` cast expression (ADR-017); no
+  grammar, keyword, or symbol-model addition is required to express it. A cast-to-`void` wrapping
+  the call is what suppresses the error.
+- **Layer constraint:** `logic/analysis/` must not import from `output/`.
 
 ### Proposed error codes (not yet allocated)
 
@@ -148,7 +156,7 @@ To be settled in the ADR, proposed for v1:
 
 - **Used:** bound in a declaration/assignment, passed as a call argument, returned, tested in a
   condition/`switch`, or an operand of any larger expression.
-- **Discarded (needs `_ <-`):** the call is the _entire_ expression statement.
+- **Discarded (needs `(void)`):** the call is the _entire_ expression statement.
 - A member/element access on the result (`foo().field;`, `foo()[0];`) is **not** a bare call —
   out of scope for v1 (it is an unusual statement form; revisit if it appears in practice).
 
@@ -173,24 +181,29 @@ non-void return starts failing. Scoping #847 surfaced **100+** such call sites a
 suite (printf-family, scope getters used as statements, etc.). Rollout strategy is an open
 question (below). A repo-wide `npm run unit` — which transpiles every example via
 `scripts/__tests__/examples-transpile.test.ts` — must gate the rule's introduction, and the
-examples + test suite must be migrated (`_ <-` or `discardable`) before the rule turns on.
+examples + test suite must be migrated (wrap each intentional discard in `(void)`) before the
+rule turns on.
 
 Sequencing relative to #847: ship Case 1 (compiler-internal casts) first (non-breaking), then
 this rule.
 
+## Decided Direction
+
+The owner has set these (they are no longer open):
+
+- **Default stance:** safe-by-default — every resolvable non-void return must be used or
+  explicitly discarded. No opt-in (`must_use`) and no opt-out (`discardable`); exceptions to
+  rules are where bugs come from.
+- **Discard syntax:** the C cast-to-`void`, `(void) expr;` (ADR-017, parses today). No new
+  sink identifier or keyword.
+- **stdlib handling:** no curated carve-out — `(void)` is required at every dropped stdlib
+  return whose type is resolvable, identical to C-Next calls.
+
 ## Open Questions
 
-- **Default stance:** confirm safe-by-default + `discardable` (recommended) vs opt-in
-  `must_use`.
-- **Discard syntax:** confirm `_ <- expr;` (recommended) vs a `discard`/`ignore` keyword. Does
-  `_` as a magic sink interact badly with any real use of `_` as an identifier? (It is legal
-  today; do any tests/examples use it as a normal variable?)
-- **stdlib handling:** confirm the curated `discardable` set approach, and enumerate which libc
-  functions are `discardable` (printf family, `puts`, `putchar`, …).
 - **Unknown external C:** error or exempt when the return type cannot be resolved? (Recommend
-  exempt — don't flag what we can't prove.)
-- **`discardable` surface:** can the developer annotate their _own_ functions `discardable`?
-  (Recommend yes — symmetric with the stdlib treatment.)
+  exempt — you cannot check a return type you cannot see; this is the rule's domain boundary,
+  not a carve-out.)
 - **Rollout:** behind a flag first, or straight to an error once the suite/examples are
   migrated?
 - **Error code:** confirm **E0708**.
@@ -204,8 +217,10 @@ this rule.
 | **C++**   | `[[nodiscard]]` / `[[nodiscard("reason")]]` (C++17/20) | opt-in; cast-to-`void` exempt                     | `(void)e;`              |
 | **Go**    | `errcheck` / `go vet` (lint, not language)             | tool-enforced                                     | `_ = e`                 |
 
-C-Next's recommended model is closest to **Swift**: safe-by-default with a `discardable`
-opt-out, plus an explicit `_ <-` discard borrowed from Rust's `_` sink.
+C-Next takes the **strictest** stance: safe-by-default like Swift's _default_, but with **no
+opt-out** at all (stricter than Swift/Rust/C++), and the discard form is **C's own
+`(void)` cast** (as in C++'s `[[nodiscard]]` exemption) rather than a borrowed sink or keyword —
+C-Next is C.
 
 ## References
 
