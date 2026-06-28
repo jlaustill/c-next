@@ -89,7 +89,7 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E0705 | `forever` loop in non-void function                                 | Make the function return `void`, or use a `while` loop with an exit condition | `output/codegen/generators/statements/ControlFlowGenerator.ts` |
 | E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition) | Write `forever { ... }` for an intentional infinite loop                      | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts`   |
 
-**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-112 / Issue #1040 (E0704), ADR-113 / Issue #1074 (E0705), ADR-113 / Issue #1075 (E0707; E0706 reserved for ADR-114 unreachable code)
+**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-112 / Issue #1040 (E0704), ADR-113 / Issue #1074 (E0705), ADR-113 / Issue #1075 (E0707; E0706 reserved for ADR-114 unreachable code; E0708 reserved for ADR-115 discarded non-void return value / Issue #1080)
 
 ---
 

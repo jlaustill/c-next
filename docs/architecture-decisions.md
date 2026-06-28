@@ -54,6 +54,7 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 | --------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
 | [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection   |
 | [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion |
+| [ADR-115](decisions/adr-115-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708) |
 
 ## WIP (Implementation In Progress)
 
