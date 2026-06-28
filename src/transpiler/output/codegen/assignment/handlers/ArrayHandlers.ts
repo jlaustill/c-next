@@ -115,6 +115,50 @@ function resolveSliceElement(
 }
 
 /**
+ * Build the unrolled, per-element little-endian writes for a slice assignment
+ * (Issue #1081). Offset/length/bounds are already validated by the caller; this
+ * focuses on the destination-element-aware codegen so `handleArraySlice` stays
+ * within the cognitive-complexity budget.
+ */
+function buildSliceWrites(
+  name: string,
+  typeInfo: TTypeInfo | undefined,
+  offsetValue: number,
+  lengthValue: number,
+  value: string,
+  line: number,
+  rawName: string,
+): string {
+  const { bytes, wrap } = resolveSliceElement(typeInfo, line, rawName);
+
+  if (bytes <= 0) {
+    throw new Error(
+      `${line}:0 Error: Cannot determine element size for '${rawName}'.`,
+    );
+  }
+
+  if (lengthValue % bytes !== 0) {
+    throw new Error(
+      `${line}:0 Error: Slice assignment length (${lengthValue}) must be a ` +
+        `multiple of the element size (${bytes} bytes) for '${rawName}'.`,
+    );
+  }
+
+  const elementCount = lengthValue / bytes;
+  // Self-document the non-obvious codegen: name the MISRA rule that forces the
+  // unrolling and why a plain memcpy is not used (Issue #1081).
+  const writes: string[] = [SLICE_UNROLL_COMMENT];
+  for (let k = 0; k < elementCount; k += 1) {
+    const shiftBits = k * bytes * 8;
+    const chunk =
+      shiftBits === 0 ? `(${value})` : `(${value} >> ${shiftBits}U)`;
+    writes.push(`${name}[${offsetValue + k}] = ${wrap(chunk)};`);
+  }
+
+  return writes.join("\n");
+}
+
+/**
  * Handle array slice assignment: buffer[0, 10] <- source
  *
  * Validates:
@@ -207,35 +251,15 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   // pointer types (MISRA C:2012 Rule 21.15). The slice length is a compile-time
   // constant, so the copy can be fully unrolled at the destination's element
   // granularity with no library call.
-  const rawName = ctx.identifiers[0];
-  const { bytes, wrap } = resolveSliceElement(typeInfo, line, rawName);
-
-  if (bytes <= 0) {
-    throw new Error(
-      `${line}:0 Error: Cannot determine element size for '${rawName}'.`,
-    );
-  }
-
-  if (lengthValue % bytes !== 0) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment length (${lengthValue}) must be a ` +
-        `multiple of the element size (${bytes} bytes) for '${rawName}'.`,
-    );
-  }
-
-  const value = ctx.generatedValue;
-  const elementCount = lengthValue / bytes;
-  // Self-document the non-obvious codegen: name the MISRA rule that forces the
-  // unrolling and why a plain memcpy is not used (Issue #1081).
-  const writes: string[] = [SLICE_UNROLL_COMMENT];
-  for (let k = 0; k < elementCount; k += 1) {
-    const shiftBits = k * bytes * 8;
-    const chunk =
-      shiftBits === 0 ? `(${value})` : `(${value} >> ${shiftBits}U)`;
-    writes.push(`${name}[${offsetValue + k}] = ${wrap(chunk)};`);
-  }
-
-  return writes.join("\n");
+  return buildSliceWrites(
+    name,
+    typeInfo,
+    offsetValue,
+    lengthValue,
+    ctx.generatedValue,
+    line,
+    ctx.identifiers[0],
+  );
 }
 
 /**
