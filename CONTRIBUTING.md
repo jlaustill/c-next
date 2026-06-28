@@ -57,13 +57,13 @@ sudo apt install rats
 
 **IMPORTANT: Run `npm install` after cloning to install pre-commit hooks!**
 
-The project uses [Husky](https://typicode.github.io/husky/) to automatically format code before every commit. This prevents prettier/eslint errors from reaching PRs.
+The project uses [Husky](https://typicode.github.io/husky/) to automatically format code before every commit. This prevents prettier/oxlint errors from reaching PRs.
 
 **What happens when you run `npm install`:**
 
 - ✅ Pre-commit hooks are installed via Husky
 - ✅ Prettier automatically formats staged files before commit
-- ✅ ESLint automatically fixes staged TypeScript files before commit
+- ✅ oxlint automatically fixes staged TypeScript files before commit
 
 **You don't need to manually run `prettier:fix` before commits** - the hook does it for you!
 
@@ -76,7 +76,7 @@ npm test
 
 # Optional: Manually check code quality (hooks do this automatically)
 npm run prettier:fix
-npm run eslint:check
+npm run oxlint:check
 npm run typecheck
 ```
 
@@ -105,7 +105,7 @@ npm run typecheck
 
 1. **Create a feature branch** from `main`
 2. **Make your changes** following code quality standards
-3. **Test thoroughly** using the [Testing Workflow](./TESTING-WORKFLOW.md)
+3. **Test thoroughly** using the [Testing Workflow](./docs/TESTING-WORKFLOW.md)
 4. **Update documentation** (README, ADRs, learn-cnext)
 5. **Create a Pull Request** with complete description
 6. **Address review feedback** until approved
@@ -169,9 +169,9 @@ git checkout -b fix               # Not descriptive
 npm run prettier:fix
 
 # REQUIRED: Check for lint errors
-npm run eslint:check
+npm run oxlint:check
 
-# Fix any ESLint errors in files you modified
+# Fix any oxlint errors in files you modified
 # Legacy errors in untouched files can be ignored
 ```
 
@@ -179,7 +179,7 @@ npm run eslint:check
 
 - **TypeScript**: Follow existing code patterns in `src/`
 - **Zero TypeScript errors**: All new code must compile cleanly
-- **Zero ESLint errors**: In files you touch (fix as you go)
+- **Zero oxlint errors**: In files you touch (fix as you go)
 - **Formatting**: Use Prettier (automatic with `prettier:fix`)
 
 ### TypeScript Coding Standards
@@ -272,8 +272,8 @@ import ITools from "./types/ITools";
 # Type-check TypeScript
 npm run typecheck
 
-# Check generated C compiles (if applicable)
-npm run analyze
+# Validate generated C against MISRA / cppcheck (if applicable)
+npm run validate:c
 ```
 
 ---
@@ -282,7 +282,7 @@ npm run analyze
 
 **Tests are mandatory for all feature work.**
 
-See [Testing Workflow](./TESTING-WORKFLOW.md) for comprehensive testing methodology.
+See [Testing Workflow](./docs/TESTING-WORKFLOW.md) for comprehensive testing methodology.
 
 ### Minimum Requirements
 
@@ -407,7 +407,7 @@ If the project uses a memory bank system, update it with:
 ```bash
 # 1. Code Quality
 npm run prettier:fix
-npm run eslint:check
+npm run oxlint:check
 npm run typecheck
 
 # 2. Tests
@@ -495,7 +495,7 @@ Docs: Update contributing guide with PR workflow
 
 - [ ] All existing tests pass (npm test)
 - [ ] New tests added: [N] tests in tests/[feature]/
-- [ ] Lint checks pass (eslint:check, prettier:fix)
+- [ ] Lint checks pass (oxlint:check, prettier:fix)
 
 ## Documentation
 
@@ -522,7 +522,7 @@ Related to ADR-NNN (if implementing an ADR)
 1. **Wait for CI checks to pass** (required)
 2. **Address review feedback** promptly
 3. **Keep PR focused** - don't add unrelated changes
-4. **Squash commits** if requested during review
+4. **Merge with a merge commit** once green — never squash (the `main` ruleset only permits merge commits)
 
 ---
 
@@ -532,13 +532,19 @@ Related to ADR-NNN (if implementing an ADR)
 
 ### CI Workflow
 
-The GitHub Actions workflow (`.github/workflows/pr-checks.yml`) automatically runs on every PR and verifies:
+The GitHub Actions workflow (`.github/workflows/pr-checks.yml`) automatically runs on every PR. Jobs include:
 
-1. ✅ **Code Formatting** - `npm run prettier:check`
-2. ✅ **Linting** - `npm run eslint:check`
-3. ✅ **Type Checking** - `npm run typecheck`
-4. ✅ **Tests** - `npm test` (all test suites)
-5. ✅ **CLI Smoke Test** - Verify transpiler works on example file
+1. ✅ **Build** - compile the transpiler
+2. ✅ **Unit Tests** - `npm run unit` (Vitest)
+3. ✅ **Integration Tests** - `npm run test:q` (transpiler snapshot suite)
+4. ✅ **CLI Tests** - `npm run test:cli`
+5. ✅ **Grammar Coverage** - `npm run coverage:grammar:check`
+6. ✅ **Static Analysis** - formatting (`prettier:check`), linting (`oxlint:check`), types (`typecheck`)
+7. ✅ **C Static Analysis** - `npm run validate:c` (cppcheck / MISRA across compiler matrix)
+8. ✅ **Bugs Regression** + **Verify Clean** - regression fixtures and no-uncommitted-output guard
+9. ✅ **SonarCloud** - quality gate (coverage, duplication, complexity)
+
+The two ruleset-required status checks gating merge are **"All Checks Passed"** (aggregates the jobs above) and **"SonarCloud Code Analysis"**.
 
 ### What This Means
 
@@ -558,7 +564,7 @@ git commit -m "Fix formatting"
 git push
 
 # Fix linting
-npm run eslint:fix  # or manually fix issues
+npm run oxlint:fix  # or manually fix issues
 git add -A
 git commit -m "Fix lint errors"
 git push
@@ -586,7 +592,7 @@ The `main` branch is protected and requires:
 - ✅ At least 1 approving review
 - ✅ Branch must be up-to-date with main
 
-**Setup:** See `../.github/BRANCH_PROTECTION_SETUP.md` for configuration guide.
+**Setup:** See `.github/BRANCH_PROTECTION_SETUP.md` for configuration guide.
 
 ---
 
@@ -616,7 +622,7 @@ The `main` branch is protected and requires:
 #### 1. Code Quality
 
 - [ ] Code follows existing patterns in the codebase
-- [ ] No TypeScript or ESLint errors in modified files
+- [ ] No TypeScript or oxlint errors in modified files
 - [ ] Changes are focused and don't include unrelated modifications
 - [ ] No debug code left in source (`console.log`, `DEBUG` flags)
 
@@ -774,7 +780,7 @@ git checkout -b feature/my-feature
 
 # 4. Quality checks
 npm run prettier:fix
-npm run eslint:check
+npm run oxlint:check
 npm run typecheck
 npm test
 
@@ -795,7 +801,7 @@ git push origin feature/my-feature
 ```bash
 # Code Quality
 □ npm run prettier:fix
-□ npm run eslint:check
+□ npm run oxlint:check
 □ npm run typecheck
 □ npm test (all pass)
 
@@ -823,5 +829,5 @@ git push origin feature/my-feature
 
 ---
 
-**Last Updated:** 2026-01-11
+**Last Updated:** 2026-06-28
 **Status:** Active - PR-based workflow now required for all contributions

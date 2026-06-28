@@ -274,7 +274,7 @@ cd c-next
 npm install  # Installs dependencies and Husky pre-commit hooks
 ```
 
-**Pre-commit hooks:** The project uses [Husky](https://typicode.github.io/husky/) to automatically format code (Prettier) and fix linting (ESLint) before every commit. This prevents formatting errors in PRs.
+**Pre-commit hooks:** The project uses [Husky](https://typicode.github.io/husky/) to automatically format code (Prettier) and fix linting (oxlint) before every commit. This prevents formatting errors in PRs.
 
 ### Commands
 
@@ -288,7 +288,7 @@ npm test -- tests/enum/my.test.cnx    # Run single test file
 
 # Code quality (auto-run by pre-commit hooks)
 npm run prettier:fix   # Format all code
-npm run eslint:check   # Check for lint errors
+npm run oxlint:check   # Check for lint errors
 
 # Coverage tracking
 npm run coverage:check           # Feature coverage report
