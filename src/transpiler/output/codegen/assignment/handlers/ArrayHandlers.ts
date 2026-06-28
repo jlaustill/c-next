@@ -178,13 +178,31 @@ function resolveSliceSource(
   ctx: IAssignmentContext,
   line: number,
   rawName: string,
-): { cType: string | null; bytes: number; unsignedCType: string | null } {
-  const sourceType = ctx.valueCtx
+): {
+  cType: string | null;
+  bytes: number;
+  unsignedCType: string | null;
+  isComposite: boolean;
+} {
+  // A composite source (e.g. `a + b`) is resolved through the Rule 10.4
+  // guarantee that its operands share a category, so its essential type is
+  // well-defined; `directType` tells us whether the source is composite so the
+  // caller can bind it to a same-type temp before the unsigned cast — keeping
+  // that cast off the composite itself (MISRA Rule 10.8).
+  const directType = ctx.valueCtx
     ? TypeResolver.getExpressionType(ctx.valueCtx)
     : null;
+  const sourceType =
+    directType ??
+    (ctx.valueCtx ? TypeResolver.getIntegerExpressionType(ctx.valueCtx) : null);
 
   if (sourceType === null) {
-    return { cType: null, bytes: UNRESOLVED_SOURCE_BYTES, unsignedCType: null };
+    return {
+      cType: null,
+      bytes: UNRESOLVED_SOURCE_BYTES,
+      unsignedCType: null,
+      isComposite: false,
+    };
   }
 
   const isUnsigned = UNSIGNED_INT_RE.test(sourceType);
@@ -199,11 +217,12 @@ function resolveSliceSource(
   return {
     cType: CNEXT_TO_C_TYPE_MAP[sourceType],
     bytes: Number.parseInt(sourceType.slice(1), 10) / 8,
-    // Signed sources are cast to their same-width unsigned type in the temp
-    // declaration so every shift on the temp satisfies MISRA Rule 10.1.
+    // Signed sources are reinterpreted to their same-width unsigned type so
+    // every shift on the materialized temp satisfies MISRA Rule 10.1.
     unsignedCType: isSigned
       ? CNEXT_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
       : CNEXT_TO_C_TYPE_MAP[sourceType],
+    isComposite: directType === null,
   };
 }
 
@@ -255,6 +274,49 @@ function validateSliceSpan(
 }
 
 /**
+ * Materialize a slice source into a single unsigned temp that the unrolled
+ * writes shift to extract each element. The source is read exactly once and
+ * every shift operates on a known-width unsigned value (MISRA Rule 10.1).
+ *
+ * A *composite signed* source (e.g. `a + b` of signed operands) is split into
+ * two steps — bind it to its own signed type, then reinterpret that simple
+ * identifier to unsigned — so the unsigned cast never applies to the composite
+ * expression (MISRA Rule 10.8). Every other source keeps the single same-or-
+ * length-sized cast it had before: a same-category cast (resolved unsigned) or
+ * a non-composite cast (simple source / function call) does not trip Rule 10.8.
+ */
+function materializeSliceSource(
+  writes: string[],
+  src: {
+    cType: string | null;
+    unsignedCType: string | null;
+    isComposite: boolean;
+  },
+  value: string,
+  lengthValue: number,
+): string {
+  if (
+    src.isComposite &&
+    src.cType !== null &&
+    src.unsignedCType !== null &&
+    src.cType !== src.unsignedCType
+  ) {
+    const signedName = CodeGenState.getNextTempVarName();
+    writes.push(`const ${src.cType} ${signedName} = ${value};`);
+    const unsignedName = CodeGenState.getNextTempVarName();
+    writes.push(
+      `const ${src.unsignedCType} ${unsignedName} = (${src.unsignedCType})${signedName};`,
+    );
+    return unsignedName;
+  }
+
+  const tempType = src.unsignedCType ?? unsignedCTypeForBytes(lengthValue);
+  const tempName = CodeGenState.getNextTempVarName();
+  writes.push(`const ${tempType} ${tempName} = (${tempType})(${value});`);
+  return tempName;
+}
+
+/**
  * Build the unrolled, per-element little-endian writes for a slice assignment
  * (Issue #1081). Offset/length constants are already validated by the caller;
  * this focuses on the destination-element-aware codegen so `handleArraySlice`
@@ -297,19 +359,20 @@ function buildSliceWrites(
   }
 
   // Evaluate the source once. Shifting a single unsigned temp keeps every chunk
-  // MISRA Rule 10.1-clean and reads the source exactly once. An unresolved
-  // source is sized to the slice length so the cast does not widen a composite
-  // expression (MISRA Rule 10.8). Residual: a 5-8 byte slice from a sub-64-bit
-  // unresolved composite still widens to uint64_t (10.8) — see issue #1089;
-  // fixing it needs composite-width inference TypeResolver does not yet provide.
+  // MISRA Rule 10.1-clean and reads the source exactly once — needed when the
+  // source feeds more than one element, or whenever it is a composite (so the
+  // unsigned cast lands on the temp, never on the composite: MISRA Rule 10.8).
+  // Residual: an *unresolved* composite (e.g. a struct-field or function-call
+  // expression TypeResolver cannot type) is still sized to the slice length and
+  // cast directly — see issue #1089.
   let sourceExpr = ctx.generatedValue;
-  if (elementCount > 1) {
-    const tempType = src.unsignedCType ?? unsignedCTypeForBytes(lengthValue);
-    const tempName = CodeGenState.getNextTempVarName();
-    writes.push(
-      `const ${tempType} ${tempName} = (${tempType})(${ctx.generatedValue});`,
+  if (elementCount > 1 || src.isComposite) {
+    sourceExpr = materializeSliceSource(
+      writes,
+      src,
+      ctx.generatedValue,
+      lengthValue,
     );
-    sourceExpr = tempName;
   }
 
   for (let k = 0; k < elementCount; k += 1) {

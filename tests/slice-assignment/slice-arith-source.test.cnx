@@ -1,0 +1,23 @@
+// test-execution
+// Issue #1085: a same-category arithmetic slice source (i32 + i32, permitted by
+// MISRA Rule 10.4) must serialize MISRA Rule 10.8-clean. The signed composite is
+// bound to a same-type temp before the unsigned cast, never cast directly.
+//
+// Expected bytes are held in u8 variables so the assertions stay u8-vs-u8 (a
+// bare `buf[i] != 0x78` literal compare is a separate, unrelated Rule 10.4 gap).
+u32 main() {
+    u8[8] buf;
+    i32 a <- 0x12340000;
+    i32 b <- 0x00005678;
+    buf[0, 4] <- a + b;
+
+    u8 expected0 <- 0x78;
+    u8 expected1 <- 0x56;
+    u8 expected2 <- 0x34;
+    u8 expected3 <- 0x12;
+    if (buf[0] != expected0) return 1;
+    if (buf[1] != expected1) return 2;
+    if (buf[2] != expected2) return 3;
+    if (buf[3] != expected3) return 4;
+    return 0;
+}

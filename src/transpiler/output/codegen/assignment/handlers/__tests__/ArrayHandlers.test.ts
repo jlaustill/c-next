@@ -18,13 +18,17 @@ vi.mock("../../../TypeValidator", () => ({
 
 // Slice codegen resolves the source value's type (Issue #1081 review) — mock it
 // so slice tests can control the source type independently of a real parse tree.
-const { mockGetExpressionType } = vi.hoisted(() => ({
-  mockGetExpressionType: vi.fn(),
-}));
+const { mockGetExpressionType, mockGetIntegerExpressionType } = vi.hoisted(
+  () => ({
+    mockGetExpressionType: vi.fn(),
+    mockGetIntegerExpressionType: vi.fn(),
+  }),
+);
 
 vi.mock("../../../TypeResolver", () => ({
   default: {
     getExpressionType: mockGetExpressionType,
+    getIntegerExpressionType: mockGetIntegerExpressionType,
   },
 }));
 
@@ -78,6 +82,9 @@ describe("ArrayHandlers", () => {
     CodeGenState.reset();
     HandlerTestUtils.setupMockGenerator();
     HandlerTestUtils.setupMockSymbols();
+    // Default: a source whose direct type is null is also unresolved as a
+    // composite. Tests that exercise composite resolution override this.
+    mockGetIntegerExpressionType.mockReturnValue(null);
   });
 
   describe("handler registration", () => {
@@ -551,6 +558,45 @@ describe("ArrayHandlers", () => {
           "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
           "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
           "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
+      );
+    });
+
+    it("two-steps a composite signed source so no composite is cast (Rule 10.8)", () => {
+      // Direct type unresolved (composite), but resolvable as a signed i32 via
+      // Rule 10.4's same-category guarantee. The source must be bound to its
+      // own signed type first, then reinterpreted — the unsigned cast lands on
+      // the simple temp, never on the `a + b` composite.
+      mockGetExpressionType.mockReturnValue(null);
+      mockGetIntegerExpressionType.mockReturnValue("i32");
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(4),
+      });
+      const ctx = createMockContext({
+        identifiers: ["buffer"],
+        subscripts: [
+          { mockValue: "0", start: { line: 1 } } as never,
+          { mockValue: "4", start: { line: 1 } } as never,
+        ],
+        generatedValue: "a + b",
+      });
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toBe(
+        "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
+          "(memcpy would pass incompatible pointer types: uint8_t* vs int32_t*). */\n" +
+          "const int32_t _tmp0 = a + b;\n" +
+          "const uint32_t _tmp1 = (uint32_t)_tmp0;\n" +
+          "buffer[0] = (uint8_t)(_tmp1);\n" +
+          "buffer[1] = (uint8_t)(_tmp1 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(_tmp1 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(_tmp1 >> 24U);",
       );
     });
 

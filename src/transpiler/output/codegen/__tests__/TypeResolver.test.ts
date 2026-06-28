@@ -3,10 +3,20 @@
  * Tests type classification, conversion validation, and literal validation
  */
 import { describe, it, expect, beforeEach } from "vitest";
+import { CharStream, CommonTokenStream } from "antlr4ng";
 import TypeResolver from "../TypeResolver";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
 import TTypeInfo from "../types/TTypeInfo";
+import { CNextLexer } from "../../../logic/parser/grammar/CNextLexer";
+import { CNextParser } from "../../../logic/parser/grammar/CNextParser";
+
+/** Parse a standalone C-Next expression into an ExpressionContext. */
+function parseExpression(source: string) {
+  const lexer = new CNextLexer(CharStream.fromString(source));
+  const parser = new CNextParser(new CommonTokenStream(lexer));
+  return parser.expression();
+}
 
 describe("TypeResolver", () => {
   let symbolTable: SymbolTable;
@@ -595,6 +605,56 @@ describe("TypeResolver", () => {
       } as unknown as Parameters<typeof TypeResolver.getExpressionType>[0];
 
       expect(TypeResolver.getExpressionType(ctx)).toBeNull();
+    });
+  });
+
+  describe("getIntegerExpressionType", () => {
+    function setInt(name: string, baseType: string, bitWidth: number): void {
+      setTypeInfo(name, { baseType, bitWidth, isArray: false, isConst: false });
+    }
+
+    it("resolves a signed composite to its operand category and width", () => {
+      setInt("a", "i32", 32);
+      setInt("b", "i32", 32);
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("a + b")),
+      ).toBe("i32");
+    });
+
+    it("resolves an unsigned composite to its operand category and width", () => {
+      setInt("a", "u32", 32);
+      setInt("b", "u32", 32);
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("a | b")),
+      ).toBe("u32");
+    });
+
+    it("uses the widest operand width across a same-category composite", () => {
+      setInt("small", "u8", 8);
+      setInt("big", "u32", 32);
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("small + big")),
+      ).toBe("u32");
+    });
+
+    it("still resolves a simple variable via getExpressionType", () => {
+      setInt("x", "i16", 16);
+      expect(TypeResolver.getIntegerExpressionType(parseExpression("x"))).toBe(
+        "i16",
+      );
+    });
+
+    it("returns null when no integer variable leaf can be resolved", () => {
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("a + b")),
+      ).toBeNull();
+    });
+
+    it("ignores integer literals (contextually typed, not fixed-category)", () => {
+      setInt("a", "u32", 32);
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("a + 5")),
+      ).toBe("u32");
     });
   });
 

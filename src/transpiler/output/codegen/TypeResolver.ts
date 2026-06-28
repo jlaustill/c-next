@@ -231,6 +231,73 @@ class TypeResolver {
   }
 
   /**
+   * Resolve the C-Next integer type of an expression, including composite
+   * arithmetic/bitwise expressions that `getExpressionType` leaves unresolved.
+   *
+   * MISRA C:2012 Rule 10.4 (enforced by MixedTypeCategoryAnalyzer) guarantees a
+   * binary operator's operands share an essential type category, so a composite
+   * integer expression's category is uniform; its essential width is the widest
+   * integer operand. This is what lets slice-assignment serialize an arithmetic
+   * source (e.g. `a + b`) MISRA Rule 10.8-clean instead of guessing a width.
+   *
+   * Returns null when no integer-typed variable leaf can be resolved (e.g. a
+   * struct-field or function-call composite — left for a later pass).
+   */
+  static getIntegerExpressionType(
+    ctx: Parser.ExpressionContext,
+  ): string | null {
+    const direct = TypeResolver.getExpressionType(ctx);
+    if (direct !== null) return direct;
+    return TypeResolver.resolveCompositeIntegerType(ctx);
+  }
+
+  /**
+   * Combine the integer variable leaves of a composite expression into a single
+   * C-Next type: the (uniform, per Rule 10.4) category at the widest width.
+   */
+  private static resolveCompositeIntegerType(
+    ctx: Parser.ExpressionContext,
+  ): string | null {
+    let category: "i" | "u" | null = null;
+    let width = 0;
+
+    for (const name of TypeResolver.collectLeafTexts(ctx)) {
+      const typeInfo = CodeGenState.getVariableTypeInfo(
+        CodeGenState.resolveIdentifier(name),
+      );
+      const match = typeInfo
+        ? /^([iu])(8|16|32|64)$/.exec(typeInfo.baseType)
+        : null;
+      if (!match) continue;
+      if (category === null) category = match[1] as "i" | "u";
+      width = Math.max(
+        width,
+        typeInfo?.bitWidth ?? Number.parseInt(match[2], 10),
+      );
+    }
+
+    return category && width > 0 ? `${category}${width}` : null;
+  }
+
+  /** Collect the text of every leaf (terminal) node under a parse-tree node. */
+  private static collectLeafTexts(node: {
+    getChildCount(): number;
+    getChild(i: number): unknown;
+    getText(): string;
+  }): string[] {
+    const count = node.getChildCount();
+    if (count === 0) return [node.getText()];
+    const texts: string[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const child = node.getChild(i) as
+        | Parameters<typeof TypeResolver.collectLeafTexts>[0]
+        | null;
+      if (child) texts.push(...TypeResolver.collectLeafTexts(child));
+    }
+    return texts;
+  }
+
+  /**
    * ADR-024: Get the type of a postfix expression.
    * Tracks InternalTypeInfo (baseType + isArray) through the suffix chain
    * so that array indexing is correctly distinguished from bit indexing.
