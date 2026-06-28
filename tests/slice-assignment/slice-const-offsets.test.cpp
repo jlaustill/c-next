@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 // test-execution
 // Tests: Issue #234 - Slice assignment with const variable offsets
@@ -25,20 +24,27 @@ extern const uint8_t LEN_FLAGS = 1U;
 int main(void) {
     uint8_t buffer[64] = {};
     uint32_t magic = 0x12345678U;
-    memcpy(&buffer[0], &magic, 4);
+    buffer[0] = (uint8_t)(magic);
+    buffer[1] = (uint8_t)(magic >> 8U);
+    buffer[2] = (uint8_t)(magic >> 16U);
+    buffer[3] = (uint8_t)(magic >> 24U);
     if (buffer[0U] != 0x78) return 1;
     if (buffer[1U] != 0x56) return 2;
     if (buffer[2U] != 0x34) return 3;
     if (buffer[3U] != 0x12) return 4;
     uint16_t version = 0xABCDU;
-    memcpy(&buffer[4], &version, 2);
+    buffer[4] = (uint8_t)(version);
+    buffer[5] = (uint8_t)(version >> 8U);
     if (buffer[4U] != 0xCD) return 5;
     if (buffer[5U] != 0xAB) return 6;
     uint8_t flags = 0xFFU;
-    memcpy(&buffer[6], &flags, 1);
+    buffer[6] = (uint8_t)(flags);
     if (buffer[6U] != 0xFF) return 7;
     uint32_t value = 0x11223344U;
-    memcpy(&buffer[6], &value, 4);
+    buffer[6] = (uint8_t)(value);
+    buffer[7] = (uint8_t)(value >> 8U);
+    buffer[8] = (uint8_t)(value >> 16U);
+    buffer[9] = (uint8_t)(value >> 24U);
     if (buffer[6U] != 0x44) return 8;
     if (buffer[7U] != 0x33) return 9;
     if (buffer[8U] != 0x22) return 10;

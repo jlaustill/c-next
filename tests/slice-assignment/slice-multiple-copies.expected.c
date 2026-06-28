@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 // test-execution
 // Tests: Multiple sequential slice assignments to same buffer
@@ -13,19 +12,31 @@
 int main(void) {
     uint8_t buffer[256] = {0};
     uint32_t magic = 0x50415255U;
-    memcpy(&buffer[0], &magic, 4);
+    buffer[0] = (uint8_t)(magic);
+    buffer[1] = (uint8_t)(magic >> 8U);
+    buffer[2] = (uint8_t)(magic >> 16U);
+    buffer[3] = (uint8_t)(magic >> 24U);
     uint16_t version = 0x0100U;
-    memcpy(&buffer[4], &version, 2);
+    buffer[4] = (uint8_t)(version);
+    buffer[5] = (uint8_t)(version >> 8U);
     uint16_t length = 20U;
-    memcpy(&buffer[6], &length, 2);
+    buffer[6] = (uint8_t)(length);
+    buffer[7] = (uint8_t)(length >> 8U);
     uint8_t flags = 0x0FU;
-    memcpy(&buffer[8], &flags, 1);
+    buffer[8] = (uint8_t)(flags);
     uint8_t reserved = 0U;
-    memcpy(&buffer[9], &reserved, 1);
-    memcpy(&buffer[10], &reserved, 1);
-    memcpy(&buffer[11], &reserved, 1);
+    buffer[9] = (uint8_t)(reserved);
+    buffer[10] = (uint8_t)(reserved);
+    buffer[11] = (uint8_t)(reserved);
     uint64_t data = 0x0102030405060708ULL;
-    memcpy(&buffer[12], &data, 8);
+    buffer[12] = (uint8_t)(data);
+    buffer[13] = (uint8_t)(data >> 8U);
+    buffer[14] = (uint8_t)(data >> 16U);
+    buffer[15] = (uint8_t)(data >> 24U);
+    buffer[16] = (uint8_t)(data >> 32U);
+    buffer[17] = (uint8_t)(data >> 40U);
+    buffer[18] = (uint8_t)(data >> 48U);
+    buffer[19] = (uint8_t)(data >> 56U);
     if (buffer[0U] != 0x55) return 1;
     if (buffer[1U] != 0x52) return 2;
     if (buffer[2U] != 0x41) return 3;
@@ -47,7 +58,10 @@ int main(void) {
     if (buffer[18U] != 0x02) return 19;
     if (buffer[19U] != 0x01) return 20;
     uint32_t newMagic = 0x44434241U;
-    memcpy(&buffer[0], &newMagic, 4);
+    buffer[0] = (uint8_t)(newMagic);
+    buffer[1] = (uint8_t)(newMagic >> 8U);
+    buffer[2] = (uint8_t)(newMagic >> 16U);
+    buffer[3] = (uint8_t)(newMagic >> 24U);
     if (buffer[0U] != 0x41) return 21;
     if (buffer[1U] != 0x42) return 22;
     if (buffer[2U] != 0x43) return 23;

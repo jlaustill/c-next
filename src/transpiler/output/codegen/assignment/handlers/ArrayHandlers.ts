@@ -12,6 +12,8 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TypeValidator from "../../TypeValidator";
 import type ICodeGenApi from "../../types/ICodeGenApi";
+import type TTypeInfo from "../../types/TTypeInfo";
+import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 
 /** Get typed generator reference */
 function gen(): ICodeGenApi {
@@ -52,6 +54,55 @@ function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
   }
 
   return `${ctx.resolvedTarget} ${ctx.cOp} ${ctx.generatedValue};`;
+}
+
+/**
+ * Per-element write strategy for a slice-assignment destination (Issue #1081).
+ *
+ * Slice assignment lowers to element-by-element little-endian writes rather than
+ * a `memcpy(&dest[off], &value, len)`. `memcpy` between a byte buffer and a
+ * wider integer passes incompatible pointer types, violating MISRA C:2012
+ * Rule 21.15; writing each element explicitly avoids the call entirely.
+ *
+ * The destination *element* type determines:
+ *  - `bytes`: the element stride. `dest[off + k]` indexes elements, matching
+ *    the old `&dest[off]` base address, so a u16[] slice writes whole u16s.
+ *  - `wrap`: the cast applied to each extracted little-endian chunk. MISRA
+ *    Rule 10.8 forbids casting a composite expression (the `>>`/`&` result)
+ *    across essential-type categories, so `char` and signed destinations cast
+ *    through a same-width unsigned type first.
+ *
+ * Throws for element types that cannot be expressed as integer byte writes
+ * (float/bool), which would require type punning and are unsupported.
+ */
+function resolveSliceElement(
+  typeInfo: TTypeInfo | undefined,
+  line: number,
+  rawName: string,
+): { bytes: number; wrap: (chunk: string) => string } {
+  if (typeInfo?.isString) {
+    // string buffers are char[]; cast through uint8_t to satisfy MISRA 10.8.
+    return { bytes: 1, wrap: (chunk) => `(char)(uint8_t)${chunk}` };
+  }
+
+  const baseType = typeInfo?.baseType ?? "";
+  const bytes = Math.floor((typeInfo?.bitWidth ?? 0) / 8);
+
+  if (/^u(8|16|32|64)$/.test(baseType)) {
+    const cType = CNEXT_TO_C_TYPE_MAP[baseType];
+    return { bytes, wrap: (chunk) => `(${cType})${chunk}` };
+  }
+
+  if (/^i(8|16|32|64)$/.test(baseType)) {
+    const cType = CNEXT_TO_C_TYPE_MAP[baseType];
+    const uType = CNEXT_TO_C_TYPE_MAP[`u${baseType.slice(1)}`];
+    return { bytes, wrap: (chunk) => `(${cType})(${uType})${chunk}` };
+  }
+
+  throw new Error(
+    `${line}:0 Error: Slice assignment is not supported for element type ` +
+      `'${baseType}' of '${rawName}'. Only integer and string buffers can be sliced.`,
+  );
 }
 
 /**
@@ -142,10 +193,38 @@ function handleArraySlice(ctx: IAssignmentContext): string {
     );
   }
 
-  // Mark that we need string.h for memcpy
-  CodeGenState.needsString = true;
+  // Issue #1081: emit per-element little-endian writes instead of memcpy.
+  // memcpy between a byte buffer and a wider integer passes incompatible
+  // pointer types (MISRA C:2012 Rule 21.15). The slice length is a compile-time
+  // constant, so the copy can be fully unrolled at the destination's element
+  // granularity with no library call.
+  const rawName = ctx.identifiers[0];
+  const { bytes, wrap } = resolveSliceElement(typeInfo, line, rawName);
 
-  return `memcpy(&${name}[${offsetValue}], &${ctx.generatedValue}, ${lengthValue});`;
+  if (bytes <= 0) {
+    throw new Error(
+      `${line}:0 Error: Cannot determine element size for '${rawName}'.`,
+    );
+  }
+
+  if (lengthValue % bytes !== 0) {
+    throw new Error(
+      `${line}:0 Error: Slice assignment length (${lengthValue}) must be a ` +
+        `multiple of the element size (${bytes} bytes) for '${rawName}'.`,
+    );
+  }
+
+  const value = ctx.generatedValue;
+  const elementCount = lengthValue / bytes;
+  const writes: string[] = [];
+  for (let k = 0; k < elementCount; k += 1) {
+    const shiftBits = k * bytes * 8;
+    const chunk =
+      shiftBits === 0 ? `(${value})` : `(${value} >> ${shiftBits}U)`;
+    writes.push(`${name}[${offsetValue + k}] = ${wrap(chunk)};`);
+  }
+
+  return writes.join("\n");
 }
 
 /**

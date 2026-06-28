@@ -10,16 +10,19 @@
 
 // test-execution
 // Tests: Issue #213 - Scope helper methods with string parameters
-// Validates that slice assignment in private methods generates memcpy, not bitwise ops
+// Validates that slice assignment in private methods serializes a value into the
+// string buffer (per-element little-endian writes, not scalar bit manipulation)
 // Updated for Issue #234: Uses compile-time constant offsets
 /* Scope: StringSliceTest */
 
 void StringSliceTest_copyToBuffer(char* buffer, uint16_t value) {
-    memcpy(&buffer[0], &value, 2);
+    buffer[0] = (char)(uint8_t)(value);
+    buffer[1] = (char)(uint8_t)(value >> 8U);
 }
 
 void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t value) {
-    memcpy(&buffer[2], &value, 2);
+    buffer[2] = (char)(uint8_t)(value);
+    buffer[3] = (char)(uint8_t)(value >> 8U);
 }
 
 uint32_t StringSliceTest_testSliceAssignment(void) {

@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 // test-execution
 // Tests: Large value copies with slice assignment
@@ -13,7 +12,14 @@
 int main(void) {
     uint8_t buffer[256] = {};
     uint64_t maxU64 = 0xFFFFFFFFFFFFFFFFULL;
-    memcpy(&buffer[0], &maxU64, 8);
+    buffer[0] = (uint8_t)(maxU64);
+    buffer[1] = (uint8_t)(maxU64 >> 8U);
+    buffer[2] = (uint8_t)(maxU64 >> 16U);
+    buffer[3] = (uint8_t)(maxU64 >> 24U);
+    buffer[4] = (uint8_t)(maxU64 >> 32U);
+    buffer[5] = (uint8_t)(maxU64 >> 40U);
+    buffer[6] = (uint8_t)(maxU64 >> 48U);
+    buffer[7] = (uint8_t)(maxU64 >> 56U);
     if (buffer[0U] != 0xFF) return 1;
     if (buffer[1U] != 0xFF) return 2;
     if (buffer[2U] != 0xFF) return 3;
@@ -23,7 +29,10 @@ int main(void) {
     if (buffer[6U] != 0xFF) return 7;
     if (buffer[7U] != 0xFF) return 8;
     uint32_t maxU32 = 0xFFFFFFFFU;
-    memcpy(&buffer[10], &maxU32, 4);
+    buffer[10] = (uint8_t)(maxU32);
+    buffer[11] = (uint8_t)(maxU32 >> 8U);
+    buffer[12] = (uint8_t)(maxU32 >> 16U);
+    buffer[13] = (uint8_t)(maxU32 >> 24U);
     if (buffer[10U] != 0xFF) return 9;
     if (buffer[11U] != 0xFF) return 10;
     if (buffer[12U] != 0xFF) return 11;
@@ -31,9 +40,30 @@ int main(void) {
     uint64_t val1 = 0x8000000000000000ULL;
     uint64_t val2 = 0x7FFFFFFFFFFFFFFFULL;
     uint64_t val3 = 0x0000000000000001ULL;
-    memcpy(&buffer[20], &val1, 8);
-    memcpy(&buffer[28], &val2, 8);
-    memcpy(&buffer[36], &val3, 8);
+    buffer[20] = (uint8_t)(val1);
+    buffer[21] = (uint8_t)(val1 >> 8U);
+    buffer[22] = (uint8_t)(val1 >> 16U);
+    buffer[23] = (uint8_t)(val1 >> 24U);
+    buffer[24] = (uint8_t)(val1 >> 32U);
+    buffer[25] = (uint8_t)(val1 >> 40U);
+    buffer[26] = (uint8_t)(val1 >> 48U);
+    buffer[27] = (uint8_t)(val1 >> 56U);
+    buffer[28] = (uint8_t)(val2);
+    buffer[29] = (uint8_t)(val2 >> 8U);
+    buffer[30] = (uint8_t)(val2 >> 16U);
+    buffer[31] = (uint8_t)(val2 >> 24U);
+    buffer[32] = (uint8_t)(val2 >> 32U);
+    buffer[33] = (uint8_t)(val2 >> 40U);
+    buffer[34] = (uint8_t)(val2 >> 48U);
+    buffer[35] = (uint8_t)(val2 >> 56U);
+    buffer[36] = (uint8_t)(val3);
+    buffer[37] = (uint8_t)(val3 >> 8U);
+    buffer[38] = (uint8_t)(val3 >> 16U);
+    buffer[39] = (uint8_t)(val3 >> 24U);
+    buffer[40] = (uint8_t)(val3 >> 32U);
+    buffer[41] = (uint8_t)(val3 >> 40U);
+    buffer[42] = (uint8_t)(val3 >> 48U);
+    buffer[43] = (uint8_t)(val3 >> 56U);
     if (buffer[20U] != 0x00) return 13;
     if (buffer[27U] != 0x80) return 14;
     if (buffer[28U] != 0xFF) return 15;

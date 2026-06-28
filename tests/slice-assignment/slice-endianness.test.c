@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 // test-execution
 // Tests: Byte order verification for slice assignment
@@ -13,13 +12,23 @@
 int main(void) {
     uint8_t buffer[128] = {0};
     uint32_t value32 = 0x12345678U;
-    memcpy(&buffer[0], &value32, 4);
+    buffer[0] = (uint8_t)(value32);
+    buffer[1] = (uint8_t)(value32 >> 8U);
+    buffer[2] = (uint8_t)(value32 >> 16U);
+    buffer[3] = (uint8_t)(value32 >> 24U);
     if (buffer[0U] != 0x78) return 1;
     if (buffer[1U] != 0x56) return 2;
     if (buffer[2U] != 0x34) return 3;
     if (buffer[3U] != 0x12) return 4;
     uint64_t value64 = 0x0102030405060708ULL;
-    memcpy(&buffer[10], &value64, 8);
+    buffer[10] = (uint8_t)(value64);
+    buffer[11] = (uint8_t)(value64 >> 8U);
+    buffer[12] = (uint8_t)(value64 >> 16U);
+    buffer[13] = (uint8_t)(value64 >> 24U);
+    buffer[14] = (uint8_t)(value64 >> 32U);
+    buffer[15] = (uint8_t)(value64 >> 40U);
+    buffer[16] = (uint8_t)(value64 >> 48U);
+    buffer[17] = (uint8_t)(value64 >> 56U);
     if (buffer[10U] != 0x08) return 5;
     if (buffer[11U] != 0x07) return 6;
     if (buffer[12U] != 0x06) return 7;
@@ -29,11 +38,15 @@ int main(void) {
     if (buffer[16U] != 0x02) return 11;
     if (buffer[17U] != 0x01) return 12;
     uint16_t value16 = 0xABCDU;
-    memcpy(&buffer[20], &value16, 2);
+    buffer[20] = (uint8_t)(value16);
+    buffer[21] = (uint8_t)(value16 >> 8U);
     if (buffer[20U] != 0xCD) return 13;
     if (buffer[21U] != 0xAB) return 14;
     uint32_t bits = 0x80000001U;
-    memcpy(&buffer[30], &bits, 4);
+    buffer[30] = (uint8_t)(bits);
+    buffer[31] = (uint8_t)(bits >> 8U);
+    buffer[32] = (uint8_t)(bits >> 16U);
+    buffer[33] = (uint8_t)(bits >> 24U);
     if (buffer[30U] != 0x01) return 15;
     if (buffer[31U] != 0x00) return 16;
     if (buffer[32U] != 0x00) return 17;

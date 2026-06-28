@@ -79,7 +79,7 @@ GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 
 ### Slice Assignment for Memory Operations
 
-Multi-byte copying with compile-time validated `memcpy` generation (Issue #234):
+Multi-byte serialization with compile-time validated, little-endian writes (Issue #234, #1081):
 
 ```cnx
 u8 buffer[256];
@@ -95,14 +95,17 @@ buffer[HEADER_OFFSET, 4] <- magic;
 buffer[DATA_OFFSET, 8] <- timestamp;
 ```
 
-Transpiles to direct memcpy (bounds validated at compile time):
+Transpiles to explicit per-element little-endian writes, unrolled at compile time
+(bounds validated at compile time):
 
 ```c
 uint8_t buffer[256] = {0};
 uint32_t magic = 0x12345678;
 
-memcpy(&buffer[0], &magic, 4);
-memcpy(&buffer[8], &timestamp, 8);
+buffer[0] = (uint8_t)(magic);
+buffer[1] = (uint8_t)(magic >> 8U);
+buffer[2] = (uint8_t)(magic >> 16U);
+buffer[3] = (uint8_t)(magic >> 24U);
 ```
 
 **Key Features:**
@@ -111,7 +114,16 @@ memcpy(&buffer[8], &timestamp, 8);
 - Offset and length must be compile-time constants (literals or `const` variables)
 - Silent runtime failures are now compile-time errors
 - Works with struct fields: `buffer[0, 4] <- config.magic`
-- Distinct from bit operations: array slices use `memcpy`, scalar bit ranges use bit manipulation
+- **Deterministic little-endian byte order on every target** — the bytes are
+  written least-significant-first regardless of host endianness (Issue #1081).
+  Earlier versions emitted `memcpy`, which copied in native byte order and (a)
+  produced different output on big-endian targets and (b) violated MISRA C:2012
+  Rule 21.15 by passing incompatible pointer types
+- Wider destination arrays write at element granularity: a `u16[]` slice writes
+  whole `uint16_t` elements, so the slice length must be a multiple of the
+  element size
+- Distinct from bit operations: array slices serialize a value into memory,
+  scalar bit ranges use bit manipulation
 
 ### Scopes (ADR-016)
 

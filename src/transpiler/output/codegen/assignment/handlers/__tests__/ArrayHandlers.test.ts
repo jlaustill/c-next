@@ -241,32 +241,97 @@ describe("ArrayHandlers", () => {
     const getHandler = () =>
       arrayHandlers.find(([kind]) => kind === AssignmentKind.ARRAY_SLICE)?.[1];
 
-    it("generates memcpy for valid slice assignment", () => {
+    // Issue #1081: slice assignment lowers to per-element little-endian writes
+    // (no memcpy), keeping MISRA C:2012 Rule 21.15 (compatible memcpy pointers)
+    // satisfied because no incompatible pointer punning is emitted.
+    it("generates unrolled byte writes for a u8 slice (no memcpy/string.h)", () => {
       HandlerTestUtils.setupMockTypeRegistry([
-        ["buffer", { arrayDimensions: [100], baseType: "u8" }],
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
-          .mockReturnValueOnce(10),
+          .mockReturnValueOnce(4),
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
         subscripts: [
           { mockValue: "0", start: { line: 1 } } as never,
-          { mockValue: "10", start: { line: 1 } } as never,
+          { mockValue: "4", start: { line: 1 } } as never,
         ],
         generatedValue: "source",
       });
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("memcpy(&buffer[0], &source, 10);");
-      expect(CodeGenState.needsString).toBe(true);
+      expect(result).toBe(
+        "buffer[0] = (uint8_t)(source);\n" +
+          "buffer[1] = (uint8_t)(source >> 8U);\n" +
+          "buffer[2] = (uint8_t)(source >> 16U);\n" +
+          "buffer[3] = (uint8_t)(source >> 24U);",
+      );
+      // No memcpy means <string.h> is not required.
+      expect(CodeGenState.needsString).toBe(false);
     });
 
-    it("generates memcpy for string slice", () => {
+    it("writes at element granularity for a u16 slice (offset = element index)", () => {
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["arr16", { arrayDimensions: [16], baseType: "u16", bitWidth: 16 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(8),
+      });
+      const ctx = createMockContext({
+        identifiers: ["arr16"],
+        subscripts: [
+          { mockValue: "0", start: { line: 1 } } as never,
+          { mockValue: "8", start: { line: 1 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toBe(
+        "arr16[0] = (uint16_t)(value);\n" +
+          "arr16[1] = (uint16_t)(value >> 16U);\n" +
+          "arr16[2] = (uint16_t)(value >> 32U);\n" +
+          "arr16[3] = (uint16_t)(value >> 48U);",
+      );
+    });
+
+    it("casts signed-array slices through a same-width unsigned type (MISRA 10.8)", () => {
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["arrI", { arrayDimensions: [16], baseType: "i32", bitWidth: 32 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(8),
+      });
+      const ctx = createMockContext({
+        identifiers: ["arrI"],
+        subscripts: [
+          { mockValue: "0", start: { line: 1 } } as never,
+          { mockValue: "8", start: { line: 1 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toBe(
+        "arrI[0] = (int32_t)(uint32_t)(value);\n" +
+          "arrI[1] = (int32_t)(uint32_t)(value >> 32U);",
+      );
+    });
+
+    it("generates double-cast char writes for a string slice (MISRA 10.8)", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         [
           "str",
@@ -282,20 +347,71 @@ describe("ArrayHandlers", () => {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(5)
-          .mockReturnValueOnce(10),
+          .mockReturnValueOnce(2),
       });
       const ctx = createMockContext({
         identifiers: ["str"],
         subscripts: [
           { mockValue: "5", start: { line: 1 } } as never,
-          { mockValue: "10", start: { line: 1 } } as never,
+          { mockValue: "2", start: { line: 1 } } as never,
         ],
         generatedValue: "data",
       });
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("memcpy(&str[5], &data, 10);");
+      expect(result).toBe(
+        "str[5] = (char)(uint8_t)(data);\n" +
+          "str[6] = (char)(uint8_t)(data >> 8U);",
+      );
+    });
+
+    it("throws when slice length is not a multiple of the element size", () => {
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["arr16", { arrayDimensions: [16], baseType: "u16", bitWidth: 16 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(3),
+      });
+      const ctx = createMockContext({
+        identifiers: ["arr16"],
+        subscripts: [
+          { mockValue: "0", start: { line: 7 } } as never,
+          { mockValue: "3", start: { line: 7 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      expect(() => getHandler()!(ctx)).toThrow(
+        "must be a multiple of the element size",
+      );
+    });
+
+    it("throws on slice assignment into a float array", () => {
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["arrF", { arrayDimensions: [16], baseType: "f32", bitWidth: 32 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(4),
+      });
+      const ctx = createMockContext({
+        identifiers: ["arrF"],
+        subscripts: [
+          { mockValue: "0", start: { line: 9 } } as never,
+          { mockValue: "4", start: { line: 9 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      expect(() => getHandler()!(ctx)).toThrow(
+        "Slice assignment is not supported for element type",
+      );
     });
 
     it("throws on compound assignment", () => {
