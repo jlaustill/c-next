@@ -109,7 +109,7 @@ npm run typecheck
 4. **Update documentation** (README, ADRs, learn-cnext)
 5. **Create a Pull Request** with complete description
 6. **Address review feedback** until approved
-7. **Squash and merge** into main
+7. **Merge** into main with a merge commit (never squash)
 
 ---
 
