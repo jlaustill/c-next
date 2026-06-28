@@ -13,9 +13,9 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E05xx     | Include/Preprocessor    | 4      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 6      |
-| E08xx     | Arithmetic/Array Safety | 9      |
+| E08xx     | Arithmetic/Array Safety | 11     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **35** |
+| **Total** |                         | **37** |
 
 ---
 
@@ -104,6 +104,13 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E0802 | Modulo by zero (literal)            | Use `safe_mod(output, numerator, divisor, defaultValue)` | `logic/analysis/DivisionByZeroAnalyzer.ts`  |
 | E0803 | Modulo by zero (const expression)   | Use `safe_mod()` for runtime safety                      | Reserved in `types/IDivisionByZeroError.ts` |
 | E0804 | Modulo with floating-point type     | Use `fmod()` from `<math.h>`                             | `logic/analysis/FloatModuloAnalyzer.ts`     |
+
+### Essential Type Safety (MISRA C:2012)
+
+| Code  | Message                                                                              | Help                                                                                     | Source                                        |
+| ----- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------- |
+| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                | Shift an unsigned value; signed shifts are UB / implementation-defined in C              | `logic/analysis/SignedShiftAnalyzer.ts`       |
+| E0810 | Binary operator combines operands of different essential type categories (Rule 10.4) | Reinterpret one operand's bits to match the other with bit indexing, e.g. `value[0, 32]` | `logic/analysis/MixedTypeCategoryAnalyzer.ts` |
 
 ### Array Index Type Safety
 

@@ -49,6 +49,8 @@ bool err2 <- safe_mod(result, 10, divisor, result);  // pass current value as de
 - Shifting a **signed** value (`i8`/`i16`/`i32`/`i64`) is a compile error (`E0805`, MISRA 10.1) — left-shift of a signed value is UB and right-shift is implementation-defined in C, so C-Next forbids it. Bitwise `& | ^ ~` _are_ allowed on signed values (two's-complement, same as C).
 - The shift amount must be **non-negative** and **less than the operand's bit width** (MISRA 12.2): `x << -1` and `u8val << 8` are both compile errors. Widen first: `u16 wide <- val; u16 r <- wide << 8;`.
 
+**Binary operands must share an essential type category** (MISRA 10.4): mixing signed and unsigned operands — e.g. `u32 a + i32 b` — is a compile error (`E0810`). Integer **literals are exempt** (contextually typed, so `a + 5` is fine), and same-category widening is allowed (`u8 + u32`). To combine across categories, reinterpret one operand's bits to the other's with bit indexing: `a + b[0, 32]` (ADR-024 / ADR-007).
+
 ## Types
 
 ```
