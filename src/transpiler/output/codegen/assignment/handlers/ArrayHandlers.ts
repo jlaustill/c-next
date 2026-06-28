@@ -138,35 +138,53 @@ function resolveSliceElement(
   );
 }
 
+/** Widest source the unroll can serialize when the type can't be resolved. */
+const UNRESOLVED_SOURCE_BYTES = 8;
+
+/**
+ * Smallest standard unsigned C type that holds `bytes` bytes. Used to size the
+ * source temp for an unresolved source to the *slice length* rather than always
+ * the widest type — so the materializing cast is same-width (MISRA Rule 10.8
+ * forbids casting a composite expression such as `a + b` to a *wider* type).
+ */
+function unsignedCTypeForBytes(bytes: number): string {
+  if (bytes <= 1) return "uint8_t";
+  if (bytes <= 2) return "uint16_t";
+  if (bytes <= 4) return "uint32_t";
+  return "uint64_t";
+}
+
 /**
  * Resolve the *source* value's type for a slice assignment (Issue #1081 review).
  *
- * The source drives correctness on the right-hand side of the unrolled writes:
+ * The source is materialized once into an unsigned temp before the writes
+ * (`buildSliceWrites`), so this drives the right-hand side of the unrolled copy:
  *  - non-integer sources (float/struct/string) cannot be shifted — reject them
  *    with a clear C-Next error instead of emitting non-compiling C;
  *  - `bytes` lets the caller reject `length > sizeof(source)` (an over-read that
  *    would otherwise emit an undefined out-of-range shift);
- *  - `shiftCType` is the unsigned type the operand is cast to before shifting
- *    (right-shifting a signed value violates MISRA Rule 10.1); it is null when
- *    the source is already unsigned and needs no cast.
+ *  - `unsignedCType` is the type of the materialized temp. Shifting that temp
+ *    is MISRA Rule 10.1-clean (always unsigned); a signed source is cast to its
+ *    same-width unsigned type once, in the temp declaration. It is null when the
+ *    source type is unresolved — the caller sizes the temp to the slice length.
  *
  * `cType` is the source's actual C type (used to detect a Rule 21.15 mismatch
  * against the destination element type). When the type can't be statically
- * resolved (e.g. a computed expression), `cType`/`bytes` are null and the
- * operand falls back to the widest unsigned type so the shift stays defined.
+ * resolved (e.g. a computed expression or function call), `cType`/`unsignedCType`
+ * are null and `bytes` is the widest serializable width (8), so the caller caps
+ * the length and sizes the temp from the length to keep the cast Rule 10.8-clean.
  */
 function resolveSliceSource(
   ctx: IAssignmentContext,
   line: number,
   rawName: string,
-): { cType: string | null; bytes: number | null; shiftCType: string | null } {
+): { cType: string | null; bytes: number; unsignedCType: string | null } {
   const sourceType = ctx.valueCtx
     ? TypeResolver.getExpressionType(ctx.valueCtx)
     : null;
 
   if (sourceType === null) {
-    // Unknown source: widest unsigned keeps every shift defined and 10.1-clean.
-    return { cType: null, bytes: null, shiftCType: "uint64_t" };
+    return { cType: null, bytes: UNRESOLVED_SOURCE_BYTES, unsignedCType: null };
   }
 
   const isUnsigned = UNSIGNED_INT_RE.test(sourceType);
@@ -181,30 +199,32 @@ function resolveSliceSource(
   return {
     cType: CNEXT_TO_C_TYPE_MAP[sourceType],
     bytes: Number.parseInt(sourceType.slice(1), 10) / 8,
-    shiftCType: isSigned
+    // Signed sources are cast to their same-width unsigned type in the temp
+    // declaration so every shift on the temp satisfies MISRA Rule 10.1.
+    unsignedCType: isSigned
       ? CNEXT_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
-      : null,
+      : CNEXT_TO_C_TYPE_MAP[sourceType],
   };
 }
 
 /**
- * Build the unrolled, per-element little-endian writes for a slice assignment
- * (Issue #1081). Offset/length/bounds are already validated by the caller; this
- * focuses on the destination-element-aware codegen so `handleArraySlice` stays
- * within the cognitive-complexity budget.
+ * Validate a slice's length/bounds against the destination element size and
+ * buffer capacity, and return the number of destination elements written.
+ *
+ * `offset` is an *element* index and `capacity` is an *element* count, while
+ * `length` is a *byte* count — so the bounds check compares element spans
+ * (`offset + elementCount`), not bytes against elements (Issue #1085 review,
+ * Finding 1). Mixing the two wrongly rejected in-bounds wide-element slices.
  */
-function buildSliceWrites(
-  name: string,
-  ctx: IAssignmentContext,
-  typeInfo: TTypeInfo | undefined,
+function validateSliceSpan(
+  dest: { bytes: number },
+  src: { bytes: number },
   offsetValue: number,
   lengthValue: number,
+  capacity: number,
   line: number,
   rawName: string,
-): string {
-  const dest = resolveSliceElement(typeInfo, line, rawName);
-  const src = resolveSliceSource(ctx, line, rawName);
-
+): number {
   if (lengthValue % dest.bytes !== 0) {
     throw new Error(
       `${line}:0 Error: Slice assignment length (${lengthValue}) must be a ` +
@@ -212,16 +232,62 @@ function buildSliceWrites(
     );
   }
 
+  const elementCount = lengthValue / dest.bytes;
+  if (offsetValue + elementCount > capacity) {
+    throw new Error(
+      `${line}:0 Error: Slice assignment out of bounds: ` +
+        `offset(${offsetValue}) + ${elementCount} element(s) = ` +
+        `${offsetValue + elementCount} exceeds buffer capacity(${capacity}) ` +
+        `for '${rawName}'.`,
+    );
+  }
+
   // A slice cannot copy more bytes than the source value holds — that would be
   // an out-of-range shift (undefined behavior) baked in at compile time.
-  if (src.bytes !== null && lengthValue > src.bytes) {
+  if (lengthValue > src.bytes) {
     throw new Error(
       `${line}:0 Error: Slice assignment length (${lengthValue} bytes) exceeds ` +
         `the source value width (${src.bytes} bytes) for '${rawName}'.`,
     );
   }
 
-  const elementCount = lengthValue / dest.bytes;
+  return elementCount;
+}
+
+/**
+ * Build the unrolled, per-element little-endian writes for a slice assignment
+ * (Issue #1081). Offset/length constants are already validated by the caller;
+ * this focuses on the destination-element-aware codegen so `handleArraySlice`
+ * stays within the cognitive-complexity budget.
+ *
+ * The source is materialized into a single unsigned temp before the writes so
+ * it is evaluated exactly once — an impure source (function call, atomic read)
+ * would otherwise be re-evaluated per element (Issue #1085 review, Finding 2) —
+ * and so every shift has a known, in-range width (Finding 3). The temp is
+ * skipped for a single-element slice, where the source is used only once.
+ */
+function buildSliceWrites(
+  name: string,
+  ctx: IAssignmentContext,
+  typeInfo: TTypeInfo | undefined,
+  offsetValue: number,
+  lengthValue: number,
+  capacity: number,
+  line: number,
+  rawName: string,
+): string {
+  const dest = resolveSliceElement(typeInfo, line, rawName);
+  const src = resolveSliceSource(ctx, line, rawName);
+  const elementCount = validateSliceSpan(
+    dest,
+    src,
+    offsetValue,
+    lengthValue,
+    capacity,
+    line,
+    rawName,
+  );
+
   const writes: string[] = [];
   // Self-document the codegen ONLY when a memcpy would actually have violated
   // Rule 21.15 (source/destination pointer types differ). Same-type slices need
@@ -229,17 +295,27 @@ function buildSliceWrites(
   if (src.cType === null || src.cType !== dest.cType) {
     writes.push(sliceUnrollComment(dest.cType, src.cType));
   }
+
+  // Evaluate the source once. Shifting a single unsigned temp keeps every chunk
+  // MISRA Rule 10.1-clean and reads the source exactly once. An unresolved
+  // source is sized to the slice length so the cast does not widen a composite
+  // expression (MISRA Rule 10.8). Residual: a 5-8 byte slice from a sub-64-bit
+  // unresolved composite still widens to uint64_t (10.8) — see issue #1089;
+  // fixing it needs composite-width inference TypeResolver does not yet provide.
+  let sourceExpr = ctx.generatedValue;
+  if (elementCount > 1) {
+    const tempType = src.unsignedCType ?? unsignedCTypeForBytes(lengthValue);
+    const tempName = CodeGenState.getNextTempVarName();
+    writes.push(
+      `const ${tempType} ${tempName} = (${tempType})(${ctx.generatedValue});`,
+    );
+    sourceExpr = tempName;
+  }
+
   for (let k = 0; k < elementCount; k += 1) {
     const shiftBits = k * dest.bytes * 8;
-    let chunk: string;
-    if (shiftBits === 0) {
-      chunk = `(${ctx.generatedValue})`;
-    } else if (src.shiftCType) {
-      // Cast a signed/unknown source to unsigned before shifting (MISRA 10.1).
-      chunk = `((${src.shiftCType})(${ctx.generatedValue}) >> ${shiftBits}U)`;
-    } else {
-      chunk = `(${ctx.generatedValue} >> ${shiftBits}U)`;
-    }
+    const chunk =
+      shiftBits === 0 ? `(${sourceExpr})` : `(${sourceExpr} >> ${shiftBits}U)`;
     writes.push(`${name}[${offsetValue + k}] = ${dest.wrap(chunk)};`);
   }
 
@@ -311,17 +387,6 @@ function handleArraySlice(ctx: IAssignmentContext): string {
     );
   }
 
-  // Bounds validation
-  if (offsetValue + lengthValue > capacity) {
-    // Use raw identifier in error message for clarity
-    const rawName = ctx.identifiers[0];
-    throw new Error(
-      `${line}:0 Error: Slice assignment out of bounds: ` +
-        `offset(${offsetValue}) + length(${lengthValue}) = ${offsetValue + lengthValue} ` +
-        `exceeds buffer capacity(${capacity}) for '${rawName}'.`,
-    );
-  }
-
   if (offsetValue < 0) {
     throw new Error(
       `${line}:0 Error: Slice assignment offset cannot be negative: ${offsetValue}`,
@@ -338,13 +403,16 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   // memcpy between a byte buffer and a wider integer passes incompatible
   // pointer types (MISRA C:2012 Rule 21.15). The slice length is a compile-time
   // constant, so the copy can be fully unrolled at the destination's element
-  // granularity with no library call.
+  // granularity with no library call. Element-span bounds, source-width, and
+  // length-alignment are validated inside buildSliceWrites where the element
+  // size is known.
   return buildSliceWrites(
     name,
     ctx,
     typeInfo,
     offsetValue,
     lengthValue,
+    capacity,
     line,
     ctx.identifiers[0],
   );

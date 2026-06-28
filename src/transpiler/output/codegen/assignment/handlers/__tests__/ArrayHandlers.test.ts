@@ -292,12 +292,15 @@ describe("ArrayHandlers", () => {
 
       const result = getHandler()!(ctx);
 
+      // The source is materialized into a single unsigned temp so it is read
+      // exactly once (Issue #1085 review, Finding 2).
       expect(result).toBe(
         `${sliceComment("uint8_t", "uint32_t")}\n` +
-          "buffer[0] = (uint8_t)(source);\n" +
-          "buffer[1] = (uint8_t)(source >> 8U);\n" +
-          "buffer[2] = (uint8_t)(source >> 16U);\n" +
-          "buffer[3] = (uint8_t)(source >> 24U);",
+          "const uint32_t _tmp0 = (uint32_t)(source);\n" +
+          "buffer[0] = (uint8_t)(_tmp0);\n" +
+          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
       );
       // No memcpy means <string.h> is not required.
       expect(CodeGenState.needsString).toBe(false);
@@ -327,10 +330,11 @@ describe("ArrayHandlers", () => {
 
       expect(result).toBe(
         `${sliceComment("uint16_t", "uint64_t")}\n` +
-          "arr16[0] = (uint16_t)(value);\n" +
-          "arr16[1] = (uint16_t)(value >> 16U);\n" +
-          "arr16[2] = (uint16_t)(value >> 32U);\n" +
-          "arr16[3] = (uint16_t)(value >> 48U);",
+          "const uint64_t _tmp0 = (uint64_t)(value);\n" +
+          "arr16[0] = (uint16_t)(_tmp0);\n" +
+          "arr16[1] = (uint16_t)(_tmp0 >> 16U);\n" +
+          "arr16[2] = (uint16_t)(_tmp0 >> 32U);\n" +
+          "arr16[3] = (uint16_t)(_tmp0 >> 48U);",
       );
     });
 
@@ -360,7 +364,62 @@ describe("ArrayHandlers", () => {
       expect(result).toBe("arr32[0] = (uint32_t)(value);");
     });
 
-    it("casts a signed source to unsigned before shifting (MISRA 10.1)", () => {
+    it("accepts an in-bounds wide-element slice at a non-zero offset (Finding 1)", () => {
+      mockGetExpressionType.mockReturnValue("u64");
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["arr64", { arrayDimensions: [8], baseType: "u64", bitWidth: 64 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(4)
+          .mockReturnValueOnce(8),
+      });
+      const ctx = createMockContext({
+        identifiers: ["arr64"],
+        subscripts: [
+          { mockValue: "4", start: { line: 1 } } as never,
+          { mockValue: "8", start: { line: 1 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      const result = getHandler()!(ctx);
+
+      // Element span is offset(4) + 1 element = 5 <= capacity 8. The old check
+      // compared byte length against element capacity (4 + 8 = 12 > 8) and
+      // wrongly rejected this in-bounds slice. Single element → no temp;
+      // same-type u64[] <- u64 → no rule citation.
+      expect(result).toBe("arr64[4] = (uint64_t)(value);");
+    });
+
+    it("reports the element span (not bytes) in the out-of-bounds message", () => {
+      mockGetExpressionType.mockReturnValue("u64");
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["arr16", { arrayDimensions: [4], baseType: "u16", bitWidth: 16 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(2)
+          .mockReturnValueOnce(8),
+      });
+      const ctx = createMockContext({
+        identifiers: ["arr16"],
+        subscripts: [
+          { mockValue: "2", start: { line: 7 } } as never,
+          { mockValue: "8", start: { line: 7 } } as never,
+        ],
+        generatedValue: "value",
+      });
+
+      // offset 2 + (8 bytes / 2) = 6 elements > capacity 4.
+      expect(() => getHandler()!(ctx)).toThrow(
+        "offset(2) + 4 element(s) = 6 exceeds buffer capacity(4)",
+      );
+    });
+
+    it("casts a signed source to unsigned once in the temp (MISRA 10.1)", () => {
       mockGetExpressionType.mockReturnValue("i32");
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
@@ -382,12 +441,15 @@ describe("ArrayHandlers", () => {
 
       const result = getHandler()!(ctx);
 
+      // The signed source is cast to its same-width unsigned type once, in the
+      // temp declaration, so every shift on the temp is MISRA Rule 10.1-clean.
       expect(result).toBe(
         `${sliceComment("uint8_t", "int32_t")}\n` +
-          "buffer[0] = (uint8_t)(value);\n" +
-          "buffer[1] = (uint8_t)((uint32_t)(value) >> 8U);\n" +
-          "buffer[2] = (uint8_t)((uint32_t)(value) >> 16U);\n" +
-          "buffer[3] = (uint8_t)((uint32_t)(value) >> 24U);",
+          "const uint32_t _tmp0 = (uint32_t)(value);\n" +
+          "buffer[0] = (uint8_t)(_tmp0);\n" +
+          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
       );
     });
 
@@ -449,12 +511,13 @@ describe("ArrayHandlers", () => {
 
       expect(result).toBe(
         `${sliceComment("char", "uint16_t")}\n` +
-          "str[5] = (char)(uint8_t)(data);\n" +
-          "str[6] = (char)(uint8_t)(data >> 8U);",
+          "const uint16_t _tmp0 = (uint16_t)(data);\n" +
+          "str[5] = (char)(uint8_t)(_tmp0);\n" +
+          "str[6] = (char)(uint8_t)(_tmp0 >> 8U);",
       );
     });
 
-    it("falls back to a widest-unsigned shift for an unresolved source type", () => {
+    it("sizes the temp to the slice length for an unresolved source type", () => {
       mockGetExpressionType.mockReturnValue(null); // e.g. a computed expression
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
@@ -476,15 +539,18 @@ describe("ArrayHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      // Unknown source: generic comment (types unknown) + uint64_t shift cast so
-      // every shift stays unsigned (MISRA 10.1) and well-defined.
+      // Unknown source: generic comment (types unknown). The temp is sized to the
+      // 4-byte slice length (uint32_t), not the widest type — so the cast does
+      // not widen a composite expression like `a + b` (MISRA Rule 10.8), while
+      // every shift on the temp stays unsigned (10.1) and in range (Finding 3).
       expect(result).toBe(
         "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
           "(memcpy would pass incompatible pointer types: destination element type vs source type). */\n" +
-          "buffer[0] = (uint8_t)(expr);\n" +
-          "buffer[1] = (uint8_t)((uint64_t)(expr) >> 8U);\n" +
-          "buffer[2] = (uint8_t)((uint64_t)(expr) >> 16U);\n" +
-          "buffer[3] = (uint8_t)((uint64_t)(expr) >> 24U);",
+          "const uint32_t _tmp0 = (uint32_t)(expr);\n" +
+          "buffer[0] = (uint8_t)(_tmp0);\n" +
+          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
       );
     });
 
@@ -671,7 +737,7 @@ describe("ArrayHandlers", () => {
 
     it("throws on out of bounds access", () => {
       HandlerTestUtils.setupMockTypeRegistry([
-        ["buffer", { arrayDimensions: [50], baseType: "u8" }],
+        ["buffer", { arrayDimensions: [50], baseType: "u8", bitWidth: 8 }],
       ]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi

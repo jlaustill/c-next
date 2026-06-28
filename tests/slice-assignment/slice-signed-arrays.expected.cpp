@@ -13,10 +13,11 @@ int main(void) {
     uint8_t buf[8] = {};
     int32_t sval = 0x12345678;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs int32_t*). */
-    buf[0] = (uint8_t)(sval);
-    buf[1] = (uint8_t)((uint32_t)(sval) >> 8U);
-    buf[2] = (uint8_t)((uint32_t)(sval) >> 16U);
-    buf[3] = (uint8_t)((uint32_t)(sval) >> 24U);
+    const uint32_t _tmp0 = (uint32_t)(sval);
+    buf[0] = (uint8_t)(_tmp0);
+    buf[1] = (uint8_t)(_tmp0 >> 8U);
+    buf[2] = (uint8_t)(_tmp0 >> 16U);
+    buf[3] = (uint8_t)(_tmp0 >> 24U);
     if (buf[0U] != 0x78) return 1;
     if (buf[1U] != 0x56) return 2;
     if (buf[2U] != 0x34) return 3;
@@ -24,8 +25,9 @@ int main(void) {
     int16_t sarr[4] = {};
     int32_t packed = 0x0A0B0C0D;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: int16_t* vs int32_t*). */
-    sarr[0] = (int16_t)(uint16_t)(packed);
-    sarr[1] = (int16_t)(uint16_t)((uint32_t)(packed) >> 16U);
+    const uint32_t _tmp1 = (uint32_t)(packed);
+    sarr[0] = (int16_t)(uint16_t)(_tmp1);
+    sarr[1] = (int16_t)(uint16_t)(_tmp1 >> 16U);
     if (sarr[0U] != 0x0C0D) return 5;
     if (sarr[1U] != 0x0A0B) return 6;
     return 0;

@@ -1,0 +1,33 @@
+// test-execution
+// Issue #1085 review, Finding 1: for arrays wider than a byte the slice OFFSET
+// is an element index and the LENGTH is a byte count, so the bounds check must
+// compare element spans. A non-zero offset on a u32[]/u64[] slice that is
+// genuinely in bounds must be accepted (it was wrongly rejected when the check
+// mixed a byte length with an element capacity).
+
+u32 main() {
+    // u64[]: write one element at element index 4. 4 + 1 = 5 <= 8 — in bounds.
+    u64[8] arr64;
+    u64 v64 <- 0x0102030405060708;
+    arr64[4, 8] <- v64;
+    if (arr64[3] != 0x0000000000000000) return 1;
+    if (arr64[4] != 0x0102030405060708) return 2;
+    if (arr64[5] != 0x0000000000000000) return 3;
+
+    // u32[]: write one element at element index 5. 5 + 1 = 6 <= 8 — in bounds.
+    u32[8] arr32;
+    u32 v32 <- 0xAABBCCDD;
+    arr32[5, 4] <- v32;
+    if (arr32[4] != 0x00000000) return 4;
+    if (arr32[5] != 0xAABBCCDD) return 5;
+
+    // u16[]: two elements at element offset 2. 2 + 2 = 4 <= 8 — in bounds.
+    u16[8] arr16;
+    u32 v16 <- 0x11223344;
+    arr16[2, 4] <- v16;
+    if (arr16[1] != 0x0000) return 6;
+    if (arr16[2] != 0x3344) return 7;
+    if (arr16[3] != 0x1122) return 8;
+
+    return 0;
+}

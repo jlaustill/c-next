@@ -1,0 +1,10 @@
+// test-error
+// Issue #1085 review, Finding 3: a slice longer than the source value width
+// would bake in an out-of-range (undefined) shift. It must be a compile error.
+
+u32 main() {
+    u8[16] buffer;
+    u32 value <- 0x11223344;
+    buffer[0, 8] <- value;
+    return 0;
+}

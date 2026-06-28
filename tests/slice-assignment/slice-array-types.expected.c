@@ -13,10 +13,11 @@ int main(void) {
     uint8_t arr8[32] = {0};
     uint32_t value1 = 0x11223344U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    arr8[0] = (uint8_t)(value1);
-    arr8[1] = (uint8_t)(value1 >> 8U);
-    arr8[2] = (uint8_t)(value1 >> 16U);
-    arr8[3] = (uint8_t)(value1 >> 24U);
+    const uint32_t _tmp0 = (uint32_t)(value1);
+    arr8[0] = (uint8_t)(_tmp0);
+    arr8[1] = (uint8_t)(_tmp0 >> 8U);
+    arr8[2] = (uint8_t)(_tmp0 >> 16U);
+    arr8[3] = (uint8_t)(_tmp0 >> 24U);
     if (arr8[0U] != 0x44) return 1;
     if (arr8[1U] != 0x33) return 2;
     if (arr8[2U] != 0x22) return 3;
@@ -24,10 +25,11 @@ int main(void) {
     uint16_t arr16[16] = {0};
     uint64_t value2 = 0x0102030405060708ULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint64_t*). */
-    arr16[0] = (uint16_t)(value2);
-    arr16[1] = (uint16_t)(value2 >> 16U);
-    arr16[2] = (uint16_t)(value2 >> 32U);
-    arr16[3] = (uint16_t)(value2 >> 48U);
+    const uint64_t _tmp1 = (uint64_t)(value2);
+    arr16[0] = (uint16_t)(_tmp1);
+    arr16[1] = (uint16_t)(_tmp1 >> 16U);
+    arr16[2] = (uint16_t)(_tmp1 >> 32U);
+    arr16[3] = (uint16_t)(_tmp1 >> 48U);
     if (arr16[0U] != 0x0708) return 5;
     if (arr16[1U] != 0x0506) return 6;
     if (arr16[2U] != 0x0304) return 7;
@@ -43,10 +45,11 @@ int main(void) {
     uint8_t buffer[64] = {0};
     uint32_t value5 = 0x55667788U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    buffer[0] = (uint8_t)(value5);
-    buffer[1] = (uint8_t)(value5 >> 8U);
-    buffer[2] = (uint8_t)(value5 >> 16U);
-    buffer[3] = (uint8_t)(value5 >> 24U);
+    const uint32_t _tmp2 = (uint32_t)(value5);
+    buffer[0] = (uint8_t)(_tmp2);
+    buffer[1] = (uint8_t)(_tmp2 >> 8U);
+    buffer[2] = (uint8_t)(_tmp2 >> 16U);
+    buffer[3] = (uint8_t)(_tmp2 >> 24U);
     if (buffer[0U] != 0x88) return 11;
     if (buffer[1U] != 0x77) return 12;
     if (buffer[2U] != 0x66) return 13;
@@ -56,20 +59,23 @@ int main(void) {
     uint32_t val2 = 0x22222222U;
     uint32_t val3 = 0x33333333U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    multiArr[0] = (uint8_t)(val1);
-    multiArr[1] = (uint8_t)(val1 >> 8U);
-    multiArr[2] = (uint8_t)(val1 >> 16U);
-    multiArr[3] = (uint8_t)(val1 >> 24U);
+    const uint32_t _tmp3 = (uint32_t)(val1);
+    multiArr[0] = (uint8_t)(_tmp3);
+    multiArr[1] = (uint8_t)(_tmp3 >> 8U);
+    multiArr[2] = (uint8_t)(_tmp3 >> 16U);
+    multiArr[3] = (uint8_t)(_tmp3 >> 24U);
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    multiArr[4] = (uint8_t)(val2);
-    multiArr[5] = (uint8_t)(val2 >> 8U);
-    multiArr[6] = (uint8_t)(val2 >> 16U);
-    multiArr[7] = (uint8_t)(val2 >> 24U);
+    const uint32_t _tmp4 = (uint32_t)(val2);
+    multiArr[4] = (uint8_t)(_tmp4);
+    multiArr[5] = (uint8_t)(_tmp4 >> 8U);
+    multiArr[6] = (uint8_t)(_tmp4 >> 16U);
+    multiArr[7] = (uint8_t)(_tmp4 >> 24U);
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    multiArr[8] = (uint8_t)(val3);
-    multiArr[9] = (uint8_t)(val3 >> 8U);
-    multiArr[10] = (uint8_t)(val3 >> 16U);
-    multiArr[11] = (uint8_t)(val3 >> 24U);
+    const uint32_t _tmp5 = (uint32_t)(val3);
+    multiArr[8] = (uint8_t)(_tmp5);
+    multiArr[9] = (uint8_t)(_tmp5 >> 8U);
+    multiArr[10] = (uint8_t)(_tmp5 >> 16U);
+    multiArr[11] = (uint8_t)(_tmp5 >> 24U);
     if (multiArr[0U] != 0x11) return 15;
     if (multiArr[4U] != 0x22) return 16;
     if (multiArr[8U] != 0x33) return 17;

@@ -103,11 +103,19 @@ uint8_t buffer[256] = {0};
 uint32_t magic = 0x12345678;
 
 /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-buffer[0] = (uint8_t)(magic);
-buffer[1] = (uint8_t)(magic >> 8U);
-buffer[2] = (uint8_t)(magic >> 16U);
-buffer[3] = (uint8_t)(magic >> 24U);
+const uint32_t _tmp0 = (uint32_t)(magic);
+buffer[0] = (uint8_t)(_tmp0);
+buffer[1] = (uint8_t)(_tmp0 >> 8U);
+buffer[2] = (uint8_t)(_tmp0 >> 16U);
+buffer[3] = (uint8_t)(_tmp0 >> 24U);
 ```
+
+The source is materialized into a single unsigned temporary before the writes,
+so it is **evaluated exactly once** — even an impure source such as
+`buffer[0, 4] <- readSensor()` calls `readSensor()` a single time, not once per
+byte. (A single-element slice, where the value is used only once, skips the
+temporary.) Shifting the unsigned temporary also keeps every write MISRA C:2012
+Rule 10.1-clean.
 
 The Rule 21.15 comment is emitted only when an equivalent `memcpy` would
 actually have passed incompatible pointer types (the source type differs from
@@ -130,7 +138,9 @@ the destination element type). A same-type slice such as `u32[] <- u32` would be
 - **Offset and length use different units for wider arrays:** the offset is an
   **element index** (`u16[] arr; arr[2, 4] <- v` starts at element 2), while the
   length is always a **byte count**. A `u16[]` slice writes whole `uint16_t`
-  elements, so the length must be a multiple of the element size
+  elements, so the length must be a multiple of the element size. Bounds are
+  checked as an **element span** (`offset + length / elementSize <= capacity`),
+  so an in-bounds slice at a non-zero offset into a `u32[]`/`u64[]` is accepted
 - Distinct from bit operations: array slices serialize a value into memory,
   scalar bit ranges use bit manipulation
 
