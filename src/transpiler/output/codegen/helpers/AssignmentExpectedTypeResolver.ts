@@ -56,16 +56,6 @@ class AssignmentExpectedTypeResolver {
 
     // Case 2: Has postfix ops - extract identifiers from chain
     if (baseId && postfixOps.length > 0) {
-      // A 2-expression subscript `[offset, length]` is a slice (or bit-range)
-      // write, not an element write. Its SOURCE value must be generated at its
-      // own width — narrowing it to the element/scalar type truncates an
-      // element-width-sensitive source such as a bit-extraction (Issue #1085:
-      // `buf[0,4] <- b[0,32]` leaked the u8 element type and wrote only the low
-      // byte). Leave expectedType unset so the source serializes at full width.
-      if (AssignmentExpectedTypeResolver.hasRangeSubscript(postfixOps)) {
-        return { expectedType: null, assignmentContext: null };
-      }
-
       const { identifiers, hasSubscript } = analyzePostfixOps(
         baseId,
         postfixOps,
@@ -81,7 +71,10 @@ class AssignmentExpectedTypeResolver {
       // Case 2b: Simple array element access (arr[i] <- value)
       // Issue #872: Resolve element type for MISRA 7.2 U suffix
       if (identifiers.length === 1 && hasSubscript) {
-        return AssignmentExpectedTypeResolver.resolveForArrayElement(baseId);
+        return AssignmentExpectedTypeResolver.resolveForArrayElement(
+          baseId,
+          postfixOps,
+        );
       }
 
       // Case 2c: Member chain with array access (struct.arr[i] <- value)
@@ -145,10 +138,24 @@ class AssignmentExpectedTypeResolver {
   /**
    * Resolve expected type for array element access.
    * Issue #872: arr[i] <- value needs baseType for MISRA 7.2 U suffix.
+   *
+   * An array SLICE (2-expression subscript `arr[off, len]`) is the exception:
+   * its source serializes at the SOURCE's own width, so leaking the element type
+   * as expectedType truncates an element-width-sensitive source such as a
+   * bit-extraction (Issue #1085: `buf[0,4] <- b[0,32]` wrote only the low byte).
+   * This applies only to arrays — a 2-expression subscript on a scalar is a
+   * bit-range write, whose value is genuinely the field's type (unchanged).
    */
-  private static resolveForArrayElement(id: string): IExpectedTypeResult {
+  private static resolveForArrayElement(
+    id: string,
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): IExpectedTypeResult {
     const typeInfo = CodeGenState.getVariableTypeInfo(id);
     if (!typeInfo?.isArray) {
+      return { expectedType: null, assignmentContext: null };
+    }
+
+    if (AssignmentExpectedTypeResolver.hasRangeSubscript(postfixOps)) {
       return { expectedType: null, assignmentContext: null };
     }
 
