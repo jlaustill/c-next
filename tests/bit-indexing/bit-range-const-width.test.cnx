@@ -1,0 +1,34 @@
+// test-execution
+// Issue #1094: bit-range extraction with a const (named) width must precompute
+// the mask exactly like a literal width, instead of emitting a runtime
+// ((1U << W) - 1). The runtime form is UB at full width (1U << 32 / 1U << 64)
+// and wrong for >32-bit widths, so a full-width extraction returns 0 here.
+
+u32 main() {
+    const u8 FULL32 <- 32;
+    const u8 PART12 <- 12;
+    u32 b <- 0x12345678;
+
+    // Full-width const extraction must return the whole value.
+    // Buggy mask ((1U << 32) - 1) evaluates to 0, masking everything away.
+    u32 full <- b[0, FULL32];
+    if (full != 0x12345678) return 1;
+
+    // Partial const width must mask correctly: low 12 bits of 0x12345678 = 0x678.
+    u32 part <- b[0, PART12];
+    if (part != 0x678) return 2;
+
+    // u64 full-width const extraction (1U << 64 is UB / wrong base width).
+    const u8 FULL64 <- 64;
+    u64 big <- 0x123456789ABCDEF0;
+    u64 full64 <- big[0, FULL64];
+    if (full64 != 0x123456789ABCDEF0) return 3;
+
+    // u64 const width > 32 (40 bits): low 40 bits of big = 0x789ABCDEF0.
+    // Needs a 64-bit base literal (1ULL); 1U << 40 is UB.
+    const u8 W40 <- 40;
+    u64 w40 <- big[0, W40];
+    if (w40 != 0x789ABCDEF0) return 4;
+
+    return 0;
+}

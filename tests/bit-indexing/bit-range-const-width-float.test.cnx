@@ -1,0 +1,19 @@
+// test-execution
+// Issue #1094 (float twin): float bit-range extraction with a const width must
+// precompute the mask like a literal width. The old runtime form
+// (__bits.u & ((1U << W) - 1)) is UB at full width (1U << 32 for f32,
+// 1ULL << 64 for f64), so a full-width extraction returned 0 instead of the bits.
+
+u32 main() {
+    const u8 W32 <- 32;
+    f32 x <- 1.5;
+    u32 xbits <- x[0, W32];
+    if (xbits != 0x3FC00000) return 1;
+
+    const u8 W64 <- 64;
+    f64 y <- 1.5;
+    u64 ybits <- y[0, W64];
+    if (ybits != 0x3FF8000000000000) return 2;
+
+    return 0;
+}
