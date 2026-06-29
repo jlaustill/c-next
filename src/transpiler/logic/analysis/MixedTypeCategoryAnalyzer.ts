@@ -19,8 +19,11 @@
  * integer types of different category.
  *
  * Two-pass analysis:
- * 1. Collect variable declarations with their types.
- * 2. Walk each binary-operator level and compare adjacent operand categories.
+ * 1. Collect declarations into per-scope frames (function / named scope), so a
+ *    name is resolved against ITS scope — a same-named variable of a different
+ *    category in another function never poisons the lookup (Issue #1085 review).
+ * 2. Walk each binary-operator level and compare adjacent operand categories,
+ *    resolving each operand within its enclosing scope frame.
  */
 
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
@@ -35,35 +38,91 @@ import TypeConstants from "../../../utils/constants/TypeConstants";
 type Category = "signed" | "unsigned" | null;
 
 /**
- * First pass: collect variable / parameter / for-loop declarations with types.
+ * Declarations directly in one lexical scope (a function or a named scope),
+ * with a link to the enclosing scope. Resolution searches outward to the global
+ * frame, so inner declarations shadow outer ones.
  */
-class VariableTypeCollector extends CNextListener {
-  private readonly varTypes: Map<string, string> = new Map();
+interface ScopeFrame {
+  readonly vars: Map<string, string>;
+  readonly parent: ScopeFrame | null;
+}
 
-  public getVarTypes(): Map<string, string> {
-    return this.varTypes;
+/**
+ * First pass: build per-scope frames. Frames are anchored to the function /
+ * scope context node so the second pass can find an operand's frame by walking
+ * up its parent chain — no shared walk state between the passes.
+ */
+class ScopeCollector extends CNextListener {
+  private readonly globalFrame: ScopeFrame = { vars: new Map(), parent: null };
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly frameOf: Map<ParserRuleContext, ScopeFrame> = new Map();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly stack: ScopeFrame[] = [this.globalFrame];
+
+  public getGlobalFrame(): ScopeFrame {
+    return this.globalFrame;
   }
 
-  private track(
+  public getFrameOf(): Map<ParserRuleContext, ScopeFrame> {
+    return this.frameOf;
+  }
+
+  private top(): ScopeFrame {
+    return this.stack[this.stack.length - 1];
+  }
+
+  private pushFrame(node: ParserRuleContext): void {
+    const frame: ScopeFrame = { vars: new Map(), parent: this.top() };
+    this.frameOf.set(node, frame);
+    this.stack.push(frame);
+  }
+
+  private popFrame(): void {
+    this.stack.pop();
+  }
+
+  private record(
     typeCtx: Parser.TypeContext | null,
     identifier: { getText(): string } | null,
   ): void {
     if (!typeCtx || !identifier) return;
-    this.varTypes.set(identifier.getText(), typeCtx.getText());
+    this.top().vars.set(identifier.getText(), typeCtx.getText());
   }
+
+  override enterFunctionDeclaration = (
+    ctx: Parser.FunctionDeclarationContext,
+  ): void => {
+    this.pushFrame(ctx);
+  };
+
+  override exitFunctionDeclaration = (): void => {
+    this.popFrame();
+  };
+
+  override enterScopeDeclaration = (
+    ctx: Parser.ScopeDeclarationContext,
+  ): void => {
+    this.pushFrame(ctx);
+  };
+
+  override exitScopeDeclaration = (): void => {
+    this.popFrame();
+  };
 
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    this.track(ctx.type(), ctx.IDENTIFIER());
+    this.record(ctx.type(), ctx.IDENTIFIER());
   };
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.track(ctx.type(), ctx.IDENTIFIER());
+    this.record(ctx.type(), ctx.IDENTIFIER());
   };
 
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.track(ctx.type(), ctx.IDENTIFIER());
+    this.record(ctx.type(), ctx.IDENTIFIER());
   };
 }
 
@@ -74,23 +133,47 @@ class MixedCategoryListener extends CNextListener {
   private readonly analyzer: MixedTypeCategoryAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly varTypes: Map<string, string>;
+  private readonly globalFrame: ScopeFrame;
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly frameOf: Map<ParserRuleContext, ScopeFrame>;
 
   constructor(
     analyzer: MixedTypeCategoryAnalyzer,
-    varTypes: Map<string, string>,
+    globalFrame: ScopeFrame,
+    frameOf: Map<ParserRuleContext, ScopeFrame>,
   ) {
     super();
     this.analyzer = analyzer;
-    this.varTypes = varTypes;
+    this.globalFrame = globalFrame;
+    this.frameOf = frameOf;
   }
 
-  /** Map a known variable name to its essential type category. */
-  private categoryOfName(name: string): Category {
-    const typeName = this.varTypes.get(name);
-    if (!typeName) return null;
-    if (TypeConstants.SIGNED_TYPES.includes(typeName)) return "signed";
-    if (TypeConstants.UNSIGNED_INT_TYPES.includes(typeName)) return "unsigned";
+  /** The scope frame enclosing an operand: nearest function/scope ancestor. */
+  private frameFor(ctx: ParserRuleContext): ScopeFrame {
+    let node: ParserRuleContext | null = ctx;
+    while (node) {
+      const frame = this.frameOf.get(node);
+      if (frame) return frame;
+      node = node.parent;
+    }
+    return this.globalFrame;
+  }
+
+  /** Map a known variable name to its essential type category within a scope. */
+  private categoryOfName(name: string, frame: ScopeFrame): Category {
+    let current: ScopeFrame | null = frame;
+    while (current) {
+      const typeName = current.vars.get(name);
+      if (typeName) {
+        if (TypeConstants.SIGNED_TYPES.includes(typeName)) return "signed";
+        if (TypeConstants.UNSIGNED_INT_TYPES.includes(typeName)) {
+          return "unsigned";
+        }
+        return null;
+      }
+      current = current.parent;
+    }
     return null;
   }
 
@@ -118,10 +201,13 @@ class MixedCategoryListener extends CNextListener {
    * particular a bit-extraction `x[0, 32]` (a postfix suffix) is exempt, which
    * is exactly the sanctioned cross-category form.
    */
-  private categoryOfUnary(ctx: Parser.UnaryExpressionContext): Category {
-    // Prefix operators (-, !, ~, &): category follows the operand.
+  private categoryOfUnary(
+    ctx: Parser.UnaryExpressionContext,
+    frame: ScopeFrame,
+  ): Category {
+    // Prefix operators (-, ~): category follows the operand.
     const inner = ctx.unaryExpression();
-    if (inner) return this.categoryOfUnary(inner);
+    if (inner) return this.categoryOfUnary(inner, frame);
 
     const postfix = ctx.postfixExpression();
     if (!postfix) return null;
@@ -135,19 +221,19 @@ class MixedCategoryListener extends CNextListener {
     const parenthesized = primary.expression();
     if (parenthesized) {
       const unary = this.firstUnary(parenthesized);
-      return unary ? this.categoryOfUnary(unary) : null;
+      return unary ? this.categoryOfUnary(unary, frame) : null;
     }
 
     const identifier = primary.IDENTIFIER();
-    if (identifier) return this.categoryOfName(identifier.getText());
+    if (identifier) return this.categoryOfName(identifier.getText(), frame);
 
     return null; // literal or otherwise unclassifiable
   }
 
   /** Category of one operand of a binary-operator level. */
-  private categoryOf(ctx: ParserRuleContext): Category {
+  private categoryOf(ctx: ParserRuleContext, frame: ScopeFrame): Category {
     const unary = this.firstUnary(ctx);
-    return unary ? this.categoryOfUnary(unary) : null;
+    return unary ? this.categoryOfUnary(unary, frame) : null;
   }
 
   /**
@@ -156,9 +242,10 @@ class MixedCategoryListener extends CNextListener {
    */
   private checkLevel(operands: ParserRuleContext[]): void {
     if (operands.length < 2) return;
+    const frame = this.frameFor(operands[0]);
     for (let i = 0; i < operands.length - 1; i += 1) {
-      const left = this.categoryOf(operands[i]);
-      const right = this.categoryOf(operands[i + 1]);
+      const left = this.categoryOf(operands[i], frame);
+      const right = this.categoryOf(operands[i + 1], frame);
       if (left && right && left !== right) {
         const { line, column } = ParserUtils.getPosition(operands[i + 1]);
         this.analyzer.addError(line, column);
@@ -227,10 +314,14 @@ class MixedTypeCategoryAnalyzer {
   public analyze(tree: Parser.ProgramContext): IMixedTypeCategoryError[] {
     this.errors = [];
 
-    const collector = new VariableTypeCollector();
+    const collector = new ScopeCollector();
     ParseTreeWalker.DEFAULT.walk(collector, tree);
 
-    const listener = new MixedCategoryListener(this, collector.getVarTypes());
+    const listener = new MixedCategoryListener(
+      this,
+      collector.getGlobalFrame(),
+      collector.getFrameOf(),
+    );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;

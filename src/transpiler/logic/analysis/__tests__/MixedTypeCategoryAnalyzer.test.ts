@@ -158,4 +158,57 @@ describe("MixedTypeCategoryAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  describe("scope-aware variable typing (Issue #1085 review, Finding A)", () => {
+    it("does not flag a valid same-category expression because a same-named variable of a different category exists in another function", () => {
+      // main's `value` is u32; other's parameter `value` is i32. A flat,
+      // file-wide name->type map (last write wins) made `base + value` in main
+      // resolve `value` as i32 and falsely reject valid u32 + u32 code.
+      const errors = analyze(`
+        u32 main() {
+          u32 base <- 1;
+          u32 value <- 2;
+          u32 result <- base + value;
+          return 0;
+        }
+        i32 other(i32 value) {
+          return value;
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("flags the genuinely mixed expression in its own function, not masked by a same-named variable elsewhere", () => {
+      // main's `value + delta` is u32 + i32 (mixed -> 1 error). other's
+      // `value + value` is i32 + i32 (same category -> no error). A flat map
+      // would mis-type main's `value` as i32 and MISS the real violation.
+      const errors = analyze(`
+        u32 main() {
+          u32 value <- 1;
+          i32 delta <- 2;
+          u32 r <- value + delta;
+          return 0;
+        }
+        void other(i32 value) {
+          i32 x <- value + value;
+        }
+      `);
+      expect(errors).toHaveLength(1);
+    });
+
+    it("isolates variables declared in different named scopes", () => {
+      // Each scope's `count` has its own type; neither scope's expression is mixed.
+      const errors = analyze(`
+        scope A {
+          u32 count <- 1;
+          u32 total <- count + count;
+        }
+        scope B {
+          i32 count <- 1;
+          i32 total <- count + count;
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+  });
 });
