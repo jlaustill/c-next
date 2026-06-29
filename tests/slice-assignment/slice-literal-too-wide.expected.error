@@ -1,0 +1,1 @@
+7:0 Code generation failed: Error: Slice assignment literal value (305419896) does not fit in the 2-byte slice for 'buf'.

@@ -1,0 +1,9 @@
+// test-error
+// Issue #1085 review (Finding D): a literal slice source is contextually typed to
+// the slice byte-width, so a literal that does not fit the slice length is a clear
+// compile error. 0x12345678 needs 4 bytes but the slice is only 2 bytes wide.
+u32 main() {
+    u8[8] buf;
+    buf[0, 2] <- 0x12345678;
+    return 0;
+}

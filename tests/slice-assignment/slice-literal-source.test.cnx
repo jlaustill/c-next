@@ -1,0 +1,15 @@
+// test-execution
+// Issue #1085 review (Finding D): a bare integer literal is a valid slice source,
+// contextually typed to the slice byte-width (ADR-052). buf[0,4] <- 0x12345678
+// writes the 4 bytes little-endian. Previously rejected with a self-contradictory
+// "source must be an integer value, but ... is assigned a 'int'" message.
+u32 main() {
+    u8[8] buf;
+    buf[0, 4] <- 0x12345678;
+
+    if (buf[0] != 0x78) return 1;
+    if (buf[1] != 0x56) return 2;
+    if (buf[2] != 0x34) return 3;
+    if (buf[3] != 0x12) return 4;
+    return 0;
+}

@@ -178,6 +178,7 @@ function resolveSliceSource(
   ctx: IAssignmentContext,
   line: number,
   rawName: string,
+  lengthValue: number,
 ): {
   cType: string | null;
   bytes: number;
@@ -192,6 +193,13 @@ function resolveSliceSource(
   const directType = ctx.valueCtx
     ? TypeResolver.getExpressionType(ctx.valueCtx)
     : null;
+
+  // A bare integer literal has no fixed essential category (`int`); contextually
+  // type it to the slice byte-width (ADR-052), with a compile-time fit check.
+  if (directType === "int") {
+    return resolveLiteralSliceSource(ctx, line, rawName, lengthValue);
+  }
+
   const sourceType =
     directType ??
     (ctx.valueCtx ? TypeResolver.getIntegerExpressionType(ctx.valueCtx) : null);
@@ -209,8 +217,8 @@ function resolveSliceSource(
   const isSigned = SIGNED_INT_RE.test(sourceType);
   if (!isUnsigned && !isSigned) {
     throw new Error(
-      `${line}:0 Error: Slice assignment source must be an integer value, ` +
-        `but '${rawName}' is assigned a '${sourceType}'.`,
+      `${line}:0 Error: Slice assignment source must be an integer value; ` +
+        `the value assigned to '${rawName}' has type '${sourceType}'.`,
     );
   }
 
@@ -223,6 +231,47 @@ function resolveSliceSource(
       ? CNEXT_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
       : CNEXT_TO_C_TYPE_MAP[sourceType],
     isComposite: directType === null,
+  };
+}
+
+/**
+ * Resolve a bare integer-literal slice source (Issue #1085 review, Finding D).
+ *
+ * A literal has no fixed essential category, so it is contextually typed to the
+ * slice byte-width (ADR-052): a `length`-byte slice serializes the literal as an
+ * unsigned value of that width. The literal must fit in `length` bytes, else a
+ * clear compile error — `buf[0,2] <- 0x12345678` cannot hold a 4-byte value.
+ */
+function resolveLiteralSliceSource(
+  ctx: IAssignmentContext,
+  line: number,
+  rawName: string,
+  lengthValue: number,
+): {
+  cType: string | null;
+  bytes: number;
+  unsignedCType: string | null;
+  isComposite: boolean;
+} {
+  const value = ctx.valueCtx
+    ? gen().tryEvaluateConstant(ctx.valueCtx)
+    : undefined;
+  if (
+    value !== undefined &&
+    BigInt(Math.trunc(value)) >= 1n << BigInt(8 * lengthValue)
+  ) {
+    throw new Error(
+      `${line}:0 Error: Slice assignment literal value (${value}) does not fit ` +
+        `in the ${lengthValue}-byte slice for '${rawName}'.`,
+    );
+  }
+
+  const cType = unsignedCTypeForBytes(lengthValue);
+  return {
+    cType,
+    bytes: lengthValue,
+    unsignedCType: cType,
+    isComposite: false,
   };
 }
 
@@ -339,7 +388,7 @@ function buildSliceWrites(
   rawName: string,
 ): string {
   const dest = resolveSliceElement(typeInfo, line, rawName);
-  const src = resolveSliceSource(ctx, line, rawName);
+  const src = resolveSliceSource(ctx, line, rawName, lengthValue);
   const elementCount = validateSliceSpan(
     dest,
     src,
