@@ -70,7 +70,7 @@ class ScopeCollector extends CNextListener {
   }
 
   private top(): ScopeFrame {
-    return this.stack[this.stack.length - 1];
+    return this.stack.at(-1) ?? this.globalFrame;
   }
 
   private pushFrame(node: ParserRuleContext): void {

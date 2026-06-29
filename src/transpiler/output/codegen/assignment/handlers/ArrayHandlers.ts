@@ -359,6 +359,13 @@ function materializeSliceSource(
   return tempName;
 }
 
+/** Validated, constant-folded geometry of a slice-assignment destination. */
+interface ISliceGeometry {
+  offsetValue: number;
+  lengthValue: number;
+  capacity: number;
+}
+
 /**
  * Build the unrolled, per-element little-endian writes for a slice assignment
  * (Issue #1081). Offset/length constants are already validated by the caller;
@@ -375,20 +382,18 @@ function buildSliceWrites(
   name: string,
   ctx: IAssignmentContext,
   typeInfo: TTypeInfo | undefined,
-  offsetValue: number,
-  lengthValue: number,
-  capacity: number,
+  geometry: ISliceGeometry,
   line: number,
   rawName: string,
 ): string {
   const dest = resolveSliceElement(typeInfo, line, rawName);
-  const src = resolveSliceSource(ctx, line, rawName, lengthValue);
+  const src = resolveSliceSource(ctx, line, rawName, geometry.lengthValue);
   const elementCount = validateSliceSpan(
     dest,
     src,
-    offsetValue,
-    lengthValue,
-    capacity,
+    geometry.offsetValue,
+    geometry.lengthValue,
+    geometry.capacity,
     line,
     rawName,
   );
@@ -418,7 +423,7 @@ function buildSliceWrites(
       writes,
       src,
       ctx.generatedValue,
-      lengthValue,
+      geometry.lengthValue,
     );
   }
 
@@ -426,7 +431,7 @@ function buildSliceWrites(
     const shiftBits = k * dest.bytes * 8;
     const chunk =
       shiftBits === 0 ? `(${sourceExpr})` : `(${sourceExpr} >> ${shiftBits}U)`;
-    writes.push(`${name}[${offsetValue + k}] = ${dest.wrap(chunk)};`);
+    writes.push(`${name}[${geometry.offsetValue + k}] = ${dest.wrap(chunk)};`);
   }
 
   return writes.join("\n");
@@ -520,9 +525,7 @@ function handleArraySlice(ctx: IAssignmentContext): string {
     name,
     ctx,
     typeInfo,
-    offsetValue,
-    lengthValue,
-    capacity,
+    { offsetValue, lengthValue, capacity },
     line,
     ctx.identifiers[0],
   );

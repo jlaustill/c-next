@@ -274,7 +274,7 @@ class TypeResolver {
         ? /^([iu])(8|16|32|64)$/.exec(operandType)
         : null;
       if (!match) continue;
-      if (category === null) category = match[1] as "i" | "u";
+      category ??= match[1] as "i" | "u";
       width = Math.max(width, Number.parseInt(match[2], 10));
     }
 
@@ -330,8 +330,8 @@ class TypeResolver {
     postfix: Parser.PostfixExpressionContext,
   ): number | null {
     const ops = postfix.postfixOp();
-    const last = ops.length > 0 ? ops[ops.length - 1] : null;
-    if (!last || last.expression().length !== 2) return null;
+    const last = ops.at(-1);
+    if (last?.expression().length !== 2) return null;
     const widthText = last.expression()[1].getText();
     if (!/^(0x[0-9a-fA-F]+|\d+)$/.test(widthText)) return null;
     const value = Number.parseInt(
