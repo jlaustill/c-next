@@ -237,4 +237,66 @@ describe("MixedTypeCategoryAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  describe("shift operators (Rule 10.4 does not govern shifts)", () => {
+    it("does not flag a left shift whose count is signed (u32 << i32)", () => {
+      // Rule 10.4 only governs operators subject to the usual arithmetic
+      // conversions; shifts are not (the count is promoted independently). A
+      // signed shift COUNT is a Rule 10.1 concern, not 10.4, so E0810 must not
+      // fire here (Issue #1085 review).
+      const errors = analyze(`
+        void main() {
+          u32 value <- 256;
+          i32 count <- 2;
+          u32 r <- value << count;
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag a right shift whose count is signed (u32 >> i32)", () => {
+      const errors = analyze(`
+        void main() {
+          u32 value <- 256;
+          i32 count <- 2;
+          u32 r <- value >> count;
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  describe("block-aware variable typing (Issue #1085 review)", () => {
+    it("does not flag an outer expression when a different-category variable of the same name is declared in a nested block", () => {
+      // The inner `i32 x` shadows only within the if-block. The outer `x + a`
+      // (both u32) must not be poisoned by it. A function-wide last-write-wins
+      // map mis-typed the outer `x` as i32 and falsely rejected valid code.
+      const errors = analyze(`
+        void main() {
+          u32 x <- 1;
+          u32 a <- 2;
+          u32 r <- x + a;
+          if (r > 0) {
+            i32 x <- 5;
+            i32 z <- x + x;
+          }
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag an outer expression poisoned by a different-category for-loop variable", () => {
+      const errors = analyze(`
+        void main() {
+          u32 i <- 1;
+          u32 a <- 2;
+          u32 r <- i + a;
+          for (i32 i <- 0; i < 4; i <- i + 1) {
+            a <- a + 1;
+          }
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+  });
 });

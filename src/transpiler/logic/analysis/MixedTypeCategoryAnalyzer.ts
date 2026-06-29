@@ -19,11 +19,17 @@
  * integer types of different category.
  *
  * Two-pass analysis:
- * 1. Collect declarations into per-scope frames (function / named scope), so a
- *    name is resolved against ITS scope — a same-named variable of a different
- *    category in another function never poisons the lookup (Issue #1085 review).
+ * 1. Collect declarations into per-scope frames (function, named scope, block,
+ *    and for-loop header), so a name is resolved against ITS scope — a same-named
+ *    variable of a different category in another function OR a nested block never
+ *    poisons the lookup (Issue #1085 review).
  * 2. Walk each binary-operator level and compare adjacent operand categories,
  *    resolving each operand within its enclosing scope frame.
+ *
+ * Note: shift operators (<< / >>) are intentionally NOT checked here — MISRA
+ * Rule 10.4 only governs operators subject to the usual arithmetic conversions,
+ * and a shift count is promoted independently. A signed shift count is a Rule
+ * 10.1 concern handled elsewhere (Issue #1085 review).
  */
 
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
@@ -38,9 +44,9 @@ import TypeConstants from "../../../utils/constants/TypeConstants";
 type Category = "signed" | "unsigned" | null;
 
 /**
- * Declarations directly in one lexical scope (a function or a named scope),
- * with a link to the enclosing scope. Resolution searches outward to the global
- * frame, so inner declarations shadow outer ones.
+ * Declarations directly in one lexical scope (a function, named scope, block, or
+ * for-loop header), with a link to the enclosing scope. Resolution searches
+ * outward to the global frame, so inner declarations shadow outer ones.
  */
 interface ScopeFrame {
   readonly vars: Map<string, string>;
@@ -123,6 +129,27 @@ class ScopeCollector extends CNextListener {
 
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
     this.record(ctx.type(), ctx.IDENTIFIER());
+  };
+
+  // Each braced block (if/while/for body, and a function/scope body) is its own
+  // lexical scope, so a different-category redeclaration shadows only within the
+  // block instead of poisoning the name function-wide (Issue #1085 review).
+  override enterBlock = (ctx: Parser.BlockContext): void => {
+    this.pushFrame(ctx);
+  };
+
+  override exitBlock = (): void => {
+    this.popFrame();
+  };
+
+  // The for-loop header is its own scope so the loop variable is confined to the
+  // loop (header + body) and never overwrites an outer same-named variable.
+  override enterForStatement = (ctx: Parser.ForStatementContext): void => {
+    this.pushFrame(ctx);
+  };
+
+  override exitForStatement = (): void => {
+    this.popFrame();
   };
 }
 
@@ -271,12 +298,6 @@ class MixedCategoryListener extends CNextListener {
     ctx: Parser.AdditiveExpressionContext,
   ): void => {
     this.checkLevel(ctx.multiplicativeExpression());
-  };
-
-  override enterShiftExpression = (
-    ctx: Parser.ShiftExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.additiveExpression());
   };
 
   override enterBitwiseAndExpression = (

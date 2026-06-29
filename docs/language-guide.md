@@ -117,11 +117,12 @@ byte. (A single-element slice, where the value is used only once, skips the
 temporary.) Shifting the unsigned temporary also keeps every write MISRA C:2012
 Rule 10.1-clean.
 
-The Rule 21.15 comment is emitted whenever an equivalent `memcpy` could have
-passed incompatible pointer types: when the source type differs from the
-destination element type (the comment names the two types), or, conservatively,
-when the source type cannot be resolved at compile time. A same-type slice such
-as `u32[] <- u32`, where the pointer types would have matched, omits the comment.
+The Rule 21.15 comment is emitted only when an equivalent `memcpy` would
+genuinely have passed incompatible pointer types: the source type is **resolved**
+and differs from the destination element type (the comment names the two types),
+and more than one element is written. A same-type slice such as `u32[] <- u32`
+(where the pointer types would have matched), a single-element write, or a source
+whose type cannot be resolved at compile time all omit the comment.
 
 **Key Features:**
 

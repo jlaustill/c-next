@@ -11,6 +11,7 @@ import SIGNED_TYPES from "./types/SIGNED_TYPES";
 import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
+import type ICodeGenApi from "./types/ICodeGenApi";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 
 /**
@@ -324,7 +325,8 @@ class TypeResolver {
 
   /**
    * If a postfix expression's terminal suffix is a bit-range extraction
-   * `[start, width]` with a literal width, return that width in bits; else null.
+   * `[start, width]` with a compile-time-constant width, return that width in
+   * bits; else null.
    */
   private static bitExtractionWidth(
     postfix: Parser.PostfixExpressionContext,
@@ -332,7 +334,21 @@ class TypeResolver {
     const ops = postfix.postfixOp();
     const last = ops.at(-1);
     if (last?.expression().length !== 2) return null;
-    const widthText = last.expression()[1].getText();
+    const widthExpr = last.expression()[1];
+
+    // Resolve the width through the constant evaluator — the same path the slice
+    // offset/length use — so a named const or any-base literal width
+    // (`b[0, WIDTH]`, `b[0, 0b100000]`) is sized at its real width rather than
+    // dropped, which would mis-type a composite slice source (Issue #1085 review).
+    const generator = CodeGenState.generator as ICodeGenApi | null;
+    const evaluated = generator?.tryEvaluateConstant(widthExpr);
+    if (evaluated !== undefined) {
+      return evaluated > 0 ? evaluated : null;
+    }
+
+    // Fallback for contexts with no generator (e.g. isolated unit tests): accept
+    // a plain decimal/hex literal width directly.
+    const widthText = widthExpr.getText();
     if (!/^(0x[0-9a-fA-F]+|\d+)$/.test(widthText)) return null;
     const value = Number.parseInt(
       widthText,
