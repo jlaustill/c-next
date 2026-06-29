@@ -196,6 +196,32 @@ describe("MixedTypeCategoryAnalyzer", () => {
       expect(errors).toHaveLength(1);
     });
 
+    it("does not flag !a = !b — logical negation yields Boolean, not the operand category (Issue #1085)", () => {
+      // `!a` and `!b` are both essentially Boolean regardless of a/b signedness,
+      // so the comparison shares a category and Rule 10.4 must NOT fire. The old
+      // code recursed through `!` and compared a's (unsigned) vs b's (signed)
+      // category, falsely rejecting valid code.
+      const errors = analyze(`
+        void main() {
+          u32 a <- 5;
+          i32 b <- 3;
+          bool r <- !a = !b;
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("still flags a + b when operands differ in signedness (control for the ! fix)", () => {
+      const errors = analyze(`
+        void main() {
+          u32 a <- 5;
+          i32 b <- 3;
+          i32 r <- a + b;
+        }
+      `);
+      expect(errors).toHaveLength(1);
+    });
+
     it("isolates variables declared in different named scopes", () => {
       // Each scope's `count` has its own type; neither scope's expression is mixed.
       const errors = analyze(`

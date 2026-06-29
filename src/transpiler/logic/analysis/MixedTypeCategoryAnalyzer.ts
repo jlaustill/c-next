@@ -205,9 +205,17 @@ class MixedCategoryListener extends CNextListener {
     ctx: Parser.UnaryExpressionContext,
     frame: ScopeFrame,
   ): Category {
-    // Prefix operators (-, ~): category follows the operand.
+    // Prefix operators. `-` and `~` preserve the operand's essential category,
+    // but `!` (logical negation) yields an essentially-Boolean result and `&`
+    // (address-of, ADR-006) yields an address — neither carries the operand's
+    // signed/unsigned category, so classifying by it would falsely reject e.g.
+    // `!a = !b` where a and b differ in signedness (Issue #1085 review).
     const inner = ctx.unaryExpression();
-    if (inner) return this.categoryOfUnary(inner, frame);
+    if (inner) {
+      const op = ctx.getChild(0)?.getText();
+      if (op === "!" || op === "&") return null;
+      return this.categoryOfUnary(inner, frame);
+    }
 
     const postfix = ctx.postfixExpression();
     if (!postfix) return null;
