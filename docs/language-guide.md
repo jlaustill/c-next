@@ -66,8 +66,8 @@ flags[0, 3] <- 5;           // Set 3 bits starting at bit 0
 bool isSet <- flags[3];     // Read bit 3
 
 // .length property
-u8 buffer[16];
-buffer.length;              // 16 (array element count)
+u8[16] bufArray;
+bufArray.length;            // 16 (array element count)
 flags.length;               // 8 (bit width of u8)
 ```
 
@@ -79,39 +79,72 @@ GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
 
 ### Slice Assignment for Memory Operations
 
-Multi-byte copying with compile-time validated `memcpy` generation (Issue #234):
+Multi-byte serialization with compile-time validated, little-endian writes (Issue #234, #1081):
 
 ```cnx
-u8 buffer[256];
+u8[256] bufArray;
 u32 magic <- 0x12345678;
 
-// Copy 4 bytes from value into buffer at offset 0
-buffer[0, 4] <- magic;
+// Serialize 4 bytes of magic into bufArray at element 0
+bufArray[0, 4] <- magic;
 
 // Named offsets using const variables
 const u32 HEADER_OFFSET <- 0;
 const u32 DATA_OFFSET <- 8;
-buffer[HEADER_OFFSET, 4] <- magic;
-buffer[DATA_OFFSET, 8] <- timestamp;
+bufArray[HEADER_OFFSET, 4] <- magic;
+bufArray[DATA_OFFSET, 8] <- timestamp;
 ```
 
-Transpiles to direct memcpy (bounds validated at compile time):
+Transpiles to explicit per-element little-endian writes, unrolled at compile time
+(bounds validated at compile time):
 
 ```c
-uint8_t buffer[256] = {0};
-uint32_t magic = 0x12345678;
+uint8_t bufArray[256] = {0};
+uint32_t magic = 0x12345678U;
 
-memcpy(&buffer[0], &magic, 4);
-memcpy(&buffer[8], &timestamp, 8);
+/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+const uint32_t _tmp0 = (uint32_t)(magic);
+bufArray[0] = (uint8_t)(_tmp0);
+bufArray[1] = (uint8_t)(_tmp0 >> 8U);
+bufArray[2] = (uint8_t)(_tmp0 >> 16U);
+bufArray[3] = (uint8_t)(_tmp0 >> 24U);
 ```
+
+The source is materialized into a single unsigned temporary before the writes,
+so it is **evaluated exactly once** — even an impure source such as
+`bufArray[0, 4] <- readSensor()` calls `readSensor()` a single time, not once per
+byte. (A single-element slice, where the value is used only once, skips the
+temporary.) Shifting the unsigned temporary also keeps every write MISRA C:2012
+Rule 10.1-clean.
+
+The Rule 21.15 comment is emitted only when an equivalent `memcpy` would
+genuinely have passed incompatible pointer types: the source type is **resolved**
+and differs from the destination element type (the comment names the two types),
+and more than one element is written. A same-type slice such as `u32[] <- u32`
+(where the pointer types would have matched), a single-element write, or a source
+whose type cannot be resolved at compile time all omit the comment.
 
 **Key Features:**
 
 - **Compile-time bounds checking** prevents buffer overflows at compile time
 - Offset and length must be compile-time constants (literals or `const` variables)
 - Silent runtime failures are now compile-time errors
-- Works with struct fields: `buffer[0, 4] <- config.magic`
-- Distinct from bit operations: array slices use `memcpy`, scalar bit ranges use bit manipulation
+- Works with struct fields: `bufArray[0, 4] <- config.magic`
+- The source must be an **integer** value (float/struct sources are a compile
+  error), and the slice length may not exceed the source's width in bytes
+- **Deterministic little-endian byte order on every target** — the bytes are
+  written least-significant-first regardless of host endianness (Issue #1081).
+  Earlier versions emitted `memcpy`, which copied in native byte order and (a)
+  produced different output on big-endian targets and (b) violated MISRA C:2012
+  Rule 21.15 by passing incompatible pointer types
+- **Offset and length use different units for wider arrays:** the offset is an
+  **element index** (`u16[] arr; arr[2, 4] <- v` starts at element 2), while the
+  length is always a **byte count**. A `u16[]` slice writes whole `uint16_t`
+  elements, so the length must be a multiple of the element size. Bounds are
+  checked as an **element span** (`offset + length / elementSize <= capacity`),
+  so an in-bounds slice at a non-zero offset into a `u32[]`/`u64[]` is accepted
+- Distinct from bit operations: array slices serialize a value into memory,
+  scalar bit ranges use bit manipulation
 
 ### Scopes (ADR-016)
 
@@ -352,7 +385,7 @@ void waitReady() {
 Multi-statement atomic blocks with automatic interrupt masking:
 
 ```cnx
-u8 buffer[64];
+u8[64] buffer;
 u32 writeIdx <- 0;
 
 void enqueue(u8 data) {

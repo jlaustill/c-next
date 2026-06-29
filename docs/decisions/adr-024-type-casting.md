@@ -135,6 +135,27 @@ i32 signed_val <- -5;
 u32 as_bits <- signed_val[0, 32];  // Explicit: treat as 32 bits
 ```
 
+### Operand Type Categories (Rule 10.4)
+
+The same essential-type-category discipline applies to the **operands of a binary operator**, not only to casts and assignments. Per MISRA C:2012 **Rule 10.4** ("Both operands of an operator shall have the same essential type category"), combining a signed and an unsigned value with a single operator is a **compile error** (Issue #1091):
+
+```cnx
+u32 a <- 1;
+i32 b <- 2;
+u32 c <- a + b;       // ERROR: mixed essential type category (u32 + i32)
+bool ok <- (a = b);   // ERROR: mixed essential type category in a comparison
+```
+
+To combine values of different categories, reinterpret one operand's bits to the other's category with **bit indexing** (ADR-007) — the same mechanism used for the sign conversions above — so the reinterpretation is explicit:
+
+```cnx
+u32 c <- a + b[0, 32];   // OK: b reinterpreted as 32 unsigned bits, then added
+```
+
+**Integer literals are exempt.** A bare integer literal has no fixed essential category; it is contextually typed to the other operand (ADR-052), so `a + 5` generates `a + 5U` (the literal adopts `a`'s category) and never trips Rule 10.4. The rule fires only when **both** operands resolve to concrete, fixed-width types of different category (variable + variable, struct field, array element, function-call result, …).
+
+**Same-category widening stays implicit** — `u8 + u32` combines two unsigned values and needs no cast (only the width widens, the category is unchanged).
+
 ### Boolean Extraction (Use Bit Indexing)
 
 In C, you might write:

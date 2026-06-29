@@ -1,0 +1,10 @@
+// test-error
+// Issue #1085 review: a negative integer literal slice source must be fit-checked
+// just like a positive one. -300 cannot be represented in a 1-byte slice
+// (-300 < -128), so it is a compile error rather than a silent (uint8_t)(-300)
+// truncation. Mirrors slice-literal-too-wide.test.cnx for the positive overflow.
+u32 main() {
+    u8[8] buf;
+    buf[0, 1] <- -300;
+    return 0;
+}

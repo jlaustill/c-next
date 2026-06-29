@@ -71,7 +71,10 @@ class AssignmentExpectedTypeResolver {
       // Case 2b: Simple array element access (arr[i] <- value)
       // Issue #872: Resolve element type for MISRA 7.2 U suffix
       if (identifiers.length === 1 && hasSubscript) {
-        return AssignmentExpectedTypeResolver.resolveForArrayElement(baseId);
+        return AssignmentExpectedTypeResolver.resolveForArrayElement(
+          baseId,
+          postfixOps,
+        );
       }
 
       // Case 2c: Member chain with array access (struct.arr[i] <- value)
@@ -85,6 +88,17 @@ class AssignmentExpectedTypeResolver {
 
     // Case 3: Complex patterns we can't resolve
     return { expectedType: null, assignmentContext: null };
+  }
+
+  /**
+   * True if any postfix subscript is the 2-expression `[offset, length]` form —
+   * an array slice or scalar bit-range write (vs a 1-expression element/bit
+   * access). The grammar models both as `'[' expression ',' expression ']'`.
+   */
+  private static hasRangeSubscript(
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): boolean {
+    return postfixOps.some((op) => op.expression().length === 2);
   }
 
   /**
@@ -124,10 +138,24 @@ class AssignmentExpectedTypeResolver {
   /**
    * Resolve expected type for array element access.
    * Issue #872: arr[i] <- value needs baseType for MISRA 7.2 U suffix.
+   *
+   * An array SLICE (2-expression subscript `arr[off, len]`) is the exception:
+   * its source serializes at the SOURCE's own width, so leaking the element type
+   * as expectedType truncates an element-width-sensitive source such as a
+   * bit-extraction (Issue #1085: `buf[0,4] <- b[0,32]` wrote only the low byte).
+   * This applies only to arrays — a 2-expression subscript on a scalar is a
+   * bit-range write, whose value is genuinely the field's type (unchanged).
    */
-  private static resolveForArrayElement(id: string): IExpectedTypeResult {
+  private static resolveForArrayElement(
+    id: string,
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): IExpectedTypeResult {
     const typeInfo = CodeGenState.getVariableTypeInfo(id);
     if (!typeInfo?.isArray) {
+      return { expectedType: null, assignmentContext: null };
+    }
+
+    if (AssignmentExpectedTypeResolver.hasRangeSubscript(postfixOps)) {
       return { expectedType: null, assignmentContext: null };
     }
 

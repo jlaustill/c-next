@@ -9,7 +9,7 @@
 // test-execution
 // Tests: Verify bit manipulation operations still work correctly
 // Ensures that slice assignment fix doesn't break existing bit-range operations
-// Bit operations on scalar integers should use bit manipulation, not memcpy
+// Bit operations on scalar integers use bit manipulation, not slice serialization
 int main(void) {
     uint32_t flags = 0U;
     flags = (flags & ~(1U << 0)) | (1U << 0);

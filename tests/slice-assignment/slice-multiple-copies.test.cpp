@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 // test-execution
 // Tests: Multiple sequential slice assignments to same buffer
@@ -13,19 +12,39 @@
 int main(void) {
     uint8_t buffer[256] = {};
     uint32_t magic = 0x50415255U;
-    memcpy(&buffer[0], &magic, 4);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+    const uint32_t _tmp0 = (uint32_t)(magic);
+    buffer[0] = (uint8_t)(_tmp0);
+    buffer[1] = (uint8_t)(_tmp0 >> 8U);
+    buffer[2] = (uint8_t)(_tmp0 >> 16U);
+    buffer[3] = (uint8_t)(_tmp0 >> 24U);
     uint16_t version = 0x0100U;
-    memcpy(&buffer[4], &version, 2);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
+    const uint16_t _tmp1 = (uint16_t)(version);
+    buffer[4] = (uint8_t)(_tmp1);
+    buffer[5] = (uint8_t)(_tmp1 >> 8U);
     uint16_t length = 20U;
-    memcpy(&buffer[6], &length, 2);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
+    const uint16_t _tmp2 = (uint16_t)(length);
+    buffer[6] = (uint8_t)(_tmp2);
+    buffer[7] = (uint8_t)(_tmp2 >> 8U);
     uint8_t flags = 0x0FU;
-    memcpy(&buffer[8], &flags, 1);
+    buffer[8] = (uint8_t)(flags);
     uint8_t reserved = 0U;
-    memcpy(&buffer[9], &reserved, 1);
-    memcpy(&buffer[10], &reserved, 1);
-    memcpy(&buffer[11], &reserved, 1);
+    buffer[9] = (uint8_t)(reserved);
+    buffer[10] = (uint8_t)(reserved);
+    buffer[11] = (uint8_t)(reserved);
     uint64_t data = 0x0102030405060708ULL;
-    memcpy(&buffer[12], &data, 8);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
+    const uint64_t _tmp3 = (uint64_t)(data);
+    buffer[12] = (uint8_t)(_tmp3);
+    buffer[13] = (uint8_t)(_tmp3 >> 8U);
+    buffer[14] = (uint8_t)(_tmp3 >> 16U);
+    buffer[15] = (uint8_t)(_tmp3 >> 24U);
+    buffer[16] = (uint8_t)(_tmp3 >> 32U);
+    buffer[17] = (uint8_t)(_tmp3 >> 40U);
+    buffer[18] = (uint8_t)(_tmp3 >> 48U);
+    buffer[19] = (uint8_t)(_tmp3 >> 56U);
     if (buffer[0U] != 0x55) return 1;
     if (buffer[1U] != 0x52) return 2;
     if (buffer[2U] != 0x41) return 3;
@@ -47,7 +66,12 @@ int main(void) {
     if (buffer[18U] != 0x02) return 19;
     if (buffer[19U] != 0x01) return 20;
     uint32_t newMagic = 0x44434241U;
-    memcpy(&buffer[0], &newMagic, 4);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+    const uint32_t _tmp4 = (uint32_t)(newMagic);
+    buffer[0] = (uint8_t)(_tmp4);
+    buffer[1] = (uint8_t)(_tmp4 >> 8U);
+    buffer[2] = (uint8_t)(_tmp4 >> 16U);
+    buffer[3] = (uint8_t)(_tmp4 >> 24U);
     if (buffer[0U] != 0x41) return 21;
     if (buffer[1U] != 0x42) return 22;
     if (buffer[2U] != 0x43) return 23;

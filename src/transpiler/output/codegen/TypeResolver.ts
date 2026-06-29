@@ -2,6 +2,7 @@
  * TypeResolver - Handles type inference, classification, and validation
  * Static class that reads from CodeGenState directly.
  */
+import { ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import INTEGER_TYPES from "./types/INTEGER_TYPES";
@@ -228,6 +229,153 @@ class TypeResolver {
     }
 
     return null;
+  }
+
+  /**
+   * Resolve the C-Next integer type of an expression, including composite
+   * arithmetic/bitwise expressions that `getExpressionType` leaves unresolved.
+   *
+   * MISRA C:2012 Rule 10.4 (enforced by MixedTypeCategoryAnalyzer) guarantees a
+   * binary operator's operands share an essential type category, so a composite
+   * integer expression's category is uniform; its essential width is the widest
+   * integer operand. This is what lets slice-assignment serialize an arithmetic
+   * source (e.g. `a + b`) MISRA Rule 10.8-clean instead of guessing a width.
+   *
+   * Returns null when no integer-typed variable leaf can be resolved (e.g. a
+   * struct-field or function-call composite — left for a later pass).
+   */
+  static getIntegerExpressionType(
+    ctx: Parser.ExpressionContext,
+  ): string | null {
+    const direct = TypeResolver.getExpressionType(ctx);
+    if (direct !== null) return direct;
+    return TypeResolver.resolveCompositeIntegerType(ctx);
+  }
+
+  /**
+   * Combine the leaf VALUE operands of a composite expression into a single
+   * C-Next type: the (uniform, per Rule 10.4) category at the widest width.
+   *
+   * Operands are typed by their value (Issue #1085 review) — an array index
+   * (`arr[i]`), bit offset (`x[off, w]`) or struct member name is NOT a value
+   * operand and must not contribute to the width. A bit-extraction contributes
+   * its EXTRACTED width, not the variable's full width (typing `a + b[0, 32]`
+   * as u64 would cast the composite to a wider type — MISRA Rule 10.8).
+   */
+  private static resolveCompositeIntegerType(
+    ctx: Parser.ExpressionContext,
+  ): string | null {
+    let category: "i" | "u" | null = null;
+    let width = 0;
+
+    for (const operand of TypeResolver.collectOperandPostfixes(ctx)) {
+      const operandType = TypeResolver.typeOperandPostfix(operand);
+      const match = operandType
+        ? /^([iu])(8|16|32|64)$/.exec(operandType)
+        : null;
+      if (!match) continue;
+      category ??= match[1] as "i" | "u";
+      width = Math.max(width, Number.parseInt(match[2], 10));
+    }
+
+    return category && width > 0 ? `${category}${width}` : null;
+  }
+
+  /**
+   * Type one leaf operand of a composite by its VALUE type. A bit-extraction
+   * `x[start, width]` yields an unsigned value of the extracted width; a simple
+   * function call `name(...)` yields its declared return type; everything else
+   * (variable, array element, struct field, member chain) defers to
+   * getPostfixExpressionType. Returns null for an operand it cannot classify
+   * (e.g. a literal, which is contextually typed).
+   */
+  private static typeOperandPostfix(
+    postfix: Parser.PostfixExpressionContext,
+  ): string | null {
+    const extractionWidth = TypeResolver.bitExtractionWidth(postfix);
+    if (extractionWidth !== null) {
+      return TypeResolver.unsignedTypeForBits(extractionWidth);
+    }
+
+    const direct = TypeResolver.getPostfixExpressionType(postfix);
+    if (direct !== null) return direct;
+
+    return TypeResolver.callReturnType(postfix);
+  }
+
+  /**
+   * Collect the leaf operand postfix expressions of a composite WITHOUT
+   * descending into a postfix's own internals — so an array index (`arr[i]`) or
+   * bit offset (`x[off, w]`) variable is never mistaken for a value operand.
+   */
+  private static collectOperandPostfixes(
+    node: ParserRuleContext,
+  ): Parser.PostfixExpressionContext[] {
+    if (node instanceof Parser.PostfixExpressionContext) return [node];
+    const operands: Parser.PostfixExpressionContext[] = [];
+    for (let i = 0; i < node.getChildCount(); i += 1) {
+      const child = node.getChild(i);
+      if (child instanceof ParserRuleContext) {
+        operands.push(...TypeResolver.collectOperandPostfixes(child));
+      }
+    }
+    return operands;
+  }
+
+  /**
+   * If a postfix expression's terminal suffix is a bit-range extraction
+   * `[start, width]` with a compile-time-constant width, return that width in
+   * bits; else null.
+   */
+  private static bitExtractionWidth(
+    postfix: Parser.PostfixExpressionContext,
+  ): number | null {
+    const ops = postfix.postfixOp();
+    const last = ops.at(-1);
+    if (last?.expression().length !== 2) return null;
+    const widthExpr = last.expression()[1];
+
+    // Resolve the width through the constant evaluator — the same path the slice
+    // offset/length use — so a named const or any-base literal width
+    // (`b[0, WIDTH]`, `b[0, 0b100000]`) is sized at its real width rather than
+    // dropped, which would mis-type a composite slice source (Issue #1085 review).
+    const evaluated = CodeGenState.generator?.tryEvaluateConstant(widthExpr);
+    if (evaluated !== undefined) {
+      return evaluated > 0 ? evaluated : null;
+    }
+
+    // Fallback for contexts with no generator (e.g. isolated unit tests): accept
+    // a plain decimal/hex literal width directly.
+    const widthText = widthExpr.getText();
+    if (!/^(0x[0-9a-fA-F]+|\d+)$/.test(widthText)) return null;
+    const value = Number.parseInt(
+      widthText,
+      widthText.startsWith("0x") ? 16 : 10,
+    );
+    return Number.isNaN(value) || value <= 0 ? null : value;
+  }
+
+  /** Smallest standard unsigned C-Next type holding `bits` bits, or null if >64. */
+  private static unsignedTypeForBits(bits: number): string | null {
+    if (bits <= 8) return "u8";
+    if (bits <= 16) return "u16";
+    if (bits <= 32) return "u32";
+    if (bits <= 64) return "u64";
+    return null;
+  }
+
+  /**
+   * If a postfix expression is a simple function call `name(...)`, return the
+   * function's declared return type — a call operand's width comes from its
+   * return type, not from being ignored (Issue #1085 review).
+   */
+  private static callReturnType(
+    postfix: Parser.PostfixExpressionContext,
+  ): string | null {
+    const ops = postfix.postfixOp();
+    if (ops.length !== 1 || !ops[0].getText().startsWith("(")) return null;
+    const name = postfix.primaryExpression()?.IDENTIFIER()?.getText();
+    return name ? (CodeGenState.getFunctionReturnType(name) ?? null) : null;
   }
 
   /**

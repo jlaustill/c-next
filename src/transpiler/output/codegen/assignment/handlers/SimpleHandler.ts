@@ -10,17 +10,11 @@
  */
 import IAssignmentContext from "../IAssignmentContext";
 import CodeGenState from "../../../../state/CodeGenState";
-import type ICodeGenApi from "../../types/ICodeGenApi";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper.js";
 import TypeResolver from "../../TypeResolver.js";
 import TYPE_MAP from "../../types/TYPE_MAP.js";
 import CppModeHelper from "../../helpers/CppModeHelper.js";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY.js";
-
-/** Get typed generator reference */
-function gen(): ICodeGenApi {
-  return CodeGenState.generator as ICodeGenApi;
-}
 
 /**
  * Try to handle compound assignment on narrow types (MISRA 10.3).
@@ -100,7 +94,9 @@ function tryHandleIntToFloatConversion(
  * i16_val &<- 0xFF =>  i16_val = (int16_t)(i16_val & 0xFF);  // MISRA 10.3
  */
 function handleSimpleAssignment(ctx: IAssignmentContext): string {
-  const target = gen().generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
+    ctx.targetCtx,
+  );
 
   // Try compound assignment narrowing cast (MISRA 10.3)
   const compoundResult = tryHandleCompoundNarrowingCast(ctx, target);

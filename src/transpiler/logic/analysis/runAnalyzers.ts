@@ -2,7 +2,8 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 10 analyzers run in sequence, each returning errors that block compilation.
+ * All 11 analyzers (plus comment validation) run in sequence, each returning
+ * errors that block compilation.
  */
 
 import { CommonTokenStream } from "antlr4ng";
@@ -16,6 +17,7 @@ import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
 import ArrayIndexTypeAnalyzer from "./ArrayIndexTypeAnalyzer";
 import SignedShiftAnalyzer from "./SignedShiftAnalyzer";
+import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
@@ -155,13 +157,25 @@ function runAnalyzers(
     return errors;
   }
 
-  // 10. Return-path analysis (ADR-112: non-void functions must return on all paths)
+  // 10. Mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)
+  const mixedTypeCategoryAnalyzer = new MixedTypeCategoryAnalyzer();
+  if (
+    collectErrors(
+      mixedTypeCategoryAnalyzer.analyze(tree),
+      errors,
+      formatWithCode,
+    )
+  ) {
+    return errors;
+  }
+
+  // 11. Return-path analysis (ADR-112: non-void functions must return on all paths)
   const returnPathAnalyzer = new ReturnPathAnalyzer();
   if (collectErrors(returnPathAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;
   }
 
-  // 11. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 12. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   collectErrors(
     commentExtractor.validate(),

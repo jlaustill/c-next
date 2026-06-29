@@ -1,0 +1,11 @@
+// test-error
+// MISRA C:2012 Rule 10.4 (ADR-024, Issue #1091): a binary operator may not
+// combine operands of different essential type category. `u32 + i32` mixes
+// unsigned and signed, so it must be a compile error; reinterpret one operand
+// with bit indexing (e.g. `b[0, 32]`) to combine them explicitly.
+u32 main() {
+    u32 a <- 1;
+    i32 b <- 2;
+    u32 c <- a + b;
+    return 0;
+}

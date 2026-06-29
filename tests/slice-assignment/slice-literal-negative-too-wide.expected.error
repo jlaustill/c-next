@@ -1,0 +1,1 @@
+8:0 Code generation failed: Error: Slice assignment literal value (-300) does not fit in the 1-byte slice for 'buf'.

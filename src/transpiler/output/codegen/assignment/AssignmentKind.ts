@@ -85,7 +85,7 @@ enum AssignmentKind {
   /** matrix[i][j] <- value (multi-dimensional array element) */
   MULTI_DIM_ARRAY_ELEMENT,
 
-  /** buffer[0, 10] <- source (slice assignment with memcpy) */
+  /** buffer[0, 10] <- source (slice assignment: per-element little-endian writes, ADR-007/#1081) */
   ARRAY_SLICE,
 
   // === Special operations ===

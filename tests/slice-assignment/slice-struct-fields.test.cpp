@@ -6,7 +6,6 @@
 #include "slice-struct-fields.test.hpp"
 
 #include <stdint.h>
-#include <string.h>
 
 // test-execution
 // Tests: Slice assignment for struct field serialization
@@ -21,10 +20,27 @@ int main(void) {
     config.version = 0x0101U;
     config.flags = 0x0FU;
     config.timestamp = 0x123456789ABCDEF0ULL;
-    memcpy(&buffer[0], &config.magic, 4);
-    memcpy(&buffer[4], &config.version, 2);
-    memcpy(&buffer[6], &config.flags, 1);
-    memcpy(&buffer[7], &config.timestamp, 8);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+    const uint32_t _tmp0 = (uint32_t)(config.magic);
+    buffer[0] = (uint8_t)(_tmp0);
+    buffer[1] = (uint8_t)(_tmp0 >> 8U);
+    buffer[2] = (uint8_t)(_tmp0 >> 16U);
+    buffer[3] = (uint8_t)(_tmp0 >> 24U);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
+    const uint16_t _tmp1 = (uint16_t)(config.version);
+    buffer[4] = (uint8_t)(_tmp1);
+    buffer[5] = (uint8_t)(_tmp1 >> 8U);
+    buffer[6] = (uint8_t)(config.flags);
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
+    const uint64_t _tmp2 = (uint64_t)(config.timestamp);
+    buffer[7] = (uint8_t)(_tmp2);
+    buffer[8] = (uint8_t)(_tmp2 >> 8U);
+    buffer[9] = (uint8_t)(_tmp2 >> 16U);
+    buffer[10] = (uint8_t)(_tmp2 >> 24U);
+    buffer[11] = (uint8_t)(_tmp2 >> 32U);
+    buffer[12] = (uint8_t)(_tmp2 >> 40U);
+    buffer[13] = (uint8_t)(_tmp2 >> 48U);
+    buffer[14] = (uint8_t)(_tmp2 >> 56U);
     if (buffer[0U] != 0x58) return 1;
     if (buffer[1U] != 0x4E) return 2;
     if (buffer[2U] != 0x53) return 3;

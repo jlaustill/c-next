@@ -256,6 +256,25 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         expect(result.expectedType).toBeNull();
       });
+
+      // Issue #1085: an array SLICE (2-expression subscript `arr[off, len]`)
+      // serializes the source at the SOURCE's own width. Leaking the element type
+      // as expectedType truncates a wider source (e.g. a bit-extraction), so the
+      // resolver must return null for the slice form — unlike a 1-expression
+      // element access, which keeps the element type for the MISRA 7.2 U suffix.
+      it("should return null for an array slice (2-expression subscript)", () => {
+        CodeGenState.setVariableTypeInfo("buffer", {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          isConst: false,
+        });
+        const target = parseAssignmentTarget("buffer[0, 4]");
+
+        const result = AssignmentExpectedTypeResolver.resolve(target);
+
+        expect(result.expectedType).toBeNull();
+      });
     });
   });
 });

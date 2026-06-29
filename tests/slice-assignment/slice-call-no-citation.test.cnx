@@ -1,0 +1,16 @@
+// test-execution
+// Issue #1085 review (Finding #1): no Rule 21.15 citation when an equivalent
+// memcpy would be compatible. arr is u32[] and getVal() returns u32, so the
+// source type matches the element type and only one element is written — the
+// "memcpy would pass incompatible pointer types" comment must NOT be emitted.
+u32 getVal() {
+    return 0xAABBCCDD;
+}
+
+u32 main() {
+    u32[8] arr;
+    arr[0, 4] <- getVal();
+
+    if (arr[0] != 0xAABBCCDD) return 1;
+    return 0;
+}

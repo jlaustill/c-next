@@ -370,118 +370,133 @@ namespace LED {
 }
 ```
 
-### Array Slice Assignment (Issue #234)
+### Array Slice Assignment (Issue #234, #1081)
 
 The `[offset, length]` syntax has a different meaning when applied to arrays versus scalars:
 
-| Context                | Syntax                            | Meaning                   |
-| ---------------------- | --------------------------------- | ------------------------- |
-| Scalar (u8, u32, etc.) | `value[start, width]`             | Bit range manipulation    |
-| Array (u8[], string)   | `buffer[offset, length] <- value` | Byte memory copy (memcpy) |
+| Context                | Syntax                              | Meaning                                                 |
+| ---------------------- | ----------------------------------- | ------------------------------------------------------- |
+| Scalar (u8, u32, etc.) | `value[start, width]`               | Bit range manipulation                                  |
+| Array (u8[], string)   | `bufArray[offset, length] <- value` | Serialize `value` into the array as little-endian bytes |
 
-**Array Slice Syntax:**
+The array-slice construct is **valid** and supported. It serializes an integer `value` into consecutive array elements, least-significant byte first.
 
-```cnx
-u8[256] packet;
-u32 magic <- 0x12345678;
+#### Superseded: `memcpy` lowering (MISRA C:2012 Rule 21.15)
 
-// Copy 4 bytes from magic into packet at offset 0
-packet[0, 4] <- magic;
-
-// Using const variables for named offsets (common pattern)
-const u32 HEADER_OFFSET <- 0;
-const u32 DATA_OFFSET <- 8;
-packet[HEADER_OFFSET, 4] <- magic;
-packet[DATA_OFFSET, 8] <- timestamp;
-```
-
-**Generated C:**
+Earlier versions lowered an array slice to a single `memcpy`:
 
 ```c
-memcpy(&packet[0], &magic, 4);
-memcpy(&packet[8], &timestamp, 8);
+/* Superseded — no longer generated */
+memcpy(&packetArray[0], &magic, 4);
 ```
+
+This form was **superseded** (Issue #1081) for two reasons:
+
+1. **MISRA C:2012 Rule 21.15 violation** — `memcpy` was handed incompatible pointer types: the destination was a byte buffer (`uint8_t *`) while the source was a wider integer (`uint32_t *`). Rule 21.15 requires the pointer arguments of `memcpy`/`memmove`/`memcmp` to point to compatible types.
+2. **Non-deterministic byte order** — `memcpy` copied the value in the host's native byte order, so the same source produced different bytes on a big-endian target than on a little-endian target.
+
+#### Current behavior: per-element little-endian unrolled writes
+
+An array slice now lowers to fully-unrolled, per-element writes. Each destination element receives one slice of the source, extracted with an explicit right shift, so the bytes are written **least-significant-first (little-endian) on every target**, regardless of host endianness.
+
+**Units (exactly as the transpiler treats them):**
+
+- **`offset` is an element index** — `bufArray[2, 4]` begins writing at element `2`, not byte 2. For a `u8[]` an element is one byte, so the element index and the byte offset coincide; for wider arrays they differ.
+- **`length` is a byte count** — the number of bytes of the source to serialize.
+- Because each write stores one whole element, **`length` must be a multiple of the destination element size** (e.g. a `u16[]` slice length must be even).
+- **Bounds are checked as an element span**: `offset + length / elementSize <= capacity`. An in-bounds slice at a non-zero offset into a `u16[]`/`u32[]`/`u64[]` is accepted.
+- The **source is evaluated exactly once**: it is materialized into a single unsigned temporary before the writes, so an impure source such as `packetArray[0, 4] <- readSensor()` calls `readSensor()` once, not once per byte. (A single-element slice, where the value is used only once, skips the temporary.) Shifting the unsigned temporary also keeps every write MISRA C:2012 Rule 10.1-clean.
+
+The Rule 21.15 comment is emitted only when an equivalent `memcpy` would genuinely have passed incompatible pointer types: the source type is **known**, **differs** from the destination element type (the comment names the two types, e.g. `uint8_t* vs uint32_t*`), and **more than one element** is written. A same-type slice (`u32[] <- u32`), a single-element write, or a source whose type cannot be resolved at compile time omits the comment — the citation is never asserted where the incompatibility cannot be proven.
+
+**`u8[]` slice (one byte per element):**
+
+```cnx
+u8[256] packetArray;
+u32 value32 <- 0x12345678;
+packetArray[0, 4] <- value32;
+```
+
+Generated C:
+
+```c
+uint8_t packetArray[256] = {0};
+uint32_t value32 = 0x12345678U;
+/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+const uint32_t _tmp0 = (uint32_t)(value32);
+packetArray[0] = (uint8_t)(_tmp0);
+packetArray[1] = (uint8_t)(_tmp0 >> 8U);
+packetArray[2] = (uint8_t)(_tmp0 >> 16U);
+packetArray[3] = (uint8_t)(_tmp0 >> 24U);
+```
+
+**`u16[]` slice (element offset, whole `uint16_t` writes):**
+
+```cnx
+u16[8] wordArray;
+u32 v <- 0x11223344;
+wordArray[2, 4] <- v;
+```
+
+Generated C:
+
+```c
+uint16_t wordArray[8] = {0};
+uint32_t v = 0x11223344U;
+/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint32_t*). */
+const uint32_t _tmp0 = (uint32_t)(v);
+wordArray[2] = (uint16_t)(_tmp0);
+wordArray[3] = (uint16_t)(_tmp0 >> 16U);
+```
+
+Here `offset = 2` is an element index (writing starts at `wordArray[2]`), `length = 4` is a byte count, and because the elements are 16 bits wide the four bytes land in two `uint16_t` elements (`wordArray[2]` and `wordArray[3]`), each shifted into little-endian order.
 
 **Issue #234: Compile-Time Safety Requirements**
 
-As of Issue #234, array slice assignment enforces strict compile-time safety:
+Array slice assignment enforces strict compile-time safety:
 
-1. **Offset must be compile-time constant** — Variables not allowed
-2. **Length must be compile-time constant** — Variables not allowed
-3. **Bounds checked at compile time** — `offset + length <= capacity`
-4. **1D arrays only** — Multi-dimensional arrays must access innermost dimension first
+1. **Offset must be a compile-time constant** — literals or `const` variables; runtime variables are rejected.
+2. **Length must be a compile-time constant** — literals or `const` variables.
+3. **Bounds checked at compile time** — `offset + length / elementSize <= capacity`.
+4. **1D arrays only** — multi-dimensional arrays must access the innermost dimension first.
+5. **Integer source** — float and struct sources are a compile error, and the slice length may not exceed the source's width in bytes. A bare integer **literal** source is contextually typed to the slice width (ADR-052) and must fit in `length` bytes — e.g. `packetArray[0, 2] <- 0x12345678` is a compile error (a 4-byte value will not fit a 2-byte slice).
 
 ```cnx
-// VALID: Compile-time constants
-packet[0, 4] <- magic;
-packet[HEADER_OFFSET, 4] <- magic;  // const variable
+// VALID: compile-time constants
+packetArray[0, 4] <- magic;
+packetArray[HEADER_OFFSET, 4] <- magic;  // const variable
 
-// INVALID: Runtime offset (compile error)
+// INVALID: runtime offset (compile error)
 u32 offset <- 0;
-packet[offset, 4] <- magic;  // ERROR: offset must be compile-time constant
+packetArray[offset, 4] <- magic;  // ERROR: offset must be a compile-time constant
 
-// INVALID: Multi-dimensional array outer dimension
+// INVALID: multi-dimensional outer dimension
 u8[4][8] board;
 board[0, 4] <- magic;  // ERROR: slice only valid on 1D arrays
-// Future: board[0][0, 4] <- magic;  // Would slice row 0
 ```
 
 **Design Rationale (Issue #272):**
 
-The compile-time constant requirement is a deliberate safety design choice, not an arbitrary restriction:
+The compile-time-constant requirement is a deliberate safety design choice. An earlier implementation emitted a runtime-bounds-checked `memcpy` that was _silently skipped_ when the bounds check failed, producing subtle bugs (e.g. incorrect CRC checksums from skipped writes). Two things removed that hazard:
 
-1. **Silent failure problem**: The previous implementation generated runtime bounds checking:
+1. **No `memcpy` at all.** The current lowering is unrolled per-element writes, so there is no `memcpy` call that can be silently skipped — the "silent skip" failure mode described in #272 is now moot.
+2. **Compile-time bounds.** Requiring compile-time constants lets the element-span bound be verified before the code runs: if it compiles, it cannot overflow at runtime, which aligns with MISRA and similar safety-critical coding standards.
 
-   ```cpp
-   if (offset + length <= sizeof(buffer)) { memcpy(&buffer[offset], &value, length); }
-   ```
+Runtime-dependent offsets or lengths are intentionally rejected, because the element-span bound cannot be proven at compile time.
 
-   When bounds were violated, the `memcpy` was silently skipped. This led to subtle bugs where code appeared to work but produced incorrect results (e.g., incorrect CRC checksums due to skipped writes).
+**Named Compile-Time Offsets**
 
-2. **Compile-time guarantees**: By requiring compile-time constants, bounds can be verified before the code runs. If it compiles, it cannot overflow at runtime.
-
-3. **Safety-critical alignment**: Compile-time provable safety aligns with MISRA and similar safety-critical coding standards.
-
-**For Dynamic Use Cases:**
-
-If your offsets or lengths are truly runtime-dependent, the slice syntax is intentionally unavailable because compile-time safety cannot be guaranteed. Use explicit `memcpy` with manual bounds checking:
+When a struct layout is fixed, the offsets are known at compile time. Use `const` variables to keep the writes readable while preserving compile-time safety:
 
 ```cnx
-// Dynamic serialization pattern - use explicit memcpy
-#include <string.h>
-
-void serialize(u8* buffer, size capacity, const Data data) {
-    size offset <- 0;
-
-    // Programmer takes responsibility for bounds checking
-    if (offset + 4 <= capacity) {
-        memcpy(&buffer[offset], &data.field1, 4);
-        offset +<- 4;
-    }
-
-    if (offset + 2 <= capacity) {
-        memcpy(&buffer[offset], &data.field2, 2);
-        offset +<- 2;
-    }
-}
-```
-
-**Alternative: Named Compile-Time Offsets**
-
-If your struct layout is fixed, the offsets ARE known at compile time. Use `const` variables:
-
-```cnx
-// Fixed layout - use named compile-time offsets
 const size OFFSET_FIELD1 <- 0;
 const size OFFSET_FIELD2 <- 4;
 const size OFFSET_FIELD3 <- 6;
 
-buffer[OFFSET_FIELD1, 4] <- data.field1;
-buffer[OFFSET_FIELD2, 2] <- data.field2;
-buffer[OFFSET_FIELD3, 1] <- data.field3;
+packetArray[OFFSET_FIELD1, 4] <- data.field1;
+packetArray[OFFSET_FIELD2, 2] <- data.field2;
+packetArray[OFFSET_FIELD3, 1] <- data.field3;
 ```
-
-This approach maintains compile-time safety while keeping code readable.
 
 ---
 
@@ -493,7 +508,7 @@ This approach maintains compile-time safety while keeping code readable.
 4. `flags.length` returns bit width as compile-time constant
 5. Bit access works with register members
 6. blink.cnx works on Teensy MicroMod with new syntax
-7. `packet[0, 4] <- value` generates direct memcpy (Issue #234)
+7. `packetArray[0, 4] <- value` generates per-element little-endian unrolled writes — one shifted byte/element write per destination element, no memcpy (Issue #234, #1081)
 8. Runtime offsets in slice assignment produce compile-time errors (Issue #234)
 9. Multi-dimensional array outer-dimension slicing produces compile-time errors (Issue #234)
 
