@@ -11,15 +11,9 @@ import IAssignmentContext from "../IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TypeValidator from "../../TypeValidator";
-import type ICodeGenApi from "../../types/ICodeGenApi";
 import type TTypeInfo from "../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import TypeResolver from "../../TypeResolver";
-
-/** Get typed generator reference */
-function gen(): ICodeGenApi {
-  return CodeGenState.generator as ICodeGenApi;
-}
 
 /** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
 const UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
@@ -70,7 +64,7 @@ function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
       [...typeInfo.arrayDimensions],
       [...ctx.subscripts],
       line,
-      (expr) => gen().tryEvaluateConstant(expr),
+      (expr) => CodeGenState.requireGenerator().tryEvaluateConstant(expr),
     );
   }
 
@@ -248,7 +242,7 @@ function resolveLiteralSliceSource(
   isComposite: boolean;
 } {
   const value = ctx.valueCtx
-    ? gen().tryEvaluateConstant(ctx.valueCtx)
+    ? CodeGenState.requireGenerator().tryEvaluateConstant(ctx.valueCtx)
     : undefined;
   if (
     value !== undefined &&
@@ -471,7 +465,9 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   }
 
   // Validate offset is compile-time constant
-  const offsetValue = gen().tryEvaluateConstant(ctx.subscripts[0]);
+  const offsetValue = CodeGenState.requireGenerator().tryEvaluateConstant(
+    ctx.subscripts[0],
+  );
   if (offsetValue === undefined) {
     throw new Error(
       `${line}:0 Error: Slice assignment offset must be a compile-time constant. ` +
@@ -480,7 +476,9 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   }
 
   // Validate length is compile-time constant
-  const lengthValue = gen().tryEvaluateConstant(ctx.subscripts[1]);
+  const lengthValue = CodeGenState.requireGenerator().tryEvaluateConstant(
+    ctx.subscripts[1],
+  );
   if (lengthValue === undefined) {
     throw new Error(
       `${line}:0 Error: Slice assignment length must be a compile-time constant. ` +

@@ -30,6 +30,7 @@ import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
+import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
 
 /**
@@ -73,10 +74,26 @@ export default class CodeGenState {
   // ===========================================================================
 
   /**
-   * Reference to the CodeGenerator instance for handlers to call methods.
-   * Typed as unknown to avoid circular dependencies - handlers cast as needed.
+   * Reference to the CodeGenerator instance for handlers to call its methods,
+   * typed to the method subset they use (ICodeGenApi). `import type` keeps this a
+   * compile-time-only edge, and CodeGenState already imports sibling types from
+   * output/codegen/types, so this introduces no runtime/circular dependency.
    */
-  static generator: unknown = null;
+  static generator: ICodeGenApi | null = null;
+
+  /**
+   * The CodeGenerator instance, asserted present. Handlers call this instead of
+   * each casting `generator` themselves — one source of truth for the access and
+   * null-check (the generator is always set before any handler runs).
+   */
+  static requireGenerator(): ICodeGenApi {
+    if (CodeGenState.generator === null) {
+      throw new Error(
+        "CodeGenState.generator is not set; codegen accessed before initialization.",
+      );
+    }
+    return CodeGenState.generator;
+  }
 
   // ===========================================================================
   // SYMBOL DATA (read-only after initialization)

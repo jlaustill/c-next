@@ -11,12 +11,6 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TTypeInfo from "../../types/TTypeInfo";
-import type ICodeGenApi from "../../types/ICodeGenApi";
-
-/** Get typed generator reference */
-function gen(): ICodeGenApi {
-  return CodeGenState.generator as ICodeGenApi;
-}
 
 /** Maps C operators to clamp helper operation names */
 const CLAMP_OP_MAP: Record<string, string> = {
@@ -62,9 +56,11 @@ function getTargetTypeInfo(ctx: IAssignmentContext): {
  */
 function handleAtomicRMW(ctx: IAssignmentContext): string {
   const { typeInfo } = getTargetTypeInfo(ctx);
-  const target = gen().generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
+    ctx.targetCtx,
+  );
 
-  return gen().generateAtomicRMW(
+  return CodeGenState.requireGenerator().generateAtomicRMW(
     target,
     ctx.cOp,
     ctx.generatedValue,
@@ -80,7 +76,9 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
  */
 function handleOverflowClamp(ctx: IAssignmentContext): string {
   const { typeInfo } = getTargetTypeInfo(ctx);
-  const target = gen().generateAssignmentTarget(ctx.targetCtx);
+  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
+    ctx.targetCtx,
+  );
 
   // Floats use native C arithmetic (overflow to infinity)
   if (TypeCheckUtils.usesNativeArithmetic(typeInfo!.baseType)) {

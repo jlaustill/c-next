@@ -11,7 +11,6 @@ import SIGNED_TYPES from "./types/SIGNED_TYPES";
 import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
-import type ICodeGenApi from "./types/ICodeGenApi";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 
 /**
@@ -340,8 +339,7 @@ class TypeResolver {
     // offset/length use — so a named const or any-base literal width
     // (`b[0, WIDTH]`, `b[0, 0b100000]`) is sized at its real width rather than
     // dropped, which would mis-type a composite slice source (Issue #1085 review).
-    const generator = CodeGenState.generator as ICodeGenApi | null;
-    const evaluated = generator?.tryEvaluateConstant(widthExpr);
+    const evaluated = CodeGenState.generator?.tryEvaluateConstant(widthExpr);
     if (evaluated !== undefined) {
       return evaluated > 0 ? evaluated : null;
     }
