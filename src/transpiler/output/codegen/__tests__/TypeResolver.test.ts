@@ -656,6 +656,39 @@ describe("TypeResolver", () => {
         TypeResolver.getIntegerExpressionType(parseExpression("a + 5")),
       ).toBe("u32");
     });
+
+    it("narrows a bit-extraction operand to the extracted width, not the variable's full width", () => {
+      setInt("a", "u32", 32);
+      setInt("b", "u64", 64);
+      // b[0, 32] is u32, so a + b[0, 32] is u32 — NOT u64. Typing it u64 would
+      // make slice codegen cast the composite to a wider type (MISRA 10.8).
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("a + b[0, 32]")),
+      ).toBe("u32");
+    });
+
+    it("types an array-element operand by its element type, ignoring the index variable's width", () => {
+      setTypeInfo("arr", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: true,
+        isConst: false,
+      });
+      setInt("idx", "u64", 64);
+      setInt("a", "u8", 8);
+      // arr[idx] is u8 (the element); a wide index must not inflate the width.
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("a + arr[idx]")),
+      ).toBe("u8");
+    });
+
+    it("types a bit-extraction operand by the extracted width when it is the widest operand", () => {
+      setInt("b", "u64", 64);
+      setInt("c", "u8", 8);
+      expect(
+        TypeResolver.getIntegerExpressionType(parseExpression("b[0, 32] + c")),
+      ).toBe("u32");
+    });
   });
 
   // ========================================================================
