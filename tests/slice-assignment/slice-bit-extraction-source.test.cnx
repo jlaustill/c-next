@@ -1,0 +1,17 @@
+// test-execution
+// Issue #1085 review: a bit-extraction slice source must serialize at its OWN
+// width, not be truncated to the destination element type. Before the fix,
+// buf[0,4] <- b[0,32] leaked the u8 element type as expectedType into the source
+// expression, generating (uint8_t)((b) & 0xFFFFFFFFU) and writing only the low
+// byte (78 00 00 00). The full 32 bits must be written little-endian.
+u32 main() {
+    u8[8] buf;
+    u32 b <- 0x12345678;
+    buf[0, 4] <- b[0, 32];
+
+    if (buf[0] != 0x78) return 1;
+    if (buf[1] != 0x56) return 2;
+    if (buf[2] != 0x34) return 3;
+    if (buf[3] != 0x12) return 4;
+    return 0;
+}

@@ -20,7 +20,7 @@ uint32_t nextSliceValue(void) {
 
 int main(void) {
     uint8_t buffer[8] = {0};
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: destination element type vs source type). */
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t _tmp0 = (uint32_t)(nextSliceValue());
     buffer[0] = (uint8_t)(_tmp0);
     buffer[1] = (uint8_t)(_tmp0 >> 8U);

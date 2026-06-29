@@ -56,6 +56,16 @@ class AssignmentExpectedTypeResolver {
 
     // Case 2: Has postfix ops - extract identifiers from chain
     if (baseId && postfixOps.length > 0) {
+      // A 2-expression subscript `[offset, length]` is a slice (or bit-range)
+      // write, not an element write. Its SOURCE value must be generated at its
+      // own width — narrowing it to the element/scalar type truncates an
+      // element-width-sensitive source such as a bit-extraction (Issue #1085:
+      // `buf[0,4] <- b[0,32]` leaked the u8 element type and wrote only the low
+      // byte). Leave expectedType unset so the source serializes at full width.
+      if (AssignmentExpectedTypeResolver.hasRangeSubscript(postfixOps)) {
+        return { expectedType: null, assignmentContext: null };
+      }
+
       const { identifiers, hasSubscript } = analyzePostfixOps(
         baseId,
         postfixOps,
@@ -85,6 +95,17 @@ class AssignmentExpectedTypeResolver {
 
     // Case 3: Complex patterns we can't resolve
     return { expectedType: null, assignmentContext: null };
+  }
+
+  /**
+   * True if any postfix subscript is the 2-expression `[offset, length]` form —
+   * an array slice or scalar bit-range write (vs a 1-expression element/bit
+   * access). The grammar models both as `'[' expression ',' expression ']'`.
+   */
+  private static hasRangeSubscript(
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): boolean {
+    return postfixOps.some((op) => op.expression().length === 2);
   }
 
   /**
