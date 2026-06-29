@@ -182,9 +182,21 @@ function resolveSliceSource(
     ? TypeResolver.getExpressionType(ctx.valueCtx)
     : null;
 
-  // A bare integer literal has no fixed essential category (`int`); contextually
-  // type it to the slice byte-width (ADR-052), with a compile-time fit check.
-  if (directType === "int") {
+  // A bare integer literal has no fixed essential category; contextually type it
+  // to the slice byte-width (ADR-052), with a compile-time fit check. A positive
+  // literal types as `int`; a negative literal (unary minus) types as null yet is
+  // still a compile-time constant. Fold either so an out-of-range negative is
+  // rejected exactly like an out-of-range positive, rather than silently
+  // truncated (e.g. buf[0,1] <- -300 -> (uint8_t)(-300)) (Issue #1085 review).
+  // A source that resolves to a fixed-width type (variable, struct field, …)
+  // keeps that type and is not folded here.
+  const literalValue =
+    directType === "int" || directType === null
+      ? ctx.valueCtx
+        ? CodeGenState.requireGenerator().tryEvaluateConstant(ctx.valueCtx)
+        : undefined
+      : undefined;
+  if (literalValue !== undefined) {
     return resolveLiteralSliceSource(ctx, line, rawName, lengthValue);
   }
 
@@ -244,14 +256,23 @@ function resolveLiteralSliceSource(
   const value = ctx.valueCtx
     ? CodeGenState.requireGenerator().tryEvaluateConstant(ctx.valueCtx)
     : undefined;
-  if (
-    value !== undefined &&
-    BigInt(Math.trunc(value)) >= 1n << BigInt(8 * lengthValue)
-  ) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment literal value (${value}) does not fit ` +
-        `in the ${lengthValue}-byte slice for '${rawName}'.`,
-    );
+  if (value !== undefined) {
+    // The literal is contextually typed to the slice byte-width (ADR-052), so it
+    // must be representable in `length` bytes — either as an unsigned value
+    // (0 .. 2^(8N)-1) or as a two's-complement signed value (-2^(8N-1) .. -1).
+    // Guarding only the unsigned upper bound let a negative literal of any
+    // magnitude through, silently truncating it (e.g. buf[0,1] <- -300 became
+    // (uint8_t)(-300)) while the mirror-image positive overflow was rejected
+    // (Issue #1085 review). `lengthValue` is already validated > 0 by the caller.
+    const truncated = BigInt(Math.trunc(value));
+    const unsignedUpperBound = 1n << BigInt(8 * lengthValue);
+    const signedLowerBound = -(1n << BigInt(8 * lengthValue - 1));
+    if (truncated >= unsignedUpperBound || truncated < signedLowerBound) {
+      throw new Error(
+        `${line}:0 Error: Slice assignment literal value (${value}) does not fit ` +
+          `in the ${lengthValue}-byte slice for '${rawName}'.`,
+      );
+    }
   }
 
   const cType = unsignedCTypeForBytes(lengthValue);

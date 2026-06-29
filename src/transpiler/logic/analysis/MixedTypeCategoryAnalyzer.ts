@@ -33,7 +33,6 @@
  */
 
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
-import type { ParseTree } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
@@ -205,70 +204,96 @@ class MixedCategoryListener extends CNextListener {
   }
 
   /**
-   * Drill any binary-operator-level context down to its leftmost unary
-   * expression. Each level is `subLevel (op subLevel)*`, so the first child is
-   * always the next level down until a unary expression is reached.
+   * Collect the essential category of every classifiable VALUE leaf under one
+   * binary-operator operand, descending through nested operator levels and
+   * parentheses but never into a postfix suffix (an array index, bit-range
+   * argument, or call argument is not a value operand of THIS operator).
+   *
+   * A unary expression is a grammar leaf of the operator levels:
+   *  - prefix `-`/`~` preserve the operand's category, so descend through them;
+   *  - prefix `!` (essentially-Boolean result) and `&` (address-of, ADR-006)
+   *    carry no signed/unsigned category — contribute null, so a mix like
+   *    `!a = !b` is not falsely rejected (Issue #1085 review);
+   *  - a postfix WITH a suffix (member/call/indexing/bit-extraction) cannot be
+   *    positively classified — contribute null, which exempts the sanctioned
+   *    cross-category form `x[0, 32]`;
+   *  - a parenthesized expression contributes ALL of its own leaves (not merely
+   *    the leftmost), so a compound operand is judged by its whole content.
    */
-  private firstUnary(
+  private collectOperandCategories(
     ctx: ParserRuleContext,
-  ): Parser.UnaryExpressionContext | null {
-    let current: ParserRuleContext | null = ctx;
-    while (current && !(current instanceof Parser.UnaryExpressionContext)) {
-      const child: ParseTree | null =
-        current.getChildCount() > 0 ? current.getChild(0) : null;
-      current = child instanceof ParserRuleContext ? child : null;
+    frame: ScopeFrame,
+    out: Category[],
+  ): void {
+    if (ctx instanceof Parser.UnaryExpressionContext) {
+      const inner = ctx.unaryExpression();
+      if (inner) {
+        const op = ctx.getChild(0)?.getText();
+        if (op === "!" || op === "&") {
+          out.push(null);
+          return;
+        }
+        this.collectOperandCategories(inner, frame, out);
+        return;
+      }
+
+      const postfix = ctx.postfixExpression();
+      if (!postfix || postfix.getChildCount() > 1) {
+        out.push(null);
+        return;
+      }
+
+      const primary = postfix.primaryExpression();
+      const parenthesized = primary?.expression();
+      if (parenthesized) {
+        this.collectOperandCategories(parenthesized, frame, out);
+        return;
+      }
+
+      const identifier = primary?.IDENTIFIER();
+      out.push(
+        identifier ? this.categoryOfName(identifier.getText(), frame) : null,
+      );
+      return;
     }
-    return current instanceof Parser.UnaryExpressionContext ? current : null;
+
+    for (let i = 0; i < ctx.getChildCount(); i += 1) {
+      const child = ctx.getChild(i);
+      if (child instanceof ParserRuleContext) {
+        this.collectOperandCategories(child, frame, out);
+      }
+    }
   }
 
   /**
-   * Resolve the essential category of a unary expression. Conservative:
-   * anything not a bare variable (or a parenthesized one) returns null so the
-   * rule never fires on an operand it cannot positively classify — in
-   * particular a bit-extraction `x[0, 32]` (a postfix suffix) is exempt, which
-   * is exactly the sanctioned cross-category form.
+   * The essential category of one operand of a binary-operator level: the single
+   * category shared by all its classifiable value leaves, or null when it has
+   * none OR when its own leaves are themselves mixed.
+   *
+   * Returning null for an internally-mixed operand prevents a CASCADE of
+   * duplicate errors: `a * b + c` (with `i32 a`, `u32 b`, `u32 c`) is reported
+   * once — at the `a * b` level — instead of again at the `+ c` level, where the
+   * product's category is genuinely ambiguous rather than `a`'s leftmost
+   * (Issue #1085 review). An internally-mixed operand is always reported at its
+   * own level, so nothing is missed. Because a resolved (non-null) category
+   * means every classifiable leaf agrees, comparing two resolved-but-differing
+   * operands always reflects a real signed/unsigned combination — no false
+   * positive on uniform code.
    */
-  private categoryOfUnary(
-    ctx: Parser.UnaryExpressionContext,
-    frame: ScopeFrame,
-  ): Category {
-    // Prefix operators. `-` and `~` preserve the operand's essential category,
-    // but `!` (logical negation) yields an essentially-Boolean result and `&`
-    // (address-of, ADR-006) yields an address — neither carries the operand's
-    // signed/unsigned category, so classifying by it would falsely reject e.g.
-    // `!a = !b` where a and b differ in signedness (Issue #1085 review).
-    const inner = ctx.unaryExpression();
-    if (inner) {
-      const op = ctx.getChild(0)?.getText();
-      if (op === "!" || op === "&") return null;
-      return this.categoryOfUnary(inner, frame);
+  private operandCategory(ctx: ParserRuleContext, frame: ScopeFrame): Category {
+    const leaves: Category[] = [];
+    this.collectOperandCategories(ctx, frame, leaves);
+
+    let resolved: Category = null;
+    for (const leaf of leaves) {
+      if (leaf === null) continue;
+      if (resolved === null) {
+        resolved = leaf;
+      } else if (resolved !== leaf) {
+        return null;
+      }
     }
-
-    const postfix = ctx.postfixExpression();
-    if (!postfix) return null;
-    // A postfix suffix (member access, call, indexing, bit-extraction) cannot be
-    // positively classified here — be conservative and exempt it.
-    if (postfix.getChildCount() > 1) return null;
-
-    const primary = postfix.primaryExpression();
-    if (!primary) return null;
-
-    const parenthesized = primary.expression();
-    if (parenthesized) {
-      const unary = this.firstUnary(parenthesized);
-      return unary ? this.categoryOfUnary(unary, frame) : null;
-    }
-
-    const identifier = primary.IDENTIFIER();
-    if (identifier) return this.categoryOfName(identifier.getText(), frame);
-
-    return null; // literal or otherwise unclassifiable
-  }
-
-  /** Category of one operand of a binary-operator level. */
-  private categoryOf(ctx: ParserRuleContext, frame: ScopeFrame): Category {
-    const unary = this.firstUnary(ctx);
-    return unary ? this.categoryOfUnary(unary, frame) : null;
+    return resolved;
   }
 
   /**
@@ -279,8 +304,8 @@ class MixedCategoryListener extends CNextListener {
     if (operands.length < 2) return;
     const frame = this.frameFor(operands[0]);
     for (let i = 0; i < operands.length - 1; i += 1) {
-      const left = this.categoryOf(operands[i], frame);
-      const right = this.categoryOf(operands[i + 1], frame);
+      const left = this.operandCategory(operands[i], frame);
+      const right = this.operandCategory(operands[i + 1], frame);
       if (left && right && left !== right) {
         const { line, column } = ParserUtils.getPosition(operands[i + 1]);
         this.analyzer.addError(line, column);

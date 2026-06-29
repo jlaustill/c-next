@@ -1,0 +1,14 @@
+// test-execution
+// Issue #1085 review: a negative integer literal is a valid in-range slice source,
+// contextually typed to the slice byte-width (ADR-052) and serialized as
+// two's-complement little-endian bytes. buf[0,4] <- -1 writes 0xFF in all 4 bytes.
+u32 main() {
+    u8[8] buf;
+    buf[0, 4] <- -1;
+
+    if (buf[0] != 0xFF) return 1;
+    if (buf[1] != 0xFF) return 2;
+    if (buf[2] != 0xFF) return 3;
+    if (buf[3] != 0xFF) return 4;
+    return 0;
+}

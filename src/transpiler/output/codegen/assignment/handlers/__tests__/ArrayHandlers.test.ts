@@ -700,6 +700,72 @@ describe("ArrayHandlers", () => {
       );
     });
 
+    it("rejects a negative literal that does not fit the slice (mirror of the positive overflow check)", () => {
+      // A negative literal types as null via getExpressionType (unary minus), but
+      // is still a compile-time constant. It must be fit-checked like a positive
+      // one: buf[0,1] <- -300 cannot fit a 1-byte slice (-300 < -128) and must be
+      // rejected, not silently truncated to (uint8_t)(-300) (Issue #1085 review).
+      mockGetExpressionType.mockReturnValue(null);
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0) // offset
+          .mockReturnValueOnce(1) // length (1-byte slice)
+          .mockReturnValue(-300), // source value (folded; re-read by resolveLiteralSliceSource)
+      });
+      const ctx = createMockContext({
+        identifiers: ["buffer"],
+        subscripts: [
+          { mockValue: "0", start: { line: 7 } } as never,
+          { mockValue: "1", start: { line: 7 } } as never,
+        ],
+        generatedValue: "-300",
+      });
+
+      expect(() => getHandler()!(ctx)).toThrow(
+        "Slice assignment literal value (-300) does not fit in the 1-byte slice",
+      );
+    });
+
+    it("serializes an in-range negative literal as two's-complement little-endian bytes", () => {
+      // -1 fits a 4-byte slice (-2^31 <= -1 < 2^32), so it is accepted and written
+      // as 0xFFFFFFFF little-endian. The literal types to the slice width (u32),
+      // so an equivalent memcpy would be incompatible -> Rule 21.15 is cited.
+      mockGetExpressionType.mockReturnValue(null);
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
+      ]);
+      HandlerTestUtils.setupMockGenerator({
+        tryEvaluateConstant: vi
+          .fn()
+          .mockReturnValueOnce(0) // offset
+          .mockReturnValueOnce(4) // length
+          .mockReturnValue(-1), // source value
+      });
+      const ctx = createMockContext({
+        identifiers: ["buffer"],
+        subscripts: [
+          { mockValue: "0", start: { line: 1 } } as never,
+          { mockValue: "4", start: { line: 1 } } as never,
+        ],
+        generatedValue: "-1",
+      });
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toBe(
+        `${sliceComment("uint8_t", "uint32_t")}\n` +
+          "const uint32_t _tmp0 = (uint32_t)(-1);\n" +
+          "buffer[0] = (uint8_t)(_tmp0);\n" +
+          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
+      );
+    });
+
     it("throws on compound assignment", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],

@@ -299,4 +299,48 @@ describe("MixedTypeCategoryAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  describe("no cascade of duplicate errors (Issue #1085 review)", () => {
+    it("reports a mixed nested expression once, not again at the enclosing level", () => {
+      // `a * b` is i32 * u32 (one violation). Representing the product by its
+      // leftmost operand (`a`, signed) let the `+ c` level re-report it against
+      // `c` (unsigned) — a second, misleading error. The product's category is
+      // ambiguous, so the enclosing level must not re-flag it.
+      const errors = analyze(`
+        void main() {
+          i32 a <- 1;
+          u32 b <- 2;
+          u32 c <- 3;
+          u32 r <- a * b + c;
+        }
+      `);
+      expect(errors).toHaveLength(1);
+    });
+
+    it("reports a mix inside parentheses once, not again at the outer operator", () => {
+      const errors = analyze(`
+        void main() {
+          i32 a <- 1;
+          u32 b <- 2;
+          u32 c <- 3;
+          u32 r <- (a + b) + c;
+        }
+      `);
+      expect(errors).toHaveLength(1);
+    });
+
+    it("still flags a uniform compound operand mixed against an outer operand", () => {
+      // (a + b) is u32 + u32 (uniform unsigned); combining it with the signed `c`
+      // is a real Rule 10.4 violation that must still be caught at the outer `+`.
+      const errors = analyze(`
+        void main() {
+          u32 a <- 1;
+          u32 b <- 2;
+          i32 c <- 3;
+          i32 r <- (a + b) + c;
+        }
+      `);
+      expect(errors).toHaveLength(1);
+    });
+  });
 });
