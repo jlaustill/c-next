@@ -323,19 +323,20 @@ The rename improves readability — `flags.bit_length` makes it obvious that the
 
 ### Slice Assignment Interaction
 
-`byte_length` is directly useful for slice assignments (ADR-007, Issue #234). An array slice lowers to fully-unrolled per-element little-endian writes (not `memcpy`, which violated MISRA C:2012 Rule 21.15 — see ADR-007, Issue #1081), so `byte_length` indicates how many bytes will be spread across those per-element writes:
+`byte_length` documents how many bytes a value occupies in a slice assignment (ADR-007, Issue #234). An array slice lowers to fully-unrolled per-element little-endian writes (not `memcpy`, which violated MISRA C:2012 Rule 21.15 — see ADR-007, Issue #1081), so `byte_length` is the number of bytes spread across those per-element writes:
 
 ```cnx
 u8[256] bufArray;
 u32 magic <- 0x12345678;
 
-// Before: had to manually calculate byte size
+// magic.byte_length is 4, so 4 bytes are serialized as per-element little-endian writes:
 bufArray[0, 4] <- magic;
-
-// After: byte_length makes intent clear in documentation/comments
-// magic.byte_length is 4, so 4 bytes are serialized as per-element little-endian writes
-bufArray[0, magic.byte_length] <- magic;
 ```
+
+> **Note:** Using `magic.byte_length` _directly_ as the slice length
+> (`bufArray[0, magic.byte_length] <- magic;`) is not yet supported — the slice
+> length must currently be a literal or a `const`. Folding `.byte_length` in the
+> slice-length position is tracked in [#1093](https://github.com/jlaustill/c-next/issues/1093).
 
 ---
 

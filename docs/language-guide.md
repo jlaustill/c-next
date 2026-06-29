@@ -100,7 +100,7 @@ Transpiles to explicit per-element little-endian writes, unrolled at compile tim
 
 ```c
 uint8_t bufArray[256] = {0};
-uint32_t magic = 0x12345678;
+uint32_t magic = 0x12345678U;
 
 /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
 const uint32_t _tmp0 = (uint32_t)(magic);

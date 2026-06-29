@@ -9,9 +9,6 @@
 // Issue #1085: a same-category arithmetic slice source (i32 + i32, permitted by
 // MISRA Rule 10.4) must serialize MISRA Rule 10.8-clean. The signed composite is
 // bound to a same-type temp before the unsigned cast, never cast directly.
-//
-// Expected bytes are held in u8 variables so the assertions stay u8-vs-u8 (a
-// bare `buf[i] != 0x78` literal compare is a separate, unrelated Rule 10.4 gap).
 int main(void) {
     uint8_t buf[8] = {};
     int32_t a = 0x12340000;
@@ -23,13 +20,9 @@ int main(void) {
     buf[1] = (uint8_t)(_tmp1 >> 8U);
     buf[2] = (uint8_t)(_tmp1 >> 16U);
     buf[3] = (uint8_t)(_tmp1 >> 24U);
-    uint8_t expected0 = 0x78U;
-    uint8_t expected1 = 0x56U;
-    uint8_t expected2 = 0x34U;
-    uint8_t expected3 = 0x12U;
-    if (buf[0U] != expected0) return 1;
-    if (buf[1U] != expected1) return 2;
-    if (buf[2U] != expected2) return 3;
-    if (buf[3U] != expected3) return 4;
+    if (buf[0U] != 0x78) return 1;
+    if (buf[1U] != 0x56) return 2;
+    if (buf[2U] != 0x34) return 3;
+    if (buf[3U] != 0x12) return 4;
     return 0;
 }
