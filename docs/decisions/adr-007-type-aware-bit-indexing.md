@@ -407,7 +407,7 @@ An array slice now lowers to fully-unrolled, per-element writes. Each destinatio
 - **Bounds are checked as an element span**: `offset + length / elementSize <= capacity`. An in-bounds slice at a non-zero offset into a `u16[]`/`u32[]`/`u64[]` is accepted.
 - The **source is evaluated exactly once**: it is materialized into a single unsigned temporary before the writes, so an impure source such as `packetArray[0, 4] <- readSensor()` calls `readSensor()` once, not once per byte. (A single-element slice, where the value is used only once, skips the temporary.) Shifting the unsigned temporary also keeps every write MISRA C:2012 Rule 10.1-clean.
 
-The Rule 21.15 comment is emitted whenever an equivalent `memcpy` could have passed incompatible pointer types: when the source type differs from the destination element type (the comment names the two types, e.g. `uint8_t* vs uint32_t*`), or, conservatively, when the source type cannot be resolved at compile time (a generic `destination element type vs source type`). A same-type slice such as `u32[] <- u32`, where the two pointer types would have matched, omits the comment.
+The Rule 21.15 comment is emitted only when an equivalent `memcpy` would genuinely have passed incompatible pointer types: the source type is **known**, **differs** from the destination element type (the comment names the two types, e.g. `uint8_t* vs uint32_t*`), and **more than one element** is written. A same-type slice (`u32[] <- u32`), a single-element write, or a source whose type cannot be resolved at compile time omits the comment — the citation is never asserted where the incompatibility cannot be proven.
 
 **`u8[]` slice (one byte per element):**
 
@@ -459,7 +459,7 @@ Array slice assignment enforces strict compile-time safety:
 2. **Length must be a compile-time constant** — literals or `const` variables.
 3. **Bounds checked at compile time** — `offset + length / elementSize <= capacity`.
 4. **1D arrays only** — multi-dimensional arrays must access the innermost dimension first.
-5. **Integer source only** — float and struct sources are a compile error, and the slice length may not exceed the source's width in bytes.
+5. **Integer source** — float and struct sources are a compile error, and the slice length may not exceed the source's width in bytes. A bare integer **literal** source is contextually typed to the slice width (ADR-052) and must fit in `length` bytes — e.g. `packetArray[0, 2] <- 0x12345678` is a compile error (a 4-byte value will not fit a 2-byte slice).
 
 ```cnx
 // VALID: compile-time constants
