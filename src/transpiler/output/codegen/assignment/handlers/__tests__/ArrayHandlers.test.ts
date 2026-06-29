@@ -546,14 +546,15 @@ describe("ArrayHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      // Unknown source: generic comment (types unknown). The temp is sized to the
-      // 4-byte slice length (uint32_t), not the widest type — so the cast does
-      // not widen a composite expression like `a + b` (MISRA Rule 10.8), while
-      // every shift on the temp stays unsigned (10.1) and in range (Finding 3).
+      // Unknown source: NO Rule 21.15 citation — we cannot prove the source type
+      // is incompatible with the destination element, so asserting "incompatible
+      // pointer types" would be false (Issue #1085 review, Finding #1). The temp
+      // is still sized to the 4-byte slice length (uint32_t), not the widest
+      // type — so the cast does not widen a composite expression like `a + b`
+      // (MISRA Rule 10.8), while every shift on the temp stays unsigned (10.1)
+      // and in range (Finding 3).
       expect(result).toBe(
-        "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
-          "(memcpy would pass incompatible pointer types: destination element type vs source type). */\n" +
-          "const uint32_t _tmp0 = (uint32_t)(expr);\n" +
+        "const uint32_t _tmp0 = (uint32_t)(expr);\n" +
           "buffer[0] = (uint8_t)(_tmp0);\n" +
           "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
           "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +

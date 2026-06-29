@@ -28,22 +28,16 @@ const SIGNED_INT_RE = /^i(8|16|32|64)$/;
 
 /**
  * Comment emitted above an unrolled slice copy so the generated C is
- * self-documenting (Issue #1081). It is emitted ONLY when the equivalent
- * `memcpy` would actually violate MISRA C:2012 Rule 21.15 — i.e. when the
- * destination element type differs from the source type, so the two `memcpy`
- * pointer arguments would be incompatible. When the types match (`u32[] <- u32`)
- * a `memcpy` would be perfectly compliant, so no rule is cited.
+ * self-documenting (Issue #1081). The caller emits it ONLY when an equivalent
+ * `memcpy` would actually violate MISRA C:2012 Rule 21.15 — the source type is
+ * known and differs from the destination element type, so the two `memcpy`
+ * pointer arguments would be incompatible. When the types match (`u32[] <- u32`),
+ * the source type is unknown, or a single element is written, no rule is cited.
  */
-function sliceUnrollComment(
-  destCType: string,
-  srcCType: string | null,
-): string {
-  const detail = srcCType
-    ? `${destCType}* vs ${srcCType}*`
-    : "destination element type vs source type";
+function sliceUnrollComment(destCType: string, srcCType: string): string {
   return (
     `/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes ` +
-    `(memcpy would pass incompatible pointer types: ${detail}). */`
+    `(memcpy would pass incompatible pointer types: ${destCType}* vs ${srcCType}*). */`
   );
 }
 
@@ -400,10 +394,14 @@ function buildSliceWrites(
   );
 
   const writes: string[] = [];
-  // Self-document the codegen ONLY when a memcpy would actually have violated
-  // Rule 21.15 (source/destination pointer types differ). Same-type slices need
-  // no rule citation (Issue #1081 review).
-  if (src.cType === null || src.cType !== dest.cType) {
+  // Self-document the codegen ONLY when an equivalent memcpy would genuinely
+  // have violated Rule 21.15: the source type is KNOWN and differs from the
+  // destination element type (incompatible pointer types) AND more than one
+  // element is written (a real unroll). A same-type, single-element, or
+  // unresolved-type source does not warrant the citation (Issue #1085 review:
+  // the comment must not assert "incompatible pointer types" it cannot prove,
+  // nor label a single write as "unrolled").
+  if (src.cType !== null && src.cType !== dest.cType && elementCount > 1) {
     writes.push(sliceUnrollComment(dest.cType, src.cType));
   }
 
