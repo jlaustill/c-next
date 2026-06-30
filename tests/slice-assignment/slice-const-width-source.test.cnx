@@ -5,8 +5,8 @@
 // width, so the const operand was dropped, the composite was typed from the
 // narrow operand (u8), and the slice was falsely rejected with
 // "Slice assignment length (3 bytes) exceeds the source value width (1 bytes)".
-// (Width is 24, not 32, to avoid the separate pre-existing full-width const-mask
-// codegen bug where b[0, 32] with a const width emits the UB `1U << 32` — #1094.)
+// The const width now folds to a precomputed mask byte-identical to the literal
+// form b[0, 24] (was a runtime `1U << WIDTH` before the #1094 fix).
 u32 main() {
     const u8 WIDTH <- 24;
     u8[8] buf;

@@ -1805,6 +1805,14 @@ const handleBitRangeSubscript = (
     orchestrator.generateExpression(exprs[1]),
   ]);
 
+  // Issue #1094: resolve a const/macro width to its numeric value so the mask is
+  // precomputed (byte-identical to a literal width) instead of a runtime
+  // ((1U << W) - 1) — which is UB at full width (1U << 32) and uses the wrong
+  // base type for >32-bit widths. The "U" suffix matches the literal path, which
+  // generates bit widths under a size_t expectedType.
+  const widthConst = orchestrator.tryEvaluateConstant(exprs[1]);
+  const maskWidth = widthConst === undefined ? width : `${widthConst}U`;
+
   const isFloatType =
     ctx.primaryTypeInfo?.baseType === "f32" ||
     ctx.primaryTypeInfo?.baseType === "f64";
@@ -1817,13 +1825,19 @@ const handleBitRangeSubscript = (
         baseType: ctx.primaryTypeInfo!.baseType,
         start,
         width,
+        maskWidth,
       },
       state,
       orchestrator,
       effects,
     );
   } else {
-    const mask = orchestrator.generateBitMask(width);
+    // Issue #1094: 64-bit operands need a 64-bit mask base (1ULL / wide hex) so
+    // widths > 32 don't shift past a 32-bit literal's width.
+    const is64BitOperand =
+      ctx.primaryTypeInfo?.baseType === "u64" ||
+      ctx.primaryTypeInfo?.baseType === "i64";
+    const mask = orchestrator.generateBitMask(maskWidth, is64BitOperand);
     // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)
     let expr: string;
     if (start === "0" || start === "0U") {
@@ -1861,6 +1875,8 @@ interface IFloatBitRangeContext {
   baseType: string;
   start: string;
   width: string;
+  /** Width formatted for mask generation (const-resolved when possible, #1094). */
+  maskWidth: string;
 }
 
 /**
@@ -1892,7 +1908,7 @@ const handleFloatBitRange = (
   const floatType = getFloatTypeName(ctx.baseType);
   const intType = isF64 ? "uint64_t" : "uint32_t";
   const shadowName = `__bits_${ctx.rootIdentifier}`;
-  const mask = orchestrator.generateBitMask(ctx.width, isF64);
+  const mask = orchestrator.generateBitMask(ctx.maskWidth, isF64);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
   if (needsDeclaration) {

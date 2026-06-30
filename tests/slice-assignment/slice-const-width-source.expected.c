@@ -12,15 +12,15 @@
 // width, so the const operand was dropped, the composite was typed from the
 // narrow operand (u8), and the slice was falsely rejected with
 // "Slice assignment length (3 bytes) exceeds the source value width (1 bytes)".
-// (Width is 24, not 32, to avoid the separate pre-existing full-width const-mask
-// codegen bug where b[0, 32] with a const width emits the UB `1U << 32` — #1094.)
+// The const width now folds to a precomputed mask byte-identical to the literal
+// form b[0, 24] (was a runtime `1U << WIDTH` before the #1094 fix).
 int main(void) {
     const uint8_t WIDTH = 24U;
     uint8_t buf[8] = {0};
     uint8_t a = 0U;
     uint32_t b = 0x12345678U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t _tmp0 = (uint32_t)(a + ((b) & ((1U << WIDTH) - 1)));
+    const uint32_t _tmp0 = (uint32_t)(a + ((b) & ((1U << 24U) - 1)));
     buf[0] = (uint8_t)(_tmp0);
     buf[1] = (uint8_t)(_tmp0 >> 8U);
     buf[2] = (uint8_t)(_tmp0 >> 16U);
