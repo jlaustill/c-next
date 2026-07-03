@@ -24,7 +24,7 @@
  * rule was a divergent decision path from local-variable classification: it
  * silently broke ADR-007 bit-indexing for scalar parameters (`u32 v; ...
  * v[4]` inside a function became `v[4]` array-subscript C code on a pointer
- * instead of a shift-and-mask bit read), producing uncompilable/incorrect C
+ * instead of a shift-and-mask bit read), producing invalid/incorrect C
  * for the extremely common embedded pattern of reading a bit out of a
  * hardware-register-shaped scalar parameter. Buffer-style parameters must now
  * use explicit array syntax (`u8[N] buf`), which was already the ADR-006
