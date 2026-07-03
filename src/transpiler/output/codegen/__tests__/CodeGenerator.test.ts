@@ -8454,6 +8454,17 @@ describe("CodeGenerator", () => {
         const generator = new CodeGenerator();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
+        // Issue #1100: SymbolTable must be wired up (as the real Transpiler
+        // pipeline always does, see setupGenerator() above) so
+        // getMemberTypeInfo() can resolve struct field array-ness. Without
+        // this, getStructFieldInfo() always returns null and the struct
+        // field's array-ness is never determined via the correct path — this
+        // test was previously passing only because a since-removed blanket
+        // "parameter -> array access" rule (Issue #579) coincidentally
+        // produced the right output for the wrong reason.
+        const symbolTable = new SymbolTable();
+        symbolTable.addTSymbols(tSymbols);
+        CodeGenState.symbolTable = symbolTable;
 
         const code = generator.generate(tree, tokenStream, {
           symbolInfo: symbols,

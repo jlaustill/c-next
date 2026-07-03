@@ -1179,8 +1179,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #779: Resolve bare scope member identifiers before postfix chain processing
     // This ensures scope members get their prefix even with array/member access.
-    // Skip parameters - they don't need scope resolution and shouldn't be dereferenced
-    // when used with array indexing (buf[idx] is valid C for pointer params).
     // Also skip known registers - they should be handled by the postfix chain builder
     // to enable proper register validation (requiring global. when shadowed).
     let resolvedIdentifier = identifier ?? "";
@@ -1189,7 +1187,24 @@ export default class CodeGenerator implements IOrchestrator {
       const isLocalVariable = CodeGenState.localVariables.has(identifier);
       const isKnownRegister =
         CodeGenState.symbols?.knownRegisters.has(identifier);
-      if (!isParameter && !isLocalVariable && !isKnownRegister) {
+      // Issue #1100: Parameters with postfix ops (array/bit subscript, member
+      // access) must resolve through the same dereference logic as a bare
+      // parameter reference (ParameterDereferenceResolver), not skip it.
+      // For array/struct/string/etc. parameters this is a no-op (they're
+      // already pointer-like, matching the prior behavior verbatim — e.g.
+      // `buf[idx]` stays `buf[idx]`). For a scalar parameter that became a
+      // pointer because it's modified elsewhere in the function, a bit
+      // access (`v[4] <- true`) now correctly dereferences to `(*v)[4]`
+      // (which AssignmentContextBuilder reduces to base identifier `(*v)`)
+      // instead of assigning through the raw pointer.
+      if (isParameter) {
+        const paramInfo = CodeGenState.currentParameters.get(identifier)!;
+        resolvedIdentifier = ParameterDereferenceResolver.resolve(
+          identifier,
+          paramInfo,
+          this._buildParameterDereferenceDeps(),
+        );
+      } else if (!isLocalVariable && !isKnownRegister) {
         const resolved = TypeValidator.resolveBareIdentifier(
           identifier,
           false, // not local

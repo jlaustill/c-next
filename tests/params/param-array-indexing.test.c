@@ -8,33 +8,38 @@
 
 // test-c-only
 // test-execution
-// Tests: Issue #579 - Array indexing on parameter should generate array access, not bit manipulation
-// When a function parameter is declared as `u8 buf` (without explicit array syntax)
-// but used with array indexing, it becomes a pointer in C (ADR-006), so buf[i] is array access.
+// Tests: Issue #579 / Issue #1100 - Array parameters require explicit array syntax
+// Array indexing on a parameter is array access only when the parameter is declared
+// with explicit array syntax (`u8[8] buf`, ADR-006). A plain scalar-typed parameter
+// (no array brackets) used with subscript access is bit indexing (ADR-007), exactly
+// like a scalar local variable — see tests/bit-indexing/ and Test 7/8 below.
+// (Issue #1100 replaced #579's prior heuristic, which treated ANY subscripted
+// parameter without array brackets as array access; that heuristic silently broke
+// ADR-007 bit-indexing for scalar parameters.)
 uint32_t result = 0U;
 
 // Test 1: Write to parameter with variable index
-void writeToParam(uint8_t* buf, uint32_t idx) {
-    buf[idx] = 42;
+void writeToParam(uint8_t buf[8], uint32_t idx) {
+    buf[idx] = 42U;
 }
 
 // Test 2: Read from parameter with variable index
-uint8_t readFromParam(const uint8_t* buf, uint32_t idx) {
+uint8_t readFromParam(uint8_t buf[4], uint32_t idx) {
     return buf[idx];
 }
 
 // Test 3: Both read and write in same function
-void copyElement(const uint8_t* src, uint8_t* dst, uint32_t idx) {
+void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t idx) {
     dst[idx] = src[idx];
 }
 
 // Test 4: Constant index on parameter
-uint8_t readFirst(const uint8_t* buf) {
+uint8_t readFirst(uint8_t buf[4]) {
     return buf[0U];
 }
 
 // Test 5: Multiple index operations
-void swapElements(uint8_t* buf, uint32_t i, uint32_t j) {
+void swapElements(uint8_t buf[8], uint32_t i, uint32_t j) {
     uint8_t temp = buf[i];
     buf[i] = buf[j];
     buf[j] = temp;

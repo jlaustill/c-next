@@ -74,8 +74,13 @@ describe("SubscriptClassifier", () => {
       });
     });
 
-    describe("parameter types (Issue #579)", () => {
-      it("returns array_element for non-array parameter with single index", () => {
+    describe("parameter types (Issue #1100)", () => {
+      // A parameter's array-ness is determined solely by its declared type
+      // (isArray, from explicit `T[N]` syntax, ADR-006) — identical to local
+      // variables. `isParameter` alone must NOT force array classification;
+      // that was the Issue #579 heuristic reverted by Issue #1100 because it
+      // broke ADR-007 bit-indexing for scalar parameters.
+      it("returns bit_single for non-array parameter with single index", () => {
         const typeInfo: TTypeInfo = {
           baseType: "u8",
           bitWidth: 8,
@@ -88,10 +93,10 @@ describe("SubscriptClassifier", () => {
           subscriptCount: 1,
           isRegisterAccess: false,
         });
-        expect(result).toBe("array_element");
+        expect(result).toBe("bit_single");
       });
 
-      it("returns array_slice for non-array parameter with two indices", () => {
+      it("returns bit_range for non-array parameter with two indices", () => {
         const typeInfo: TTypeInfo = {
           baseType: "u8",
           bitWidth: 8,
@@ -104,7 +109,23 @@ describe("SubscriptClassifier", () => {
           subscriptCount: 2,
           isRegisterAccess: false,
         });
-        expect(result).toBe("array_slice");
+        expect(result).toBe("bit_range");
+      });
+
+      it("returns array_element for array parameter with single index", () => {
+        const typeInfo: TTypeInfo = {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          isConst: false,
+          isParameter: true,
+        };
+        const result = SubscriptClassifier.classify({
+          typeInfo,
+          subscriptCount: 1,
+          isRegisterAccess: false,
+        });
+        expect(result).toBe("array_element");
       });
     });
 
@@ -187,11 +208,22 @@ describe("SubscriptClassifier", () => {
       expect(SubscriptClassifier.isArrayAccess(typeInfo)).toBe(true);
     });
 
-    it("returns true for parameter type", () => {
+    it("returns false for non-array parameter type (Issue #1100)", () => {
       const typeInfo: TTypeInfo = {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
+        isConst: false,
+        isParameter: true,
+      };
+      expect(SubscriptClassifier.isArrayAccess(typeInfo)).toBe(false);
+    });
+
+    it("returns true for array parameter type", () => {
+      const typeInfo: TTypeInfo = {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: true,
         isConst: false,
         isParameter: true,
       };
