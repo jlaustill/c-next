@@ -1,0 +1,79 @@
+// test-execution
+// Issue #1100: Bit indexing on a scalar function parameter (u32 v; v[4]) must
+// behave exactly like bit indexing on a scalar local variable (ADR-007) —
+// NOT be misclassified as array access. Array access on a parameter requires
+// explicit array syntax (u8[8] buf, ADR-006) — see tests/params/param-array-indexing.test.cnx.
+//
+// Also covers the write path (value[N] <- true / value[start, width] <- x)
+// on a parameter that becomes a C pointer because it's modified, which must
+// dereference the pointer rather than assigning through it.
+
+// Single-bit read on an unmodified scalar parameter (pass-by-value in C)
+bool bitOfParam(u32 v) {
+    return v[4];
+}
+
+// Single-bit write on a scalar parameter. The parameter becomes a pointer in
+// C (it's modified), so the write must dereference: (*v) = ...
+u32 setBitOfParam(u32 v) {
+    v[4] <- true;
+    return v;
+}
+
+// Clearing a bit on a scalar parameter
+u32 clearBitOfParam(u32 v) {
+    v[4] <- false;
+    return v;
+}
+
+// Multi-bit range read on an unmodified scalar parameter
+u8 lowByteOfParam(u16 v) {
+    return v[0, 8];
+}
+
+// Multi-bit range write on a scalar parameter (also becomes a pointer)
+u16 setLowByteOfParam(u16 v) {
+    v[0, 8] <- 0xFF;
+    return v;
+}
+
+u32 main() {
+    // Matches local-variable behavior in tests/bit-indexing/bit-single-read.test.cnx
+    u32 withBit4 <- 16; // 0b10000
+    bool bit4Set <- bitOfParam(withBit4);
+    if (bit4Set != true) {
+        return 1;
+    }
+    bool bit4Clear <- bitOfParam(0);
+    if (bit4Clear != false) {
+        return 2;
+    }
+
+    // setBitOfParam/clearBitOfParam/setLowByteOfParam modify their parameter,
+    // so in C++ mode it becomes a reference (uint32_t&) — must call with a
+    // variable, not a literal (a non-const reference cannot bind an rvalue).
+    u32 zero <- 0;
+    u32 afterSetBit <- setBitOfParam(zero);
+    if (afterSetBit != 16) {
+        return 3;
+    }
+    u32 allBitsSet <- 0xFF;
+    u32 afterClearBit <- clearBitOfParam(allBitsSet);
+    if (afterClearBit != 0xEF) {
+        return 4;
+    }
+
+    u16 word <- 0x1234;
+    u8 lowByte <- lowByteOfParam(word);
+    if (lowByte != 0x34) {
+        return 5;
+    }
+
+    u16 baseWord <- 0x1200;
+    u16 afterSetLowByte <- setLowByteOfParam(baseWord);
+    if (afterSetLowByte != 0x12FF) {
+        return 6;
+    }
+
+    return 0;
+}

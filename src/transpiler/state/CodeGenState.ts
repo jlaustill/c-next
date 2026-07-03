@@ -159,9 +159,6 @@ export default class CodeGenState {
   /** Tracks which parameters are modified (directly or transitively) */
   static modifiedParameters: Map<string, Set<string>> = new Map();
 
-  /** Issue #579: Parameters with subscript access (must become pointers) */
-  static subscriptAccessedParameters: Map<string, Set<string>> = new Map();
-
   /** Parameters that should pass by value (small, unmodified primitives) */
   static passByValueParams: Map<string, Set<string>> = new Map();
 
@@ -380,7 +377,6 @@ export default class CodeGenState {
 
     // Pass-by-value analysis
     this.modifiedParameters = new Map();
-    this.subscriptAccessedParameters = new Map();
     this.passByValueParams = new Map();
     this.functionCallGraph = new Map();
     this.functionParamLists = new Map();
@@ -785,15 +781,6 @@ export default class CodeGenState {
    */
   static isPassByValue(funcName: string, paramName: string): boolean {
     return this.passByValueParams.get(funcName)?.has(paramName) ?? false;
-  }
-
-  /**
-   * Check if a parameter has subscript access.
-   */
-  static hasSubscriptAccess(funcName: string, paramName: string): boolean {
-    return (
-      this.subscriptAccessedParameters.get(funcName)?.has(paramName) ?? false
-    );
   }
 
   /**

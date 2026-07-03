@@ -155,17 +155,14 @@ const generatePostfixExpression = (
   // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
   const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
 
-  // Issue #579: Check if we have subscript access on a non-array parameter
-  const hasSubscriptOps = ops.some((op) => op.expression().length > 0);
-  const isNonArrayParamWithSubscript =
-    paramInfo && !paramInfo.isArray && !paramInfo.isStruct && hasSubscriptOps;
-
-  let result: string;
-  if (isNonArrayParamWithSubscript) {
-    result = rootIdentifier!;
-  } else {
-    result = orchestrator.generatePrimaryExpr(primary);
-  }
+  // Issue #1100: Subscripted parameters resolve through the normal primary
+  // expression path (ParameterDereferenceResolver), same as any other
+  // parameter reference. This is a no-op for array/struct/string params
+  // (already pointer-like, so `buf[idx]` is unaffected), and correctly
+  // dereferences a scalar parameter that became a pointer because it's
+  // modified elsewhere in the function, so bit access (`v[4]`) reads
+  // through the pointer instead of pointer-indexing past it.
+  const result: string = orchestrator.generatePrimaryExpr(primary);
 
   const primaryTypeInfo = rootIdentifier
     ? CodeGenState.getVariableTypeInfo(rootIdentifier)

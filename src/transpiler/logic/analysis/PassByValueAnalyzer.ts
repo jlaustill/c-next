@@ -14,7 +14,12 @@
  * 1. It's a small primitive type (u8, i8, u16, i16, u32, i32, u64, i64, bool)
  * 2. It's not modified (directly or transitively)
  * 3. It's not an array, struct, string, or callback
- * 4. It's not accessed via subscript (Issue #579)
+ *
+ * Issue #1100: Subscript access no longer forces pointer semantics on its
+ * own. A scalar parameter subscripted with a single index is bit-indexing
+ * (ADR-007), not array access, so it stays eligible for pass-by-value.
+ * Only genuine array parameters (`isArray`, from explicit `T[N]` syntax,
+ * ADR-006) are excluded — via the isArray check below.
  */
 
 import * as Parser from "../parser/grammar/CNextParser";
@@ -173,8 +178,6 @@ class PassByValueAnalyzer {
 
     // Initialize modified set
     CodeGenState.modifiedParameters.set(funcName, new Set());
-    // Issue #579: Initialize subscript access tracking
-    CodeGenState.subscriptAccessedParameters.set(funcName, new Set());
     CodeGenState.functionCallGraph.set(funcName, []);
 
     // Walk the function body to find modifications and calls
@@ -225,15 +228,9 @@ class PassByValueAnalyzer {
       );
     }
 
-    // 2. Walk all expressions in this statement for function calls and subscript access
+    // 2. Walk all expressions in this statement for function calls
     for (const expr of StatementExpressionCollector.collectAll(stmt)) {
       PassByValueAnalyzer.walkExpressionForCalls(funcName, paramSet, expr);
-      // Issue #579: Also track subscript read access on parameters
-      PassByValueAnalyzer.walkExpressionForSubscriptAccess(
-        funcName,
-        paramSet,
-        expr,
-      );
     }
 
     // 3. Recurse into child statements and blocks
@@ -266,21 +263,11 @@ class PassByValueAnalyzer {
     const assign = stmt.assignmentStatement()!;
     const target = assign.assignmentTarget();
 
-    const { baseIdentifier, hasSingleIndexSubscript } =
-      AssignmentTargetExtractor.extract(target);
+    const { baseIdentifier } = AssignmentTargetExtractor.extract(target);
 
-    // Issue #579: Track subscript access on parameters (for write path)
-    if (
-      hasSingleIndexSubscript &&
-      baseIdentifier &&
-      paramSet.has(baseIdentifier)
-    ) {
-      CodeGenState.subscriptAccessedParameters
-        .get(funcName)!
-        .add(baseIdentifier);
-    }
-
-    // Track as modified parameter
+    // Track as modified parameter (covers both `x <- value` and subscripted
+    // writes like `x[i] <- value` / `x[4] <- true` — both change x's value,
+    // so x must pass by pointer for the caller to observe the change)
     if (baseIdentifier && paramSet.has(baseIdentifier)) {
       CodeGenState.modifiedParameters.get(funcName)!.add(baseIdentifier);
     }
@@ -310,66 +297,8 @@ class PassByValueAnalyzer {
   }
 
   /**
-   * Issue #579: Walk an expression tree to find subscript access on parameters.
-   * This tracks read access like `buf[i]` where buf is a parameter.
-   * Parameters with subscript access must become pointers.
-   */
-  private static walkExpressionForSubscriptAccess(
-    funcName: string,
-    paramSet: Set<string>,
-    expr: Parser.ExpressionContext,
-  ): void {
-    const ternary = expr.ternaryExpression();
-    if (ternary) {
-      for (const orExpr of ternary.orExpression()) {
-        PassByValueAnalyzer.walkOrExpression(orExpr, (unaryExpr) => {
-          PassByValueAnalyzer.handleSubscriptAccess(
-            funcName,
-            paramSet,
-            unaryExpr,
-          );
-        });
-      }
-    }
-  }
-
-  /**
-   * Issue #579: Handle subscript access on a unary expression.
-   * Only tracks single-index subscript access (which could be array access).
-   * Two-index subscript (e.g., value[start, width]) is always bit extraction,
-   * so it doesn't require the parameter to become a pointer.
-   */
-  private static handleSubscriptAccess(
-    funcName: string,
-    paramSet: Set<string>,
-    unaryExpr: Parser.UnaryExpressionContext,
-  ): void {
-    const postfixExpr = unaryExpr.postfixExpression();
-    if (!postfixExpr) return;
-
-    const primary = postfixExpr.primaryExpression();
-    const ops = postfixExpr.postfixOp();
-
-    // Check if primary is a parameter and there's subscript access
-    const primaryId = primary.IDENTIFIER()?.getText();
-    if (!primaryId || !paramSet.has(primaryId)) {
-      return;
-    }
-
-    // Only track SINGLE-index subscript access (potential array access)
-    // Two-index subscript like value[0, 8] is bit extraction, not array access
-    const hasSingleIndexSubscript = ops.some(
-      (op) => op.expression().length === 1,
-    );
-    if (hasSingleIndexSubscript) {
-      CodeGenState.subscriptAccessedParameters.get(funcName)!.add(primaryId);
-    }
-  }
-
-  /**
    * Generic walker for orExpression trees.
    * Walks through the expression hierarchy and calls the handler for each unaryExpression.
-   * Used by both function call tracking and subscript access tracking.
    */
   private static walkOrExpression(
     orExpr: Parser.OrExpressionContext,
@@ -671,24 +600,14 @@ class PassByValueAnalyzer {
 
           // Check if eligible for pass-by-value:
           // - Is a small primitive type
-          // - Not an array
-          // - Not modified
-          // - Not accessed via subscript (Issue #579)
+          // - Not an array (array parameters always decay to pointers, ADR-006)
+          // - Not modified (a subscripted bit-write, e.g. `x[4] <- true`, counts
+          //   as a modification and is already tracked in `modified` above)
           const isSmallPrimitive = SMALL_PRIMITIVES.has(paramSig.baseType);
           const isArray = paramSig.isArray ?? false;
           const isModified = modified.has(paramName);
-          // Issue #579: Parameters with subscript access must become pointers
-          const hasSubscriptAccess =
-            CodeGenState.subscriptAccessedParameters
-              .get(funcName)
-              ?.has(paramName) ?? false;
 
-          if (
-            isSmallPrimitive &&
-            !isArray &&
-            !isModified &&
-            !hasSubscriptAccess
-          ) {
+          if (isSmallPrimitive && !isArray && !isModified) {
             passByValue.add(paramName);
           }
         }

@@ -1,5 +1,5 @@
 /**
- * Issue #579: Shared subscript classifier for array vs bit access
+ * Issue #579 / Issue #1100: Shared subscript classifier for array vs bit access
  *
  * This utility unifies the classification logic used by:
  * - AssignmentClassifier (assignment path)
@@ -7,8 +7,28 @@
  *
  * The classification rule is:
  * 1. If isArray or isString -> array access
- * 2. If isParameter && !isArray -> array access (parameter becomes pointer in C, ADR-006)
- * 3. Otherwise -> bit manipulation
+ * 2. Otherwise -> bit manipulation
+ *
+ * This rule is identical for parameters and local variables. ADR-006 requires
+ * array parameters to use explicit array syntax (`u8[8] buf`), which sets
+ * isArray on the parameter's type info exactly like a local array declaration
+ * does. A scalar-typed parameter (no array brackets) is therefore classified
+ * the same way a scalar local variable is: bit manipulation (ADR-007 — "Any
+ * integer type can be indexed to access individual bits", with no carve-out
+ * for parameters).
+ *
+ * Issue #1100: A prior version of this classifier treated ANY function
+ * parameter without explicit array syntax as array access (`isParameter &&
+ * !isArray -> array`), added in #579 to support buffer-style parameters
+ * declared without brackets (e.g. `void fillBuffer(u8 buf)`). That blanket
+ * rule was a divergent decision path from local-variable classification: it
+ * silently broke ADR-007 bit-indexing for scalar parameters (`u32 v; ...
+ * v[4]` inside a function became `v[4]` array-subscript C code on a pointer
+ * instead of a shift-and-mask bit read), producing invalid/incorrect C
+ * for the extremely common embedded pattern of reading a bit out of a
+ * hardware-register-shaped scalar parameter. Buffer-style parameters must now
+ * use explicit array syntax (`u8[N] buf`), which was already the ADR-006
+ * documented and supported spelling — see tests/params/param-array-indexing.test.cnx.
  */
 import TSubscriptKind from "./TSubscriptKind";
 import TTypeInfo from "../types/TTypeInfo";
@@ -63,9 +83,14 @@ class SubscriptClassifier {
    * Determine if a type should use array access semantics.
    *
    * Array access is used when:
-   * - Type is explicitly an array (isArray: true)
+   * - Type is explicitly an array (isArray: true) — including array
+   *   parameters declared with explicit syntax, e.g. `u8[8] buf` (ADR-006)
    * - Type is a string (strings are char arrays)
-   * - Type is a non-array parameter (becomes pointer in C, ADR-006)
+   *
+   * Parameters are NOT special-cased here (Issue #1100): whether a subscript
+   * is array access or bit access depends solely on the declared type, the
+   * same rule used for local variables. A scalar parameter without array
+   * syntax is bit-indexable exactly like a scalar local variable (ADR-007).
    *
    * @param typeInfo - Type information, or null if unknown
    * @returns true if subscript should be treated as array access
@@ -79,12 +104,6 @@ class SubscriptClassifier {
 
     // Explicit array or string -> array access
     if (typeInfo.isArray || typeInfo.isString) {
-      return true;
-    }
-
-    // Issue #579: Non-array parameter becomes pointer in C (ADR-006)
-    // So buf[i] is array access, not bit access
-    if (typeInfo.isParameter) {
       return true;
     }
 
