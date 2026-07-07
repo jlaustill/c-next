@@ -62,6 +62,7 @@ import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
+import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 
@@ -1323,6 +1324,17 @@ class Transpiler {
    * Uses heuristic detection to choose the appropriate parser
    */
   private parseCHeader(content: string, filePath: string): void {
+    // Assembler headers (e.g. xtensa coreasm.h, pulled in transitively by
+    // FreeRTOS port headers) are not C. Parsing their `.macro` bodies as C
+    // mis-collects instruction mnemonics like `loop` as C symbols that then
+    // false-conflict with C-Next symbols of the same name. Skip them entirely.
+    if (detectAssemblySyntax(content)) {
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Skipping assembler header: ${filePath}`);
+      }
+      return;
+    }
+
     if (detectCppSyntax(content)) {
       // Issue #211: C++ detected, set flag for .cpp output
       this.cppDetected = true;
