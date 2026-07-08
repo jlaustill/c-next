@@ -175,6 +175,16 @@ class Preprocessor {
       }
     }
 
+    // Import predecessor macros (gcc/clang -imacros) so include-order-dependent
+    // headers get the guards/attribute macros their includer would have defined
+    // first. -imacros keeps only the macros, not the predecessors' declarations,
+    // so the output stays scoped to the target file.
+    if (options.imacros) {
+      for (const macroHeader of options.imacros) {
+        args.push("-imacros", macroHeader);
+      }
+    }
+
     // Add the input file
     args.push(filePath);
 

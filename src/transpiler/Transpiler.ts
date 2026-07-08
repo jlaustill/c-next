@@ -629,12 +629,20 @@ class Transpiler {
     headerFiles: IDiscoveredFile[],
     result: ITranspilerResult,
   ): Promise<void> {
+    const precedingHeaders: string[] = [];
     for (const file of headerFiles) {
+      let usable = false;
       try {
-        await this.doCollectHeaderSymbols(file);
+        usable = await this.doCollectHeaderSymbols(file, precedingHeaders);
         result.filesProcessed++;
       } catch (err) {
         this.warnings.push(`Failed to process header ${file.path}: ${err}`);
+      }
+      // Offer this header as macro context to headers processed after it, but
+      // only if it itself preprocessed cleanly — an unpreprocessable predecessor
+      // would otherwise make every dependent's -imacros retry fail.
+      if (usable) {
+        precedingHeaders.push(file.path);
       }
     }
   }
@@ -1059,18 +1067,24 @@ class Transpiler {
    * Issue #945: Added preprocessing support for conditional compilation
    * SonarCloud S3776: Refactored to use helper methods for reduced complexity.
    */
-  private async doCollectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
+  private async doCollectHeaderSymbols(
+    file: IDiscoveredFile,
+    precedingHeaders: readonly string[] = [],
+  ): Promise<boolean> {
     // Track as processed (for cycle detection)
     const absolutePath = resolve(file.path);
     this.state.markHeaderProcessed(absolutePath);
 
     // Check cache first
     if (this.tryRestoreFromCache(file)) {
-      return; // Cache hit - skip full parsing
+      return true; // Cache hit - skip full parsing
     }
 
     // Issue #945: Preprocess header to evaluate #if/#ifdef directives
-    const content = await this.getHeaderContent(file);
+    const { content, usable } = await this.getHeaderContent(
+      file,
+      precedingHeaders,
+    );
     this.parseHeaderFile(file, content);
 
     // Debug: Show symbols found
@@ -1086,6 +1100,8 @@ class Transpiler {
         CodeGenState.symbolTable,
       );
     }
+
+    return usable;
   }
 
   /**
@@ -1139,24 +1155,27 @@ class Transpiler {
    * Preprocessing is needed when the file has conditional compilation patterns
    * like #if MACRO != 0 that require expression evaluation.
    */
-  private async getHeaderContent(file: IDiscoveredFile): Promise<string> {
+  private async getHeaderContent(
+    file: IDiscoveredFile,
+    precedingHeaders: readonly string[] = [],
+  ): Promise<{ content: string; usable: boolean }> {
     const rawContent = this.fs.readFile(file.path);
 
     // Check if preprocessing is disabled
     if (this.config.preprocess === false) {
-      return rawContent;
+      return { content: rawContent, usable: true };
     }
 
     // Check if preprocessing is available
     if (!this.preprocessor.isAvailable()) {
-      return rawContent;
+      return { content: rawContent, usable: true };
     }
 
     // Issue #945: Only preprocess if file has conditional compilation patterns
     // that require expression evaluation (e.g., #if MACRO != 0, #if MACRO == 1)
     // Simple #ifdef/#ifndef patterns are already handled by the parser
     if (!this.needsConditionalPreprocessing(rawContent)) {
-      return rawContent;
+      return { content: rawContent, usable: true };
     }
 
     // Preprocess the header file
@@ -1167,14 +1186,32 @@ class Transpiler {
     });
 
     if (!result.success) {
-      // Log warning but fall back to raw content
+      // Some headers cannot be preprocessed standalone: they require a
+      // predecessor to have run first (e.g. FreeRTOS task.h needs FreeRTOS.h to
+      // define INC_FREERTOS_H and its attribute macros, and enforces this with
+      // its own #error). Retry importing the macros of the headers collected
+      // before this one (only those that themselves preprocessed cleanly, so one
+      // unpreprocessable predecessor can't defeat the retry).
+      if (precedingHeaders.length > 0) {
+        const retry = await this.preprocessor.preprocess(file.path, {
+          defines: this.config.defines,
+          includePaths: this.config.includeDirs,
+          keepLineDirectives: false,
+          imacros: [...precedingHeaders],
+        });
+        if (retry.success) {
+          return { content: retry.content, usable: true };
+        }
+      }
+      // Fall back to raw content. Mark not-usable so this header is not offered
+      // as macro context to headers processed after it.
       this.warnings.push(
         `Preprocessing failed for ${file.path}: ${result.error}. Using raw content.`,
       );
-      return rawContent;
+      return { content: rawContent, usable: false };
     }
 
-    return result.content;
+    return { content: result.content, usable: true };
   }
 
   /**
