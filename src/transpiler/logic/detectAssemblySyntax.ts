@@ -31,7 +31,7 @@ function detectAssemblySyntax(content: string): boolean {
   // C prototypes with `#ifndef _ASMLANGUAGE` (e.g. xtensa xtruntime.h); on the
   // raw-fallback path that guard line is still present, and matching the token
   // anywhere would misclassify such a header as assembler and drop its C decls.
-  if (/^\s*#\s*define\s+_ASMLANGUAGE\b/m.test(content)) return true;
+  if (/^[ \t]*#[ \t]*define[ \t]+_ASMLANGUAGE\b/m.test(content)) return true;
 
   return ASSEMBLER_DIRECTIVE.test(content);
 }
