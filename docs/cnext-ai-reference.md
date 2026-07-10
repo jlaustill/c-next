@@ -345,12 +345,34 @@ void increment(u32 x) {     // transpiles to: void increment(uint32_t *x)
 increment(myVar);            // transpiles to: increment(&myVar);
 ```
 
+**Arrays are the exception — never auto-const** (ADR-006, c-next #986). A read-only array param stays a plain **mutable** pointer, so it can pass straight through to C APIs that expect `uint8_t*` (auto-const used to break that with a `const` mismatch error). For const-correctness (MISRA C:2012 Rule 8.13, or to accept read-only/flash buffers) write **explicit** `const`:
+
+```cnx
+void copy(const u8[8] src, u8[8] dst) {   // src read-only → EXPLICIT const required
+    for (u8 i <- 0; i < 8; i +<- 1) { dst[i] <- src[i]; }
+}
+// -> void copy(const uint8_t src[8], uint8_t dst[8])
+// A read-only STRUCT param DOES auto-const:  void f(Msg m) -> void f(const Msg* m)
+```
+
 **Consequence:** Cannot pass literals to functions (no addressable location).
 
 ```cnx
 const u32 LED_PIN <- 13;
 init(LED_PIN);                // OK: LED_PIN has an address
 // init(13);                  // ERROR: literal has no address
+```
+
+**Exposing a scope constant to C/C++:** a `public const` inside a `scope` becomes an
+`extern const` header symbol named `Scope_NAME` (a private const stays file-local). Use
+it to publish module constants (a PGN, a size, an interval):
+
+```cnx
+scope Protocol {
+    public const u16 PGN <- 0xFFDC;      // -> extern const uint16_t Protocol_PGN;  (in .h)
+    const u8 RETRIES <- 3;               // private -> not exported
+}
+// C++ / C consumer:  uint16_t p = Protocol_PGN;
 ```
 
 ## Control Flow
@@ -1189,6 +1211,23 @@ i32 wide <- raw;                        // ERROR: sign change (unsigned → sign
 i32 wide <- raw[0, 16];                 // explicit 16-bit extraction → i32
 ```
 
+### 18. Expecting read-only array params to be const
+
+Read-only **struct** params auto-const, but read-only **array** params do NOT
+(ADR-006 / c-next #986 — kept mutable for C-API passthrough). Write `const` yourself
+for const-correctness (MISRA C:2012 Rule 8.13, read-only/flash buffers).
+
+```cnx
+// WRONG — expecting const; it's a plain mutable pointer
+void decode(u8[8] data, Msg m) { }       // -> void decode(uint8_t data[8], Msg* m)
+
+// RIGHT — explicit const for a read-only array input
+void decode(const u8[8] data, Msg m) { } // -> void decode(const uint8_t data[8], Msg* m)
+
+// (a read-only STRUCT param auto-consts on its own:)
+void encode(Msg m, u8[8] out) { }        // -> void encode(const Msg* m, uint8_t out[8])
+```
+
 ---
 
 # Part 4: Transpilation Reference
@@ -1201,6 +1240,8 @@ i32 wide <- raw[0, 16];                 // explicit 16-bit extraction → i32
 | `if (x = 5)`                      | `if (x == 5)`                                             |
 | `x +<- 1`                         | `x += 1`                                                  |
 | `void f(u32 x)` (x modified)      | `void f(uint32_t *x)` — or `uint32_t x` if read-only      |
+| `void f(u8[8] data)` (read-only)  | `void f(uint8_t data[8])` — arrays need EXPLICIT `const`  |
+| `void f(const u8[8] data)`        | `void f(const uint8_t data[8])`                           |
 | `f(myVar)`                        | `f(&myVar)`                                               |
 | `scope S { private void f() {} }` | `static void S_f(void) {}`                                |
 | `scope S { void f() {} }`         | `void S_f(void) {}` + header (public by default)          |
