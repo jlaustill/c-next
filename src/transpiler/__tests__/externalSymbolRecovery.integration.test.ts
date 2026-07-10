@@ -118,6 +118,52 @@ describe("external-symbol recovery (integration)", () => {
     expect(code).toMatch(/widget_t\s*\*\s*\w*handle/);
   });
 
+  it("re-applies recovery on a warm header cache (Issue #985 regression)", async () => {
+    if (!available) return;
+
+    // Fresh project dir with a project marker so on-disk caching activates
+    // (determineProjectRoot needs a marker like cnext.config.json). The first
+    // run populates .cnx/ with the DEGRADED header symbols (cached before the
+    // recovery pass runs); the second run restores them from cache. The
+    // recovery gate must survive caching so warm builds re-apply the fix.
+    const cacheDir = mkdtempSync(join(tmpdir(), "cnext-recovery-cache-"));
+    try {
+      writeFileSync(join(cacheDir, "cnext.config.json"), "{}\n");
+      writeFileSync(join(cacheDir, "guard.h"), GUARD_H);
+      writeFileSync(join(cacheDir, "widget.h"), WIDGET_H);
+      writeFileSync(join(cacheDir, "pthread_impl.h"), PTHREAD_IMPL_H);
+      writeFileSync(join(cacheDir, "main.cnx"), MAIN_CNX);
+
+      // Caching ON (noCache defaults to false).
+      const run = async () =>
+        new Transpiler({
+          input: join(cacheDir, "main.cnx"),
+          includeDirs: [cacheDir],
+          outDir: join(cacheDir, "out"),
+          cppRequired: true,
+        }).transpile({ kind: "files" });
+
+      // Cold cache: populates .cnx/ with the degraded header symbols.
+      const cold = await run();
+      expect(cold.success).toBe(true);
+
+      // Warm cache: headers unchanged and restored from cache. The recovery
+      // pass must still fire and produce the same corrected codegen — before
+      // the fix, the warm build regenerated the by-value / non-compiling output.
+      const warm = await run();
+      expect(warm.success).toBe(true);
+
+      const generated = warm.outputFiles.find((f) => f.endsWith("main.cpp"));
+      expect(generated).toBeDefined();
+      const code = readFileSync(generated!, "utf8");
+      expect(code).toMatch(/widget_install\(\s*&/);
+      expect(code).toMatch(/widget_apply\(\s*&widget_default_cfg/);
+      expect(code).toMatch(/widget_t\s*\*\s*\w*handle/);
+    } finally {
+      rmSync(cacheDir, { recursive: true, force: true });
+    }
+  });
+
   it("does nothing when no header failed to preprocess (clean project)", async () => {
     if (!available) return;
 

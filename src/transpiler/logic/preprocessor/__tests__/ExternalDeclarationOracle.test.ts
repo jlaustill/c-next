@@ -103,6 +103,30 @@ describe("ExternalDeclarationOracle", () => {
     expect(recovery!.macroNames.has("ORACLE_TICKS")).toBe(true);
   });
 
+  it("keeps searching after dropping more than half the includes", async () => {
+    const preprocessor = new Preprocessor();
+    if (!preprocessor.isAvailable()) return;
+
+    // Three of five includes are individually unpreprocessable. Dropping them
+    // one per iteration (>half) must not exhaust the loop before the two good
+    // includes are tried together. Regression for the aliased loop bound that
+    // re-read the shrinking directive count and bailed once >half were dropped.
+    const recovery = await ExternalDeclarationOracle.recover(
+      [
+        "<cnext_no_such_header_a.h>",
+        "<cnext_no_such_header_b.h>",
+        "<cnext_no_such_header_c.h>",
+        '"predecessor.h"',
+        '"dependent.h"',
+      ],
+      preprocessor,
+      { includePaths: [FIXTURES] },
+    );
+
+    expect(recovery).not.toBeNull();
+    expect(allContent(recovery!.perFileContent)).toContain("oracle_fn");
+  });
+
   it("returns null for no includes", async () => {
     const preprocessor = new Preprocessor();
     const recovery = await ExternalDeclarationOracle.recover(

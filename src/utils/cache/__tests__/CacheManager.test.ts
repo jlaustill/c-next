@@ -200,6 +200,23 @@ describe("CacheManager", () => {
       });
     });
 
+    it("defaults preprocessFailed to false and round-trips it when set", async () => {
+      const cleanFile = join(testDir, "clean.h");
+      const failedFile = join(testDir, "failed.h");
+      writeFileSync(cleanFile, "// test");
+      writeFileSync(failedFile, "// test");
+
+      // Issue #985: a header that fell back to raw content records that fact so
+      // a warm-cache build re-runs external-declaration recovery.
+      cacheManager.setSymbols(cleanFile, [], new Map());
+      cacheManager.setSymbols(failedFile, [], new Map(), {
+        preprocessFailed: true,
+      });
+
+      expect(cacheManager.getSymbols(cleanFile)!.preprocessFailed).toBe(false);
+      expect(cacheManager.getSymbols(failedFile)!.preprocessFailed).toBe(true);
+    });
+
     it("should preserve optional symbol fields", async () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
@@ -1494,7 +1511,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(7); // Current CACHE_VERSION (Issue #958 structTagAliases, structTagsWithBodies)
+      expect(newConfig.version).toBe(8); // Current CACHE_VERSION (Issue #985 preprocessFailed marker)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {

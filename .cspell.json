@@ -389,7 +389,10 @@
     "worktrees",
     "Wstringop",
     "Wuninitialized",
+    "ccount",
     "xtensa",
+    "xthal",
+    "xtruntime",
     "xyzzy"
   ],
   "ignorePaths": [

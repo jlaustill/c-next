@@ -1213,8 +1213,9 @@ class Transpiler {
     this.state.markHeaderProcessed(absolutePath);
 
     // Check cache first
-    if (this.tryRestoreFromCache(file)) {
-      return true; // Cache hit - skip full parsing
+    const restored = this.tryRestoreFromCache(file);
+    if (restored) {
+      return restored.usable; // Cache hit - skip full parsing
     }
 
     // Issue #945: Preprocess header to evaluate #if/#ifdef directives
@@ -1230,11 +1231,13 @@ class Transpiler {
       console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
-    // Issue #590: Cache the results using simplified API
+    // Issue #590: Cache the results using simplified API. Issue #985: record when
+    // this header fell back to raw content so a warm-cache build re-runs recovery.
     if (this.cacheManager) {
       this.cacheManager.setSymbolsFromTable(
         file.path,
         CodeGenState.symbolTable,
+        !usable,
       );
     }
 
@@ -1242,17 +1245,20 @@ class Transpiler {
   }
 
   /**
-   * Try to restore symbols from cache. Returns true if cache hit.
+   * Try to restore symbols from cache. Returns the restored header's usability
+   * (whether it preprocessed cleanly) on a cache hit, or null on a miss.
    * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
    */
-  private tryRestoreFromCache(file: IDiscoveredFile): boolean {
+  private tryRestoreFromCache(
+    file: IDiscoveredFile,
+  ): { usable: boolean } | null {
     if (!this.cacheManager?.isValid(file.path)) {
-      return false;
+      return null;
     }
 
     const cached = this.cacheManager.getSymbols(file.path);
     if (!cached) {
-      return false;
+      return null;
     }
 
     // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
@@ -1281,7 +1287,15 @@ class Transpiler {
     // Issue #211: Still check for C++ syntax even on cache hit
     this.detectCppFromFileType(file);
 
-    return true;
+    // Issue #985: The cached symbols of a header that fell back to raw content
+    // are degraded. Re-arm the recovery gate so a warm-cache build still runs
+    // the external-declaration recovery pass and re-applies its corrections to
+    // the in-memory symbol table (the cache itself holds the degraded symbols).
+    if (cached.preprocessFailed) {
+      this.anyHeaderPreprocessFailed = true;
+    }
+
+    return { usable: !cached.preprocessFailed };
   }
 
   /**

@@ -150,10 +150,14 @@ class ExternalDeclarationOracle {
     base: IPreprocessOptions,
   ): Promise<{ content: string; directives: string[] } | null> {
     const remaining = directives;
-    // At most one drop per iteration; bound iterations by the directive count.
+    // At most one drop per iteration; bound iterations by the ORIGINAL directive
+    // count, captured once. `remaining` aliases `directives` and shrinks via
+    // splice() below, so re-reading `directives.length` in the bound would halve
+    // the allowed attempts and bail before trying the last surviving includes.
+    const initialCount = directives.length;
     for (
       let attempt = 0;
-      remaining.length > 0 && attempt <= directives.length;
+      remaining.length > 0 && attempt <= initialCount;
       attempt++
     ) {
       const result = await preprocessor.preprocessString(

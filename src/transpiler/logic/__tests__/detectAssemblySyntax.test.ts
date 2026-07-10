@@ -67,6 +67,18 @@ describe("detectAssemblySyntax", () => {
       ).toBe(false);
     });
 
+    it("returns false for a C header that guards prototypes with #ifndef _ASMLANGUAGE", () => {
+      // xtensa xtruntime.h shape: raw-fallback content still holds the guard
+      // line. The C prototypes inside must NOT be dropped as assembler.
+      const xtruntime = [
+        "#ifndef _ASMLANGUAGE",
+        "extern void xthal_window_spill(void);",
+        "extern unsigned xthal_get_ccount(void);",
+        "#endif",
+      ].join("\n");
+      expect(detectAssemblySyntax(xtruntime)).toBe(false);
+    });
+
     it("returns false for empty content", () => {
       expect(detectAssemblySyntax("")).toBe(false);
     });
