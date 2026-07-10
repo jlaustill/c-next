@@ -67,11 +67,12 @@ class ToolchainDetector {
    * that owns them.
    */
   static fromPath(compiler: string): IToolchain | null {
-    const cc = compiler.includes("/")
-      ? existsSync(compiler)
-        ? compiler
-        : null
-      : this.findExecutable(compiler);
+    let cc: string | null;
+    if (compiler.includes("/")) {
+      cc = existsSync(compiler) ? compiler : null;
+    } else {
+      cc = this.findExecutable(compiler);
+    }
     if (!cc) return null;
 
     // Best-effort C++ driver alongside the C driver (only cpp is used for

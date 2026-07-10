@@ -772,6 +772,55 @@ describe("SymbolTable", () => {
       expect(symbolTable.isOpaqueType("handle_t")).toBe(true);
       expect(symbolTable.getAllOpaqueTypes()).toHaveLength(2);
     });
+
+    it("clearStructTagHasBody restores opacity for a phantom body (#985)", () => {
+      symbolTable.markOpaqueType("obj_t");
+      symbolTable.registerStructTagAlias("_obj", "obj_t");
+      symbolTable.markStructTagHasBody("_obj"); // phantom body from a blob parse
+      expect(symbolTable.isOpaqueType("obj_t")).toBe(false);
+
+      symbolTable.clearStructTagHasBody("_obj");
+      expect(symbolTable.isOpaqueType("obj_t")).toBe(true);
+      expect(symbolTable.getAllStructTagsWithBodies()).not.toContain("_obj");
+    });
+
+    it("clearStructTagHasBody is a no-op when the tag has no body", () => {
+      // Must not throw or spuriously mutate when the tag was never marked.
+      expect(() => symbolTable.clearStructTagHasBody("_never")).not.toThrow();
+      expect(symbolTable.getAllStructTagsWithBodies()).not.toContain("_never");
+    });
+
+    it("getStructTagForTypedef returns the aliased tag or undefined", () => {
+      symbolTable.registerStructTagAlias("_lv_obj_t", "lv_obj_t");
+      expect(symbolTable.getStructTagForTypedef("lv_obj_t")).toBe("_lv_obj_t");
+      expect(symbolTable.getStructTagForTypedef("unknown_t")).toBeUndefined();
+    });
+  });
+
+  // ========================================================================
+  // External Declaration Names (Issue #985 macro recovery)
+  // ========================================================================
+
+  describe("External Declaration Names", () => {
+    it("registers and looks up recovered function-like macro names", () => {
+      expect(symbolTable.hasExternalDeclaration("pdMS_TO_TICKS")).toBe(false);
+      symbolTable.addExternalDeclarationNames(
+        new Set(["pdMS_TO_TICKS", "portTICK_PERIOD_MS"]),
+      );
+      expect(symbolTable.hasExternalDeclaration("pdMS_TO_TICKS")).toBe(true);
+      expect(symbolTable.hasExternalDeclaration("portTICK_PERIOD_MS")).toBe(
+        true,
+      );
+      expect(symbolTable.hasExternalDeclaration("not_recovered")).toBe(false);
+    });
+
+    it("accumulates across calls and tolerates an empty set", () => {
+      symbolTable.addExternalDeclarationNames(new Set(["A"]));
+      symbolTable.addExternalDeclarationNames(new Set());
+      symbolTable.addExternalDeclarationNames(new Set(["B"]));
+      expect(symbolTable.hasExternalDeclaration("A")).toBe(true);
+      expect(symbolTable.hasExternalDeclaration("B")).toBe(true);
+    });
   });
 
   // ========================================================================

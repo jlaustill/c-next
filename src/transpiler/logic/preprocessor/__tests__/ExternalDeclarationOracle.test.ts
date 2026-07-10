@@ -112,4 +112,18 @@ describe("ExternalDeclarationOracle", () => {
     );
     expect(recovery).toBeNull();
   });
+
+  it("returns null when no header can preprocess", async () => {
+    const preprocessor = new Preprocessor();
+    if (!preprocessor.isAvailable()) return;
+
+    // The only include does not exist; after it is dropped nothing remains, so
+    // the largest-working-TU search exhausts and recovery yields null.
+    const recovery = await ExternalDeclarationOracle.recover(
+      ["<cnext_no_such_header_xyzzy.h>"],
+      preprocessor,
+      { includePaths: [FIXTURES] },
+    );
+    expect(recovery).toBeNull();
+  });
 });

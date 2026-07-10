@@ -184,7 +184,8 @@ class ExternalDeclarationOracle {
     count: number,
   ): number {
     if (!error) return -1;
-    const pattern = new RegExp(TU_NAME.replace(/\./g, "\\.") + ":(\\d+)", "g");
+    const escapedTu = TU_NAME.replaceAll(".", String.raw`\.`);
+    const pattern = new RegExp(escapedTu + String.raw`:(\d+)`, "g");
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(error)) !== null) {
       const line = Number.parseInt(match[1], 10);

@@ -672,7 +672,28 @@ class Transpiler {
   ): Promise<void> {
     if (!this.anyHeaderPreprocessFailed) return;
 
-    // Collect every C header the .cnx files include, in first-seen source order.
+    const directives = this._collectCIncludeDirectives(input);
+    if (directives.length === 0) return;
+
+    const recovery = await ExternalDeclarationOracle.recover(
+      directives,
+      this.preprocessor,
+      { includePaths: this.config.includeDirs, defines: this.config.defines },
+    );
+    if (!recovery) return;
+
+    const cleanState = this._parseRecoveredSlices(recovery.perFileContent);
+    Transpiler._clearPhantomStructBodies(cleanState);
+
+    // Function-like macros have no declaration to parse; register their names for
+    // the undeclared-call check only (a by-value macro invocation is correct).
+    if (recovery.macroNames.size > 0) {
+      CodeGenState.symbolTable.addExternalDeclarationNames(recovery.macroNames);
+    }
+  }
+
+  /** Every C header the .cnx files include, deduped in first-seen source order. */
+  private _collectCIncludeDirectives(input: IPipelineInput): string[] {
     const seen = new Set<string>();
     const directives: string[] = [];
     for (const file of input.cnextFiles) {
@@ -684,30 +705,29 @@ class Transpiler {
         }
       }
     }
-    if (directives.length === 0) return;
+    return directives;
+  }
 
-    const recovery = await ExternalDeclarationOracle.recover(
-      directives,
-      this.preprocessor,
-      { includePaths: this.config.includeDirs, defines: this.config.defines },
-    );
-    if (!recovery) return;
-
-    // Parse each header's own preprocessed slice with the real header parser so
-    // recovered symbols carry FULL types — function signatures, typedefs, opaque
-    // structs — not just names. Each slice is macro-expanded (so e.g. FreeRTOS
-    // PRIVILEGED_FUNCTION is gone and vTaskDelay parses) yet small (no inlined
-    // tree, so ANTLR error-recovery doesn't drop declarations). Codegen needs
-    // these to pass structs by address (twai_driver_install(&cfg)) and treat
-    // opaque framework types as pointers (lv_obj_t -> lv_obj_t*).
-    //
-    // A second, isolated table is parsed in parallel: it is clean of the normal
-    // pass's degraded-blob data, so it holds the AUTHORITATIVE opaque/struct-body
-    // truth. parseCHeader (main table) auto-detects C vs C++ and skips assembler;
-    // the isolated table uses the C parser directly (opaque struct typedefs are
-    // a C concern) and tolerates slices it cannot parse.
+  /**
+   * Parse each header's own preprocessed slice with the real header parser so
+   * recovered symbols carry FULL types — function signatures, typedefs, opaque
+   * structs — not just names. Each slice is macro-expanded (so e.g. FreeRTOS
+   * PRIVILEGED_FUNCTION is gone and vTaskDelay parses) yet small (no inlined
+   * tree, so ANTLR error-recovery doesn't drop declarations). Codegen needs
+   * these to pass structs by address (twai_driver_install(&cfg)) and treat
+   * opaque framework types as pointers (lv_obj_t -> lv_obj_t*).
+   *
+   * A second, isolated table is parsed in parallel and returned: it is clean of
+   * the normal pass's degraded-blob data, so it holds the AUTHORITATIVE
+   * opaque/struct-body truth. parseCHeader (main table) auto-detects C vs C++ and
+   * skips assembler; the isolated table uses the C parser directly (opaque struct
+   * typedefs are a C concern) and tolerates slices it cannot parse.
+   */
+  private _parseRecoveredSlices(
+    perFileContent: Map<string, string>,
+  ): SymbolTable {
     const cleanState = new SymbolTable();
-    for (const [path, content] of recovery.perFileContent) {
+    for (const [path, content] of perFileContent) {
       try {
         this.parseCHeader(content, path);
       } catch {
@@ -715,21 +735,25 @@ class Transpiler {
         // were — skip it rather than fail the build.
       }
       const { tree } = HeaderParser.parseC(content);
-      if (tree) {
-        try {
-          CResolver.resolve(tree, path, cleanState);
-        } catch {
-          /* isolated best-effort — only its opaque/body verdict is consulted */
-        }
+      if (!tree) continue;
+      try {
+        CResolver.resolve(tree, path, cleanState);
+      } catch {
+        /* isolated best-effort — only its opaque/body verdict is consulted */
       }
     }
+    return cleanState;
+  }
 
-    // Undo PHANTOM struct bodies: when the normal pass parsed a header's huge
-    // preprocessed blob, ANTLR error-recovery could fabricate a `struct X { ... }`
-    // that was never really there (e.g. lvgl `struct _lv_obj_t`), which makes an
-    // opaque typedef look complete and defeats pointer codegen. The clean per-file
-    // re-parse is authoritative, so for every type it proves opaque, clear any
-    // body its tag does NOT actually have.
+  /**
+   * Undo PHANTOM struct bodies: when the normal pass parsed a header's huge
+   * preprocessed blob, ANTLR error-recovery could fabricate a `struct X { ... }`
+   * that was never really there (e.g. lvgl `struct _lv_obj_t`), which makes an
+   * opaque typedef look complete and defeats pointer codegen. The clean per-file
+   * re-parse (`cleanState`) is authoritative, so for every type it proves opaque,
+   * clear any body its tag does NOT actually have.
+   */
+  private static _clearPhantomStructBodies(cleanState: SymbolTable): void {
     const cleanBodies = new Set(cleanState.getAllStructTagsWithBodies());
     for (const typedefName of cleanState.getAllOpaqueTypes()) {
       if (!cleanState.isOpaqueType(typedefName)) continue;
@@ -737,12 +761,6 @@ class Transpiler {
       if (tag && !cleanBodies.has(tag)) {
         CodeGenState.symbolTable.clearStructTagHasBody(tag);
       }
-    }
-
-    // Function-like macros have no declaration to parse; register their names for
-    // the undeclared-call check only (a by-value macro invocation is correct).
-    if (recovery.macroNames.size > 0) {
-      CodeGenState.symbolTable.addExternalDeclarationNames(recovery.macroNames);
     }
   }
 
