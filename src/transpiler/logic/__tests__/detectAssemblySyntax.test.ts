@@ -42,6 +42,11 @@ describe("detectAssemblySyntax", () => {
     it("detects a spaced '# define _ASMLANGUAGE' directive", () => {
       expect(detectAssemblySyntax("# define _ASMLANGUAGE\n")).toBe(true);
     });
+
+    it("detects portable assembly markers defined whole-file", () => {
+      expect(detectAssemblySyntax("#define __ASSEMBLY__ 1\n")).toBe(true);
+      expect(detectAssemblySyntax("#define __ASSEMBLER__\n")).toBe(true);
+    });
   });
 
   describe("C / C++ headers - should return false", () => {
@@ -81,6 +86,20 @@ describe("detectAssemblySyntax", () => {
         "#endif",
       ].join("\n");
       expect(detectAssemblySyntax(xtruntime)).toBe(false);
+    });
+
+    it("returns false for a C header guarded by #ifndef __ASSEMBLY__ / #ifdef __ASSEMBLER__", () => {
+      // Linux-kernel-style guards fence the C prototypes; on the raw-fallback
+      // path the guard lines survive but the file is still a normal C header.
+      const guarded = [
+        "#ifndef __ASSEMBLY__",
+        "extern int kernel_init(void);",
+        "#endif",
+        "#ifdef __ASSEMBLER__",
+        "/* asm-only region */",
+        "#endif",
+      ].join("\n");
+      expect(detectAssemblySyntax(guarded)).toBe(false);
     });
 
     it("does not match a longer macro name that merely starts with _ASMLANGUAGE", () => {

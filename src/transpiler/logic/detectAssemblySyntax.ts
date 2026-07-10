@@ -11,15 +11,16 @@
  *
  * Headers that merely GUARD assembler with `#ifdef __ASSEMBLER__` are unaffected:
  * preprocessing as C strips those blocks, so no assembler reaches this check.
- * Note the guard token `#ifndef _ASMLANGUAGE` survives on the raw-fallback path
- * (preprocessing failed), so this only matches the `#define _ASMLANGUAGE` form —
- * a header that fences its C prototypes behind such a guard is not assembler.
+ * Crucially, the guard token (`#ifndef _ASMLANGUAGE`, `#ifndef __ASSEMBLY__`, …)
+ * survives on the raw-fallback path (preprocessing failed), so only the
+ * `#define <marker>` form is matched — a header that fences its C prototypes
+ * behind such a guard is a normal C header, not assembler.
  *
- * This is a targeted heuristic for the observed FreeRTOS/xtensa case, not a
- * general assembler classifier: the directive check is robust (a line whose
- * first token is a GAS directive is never valid C at file scope), while the
- * `_ASMLANGUAGE` marker is xtensa-specific. It is applied line-by-line rather
- * than with a single multi-quantifier regex to keep matching linear and precise.
+ * This is a heuristic, not a general assembler classifier. The directive check
+ * is robust (a line whose first token is a GAS directive is never valid C at
+ * file scope); the marker check recognizes the common whole-file "this unit is
+ * assembly" self-declarations across toolchains. It is applied line-by-line
+ * rather than with a single multi-quantifier regex to keep matching linear.
  *
  * @param content Header content (preprocessed, or raw on a preprocess fallback)
  * @returns true if the content is assembler and must be skipped for C symbol collection
@@ -39,6 +40,16 @@ const ASSEMBLER_DIRECTIVES = new Set([
   ".p2align",
 ]);
 
+// Whole-file "this translation unit is assembly" self-declaration macros,
+// matched ONLY in their `#define` form (never the `#ifndef`/`#ifdef` guard form,
+// which fences C prototypes in real C headers — see file docstring). A C header
+// never defines these, since doing so would disable its own C content.
+const ASSEMBLY_MARKER_MACROS = new Set([
+  "_ASMLANGUAGE", // xtensa (e.g. coreasm.h)
+  "__ASSEMBLY__", // Linux kernel, U-Boot, many RTOS ports
+  "__ASSEMBLER__", // GCC/Clang assembling convention
+]);
+
 /** The run of non-whitespace at the start of an already-trimmed line. */
 function firstToken(trimmedLine: string): string {
   const end = trimmedLine.search(/\s/);
@@ -46,21 +57,21 @@ function firstToken(trimmedLine: string): string {
 }
 
 /**
- * A whole-file "this translation unit is assembly" self-declaration:
- * `#define _ASMLANGUAGE` (optionally `# define`, optionally with a value). An
- * `#ifndef _ASMLANGUAGE` guard is deliberately NOT matched — see file docstring.
+ * True when the line is `#define <marker>` for a known assembly self-declaration
+ * macro (optionally `# define`, optionally with a value). A guard such as
+ * `#ifndef __ASSEMBLY__` is deliberately NOT matched — see file docstring.
  */
-function isAssemblyLanguageDefine(trimmedLine: string): boolean {
+function isAssemblyMarkerDefine(trimmedLine: string): boolean {
   if (trimmedLine[0] !== "#") return false;
   const tokens = trimmedLine.slice(1).trim().split(/\s+/);
-  return tokens[0] === "define" && tokens[1] === "_ASMLANGUAGE";
+  return tokens[0] === "define" && ASSEMBLY_MARKER_MACROS.has(tokens[1]);
 }
 
 function detectAssemblySyntax(content: string): boolean {
   for (const rawLine of content.split("\n")) {
     const line = rawLine.trim();
     if (line === "") continue;
-    if (isAssemblyLanguageDefine(line)) return true;
+    if (isAssemblyMarkerDefine(line)) return true;
     if (ASSEMBLER_DIRECTIVES.has(firstToken(line))) return true;
   }
   return false;
