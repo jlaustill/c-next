@@ -38,6 +38,10 @@ describe("detectAssemblySyntax", () => {
         true,
       );
     });
+
+    it("detects a spaced '# define _ASMLANGUAGE' directive", () => {
+      expect(detectAssemblySyntax("# define _ASMLANGUAGE\n")).toBe(true);
+    });
   });
 
   describe("C / C++ headers - should return false", () => {
@@ -77,6 +81,13 @@ describe("detectAssemblySyntax", () => {
         "#endif",
       ].join("\n");
       expect(detectAssemblySyntax(xtruntime)).toBe(false);
+    });
+
+    it("does not match a longer macro name that merely starts with _ASMLANGUAGE", () => {
+      // Exact-token match: `#define _ASMLANGUAGE_CONFIG 1` is not the marker.
+      expect(detectAssemblySyntax("#define _ASMLANGUAGE_CONFIG 1\n")).toBe(
+        false,
+      );
     });
 
     it("returns false for empty content", () => {
