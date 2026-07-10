@@ -1080,6 +1080,14 @@ class FunctionCallAnalyzer {
       }
     }
 
+    // Issue #985 recovery: a function-like MACRO recovered by translation-unit
+    // preprocessing (e.g. FreeRTOS pdMS_TO_TICKS). Recovered functions are
+    // registered as full symbols (found above via getOverloads); macros have no
+    // declaration to parse, so only their name is known.
+    if (this.symbolTable.hasExternalDeclaration(name)) {
+      return true;
+    }
+
     return false;
   }
 }

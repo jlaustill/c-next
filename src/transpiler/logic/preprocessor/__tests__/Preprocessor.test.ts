@@ -20,16 +20,21 @@ type ExecCallback = (
   result: { stdout: string; stderr: string },
 ) => void;
 
-// Mock child_process - exec is promisified, so we mock it to work with promisify
+// Mock child_process - execFile is promisified, so we mock it to work with
+// promisify. execFile is called as (file, args, options, callback).
 vi.mock("node:child_process", () => ({
-  exec: (cmd: string, opts: unknown, cb?: ExecCallback) => {
+  execFile: (
+    file: string,
+    args: string[],
+    opts: unknown,
+    cb?: ExecCallback,
+  ) => {
     // promisify converts callback-based to promise-based
-    // We handle both forms (2-arg and 3-arg)
     let callback: ExecCallback | undefined = cb;
     if (typeof opts === "function") {
       callback = opts as ExecCallback;
     }
-    const result = mockExec(cmd, opts);
+    const result = mockExec(file, args, opts);
     if (result instanceof Promise) {
       result
         .then((r: { stdout: string; stderr: string }) => callback?.(null, r))
@@ -170,11 +175,12 @@ describe("Preprocessor", () => {
       await preprocessor.preprocess("/path/to/file.h");
 
       expect(mockExec).toHaveBeenCalled();
-      const command = mockExec.mock.calls[0][0];
-      expect(command).toContain("/usr/bin/gcc");
-      expect(command).toContain("-E");
-      expect(command).toContain("/path/to/file.h");
-      expect(command).toContain("-I/path/to");
+      const file = mockExec.mock.calls[0][0];
+      const args = mockExec.mock.calls[0][1];
+      expect(file).toBe("/usr/bin/gcc");
+      expect(args).toContain("-E");
+      expect(args).toContain("/path/to/file.h");
+      expect(args).toContain("-I/path/to");
     });
 
     it("includes custom include paths", async () => {
@@ -188,9 +194,9 @@ describe("Preprocessor", () => {
         includePaths: ["/custom/include", "/another/path"],
       });
 
-      const command = mockExec.mock.calls[0][0];
-      expect(command).toContain("-I/custom/include");
-      expect(command).toContain("-I/another/path");
+      const args = mockExec.mock.calls[0][1];
+      expect(args).toContain("-I/custom/include");
+      expect(args).toContain("-I/another/path");
     });
 
     it("includes defines", async () => {
@@ -208,10 +214,29 @@ describe("Preprocessor", () => {
         },
       });
 
-      const command = mockExec.mock.calls[0][0];
-      expect(command).toContain("-DDEBUG");
-      expect(command).toContain("-DVERSION=1.0");
-      expect(command).not.toContain("-DDISABLED");
+      const args = mockExec.mock.calls[0][1];
+      expect(args).toContain("-DDEBUG");
+      expect(args).toContain("-DVERSION=1.0");
+      expect(args).not.toContain("-DDISABLED");
+    });
+
+    it("passes defines with shell metacharacters as a single argv element", async () => {
+      mockExec.mockReturnValue({ stdout: "content", stderr: "" });
+
+      const preprocessor = new Preprocessor(mockToolchain);
+      // A board-name macro whose value contains spaces and parentheses — valid
+      // for the compiler, but would break /bin/sh if the command were routed
+      // through a shell (Issue: cnext preprocessor must invoke via argv).
+      await preprocessor.preprocess("/path/to/file.h", {
+        defines: {
+          ARDUINO_BOARD: '"Espressif ESP32-S3 (8 MB QD, No PSRAM)"',
+        },
+      });
+
+      const args = mockExec.mock.calls[0][1];
+      expect(args).toContain(
+        '-DARDUINO_BOARD="Espressif ESP32-S3 (8 MB QD, No PSRAM)"',
+      );
     });
 
     it("returns success result with content", async () => {
@@ -290,8 +315,8 @@ int y = 10;
         keepLineDirectives: false,
       });
 
-      const command = mockExec.mock.calls[0][0];
-      expect(command).toContain("-P");
+      const args = mockExec.mock.calls[0][1];
+      expect(args).toContain("-P");
     });
 
     it("handles preprocessor errors", async () => {

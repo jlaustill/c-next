@@ -3,7 +3,7 @@
  * Runs the system preprocessor on C/C++ files before parsing
  */
 
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { writeFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,7 +14,7 @@ import ISourceMapping from "./types/ISourceMapping";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * Handles preprocessing of C/C++ files
@@ -153,6 +153,12 @@ class Preprocessor {
       args.pop(); // Remove -P
     }
 
+    // Dump macro definitions (#define list) instead of preprocessed source,
+    // to discover function-like macros the normal preprocess would consume.
+    if (options.dumpMacros) {
+      args.push("-dM");
+    }
+
     // Add include paths
     const includePaths = [
       ...this.defaultIncludePaths,
@@ -188,11 +194,13 @@ class Preprocessor {
     // Add the input file
     args.push(filePath);
 
-    // Build command
-    const command = `${toolchain.cpp} ${args.join(" ")}`;
-
+    // Invoke the preprocessor via argv (execFile, NOT a shell). A shell would
+    // re-parse -D values that legitimately contain spaces / parentheses (e.g.
+    // -DARDUINO_BOARD="Espressif ... (8 MB QD, No PSRAM)"), breaking on the
+    // metacharacters. Passing args directly mirrors how the real compiler is
+    // invoked and is safe for any value the compiler accepts.
     try {
-      const { stdout, stderr } = await execAsync(command, {
+      const { stdout, stderr } = await execFileAsync(toolchain.cpp, args, {
         maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large headers
       });
 

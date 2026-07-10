@@ -111,6 +111,16 @@ class SymbolTable {
   private readonly needsStructKeyword: Set<string> = new Set();
 
   /**
+   * Issue #985 recovery: names of external function-like MACROS recovered by
+   * translation-unit preprocessing (ExternalDeclarationOracle) for headers cnext
+   * could not preprocess standalone. Macros have no declaration to parse, so
+   * only their names are known; consulted by the undeclared-`global.`-call check
+   * so it does not false-positive on a real macro (e.g. FreeRTOS pdMS_TO_TICKS).
+   * Recovered FUNCTIONS are registered as full symbols (with signatures) instead.
+   */
+  private readonly externalDeclarationNames: Set<string> = new Set();
+
+  /**
    * Issue #958: Immutable struct symbol state — additive only, query-time resolution.
    * Replaces separate opaqueTypes, typedefStructTypes, structTagAliases fields.
    */
@@ -353,6 +363,21 @@ class SymbolTable {
     for (const symbol of symbols) {
       this.addCSymbol(symbol);
     }
+  }
+
+  /**
+   * Register external declaration names recovered via TU preprocessing.
+   * @see externalDeclarationNames
+   */
+  addExternalDeclarationNames(names: ReadonlySet<string>): void {
+    for (const name of names) {
+      this.externalDeclarationNames.add(name);
+    }
+  }
+
+  /** Whether a name was recovered as an external function / function-like macro. */
+  hasExternalDeclaration(name: string): boolean {
+    return this.externalDeclarationNames.has(name);
   }
 
   /**
@@ -1014,6 +1039,26 @@ class SymbolTable {
     this.structState = produce(this.structState, (draft) => {
       draft.structTagsWithBodies.add(structTag);
     });
+  }
+
+  /**
+   * Issue #985: Clear a struct tag's recorded body. Used by external-declaration
+   * recovery to undo a PHANTOM body — one fabricated by ANTLR error-recovery when
+   * the normal pass parsed a header's huge preprocessed blob — so a type the
+   * clean per-file re-parse proves opaque (e.g. lvgl `lv_obj_t`) resolves as
+   * opaque again (and codegen uses a pointer).
+   * @param structTag The struct tag name (e.g., "_lv_obj_t")
+   */
+  clearStructTagHasBody(structTag: string): void {
+    if (!this.structState.structTagsWithBodies.has(structTag)) return;
+    this.structState = produce(this.structState, (draft) => {
+      draft.structTagsWithBodies.delete(structTag);
+    });
+  }
+
+  /** Issue #985: The struct tag a typedef aliases, if any (e.g. lv_obj_t -> _lv_obj_t). */
+  getStructTagForTypedef(typedefName: string): string | undefined {
+    return this.structState.typedefToTag.get(typedefName);
   }
 
   /**

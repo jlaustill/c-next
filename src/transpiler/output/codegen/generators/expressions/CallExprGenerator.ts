@@ -158,6 +158,16 @@ const _generateCFunctionArg = (
   if (!argType && !argCode.startsWith("&")) {
     if (typeInfo) {
       argType = typeInfo.baseType;
+    } else {
+      // Issue #985: fall back to the C symbol table for an extern C global
+      // (e.g. an lvgl font `lv_font_montserrat_32` of type `lv_font_t`). Its
+      // type isn't in the codegen variable registry (that tracks C-Next locals),
+      // but header symbol collection knows it — needed to add `&` when it's a
+      // struct value passed to a pointer parameter.
+      const cSymbol = CodeGenState.symbolTable?.getCSymbol(argCode);
+      if (cSymbol?.kind === "variable" && !cSymbol.isArray) {
+        argType = cSymbol.type;
+      }
     }
   }
   // Issue #895 Bug B: Check if variable was inferred as a pointer

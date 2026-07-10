@@ -25,6 +25,13 @@ interface IPreprocessOptions {
    * declarations, so the output stays scoped to the target file.
    */
   imacros?: string[];
+
+  /**
+   * Dump macro definitions (gcc/clang `-dM`) instead of preprocessed source.
+   * Output is the `#define` list, used to discover function-like macros (e.g.
+   * FreeRTOS `pdMS_TO_TICKS`) that a plain preprocess consumes at use sites.
+   */
+  dumpMacros?: boolean;
 }
 
 export default IPreprocessOptions;

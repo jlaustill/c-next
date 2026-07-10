@@ -38,7 +38,7 @@ describe("ToolchainDetector.fromPath", () => {
 
   it("accepts an absolute compiler path directly", () => {
     vi.mocked(existsSync).mockReturnValue(true);
-    vi.mocked(execSync).mockReturnValue("gcc 13\n" as unknown as Buffer);
+    vi.mocked(execSync).mockReturnValue("gcc 13\n");
 
     const tc = ToolchainDetector.fromPath("/usr/bin/xtensa-esp32s3-elf-gcc");
 
@@ -64,9 +64,7 @@ describe("ToolchainDetector.detect with CNEXT_CROSS_COMPILER", () => {
   it("prefers CNEXT_CROSS_COMPILER over auto-detected toolchains", () => {
     process.env.CNEXT_CROSS_COMPILER = "/opt/xt/bin/xtensa-esp32s3-elf-gcc";
     vi.mocked(existsSync).mockReturnValue(true);
-    vi.mocked(execSync).mockReturnValue(
-      "xtensa gcc 12.2\n" as unknown as Buffer,
-    );
+    vi.mocked(execSync).mockReturnValue("xtensa gcc 12.2\n");
 
     const tc = ToolchainDetector.detect();
 

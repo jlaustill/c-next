@@ -63,6 +63,7 @@ import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import detectAssemblySyntax from "./logic/detectAssemblySyntax";
+import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 
@@ -78,6 +79,13 @@ class Transpiler {
   private readonly cacheManager: CacheManager | null;
   /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
   private cppDetected: boolean;
+
+  /**
+   * Set when any C header failed standalone preprocessing (fell back to raw
+   * text). Gates the ExternalDeclarationOracle recovery pass (Issue #985) so
+   * only projects with unresolvable framework headers pay its cost.
+   */
+  private anyHeaderPreprocessFailed = false;
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   private readonly state = new TranspilerState();
   /**
@@ -220,6 +228,10 @@ class Transpiler {
     // Issue #945: Now async for preprocessing support
     await this._collectAllHeaderSymbols(input.headerFiles, result);
     CodeGenState.buildExternalStructFields();
+
+    // Issue #985 recovery: when standalone header preprocessing missed framework
+    // symbols, recover their declared names via translation-unit preprocessing.
+    await this._collectExternalDeclarations(input);
 
     // Stage 3: Collect symbols from C-Next files
     if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
@@ -644,6 +656,113 @@ class Transpiler {
       if (usable) {
         precedingHeaders.push(file.path);
       }
+    }
+  }
+
+  /**
+   * Issue #985 recovery: recover the NAMES of framework functions / function-like
+   * macros that standalone header preprocessing missed, by preprocessing each
+   * .cnx's C includes as a translation unit (predecessors first — the way the
+   * real compiler does). Requires a toolchain that can preprocess the target's
+   * headers; for cross targets set CNEXT_CROSS_COMPILER. Gated on a preprocess
+   * failure so clean projects pay nothing.
+   */
+  private async _collectExternalDeclarations(
+    input: IPipelineInput,
+  ): Promise<void> {
+    if (!this.anyHeaderPreprocessFailed) return;
+
+    // Collect every C header the .cnx files include, in first-seen source order.
+    const seen = new Set<string>();
+    const directives: string[] = [];
+    for (const file of input.cnextFiles) {
+      const source = file.source ?? this.readFileOrEmpty(file.path);
+      for (const directive of Transpiler.extractCIncludeDirectives(source)) {
+        if (!seen.has(directive)) {
+          seen.add(directive);
+          directives.push(directive);
+        }
+      }
+    }
+    if (directives.length === 0) return;
+
+    const recovery = await ExternalDeclarationOracle.recover(
+      directives,
+      this.preprocessor,
+      { includePaths: this.config.includeDirs, defines: this.config.defines },
+    );
+    if (!recovery) return;
+
+    // Parse each header's own preprocessed slice with the real header parser so
+    // recovered symbols carry FULL types — function signatures, typedefs, opaque
+    // structs — not just names. Each slice is macro-expanded (so e.g. FreeRTOS
+    // PRIVILEGED_FUNCTION is gone and vTaskDelay parses) yet small (no inlined
+    // tree, so ANTLR error-recovery doesn't drop declarations). Codegen needs
+    // these to pass structs by address (twai_driver_install(&cfg)) and treat
+    // opaque framework types as pointers (lv_obj_t -> lv_obj_t*).
+    //
+    // A second, isolated table is parsed in parallel: it is clean of the normal
+    // pass's degraded-blob data, so it holds the AUTHORITATIVE opaque/struct-body
+    // truth. parseCHeader (main table) auto-detects C vs C++ and skips assembler;
+    // the isolated table uses the C parser directly (opaque struct typedefs are
+    // a C concern) and tolerates slices it cannot parse.
+    const cleanState = new SymbolTable();
+    for (const [path, content] of recovery.perFileContent) {
+      try {
+        this.parseCHeader(content, path);
+      } catch {
+        // A slice that won't parse leaves the (already-collected) symbols as they
+        // were — skip it rather than fail the build.
+      }
+      const { tree } = HeaderParser.parseC(content);
+      if (tree) {
+        try {
+          CResolver.resolve(tree, path, cleanState);
+        } catch {
+          /* isolated best-effort — only its opaque/body verdict is consulted */
+        }
+      }
+    }
+
+    // Undo PHANTOM struct bodies: when the normal pass parsed a header's huge
+    // preprocessed blob, ANTLR error-recovery could fabricate a `struct X { ... }`
+    // that was never really there (e.g. lvgl `struct _lv_obj_t`), which makes an
+    // opaque typedef look complete and defeats pointer codegen. The clean per-file
+    // re-parse is authoritative, so for every type it proves opaque, clear any
+    // body its tag does NOT actually have.
+    const cleanBodies = new Set(cleanState.getAllStructTagsWithBodies());
+    for (const typedefName of cleanState.getAllOpaqueTypes()) {
+      if (!cleanState.isOpaqueType(typedefName)) continue;
+      const tag = CodeGenState.symbolTable.getStructTagForTypedef(typedefName);
+      if (tag && !cleanBodies.has(tag)) {
+        CodeGenState.symbolTable.clearStructTagHasBody(tag);
+      }
+    }
+
+    // Function-like macros have no declaration to parse; register their names for
+    // the undeclared-call check only (a by-value macro invocation is correct).
+    if (recovery.macroNames.size > 0) {
+      CodeGenState.symbolTable.addExternalDeclarationNames(recovery.macroNames);
+    }
+  }
+
+  /** Extract C header include directives (`<...>` / `"..."`, non-.cnx) in order. */
+  private static extractCIncludeDirectives(source: string): string[] {
+    const directives: string[] = [];
+    const re = /^[ \t]*#include\s+([<"][^>"]+[>"])/gm;
+    for (const match of source.matchAll(re)) {
+      const spec = match[1];
+      if (/\.cnx[>"]$/.test(spec)) continue; // C-Next include, not a C header
+      directives.push(spec);
+    }
+    return directives;
+  }
+
+  private readFileOrEmpty(path: string): string {
+    try {
+      return this.fs.readFile(path);
+    } catch {
+      return "";
     }
   }
 
@@ -1204,7 +1323,9 @@ class Transpiler {
         }
       }
       // Fall back to raw content. Mark not-usable so this header is not offered
-      // as macro context to headers processed after it.
+      // as macro context to headers processed after it, and flag that TU-level
+      // external-declaration recovery is warranted (Issue #985).
+      this.anyHeaderPreprocessFailed = true;
       this.warnings.push(
         `Preprocessing failed for ${file.path}: ${result.error}. Using raw content.`,
       );
