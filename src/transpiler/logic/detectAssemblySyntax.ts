@@ -62,7 +62,7 @@ function firstToken(trimmedLine: string): string {
  * `#ifndef __ASSEMBLY__` is deliberately NOT matched — see file docstring.
  */
 function isAssemblyMarkerDefine(trimmedLine: string): boolean {
-  if (trimmedLine[0] !== "#") return false;
+  if (!trimmedLine.startsWith("#")) return false;
   const tokens = trimmedLine.slice(1).trim().split(/\s+/);
   return tokens[0] === "define" && ASSEMBLY_MARKER_MACROS.has(tokens[1]);
 }
