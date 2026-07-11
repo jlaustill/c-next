@@ -5,7 +5,7 @@
 
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import IToolchain from "./types/IToolchain";
 
 /**
@@ -17,6 +17,16 @@ class ToolchainDetector {
    * Priority: ARM cross-compiler > clang > gcc
    */
   static detect(): IToolchain | null {
+    // Explicit override: a project can name the compiler that owns its target
+    // headers (e.g. a cross-compiler such as xtensa-esp32s3-elf-gcc) via
+    // CNEXT_CROSS_COMPILER. Host gcc/clang lack a cross target's system headers
+    // and predefined macros, so their preprocessing of target headers fails.
+    const override = process.env.CNEXT_CROSS_COMPILER;
+    if (override) {
+      const overridden = ToolchainDetector.fromPath(override);
+      if (overridden) return overridden;
+    }
+
     // Try ARM cross-compiler first (for embedded)
     const arm = this.detectArmToolchain();
     if (arm) return arm;
@@ -48,6 +58,37 @@ class ToolchainDetector {
     if (gcc) toolchains.push(gcc);
 
     return toolchains;
+  }
+
+  /**
+   * Build a toolchain from an explicit compiler path or executable name (e.g. a
+   * target cross-compiler such as xtensa-esp32s3-elf-gcc). Used by the
+   * CNEXT_CROSS_COMPILER override so a project can preprocess its target headers with the compiler
+   * that owns them.
+   */
+  static fromPath(compiler: string): IToolchain | null {
+    let cc: string | null;
+    if (compiler.includes("/")) {
+      cc = existsSync(compiler) ? compiler : null;
+    } else {
+      cc = this.findExecutable(compiler);
+    }
+    if (!cc) return null;
+
+    // Best-effort C++ driver alongside the C driver (only cpp is used for
+    // preprocessing; cxx is derived for completeness).
+    const cxxCandidate = cc.replace(/gcc(\.exe)?$/, "g++$1");
+    const cxx =
+      cxxCandidate !== cc && existsSync(cxxCandidate) ? cxxCandidate : cc;
+
+    return {
+      name: basename(cc),
+      cc,
+      cxx,
+      cpp: cc,
+      version: this.getVersion(cc),
+      isCrossCompiler: true,
+    };
   }
 
   /**

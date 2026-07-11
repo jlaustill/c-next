@@ -170,3 +170,18 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 - Issue #268 — auto-const inference; Issue #269 — `TransitiveModificationPropagator`
 - #986 — the blanket array auto-const removal this supersedes
 - MISRA C:2012 Rule 8.13 (advisory) — const-qualify pointers to unmodified data
+
+## Comments
+
+- **2026-07-10 — prerequisite unblocked.** This decision — "cnext depends on the
+  compiler-invocation contract (`compile_commands.json`), not on any build system" —
+  is exactly the thing that unblocks this ADR: its sink analysis needs external
+  callee signatures (parameter const-ness), which only resolve reliably once cnext
+  sees the compiler's includes. Without that, every framework/C-API callee falls into
+  the "sink cannot be resolved → fail-safe mutable" bucket (Decision table, row 4),
+  collapsing back to #986's blanket for exactly the external-C-API case #986 was worried
+  about. cnext now reads `compile_commands.json` — the build-system-agnostic database
+  every build system emits and clangd/clang-tidy consume — for the exact include paths,
+  defines, and compiler the real build uses (Issue #985; `CompileCommandsReader` +
+  `Transpiler` auto-discovery). With external signatures resolving, Step 1 can seed
+  `modifiedParameters[callee]` from real const-ness rather than perpetually failing safe.

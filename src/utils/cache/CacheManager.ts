@@ -32,7 +32,7 @@ import ESourceLanguage from "../types/ESourceLanguage";
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 7; // Issue #958: Add structTagAliases, structTagsWithBodies to cache
+const CACHE_VERSION = 8; // Issue #985: Add preprocessFailed marker to cache
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -138,6 +138,7 @@ class CacheManager {
     typedefStructTypes: Array<[string, string]>;
     structTagAliases: Array<[string, string]>;
     structTagsWithBodies: string[];
+    preprocessFailed: boolean;
   } | null {
     if (!this.cache) return null;
 
@@ -181,6 +182,7 @@ class CacheManager {
       typedefStructTypes: cachedEntry.typedefStructTypes ?? [],
       structTagAliases: cachedEntry.structTagAliases ?? [],
       structTagsWithBodies: cachedEntry.structTagsWithBodies ?? [],
+      preprocessFailed: cachedEntry.preprocessFailed ?? false,
     };
   }
 
@@ -199,6 +201,7 @@ class CacheManager {
       typedefStructTypes?: Array<[string, string]>;
       structTagAliases?: Array<[string, string]>;
       structTagsWithBodies?: string[];
+      preprocessFailed?: boolean;
     },
   ): void {
     if (!this.cache) return;
@@ -247,6 +250,7 @@ class CacheManager {
       typedefStructTypes: options?.typedefStructTypes,
       structTagAliases: options?.structTagAliases,
       structTagsWithBodies: options?.structTagsWithBodies,
+      preprocessFailed: options?.preprocessFailed,
     };
 
     this.cache.setKey(filePath, entry);
@@ -263,8 +267,14 @@ class CacheManager {
    *
    * @param filePath - Path to the file being cached
    * @param symbolTable - SymbolTable containing all parsed symbols
+   * @param preprocessFailed - Issue #985: header fell back to raw content, so its
+   *   symbols are degraded and a warm-cache build must re-run recovery
    */
-  setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
+  setSymbolsFromTable(
+    filePath: string,
+    symbolTable: SymbolTable,
+    preprocessFailed = false,
+  ): void {
     // ADR-055 Phase 7: Serialize TAnySymbol directly to ISerializedSymbol
     const typedSymbols = symbolTable.getSymbolsByFile(filePath);
     const symbols = typedSymbols.map((s) => this.serializeTypedSymbol(s));
@@ -302,6 +312,7 @@ class CacheManager {
       typedefStructTypes,
       structTagAliases,
       structTagsWithBodies,
+      preprocessFailed,
     });
   }
 

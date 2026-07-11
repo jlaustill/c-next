@@ -1,0 +1,6 @@
+#include "guard.h"
+#include "dependent.h"
+
+void loop() {
+  global.dependent_fn(5);
+}

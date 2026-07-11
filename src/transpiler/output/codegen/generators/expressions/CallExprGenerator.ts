@@ -105,6 +105,29 @@ const _parameterExpectsAddressOf = (
 };
 
 /**
+ * Resolve an argument expression's C-Next type for the address-of decision.
+ * Prefers the expression type, then the codegen variable registry, then the C
+ * symbol table — the last covers extern C globals (e.g. an lvgl font
+ * `lv_font_montserrat_32` of type `lv_font_t`, Issue #985) whose type only
+ * header symbol collection knows. Returns null when the type can't be resolved
+ * or the argument is already an address-of expression.
+ */
+const _resolveArgType = (
+  e: ExpressionContext,
+  argCode: string,
+  typeInfoBaseType: string | undefined,
+  orchestrator: IOrchestrator,
+): string | null => {
+  const exprType = orchestrator.getExpressionType(e);
+  if (exprType) return exprType;
+  if (argCode.startsWith("&")) return null;
+  if (typeInfoBaseType) return typeInfoBaseType;
+  const cSymbol = CodeGenState.symbolTable?.getCSymbol(argCode);
+  if (cSymbol?.kind === "variable" && !cSymbol.isArray) return cSymbol.type;
+  return null;
+};
+
+/**
  * Generate argument code for a C/C++ function call.
  * Handles automatic address-of (&) for struct arguments passed to pointer params.
  * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
@@ -148,22 +171,12 @@ const _generateCFunctionArg = (
     return wrapWithCppEnumCast(argCode, e, targetParam?.baseType, orchestrator);
   }
 
-  // Try getExpressionType first
-  let argType = orchestrator.getExpressionType(e);
-
-  // Issue #322: If getExpressionType returns null (e.g., for this.member),
-  // fall back to looking up the generated code in the type registry
-  let isPointerVariable = false;
+  // Resolve the argument's type (expression type → variable registry → C symbol
+  // table for extern globals) to decide whether it needs address-of.
   const typeInfo = CodeGenState.getVariableTypeInfo(argCode);
-  if (!argType && !argCode.startsWith("&")) {
-    if (typeInfo) {
-      argType = typeInfo.baseType;
-    }
-  }
-  // Issue #895 Bug B: Check if variable was inferred as a pointer
-  if (typeInfo?.isPointer) {
-    isPointerVariable = true;
-  }
+  const argType = _resolveArgType(e, argCode, typeInfo?.baseType, orchestrator);
+  // Issue #895 Bug B: a variable already inferred as a pointer must not get `&`.
+  const isPointerVariable = typeInfo?.isPointer ?? false;
 
   // Issue #948: Check if argument is an opaque scope variable (already a pointer)
   // Issue #996: ...including an element of an opaque-handle array (arr[i])

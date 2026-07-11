@@ -36,6 +36,10 @@ import HeaderSymbolAdapter from "./output/headers/adapters/HeaderSymbolAdapter";
 import IHeaderSymbol from "./output/headers/types/IHeaderSymbol";
 import TSymbol from "./types/symbols/TSymbol";
 import Preprocessor from "./logic/preprocessor/Preprocessor";
+import ToolchainDetector from "./logic/preprocessor/ToolchainDetector";
+import CompileCommandsReader from "./logic/preprocessor/CompileCommandsReader";
+import IToolchain from "./logic/preprocessor/types/IToolchain";
+import ICompileCommandsResult from "./logic/preprocessor/types/ICompileCommandsResult";
 
 import FileDiscovery from "./data/FileDiscovery";
 import EFileType from "./data/types/EFileType";
@@ -62,6 +66,8 @@ import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
+import detectAssemblySyntax from "./logic/detectAssemblySyntax";
+import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 
@@ -77,6 +83,13 @@ class Transpiler {
   private readonly cacheManager: CacheManager | null;
   /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
   private cppDetected: boolean;
+
+  /**
+   * Set when any C header failed standalone preprocessing (fell back to raw
+   * text). Gates the ExternalDeclarationOracle recovery pass (Issue #985) so
+   * only projects with unresolvable framework headers pay its cost.
+   */
+  private anyHeaderPreprocessFailed = false;
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   private readonly state = new TranspilerState();
   /**
@@ -112,7 +125,24 @@ class Transpiler {
     // Issue #211: Initialize cppDetected from config (--cpp flag sets this)
     this.cppDetected = this.config.cppRequired;
 
-    this.preprocessor = new Preprocessor();
+    // Adopt the compiler's own view from the project's compile_commands.json, if
+    // present. Every build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped
+    // Make) emits this database; reading it — rather than mirroring framework
+    // include paths in cnext.config.json — lets cnext resolve external headers
+    // exactly as the compiler will, which is the same reason clangd reads it.
+    // The include paths + defines + compiler are the contract every build system
+    // converges on. (Issue #985 external-symbol recovery; unblocks ADR-062.)
+    const projectRoot = this.determineProjectRoot();
+    const compileDb = projectRoot
+      ? CompileCommandsReader.load(join(projectRoot, "compile_commands.json"))
+      : null;
+    if (compileDb) {
+      this._applyCompileCommands(compileDb);
+    }
+
+    this.preprocessor = new Preprocessor(
+      Transpiler._toolchainForCompileDb(compileDb),
+    );
     this.codeGenerator = new CodeGenerator();
     this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
@@ -128,13 +158,44 @@ class Transpiler {
       this.fs,
     );
 
-    // Initialize cache manager if caching is enabled and project root can be determined
-    const projectRoot = this.config.noCache
-      ? undefined
-      : this.determineProjectRoot();
-    this.cacheManager = projectRoot
-      ? new CacheManager(projectRoot, this.fs)
-      : null;
+    // Initialize cache manager if caching is enabled and a project root was found.
+    this.cacheManager =
+      !this.config.noCache && projectRoot
+        ? new CacheManager(projectRoot, this.fs)
+        : null;
+  }
+
+  /**
+   * Merge a discovered compile_commands.json into the effective config: union its
+   * include search paths into includeDirs (so both preprocessing and include-tree
+   * resolution see what the compiler sees) and merge its defines beneath the
+   * explicit CLI/config defines, which win on conflict.
+   */
+  private _applyCompileCommands(db: ICompileCommandsResult): void {
+    const merged = [...this.config.includeDirs];
+    const seen = new Set(merged);
+    for (const path of db.includePaths) {
+      if (!seen.has(path)) {
+        seen.add(path);
+        merged.push(path);
+      }
+    }
+    this.config.includeDirs = merged;
+    this.config.defines = { ...db.defines, ...this.config.defines };
+  }
+
+  /**
+   * The toolchain to preprocess with, given a discovered compile database. An
+   * explicit CNEXT_CROSS_COMPILER override always wins (deferred to Preprocessor's
+   * own detection); otherwise adopt the database's compiler if it resolves, else
+   * fall back to auto-detection.
+   */
+  private static _toolchainForCompileDb(
+    db: ICompileCommandsResult | null,
+  ): IToolchain | undefined {
+    if (process.env.CNEXT_CROSS_COMPILER) return undefined;
+    if (!db?.compiler) return undefined;
+    return ToolchainDetector.fromPath(db.compiler) ?? undefined;
   }
 
   // ===========================================================================
@@ -218,6 +279,16 @@ class Transpiler {
     // Stage 2: Collect symbols from C/C++ headers and build analyzer context
     // Issue #945: Now async for preprocessing support
     await this._collectAllHeaderSymbols(input.headerFiles, result);
+
+    // Issue #985 recovery: when standalone header preprocessing missed framework
+    // symbols, recover their declared names via translation-unit preprocessing.
+    await this._collectExternalDeclarations(input);
+
+    // Snapshot external struct fields for InitializationAnalyzer AFTER recovery so
+    // structs that only become known through #985 recovery (their fields are added
+    // to symbolTable by _collectExternalDeclarations) are folded in and remain
+    // subject to init-completeness checking. Nothing consumes externalStructFields
+    // before Stage 5, so a single post-recovery build is sufficient.
     CodeGenState.buildExternalStructFields();
 
     // Stage 3: Collect symbols from C-Next files
@@ -628,13 +699,146 @@ class Transpiler {
     headerFiles: IDiscoveredFile[],
     result: ITranspilerResult,
   ): Promise<void> {
+    const precedingHeaders: string[] = [];
     for (const file of headerFiles) {
+      let usable = false;
       try {
-        await this.doCollectHeaderSymbols(file);
+        usable = await this.doCollectHeaderSymbols(file, precedingHeaders);
         result.filesProcessed++;
       } catch (err) {
         this.warnings.push(`Failed to process header ${file.path}: ${err}`);
       }
+      // Offer this header as macro context to headers processed after it, but
+      // only if it itself preprocessed cleanly — an unpreprocessable predecessor
+      // would otherwise make every dependent's -imacros retry fail.
+      if (usable) {
+        precedingHeaders.push(file.path);
+      }
+    }
+  }
+
+  /**
+   * Issue #985 recovery: recover the NAMES of framework functions / function-like
+   * macros that standalone header preprocessing missed, by preprocessing each
+   * .cnx's C includes as a translation unit (predecessors first — the way the
+   * real compiler does). Requires a toolchain that can preprocess the target's
+   * headers; for cross targets set CNEXT_CROSS_COMPILER. Gated on a preprocess
+   * failure so clean projects pay nothing.
+   */
+  private async _collectExternalDeclarations(
+    input: IPipelineInput,
+  ): Promise<void> {
+    if (!this.anyHeaderPreprocessFailed) return;
+
+    const directives = this._collectCIncludeDirectives(input);
+    if (directives.length === 0) return;
+
+    const recovery = await ExternalDeclarationOracle.recover(
+      directives,
+      this.preprocessor,
+      { includePaths: this.config.includeDirs, defines: this.config.defines },
+    );
+    if (!recovery) return;
+
+    const cleanState = this._parseRecoveredSlices(recovery.perFileContent);
+    Transpiler._clearPhantomStructBodies(cleanState);
+
+    // Function-like macros have no declaration to parse; register their names for
+    // the undeclared-call check only (a by-value macro invocation is correct).
+    if (recovery.macroNames.size > 0) {
+      CodeGenState.symbolTable.addExternalDeclarationNames(recovery.macroNames);
+    }
+  }
+
+  /** Every C header the .cnx files include, deduped in first-seen source order. */
+  private _collectCIncludeDirectives(input: IPipelineInput): string[] {
+    const seen = new Set<string>();
+    const directives: string[] = [];
+    for (const file of input.cnextFiles) {
+      const source = file.source ?? this.readFileOrEmpty(file.path);
+      for (const directive of Transpiler.extractCIncludeDirectives(source)) {
+        if (!seen.has(directive)) {
+          seen.add(directive);
+          directives.push(directive);
+        }
+      }
+    }
+    return directives;
+  }
+
+  /**
+   * Parse each header's own preprocessed slice with the real header parser so
+   * recovered symbols carry FULL types — function signatures, typedefs, opaque
+   * structs — not just names. Each slice is macro-expanded (so e.g. FreeRTOS
+   * PRIVILEGED_FUNCTION is gone and vTaskDelay parses) yet small (no inlined
+   * tree, so ANTLR error-recovery doesn't drop declarations). Codegen needs
+   * these to pass structs by address (twai_driver_install(&cfg)) and treat
+   * opaque framework types as pointers (lv_obj_t -> lv_obj_t*).
+   *
+   * A second, isolated table is parsed in parallel and returned: it is clean of
+   * the normal pass's degraded-blob data, so it holds the AUTHORITATIVE
+   * opaque/struct-body truth. parseCHeader (main table) auto-detects C vs C++ and
+   * skips assembler; the isolated table uses the C parser directly (opaque struct
+   * typedefs are a C concern) and tolerates slices it cannot parse.
+   */
+  private _parseRecoveredSlices(
+    perFileContent: Map<string, string>,
+  ): SymbolTable {
+    const cleanState = new SymbolTable();
+    for (const [path, content] of perFileContent) {
+      try {
+        this.parseCHeader(content, path);
+      } catch {
+        // A slice that won't parse leaves the (already-collected) symbols as they
+        // were — skip it rather than fail the build.
+      }
+      const { tree } = HeaderParser.parseC(content);
+      if (!tree) continue;
+      try {
+        CResolver.resolve(tree, path, cleanState);
+      } catch {
+        /* isolated best-effort — only its opaque/body verdict is consulted */
+      }
+    }
+    return cleanState;
+  }
+
+  /**
+   * Undo PHANTOM struct bodies: when the normal pass parsed a header's huge
+   * preprocessed blob, ANTLR error-recovery could fabricate a `struct X { ... }`
+   * that was never really there (e.g. lvgl `struct _lv_obj_t`), which makes an
+   * opaque typedef look complete and defeats pointer codegen. The clean per-file
+   * re-parse (`cleanState`) is authoritative, so for every type it proves opaque,
+   * clear any body its tag does NOT actually have.
+   */
+  private static _clearPhantomStructBodies(cleanState: SymbolTable): void {
+    const cleanBodies = new Set(cleanState.getAllStructTagsWithBodies());
+    for (const typedefName of cleanState.getAllOpaqueTypes()) {
+      if (!cleanState.isOpaqueType(typedefName)) continue;
+      const tag = CodeGenState.symbolTable.getStructTagForTypedef(typedefName);
+      if (tag && !cleanBodies.has(tag)) {
+        CodeGenState.symbolTable.clearStructTagHasBody(tag);
+      }
+    }
+  }
+
+  /** Extract C header include directives (`<...>` / `"..."`, non-.cnx) in order. */
+  private static extractCIncludeDirectives(source: string): string[] {
+    const directives: string[] = [];
+    const re = /^[ \t]*#include\s+([<"][^>"]+[>"])/gm;
+    for (const match of source.matchAll(re)) {
+      const spec = match[1];
+      if (/\.cnx[>"]$/.test(spec)) continue; // C-Next include, not a C header
+      directives.push(spec);
+    }
+    return directives;
+  }
+
+  private readFileOrEmpty(path: string): string {
+    try {
+      return this.fs.readFile(path);
+    } catch {
+      return "";
     }
   }
 
@@ -1058,18 +1262,25 @@ class Transpiler {
    * Issue #945: Added preprocessing support for conditional compilation
    * SonarCloud S3776: Refactored to use helper methods for reduced complexity.
    */
-  private async doCollectHeaderSymbols(file: IDiscoveredFile): Promise<void> {
+  private async doCollectHeaderSymbols(
+    file: IDiscoveredFile,
+    precedingHeaders: readonly string[] = [],
+  ): Promise<boolean> {
     // Track as processed (for cycle detection)
     const absolutePath = resolve(file.path);
     this.state.markHeaderProcessed(absolutePath);
 
     // Check cache first
-    if (this.tryRestoreFromCache(file)) {
-      return; // Cache hit - skip full parsing
+    const restored = this.tryRestoreFromCache(file);
+    if (restored) {
+      return restored.usable; // Cache hit - skip full parsing
     }
 
     // Issue #945: Preprocess header to evaluate #if/#ifdef directives
-    const content = await this.getHeaderContent(file);
+    const { content, usable } = await this.getHeaderContent(
+      file,
+      precedingHeaders,
+    );
     this.parseHeaderFile(file, content);
 
     // Debug: Show symbols found
@@ -1078,27 +1289,34 @@ class Transpiler {
       console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
-    // Issue #590: Cache the results using simplified API
+    // Issue #590: Cache the results using simplified API. Issue #985: record when
+    // this header fell back to raw content so a warm-cache build re-runs recovery.
     if (this.cacheManager) {
       this.cacheManager.setSymbolsFromTable(
         file.path,
         CodeGenState.symbolTable,
+        !usable,
       );
     }
+
+    return usable;
   }
 
   /**
-   * Try to restore symbols from cache. Returns true if cache hit.
+   * Try to restore symbols from cache. Returns the restored header's usability
+   * (whether it preprocessed cleanly) on a cache hit, or null on a miss.
    * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
    */
-  private tryRestoreFromCache(file: IDiscoveredFile): boolean {
+  private tryRestoreFromCache(
+    file: IDiscoveredFile,
+  ): { usable: boolean } | null {
     if (!this.cacheManager?.isValid(file.path)) {
-      return false;
+      return null;
     }
 
     const cached = this.cacheManager.getSymbols(file.path);
     if (!cached) {
-      return false;
+      return null;
     }
 
     // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
@@ -1127,7 +1345,15 @@ class Transpiler {
     // Issue #211: Still check for C++ syntax even on cache hit
     this.detectCppFromFileType(file);
 
-    return true;
+    // Issue #985: The cached symbols of a header that fell back to raw content
+    // are degraded. Re-arm the recovery gate so a warm-cache build still runs
+    // the external-declaration recovery pass and re-applies its corrections to
+    // the in-memory symbol table (the cache itself holds the degraded symbols).
+    if (cached.preprocessFailed) {
+      this.anyHeaderPreprocessFailed = true;
+    }
+
+    return { usable: !cached.preprocessFailed };
   }
 
   /**
@@ -1138,24 +1364,27 @@ class Transpiler {
    * Preprocessing is needed when the file has conditional compilation patterns
    * like #if MACRO != 0 that require expression evaluation.
    */
-  private async getHeaderContent(file: IDiscoveredFile): Promise<string> {
+  private async getHeaderContent(
+    file: IDiscoveredFile,
+    precedingHeaders: readonly string[] = [],
+  ): Promise<{ content: string; usable: boolean }> {
     const rawContent = this.fs.readFile(file.path);
 
     // Check if preprocessing is disabled
     if (this.config.preprocess === false) {
-      return rawContent;
+      return { content: rawContent, usable: true };
     }
 
     // Check if preprocessing is available
     if (!this.preprocessor.isAvailable()) {
-      return rawContent;
+      return { content: rawContent, usable: true };
     }
 
     // Issue #945: Only preprocess if file has conditional compilation patterns
     // that require expression evaluation (e.g., #if MACRO != 0, #if MACRO == 1)
     // Simple #ifdef/#ifndef patterns are already handled by the parser
     if (!this.needsConditionalPreprocessing(rawContent)) {
-      return rawContent;
+      return { content: rawContent, usable: true };
     }
 
     // Preprocess the header file
@@ -1166,14 +1395,34 @@ class Transpiler {
     });
 
     if (!result.success) {
-      // Log warning but fall back to raw content
+      // Some headers cannot be preprocessed standalone: they require a
+      // predecessor to have run first (e.g. FreeRTOS task.h needs FreeRTOS.h to
+      // define INC_FREERTOS_H and its attribute macros, and enforces this with
+      // its own #error). Retry importing the macros of the headers collected
+      // before this one (only those that themselves preprocessed cleanly, so one
+      // unpreprocessable predecessor can't defeat the retry).
+      if (precedingHeaders.length > 0) {
+        const retry = await this.preprocessor.preprocess(file.path, {
+          defines: this.config.defines,
+          includePaths: this.config.includeDirs,
+          keepLineDirectives: false,
+          imacros: [...precedingHeaders],
+        });
+        if (retry.success) {
+          return { content: retry.content, usable: true };
+        }
+      }
+      // Fall back to raw content. Mark not-usable so this header is not offered
+      // as macro context to headers processed after it, and flag that TU-level
+      // external-declaration recovery is warranted (Issue #985).
+      this.anyHeaderPreprocessFailed = true;
       this.warnings.push(
         `Preprocessing failed for ${file.path}: ${result.error}. Using raw content.`,
       );
-      return rawContent;
+      return { content: rawContent, usable: false };
     }
 
-    return result.content;
+    return { content: result.content, usable: true };
   }
 
   /**
@@ -1323,6 +1572,17 @@ class Transpiler {
    * Uses heuristic detection to choose the appropriate parser
    */
   private parseCHeader(content: string, filePath: string): void {
+    // Assembler headers (e.g. xtensa coreasm.h, pulled in transitively by
+    // FreeRTOS port headers) are not C. Parsing their `.macro` bodies as C
+    // mis-collects instruction mnemonics like `loop` as C symbols that then
+    // false-conflict with C-Next symbols of the same name. Skip them entirely.
+    if (detectAssemblySyntax(content)) {
+      if (this.config.debugMode) {
+        console.log(`[DEBUG]   Skipping assembler header: ${filePath}`);
+      }
+      return;
+    }
+
     if (detectCppSyntax(content)) {
       // Issue #211: C++ detected, set flag for .cpp output
       this.cppDetected = true;

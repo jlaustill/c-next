@@ -26,6 +26,13 @@ interface ICachedFileEntry {
   structTagAliases?: Array<[string, string]>;
   /** Issue #958: Struct tags that have full definitions (bodies) */
   structTagsWithBodies?: string[];
+  /**
+   * Issue #985: This header could not be preprocessed standalone and fell back
+   * to raw content, so its cached symbols are degraded (phantom struct bodies,
+   * missing/by-value framework signatures). Persisted so a warm-cache build
+   * still triggers the external-declaration recovery pass and re-applies the fix.
+   */
+  preprocessFailed?: boolean;
 }
 
 export default ICachedFileEntry;
