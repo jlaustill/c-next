@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.18] - 2026-07-10
+
+### Added
+
+- `forever` infinite-loop statement (ADR-113, Issue #1074)
+- Disguised infinite loops (e.g. `while (1)`, `for (;;)`) are now rejected — E0707 (ADR-113, Issue #1075)
+- All-paths-return diagnostic E0704 for non-void functions (ADR-112, Issue #1040)
+- MISRA C:2012 Rule 21.15: slice assignments are unrolled to per-element writes, annotated with the rule they satisfy (Issue #1081)
+- MISRA C:2012 Rule 10.4: mixed essential-type-category arithmetic is now rejected — E0810 (Issue #1091)
+- MISRA C:2012 Rule 10.8: composite slice sources are lowered in two steps to avoid an incompatible-type cast (Issue #1085)
+- Integer-literal slice sources are now supported (Issue #1085)
+- MISRA C:2012 Rule 21.6: inline suppression is emitted for `stdio.h` includes (Issue #850)
+- External headers are resolved via `compile_commands.json`, recovering full external symbols per translation unit, with a `CNEXT_CROSS_COMPILER` override for cross-compiler preprocessing (PR #1104)
+
+### Changed
+
+- Compliance annotations (naming the safety standard + rule that shaped non-obvious generated code) are now a documented C-Next standard (Issue #1081)
+- `validate:c` MISRA check now actually detects violations instead of silently passing (Issue #1057)
+
+### Fixed
+
+- Bit-indexing a scalar function parameter now emits shift-mask extraction instead of an invalid pointer dereference (Issue #1100)
+- Const-width bit-range extraction mask is now precomputed correctly (Issue #1094)
+- String variable initialization now uses bounded `strncpy` (Issue #1044)
+- Consistent indentation in string initialization/concatenation/substring codegen (Issue #1037)
+- Bare booleans are rejected consistently in conditions, with type-aware help (Issue #1042)
+- Execute-only test mode removed; the full pipeline now runs in a single pass, closing a CI validation gap (Issue #1018)
+- Cross-scope register bit-range writes are expanded correctly (Issue #1052)
+- Assembler headers are skipped during C symbol collection, and include-order-dependent headers are preprocessed in context (PR #1104)
+
 ## [0.2.17] - 2026-06-21
 
 ### Changed
@@ -1275,7 +1305,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.16...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.18...HEAD
+[0.2.18]: https://github.com/jlaustill/c-next/compare/v0.2.17...v0.2.18
 [0.2.17]: https://github.com/jlaustill/c-next/compare/v0.2.16...v0.2.17
 [0.2.16]: https://github.com/jlaustill/c-next/compare/v0.2.15...v0.2.16
 [0.2.15]: https://github.com/jlaustill/c-next/compare/v0.2.14...v0.2.15
