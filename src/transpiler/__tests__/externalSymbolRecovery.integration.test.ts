@@ -16,6 +16,7 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
+import CodeGenState from "../state/CodeGenState";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
 
 const GUARD_H = `#define WIDGET_GUARD 1
@@ -116,6 +117,31 @@ describe("external-symbol recovery (integration)", () => {
     expect(code).toMatch(/widget_apply\(\s*&widget_default_cfg/);
     // Opaque handle -> pointer field.
     expect(code).toMatch(/widget_t\s*\*\s*\w*handle/);
+  });
+
+  it("folds a recovered struct into externalStructFields so it stays subject to init-completeness checking", async () => {
+    if (!available) return;
+
+    // widget_cfg_t only becomes known through #985 recovery (its typedef is
+    // emitted by the DECLARE_WIDGET_API macro inside the un-standalone header).
+    // The external-struct snapshot InitializationAnalyzer consults must include
+    // it — otherwise recovered structs escape init checking that cleanly
+    // preprocessed structs get. Regression: the snapshot must be taken AFTER the
+    // recovery pass, not before it.
+    const transpiler = new Transpiler({
+      input: join(dir, "main.cnx"),
+      includeDirs: [dir],
+      outDir: join(dir, "out"),
+      cppRequired: true,
+      noCache: true,
+    });
+
+    const result = await transpiler.transpile({ kind: "files" });
+    expect(result.success).toBe(true);
+
+    const external = CodeGenState.getExternalStructFields();
+    expect(external.has("widget_cfg_t")).toBe(true);
+    expect([...(external.get("widget_cfg_t") ?? [])]).toContain("mode");
   });
 
   it("re-applies recovery on a warm header cache (Issue #985 regression)", async () => {

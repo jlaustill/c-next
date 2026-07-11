@@ -36,6 +36,18 @@ interface ITokenizerState {
   mode: "normal" | "single" | "double";
 }
 
+/** Mutable state accumulated across every compile-DB entry while parsing. */
+interface ICompileCommandsAccumulator {
+  /** Include search paths in first-seen order, de-duplicated via `seen`. */
+  includePaths: string[];
+  /** Dedup guard for `includePaths`. */
+  seen: Set<string>;
+  /** Preprocessor defines (last write wins across entries). */
+  defines: Record<string, string | boolean>;
+  /** Compiler binary — the first entry-with-args argv[0] wins. */
+  compiler: string | null;
+}
+
 class CompileCommandsReader {
   /**
    * Include-search flags whose operand is a directory. Each accepts an operand
@@ -67,56 +79,140 @@ class CompileCommandsReader {
    * path, defines, and compiler binary (combined across all entries).
    */
   static parse(jsonContent: string): ICompileCommandsResult {
-    const includePaths: string[] = [];
-    const seen = new Set<string>();
-    const defines: Record<string, string | boolean> = {};
-    let compiler: string | null = null;
+    const accumulator: ICompileCommandsAccumulator = {
+      includePaths: [],
+      seen: new Set<string>(),
+      defines: {},
+      compiler: null,
+    };
 
     const entries = JSON.parse(jsonContent) as ICompileCommandsEntry[];
     for (const entry of entries) {
-      const args =
-        entry.arguments ??
-        (entry.command ? CompileCommandsReader.tokenize(entry.command) : []);
-      const dir = entry.directory ?? "";
-      if (compiler === null && args.length > 0) {
-        compiler = args[0]; // argv[0] is the compiler binary
+      const args = CompileCommandsReader.entryArgs(entry);
+      if (accumulator.compiler === null && args.length > 0) {
+        accumulator.compiler = args[0]; // argv[0] is the compiler binary
       }
-      for (let i = 0; i < args.length; i++) {
-        const includeFlag = CompileCommandsReader.matchIncludeFlag(args[i]);
-        if (includeFlag) {
-          let raw = args[i].slice(includeFlag.length);
-          if (raw === "") {
-            // Space-separated form: the operand is the next token.
-            raw = args[i + 1] ?? "";
-            i++;
-          }
-          if (raw === "") continue;
-          const path = isAbsolute(raw) ? raw : resolve(dir, raw);
-          if (!seen.has(path)) {
-            seen.add(path);
-            includePaths.push(path);
-          }
-          continue;
-        }
-
-        if (args[i].startsWith("-D")) {
-          let raw = args[i].slice(2);
-          if (raw === "") {
-            raw = args[i + 1] ?? "";
-            i++;
-          }
-          if (raw === "") continue;
-          const eq = raw.indexOf("=");
-          if (eq === -1) {
-            defines[raw] = true;
-          } else {
-            defines[raw.slice(0, eq)] = raw.slice(eq + 1);
-          }
-        }
-      }
+      CompileCommandsReader.processArgs(
+        accumulator,
+        args,
+        entry.directory ?? "",
+      );
     }
 
-    return { includePaths, defines, compiler };
+    return {
+      includePaths: accumulator.includePaths,
+      defines: accumulator.defines,
+      compiler: accumulator.compiler,
+    };
+  }
+
+  /**
+   * Resolve one entry's argv: explicit `arguments` if present, else the
+   * word-split `command` string, else none. `arguments` is used when truthy so a
+   * present-but-empty `[]` is kept (an entry with no compile args) — matching the
+   * clang spec's `command`-OR-`arguments` shape.
+   */
+  private static entryArgs(entry: ICompileCommandsEntry): string[] {
+    if (entry.arguments) return entry.arguments;
+    return entry.command ? CompileCommandsReader.tokenize(entry.command) : [];
+  }
+
+  /** Collect include paths and defines from one entry's argv. */
+  private static processArgs(
+    accumulator: ICompileCommandsAccumulator,
+    args: string[],
+    directory: string,
+  ): void {
+    for (let i = 0; i < args.length; i++) {
+      i += CompileCommandsReader.processArg(accumulator, args, i, directory);
+    }
+  }
+
+  /**
+   * Classify one arg — an include flag or a `-D` define — and collect its
+   * operand. Returns the number of ADDITIONAL tokens consumed (0, or 1 for a
+   * space-separated operand) so the caller advances past it.
+   */
+  private static processArg(
+    accumulator: ICompileCommandsAccumulator,
+    args: string[],
+    index: number,
+    directory: string,
+  ): number {
+    const includeFlag = CompileCommandsReader.matchIncludeFlag(args[index]);
+    if (includeFlag) {
+      const operand = CompileCommandsReader.resolveOperand(
+        args,
+        index,
+        includeFlag.length,
+      );
+      CompileCommandsReader.collectIncludePath(
+        accumulator,
+        directory,
+        operand.value,
+      );
+      return operand.extraConsumed;
+    }
+    if (args[index].startsWith("-D")) {
+      const operand = CompileCommandsReader.resolveOperand(args, index, 2);
+      CompileCommandsReader.collectDefine(accumulator, operand.value);
+      return operand.extraConsumed;
+    }
+    return 0;
+  }
+
+  /**
+   * Resolve a flag's operand: the text attached directly to the flag, or — if
+   * that is empty — the next token (the space-separated `-I foo` form), then
+   * consumed. The next-token form is taken unconditionally when the attached text
+   * is empty, even at the end of argv, so index advancement stays in step.
+   */
+  private static resolveOperand(
+    args: string[],
+    index: number,
+    prefixLength: number,
+  ): { value: string; extraConsumed: number } {
+    const attached = args[index].slice(prefixLength);
+    if (attached === "") {
+      return { value: args[index + 1] ?? "", extraConsumed: 1 };
+    }
+    return { value: attached, extraConsumed: 0 };
+  }
+
+  /**
+   * Collect an include directory (absolute kept verbatim; relative resolved
+   * against the entry `directory`), de-duplicated in first-seen order. An empty
+   * operand (a flag with no directory) is ignored.
+   */
+  private static collectIncludePath(
+    accumulator: ICompileCommandsAccumulator,
+    directory: string,
+    raw: string,
+  ): void {
+    if (raw === "") return;
+    const path = isAbsolute(raw) ? raw : resolve(directory, raw);
+    if (!accumulator.seen.has(path)) {
+      accumulator.seen.add(path);
+      accumulator.includePaths.push(path);
+    }
+  }
+
+  /**
+   * Collect a `-D` define, split on the FIRST `=`: `KEY=VAL` -> `VAL` (a trailing
+   * `KEY=` keeps the empty value), bare `KEY` -> `true`. An empty operand is
+   * ignored.
+   */
+  private static collectDefine(
+    accumulator: ICompileCommandsAccumulator,
+    raw: string,
+  ): void {
+    if (raw === "") return;
+    const eq = raw.indexOf("=");
+    if (eq === -1) {
+      accumulator.defines[raw] = true;
+    } else {
+      accumulator.defines[raw.slice(0, eq)] = raw.slice(eq + 1);
+    }
   }
 
   /** Return the include flag `arg` begins with, or null if it is not one. */

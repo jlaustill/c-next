@@ -279,11 +279,17 @@ class Transpiler {
     // Stage 2: Collect symbols from C/C++ headers and build analyzer context
     // Issue #945: Now async for preprocessing support
     await this._collectAllHeaderSymbols(input.headerFiles, result);
-    CodeGenState.buildExternalStructFields();
 
     // Issue #985 recovery: when standalone header preprocessing missed framework
     // symbols, recover their declared names via translation-unit preprocessing.
     await this._collectExternalDeclarations(input);
+
+    // Snapshot external struct fields for InitializationAnalyzer AFTER recovery so
+    // structs that only become known through #985 recovery (their fields are added
+    // to symbolTable by _collectExternalDeclarations) are folded in and remain
+    // subject to init-completeness checking. Nothing consumes externalStructFields
+    // before Stage 5, so a single post-recovery build is sufficient.
+    CodeGenState.buildExternalStructFields();
 
     // Stage 3: Collect symbols from C-Next files
     if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
