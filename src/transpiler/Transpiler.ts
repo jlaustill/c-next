@@ -36,6 +36,10 @@ import HeaderSymbolAdapter from "./output/headers/adapters/HeaderSymbolAdapter";
 import IHeaderSymbol from "./output/headers/types/IHeaderSymbol";
 import TSymbol from "./types/symbols/TSymbol";
 import Preprocessor from "./logic/preprocessor/Preprocessor";
+import ToolchainDetector from "./logic/preprocessor/ToolchainDetector";
+import CompileCommandsReader from "./logic/preprocessor/CompileCommandsReader";
+import IToolchain from "./logic/preprocessor/types/IToolchain";
+import ICompileCommandsResult from "./logic/preprocessor/types/ICompileCommandsResult";
 
 import FileDiscovery from "./data/FileDiscovery";
 import EFileType from "./data/types/EFileType";
@@ -121,7 +125,24 @@ class Transpiler {
     // Issue #211: Initialize cppDetected from config (--cpp flag sets this)
     this.cppDetected = this.config.cppRequired;
 
-    this.preprocessor = new Preprocessor();
+    // Adopt the compiler's own view from the project's compile_commands.json, if
+    // present. Every build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped
+    // Make) emits this database; reading it — rather than mirroring framework
+    // include paths in cnext.config.json — lets cnext resolve external headers
+    // exactly as the compiler will, which is the same reason clangd reads it.
+    // The include paths + defines + compiler are the contract every build system
+    // converges on. (Issue #985 external-symbol recovery; unblocks ADR-062.)
+    const projectRoot = this.determineProjectRoot();
+    const compileDb = projectRoot
+      ? CompileCommandsReader.load(join(projectRoot, "compile_commands.json"))
+      : null;
+    if (compileDb) {
+      this._applyCompileCommands(compileDb);
+    }
+
+    this.preprocessor = new Preprocessor(
+      Transpiler._toolchainForCompileDb(compileDb),
+    );
     this.codeGenerator = new CodeGenerator();
     this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
@@ -137,13 +158,44 @@ class Transpiler {
       this.fs,
     );
 
-    // Initialize cache manager if caching is enabled and project root can be determined
-    const projectRoot = this.config.noCache
-      ? undefined
-      : this.determineProjectRoot();
-    this.cacheManager = projectRoot
-      ? new CacheManager(projectRoot, this.fs)
-      : null;
+    // Initialize cache manager if caching is enabled and a project root was found.
+    this.cacheManager =
+      !this.config.noCache && projectRoot
+        ? new CacheManager(projectRoot, this.fs)
+        : null;
+  }
+
+  /**
+   * Merge a discovered compile_commands.json into the effective config: union its
+   * include search paths into includeDirs (so both preprocessing and include-tree
+   * resolution see what the compiler sees) and merge its defines beneath the
+   * explicit CLI/config defines, which win on conflict.
+   */
+  private _applyCompileCommands(db: ICompileCommandsResult): void {
+    const merged = [...this.config.includeDirs];
+    const seen = new Set(merged);
+    for (const path of db.includePaths) {
+      if (!seen.has(path)) {
+        seen.add(path);
+        merged.push(path);
+      }
+    }
+    this.config.includeDirs = merged;
+    this.config.defines = { ...db.defines, ...this.config.defines };
+  }
+
+  /**
+   * The toolchain to preprocess with, given a discovered compile database. An
+   * explicit CNEXT_CROSS_COMPILER override always wins (deferred to Preprocessor's
+   * own detection); otherwise adopt the database's compiler if it resolves, else
+   * fall back to auto-detection.
+   */
+  private static _toolchainForCompileDb(
+    db: ICompileCommandsResult | null,
+  ): IToolchain | undefined {
+    if (process.env.CNEXT_CROSS_COMPILER) return undefined;
+    if (!db?.compiler) return undefined;
+    return ToolchainDetector.fromPath(db.compiler) ?? undefined;
   }
 
   // ===========================================================================

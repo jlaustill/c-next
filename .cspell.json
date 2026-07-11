@@ -393,7 +393,16 @@
     "xtensa",
     "xthal",
     "xtruntime",
-    "xyzzy"
+    "xyzzy",
+    "isystem",
+    "iquote",
+    "idirafter",
+    "shlex",
+    "Iinclude",
+    "DCORE",
+    "DSINGLE",
+    "DKEY",
+    "DFOO"
   ],
   "ignorePaths": [
     "node_modules/**",
