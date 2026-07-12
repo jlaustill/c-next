@@ -256,4 +256,55 @@ describe("CodeGenerator requireInclude", () => {
       expect(result.code).not.toContain("#include <string.h>");
     });
   });
+
+  describe("deduplicates auto-includes against passthrough includes (#1108)", () => {
+    const countOccurrences = (haystack: string, needle: string): number =>
+      haystack.split(needle).length - 1;
+
+    it("emits stdint.h once when source already includes it", async () => {
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: "#include <stdint.h>\nu8 value <- 0;",
+        })
+      ).files[0];
+
+      expect(result.success).toBe(true);
+      expect(result.code).toContain("#include <stdint.h>");
+      expect(countOccurrences(result.code!, "#include <stdint.h>")).toBe(1);
+    });
+
+    it("emits stdbool.h once when source already includes it", async () => {
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source: "#include <stdbool.h>\nbool flag <- true;",
+        })
+      ).files[0];
+
+      expect(result.success).toBe(true);
+      expect(result.code).toContain("#include <stdbool.h>");
+      expect(countOccurrences(result.code!, "#include <stdbool.h>")).toBe(1);
+    });
+
+    it("emits stdbool.h once when safe division is used (helper path, #1108)", async () => {
+      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+
+      const result = (
+        await transpiler.transpile({
+          kind: "source",
+          source:
+            "void t() { u32 r <- 0; bool err <- false; err <- safe_div(r, 10, 2, 0); }",
+        })
+      ).files[0];
+
+      expect(result.success).toBe(true);
+      expect(result.code).toContain("#include <stdbool.h>");
+      expect(countOccurrences(result.code!, "#include <stdbool.h>")).toBe(1);
+    });
+  });
 });

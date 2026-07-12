@@ -7,8 +7,6 @@
 // Tests that line comments are preserved in output
 #include <stdint.h>
 
-#include <stdint.h>
-
 // Global variable with comment
 uint32_t counter = 0U;
 

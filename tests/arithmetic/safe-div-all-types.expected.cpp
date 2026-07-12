@@ -7,7 +7,6 @@
 #include <stdbool.h>
 
 // ADR-051: Safe division helper functions
-#include <stdbool.h>
 
 static inline bool cnx_safe_div_u8(uint8_t* output, uint8_t numerator, uint8_t divisor, uint8_t defaultValue) {
     if (divisor == 0) {

@@ -7,8 +7,6 @@
 // Tests that triple-slash converts to Doxygen format
 #include <stdint.h>
 
-#include <stdint.h>
-
 /**
  * Doubles the input value
  * @param value The input to double
