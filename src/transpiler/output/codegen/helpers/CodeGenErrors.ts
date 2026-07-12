@@ -72,6 +72,34 @@ class CodeGenErrors {
         `sizeof supports types, variables, and simple expressions.`,
     );
   }
+
+  /**
+   * Issue #1106: too many subscripts on a variable. Per ADR-036 each subscript
+   * peels one array dimension; per ADR-007 a scalar integer/float may be
+   * bit-indexed once. So a base allows at most arrayDimensions + 1 subscripts.
+   * Indexing further indexes a value that is not an array (e.g. `flags[4][3]`
+   * on a scalar `u8` indexes the single bit `flags[4]`).
+   */
+  static tooManySubscripts(
+    line: number,
+    varName: string,
+    baseType: string,
+    arrayDimensions: number,
+  ): Error {
+    const allowed = arrayDimensions + 1;
+    const shape =
+      arrayDimensions === 0
+        ? `a scalar '${baseType}'`
+        : `a ${arrayDimensions}-dimensional '${baseType}' array`;
+    const plural = allowed === 1 ? "subscript" : "subscripts";
+    return new Error(
+      `Error at line ${line}: too many subscripts on '${varName}'. ` +
+        `'${varName}' is ${shape}, so it allows at most ${allowed} ${plural} ` +
+        `(${arrayDimensions} for array ${arrayDimensions === 1 ? "dimension" : "dimensions"} ` +
+        `plus one optional bit index — ADR-036/ADR-007). Indexing further indexes a ` +
+        `value that is not an array. Did you mean the bit range '${varName}[start, width]'?`,
+    );
+  }
 }
 
 export default CodeGenErrors;

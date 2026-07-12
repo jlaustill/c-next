@@ -1,0 +1,10 @@
+// test-error
+// Issue #1106: indexing a scalar with a second subscript (x[a][b]) is a type
+// error. `flags` is a scalar u8; `flags[4]` is a single bit (ADR-007), so the
+// second subscript `[3]` indexes a value that is not an array. The correct
+// spelling for a 3-bit field write is the bit range `flags[4, 3] <- 5`.
+u8 flags <- 0;
+
+void setBits() {
+    flags[4][3] <- 5;
+}

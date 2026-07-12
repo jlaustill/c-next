@@ -11,6 +11,7 @@ import AssignmentKind from "./AssignmentKind";
 import IAssignmentContext from "./IAssignmentContext";
 import CodeGenState from "../../../state/CodeGenState";
 import SubscriptClassifier from "../subscript/SubscriptClassifier";
+import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
@@ -529,6 +530,17 @@ class AssignmentClassifier {
 
     const name = ctx.identifiers[0];
     const typeInfo = CodeGenState.getVariableTypeInfo(name) ?? null;
+
+    // Issue #1106: reject over-indexing a scalar/array base (e.g. flags[4][3]
+    // on a scalar u8). No member/prefix here, so every postfix op is a
+    // subscript applied directly to `name`; count OPS (not expressions, which
+    // would conflate the bit range flags[4, 3] with the chain flags[4][3]).
+    SubscriptDepthValidator.validate(
+      typeInfo ?? undefined,
+      ctx.postfixOps.length,
+      name,
+      ctx.targetCtx.start?.line ?? 0,
+    );
 
     // Use shared classifier for array vs bit access decision
     // Use lastSubscriptExprCount to distinguish [0][0] (two ops, each 1 expr)

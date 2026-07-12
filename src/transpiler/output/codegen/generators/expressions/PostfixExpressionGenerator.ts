@@ -25,6 +25,7 @@ import BitmapAccessHelper from "./BitmapAccessHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
+import SubscriptDepthValidator from "../../subscript/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../types/TTypeInfo";
@@ -167,6 +168,26 @@ const generatePostfixExpression = (
   const primaryTypeInfo = rootIdentifier
     ? CodeGenState.getVariableTypeInfo(rootIdentifier)
     : undefined;
+
+  // Issue #1106: reject over-indexing the base variable (e.g. flags[4][3] on a
+  // scalar u8, which would otherwise chain bit-indexes into always-zero code).
+  // Count the leading run of subscript ops applied directly to the base,
+  // before any member/call op changes the type, and validate its depth.
+  if (rootIdentifier) {
+    let leadingSubscripts = 0;
+    for (const op of ops) {
+      if (op.expression().length === 0) {
+        break;
+      }
+      leadingSubscripts++;
+    }
+    SubscriptDepthValidator.validate(
+      primaryTypeInfo,
+      leadingSubscripts,
+      rootIdentifier,
+      ctx.start?.line ?? 0,
+    );
+  }
 
   const tracking = initializeTrackingState(
     rootIdentifier,
