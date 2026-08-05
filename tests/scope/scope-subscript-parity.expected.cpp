@@ -30,6 +30,14 @@ uint8_t globalSlice[16] = {};
 
 uint8_t globalFlags = 0U;
 
+// Reached as `global.Other.member[...]`, where the member op precedes the
+// subscripts. That spelling needs the `identifiers.length - 1` offset when
+// counting subscripts; the other three spellings need no offset.
+/* Scope: Other */
+uint8_t Other_buffer[16] = {};
+uint8_t Other_slice[16] = {};
+uint8_t Other_flags = 0U;
+
 /* Scope: Reg */
 static uint8_t Reg_buffer[16] = {};
 static uint8_t Reg_slice[16] = {};
@@ -70,6 +78,40 @@ uint8_t Reg_globalBitRange(void) {
     return globalFlags;
 }
 
+uint8_t Reg_globalSliceByte(uint32_t index) {
+    uint32_t magic = 0x04030201U;
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+    const uint32_t _tmp1 = (uint32_t)(magic);
+    globalSlice[0] = (uint8_t)(_tmp1);
+    globalSlice[1] = (uint8_t)(_tmp1 >> 8U);
+    globalSlice[2] = (uint8_t)(_tmp1 >> 16U);
+    globalSlice[3] = (uint8_t)(_tmp1 >> 24U);
+    return globalSlice[index];
+}
+
+uint8_t Reg_scopedElementBit(void) {
+    Other_buffer[3] = 0;
+    Other_buffer[3] = (Other_buffer[3] & ~(1U << 1)) | (1U << 1);
+    return Other_buffer[3U];
+}
+
+uint8_t Reg_scopedSliceByte(uint32_t index) {
+    uint32_t magic = 0x04030201U;
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+    const uint32_t _tmp2 = (uint32_t)(magic);
+    Other_slice[0] = (uint8_t)(_tmp2);
+    Other_slice[1] = (uint8_t)(_tmp2 >> 8U);
+    Other_slice[2] = (uint8_t)(_tmp2 >> 16U);
+    Other_slice[3] = (uint8_t)(_tmp2 >> 24U);
+    return Other_slice[index];
+}
+
+uint8_t Reg_scopedBitRange(void) {
+    Other_flags = 0;
+    Other_flags = (uint8_t)((Other_flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    return Other_flags;
+}
+
 int main(void) {
     globalBuffer[3] = 0U;
     globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
@@ -79,11 +121,11 @@ int main(void) {
     if (viaThis != globalBuffer[3U]) return 3;
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t _tmp1 = (uint32_t)(magic);
-    globalSlice[0] = (uint8_t)(_tmp1);
-    globalSlice[1] = (uint8_t)(_tmp1 >> 8U);
-    globalSlice[2] = (uint8_t)(_tmp1 >> 16U);
-    globalSlice[3] = (uint8_t)(_tmp1 >> 24U);
+    const uint32_t _tmp3 = (uint32_t)(magic);
+    globalSlice[0] = (uint8_t)(_tmp3);
+    globalSlice[1] = (uint8_t)(_tmp3 >> 8U);
+    globalSlice[2] = (uint8_t)(_tmp3 >> 16U);
+    globalSlice[3] = (uint8_t)(_tmp3 >> 24U);
     if (globalSlice[0U] != 1) return 4;
     if (globalSlice[3U] != 4) return 5;
     uint8_t byte0 = Reg_sliceByte(0U);
@@ -104,5 +146,22 @@ int main(void) {
     if (globalFlags != 80) return 13;
     uint8_t globalRanged = Reg_globalBitRange();
     if (globalRanged != 80) return 14;
+    uint8_t globalByte0 = Reg_globalSliceByte(0U);
+    uint8_t globalByte3 = Reg_globalSliceByte(3U);
+    if (globalByte0 != 1) return 15;
+    if (globalByte3 != 4) return 16;
+    uint8_t scopedBit = Reg_scopedElementBit();
+    if (scopedBit != 2) return 17;
+    if (scopedBit != globalBuffer[3U]) return 18;
+    uint8_t scopedByte0 = Reg_scopedSliceByte(0U);
+    uint8_t scopedByte1 = Reg_scopedSliceByte(1U);
+    uint8_t scopedByte2 = Reg_scopedSliceByte(2U);
+    uint8_t scopedByte3 = Reg_scopedSliceByte(3U);
+    if (scopedByte0 != 1) return 19;
+    if (scopedByte1 != 2) return 20;
+    if (scopedByte2 != 3) return 21;
+    if (scopedByte3 != 4) return 22;
+    uint8_t scopedRanged = Reg_scopedBitRange();
+    if (scopedRanged != 80) return 23;
     return 0;
 }
