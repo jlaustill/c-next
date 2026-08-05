@@ -322,6 +322,26 @@ myVar[0, 9] <- 5;    // ERROR: 9 bits exceeds u8 width
 
 This is tracked as future work (compile-time validation phase).
 
+### Implemented: subscript depth (E0856, Issue #1106)
+
+A neighbouring check does exist. Bit-index _bounds_ (above) remain future work, but
+subscript _depth_ is validated today: since a scalar may be bit-indexed **once**, and
+ADR-036 peels one array dimension per subscript, a base accepts at most
+`arrayDimensions + 1` subscripts. A deeper chain indexes a value that is not an array
+and is rejected with **E0856**.
+
+```cnx
+u8 flags <- 0;
+flags[4] <- true;     // OK: one bit index on a scalar
+flags[4, 3] <- 5;     // OK: bit range
+flags[4][3] <- 5;     // ERROR E0856: flags[4] is a single bit, not an array
+```
+
+Enforced for every ADR-016 spelling of the base — bare, `this.` and `global.` — via a
+single shared classifier (Issue #1115). Before that unification the prefixed forms
+silently miscompiled: the write dropped the second subscript and coerced the value to a
+bool, and the read chained bit-indexes into always-zero code.
+
 ---
 
 ## Trade-offs

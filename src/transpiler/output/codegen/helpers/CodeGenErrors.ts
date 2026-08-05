@@ -74,11 +74,16 @@ class CodeGenErrors {
   }
 
   /**
-   * Issue #1106: too many subscripts on a variable. Per ADR-036 each subscript
-   * peels one array dimension; per ADR-007 a scalar integer/float may be
-   * bit-indexed once. So a base allows at most arrayDimensions + 1 subscripts.
-   * Indexing further indexes a value that is not an array (e.g. `flags[4][3]`
-   * on a scalar `u8` indexes the single bit `flags[4]`).
+   * E0856 (Issue #1106): too many subscripts on a variable. Per ADR-036 each
+   * subscript peels one array dimension; per ADR-007 a scalar integer/float may
+   * be bit-indexed once. So a base allows at most arrayDimensions + 1
+   * subscripts. Indexing further indexes a value that is not an array (e.g.
+   * `flags[4][3]` on a scalar `u8` indexes the single bit `flags[4]`).
+   *
+   * Carries an error code so it can be looked up and appears in
+   * `docs/error-codes.md` alongside the other subscript diagnostics
+   * (E0850-E0852). E0853 is the precedent for a coded error raised from the
+   * codegen layer rather than an analyzer.
    */
   static tooManySubscripts(
     line: number,
@@ -92,10 +97,11 @@ class CodeGenErrors {
         ? `a scalar '${baseType}'`
         : `a ${arrayDimensions}-dimensional '${baseType}' array`;
     const plural = allowed === 1 ? "subscript" : "subscripts";
+    const dimensionWord = arrayDimensions === 1 ? "dimension" : "dimensions";
     return new Error(
-      `Error at line ${line}: too many subscripts on '${varName}'. ` +
+      `E0856: Error at line ${line}: too many subscripts on '${varName}'. ` +
         `'${varName}' is ${shape}, so it allows at most ${allowed} ${plural} ` +
-        `(${arrayDimensions} for array ${arrayDimensions === 1 ? "dimension" : "dimensions"} ` +
+        `(${arrayDimensions} for array ${dimensionWord} ` +
         `plus one optional bit index — ADR-036/ADR-007). Indexing further indexes a ` +
         `value that is not an array. Did you mean the bit range '${varName}[start, width]'?`,
     );

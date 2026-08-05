@@ -13,9 +13,9 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E05xx     | Include/Preprocessor    | 4      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 6      |
-| E08xx     | Arithmetic/Array Safety | 11     |
+| E08xx     | Arithmetic/Array Safety | 12     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **37** |
+| **Total** |                         | **38** |
 
 ---
 
@@ -132,6 +132,17 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | ----- | -------------------------------------------------- | ------------------------------------------------------- | ------- |
 | E0854 | Compile-time warning: constant index out of bounds | Fix the index; the safety net should not be relied upon | Planned |
 | E0855 | Invalid overflow modifier in array dimension       | Use `clamp`, `wrap`, or `discard`                       | Planned |
+
+### Subscript Depth (ADR-036 / ADR-007)
+
+| Code  | Message                       | Help                                                                                     | Source                                    |
+| ----- | ----------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------- |
+| E0856 | Too many subscripts on a base | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]` | `output/codegen/helpers/CodeGenErrors.ts` |
+
+Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
+bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit
+`flags[4]` — a value that is not an array. Raised for every ADR-016 spelling of the
+base: bare, `this.` and `global.`.
 
 ---
 

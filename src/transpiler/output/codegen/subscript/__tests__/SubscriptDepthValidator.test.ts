@@ -89,6 +89,14 @@ describe("SubscriptDepthValidator", () => {
     ).toThrow(/too many subscripts on 'flags'.*is not an array/s);
   });
 
+  it("carries error code E0856 so the diagnostic stays traceable", () => {
+    // docs/error-codes.md is the authoritative registry; a coded diagnostic
+    // must keep its code or the registry entry silently goes stale.
+    expect(() =>
+      SubscriptDepthValidator.validate(scalar("u8"), 2, "flags", 9),
+    ).toThrow(/^E0856:/);
+  });
+
   it("rejects an over-deep chain on a scalar float", () => {
     expect(() =>
       SubscriptDepthValidator.validate(scalar("f32"), 2, "value", 3),
