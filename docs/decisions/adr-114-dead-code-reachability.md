@@ -3,8 +3,8 @@
 **Status:** Research
 **Date:** 2026-06-26
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-112 (All-Paths-Return), ADR-110 (DO-178C Compliance), ADR-113 (Forever Loops)
-**Related Issues:** #849 (MISRA 2.1/2.2 — No unreachable / dead code; the active issue) — formerly part of the now-closed #839 MISRA-breakdown parent
+**Related ADRs:** ADR-112 (All-Paths-Return), ADR-110 (DO-178C Compliance), ADR-113 (Forever Loops), ADR-115 (Return-Value Use), ADR-058 (Explicit Length Properties)
+**Related Issues:** #849 (MISRA 2.1/2.2 — No unreachable / dead code; the active issue) — formerly part of the now-closed #839 MISRA-breakdown parent; #1107 (unused variables — the liveness half of this ADR, added below)
 
 ## Context
 
@@ -58,15 +58,54 @@ So a reachability pass can reuse ~90% of `ReturnPathAnalyzer`'s logic rather tha
 > This ADR is in **Research** status. The direction below reflects the current design
 > conversation; nothing here is approved or implemented.
 
-Add a compile-time **reachability analysis** that rejects any statement which cannot be reached
-on any control-flow path from the function entry (proposed **E0706 — unreachable code**).
+Add compile-time **dead-code analysis** covering the two structural flavors of dead code that
+MISRA C:2012 Rule 2.x leaves to the compiler:
 
-### Coverage
+1. **Reachability** — reject any statement that cannot be reached on any control-flow path from
+   the function entry (proposed **E0706 — unreachable code**). MISRA Rule 2.1.
+2. **Liveness** — reject any variable that is defined but never used (proposed **E0709 — unused
+   variable**; code not yet allocated). MISRA Rule 2.2's own definition of dead code — "an
+   operation whose removal would not affect program behavior" — already covers a variable whose
+   initialization and storage are never read. See **Unused objects (liveness)** below.
+
+Both belong in this one ADR (and, per _Architecture_, one analyzer) because they answer the same
+question — "is this code dead?" — over the same parse tree. Splitting them would fragment the
+"is it dead?" decision across passes, which the project's "No Duplicate Code Paths" rule forbids.
+
+### Coverage — reachability (E0706)
 
 - code after an unconditional `return`;
 - code after a `forever` loop (ADR-113);
 - code after an `if`/`else` where both branches diverge;
 - code after a `switch` with a `default` where every case diverges.
+
+### Unused objects (liveness) — #1107 (proposed E0709)
+
+C-Next performs **no liveness analysis today**. A variable defined but never used transpiles
+cleanly, for locals and globals alike:
+
+```cnx
+u32 counter <- 0;
+void t() {
+    u32 x <- counter.bit_length;   // .bit_length is compile-time (32); counter's value never read
+}
+```
+
+transpiles (verified) to `uint32_t counter = 0U;` with no diagnostic — `counter` is allocated,
+initialized, and never read or written. Both `counter` (read only via a compile-time property)
+and a plain dead local like `u32 dead <- 0;` are accepted.
+
+**Proposed coverage:**
+
+- a local variable that is never read after declaration;
+- a file-scope / global variable that is never read anywhere in the translation unit;
+- a variable read _only_ through a compile-time property (`.bit_length`, `.element_count`,
+  ADR-058) — see the open question below on whether this counts as a use.
+
+**Explicitly out of scope for v1** (each already has its own MISRA row and can be sequenced
+later): unused type declarations (2.3), unused tag declarations (2.4), unused function
+declarations (2.6), unused function parameters (2.7). This ADR's liveness pass targets
+_objects/variables_ first; the others can join the same analyzer once the primitive exists.
 
 ### Architecture (proposed)
 
@@ -86,11 +125,12 @@ on any control-flow path from the function entry (proposed **E0706 — unreachab
   "what diverges" independently would be a latent divergence bug.
 - Layer constraint respected: `logic/analysis/` does not import from `output/`.
 
-### Proposed error codes (not yet allocated)
+### Proposed error codes
 
-| Code  | Meaning          |
-| ----- | ---------------- |
-| E0706 | Unreachable code |
+| Code  | Meaning          | Status                                               |
+| ----- | ---------------- | ---------------------------------------------------- |
+| E0706 | Unreachable code | Free, reserved for this ADR (see Research Finding 4) |
+| E0709 | Unused variable  | Not yet allocated — confirm free before use          |
 
 ## Relationship to ADR-113
 
@@ -164,6 +204,19 @@ forever { loop(); } }`, with no statement after the `forever`. `scripts/__tests_
 
 ## Open Questions
 
+- **(Liveness) Does compile-time property access count as a use?** `counter.bit_length` and
+  `buffer.element_count` (ADR-058) read a property of the _type_, resolved at compile time —
+  they never touch the object's storage. Under strict liveness the object is still dead. But a
+  developer writing `u32 bits <- counter.bit_length;` clearly _intends_ `counter` to exist. v1
+  must pick one rule explicitly. Leaning toward **"compile-time property access is NOT a use"**
+  (matches the storage-liveness definition and would correctly flag `examples/bit_test.cnx`'s
+  `counter`/`buffer`), but this needs a decision — it directly changes whether that example, and
+  the ADR-058 demonstrations, compile.
+- **(Liveness) Cross-translation-unit globals.** A file-scope variable unused within its own
+  `.cnx` may be part of the module's public surface (read by an including `.c`/`.cnx`). Flagging
+  every locally-unread global would break legitimate exported state. v1 likely restricts the
+  global check to variables not exposed in the generated header, or scopes liveness to **locals
+  only** first and defers globals. Needs a decision.
 - **Function calls that never return.** Without a `never`/bottom type (see ADR-113,
   Alternative 1), a call like a future `panic()` cannot be treated as divergent, so code after
   it would be wrongly considered reachable. Scope this ADR to _structural_ divergence
