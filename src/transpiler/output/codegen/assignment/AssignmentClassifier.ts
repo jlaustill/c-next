@@ -492,6 +492,20 @@ class AssignmentClassifier {
     // Get type info using resolved scoped name (e.g., "Sensor_value")
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedRegName);
 
+    // Issue #1106: `this.flags[4][3]` over-indexes just as `flags[4][3]` does.
+    // `assignmentTarget` consumes the `this . IDENTIFIER` prefix in the grammar
+    // rule itself, so these ops are subscripts from index 0 — no offset needed.
+    // Diagnostics quote the source spelling (`this.flags`) rather than the
+    // resolved `scopedRegName`, so the suggested fix is the text the developer
+    // actually wrote. (`Sensor_flags` does resolve as a bare name, but nobody
+    // writes it — echoing it back would read as a different variable.)
+    SubscriptDepthValidator.validate(
+      typeInfo ?? undefined,
+      SubscriptDepthValidator.countLeadingSubscripts(ctx.postfixOps),
+      `this.${ctx.identifiers[0]}`,
+      ctx.targetCtx.start?.line ?? 0,
+    );
+
     // Use shared classifier to determine array vs bit access
     const subscriptKind = SubscriptClassifier.classify({
       typeInfo: typeInfo ?? null,
@@ -532,12 +546,11 @@ class AssignmentClassifier {
     const typeInfo = CodeGenState.getVariableTypeInfo(name) ?? null;
 
     // Issue #1106: reject over-indexing a scalar/array base (e.g. flags[4][3]
-    // on a scalar u8). No member/prefix here, so every postfix op is a
-    // subscript applied directly to `name`; count OPS (not expressions, which
-    // would conflate the bit range flags[4, 3] with the chain flags[4][3]).
+    // on a scalar u8). Counting is delegated to SubscriptDepthValidator so
+    // this path and the read path share the decision, not just the check.
     SubscriptDepthValidator.validate(
       typeInfo ?? undefined,
-      ctx.postfixOps.length,
+      SubscriptDepthValidator.countLeadingSubscripts(ctx.postfixOps),
       name,
       ctx.targetCtx.start?.line ?? 0,
     );

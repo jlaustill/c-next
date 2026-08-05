@@ -20,6 +20,62 @@ const array = (baseType: string, dims: number[]): TTypeInfo => ({
   isConst: false,
 });
 
+/**
+ * Minimal stand-in for a postfix op. Only `expression()` matters: a subscript
+ * has 1 (`[i]`) or 2 (`[start, width]`) expressions, a member access or call
+ * has none.
+ */
+const subscriptOp = (expressionCount = 1) => ({
+  expression: () => new Array(expressionCount).fill(null),
+});
+const nonSubscriptOp = () => ({ expression: () => [] });
+
+describe("SubscriptDepthValidator.countLeadingSubscripts", () => {
+  it("counts a run of subscript ops", () => {
+    expect(
+      SubscriptDepthValidator.countLeadingSubscripts([
+        subscriptOp(),
+        subscriptOp(),
+      ]),
+    ).toBe(2);
+  });
+
+  it("counts a bit range as ONE op despite its two expressions", () => {
+    // flags[4, 3] must not be conflated with the chain flags[4][3].
+    expect(
+      SubscriptDepthValidator.countLeadingSubscripts([subscriptOp(2)]),
+    ).toBe(1);
+  });
+
+  it("stops at the first non-subscript op (member access or call)", () => {
+    // arr[i].field[j] — only the leading [i] applies to the base.
+    expect(
+      SubscriptDepthValidator.countLeadingSubscripts([
+        subscriptOp(),
+        nonSubscriptOp(),
+        subscriptOp(),
+      ]),
+    ).toBe(1);
+  });
+
+  it("skips ops consumed identifying the base via startIndex", () => {
+    // Read path `this.flags[4][3]` parses as `this` + [.flags, [4], [3]].
+    expect(
+      SubscriptDepthValidator.countLeadingSubscripts(
+        [nonSubscriptOp(), subscriptOp(), subscriptOp()],
+        1,
+      ),
+    ).toBe(2);
+  });
+
+  it("returns 0 when the base takes no subscripts at all", () => {
+    expect(SubscriptDepthValidator.countLeadingSubscripts([])).toBe(0);
+    expect(
+      SubscriptDepthValidator.countLeadingSubscripts([nonSubscriptOp()]),
+    ).toBe(0);
+  });
+});
+
 describe("SubscriptDepthValidator", () => {
   it("allows a single subscript (bit index) on a scalar integer", () => {
     expect(() =>
