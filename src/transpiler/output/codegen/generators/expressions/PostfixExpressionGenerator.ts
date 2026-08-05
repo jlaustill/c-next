@@ -25,6 +25,7 @@ import BitmapAccessHelper from "./BitmapAccessHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
+import SubscriptDepthValidator from "../../subscript/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../types/TTypeInfo";
@@ -119,6 +120,64 @@ interface IPostfixContext {
   effects: TGeneratorEffect[];
 }
 
+/**
+ * The variable a leading subscript chain applies to, plus where in the postfix
+ * op list its subscripts begin.
+ */
+interface ISubscriptBase {
+  /** Resolved variable name for type lookup (e.g. `flags`, `Sensor_flags`). */
+  name: string;
+  /**
+   * How the developer spelled it (e.g. `this.flags`). Diagnostics quote this
+   * rather than the resolved name, so the suggested fix is the text they
+   * actually wrote. (`Sensor_flags` does resolve as a bare name, but nobody
+   * writes it — echoing it back would read as a different variable.)
+   */
+  displayName: string;
+  /** Index of the first op that is a subscript on that variable. */
+  opOffset: number;
+}
+
+/**
+ * Resolve the variable that a leading subscript chain indexes (Issue #1106).
+ *
+ * ADR-016 lets the same variable be reached three ways, and `postfixExpression`
+ * parses each differently:
+ *
+ * - `flags[4][3]`        — primary is the IDENTIFIER; subscripts start at op 0
+ * - `this.flags[4][3]`   — primary is `this`; `.flags` is op 0, subscripts at 1
+ * - `global.flags[4][3]` — primary is `global`; likewise
+ *
+ * Returning the resolved name and offset for all three keeps depth validation
+ * from having a hole that the bare-identifier form does not.
+ */
+const resolveSubscriptBase = (
+  ctx: Parser.PostfixExpressionContext,
+  rootIdentifier: string | undefined,
+  ops: Parser.PostfixOpContext[],
+): ISubscriptBase | undefined => {
+  if (rootIdentifier) {
+    return { name: rootIdentifier, displayName: rootIdentifier, opOffset: 0 };
+  }
+
+  const prefix = ctx.primaryExpression().getText();
+  if (prefix !== "this" && prefix !== "global") {
+    return undefined;
+  }
+
+  const memberName = ops[0]?.IDENTIFIER()?.getText();
+  if (!memberName) {
+    return undefined;
+  }
+
+  // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
+  const name =
+    prefix === "this"
+      ? `${CodeGenState.currentScope}_${memberName}`
+      : memberName;
+  return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
+};
+
 // ========================================================================
 // Main Entry Point
 // ========================================================================
@@ -167,6 +226,27 @@ const generatePostfixExpression = (
   const primaryTypeInfo = rootIdentifier
     ? CodeGenState.getVariableTypeInfo(rootIdentifier)
     : undefined;
+
+  // Issue #1106: reject over-indexing the base variable (e.g. flags[4][3] on a
+  // scalar u8, which would otherwise chain bit-indexes into always-zero code:
+  // `((flags >> 4) & 1) >> 3) & 1` extracts bit 3 of a single bit).
+  //
+  // `this.flags[4][3]` / `global.flags[4][3]` reach the same variable, but as
+  // `primaryExpression postfixOp*` the prefix keyword is the primary and the
+  // member access is ops[0] — so the base name and the subscript start offset
+  // are resolved first, then the shared validator does the counting.
+  const subscriptBase = resolveSubscriptBase(ctx, rootIdentifier, ops);
+  if (subscriptBase) {
+    SubscriptDepthValidator.validate(
+      CodeGenState.getVariableTypeInfo(subscriptBase.name),
+      SubscriptDepthValidator.countLeadingSubscripts(
+        ops,
+        subscriptBase.opOffset,
+      ),
+      subscriptBase.displayName,
+      ctx.start?.line ?? 0,
+    );
+  }
 
   const tracking = initializeTrackingState(
     rootIdentifier,

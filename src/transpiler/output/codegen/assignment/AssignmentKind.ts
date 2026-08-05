@@ -102,6 +102,15 @@ enum AssignmentKind {
   GLOBAL_MEMBER,
 
   /** global.arr[i] <- value (global array element) */
+  /**
+   * global.obj.field[i] <- value (member chain behind a global prefix).
+   *
+   * Issue #1115: a subscript on a plain global VARIABLE (`global.x[i]`, or
+   * `global.Scope.member[i]`) no longer lands here -- it classifies as the
+   * general kinds so it behaves like bare `x[i]`. This kind now covers only
+   * genuine member chains, where the subscript applies to a struct field
+   * rather than to the named variable.
+   */
   GLOBAL_ARRAY,
 
   /** global.reg[bit] <- value (global register bit) */
@@ -110,14 +119,14 @@ enum AssignmentKind {
   /** this.member <- value (scoped member) */
   THIS_MEMBER,
 
-  /** this.arr[i] <- value (scoped array element) */
-  THIS_ARRAY,
-
-  /** this.flags[3] <- true (scoped integer bit access) */
-  THIS_BIT,
-
-  /** this.value[0, 8] <- byte (scoped integer bit range) */
-  THIS_BIT_RANGE,
+  /*
+   * Issue #1115: THIS_ARRAY / THIS_BIT / THIS_BIT_RANGE removed. Subscripted
+   * `this.` targets now classify as the general kinds (ARRAY_ELEMENT,
+   * INTEGER_BIT, ARRAY_SLICE, ...). They were aliases: `resolvedTarget` and
+   * `resolvedBaseIdentifier` already carry the scope prefix, so the handlers
+   * were literally the same functions. Keeping the aliases required a second
+   * classifier switch, which drifted and lost four branches for `this.`.
+   */
 
   // === Complex access patterns ===
 

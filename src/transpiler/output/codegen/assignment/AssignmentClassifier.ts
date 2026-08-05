@@ -11,6 +11,7 @@ import AssignmentKind from "./AssignmentKind";
 import IAssignmentContext from "./IAssignmentContext";
 import CodeGenState from "../../../state/CodeGenState";
 import SubscriptClassifier from "../subscript/SubscriptClassifier";
+import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
@@ -431,10 +432,55 @@ class AssignmentClassifier {
       ) {
         return AssignmentKind.GLOBAL_REGISTER_BIT;
       }
+
+      // Issue #1115: when the subscript applies to the named VARIABLE,
+      // `global.x[...]` means exactly what `x[...]` means, so it makes the same
+      // decision. This branch used to return GLOBAL_ARRAY for every non-register
+      // target without consulting SubscriptClassifier at all, which emitted the
+      // raw subscript chain and broke every operation:
+      //   global.buf[3][1] <- true  ->  buf[3][1] = true      (indexes a u8)
+      //   global.s[0, 4] <- magic   ->  s[0, 4] = magic       (C comma operator)
+      //   global.f[4, 3] <- 5       ->  f[4, 3] = 5           (C comma operator)
+      // Cross-scope visibility is still enforced: the check runs during
+      // `generateAssignmentTarget` (MemberSeparatorResolver), not in the
+      // GLOBAL_ARRAY handler, so it applies to the delegated kinds too.
+      const resolvedName = AssignmentClassifier.resolveGlobalVariableName(ctx);
+      if (resolvedName !== null) {
+        return AssignmentClassifier.classifySubscriptAccess(
+          ctx,
+          resolvedName,
+          `global.${ctx.identifiers.join(".")}`,
+        );
+      }
+
+      // Member chain (`global.config.items[0].assigned`): the subscript applies
+      // to a struct field, not to `config`, so the general variable-subscript
+      // classification does not apply. Handled as a chain.
       return AssignmentKind.GLOBAL_ARRAY;
     }
 
     return AssignmentKind.GLOBAL_MEMBER;
+  }
+
+  /**
+   * Name of the variable a `global.` target subscripts, or null when the target
+   * is a member chain and the subscript belongs to a field rather than to the
+   * named variable.
+   *
+   * `global.x[i]` -> `x`; `global.Scope.member[i]` -> `Scope_member`;
+   * `global.obj.field[i]` -> null (subscript applies to `field`).
+   */
+  private static resolveGlobalVariableName(
+    ctx: IAssignmentContext,
+  ): string | null {
+    const firstId = ctx.identifiers[0];
+    if (ctx.identifiers.length === 1) {
+      return firstId;
+    }
+    if (ctx.identifiers.length === 2 && CodeGenState.isKnownScope(firstId)) {
+      return `${firstId}_${ctx.identifiers[1]}`;
+    }
+    return null;
   }
 
   /**
@@ -475,6 +521,12 @@ class AssignmentClassifier {
   /**
    * Classify this.reg[bit] / this.arr[i] / this.flags[3] patterns with array access.
    * Issue #954: Uses SubscriptClassifier to distinguish array vs bit access.
+   *
+   * Issue #1115: only the scoped-register check is `this.`-specific. Everything
+   * after it is the same decision the bare path makes, so it delegates rather
+   * than re-deriving it — this method used to carry a truncated copy of that
+   * switch, which silently lost ARRAY_ELEMENT_BIT, ARRAY_SLICE,
+   * MULTI_DIM_ARRAY_ELEMENT and STRING_ARRAY_ELEMENT for `this.` targets.
    */
   private static classifyThisWithArrayAccess(
     ctx: IAssignmentContext,
@@ -488,24 +540,15 @@ class AssignmentClassifier {
         : AssignmentKind.SCOPED_REGISTER_BIT;
     }
 
-    // Get type info using resolved scoped name (e.g., "Sensor_value")
-    const typeInfo = CodeGenState.getVariableTypeInfo(scopedRegName);
-
-    // Use shared classifier to determine array vs bit access
-    const subscriptKind = SubscriptClassifier.classify({
-      typeInfo: typeInfo ?? null,
-      subscriptCount: ctx.lastSubscriptExprCount,
-      isRegisterAccess: false,
-    });
-
-    switch (subscriptKind) {
-      case "bit_single":
-        return AssignmentKind.THIS_BIT;
-      case "bit_range":
-        return AssignmentKind.THIS_BIT_RANGE;
-      default:
-        return AssignmentKind.THIS_ARRAY;
-    }
+    // Diagnostics quote the source spelling (`this.flags`) rather than the
+    // resolved `scopedRegName`, so the suggested fix is the text the developer
+    // actually wrote. (`Sensor_flags` does resolve as a bare name, but nobody
+    // writes it — echoing it back would read as a different variable.)
+    return AssignmentClassifier.classifySubscriptAccess(
+      ctx,
+      scopedRegName,
+      `this.${ctx.identifiers[0]}`,
+    );
   }
 
   /**
@@ -528,7 +571,50 @@ class AssignmentClassifier {
     }
 
     const name = ctx.identifiers[0];
-    const typeInfo = CodeGenState.getVariableTypeInfo(name) ?? null;
+    return AssignmentClassifier.classifySubscriptAccess(ctx, name, name);
+  }
+
+  /**
+   * Decide what a subscript chain on a single variable means.
+   *
+   * Issue #1115: the SINGLE source of truth for that decision. `arr[i]` and
+   * `this.arr[i]` differ only in how the base name resolves — once resolved,
+   * the type lookup, depth validation and array-vs-bit classification are
+   * identical, and the handlers already share generation (THIS_BIT and
+   * INTEGER_BIT both map to `handleIntegerBit`, since `resolvedTarget` and
+   * `resolvedBaseIdentifier` already carry the scope prefix). Keeping two
+   * copies of this switch is what let the `this.` form diverge.
+   *
+   * @param resolvedName Name for type lookup: `flags`, or `Scope_flags` for `this.`
+   * @param displayName  Name for diagnostics: what the developer actually wrote
+   */
+  private static classifySubscriptAccess(
+    ctx: IAssignmentContext,
+    resolvedName: string,
+    displayName: string,
+  ): AssignmentKind {
+    const typeInfo = CodeGenState.getVariableTypeInfo(resolvedName) ?? null;
+
+    // `assignmentTarget` consumes the leading `IDENTIFIER` (and any `this .` /
+    // `global .` prefix) in the grammar rule itself, so op 0 is a subscript for
+    // `flags[4][3]`, `this.flags[4][3]` and `global.flags[4][3]` alike. Only a
+    // scope-qualified chain such as `global.Other.buf[3][1]` carries extra
+    // member ops first — exactly one per identifier past the base, hence
+    // `identifiers.length - 1` for every spelling.
+    const memberOpCount = ctx.identifiers.length - 1;
+
+    // Issue #1106: reject over-indexing a scalar/array base (e.g. flags[4][3]
+    // on a scalar u8). Counting is delegated to SubscriptDepthValidator so
+    // this path and the read path share the decision, not just the check.
+    SubscriptDepthValidator.validate(
+      typeInfo ?? undefined,
+      SubscriptDepthValidator.countLeadingSubscripts(
+        ctx.postfixOps,
+        memberOpCount,
+      ),
+      displayName,
+      ctx.targetCtx.start?.line ?? 0,
+    );
 
     // Use shared classifier for array vs bit access decision
     // Use lastSubscriptExprCount to distinguish [0][0] (two ops, each 1 expr)

@@ -59,16 +59,15 @@ describe("BitAccessHandlers", () => {
 
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT);
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT_RANGE);
-      expect(kinds).toContain(AssignmentKind.THIS_BIT);
-      expect(kinds).toContain(AssignmentKind.THIS_BIT_RANGE);
       expect(kinds).toContain(AssignmentKind.STRUCT_MEMBER_BIT);
       expect(kinds).toContain(AssignmentKind.ARRAY_ELEMENT_BIT);
       expect(kinds).toContain(AssignmentKind.STRUCT_CHAIN_BIT_RANGE);
     });
 
-    it("exports exactly 7 handlers", () => {
-      // Issue #954: Added THIS_BIT and THIS_BIT_RANGE for scope variable bit access
-      expect(bitAccessHandlers.length).toBe(7);
+    it("exports exactly 5 handlers", () => {
+      // Issue #1115: THIS_BIT / THIS_BIT_RANGE retired -- `this.` bit access now
+      // classifies as INTEGER_BIT / INTEGER_BIT_RANGE, which these handlers serve.
+      expect(bitAccessHandlers).toHaveLength(5);
     });
   });
 

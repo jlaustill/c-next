@@ -1,0 +1,168 @@
+// test-execution
+// Issue #1115: a subscript chain must mean the same thing through every ADR-016
+// spelling -- bare, `this.` and `global.`. Three separate classifier methods
+// used to decide this independently, and two had drifted:
+//
+//   classifyThisWithArrayAccess  - truncated switch, lost ARRAY_ELEMENT_BIT
+//                                  (#1113) and ARRAY_SLICE
+//   classifyGlobalPrefix         - never called SubscriptClassifier at all
+//
+// so both emitted the raw subscript chain and generated invalid C:
+//   this.buffer[3][1] <- true    ->  Reg_buffer[3][1] = true  (indexes a uint8_t)
+//   this.buf[0, 4] <- magic      ->  Reg_buf[0, 4] = magic    (C comma operator)
+//   global.gflags[4, 3] <- 5     ->  gflags[4, 3] = 5         (C comma operator)
+//
+// Every case below is checked against the bare-path result, so the spellings
+// cannot drift apart again without this test failing.
+
+u8[16] globalBuffer;
+u8[16] globalSlice;
+u8 globalFlags <- 0;
+
+// Reached as `global.Other.member[...]`, where the member op precedes the
+// subscripts. That spelling needs the `identifiers.length - 1` offset when
+// counting subscripts; the other three spellings need no offset.
+scope Other {
+    public u8[16] buffer;
+    public u8[16] slice;
+    public u8 flags <- 0;
+}
+
+scope Reg {
+    u8[16] buffer;
+    u8[16] slice;
+    u8 flags <- 0;
+
+    // Bit access on an array element (#1113)
+    u8 elementBit() {
+        this.buffer[3] <- 0;
+        this.buffer[3][1] <- true;
+        return this.buffer[3];
+    }
+
+    // Slice assignment: scalar copied across 4 bytes (MISRA 21.15 unroll)
+    u8 sliceByte(u32 index) {
+        u32 magic <- 0x04030201;
+        this.slice[0, 4] <- magic;
+        return this.slice[index];
+    }
+
+    // Plain bit access and bit range still work
+    u8 bitRange() {
+        this.flags <- 0;
+        this.flags[4, 3] <- 5;
+        return this.flags;
+    }
+
+    // Same operations through the global. prefix (classifyGlobalPrefix)
+    u8 viaGlobalPrefix() {
+        global.globalBuffer[3] <- 0;
+        global.globalBuffer[3][1] <- true;
+        return global.globalBuffer[3];
+    }
+
+    u8 globalBitRange() {
+        global.globalFlags <- 0;
+        global.globalFlags[4, 3] <- 5;
+        return global.globalFlags;
+    }
+
+    u8 globalSliceByte(u32 index) {
+        u32 magic <- 0x04030201;
+        global.globalSlice[0, 4] <- magic;
+        return global.globalSlice[index];
+    }
+
+    // global.Scope.member: a member op precedes the subscripts (offset case)
+    u8 scopedElementBit() {
+        global.Other.buffer[3] <- 0;
+        global.Other.buffer[3][1] <- true;
+        return global.Other.buffer[3];
+    }
+
+    u8 scopedSliceByte(u32 index) {
+        u32 magic <- 0x04030201;
+        global.Other.slice[0, 4] <- magic;
+        return global.Other.slice[index];
+    }
+
+    u8 scopedBitRange() {
+        global.Other.flags <- 0;
+        global.Other.flags[4, 3] <- 5;
+        return global.Other.flags;
+    }
+}
+
+u32 main() {
+    // Bare path: reference behavior
+    globalBuffer[3] <- 0;
+    globalBuffer[3][1] <- true;
+    if (globalBuffer[3] != 2) return 1;
+
+    // this. path must agree with it
+    // MISRA C:2012 Rule 13.5 - no function calls in if conditions
+    u8 viaThis <- Reg.elementBit();
+    if (viaThis != 2) return 2;
+    if (viaThis != globalBuffer[3]) return 3;
+
+    // Bare slice: little-endian byte order
+    u32 magic <- 0x04030201;
+    globalSlice[0, 4] <- magic;
+    if (globalSlice[0] != 1) return 4;
+    if (globalSlice[3] != 4) return 5;
+
+    // this. slice must produce the same bytes
+    // MISRA C:2012 Rule 13.5 - no function calls in if conditions
+    u8 byte0 <- Reg.sliceByte(0);
+    u8 byte1 <- Reg.sliceByte(1);
+    u8 byte2 <- Reg.sliceByte(2);
+    u8 byte3 <- Reg.sliceByte(3);
+    if (byte0 != 1) return 6;
+    if (byte1 != 2) return 7;
+    if (byte2 != 3) return 8;
+    if (byte3 != 4) return 9;
+
+    // Bit range through this.: 3 bits of value 5 at offset 4 -> 0b01010000
+    u8 ranged <- Reg.bitRange();
+    if (ranged != 80) return 10;
+
+    // global. must agree with the bare path for every operation too.
+    // Before #1115 these emitted raw subscript chains: an array-element bit
+    // wrote `globalBuffer[3][1] = true` (indexing a uint8_t) and a bit range
+    // wrote `globalFlags[4, 3] = 5` (the C comma operator, i.e. index 4).
+    u8 globalViaPrefix <- Reg.viaGlobalPrefix();
+    if (globalViaPrefix != 2) return 11;
+    if (globalViaPrefix != globalBuffer[3]) return 12;
+
+    // Bit range through global.: same 0b01010000 the bare path produces
+    globalFlags <- 0;
+    globalFlags[4, 3] <- 5;
+    if (globalFlags != 80) return 13;
+    u8 globalRanged <- Reg.globalBitRange();
+    if (globalRanged != 80) return 14;
+
+    // Slice through global. must unroll to the same little-endian bytes
+    u8 globalByte0 <- Reg.globalSliceByte(0);
+    u8 globalByte3 <- Reg.globalSliceByte(3);
+    if (globalByte0 != 1) return 15;
+    if (globalByte3 != 4) return 16;
+
+    // global.Scope.member: the offset spelling must agree with all the others
+    u8 scopedBit <- Reg.scopedElementBit();
+    if (scopedBit != 2) return 17;
+    if (scopedBit != globalBuffer[3]) return 18;
+
+    u8 scopedByte0 <- Reg.scopedSliceByte(0);
+    u8 scopedByte1 <- Reg.scopedSliceByte(1);
+    u8 scopedByte2 <- Reg.scopedSliceByte(2);
+    u8 scopedByte3 <- Reg.scopedSliceByte(3);
+    if (scopedByte0 != 1) return 19;
+    if (scopedByte1 != 2) return 20;
+    if (scopedByte2 != 3) return 21;
+    if (scopedByte3 != 4) return 22;
+
+    u8 scopedRanged <- Reg.scopedBitRange();
+    if (scopedRanged != 80) return 23;
+
+    return 0;
+}

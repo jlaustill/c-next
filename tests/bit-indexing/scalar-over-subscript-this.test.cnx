@@ -1,0 +1,13 @@
+// test-error
+// Issue #1106: over-indexing a scalar is a type error through the `this.`
+// prefix too (ADR-016), not just via a bare name. `this.flags[4]` is already a
+// single bit (ADR-007), so `[3]` indexes a value that is not an array. Without
+// this check the write silently dropped the second subscript and coerced 5 to
+// a bool. The correct spelling for a 3-bit field write is `this.flags[4, 3]`.
+scope Reg {
+    u8 flags <- 0;
+
+    void setBits() {
+        this.flags[4][3] <- 5;
+    }
+}

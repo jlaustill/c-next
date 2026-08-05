@@ -2,11 +2,10 @@
  * Access pattern assignment handlers (ADR-109).
  *
  * Handles assignments with global/this prefix and member chains:
+ * - GLOBAL_ARRAY: global.obj.field[i] <- value (member chain)
  * - GLOBAL_MEMBER: global.Counter.value <- 5
- * - GLOBAL_ARRAY: global.arr[i] <- value
  * - GLOBAL_REGISTER_BIT: global.GPIO7.DR_SET[bit] <- true
  * - THIS_MEMBER: this.count <- 5
- * - THIS_ARRAY: this.items[i] <- value
  * - MEMBER_CHAIN: struct.field.subfield <- value
  */
 import AssignmentKind from "../AssignmentKind";
@@ -39,7 +38,7 @@ function handleGlobalAccess(ctx: IAssignmentContext): string {
 }
 
 /**
- * Common handler for this access patterns (THIS_MEMBER and THIS_ARRAY).
+ * Handler for `this.member <- value` (THIS_MEMBER).
  *
  * Validates scope context and generates standard assignment.
  */
@@ -166,7 +165,6 @@ const accessPatternHandlers: ReadonlyArray<
   [AssignmentKind.GLOBAL_ARRAY, handleGlobalAccess],
   [AssignmentKind.GLOBAL_REGISTER_BIT, handleGlobalRegisterBit],
   [AssignmentKind.THIS_MEMBER, handleThisAccess],
-  [AssignmentKind.THIS_ARRAY, handleThisAccess],
   [AssignmentKind.MEMBER_CHAIN, handleMemberChain],
 ];
 

@@ -498,7 +498,10 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     );
   });
 
-  it("classifies global.arr[i]", () => {
+  // Issue #1115: `global.arr[i]` classifies as the general ARRAY_ELEMENT, the
+  // same as bare `arr[i]` and `this.arr[i]`. The retired GLOBAL_ARRAY kind
+  // bypassed SubscriptClassifier and emitted the raw subscript chain.
+  it("classifies global.arr[i] as ARRAY_ELEMENT", () => {
     setupSymbols();
 
     const ctx = createMockContext({
@@ -511,7 +514,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.GLOBAL_ARRAY,
+      AssignmentKind.ARRAY_ELEMENT,
     );
   });
 
@@ -542,11 +545,15 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_ARRAY);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.ARRAY_ELEMENT,
+    );
   });
 
-  // Issue #954: Scope variable bit access should be classified as THIS_BIT/THIS_BIT_RANGE
-  it("classifies this.flags[3] as THIS_BIT for integer type", () => {
+  // Issue #954 / #1115: scope variable bit access classifies as the general
+  // INTEGER_BIT / INTEGER_BIT_RANGE kinds -- `resolvedBaseIdentifier` already
+  // carries the scope prefix, so no `this.`-specific kind is needed.
+  it("classifies this.flags[3] as INTEGER_BIT for integer type", () => {
     setupSymbols();
     CodeGenState.currentScope = "Sensor";
     // Register Sensor_flags as a non-array integer type
@@ -565,10 +572,10 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       lastSubscriptExprCount: 1, // single bit
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_BIT);
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.INTEGER_BIT);
   });
 
-  it("classifies this.value[0, 8] as THIS_BIT_RANGE for integer type", () => {
+  it("classifies this.value[0, 8] as INTEGER_BIT_RANGE for integer type", () => {
     setupSymbols();
     CodeGenState.currentScope = "Sensor";
     // Register Sensor_value as a non-array integer type
@@ -591,11 +598,11 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.THIS_BIT_RANGE,
+      AssignmentKind.INTEGER_BIT_RANGE,
     );
   });
 
-  it("classifies this.data[i] as THIS_ARRAY for array type", () => {
+  it("classifies this.data[i] as ARRAY_ELEMENT for array type", () => {
     setupSymbols();
     CodeGenState.currentScope = "Buffer";
     // Register Buffer_data as an array type
@@ -614,7 +621,9 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       lastSubscriptExprCount: 1,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_ARRAY);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.ARRAY_ELEMENT,
+    );
   });
 });
 
