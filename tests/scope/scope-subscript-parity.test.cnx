@@ -1,0 +1,75 @@
+// test-execution
+// Issue #1115: a subscript chain must mean the same thing through `this.` as it
+// does through a bare name. `classifyThisWithArrayAccess` used to carry its own
+// truncated copy of the classification switch, so `this.` silently lost
+// ARRAY_ELEMENT_BIT (#1113) and ARRAY_SLICE and generated invalid C:
+//   this.buffer[3][1] <- true  ->  Reg_buffer[3][1] = true   (indexes a uint8_t)
+//   this.buf[0, 4] <- magic    ->  Reg_buf[0, 4] = magic     (C comma operator)
+// Each case below is checked against the bare-path result, so the two spellings
+// cannot drift apart again without failing.
+
+u8[16] globalBuffer;
+u8[16] globalSlice;
+
+scope Reg {
+    u8[16] buffer;
+    u8[16] slice;
+    u8 flags <- 0;
+
+    // Bit access on an array element (#1113)
+    u8 elementBit() {
+        this.buffer[3] <- 0;
+        this.buffer[3][1] <- true;
+        return this.buffer[3];
+    }
+
+    // Slice assignment: scalar copied across 4 bytes (MISRA 21.15 unroll)
+    u8 sliceByte(u32 index) {
+        u32 magic <- 0x04030201;
+        this.slice[0, 4] <- magic;
+        return this.slice[index];
+    }
+
+    // Plain bit access and bit range still work
+    u8 bitRange() {
+        this.flags <- 0;
+        this.flags[4, 3] <- 5;
+        return this.flags;
+    }
+}
+
+u32 main() {
+    // Bare path: reference behavior
+    globalBuffer[3] <- 0;
+    globalBuffer[3][1] <- true;
+    if (globalBuffer[3] != 2) return 1;
+
+    // this. path must agree with it
+    // MISRA C:2012 Rule 13.5 - no function calls in if conditions
+    u8 viaThis <- Reg.elementBit();
+    if (viaThis != 2) return 2;
+    if (viaThis != globalBuffer[3]) return 3;
+
+    // Bare slice: little-endian byte order
+    u32 magic <- 0x04030201;
+    globalSlice[0, 4] <- magic;
+    if (globalSlice[0] != 1) return 4;
+    if (globalSlice[3] != 4) return 5;
+
+    // this. slice must produce the same bytes
+    // MISRA C:2012 Rule 13.5 - no function calls in if conditions
+    u8 byte0 <- Reg.sliceByte(0);
+    u8 byte1 <- Reg.sliceByte(1);
+    u8 byte2 <- Reg.sliceByte(2);
+    u8 byte3 <- Reg.sliceByte(3);
+    if (byte0 != 1) return 6;
+    if (byte1 != 2) return 7;
+    if (byte2 != 3) return 8;
+    if (byte3 != 4) return 9;
+
+    // Bit range through this.: 3 bits of value 5 at offset 4 -> 0b01010000
+    u8 ranged <- Reg.bitRange();
+    if (ranged != 80) return 10;
+
+    return 0;
+}

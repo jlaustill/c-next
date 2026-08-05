@@ -61,12 +61,11 @@ describe("AccessPatternHandlers", () => {
       expect(kinds).toContain(AssignmentKind.GLOBAL_ARRAY);
       expect(kinds).toContain(AssignmentKind.GLOBAL_REGISTER_BIT);
       expect(kinds).toContain(AssignmentKind.THIS_MEMBER);
-      expect(kinds).toContain(AssignmentKind.THIS_ARRAY);
       expect(kinds).toContain(AssignmentKind.MEMBER_CHAIN);
     });
 
-    it("exports exactly 6 handlers", () => {
-      expect(accessPatternHandlers.length).toBe(6);
+    it("exports exactly 5 handlers", () => {
+      expect(accessPatternHandlers.length).toBe(5);
     });
 
     it("uses same handler for GLOBAL_MEMBER and GLOBAL_ARRAY", () => {
@@ -80,15 +79,15 @@ describe("AccessPatternHandlers", () => {
       expect(globalMemberHandler).toBe(globalArrayHandler);
     });
 
-    it("uses same handler for THIS_MEMBER and THIS_ARRAY", () => {
+    it("registers a handler for THIS_MEMBER", () => {
+      // Issue #1115: THIS_ARRAY retired, so THIS_MEMBER is the only `this.`
+      // kind this module serves. Subscripted `this.` targets classify as the
+      // general array/bit kinds handled elsewhere.
       const thisMemberHandler = accessPatternHandlers.find(
         ([kind]) => kind === AssignmentKind.THIS_MEMBER,
       )?.[1];
-      const thisArrayHandler = accessPatternHandlers.find(
-        ([kind]) => kind === AssignmentKind.THIS_ARRAY,
-      )?.[1];
 
-      expect(thisMemberHandler).toBe(thisArrayHandler);
+      expect(thisMemberHandler).toBeDefined();
     });
   });
 
@@ -235,10 +234,10 @@ describe("AccessPatternHandlers", () => {
     });
   });
 
-  describe("handleThisAccess (THIS_ARRAY)", () => {
+  describe("handleThisAccess (THIS_MEMBER)", () => {
     const getHandler = () =>
       accessPatternHandlers.find(
-        ([kind]) => kind === AssignmentKind.THIS_ARRAY,
+        ([kind]) => kind === AssignmentKind.THIS_MEMBER,
       )?.[1];
 
     it("generates scoped array element assignment", () => {

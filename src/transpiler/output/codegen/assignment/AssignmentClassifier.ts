@@ -476,6 +476,12 @@ class AssignmentClassifier {
   /**
    * Classify this.reg[bit] / this.arr[i] / this.flags[3] patterns with array access.
    * Issue #954: Uses SubscriptClassifier to distinguish array vs bit access.
+   *
+   * Issue #1115: only the scoped-register check is `this.`-specific. Everything
+   * after it is the same decision the bare path makes, so it delegates rather
+   * than re-deriving it — this method used to carry a truncated copy of that
+   * switch, which silently lost ARRAY_ELEMENT_BIT, ARRAY_SLICE,
+   * MULTI_DIM_ARRAY_ELEMENT and STRING_ARRAY_ELEMENT for `this.` targets.
    */
   private static classifyThisWithArrayAccess(
     ctx: IAssignmentContext,
@@ -489,38 +495,15 @@ class AssignmentClassifier {
         : AssignmentKind.SCOPED_REGISTER_BIT;
     }
 
-    // Get type info using resolved scoped name (e.g., "Sensor_value")
-    const typeInfo = CodeGenState.getVariableTypeInfo(scopedRegName);
-
-    // Issue #1106: `this.flags[4][3]` over-indexes just as `flags[4][3]` does.
-    // `assignmentTarget` consumes the `this . IDENTIFIER` prefix in the grammar
-    // rule itself, so these ops are subscripts from index 0 — no offset needed.
     // Diagnostics quote the source spelling (`this.flags`) rather than the
     // resolved `scopedRegName`, so the suggested fix is the text the developer
     // actually wrote. (`Sensor_flags` does resolve as a bare name, but nobody
     // writes it — echoing it back would read as a different variable.)
-    SubscriptDepthValidator.validate(
-      typeInfo ?? undefined,
-      SubscriptDepthValidator.countLeadingSubscripts(ctx.postfixOps),
+    return AssignmentClassifier.classifySubscriptAccess(
+      ctx,
+      scopedRegName,
       `this.${ctx.identifiers[0]}`,
-      ctx.targetCtx.start?.line ?? 0,
     );
-
-    // Use shared classifier to determine array vs bit access
-    const subscriptKind = SubscriptClassifier.classify({
-      typeInfo: typeInfo ?? null,
-      subscriptCount: ctx.lastSubscriptExprCount,
-      isRegisterAccess: false,
-    });
-
-    switch (subscriptKind) {
-      case "bit_single":
-        return AssignmentKind.THIS_BIT;
-      case "bit_range":
-        return AssignmentKind.THIS_BIT_RANGE;
-      default:
-        return AssignmentKind.THIS_ARRAY;
-    }
   }
 
   /**
@@ -543,15 +526,39 @@ class AssignmentClassifier {
     }
 
     const name = ctx.identifiers[0];
-    const typeInfo = CodeGenState.getVariableTypeInfo(name) ?? null;
+    return AssignmentClassifier.classifySubscriptAccess(ctx, name, name);
+  }
+
+  /**
+   * Decide what a subscript chain on a single variable means.
+   *
+   * Issue #1115: the SINGLE source of truth for that decision. `arr[i]` and
+   * `this.arr[i]` differ only in how the base name resolves — once resolved,
+   * the type lookup, depth validation and array-vs-bit classification are
+   * identical, and the handlers already share generation (THIS_BIT and
+   * INTEGER_BIT both map to `handleIntegerBit`, since `resolvedTarget` and
+   * `resolvedBaseIdentifier` already carry the scope prefix). Keeping two
+   * copies of this switch is what let the `this.` form diverge.
+   *
+   * @param resolvedName Name for type lookup: `flags`, or `Scope_flags` for `this.`
+   * @param displayName  Name for diagnostics: what the developer actually wrote
+   */
+  private static classifySubscriptAccess(
+    ctx: IAssignmentContext,
+    resolvedName: string,
+    displayName: string,
+  ): AssignmentKind {
+    const typeInfo = CodeGenState.getVariableTypeInfo(resolvedName) ?? null;
 
     // Issue #1106: reject over-indexing a scalar/array base (e.g. flags[4][3]
     // on a scalar u8). Counting is delegated to SubscriptDepthValidator so
     // this path and the read path share the decision, not just the check.
+    // `assignmentTarget` consumes any `this . IDENTIFIER` prefix in the grammar
+    // rule itself, so these ops are subscripts from index 0 for every spelling.
     SubscriptDepthValidator.validate(
       typeInfo ?? undefined,
       SubscriptDepthValidator.countLeadingSubscripts(ctx.postfixOps),
-      name,
+      displayName,
       ctx.targetCtx.start?.line ?? 0,
     );
 

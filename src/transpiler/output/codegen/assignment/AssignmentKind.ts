@@ -110,14 +110,14 @@ enum AssignmentKind {
   /** this.member <- value (scoped member) */
   THIS_MEMBER,
 
-  /** this.arr[i] <- value (scoped array element) */
-  THIS_ARRAY,
-
-  /** this.flags[3] <- true (scoped integer bit access) */
-  THIS_BIT,
-
-  /** this.value[0, 8] <- byte (scoped integer bit range) */
-  THIS_BIT_RANGE,
+  /*
+   * Issue #1115: THIS_ARRAY / THIS_BIT / THIS_BIT_RANGE removed. Subscripted
+   * `this.` targets now classify as the general kinds (ARRAY_ELEMENT,
+   * INTEGER_BIT, ARRAY_SLICE, ...). They were aliases: `resolvedTarget` and
+   * `resolvedBaseIdentifier` already carry the scope prefix, so the handlers
+   * were literally the same functions. Keeping the aliases required a second
+   * classifier switch, which drifted and lost four branches for `this.`.
+   */
 
   // === Complex access patterns ===
 
