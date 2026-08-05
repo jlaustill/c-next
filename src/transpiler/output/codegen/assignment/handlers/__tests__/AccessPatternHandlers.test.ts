@@ -65,7 +65,7 @@ describe("AccessPatternHandlers", () => {
     });
 
     it("exports exactly 5 handlers", () => {
-      expect(accessPatternHandlers.length).toBe(5);
+      expect(accessPatternHandlers).toHaveLength(5);
     });
 
     it("uses same handler for GLOBAL_MEMBER and GLOBAL_ARRAY", () => {

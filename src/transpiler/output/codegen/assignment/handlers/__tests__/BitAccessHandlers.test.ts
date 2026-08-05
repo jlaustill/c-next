@@ -67,7 +67,7 @@ describe("BitAccessHandlers", () => {
     it("exports exactly 5 handlers", () => {
       // Issue #1115: THIS_BIT / THIS_BIT_RANGE retired -- `this.` bit access now
       // classifies as INTEGER_BIT / INTEGER_BIT_RANGE, which these handlers serve.
-      expect(bitAccessHandlers.length).toBe(5);
+      expect(bitAccessHandlers).toHaveLength(5);
     });
   });
 
