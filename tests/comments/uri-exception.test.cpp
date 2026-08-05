@@ -7,8 +7,6 @@
 // Tests that :// patterns are allowed per MISRA Amendment 4
 #include <stdint.h>
 
-#include <stdint.h>
-
 // See documentation at https://example.com/docs
 // Reference: http://spec.org/standard
 /* API endpoint: https://api.example.com/v1

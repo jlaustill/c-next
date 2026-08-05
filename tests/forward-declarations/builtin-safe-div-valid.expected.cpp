@@ -4,9 +4,9 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // ADR-051: Safe division helper functions
-#include <stdbool.h>
 
 static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator, uint32_t divisor, uint32_t defaultValue) {
     if (divisor == 0) {

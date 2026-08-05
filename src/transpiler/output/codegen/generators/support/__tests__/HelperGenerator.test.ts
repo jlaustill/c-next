@@ -234,9 +234,12 @@ describe("HelperGenerator - generateSafeDivHelpers", () => {
       expect(code).toContain("cnx_safe_mod_u64");
     });
 
-    it("includes stdbool.h header", () => {
+    it("does not emit its own stdbool.h include (#1108)", () => {
+      // The <stdbool.h> dependency is signalled via requireInclude("stdbool")
+      // when the safe-div effect is applied, so it flows through the single
+      // addAutoIncludes path. The helper must not emit a duplicate include.
       const result = generateSafeDivHelpers(new Set(["div_u8"]));
-      expect(result.join("\n")).toContain("#include <stdbool.h>");
+      expect(result.join("\n")).not.toContain("#include <stdbool.h>");
     });
 
     it("includes ADR-051 comment", () => {
