@@ -15,7 +15,7 @@ void test_bits() {
     flags[7] <- false; // Clear bit 7
 
     // Bit range operations
-    flags[4][3] <- 5; // Set 3 bits starting at bit 4 to value 5
+    flags[4, 3] <- 5; // Set 3 bits starting at bit 4 to value 5
 
     // Read bits
     bool bit3 <- flags[3];

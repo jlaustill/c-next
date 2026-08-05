@@ -37,10 +37,10 @@ Generates clean C:
 ```c
 #define GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
-uint32_t LED_BIT = 3;
+uint32_t LED_BIT = 3U;
 
 void LED_toggle(void) {
-    GPIO7_DR_TOGGLE = (1 << LED_BIT);
+    GPIO7_DR_TOGGLE = (1U << LED_BIT);
 }
 ```
 
@@ -134,19 +134,19 @@ npm link
 
 ```bash
 # Transpile to C (output alongside input file)
-cnext examples/blink.cnx
+cnext examples/teensy4/blink.cnx
 
 # Explicit output path
-cnext examples/blink.cnx -o blink.c
+cnext examples/teensy4/blink.cnx -o blink.c
 
 # Parse only (syntax check)
-cnext examples/blink.cnx --parse
+cnext examples/teensy4/blink.cnx --parse
 
 # Output as C++ (.cpp)
-cnext examples/blink.cnx --cpp
+cnext examples/teensy4/blink.cnx --cpp
 
 # Target platform for atomic code generation (ADR-049)
-cnext examples/blink.cnx --target teensy41
+cnext examples/teensy4/blink.cnx --target teensy41
 
 # Separate output directories for code and headers
 cnext src/main.cnx -o build/src --header-out build/include
@@ -210,10 +210,11 @@ This creates a pre-build script that automatically transpiles `.cnx` files befor
 
 ## Projects Using C-Next
 
-| Project                                   | Description                                                                        |
-| ----------------------------------------- | ---------------------------------------------------------------------------------- |
-| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control         |
-| [test-teensy](test-teensy/)               | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
+| Project                                           | Description                                                                        |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [OSSM](https://github.com/jlaustill/ossm)         | Open-source stroke machine firmware using C-Next for safe embedded control         |
+| [examples/teensy4](examples/teensy4/)             | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
+| [examples/nucleo-f446re](examples/nucleo-f446re/) | Hardware verification project — validates transpiler output on STM32 Nucleo-F446RE |
 
 _Using C-Next in your project? Open an issue to get listed!_
 
@@ -222,7 +223,7 @@ _Using C-Next in your project? Open an issue to get listed!_
 | Resource                                                      | Description                                |
 | ------------------------------------------------------------- | ------------------------------------------ |
 | [Language Guide](docs/language-guide.md)                      | Complete reference for all C-Next features |
-| [Architecture Decisions](docs/architecture-decisions.md)      | 50+ ADRs documenting design choices        |
+| [Architecture Decisions](docs/architecture-decisions.md)      | 70+ ADRs documenting design choices        |
 | [Learn C-Next in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview                      |
 | [Error Codes](docs/error-codes.md)                            | Compiler error reference                   |
 | [MISRA Compliance](docs/misra-compliance.md)                  | MISRA C:2012 compliance details            |
@@ -241,9 +242,12 @@ c-next/
 │   │   └── output/                     # Generation (codegen, headers)
 │   └── utils/                          # Shared utilities
 ├── examples/
-│   ├── blink.cnx                       # LED blink (Teensy verified)
-│   └── bit_test.cnx                    # Bit manipulation tests
-├── test-teensy/                        # PlatformIO test project
+│   ├── bit_test.cnx                    # Bit manipulation tests
+│   ├── references.cnx                  # Pass-by-reference examples
+│   ├── structs.cnx                     # Struct examples
+│   ├── uart_buffer.cnx                 # UART ring-buffer example
+│   ├── teensy4/                        # Teensy 4.x PlatformIO verification project
+│   └── nucleo-f446re/                  # STM32 Nucleo-F446RE verification project
 └── docs/decisions/                     # Architecture Decision Records
 ```
 
