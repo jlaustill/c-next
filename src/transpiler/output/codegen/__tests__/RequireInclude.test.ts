@@ -261,50 +261,44 @@ describe("CodeGenerator requireInclude", () => {
     const countOccurrences = (haystack: string, needle: string): number =>
       haystack.split(needle).length - 1;
 
-    it("emits stdint.h once when source already includes it", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+    /**
+     * Each case reaches the same header by a different route, and every route
+     * must converge on exactly one `#include`:
+     *  - source passthrough colliding with an auto-include, and
+     *  - the ADR-051 safe-div helper, whose bool dependency now flows through
+     *    requireInclude() instead of the helper emitting its own directive.
+     */
+    const DEDUP_CASES = [
+      {
+        route: "source passthrough of stdint.h",
+        header: "#include <stdint.h>",
+        source: "#include <stdint.h>\nu8 value <- 0;",
+      },
+      {
+        route: "source passthrough of stdbool.h",
+        header: "#include <stdbool.h>",
+        source: "#include <stdbool.h>\nbool flag <- true;",
+      },
+      {
+        route: "safe-div helper needing stdbool.h",
+        header: "#include <stdbool.h>",
+        source:
+          "void t() { u32 r <- 0; bool err <- false; err <- safe_div(r, 10, 2, 0); }",
+      },
+    ];
 
-      const result = (
-        await transpiler.transpile({
-          kind: "source",
-          source: "#include <stdint.h>\nu8 value <- 0;",
-        })
-      ).files[0];
+    it.each(DEDUP_CASES)(
+      "emits the header exactly once via $route",
+      async ({ header, source }) => {
+        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
-      expect(result.success).toBe(true);
-      expect(result.code).toContain("#include <stdint.h>");
-      expect(countOccurrences(result.code!, "#include <stdint.h>")).toBe(1);
-    });
+        const result = (await transpiler.transpile({ kind: "source", source }))
+          .files[0];
 
-    it("emits stdbool.h once when source already includes it", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
-
-      const result = (
-        await transpiler.transpile({
-          kind: "source",
-          source: "#include <stdbool.h>\nbool flag <- true;",
-        })
-      ).files[0];
-
-      expect(result.success).toBe(true);
-      expect(result.code).toContain("#include <stdbool.h>");
-      expect(countOccurrences(result.code!, "#include <stdbool.h>")).toBe(1);
-    });
-
-    it("emits stdbool.h once when safe division is used (helper path, #1108)", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
-
-      const result = (
-        await transpiler.transpile({
-          kind: "source",
-          source:
-            "void t() { u32 r <- 0; bool err <- false; err <- safe_div(r, 10, 2, 0); }",
-        })
-      ).files[0];
-
-      expect(result.success).toBe(true);
-      expect(result.code).toContain("#include <stdbool.h>");
-      expect(countOccurrences(result.code!, "#include <stdbool.h>")).toBe(1);
-    });
+        expect(result.success).toBe(true);
+        expect(result.code).toContain(header);
+        expect(countOccurrences(result.code!, header)).toBe(1);
+      },
+    );
   });
 });
