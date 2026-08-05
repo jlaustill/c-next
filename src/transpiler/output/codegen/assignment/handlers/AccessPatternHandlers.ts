@@ -2,8 +2,8 @@
  * Access pattern assignment handlers (ADR-109).
  *
  * Handles assignments with global/this prefix and member chains:
+ * - GLOBAL_ARRAY: global.obj.field[i] <- value (member chain)
  * - GLOBAL_MEMBER: global.Counter.value <- 5
- * - GLOBAL_ARRAY: global.arr[i] <- value
  * - GLOBAL_REGISTER_BIT: global.GPIO7.DR_SET[bit] <- true
  * - THIS_MEMBER: this.count <- 5
  * - MEMBER_CHAIN: struct.field.subfield <- value

@@ -498,7 +498,10 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     );
   });
 
-  it("classifies global.arr[i]", () => {
+  // Issue #1115: `global.arr[i]` classifies as the general ARRAY_ELEMENT, the
+  // same as bare `arr[i]` and `this.arr[i]`. The retired GLOBAL_ARRAY kind
+  // bypassed SubscriptClassifier and emitted the raw subscript chain.
+  it("classifies global.arr[i] as ARRAY_ELEMENT", () => {
     setupSymbols();
 
     const ctx = createMockContext({
@@ -511,7 +514,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.GLOBAL_ARRAY,
+      AssignmentKind.ARRAY_ELEMENT,
     );
   });
 

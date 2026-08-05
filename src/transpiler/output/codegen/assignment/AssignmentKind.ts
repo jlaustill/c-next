@@ -102,6 +102,15 @@ enum AssignmentKind {
   GLOBAL_MEMBER,
 
   /** global.arr[i] <- value (global array element) */
+  /**
+   * global.obj.field[i] <- value (member chain behind a global prefix).
+   *
+   * Issue #1115: a subscript on a plain global VARIABLE (`global.x[i]`, or
+   * `global.Scope.member[i]`) no longer lands here -- it classifies as the
+   * general kinds so it behaves like bare `x[i]`. This kind now covers only
+   * genuine member chains, where the subscript applies to a struct field
+   * rather than to the named variable.
+   */
   GLOBAL_ARRAY,
 
   /** global.reg[bit] <- value (global register bit) */

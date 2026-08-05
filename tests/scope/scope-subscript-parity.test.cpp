@@ -9,17 +9,26 @@
 #include <stdbool.h>
 
 // test-execution
-// Issue #1115: a subscript chain must mean the same thing through `this.` as it
-// does through a bare name. `classifyThisWithArrayAccess` used to carry its own
-// truncated copy of the classification switch, so `this.` silently lost
-// ARRAY_ELEMENT_BIT (#1113) and ARRAY_SLICE and generated invalid C:
-//   this.buffer[3][1] <- true  ->  Reg_buffer[3][1] = true   (indexes a uint8_t)
-//   this.buf[0, 4] <- magic    ->  Reg_buf[0, 4] = magic     (C comma operator)
-// Each case below is checked against the bare-path result, so the two spellings
-// cannot drift apart again without failing.
+// Issue #1115: a subscript chain must mean the same thing through every ADR-016
+// spelling -- bare, `this.` and `global.`. Three separate classifier methods
+// used to decide this independently, and two had drifted:
+//
+//   classifyThisWithArrayAccess  - truncated switch, lost ARRAY_ELEMENT_BIT
+//                                  (#1113) and ARRAY_SLICE
+//   classifyGlobalPrefix         - never called SubscriptClassifier at all
+//
+// so both emitted the raw subscript chain and generated invalid C:
+//   this.buffer[3][1] <- true    ->  Reg_buffer[3][1] = true  (indexes a uint8_t)
+//   this.buf[0, 4] <- magic      ->  Reg_buf[0, 4] = magic    (C comma operator)
+//   global.gflags[4, 3] <- 5     ->  gflags[4, 3] = 5         (C comma operator)
+//
+// Every case below is checked against the bare-path result, so the spellings
+// cannot drift apart again without this test failing.
 uint8_t globalBuffer[16] = {};
 
 uint8_t globalSlice[16] = {};
+
+uint8_t globalFlags = 0U;
 
 /* Scope: Reg */
 static uint8_t Reg_buffer[16] = {};
@@ -49,6 +58,18 @@ uint8_t Reg_bitRange(void) {
     return Reg_flags;
 }
 
+uint8_t Reg_viaGlobalPrefix(void) {
+    globalBuffer[3] = 0U;
+    globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
+    return globalBuffer[3U];
+}
+
+uint8_t Reg_globalBitRange(void) {
+    globalFlags = 0U;
+    globalFlags = (uint8_t)((globalFlags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    return globalFlags;
+}
+
 int main(void) {
     globalBuffer[3] = 0U;
     globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
@@ -75,5 +96,13 @@ int main(void) {
     if (byte3 != 4) return 9;
     uint8_t ranged = Reg_bitRange();
     if (ranged != 80) return 10;
+    uint8_t globalViaPrefix = Reg_viaGlobalPrefix();
+    if (globalViaPrefix != 2) return 11;
+    if (globalViaPrefix != globalBuffer[3U]) return 12;
+    globalFlags = 0U;
+    globalFlags = (uint8_t)((globalFlags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    if (globalFlags != 80) return 13;
+    uint8_t globalRanged = Reg_globalBitRange();
+    if (globalRanged != 80) return 14;
     return 0;
 }

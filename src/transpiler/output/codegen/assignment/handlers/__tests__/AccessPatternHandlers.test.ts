@@ -91,10 +91,10 @@ describe("AccessPatternHandlers", () => {
     });
   });
 
-  describe("handleGlobalAccess (GLOBAL_MEMBER)", () => {
+  describe("handleGlobalAccess (GLOBAL_ARRAY)", () => {
     const getHandler = () =>
       accessPatternHandlers.find(
-        ([kind]) => kind === AssignmentKind.GLOBAL_MEMBER,
+        ([kind]) => kind === AssignmentKind.GLOBAL_ARRAY,
       )?.[1];
 
     it("generates standard assignment for global member", () => {
@@ -165,7 +165,7 @@ describe("AccessPatternHandlers", () => {
   describe("handleGlobalAccess (GLOBAL_ARRAY)", () => {
     const getHandler = () =>
       accessPatternHandlers.find(
-        ([kind]) => kind === AssignmentKind.GLOBAL_ARRAY,
+        ([kind]) => kind === AssignmentKind.GLOBAL_MEMBER,
       )?.[1];
 
     it("generates array element assignment", () => {

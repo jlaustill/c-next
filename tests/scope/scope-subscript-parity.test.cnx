@@ -1,15 +1,23 @@
 // test-execution
-// Issue #1115: a subscript chain must mean the same thing through `this.` as it
-// does through a bare name. `classifyThisWithArrayAccess` used to carry its own
-// truncated copy of the classification switch, so `this.` silently lost
-// ARRAY_ELEMENT_BIT (#1113) and ARRAY_SLICE and generated invalid C:
-//   this.buffer[3][1] <- true  ->  Reg_buffer[3][1] = true   (indexes a uint8_t)
-//   this.buf[0, 4] <- magic    ->  Reg_buf[0, 4] = magic     (C comma operator)
-// Each case below is checked against the bare-path result, so the two spellings
-// cannot drift apart again without failing.
+// Issue #1115: a subscript chain must mean the same thing through every ADR-016
+// spelling -- bare, `this.` and `global.`. Three separate classifier methods
+// used to decide this independently, and two had drifted:
+//
+//   classifyThisWithArrayAccess  - truncated switch, lost ARRAY_ELEMENT_BIT
+//                                  (#1113) and ARRAY_SLICE
+//   classifyGlobalPrefix         - never called SubscriptClassifier at all
+//
+// so both emitted the raw subscript chain and generated invalid C:
+//   this.buffer[3][1] <- true    ->  Reg_buffer[3][1] = true  (indexes a uint8_t)
+//   this.buf[0, 4] <- magic      ->  Reg_buf[0, 4] = magic    (C comma operator)
+//   global.gflags[4, 3] <- 5     ->  gflags[4, 3] = 5         (C comma operator)
+//
+// Every case below is checked against the bare-path result, so the spellings
+// cannot drift apart again without this test failing.
 
 u8[16] globalBuffer;
 u8[16] globalSlice;
+u8 globalFlags <- 0;
 
 scope Reg {
     u8[16] buffer;
@@ -35,6 +43,19 @@ scope Reg {
         this.flags <- 0;
         this.flags[4, 3] <- 5;
         return this.flags;
+    }
+
+    // Same operations through the global. prefix (classifyGlobalPrefix)
+    u8 viaGlobalPrefix() {
+        global.globalBuffer[3] <- 0;
+        global.globalBuffer[3][1] <- true;
+        return global.globalBuffer[3];
+    }
+
+    u8 globalBitRange() {
+        global.globalFlags <- 0;
+        global.globalFlags[4, 3] <- 5;
+        return global.globalFlags;
     }
 }
 
@@ -70,6 +91,21 @@ u32 main() {
     // Bit range through this.: 3 bits of value 5 at offset 4 -> 0b01010000
     u8 ranged <- Reg.bitRange();
     if (ranged != 80) return 10;
+
+    // global. must agree with the bare path for every operation too.
+    // Before #1115 these emitted raw subscript chains: an array-element bit
+    // wrote `globalBuffer[3][1] = true` (indexing a uint8_t) and a bit range
+    // wrote `globalFlags[4, 3] = 5` (the C comma operator, i.e. index 4).
+    u8 globalViaPrefix <- Reg.viaGlobalPrefix();
+    if (globalViaPrefix != 2) return 11;
+    if (globalViaPrefix != globalBuffer[3]) return 12;
+
+    // Bit range through global.: same 0b01010000 the bare path produces
+    globalFlags <- 0;
+    globalFlags[4, 3] <- 5;
+    if (globalFlags != 80) return 13;
+    u8 globalRanged <- Reg.globalBitRange();
+    if (globalRanged != 80) return 14;
 
     return 0;
 }

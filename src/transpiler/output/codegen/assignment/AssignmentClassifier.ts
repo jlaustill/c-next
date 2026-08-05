@@ -432,10 +432,55 @@ class AssignmentClassifier {
       ) {
         return AssignmentKind.GLOBAL_REGISTER_BIT;
       }
+
+      // Issue #1115: when the subscript applies to the named VARIABLE,
+      // `global.x[...]` means exactly what `x[...]` means, so it makes the same
+      // decision. This branch used to return GLOBAL_ARRAY for every non-register
+      // target without consulting SubscriptClassifier at all, which emitted the
+      // raw subscript chain and broke every operation:
+      //   global.buf[3][1] <- true  ->  buf[3][1] = true      (indexes a u8)
+      //   global.s[0, 4] <- magic   ->  s[0, 4] = magic       (C comma operator)
+      //   global.f[4, 3] <- 5       ->  f[4, 3] = 5           (C comma operator)
+      // Cross-scope visibility is still enforced: the check runs during
+      // `generateAssignmentTarget` (MemberSeparatorResolver), not in the
+      // GLOBAL_ARRAY handler, so it applies to the delegated kinds too.
+      const resolvedName = AssignmentClassifier.resolveGlobalVariableName(ctx);
+      if (resolvedName !== null) {
+        return AssignmentClassifier.classifySubscriptAccess(
+          ctx,
+          resolvedName,
+          `global.${ctx.identifiers.join(".")}`,
+        );
+      }
+
+      // Member chain (`global.config.items[0].assigned`): the subscript applies
+      // to a struct field, not to `config`, so the general variable-subscript
+      // classification does not apply. Handled as a chain.
       return AssignmentKind.GLOBAL_ARRAY;
     }
 
     return AssignmentKind.GLOBAL_MEMBER;
+  }
+
+  /**
+   * Name of the variable a `global.` target subscripts, or null when the target
+   * is a member chain and the subscript belongs to a field rather than to the
+   * named variable.
+   *
+   * `global.x[i]` -> `x`; `global.Scope.member[i]` -> `Scope_member`;
+   * `global.obj.field[i]` -> null (subscript applies to `field`).
+   */
+  private static resolveGlobalVariableName(
+    ctx: IAssignmentContext,
+  ): string | null {
+    const firstId = ctx.identifiers[0];
+    if (ctx.identifiers.length === 1) {
+      return firstId;
+    }
+    if (ctx.identifiers.length === 2 && CodeGenState.isKnownScope(firstId)) {
+      return `${firstId}_${ctx.identifiers[1]}`;
+    }
+    return null;
   }
 
   /**
@@ -550,14 +595,23 @@ class AssignmentClassifier {
   ): AssignmentKind {
     const typeInfo = CodeGenState.getVariableTypeInfo(resolvedName) ?? null;
 
+    // `assignmentTarget` consumes the leading `IDENTIFIER` (and any `this .` /
+    // `global .` prefix) in the grammar rule itself, so op 0 is a subscript for
+    // `flags[4][3]`, `this.flags[4][3]` and `global.flags[4][3]` alike. Only a
+    // scope-qualified chain such as `global.Other.buf[3][1]` carries extra
+    // member ops first — exactly one per identifier past the base, hence
+    // `identifiers.length - 1` for every spelling.
+    const memberOpCount = ctx.identifiers.length - 1;
+
     // Issue #1106: reject over-indexing a scalar/array base (e.g. flags[4][3]
     // on a scalar u8). Counting is delegated to SubscriptDepthValidator so
     // this path and the read path share the decision, not just the check.
-    // `assignmentTarget` consumes any `this . IDENTIFIER` prefix in the grammar
-    // rule itself, so these ops are subscripts from index 0 for every spelling.
     SubscriptDepthValidator.validate(
       typeInfo ?? undefined,
-      SubscriptDepthValidator.countLeadingSubscripts(ctx.postfixOps),
+      SubscriptDepthValidator.countLeadingSubscripts(
+        ctx.postfixOps,
+        memberOpCount,
+      ),
       displayName,
       ctx.targetCtx.start?.line ?? 0,
     );
