@@ -256,4 +256,49 @@ describe("CodeGenerator requireInclude", () => {
       expect(result.code).not.toContain("#include <string.h>");
     });
   });
+
+  describe("deduplicates auto-includes against passthrough includes (#1108)", () => {
+    const countOccurrences = (haystack: string, needle: string): number =>
+      haystack.split(needle).length - 1;
+
+    /**
+     * Each case reaches the same header by a different route, and every route
+     * must converge on exactly one `#include`:
+     *  - source passthrough colliding with an auto-include, and
+     *  - the ADR-051 safe-div helper, whose bool dependency now flows through
+     *    requireInclude() instead of the helper emitting its own directive.
+     */
+    const DEDUP_CASES = [
+      {
+        route: "source passthrough of stdint.h",
+        header: "#include <stdint.h>",
+        source: "#include <stdint.h>\nu8 value <- 0;",
+      },
+      {
+        route: "source passthrough of stdbool.h",
+        header: "#include <stdbool.h>",
+        source: "#include <stdbool.h>\nbool flag <- true;",
+      },
+      {
+        route: "safe-div helper needing stdbool.h",
+        header: "#include <stdbool.h>",
+        source:
+          "void t() { u32 r <- 0; bool err <- false; err <- safe_div(r, 10, 2, 0); }",
+      },
+    ];
+
+    it.each(DEDUP_CASES)(
+      "emits the header exactly once via $route",
+      async ({ header, source }) => {
+        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+
+        const result = (await transpiler.transpile({ kind: "source", source }))
+          .files[0];
+
+        expect(result.success).toBe(true);
+        expect(result.code).toContain(header);
+        expect(countOccurrences(result.code!, header)).toBe(1);
+      },
+    );
+  });
 });

@@ -20,9 +20,6 @@
 #else
 #endif
 
-#include <stdint.h>
-#include <stdbool.h>
-
 // Use const for values (not #define)
 const uint32_t LED_BIT = 3U;
 

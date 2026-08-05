@@ -459,6 +459,10 @@ export default class CodeGenerator implements IOrchestrator {
           CodeGenState.usedSafeDivOps.add(
             `${effect.operation}_${effect.cnxType}`,
           );
+          // ADR-051 safe-div helpers return a bool error flag. Route that
+          // dependency through the single include path (#1108) rather than
+          // letting the helper emit its own #include <stdbool.h>.
+          this.requireInclude("stdbool");
           break;
 
         // Type registration effects
@@ -2451,17 +2455,40 @@ export default class CodeGenerator implements IOrchestrator {
    * Add auto-generated includes based on usage.
    */
   private addAutoIncludes(output: string[]): void {
-    const autoIncludes: string[] = [];
+    // Issue #1108: dedup auto-includes against passthrough source includes
+    // (processIncludeDirectives runs first). A source that already
+    // `#include`s e.g. <stdint.h> must not have it emitted a second time.
+    const present = new Set(
+      output
+        .map((line) => CodeGenerator.extractIncludeTarget(line))
+        .filter((target): target is string => target !== null),
+    );
 
-    if (CodeGenState.needsStdint) autoIncludes.push("#include <stdint.h>");
-    if (CodeGenState.needsStdbool) autoIncludes.push("#include <stdbool.h>");
-    if (CodeGenState.needsString) autoIncludes.push("#include <string.h>");
-    if (CodeGenState.needsCMSIS) autoIncludes.push("#include <cmsis_gcc.h>");
-    if (CodeGenState.needsLimits) autoIncludes.push("#include <limits.h>");
+    const autoIncludes: string[] = [];
+    const addInclude = (target: string): void => {
+      if (present.has(target)) return;
+      autoIncludes.push(`#include ${target}`);
+      present.add(target);
+    };
+
+    if (CodeGenState.needsStdint) addInclude("<stdint.h>");
+    if (CodeGenState.needsStdbool) addInclude("<stdbool.h>");
+    if (CodeGenState.needsString) addInclude("<string.h>");
+    if (CodeGenState.needsCMSIS) addInclude("<cmsis_gcc.h>");
+    if (CodeGenState.needsLimits) addInclude("<limits.h>");
 
     if (autoIncludes.length > 0) {
       output.push(...autoIncludes, "");
     }
+  }
+
+  /**
+   * Extract the include target (`<header.h>` or `"header.h"`) from a line,
+   * or null if the line is not a plain `#include` directive.
+   */
+  private static extractIncludeTarget(line: string): string | null {
+    const match = /^#include\s+(<[^>]+>|"[^"]+")\s*$/.exec(line.trim());
+    return match ? match[1] : null;
   }
 
   /**
