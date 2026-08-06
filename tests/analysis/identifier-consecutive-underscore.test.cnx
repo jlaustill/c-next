@@ -1,0 +1,10 @@
+// test-error
+// Tests: an identifier may not contain consecutive underscores (E0201, ADR-063)
+// '__' is reserved as the qualified-name separator, so a plain identifier
+// containing it could collide with a scope-qualified name.
+
+u8 my__value <- 1;
+
+u32 main() {
+    return 0;
+}

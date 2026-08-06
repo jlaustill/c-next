@@ -7,7 +7,7 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | Range     | Category                | Count  |
 | --------- | ----------------------- | ------ |
 | E00xx     | Reserved/Test           | 1      |
-| E02xx     | Parameter Naming        | 1      |
+| E02xx     | Identifier/Param Naming | 2      |
 | E03xx     | Struct Fields           | 1      |
 | E04xx     | Symbol Resolution       | 3      |
 | E05xx     | Include/Preprocessor    | 4      |
@@ -15,7 +15,7 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E07xx     | Control Flow            | 6      |
 | E08xx     | Arithmetic/Array Safety | 12     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **38** |
+| **Total** |                         | **39** |
 
 ---
 
@@ -27,13 +27,19 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 
 ---
 
-## E02xx — Parameter Naming
+## E02xx — Identifier and Parameter Naming
 
-| Code  | Message                                          | Help                                                              | Source                                      |
-| ----- | ------------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------- |
-| E0227 | Parameter cannot start with function name prefix | Consider renaming to a name that doesn't start with function name | `logic/analysis/ParameterNamingAnalyzer.ts` |
+| Code  | Message                                                    | Help                                                              | Source                                       |
+| ----- | ---------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------- |
+| E0201 | Identifier ends with, or contains consecutive, underscores | Remove the trailing underscore, or collapse `__` to `_`           | `logic/analysis/IdentifierSyntaxAnalyzer.ts` |
+| E0227 | Parameter cannot start with function name prefix           | Consider renaming to a name that doesn't start with function name | `logic/analysis/ParameterNamingAnalyzer.ts`  |
 
-**Related:** Issue #227
+**Related:** ADR-063 and Issue #1117 (E0201); Issue #227 (E0227)
+
+E0201 reserves `__` as the qualified-name separator so that `Scope__member` cannot
+collide with a plain identifier. A **leading** underscore is legal — injectivity
+constrains only the separator's left boundary. Checked on declarations only, so
+references to C/C++ header symbols such as `__disable_irq()` are unaffected.
 
 ---
 

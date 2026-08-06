@@ -1,0 +1,1 @@
+6:3 error[E0201]: Identifier 'value_' cannot end with an underscore. A trailing underscore would make scope-qualified names ambiguous in generated C.

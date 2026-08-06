@@ -1,0 +1,10 @@
+// test-error
+// Tests: an identifier may not end with an underscore (E0201, ADR-063)
+// A trailing underscore would make Scope__member ambiguous: "A_" + "__" + "B"
+// and "A" + "__" + "_B" would both produce A___B.
+
+u8 value_ <- 1;
+
+u32 main() {
+    return 0;
+}

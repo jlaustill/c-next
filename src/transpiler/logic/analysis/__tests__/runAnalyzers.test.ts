@@ -1,6 +1,6 @@
 /**
  * Unit tests for runAnalyzers
- * Tests that all 8 analyzers run in sequence with early returns on errors
+ * Tests that all analyzers run in sequence with early returns on errors
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
@@ -54,10 +54,47 @@ describe("runAnalyzers", () => {
   });
 
   // ========================================================================
-  // Phase 1: Parameter Naming Errors (early return)
+  // Phase 1: Identifier Syntax Errors (early return) - ADR-063
   // ========================================================================
 
-  describe("phase 1 - parameter naming", () => {
+  describe("phase 1 - identifier syntax", () => {
+    it("should return early on a trailing-underscore identifier", () => {
+      const { tree, tokenStream } = parseWithStream(`u8 value_ <- 1;`);
+      const errors = runAnalyzers(tree, tokenStream);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].severity).toBe("error");
+      // Registered WITH formatWithCode, so the code reaches the message
+      expect(errors[0].message).toContain("error[E0201]");
+      expect(errors[0].message).toContain("value_");
+    });
+
+    it("should return early on consecutive underscores", () => {
+      const { tree, tokenStream } = parseWithStream(`u8 my__value <- 1;`);
+      const errors = runAnalyzers(tree, tokenStream);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].message).toContain("error[E0201]");
+    });
+
+    it("should accept a leading underscore (ADR-063)", () => {
+      const { tree, tokenStream } = parseWithStream(`
+        void fn() {
+          u8 _local <- 1;
+          u8 x <- _local;
+        }
+      `);
+      const errors = runAnalyzers(tree, tokenStream);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Phase 2: Parameter Naming Errors (early return)
+  // ========================================================================
+
+  describe("phase 2 - parameter naming", () => {
     it("should return early on parameter naming error", () => {
       const { tree, tokenStream } = parseWithStream(`
         void process(u32 process_data) {
