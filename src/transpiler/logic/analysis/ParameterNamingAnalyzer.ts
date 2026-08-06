@@ -11,6 +11,7 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IParameterNamingError from "./types/IParameterNamingError";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 /**
  * Pure function to check if a parameter name uses a reserved pattern
@@ -23,7 +24,7 @@ function isReservedParameterName(
   parameterName: string,
   functionName: string,
 ): boolean {
-  return parameterName.startsWith(functionName + "_");
+  return QualifiedCName.isInScope(parameterName, functionName);
 }
 
 /**

@@ -30,6 +30,7 @@ import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 // ========================================================================
 // Tracking State
@@ -173,7 +174,7 @@ const resolveSubscriptBase = (
   // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
   const name =
     prefix === "this"
-      ? `${CodeGenState.currentScope}_${memberName}`
+      ? QualifiedCName.join(CodeGenState.currentScope, memberName)
       : memberName;
   return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
 };
@@ -483,7 +484,7 @@ const handleThisScopeLength = (
     return false;
   }
 
-  tracking.result = `${state.currentScope}_${memberName}`;
+  tracking.result = QualifiedCName.join(state.currentScope, memberName);
   tracking.resolvedIdentifier = tracking.result;
   const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(tracking.result);
   if (
@@ -1351,7 +1352,7 @@ const tryScopeMemberAccess = (
   }
 
   const output = initializeMemberOutput(ctx);
-  const fullName = `${state.currentScope}_${ctx.memberName}`;
+  const fullName = QualifiedCName.join(state.currentScope, ctx.memberName);
   const constValue = input.symbols!.scopePrivateConstValues.get(fullName);
   if (constValue === undefined) {
     output.result = fullName;
@@ -1462,7 +1463,7 @@ const tryRegisterMemberAccess = (
   );
 
   MemberAccessValidator.validateRegisterReadAccess(
-    `${ctx.result}_${ctx.memberName}`,
+    QualifiedCName.join(ctx.result, ctx.memberName),
     ctx.memberName,
     `${ctx.result}.${ctx.memberName}`,
     input.symbols!.registerMemberAccess,
@@ -1470,7 +1471,7 @@ const tryRegisterMemberAccess = (
   );
 
   const output = initializeMemberOutput(ctx);
-  output.result = `${ctx.result}_${ctx.memberName}`;
+  output.result = QualifiedCName.join(ctx.result, ctx.memberName);
   output.isRegisterChain = true;
   return output;
 };

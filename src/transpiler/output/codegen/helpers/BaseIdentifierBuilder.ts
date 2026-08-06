@@ -9,6 +9,7 @@
  */
 
 import IBaseIdentifierResult from "../types/IBaseIdentifierResult";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Static utility for building base identifiers
@@ -42,7 +43,7 @@ class BaseIdentifierBuilder {
         throw new Error("Error: 'this' can only be used inside a scope");
       }
       // this.x - prefix with current scope
-      return { result: `${currentScope}_${firstId}`, firstId };
+      return { result: QualifiedCName.join(currentScope, firstId), firstId };
     }
 
     // Bare identifier with postfix ops

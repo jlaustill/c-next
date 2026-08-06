@@ -7,6 +7,7 @@
 
 import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Validate that 'this' is being used within a scope context.
@@ -103,13 +104,13 @@ function buildRegisterNameWithScopeDetection(
 
   if (isKnownScope(leadingId) && identifiers.length >= 3) {
     // Scoped: Scope.Register.Member
-    const regName = `${leadingId}_${identifiers[1]}`;
-    const fullName = `${regName}_${identifiers[2]}`;
+    const regName = QualifiedCName.join(leadingId, identifiers[1]);
+    const fullName = QualifiedCName.join(regName, identifiers[2]);
     return { fullName, regName, isScoped: true };
   } else {
     // Non-scoped: Register.Member
     const regName = leadingId;
-    const fullName = `${leadingId}_${identifiers[1]}`;
+    const fullName = QualifiedCName.join(leadingId, identifiers[1]);
     return { fullName, regName, isScoped: false };
   }
 }

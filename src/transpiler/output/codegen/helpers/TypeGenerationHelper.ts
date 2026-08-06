@@ -10,6 +10,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import TIncludeHeader from "../generators/TIncludeHeader.js";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Result of generating a primitive type.
@@ -73,7 +74,7 @@ class TypeGenerationHelper {
     if (!currentScope) {
       throw new Error("Cannot use 'this.Type' outside of a scope");
     }
-    return `${currentScope}_${typeName}`;
+    return QualifiedCName.join(currentScope, typeName);
   }
 
   /**
@@ -105,7 +106,7 @@ class TypeGenerationHelper {
       validateVisibility(identifiers[0], identifiers[1]);
     }
 
-    return identifiers.join("_");
+    return QualifiedCName.join(...identifiers);
   }
 
   /**

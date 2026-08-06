@@ -11,6 +11,7 @@ import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbol from "../transpiler/types/symbols/TSymbol";
 import SymbolPathUtils from "./utils/SymbolPathUtils";
+import QualifiedCName from "../utils/QualifiedCName";
 
 // Re-export helpers for use in this module
 const buildScopePath = SymbolPathUtils.buildScopePath;
@@ -113,7 +114,7 @@ function convertEnum(
   for (const [memberName] of enumSym.members) {
     result.push({
       name: memberName,
-      fullName: `${cName}_${memberName}`,
+      fullName: QualifiedCName.join(cName, memberName),
       kind: "enumMember",
       parent: cName,
       id: `${enumId}.${memberName}`,

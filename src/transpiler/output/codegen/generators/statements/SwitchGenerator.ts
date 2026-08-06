@@ -18,6 +18,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Generate case/default block body: statements + break + closing brace.
@@ -59,7 +60,7 @@ function tryResolveEnumMember(
 ): string | null {
   if (!symbols) return null;
   const members = symbols.enumMembers.get(switchEnumType);
-  return members?.has(id) ? `${switchEnumType}_${id}` : null;
+  return members?.has(id) ? QualifiedCName.join(switchEnumType, id) : null;
 }
 
 /**
@@ -114,7 +115,7 @@ function generateQualifiedTypeLabel(node: CaseLabelContext): string | null {
   const qt = node.qualifiedType();
   if (!qt) return null;
   const parts = qt.IDENTIFIER();
-  return parts.map((id) => id.getText()).join("_");
+  return QualifiedCName.join(...parts.map((id) => id.getText()));
 }
 
 /**

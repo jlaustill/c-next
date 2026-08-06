@@ -15,6 +15,7 @@ import CodeGenState from "../../../state/CodeGenState";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import ArrayDimensionParser from "./ArrayDimensionParser";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Callbacks required for type registration.
@@ -159,7 +160,9 @@ class TypeRegistrationEngine {
     if (typeCtx.scopedType()) {
       // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
       const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      return currentScope ? `${currentScope}_${typeName}` : typeName;
+      return currentScope
+        ? QualifiedCName.join(currentScope, typeName)
+        : typeName;
     }
 
     if (typeCtx.globalType()) {
@@ -177,7 +180,7 @@ class TypeRegistrationEngine {
       if (callbacks?.resolveQualifiedType) {
         return callbacks.resolveQualifiedType(identifierNames);
       }
-      return identifierNames.join("_");
+      return QualifiedCName.join(...identifierNames);
     }
 
     if (typeCtx.userType()) {
@@ -467,13 +470,16 @@ class TypeRegistrationEngine {
 
     if (arrayTypeCtx.qualifiedType()) {
       const parts = arrayTypeCtx.qualifiedType()!.IDENTIFIER();
-      return { baseType: parts.map((p) => p.getText()).join("_"), bitWidth: 0 };
+      return {
+        baseType: QualifiedCName.join(...parts.map((p) => p.getText())),
+        bitWidth: 0,
+      };
     }
 
     if (arrayTypeCtx.scopedType()) {
       const typeName = arrayTypeCtx.scopedType()!.IDENTIFIER().getText();
       const baseType = CodeGenState.currentScope
-        ? `${CodeGenState.currentScope}_${typeName}`
+        ? QualifiedCName.join(CodeGenState.currentScope, typeName)
         : typeName;
       return { baseType, bitWidth: 0 };
     }

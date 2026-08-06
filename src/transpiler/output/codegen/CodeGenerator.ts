@@ -453,12 +453,12 @@ export default class CodeGenerator implements IOrchestrator {
         // Helper function effects
         case "helper":
           CodeGenState.usedClampOps.add(
-            `${effect.operation}_${effect.cnxType}`,
+            QualifiedCName.join(effect.operation, effect.cnxType),
           );
           break;
         case "safe-div":
           CodeGenState.usedSafeDivOps.add(
-            `${effect.operation}_${effect.cnxType}`,
+            QualifiedCName.join(effect.operation, effect.cnxType),
           );
           // ADR-051 safe-div helpers return a bool error flag. Route that
           // dependency through the single include path (#1108) rather than
@@ -572,16 +572,10 @@ export default class CodeGenerator implements IOrchestrator {
    * Otherwise returns the identifier unchanged (global scope).
    */
   resolveIdentifier(identifier: string): string {
-    // Check current scope first (inner scope shadows outer)
-    if (CodeGenState.currentScope) {
-      const members = CodeGenState.getScopeMembers(CodeGenState.currentScope);
-      if (members?.has(identifier)) {
-        return `${CodeGenState.currentScope}_${identifier}`;
-      }
-    }
-
-    // Fall back to global scope
-    return identifier;
+    // Delegates to CodeGenState, which owns scope membership. This method used to
+    // be a byte-identical copy of CodeGenState.resolveIdentifier, so the two
+    // could drift apart silently.
+    return CodeGenState.resolveIdentifier(identifier);
   }
 
   // === Expression Generation (ADR-053 A2) ===
@@ -1356,7 +1350,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ctx.scopedType()) {
       const typeName = ctx.scopedType()!.IDENTIFIER().getText();
       if (CodeGenState.currentScope) {
-        return `${CodeGenState.currentScope}_${typeName}`;
+        return QualifiedCName.join(CodeGenState.currentScope, typeName);
       }
       return typeName;
     }
@@ -2190,7 +2184,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // C-Next scope type: join all parts with _
-    return identifiers.join("_");
+    return QualifiedCName.join(...identifiers);
   }
 
   /**
@@ -3455,7 +3449,7 @@ export default class CodeGenerator implements IOrchestrator {
 
       // Generate: #define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
       lines.push(
-        `#define ${name}_${regName} (*(${cast})(${baseAddress} + ${offset}))`,
+        `#define ${QualifiedCName.join(name, regName)} (*(${cast})(${baseAddress} + ${offset}))`,
       );
     }
 
@@ -3706,8 +3700,8 @@ export default class CodeGenerator implements IOrchestrator {
   ): string | undefined {
     if (!structFieldTypes?.has(fieldName)) return undefined;
     const fieldType = structFieldTypes.get(fieldName)!;
-    if (!fieldType.includes("_")) return fieldType;
-    const parts = fieldType.split("_");
+    if (!QualifiedCName.isQualified(fieldType)) return fieldType;
+    const parts = QualifiedCName.split(fieldType);
     if (parts.length > 1 && this.isCppScopeSymbol(parts[0])) {
       return parts.join("::");
     }
@@ -4308,7 +4302,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (typeCtx.scopedType()) {
       const localName = typeCtx.scopedType()!.IDENTIFIER().getText();
       const name = CodeGenState.currentScope
-        ? `${CodeGenState.currentScope}_${localName}`
+        ? QualifiedCName.join(CodeGenState.currentScope, localName)
         : localName;
       return { name, separator: "_" };
     }
@@ -5012,7 +5006,7 @@ export default class CodeGenerator implements IOrchestrator {
   private markClampOpUsed(operation: string, cnxType: string): void {
     // Only generate helpers for integer types (not float/bool)
     if (TYPE_WIDTH[cnxType] && TypeCheckUtils.isInteger(cnxType)) {
-      CodeGenState.usedClampOps.add(`${operation}_${cnxType}`);
+      CodeGenState.usedClampOps.add(QualifiedCName.join(operation, cnxType));
     }
   }
 

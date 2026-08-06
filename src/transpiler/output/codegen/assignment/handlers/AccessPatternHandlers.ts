@@ -14,6 +14,7 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import CodeGenState from "../../../../state/CodeGenState";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Common handler for global access patterns (GLOBAL_MEMBER and GLOBAL_ARRAY).
@@ -64,7 +65,7 @@ function handleGlobalRegisterBit(ctx: IAssignmentContext): string {
   }
 
   const parts = ctx.identifiers;
-  const regName = parts.join("_");
+  const regName = QualifiedCName.join(...parts);
 
   // Check for write-only register
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);

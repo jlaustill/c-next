@@ -6,6 +6,7 @@
  */
 
 import IHeaderTypeInput from "./IHeaderTypeInput";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Generate a C typedef enum declaration for the given enum name.
@@ -40,7 +41,7 @@ function generateEnumHeader(name: string, input: IHeaderTypeInput): string {
 
   memberEntries.forEach(([memberName, value], index) => {
     // Prefix member names with enum name to avoid C namespace collisions
-    const prefixedName = `${name}_${memberName}`;
+    const prefixedName = QualifiedCName.join(name, memberName);
     const comma = index < memberEntries.length - 1 ? "," : "";
     lines.push(`    ${prefixedName} = ${value}${comma}`);
   });

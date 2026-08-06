@@ -23,6 +23,7 @@ import analyzePostfixOps from "../../../utils/PostfixAnalysisUtils";
 import SymbolTable from "../symbols/SymbolTable";
 import CodeGenState from "../../state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 /**
  * Tracks the initialization state of a variable
@@ -714,7 +715,7 @@ class InitializationAnalyzer {
     if (!memberVar) return;
 
     const varName = memberVar.IDENTIFIER().getText();
-    const fullName = `${scopeName}_${varName}`; // Transpiled C name
+    const fullName = QualifiedCName.join(scopeName, varName); // Transpiled C name
     const { line, column } = ParserUtils.getPosition(memberVar);
     const typeName = this._extractUserTypeName(memberVar.type());
 

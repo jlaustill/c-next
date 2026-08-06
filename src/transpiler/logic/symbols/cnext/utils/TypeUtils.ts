@@ -4,6 +4,7 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Common interface for type contexts that share the same type accessors.
@@ -40,7 +41,7 @@ function dispatchTypeResolution(
   // Handle this.Type for scoped types (e.g., this.State -> Motor_State)
   if (accessors.scopedType()) {
     const typeName = accessors.scopedType()!.IDENTIFIER().getText();
-    return scopeName ? `${scopeName}_${typeName}` : typeName;
+    return scopeName ? QualifiedCName.join(scopeName, typeName) : typeName;
   }
 
   // Handle global.Type for global types inside scope
@@ -52,7 +53,7 @@ function dispatchTypeResolution(
   // Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
   if (accessors.qualifiedType()) {
     const identifiers = accessors.qualifiedType()!.IDENTIFIER();
-    return identifiers.map((id) => id.getText()).join("_");
+    return QualifiedCName.join(...identifiers.map((id) => id.getText()));
   }
 
   // Handle user-defined types

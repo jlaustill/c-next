@@ -413,10 +413,10 @@ class TypeValidator {
   ): string | null {
     const scopeMembers = CodeGenState.getScopeMembers(currentScope);
     if (scopeMembers?.has(identifier)) {
-      return `${currentScope}_${identifier}`;
+      return QualifiedCName.join(currentScope, identifier);
     }
 
-    const scopedFuncName = `${currentScope}_${identifier}`;
+    const scopedFuncName = QualifiedCName.join(currentScope, identifier);
     if (CodeGenState.knownFunctions.has(scopedFuncName)) {
       return scopedFuncName;
     }

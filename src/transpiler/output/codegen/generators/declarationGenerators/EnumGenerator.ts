@@ -18,6 +18,7 @@ import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Generate a C typedef enum from a C-Next enum declaration.
@@ -51,7 +52,7 @@ const generateEnum: TGeneratorFn<Parser.EnumDeclarationContext> = (
   for (let i = 0; i < memberEntries.length; i++) {
     const [memberName, value] = memberEntries[i];
     // Prefix member names to avoid C namespace collisions
-    const fullMemberName = `${fullName}_${memberName}`;
+    const fullMemberName = QualifiedCName.join(fullName, memberName);
     const comma = i < memberEntries.length - 1 ? "," : "";
     lines.push(`    ${fullMemberName} = ${value}${comma}`);
   }

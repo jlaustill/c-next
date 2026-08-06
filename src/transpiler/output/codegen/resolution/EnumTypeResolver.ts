@@ -19,6 +19,7 @@ import CodeGenState from "../../../state/CodeGenState";
 import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Resolves enum types from expressions.
@@ -119,7 +120,10 @@ export default class EnumTypeResolver {
       return null;
     }
     const enumName = parts[1];
-    const scopedEnumName = `${CodeGenState.currentScope}_${enumName}`;
+    const scopedEnumName = QualifiedCName.join(
+      CodeGenState.currentScope,
+      enumName,
+    );
     return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
   }
 
@@ -146,7 +150,10 @@ export default class EnumTypeResolver {
       return null;
     }
     const varName = parts[1];
-    const scopedVarName = `${CodeGenState.currentScope}_${varName}`;
+    const scopedVarName = QualifiedCName.join(
+      CodeGenState.currentScope,
+      varName,
+    );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedVarName);
     if (typeInfo?.isEnum && typeInfo.enumTypeName) {
       return typeInfo.enumTypeName;
@@ -198,18 +205,18 @@ export default class EnumTypeResolver {
     } else if (parts.length === 2) {
       if (parts[0] === "this" && CodeGenState.currentScope) {
         // this.method() -> Scope_method
-        fullFuncName = `${CodeGenState.currentScope}_${parts[1]}`;
+        fullFuncName = QualifiedCName.join(CodeGenState.currentScope, parts[1]);
       } else if (parts[0] === "global") {
         // global.func() -> func
         fullFuncName = parts[1];
       } else if (CodeGenState.isKnownScope(parts[0])) {
         // Scope.method() -> Scope_method
-        fullFuncName = `${parts[0]}_${parts[1]}`;
+        fullFuncName = QualifiedCName.join(parts[0], parts[1]);
       }
     } else if (parts.length === 3) {
       if (parts[0] === "global" && CodeGenState.isKnownScope(parts[1])) {
         // global.Scope.method() -> Scope_method
-        fullFuncName = `${parts[1]}_${parts[2]}`;
+        fullFuncName = QualifiedCName.join(parts[1], parts[2]);
       }
     }
 
