@@ -74,9 +74,20 @@ Injectivity therefore requires constraining the separator's **left** boundary �
 
 **A C-Next identifier may not end with `_`, and may not contain two or more consecutive underscores.**
 
+Stated against the existing lexer rule, which is unchanged:
+
 ```
-IDENTIFIER : '_'? [A-Za-z] [A-Za-z0-9]* ('_' [A-Za-z0-9]+)*
+IDENTIFIER : [a-zA-Z_] [a-zA-Z0-9_]*      // grammar/CNext.g4, unchanged
+
+constraints:
+  1. must not contain "__"
+  2. must not end with "_"
 ```
+
+Expressing this as a single production is easy to get subtly wrong — it must admit
+`_1count` (a leading underscore followed by a digit, which the lexer accepts) while
+rejecting `__a`, and it must not admit a leading digit. The two constraints above
+are the normative statement; anything deriving the same language is equivalent.
 
 A **leading** underscore remains legal — see "Why leading underscores are permitted" below.
 
@@ -153,24 +164,43 @@ An earlier revision of this ADR also forbade leading underscores and claimed zer
 The forbidden patterns are already reserved or discouraged outside C-Next:
 
 - **C11 §7.1.3** — identifiers beginning with `_` followed by an uppercase letter or another `_` are reserved for any use. Forbidding `__` covers the `__`-prefixed half of this.
-- **C++ §lex.name/3** — identifiers containing `__` _anywhere_ are reserved to the implementation. C-Next currently passes `my__var` straight through, so `--cpp` output today declares reserved identifiers.
+- **C++ §lex.name/3.2** — identifiers containing `__` _anywhere_ are reserved to the implementation.
 - **MISRA C:2012 Rule 21.2** — a reserved identifier shall not be declared.
 
 C11 §7.1.3 additionally reserves identifiers beginning with a single `_` **at file scope**. This rule permits them, which is a deliberate narrowing: the motivating use (`_handler`, ADR-029) is a _struct member_, and member names are not file-scope identifiers, so no reserved name is emitted. A leading-underscore **global** would emit a file-scope reserved identifier — see Open Questions.
 
-The rule therefore removes an existing standards-compliance defect rather than introducing a new restriction.
+For **C output the rule is a net improvement**: C reserves only identifiers that _begin_ with `__`, and `Scope__member` does not.
+
+For **`--cpp` output it is a regression, and the tradeoff is accepted deliberately.** C++ reserves every identifier _containing_ `__`, so every scope function, scope variable, enum member, bitmap and register emitted in C++ mode is now implementation-reserved. Before this ADR the only way to produce one was a user writing `my__var` — which occurs zero times in the 4541-identifier corpus. Confirmed with the toolchain this repo already ships:
+
+```
+$ clang-tidy rid.cpp -checks='-*,bugprone-reserved-identifier' -- -std=c++14
+warning: declaration uses identifier 'S__buf', which is a reserved identifier
+warning: declaration uses identifier 'S__init', which is a reserved identifier
+$ clang-tidy rid.c   -checks='-*,bugprone-reserved-identifier' -- -std=c99
+(nothing)
+```
+
+Nothing breaks and nothing miscompiles: no real toolchain collides with these names, and `npm run validate:c` does not flag it (`batch-validate.mjs` passes no `-checks=`, and the repo has no `.clang-tidy`). It is a conformance property of the generated artifact, and it matters for MISRA C++:2008 17-0-1 / AUTOSAR M17-0-1.
+
+C is C-Next's primary target and the injectivity argument is language-independent, so the separator is not re-litigated over this. The clean long-term fix for C++ mode is to emit real `namespace Scope { }` blocks so the flat name never reaches a C++ translation unit — see Open Questions.
 
 ## Diagnostic
 
 **E0201** — identifier violates the underscore rule.
 
-```
-error[E0201]: identifier 'value_' may not end with an underscore
-  help: remove the trailing underscore (e.g. 'value')
+Actual output, as asserted by `tests/analysis/identifier-*-underscore.expected.error`:
 
-error[E0201]: identifier 'my__value' may not contain consecutive underscores
-  help: '__' is reserved as the qualified-name separator; use a single underscore (e.g. 'my_value')
 ```
+error[E0201]: Identifier 'value_' cannot end with an underscore. A trailing
+underscore would make scope-qualified names ambiguous in generated C.
+
+error[E0201]: Identifier 'my__value' cannot contain consecutive underscores.
+'__' is reserved as the separator for scope-qualified names in generated C.
+```
+
+Each error also carries a `helpText` suggesting a legal name, but that field is
+dropped before reaching the user (see Open Questions) so it does not appear above.
 
 Reported for a trailing underscore or two or more consecutive underscores. Emitted by `IdentifierSyntaxAnalyzer` over declaration contexts only; references to external C/C++ symbols are not checked.
 
@@ -197,6 +227,7 @@ Every `.expected.c` / `.expected.h` snapshot regenerates, and any C or C++ that 
 
 ## Open Questions
 
+- Should `--cpp` mode emit real `namespace Scope { }` blocks instead of the flat `Scope__member` name? That would remove the C++ reserved-identifier consequence described above entirely, since the flat form would never reach a C++ translation unit. Larger change, and orthogonal to injectivity — C output is unaffected either way.
 - Should a **file-scope** identifier be permitted to begin with `_`? C11 §7.1.3 reserves those, so a leading-underscore global emits a reserved C identifier. The motivating idiom (`_handler`) is a struct member and is unaffected, so this rule does not restrict it — but a narrower "leading `_` on globals only" check could be added later without affecting injectivity.
 
 Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201 — see [jlaustill/vscode-c-next#8](https://github.com/jlaustill/vscode-c-next/issues/8). That issue also captures a prerequisite in this repo: `collectErrors()` currently drops `code` and `helpText` when mapping to `ITranspileError`, so `helpText` never reaches users today.

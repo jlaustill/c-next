@@ -39,7 +39,7 @@ class QualifiedCName {
    * which is expanded before joining.
    *
    * @param components Ordered name parts, e.g. ["Motor", "State", "IDLE"]
-   * @returns The generated C identifier, e.g. "Motor_State_IDLE"
+   * @returns The generated C identifier, e.g. "Motor__State__IDLE"
    */
   static join(...components: (string | undefined | null)[]): string {
     return QualifiedCName.toParts(components).join(QualifiedCName.SEPARATOR);
@@ -50,7 +50,7 @@ class QualifiedCName {
    *
    * Exact inverse of join() for names built from ADR-063-conformant identifiers.
    *
-   * @param qualifiedName A generated C identifier, e.g. "Motor_State_IDLE"
+   * @param qualifiedName A generated C identifier, e.g. "Motor__State__IDLE"
    * @returns The components, e.g. ["Motor", "State", "IDLE"]
    */
   static split(qualifiedName: string): string[] {
@@ -94,7 +94,7 @@ class QualifiedCName {
   }
 
   /**
-   * Re-qualify a generated C name for C++ namespace syntax (`A_B` -> `A::B`).
+   * Re-qualify a generated C name for C++ namespace syntax (`A__B` -> `A::B`).
    *
    * Splits on the C separator rather than replacing every underscore, so a component
    * containing a single underscore (`tick_count`) survives intact.

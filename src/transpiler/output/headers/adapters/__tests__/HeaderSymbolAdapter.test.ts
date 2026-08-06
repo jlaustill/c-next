@@ -507,6 +507,64 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
     });
 
+    // The dimension arrives as C-Next SOURCE, so it must be resolved with the same
+    // scope awareness the .c path uses — otherwise the header names a different
+    // symbol than the implementation and does not compile (#1117 review).
+    describe("scope-aware array dimensions", () => {
+      const makeArrayVar = (
+        scope: typeof globalScope,
+        dim: string,
+      ): IVariableSymbol => ({
+        kind: "variable",
+        name: "counters",
+        scope,
+        sourceFile: "test.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+        type: TTypeUtils.createPrimitive("u8"),
+        isConst: false,
+        isAtomic: false,
+        isArray: true,
+        arrayDimensions: [dim],
+      });
+
+      it("strips global. and adds no scope prefix", () => {
+        const result = HeaderSymbolAdapter.fromTSymbol(
+          makeArrayVar(motorScope, "global.EColor.COUNT"),
+        );
+
+        expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
+      });
+
+      it("strips this. and prefixes the declaring scope", () => {
+        const result = HeaderSymbolAdapter.fromTSymbol(
+          makeArrayVar(motorScope, "this.State.COUNT"),
+        );
+
+        // `this` must not survive as a name component
+        expect(result.arrayDimensions).toEqual(["Motor__State__COUNT"]);
+      });
+
+      it("leaves a bare dotted path unprefixed when the scope has no such enum", () => {
+        // CodeGenState has no registered enums here, so the bare path resolves
+        // global-first — matching the .c path for a top-level enum.
+        const result = HeaderSymbolAdapter.fromTSymbol(
+          makeArrayVar(motorScope, "Global.COUNT"),
+        );
+
+        expect(result.arrayDimensions).toEqual(["Global__COUNT"]);
+      });
+
+      it("leaves a non-qualified dimension untouched", () => {
+        const result = HeaderSymbolAdapter.fromTSymbol(
+          makeArrayVar(motorScope, "DEVICE_COUNT"),
+        );
+
+        expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
+      });
+    });
+
     it("should handle autoConst parameter flag", () => {
       const tSymbol: IFunctionSymbol = {
         kind: "function",

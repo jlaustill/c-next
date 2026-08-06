@@ -244,17 +244,17 @@ struct UART {
 }
 
 // Free functions that operate on UART
-void UART__init(UART* self, u32 base, u32 baud) {
+void UART_init(UART* self, u32 base, u32 baud) {
     self.baseAddress <- base;
     self.baudRate <- baud;
     self.initialized <- true;
 }
 
-void UART__send(UART* self, u8* data, u32 len) {
+void UART_send(UART* self, u8* data, u32 len) {
     // Implementation...
 }
 
-u32 UART__receive(UART* self, u8* buffer, u32 maxLen) {
+u32 UART_receive(UART* self, u8* buffer, u32 maxLen) {
     // Implementation...
 }
 
@@ -263,12 +263,12 @@ UART uart1;
 UART uart2;
 
 void init() {
-    UART__init(&uart1, UART1_BASE, 115200);
-    UART__init(&uart2, UART2_BASE, 9600);
+    UART_init(&uart1, UART1_BASE, 115200);
+    UART_init(&uart2, UART2_BASE, 9600);
 }
 
 void main_loop() {
-    UART__send(&uart1, data, len);
+    UART_send(&uart1, data, len);
 }
 ```
 
@@ -439,8 +439,8 @@ If we want `uart1.send(data, len)` sugar (common request), how do we provide it 
 
 Options:
 
-- **No sugar** — Always `UART__send(&uart1, data, len)` (pure C-style)
-- **UFCS** — Uniform Function Call Syntax: `uart1.send(data, len)` desugars to `UART__send(&uart1, data, len)`
+- **No sugar** — Always `UART_send(&uart1, data, len)` (pure C-style)
+- **UFCS** — Uniform Function Call Syntax: `uart1.send(data, len)` desugars to `UART_send(&uart1, data, len)`
 - **Scope-based association** — Associate functions with structs via scopes
 
 ### 4. How does visibility work with scopes?

@@ -213,12 +213,12 @@ Transpiles to:
 
 ```c
 switch (state) {
-    case EState_IDLE: {
+    case EState__IDLE: {
         startMotor();
         break;
     }
-    case EState_RUNNING:
-    case EState_STOPPED: {
+    case EState__RUNNING:
+    case EState__STOPPED: {
         checkSensors();
         break;
     }

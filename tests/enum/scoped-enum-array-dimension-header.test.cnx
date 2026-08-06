@@ -1,0 +1,42 @@
+// test-execution
+// Header and implementation must derive an array dimension the same way.
+//
+// The dimension arrives at the header adapter as C-Next SOURCE (`State.COUNT`),
+// not as a generated C name, so it has to be resolved with the same scope
+// awareness the .c path uses. Sharing the join function is not enough — both
+// sides must also agree on WHAT to join.
+//
+// Before the fix the header emitted `State__COUNT` while the .c emitted
+// `Motor__State__COUNT`, and the header did not compile. The `this.` spelling
+// was worse: `this__State__COUNT`, with `this` joined in as a name component.
+
+enum Global { A, B, COUNT }
+
+scope Motor {
+    enum State { IDLE, RUN, COUNT }
+
+    // bare scope-local enum -> Motor__State__COUNT
+    public u8[State.COUNT] fromScope;
+
+    // top-level enum referenced from inside a scope -> Global__COUNT (no prefix)
+    public u8[Global.COUNT] fromGlobal;
+
+    // explicit this. -> Motor__State__COUNT, and `this` must not become a component
+    public u8[this.State.COUNT] viaThis;
+}
+
+u32 main() {
+    Motor.fromScope[0] <- 11;
+    Motor.fromGlobal[0] <- 22;
+    Motor.viaThis[0] <- 33;
+
+    if (Motor.fromScope[0] != 11) return 1;
+    if (Motor.fromGlobal[0] != 22) return 2;
+    if (Motor.viaThis[0] != 33) return 3;
+
+    // State.COUNT is 2 (IDLE=0, RUN=1, COUNT=2), so index 1 is the last valid slot
+    Motor.fromScope[1] <- 44;
+    if (Motor.fromScope[1] != 44) return 4;
+
+    return 0;
+}
