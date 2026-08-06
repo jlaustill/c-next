@@ -17,8 +17,8 @@ extern "C" {
 extern const uint8_t globalFlags;
 
 /* Function prototypes */
-void Control_setFlag(void);
-uint8_t Control_getFlags(void);
+void Control__setFlag(void);
+uint8_t Control__getFlags(void);
 
 #ifdef __cplusplus
 }

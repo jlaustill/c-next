@@ -15,22 +15,22 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1
+    Color__RED = 0,
+    Color__GREEN = 1
 } Color;
 typedef enum {
-    Status_RED = 10,
-    Status_GREEN = 20
+    Status__RED = 10,
+    Status__GREEN = 20
 } Status;
 
 /* Struct definitions */
-typedef struct EnumNestedRes_NestedConfig {
+typedef struct EnumNestedRes__NestedConfig {
     Status status;
     Color color;
-} EnumNestedRes_NestedConfig;
-typedef struct EnumNestedRes_Config {
-    EnumNestedRes_NestedConfig nested;
-} EnumNestedRes_Config;
+} EnumNestedRes__NestedConfig;
+typedef struct EnumNestedRes__Config {
+    EnumNestedRes__NestedConfig nested;
+} EnumNestedRes__Config;
 
 #ifdef __cplusplus
 }

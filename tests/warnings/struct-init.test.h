@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct StructInit_Data {
+typedef struct StructInit__Data {
     uint32_t id;
     uint8_t flags;
     uint16_t count;
-} StructInit_Data;
+} StructInit__Data;
 typedef struct Point {
     int32_t x;
     int32_t y;

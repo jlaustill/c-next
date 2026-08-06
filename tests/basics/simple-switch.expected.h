@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1,
-    Color_BLUE = 2
+    Color__RED = 0,
+    Color__GREEN = 1,
+    Color__BLUE = 2
 } Color;
 
 #ifdef __cplusplus

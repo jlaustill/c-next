@@ -12,18 +12,18 @@
 
 /* Scope: Test */
 
-void Test_fillData(TransMutation_Data& d) {
+void Test__fillData(TransMutation__Data& d) {
     d.value = 42U;
 }
 
-void Test_loadData(TransMutation_Data& d) {
-    Test_fillData(d);
+void Test__loadData(TransMutation__Data& d) {
+    Test__fillData(d);
 }
 
 int main(void) {
-    TransMutation_Data d = { .value = 0U };
+    TransMutation__Data d = { .value = 0U };
     if (d.value != 0) return 1;
-    Test_loadData(d);
+    Test__loadData(d);
     if (d.value != 42) return 2;
     return 0;
 }

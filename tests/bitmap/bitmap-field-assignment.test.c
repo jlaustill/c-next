@@ -13,18 +13,18 @@
 
 /* Scope: Timer */
 
-/* Register: Timer_SysTick @ 0xE000E010 */
-#define Timer_SysTick_CTRL (*(volatile Timer_ControlBits*)(0xE000E010 + 0x00))
-#define Timer_SysTick_LOAD (*(volatile uint32_t*)(0xE000E010 + 0x04))
+/* Register: Timer__SysTick @ 0xE000E010 */
+#define Timer__SysTick__CTRL (*(volatile Timer__ControlBits*)(0xE000E010 + 0x00))
+#define Timer__SysTick__LOAD (*(volatile uint32_t*)(0xE000E010 + 0x04))
 
 
-void Timer_init(void) {
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1U << 0)) | (0U << 0);
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1U << 1)) | (1U << 1);
-    Timer_SysTick_CTRL = (Timer_SysTick_CTRL & ~(1U << 2)) | (1U << 2);
-    Timer_SysTick_LOAD = 16000;
+void Timer__init(void) {
+    Timer__SysTick__CTRL = (Timer__SysTick__CTRL & ~(1U << 0)) | (0U << 0);
+    Timer__SysTick__CTRL = (Timer__SysTick__CTRL & ~(1U << 1)) | (1U << 1);
+    Timer__SysTick__CTRL = (Timer__SysTick__CTRL & ~(1U << 2)) | (1U << 2);
+    Timer__SysTick__LOAD = 16000;
 }
 
 int main(void) {
-    Timer_init();
+    Timer__init();
 }

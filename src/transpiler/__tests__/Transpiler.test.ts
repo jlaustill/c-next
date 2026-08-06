@@ -63,7 +63,7 @@ describe("Transpiler", () => {
 
         expect(result.success).toBe(true);
         expect(result.headerCode).toBeDefined();
-        expect(result.headerCode).toContain("API_doSomething");
+        expect(result.headerCode).toContain("API__doSomething");
       });
 
       it("returns undefined headerCode when no exports", async () => {
@@ -252,9 +252,9 @@ describe("Transpiler", () => {
 
         expect(result.success).toBe(true);
         expect(result.code).toContain("typedef enum");
-        expect(result.code).toContain("Color_RED");
-        expect(result.code).toContain("Color_GREEN");
-        expect(result.code).toContain("Color_BLUE");
+        expect(result.code).toContain("Color__RED");
+        expect(result.code).toContain("Color__GREEN");
+        expect(result.code).toContain("Color__BLUE");
       });
 
       it("handles scope definitions", async () => {
@@ -273,8 +273,8 @@ describe("Transpiler", () => {
         ).files[0];
 
         expect(result.success).toBe(true);
-        expect(result.code).toContain("LED_on");
-        expect(result.code).toContain("LED_off");
+        expect(result.code).toContain("LED__on");
+        expect(result.code).toContain("LED__off");
       });
     });
 
@@ -370,7 +370,7 @@ describe("Transpiler", () => {
         const writeCalls = mockFs.getWriteLog();
         const hFile = writeCalls.find((w) => w.path.endsWith(".h"));
         expect(hFile).toBeDefined();
-        expect(hFile?.content).toContain("Math_add");
+        expect(hFile?.content).toContain("Math__add");
       });
 
       it("returns no files for non-existent input", async () => {
@@ -575,7 +575,7 @@ describe("Transpiler", () => {
         `,
       });
       expect(result.success).toBe(true);
-      expect(result.files[0].headerCode).toContain("API_doSomething");
+      expect(result.files[0].headerCode).toContain("API__doSomething");
     });
 
     it("transpile({ kind: 'source' }) returns errors in result", async () => {

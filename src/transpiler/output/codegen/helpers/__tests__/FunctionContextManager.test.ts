@@ -55,7 +55,7 @@ function setupSymbols(
 function createMockCallbacks(): IFunctionContextCallbacks {
   return {
     isStructType: vi.fn(() => false),
-    resolveQualifiedType: vi.fn((ids: string[]) => ids.join("_")),
+    resolveQualifiedType: vi.fn((ids: string[]) => ids.join("__")),
   };
 }
 
@@ -154,7 +154,7 @@ describe("FunctionContextManager", () => {
 
       FunctionContextManager.setupFunctionContext("myFunc", ctx, callbacks);
 
-      expect(CodeGenState.currentFunctionName).toBe("MyScope_myFunc");
+      expect(CodeGenState.currentFunctionName).toBe("MyScope__myFunc");
     });
 
     it("sets current function return type", () => {
@@ -492,7 +492,7 @@ describe("FunctionContextManager", () => {
         "Scope",
         "Type",
       ]);
-      expect(result.typeName).toBe("Scope_Type");
+      expect(result.typeName).toBe("Scope__Type");
     });
 
     it("resolves scoped type with current scope", () => {
@@ -516,7 +516,7 @@ describe("FunctionContextManager", () => {
         callbacks,
       );
 
-      expect(result.typeName).toBe("MyScope_LocalType");
+      expect(result.typeName).toBe("MyScope__LocalType");
     });
 
     it("resolves global type", () => {

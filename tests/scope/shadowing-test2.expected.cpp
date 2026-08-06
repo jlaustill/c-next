@@ -17,21 +17,21 @@ uint8_t flags = 0U;
 
 // Global 'flags'
 /* Scope: Control */
-static uint8_t Control_flags = 0b11111111U;
+static uint8_t Control__flags = 0b11111111U;
 
-void Control_setFlag(void) {
-    Control_flags = 0b10101010U;
+void Control__setFlag(void) {
+    Control__flags = 0b10101010U;
 }
 
-uint8_t Control_getFlags(void) {
-    return Control_flags;
+uint8_t Control__getFlags(void) {
+    return Control__flags;
 }
 
 int main(void) {
-    uint8_t val = Control_getFlags();
+    uint8_t val = Control__getFlags();
     if (val != 0b11111111) return 1;
-    Control_setFlag();
-    val = Control_getFlags();
+    Control__setFlag();
+    val = Control__getFlags();
     if (val != 0b10101010) return 2;
     if (flags != 0) return 3;
     if (globalFlags != 0) return 4;

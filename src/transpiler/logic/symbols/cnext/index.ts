@@ -16,6 +16,7 @@ import FunctionCollector from "./collectors/FunctionCollector";
 import VariableCollector from "./collectors/VariableCollector";
 import RegisterCollector from "./collectors/RegisterCollector";
 import ScopeCollector from "./collectors/ScopeCollector";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 class CNextResolver {
   /**
@@ -117,7 +118,7 @@ class CNextResolver {
 
     // Store scoped name as well for scoped variables
     if (scopeName) {
-      constValues.set(`${scopeName}_${name}`, value);
+      constValues.set(QualifiedCName.join(scopeName, name), value);
     }
   }
 
@@ -201,7 +202,7 @@ class CNextResolver {
         const symbol = BitmapCollector.collect(bitmapCtx, sourceFile, scope);
         symbols.push(symbol);
         // Use transpiled C name (e.g., "Timer_ControlBits") for scoped bitmaps
-        const cName = `${scopeName}_${symbol.name}`;
+        const cName = QualifiedCName.join(scopeName, symbol.name);
         knownBitmaps.add(cName);
       }
 

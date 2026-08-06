@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Draw_setup(void);
+void Draw__setup(void);
 
 #ifdef __cplusplus
 }

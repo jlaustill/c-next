@@ -15,23 +15,23 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    MyEnum_A = 0,
-    MyEnum_B = 1,
-    MyEnum_NONE = 255
+    MyEnum__A = 0,
+    MyEnum__B = 1,
+    MyEnum__NONE = 255
 } MyEnum;
 
 /* Struct definitions */
-typedef struct SingleFileEnum_TItem {
+typedef struct SingleFileEnum__TItem {
     MyEnum assigned;
     uint8_t padding;
-} SingleFileEnum_TItem;
-typedef struct SingleFileEnum_Config {
-    SingleFileEnum_TItem items[4];
-} SingleFileEnum_Config;
+} SingleFileEnum__TItem;
+typedef struct SingleFileEnum__Config {
+    SingleFileEnum__TItem items[4];
+} SingleFileEnum__Config;
 
 /* External variables */
 extern const uint8_t COUNT;
-extern SingleFileEnum_Config config;
+extern SingleFileEnum__Config config;
 
 #ifdef __cplusplus
 }

@@ -17,9 +17,9 @@ TemplateType<Param1,Param2,Param3> canBus = {};
 // C-Next defined scope with its own types
 /* Scope: CANHandler */
 
-void CANHandler_init(void) {
+void CANHandler__init(void) {
 }
 
 int main(void) {
-    CANHandler_init();
+    CANHandler__init();
 }

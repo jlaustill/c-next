@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint16_t decoder_getSpn(const uint8_t data[8]);
-uint8_t decoder_getByte(const uint8_t data[8], uint8_t index);
-uint8_t decoder_internalHelper(uint8_t val);
+uint16_t decoder__getSpn(const uint8_t data[8]);
+uint8_t decoder__getByte(const uint8_t data[8], uint8_t index);
+uint8_t decoder__internalHelper(uint8_t val);
 
 #ifdef __cplusplus
 }

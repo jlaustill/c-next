@@ -6,11 +6,11 @@
 // ADR-025: Multiple Cases Test
 // Tests case A || B syntax
 typedef enum {
-    ECommand_READ = 0,
-    ECommand_WRITE = 1,
-    ECommand_PEEK = 2,
-    ECommand_POKE = 3,
-    ECommand_ERASE = 4
+    ECommand__READ = 0,
+    ECommand__WRITE = 1,
+    ECommand__PEEK = 2,
+    ECommand__POKE = 3,
+    ECommand__ERASE = 4
 } ECommand;
 
 void doRead(void) {
@@ -24,13 +24,13 @@ void doOther(void) {
 
 void handleCommand(ECommand cmd) {
     switch (cmd) {
-        case ECommand_READ:
-        case ECommand_PEEK: {
+        case ECommand__READ:
+        case ECommand__PEEK: {
             doRead();
             break;
         }
-        case ECommand_WRITE:
-        case ECommand_POKE: {
+        case ECommand__WRITE:
+        case ECommand__POKE: {
             doWrite();
             break;
         }

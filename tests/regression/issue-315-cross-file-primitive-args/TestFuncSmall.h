@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t TestFuncSmall_addBytes(uint8_t a, uint8_t b);
+uint8_t TestFuncSmall__addBytes(uint8_t a, uint8_t b);
 
 #ifdef __cplusplus
 }

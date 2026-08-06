@@ -21,30 +21,30 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Test: Compound assignment with scope-local (this.) patterns
 // Tests lines 4336 and 4338 in CodeGenerator.ts
 /* Scope: Counter */
-static int32_t Counter_value = 100;
-static int32_t Counter_values[4] = {};
+static int32_t Counter__value = 100;
+static int32_t Counter__values[4] = {};
 
-void Counter_increment(void) {
-    Counter_value = cnx_clamp_add_i32(Counter_value, 10);
+void Counter__increment(void) {
+    Counter__value = cnx_clamp_add_i32(Counter__value, 10);
 }
 
-void Counter_incrementArray(void) {
-    Counter_values[0] = 50;
-    Counter_values[0] += 25;
+void Counter__incrementArray(void) {
+    Counter__values[0] = 50;
+    Counter__values[0] += 25;
 }
 
-int32_t Counter_test(void) {
-    Counter_increment();
-    Counter_incrementArray();
-    if (Counter_value != 110) {
+int32_t Counter__test(void) {
+    Counter__increment();
+    Counter__incrementArray();
+    if (Counter__value != 110) {
         return 1;
     }
-    if (Counter_values[0U] != 75) {
+    if (Counter__values[0U] != 75) {
         return 2;
     }
     return 0;
 }
 
 int main(void) {
-    return Counter_test();
+    return Counter__test();
 }

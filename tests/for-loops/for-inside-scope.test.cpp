@@ -29,51 +29,51 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 uint32_t globalSum = 0U;
 
 /* Scope: Calculator */
-static uint32_t Calculator_result = 0U;
+static uint32_t Calculator__result = 0U;
 
-void Calculator_sumToN(uint32_t n) {
-    Calculator_result = 0U;
+void Calculator__sumToN(uint32_t n) {
+    Calculator__result = 0U;
     for (uint32_t i = 1; i <= n; i = i + 1) {
-        Calculator_result = cnx_clamp_add_u32(Calculator_result, i);
+        Calculator__result = cnx_clamp_add_u32(Calculator__result, i);
     }
 }
 
-void Calculator_factorial(uint32_t n) {
-    Calculator_result = 1U;
+void Calculator__factorial(uint32_t n) {
+    Calculator__result = 1U;
     for (uint32_t i = 2; i <= n; i = i + 1) {
-        Calculator_result = cnx_clamp_mul_u32(Calculator_result, i);
+        Calculator__result = cnx_clamp_mul_u32(Calculator__result, i);
     }
 }
 
-uint32_t Calculator_getResult(void) {
-    return Calculator_result;
+uint32_t Calculator__getResult(void) {
+    return Calculator__result;
 }
 
 /* Scope: ArrayOps */
-static uint32_t ArrayOps_data[10] = {};
-static uint32_t ArrayOps_sum = 0U;
+static uint32_t ArrayOps__data[10] = {};
+static uint32_t ArrayOps__sum = 0U;
 
-void ArrayOps_initialize(void) {
+void ArrayOps__initialize(void) {
     for (uint32_t i = 0; i < 10; i = i + 1) {
-        ArrayOps_data[i] = i * 2U;
+        ArrayOps__data[i] = i * 2U;
     }
 }
 
-void ArrayOps_computeSum(void) {
-    ArrayOps_sum = 0U;
+void ArrayOps__computeSum(void) {
+    ArrayOps__sum = 0U;
     for (uint32_t i = 0; i < 10; i = i + 1) {
-        ArrayOps_sum = cnx_clamp_add_u32(ArrayOps_sum, ArrayOps_data[i]);
+        ArrayOps__sum = cnx_clamp_add_u32(ArrayOps__sum, ArrayOps__data[i]);
     }
 }
 
-uint32_t ArrayOps_getSum(void) {
-    return ArrayOps_sum;
+uint32_t ArrayOps__getSum(void) {
+    return ArrayOps__sum;
 }
 
 int main(void) {
-    Calculator_sumToN(5U);
-    globalSum = Calculator_getResult();
-    Calculator_factorial(5U);
-    ArrayOps_initialize();
-    ArrayOps_computeSum();
+    Calculator__sumToN(5U);
+    globalSum = Calculator__getResult();
+    Calculator__factorial(5U);
+    ArrayOps__initialize();
+    ArrayOps__computeSum();
 }

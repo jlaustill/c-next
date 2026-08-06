@@ -203,7 +203,7 @@ describe("CodeGenState", () => {
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("member1")).toBe(
-        "TestScope_member1",
+        "TestScope__member1",
       );
     });
   });

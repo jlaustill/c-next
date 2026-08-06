@@ -12,148 +12,148 @@
 // Verifies that wrap modifier works correctly with integer types inside scope methods
 // Tests: wrap variables accessed via this. accessor with compound assignment operators
 /* Scope: WrapTest */
-static uint8_t WrapTest_byteCounter = 250U;
-static uint16_t WrapTest_tickCount = 65530U;
-static uint32_t WrapTest_cycleCounter = 4294967290U;
-static uint8_t WrapTest_brightness = 10U;
-static uint16_t WrapTest_sensorValue = 100U;
-static uint32_t WrapTest_position = 50U;
+static uint8_t WrapTest__byteCounter = 250U;
+static uint16_t WrapTest__tickCount = 65530U;
+static uint32_t WrapTest__cycleCounter = 4294967290U;
+static uint8_t WrapTest__brightness = 10U;
+static uint16_t WrapTest__sensorValue = 100U;
+static uint32_t WrapTest__position = 50U;
 
-uint8_t WrapTest_getByteCounter(void) {
-    return WrapTest_byteCounter;
+uint8_t WrapTest__getByteCounter(void) {
+    return WrapTest__byteCounter;
 }
 
-uint16_t WrapTest_getTickCount(void) {
-    return WrapTest_tickCount;
+uint16_t WrapTest__getTickCount(void) {
+    return WrapTest__tickCount;
 }
 
-uint32_t WrapTest_getCycleCounter(void) {
-    return WrapTest_cycleCounter;
+uint32_t WrapTest__getCycleCounter(void) {
+    return WrapTest__cycleCounter;
 }
 
-uint8_t WrapTest_getBrightness(void) {
-    return WrapTest_brightness;
+uint8_t WrapTest__getBrightness(void) {
+    return WrapTest__brightness;
 }
 
-uint16_t WrapTest_getSensorValue(void) {
-    return WrapTest_sensorValue;
+uint16_t WrapTest__getSensorValue(void) {
+    return WrapTest__sensorValue;
 }
 
-uint32_t WrapTest_getPosition(void) {
-    return WrapTest_position;
+uint32_t WrapTest__getPosition(void) {
+    return WrapTest__position;
 }
 
-void WrapTest_incrementByteCounter(void) {
-    WrapTest_byteCounter += 10U;
+void WrapTest__incrementByteCounter(void) {
+    WrapTest__byteCounter += 10U;
 }
 
-void WrapTest_incrementTickCount(void) {
-    WrapTest_tickCount += 10U;
+void WrapTest__incrementTickCount(void) {
+    WrapTest__tickCount += 10U;
 }
 
-void WrapTest_incrementCycleCounter(void) {
-    WrapTest_cycleCounter += 10U;
+void WrapTest__incrementCycleCounter(void) {
+    WrapTest__cycleCounter += 10U;
 }
 
-void WrapTest_incrementBrightness(void) {
-    WrapTest_brightness += 5U;
+void WrapTest__incrementBrightness(void) {
+    WrapTest__brightness += 5U;
 }
 
-void WrapTest_incrementSensorValue(void) {
-    WrapTest_sensorValue += 100U;
+void WrapTest__incrementSensorValue(void) {
+    WrapTest__sensorValue += 100U;
 }
 
-void WrapTest_incrementPosition(void) {
-    WrapTest_position += 1000U;
+void WrapTest__incrementPosition(void) {
+    WrapTest__position += 1000U;
 }
 
-void WrapTest_decrementBrightness(void) {
-    WrapTest_brightness -= 20U;
+void WrapTest__decrementBrightness(void) {
+    WrapTest__brightness -= 20U;
 }
 
-void WrapTest_decrementSensorValue(void) {
-    WrapTest_sensorValue -= 150U;
+void WrapTest__decrementSensorValue(void) {
+    WrapTest__sensorValue -= 150U;
 }
 
-void WrapTest_decrementPosition(void) {
-    WrapTest_position -= 100U;
+void WrapTest__decrementPosition(void) {
+    WrapTest__position -= 100U;
 }
 
-void WrapTest_decrementByteCounter(void) {
-    WrapTest_byteCounter -= 1U;
+void WrapTest__decrementByteCounter(void) {
+    WrapTest__byteCounter -= 1U;
 }
 
-void WrapTest_decrementTickCount(void) {
-    WrapTest_tickCount -= 1U;
+void WrapTest__decrementTickCount(void) {
+    WrapTest__tickCount -= 1U;
 }
 
-void WrapTest_decrementCycleCounter(void) {
-    WrapTest_cycleCounter -= 1U;
+void WrapTest__decrementCycleCounter(void) {
+    WrapTest__cycleCounter -= 1U;
 }
 
-void WrapTest_setByteCounter(uint8_t val) {
-    WrapTest_byteCounter = val;
+void WrapTest__setByteCounter(uint8_t val) {
+    WrapTest__byteCounter = val;
 }
 
-void WrapTest_setBrightness(uint8_t val) {
-    WrapTest_brightness = val;
+void WrapTest__setBrightness(uint8_t val) {
+    WrapTest__brightness = val;
 }
 
-void WrapTest_setSensorValue(uint16_t val) {
-    WrapTest_sensorValue = val;
+void WrapTest__setSensorValue(uint16_t val) {
+    WrapTest__sensorValue = val;
 }
 
-void WrapTest_setPosition(uint32_t val) {
-    WrapTest_position = val;
+void WrapTest__setPosition(uint32_t val) {
+    WrapTest__position = val;
 }
 
 int main(void) {
-    uint8_t byteResult = WrapTest_getByteCounter();
+    uint8_t byteResult = WrapTest__getByteCounter();
     if (byteResult != 250) return 1;
-    uint16_t tickResult = WrapTest_getTickCount();
+    uint16_t tickResult = WrapTest__getTickCount();
     if (tickResult != 65530) return 2;
-    uint32_t cycleResult = WrapTest_getCycleCounter();
+    uint32_t cycleResult = WrapTest__getCycleCounter();
     if (cycleResult != 4294967290) return 3;
-    uint8_t brightResult = WrapTest_getBrightness();
+    uint8_t brightResult = WrapTest__getBrightness();
     if (brightResult != 10) return 4;
-    uint16_t sensorResult = WrapTest_getSensorValue();
+    uint16_t sensorResult = WrapTest__getSensorValue();
     if (sensorResult != 100) return 5;
-    uint32_t posResult = WrapTest_getPosition();
+    uint32_t posResult = WrapTest__getPosition();
     if (posResult != 50) return 6;
-    WrapTest_incrementByteCounter();
-    byteResult = WrapTest_getByteCounter();
+    WrapTest__incrementByteCounter();
+    byteResult = WrapTest__getByteCounter();
     if (byteResult != 4) return 7;
-    WrapTest_incrementTickCount();
-    tickResult = WrapTest_getTickCount();
+    WrapTest__incrementTickCount();
+    tickResult = WrapTest__getTickCount();
     if (tickResult != 4) return 8;
-    WrapTest_incrementCycleCounter();
-    cycleResult = WrapTest_getCycleCounter();
+    WrapTest__incrementCycleCounter();
+    cycleResult = WrapTest__getCycleCounter();
     if (cycleResult != 4) return 9;
-    brightResult = WrapTest_getBrightness();
+    brightResult = WrapTest__getBrightness();
     if (brightResult != 10) return 100;
-    WrapTest_incrementBrightness();
-    brightResult = WrapTest_getBrightness();
+    WrapTest__incrementBrightness();
+    brightResult = WrapTest__getBrightness();
     if (brightResult != 15) return 10;
-    WrapTest_incrementSensorValue();
-    sensorResult = WrapTest_getSensorValue();
+    WrapTest__incrementSensorValue();
+    sensorResult = WrapTest__getSensorValue();
     if (sensorResult != 200) return 11;
-    WrapTest_incrementPosition();
-    posResult = WrapTest_getPosition();
+    WrapTest__incrementPosition();
+    posResult = WrapTest__getPosition();
     if (posResult != 1050) return 12;
-    WrapTest_setBrightness(10U);
-    WrapTest_decrementBrightness();
-    brightResult = WrapTest_getBrightness();
+    WrapTest__setBrightness(10U);
+    WrapTest__decrementBrightness();
+    brightResult = WrapTest__getBrightness();
     if (brightResult != 246) return 13;
-    WrapTest_setSensorValue(100U);
-    WrapTest_decrementSensorValue();
-    sensorResult = WrapTest_getSensorValue();
+    WrapTest__setSensorValue(100U);
+    WrapTest__decrementSensorValue();
+    sensorResult = WrapTest__getSensorValue();
     if (sensorResult != 65486) return 14;
-    WrapTest_setPosition(50U);
-    WrapTest_decrementPosition();
-    posResult = WrapTest_getPosition();
+    WrapTest__setPosition(50U);
+    WrapTest__decrementPosition();
+    posResult = WrapTest__getPosition();
     if (posResult != 4294967246) return 15;
-    WrapTest_decrementByteCounter();
-    byteResult = WrapTest_getByteCounter();
+    WrapTest__decrementByteCounter();
+    byteResult = WrapTest__getByteCounter();
     if (byteResult != 3) return 16;
     return 0;
 }

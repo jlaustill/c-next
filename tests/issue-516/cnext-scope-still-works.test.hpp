@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t Motor_speed;
+extern uint8_t Motor__speed;
 
 /* Function prototypes */
-void Motor_start(void);
-void Motor_stop(void);
-void Controller_run(void);
+void Motor__start(void);
+void Motor__stop(void);
+void Controller__run(void);
 
 #ifdef __cplusplus
 }

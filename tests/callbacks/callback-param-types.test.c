@@ -41,11 +41,11 @@ typedef uint32_t (*processBool_fp)(bool);
 /* Scope: CallbackParamType */
 
 // Callback with struct parameter
-uint32_t processPoint(const CallbackParamType_Point* p) {
+uint32_t processPoint(const CallbackParamType__Point* p) {
     return p->x + p->y;
 }
 
-typedef uint32_t (*processPoint_fp)(CallbackParamType_Point*);
+typedef uint32_t (*processPoint_fp)(CallbackParamType__Point*);
 
 // Structs to hold callbacks
 int main(void) {
@@ -69,7 +69,7 @@ int main(void) {
     if (result != 0) return 6;
     PointHandler ph = {0};
     ph.handler = processPoint;
-    CallbackParamType_Point pt = {0};
+    CallbackParamType__Point pt = {0};
     pt.x = 10U;
     pt.y = 20U;
     result = ph.handler(pt);

@@ -12,14 +12,14 @@
 // Issue #774: global. prefix only required when there's a naming conflict
 /* Scope: Motor */
 
-GlobalState Motor_test(void) {
-    GlobalState current = GlobalState_IDLE;
+GlobalState Motor__test(void) {
+    GlobalState current = GlobalState__IDLE;
     return current;
 }
 
 int main(void) {
-    GlobalState result = Motor_test();
-    if (result != GlobalState_IDLE) {
+    GlobalState result = Motor__test();
+    if (result != GlobalState__IDLE) {
         return 1;
     }
     return 0;

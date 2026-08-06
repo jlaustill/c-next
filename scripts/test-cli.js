@@ -723,28 +723,28 @@ test("Issue #565: multi-file transitive const inference propagates correctly", (
     // Read the generated Serial.cpp
     const serialCpp = readFileSync(join(tempDir, "Serial.cpp"), "utf-8");
 
-    // Key assertion: Serial_handleReset should have NON-const Config&
+    // Key assertion: Serial__handleReset should have NON-const Config&
     // because it calls Handler.reset which calls Storage.loadDefaults which modifies config
     assert(
-      serialCpp.includes("Serial_handleReset(Config& config)"),
-      "Serial_handleReset should have non-const Config& (transitive modification)",
+      serialCpp.includes("Serial__handleReset(Config& config)"),
+      "Serial__handleReset should have non-const Config& (transitive modification)",
     );
     assert(
-      !serialCpp.includes("Serial_handleReset(const Config& config)"),
-      "Serial_handleReset should NOT have const (it transitively modifies)",
+      !serialCpp.includes("Serial__handleReset(const Config& config)"),
+      "Serial__handleReset should NOT have const (it transitively modifies)",
     );
 
     // Also verify the intermediate functions are correct
     const handlerCpp = readFileSync(join(tempDir, "Handler.cpp"), "utf-8");
     assert(
-      handlerCpp.includes("Handler_reset(Config& cfg)"),
-      "Handler_reset should have non-const Config&",
+      handlerCpp.includes("Handler__reset(Config& cfg)"),
+      "Handler__reset should have non-const Config&",
     );
 
     const storageCpp = readFileSync(join(tempDir, "Storage.cpp"), "utf-8");
     assert(
-      storageCpp.includes("Storage_loadDefaults(Config& config)"),
-      "Storage_loadDefaults should have non-const Config&",
+      storageCpp.includes("Storage__loadDefaults(Config& config)"),
+      "Storage__loadDefaults should have non-const Config&",
     );
   } finally {
     cleanupTempDir(tempDir);
@@ -796,20 +796,20 @@ scope Serial {
     // All functions should have const since none modify
     const serialCpp = readFileSync(join(tempDir, "Serial.cpp"), "utf-8");
     assert(
-      serialCpp.includes("Serial_readValue(const Config& config)"),
-      "Serial_readValue should have const Config& (read-only chain)",
+      serialCpp.includes("Serial__readValue(const Config& config)"),
+      "Serial__readValue should have const Config& (read-only chain)",
     );
 
     const handlerCpp = readFileSync(join(tempDir, "Handler.cpp"), "utf-8");
     assert(
-      handlerCpp.includes("Handler_read(const Config& cfg)"),
-      "Handler_read should have const Config&",
+      handlerCpp.includes("Handler__read(const Config& cfg)"),
+      "Handler__read should have const Config&",
     );
 
     const storageCpp = readFileSync(join(tempDir, "Storage.cpp"), "utf-8");
     assert(
-      storageCpp.includes("Storage_getValue(const Config& config)"),
-      "Storage_getValue should have const Config&",
+      storageCpp.includes("Storage__getValue(const Config& config)"),
+      "Storage__getValue should have const Config&",
     );
   } finally {
     cleanupTempDir(tempDir);
@@ -883,16 +883,16 @@ test("Issue #580: C++ detected from headers triggers correct const inference", (
       "Should generate .cpp when C++ detected from header",
     );
 
-    // Key assertion: Handler_passThrough should have NON-const Config&
+    // Key assertion: Handler__passThrough should have NON-const Config&
     // because it calls Modifier.reset which modifies config
     const handlerCpp = readFileSync(join(tempDir, "Handler.cpp"), "utf-8");
     assert(
-      handlerCpp.includes("Handler_passThrough(Config& config)"),
-      "Handler_passThrough should have non-const Config& (calls mutating function)",
+      handlerCpp.includes("Handler__passThrough(Config& config)"),
+      "Handler__passThrough should have non-const Config& (calls mutating function)",
     );
     assert(
-      !handlerCpp.includes("Handler_passThrough(const Config& config)"),
-      "Handler_passThrough should NOT have const (it transitively modifies)",
+      !handlerCpp.includes("Handler__passThrough(const Config& config)"),
+      "Handler__passThrough should NOT have const (it transitively modifies)",
     );
 
     // Also verify Modifier was processed correctly
@@ -902,8 +902,8 @@ test("Issue #580: C++ detected from headers triggers correct const inference", (
     );
     const modifierCpp = readFileSync(join(tempDir, "Modifier.cpp"), "utf-8");
     assert(
-      modifierCpp.includes("Modifier_reset(Config& c)"),
-      "Modifier_reset should have non-const Config&",
+      modifierCpp.includes("Modifier__reset(Config& c)"),
+      "Modifier__reset should have non-const Config&",
     );
   } finally {
     cleanupTempDir(tempDir);

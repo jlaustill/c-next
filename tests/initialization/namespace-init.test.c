@@ -12,17 +12,17 @@ uint8_t globalCount = 0;
 
 // Global - uninitialized
 /* Scope: Counter */
-static uint8_t Counter_count = 0;
+static uint8_t Counter__count = 0;
 
-void Counter_init(void) {
-    Counter_count = 0U;
+void Counter__init(void) {
+    Counter__count = 0U;
 }
 
-void Counter_increment(void) {
-    Counter_count = Counter_count + 1U;
+void Counter__increment(void) {
+    Counter__count = Counter__count + 1U;
 }
 
 int main(void) {
-    Counter_init();
-    Counter_increment();
+    Counter__init();
+    Counter__increment();
 }

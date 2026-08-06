@@ -33,9 +33,9 @@ describe("generateEnumHeader", () => {
       const result = generateEnumHeader("State", input);
 
       expect(result).toContain("typedef enum {");
-      expect(result).toContain("State_IDLE = 0");
-      expect(result).toContain("State_RUNNING = 1");
-      expect(result).toContain("State_STOPPED = 2");
+      expect(result).toContain("State__IDLE = 0");
+      expect(result).toContain("State__RUNNING = 1");
+      expect(result).toContain("State__STOPPED = 2");
       expect(result).toContain("} State;");
     });
 
@@ -45,7 +45,7 @@ describe("generateEnumHeader", () => {
 
       const result = generateEnumHeader("Single", input);
 
-      expect(result).toBe(`typedef enum {\n    Single_ONLY = 42\n} Single;`);
+      expect(result).toBe(`typedef enum {\n    Single__ONLY = 42\n} Single;`);
     });
 
     it("should sort members by value", () => {
@@ -77,8 +77,8 @@ describe("generateEnumHeader", () => {
 
       const result = generateEnumHeader("ESensorType", input);
 
-      expect(result).toContain("ESensorType_SENSOR_DISABLED = 0");
-      expect(result).toContain("ESensorType_PRESSURE_0_100PSI = 1");
+      expect(result).toContain("ESensorType__SENSOR_DISABLED = 0");
+      expect(result).toContain("ESensorType__PRESSURE_0_100PSI = 1");
     });
 
     it("should handle enum names with underscores", () => {
@@ -87,7 +87,7 @@ describe("generateEnumHeader", () => {
 
       const result = generateEnumHeader("My_Enum", input);
 
-      expect(result).toContain("My_Enum_VALUE = 1");
+      expect(result).toContain("My_Enum__VALUE = 1");
     });
   });
 
@@ -142,9 +142,9 @@ describe("generateEnumHeader", () => {
 
       const result = generateEnumHeader("Signed", input);
 
-      expect(result).toContain("Signed_NEGATIVE = -1");
-      expect(result).toContain("Signed_ZERO = 0");
-      expect(result).toContain("Signed_POSITIVE = 1");
+      expect(result).toContain("Signed__NEGATIVE = -1");
+      expect(result).toContain("Signed__ZERO = 0");
+      expect(result).toContain("Signed__POSITIVE = 1");
     });
   });
 
@@ -159,9 +159,9 @@ describe("generateEnumHeader", () => {
 
       const result = generateEnumHeader("Bounds", input);
 
-      expect(result).toContain("Bounds_MIN = -2147483648");
-      expect(result).toContain("Bounds_MAX = 2147483647");
-      expect(result).toContain("Bounds_ZERO = 0");
+      expect(result).toContain("Bounds__MIN = -2147483648");
+      expect(result).toContain("Bounds__MAX = 2147483647");
+      expect(result).toContain("Bounds__ZERO = 0");
     });
   });
 });

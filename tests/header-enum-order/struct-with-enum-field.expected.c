@@ -9,14 +9,14 @@
 // Issue #449: Structs containing enum fields need enums defined first
 // This test verifies the generated header has correct declaration order
 typedef enum {
-    EPressureType_PRESSURE_TYPE_PSIA = 0,
-    EPressureType_PRESSURE_TYPE_PSIG = 1
+    EPressureType__PRESSURE_TYPE_PSIA = 0,
+    EPressureType__PRESSURE_TYPE_PSIG = 1
 } EPressureType;
 
 typedef enum {
-    EDeviceState_STATE_IDLE = 0,
-    EDeviceState_STATE_RUNNING = 1,
-    EDeviceState_STATE_ERROR = 2
+    EDeviceState__STATE_IDLE = 0,
+    EDeviceState__STATE_RUNNING = 1,
+    EDeviceState__STATE_ERROR = 2
 } EDeviceState;
 
 typedef struct TPressureInputConfig {
@@ -33,8 +33,8 @@ typedef struct TDeviceStatus {
 int main(void) {
     TPressureInputConfig config = {0};
     config.assignedSpn = 100U;
-    config.pressureType = EPressureType_PRESSURE_TYPE_PSIA;
+    config.pressureType = EPressureType__PRESSURE_TYPE_PSIA;
     TDeviceStatus status = {0};
     status.deviceId = 1U;
-    status.state = EDeviceState_STATE_IDLE;
+    status.state = EDeviceState__STATE_IDLE;
 }

@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Serial_println(uint32_t msg);
+void Serial__println(uint32_t msg);
 
 #ifdef __cplusplus
 }

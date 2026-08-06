@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EPriority_LOW = 0,
-    EPriority_MEDIUM = 1,
-    EPriority_HIGH = 2
+    EPriority__LOW = 0,
+    EPriority__MEDIUM = 1,
+    EPriority__HIGH = 2
 } EPriority;
 
 /* Struct definitions */

@@ -31,10 +31,14 @@ scope Math {
     }
 }
 
+// NOTE (ADR-063 / #1117): these calls used to be written `Math_add(...)`,
+// spelling the generated C name directly. That only worked because the
+// symbol table was keyed by the qualified name, leaking generated naming
+// into the source namespace. `Math.add(...)` is the correct C-Next syntax.
 void main() {
     calculate(42);
     process(10);
     update(5);
-    f32 result <- Math_add(1.0, 2.0);
-    result <- Math_multiply(3.0, 4.0);
+    f32 result <- Math.add(1.0, 2.0);
+    result <- Math.multiply(3.0, 4.0);
 }

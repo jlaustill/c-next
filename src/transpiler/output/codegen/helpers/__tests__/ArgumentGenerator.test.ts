@@ -87,7 +87,7 @@ describe("ArgumentGenerator", () => {
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");
-        expect(result).toBe("&LED_brightness");
+        expect(result).toBe("&LED__brightness");
       });
 
       it("prefixes scope member without & in C++ mode", () => {
@@ -96,7 +96,7 @@ describe("ArgumentGenerator", () => {
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");
-        expect(result).toBe("LED_brightness");
+        expect(result).toBe("LED__brightness");
       });
     });
 

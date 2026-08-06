@@ -21,7 +21,7 @@ Deep::Level1::Level2::DeepType deep = {};
 
 /* Scope: Test */
 
-void Test_init(void) {
+void Test__init(void) {
     parsed = MockLib::Parse::parse("test", ',');
     config = MockLib::getDefaultConfig();
     deep = Deep::Level1::Level2::create(42);

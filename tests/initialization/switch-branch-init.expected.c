@@ -9,31 +9,31 @@
 // test-execution
 // Tests: Variable initialization in switch case branches
 typedef enum {
-    Mode_OFF = 0,
-    Mode_LOW = 1,
-    Mode_MEDIUM = 2,
-    Mode_HIGH = 3
+    Mode__OFF = 0,
+    Mode__LOW = 1,
+    Mode__MEDIUM = 2,
+    Mode__HIGH = 3
 } Mode;
 
 uint32_t calculatePower(Mode mode) {
     uint32_t power = 0U;
     switch (mode) {
-        case Mode_OFF: {
+        case Mode__OFF: {
             uint32_t offValue = 0U;
             power = offValue;
             break;
         }
-        case Mode_LOW: {
+        case Mode__LOW: {
             uint32_t lowValue = 10U;
             power = lowValue;
             break;
         }
-        case Mode_MEDIUM: {
+        case Mode__MEDIUM: {
             uint32_t medValue = 50U;
             power = medValue;
             break;
         }
-        case Mode_HIGH: {
+        case Mode__HIGH: {
             uint32_t highValue = 100U;
             power = highValue;
             break;
@@ -48,13 +48,13 @@ uint32_t calculatePower(Mode mode) {
 }
 
 int main(void) {
-    uint32_t offPower = calculatePower(Mode_OFF);
+    uint32_t offPower = calculatePower(Mode__OFF);
     if (offPower != 0) return 1;
-    uint32_t lowPower = calculatePower(Mode_LOW);
+    uint32_t lowPower = calculatePower(Mode__LOW);
     if (lowPower != 10) return 2;
-    uint32_t medPower = calculatePower(Mode_MEDIUM);
+    uint32_t medPower = calculatePower(Mode__MEDIUM);
     if (medPower != 50) return 3;
-    uint32_t highPower = calculatePower(Mode_HIGH);
+    uint32_t highPower = calculatePower(Mode__HIGH);
     if (highPower != 100) return 4;
     return 0;
 }

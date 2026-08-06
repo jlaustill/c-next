@@ -13,18 +13,18 @@
 // Define enum in same file to avoid cross-file header conflicts
 /* Scope: Processor */
 
-int32_t Processor_process(EPriority priority) {
+int32_t Processor__process(EPriority priority) {
     if (static_cast<int32_t>(priority) == 0) return 10;
     if (static_cast<int32_t>(priority) == 1) return 20;
     return 30;
 }
 
 int main(void) {
-    int32_t result = Processor_process(EPriority_LOW);
+    int32_t result = Processor__process(EPriority__LOW);
     if (result != 10) return 1;
-    result = Processor_process(EPriority_MEDIUM);
+    result = Processor__process(EPriority__MEDIUM);
     if (result != 20) return 2;
-    result = Processor_process(EPriority_HIGH);
+    result = Processor__process(EPriority__HIGH);
     if (result != 30) return 3;
     return 0;
 }

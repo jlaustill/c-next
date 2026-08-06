@@ -14,24 +14,24 @@ char globalBuffer[65] = "";
 
 /* Scope: Handler */
 
-void Handler_updateGlobal(void) {
+void Handler__updateGlobal(void) {
     strncpy(globalBuffer, "FromScope", 64); globalBuffer[64] = '\0';
 }
 
-void Handler_clearGlobal(void) {
+void Handler__clearGlobal(void) {
     strncpy(globalBuffer, "", 64); globalBuffer[64] = '\0';
 }
 
-void Handler_setLongMessage(void) {
+void Handler__setLongMessage(void) {
     strncpy(globalBuffer, "This is a longer message from scope", 64); globalBuffer[64] = '\0';
 }
 
 int main(void) {
-    Handler_updateGlobal();
+    Handler__updateGlobal();
     if (strlen(globalBuffer) != 9) return 1;
-    Handler_clearGlobal();
+    Handler__clearGlobal();
     if (strlen(globalBuffer) != 0) return 2;
-    Handler_setLongMessage();
+    Handler__setLongMessage();
     if (strlen(globalBuffer) != 35) return 3;
     return 0;
 }

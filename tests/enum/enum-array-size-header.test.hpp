@@ -15,17 +15,17 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EColor_RED = 0,
-    EColor_GREEN = 1,
-    EColor_BLUE = 2,
-    EColor_COUNT = 3
+    EColor__RED = 0,
+    EColor__GREEN = 1,
+    EColor__BLUE = 2,
+    EColor__COUNT = 3
 } EColor;
 
 /* External variables */
-extern const uint8_t DATA[EColor_COUNT];
+extern const uint8_t DATA[EColor__COUNT];
 
 /* Function prototypes */
-uint8_t Test_get(uint8_t idx);
+uint8_t Test__get(uint8_t idx);
 
 #ifdef __cplusplus
 }

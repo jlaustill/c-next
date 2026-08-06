@@ -140,9 +140,9 @@ describe("ScopedRegisterGenerator", () => {
       );
 
       expect(result.code).toContain(
-        "/* Register: Teensy4_GPIO7 @ 0x42004000 */",
+        "/* Register: Teensy4__GPIO7 @ 0x42004000 */",
       );
-      expect(result.code).toContain("#define Teensy4_GPIO7_DR");
+      expect(result.code).toContain("#define Teensy4__GPIO7__DR");
     });
 
     it("applies scope prefix to all members", () => {
@@ -174,8 +174,8 @@ describe("ScopedRegisterGenerator", () => {
         orchestrator,
       );
 
-      expect(result.code).toContain("#define Driver_TIMER_CTRL");
-      expect(result.code).toContain("#define Driver_TIMER_COUNT");
+      expect(result.code).toContain("#define Driver__TIMER__CTRL");
+      expect(result.code).toContain("#define Driver__TIMER__COUNT");
     });
   });
 
@@ -203,7 +203,7 @@ describe("ScopedRegisterGenerator", () => {
       );
 
       expect(result.code).toContain(
-        "#define HAL_STATUS_FLAGS (*(volatile uint8_t const *)(0x50000000 + 0x00))",
+        "#define HAL__STATUS__FLAGS (*(volatile uint8_t const *)(0x50000000 + 0x00))",
       );
     });
 
@@ -230,14 +230,14 @@ describe("ScopedRegisterGenerator", () => {
       );
 
       expect(result.code).toContain(
-        "#define HAL_CMD_SET (*(volatile uint16_t*)(0x50000000 + 0x00))",
+        "#define HAL__CMD__SET (*(volatile uint16_t*)(0x50000000 + 0x00))",
       );
     });
   });
 
   describe("scoped bitmap type resolution", () => {
     it("resolves bitmap type to scoped name when bitmap exists in scope", () => {
-      // Register member uses "GPIO7Pins" type, which should resolve to "Teensy4_GPIO7Pins"
+      // Register member uses "GPIO7Pins" type, which should resolve to "Teensy4__GPIO7Pins"
       const ctx = createMockRegisterContext("GPIO7", "0x42004000", [
         {
           name: "PINS",
@@ -248,7 +248,7 @@ describe("ScopedRegisterGenerator", () => {
         },
       ]);
       // The scoped bitmap exists
-      const knownBitmaps = new Set(["Teensy4_GPIO7Pins"]);
+      const knownBitmaps = new Set(["Teensy4__GPIO7Pins"]);
       const input = createMockInput(knownBitmaps);
       const state = createMockState();
       // Type map returns the type unchanged - generator handles scoping
@@ -264,7 +264,7 @@ describe("ScopedRegisterGenerator", () => {
         orchestrator,
       );
 
-      expect(result.code).toContain("volatile Teensy4_GPIO7Pins*");
+      expect(result.code).toContain("volatile Teensy4__GPIO7Pins*");
     });
 
     it("keeps original type when scoped bitmap does not exist", () => {
@@ -332,10 +332,10 @@ describe("ScopedRegisterGenerator", () => {
       );
 
       expect(result.code).toBe(
-        `/* Register: Board_GPIO @ 0x401B8000 */
-#define Board_GPIO_DR (*(volatile uint32_t*)(0x401B8000 + 0x00))
-#define Board_GPIO_GDIR (*(volatile uint32_t*)(0x401B8000 + 0x04))
-#define Board_GPIO_PSR (*(volatile uint32_t const *)(0x401B8000 + 0x08))
+        `/* Register: Board__GPIO @ 0x401B8000 */
+#define Board__GPIO__DR (*(volatile uint32_t*)(0x401B8000 + 0x00))
+#define Board__GPIO__GDIR (*(volatile uint32_t*)(0x401B8000 + 0x04))
+#define Board__GPIO__PSR (*(volatile uint32_t const *)(0x401B8000 + 0x08))
 `,
       );
     });

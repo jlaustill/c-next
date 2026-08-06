@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void LED_setBrightness(uint8_t level);
-uint8_t LED_getBrightness(void);
-void Motor_adjustLED(void);
+void LED__setBrightness(uint8_t level);
+uint8_t LED__getBrightness(void);
+void Motor__adjustLED(void);
 
 #ifdef __cplusplus
 }

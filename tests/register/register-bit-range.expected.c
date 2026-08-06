@@ -8,36 +8,36 @@
 // test-coverage: 12-bit-range-access
 // Tests: Bit range access on register members using [start, width] syntax
 /* Register: TIMER @ 0x40010000 */
-#define TIMER_CTRL (*(volatile uint32_t*)(0x40010000 + 0x00))
-#define TIMER_PRESCALE (*(volatile uint32_t*)(0x40010000 + 0x04))
-#define TIMER_VALUE (*(volatile uint32_t const *)(0x40010000 + 0x08))
+#define TIMER__CTRL (*(volatile uint32_t*)(0x40010000 + 0x00))
+#define TIMER__PRESCALE (*(volatile uint32_t*)(0x40010000 + 0x04))
+#define TIMER__VALUE (*(volatile uint32_t const *)(0x40010000 + 0x08))
 
 /* Register: CONFIG @ 0x40020000 */
-#define CONFIG_MODE (*(volatile uint32_t*)(0x40020000 + 0x00))
-#define CONFIG_OPTIONS (*(volatile uint32_t*)(0x40020000 + 0x04))
+#define CONFIG__MODE (*(volatile uint32_t*)(0x40020000 + 0x00))
+#define CONFIG__OPTIONS (*(volatile uint32_t*)(0x40020000 + 0x04))
 
 void setTimerPrescaler(uint8_t prescaler) {
-    TIMER_PRESCALE = (TIMER_PRESCALE & ~(1U << 0)) | ((prescaler ? 1U : 0U) << 0);
+    TIMER__PRESCALE = (TIMER__PRESCALE & ~(1U << 0)) | ((prescaler ? 1U : 0U) << 0);
 }
 
 void setTimerMode(uint8_t mode) {
-    TIMER_CTRL = (TIMER_CTRL & ~(1U << 0)) | ((mode ? 1U : 0U) << 0);
+    TIMER__CTRL = (TIMER__CTRL & ~(1U << 0)) | ((mode ? 1U : 0U) << 0);
 }
 
 void setTimerFlags(uint8_t flags) {
-    TIMER_CTRL = (TIMER_CTRL & ~(1U << 4)) | ((flags ? 1U : 0U) << 4);
+    TIMER__CTRL = (TIMER__CTRL & ~(1U << 4)) | ((flags ? 1U : 0U) << 4);
 }
 
 void configureOptions(uint16_t opts) {
-    CONFIG_OPTIONS = (CONFIG_OPTIONS & ~(1U << 0)) | ((opts ? 1U : 0U) << 0);
+    CONFIG__OPTIONS = (CONFIG__OPTIONS & ~(1U << 0)) | ((opts ? 1U : 0U) << 0);
 }
 
 uint8_t readTimerMode(void) {
-    return ((TIMER_CTRL) & ((1U << 4U) - 1));
+    return ((TIMER__CTRL) & ((1U << 4U) - 1));
 }
 
 uint8_t readTimerFlags(void) {
-    return ((TIMER_CTRL >> 4U) & ((1U << 4U) - 1));
+    return ((TIMER__CTRL >> 4U) & ((1U << 4U) - 1));
 }
 
 int main(void) {

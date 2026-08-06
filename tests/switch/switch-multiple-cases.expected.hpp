@@ -15,11 +15,11 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    ECommand_READ = 0,
-    ECommand_WRITE = 1,
-    ECommand_PEEK = 2,
-    ECommand_POKE = 3,
-    ECommand_ERASE = 4
+    ECommand__READ = 0,
+    ECommand__WRITE = 1,
+    ECommand__PEEK = 2,
+    ECommand__POKE = 3,
+    ECommand__ERASE = 4
 } ECommand;
 
 #ifdef __cplusplus

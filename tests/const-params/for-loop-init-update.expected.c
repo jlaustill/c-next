@@ -12,26 +12,26 @@
 // This tests that function calls in for-init and for-update are detected
 /* Scope: Handler */
 
-uint8_t Handler_setValue(Config* cfg, uint32_t val) {
+uint8_t Handler__setValue(Config* cfg, uint32_t val) {
     cfg->value = val;
     return 0;
 }
 
-uint32_t Handler_getNext(Config* cfg, uint32_t current) {
+uint32_t Handler__getNext(Config* cfg, uint32_t current) {
     cfg->value = current + 1U;
     return current + 1;
 }
 
 // For loop with modifying call in the UPDATE part
 void handleForUpdate(Config* config) {
-    for (uint32_t i = 0; i < 1; i = Handler_getNext(config, i)) {
+    for (uint32_t i = 0; i < 1; i = Handler__getNext(config, i)) {
     }
 }
 
 // For loop with modifying call in the INIT part (via forAssignment)
 void handleForInit(Config* config) {
     uint32_t start = 0U;
-    for (start = Handler_setValue(config, 10U); start < 1; start = start + 1) {
+    for (start = Handler__setValue(config, 10U); start < 1; start = start + 1) {
     }
 }
 

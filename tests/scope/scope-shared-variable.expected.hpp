@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void SharedState_increment(void);
-uint32_t SharedState_getCount(void);
+void SharedState__increment(void);
+uint32_t SharedState__getCount(void);
 
 #ifdef __cplusplus
 }

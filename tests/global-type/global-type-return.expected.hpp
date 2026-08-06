@@ -15,13 +15,13 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    ETestCategory_TEST_CAT_A = 0,
-    ETestCategory_TEST_CAT_B = 1,
-    ETestCategory_TEST_CAT_C = 2
+    ETestCategory__TEST_CAT_A = 0,
+    ETestCategory__TEST_CAT_B = 1,
+    ETestCategory__TEST_CAT_C = 2
 } ETestCategory;
 
 /* Function prototypes */
-ETestCategory TestScope_getCategory(void);
+ETestCategory TestScope__getCategory(void);
 
 #ifdef __cplusplus
 }

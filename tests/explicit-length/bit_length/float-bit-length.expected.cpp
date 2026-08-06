@@ -31,7 +31,7 @@ int main(void) {
     if (64 != 64) {
         return 4;
     }
-    FloatBitLen_TestStruct ts = {};
+    FloatBitLen__TestStruct ts = {};
     ts.x = 1.0;
     ts.y = 2.0;
     if (32 != 32) {

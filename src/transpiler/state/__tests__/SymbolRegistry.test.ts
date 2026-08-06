@@ -174,7 +174,7 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const found = SymbolRegistry.findByCName("Test_fillData");
+      const found = SymbolRegistry.findByCName("Test__fillData");
       expect(found).toBe(func);
     });
 
@@ -192,12 +192,12 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const found = SymbolRegistry.findByCName("Outer_Inner_deepFunc");
+      const found = SymbolRegistry.findByCName("Outer__Inner__deepFunc");
       expect(found).toBe(func);
     });
 
     it("returns null for unknown function", () => {
-      const found = SymbolRegistry.findByCName("Unknown_func");
+      const found = SymbolRegistry.findByCName("Unknown__func");
       expect(found).toBeNull();
     });
   });
@@ -217,7 +217,7 @@ describe("SymbolRegistry", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      const foundScope = SymbolRegistry.getScopeByCFunctionName("Motor_init");
+      const foundScope = SymbolRegistry.getScopeByCFunctionName("Motor__init");
       expect(foundScope).toBe(scope);
     });
 
@@ -240,7 +240,8 @@ describe("SymbolRegistry", () => {
     });
 
     it("returns null for unknown function", () => {
-      const foundScope = SymbolRegistry.getScopeByCFunctionName("Unknown_func");
+      const foundScope =
+        SymbolRegistry.getScopeByCFunctionName("Unknown__func");
       expect(foundScope).toBeNull();
     });
   });

@@ -11,24 +11,24 @@
 extern const uint8_t globalValue = 10U;
 
 /* Scope: Motor */
-static uint8_t Motor_state = 0U;
+static uint8_t Motor__state = 0U;
 
-uint8_t Motor_getLocalValue(void) {
+uint8_t Motor__getLocalValue(void) {
     return 5;
 }
 
-uint8_t Motor_getGlobalValue(void) {
+uint8_t Motor__getGlobalValue(void) {
     return globalValue;
 }
 
-uint8_t Motor_getSum(void) {
+uint8_t Motor__getSum(void) {
     return 5 + globalValue;
 }
 
-void Motor_setState(uint8_t val) {
-    Motor_state = val;
+void Motor__setState(uint8_t val) {
+    Motor__state = val;
 }
 
 int main(void) {
-    Motor_setState(42U);
+    Motor__setState(42U);
 }

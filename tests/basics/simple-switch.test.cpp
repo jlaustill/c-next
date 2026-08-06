@@ -9,23 +9,23 @@
 // Tests: Basic switch statement
 // Demonstrates: switch cases, default, enum with switch
 typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1,
-    Color_BLUE = 2
+    Color__RED = 0,
+    Color__GREEN = 1,
+    Color__BLUE = 2
 } Color;
 
 uint32_t colorToValue(Color c) {
     uint32_t result = 0U;
     switch (c) {
-        case Color_RED: {
+        case Color__RED: {
             result = 1U;
             break;
         }
-        case Color_GREEN: {
+        case Color__GREEN: {
             result = 2U;
             break;
         }
-        case Color_BLUE: {
+        case Color__BLUE: {
             result = 3U;
             break;
         }
@@ -56,13 +56,13 @@ uint32_t dayType(uint32_t day) {
 }
 
 int main(void) {
-    Color c = Color_RED;
+    Color c = Color__RED;
     uint32_t val = colorToValue(c);
     if (val != 1) return 1;
-    c = Color_GREEN;
+    c = Color__GREEN;
     val = colorToValue(c);
     if (val != 2) return 2;
-    c = Color_BLUE;
+    c = Color__BLUE;
     val = colorToValue(c);
     if (val != 3) return 3;
     uint32_t result = dayType(0U);

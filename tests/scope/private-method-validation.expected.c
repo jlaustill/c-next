@@ -21,170 +21,170 @@ bool globalFlag = true;
 int32_t globalOffset = -50;
 
 /* Scope: PrivateMethodTest */
-static uint32_t PrivateMethodTest_privateState = 0U;
-static bool PrivateMethodTest_privateFlag = false;
-static int32_t PrivateMethodTest_privateAccumulator = 0;
-static uint8_t PrivateMethodTest_callCount = 0U;
-uint32_t PrivateMethodTest_publicResult = 0U;
-bool PrivateMethodTest_publicFlag = false;
-int32_t PrivateMethodTest_publicAccumulator = 0;
+static uint32_t PrivateMethodTest__privateState = 0U;
+static bool PrivateMethodTest__privateFlag = false;
+static int32_t PrivateMethodTest__privateAccumulator = 0;
+static uint8_t PrivateMethodTest__callCount = 0U;
+uint32_t PrivateMethodTest__publicResult = 0U;
+bool PrivateMethodTest__publicFlag = false;
+int32_t PrivateMethodTest__publicAccumulator = 0;
 
-uint32_t PrivateMethodTest_getPrivateState(void) {
-    return PrivateMethodTest_privateState;
+uint32_t PrivateMethodTest__getPrivateState(void) {
+    return PrivateMethodTest__privateState;
 }
 
-bool PrivateMethodTest_getPrivateFlag(void) {
-    return PrivateMethodTest_privateFlag;
+bool PrivateMethodTest__getPrivateFlag(void) {
+    return PrivateMethodTest__privateFlag;
 }
 
-int32_t PrivateMethodTest_getPrivateAccumulator(void) {
-    return PrivateMethodTest_privateAccumulator;
+int32_t PrivateMethodTest__getPrivateAccumulator(void) {
+    return PrivateMethodTest__privateAccumulator;
 }
 
-void PrivateMethodTest_incrementCallCount(void) {
-    PrivateMethodTest_callCount = PrivateMethodTest_callCount + 1U;
+void PrivateMethodTest__incrementCallCount(void) {
+    PrivateMethodTest__callCount = PrivateMethodTest__callCount + 1U;
 }
 
-uint8_t PrivateMethodTest_getCallCount(void) {
-    return PrivateMethodTest_callCount;
+uint8_t PrivateMethodTest__getCallCount(void) {
+    return PrivateMethodTest__callCount;
 }
 
-uint32_t PrivateMethodTest_readGlobalCounter(void) {
+uint32_t PrivateMethodTest__readGlobalCounter(void) {
     return globalCounter;
 }
 
-bool PrivateMethodTest_readGlobalFlag(void) {
+bool PrivateMethodTest__readGlobalFlag(void) {
     return globalFlag;
 }
 
-int32_t PrivateMethodTest_readGlobalOffset(void) {
+int32_t PrivateMethodTest__readGlobalOffset(void) {
     return globalOffset;
 }
 
-uint32_t PrivateMethodTest_combineStateAndGlobal(void) {
-    return PrivateMethodTest_privateState + globalCounter;
+uint32_t PrivateMethodTest__combineStateAndGlobal(void) {
+    return PrivateMethodTest__privateState + globalCounter;
 }
 
-bool PrivateMethodTest_checkBothFlags(void) {
-    return PrivateMethodTest_privateFlag && globalFlag;
+bool PrivateMethodTest__checkBothFlags(void) {
+    return PrivateMethodTest__privateFlag && globalFlag;
 }
 
-uint32_t PrivateMethodTest_getStateViaHelper(void) {
-    return PrivateMethodTest_getPrivateState();
+uint32_t PrivateMethodTest__getStateViaHelper(void) {
+    return PrivateMethodTest__getPrivateState();
 }
 
-void PrivateMethodTest_performPrivateChain(void) {
-    PrivateMethodTest_incrementCallCount();
-    PrivateMethodTest_privateState = PrivateMethodTest_privateState + 10U;
-    PrivateMethodTest_privateFlag = !PrivateMethodTest_privateFlag;
+void PrivateMethodTest__performPrivateChain(void) {
+    PrivateMethodTest__incrementCallCount();
+    PrivateMethodTest__privateState = PrivateMethodTest__privateState + 10U;
+    PrivateMethodTest__privateFlag = !PrivateMethodTest__privateFlag;
 }
 
-void PrivateMethodTest_addValue(int32_t amount) {
-    PrivateMethodTest_privateAccumulator = PrivateMethodTest_privateAccumulator + amount;
-    PrivateMethodTest_incrementCallCount();
+void PrivateMethodTest__addValue(int32_t amount) {
+    PrivateMethodTest__privateAccumulator = PrivateMethodTest__privateAccumulator + amount;
+    PrivateMethodTest__incrementCallCount();
 }
 
-uint32_t PrivateMethodTest_exposePrivateState(void) {
-    return PrivateMethodTest_getPrivateState();
+uint32_t PrivateMethodTest__exposePrivateState(void) {
+    return PrivateMethodTest__getPrivateState();
 }
 
-void PrivateMethodTest_setPrivateState(uint32_t val) {
-    PrivateMethodTest_privateState = val;
+void PrivateMethodTest__setPrivateState(uint32_t val) {
+    PrivateMethodTest__privateState = val;
 }
 
-bool PrivateMethodTest_exposePrivateFlag(void) {
-    return PrivateMethodTest_getPrivateFlag();
+bool PrivateMethodTest__exposePrivateFlag(void) {
+    return PrivateMethodTest__getPrivateFlag();
 }
 
-void PrivateMethodTest_setPrivateFlag(bool val) {
-    PrivateMethodTest_privateFlag = val;
+void PrivateMethodTest__setPrivateFlag(bool val) {
+    PrivateMethodTest__privateFlag = val;
 }
 
-int32_t PrivateMethodTest_exposePrivateAccumulator(void) {
-    return PrivateMethodTest_getPrivateAccumulator();
+int32_t PrivateMethodTest__exposePrivateAccumulator(void) {
+    return PrivateMethodTest__getPrivateAccumulator();
 }
 
-void PrivateMethodTest_addToAccumulator(int32_t val) {
-    PrivateMethodTest_addValue(val);
+void PrivateMethodTest__addToAccumulator(int32_t val) {
+    PrivateMethodTest__addValue(val);
 }
 
-uint32_t PrivateMethodTest_exposeGlobalCounter(void) {
-    return PrivateMethodTest_readGlobalCounter();
+uint32_t PrivateMethodTest__exposeGlobalCounter(void) {
+    return PrivateMethodTest__readGlobalCounter();
 }
 
-uint32_t PrivateMethodTest_exposeCombinedStateAndGlobal(void) {
-    return PrivateMethodTest_combineStateAndGlobal();
+uint32_t PrivateMethodTest__exposeCombinedStateAndGlobal(void) {
+    return PrivateMethodTest__combineStateAndGlobal();
 }
 
-bool PrivateMethodTest_exposeBothFlagsCheck(void) {
-    return PrivateMethodTest_checkBothFlags();
+bool PrivateMethodTest__exposeBothFlagsCheck(void) {
+    return PrivateMethodTest__checkBothFlags();
 }
 
-uint32_t PrivateMethodTest_exposeStateViaHelper(void) {
-    return PrivateMethodTest_getStateViaHelper();
+uint32_t PrivateMethodTest__exposeStateViaHelper(void) {
+    return PrivateMethodTest__getStateViaHelper();
 }
 
-uint8_t PrivateMethodTest_exposeCallCount(void) {
-    return PrivateMethodTest_getCallCount();
+uint8_t PrivateMethodTest__exposeCallCount(void) {
+    return PrivateMethodTest__getCallCount();
 }
 
-void PrivateMethodTest_triggerPrivateChain(void) {
-    PrivateMethodTest_performPrivateChain();
+void PrivateMethodTest__triggerPrivateChain(void) {
+    PrivateMethodTest__performPrivateChain();
 }
 
-void PrivateMethodTest_copyPrivateToPublic(void) {
-    PrivateMethodTest_publicResult = PrivateMethodTest_getPrivateState();
-    PrivateMethodTest_publicFlag = PrivateMethodTest_getPrivateFlag();
-    PrivateMethodTest_publicAccumulator = PrivateMethodTest_getPrivateAccumulator();
+void PrivateMethodTest__copyPrivateToPublic(void) {
+    PrivateMethodTest__publicResult = PrivateMethodTest__getPrivateState();
+    PrivateMethodTest__publicFlag = PrivateMethodTest__getPrivateFlag();
+    PrivateMethodTest__publicAccumulator = PrivateMethodTest__getPrivateAccumulator();
 }
 
 int main(void) {
-    uint32_t resultState = PrivateMethodTest_exposePrivateState();
+    uint32_t resultState = PrivateMethodTest__exposePrivateState();
     if (resultState != 0) return 1;
-    PrivateMethodTest_setPrivateState(42U);
-    resultState = PrivateMethodTest_exposePrivateState();
+    PrivateMethodTest__setPrivateState(42U);
+    resultState = PrivateMethodTest__exposePrivateState();
     if (resultState != 42) return 2;
-    bool resultFlag = PrivateMethodTest_exposePrivateFlag();
+    bool resultFlag = PrivateMethodTest__exposePrivateFlag();
     if (resultFlag != false) return 3;
-    PrivateMethodTest_setPrivateFlag(true);
-    resultFlag = PrivateMethodTest_exposePrivateFlag();
+    PrivateMethodTest__setPrivateFlag(true);
+    resultFlag = PrivateMethodTest__exposePrivateFlag();
     if (resultFlag != true) return 4;
-    int32_t resultAccum = PrivateMethodTest_exposePrivateAccumulator();
+    int32_t resultAccum = PrivateMethodTest__exposePrivateAccumulator();
     if (resultAccum != 0) return 5;
-    PrivateMethodTest_addToAccumulator(100);
-    resultAccum = PrivateMethodTest_exposePrivateAccumulator();
+    PrivateMethodTest__addToAccumulator(100);
+    resultAccum = PrivateMethodTest__exposePrivateAccumulator();
     if (resultAccum != 100) return 6;
-    PrivateMethodTest_addToAccumulator(-30);
-    resultAccum = PrivateMethodTest_exposePrivateAccumulator();
+    PrivateMethodTest__addToAccumulator(-30);
+    resultAccum = PrivateMethodTest__exposePrivateAccumulator();
     if (resultAccum != 70) return 7;
-    uint32_t resultCounter = PrivateMethodTest_exposeGlobalCounter();
+    uint32_t resultCounter = PrivateMethodTest__exposeGlobalCounter();
     if (resultCounter != 100) return 8;
-    uint32_t resultCombined = PrivateMethodTest_exposeCombinedStateAndGlobal();
+    uint32_t resultCombined = PrivateMethodTest__exposeCombinedStateAndGlobal();
     if (resultCombined != 142) return 9;
-    bool resultBothFlags = PrivateMethodTest_exposeBothFlagsCheck();
+    bool resultBothFlags = PrivateMethodTest__exposeBothFlagsCheck();
     if (resultBothFlags != true) return 10;
-    PrivateMethodTest_setPrivateFlag(false);
-    resultBothFlags = PrivateMethodTest_exposeBothFlagsCheck();
+    PrivateMethodTest__setPrivateFlag(false);
+    resultBothFlags = PrivateMethodTest__exposeBothFlagsCheck();
     if (resultBothFlags != false) return 11;
-    uint32_t resultHelper = PrivateMethodTest_exposeStateViaHelper();
+    uint32_t resultHelper = PrivateMethodTest__exposeStateViaHelper();
     if (resultHelper != 42) return 12;
-    PrivateMethodTest_setPrivateState(990U);
-    resultState = PrivateMethodTest_exposePrivateState();
+    PrivateMethodTest__setPrivateState(990U);
+    resultState = PrivateMethodTest__exposePrivateState();
     if (resultState != 990) return 13;
-    uint8_t resultCallCount = PrivateMethodTest_exposeCallCount();
+    uint8_t resultCallCount = PrivateMethodTest__exposeCallCount();
     if (resultCallCount != 2) return 14;
-    PrivateMethodTest_triggerPrivateChain();
-    resultState = PrivateMethodTest_exposePrivateState();
+    PrivateMethodTest__triggerPrivateChain();
+    resultState = PrivateMethodTest__exposePrivateState();
     if (resultState != 1000) return 15;
-    resultFlag = PrivateMethodTest_exposePrivateFlag();
+    resultFlag = PrivateMethodTest__exposePrivateFlag();
     if (resultFlag != true) return 16;
-    resultCallCount = PrivateMethodTest_exposeCallCount();
+    resultCallCount = PrivateMethodTest__exposeCallCount();
     if (resultCallCount != 3) return 17;
-    PrivateMethodTest_setPrivateState(777U);
-    PrivateMethodTest_setPrivateFlag(true);
-    PrivateMethodTest_copyPrivateToPublic();
-    if (PrivateMethodTest_publicResult != 777) return 18;
-    if (PrivateMethodTest_publicFlag != true) return 19;
-    if (PrivateMethodTest_publicAccumulator != 70) return 20;
+    PrivateMethodTest__setPrivateState(777U);
+    PrivateMethodTest__setPrivateFlag(true);
+    PrivateMethodTest__copyPrivateToPublic();
+    if (PrivateMethodTest__publicResult != 777) return 18;
+    if (PrivateMethodTest__publicFlag != true) return 19;
+    if (PrivateMethodTest__publicAccumulator != 70) return 20;
     return 0;
 }

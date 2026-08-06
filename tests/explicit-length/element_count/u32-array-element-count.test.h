@@ -14,17 +14,17 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct U32ArrayElementCount_TestStruct {
+typedef struct U32ArrayElementCount__TestStruct {
     uint32_t arr[16];
-} U32ArrayElementCount_TestStruct;
+} U32ArrayElementCount__TestStruct;
 
 /* External variables */
 extern uint32_t globalArr[16];
-extern uint32_t TestScope_publicArr[16];
+extern uint32_t TestScope__publicArr[16];
 
 /* Function prototypes */
-uint32_t TestScope_getGlobalArrayElementCount(void);
-uint32_t TestScope_getScopeArrayElementCount(void);
+uint32_t TestScope__getGlobalArrayElementCount(void);
+uint32_t TestScope__getScopeArrayElementCount(void);
 
 #ifdef __cplusplus
 }

@@ -10,33 +10,33 @@
 // Tests: Basic enum definition and usage
 // Demonstrates: enum declaration, values, assignment, comparison
 typedef enum {
-    Status_IDLE = 0,
-    Status_RUNNING = 1,
-    Status_PAUSED = 2,
-    Status_STOPPED = 3
+    Status__IDLE = 0,
+    Status__RUNNING = 1,
+    Status__PAUSED = 2,
+    Status__STOPPED = 3
 } Status;
 
 typedef enum {
-    Priority_LOW = 1,
-    Priority_MEDIUM = 5,
-    Priority_HIGH = 10,
-    Priority_CRITICAL = 100
+    Priority__LOW = 1,
+    Priority__MEDIUM = 5,
+    Priority__HIGH = 10,
+    Priority__CRITICAL = 100
 } Priority;
 
 int main(void) {
-    Status s = Status_IDLE;
-    if (s != Status_IDLE) return 1;
-    s = Status_RUNNING;
-    if (s != Status_RUNNING) return 2;
-    Priority p = Priority_HIGH;
-    if (p != Priority_HIGH) return 3;
-    if (Status_IDLE == Status_RUNNING) return 4;
-    if (Priority_LOW == Priority_HIGH) return 5;
-    s = Status_PAUSED;
-    bool isPaused = (s == Status_PAUSED);
+    Status s = Status__IDLE;
+    if (s != Status__IDLE) return 1;
+    s = Status__RUNNING;
+    if (s != Status__RUNNING) return 2;
+    Priority p = Priority__HIGH;
+    if (p != Priority__HIGH) return 3;
+    if (Status__IDLE == Status__RUNNING) return 4;
+    if (Priority__LOW == Priority__HIGH) return 5;
+    s = Status__PAUSED;
+    bool isPaused = (s == Status__PAUSED);
     if (isPaused != true) return 6;
-    Status s1 = Status_IDLE;
-    Status s2 = Status_STOPPED;
+    Status s1 = Status__IDLE;
+    Status s2 = Status__STOPPED;
     if (s1 == s2) return 7;
     return 0;
 }

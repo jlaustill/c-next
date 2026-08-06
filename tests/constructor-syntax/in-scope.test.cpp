@@ -11,12 +11,12 @@
 #include <stdint.h>
 
 /* Scope: Sensor */
-const uint8_t Sensor_pin = 10U;
-Adafruit_MAX31856 Sensor_device(Sensor_pin);
+const uint8_t Sensor__pin = 10U;
+Adafruit_MAX31856 Sensor__device(Sensor__pin);
 
-void Sensor_init(void) {
+void Sensor__init(void) {
 }
 
 int main(void) {
-    Sensor_init();
+    Sensor__init();
 }

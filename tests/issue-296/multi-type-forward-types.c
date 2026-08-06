@@ -9,10 +9,10 @@
 // Issue #404: Multiple type definitions for forward declaration tests
 // Tests multiple structs and an enum used across files
 typedef enum {
-    EDeviceState_STATE_OFF = 0,
-    EDeviceState_STATE_IDLE = 1,
-    EDeviceState_STATE_ACTIVE = 2,
-    EDeviceState_STATE_ERROR = 3
+    EDeviceState__STATE_OFF = 0,
+    EDeviceState__STATE_IDLE = 1,
+    EDeviceState__STATE_ACTIVE = 2,
+    EDeviceState__STATE_ERROR = 3
 } EDeviceState;
 
 typedef struct DeviceConfig {

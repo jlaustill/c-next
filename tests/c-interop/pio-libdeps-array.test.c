@@ -25,15 +25,15 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 /* Scope: PioArrayTest */
 
-void PioArrayTest_processBuffer(const uint8_t data[8], uint8_t len) {
+void PioArrayTest__processBuffer(const uint8_t data[8], uint8_t len) {
     uint8_t sum = 0U;
     for (uint8_t i = 0; i < len; i += 1) {
         sum = cnx_clamp_add_u8(sum, data[i]);
     }
 }
 
-void PioArrayTest_handleMessage(const MockCanMessage* msg) {
+void PioArrayTest__handleMessage(const MockCanMessage* msg) {
     if (msg->id != 0) {
-        PioArrayTest_processBuffer(msg->buf, 8U);
+        PioArrayTest__processBuffer(msg->buf, 8U);
     }
 }

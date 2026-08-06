@@ -32,6 +32,7 @@ import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
 import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
+import QualifiedCName from "../../utils/QualifiedCName";
 
 /**
  * Default target capabilities (safe fallback)
@@ -891,7 +892,7 @@ export default class CodeGenState {
     if (this.currentScope) {
       const members = this.scopeMembers.get(this.currentScope);
       if (members?.has(identifier)) {
-        return `${this.currentScope}_${identifier}`;
+        return QualifiedCName.join(this.currentScope, identifier);
       }
     }
     return identifier;
@@ -1133,6 +1134,8 @@ export default class CodeGenState {
    * Mark a clamp operation as used.
    */
   static markClampOpUsed(operation: string, cnxType: string): void {
+    // Internal helper-op key (e.g. "add_u32"), not a scope-qualified C name.
+    // HelperGenerator splits this on a single underscore.
     this.usedClampOps.add(`${operation}_${cnxType}`);
   }
 
@@ -1140,6 +1143,8 @@ export default class CodeGenState {
    * Mark a safe div operation as used.
    */
   static markSafeDivOpUsed(operation: string, cnxType: string): void {
+    // Internal helper-op key (e.g. "div_u32"), not a scope-qualified C name.
+    // HelperGenerator matches these with a single underscore.
     this.usedSafeDivOps.add(`${operation}_${cnxType}`);
   }
 

@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void App_configure(void);
+void App__configure(void);
 
 #ifdef __cplusplus
 }

@@ -15,20 +15,20 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EStatus_STATUS_IDLE = 0,
-    EStatus_STATUS_RUNNING = 1,
-    EStatus_STATUS_ERROR = 2
+    EStatus__STATUS_IDLE = 0,
+    EStatus__STATUS_RUNNING = 1,
+    EStatus__STATUS_ERROR = 2
 } EStatus;
 
 /* Struct definitions */
-typedef struct HeaderMixed_Config {
+typedef struct HeaderMixed__Config {
     uint32_t timeout;
     uint8_t retries;
     EStatus status;
-} HeaderMixed_Config;
+} HeaderMixed__Config;
 
 /* External variables */
-extern HeaderMixed_Config globalConfig;
+extern HeaderMixed__Config globalConfig;
 
 #ifdef __cplusplus
 }

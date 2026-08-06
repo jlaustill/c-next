@@ -12,11 +12,11 @@
 // Tests: 2D struct array member assignment through global prefix (Issue #387)
 /* Scope: StructArr2D */
 
-StructArr2D_TReading readings[4][4] = {};
+StructArr2D__TReading readings[4][4] = {};
 
 /* Scope: Test */
 
-uint32_t Test_run(void) {
+uint32_t Test__run(void) {
     readings[0][0].value = 100;
     if (readings[0U][0U].value != 100) return 1;
     readings[0][0].timestamp = 12345U;
@@ -33,5 +33,5 @@ uint32_t Test_run(void) {
 }
 
 int main(void) {
-    return Test_run();
+    return Test__run();
 }

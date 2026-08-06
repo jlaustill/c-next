@@ -15,13 +15,13 @@ extern "C" {
 #endif
 
 /* External type dependencies - include appropriate headers */
-typedef struct ChainTypesBase_Coordinate ChainTypesBase_Coordinate;
+typedef struct ChainTypesBase__Coordinate ChainTypesBase__Coordinate;
 
 /* Function prototypes */
-void Navigator_setDestination(const Waypoint* wp);
-Waypoint Navigator_getDestination(void);
-void Navigator_moveTo(const ChainTypesBase_Coordinate* pos);
-ChainTypesBase_Coordinate Navigator_getCurrentPosition(void);
+void Navigator__setDestination(const Waypoint* wp);
+Waypoint Navigator__getDestination(void);
+void Navigator__moveTo(const ChainTypesBase__Coordinate* pos);
+ChainTypesBase__Coordinate Navigator__getCurrentPosition(void);
 
 #ifdef __cplusplus
 }

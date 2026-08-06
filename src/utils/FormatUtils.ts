@@ -4,6 +4,9 @@
  *
  * Extracted from CodeGenerator.ts as part of ADR-109 decomposition.
  */
+
+import QualifiedCName from "./QualifiedCName";
+
 class FormatUtils {
   /** Default indentation string (4 spaces) */
   static readonly INDENT = "    ";
@@ -77,13 +80,15 @@ class FormatUtils {
 
   /**
    * Get the appropriate scope separator for C++ vs C/C-Next.
-   * C++ uses :: for scope resolution, C/C-Next uses _ (underscore).
+   *
+   * C++ namespace qualification uses `::`; C output uses the C-Next
+   * qualified-name separator, which QualifiedCName owns (ADR-063).
    *
    * @param isCppContext - Whether generating C++ code
-   * @returns "::" for C++ or "_" for C/C-Next
+   * @returns "::" for C++ or the qualified-name separator for C/C-Next
    */
   static getScopeSeparator(isCppContext: boolean): string {
-    return isCppContext ? "::" : "_";
+    return isCppContext ? "::" : QualifiedCName.SEPARATOR;
   }
 }
 

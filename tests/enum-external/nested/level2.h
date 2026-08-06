@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    ELevel_LEVEL_LOW = 0,
-    ELevel_LEVEL_MEDIUM = 1,
-    ELevel_LEVEL_HIGH = 2
+    ELevel__LEVEL_LOW = 0,
+    ELevel__LEVEL_MEDIUM = 1,
+    ELevel__LEVEL_HIGH = 2
 } ELevel;
 
 #ifdef __cplusplus

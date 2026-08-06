@@ -26,18 +26,22 @@ void update(uint32_t upd_value) {
 // Scope functions should also work correctly
 /* Scope: Math */
 
-float Math_add(float x, float y) {
+float Math__add(float x, float y) {
     return x + y;
 }
 
-float Math_multiply(float mult_factor, float value) {
+float Math__multiply(float mult_factor, float value) {
     return mult_factor * value;
 }
 
+// NOTE (ADR-063 / #1117): these calls used to be written `Math_add(...)`,
+// spelling the generated C name directly. That only worked because the
+// symbol table was keyed by the qualified name, leaking generated naming
+// into the source namespace. `Math.add(...)` is the correct C-Next syntax.
 int main(void) {
     calculate(42U);
     process(10U);
     update(5U);
-    float result = Math_add(1.0, 2.0);
-    result = Math_multiply(3.0, 4.0);
+    float result = Math__add(1.0, 2.0);
+    result = Math__multiply(3.0, 4.0);
 }

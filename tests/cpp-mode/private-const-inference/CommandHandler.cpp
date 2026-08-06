@@ -12,7 +12,7 @@
 
 /* Scope: CommandHandler */
 
-uint8_t CommandHandler_setValue(Config& cfg, uint32_t val) {
+uint8_t CommandHandler__setValue(Config& cfg, uint32_t val) {
     cfg.value = val;
     return 0;
 }

@@ -15,11 +15,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void DeviceManager_configure(const DeviceConfig* newConfig);
-DeviceConfig DeviceManager_getConfig(void);
-void DeviceManager_setStatus(const DeviceStatus* newStatus);
-DeviceStatus DeviceManager_getStatus(void);
-EDeviceState DeviceManager_getState(void);
+void DeviceManager__configure(const DeviceConfig* newConfig);
+DeviceConfig DeviceManager__getConfig(void);
+void DeviceManager__setStatus(const DeviceStatus* newStatus);
+DeviceStatus DeviceManager__getStatus(void);
+EDeviceState DeviceManager__getState(void);
 
 #ifdef __cplusplus
 }

@@ -7,6 +7,7 @@
  */
 
 import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind.js";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Symbol lookup interface for constructor detection
@@ -18,11 +19,16 @@ interface ISymbolLookup {
 class CppConstructorHelper {
   /**
    * Convert underscore format to :: for namespaced types.
-   * e.g., TestNS_MyClass -> TestNS::MyClass
+   * e.g., TestNS__MyClass -> TestNS::MyClass
+   * A single underscore is part of a component name and is preserved:
+   * Adafruit_BMP280 -> Adafruit_BMP280 (not Adafruit::BMP280)
    */
   static toQualifiedName(typeName: string): string {
-    if (typeName.includes("_") && !typeName.includes("::")) {
-      return typeName.replaceAll("_", "::");
+    if (QualifiedCName.isQualified(typeName) && !typeName.includes("::")) {
+      // Split on the qualified-name separator rather than replacing every
+      // underscore: a component may legally contain single underscores
+      // (`tick_count`), and a blanket replace would mangle those too.
+      return QualifiedCName.toCppQualified(typeName, "::");
     }
     return typeName;
   }

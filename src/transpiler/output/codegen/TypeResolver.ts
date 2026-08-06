@@ -12,6 +12,7 @@ import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
 import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -444,7 +445,10 @@ class TypeResolver {
       current.baseType === TypeResolver.THIS_SENTINEL &&
       CodeGenState.currentScope
     ) {
-      const scopedName = `${CodeGenState.currentScope}_${memberName}`;
+      const scopedName = QualifiedCName.join(
+        CodeGenState.currentScope,
+        memberName,
+      );
       return TypeResolver.resolveRegistryLookup(scopedName);
     }
 

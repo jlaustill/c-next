@@ -126,12 +126,12 @@ describe("trackVariableTypeWithName helpers", () => {
         }
 
         void main() {
-          Motor.setState(Motor_State.ON);
+          Motor.setState(Motor__State.ON);
         }
       `;
       const code = await transpileSource(source);
-      // Scoped type should be transpiled to Motor_State
-      expect(code).toContain("Motor_State");
+      // Scoped type should be transpiled to Motor__State
+      expect(code).toContain("Motor__State");
     });
 
     it("resolves global types (global.Type)", async () => {
@@ -152,7 +152,7 @@ describe("trackVariableTypeWithName helpers", () => {
       `;
       const code = await transpileSource(source);
       // Global type should resolve to just Status
-      expect(code).toContain("Status Handler_result");
+      expect(code).toContain("Status Handler__result");
     });
 
     it("resolves qualified types (Scope.Type)", async () => {
@@ -164,12 +164,12 @@ describe("trackVariableTypeWithName helpers", () => {
         Motor.State globalMotorState;
 
         void main() {
-          globalMotorState <- Motor_State.OFF;
+          globalMotorState <- Motor__State.OFF;
         }
       `;
       const code = await transpileSource(source);
-      // Qualified type should resolve to Motor_State
-      expect(code).toContain("Motor_State globalMotorState");
+      // Qualified type should resolve to Motor__State
+      expect(code).toContain("Motor__State globalMotorState");
     });
 
     it("resolves user-defined struct types", async () => {
@@ -214,7 +214,7 @@ describe("trackVariableTypeWithName helpers", () => {
       `;
       const code = await transpileSource(source);
       expect(code).toContain("Color selected");
-      expect(code).toContain("selected = Color_GREEN");
+      expect(code).toContain("selected = Color__GREEN");
     });
 
     it("handles bitmap type registration", async () => {
@@ -288,7 +288,7 @@ describe("trackVariableTypeWithName helpers", () => {
       `;
       const code = await transpileSource(source);
       // Should generate array access, NOT bit extraction
-      expect(code).toContain("return Test_values[idx]");
+      expect(code).toContain("return Test__values[idx]");
       // Should NOT contain bit extraction pattern
       expect(code).not.toContain(">> idx");
       expect(code).not.toContain("& 1");

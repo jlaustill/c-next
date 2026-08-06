@@ -6,13 +6,12 @@
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)
 **Related:** ADR-014 (Structs), ADR-063 (Identifier Syntax — amends the qualified-name separator, see below)
 
-> **Pending amendment (ADR-063, Issue #1117).** The qualified-name separator documented
-> below (`Scope_member`) is **not injective**: a global `Reg_flags` and a `scope Reg`
-> member `flags` both produce the C identifier `Reg_flags`, as do the members of
-> `scope A_B { c }` and `scope A { B_c }`. ADR-063 changes the separator to `__`
-> (`Scope__member`) and restricts identifiers so that `__` cannot occur in one, making
-> the join injective. The text below describes currently shipped behavior; it will be
-> updated when ADR-063 is implemented.
+> **Amended by ADR-063 (Issue #1117).** Members are named `Scope__member` in
+> generated C. The separator is two underscores, and ADR-063 forbids a C-Next
+> identifier from ending with `_` or containing `__`, which makes the join
+> injective: a global `Reg_flags` and a `scope Reg` member `flags` are now
+> distinct C symbols, as are the members of `scope A_B { c }` and
+> `scope A { B_c }`.
 
 ## Context
 
@@ -78,18 +77,18 @@ LED.maxBrightness <- 100;       // OK - explicitly public variable
 Transpiles to:
 
 ```c
-static uint8_t LED_brightness;        // private → static
-uint8_t LED_maxBrightness;            // public → extern linkage
+static uint8_t LED__brightness;        // private → static
+uint8_t LED__maxBrightness;            // public → extern linkage
 
-void LED_on(void) { }                 // public → extern linkage
-void LED_off(void) { }                // public → extern linkage
-static void LED_reset(void) { }       // private → static
+void LED__on(void) { }                 // public → extern linkage
+void LED__off(void) { }                // public → extern linkage
+static void LED__reset(void) { }       // private → static
 ```
 
 ### Key Properties
 
 - **Member-type-aware defaults** — Functions public, variables/types private
-- **Name prefixing** — Members become `Scope_member` in generated C (becoming `Scope__member` — ADR-063)
+- **Name prefixing** — Members become `Scope__member` in generated C (ADR-063)
 - **Static linkage** — Private members use `static` for file-local visibility
 - **Not a type** — Cannot create instances of a scope
 - **Minimal expectations** — No baggage from C++ namespaces or classes
@@ -121,14 +120,14 @@ Counter.getValue();   // returns 3
 **Generated C code:**
 
 ```c
-static uint32_t Counter_value = 0;  // Static = persists
+static uint32_t Counter__value = 0;  // Static = persists
 
-void Counter_increment(void) {
-    Counter_value = Counter_value + 1;
+void Counter__increment(void) {
+    Counter__value = Counter__value + 1;
 }
 
-uint32_t Counter_getValue(void) {
-    return Counter_value;
+uint32_t Counter__getValue(void) {
+    return Counter__value;
 }
 ```
 
@@ -206,16 +205,16 @@ Teensy4.GPIO7.DR_SET[3] <- true;
 Transpiles to:
 
 ```c
-/* Register: Teensy4_GPIO7 @ 0x42004000 */
-#define Teensy4_GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-#define Teensy4_GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
-#define Teensy4_GPIO7_DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
-#define Teensy4_GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
+/* Register: Teensy4__GPIO7 @ 0x42004000 */
+#define Teensy4__GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+#define Teensy4__GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
+#define Teensy4__GPIO7__DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
+#define Teensy4__GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
-static const uint32_t Teensy4_LED_BIT = 3;
+static const uint32_t Teensy4__LED_BIT = 3;
 
-void Teensy4_blinkLed(void) {
-    Teensy4_GPIO7_DR_TOGGLE = (1 << Teensy4_LED_BIT);
+void Teensy4__blinkLed(void) {
+    Teensy4__GPIO7__DR_TOGGLE = (1 << Teensy4__LED_BIT);
 }
 ```
 
@@ -342,26 +341,26 @@ scope Motor {
 ```c
 const uint8_t defaultValue = 3;
 
-#define GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
+#define GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
 
 typedef enum {
-    Motor_State_IDLE = 0,
-    Motor_State_RUNNING = 1,
-    Motor_State_STALLED = 2
-} Motor_State;
+    Motor__State__IDLE = 0,
+    Motor__State__RUNNING = 1,
+    Motor__State__STALLED = 2
+} Motor__State;
 
-static const uint8_t Motor_defaultValue = 1;
+static const uint8_t Motor__defaultValue = 1;
 
-Motor_State Motor_current = Motor_State_IDLE;
+Motor__State Motor__current = Motor__State__IDLE;
 
-uint8_t Motor_start(void) {
+uint8_t Motor__start(void) {
     uint8_t localVar = 5;
-    Motor_current = Motor_State_RUNNING;
-    return localVar + Motor_defaultValue + defaultValue;
+    Motor__current = Motor__State__RUNNING;
+    return localVar + Motor__defaultValue + defaultValue;
 }
 
-void Motor_setPin(void) {
-    GPIO7_DR_SET = (1 << 3);
+void Motor__setPin(void) {
+    GPIO7__DR_SET = (1 << 3);
 }
 ```
 
@@ -374,7 +373,7 @@ scope Motor {
     public enum State { IDLE, RUNNING }
 
     void example() {
-        const this.State currentState <- this.State.IDLE;  // Type is Motor_State
+        const this.State currentState <- this.State.IDLE;  // Type is Motor__State
     }
 }
 ```

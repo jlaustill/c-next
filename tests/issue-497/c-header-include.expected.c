@@ -9,11 +9,11 @@
 
 /* Scope: Manager */
 
-Data Manager_getData(void) {
+Data Manager__getData(void) {
     Data d = { .value = 0 };
     return d;
 }
 
 int main(void) {
-    Data d = Manager_getData();
+    Data d = Manager__getData();
 }

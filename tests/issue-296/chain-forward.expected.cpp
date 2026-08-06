@@ -14,37 +14,37 @@
 #include <stdint.h>
 
 /* Scope: Navigator */
-static Waypoint Navigator_current = {};
-static Waypoint Navigator_destination = {};
+static Waypoint Navigator__current = {};
+static Waypoint Navigator__destination = {};
 
-void Navigator_setDestination(const Waypoint& wp) {
-    Navigator_destination = wp;
+void Navigator__setDestination(const Waypoint& wp) {
+    Navigator__destination = wp;
 }
 
-Waypoint Navigator_getDestination(void) {
-    return Navigator_destination;
+Waypoint Navigator__getDestination(void) {
+    return Navigator__destination;
 }
 
-void Navigator_moveTo(const ChainTypesBase_Coordinate& pos) {
-    Navigator_current.position = pos;
+void Navigator__moveTo(const ChainTypesBase__Coordinate& pos) {
+    Navigator__current.position = pos;
 }
 
-ChainTypesBase_Coordinate Navigator_getCurrentPosition(void) {
-    return Navigator_current.position;
+ChainTypesBase__Coordinate Navigator__getCurrentPosition(void) {
+    return Navigator__current.position;
 }
 
 int main(void) {
-    ChainTypesBase_Coordinate dest = { .x = 100, .y = 200, .z = 50 };
+    ChainTypesBase__Coordinate dest = { .x = 100, .y = 200, .z = 50 };
     Waypoint wp = { .position = dest, .id = 42U };
-    Navigator_setDestination(wp);
-    Waypoint retrieved = Navigator_getDestination();
+    Navigator__setDestination(wp);
+    Waypoint retrieved = Navigator__getDestination();
     if (retrieved.id != 42) return 1;
     if (retrieved.position.x != 100) return 2;
     if (retrieved.position.y != 200) return 3;
     if (retrieved.position.z != 50) return 4;
-    ChainTypesBase_Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
-    Navigator_moveTo(newPos);
-    ChainTypesBase_Coordinate currentPos = Navigator_getCurrentPosition();
+    ChainTypesBase__Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
+    Navigator__moveTo(newPos);
+    ChainTypesBase__Coordinate currentPos = Navigator__getCurrentPosition();
     if (currentPos.x != 10) return 5;
     if (currentPos.y != 20) return 6;
     if (currentPos.z != 5) return 7;

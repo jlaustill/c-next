@@ -30,146 +30,146 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on scope-local members
 // Note: +<- is already tested in scope/scope-compound-assign.test.cnx
 /* Scope: Calculator */
-static int32_t Calculator_value = 0;
-static uint32_t Calculator_bits = 0U;
+static int32_t Calculator__value = 0;
+static uint32_t Calculator__bits = 0U;
 
-int32_t Calculator_testSubtraction(void) {
-    Calculator_value = 100;
-    Calculator_value = cnx_clamp_sub_i32(Calculator_value, 30);
-    if (Calculator_value != 70) return 1;
-    Calculator_value = 50;
-    Calculator_value = cnx_clamp_sub_i32(Calculator_value, 50);
-    if (Calculator_value != 0) return 2;
+int32_t Calculator__testSubtraction(void) {
+    Calculator__value = 100;
+    Calculator__value = cnx_clamp_sub_i32(Calculator__value, 30);
+    if (Calculator__value != 70) return 1;
+    Calculator__value = 50;
+    Calculator__value = cnx_clamp_sub_i32(Calculator__value, 50);
+    if (Calculator__value != 0) return 2;
     return 0;
 }
 
-int32_t Calculator_testMultiplication(void) {
-    Calculator_value = 7;
-    Calculator_value = cnx_clamp_mul_i32(Calculator_value, 6);
-    if (Calculator_value != 42) return 10;
-    Calculator_value = 100;
-    Calculator_value = cnx_clamp_mul_i32(Calculator_value, 1);
-    if (Calculator_value != 100) return 11;
-    Calculator_value = 25;
-    Calculator_value = cnx_clamp_mul_i32(Calculator_value, 0);
-    if (Calculator_value != 0) return 12;
+int32_t Calculator__testMultiplication(void) {
+    Calculator__value = 7;
+    Calculator__value = cnx_clamp_mul_i32(Calculator__value, 6);
+    if (Calculator__value != 42) return 10;
+    Calculator__value = 100;
+    Calculator__value = cnx_clamp_mul_i32(Calculator__value, 1);
+    if (Calculator__value != 100) return 11;
+    Calculator__value = 25;
+    Calculator__value = cnx_clamp_mul_i32(Calculator__value, 0);
+    if (Calculator__value != 0) return 12;
     return 0;
 }
 
-int32_t Calculator_testDivision(void) {
-    Calculator_value = 100;
-    Calculator_value /= 5;
-    if (Calculator_value != 20) return 20;
-    Calculator_value = 81;
-    Calculator_value /= 9;
-    if (Calculator_value != 9) return 21;
-    Calculator_value = 50;
-    Calculator_value /= 1;
-    if (Calculator_value != 50) return 22;
+int32_t Calculator__testDivision(void) {
+    Calculator__value = 100;
+    Calculator__value /= 5;
+    if (Calculator__value != 20) return 20;
+    Calculator__value = 81;
+    Calculator__value /= 9;
+    if (Calculator__value != 9) return 21;
+    Calculator__value = 50;
+    Calculator__value /= 1;
+    if (Calculator__value != 50) return 22;
     return 0;
 }
 
-int32_t Calculator_testModulo(void) {
-    Calculator_value = 17;
-    Calculator_value %= 5;
-    if (Calculator_value != 2) return 30;
-    Calculator_value = 100;
-    Calculator_value %= 7;
-    if (Calculator_value != 2) return 31;
-    Calculator_value = 25;
-    Calculator_value %= 25;
-    if (Calculator_value != 0) return 32;
+int32_t Calculator__testModulo(void) {
+    Calculator__value = 17;
+    Calculator__value %= 5;
+    if (Calculator__value != 2) return 30;
+    Calculator__value = 100;
+    Calculator__value %= 7;
+    if (Calculator__value != 2) return 31;
+    Calculator__value = 25;
+    Calculator__value %= 25;
+    if (Calculator__value != 0) return 32;
     return 0;
 }
 
-int32_t Calculator_testBitwiseAnd(void) {
-    Calculator_bits = 0xFFU;
-    Calculator_bits &= 0x0FU;
-    if (Calculator_bits != 0x0F) return 40;
-    Calculator_bits = 0xAAU;
-    Calculator_bits &= 0x55U;
-    if (Calculator_bits != 0) return 41;
-    Calculator_bits = 0x12345678U;
-    Calculator_bits &= 0xFFFFFFFFU;
-    if (Calculator_bits != 0x12345678) return 42;
+int32_t Calculator__testBitwiseAnd(void) {
+    Calculator__bits = 0xFFU;
+    Calculator__bits &= 0x0FU;
+    if (Calculator__bits != 0x0F) return 40;
+    Calculator__bits = 0xAAU;
+    Calculator__bits &= 0x55U;
+    if (Calculator__bits != 0) return 41;
+    Calculator__bits = 0x12345678U;
+    Calculator__bits &= 0xFFFFFFFFU;
+    if (Calculator__bits != 0x12345678) return 42;
     return 0;
 }
 
-int32_t Calculator_testBitwiseOr(void) {
-    Calculator_bits = 0xF0U;
-    Calculator_bits |= 0x0FU;
-    if (Calculator_bits != 0xFF) return 50;
-    Calculator_bits = 0x00U;
-    Calculator_bits |= 0xABU;
-    if (Calculator_bits != 0xAB) return 51;
-    Calculator_bits = 0x12340000U;
-    Calculator_bits |= 0x00005678U;
-    if (Calculator_bits != 0x12345678) return 52;
+int32_t Calculator__testBitwiseOr(void) {
+    Calculator__bits = 0xF0U;
+    Calculator__bits |= 0x0FU;
+    if (Calculator__bits != 0xFF) return 50;
+    Calculator__bits = 0x00U;
+    Calculator__bits |= 0xABU;
+    if (Calculator__bits != 0xAB) return 51;
+    Calculator__bits = 0x12340000U;
+    Calculator__bits |= 0x00005678U;
+    if (Calculator__bits != 0x12345678) return 52;
     return 0;
 }
 
-int32_t Calculator_testBitwiseXor(void) {
-    Calculator_bits = 0xFFU;
-    Calculator_bits ^= 0xFFU;
-    if (Calculator_bits != 0) return 60;
-    Calculator_bits = 0xAAU;
-    Calculator_bits ^= 0x55U;
-    if (Calculator_bits != 0xFF) return 61;
-    Calculator_bits = 0x12345678U;
-    Calculator_bits ^= 0x00000000U;
-    if (Calculator_bits != 0x12345678) return 62;
+int32_t Calculator__testBitwiseXor(void) {
+    Calculator__bits = 0xFFU;
+    Calculator__bits ^= 0xFFU;
+    if (Calculator__bits != 0) return 60;
+    Calculator__bits = 0xAAU;
+    Calculator__bits ^= 0x55U;
+    if (Calculator__bits != 0xFF) return 61;
+    Calculator__bits = 0x12345678U;
+    Calculator__bits ^= 0x00000000U;
+    if (Calculator__bits != 0x12345678) return 62;
     return 0;
 }
 
-int32_t Calculator_testLeftShift(void) {
-    Calculator_bits = 1U;
-    Calculator_bits <<= 4U;
-    if (Calculator_bits != 16) return 70;
-    Calculator_bits = 0xFFU;
-    Calculator_bits <<= 8U;
-    if (Calculator_bits != 0xFF00) return 71;
-    Calculator_bits = 1U;
-    Calculator_bits <<= 0U;
-    if (Calculator_bits != 1) return 72;
+int32_t Calculator__testLeftShift(void) {
+    Calculator__bits = 1U;
+    Calculator__bits <<= 4U;
+    if (Calculator__bits != 16) return 70;
+    Calculator__bits = 0xFFU;
+    Calculator__bits <<= 8U;
+    if (Calculator__bits != 0xFF00) return 71;
+    Calculator__bits = 1U;
+    Calculator__bits <<= 0U;
+    if (Calculator__bits != 1) return 72;
     return 0;
 }
 
-int32_t Calculator_testRightShift(void) {
-    Calculator_bits = 256U;
-    Calculator_bits >>= 4U;
-    if (Calculator_bits != 16) return 80;
-    Calculator_bits = 0xFF00U;
-    Calculator_bits >>= 8U;
-    if (Calculator_bits != 0xFF) return 81;
-    Calculator_bits = 128U;
-    Calculator_bits >>= 0U;
-    if (Calculator_bits != 128) return 82;
+int32_t Calculator__testRightShift(void) {
+    Calculator__bits = 256U;
+    Calculator__bits >>= 4U;
+    if (Calculator__bits != 16) return 80;
+    Calculator__bits = 0xFF00U;
+    Calculator__bits >>= 8U;
+    if (Calculator__bits != 0xFF) return 81;
+    Calculator__bits = 128U;
+    Calculator__bits >>= 0U;
+    if (Calculator__bits != 128) return 82;
     return 0;
 }
 
-int32_t Calculator_runAllTests(void) {
+int32_t Calculator__runAllTests(void) {
     int32_t result = 0;
-    result = Calculator_testSubtraction();
+    result = Calculator__testSubtraction();
     if (result != 0) return result;
-    result = Calculator_testMultiplication();
+    result = Calculator__testMultiplication();
     if (result != 0) return result;
-    result = Calculator_testDivision();
+    result = Calculator__testDivision();
     if (result != 0) return result;
-    result = Calculator_testModulo();
+    result = Calculator__testModulo();
     if (result != 0) return result;
-    result = Calculator_testBitwiseAnd();
+    result = Calculator__testBitwiseAnd();
     if (result != 0) return result;
-    result = Calculator_testBitwiseOr();
+    result = Calculator__testBitwiseOr();
     if (result != 0) return result;
-    result = Calculator_testBitwiseXor();
+    result = Calculator__testBitwiseXor();
     if (result != 0) return result;
-    result = Calculator_testLeftShift();
+    result = Calculator__testLeftShift();
     if (result != 0) return result;
-    result = Calculator_testRightShift();
+    result = Calculator__testRightShift();
     if (result != 0) return result;
     return 0;
 }
 
 int main(void) {
-    return Calculator_runAllTests();
+    return Calculator__runAllTests();
 }

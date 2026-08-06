@@ -153,6 +153,6 @@ describe("FormatUtils.getScopeSeparator", () => {
   });
 
   it("returns _ for C/C-Next context", () => {
-    expect(FormatUtils.getScopeSeparator(false)).toBe("_");
+    expect(FormatUtils.getScopeSeparator(false)).toBe("__");
   });
 });

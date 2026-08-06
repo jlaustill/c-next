@@ -300,7 +300,7 @@ describe("BitmapHandlers", () => {
         bitmapFields: new Map([
           ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
-        registerMemberTypes: new Map([["MOTOR_CTRL", "MotorCtrl"]]),
+        registerMemberTypes: new Map([["MOTOR__CTRL", "MotorCtrl"]]),
       });
       const ctx = createMockContext({
         identifiers: ["MOTOR", "CTRL", "Running"],
@@ -308,7 +308,7 @@ describe("BitmapHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("MOTOR_CTRL =");
+      expect(result).toContain("MOTOR__CTRL =");
       expect(result).toContain("& ~(1U << 0)");
     });
   });
@@ -325,7 +325,7 @@ describe("BitmapHandlers", () => {
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
-        registerMemberTypes: new Map([["Motor_GPIO7_ICR1", "ICR1Bits"]]),
+        registerMemberTypes: new Map([["Motor__GPIO7__ICR1", "ICR1Bits"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1", "LED"],
@@ -335,7 +335,7 @@ describe("BitmapHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("Motor_GPIO7_ICR1 =");
+      expect(result).toContain("Motor__GPIO7__ICR1 =");
       expect(result).toContain("<< 6");
     });
 
@@ -348,7 +348,7 @@ describe("BitmapHandlers", () => {
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
-        registerMemberTypes: new Map([["Motor_GPIO7_ICR1", "ICR1Bits"]]),
+        registerMemberTypes: new Map([["Motor__GPIO7__ICR1", "ICR1Bits"]]),
       });
       const ctx = createMockContext({
         identifiers: ["Motor", "GPIO7", "ICR1", "LED"],
@@ -358,7 +358,7 @@ describe("BitmapHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("Motor_GPIO7_ICR1 =");
+      expect(result).toContain("Motor__GPIO7__ICR1 =");
       expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
         "Motor",
         "GPIO7",
@@ -383,8 +383,8 @@ describe("BitmapHandlers", () => {
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
         ]),
-        registerMemberTypes: new Map([["Motor_GPIO7_SET", "SetBits"]]),
-        registerMemberAccess: new Map([["Motor_GPIO7_SET", "wo"]]),
+        registerMemberTypes: new Map([["Motor__GPIO7__SET", "SetBits"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "SET", "LED"],
@@ -395,7 +395,7 @@ describe("BitmapHandlers", () => {
 
       // Write-only should not use RMW pattern
       expect(result).not.toContain("& ~");
-      expect(result).toContain("Motor_GPIO7_SET =");
+      expect(result).toContain("Motor__GPIO7__SET =");
     });
 
     it("generates write-only pattern for w1s register", () => {
@@ -404,8 +404,8 @@ describe("BitmapHandlers", () => {
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
         ]),
-        registerMemberTypes: new Map([["Motor_GPIO7_SET", "SetBits"]]),
-        registerMemberAccess: new Map([["Motor_GPIO7_SET", "w1s"]]),
+        registerMemberTypes: new Map([["Motor__GPIO7__SET", "SetBits"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__SET", "w1s"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "SET", "LED"],
@@ -424,8 +424,8 @@ describe("BitmapHandlers", () => {
         bitmapFields: new Map([
           ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
         ]),
-        registerMemberTypes: new Map([["Motor_GPIO7_CLR", "ClearBits"]]),
-        registerMemberAccess: new Map([["Motor_GPIO7_CLR", "w1c"]]),
+        registerMemberTypes: new Map([["Motor__GPIO7__CLR", "ClearBits"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__CLR", "w1c"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "CLR", "LED"],

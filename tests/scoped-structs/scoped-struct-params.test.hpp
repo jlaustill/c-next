@@ -14,17 +14,17 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Math_Vec2 {
+typedef struct Math__Vec2 {
     int32_t x;
     int32_t y;
-} Math_Vec2;
+} Math__Vec2;
 
 /* Function prototypes */
-void Math_add(Math_Vec2& result, const Math_Vec2& a, const Math_Vec2& b);
-void Math_scale(Math_Vec2& v, int32_t factor);
-int32_t Math_dot(const Math_Vec2& a, const Math_Vec2& b);
-bool Math_equals(const Math_Vec2& a, const Math_Vec2& b);
-void Math_copy(Math_Vec2& dest, const Math_Vec2& src);
+void Math__add(Math__Vec2& result, const Math__Vec2& a, const Math__Vec2& b);
+void Math__scale(Math__Vec2& v, int32_t factor);
+int32_t Math__dot(const Math__Vec2& a, const Math__Vec2& b);
+bool Math__equals(const Math__Vec2& a, const Math__Vec2& b);
+void Math__copy(Math__Vec2& dest, const Math__Vec2& src);
 
 #ifdef __cplusplus
 }

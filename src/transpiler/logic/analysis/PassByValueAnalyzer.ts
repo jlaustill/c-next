@@ -31,6 +31,7 @@ import StatementExpressionCollector from "./helpers/StatementExpressionCollector
 import ChildStatementCollector from "./helpers/ChildStatementCollector";
 import AssignmentTargetExtractor from "./helpers/AssignmentTargetExtractor";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 /**
  * Small primitive types that are eligible for pass-by-value optimization.
@@ -141,7 +142,7 @@ class PassByValueAnalyzer {
           if (member.functionDeclaration()) {
             const funcDecl = member.functionDeclaration()!;
             const funcName = funcDecl.IDENTIFIER().getText();
-            const fullName = `${scopeName}_${funcName}`;
+            const fullName = QualifiedCName.join(scopeName, funcName);
             PassByValueAnalyzer.analyzeFunctionForModifications(
               fullName,
               funcDecl,
@@ -452,12 +453,15 @@ class PassByValueAnalyzer {
 
     // Fallback to legacy string-based lookup for backward compatibility
     // (handles functions from C headers, external functions, etc.)
-    const underscoreIndex = callerFuncName.indexOf("_");
-    if (underscoreIndex === -1) {
+    const separatorIndex = callerFuncName.indexOf(QualifiedCName.SEPARATOR);
+    if (separatorIndex === -1) {
       return bareCalleeName;
     }
 
-    const scopePrefix = callerFuncName.substring(0, underscoreIndex + 1);
+    const scopePrefix = callerFuncName.substring(
+      0,
+      separatorIndex + QualifiedCName.SEPARATOR.length,
+    );
     const qualifiedName = scopePrefix + bareCalleeName;
 
     if (CodeGenState.functionParamLists.has(qualifiedName)) {
@@ -488,7 +492,7 @@ class PassByValueAnalyzer {
       if (op.IDENTIFIER()) {
         memberNames.push(op.IDENTIFIER()!.getText());
       } else if (op.LPAREN() && memberNames.length >= 1) {
-        const calleeName = memberNames.join("_");
+        const calleeName = QualifiedCName.join(...memberNames);
         PassByValueAnalyzer.recordCallsFromArgList(
           funcName,
           paramSet,
@@ -516,7 +520,7 @@ class PassByValueAnalyzer {
     if (primaryId && primaryId !== "global") {
       memberNames.push(primaryId);
     } else if (primary.THIS()) {
-      const scopeName = funcName.split("_")[0];
+      const scopeName = QualifiedCName.split(funcName)[0];
       if (scopeName && scopeName !== funcName) {
         memberNames.push(scopeName);
       }

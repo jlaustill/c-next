@@ -12,22 +12,22 @@
 // Issue #478: global.EnumType not recognized as type reference inside scope
 // Define enum in same file to avoid cross-file header conflicts
 /* Scope: StateMachine */
-static EState StateMachine_currentState = EState_IDLE;
+static EState StateMachine__currentState = EState__IDLE;
 
-void StateMachine_setState(EState state) {
-    StateMachine_currentState = state;
+void StateMachine__setState(EState state) {
+    StateMachine__currentState = state;
 }
 
-EState StateMachine_getState(void) {
-    return StateMachine_currentState;
+EState StateMachine__getState(void) {
+    return StateMachine__currentState;
 }
 
 int main(void) {
-    StateMachine_setState(EState_RUNNING);
-    int32_t result = static_cast<int32_t>(StateMachine_getState());
+    StateMachine__setState(EState__RUNNING);
+    int32_t result = static_cast<int32_t>(StateMachine__getState());
     if (result != 1) return 1;
-    StateMachine_setState(EState_STOPPED);
-    result = static_cast<int32_t>(StateMachine_getState());
+    StateMachine__setState(EState__STOPPED);
+    result = static_cast<int32_t>(StateMachine__getState());
     if (result != 2) return 2;
     return 0;
 }

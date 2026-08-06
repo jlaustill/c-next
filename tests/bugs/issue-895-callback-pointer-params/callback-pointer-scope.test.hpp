@@ -15,8 +15,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Renderer_my_flush(widget_t* w, const rect_t* area, uint8_t* buf);
-void Renderer_init(void);
+void Renderer__my_flush(widget_t* w, const rect_t* area, uint8_t* buf);
+void Renderer__init(void);
 
 #ifdef __cplusplus
 }

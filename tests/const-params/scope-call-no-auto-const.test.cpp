@@ -15,30 +15,30 @@
 // Simulates a storage manager that modifies the config it receives
 /* Scope: Storage */
 
-void Storage_load(AppConfig& config) {
+void Storage__load(AppConfig& config) {
     config.value = 42U;
     config.enabled = true;
 }
 
-void Storage_save(const AppConfig& config) {
+void Storage__save(const AppConfig& config) {
     uint32_t temp = config.value;
 }
 
 // Function that passes its parameter to Storage.load()
 // Since Storage.load() modifies its param, this param should NOT get const
 void loadConfig(AppConfig& config) {
-    Storage_load(config);
+    Storage__load(config);
 }
 
 // Function that passes its parameter to Storage.save()
 // Since Storage.save() only reads, this param SHOULD get const
 void saveConfig(const AppConfig& config) {
-    Storage_save(config);
+    Storage__save(config);
 }
 
 // Direct call to scope method that modifies - should NOT get const
 void directLoad(AppConfig& config) {
-    Storage_load(config);
+    Storage__load(config);
 }
 
 int main(void) {

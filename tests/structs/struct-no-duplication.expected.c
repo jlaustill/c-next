@@ -12,7 +12,7 @@
 // When generating headers, struct definitions should ONLY appear in the .h file
 /* Scope: Handler */
 
-uint8_t Handler_process(const MyData* data) {
+uint8_t Handler__process(const MyData* data) {
     return data->value;
 }
 
@@ -20,7 +20,7 @@ int main(void) {
     MyData data = {0};
     data.value = 42U;
     data.count = 1U;
-    uint8_t result = Handler_process(&data);
+    uint8_t result = Handler__process(&data);
     if (result != 42) return 1;
     return 0;
 }

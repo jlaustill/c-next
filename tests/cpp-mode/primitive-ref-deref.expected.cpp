@@ -13,18 +13,18 @@
 // The body should use 'val' directly, not '(*val)'
 /* Scope: Test */
 
-uint32_t Test_helper(uint32_t x) {
+uint32_t Test__helper(uint32_t x) {
     return x + 1;
 }
 
-uint32_t Test_process(uint32_t& val) {
-    val = Test_helper(val);
+uint32_t Test__process(uint32_t& val) {
+    val = Test__helper(val);
     return val;
 }
 
 int main(void) {
     uint32_t input = 5U;
-    uint32_t result = Test_process(input);
+    uint32_t result = Test__process(input);
     if (result != 6) return 1;
     return 0;
 }

@@ -15,15 +15,15 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1,
-    Color_BLUE = 2,
-    Color_YELLOW = 3
+    Color__RED = 0,
+    Color__GREEN = 1,
+    Color__BLUE = 2,
+    Color__YELLOW = 3
 } Color;
 typedef enum {
-    TrafficLight_STOP = 0,
-    TrafficLight_CAUTION = 1,
-    TrafficLight_GO = 2
+    TrafficLight__STOP = 0,
+    TrafficLight__CAUTION = 1,
+    TrafficLight__GO = 2
 } TrafficLight;
 
 #ifdef __cplusplus

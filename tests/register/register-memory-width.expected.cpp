@@ -9,41 +9,41 @@
 // For embedded systems, the memory access WIDTH matters for hardware behavior
 // u32 register with different access widths
 /* Register: REG32 @ 0x40000000 */
-#define REG32_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define REG32__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 
 // Write full 32 bits - should use uint32_t*
 void write32(uint32_t data) {
-    REG32_DR = data;
+    REG32__DR = data;
 }
 
 // Write lower 16 bits - MUST use uint16_t* for correct hardware behavior
 void write16_at_0(uint16_t data) {
-    REG32_DR = (1U << 0);
+    REG32__DR = (1U << 0);
 }
 
 // Write upper 16 bits - MUST use uint16_t* at offset +2
 void write16_at_16(uint16_t data) {
-    REG32_DR = (1U << 16);
+    REG32__DR = (1U << 16);
 }
 
 // Write lower 8 bits - MUST use uint8_t*
 void write8_at_0(uint8_t data) {
-    REG32_DR = (1U << 0);
+    REG32__DR = (1U << 0);
 }
 
 // Write byte at offset 1 - MUST use uint8_t* at offset +1
 void write8_at_8(uint8_t data) {
-    REG32_DR = (1U << 8);
+    REG32__DR = (1U << 8);
 }
 
 // Write byte at offset 2 - MUST use uint8_t* at offset +2
 void write8_at_16(uint8_t data) {
-    REG32_DR = (1U << 16);
+    REG32__DR = (1U << 16);
 }
 
 // Write byte at offset 3 - MUST use uint8_t* at offset +3
 void write8_at_24(uint8_t data) {
-    REG32_DR = (1U << 24);
+    REG32__DR = (1U << 24);
 }
 
 int main(void) {

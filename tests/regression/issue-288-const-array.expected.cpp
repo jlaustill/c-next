@@ -11,26 +11,26 @@
 // Tests: Issue #288 - const arrays should also have extern const in headers
 // Verifies the fix handles const arrays, not just scalar const variables
 /* Scope: ConstArrayTest */
-const uint8_t ConstArrayTest_LOOKUP_TABLE[4] = {10U, 20U, 30U, 40U};
-const uint8_t ConstArrayTest_TABLE_SIZE = 4U;
+const uint8_t ConstArrayTest__LOOKUP_TABLE[4] = {10U, 20U, 30U, 40U};
+const uint8_t ConstArrayTest__TABLE_SIZE = 4U;
 
-uint8_t ConstArrayTest_lookup(uint8_t index) {
-    if (index < ConstArrayTest_TABLE_SIZE) {
-        return ConstArrayTest_LOOKUP_TABLE[index];
+uint8_t ConstArrayTest__lookup(uint8_t index) {
+    if (index < ConstArrayTest__TABLE_SIZE) {
+        return ConstArrayTest__LOOKUP_TABLE[index];
     }
     return 0;
 }
 
 int main(void) {
-    if (ConstArrayTest_LOOKUP_TABLE[0U] != 10) return 1;
-    if (ConstArrayTest_LOOKUP_TABLE[1U] != 20) return 2;
-    if (ConstArrayTest_LOOKUP_TABLE[2U] != 30) return 3;
-    if (ConstArrayTest_LOOKUP_TABLE[3U] != 40) return 4;
-    uint8_t val0 = ConstArrayTest_lookup(0U);
+    if (ConstArrayTest__LOOKUP_TABLE[0U] != 10) return 1;
+    if (ConstArrayTest__LOOKUP_TABLE[1U] != 20) return 2;
+    if (ConstArrayTest__LOOKUP_TABLE[2U] != 30) return 3;
+    if (ConstArrayTest__LOOKUP_TABLE[3U] != 40) return 4;
+    uint8_t val0 = ConstArrayTest__lookup(0U);
     if (val0 != 10) return 5;
-    uint8_t val2 = ConstArrayTest_lookup(2U);
+    uint8_t val2 = ConstArrayTest__lookup(2U);
     if (val2 != 30) return 6;
-    uint8_t outOfBounds = ConstArrayTest_lookup(10U);
+    uint8_t outOfBounds = ConstArrayTest__lookup(10U);
     if (outOfBounds != 0) return 7;
     return 0;
 }

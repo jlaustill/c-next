@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void CANHandler_init(void);
+void CANHandler__init(void);
 
 #ifdef __cplusplus
 }

@@ -15,17 +15,17 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Motor_State_IDLE = 0,
-    Motor_State_RUNNING = 1,
-    Motor_State_STOPPED = 2
-} Motor_State;
+    Motor__State__IDLE = 0,
+    Motor__State__RUNNING = 1,
+    Motor__State__STOPPED = 2
+} Motor__State;
 
 /* External variables */
-extern Motor_State Motor_current;
+extern Motor__State Motor__current;
 
 /* Function prototypes */
-uint8_t Motor_start(void);
-bool Motor_isRunning(void);
+uint8_t Motor__start(void);
+bool Motor__isRunning(void);
 
 #ifdef __cplusplus
 }

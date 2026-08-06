@@ -18,15 +18,15 @@ extern int32_t gValue;
 extern uint32_t gBits;
 
 /* Function prototypes */
-int32_t Worker_testSubtraction(void);
-int32_t Worker_testMultiplication(void);
-int32_t Worker_testDivision(void);
-int32_t Worker_testModulo(void);
-int32_t Worker_testBitwiseAnd(void);
-int32_t Worker_testBitwiseOr(void);
-int32_t Worker_testBitwiseXor(void);
-int32_t Worker_testLeftShift(void);
-int32_t Worker_testRightShift(void);
+int32_t Worker__testSubtraction(void);
+int32_t Worker__testMultiplication(void);
+int32_t Worker__testDivision(void);
+int32_t Worker__testModulo(void);
+int32_t Worker__testBitwiseAnd(void);
+int32_t Worker__testBitwiseOr(void);
+int32_t Worker__testBitwiseXor(void);
+int32_t Worker__testLeftShift(void);
+int32_t Worker__testRightShift(void);
 
 #ifdef __cplusplus
 }

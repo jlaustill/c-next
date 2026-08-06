@@ -11,12 +11,12 @@
 // Tests: Scope method returning global enum
 /* Scope: Test */
 
-EGlobal Test_getGlobalEnum(void) {
-    return EGlobal_A;
+EGlobal Test__getGlobalEnum(void) {
+    return EGlobal__A;
 }
 
 int main(void) {
-    EGlobal fromScope = Test_getGlobalEnum();
-    if (fromScope != EGlobal_A) return 1;
+    EGlobal fromScope = Test__getGlobalEnum();
+    if (fromScope != EGlobal__A) return 1;
     return 0;
 }

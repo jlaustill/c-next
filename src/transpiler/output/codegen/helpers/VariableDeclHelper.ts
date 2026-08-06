@@ -25,6 +25,7 @@ import NarrowingCastHelper from "./NarrowingCastHelper.js";
 import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Callbacks for integer validation in variable declarations.
@@ -728,7 +729,7 @@ class VariableDeclHelper {
       let scopedArgName = argName;
       let scopedTypeInfo = typeInfo;
       if (!typeInfo && CodeGenState.currentScope) {
-        scopedArgName = `${CodeGenState.currentScope}_${argName}`;
+        scopedArgName = QualifiedCName.join(CodeGenState.currentScope, argName);
         scopedTypeInfo = CodeGenState.getVariableTypeInfo(scopedArgName);
       }
 

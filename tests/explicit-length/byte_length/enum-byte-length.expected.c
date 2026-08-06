@@ -11,7 +11,7 @@
 // test-c-only
 // Tests .byte_length property for enum type (ADR-058)
 // Enums are 4 bytes (32 bits) by default
-Color globalColor = Color_Red;
+Color globalColor = Color__Red;
 
 /* Scope: EnumByteLen */
 
@@ -19,12 +19,12 @@ int main(void) {
     if (4 != 4) {
         return 1;
     }
-    State localState = State_IDLE;
+    State localState = State__IDLE;
     if (4 != 4) {
         return 2;
     }
-    EnumByteLen_TestStruct ts = {0};
-    ts.state = State_RUNNING;
+    EnumByteLen__TestStruct ts = {0};
+    ts.state = State__RUNNING;
     if (4 != 4) {
         return 3;
     }

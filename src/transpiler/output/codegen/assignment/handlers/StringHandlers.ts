@@ -15,6 +15,7 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Validate compound operators are not used with strings.
@@ -101,7 +102,7 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const memberName = ctx.identifiers[0];
-  const scopedName = `${CodeGenState.currentScope}_${memberName}`;
+  const scopedName = QualifiedCName.join(CodeGenState.currentScope, memberName);
   const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
   const capacity = typeInfo!.stringCapacity!;
 

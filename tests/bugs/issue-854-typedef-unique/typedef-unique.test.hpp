@@ -15,11 +15,11 @@ extern "C" {
 #endif
 
 /* External type dependencies - include appropriate headers */
-typedef struct TypedefTypes_Sensor TypedefTypes_Sensor;
+typedef struct TypedefTypes__Sensor TypedefTypes__Sensor;
 
 /* Function prototypes */
-void Reader_update(const TypedefTypes_Sensor& s);
-TypedefTypes_Sensor Reader_read(void);
+void Reader__update(const TypedefTypes__Sensor& s);
+TypedefTypes__Sensor Reader__read(void);
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@
 /* Scope: LengthNested */
 
 int main(void) {
-    LengthNested_Outer config = {0};
+    LengthNested__Outer config = {0};
     config.inner.value = 0x12345678U;
     config.inner.status = 100U;
     config.flags = 0xFFU;

@@ -6,11 +6,11 @@
 // ADR-025: Counted Default Test
 // Tests default(n) syntax for large enums
 typedef enum {
-    EHttpStatus_OK = 0,
-    EHttpStatus_CREATED = 1,
-    EHttpStatus_BAD_REQUEST = 2,
-    EHttpStatus_UNAUTHORIZED = 3,
-    EHttpStatus_NOT_FOUND = 4
+    EHttpStatus__OK = 0,
+    EHttpStatus__CREATED = 1,
+    EHttpStatus__BAD_REQUEST = 2,
+    EHttpStatus__UNAUTHORIZED = 3,
+    EHttpStatus__NOT_FOUND = 4
 } EHttpStatus;
 
 void handleSuccess(void) {
@@ -24,11 +24,11 @@ void handleOther(void) {
 
 void handleStatus(EHttpStatus status) {
     switch (status) {
-        case EHttpStatus_OK: {
+        case EHttpStatus__OK: {
             handleSuccess();
             break;
         }
-        case EHttpStatus_CREATED: {
+        case EHttpStatus__CREATED: {
             handleCreated();
             break;
         }

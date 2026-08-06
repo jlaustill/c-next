@@ -14,17 +14,17 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct U32ArrayBitLength_TestStruct {
+typedef struct U32ArrayBitLength__TestStruct {
     uint32_t arr[16];
-} U32ArrayBitLength_TestStruct;
+} U32ArrayBitLength__TestStruct;
 
 /* External variables */
 extern uint32_t globalArr[16];
-extern uint32_t TestScope_publicArr[16];
+extern uint32_t TestScope__publicArr[16];
 
 /* Function prototypes */
-uint32_t TestScope_getGlobalArrayBitLength(void);
-uint32_t TestScope_getScopeArrayBitLength(void);
+uint32_t TestScope__getGlobalArrayBitLength(void);
+uint32_t TestScope__getScopeArrayBitLength(void);
 
 #ifdef __cplusplus
 }

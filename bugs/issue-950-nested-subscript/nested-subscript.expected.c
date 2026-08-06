@@ -13,21 +13,21 @@ TInput inputs[8] = {0};
 
 /* Scope: Test */
 
-void Test_setInput(const uint8_t data[8]) {
+void Test__setInput(const uint8_t data[8]) {
     inputs[data[2U] - 1].assignedValue = data[1U];
 }
 
-void Test_setInputExtracted(const uint8_t data[8]) {
+void Test__setInputExtracted(const uint8_t data[8]) {
     uint8_t idx = data[2U] - 1U;
     inputs[idx].assignedValue = data[1U];
 }
 
 int main(void) {
     uint8_t testData[8] = {0U, 99U, 3U, 0U, 0U, 0U, 0U, 0U};
-    Test_setInputExtracted(testData);
+    Test__setInputExtracted(testData);
     if (inputs[2U].assignedValue != 99) return 1;
     inputs[2].assignedValue = 0U;
-    Test_setInput(testData);
+    Test__setInput(testData);
     if (inputs[2U].assignedValue != 99) return 2;
     return 0;
 }

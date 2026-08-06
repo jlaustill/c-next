@@ -9,25 +9,25 @@
 // Tests that enum values without type prefix get resolved correctly
 // in both if conditions and case labels
 typedef enum {
-    ECategory_CAT_A = 0,
-    ECategory_CAT_B = 1,
-    ECategory_CAT_C = 2
+    ECategory__CAT_A = 0,
+    ECategory__CAT_B = 1,
+    ECategory__CAT_C = 2
 } ECategory;
 
 uint32_t categorize(ECategory cat) {
-    if (cat == ECategory_CAT_A) {
+    if (cat == ECategory__CAT_A) {
         return 100;
     }
     switch (cat) {
-        case ECategory_CAT_A: {
+        case ECategory__CAT_A: {
             return 10;
             break;
         }
-        case ECategory_CAT_B: {
+        case ECategory__CAT_B: {
             return 20;
             break;
         }
-        case ECategory_CAT_C: {
+        case ECategory__CAT_C: {
             return 30;
             break;
         }

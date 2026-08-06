@@ -11,17 +11,17 @@
 
 /* Scope: Graphics */
 
-Color Graphics_getDefaultColor(void) {
+Color Graphics__getDefaultColor(void) {
     Color c = { .r = 255U, .g = 255U, .b = 255U };
     return c;
 }
 
-Size Graphics_getDefaultSize(void) {
+Size Graphics__getDefaultSize(void) {
     Size s = { .width = 100, .height = 100 };
     return s;
 }
 
 int main(void) {
-    Color c = Graphics_getDefaultColor();
-    Size s = Graphics_getDefaultSize();
+    Color c = Graphics__getDefaultColor();
+    Size s = Graphics__getDefaultSize();
 }

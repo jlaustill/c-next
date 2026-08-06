@@ -19,6 +19,7 @@ import TypeValidator from "../TypeValidator.js";
 import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils.js";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Callbacks required for assignment validation.
@@ -205,7 +206,7 @@ class AssignmentValidator {
       throw new Error(`${constError} (member access)`);
     }
 
-    const fullName = `${rootName}_${memberName}`;
+    const fullName = QualifiedCName.join(rootName, memberName);
 
     // ADR-013: Check for read-only register members
     const accessMod = CodeGenState.symbols?.registerMemberAccess.get(fullName);

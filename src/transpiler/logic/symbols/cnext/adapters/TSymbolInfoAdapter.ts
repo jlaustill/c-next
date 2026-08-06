@@ -20,6 +20,7 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import SymbolNameUtils from "../utils/SymbolNameUtils";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Groups register-related maps for processRegister method.
@@ -350,7 +351,7 @@ class TSymbolInfoAdapter {
     }
 
     for (const [memberName, memberInfo] of register.members) {
-      const fullName = `${cName}_${memberName}`;
+      const fullName = QualifiedCName.join(cName, memberName);
 
       maps.registerMemberAccess.set(fullName, memberInfo.access);
       maps.registerMemberOffsets.set(fullName, memberInfo.offset);
@@ -421,7 +422,7 @@ class TSymbolInfoAdapter {
     scopeName: string,
     varName: string,
   ): string | null {
-    const fullVarName = `${scopeName}_${varName}`;
+    const fullVarName = QualifiedCName.join(scopeName, varName);
     const usedIn = scopeVariableUsage.get(fullVarName);
 
     if (usedIn?.size !== 1) {

@@ -1,0 +1,23 @@
+// test-execution
+// Tests: a LEADING underscore stays legal (ADR-063)
+//
+// Injectivity of Scope__member constrains only the separator's left boundary, so
+// what a member name begins with never matters. This guards the private-member
+// idiom taught in ADR-029 and docs/language-guide.md against a future tightening.
+
+struct Controller {
+    u8 _handler;
+    u8 count;
+}
+
+u32 main() {
+    Controller c <- {_handler: 42, count: 7};
+
+    if (c._handler != 42) return 1;
+    if (c.count != 7) return 2;
+
+    u8 _local <- 9;
+    if (_local != 9) return 3;
+
+    return 0;
+}

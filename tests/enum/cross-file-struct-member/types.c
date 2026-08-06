@@ -12,4 +12,4 @@
 
 const uint8_t COUNT = 4U;
 
-CrossFileEnum_Config config = {0};
+CrossFileEnum__Config config = {0};

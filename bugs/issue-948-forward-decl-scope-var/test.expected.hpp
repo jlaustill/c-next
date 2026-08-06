@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void MyScope_init(void);
+void MyScope__init(void);
 
 #ifdef __cplusplus
 }

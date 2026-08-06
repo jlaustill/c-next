@@ -17,224 +17,224 @@
 // SCOPE A: Provider scope with all primitive types
 // ==========================================
 /* Scope: Provider */
-uint8_t Provider_valU8 = 255U;
-uint16_t Provider_valU16 = 65535U;
-uint32_t Provider_valU32 = 4294967295U;
-uint64_t Provider_valU64 = 18446744073709551615ULL;
-int8_t Provider_valI8 = -128;
-int16_t Provider_valI16 = -32768;
-int32_t Provider_valI32 = (int32_t)INT32_MIN;
-int64_t Provider_valI64 = (int64_t)INT64_MIN;
-float Provider_valF32 = 3.14;
-double Provider_valF64 = 3.141592653589793;
-bool Provider_valBool = true;
-uint32_t Provider_arrayU32[3] = {0};
-int16_t Provider_arrayI16[3] = {0};
-uint8_t Provider_clampVal = 200U;
-uint8_t Provider_wrapVal = 250U;
+uint8_t Provider__valU8 = 255U;
+uint16_t Provider__valU16 = 65535U;
+uint32_t Provider__valU32 = 4294967295U;
+uint64_t Provider__valU64 = 18446744073709551615ULL;
+int8_t Provider__valI8 = -128;
+int16_t Provider__valI16 = -32768;
+int32_t Provider__valI32 = (int32_t)INT32_MIN;
+int64_t Provider__valI64 = (int64_t)INT64_MIN;
+float Provider__valF32 = 3.14;
+double Provider__valF64 = 3.141592653589793;
+bool Provider__valBool = true;
+uint32_t Provider__arrayU32[3] = {0};
+int16_t Provider__arrayI16[3] = {0};
+uint8_t Provider__clampVal = 200U;
+uint8_t Provider__wrapVal = 250U;
 
-uint8_t Provider_getU8(void) {
-    return Provider_valU8;
+uint8_t Provider__getU8(void) {
+    return Provider__valU8;
 }
 
-int32_t Provider_getI32(void) {
-    return Provider_valI32;
+int32_t Provider__getI32(void) {
+    return Provider__valI32;
 }
 
-bool Provider_getBool(void) {
-    return Provider_valBool;
+bool Provider__getBool(void) {
+    return Provider__valBool;
 }
 
-void Provider_setU8(uint8_t val) {
-    Provider_valU8 = val;
+void Provider__setU8(uint8_t val) {
+    Provider__valU8 = val;
 }
 
-void Provider_setI32(int32_t val) {
-    Provider_valI32 = val;
+void Provider__setI32(int32_t val) {
+    Provider__valI32 = val;
 }
 
-void Provider_setBool(bool val) {
-    Provider_valBool = val;
+void Provider__setBool(bool val) {
+    Provider__valBool = val;
 }
 
 // ==========================================
 // SCOPE B: Consumer scope that accesses Provider
 // ==========================================
 /* Scope: Consumer */
-uint32_t Consumer_result = 0U;
-int32_t Consumer_signedResult = 0;
-bool Consumer_boolResult = false;
+uint32_t Consumer__result = 0U;
+int32_t Consumer__signedResult = 0;
+bool Consumer__boolResult = false;
 
-uint8_t Consumer_readProviderU8(void) {
-    return Provider_valU8;
+uint8_t Consumer__readProviderU8(void) {
+    return Provider__valU8;
 }
 
-uint16_t Consumer_readProviderU16(void) {
-    return Provider_valU16;
+uint16_t Consumer__readProviderU16(void) {
+    return Provider__valU16;
 }
 
-uint32_t Consumer_readProviderU32(void) {
-    return Provider_valU32;
+uint32_t Consumer__readProviderU32(void) {
+    return Provider__valU32;
 }
 
-uint64_t Consumer_readProviderU64(void) {
-    return Provider_valU64;
+uint64_t Consumer__readProviderU64(void) {
+    return Provider__valU64;
 }
 
-int8_t Consumer_readProviderI8(void) {
-    return Provider_valI8;
+int8_t Consumer__readProviderI8(void) {
+    return Provider__valI8;
 }
 
-int16_t Consumer_readProviderI16(void) {
-    return Provider_valI16;
+int16_t Consumer__readProviderI16(void) {
+    return Provider__valI16;
 }
 
-int32_t Consumer_readProviderI32(void) {
-    return Provider_valI32;
+int32_t Consumer__readProviderI32(void) {
+    return Provider__valI32;
 }
 
-int64_t Consumer_readProviderI64(void) {
-    return Provider_valI64;
+int64_t Consumer__readProviderI64(void) {
+    return Provider__valI64;
 }
 
-float Consumer_readProviderF32(void) {
-    return Provider_valF32;
+float Consumer__readProviderF32(void) {
+    return Provider__valF32;
 }
 
-double Consumer_readProviderF64(void) {
-    return Provider_valF64;
+double Consumer__readProviderF64(void) {
+    return Provider__valF64;
 }
 
-bool Consumer_readProviderBool(void) {
-    return Provider_valBool;
+bool Consumer__readProviderBool(void) {
+    return Provider__valBool;
 }
 
-void Consumer_writeProviderU8(uint8_t val) {
-    Provider_valU8 = val;
+void Consumer__writeProviderU8(uint8_t val) {
+    Provider__valU8 = val;
 }
 
-void Consumer_writeProviderI32(int32_t val) {
-    Provider_valI32 = val;
+void Consumer__writeProviderI32(int32_t val) {
+    Provider__valI32 = val;
 }
 
-void Consumer_writeProviderBool(bool val) {
-    Provider_valBool = val;
+void Consumer__writeProviderBool(bool val) {
+    Provider__valBool = val;
 }
 
-uint8_t Consumer_callProviderGetU8(void) {
-    return Provider_getU8();
+uint8_t Consumer__callProviderGetU8(void) {
+    return Provider__getU8();
 }
 
-int32_t Consumer_callProviderGetI32(void) {
-    return Provider_getI32();
+int32_t Consumer__callProviderGetI32(void) {
+    return Provider__getI32();
 }
 
-bool Consumer_callProviderGetBool(void) {
-    return Provider_getBool();
+bool Consumer__callProviderGetBool(void) {
+    return Provider__getBool();
 }
 
-void Consumer_writeProviderArray(uint32_t index, uint32_t val) {
-    Provider_arrayU32[index] = val;
+void Consumer__writeProviderArray(uint32_t index, uint32_t val) {
+    Provider__arrayU32[index] = val;
 }
 
-uint32_t Consumer_readProviderArray(uint32_t index) {
-    return Provider_arrayU32[index];
+uint32_t Consumer__readProviderArray(uint32_t index) {
+    return Provider__arrayU32[index];
 }
 
-uint8_t Consumer_readProviderClamp(void) {
-    return Provider_clampVal;
+uint8_t Consumer__readProviderClamp(void) {
+    return Provider__clampVal;
 }
 
-uint8_t Consumer_readProviderWrap(void) {
-    return Provider_wrapVal;
+uint8_t Consumer__readProviderWrap(void) {
+    return Provider__wrapVal;
 }
 
-void Consumer_setProviderClamp(uint8_t val) {
-    Provider_clampVal = val;
+void Consumer__setProviderClamp(uint8_t val) {
+    Provider__clampVal = val;
 }
 
-void Consumer_setProviderWrap(uint8_t val) {
-    Provider_wrapVal = val;
+void Consumer__setProviderWrap(uint8_t val) {
+    Provider__wrapVal = val;
 }
 
-void Consumer_computeSum(void) {
-    Consumer_result = Provider_valU32;
+void Consumer__computeSum(void) {
+    Consumer__result = Provider__valU32;
 }
 
-void Consumer_computeSignedSum(void) {
-    Consumer_signedResult = Provider_valI32 + 100;
+void Consumer__computeSignedSum(void) {
+    Consumer__signedResult = Provider__valI32 + 100;
 }
 
 int main(void) {
-    uint8_t resultU8 = Consumer_readProviderU8();
+    uint8_t resultU8 = Consumer__readProviderU8();
     if (resultU8 != 255) return 1;
-    uint16_t resultU16 = Consumer_readProviderU16();
+    uint16_t resultU16 = Consumer__readProviderU16();
     if (resultU16 != 65535) return 2;
-    uint32_t resultU32 = Consumer_readProviderU32();
+    uint32_t resultU32 = Consumer__readProviderU32();
     if (resultU32 != 4294967295) return 3;
-    uint64_t resultU64 = Consumer_readProviderU64();
+    uint64_t resultU64 = Consumer__readProviderU64();
     if (resultU64 != 18446744073709551615) return 4;
-    int8_t resultI8 = Consumer_readProviderI8();
+    int8_t resultI8 = Consumer__readProviderI8();
     if (resultI8 != -128) return 5;
-    int16_t resultI16 = Consumer_readProviderI16();
+    int16_t resultI16 = Consumer__readProviderI16();
     if (resultI16 != -32768) return 6;
-    int32_t resultI32 = Consumer_readProviderI32();
+    int32_t resultI32 = Consumer__readProviderI32();
     if (resultI32 != (int32_t)INT32_MIN) return 7;
-    int64_t resultI64 = Consumer_readProviderI64();
+    int64_t resultI64 = Consumer__readProviderI64();
     if (resultI64 != (int64_t)INT64_MIN) return 8;
     float expectedF32 = 3.14;
-    Provider_valF32 = expectedF32;
-    float resultF32 = Consumer_readProviderF32();
+    Provider__valF32 = expectedF32;
+    float resultF32 = Consumer__readProviderF32();
     if (resultF32 != expectedF32) return 9;
     double expectedF64 = 3.141592653589793;
-    Provider_valF64 = expectedF64;
-    double resultF64 = Consumer_readProviderF64();
+    Provider__valF64 = expectedF64;
+    double resultF64 = Consumer__readProviderF64();
     if (resultF64 != expectedF64) return 10;
-    bool resultBool = Consumer_readProviderBool();
+    bool resultBool = Consumer__readProviderBool();
     if (resultBool != true) return 11;
-    Consumer_writeProviderU8(42U);
-    if (Provider_valU8 != 42) return 12;
-    Consumer_writeProviderI32(-999);
-    if (Provider_valI32 != -999) return 13;
-    Consumer_writeProviderBool(false);
-    if (Provider_valBool != false) return 14;
-    Provider_valU8 = 100;
-    Provider_valI32 = -500;
-    Provider_valBool = true;
-    uint8_t resultU8_2 = Consumer_callProviderGetU8();
+    Consumer__writeProviderU8(42U);
+    if (Provider__valU8 != 42) return 12;
+    Consumer__writeProviderI32(-999);
+    if (Provider__valI32 != -999) return 13;
+    Consumer__writeProviderBool(false);
+    if (Provider__valBool != false) return 14;
+    Provider__valU8 = 100;
+    Provider__valI32 = -500;
+    Provider__valBool = true;
+    uint8_t resultU8_2 = Consumer__callProviderGetU8();
     if (resultU8_2 != 100) return 15;
-    int32_t resultI32_2 = Consumer_callProviderGetI32();
+    int32_t resultI32_2 = Consumer__callProviderGetI32();
     if (resultI32_2 != -500) return 16;
-    bool resultBool2 = Consumer_callProviderGetBool();
+    bool resultBool2 = Consumer__callProviderGetBool();
     if (resultBool2 != true) return 17;
-    Consumer_writeProviderArray(0U, 1000U);
-    Consumer_writeProviderArray(1U, 2000U);
-    Consumer_writeProviderArray(2U, 3000U);
-    uint32_t arrResult0 = Consumer_readProviderArray(0U);
+    Consumer__writeProviderArray(0U, 1000U);
+    Consumer__writeProviderArray(1U, 2000U);
+    Consumer__writeProviderArray(2U, 3000U);
+    uint32_t arrResult0 = Consumer__readProviderArray(0U);
     if (arrResult0 != 1000) return 19;
-    uint32_t arrResult1 = Consumer_readProviderArray(1U);
+    uint32_t arrResult1 = Consumer__readProviderArray(1U);
     if (arrResult1 != 2000) return 20;
-    uint32_t arrResult2 = Consumer_readProviderArray(2U);
+    uint32_t arrResult2 = Consumer__readProviderArray(2U);
     if (arrResult2 != 3000) return 21;
-    uint8_t clampResult = Consumer_readProviderClamp();
+    uint8_t clampResult = Consumer__readProviderClamp();
     if (clampResult != 200) return 22;
-    uint8_t wrapResult = Consumer_readProviderWrap();
+    uint8_t wrapResult = Consumer__readProviderWrap();
     if (wrapResult != 250) return 23;
-    Consumer_setProviderClamp(100U);
-    uint8_t clampResult2 = Consumer_readProviderClamp();
+    Consumer__setProviderClamp(100U);
+    uint8_t clampResult2 = Consumer__readProviderClamp();
     if (clampResult2 != 100) return 24;
-    Consumer_setProviderWrap(50U);
-    uint8_t wrapResult2 = Consumer_readProviderWrap();
+    Consumer__setProviderWrap(50U);
+    uint8_t wrapResult2 = Consumer__readProviderWrap();
     if (wrapResult2 != 50) return 25;
-    if (Provider_valU8 != 100) return 26;
-    Provider_valU16 = 12345;
-    if (Provider_valU16 != 12345) return 27;
-    Consumer_computeSum();
-    if (Consumer_result != 4294967295) return 28;
-    Consumer_computeSignedSum();
-    if (Consumer_signedResult != -400) return 29;
-    Consumer_writeProviderU8(77U);
-    uint8_t finalResult = Provider_getU8();
+    if (Provider__valU8 != 100) return 26;
+    Provider__valU16 = 12345;
+    if (Provider__valU16 != 12345) return 27;
+    Consumer__computeSum();
+    if (Consumer__result != 4294967295) return 28;
+    Consumer__computeSignedSum();
+    if (Consumer__signedResult != -400) return 29;
+    Consumer__writeProviderU8(77U);
+    uint8_t finalResult = Provider__getU8();
     if (finalResult != 77) return 30;
     return 0;
 }

@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* External variables */
-extern int32_t Counter_value;
-extern int32_t Counter_data[3];
+extern int32_t Counter__value;
+extern int32_t Counter__data[3];
 
 /* Function prototypes */
-void Manager_incrementCounter(void);
-void Manager_incrementCounterArray(void);
+void Manager__incrementCounter(void);
+void Manager__incrementCounterArray(void);
 
 #ifdef __cplusplus
 }

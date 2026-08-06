@@ -11,27 +11,27 @@
 // Test: Compound assignment with cross-scope access
 // Tests global.OtherScope.var +<- value pattern (ADR-016)
 /* Scope: Counter */
-int32_t Counter_value = 100;
-int32_t Counter_data[3] = {};
+int32_t Counter__value = 100;
+int32_t Counter__data[3] = {};
 
 /* Scope: Manager */
 
-void Manager_incrementCounter(void) {
-    Counter_value += 50;
+void Manager__incrementCounter(void) {
+    Counter__value += 50;
 }
 
-void Manager_incrementCounterArray(void) {
-    Counter_data[0] = 10;
-    Counter_data[0] += 5;
+void Manager__incrementCounterArray(void) {
+    Counter__data[0] = 10;
+    Counter__data[0] += 5;
 }
 
 int main(void) {
-    Manager_incrementCounter();
-    Manager_incrementCounterArray();
-    if (Counter_value != 150) {
+    Manager__incrementCounter();
+    Manager__incrementCounterArray();
+    if (Counter__value != 150) {
         return 1;
     }
-    if (Counter_data[0U] != 15) {
+    if (Counter__data[0U] != 15) {
         return 2;
     }
     return 0;

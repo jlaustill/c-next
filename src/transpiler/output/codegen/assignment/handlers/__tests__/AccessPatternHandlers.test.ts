@@ -18,7 +18,8 @@ function createMockContext(
 ): IAssignmentContext {
   // Default resolved values based on first identifier
   const identifiers = overrides.identifiers ?? ["Counter", "value"];
-  const resolvedTarget = overrides.resolvedTarget ?? `${identifiers.join("_")}`;
+  const resolvedTarget =
+    overrides.resolvedTarget ?? `${identifiers.join("__")}`;
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? identifiers[0];
 
@@ -99,19 +100,19 @@ describe("AccessPatternHandlers", () => {
 
     it("generates standard assignment for global member", () => {
       HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("Counter_value"),
+        generateAssignmentTarget: vi.fn().mockReturnValue("Counter__value"),
       });
       const ctx = createMockContext();
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("Counter_value = 5;");
+      expect(result).toBe("Counter__value = 5;");
     });
 
     it("validates cross-scope visibility when first id is a scope", () => {
       const validateCrossScopeVisibility = vi.fn();
       HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("Motor_speed"),
+        generateAssignmentTarget: vi.fn().mockReturnValue("Motor__speed"),
         validateCrossScopeVisibility,
       });
       HandlerTestUtils.setupMockSymbols({
@@ -149,7 +150,7 @@ describe("AccessPatternHandlers", () => {
 
     it("handles compound assignment", () => {
       HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("Counter_value"),
+        generateAssignmentTarget: vi.fn().mockReturnValue("Counter__value"),
       });
       const ctx = createMockContext({
         isCompound: true,
@@ -158,7 +159,7 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("Counter_value += 5;");
+      expect(result).toBe("Counter__value += 5;");
     });
   });
 
@@ -193,7 +194,7 @@ describe("AccessPatternHandlers", () => {
     it("generates scoped member assignment", () => {
       CodeGenState.currentScope = "Motor";
       HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("Motor_speed"),
+        generateAssignmentTarget: vi.fn().mockReturnValue("Motor__speed"),
       });
       const ctx = createMockContext({
         identifiers: ["speed"],
@@ -203,7 +204,7 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("Motor_speed = 5;");
+      expect(result).toBe("Motor__speed = 5;");
     });
 
     it("throws when used outside scope", () => {
@@ -277,7 +278,7 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("GPIO7_DR_SET =");
+      expect(result).toContain("GPIO7__DR_SET =");
       expect(result).toContain("& ~(1U <<");
       expect(result).toContain("LED_BIT");
     });
@@ -287,7 +288,7 @@ describe("AccessPatternHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -297,7 +298,7 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("GPIO7_DR_SET = (1U << LED_BIT);");
+      expect(result).toBe("GPIO7__DR_SET = (1U << LED_BIT);");
     });
 
     it("throws on write-only register with false value", () => {
@@ -305,7 +306,7 @@ describe("AccessPatternHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -333,7 +334,7 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("GPIO7_DR_SET =");
+      expect(result).toContain("GPIO7__DR_SET =");
       expect(result).toContain("& ~(");
       expect(result).toContain("<< 0");
     });
@@ -346,7 +347,7 @@ describe("AccessPatternHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1s"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -367,7 +368,7 @@ describe("AccessPatternHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1c"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "w1c"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],

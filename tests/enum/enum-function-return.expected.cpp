@@ -9,75 +9,75 @@
 // test-execution
 // Tests: Enum as function return type
 typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1,
-    Color_BLUE = 2,
-    Color_YELLOW = 3
+    Color__RED = 0,
+    Color__GREEN = 1,
+    Color__BLUE = 2,
+    Color__YELLOW = 3
 } Color;
 
 typedef enum {
-    TrafficLight_STOP = 0,
-    TrafficLight_CAUTION = 1,
-    TrafficLight_GO = 2
+    TrafficLight__STOP = 0,
+    TrafficLight__CAUTION = 1,
+    TrafficLight__GO = 2
 } TrafficLight;
 
 // Function that returns enum based on input
 Color getColorByIndex(uint32_t index) {
     if (index == 0) {
-        return Color_RED;
+        return Color__RED;
     }
     if (index == 1) {
-        return Color_GREEN;
+        return Color__GREEN;
     }
     if (index == 2) {
-        return Color_BLUE;
+        return Color__BLUE;
     }
-    return Color_YELLOW;
+    return Color__YELLOW;
 }
 
 // Function that returns enum based on condition
 TrafficLight getNextLight(TrafficLight current) {
-    if (current == TrafficLight_STOP) {
-        return TrafficLight_GO;
+    if (current == TrafficLight__STOP) {
+        return TrafficLight__GO;
     }
-    if (current == TrafficLight_GO) {
-        return TrafficLight_CAUTION;
+    if (current == TrafficLight__GO) {
+        return TrafficLight__CAUTION;
     }
-    return TrafficLight_STOP;
+    return TrafficLight__STOP;
 }
 
 // Function that maps one enum to another
 TrafficLight colorToLight(Color c) {
-    if (c == Color_RED) {
-        return TrafficLight_STOP;
+    if (c == Color__RED) {
+        return TrafficLight__STOP;
     }
-    if (c == Color_GREEN) {
-        return TrafficLight_GO;
+    if (c == Color__GREEN) {
+        return TrafficLight__GO;
     }
-    return TrafficLight_CAUTION;
+    return TrafficLight__CAUTION;
 }
 
 int main(void) {
     Color c = getColorByIndex(0U);
-    if (c != Color_RED) return 1;
+    if (c != Color__RED) return 1;
     c = getColorByIndex(1U);
-    if (c != Color_GREEN) return 2;
+    if (c != Color__GREEN) return 2;
     c = getColorByIndex(2U);
-    if (c != Color_BLUE) return 3;
+    if (c != Color__BLUE) return 3;
     c = getColorByIndex(99U);
-    if (c != Color_YELLOW) return 4;
-    TrafficLight light = TrafficLight_STOP;
+    if (c != Color__YELLOW) return 4;
+    TrafficLight light = TrafficLight__STOP;
     light = getNextLight(light);
-    if (light != TrafficLight_GO) return 5;
+    if (light != TrafficLight__GO) return 5;
     light = getNextLight(light);
-    if (light != TrafficLight_CAUTION) return 6;
+    if (light != TrafficLight__CAUTION) return 6;
     light = getNextLight(light);
-    if (light != TrafficLight_STOP) return 7;
-    TrafficLight mapped = colorToLight(Color_RED);
-    if (mapped != TrafficLight_STOP) return 8;
-    mapped = colorToLight(Color_GREEN);
-    if (mapped != TrafficLight_GO) return 9;
-    mapped = colorToLight(Color_BLUE);
-    if (mapped != TrafficLight_CAUTION) return 10;
+    if (light != TrafficLight__STOP) return 7;
+    TrafficLight mapped = colorToLight(Color__RED);
+    if (mapped != TrafficLight__STOP) return 8;
+    mapped = colorToLight(Color__GREEN);
+    if (mapped != TrafficLight__GO) return 9;
+    mapped = colorToLight(Color__BLUE);
+    if (mapped != TrafficLight__CAUTION) return 10;
     return 0;
 }

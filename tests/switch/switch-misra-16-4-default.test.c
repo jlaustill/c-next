@@ -10,9 +10,9 @@
 // Issue: #855
 // Verifies: Switches without explicit default get an auto-generated one
 typedef enum {
-    Status_OK = 0,
-    Status_ERROR = 1,
-    Status_PENDING = 2
+    Status__OK = 0,
+    Status__ERROR = 1,
+    Status__PENDING = 2
 } Status;
 
 // Exhaustive enum switch - no explicit default in source
@@ -20,15 +20,15 @@ typedef enum {
 uint32_t getStatusCode(Status s) {
     uint32_t code = 0U;
     switch (s) {
-        case Status_OK: {
+        case Status__OK: {
             code = 1U;
             break;
         }
-        case Status_ERROR: {
+        case Status__ERROR: {
             code = 2U;
             break;
         }
-        case Status_PENDING: {
+        case Status__PENDING: {
             code = 3U;
             break;
         }
@@ -81,11 +81,11 @@ uint32_t withDefault(uint32_t val) {
 
 int main(void) {
     uint32_t result = 0U;
-    result = getStatusCode(Status_OK);
+    result = getStatusCode(Status__OK);
     if (result != 1) return 1;
-    result = getStatusCode(Status_ERROR);
+    result = getStatusCode(Status__ERROR);
     if (result != 2) return 2;
-    result = getStatusCode(Status_PENDING);
+    result = getStatusCode(Status__PENDING);
     if (result != 3) return 3;
     result = mapValue(1U);
     if (result != 10) return 4;

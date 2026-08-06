@@ -10,29 +10,29 @@
 // Tests: Write-1-to-Set register access modifier
 // Writing 1 to a bit sets it, writing 0 has no effect
 /* Register: GPIO @ 0x40000000 */
-#define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
-#define GPIO_DR_CLEAR (*(volatile uint32_t*)(0x40000000 + 0x88))
-#define GPIO_DR_TOGGLE (*(volatile uint32_t*)(0x40000000 + 0x8C))
+#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
+#define GPIO__DR_CLEAR (*(volatile uint32_t*)(0x40000000 + 0x88))
+#define GPIO__DR_TOGGLE (*(volatile uint32_t*)(0x40000000 + 0x8C))
 
 /* Register: CTRL @ 0x40001000 */
-#define CTRL_ENABLE (*(volatile uint32_t*)(0x40001000 + 0x00))
-#define CTRL_FLAGS (*(volatile uint32_t*)(0x40001000 + 0x04))
+#define CTRL__ENABLE (*(volatile uint32_t*)(0x40001000 + 0x00))
+#define CTRL__FLAGS (*(volatile uint32_t*)(0x40001000 + 0x04))
 
 void setGpioBit(uint8_t pin) {
-    GPIO_DR_SET = (1U << pin);
+    GPIO__DR_SET = (1U << pin);
 }
 
 void setGpioMask(uint32_t mask) {
-    GPIO_DR_SET = mask;
+    GPIO__DR_SET = mask;
 }
 
 void enableFeature(uint8_t feature) {
-    CTRL_ENABLE = (1U << feature);
+    CTRL__ENABLE = (1U << feature);
 }
 
 void setFlags(uint32_t flagMask) {
-    CTRL_FLAGS = flagMask;
+    CTRL__FLAGS = flagMask;
 }
 
 int main(void) {

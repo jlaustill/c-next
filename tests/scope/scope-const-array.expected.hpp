@@ -14,17 +14,17 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint8_t ArrayTest_PUBLIC_LOOKUP[4];
+extern const uint8_t ArrayTest__PUBLIC_LOOKUP[4];
 
 /* Function prototypes */
-uint16_t ArrayTest_getValueAt(uint8_t index);
-uint16_t ArrayTest_getCurrentValue(void);
-uint8_t ArrayTest_getByteAt(uint8_t index);
-int32_t ArrayTest_getOffsetAt(uint8_t index);
-uint8_t ArrayTest_getPublicAt(uint8_t index);
-uint8_t ArrayTest_getMatrixAt(uint8_t row, uint8_t col);
-void ArrayTest_setIndex(uint8_t index);
-uint16_t ArrayTest_sumFirstTwo(void);
+uint16_t ArrayTest__getValueAt(uint8_t index);
+uint16_t ArrayTest__getCurrentValue(void);
+uint8_t ArrayTest__getByteAt(uint8_t index);
+int32_t ArrayTest__getOffsetAt(uint8_t index);
+uint8_t ArrayTest__getPublicAt(uint8_t index);
+uint8_t ArrayTest__getMatrixAt(uint8_t row, uint8_t col);
+void ArrayTest__setIndex(uint8_t index);
+uint16_t ArrayTest__sumFirstTwo(void);
 
 #ifdef __cplusplus
 }

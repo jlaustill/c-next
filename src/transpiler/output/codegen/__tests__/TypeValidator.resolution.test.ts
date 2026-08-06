@@ -45,7 +45,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       isArray: false,
       isConst: false,
     });
-    CodeGenState.setVariableTypeInfo("Motor_speed", {
+    CodeGenState.setVariableTypeInfo("Motor__speed", {
       baseType: "u32",
       bitWidth: 32,
       isArray: false,
@@ -59,7 +59,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       knownStructs: new Set(["Point"]),
       scopeMembers: new Map([["Motor", new Set(["speed", "maxSpeed"])]]),
     });
-    CodeGenState.knownFunctions = new Set(["globalFunc", "Motor_stop"]);
+    CodeGenState.knownFunctions = new Set(["globalFunc", "Motor__stop"]);
   });
 
   describe("inside a scope", () => {
@@ -78,7 +78,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         false,
         () => false,
       );
-      expect(result).toBe("Motor_speed");
+      expect(result).toBe("Motor__speed");
     });
 
     it("resolves global variable to itself", () => {
@@ -106,7 +106,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         () => false,
       );
       // 'stop' should check if Motor_stop exists as a function
-      expect(result).toBe("Motor_stop");
+      expect(result).toBe("Motor__stop");
     });
 
     it("returns null for unknown identifiers", () => {

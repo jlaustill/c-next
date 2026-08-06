@@ -10,14 +10,14 @@
 // test-execution
 // Tests: Minimal enum test
 /* Scope: Motor */
-static Motor_EMode Motor_mode = Motor_EMode_OFF;
+static Motor__EMode Motor__mode = Motor__EMode__OFF;
 
-Motor_EMode Motor_getMode(void) {
-    return Motor_mode;
+Motor__EMode Motor__getMode(void) {
+    return Motor__mode;
 }
 
 int main(void) {
-    Motor_EMode motorMode = Motor_getMode();
-    if (motorMode != Motor_EMode_OFF) return 1;
+    Motor__EMode motorMode = Motor__getMode();
+    if (motorMode != Motor__EMode__OFF) return 1;
     return 0;
 }

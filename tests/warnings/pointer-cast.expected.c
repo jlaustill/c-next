@@ -14,30 +14,30 @@
 // Coverage: Struct parameters, struct returns, nested access
 /* Scope: PtrCast */
 
-void modifyData(PtrCast_Data* d) {
+void modifyData(PtrCast__Data* d) {
     d->value = 999U;
     d->flags = 0xFFU;
 }
 
-PtrCast_Data createData(uint32_t val, uint8_t flg) {
-    PtrCast_Data result = { .value = val, .flags = flg };
+PtrCast__Data createData(uint32_t val, uint8_t flg) {
+    PtrCast__Data result = { .value = val, .flags = flg };
     return result;
 }
 
-void updateContainer(PtrCast_Container* c, uint32_t newCount) {
+void updateContainer(PtrCast__Container* c, uint32_t newCount) {
     c->count = newCount;
     c->inner.value = newCount * 10U;
 }
 
 int main(void) {
-    PtrCast_Data d = { .value = 100U, .flags = 0x0FU };
+    PtrCast__Data d = { .value = 100U, .flags = 0x0FU };
     modifyData(&d);
     if (d.value != 999) return 1;
     if (d.flags != 0xFF) return 2;
-    PtrCast_Data created = createData(42U, 0xABU);
+    PtrCast__Data created = createData(42U, 0xABU);
     if (created.value != 42) return 3;
     if (created.flags != 0xAB) return 4;
-    PtrCast_Container c = { .inner = { .value = 0U, .flags = 0U }, .count = 0U };
+    PtrCast__Container c = { .inner = { .value = 0U, .flags = 0U }, .count = 0U };
     updateContainer(&c, 5U);
     if (c.count != 5) return 5;
     if (c.inner.value != 50) return 6;

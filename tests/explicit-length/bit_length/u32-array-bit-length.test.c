@@ -15,15 +15,15 @@ uint32_t globalArr[16] = {0};
 
 /* Scope: TestScope */
 
-uint32_t TestScope_getGlobalArrayBitLength(void) {
+uint32_t TestScope__getGlobalArrayBitLength(void) {
     return 512;
 }
-static uint32_t TestScope_scopeArr[16] = {0};
+static uint32_t TestScope__scopeArr[16] = {0};
 
-uint32_t TestScope_getScopeArrayBitLength(void) {
+uint32_t TestScope__getScopeArrayBitLength(void) {
     return 512;
 }
-uint32_t TestScope_publicArr[16] = {0};
+uint32_t TestScope__publicArr[16] = {0};
 
 uint32_t checkArrayBitLength(uint32_t arr[16]) {
     return 512;
@@ -36,11 +36,11 @@ int main(void) {
     if (512 != 512) {
         return 1;
     }
-    uint32_t result = TestScope_getGlobalArrayBitLength();
+    uint32_t result = TestScope__getGlobalArrayBitLength();
     if (result != 512) {
         return 2;
     }
-    result = TestScope_getScopeArrayBitLength();
+    result = TestScope__getScopeArrayBitLength();
     if (result != 512) {
         return 3;
     }
@@ -58,7 +58,7 @@ int main(void) {
     if (result != 512) {
         return 6;
     }
-    U32ArrayBitLength_TestStruct ts = {0};
+    U32ArrayBitLength__TestStruct ts = {0};
     ts.arr[0] = 100000U;
     if (512 != 512) {
         return 7;

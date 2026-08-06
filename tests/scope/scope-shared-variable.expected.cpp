@@ -13,27 +13,27 @@
 // Scope variables are initialized once at program start and persist
 // across all function calls, just like C static variables.
 /* Scope: SharedState */
-static uint32_t SharedState_counter = 0U;
+static uint32_t SharedState__counter = 0U;
 
-void SharedState_increment(void) {
-    SharedState_counter = SharedState_counter + 1U;
+void SharedState__increment(void) {
+    SharedState__counter = SharedState__counter + 1U;
 }
 
-uint32_t SharedState_getCount(void) {
-    return SharedState_counter;
+uint32_t SharedState__getCount(void) {
+    return SharedState__counter;
 }
 
 int main(void) {
-    uint32_t result1 = SharedState_getCount();
+    uint32_t result1 = SharedState__getCount();
     if (result1 != 0) return 1;
-    SharedState_increment();
-    uint32_t result2 = SharedState_getCount();
+    SharedState__increment();
+    uint32_t result2 = SharedState__getCount();
     if (result2 != 1) return 2;
-    SharedState_increment();
-    uint32_t result3 = SharedState_getCount();
+    SharedState__increment();
+    uint32_t result3 = SharedState__getCount();
     if (result3 != 2) return 3;
-    SharedState_increment();
-    uint32_t result4 = SharedState_getCount();
+    SharedState__increment();
+    uint32_t result4 = SharedState__getCount();
     if (result4 != 3) return 4;
     return 0;
 }

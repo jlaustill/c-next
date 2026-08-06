@@ -29,46 +29,46 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 /* Scope: Counter */
-static volatile uint32_t Counter_value = 0U;
-static volatile uint8_t Counter_overflowCount = 0U;
+static volatile uint32_t Counter__value = 0U;
+static volatile uint8_t Counter__overflowCount = 0U;
 
-void Counter_increment(void) {
-    Counter_value = cnx_clamp_add_u32(Counter_value, 1U);
+void Counter__increment(void) {
+    Counter__value = cnx_clamp_add_u32(Counter__value, 1U);
 }
 
-void Counter_incrementBy(uint32_t delta) {
-    Counter_value = cnx_clamp_add_u32(Counter_value, delta);
+void Counter__incrementBy(uint32_t delta) {
+    Counter__value = cnx_clamp_add_u32(Counter__value, delta);
 }
 
-void Counter_reset(void) {
-    Counter_value = 0U;
+void Counter__reset(void) {
+    Counter__value = 0U;
 }
 
-uint32_t Counter_get(void) {
-    return Counter_value;
+uint32_t Counter__get(void) {
+    return Counter__value;
 }
 
 /* Scope: Timer */
-static volatile uint32_t Timer_ticks = 0U;
-static volatile uint16_t Timer_period = 1000U;
+static volatile uint32_t Timer__ticks = 0U;
+static volatile uint16_t Timer__period = 1000U;
 
-void Timer_tick(void) {
-    Timer_ticks += 1U;
+void Timer__tick(void) {
+    Timer__ticks += 1U;
 }
 
-void Timer_setPeriod(uint16_t p) {
-    Timer_period = p;
+void Timer__setPeriod(uint16_t p) {
+    Timer__period = p;
 }
 
-void Timer_adjustPeriod(uint16_t delta) {
-    Timer_period = cnx_clamp_add_u16(Timer_period, delta);
+void Timer__adjustPeriod(uint16_t delta) {
+    Timer__period = cnx_clamp_add_u16(Timer__period, delta);
 }
 
 int main(void) {
-    Counter_increment();
-    Counter_incrementBy(10U);
-    Counter_reset();
-    Timer_tick();
-    Timer_setPeriod(500U);
-    Timer_adjustPeriod(100U);
+    Counter__increment();
+    Counter__incrementBy(10U);
+    Counter__reset();
+    Timer__tick();
+    Timer__setPeriod(500U);
+    Timer__adjustPeriod(100U);
 }

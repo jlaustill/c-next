@@ -19,18 +19,18 @@
 
 /* Scope: UI */
 
-void UI_reposition(widget_t* w, int32_t x) {
+void UI__reposition(widget_t* w, int32_t x) {
     widget_move(w, x);
 }
 
-int32_t UI_run(void) {
+int32_t UI__run(void) {
     widget_t* w = widget_create();
-    UI_reposition(w, 42);
+    UI__reposition(w, 42);
     int32_t x = widget_get_x(w);
     if (x != 42) return 1;
     return 0;
 }
 
 int main(void) {
-    return UI_run();
+    return UI__run();
 }

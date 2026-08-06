@@ -14,17 +14,17 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Motor_State {
+typedef struct Motor__State {
     int32_t position;
     bool running;
-} Motor_State;
-typedef struct Sensor_Reading {
-    Motor_State motorState;
+} Motor__State;
+typedef struct Sensor__Reading {
+    Motor__State motorState;
     int32_t value;
-} Sensor_Reading;
+} Sensor__Reading;
 
 /* External variables */
-extern Sensor_Reading reading;
+extern Sensor__Reading reading;
 
 #ifdef __cplusplus
 }

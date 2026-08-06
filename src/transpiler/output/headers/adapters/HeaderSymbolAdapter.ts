@@ -10,6 +10,8 @@ import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import SymbolNameUtils from "../../../logic/symbols/cnext/utils/SymbolNameUtils";
+import QualifiedCName from "../../../../utils/QualifiedCName";
+import CodeGenState from "../../../state/CodeGenState";
 
 /**
  * Adapter to convert TSymbol to IHeaderSymbol
@@ -103,7 +105,7 @@ class HeaderSymbolAdapter {
     const arrayDimensions = variable.arrayDimensions?.map((d) =>
       typeof d === "number"
         ? String(d)
-        : HeaderSymbolAdapter.resolveArrayDimension(d),
+        : HeaderSymbolAdapter.resolveArrayDimension(d, variable.scope.name),
     );
 
     return {
@@ -204,18 +206,54 @@ class HeaderSymbolAdapter {
 
   /**
    * Convert an array dimension string to C-compatible format.
-   * Converts qualified enum access (e.g., "EColor.COUNT") to C-style ("EColor_COUNT").
-   * @param dim - The dimension string, may contain qualified enum access
-   * @returns C-compatible dimension string with dots replaced by underscores
-   * @example resolveArrayDimension("EColor.COUNT") => "EColor_COUNT"
-   * @example resolveArrayDimension("10") => "10"
+   *
+   * The dimension arrives as written in C-Next SOURCE (`State.COUNT`,
+   * `this.State.COUNT`, `global.EColor.COUNT`), not as a generated C name, so it
+   * has to be resolved the same way the `.c` path resolves it — otherwise the
+   * header and the implementation derive different names for the same array and
+   * the header does not compile (#1117 review).
+   *
+   * Sharing `QualifiedCName.join()` is not sufficient on its own: both sides must
+   * also agree on *what to join*. A bare `State.COUNT` written inside `scope Motor`
+   * refers to `Motor.State.COUNT` and must become `Motor__State__COUNT`, while a
+   * top-level `EColor.COUNT` must stay `EColor__COUNT`.
+   *
+   * @param dim - Dimension as written in source; may be a qualified enum access
+   * @param scopeName - Name of the scope declaring the variable ("" for global)
+   * @returns C-compatible dimension string
+   * @example resolveArrayDimension("EColor.COUNT", "") => "EColor__COUNT"
+   * @example resolveArrayDimension("State.COUNT", "Motor") => "Motor__State__COUNT"
+   * @example resolveArrayDimension("this.State.COUNT", "Motor") => "Motor__State__COUNT"
+   * @example resolveArrayDimension("global.EColor.COUNT", "Motor") => "EColor__COUNT"
+   * @example resolveArrayDimension("10", "Motor") => "10"
    */
-  private static resolveArrayDimension(dim: string): string {
-    // Qualified enum access (e.g., "EColor.COUNT") - convert dots to underscores
-    if (dim.includes(".")) {
-      return dim.replaceAll(".", "_");
+  private static resolveArrayDimension(dim: string, scopeName: string): string {
+    if (!dim.includes(QualifiedCName.SOURCE_SEPARATOR)) {
+      return dim;
     }
-    return dim;
+
+    const parts = dim.split(QualifiedCName.SOURCE_SEPARATOR);
+
+    // `global.X.Y` is explicitly global — drop the marker, add no scope prefix
+    if (parts[0] === "global") {
+      return QualifiedCName.join(...parts.slice(1));
+    }
+
+    // `this.X.Y` is explicitly scope-local — drop the marker, prefix the scope
+    if (parts[0] === "this") {
+      return QualifiedCName.join(scopeName, ...parts.slice(1));
+    }
+
+    // Bare `X.Y` inside a scope resolves scope-first, then global (ADR-057).
+    // Prefix only when the scope really declares that enum, matching the `.c` path.
+    if (
+      scopeName &&
+      CodeGenState.isKnownEnum(QualifiedCName.join(scopeName, parts[0]))
+    ) {
+      return QualifiedCName.join(scopeName, ...parts);
+    }
+
+    return QualifiedCName.join(...parts);
   }
 }
 

@@ -13,12 +13,12 @@
 // Define enum in same file to avoid cross-file header conflicts
 /* Scope: TestScope */
 
-ETestCategory TestScope_getCategory(void) {
-    return ETestCategory_TEST_CAT_B;
+ETestCategory TestScope__getCategory(void) {
+    return ETestCategory__TEST_CAT_B;
 }
 
 int main(void) {
-    int32_t catValue = (int32_t)TestScope_getCategory();
+    int32_t catValue = (int32_t)TestScope__getCategory();
     if (catValue != 1) return 1;
     return 0;
 }

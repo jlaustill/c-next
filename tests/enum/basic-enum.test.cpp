@@ -11,47 +11,47 @@
 // Tests basic enum declaration, usage, and code generation
 // Simple enum with auto-incrementing values
 typedef enum {
-    State_IDLE = 0,
-    State_RUNNING = 1,
-    State_PAUSED = 2,
-    State_ERROR = 3
+    State__IDLE = 0,
+    State__RUNNING = 1,
+    State__PAUSED = 2,
+    State__ERROR = 3
 } State;
 
 // Enum with explicit values
 typedef enum {
-    Command_READ = 1,
-    Command_WRITE = 2,
-    Command_ERASE = 4,
-    Command_RESET = 255
+    Command__READ = 1,
+    Command__WRITE = 2,
+    Command__ERASE = 4,
+    Command__RESET = 255
 } Command;
 
 // Enum with bit flag pattern
 typedef enum {
-    Flags_NONE = 0,
-    Flags_READABLE = 1,
-    Flags_WRITABLE = 2,
-    Flags_EXECUTABLE = 4
+    Flags__NONE = 0,
+    Flags__READABLE = 1,
+    Flags__WRITABLE = 2,
+    Flags__EXECUTABLE = 4
 } Flags;
 
-State currentState = State_IDLE;
+State currentState = State__IDLE;
 
-Command lastCmd = Command_READ;
+Command lastCmd = Command__READ;
 
 int main(void) {
-    if (static_cast<uint32_t>(State_IDLE) != 0) {
+    if (static_cast<uint32_t>(State__IDLE) != 0) {
         return 1;
     }
-    if (static_cast<uint32_t>(State_RUNNING) != 1) {
+    if (static_cast<uint32_t>(State__RUNNING) != 1) {
         return 2;
     }
-    if (static_cast<uint32_t>(Command_ERASE) != 0x04) {
+    if (static_cast<uint32_t>(Command__ERASE) != 0x04) {
         return 3;
     }
-    if (static_cast<uint32_t>(Command_RESET) != 0xFF) {
+    if (static_cast<uint32_t>(Command__RESET) != 0xFF) {
         return 4;
     }
-    currentState = State_RUNNING;
-    if (currentState != State_RUNNING) {
+    currentState = State__RUNNING;
+    if (currentState != State__RUNNING) {
         return 5;
     }
     return 0;

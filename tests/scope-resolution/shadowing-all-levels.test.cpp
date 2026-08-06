@@ -23,19 +23,19 @@ uint32_t globalCount = 1000U;
 
 // Global (renamed to avoid shadowing)
 /* Scope: Counter */
-static uint32_t Counter_count = 100U;
+static uint32_t Counter__count = 100U;
 
-uint32_t Counter_testAllLevels(void) {
+uint32_t Counter__testAllLevels(void) {
     uint32_t count = 10U;
     uint32_t sum = 0U;
     sum = cnx_clamp_add_u32(sum, count);
-    sum = cnx_clamp_add_u32(sum, Counter_count);
+    sum = cnx_clamp_add_u32(sum, Counter__count);
     sum = cnx_clamp_add_u32(sum, globalCount);
     return sum;
 }
 
 int main(void) {
-    uint32_t result = Counter_testAllLevels();
+    uint32_t result = Counter__testAllLevels();
     if (result != 1110) return 1;
     return 0;
 }

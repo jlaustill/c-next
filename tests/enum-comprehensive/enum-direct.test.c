@@ -12,7 +12,7 @@
 /* Scope: Motor */
 
 int main(void) {
-    Motor_EMode motorMode = Motor_EMode_OFF;
-    if (motorMode != Motor_EMode_OFF) return 1;
+    Motor__EMode motorMode = Motor__EMode__OFF;
+    if (motorMode != Motor__EMode__OFF) return 1;
     return 0;
 }

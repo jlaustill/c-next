@@ -14,21 +14,21 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint8_t ConstTest_PUBLIC_MAX;
-extern const uint32_t ConstTest_PUBLIC_ID;
+extern const uint8_t ConstTest__PUBLIC_MAX;
+extern const uint32_t ConstTest__PUBLIC_ID;
 
 /* Function prototypes */
-uint8_t ConstTest_getMaxValue(void);
-uint16_t ConstTest_getBufferSize(void);
-int32_t ConstTest_getOffset(void);
-bool ConstTest_getEnabled(void);
-uint8_t ConstTest_getPublicMax(void);
-uint32_t ConstTest_getPublicId(void);
-uint8_t ConstTest_getCounter(void);
-uint8_t ConstTest_getHexFlags(void);
-uint8_t ConstTest_getBinMask(void);
-uint32_t ConstTest_getHexAddr(void);
-uint16_t ConstTest_multipleRefs(void);
+uint8_t ConstTest__getMaxValue(void);
+uint16_t ConstTest__getBufferSize(void);
+int32_t ConstTest__getOffset(void);
+bool ConstTest__getEnabled(void);
+uint8_t ConstTest__getPublicMax(void);
+uint32_t ConstTest__getPublicId(void);
+uint8_t ConstTest__getCounter(void);
+uint8_t ConstTest__getHexFlags(void);
+uint8_t ConstTest__getBinMask(void);
+uint32_t ConstTest__getHexAddr(void);
+uint16_t ConstTest__multipleRefs(void);
 
 #ifdef __cplusplus
 }

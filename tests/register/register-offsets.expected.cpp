@@ -8,16 +8,16 @@
 // ADR-004: Register offset calculation test
 // Tests: correct offset values in generated C macros
 /* Register: UART @ 0x40001000 */
-#define UART_CR (*(volatile uint32_t*)(0x40001000 + 0x00))
-#define UART_SR (*(volatile uint32_t const *)(0x40001000 + 0x04))
-#define UART_DR (*(volatile uint32_t*)(0x40001000 + 0x08))
-#define UART_BRR (*(volatile uint32_t*)(0x40001000 + 0x0C))
-#define UART_CR1 (*(volatile uint32_t*)(0x40001000 + 0x10))
+#define UART__CR (*(volatile uint32_t*)(0x40001000 + 0x00))
+#define UART__SR (*(volatile uint32_t const *)(0x40001000 + 0x04))
+#define UART__DR (*(volatile uint32_t*)(0x40001000 + 0x08))
+#define UART__BRR (*(volatile uint32_t*)(0x40001000 + 0x0C))
+#define UART__CR1 (*(volatile uint32_t*)(0x40001000 + 0x10))
 
 int main(void) {
-    UART_CR = 0x01;
-    UART_DR = 0x55;
-    UART_BRR = 9600;
-    UART_CR1 = 0x80;
-    uint32_t status = UART_SR;
+    UART__CR = 0x01;
+    UART__DR = 0x55;
+    UART__BRR = 9600;
+    UART__CR1 = 0x80;
+    uint32_t status = UART__SR;
 }

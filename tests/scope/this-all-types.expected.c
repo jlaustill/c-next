@@ -13,136 +13,136 @@
 // Test: ADR-016 this. accessor with all primitive types
 // Verifies that this. works correctly with every C-Next primitive type inside scope methods
 /* Scope: AllTypesTest */
-static uint8_t AllTypesTest_valU8 = 255U;
-static uint16_t AllTypesTest_valU16 = 65535U;
-static uint32_t AllTypesTest_valU32 = 4294967295U;
-static uint64_t AllTypesTest_valU64 = 18446744073709551615ULL;
-static int8_t AllTypesTest_valI8 = -128;
-static int16_t AllTypesTest_valI16 = -32768;
-static int32_t AllTypesTest_valI32 = (int32_t)INT32_MIN;
-static int64_t AllTypesTest_valI64 = (int64_t)INT64_MIN;
-static float AllTypesTest_valF32 = 3.14;
-static double AllTypesTest_valF64 = 3.141592653589793;
-static bool AllTypesTest_valBool = true;
+static uint8_t AllTypesTest__valU8 = 255U;
+static uint16_t AllTypesTest__valU16 = 65535U;
+static uint32_t AllTypesTest__valU32 = 4294967295U;
+static uint64_t AllTypesTest__valU64 = 18446744073709551615ULL;
+static int8_t AllTypesTest__valI8 = -128;
+static int16_t AllTypesTest__valI16 = -32768;
+static int32_t AllTypesTest__valI32 = (int32_t)INT32_MIN;
+static int64_t AllTypesTest__valI64 = (int64_t)INT64_MIN;
+static float AllTypesTest__valF32 = 3.14;
+static double AllTypesTest__valF64 = 3.141592653589793;
+static bool AllTypesTest__valBool = true;
 
-uint8_t AllTypesTest_getU8(void) {
-    return AllTypesTest_valU8;
+uint8_t AllTypesTest__getU8(void) {
+    return AllTypesTest__valU8;
 }
 
-uint16_t AllTypesTest_getU16(void) {
-    return AllTypesTest_valU16;
+uint16_t AllTypesTest__getU16(void) {
+    return AllTypesTest__valU16;
 }
 
-uint32_t AllTypesTest_getU32(void) {
-    return AllTypesTest_valU32;
+uint32_t AllTypesTest__getU32(void) {
+    return AllTypesTest__valU32;
 }
 
-uint64_t AllTypesTest_getU64(void) {
-    return AllTypesTest_valU64;
+uint64_t AllTypesTest__getU64(void) {
+    return AllTypesTest__valU64;
 }
 
-int8_t AllTypesTest_getI8(void) {
-    return AllTypesTest_valI8;
+int8_t AllTypesTest__getI8(void) {
+    return AllTypesTest__valI8;
 }
 
-int16_t AllTypesTest_getI16(void) {
-    return AllTypesTest_valI16;
+int16_t AllTypesTest__getI16(void) {
+    return AllTypesTest__valI16;
 }
 
-int32_t AllTypesTest_getI32(void) {
-    return AllTypesTest_valI32;
+int32_t AllTypesTest__getI32(void) {
+    return AllTypesTest__valI32;
 }
 
-int64_t AllTypesTest_getI64(void) {
-    return AllTypesTest_valI64;
+int64_t AllTypesTest__getI64(void) {
+    return AllTypesTest__valI64;
 }
 
-float AllTypesTest_getF32(void) {
-    return AllTypesTest_valF32;
+float AllTypesTest__getF32(void) {
+    return AllTypesTest__valF32;
 }
 
-double AllTypesTest_getF64(void) {
-    return AllTypesTest_valF64;
+double AllTypesTest__getF64(void) {
+    return AllTypesTest__valF64;
 }
 
-bool AllTypesTest_getBool(void) {
-    return AllTypesTest_valBool;
+bool AllTypesTest__getBool(void) {
+    return AllTypesTest__valBool;
 }
 
-void AllTypesTest_setU8(uint8_t val) {
-    AllTypesTest_valU8 = val;
+void AllTypesTest__setU8(uint8_t val) {
+    AllTypesTest__valU8 = val;
 }
 
-void AllTypesTest_setBool(bool val) {
-    AllTypesTest_valBool = val;
+void AllTypesTest__setBool(bool val) {
+    AllTypesTest__valBool = val;
 }
 
-void AllTypesTest_setF32(float val) {
-    AllTypesTest_valF32 = val;
+void AllTypesTest__setF32(float val) {
+    AllTypesTest__valF32 = val;
 }
 
-void AllTypesTest_setF64(double val) {
-    AllTypesTest_valF64 = val;
+void AllTypesTest__setF64(double val) {
+    AllTypesTest__valF64 = val;
 }
 
 int main(void) {
-    uint8_t resultU8 = AllTypesTest_getU8();
+    uint8_t resultU8 = AllTypesTest__getU8();
     if (resultU8 != 255) {
         return 1;
     }
-    uint16_t resultU16 = AllTypesTest_getU16();
+    uint16_t resultU16 = AllTypesTest__getU16();
     if (resultU16 != 65535) {
         return 2;
     }
-    uint32_t resultU32 = AllTypesTest_getU32();
+    uint32_t resultU32 = AllTypesTest__getU32();
     if (resultU32 != 4294967295) {
         return 3;
     }
-    uint64_t resultU64 = AllTypesTest_getU64();
+    uint64_t resultU64 = AllTypesTest__getU64();
     if (resultU64 != 18446744073709551615) {
         return 4;
     }
-    int8_t resultI8 = AllTypesTest_getI8();
+    int8_t resultI8 = AllTypesTest__getI8();
     if (resultI8 != -128) {
         return 5;
     }
-    int16_t resultI16 = AllTypesTest_getI16();
+    int16_t resultI16 = AllTypesTest__getI16();
     if (resultI16 != -32768) {
         return 6;
     }
-    int32_t resultI32 = AllTypesTest_getI32();
+    int32_t resultI32 = AllTypesTest__getI32();
     if (resultI32 != (int32_t)INT32_MIN) {
         return 7;
     }
-    int64_t resultI64 = AllTypesTest_getI64();
+    int64_t resultI64 = AllTypesTest__getI64();
     if (resultI64 != (int64_t)INT64_MIN) {
         return 8;
     }
     float testF32 = 99.5;
-    AllTypesTest_setF32(testF32);
-    float resultF32 = AllTypesTest_getF32();
+    AllTypesTest__setF32(testF32);
+    float resultF32 = AllTypesTest__getF32();
     if (resultF32 != testF32) {
         return 9;
     }
     double testF64 = 123.456789012345;
-    AllTypesTest_setF64(testF64);
-    double resultF64 = AllTypesTest_getF64();
+    AllTypesTest__setF64(testF64);
+    double resultF64 = AllTypesTest__getF64();
     if (resultF64 != testF64) {
         return 10;
     }
-    bool resultBool = AllTypesTest_getBool();
+    bool resultBool = AllTypesTest__getBool();
     if (resultBool != true) {
         return 11;
     }
     uint8_t newU8Value = 100U;
-    AllTypesTest_setU8(newU8Value);
-    resultU8 = AllTypesTest_getU8();
+    AllTypesTest__setU8(newU8Value);
+    resultU8 = AllTypesTest__getU8();
     if (resultU8 != 100) {
         return 12;
     }
     bool newBoolValue = false;
-    AllTypesTest_setBool(newBoolValue);
-    resultBool = AllTypesTest_getBool();
+    AllTypesTest__setBool(newBoolValue);
+    resultBool = AllTypesTest__getBool();
     if (resultBool != false) {
         return 13;
     }

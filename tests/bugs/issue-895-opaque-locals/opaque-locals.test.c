@@ -20,7 +20,7 @@ void test_opaque_local(void) {
 
 /* Scope: Display */
 
-void Display_init(void) {
+void Display__init(void) {
     widget_t* screen = widget_create(800, 600);
     widget_destroy(screen);
 }

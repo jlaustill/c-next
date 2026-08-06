@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void ArrayBug_callback(void);
-uint8_t ArrayBug_getData0(void);
-bool ArrayBug_getFlag(void);
+void ArrayBug__callback(void);
+uint8_t ArrayBug__getData0(void);
+bool ArrayBug__getFlag(void);
 
 #ifdef __cplusplus
 }

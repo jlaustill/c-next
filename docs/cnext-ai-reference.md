@@ -364,15 +364,15 @@ init(LED_PIN);                // OK: LED_PIN has an address
 ```
 
 **Exposing a scope constant to C/C++:** a `public const` inside a `scope` becomes an
-`extern const` header symbol named `Scope_NAME` (a private const stays file-local). Use
+`extern const` header symbol named `Scope__NAME` (a private const stays file-local). Use
 it to publish module constants (a PGN, a size, an interval):
 
 ```cnx
 scope Protocol {
-    public const u16 PGN <- 0xFFDC;      // -> extern const uint16_t Protocol_PGN;  (in .h)
+    public const u16 PGN <- 0xFFDC;      // -> extern const uint16_t Protocol__PGN;  (in .h)
     const u8 RETRIES <- 3;               // private -> not exported
 }
-// C++ / C consumer:  uint16_t p = Protocol_PGN;
+// C++ / C consumer:  uint16_t p = Protocol__PGN;
 ```
 
 ## Control Flow
@@ -452,8 +452,8 @@ scope Counter {
 }
 
 // External usage
-Counter.increment();                // → Counter_increment()
-u32 v <- Counter.get();             // → Counter_get()
+Counter.increment();                // → Counter__increment()
+u32 v <- Counter.get();             // → Counter__get()
 ```
 
 Prefer **bare names** inside a scope — they resolve to the scope member
@@ -490,15 +490,15 @@ scope Foo {
 
 ```cnx
 scope LED {
-    private u32 pin <- 13;            // → static uint32_t LED_pin = 13;
-    void on() { }                    // → void LED_on(void) { } (public by default)
-    private void helper() { }        // → static void LED_helper(void) { }
+    private u32 pin <- 13;            // → static uint32_t LED__pin = 13;
+    void on() { }                    // → void LED__on(void) { } (public by default)
+    private void helper() { }        // → static void LED__helper(void) { }
 }
 ```
 
 - Private members → `static` (file-scoped)
 - Public members → non-static + header prototype
-- Names prefixed: `ScopeName_memberName`
+- Names prefixed: `ScopeName__memberName`
 
 ### Scoped Types
 

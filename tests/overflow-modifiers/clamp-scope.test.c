@@ -29,40 +29,40 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // ADR-044 + ADR-016: Verifies clamp works with scope variables via this. accessor
 // This test exposes a BUG if clamp is ignored in scope contexts
 /* Scope: ClampScope */
-static uint8_t ClampScope_brightness = 200U;
+static uint8_t ClampScope__brightness = 200U;
 
-void ClampScope_triggerOverflow(void) {
-    ClampScope_brightness = cnx_clamp_add_u8(ClampScope_brightness, 100U);
+void ClampScope__triggerOverflow(void) {
+    ClampScope__brightness = cnx_clamp_add_u8(ClampScope__brightness, 100U);
 }
 
-void ClampScope_triggerUnderflow(void) {
-    ClampScope_brightness = cnx_clamp_sub_u8(ClampScope_brightness, 255U);
+void ClampScope__triggerUnderflow(void) {
+    ClampScope__brightness = cnx_clamp_sub_u8(ClampScope__brightness, 255U);
 }
 
-uint8_t ClampScope_getBrightness(void) {
-    return ClampScope_brightness;
+uint8_t ClampScope__getBrightness(void) {
+    return ClampScope__brightness;
 }
 
-void ClampScope_reset(uint8_t value) {
-    ClampScope_brightness = value;
+void ClampScope__reset(uint8_t value) {
+    ClampScope__brightness = value;
 }
 
 int main(void) {
-    uint8_t val = ClampScope_getBrightness();
+    uint8_t val = ClampScope__getBrightness();
     if (val != 200) return 1;
-    ClampScope_triggerOverflow();
-    val = ClampScope_getBrightness();
+    ClampScope__triggerOverflow();
+    val = ClampScope__getBrightness();
     if (val != 255) return 2;
-    ClampScope_reset(50U);
-    ClampScope_triggerUnderflow();
-    val = ClampScope_getBrightness();
+    ClampScope__reset(50U);
+    ClampScope__triggerUnderflow();
+    val = ClampScope__getBrightness();
     if (val != 0) return 3;
-    ClampScope_reset(250U);
-    ClampScope_triggerOverflow();
-    val = ClampScope_getBrightness();
+    ClampScope__reset(250U);
+    ClampScope__triggerOverflow();
+    val = ClampScope__getBrightness();
     if (val != 255) return 4;
-    ClampScope_triggerUnderflow();
-    val = ClampScope_getBrightness();
+    ClampScope__triggerUnderflow();
+    val = ClampScope__getBrightness();
     if (val != 0) return 5;
     return 0;
 }

@@ -14,44 +14,44 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t ModifierCombos_publicClampByte;
-extern uint16_t ModifierCombos_publicClampWord;
-extern int8_t ModifierCombos_publicClampSigned;
-extern uint8_t ModifierCombos_publicWrapByte;
-extern uint16_t ModifierCombos_publicWrapWord;
-extern const uint8_t ModifierCombos_PUBLIC_CONST;
-extern const bool ModifierCombos_PUBLIC_FLAG;
+extern uint8_t ModifierCombos__publicClampByte;
+extern uint16_t ModifierCombos__publicClampWord;
+extern int8_t ModifierCombos__publicClampSigned;
+extern uint8_t ModifierCombos__publicWrapByte;
+extern uint16_t ModifierCombos__publicWrapWord;
+extern const uint8_t ModifierCombos__PUBLIC_CONST;
+extern const bool ModifierCombos__PUBLIC_FLAG;
 
 /* Function prototypes */
-uint8_t ModifierCombos_getMaxBrightness(void);
-uint16_t ModifierCombos_getMaxSensor(void);
-int8_t ModifierCombos_getMinTemp(void);
-uint8_t ModifierCombos_getCounterStart(void);
-uint16_t ModifierCombos_getTickStart(void);
-uint8_t ModifierCombos_getPublicClampByte(void);
-uint16_t ModifierCombos_getPublicClampWord(void);
-int8_t ModifierCombos_getPublicClampSigned(void);
-uint8_t ModifierCombos_getPrivateClampByte(void);
-uint16_t ModifierCombos_getPrivateClampWord(void);
-int8_t ModifierCombos_getPrivateClampSigned(void);
-uint8_t ModifierCombos_getPublicWrapByte(void);
-uint16_t ModifierCombos_getPublicWrapWord(void);
-uint8_t ModifierCombos_getPrivateWrapByte(void);
-uint16_t ModifierCombos_getPrivateWrapWord(void);
-uint8_t ModifierCombos_getPublicConst(void);
-bool ModifierCombos_getPublicFlag(void);
-uint8_t ModifierCombos_getPrivateConst(void);
-bool ModifierCombos_getPrivateFlag(void);
-void ModifierCombos_increasePublicClampByte(void);
-void ModifierCombos_decreasePublicClampSigned(void);
-void ModifierCombos_increasePrivateClampByte(void);
-void ModifierCombos_decreasePrivateClampWord(void);
-void ModifierCombos_incrementPublicWrapByte(void);
-void ModifierCombos_incrementPublicWrapWord(void);
-void ModifierCombos_decrementPrivateWrapByte(void);
-void ModifierCombos_decrementPrivateWrapWord(void);
-void ModifierCombos_adjustAllClamp(void);
-void ModifierCombos_adjustAllWrap(void);
+uint8_t ModifierCombos__getMaxBrightness(void);
+uint16_t ModifierCombos__getMaxSensor(void);
+int8_t ModifierCombos__getMinTemp(void);
+uint8_t ModifierCombos__getCounterStart(void);
+uint16_t ModifierCombos__getTickStart(void);
+uint8_t ModifierCombos__getPublicClampByte(void);
+uint16_t ModifierCombos__getPublicClampWord(void);
+int8_t ModifierCombos__getPublicClampSigned(void);
+uint8_t ModifierCombos__getPrivateClampByte(void);
+uint16_t ModifierCombos__getPrivateClampWord(void);
+int8_t ModifierCombos__getPrivateClampSigned(void);
+uint8_t ModifierCombos__getPublicWrapByte(void);
+uint16_t ModifierCombos__getPublicWrapWord(void);
+uint8_t ModifierCombos__getPrivateWrapByte(void);
+uint16_t ModifierCombos__getPrivateWrapWord(void);
+uint8_t ModifierCombos__getPublicConst(void);
+bool ModifierCombos__getPublicFlag(void);
+uint8_t ModifierCombos__getPrivateConst(void);
+bool ModifierCombos__getPrivateFlag(void);
+void ModifierCombos__increasePublicClampByte(void);
+void ModifierCombos__decreasePublicClampSigned(void);
+void ModifierCombos__increasePrivateClampByte(void);
+void ModifierCombos__decreasePrivateClampWord(void);
+void ModifierCombos__incrementPublicWrapByte(void);
+void ModifierCombos__incrementPublicWrapWord(void);
+void ModifierCombos__decrementPrivateWrapByte(void);
+void ModifierCombos__decrementPrivateWrapWord(void);
+void ModifierCombos__adjustAllClamp(void);
+void ModifierCombos__adjustAllWrap(void);
 
 #ifdef __cplusplus
 }

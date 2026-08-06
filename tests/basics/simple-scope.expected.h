@@ -14,13 +14,13 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Counter_reset(void);
-void Counter_increment(void);
-void Counter_add(uint32_t amount);
-uint32_t Counter_get(void);
-void Temperature_set(int32_t temp);
-int32_t Temperature_getCelsius(void);
-int32_t Temperature_getFahrenheit(void);
+void Counter__reset(void);
+void Counter__increment(void);
+void Counter__add(uint32_t amount);
+uint32_t Counter__get(void);
+void Temperature__set(int32_t temp);
+int32_t Temperature__getCelsius(void);
+int32_t Temperature__getFahrenheit(void);
 
 #ifdef __cplusplus
 }

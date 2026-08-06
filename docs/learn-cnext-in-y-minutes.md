@@ -403,7 +403,7 @@ LED.on();                      // OK - public by default
 LED.off();                     // OK - public by default
 // LED.reset();                // ERROR - explicitly private
 
-// Generates: LED_on(), LED_off(), static void LED_reset()
+// Generates: LED__on(), LED__off(), static void LED__reset()
 
 // =============================================================================
 // 14. REGISTER BINDINGS

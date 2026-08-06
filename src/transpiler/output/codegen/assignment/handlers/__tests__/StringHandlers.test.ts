@@ -105,7 +105,7 @@ describe("StringHandlers", () => {
     it("generates strncpy for scoped member", () => {
       CodeGenState.currentScope = "TestScope";
       HandlerTestUtils.setupMockTypeRegistry([
-        ["TestScope_memberName", { stringCapacity: 64, baseType: "string" }],
+        ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
       ]);
       const ctx = createMockContext({ identifiers: ["memberName"] });
 

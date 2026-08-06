@@ -19,7 +19,7 @@ function createMockContext(
   // Default resolved values based on first identifier
   const identifiers = overrides.identifiers ?? ["GPIO7", "DR_SET"];
   const resolvedTarget =
-    overrides.resolvedTarget ?? `${identifiers.join("_")}[LED_BIT]`;
+    overrides.resolvedTarget ?? `${identifiers.join("__")}[LED_BIT]`;
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? identifiers[0];
 
@@ -83,7 +83,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("GPIO7_DR_SET");
+      expect(result).toContain("GPIO7__DR_SET");
       expect(result).toContain("& ~(1U <<");
       expect(result).toContain("LED_BIT");
     });
@@ -93,13 +93,13 @@ describe("RegisterHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext();
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("GPIO7_DR_SET = (1U << LED_BIT);");
+      expect(result).toBe("GPIO7__DR_SET = (1U << LED_BIT);");
     });
 
     it("throws on write-only register with false value", () => {
@@ -107,7 +107,7 @@ describe("RegisterHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({ generatedValue: "false" });
 
@@ -121,7 +121,7 @@ describe("RegisterHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1s"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({ generatedValue: "0" });
 
@@ -151,7 +151,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("Motor_GPIO7_DR_SET");
+      expect(result).toContain("Motor__GPIO7__DR_SET");
     });
   });
 
@@ -175,7 +175,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("GPIO7_DR_SET");
+      expect(result).toContain("GPIO7__DR_SET");
       expect(result).toContain("& ~(");
       expect(result).toContain("<< 0");
     });
@@ -188,7 +188,7 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
@@ -197,7 +197,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("GPIO7_DR_SET =");
+      expect(result).toContain("GPIO7__DR_SET =");
       expect(result).toContain("value");
       expect(result).not.toContain("& ~");
     });
@@ -210,7 +210,7 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "w1c"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "w1c"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
@@ -234,9 +234,9 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce(8),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
         registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
-        registerMemberOffsets: new Map([["GPIO7_DR_SET", "0x04"]]),
+        registerMemberOffsets: new Map([["GPIO7__DR_SET", "0x04"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
@@ -262,9 +262,9 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce(16),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
         registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
-        registerMemberOffsets: new Map([["GPIO7_DR_SET", "0x04"]]),
+        registerMemberOffsets: new Map([["GPIO7__DR_SET", "0x04"]]),
       });
       const ctx = createMockContext({
         subscripts: [{ mockValue: "8" } as never, { mockValue: "16" } as never],
@@ -308,7 +308,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("Motor_GPIO7_DR_SET");
+      expect(result).toContain("Motor__GPIO7__DR_SET");
       expect(result).toContain("& ~(1U <<");
     });
 
@@ -318,7 +318,7 @@ describe("RegisterHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["Motor_GPIO7_DR_SET", "wo"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -327,7 +327,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toBe("Motor_GPIO7_DR_SET = (1U << LED_BIT);");
+      expect(result).toBe("Motor__GPIO7__DR_SET = (1U << LED_BIT);");
     });
 
     it("throws when used outside scope", () => {
@@ -354,7 +354,7 @@ describe("RegisterHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["Motor_GPIO7_DR_SET", "w1s"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
@@ -391,7 +391,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("Motor_GPIO7_ICR1");
+      expect(result).toContain("Motor__GPIO7__ICR1");
       expect(result).toContain("& ~(");
       expect(result).toContain("<< 6");
     });
@@ -405,7 +405,7 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce("2"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["Motor_GPIO7_ICR1", "wo"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "wo"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
@@ -416,7 +416,7 @@ describe("RegisterHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("Motor_GPIO7_ICR1 =");
+      expect(result).toContain("Motor__GPIO7__ICR1 =");
       expect(result).not.toContain("& ~");
     });
 
@@ -433,9 +433,9 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce(32),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["Motor_GPIO7_ICR1", "wo"]]),
-        registerBaseAddresses: new Map([["Motor_GPIO7", "0x40000000"]]),
-        registerMemberOffsets: new Map([["Motor_GPIO7_ICR1", "0x08"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "wo"]]),
+        registerBaseAddresses: new Map([["Motor__GPIO7", "0x40000000"]]),
+        registerMemberOffsets: new Map([["Motor__GPIO7__ICR1", "0x08"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
@@ -484,7 +484,7 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce("2"),
       });
       HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["Motor_GPIO7_ICR1", "w1c"]]),
+        registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "w1c"]]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],

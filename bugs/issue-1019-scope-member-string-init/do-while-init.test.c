@@ -22,23 +22,23 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Issue #1019 review feedback: do-while assignment should be detected
 // A scope member assigned inside a do-while body should be readable elsewhere
 /* Scope: S */
-static char S_buf[17] = "";
+static char S__buf[17] = "";
 
-void S_init(void) {
+void S__init(void) {
     uint8_t i = 0U;
     do {
-        strncpy(S_buf, "initialized", 16); S_buf[16] = '\0';
+        strncpy(S__buf, "initialized", 16); S__buf[16] = '\0';
         i = cnx_clamp_add_u8(i, 1U);
     } while (i < 1);
 }
 
-uint8_t S_len(void) {
-    return strlen(S_buf);
+uint8_t S__len(void) {
+    return strlen(S__buf);
 }
 
 int main(void) {
-    S_init();
-    uint8_t length = S_len();
+    S__init();
+    uint8_t length = S__len();
     if (length != 11) return 1;
     return 0;
 }

@@ -11,7 +11,7 @@
 // test-c-only
 // Tests .bit_length property for enum type (ADR-058)
 // Enums are 32 bits by default (ADR-017)
-Color globalColor = Color_Red;
+Color globalColor = Color__Red;
 
 /* Scope: EnumBitLen */
 
@@ -19,12 +19,12 @@ int main(void) {
     if (32 != 32) {
         return 1;
     }
-    State localState = State_IDLE;
+    State localState = State__IDLE;
     if (32 != 32) {
         return 2;
     }
-    EnumBitLen_TestStruct ts = {0};
-    ts.state = State_RUNNING;
+    EnumBitLen__TestStruct ts = {0};
+    ts.state = State__RUNNING;
     if (32 != 32) {
         return 3;
     }

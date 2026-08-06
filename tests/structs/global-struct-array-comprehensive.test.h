@@ -15,10 +15,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct GlobalStruct_Outer {
+typedef struct GlobalStruct__Outer {
     ExternalStruct inner;
     uint8_t direct[8];
-} GlobalStruct_Outer;
+} GlobalStruct__Outer;
 typedef struct CNextStruct {
     uint8_t buffer[16];
     uint32_t values[4];
@@ -27,19 +27,19 @@ typedef struct CNextStruct {
 /* External variables */
 extern ExternalStruct globalExternal;
 extern CNextStruct globalCNext;
-extern GlobalStruct_Outer globalOuter;
+extern GlobalStruct__Outer globalOuter;
 
 /* Function prototypes */
-uint8_t ArrayTests_testGlobalExternal(void);
-uint8_t ArrayTests_testGlobalCNext(void);
-uint32_t ArrayTests_testGlobalCNextU32(void);
-uint8_t ArrayTests_testNestedViaGlobal(void);
-uint8_t ArrayTests_testNestedDirect(void);
-uint8_t ArrayTests_testThisExternal(void);
-uint8_t ArrayTests_testThisCNext(void);
-uint8_t ArrayTests_testMultipleIndex(void);
-uint8_t ArrayTests_testParameter(const ExternalStruct* param);
-uint8_t ArrayTests_testParameterCNext(const CNextStruct* param);
+uint8_t ArrayTests__testGlobalExternal(void);
+uint8_t ArrayTests__testGlobalCNext(void);
+uint32_t ArrayTests__testGlobalCNextU32(void);
+uint8_t ArrayTests__testNestedViaGlobal(void);
+uint8_t ArrayTests__testNestedDirect(void);
+uint8_t ArrayTests__testThisExternal(void);
+uint8_t ArrayTests__testThisCNext(void);
+uint8_t ArrayTests__testMultipleIndex(void);
+uint8_t ArrayTests__testParameter(const ExternalStruct* param);
+uint8_t ArrayTests__testParameterCNext(const CNextStruct* param);
 
 #ifdef __cplusplus
 }

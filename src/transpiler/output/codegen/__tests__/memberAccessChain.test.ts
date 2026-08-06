@@ -50,7 +50,7 @@ describe("determineSeparator", () => {
         isStructParam: false,
         isCrossScope: true,
       };
-      expect(determineSeparator(options, 1)).toBe("_");
+      expect(determineSeparator(options, 1)).toBe("__");
     });
 
     it("should return . for cross-scope at idIndex > 1", () => {
@@ -260,7 +260,7 @@ describe("buildMemberAccessChain", () => {
       };
 
       const result = buildMemberAccessChain(options);
-      expect(result.code).toBe("Timing_tickCount");
+      expect(result.code).toBe("Timing__tickCount");
       expect(result.identifiersConsumed).toBe(2);
     });
   });

@@ -14,20 +14,20 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t Visibility_publicCounter;
-extern bool Visibility_publicFlag;
+extern uint8_t Visibility__publicCounter;
+extern bool Visibility__publicFlag;
 
 /* Function prototypes */
-uint8_t Visibility_getPrivateCounter(void);
-uint8_t Visibility_getPrivateCounterViaInternal(void);
-uint8_t Visibility_getPublicCounter(void);
-void Visibility_setPublicCounter(uint8_t value);
-void Visibility_incrementPrivate(void);
-uint8_t Visibility_getSum(void);
-bool Visibility_getBothFlags(void);
-void Visibility_setPrivateFlag(bool value);
-void Visibility_setPublicFlag(bool value);
-void Visibility_setPrivateCounter(uint8_t value);
+uint8_t Visibility__getPrivateCounter(void);
+uint8_t Visibility__getPrivateCounterViaInternal(void);
+uint8_t Visibility__getPublicCounter(void);
+void Visibility__setPublicCounter(uint8_t value);
+void Visibility__incrementPrivate(void);
+uint8_t Visibility__getSum(void);
+bool Visibility__getBothFlags(void);
+void Visibility__setPrivateFlag(bool value);
+void Visibility__setPublicFlag(bool value);
+void Visibility__setPrivateCounter(uint8_t value);
 
 #ifdef __cplusplus
 }

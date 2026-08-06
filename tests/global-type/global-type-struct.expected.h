@@ -20,11 +20,11 @@ typedef struct Point2D {
 } Point2D;
 
 /* Function prototypes */
-void PointManager_setPoint(int32_t px, int32_t py);
-int32_t PointManager_getX(void);
-int32_t PointManager_getY(void);
-Point2D PointManager_getPoint(void);
-int32_t PointManager_sum(const Point2D* p);
+void PointManager__setPoint(int32_t px, int32_t py);
+int32_t PointManager__getX(void);
+int32_t PointManager__getY(void);
+Point2D PointManager__getPoint(void);
+int32_t PointManager__sum(const Point2D* p);
 
 #ifdef __cplusplus
 }

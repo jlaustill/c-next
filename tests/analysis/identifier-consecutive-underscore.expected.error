@@ -1,0 +1,1 @@
+6:3 error[E0201]: Identifier 'my__value' cannot contain consecutive underscores. '__' is reserved as the separator for scope-qualified names in generated C.

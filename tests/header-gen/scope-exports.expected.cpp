@@ -10,29 +10,29 @@
 // Issue #403: Scope exports header generation test
 // Tests that public scope functions are exported in the header.
 /* Scope: LED */
-static uint8_t LED_brightness = 0U;
+static uint8_t LED__brightness = 0U;
 
-void LED_on(void) {
-    LED_brightness = 255U;
+void LED__on(void) {
+    LED__brightness = 255U;
 }
 
-void LED_off(void) {
-    LED_brightness = 0U;
+void LED__off(void) {
+    LED__brightness = 0U;
 }
 
-void LED_setBrightness(uint8_t level) {
-    LED_brightness = level;
+void LED__setBrightness(uint8_t level) {
+    LED__brightness = level;
 }
 
-uint8_t LED_getBrightness(void) {
-    return LED_brightness;
+uint8_t LED__getBrightness(void) {
+    return LED__brightness;
 }
 
-void LED_privateReset(void) {
-    LED_brightness = 128U;
+void LED__privateReset(void) {
+    LED__brightness = 128U;
 }
 
 int main(void) {
-    LED_on();
-    LED_setBrightness(100U);
+    LED__on();
+    LED__setBrightness(100U);
 }

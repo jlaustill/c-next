@@ -10,16 +10,16 @@
 
 #include <stdint.h>
 
-void setHigh(NestedExtEnum_Config* cfg) {
-    cfg->level = ELevel_LEVEL_HIGH;
+void setHigh(NestedExtEnum__Config* cfg) {
+    cfg->level = ELevel__LEVEL_HIGH;
 }
 
 int main(void) {
-    NestedExtEnum_Config cfg = { .level = ELevel_LEVEL_LOW };
-    if (cfg.level != ELevel_LEVEL_LOW) return 1;
-    cfg.level = ELevel_LEVEL_MEDIUM;
-    if (cfg.level != ELevel_LEVEL_MEDIUM) return 2;
+    NestedExtEnum__Config cfg = { .level = ELevel__LEVEL_LOW };
+    if (cfg.level != ELevel__LEVEL_LOW) return 1;
+    cfg.level = ELevel__LEVEL_MEDIUM;
+    if (cfg.level != ELevel__LEVEL_MEDIUM) return 2;
     setHigh(&cfg);
-    if (cfg.level != ELevel_LEVEL_HIGH) return 3;
+    if (cfg.level != ELevel__LEVEL_HIGH) return 3;
     return 0;
 }

@@ -14,6 +14,7 @@
 
 import ISeparatorContext from "../types/ISeparatorContext";
 import IMemberSeparatorDeps from "../types/IMemberSeparatorDeps";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Input parameters for building a separator context
@@ -53,7 +54,9 @@ class MemberSeparatorResolver {
       (deps.isKnownScope(firstId) || deps.isKnownRegister(firstId));
 
     const scopedRegName =
-      hasThis && currentScope ? `${currentScope}_${firstId}` : null;
+      hasThis && currentScope
+        ? QualifiedCName.join(currentScope, firstId)
+        : null;
 
     const isScopedRegister =
       scopedRegName !== null && deps.isKnownRegister(scopedRegName);
@@ -94,7 +97,7 @@ class MemberSeparatorResolver {
 
     // Cross-scope access (global.Scope.member or global.Register.member)
     if (ctx.isCrossScope) {
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
@@ -105,7 +108,7 @@ class MemberSeparatorResolver {
         memberName,
         ctx.hasGlobal,
       );
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Scope member access: Sensor.buffer -> Sensor_buffer
@@ -113,16 +116,19 @@ class MemberSeparatorResolver {
     if (deps.isKnownScope(identifierChain[0])) {
       // Issue #779: Skip cross-scope validation for scoped register access
       // Board.GPIO where Board_GPIO is a known register is valid
-      const scopedRegisterName = `${identifierChain[0]}_${memberName}`;
+      const scopedRegisterName = QualifiedCName.join(
+        identifierChain[0],
+        memberName,
+      );
       if (!deps.isKnownRegister(scopedRegisterName)) {
         deps.validateCrossScopeVisibility(identifierChain[0], memberName);
       }
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Scoped register: this.MOTOR_REG.SPEED -> Scope_MOTOR_REG_SPEED
     if (ctx.isScopedRegister) {
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Default: struct field access
@@ -138,13 +144,13 @@ class MemberSeparatorResolver {
     deps: IMemberSeparatorDeps,
   ): string {
     // Check for register chains
-    const chainSoFar = identifierChain.slice(0, -1).join("_");
+    const chainSoFar = QualifiedCName.join(...identifierChain.slice(0, -1));
     const isRegisterChain =
       deps.isKnownRegister(identifierChain[0]) ||
       deps.isKnownRegister(chainSoFar) ||
       (ctx.scopedRegName !== null && deps.isKnownRegister(ctx.scopedRegName));
 
-    return isRegisterChain ? "_" : ".";
+    return isRegisterChain ? QualifiedCName.SEPARATOR : ".";
   }
 
   /**

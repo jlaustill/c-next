@@ -10,20 +10,20 @@
 // Test bare identifier resolves to scope member
 // test-execution
 /* Scope: Counter */
-static uint32_t Counter_value = 0U;
+static uint32_t Counter__value = 0U;
 
-void Counter_increment(void) {
-    Counter_value += 1U;
+void Counter__increment(void) {
+    Counter__value += 1U;
 }
 
-uint32_t Counter_getValue(void) {
-    return Counter_value;
+uint32_t Counter__getValue(void) {
+    return Counter__value;
 }
 
 int main(void) {
-    Counter_increment();
-    Counter_increment();
-    uint32_t result = Counter_getValue();
+    Counter__increment();
+    Counter__increment();
+    uint32_t result = Counter__getValue();
     if (result != 2) return 1;
     return 0;
 }

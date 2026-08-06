@@ -266,14 +266,14 @@ describe("ScopeCollector", () => {
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       // Simulate bitmap being collected in pass 1
-      const knownBitmaps = new Set(["Motor_MotorFlags"]);
+      const knownBitmaps = new Set(["Motor__MotorFlags"]);
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", knownBitmaps);
 
       const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
       if (SymbolGuards.isRegister(regSymbol!)) {
         expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe(
-          "Motor_MotorFlags",
+          "Motor__MotorFlags",
         );
       }
     });

@@ -10,17 +10,17 @@
 
 /* Scope: Geometry */
 
-Point Geometry_getOrigin(void) {
+Point Geometry__getOrigin(void) {
     Point p = { .x = 0, .y = 0 };
     return p;
 }
 
-Line Geometry_makeLine(const Point* start, const Point* end) {
+Line Geometry__makeLine(const Point* start, const Point* end) {
     Line l = { .start = (*start), .end = (*end) };
     return l;
 }
 
 int main(void) {
-    Point p = Geometry_getOrigin();
-    Line l = Geometry_makeLine(&p, &p);
+    Point p = Geometry__getOrigin();
+    Line l = Geometry__makeLine(&p, &p);
 }

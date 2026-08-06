@@ -18,8 +18,8 @@ extern uint8_t globalCount;
 extern const uint8_t limit;
 
 /* Function prototypes */
-void Counter_increment(void);
-uint8_t Counter_getCount(void);
+void Counter__increment(void);
+uint8_t Counter__getCount(void);
 
 #ifdef __cplusplus
 }

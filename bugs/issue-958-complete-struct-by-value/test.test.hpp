@@ -17,8 +17,8 @@ extern "C" {
 typedef struct widget_t widget_t;
 
 /* Function prototypes */
-void App_on_change(widget_t* w);
-void App_init(void);
+void App__on_change(widget_t* w);
+void App__init(void);
 
 #ifdef __cplusplus
 }

@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct StrCapacity_Config {
+typedef struct StrCapacity__Config {
     char key[33];
     char value[257];
-} StrCapacity_Config;
+} StrCapacity__Config;
 typedef struct Person {
     char name[65];
     char bio[129];

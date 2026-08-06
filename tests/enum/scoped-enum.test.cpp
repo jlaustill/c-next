@@ -13,32 +13,32 @@
 extern const uint8_t defaultValue = 3U;
 
 /* Scope: Motor */
-Motor_State Motor_current = Motor_State_IDLE;
+Motor__State Motor__current = Motor__State__IDLE;
 
-uint8_t Motor_start(void) {
-    Motor_current = Motor_State_RUNNING;
+uint8_t Motor__start(void) {
+    Motor__current = Motor__State__RUNNING;
     return 1;
 }
 
-uint8_t Motor_stop(void) {
-    Motor_current = Motor_State_IDLE;
+uint8_t Motor__stop(void) {
+    Motor__current = Motor__State__IDLE;
     return defaultValue;
 }
 
-bool Motor_isRunning(void) {
-    const Motor_State currentState = Motor_current;
-    if (currentState == Motor_State_RUNNING) {
+bool Motor__isRunning(void) {
+    const Motor__State currentState = Motor__current;
+    if (currentState == Motor__State__RUNNING) {
         return true;
     }
     return false;
 }
 
 // Usage from outside the scope
-Motor_State externalState = Motor_State_IDLE;
+Motor__State externalState = Motor__State__IDLE;
 
 int main(void) {
-    Motor_start();
-    if (Motor_current == Motor_State_RUNNING) {
-        externalState = Motor_State_STALLED;
+    Motor__start();
+    if (Motor__current == Motor__State__RUNNING) {
+        externalState = Motor__State__STALLED;
     }
 }

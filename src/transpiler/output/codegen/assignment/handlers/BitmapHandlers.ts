@@ -16,6 +16,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TypeValidator from "../../TypeValidator";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -166,7 +167,7 @@ function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
   const memberName = ctx.identifiers[1];
   const fieldName = ctx.identifiers[2];
 
-  const fullRegMember = `${regName}_${memberName}`;
+  const fullRegMember = QualifiedCName.join(regName, memberName);
   const bitmapType =
     CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 

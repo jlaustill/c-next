@@ -10,6 +10,6 @@
 
 /* Scope: Level3 */
 
-void Level3_modify(Config& c) {
+void Level3__modify(Config& c) {
     c.value = 42U;
 }

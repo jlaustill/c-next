@@ -9,24 +9,24 @@
 // test-execution
 // Tests: Enum as function parameter
 typedef enum {
-    Status_OK = 0,
-    Status_WARNING = 1,
-    Status_ERROR = 2,
-    Status_CRITICAL = 3
+    Status__OK = 0,
+    Status__WARNING = 1,
+    Status__ERROR = 2,
+    Status__CRITICAL = 3
 } Status;
 
 // Function that takes enum as parameter
 uint32_t getStatusCode(Status s) {
-    if (s == Status_OK) {
+    if (s == Status__OK) {
         return 0;
     }
-    if (s == Status_WARNING) {
+    if (s == Status__WARNING) {
         return 1;
     }
-    if (s == Status_ERROR) {
+    if (s == Status__ERROR) {
         return 2;
     }
-    if (s == Status_CRITICAL) {
+    if (s == Status__CRITICAL) {
         return 3;
     }
     return 99;
@@ -34,39 +34,39 @@ uint32_t getStatusCode(Status s) {
 
 // Function that takes enum and returns modified value
 uint32_t getStatusPriority(Status s) {
-    if (s == Status_CRITICAL) {
+    if (s == Status__CRITICAL) {
         return 100;
     }
-    if (s == Status_ERROR) {
+    if (s == Status__ERROR) {
         return 50;
     }
-    if (s == Status_WARNING) {
+    if (s == Status__WARNING) {
         return 10;
     }
     return 0;
 }
 
 int main(void) {
-    uint32_t code = getStatusCode(Status_OK);
+    uint32_t code = getStatusCode(Status__OK);
     if (code != 0) return 1;
-    code = getStatusCode(Status_WARNING);
+    code = getStatusCode(Status__WARNING);
     if (code != 1) return 2;
-    code = getStatusCode(Status_ERROR);
+    code = getStatusCode(Status__ERROR);
     if (code != 2) return 3;
-    code = getStatusCode(Status_CRITICAL);
+    code = getStatusCode(Status__CRITICAL);
     if (code != 3) return 4;
-    Status current = Status_ERROR;
+    Status current = Status__ERROR;
     code = getStatusCode(current);
     if (code != 2) return 5;
-    uint32_t priority = getStatusPriority(Status_OK);
+    uint32_t priority = getStatusPriority(Status__OK);
     if (priority != 0) return 6;
-    priority = getStatusPriority(Status_WARNING);
+    priority = getStatusPriority(Status__WARNING);
     if (priority != 10) return 7;
-    priority = getStatusPriority(Status_ERROR);
+    priority = getStatusPriority(Status__ERROR);
     if (priority != 50) return 8;
-    priority = getStatusPriority(Status_CRITICAL);
+    priority = getStatusPriority(Status__CRITICAL);
     if (priority != 100) return 9;
-    current = Status_CRITICAL;
+    current = Status__CRITICAL;
     priority = getStatusPriority(current);
     if (priority != 100) return 10;
     return 0;

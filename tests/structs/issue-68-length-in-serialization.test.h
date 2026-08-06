@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct SerialLength_Config {
+typedef struct SerialLength__Config {
     uint32_t magic;
     uint8_t version;
-} SerialLength_Config;
+} SerialLength__Config;
 
 #ifdef __cplusplus
 }

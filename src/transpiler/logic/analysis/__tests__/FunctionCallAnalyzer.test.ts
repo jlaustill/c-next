@@ -970,7 +970,7 @@ describe("FunctionCallAnalyzer", () => {
 
       // Scope functions are stored as ScopeName_funcName
       expect(
-        CodeGenState.callbackCompatibleFunctions.has("Handlers_on_point"),
+        CodeGenState.callbackCompatibleFunctions.has("Handlers__on_point"),
       ).toBe(true);
     });
 
@@ -1082,7 +1082,7 @@ describe("FunctionCallAnalyzer", () => {
       analyzer.analyze(tree, symbolTable);
 
       // Should detect ScopeAP_cb as callback-compatible
-      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP_cb")).toBe(
+      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP__cb")).toBe(
         true,
       );
     });
@@ -1112,7 +1112,7 @@ describe("FunctionCallAnalyzer", () => {
       analyzer.analyze(tree, symbolTable);
 
       // Should detect ScopeAP_cb as callback-compatible
-      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP_cb")).toBe(
+      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP__cb")).toBe(
         true,
       );
     });
@@ -1238,7 +1238,7 @@ describe("FunctionCallAnalyzer", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0422");
-      expect(errors[0].functionName).toBe("Motor_undefinedMethod");
+      expect(errors[0].functionName).toBe("Motor__undefinedMethod");
       expect(errors[0].message).toContain("called before definition");
       expect(errors[0].message).not.toContain(
         "not declared in any included header",

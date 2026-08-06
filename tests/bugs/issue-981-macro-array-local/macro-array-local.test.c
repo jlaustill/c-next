@@ -12,14 +12,14 @@
 
 /* Scope: Test */
 
-uint8_t Test_from_local(uint8_t idx) {
+uint8_t Test__from_local(uint8_t idx) {
     msg_t msg = {0};
     fill_msg(&msg);
     return msg.data[idx];
 }
 
 int main(void) {
-    uint8_t result = Test_from_local(5U);
+    uint8_t result = Test__from_local(5U);
     if (result != 6) return 1;
     return 0;
 }

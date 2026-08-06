@@ -15,13 +15,13 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Motor_EMode_OFF = 0,
-    Motor_EMode_ON = 1
-} Motor_EMode;
+    Motor__EMode__OFF = 0,
+    Motor__EMode__ON = 1
+} Motor__EMode;
 
 /* Function prototypes */
-Motor_EMode Motor_getMode(void);
-bool Motor_test(void);
+Motor__EMode Motor__getMode(void);
+bool Motor__test(void);
 
 #ifdef __cplusplus
 }

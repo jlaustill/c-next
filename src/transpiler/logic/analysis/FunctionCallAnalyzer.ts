@@ -15,6 +15,7 @@ import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../../utils/ParserUtils";
 import CodeGenState from "../../state/CodeGenState";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 /**
  * C-Next built-in functions
@@ -264,7 +265,7 @@ class FunctionCallListener extends CNextListener {
     // If inside a scope, the full name is Scope_functionName
     let fullName: string;
     if (this.currentScope) {
-      fullName = `${this.currentScope}_${name}`;
+      fullName = QualifiedCName.join(this.currentScope, name);
     } else {
       fullName = name;
     }
@@ -401,7 +402,7 @@ class FunctionCallListener extends CNextListener {
 
     // Handle this.member -> CurrentScope_member (when inside a scope)
     if (resolvedName === "this" && this.currentScope) {
-      return `${this.currentScope}_${memberName}`;
+      return QualifiedCName.join(this.currentScope, memberName);
     }
 
     // Issue #985: Handle global.member -> member (strip global prefix)
@@ -411,7 +412,7 @@ class FunctionCallListener extends CNextListener {
 
     // Check if base is a known scope
     if (this.analyzer.isScope(resolvedName)) {
-      return `${resolvedName}_${memberName}`;
+      return QualifiedCName.join(resolvedName, memberName);
     }
 
     // Object.method or chained access - not a C-Next function call
@@ -561,7 +562,9 @@ class FunctionCallAnalyzer {
               .functionDeclaration()!
               .IDENTIFIER()
               .getText();
-            this.allLocalFunctions.add(`${scopeName}_${funcName}`);
+            this.allLocalFunctions.add(
+              QualifiedCName.join(scopeName, funcName),
+            );
           }
         }
       }
@@ -760,7 +763,7 @@ class FunctionCallAnalyzer {
     // Scope-qualified names use dot in source (MyScope.handler) but
     // allLocalFunctions stores them with underscore (MyScope_handler)
     const lookupName = funcRef.includes(".")
-      ? funcRef.replace(".", "_")
+      ? QualifiedCName.join(funcRef)
       : funcRef;
 
     if (this.allLocalFunctions.has(lookupName)) {
@@ -843,7 +846,7 @@ class FunctionCallAnalyzer {
 
       // Normalize scope-qualified names
       const lookupName = funcRef.includes(".")
-        ? funcRef.replace(".", "_")
+        ? QualifiedCName.join(funcRef)
         : funcRef;
 
       // Mark as callback-compatible if it's a local C-Next function
@@ -894,7 +897,7 @@ class FunctionCallAnalyzer {
       if (op.IDENTIFIER()) {
         // Member access: build qualified name
         const member = op.IDENTIFIER()!.getText();
-        funcName = funcName ? `${funcName}_${member}` : member;
+        funcName = funcName ? QualifiedCName.join(funcName, member) : member;
       } else if (op.argumentList() || op.getText().startsWith("(")) {
         // Found the call - this op has the arguments
         argListOp = op;
@@ -1003,7 +1006,7 @@ class FunctionCallAnalyzer {
     // e.g., calling helper() instead of this.helper() inside a scope
     // Skip for global. calls — global. explicitly means global scope
     if (currentScope && !isGlobalCall) {
-      const qualifiedName = `${currentScope}_${name}`;
+      const qualifiedName = QualifiedCName.join(currentScope, name);
       if (this.definedFunctions.has(qualifiedName)) {
         return; // OK - implicit resolution will handle it
       }

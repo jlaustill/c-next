@@ -17,37 +17,37 @@ extern "C" {
 extern uint32_t globalCounter;
 extern bool globalFlag;
 extern int32_t globalOffset;
-extern uint32_t PrivateMethodTest_publicResult;
-extern bool PrivateMethodTest_publicFlag;
-extern int32_t PrivateMethodTest_publicAccumulator;
+extern uint32_t PrivateMethodTest__publicResult;
+extern bool PrivateMethodTest__publicFlag;
+extern int32_t PrivateMethodTest__publicAccumulator;
 
 /* Function prototypes */
-uint32_t PrivateMethodTest_getPrivateState(void);
-bool PrivateMethodTest_getPrivateFlag(void);
-int32_t PrivateMethodTest_getPrivateAccumulator(void);
-void PrivateMethodTest_incrementCallCount(void);
-uint8_t PrivateMethodTest_getCallCount(void);
-uint32_t PrivateMethodTest_readGlobalCounter(void);
-bool PrivateMethodTest_readGlobalFlag(void);
-int32_t PrivateMethodTest_readGlobalOffset(void);
-uint32_t PrivateMethodTest_combineStateAndGlobal(void);
-bool PrivateMethodTest_checkBothFlags(void);
-uint32_t PrivateMethodTest_getStateViaHelper(void);
-void PrivateMethodTest_performPrivateChain(void);
-void PrivateMethodTest_addValue(int32_t amount);
-uint32_t PrivateMethodTest_exposePrivateState(void);
-void PrivateMethodTest_setPrivateState(uint32_t val);
-bool PrivateMethodTest_exposePrivateFlag(void);
-void PrivateMethodTest_setPrivateFlag(bool val);
-int32_t PrivateMethodTest_exposePrivateAccumulator(void);
-void PrivateMethodTest_addToAccumulator(int32_t val);
-uint32_t PrivateMethodTest_exposeGlobalCounter(void);
-uint32_t PrivateMethodTest_exposeCombinedStateAndGlobal(void);
-bool PrivateMethodTest_exposeBothFlagsCheck(void);
-uint32_t PrivateMethodTest_exposeStateViaHelper(void);
-uint8_t PrivateMethodTest_exposeCallCount(void);
-void PrivateMethodTest_triggerPrivateChain(void);
-void PrivateMethodTest_copyPrivateToPublic(void);
+uint32_t PrivateMethodTest__getPrivateState(void);
+bool PrivateMethodTest__getPrivateFlag(void);
+int32_t PrivateMethodTest__getPrivateAccumulator(void);
+void PrivateMethodTest__incrementCallCount(void);
+uint8_t PrivateMethodTest__getCallCount(void);
+uint32_t PrivateMethodTest__readGlobalCounter(void);
+bool PrivateMethodTest__readGlobalFlag(void);
+int32_t PrivateMethodTest__readGlobalOffset(void);
+uint32_t PrivateMethodTest__combineStateAndGlobal(void);
+bool PrivateMethodTest__checkBothFlags(void);
+uint32_t PrivateMethodTest__getStateViaHelper(void);
+void PrivateMethodTest__performPrivateChain(void);
+void PrivateMethodTest__addValue(int32_t amount);
+uint32_t PrivateMethodTest__exposePrivateState(void);
+void PrivateMethodTest__setPrivateState(uint32_t val);
+bool PrivateMethodTest__exposePrivateFlag(void);
+void PrivateMethodTest__setPrivateFlag(bool val);
+int32_t PrivateMethodTest__exposePrivateAccumulator(void);
+void PrivateMethodTest__addToAccumulator(int32_t val);
+uint32_t PrivateMethodTest__exposeGlobalCounter(void);
+uint32_t PrivateMethodTest__exposeCombinedStateAndGlobal(void);
+bool PrivateMethodTest__exposeBothFlagsCheck(void);
+uint32_t PrivateMethodTest__exposeStateViaHelper(void);
+uint8_t PrivateMethodTest__exposeCallCount(void);
+void PrivateMethodTest__triggerPrivateChain(void);
+void PrivateMethodTest__copyPrivateToPublic(void);
 
 #ifdef __cplusplus
 }

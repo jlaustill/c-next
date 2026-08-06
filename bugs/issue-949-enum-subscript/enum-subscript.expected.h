@@ -15,10 +15,10 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EColor_RED = 0,
-    EColor_GREEN = 1,
-    EColor_BLUE = 2,
-    EColor_COUNT = 3
+    EColor__RED = 0,
+    EColor__GREEN = 1,
+    EColor__BLUE = 2,
+    EColor__COUNT = 3
 } EColor;
 
 /* Struct definitions */
@@ -30,8 +30,8 @@ typedef struct TValue {
 extern TValue values[4];
 
 /* Function prototypes */
-uint32_t Test_getValue(EColor color);
-void Test_setValue(EColor color, uint32_t val);
+uint32_t Test__getValue(EColor color);
+void Test__setValue(EColor color, uint32_t val);
 
 #ifdef __cplusplus
 }

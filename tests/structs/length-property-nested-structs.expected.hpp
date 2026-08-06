@@ -14,16 +14,16 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct LengthNested_Inner {
+typedef struct LengthNested__Inner {
     uint32_t value;
     uint16_t status;
-} LengthNested_Inner;
-typedef struct LengthNested_Outer {
-    LengthNested_Inner inner;
+} LengthNested__Inner;
+typedef struct LengthNested__Outer {
+    LengthNested__Inner inner;
     uint8_t flags;
-} LengthNested_Outer;
+} LengthNested__Outer;
 typedef struct DeepNest {
-    LengthNested_Outer outer;
+    LengthNested__Outer outer;
     uint64_t timestamp;
 } DeepNest;
 

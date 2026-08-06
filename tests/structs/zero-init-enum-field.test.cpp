@@ -10,9 +10,9 @@
 // In C++ a brace-with-zero (= {0}) is an invalid int->enum narrowing conversion;
 // value-initialization (= {}) zero-initializes every field including the enum.
 typedef enum {
-    EValueId_VALUE_A = 0,
-    EValueId_VALUE_B = 1,
-    EValueId_VALUE_UNASSIGNED = 255
+    EValueId__VALUE_A = 0,
+    EValueId__VALUE_B = 1,
+    EValueId__VALUE_UNASSIGNED = 255
 } EValueId;
 
 typedef struct TInput {
@@ -27,16 +27,16 @@ TInput input = {};
 TInput inputs[2] = {};
 
 int main(void) {
-    if (input.assignedValue != EValueId_VALUE_A) {
+    if (input.assignedValue != EValueId__VALUE_A) {
         return 1;
     }
     if (input.count != 0) {
         return 2;
     }
-    if (inputs[0U].assignedValue != EValueId_VALUE_A) {
+    if (inputs[0U].assignedValue != EValueId__VALUE_A) {
         return 3;
     }
-    if (inputs[1U].assignedValue != EValueId_VALUE_A) {
+    if (inputs[1U].assignedValue != EValueId__VALUE_A) {
         return 4;
     }
     return 0;

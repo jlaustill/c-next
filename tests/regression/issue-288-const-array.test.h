@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint8_t ConstArrayTest_LOOKUP_TABLE[4];
-extern const uint8_t ConstArrayTest_TABLE_SIZE;
+extern const uint8_t ConstArrayTest__LOOKUP_TABLE[4];
+extern const uint8_t ConstArrayTest__TABLE_SIZE;
 
 /* Function prototypes */
-uint8_t ConstArrayTest_lookup(uint8_t index);
+uint8_t ConstArrayTest__lookup(uint8_t index);
 
 #ifdef __cplusplus
 }

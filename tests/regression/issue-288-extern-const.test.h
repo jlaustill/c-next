@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint8_t ExternConstTest_STATUS_OK;
-extern const uint8_t ExternConstTest_STATUS_ERROR;
-extern const uint32_t ExternConstTest_MAGIC_NUMBER;
+extern const uint8_t ExternConstTest__STATUS_OK;
+extern const uint8_t ExternConstTest__STATUS_ERROR;
+extern const uint32_t ExternConstTest__MAGIC_NUMBER;
 
 /* Function prototypes */
-bool ExternConstTest_isSuccess(uint8_t status);
-uint8_t ExternConstTest_getErrorCode(void);
-uint32_t ExternConstTest_getMagic(void);
+bool ExternConstTest__isSuccess(uint8_t status);
+uint8_t ExternConstTest__getErrorCode(void);
+uint32_t ExternConstTest__getMagic(void);
 
 #ifdef __cplusplus
 }

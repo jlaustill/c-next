@@ -11,16 +11,16 @@
 // Test: Bit indexing on scoped registers
 /* Scope: Board */
 
-/* Register: Board_GPIO @ 0x40000000 */
-#define Board_GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define Board_GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
+/* Register: Board__GPIO @ 0x40000000 */
+#define Board__GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define Board__GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 
-void Board_toggleLed(void) {
-    Board_GPIO_DR_SET = (1U << 3);
+void Board__toggleLed(void) {
+    Board__GPIO__DR_SET = (1U << 3);
 }
 
 int main(void) {
-    Board_toggleLed();
-    Board_GPIO_DR = (Board_GPIO_DR & ~(1U << 0)) | (1U << 0);
+    Board__toggleLed();
+    Board__GPIO__DR = (Board__GPIO__DR & ~(1U << 0)) | (1U << 0);
 }

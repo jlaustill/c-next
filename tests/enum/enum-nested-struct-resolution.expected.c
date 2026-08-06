@@ -14,16 +14,16 @@
 // config -> EnumNestedRes.Config -> nested -> NestedConfig -> status -> Status
 /* Scope: EnumNestedRes */
 
-void setNestedStatus(EnumNestedRes_Config* cfg) {
-    cfg->nested.status = Status_RED;
+void setNestedStatus(EnumNestedRes__Config* cfg) {
+    cfg->nested.status = Status__RED;
 }
 
-void setNestedColor(EnumNestedRes_Config* cfg) {
-    cfg->nested.color = Color_GREEN;
+void setNestedColor(EnumNestedRes__Config* cfg) {
+    cfg->nested.color = Color__GREEN;
 }
 
 int main(void) {
-    EnumNestedRes_Config cfg = { .nested = { .status = Status_GREEN, .color = Color_RED } };
+    EnumNestedRes__Config cfg = { .nested = { .status = Status__GREEN, .color = Color__RED } };
     if ((uint32_t)cfg.nested.status != 20) return 1;
     setNestedStatus(&cfg);
     if ((uint32_t)cfg.nested.status != 10) return 2;

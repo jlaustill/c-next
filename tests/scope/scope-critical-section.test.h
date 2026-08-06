@@ -20,25 +20,25 @@ extern uint32_t globalReadIndex;
 extern bool globalBufferLock;
 
 /* Function prototypes */
-void CriticalTest_internalEnqueue(uint8_t data);
-uint8_t CriticalTest_internalDequeue(void);
-void CriticalTest_internalUpdateGlobal(void);
-void CriticalTest_internalTransfer(void);
-bool CriticalTest_internalTryLock(void);
-void CriticalTest_internalUnlock(void);
-void CriticalTest_enqueue(uint8_t data);
-uint8_t CriticalTest_dequeue(void);
-void CriticalTest_updateGlobalIndex(void);
-void CriticalTest_transferToGlobal(void);
-uint8_t CriticalTest_getCount(void);
-bool CriticalTest_tryLock(void);
-void CriticalTest_unlock(void);
-bool CriticalTest_isLocked(void);
-void CriticalTest_resetAll(void);
-bool CriticalTest_isInSync(void);
-void CriticalTest_safeEnqueue(uint8_t data);
-uint8_t CriticalTest_safeDequeue(void);
-void CriticalTest_lockedEnqueue(uint8_t data);
+void CriticalTest__internalEnqueue(uint8_t data);
+uint8_t CriticalTest__internalDequeue(void);
+void CriticalTest__internalUpdateGlobal(void);
+void CriticalTest__internalTransfer(void);
+bool CriticalTest__internalTryLock(void);
+void CriticalTest__internalUnlock(void);
+void CriticalTest__enqueue(uint8_t data);
+uint8_t CriticalTest__dequeue(void);
+void CriticalTest__updateGlobalIndex(void);
+void CriticalTest__transferToGlobal(void);
+uint8_t CriticalTest__getCount(void);
+bool CriticalTest__tryLock(void);
+void CriticalTest__unlock(void);
+bool CriticalTest__isLocked(void);
+void CriticalTest__resetAll(void);
+bool CriticalTest__isInSync(void);
+void CriticalTest__safeEnqueue(uint8_t data);
+uint8_t CriticalTest__safeDequeue(void);
+void CriticalTest__lockedEnqueue(uint8_t data);
 
 #ifdef __cplusplus
 }

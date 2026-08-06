@@ -98,7 +98,7 @@ describe("TypeRegistrationEngine", () => {
       const ctx = parseTypeContext("this.State value;");
       expect(ctx).not.toBeNull();
       const result = TypeRegistrationEngine.resolveBaseType(ctx!, "Motor");
-      expect(result).toBe("Motor_State");
+      expect(result).toBe("Motor__State");
     });
 
     it("resolves scoped types without currentScope", () => {
@@ -126,7 +126,7 @@ describe("TypeRegistrationEngine", () => {
       const ctx = parseTypeContext("Motor.State state;");
       expect(ctx).not.toBeNull();
       const result = TypeRegistrationEngine.resolveBaseType(ctx!, null);
-      expect(result).toBe("Motor_State");
+      expect(result).toBe("Motor__State");
     });
 
     it("returns null for string types", () => {
@@ -239,7 +239,7 @@ describe("TypeRegistrationEngine", () => {
 
       TypeRegistrationEngine.register(tree, mockCallbacks);
 
-      const info = CodeGenState.getVariableTypeInfo("Motor_states");
+      const info = CodeGenState.getVariableTypeInfo("Motor__states");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("State");
       expect(info?.isArray).toBe(true);
@@ -260,7 +260,7 @@ describe("TypeRegistrationEngine", () => {
 
       const info = CodeGenState.getVariableTypeInfo("allStates");
       expect(info).not.toBeNull();
-      expect(info?.baseType).toBe("Motor_State");
+      expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);
     });
 
@@ -277,9 +277,9 @@ describe("TypeRegistrationEngine", () => {
 
       TypeRegistrationEngine.register(tree, mockCallbacks);
 
-      const info = CodeGenState.getVariableTypeInfo("Motor_localStates");
+      const info = CodeGenState.getVariableTypeInfo("Motor__localStates");
       expect(info).not.toBeNull();
-      expect(info?.baseType).toBe("Motor_State");
+      expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);
 
       CodeGenState.currentScope = null;

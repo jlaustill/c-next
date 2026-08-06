@@ -24,11 +24,11 @@ extern const uint32_t STATUS_BIT = 7U;
 
 /* Scope: ConstExprChain */
 
-ConstExprChain_Sensor sensors[4] = {};
+ConstExprChain__Sensor sensors[4] = {};
 
 /* Register: GPIO @ 0x40000000 */
-#define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
+#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 int main(void) {
     sensors[INDEX_0].id = 100U;
@@ -39,16 +39,16 @@ int main(void) {
     sensors[INDEX_0].data = 0xFFU;
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (0U << LED_BIT);
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << STATUS_BIT)) | (1U << STATUS_BIT);
-    GPIO_DR = (GPIO_DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
-    GPIO_DR = (GPIO_DR & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
-    GPIO_DR_SET = (1U << LED_BIT);
+    GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
+    GPIO__DR = (GPIO__DR & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
+    GPIO__DR_SET = (1U << LED_BIT);
     const uint32_t COMPUTED_IDX = INDEX_1 + INDEX_1;
     sensors[COMPUTED_IDX].id = 500U;
     uint32_t computedId = sensors[COMPUTED_IDX].id;
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (1U << LED_BIT);
     sensors[INDEX_1].data = (sensors[INDEX_1].data & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
     if (((sensors[INDEX_0].data >> LED_BIT) & 1) == true) {
-        GPIO_DR = (GPIO_DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
+        GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
     }
     const uint32_t ROW = 0U;
     const uint32_t COL = 1U;

@@ -15,19 +15,19 @@
 #include <stdbool.h>
 
 /* Scope: Collision */
-static BoundingBox Collision_bounds = {0};
+static BoundingBox Collision__bounds = {0};
 
-void Collision_setBounds(const BoundingBox* newBounds) {
-    Collision_bounds = (*newBounds);
+void Collision__setBounds(const BoundingBox* newBounds) {
+    Collision__bounds = (*newBounds);
 }
 
-BoundingBox Collision_getBounds(void) {
-    return Collision_bounds;
+BoundingBox Collision__getBounds(void) {
+    return Collision__bounds;
 }
 
-bool Collision_contains(const Vector2D* point) {
-    bool xInRange = point->x >= Collision_bounds.min.x && point->x <= Collision_bounds.max.x;
-    bool yInRange = point->y >= Collision_bounds.min.y && point->y <= Collision_bounds.max.y;
+bool Collision__contains(const Vector2D* point) {
+    bool xInRange = point->x >= Collision__bounds.min.x && point->x <= Collision__bounds.max.x;
+    bool yInRange = point->y >= Collision__bounds.min.y && point->y <= Collision__bounds.max.y;
     return xInRange && yInRange;
 }
 
@@ -35,15 +35,15 @@ int main(void) {
     Vector2D minPt = { .x = 0.0, .y = 0.0 };
     Vector2D maxPt = { .x = 100.0, .y = 100.0 };
     BoundingBox box = { .min = minPt, .max = maxPt };
-    Collision_setBounds(&box);
-    BoundingBox retrieved = Collision_getBounds();
+    Collision__setBounds(&box);
+    BoundingBox retrieved = Collision__getBounds();
     if (retrieved.min.x != 0.0) return 1;
     if (retrieved.max.x != 100.0) return 2;
     Vector2D inside = { .x = 50.0, .y = 50.0 };
     Vector2D outside = { .x = 150.0, .y = 50.0 };
-    bool insideResult = Collision_contains(&inside);
+    bool insideResult = Collision__contains(&inside);
     if (insideResult != true) return 3;
-    bool outsideResult = Collision_contains(&outside);
+    bool outsideResult = Collision__contains(&outside);
     if (outsideResult != false) return 4;
     return 0;
 }

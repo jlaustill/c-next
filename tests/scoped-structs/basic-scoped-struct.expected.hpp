@@ -14,22 +14,22 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Motor_Config {
+typedef struct Motor__Config {
     uint8_t speed;
     uint8_t direction;
     bool enabled;
-} Motor_Config;
+} Motor__Config;
 
 /* External variables */
-extern Motor_Config Motor_current;
+extern Motor__Config Motor__current;
 
 /* Function prototypes */
-void Motor_setSpeed(uint8_t s);
-uint8_t Motor_getSpeed(void);
-void Motor_setDirection(uint8_t d);
-void Motor_enable(void);
-void Motor_disable(void);
-bool Motor_isEnabled(void);
+void Motor__setSpeed(uint8_t s);
+uint8_t Motor__getSpeed(void);
+void Motor__setDirection(uint8_t d);
+void Motor__enable(void);
+void Motor__disable(void);
+bool Motor__isEnabled(void);
 
 #ifdef __cplusplus
 }

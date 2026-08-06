@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void ConfigManager_initConfig(void);
-void ConfigManager_loadFromStorage(void);
-uint32_t ConfigManager_getTimeout(void);
+void ConfigManager__initConfig(void);
+void ConfigManager__loadFromStorage(void);
+uint32_t ConfigManager__getTimeout(void);
 
 #ifdef __cplusplus
 }

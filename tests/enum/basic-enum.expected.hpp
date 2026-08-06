@@ -15,22 +15,22 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    State_IDLE = 0,
-    State_RUNNING = 1,
-    State_PAUSED = 2,
-    State_ERROR = 3
+    State__IDLE = 0,
+    State__RUNNING = 1,
+    State__PAUSED = 2,
+    State__ERROR = 3
 } State;
 typedef enum {
-    Command_READ = 1,
-    Command_WRITE = 2,
-    Command_ERASE = 4,
-    Command_RESET = 255
+    Command__READ = 1,
+    Command__WRITE = 2,
+    Command__ERASE = 4,
+    Command__RESET = 255
 } Command;
 typedef enum {
-    Flags_NONE = 0,
-    Flags_READABLE = 1,
-    Flags_WRITABLE = 2,
-    Flags_EXECUTABLE = 4
+    Flags__NONE = 0,
+    Flags__READABLE = 1,
+    Flags__WRITABLE = 2,
+    Flags__EXECUTABLE = 4
 } Flags;
 
 /* External variables */

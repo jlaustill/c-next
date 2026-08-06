@@ -15,6 +15,7 @@ import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Classifies assignment statements by analyzing their structure.
@@ -343,7 +344,7 @@ class AssignmentClassifier {
 
     // Check for scoped register: Scope.REG.MEMBER[bit]
     if (CodeGenState.isKnownScope(firstId) && ids.length >= 3) {
-      const scopedRegName = `${firstId}_${ids[1]}`;
+      const scopedRegName = QualifiedCName.join(firstId, ids[1]);
       if (CodeGenState.symbols!.knownRegisters.has(scopedRegName)) {
         return subscriptCount === 2
           ? AssignmentKind.REGISTER_BIT_RANGE
@@ -427,7 +428,7 @@ class AssignmentClassifier {
         CodeGenState.isKnownScope(firstId) &&
         ctx.identifiers.length >= 3 &&
         CodeGenState.symbols!.knownRegisters.has(
-          `${firstId}_${ctx.identifiers[1]}`,
+          QualifiedCName.join(firstId, ctx.identifiers[1]),
         )
       ) {
         return AssignmentKind.GLOBAL_REGISTER_BIT;
@@ -478,7 +479,7 @@ class AssignmentClassifier {
       return firstId;
     }
     if (ctx.identifiers.length === 2 && CodeGenState.isKnownScope(firstId)) {
-      return `${firstId}_${ctx.identifiers[1]}`;
+      return QualifiedCName.join(firstId, ctx.identifiers[1]);
     }
     return null;
   }
@@ -492,7 +493,10 @@ class AssignmentClassifier {
     }
 
     const firstId = ctx.identifiers[0];
-    const scopedRegName = `${CodeGenState.currentScope}_${firstId}`;
+    const scopedRegName = QualifiedCName.join(
+      CodeGenState.currentScope,
+      firstId,
+    );
 
     if (ctx.hasArrayAccess) {
       return AssignmentClassifier.classifyThisWithArrayAccess(
@@ -682,7 +686,10 @@ class AssignmentClassifier {
     } else if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
       // this.member pattern: lookup using scoped name
       const memberName = ctx.identifiers[0];
-      const scopedName = `${CodeGenState.currentScope}_${memberName}`;
+      const scopedName = QualifiedCName.join(
+        CodeGenState.currentScope,
+        memberName,
+      );
       typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
     } else if (ctx.isSimpleGlobalAccess) {
       // global.member pattern: lookup using direct name
@@ -741,7 +748,10 @@ class AssignmentClassifier {
   ): AssignmentKind | null {
     if (!ctx.isSimpleThisAccess || !CodeGenState.currentScope) return null;
     const memberName = ctx.identifiers[0];
-    const scopedName = `${CodeGenState.currentScope}_${memberName}`;
+    const scopedName = QualifiedCName.join(
+      CodeGenState.currentScope,
+      memberName,
+    );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_THIS_MEMBER
@@ -919,7 +929,7 @@ class AssignmentClassifier {
     registerName: string,
     memberName: string,
   ): string | null {
-    const key = `${registerName}_${memberName}`;
+    const key = QualifiedCName.join(registerName, memberName);
     return CodeGenState.symbols!.registerMemberTypes.get(key) ?? null;
   }
 }

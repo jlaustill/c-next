@@ -15,6 +15,7 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import EnumTypeResolver from "../resolution/EnumTypeResolver.js";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils.js";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Validates enum type assignments.
@@ -120,7 +121,7 @@ class EnumAssignmentValidator {
 
     // Check for scoped enum
     if (parts.length >= 3) {
-      const scopedEnumName = `${parts[0]}_${parts[1]}`;
+      const scopedEnumName = QualifiedCName.join(parts[0], parts[1]);
       if (scopedEnumName !== typeName) {
         throw new Error(
           `Error: Cannot assign non-enum value to ${typeName} enum`,
@@ -153,7 +154,10 @@ class EnumAssignmentValidator {
         `Error: Cannot assign non-enum value to ${typeName} enum`,
       );
     }
-    const scopedEnumName = `${CodeGenState.currentScope}_${parts[1]}`;
+    const scopedEnumName = QualifiedCName.join(
+      CodeGenState.currentScope,
+      parts[1],
+    );
     if (scopedEnumName !== typeName) {
       throw new Error(
         `Error: Cannot assign non-enum value to ${typeName} enum`,

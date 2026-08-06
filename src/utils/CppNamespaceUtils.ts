@@ -11,6 +11,7 @@
 
 import SymbolTable from "../transpiler/logic/symbols/SymbolTable";
 import ESourceLanguage from "./types/ESourceLanguage";
+import QualifiedCName from "./QualifiedCName";
 
 /**
  * Static utility methods for C++ namespace operations
@@ -69,12 +70,12 @@ class CppNamespaceUtils {
       return true;
     }
 
-    // Check underscore-separated names
-    if (!typeName.includes("_")) {
+    // Check separator-qualified names
+    if (!QualifiedCName.isQualified(typeName)) {
       return false;
     }
 
-    const parts = typeName.split("_");
+    const parts = QualifiedCName.split(typeName);
     if (parts.length > 1) {
       return CppNamespaceUtils.isCppNamespace(parts[0], symbolTable);
     }
@@ -99,18 +100,18 @@ class CppNamespaceUtils {
       return typeName;
     }
 
-    // Only process types that contain underscores
-    if (!typeName.includes("_")) {
+    // Only process separator-qualified types
+    if (!QualifiedCName.isQualified(typeName)) {
       return typeName;
     }
 
     // Check if this looks like a qualified type
-    const parts = typeName.split("_");
+    const parts = QualifiedCName.split(typeName);
     if (
       parts.length > 1 &&
       CppNamespaceUtils.isCppNamespace(parts[0], symbolTable)
     ) {
-      // It's a C++ namespaced type - convert _ to ::
+      // It's a C++ namespaced type - re-qualify for C++ namespace syntax
       return parts.join("::");
     }
 

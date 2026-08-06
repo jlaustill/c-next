@@ -15,15 +15,15 @@ uint32_t globalArr[16] = {};
 
 /* Scope: TestScope */
 
-uint32_t TestScope_getGlobalArrayByteLength(void) {
+uint32_t TestScope__getGlobalArrayByteLength(void) {
     return 64;
 }
-static uint32_t TestScope_scopeArr[16] = {};
+static uint32_t TestScope__scopeArr[16] = {};
 
-uint32_t TestScope_getScopeArrayByteLength(void) {
+uint32_t TestScope__getScopeArrayByteLength(void) {
     return 64;
 }
-uint32_t TestScope_publicArr[16] = {};
+uint32_t TestScope__publicArr[16] = {};
 
 uint32_t checkArrayByteLength(uint32_t arr[16]) {
     return 64;
@@ -36,11 +36,11 @@ int main(void) {
     if (64 != 64) {
         return 1;
     }
-    uint32_t result = TestScope_getGlobalArrayByteLength();
+    uint32_t result = TestScope__getGlobalArrayByteLength();
     if (result != 64) {
         return 2;
     }
-    result = TestScope_getScopeArrayByteLength();
+    result = TestScope__getScopeArrayByteLength();
     if (result != 64) {
         return 3;
     }
@@ -58,7 +58,7 @@ int main(void) {
     if (result != 64) {
         return 6;
     }
-    U32ArrayByteLength_TestStruct ts = {};
+    U32ArrayByteLength__TestStruct ts = {};
     ts.arr[0] = 100000U;
     if (64 != 64) {
         return 7;

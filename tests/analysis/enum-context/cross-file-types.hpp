@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    ESpnCategory_SPN_CAT_TEMPERATURE = 0,
-    ESpnCategory_SPN_CAT_PRESSURE = 1,
-    ESpnCategory_SPN_CAT_UNKNOWN = 2
+    ESpnCategory__SPN_CAT_TEMPERATURE = 0,
+    ESpnCategory__SPN_CAT_PRESSURE = 1,
+    ESpnCategory__SPN_CAT_UNKNOWN = 2
 } ESpnCategory;
 
 #ifdef __cplusplus

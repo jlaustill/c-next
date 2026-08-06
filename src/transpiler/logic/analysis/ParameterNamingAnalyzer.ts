@@ -23,6 +23,15 @@ function isReservedParameterName(
   parameterName: string,
   functionName: string,
 ): boolean {
+  // Deliberately a literal single underscore, NOT QualifiedCName.SEPARATOR.
+  //
+  // E0227 exists because `process_value` could shadow a scope variable that also
+  // generated the C name `process_value`. ADR-063 makes that collision
+  // unrepresentable — a scope member now generates `process__value`, which E0201
+  // already rejects as a parameter name. So this rule is arguably obsolete.
+  //
+  // Retiring it would change what C-Next accepts, which needs its own ADR, so the
+  // existing behavior is preserved verbatim here. Tracked separately.
   return parameterName.startsWith(functionName + "_");
 }
 

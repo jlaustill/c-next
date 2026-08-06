@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    ECategory_CAT_A = 0,
-    ECategory_CAT_B = 1,
-    ECategory_CAT_C = 2
+    ECategory__CAT_A = 0,
+    ECategory__CAT_B = 1,
+    ECategory__CAT_C = 2
 } ECategory;
 
 #ifdef __cplusplus

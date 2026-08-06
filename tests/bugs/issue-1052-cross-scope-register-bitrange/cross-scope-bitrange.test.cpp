@@ -13,13 +13,13 @@
 // literal `[start, width]` subscript (which is invalid C).
 /* Scope: Hw */
 
-/* Register: Hw_GPIO @ 0x40020000 */
-#define Hw_GPIO_Mode (*(volatile uint32_t*)(0x40020000 + 0x00))
+/* Register: Hw__GPIO @ 0x40020000 */
+#define Hw__GPIO__Mode (*(volatile uint32_t*)(0x40020000 + 0x00))
 
 
 /* Scope: App */
 
-void App_configure(void) {
-    Hw_GPIO_Mode = (Hw_GPIO_Mode & ~(((1U << 2) - 1) << 10)) | ((3 & ((1U << 2) - 1)) << 10);
-    Hw_GPIO_Mode = (Hw_GPIO_Mode & ~(1U << 5)) | (1U << 5);
+void App__configure(void) {
+    Hw__GPIO__Mode = (Hw__GPIO__Mode & ~(((1U << 2) - 1) << 10)) | ((3 & ((1U << 2) - 1)) << 10);
+    Hw__GPIO__Mode = (Hw__GPIO__Mode & ~(1U << 5)) | (1U << 5);
 }

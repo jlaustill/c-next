@@ -25,12 +25,12 @@ void movePoint(Point* p, int32_t dx, int32_t dy) {
 }
 
 // Read-only config - should get const
-uint32_t getConfigValue(const AutoConst_Config* c) {
+uint32_t getConfigValue(const AutoConst__Config* c) {
     return c->value;
 }
 
 // Mixed: read one field, modify another - should NOT get const
-void toggleAndRead(AutoConst_Config* c) {
+void toggleAndRead(AutoConst__Config* c) {
     uint32_t temp = c->value;
     c->enabled = !c->enabled;
 }
@@ -54,7 +54,7 @@ int main(void) {
     movePoint(&pt, 5, -3);
     if (pt.x != 15) return 4;
     if (pt.y != 17) return 5;
-    AutoConst_Config cfg = { .value = 42U, .enabled = true };
+    AutoConst__Config cfg = { .value = 42U, .enabled = true };
     uint32_t val = getConfigValue(&cfg);
     if (val != 42) return 6;
     toggleAndRead(&cfg);

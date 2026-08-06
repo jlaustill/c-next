@@ -11,6 +11,6 @@
 
 /* Scope: ZModifier */
 
-void ZModifier_reset(Config& c) {
+void ZModifier__reset(Config& c) {
     c.value = 42U;
 }

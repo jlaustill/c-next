@@ -20,48 +20,48 @@ ExternalStruct globalExternal = {};
 
 CNextStruct globalCNext = {};
 
-GlobalStruct_Outer globalOuter = {};
+GlobalStruct__Outer globalOuter = {};
 
 /* Scope: ArrayTests */
-static ExternalStruct ArrayTests_scopeExternal = {};
-static CNextStruct ArrayTests_scopeCNext = {};
+static ExternalStruct ArrayTests__scopeExternal = {};
+static CNextStruct ArrayTests__scopeCNext = {};
 
-uint8_t ArrayTests_testGlobalExternal(void) {
+uint8_t ArrayTests__testGlobalExternal(void) {
     return globalExternal.data[2U];
 }
 
-uint8_t ArrayTests_testGlobalCNext(void) {
+uint8_t ArrayTests__testGlobalCNext(void) {
     return globalCNext.buffer[3U];
 }
 
-uint32_t ArrayTests_testGlobalCNextU32(void) {
+uint32_t ArrayTests__testGlobalCNextU32(void) {
     return globalCNext.values[1U];
 }
 
-uint8_t ArrayTests_testNestedViaGlobal(void) {
+uint8_t ArrayTests__testNestedViaGlobal(void) {
     return globalOuter.inner.data[4U];
 }
 
-uint8_t ArrayTests_testNestedDirect(void) {
+uint8_t ArrayTests__testNestedDirect(void) {
     return globalOuter.direct[5U];
 }
 
-uint8_t ArrayTests_testThisExternal(void) {
-    return ArrayTests_scopeExternal.data[6U];
+uint8_t ArrayTests__testThisExternal(void) {
+    return ArrayTests__scopeExternal.data[6U];
 }
 
-uint8_t ArrayTests_testThisCNext(void) {
-    return ArrayTests_scopeCNext.buffer[7U];
+uint8_t ArrayTests__testThisCNext(void) {
+    return ArrayTests__scopeCNext.buffer[7U];
 }
 
-uint8_t ArrayTests_testMultipleIndex(void) {
+uint8_t ArrayTests__testMultipleIndex(void) {
     return globalExternal.data[0U];
 }
 
-uint8_t ArrayTests_testParameter(const ExternalStruct& param) {
+uint8_t ArrayTests__testParameter(const ExternalStruct& param) {
     return param.data[1U];
 }
 
-uint8_t ArrayTests_testParameterCNext(const CNextStruct& param) {
+uint8_t ArrayTests__testParameterCNext(const CNextStruct& param) {
     return param.buffer[2U];
 }

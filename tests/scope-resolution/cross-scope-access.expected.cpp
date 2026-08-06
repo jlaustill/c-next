@@ -10,25 +10,25 @@
 // Test cross-scope access without global. prefix
 // test-execution
 /* Scope: LED */
-static uint8_t LED_brightness = 100U;
+static uint8_t LED__brightness = 100U;
 
-void LED_setBrightness(uint8_t level) {
-    LED_brightness = level;
+void LED__setBrightness(uint8_t level) {
+    LED__brightness = level;
 }
 
-uint8_t LED_getBrightness(void) {
-    return LED_brightness;
+uint8_t LED__getBrightness(void) {
+    return LED__brightness;
 }
 
 /* Scope: Motor */
 
-void Motor_adjustLED(void) {
-    LED_setBrightness(50U);
+void Motor__adjustLED(void) {
+    LED__setBrightness(50U);
 }
 
 int main(void) {
-    Motor_adjustLED();
-    uint8_t brightness = LED_getBrightness();
+    Motor__adjustLED();
+    uint8_t brightness = LED__getBrightness();
     if (brightness != 50) return 1;
     return 0;
 }

@@ -1058,7 +1058,7 @@ describe("TypeValidator", () => {
     it("uses resolveIdentifier for scoped names", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
-          "Scope_x",
+          "Scope__x",
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: true },
         ],
       ]);
@@ -1188,11 +1188,11 @@ describe("TypeValidator", () => {
     it("allows scope-prefixed functions", () => {
       setupState({
         currentScope: "Motor",
-        knownFunctions: new Set(["Motor_helper"]),
+        knownFunctions: new Set(["Motor__helper"]),
       });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
-          "Motor_helper",
+          "Motor__helper",
           false,
           () => false,
         ),
@@ -1238,14 +1238,14 @@ describe("TypeValidator", () => {
     it("allows scoped variable names (with underscore)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
-          "Motor_speed",
+          "Motor__speed",
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
       setupState({ currentScope: "Motor", typeRegistry });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
-          "Motor_speed",
+          "Motor__speed",
           false,
           () => false,
         ),

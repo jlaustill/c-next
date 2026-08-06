@@ -34,10 +34,10 @@ bool literal_arr[4] = {0};
 
 /* Scope: Manager */
 
-void Manager_test(void) {
+void Manager__test(void) {
     enabled[0] = true;
 }
 
 int main(void) {
-    Manager_test();
+    Manager__test();
 }

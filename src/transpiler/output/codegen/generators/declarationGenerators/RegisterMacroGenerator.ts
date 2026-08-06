@@ -6,6 +6,7 @@
  */
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import IOrchestrator from "../IOrchestrator";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Optional type resolver for scoped types.
@@ -54,7 +55,7 @@ function generateRegisterMacros(
 
     // Generate: #define PREFIX_REGNAME (*(volatile type*)(base + offset))
     lines.push(
-      `#define ${prefix}_${regName} (*(${cast})(${baseAddress} + ${offset}))`,
+      `#define ${QualifiedCName.join(prefix, regName)} (*(${cast})(${baseAddress} + ${offset}))`,
     );
   }
 

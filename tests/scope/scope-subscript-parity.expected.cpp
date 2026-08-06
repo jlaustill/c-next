@@ -34,51 +34,51 @@ uint8_t globalFlags = 0U;
 // subscripts. That spelling needs the `identifiers.length - 1` offset when
 // counting subscripts; the other three spellings need no offset.
 /* Scope: Other */
-uint8_t Other_buffer[16] = {};
-uint8_t Other_slice[16] = {};
-uint8_t Other_flags = 0U;
+uint8_t Other__buffer[16] = {};
+uint8_t Other__slice[16] = {};
+uint8_t Other__flags = 0U;
 
 /* Scope: Reg */
-static uint8_t Reg_buffer[16] = {};
-static uint8_t Reg_slice[16] = {};
-static uint8_t Reg_flags = 0U;
+static uint8_t Reg__buffer[16] = {};
+static uint8_t Reg__slice[16] = {};
+static uint8_t Reg__flags = 0U;
 
-uint8_t Reg_elementBit(void) {
-    Reg_buffer[3] = 0U;
-    Reg_buffer[3] = (Reg_buffer[3] & ~(1U << 1)) | (1U << 1);
-    return Reg_buffer[3U];
+uint8_t Reg__elementBit(void) {
+    Reg__buffer[3] = 0U;
+    Reg__buffer[3] = (Reg__buffer[3] & ~(1U << 1)) | (1U << 1);
+    return Reg__buffer[3U];
 }
 
-uint8_t Reg_sliceByte(uint32_t index) {
+uint8_t Reg__sliceByte(uint32_t index) {
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t _tmp0 = (uint32_t)(magic);
-    Reg_slice[0] = (uint8_t)(_tmp0);
-    Reg_slice[1] = (uint8_t)(_tmp0 >> 8U);
-    Reg_slice[2] = (uint8_t)(_tmp0 >> 16U);
-    Reg_slice[3] = (uint8_t)(_tmp0 >> 24U);
-    return Reg_slice[index];
+    Reg__slice[0] = (uint8_t)(_tmp0);
+    Reg__slice[1] = (uint8_t)(_tmp0 >> 8U);
+    Reg__slice[2] = (uint8_t)(_tmp0 >> 16U);
+    Reg__slice[3] = (uint8_t)(_tmp0 >> 24U);
+    return Reg__slice[index];
 }
 
-uint8_t Reg_bitRange(void) {
-    Reg_flags = 0U;
-    Reg_flags = (uint8_t)((Reg_flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
-    return Reg_flags;
+uint8_t Reg__bitRange(void) {
+    Reg__flags = 0U;
+    Reg__flags = (uint8_t)((Reg__flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    return Reg__flags;
 }
 
-uint8_t Reg_viaGlobalPrefix(void) {
+uint8_t Reg__viaGlobalPrefix(void) {
     globalBuffer[3] = 0U;
     globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
     return globalBuffer[3U];
 }
 
-uint8_t Reg_globalBitRange(void) {
+uint8_t Reg__globalBitRange(void) {
     globalFlags = 0U;
     globalFlags = (uint8_t)((globalFlags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
     return globalFlags;
 }
 
-uint8_t Reg_globalSliceByte(uint32_t index) {
+uint8_t Reg__globalSliceByte(uint32_t index) {
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t _tmp1 = (uint32_t)(magic);
@@ -89,34 +89,34 @@ uint8_t Reg_globalSliceByte(uint32_t index) {
     return globalSlice[index];
 }
 
-uint8_t Reg_scopedElementBit(void) {
-    Other_buffer[3] = 0;
-    Other_buffer[3] = (Other_buffer[3] & ~(1U << 1)) | (1U << 1);
-    return Other_buffer[3U];
+uint8_t Reg__scopedElementBit(void) {
+    Other__buffer[3] = 0;
+    Other__buffer[3] = (Other__buffer[3] & ~(1U << 1)) | (1U << 1);
+    return Other__buffer[3U];
 }
 
-uint8_t Reg_scopedSliceByte(uint32_t index) {
+uint8_t Reg__scopedSliceByte(uint32_t index) {
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t _tmp2 = (uint32_t)(magic);
-    Other_slice[0] = (uint8_t)(_tmp2);
-    Other_slice[1] = (uint8_t)(_tmp2 >> 8U);
-    Other_slice[2] = (uint8_t)(_tmp2 >> 16U);
-    Other_slice[3] = (uint8_t)(_tmp2 >> 24U);
-    return Other_slice[index];
+    Other__slice[0] = (uint8_t)(_tmp2);
+    Other__slice[1] = (uint8_t)(_tmp2 >> 8U);
+    Other__slice[2] = (uint8_t)(_tmp2 >> 16U);
+    Other__slice[3] = (uint8_t)(_tmp2 >> 24U);
+    return Other__slice[index];
 }
 
-uint8_t Reg_scopedBitRange(void) {
-    Other_flags = 0;
-    Other_flags = (uint8_t)((Other_flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
-    return Other_flags;
+uint8_t Reg__scopedBitRange(void) {
+    Other__flags = 0;
+    Other__flags = (uint8_t)((Other__flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    return Other__flags;
 }
 
 int main(void) {
     globalBuffer[3] = 0U;
     globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
     if (globalBuffer[3U] != 2) return 1;
-    uint8_t viaThis = Reg_elementBit();
+    uint8_t viaThis = Reg__elementBit();
     if (viaThis != 2) return 2;
     if (viaThis != globalBuffer[3U]) return 3;
     uint32_t magic = 0x04030201U;
@@ -128,40 +128,40 @@ int main(void) {
     globalSlice[3] = (uint8_t)(_tmp3 >> 24U);
     if (globalSlice[0U] != 1) return 4;
     if (globalSlice[3U] != 4) return 5;
-    uint8_t byte0 = Reg_sliceByte(0U);
-    uint8_t byte1 = Reg_sliceByte(1U);
-    uint8_t byte2 = Reg_sliceByte(2U);
-    uint8_t byte3 = Reg_sliceByte(3U);
+    uint8_t byte0 = Reg__sliceByte(0U);
+    uint8_t byte1 = Reg__sliceByte(1U);
+    uint8_t byte2 = Reg__sliceByte(2U);
+    uint8_t byte3 = Reg__sliceByte(3U);
     if (byte0 != 1) return 6;
     if (byte1 != 2) return 7;
     if (byte2 != 3) return 8;
     if (byte3 != 4) return 9;
-    uint8_t ranged = Reg_bitRange();
+    uint8_t ranged = Reg__bitRange();
     if (ranged != 80) return 10;
-    uint8_t globalViaPrefix = Reg_viaGlobalPrefix();
+    uint8_t globalViaPrefix = Reg__viaGlobalPrefix();
     if (globalViaPrefix != 2) return 11;
     if (globalViaPrefix != globalBuffer[3U]) return 12;
     globalFlags = 0U;
     globalFlags = (uint8_t)((globalFlags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
     if (globalFlags != 80) return 13;
-    uint8_t globalRanged = Reg_globalBitRange();
+    uint8_t globalRanged = Reg__globalBitRange();
     if (globalRanged != 80) return 14;
-    uint8_t globalByte0 = Reg_globalSliceByte(0U);
-    uint8_t globalByte3 = Reg_globalSliceByte(3U);
+    uint8_t globalByte0 = Reg__globalSliceByte(0U);
+    uint8_t globalByte3 = Reg__globalSliceByte(3U);
     if (globalByte0 != 1) return 15;
     if (globalByte3 != 4) return 16;
-    uint8_t scopedBit = Reg_scopedElementBit();
+    uint8_t scopedBit = Reg__scopedElementBit();
     if (scopedBit != 2) return 17;
     if (scopedBit != globalBuffer[3U]) return 18;
-    uint8_t scopedByte0 = Reg_scopedSliceByte(0U);
-    uint8_t scopedByte1 = Reg_scopedSliceByte(1U);
-    uint8_t scopedByte2 = Reg_scopedSliceByte(2U);
-    uint8_t scopedByte3 = Reg_scopedSliceByte(3U);
+    uint8_t scopedByte0 = Reg__scopedSliceByte(0U);
+    uint8_t scopedByte1 = Reg__scopedSliceByte(1U);
+    uint8_t scopedByte2 = Reg__scopedSliceByte(2U);
+    uint8_t scopedByte3 = Reg__scopedSliceByte(3U);
     if (scopedByte0 != 1) return 19;
     if (scopedByte1 != 2) return 20;
     if (scopedByte2 != 3) return 21;
     if (scopedByte3 != 4) return 22;
-    uint8_t scopedRanged = Reg_scopedBitRange();
+    uint8_t scopedRanged = Reg__scopedBitRange();
     if (scopedRanged != 80) return 23;
     return 0;
 }

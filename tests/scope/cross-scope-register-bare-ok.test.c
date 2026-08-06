@@ -11,17 +11,17 @@
 // Issue #779: Ambiguity-aware validation - only require global. when shadowed
 // This is the happy path companion to cross-scope-register-bare-error.test.cnx
 /* Register: GPIO @ 0x40000000 */
-#define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO_DIR (*(volatile uint32_t*)(0x40000000 + 0x04))
+#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define GPIO__DIR (*(volatile uint32_t*)(0x40000000 + 0x04))
 
 /* Scope: Motor */
-static uint32_t Motor_speed = 0U;
+static uint32_t Motor__speed = 0U;
 
-void Motor_configure(void) {
-    GPIO_DR = 0x01;
-    GPIO_DIR = 0xFF;
+void Motor__configure(void) {
+    GPIO__DR = 0x01;
+    GPIO__DIR = 0xFF;
 }
 
 int main(void) {
-    Motor_configure();
+    Motor__configure();
 }

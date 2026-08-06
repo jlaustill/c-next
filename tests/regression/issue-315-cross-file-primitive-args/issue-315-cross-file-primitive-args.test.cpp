@@ -14,23 +14,23 @@
 #include <stdint.h>
 
 /* Scope: TestCaller */
-static TestData TestCaller_data = {};
+static TestData TestCaller__data = {};
 
-void TestCaller_init(void) {
-    TestCaller_data.value1 = 0.0;
-    TestCaller_data.value2 = 0.0;
+void TestCaller__init(void) {
+    TestCaller__data.value1 = 0.0;
+    TestCaller__data.value2 = 0.0;
 }
 
-float TestCaller_test(void) {
-    TestCaller_data.value1 = 1.5;
-    TestCaller_data.value2 = 2.5;
-    float result = TestFunc_addFloats(TestCaller_data.value1, TestCaller_data.value2);
+float TestCaller__test(void) {
+    TestCaller__data.value1 = 1.5;
+    TestCaller__data.value2 = 2.5;
+    float result = TestFunc__addFloats(TestCaller__data.value1, TestCaller__data.value2);
     return result;
 }
 
 int main(void) {
-    TestCaller_init();
-    float result = TestCaller_test();
+    TestCaller__init();
+    float result = TestCaller__test();
     if (result != 4.0) return 1;
     return 0;
 }

@@ -18,15 +18,15 @@
 
 /* Scope: SerialHandler */
 
-void SerialHandler_handleSet(Config& config) {
-    uint8_t result = CommandHandler_setValue(config, 42U);
+void SerialHandler__handleSet(Config& config) {
+    uint8_t result = CommandHandler__setValue(config, 42U);
 }
 
-void SerialHandler_process(Config& config) {
-    SerialHandler_handleSet(config);
+void SerialHandler__process(Config& config) {
+    SerialHandler__handleSet(config);
 }
 
 int main(void) {
     Config c = { .value = 0U };
-    SerialHandler_process(c);
+    SerialHandler__process(c);
 }

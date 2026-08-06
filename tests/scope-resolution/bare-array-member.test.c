@@ -12,26 +12,26 @@
 // Test bare array identifier resolves to scope member
 // Issue #779: Array member access without this. should still get scope prefix
 /* Scope: ArrayBug */
-static uint8_t ArrayBug_data[4] = {0U, 0U, 0U, 0U};
-static bool ArrayBug_flag = false;
+static uint8_t ArrayBug__data[4] = {0U, 0U, 0U, 0U};
+static bool ArrayBug__flag = false;
 
-void ArrayBug_callback(void) {
-    ArrayBug_data[0] = 42U;
-    ArrayBug_flag = true;
+void ArrayBug__callback(void) {
+    ArrayBug__data[0] = 42U;
+    ArrayBug__flag = true;
 }
 
-uint8_t ArrayBug_getData0(void) {
-    return ArrayBug_data[0U];
+uint8_t ArrayBug__getData0(void) {
+    return ArrayBug__data[0U];
 }
 
-bool ArrayBug_getFlag(void) {
-    return ArrayBug_flag;
+bool ArrayBug__getFlag(void) {
+    return ArrayBug__flag;
 }
 
 int main(void) {
-    ArrayBug_callback();
-    uint8_t data0 = ArrayBug_getData0();
-    bool flag = ArrayBug_getFlag();
+    ArrayBug__callback();
+    uint8_t data0 = ArrayBug__getData0();
+    bool flag = ArrayBug__getFlag();
     if (data0 != 42) return 1;
     if (flag != true) return 2;
     return 0;

@@ -24,25 +24,25 @@ uint8_t LED = 5U;
 
 // Global variable named same as scope
 /* Scope: LED */
-uint8_t LED_brightness = 100U;
+uint8_t LED__brightness = 100U;
 
-void LED_on(void) {
-    LED_brightness = 255U;
+void LED__on(void) {
+    LED__brightness = 255U;
 }
 
 /* Scope: Motor */
 
-uint32_t Motor_test(void) {
+uint32_t Motor__test(void) {
     uint8_t val = LED;
-    LED_on();
-    uint8_t bright = LED_brightness;
+    LED__on();
+    uint8_t bright = LED__brightness;
     uint32_t result = val;
     result = cnx_clamp_add_u32(result, bright);
     return result;
 }
 
 int main(void) {
-    uint32_t result = Motor_test();
+    uint32_t result = Motor__test();
     if (result != 260) return 1;
     return 0;
 }

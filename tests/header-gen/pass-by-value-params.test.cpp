@@ -12,34 +12,34 @@
 // Floats, enums, and ISR types should use pass-by-value, not pointers
 /* Scope: Api */
 
-float Api_addFloats(float a, float b) {
+float Api__addFloats(float a, float b) {
     return a + b;
 }
 
-bool Api_isOk(Status status) {
-    return status == Status_Ok;
+bool Api__isOk(Status status) {
+    return status == Status__Ok;
 }
 
-void Api_updateValue(uint32_t& value) {
+void Api__updateValue(uint32_t& value) {
     value += 1U;
 }
 
-uint32_t Api_readValue(uint32_t value) {
+uint32_t Api__readValue(uint32_t value) {
     return value * 2;
 }
 
 int main(void) {
-    float sum = Api_addFloats(1.5, 2.5);
+    float sum = Api__addFloats(1.5, 2.5);
     int32_t sumInt = static_cast<int32_t>(sum);
     if (sumInt != 4) return 1;
-    bool okResult = Api_isOk(Status_Ok);
+    bool okResult = Api__isOk(Status__Ok);
     if (okResult == false) return 2;
-    bool errResult = Api_isOk(Status_Error);
+    bool errResult = Api__isOk(Status__Error);
     if (errResult == true) return 3;
     uint32_t val = 10U;
-    Api_updateValue(val);
+    Api__updateValue(val);
     if (val != 11) return 4;
-    uint32_t doubled = Api_readValue(5U);
+    uint32_t doubled = Api__readValue(5U);
     if (doubled != 10) return 5;
     return 0;
 }

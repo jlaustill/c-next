@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-float TestFunc_addFloats(float a, float b);
+float TestFunc__addFloats(float a, float b);
 
 #ifdef __cplusplus
 }

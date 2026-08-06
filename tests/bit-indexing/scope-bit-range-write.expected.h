@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Sensor_setLowByte(uint8_t byte);
-void Sensor_setHighNibble(uint8_t nibble);
-uint16_t Sensor_getValue(void);
-void Sensor_reset(uint16_t v);
+void Sensor__setLowByte(uint8_t byte);
+void Sensor__setHighNibble(uint8_t nibble);
+uint16_t Sensor__getValue(void);
+void Sensor__reset(uint16_t v);
 
 #ifdef __cplusplus
 }

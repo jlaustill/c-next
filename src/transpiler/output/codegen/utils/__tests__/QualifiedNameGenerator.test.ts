@@ -2,7 +2,7 @@
  * Tests for QualifiedNameGenerator
  *
  * QualifiedNameGenerator is the ONLY place that constructs transpiled C names
- * like "Test_fillData" from function symbols.
+ * like "Test__fillData" from function symbols.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import QualifiedNameGenerator from "../QualifiedNameGenerator";
@@ -45,7 +45,7 @@ describe("QualifiedNameGenerator", () => {
         sourceLine: 1,
       });
 
-      expect(QualifiedNameGenerator.forFunction(func)).toBe("Test_fillData");
+      expect(QualifiedNameGenerator.forFunction(func)).toBe("Test__fillData");
     });
 
     it("returns Outer_Inner_name for nested scope function", () => {
@@ -62,7 +62,7 @@ describe("QualifiedNameGenerator", () => {
       });
 
       expect(QualifiedNameGenerator.forFunction(func)).toBe(
-        "Outer_Inner_deepFunc",
+        "Outer__Inner__deepFunc",
       );
     });
 
@@ -79,7 +79,9 @@ describe("QualifiedNameGenerator", () => {
         sourceLine: 1,
       });
 
-      expect(QualifiedNameGenerator.forFunction(func)).toBe("A_B_C_veryDeep");
+      expect(QualifiedNameGenerator.forFunction(func)).toBe(
+        "A__B__C__veryDeep",
+      );
     });
   });
 
@@ -123,13 +125,13 @@ describe("QualifiedNameGenerator", () => {
     it("returns transpiled C name for simple scope", () => {
       expect(
         QualifiedNameGenerator.forFunctionStrings("Test", "fillData"),
-      ).toBe("Test_fillData");
+      ).toBe("Test__fillData");
     });
 
     it("converts dotted scope to underscores", () => {
       expect(
         QualifiedNameGenerator.forFunctionStrings("Outer.Inner", "func"),
-      ).toBe("Outer_Inner_func");
+      ).toBe("Outer__Inner__func");
     });
 
     it("uses SymbolRegistry when function is registered", () => {
@@ -149,14 +151,14 @@ describe("QualifiedNameGenerator", () => {
 
       // forFunctionStrings should find it via SymbolRegistry
       expect(QualifiedNameGenerator.forFunctionStrings("Motor", "init")).toBe(
-        "Motor_init",
+        "Motor__init",
       );
     });
 
     it("falls back to string concat when function not in registry", () => {
       // Don't register the function - should fall back to string concat
       expect(QualifiedNameGenerator.forFunctionStrings("Unknown", "func")).toBe(
-        "Unknown_func",
+        "Unknown__func",
       );
     });
   });
@@ -170,13 +172,13 @@ describe("QualifiedNameGenerator", () => {
 
     it("returns transpiled C name for simple scope", () => {
       expect(QualifiedNameGenerator.forMember("Test", "counter")).toBe(
-        "Test_counter",
+        "Test__counter",
       );
     });
 
     it("converts dotted scope to underscores", () => {
       expect(QualifiedNameGenerator.forMember("Outer.Inner", "data")).toBe(
-        "Outer_Inner_data",
+        "Outer__Inner__data",
       );
     });
   });

@@ -209,7 +209,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
     ]);
     const knownRegisters = new Set(["MOTOR"]);
-    const registerMemberTypes = new Map([["MOTOR_CTRL", "ControlBits"]]);
+    const registerMemberTypes = new Map([["MOTOR__CTRL", "ControlBits"]]);
     setupSymbols({ bitmapFields, knownRegisters, registerMemberTypes });
 
     const ctx = createMockContext({
@@ -558,7 +558,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     CodeGenState.currentScope = "Sensor";
     // Register Sensor_flags as a non-array integer type
     CodeGenState.setVariableTypeInfo(
-      "Sensor_flags",
+      "Sensor__flags",
       createTypeInfo({ baseType: "u8", isArray: false }),
     );
 
@@ -580,7 +580,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     CodeGenState.currentScope = "Sensor";
     // Register Sensor_value as a non-array integer type
     CodeGenState.setVariableTypeInfo(
-      "Sensor_value",
+      "Sensor__value",
       createTypeInfo({ baseType: "u16", isArray: false }),
     );
 
@@ -607,7 +607,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     CodeGenState.currentScope = "Buffer";
     // Register Buffer_data as an array type
     CodeGenState.setVariableTypeInfo(
-      "Buffer_data",
+      "Buffer__data",
       createTypeInfo({ baseType: "u8", isArray: true, arrayDimensions: [10] }),
     );
 
@@ -674,7 +674,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
 
   it("classifies scoped register bit", () => {
     const knownScopes = new Set(["Teensy4"]);
-    const knownRegisters = new Set(["Teensy4_GPIO7"]);
+    const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownScopes, knownRegisters });
     CodeGenState.currentScope = "Teensy4";
 
@@ -706,9 +706,9 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
       ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
     ]);
     const knownScopes = new Set(["Teensy4"]);
-    const knownRegisters = new Set(["Teensy4_GPIO7"]);
+    const knownRegisters = new Set(["Teensy4__GPIO7"]);
     const registerMemberTypes = new Map([
-      ["Teensy4_GPIO7_ICR1", "ControlBits"],
+      ["Teensy4__GPIO7__ICR1", "ControlBits"],
     ]);
     setupSymbols({
       bitmapFields,
@@ -850,7 +850,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
   });
 
   it("classifies this.reg[start, width] as SCOPED_REGISTER_BIT_RANGE", () => {
-    const knownRegisters = new Set(["Teensy4_GPIO7"]);
+    const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownRegisters });
     CodeGenState.currentScope = "Teensy4";
 
@@ -922,7 +922,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
 
   it("classifies Scope.REG.MEMBER[bit] as REGISTER_BIT via memberWithSubscript", () => {
     const knownScopes = new Set(["Teensy4"]);
-    const knownRegisters = new Set(["Teensy4_GPIO7"]);
+    const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownScopes, knownRegisters });
 
     const ctx = createMockContext({
@@ -948,8 +948,8 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
   });
 
   it("classifies this.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
-    const knownRegisters = new Set(["Motor_GPIO7"]);
-    const registerMemberTypes = new Map([["Motor_GPIO7_ICR1", "CtrlBits"]]);
+    const knownRegisters = new Set(["Motor__GPIO7"]);
+    const registerMemberTypes = new Map([["Motor__GPIO7__ICR1", "CtrlBits"]]);
     const bitmapFields = new Map([
       ["CtrlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
     ]);

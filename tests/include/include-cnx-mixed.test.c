@@ -17,7 +17,7 @@
 int main(void) {
     Point p = {0};
     p.x = 10;
-    HelperTypes_Color c = {0};
+    HelperTypes__Color c = {0};
     c.red = 255U;
     return 0;
 }

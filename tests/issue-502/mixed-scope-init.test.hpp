@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Motor_State {
+typedef struct Motor__State {
     int32_t position;
     bool running;
-} Motor_State;
+} Motor__State;
 typedef struct MixedWrapper {
-    Motor_State motor;
+    Motor__State motor;
     SeaDash::Parse::ParseResult parsed;
 } MixedWrapper;
 

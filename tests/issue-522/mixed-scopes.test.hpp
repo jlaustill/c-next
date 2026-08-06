@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern int32_t MyScope_scopeVar;
+extern int32_t MyScope__scopeVar;
 
 #ifdef __cplusplus
 }

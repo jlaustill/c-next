@@ -15,8 +15,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint16_t handler_processData(const uint8_t data[8]);
-uint8_t handler_extractByte(const uint8_t data[8], uint8_t idx);
+uint16_t handler__processData(const uint8_t data[8]);
+uint8_t handler__extractByte(const uint8_t data[8], uint8_t idx);
 
 #ifdef __cplusplus
 }

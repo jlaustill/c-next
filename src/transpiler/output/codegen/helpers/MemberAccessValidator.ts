@@ -7,6 +7,8 @@
  * - Self-referential scope access checks (ADR-016/057)
  */
 
+import QualifiedCName from "../../../../utils/QualifiedCName";
+
 class MemberAccessValidator {
   /**
    * ADR-013: Validate that a register member is not write-only when reading.
@@ -109,7 +111,10 @@ class MemberAccessValidator {
     }
 
     // Skip check if entity belongs to current scope (e.g., Motor_State in scope Motor)
-    const belongsToCurrentScope = entityName.startsWith(currentScope + "_");
+    const belongsToCurrentScope = QualifiedCName.isInScope(
+      entityName,
+      currentScope,
+    );
     if (belongsToCurrentScope) {
       return;
     }

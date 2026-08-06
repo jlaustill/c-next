@@ -553,7 +553,7 @@ describe("CHeaderGenerator", () => {
     it("filters variables with namespace underscore format types using symbol table", () => {
       const generator = new CHeaderGenerator();
       const symbolTable = new SymbolTable();
-      // Register a C++ namespace symbol to make MyLib_MyClass appear as namespace type
+      // Register a C++ namespace symbol to make MyLib__MyClass appear as namespace type
       symbolTable.addCppSymbol({
         name: "MyLib",
         kind: "namespace",
@@ -564,7 +564,7 @@ describe("CHeaderGenerator", () => {
       });
 
       const symbols: IHeaderSymbol[] = [
-        createVariableSymbol("instance", "MyLib_MyClass"),
+        createVariableSymbol("instance", "MyLib__MyClass"),
       ];
 
       const typeInput = {
@@ -579,7 +579,7 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(symbols, "test.h", {}, typeInput);
 
       // Variable with underscore-format namespace type should be filtered
-      expect(result).not.toContain("MyLib_MyClass instance");
+      expect(result).not.toContain("MyLib__MyClass instance");
     });
 
     it("filters external types with underscore format using symbol table", () => {
@@ -597,7 +597,7 @@ describe("CHeaderGenerator", () => {
 
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
-          createParam("obj", "LibName_Object"),
+          createParam("obj", "LibName__Object"),
         ]),
       ];
 
@@ -613,7 +613,7 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(symbols, "test.h", {}, typeInput);
 
       // Should not forward-declare underscore-format namespace types
-      expect(result).not.toContain("typedef struct LibName_Object");
+      expect(result).not.toContain("typedef struct LibName__Object");
     });
 
     it("includes external type headers when specified", () => {

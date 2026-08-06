@@ -16,34 +16,34 @@
 // The .test.h file contains a C++14 typed enum to force g++ compilation,
 // which is stricter about const mismatches between declaration and definition.
 /* Scope: ExternConstTest */
-const uint8_t ExternConstTest_STATUS_OK = 0U;
-const uint8_t ExternConstTest_STATUS_ERROR = 1U;
-const uint32_t ExternConstTest_MAGIC_NUMBER = 0xCAFEBABEU;
+const uint8_t ExternConstTest__STATUS_OK = 0U;
+const uint8_t ExternConstTest__STATUS_ERROR = 1U;
+const uint32_t ExternConstTest__MAGIC_NUMBER = 0xCAFEBABEU;
 
-bool ExternConstTest_isSuccess(uint8_t status) {
-    if (status == ExternConstTest_STATUS_OK) {
+bool ExternConstTest__isSuccess(uint8_t status) {
+    if (status == ExternConstTest__STATUS_OK) {
         return true;
     }
     return false;
 }
 
-uint8_t ExternConstTest_getErrorCode(void) {
-    return ExternConstTest_STATUS_ERROR;
+uint8_t ExternConstTest__getErrorCode(void) {
+    return ExternConstTest__STATUS_ERROR;
 }
 
-uint32_t ExternConstTest_getMagic(void) {
-    return ExternConstTest_MAGIC_NUMBER;
+uint32_t ExternConstTest__getMagic(void) {
+    return ExternConstTest__MAGIC_NUMBER;
 }
 
 int main(void) {
-    if (ExternConstTest_STATUS_OK != 0) return 1;
-    if (ExternConstTest_STATUS_ERROR != 1) return 2;
-    if (ExternConstTest_MAGIC_NUMBER != 0xCAFEBABE) return 3;
-    bool success = ExternConstTest_isSuccess(0U);
+    if (ExternConstTest__STATUS_OK != 0) return 1;
+    if (ExternConstTest__STATUS_ERROR != 1) return 2;
+    if (ExternConstTest__MAGIC_NUMBER != 0xCAFEBABE) return 3;
+    bool success = ExternConstTest__isSuccess(0U);
     if (success != true) return 4;
-    uint8_t errCode = ExternConstTest_getErrorCode();
+    uint8_t errCode = ExternConstTest__getErrorCode();
     if (errCode != 1) return 5;
-    uint32_t magic = ExternConstTest_getMagic();
+    uint32_t magic = ExternConstTest__getMagic();
     if (magic != 0xCAFEBABE) return 6;
     return 0;
 }

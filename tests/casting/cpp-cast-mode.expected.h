@@ -15,8 +15,8 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Priority_LOW = 1,
-    Priority_HIGH = 10
+    Priority__LOW = 1,
+    Priority__HIGH = 10
 } Priority;
 
 #ifdef __cplusplus

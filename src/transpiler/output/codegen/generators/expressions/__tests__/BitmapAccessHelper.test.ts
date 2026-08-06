@@ -63,7 +63,7 @@ describe("BitmapAccessHelper", () => {
 
       expect(() =>
         BitmapAccessHelper.generate(
-          "MOTOR_CTRL",
+          "MOTOR__CTRL",
           "Missing",
           "CtrlBits",
           bitmapFields,
@@ -72,7 +72,7 @@ describe("BitmapAccessHelper", () => {
       ).toThrow("Unknown bitmap field 'Missing'");
       expect(() =>
         BitmapAccessHelper.generate(
-          "MOTOR_CTRL",
+          "MOTOR__CTRL",
           "Missing",
           "CtrlBits",
           bitmapFields,

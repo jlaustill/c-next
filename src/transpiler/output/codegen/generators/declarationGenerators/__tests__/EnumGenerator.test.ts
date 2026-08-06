@@ -114,9 +114,9 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    State_IDLE = 0,
-    State_RUNNING = 1,
-    State_ERROR = 2
+    State__IDLE = 0,
+    State__RUNNING = 1,
+    State__ERROR = 2
 } State;
 `,
       );
@@ -138,9 +138,9 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    Severity_OK = 0,
-    Severity_WARNING = 100,
-    Severity_CRITICAL = 255
+    Severity__OK = 0,
+    Severity__WARNING = 100,
+    Severity__CRITICAL = 255
 } Severity;
 `,
       );
@@ -157,7 +157,7 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    Single_ONLY = 42
+    Single__ONLY = 42
 } Single;
 `,
       );
@@ -172,7 +172,7 @@ describe("EnumGenerator", () => {
       ]);
       // Note: The enum name in symbols already includes scope prefix
       const ctx = createMockEnumContext("Level");
-      const input = createMockInput("Motor_Level", members);
+      const input = createMockInput("Motor__Level", members);
       const state = createMockState("Motor");
       const orchestrator = createMockOrchestrator();
 
@@ -180,9 +180,9 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    Motor_Level_LOW = 0,
-    Motor_Level_HIGH = 1
-} Motor_Level;
+    Motor__Level__LOW = 0,
+    Motor__Level__HIGH = 1
+} Motor__Level;
 `,
       );
     });

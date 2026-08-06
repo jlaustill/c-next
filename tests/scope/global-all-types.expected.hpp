@@ -27,21 +27,21 @@ extern double globalF64;
 extern bool globalBool;
 
 /* Function prototypes */
-uint8_t GlobalAccessTest_getGlobalU8(void);
-uint16_t GlobalAccessTest_getGlobalU16(void);
-uint32_t GlobalAccessTest_getGlobalU32(void);
-uint64_t GlobalAccessTest_getGlobalU64(void);
-int8_t GlobalAccessTest_getGlobalI8(void);
-int16_t GlobalAccessTest_getGlobalI16(void);
-int32_t GlobalAccessTest_getGlobalI32(void);
-int64_t GlobalAccessTest_getGlobalI64(void);
-float GlobalAccessTest_getGlobalF32(void);
-double GlobalAccessTest_getGlobalF64(void);
-bool GlobalAccessTest_getGlobalBool(void);
-void GlobalAccessTest_setGlobalU8(uint8_t val);
-void GlobalAccessTest_setGlobalBool(bool val);
-void GlobalAccessTest_setGlobalF32(float val);
-void GlobalAccessTest_setGlobalF64(double val);
+uint8_t GlobalAccessTest__getGlobalU8(void);
+uint16_t GlobalAccessTest__getGlobalU16(void);
+uint32_t GlobalAccessTest__getGlobalU32(void);
+uint64_t GlobalAccessTest__getGlobalU64(void);
+int8_t GlobalAccessTest__getGlobalI8(void);
+int16_t GlobalAccessTest__getGlobalI16(void);
+int32_t GlobalAccessTest__getGlobalI32(void);
+int64_t GlobalAccessTest__getGlobalI64(void);
+float GlobalAccessTest__getGlobalF32(void);
+double GlobalAccessTest__getGlobalF64(void);
+bool GlobalAccessTest__getGlobalBool(void);
+void GlobalAccessTest__setGlobalU8(uint8_t val);
+void GlobalAccessTest__setGlobalBool(bool val);
+void GlobalAccessTest__setGlobalF32(float val);
+void GlobalAccessTest__setGlobalF64(double val);
 
 #ifdef __cplusplus
 }

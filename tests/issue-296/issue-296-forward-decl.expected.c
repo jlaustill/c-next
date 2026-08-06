@@ -15,20 +15,20 @@
 #include <stdint.h>
 
 /* Scope: DataHandler */
-static AppData DataHandler_storedData = {0};
+static AppData DataHandler__storedData = {0};
 
-void DataHandler_initialize(const AppData* data) {
-    DataHandler_storedData = (*data);
+void DataHandler__initialize(const AppData* data) {
+    DataHandler__storedData = (*data);
 }
 
-AppData DataHandler_getData(void) {
-    return DataHandler_storedData;
+AppData DataHandler__getData(void) {
+    return DataHandler__storedData;
 }
 
 int main(void) {
     AppData input = { .humidity = 65.5, .temperature = 22.3 };
-    DataHandler_initialize(&input);
-    AppData output = DataHandler_getData();
+    DataHandler__initialize(&input);
+    AppData output = DataHandler__getData();
     if (output.humidity != 65.5) return 1;
     if (output.temperature != 22.3) return 2;
     return 0;

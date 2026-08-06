@@ -10,6 +10,6 @@
 
 /* Scope: Modifier */
 
-void Modifier_reset(Config& c) {
+void Modifier__reset(Config& c) {
     c.value = 42U;
 }

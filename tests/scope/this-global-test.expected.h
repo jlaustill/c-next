@@ -17,10 +17,10 @@ extern "C" {
 extern const uint8_t globalValue;
 
 /* Function prototypes */
-uint8_t Motor_getLocalValue(void);
-uint8_t Motor_getGlobalValue(void);
-uint8_t Motor_getSum(void);
-void Motor_setState(uint8_t val);
+uint8_t Motor__getLocalValue(void);
+uint8_t Motor__getGlobalValue(void);
+uint8_t Motor__getSum(void);
+void Motor__setState(uint8_t val);
 
 #ifdef __cplusplus
 }

@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Modifier_reset(Config& c);
+void Modifier__reset(Config& c);
 
 #ifdef __cplusplus
 }

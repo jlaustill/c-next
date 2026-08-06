@@ -2,12 +2,13 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 11 analyzers (plus comment validation) run in sequence, each returning
+ * All 12 analyzers (plus comment validation) run in sequence, each returning
  * errors that block compilation.
  */
 
 import { CommonTokenStream } from "antlr4ng";
 import { ProgramContext } from "../parser/grammar/CNextParser";
+import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
 import InitializationAnalyzer from "./InitializationAnalyzer";
@@ -85,13 +86,26 @@ function runAnalyzers(
   const formatWithCode = (e: IAnalyzerError) =>
     `error[${e.code}]: ${e.message}`;
 
-  // 1. Parameter naming validation (Issue #227: reserved naming patterns)
+  // 1. Identifier syntax validation (ADR-063: no trailing or consecutive '_')
+  // Runs first: a malformed identifier feeds a bad name into every later analysis.
+  const identifierSyntaxAnalyzer = new IdentifierSyntaxAnalyzer();
+  if (
+    collectErrors(
+      identifierSyntaxAnalyzer.analyze(tree),
+      errors,
+      formatWithCode,
+    )
+  ) {
+    return errors;
+  }
+
+  // 2. Parameter naming validation (Issue #227: reserved naming patterns)
   const paramNamingAnalyzer = new ParameterNamingAnalyzer();
   if (collectErrors(paramNamingAnalyzer.analyze(tree), errors)) {
     return errors;
   }
 
-  // 2. Struct field validation (reserved field names like 'length')
+  // 3. Struct field validation (reserved field names like 'length')
   const structFieldAnalyzer = new StructFieldAnalyzer();
   if (
     collectErrors(structFieldAnalyzer.analyze(tree), errors, formatWithCode)
@@ -99,7 +113,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 3. Initialization analysis (Rust-style use-before-init detection)
+  // 4. Initialization analysis (Rust-style use-before-init detection)
   const initAnalyzer = new InitializationAnalyzer();
   // External struct fields and symbolTable are read from CodeGenState directly
   const symbolTable = options?.symbolTable ?? CodeGenState.symbolTable;
@@ -113,7 +127,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 4. Call analysis (ADR-030: define-before-use)
+  // 5. Call analysis (ADR-030: define-before-use)
   const callAnalyzer = new FunctionCallAnalyzer();
   if (
     collectErrors(
@@ -125,31 +139,31 @@ function runAnalyzers(
     return errors;
   }
 
-  // 5. NULL check analysis (ADR-047: C library interop)
+  // 6. NULL check analysis (ADR-047: C library interop)
   const nullAnalyzer = new NullCheckAnalyzer();
   if (collectErrors(nullAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;
   }
 
-  // 6. Division by zero analysis (ADR-051: compile-time detection)
+  // 7. Division by zero analysis (ADR-051: compile-time detection)
   const divZeroAnalyzer = new DivisionByZeroAnalyzer();
   if (collectErrors(divZeroAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;
   }
 
-  // 7. Float modulo analysis (catch % with f32/f64 early)
+  // 8. Float modulo analysis (catch % with f32/f64 early)
   const floatModAnalyzer = new FloatModuloAnalyzer();
   if (collectErrors(floatModAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;
   }
 
-  // 8. Array index type validation (ADR-054: unsigned indexes only)
+  // 9. Array index type validation (ADR-054: unsigned indexes only)
   const indexTypeAnalyzer = new ArrayIndexTypeAnalyzer();
   if (collectErrors(indexTypeAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;
   }
 
-  // 9. Signed shift validation (MISRA C:2012 Rule 10.1: no signed shifts)
+  // 10. Signed shift validation (MISRA C:2012 Rule 10.1: no signed shifts)
   const signedShiftAnalyzer = new SignedShiftAnalyzer();
   if (
     collectErrors(signedShiftAnalyzer.analyze(tree), errors, formatWithCode)
@@ -157,7 +171,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 10. Mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)
+  // 11. Mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)
   const mixedTypeCategoryAnalyzer = new MixedTypeCategoryAnalyzer();
   if (
     collectErrors(
@@ -169,13 +183,13 @@ function runAnalyzers(
     return errors;
   }
 
-  // 11. Return-path analysis (ADR-112: non-void functions must return on all paths)
+  // 12. Return-path analysis (ADR-112: non-void functions must return on all paths)
   const returnPathAnalyzer = new ReturnPathAnalyzer();
   if (collectErrors(returnPathAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;
   }
 
-  // 12. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 13. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   collectErrors(
     commentExtractor.validate(),

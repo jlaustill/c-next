@@ -11,6 +11,7 @@ import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeUtils from "../utils/TypeUtils";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /** Access mode type for register members */
 type TAccessMode = "rw" | "ro" | "wo" | "w1c" | "w1s";
@@ -52,7 +53,9 @@ class RegisterCollector {
 
       // Check if member type is a bitmap
       // Try both scoped name and plain name for bitmap lookup
-      const scopedTypeName = scopeName ? `${scopeName}_${typeName}` : typeName;
+      const scopedTypeName = scopeName
+        ? QualifiedCName.join(scopeName, typeName)
+        : typeName;
       let bitmapType: string | undefined;
       if (knownBitmaps.has(scopedTypeName)) {
         bitmapType = scopedTypeName;

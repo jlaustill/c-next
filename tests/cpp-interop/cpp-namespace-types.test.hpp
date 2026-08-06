@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Test_init(void);
+void Test__init(void);
 
 #ifdef __cplusplus
 }

@@ -19,7 +19,7 @@ extern const uint8_t BIN_SIZE;
 extern bool hex_arr[16];
 extern int16_t bin_arr[10];
 extern const uint8_t BUFFER_SIZE;
-extern uint8_t Device_buffer[8];
+extern uint8_t Device__buffer[8];
 
 #ifdef __cplusplus
 }

@@ -20,7 +20,7 @@ void test_direct_call(void) {
 
 /* Scope: DirectDisplay */
 
-void DirectDisplay_init(void) {
+void DirectDisplay__init(void) {
     widget_t* screen = widget_create(800, 600);
     widget_destroy(screen);
 }

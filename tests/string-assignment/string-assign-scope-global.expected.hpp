@@ -17,9 +17,9 @@ extern "C" {
 extern char globalBuffer[65];
 
 /* Function prototypes */
-void Handler_updateGlobal(void);
-void Handler_clearGlobal(void);
-void Handler_setLongMessage(void);
+void Handler__updateGlobal(void);
+void Handler__clearGlobal(void);
+void Handler__setLongMessage(void);
 
 #ifdef __cplusplus
 }
