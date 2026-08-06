@@ -4,6 +4,16 @@
 
 **Implemented**
 
+**Related:** ADR-063 (Identifier Syntax — amends the qualified-name separator)
+
+> **Pending amendment (ADR-063, Issue #1117).** The enum member names documented below
+> join their components with a single underscore (`State_IDLE`, `Motor_State_IDLE`).
+> That join is **not injective** — a global `u8 State_IDLE` is a legal declaration that
+> produces the same C identifier as the member `State.IDLE`. ADR-063 changes the
+> separator to `__` (`State__IDLE`, `Motor__State__IDLE`) and restricts identifiers so
+> that `__` cannot occur in one. The text below describes currently shipped behavior;
+> it will be updated when ADR-063 is implemented.
+
 ## Context
 
 Enums are fundamental to embedded C programming:
