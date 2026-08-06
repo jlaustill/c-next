@@ -199,7 +199,7 @@ Every `.expected.c` / `.expected.h` snapshot regenerates, and any C or C++ that 
 
 - Should a **file-scope** identifier be permitted to begin with `_`? C11 §7.1.3 reserves those, so a leading-underscore global emits a reserved C identifier. The motivating idiom (`_handler`) is a struct member and is unaffected, so this rule does not restrict it — but a narrower "leading `_` on globals only" check could be added later without affecting injectivity.
 
-Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201. See the `vscode-c-next` issue linked from #1117.
+Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201 — see [jlaustill/vscode-c-next#8](https://github.com/jlaustill/vscode-c-next/issues/8). That issue also captures a prerequisite in this repo: `collectErrors()` currently drops `code` and `helpText` when mapping to `ITranspileError`, so `helpText` never reaches users today.
 
 ## References
 
