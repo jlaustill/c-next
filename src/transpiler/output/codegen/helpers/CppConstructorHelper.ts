@@ -19,7 +19,9 @@ interface ISymbolLookup {
 class CppConstructorHelper {
   /**
    * Convert underscore format to :: for namespaced types.
-   * e.g., TestNS_MyClass -> TestNS::MyClass
+   * e.g., TestNS__MyClass -> TestNS::MyClass
+   * A single underscore is part of a component name and is preserved:
+   * Adafruit_BMP280 -> Adafruit_BMP280 (not Adafruit::BMP280)
    */
   static toQualifiedName(typeName: string): string {
     if (QualifiedCName.isQualified(typeName) && !typeName.includes("::")) {

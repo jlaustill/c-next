@@ -58,16 +58,29 @@ function formatIdentifierSyntaxError(
 }
 
 /**
+ * Pure function producing a name that satisfies the rule.
+ *
+ * Applies BOTH normalizations regardless of which clause was reported, because an
+ * identifier can break both at once. `classifyIdentifier` reports "consecutive"
+ * first, so fixing only that would suggest `my_value_` for `my__value_` — a name
+ * E0201 itself rejects.
+ */
+function suggestLegalIdentifier(identifierName: string): string {
+  return identifierName.replaceAll(/_+/g, "_").replace(/_+$/, "");
+}
+
+/**
  * Pure function creating the help text for a violation.
  */
 function formatIdentifierSyntaxHelp(
   identifierName: string,
   violation: TIdentifierViolation,
 ): string {
+  const suggestion = suggestLegalIdentifier(identifierName);
   if (violation === "consecutive") {
-    return `Use a single underscore instead (e.g. '${identifierName.replaceAll(/_+/g, "_")}')`;
+    return `Use a single underscore instead (e.g. '${suggestion}')`;
   }
-  return `Remove the trailing underscore (e.g. '${identifierName.replace(/_+$/, "")}')`;
+  return `Remove the trailing underscore (e.g. '${suggestion}')`;
 }
 
 /**

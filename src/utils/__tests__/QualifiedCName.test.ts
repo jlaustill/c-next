@@ -38,6 +38,19 @@ describe("QualifiedCName", () => {
     it("drops empty components rather than emitting a stray separator", () => {
       expect(QualifiedCName.join("A", "", "b")).toBe("A__b");
     });
+
+    it.each([
+      ["leading dot", ".State", "State"],
+      ["trailing dot", "Motor.", "Motor"],
+      ["doubled dot", "Motor..State", "Motor__State"],
+    ])(
+      "drops empty segments inside a dotted path (%s)",
+      (_label, input, expected) => {
+        // A malformed path must not emit a stray separator — that would produce
+        // a name with a run of underscores and break the injectivity guarantee.
+        expect(QualifiedCName.join(input)).toBe(expected);
+      },
+    );
   });
 
   describe("split", () => {

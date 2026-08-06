@@ -75,6 +75,24 @@ describe("IdentifierSyntaxAnalyzer", () => {
       expect(errors[0].helpText).toContain("'my_value'");
     });
 
+    it.each([
+      [`u8 my__value_ <- 1;`, "my_value"],
+      [`u8 a__b_ <- 1;`, "a_b"],
+    ])(
+      "suggests a name that itself satisfies the rule for %s",
+      (code, expected) => {
+        // An identifier can break both clauses at once. classifyIdentifier
+        // reports "consecutive" first, so fixing only that would suggest a name
+        // E0201 still rejects (e.g. 'my_value_').
+        const errors = analyze(code);
+
+        expect(errors[0].helpText).toContain(`'${expected}'`);
+        expect(errors[0].helpText).not.toContain(`'${expected}_'`);
+        // and the suggestion must be legal under the analyzer's own rule
+        expect(analyze(`u8 ${expected} <- 1;`)).toHaveLength(0);
+      },
+    );
+
     it("classifies as consecutive when both rules are broken", () => {
       const errors = analyze(`u8 my__value_ <- 1;`);
 
@@ -146,6 +164,8 @@ describe("IdentifierSyntaxAnalyzer", () => {
       ["enum member", `enum Good { A_ }`],
       ["bitmap name", `bitmap8 Bad_ { a[8] }`],
       ["bitmap member", `bitmap8 Good { a_[8] }`],
+      ["register name", `register Bad_ @ 0x1000 { A: u32 rw @ 0x00, }`],
+      ["register member", `register Good @ 0x1000 { a_: u32 rw @ 0x00, }`],
     ])("flags a trailing underscore on a %s", (_label, code) => {
       const errors = analyze(code);
 
