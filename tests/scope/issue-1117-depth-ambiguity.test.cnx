@@ -1,0 +1,63 @@
+// test-execution
+// Issue #1117, collision class 3: qualification-DEPTH ambiguity inside one scope.
+//
+// Neither of ADR-063's two documented classes covers this. Both declarations live in
+// the SAME scope, and no name contains an underscore in a scope position. What collides
+// is how many components the qualified name has:
+//
+//     A . B . c    three components: scope, enum, enum member
+//     A . B_c      two components:   scope, member whose leaf legally contains '_'
+//
+// Under the old single-underscore separator both produced `A_B_c`, so the generated
+// header declared the same identifier twice, as an enum constant and as an object:
+//
+//     A_B_c = 0,             -- the enum member  A.B.c
+//     extern uint8_t A_B_c;  -- the scope member A.B_c
+//
+//     error: 'A_B_c' redeclared as different kind of symbol
+//
+// This is why forbidding `__` inside identifiers is not on its own sufficient, and why
+// the cheaper alternative — keeping a single `_` separator and merely forbidding `_` in
+// scope/enum names — does not work either: `A` and `B` are both underscore-free here.
+// Injectivity needs a separator that a leaf name cannot contain at all.
+//
+// They are now `A__B__c` and `A__B_c`. Values are asserted so a silent mis-resolution
+// fails the test too, not only the non-compiling form.
+
+scope A {
+    public enum B { c, d }
+
+    public u8 B_c <- 7;
+
+    public u8 readVariable() {
+        return this.B_c;
+    }
+
+    public bool enumIsFirst() {
+        this.B current <- this.B.c;
+        if (current = this.B.c) {
+            return true;
+        }
+        return false;
+    }
+}
+
+u32 main() {
+    // The scope member A.B_c holds its own value, reached through the scope
+    u8 fromVariable <- A.readVariable();
+    if (fromVariable != 7) return 1;
+
+    // ...and reached directly from outside
+    if (A.B_c != 7) return 2;
+
+    // The enum member A.B.c is a distinct entity, not the variable
+    bool enumOk <- A.enumIsFirst();
+    if (enumOk = false) return 3;
+
+    // Using the enum type does not disturb the variable's storage
+    A.B state <- A.B.d;
+    if (state != A.B.d) return 4;
+    if (A.B_c != 7) return 5;
+
+    return 0;
+}
