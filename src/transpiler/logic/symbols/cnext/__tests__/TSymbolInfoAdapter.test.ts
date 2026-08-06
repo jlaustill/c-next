@@ -409,12 +409,12 @@ describe("TSymbolInfoAdapter", () => {
 
       const info = TSymbolInfoAdapter.convert([register]);
 
-      expect(info.registerMemberAccess.get("SPI_DATA")).toBe("rw");
-      expect(info.registerMemberAccess.get("SPI_STATUS")).toBe("ro");
-      expect(info.registerMemberOffsets.get("SPI_DATA")).toBe("0x00");
-      expect(info.registerMemberOffsets.get("SPI_STATUS")).toBe("0x04");
-      expect(info.registerMemberCTypes.get("SPI_DATA")).toBe("uint32_t");
-      expect(info.registerMemberCTypes.get("SPI_STATUS")).toBe("uint8_t");
+      expect(info.registerMemberAccess.get("SPI__DATA")).toBe("rw");
+      expect(info.registerMemberAccess.get("SPI__STATUS")).toBe("ro");
+      expect(info.registerMemberOffsets.get("SPI__DATA")).toBe("0x00");
+      expect(info.registerMemberOffsets.get("SPI__STATUS")).toBe("0x04");
+      expect(info.registerMemberCTypes.get("SPI__DATA")).toBe("uint32_t");
+      expect(info.registerMemberCTypes.get("SPI__STATUS")).toBe("uint8_t");
     });
 
     it("should track bitmap types for register members", () => {
@@ -456,7 +456,7 @@ describe("TSymbolInfoAdapter", () => {
       // Include bitmap BEFORE register for knownBitmaps to be populated
       const info = TSymbolInfoAdapter.convert([bitmap, register]);
 
-      expect(info.registerMemberTypes.get("CTRL_FLAGS")).toBe("StatusFlags");
+      expect(info.registerMemberTypes.get("CTRL__FLAGS")).toBe("StatusFlags");
     });
   });
 
@@ -482,7 +482,7 @@ describe("TSymbolInfoAdapter", () => {
       const info = TSymbolInfoAdapter.convert([variable]);
 
       // Adapter stores using transpiled C name (scope + bare name)
-      expect(info.scopePrivateConstValues.get("Motor_MAX_SPEED")).toBe("255");
+      expect(info.scopePrivateConstValues.get("Motor__MAX_SPEED")).toBe("255");
     });
 
     it("should not track public const values", () => {

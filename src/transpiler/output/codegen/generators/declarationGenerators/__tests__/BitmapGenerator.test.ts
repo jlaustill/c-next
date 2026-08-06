@@ -201,14 +201,14 @@ describe("BitmapGenerator", () => {
       ]);
       const ctx = createMockBitmapContext("Status");
       // Note: The bitmap name in symbols already includes scope prefix
-      const input = createMockInput("Driver_Status", "uint8_t", fields);
+      const input = createMockInput("Driver__Status", "uint8_t", fields);
       const state = createMockState("Driver");
       const orchestrator = createMockOrchestrator();
 
       const result = generateBitmap(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("/* Bitmap: Driver_Status */");
-      expect(result.code).toContain("typedef uint8_t Driver_Status;");
+      expect(result.code).toContain("/* Bitmap: Driver__Status */");
+      expect(result.code).toContain("typedef uint8_t Driver__Status;");
     });
   });
 

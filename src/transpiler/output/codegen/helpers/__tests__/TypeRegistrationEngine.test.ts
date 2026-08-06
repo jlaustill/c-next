@@ -239,7 +239,7 @@ describe("TypeRegistrationEngine", () => {
 
       TypeRegistrationEngine.register(tree, mockCallbacks);
 
-      const info = CodeGenState.getVariableTypeInfo("Motor_states");
+      const info = CodeGenState.getVariableTypeInfo("Motor__states");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("State");
       expect(info?.isArray).toBe(true);
@@ -277,7 +277,7 @@ describe("TypeRegistrationEngine", () => {
 
       TypeRegistrationEngine.register(tree, mockCallbacks);
 
-      const info = CodeGenState.getVariableTypeInfo("Motor_localStates");
+      const info = CodeGenState.getVariableTypeInfo("Motor__localStates");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);

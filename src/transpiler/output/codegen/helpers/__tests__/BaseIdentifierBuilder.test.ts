@@ -60,7 +60,7 @@ describe("BaseIdentifierBuilder", () => {
       );
 
       expect(result).toEqual({
-        result: "GPIO_Controller_value",
+        result: "GPIO_Controller__value",
         firstId: "value",
       });
     });

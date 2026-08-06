@@ -970,7 +970,7 @@ describe("FunctionCallAnalyzer", () => {
 
       // Scope functions are stored as ScopeName_funcName
       expect(
-        CodeGenState.callbackCompatibleFunctions.has("Handlers_on_point"),
+        CodeGenState.callbackCompatibleFunctions.has("Handlers__on_point"),
       ).toBe(true);
     });
 
@@ -1082,7 +1082,7 @@ describe("FunctionCallAnalyzer", () => {
       analyzer.analyze(tree, symbolTable);
 
       // Should detect ScopeAP_cb as callback-compatible
-      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP_cb")).toBe(
+      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP__cb")).toBe(
         true,
       );
     });
@@ -1112,7 +1112,7 @@ describe("FunctionCallAnalyzer", () => {
       analyzer.analyze(tree, symbolTable);
 
       // Should detect ScopeAP_cb as callback-compatible
-      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP_cb")).toBe(
+      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP__cb")).toBe(
         true,
       );
     });

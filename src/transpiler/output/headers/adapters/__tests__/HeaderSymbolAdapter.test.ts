@@ -504,7 +504,7 @@ describe("HeaderSymbolAdapter", () => {
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
       // Qualified enum access should be converted to C-style underscore notation
-      expect(result.arrayDimensions).toEqual(["EColor_COUNT"]);
+      expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
     });
 
     it("should handle autoConst parameter flag", () => {

@@ -126,11 +126,11 @@ describe("trackVariableTypeWithName helpers", () => {
         }
 
         void main() {
-          Motor.setState(Motor_State.ON);
+          Motor.setState(Motor__State.ON);
         }
       `;
       const code = await transpileSource(source);
-      // Scoped type should be transpiled to Motor_State
+      // Scoped type should be transpiled to Motor__State
       expect(code).toContain("Motor__State");
     });
 
@@ -164,12 +164,12 @@ describe("trackVariableTypeWithName helpers", () => {
         Motor.State globalMotorState;
 
         void main() {
-          globalMotorState <- Motor_State.OFF;
+          globalMotorState <- Motor__State.OFF;
         }
       `;
       const code = await transpileSource(source);
-      // Qualified type should resolve to Motor_State
-      expect(code).toContain("Motor_State globalMotorState");
+      // Qualified type should resolve to Motor__State
+      expect(code).toContain("Motor__State globalMotorState");
     });
 
     it("resolves user-defined struct types", async () => {

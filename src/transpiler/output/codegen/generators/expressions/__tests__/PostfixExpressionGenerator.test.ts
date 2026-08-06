@@ -490,7 +490,7 @@ describe("PostfixExpressionGenerator", () => {
 
     it("resolves this.member to const value when available", () => {
       const symbols = createMockSymbols({
-        scopePrivateConstValues: new Map([["Motor_MAX_SPEED", "100"]]),
+        scopePrivateConstValues: new Map([["Motor__MAX_SPEED", "100"]]),
       });
       const ctx = createMockPostfixExpressionContext("this", [
         createMockPostfixOp({ identifier: "MAX_SPEED" }),
@@ -985,7 +985,7 @@ describe("PostfixExpressionGenerator", () => {
     it("throws for write-only register read", () => {
       const symbols = createMockSymbols({
         knownRegisters: new Set(["GPIO"]),
-        registerMemberAccess: new Map([["GPIO_DATA", "wo"]]),
+        registerMemberAccess: new Map([["GPIO__DATA", "wo"]]),
       });
       const ctx = createMockPostfixExpressionContext("GPIO", [
         createMockPostfixOp({ identifier: "DATA" }),
@@ -1186,10 +1186,10 @@ describe("PostfixExpressionGenerator", () => {
 
     it("throws for bracket indexing on bitmap type", () => {
       // This test requires the registerMemberTypes to be set for the resolved
-      // member (result after member access), which is "GPIO_CTRL"
+      // member (result after member access), which is "GPIO__CTRL"
       const symbols = createMockSymbols({
         knownRegisters: new Set(["GPIO"]),
-        registerMemberTypes: new Map([["GPIO_CTRL", "CtrlBits"]]),
+        registerMemberTypes: new Map([["GPIO__CTRL", "CtrlBits"]]),
       });
       const ctx = createMockPostfixExpressionContext("GPIO", [
         createMockPostfixOp({ identifier: "CTRL" }),

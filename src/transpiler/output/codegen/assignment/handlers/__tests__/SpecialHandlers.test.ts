@@ -99,10 +99,10 @@ describe("SpecialHandlers", () => {
     it("handles this.member atomic variable", () => {
       CodeGenState.currentScope = "Motor";
       HandlerTestUtils.setupMockTypeRegistry([
-        ["Motor_count", { baseType: "u32", isAtomic: true }],
+        ["Motor__count", { baseType: "u32", isAtomic: true }],
       ]);
       const generateAtomicRMW = vi.fn().mockReturnValue("atomic result");
-      const generateAssignmentTarget = vi.fn().mockReturnValue("Motor_count");
+      const generateAssignmentTarget = vi.fn().mockReturnValue("Motor__count");
       HandlerTestUtils.setupMockGenerator({
         generateAtomicRMW,
         generateAssignmentTarget,
@@ -116,7 +116,7 @@ describe("SpecialHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(generateAtomicRMW).toHaveBeenCalledWith(
-        "Motor_count",
+        "Motor__count",
         "+=",
         "1",
         expect.objectContaining({

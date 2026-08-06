@@ -45,7 +45,7 @@ describe("generateEnumHeader", () => {
 
       const result = generateEnumHeader("Single", input);
 
-      expect(result).toBe(`typedef enum {\n    Single_ONLY = 42\n} Single;`);
+      expect(result).toBe(`typedef enum {\n    Single__ONLY = 42\n} Single;`);
     });
 
     it("should sort members by value", () => {

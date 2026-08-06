@@ -359,7 +359,7 @@ describe("AssignmentValidator", () => {
     });
 
     it("should throw for read-only register member", () => {
-      const registerMemberAccess = new Map([["GPIO_PIN", "ro"]]);
+      const registerMemberAccess = new Map([["GPIO__PIN", "ro"]]);
       setupSymbols({ registerMemberAccess });
       const { target, expression } = parseAssignment("GPIO.PIN");
 

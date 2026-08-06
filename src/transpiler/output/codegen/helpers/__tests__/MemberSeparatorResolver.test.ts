@@ -304,7 +304,7 @@ describe("MemberSeparatorResolver", () => {
 
     it("should return _ when chain so far is a register", () => {
       const deps = createMockDeps({
-        isKnownRegister: vi.fn((name) => name === "GPIO7_DR"),
+        isKnownRegister: vi.fn((name) => name === "GPIO7__DR"),
       });
       const ctx = createContext();
 

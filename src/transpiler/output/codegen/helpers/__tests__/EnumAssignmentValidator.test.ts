@@ -117,7 +117,7 @@ describe("EnumAssignmentValidator", () => {
     it("allows this.Enum.MEMBER pattern", () => {
       CodeGenState.currentScope = "MyScope";
       CodeGenState.symbols = createMockSymbols({
-        knownEnums: new Set(["MyScope_State"]),
+        knownEnums: new Set(["MyScope__State"]),
       });
       vi.spyOn(EnumTypeResolver, "resolve").mockReturnValue(null);
 
@@ -125,7 +125,7 @@ describe("EnumAssignmentValidator", () => {
 
       expect(() =>
         EnumAssignmentValidator.validateEnumAssignment(
-          "MyScope_State",
+          "MyScope__State",
           expression,
         ),
       ).not.toThrow();
@@ -175,7 +175,7 @@ describe("EnumAssignmentValidator", () => {
 
     it("allows scoped enum pattern", () => {
       CodeGenState.symbols = createMockSymbols({
-        knownEnums: new Set(["Scope_State"]),
+        knownEnums: new Set(["Scope__State"]),
       });
       vi.spyOn(EnumTypeResolver, "resolve").mockReturnValue(null);
 
@@ -183,7 +183,7 @@ describe("EnumAssignmentValidator", () => {
 
       expect(() =>
         EnumAssignmentValidator.validateEnumAssignment(
-          "Scope_State",
+          "Scope__State",
           expression,
         ),
       ).not.toThrow();
@@ -191,7 +191,7 @@ describe("EnumAssignmentValidator", () => {
 
     it("throws for wrong scoped enum pattern", () => {
       CodeGenState.symbols = createMockSymbols({
-        knownEnums: new Set(["Scope_State"]),
+        knownEnums: new Set(["Scope__State"]),
       });
       vi.spyOn(EnumTypeResolver, "resolve").mockReturnValue(null);
 
@@ -199,16 +199,16 @@ describe("EnumAssignmentValidator", () => {
 
       expect(() =>
         EnumAssignmentValidator.validateEnumAssignment(
-          "Scope_State",
+          "Scope__State",
           expression,
         ),
-      ).toThrow("Cannot assign non-enum value to Scope_State enum");
+      ).toThrow("Cannot assign non-enum value to Scope__State enum");
     });
 
     it("throws for this.WrongEnum.MEMBER with wrong scoped name", () => {
       CodeGenState.currentScope = "MyScope";
       CodeGenState.symbols = createMockSymbols({
-        knownEnums: new Set(["MyScope_State"]),
+        knownEnums: new Set(["MyScope__State"]),
       });
       vi.spyOn(EnumTypeResolver, "resolve").mockReturnValue(null);
 
@@ -216,10 +216,10 @@ describe("EnumAssignmentValidator", () => {
 
       expect(() =>
         EnumAssignmentValidator.validateEnumAssignment(
-          "MyScope_State",
+          "MyScope__State",
           expression,
         ),
-      ).toThrow("Cannot assign non-enum value to MyScope_State enum");
+      ).toThrow("Cannot assign non-enum value to MyScope__State enum");
     });
 
     it("throws for variable.field access on non-enum type", () => {

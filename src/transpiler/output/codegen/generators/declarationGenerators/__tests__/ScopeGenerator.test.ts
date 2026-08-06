@@ -756,7 +756,7 @@ describe("ScopeGenerator", () => {
       expect(result.code).toContain("static widget_t* GUI__widget = NULL;");
       // Should call markOpaqueScopeVariable
       expect(orchestrator.markOpaqueScopeVariable).toHaveBeenCalledWith(
-        "GUI_widget",
+        "GUI__widget",
       );
     });
 
@@ -1020,13 +1020,13 @@ describe("ScopeGenerator", () => {
 
       // Verify call order
       expect(orchestrator.setCurrentFunctionName).toHaveBeenCalledWith(
-        "Test_test",
+        "Test__test",
       );
       expect(orchestrator.setParameters).toHaveBeenCalled();
       expect(orchestrator.enterFunctionBody).toHaveBeenCalled();
       expect(orchestrator.generateBlock).toHaveBeenCalled();
       expect(orchestrator.updateFunctionParamsAutoConst).toHaveBeenCalledWith(
-        "Test_test",
+        "Test__test",
       );
       expect(orchestrator.exitFunctionBody).toHaveBeenCalled();
       expect(orchestrator.setCurrentFunctionName).toHaveBeenLastCalledWith(
@@ -1228,7 +1228,7 @@ describe("ScopeGenerator", () => {
 
         const result = generateScope(ctx, input, state, orchestrator);
 
-        expect(result.code).toContain(`typedef ${expected} Scope_Test;`);
+        expect(result.code).toContain(`typedef ${expected} Scope__Test;`);
       }
     });
 

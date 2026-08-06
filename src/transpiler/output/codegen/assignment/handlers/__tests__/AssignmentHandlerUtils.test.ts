@@ -155,7 +155,7 @@ describe("AssignmentHandlerUtils", () => {
         mockIsKnownScope,
       );
       expect(result).toEqual({
-        fullName: "Motor__DR__SET",
+        fullName: "Motor__DR_SET",
         regName: "Motor",
         isScoped: false,
       });

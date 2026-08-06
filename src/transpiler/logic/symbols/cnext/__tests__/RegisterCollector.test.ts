@@ -177,7 +177,7 @@ describe("RegisterCollector", () => {
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
       // Bitmap would be collected as Motor_MotorFlags in a scope
-      const knownBitmaps = new Set(["Motor_MotorFlags"]);
+      const knownBitmaps = new Set(["Motor__MotorFlags"]);
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = RegisterCollector.collect(
         regCtx,
@@ -187,7 +187,7 @@ describe("RegisterCollector", () => {
       );
 
       // The collector checks both scoped and unscoped names
-      expect(symbol.members.get("FLAGS")?.bitmapType).toBe("Motor_MotorFlags");
+      expect(symbol.members.get("FLAGS")?.bitmapType).toBe("Motor__MotorFlags");
     });
   });
 

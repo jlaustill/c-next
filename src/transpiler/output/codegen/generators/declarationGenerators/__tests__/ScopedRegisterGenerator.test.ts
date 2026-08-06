@@ -237,7 +237,7 @@ describe("ScopedRegisterGenerator", () => {
 
   describe("scoped bitmap type resolution", () => {
     it("resolves bitmap type to scoped name when bitmap exists in scope", () => {
-      // Register member uses "GPIO7Pins" type, which should resolve to "Teensy4_GPIO7Pins"
+      // Register member uses "GPIO7Pins" type, which should resolve to "Teensy4__GPIO7Pins"
       const ctx = createMockRegisterContext("GPIO7", "0x42004000", [
         {
           name: "PINS",
@@ -248,7 +248,7 @@ describe("ScopedRegisterGenerator", () => {
         },
       ]);
       // The scoped bitmap exists
-      const knownBitmaps = new Set(["Teensy4_GPIO7Pins"]);
+      const knownBitmaps = new Set(["Teensy4__GPIO7Pins"]);
       const input = createMockInput(knownBitmaps);
       const state = createMockState();
       // Type map returns the type unchanged - generator handles scoping
@@ -264,7 +264,7 @@ describe("ScopedRegisterGenerator", () => {
         orchestrator,
       );
 
-      expect(result.code).toContain("volatile Teensy4_GPIO7Pins*");
+      expect(result.code).toContain("volatile Teensy4__GPIO7Pins*");
     });
 
     it("keeps original type when scoped bitmap does not exist", () => {

@@ -172,7 +172,7 @@ describe("EnumGenerator", () => {
       ]);
       // Note: The enum name in symbols already includes scope prefix
       const ctx = createMockEnumContext("Level");
-      const input = createMockInput("Motor_Level", members);
+      const input = createMockInput("Motor__Level", members);
       const state = createMockState("Motor");
       const orchestrator = createMockOrchestrator();
 
@@ -180,9 +180,9 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    Motor_Level_LOW = 0,
-    Motor_Level_HIGH = 1
-} Motor_Level;
+    Motor__Level__LOW = 0,
+    Motor__Level__HIGH = 1
+} Motor__Level;
 `,
       );
     });
