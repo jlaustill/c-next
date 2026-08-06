@@ -50,11 +50,12 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 
 ## Accepted
 
-| ADR                                                             | Title                 | Description                                           |
-| --------------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
-| [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection   |
-| [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion |
-| [ADR-115](decisions/adr-115-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708) |
+| ADR                                                             | Title                 | Description                                                                        |
+| --------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------- |
+| [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection                                |
+| [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion                              |
+| [ADR-115](decisions/adr-115-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708)                              |
+| [ADR-063](decisions/adr-063-identifier-syntax.md)               | Identifier Syntax     | No trailing/consecutive `_`; `__` reserved as the qualified-name separator (E0201) |
 
 ## WIP (Implementation In Progress)
 
@@ -70,17 +71,16 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 
 ## Research (v1 Roadmap)
 
-| ADR                                                         | Title                         | Description                                                                            |
-| ----------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------- |
-| [ADR-008](decisions/adr-008-language-bug-prevention.md)     | Language-Level Bug Prevention | Top 15 embedded bugs and prevention                                                    |
-| [ADR-009](decisions/adr-009-isr-safety.md)                  | ISR Safety                    | Safe interrupts without `unsafe` blocks                                                |
-| [ADR-054](decisions/adr-054-array-index-overflow.md)        | Array Index Overflow          | Overflow semantics for array index expressions                                         |
-| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)      | Cast Overflow Behavior        | Consistent overflow semantics for type casts                                           |
-| [ADR-060](decisions/adr-060-vscode-extension-separation.md) | VS Code Extension Separation  | Separate repository for VS Code extension                                              |
-| [ADR-063](decisions/adr-063-identifier-syntax.md)           | Identifier Syntax             | Underscores interior and single; `__` reserved as the qualified-name separator (E0201) |
-| [ADR-109](decisions/adr-109-codegenerator-decomposition.md) | CodeGenerator Decomposition   | Breaking down CodeGenerator into modules                                               |
-| [ADR-110](decisions/adr-110-do178c-compliance.md)           | DO-178C Compliance            | Safety-critical software certification framework                                       |
-| [ADR-114](decisions/adr-114-dead-code-reachability.md)      | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C)                                       |
+| ADR                                                         | Title                         | Description                                      |
+| ----------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| [ADR-008](decisions/adr-008-language-bug-prevention.md)     | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
+| [ADR-009](decisions/adr-009-isr-safety.md)                  | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
+| [ADR-054](decisions/adr-054-array-index-overflow.md)        | Array Index Overflow          | Overflow semantics for array index expressions   |
+| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)      | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
+| [ADR-060](decisions/adr-060-vscode-extension-separation.md) | VS Code Extension Separation  | Separate repository for VS Code extension        |
+| [ADR-109](decisions/adr-109-codegenerator-decomposition.md) | CodeGenerator Decomposition   | Breaking down CodeGenerator into modules         |
+| [ADR-110](decisions/adr-110-do178c-compliance.md)           | DO-178C Compliance            | Safety-critical software certification framework |
+| [ADR-114](decisions/adr-114-dead-code-reachability.md)      | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
 
 ## Research (v2 Roadmap)
 

@@ -10,9 +10,9 @@
 > below (`Scope_member`) is **not injective**: a global `Reg_flags` and a `scope Reg`
 > member `flags` both produce the C identifier `Reg_flags`, as do the members of
 > `scope A_B { c }` and `scope A { B_c }`. ADR-063 changes the separator to `__`
-> (`Scope__member`) and restricts identifiers so that `__` cannot occur in one, making
-> the join injective. The text below describes currently shipped behavior; it will be
-> updated when ADR-063 is implemented.
+> (`Scope__member`) and forbids identifiers from ending with `_` or containing `__`,
+> which makes the join injective. The text below describes currently shipped behavior;
+> it will be updated when ADR-063 is implemented.
 
 ## Context
 

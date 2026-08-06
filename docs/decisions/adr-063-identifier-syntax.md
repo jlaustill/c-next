@@ -1,6 +1,6 @@
 # ADR-063: Identifier Syntax
 
-**Status:** Research
+**Status:** Accepted
 **Date:** 2026-08-05
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-016 (Scopes — consumes this rule for `Scope__member`), ADR-017 (Enums — consumes this rule for member naming), ADR-057 (Implicit Scope Resolution), ADR-010 (C Interoperability)
@@ -56,28 +56,29 @@ scope A  { u8 _B; }   /* "A"  + "__" + "_B" = A___B */
 
 Neither `A_` nor `_B` contains consecutive underscores, so both pass such a check, and both still collide. (Verified against the transpiler: under today's single-underscore separator both emit `A__B`.)
 
-Injectivity therefore requires constraining underscores at the boundaries as well as in runs — which is what this ADR does.
+Injectivity therefore requires constraining the separator's **left** boundary — a component may not end with `_` — in addition to forbidding runs. That is what this ADR does. Notably the _right_ boundary needs no constraint; see "Why leading underscores are permitted".
 
 ### Alternatives considered
 
-| Option                                              | Injective | Cost                                                                                                                            |
-| --------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Collision diagnostic only                           | n/a       | Rejects well-formed programs; punishes the user for a codegen artifact                                                          |
-| `s_` prefix on scope members                        | **No**    | Fixes class 1 only; class 2 still collides (`s_A_B_c`)                                                                          |
-| `__` separator, forbid `__` in identifiers          | **No**    | Boundary underscores still collide (`A_`/`B` vs `A`/`_B`)                                                                       |
-| Forbid `_` in identifiers entirely                  | Yes       | Breaks `SysTick_Handler` (ARM vector table), 162 corpus files, and C-Next's own `byte_length`/`safe_div` builtins               |
-| Length-prefixed components (`s_3Reg5flags`)         | Yes       | No naming restriction, but generated C becomes unreadable — works against the generated C being a review/certification artifact |
-| **Underscores interior and single, `__` separator** | **Yes**   | **0 existing identifiers violate the rule**                                                                                     |
+| Option                                           | Injective | Cost                                                                                                                            |
+| ------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Collision diagnostic only                        | n/a       | Rejects well-formed programs; punishes the user for a codegen artifact                                                          |
+| `s_` prefix on scope members                     | **No**    | Fixes class 1 only; class 2 still collides (`s_A_B_c`)                                                                          |
+| `__` separator, forbid only `__` in identifiers  | **No**    | Boundary underscores still collide (`A_`/`B` vs `A`/`_B`)                                                                       |
+| Forbid `_` in identifiers entirely               | Yes       | Breaks `SysTick_Handler` (ARM vector table), 162 corpus files, and C-Next's own `byte_length`/`safe_div` builtins               |
+| Forbid leading, trailing **and** consecutive `_` | Yes       | Correct, but needlessly strict — breaks the `_handler` private-member idiom (ADR-029) for no additional guarantee               |
+| Length-prefixed components (`s_3Reg5flags`)      | Yes       | No naming restriction, but generated C becomes unreadable — works against the generated C being a review/certification artifact |
+| **Forbid trailing and consecutive `_` (chosen)** | **Yes**   | **0 existing identifiers violate the rule**                                                                                     |
 
 ## Decision
 
-**An underscore in a C-Next identifier must sit between two alphanumeric characters.**
+**A C-Next identifier may not end with `_`, and may not contain two or more consecutive underscores.**
 
 ```
-IDENTIFIER : [A-Za-z] [A-Za-z0-9]* ('_' [A-Za-z0-9]+)*
+IDENTIFIER : '_'? [A-Za-z] [A-Za-z0-9]* ('_' [A-Za-z0-9]+)*
 ```
 
-Equivalently, an identifier may not begin with `_`, may not end with `_`, and may not contain two or more consecutive underscores.
+A **leading** underscore remains legal — see "Why leading underscores are permitted" below.
 
 This reserves `__` exclusively for the transpiler, which uses it as the **qualified-name separator** at every qualification level (ADR-016, ADR-017).
 
@@ -85,13 +86,35 @@ This reserves `__` exclusively for the transpiler, which uses it as the **qualif
 
 Let `S` and `M` be identifiers satisfying the rule, and let the qualified name be `S__M`.
 
-- Neither `S` nor `M` contains `__` (no two consecutive underscores).
-- `S` does not end with `_`, so the character preceding the separator is alphanumeric.
-- `M` does not begin with `_`, so the character following the separator is alphanumeric.
+Suppose the same string admits two different splits, `X = S₁__M₁ = S₂__M₂`, with `|S₁| < |S₂|`. The separator of split 1 occupies positions `|S₁|` and `|S₁|+1`, both underscores. If `|S₂| ≥ |S₁|+2`, then `S₂` would contain both of those positions — i.e. `S₂` would contain `__`, which the rule forbids. So `|S₂| = |S₁|+1`, which makes `S₂ = S₁ + "_"` — an identifier ending in an underscore, also forbidden. Both cases contradict the rule, so the split is unique. ∎
 
-Therefore `S__M` contains **exactly one** occurrence of `__`, and it is the separator. The split is unique, so `(S, M) → S__M` is injective. The argument extends unchanged to any number of components (`Scope__Enum__MEMBER`).
+The argument extends unchanged to any number of components (`Scope__Enum__MEMBER`).
 
 Additionally, a plain identifier can never collide with a qualified one: a qualified name contains `__`, and the rule forbids `__` in any identifier.
+
+### Why leading underscores are permitted
+
+The proof above constrains only the **left** boundary of the separator — it needs `S` not to end with `_`, and needs neither component to contain `__`. What `M` _begins_ with never enters the argument. Forbidding a leading underscore would therefore restrict the language without buying any additional guarantee.
+
+This matters in practice: a leading underscore marking a private struct member is an established C-Next idiom, taught in `docs/language-guide.md` and used throughout ADR-029 (Function Pointers):
+
+```cnx
+struct Controller {
+    onReceive _handler;    // type is onReceive, initialized to default
+}
+```
+
+Permitting it keeps ADR-029 and the language guide correct as written, and reduces the migration cost of this ADR to zero.
+
+### Enforcement: semantic, not lexical
+
+The grammar above is **specification, not implementation**. The rule is enforced by a semantic analyzer (`IdentifierSyntaxAnalyzer`, diagnostic E0201), and the `IDENTIFIER` lexer rule in `grammar/CNext.g4` stays permissive. Three reasons:
+
+1. **Diagnostic quality.** `CNextSourceParser` forwards ANTLR messages verbatim, so a lexer rejection surfaces as `token recognition error at: '_'` followed by cascading parser errors — with no error code, no source-accurate location for the identifier, and no `help:` line. An ADR that defines an error code has already implicitly chosen semantic enforcement.
+2. **The C-interop carve-out.** The analyzer checks only _declaration_ contexts. A C-Next file that _calls_ an external symbol such as `__disable_irq()` or `_exit()` is untouched, which is exactly the scope this ADR specifies. A lexer rule cannot make that distinction.
+3. **Cost.** A grammar change forces `npm run antlr:all` and re-committing the generated parser sources, for no benefit here.
+
+Preprocessor directive tokens (`#define`, `#ifdef`, `#ifndef`, `#pragma target`) embed their own identifier character classes in the grammar and are deliberately **not** covered by this rule, so include guards such as `#ifndef __MY_GUARD__` continue to work.
 
 ### Scope of the rule
 
@@ -104,21 +127,36 @@ The rule is deliberately narrow. Every one of these is still valid:
 
 | Identifier        | Why it matters                                         |
 | ----------------- | ------------------------------------------------------ |
-| `tick_count`      | ordinary snake_case                                    |
+| `tick_count`      | ordinary `snake_case`                                  |
 | `CONTROL_REG`     | register naming in the existing corpus                 |
 | `SysTick_Handler` | ARM Cortex-M vector table — the name is not negotiable |
 | `byte_length`     | C-Next's own built-in properties (ADR-058)             |
 | `safe_div`        | C-Next's own built-in functions (ADR-051)              |
+| `_handler`        | private-member idiom taught in ADR-029                 |
 
-A survey of the full corpus (1078 `.cnx` files across `tests/` and `examples/`) found **zero** identifiers with a leading underscore, a trailing underscore, or consecutive underscores. The rule costs no migration.
+### Migration cost
+
+Every identifier token in `tests/` and `examples/` was extracted (comments and string literals stripped) and checked against the rule — **4541 distinct identifiers**:
+
+| Pattern          | Occurrences    | Legal under this rule |
+| ---------------- | -------------- | --------------------- |
+| Trailing `_`     | 0              | no                    |
+| Consecutive `__` | 0              | no                    |
+| Leading `_`      | 1 (`_handler`) | **yes**               |
+
+**No existing C-Next source requires renaming.**
+
+An earlier revision of this ADR also forbade leading underscores and claimed zero violations on that basis. That claim was incorrect — `_handler` appears in three callback tests, in `docs/language-guide.md`, and 21 times in ADR-029. Since the injectivity proof does not depend on the leading position (see above), the rule was relaxed rather than the corpus migrated.
 
 ### Alignment with C and C++
 
 The forbidden patterns are already reserved or discouraged outside C-Next:
 
-- **C11 §7.1.3** — identifiers beginning with `_` followed by an uppercase letter or another `_` are reserved for any use; identifiers beginning with `_` are reserved at file scope.
+- **C11 §7.1.3** — identifiers beginning with `_` followed by an uppercase letter or another `_` are reserved for any use. Forbidding `__` covers the `__`-prefixed half of this.
 - **C++ §lex.name/3** — identifiers containing `__` _anywhere_ are reserved to the implementation. C-Next currently passes `my__var` straight through, so `--cpp` output today declares reserved identifiers.
 - **MISRA C:2012 Rule 21.2** — a reserved identifier shall not be declared.
+
+C11 §7.1.3 additionally reserves identifiers beginning with a single `_` **at file scope**. This rule permits them, which is a deliberate narrowing: the motivating use (`_handler`, ADR-029) is a _struct member_, and member names are not file-scope identifiers, so no reserved name is emitted. A leading-underscore **global** would emit a file-scope reserved identifier — see Open Questions.
 
 The rule therefore removes an existing standards-compliance defect rather than introducing a new restriction.
 
@@ -127,11 +165,14 @@ The rule therefore removes an existing standards-compliance defect rather than i
 **E0201** — identifier violates the underscore rule.
 
 ```
-E0201: identifier '_value' may not begin with an underscore
-  help: underscores must sit between alphanumeric characters (e.g. 'someValue' or 'some_value')
+error[E0201]: identifier 'value_' may not end with an underscore
+  help: remove the trailing underscore (e.g. 'value')
+
+error[E0201]: identifier 'my__value' may not contain consecutive underscores
+  help: '__' is reserved as the qualified-name separator; use a single underscore (e.g. 'my_value')
 ```
 
-Reported for a leading underscore, a trailing underscore, or two or more consecutive underscores.
+Reported for a trailing underscore or two or more consecutive underscores. Emitted by `IdentifierSyntaxAnalyzer` over declaration contexts only; references to external C/C++ symbols are not checked.
 
 ## Consequences
 
@@ -156,8 +197,9 @@ Every `.expected.c` / `.expected.h` snapshot regenerates, and any C or C++ that 
 
 ## Open Questions
 
-- Should the VS Code extension (`vscode-c-next`) surface E0201 as a live diagnostic, or is transpile-time reporting sufficient?
-- C-Next's built-in vocabulary is snake*case (`byte_length`, `safe_div`, `char_count`, `element_count`). The rule permits this, so there is no conflict — but whether the language \_should* prefer camelCase builtins for internal consistency is a separate question, deliberately out of scope here.
+- Should a **file-scope** identifier be permitted to begin with `_`? C11 §7.1.3 reserves those, so a leading-underscore global emits a reserved C identifier. The motivating idiom (`_handler`) is a struct member and is unaffected, so this rule does not restrict it — but a narrower "leading `_` on globals only" check could be added later without affecting injectivity.
+
+Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201. See the `vscode-c-next` issue linked from #1117.
 
 ## References
 
