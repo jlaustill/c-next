@@ -15,8 +15,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void UI_style(widget_t* w);
-void UI_run(void);
+void UI__style(widget_t* w);
+void UI__run(void);
 
 #ifdef __cplusplus
 }

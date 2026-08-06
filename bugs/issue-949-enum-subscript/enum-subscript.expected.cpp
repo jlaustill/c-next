@@ -13,23 +13,23 @@ TValue values[4] = {};
 
 /* Scope: Test */
 
-uint32_t Test_getValue(EColor color) {
+uint32_t Test__getValue(EColor color) {
     return values[color].data;
 }
 
-void Test_setValue(EColor color, uint32_t val) {
+void Test__setValue(EColor color, uint32_t val) {
     values[color].data = val;
 }
 
 int main(void) {
-    Test_setValue(EColor_GREEN, 42U);
-    uint32_t result = Test_getValue(EColor_GREEN);
+    Test__setValue(EColor__GREEN, 42U);
+    uint32_t result = Test__getValue(EColor__GREEN);
     if (result != 42) return 1;
-    Test_setValue(EColor_RED, 10U);
-    uint32_t redVal = Test_getValue(EColor_RED);
+    Test__setValue(EColor__RED, 10U);
+    uint32_t redVal = Test__getValue(EColor__RED);
     if (redVal != 10) return 2;
-    Test_setValue(EColor_BLUE, 99U);
-    uint32_t blueVal = Test_getValue(EColor_BLUE);
+    Test__setValue(EColor__BLUE, 99U);
+    uint32_t blueVal = Test__getValue(EColor__BLUE);
     if (blueVal != 99) return 3;
     return 0;
 }

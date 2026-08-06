@@ -11,8 +11,8 @@
 #include "lib_with_late_def.h"
 
 /* Scope: Draw */
-static point_t Draw_origin = {0};
+static point_t Draw__origin = {0};
 
-void Draw_setup(void) {
-    point_init(&Draw_origin);
+void Draw__setup(void) {
+    point_init(&Draw__origin);
 }

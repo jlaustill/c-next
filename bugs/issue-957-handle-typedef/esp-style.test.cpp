@@ -15,18 +15,18 @@
 #include <stdint.h>
 
 /* Scope: SPI */
-static spi_device_handle_t SPI_device = {};
+static spi_device_handle_t SPI__device = {};
 
-void SPI_init(void) {
-    spi_device_init(&SPI_device);
+void SPI__init(void) {
+    spi_device_init(&SPI__device);
 }
 
-void SPI_write(uint8_t data) {
-    spi_device_write(SPI_device, data);
+void SPI__write(uint8_t data) {
+    spi_device_write(SPI__device, data);
 }
 
 int main(void) {
-    SPI_init();
-    SPI_write(42U);
+    SPI__init();
+    SPI__write(42U);
     return 0;
 }

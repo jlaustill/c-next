@@ -11,13 +11,13 @@
 #include <stdint.h>
 
 /* Scope: App */
-static widget_t App_root = {};
+static widget_t App__root = {};
 
-void App_on_change(widget_t* w) {
+void App__on_change(widget_t* w) {
     int32_t val = widget_get_value(w);
 }
 
-void App_init(void) {
+void App__init(void) {
     widget_t* child = widget_create();
-    widget_set_callback(child, App_on_change);
+    widget_set_callback(child, App__on_change);
 }

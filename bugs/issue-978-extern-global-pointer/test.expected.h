@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void App_init(void);
-void App_init_from_ptr(void);
-void App_copy(void);
+void App__init(void);
+void App__init_from_ptr(void);
+void App__copy(void);
 
 #ifdef __cplusplus
 }

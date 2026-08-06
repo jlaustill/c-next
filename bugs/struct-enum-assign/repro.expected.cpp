@@ -5,9 +5,9 @@
 
 // Minimal reproduction: assign struct enum field to local enum variable
 typedef enum {
-    EValueId_VALUE_A = 0,
-    EValueId_VALUE_B = 1,
-    EValueId_VALUE_UNASSIGNED = 255
+    EValueId__VALUE_A = 0,
+    EValueId__VALUE_B = 1,
+    EValueId__VALUE_UNASSIGNED = 255
 } EValueId;
 
 typedef struct TInput {

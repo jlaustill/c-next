@@ -16,7 +16,7 @@
 
 /* Scope: Handler */
 
-void Handler_process(uint8_t data[8]) {
+void Handler__process(uint8_t data[8]) {
     process_data(data);
 }
 
@@ -24,7 +24,7 @@ int main(void) {
     uint8_t buffer[8] = {};
     buffer[0] = 0U;
     buffer[1] = 0U;
-    Handler_process(buffer);
+    Handler__process(buffer);
     if (buffer[0U] != 0xAA) return 1;
     if (buffer[1U] != 0xBB) return 2;
     return 0;

@@ -12,19 +12,19 @@
 // Issue #1019 Bug #2: Scope-member string should emit valid C for zero-init
 // When scope-member string IS initialized before read, codegen must be valid
 /* Scope: S */
-static char S_buf[17] = "";
+static char S__buf[17] = "";
 
-void S_init(void) {
-    strncpy(S_buf, "", 16); S_buf[16] = '\0';
+void S__init(void) {
+    strncpy(S__buf, "", 16); S__buf[16] = '\0';
 }
 
-uint8_t S_len(void) {
-    return strlen(S_buf);
+uint8_t S__len(void) {
+    return strlen(S__buf);
 }
 
 int main(void) {
-    S_init();
-    uint8_t length = S_len();
+    S__init();
+    uint8_t length = S__len();
     if (length != 0) return 1;
     return 0;
 }

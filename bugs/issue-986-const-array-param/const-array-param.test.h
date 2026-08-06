@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Handler_process(uint8_t data[8]);
+void Handler__process(uint8_t data[8]);
 
 #ifdef __cplusplus
 }

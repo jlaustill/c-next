@@ -22,8 +22,8 @@ typedef struct TInput {
 extern TInput inputs[8];
 
 /* Function prototypes */
-void Test_setInput(const uint8_t data[8]);
-void Test_setInputExtracted(const uint8_t data[8]);
+void Test__setInput(const uint8_t data[8]);
+void Test__setInputExtracted(const uint8_t data[8]);
 
 #ifdef __cplusplus
 }

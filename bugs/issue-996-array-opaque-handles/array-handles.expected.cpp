@@ -27,13 +27,13 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 }
 
 /* Scope: UI */
-static widget_t* UI_widgets[3] = {};
+static widget_t* UI__widgets[3] = {};
 
-void UI_run(void) {
+void UI__run(void) {
     uint8_t i = 0U;
     while (i < 3) {
-        UI_widgets[i] = widget_create();
-        widget_move(UI_widgets[i], 5);
+        UI__widgets[i] = widget_create();
+        widget_move(UI__widgets[i], 5);
         i = cnx_clamp_add_u8(i, 1U);
     }
 }

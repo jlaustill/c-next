@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void S_init(void);
-uint8_t S_len(void);
+void S__init(void);
+uint8_t S__len(void);
 
 #ifdef __cplusplus
 }

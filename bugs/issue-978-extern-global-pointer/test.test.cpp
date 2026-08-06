@@ -14,20 +14,20 @@
 
 /* Scope: App */
 
-void App_init(void) {
+void App__init(void) {
     set_font(&big_font);
 }
 
-void App_init_from_ptr(void) {
+void App__init_from_ptr(void) {
     set_font(font_ptr);
 }
 
-void App_copy(void) {
+void App__copy(void) {
     copy_font(big_font);
 }
 
 int main(void) {
-    App_init();
+    App__init();
     int32_t ok = was_font_set_correctly();
     if (ok != 1) return 1;
     return 0;

@@ -10,7 +10,7 @@
 // Bug: switch on array element rejected as "boolean type"
 /* Scope: Test */
 
-void Test_working(void) {
+void Test__working(void) {
     uint8_t x = 1U;
     switch (x) {
         case 1: {
@@ -22,7 +22,7 @@ void Test_working(void) {
     }
 }
 
-void Test_failing(void) {
+void Test__failing(void) {
     uint8_t data[4] = {1U, 2U, 3U, 4U};
     switch (data[0U]) {
         case 1: {
