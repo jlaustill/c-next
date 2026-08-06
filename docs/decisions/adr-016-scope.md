@@ -4,7 +4,15 @@
 **Date:** 2025-12-29
 **Decision Makers:** C-Next Language Design Team
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)
-**Related:** ADR-014 (Structs)
+**Related:** ADR-014 (Structs), ADR-063 (Identifier Syntax — amends the qualified-name separator, see below)
+
+> **Pending amendment (ADR-063, Issue #1117).** The qualified-name separator documented
+> below (`Scope_member`) is **not injective**: a global `Reg_flags` and a `scope Reg`
+> member `flags` both produce the C identifier `Reg_flags`, as do the members of
+> `scope A_B { c }` and `scope A { B_c }`. ADR-063 changes the separator to `__`
+> (`Scope__member`) and restricts identifiers so that `__` cannot occur in one, making
+> the join injective. The text below describes currently shipped behavior; it will be
+> updated when ADR-063 is implemented.
 
 ## Context
 
@@ -81,7 +89,7 @@ static void LED_reset(void) { }       // private → static
 ### Key Properties
 
 - **Member-type-aware defaults** — Functions public, variables/types private
-- **Name prefixing** — Members become `Scope_member` in generated C
+- **Name prefixing** — Members become `Scope_member` in generated C (becoming `Scope__member` — ADR-063)
 - **Static linkage** — Private members use `static` for file-local visibility
 - **Not a type** — Cannot create instances of a scope
 - **Minimal expectations** — No baggage from C++ namespaces or classes
