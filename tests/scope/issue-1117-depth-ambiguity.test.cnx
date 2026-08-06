@@ -63,8 +63,10 @@ u32 main() {
     u8 inScopeOrdinal <- A.firstOrdinal();
     if (inScopeOrdinal != 0) return 3;
 
+    // The cast is required: assigning an enum straight to u8 crosses essential type
+    // categories, which MISRA C:2012 Rule 10.3 forbids.
     A.B second <- A.B.d;
-    u8 secondOrdinal <- second;
+    u8 secondOrdinal <- (u8)second;
     if (secondOrdinal != 1) return 4;
 
     // Using the enum type did not disturb the variable's storage

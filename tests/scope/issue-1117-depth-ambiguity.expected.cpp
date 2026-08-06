@@ -53,7 +53,7 @@ int main(void) {
     uint8_t inScopeOrdinal = A__firstOrdinal();
     if (inScopeOrdinal != 0) return 3;
     A__B second = A__B__d;
-    uint8_t secondOrdinal = second;
+    uint8_t secondOrdinal = static_cast<uint8_t>(second);
     if (secondOrdinal != 1) return 4;
     if (A__B_c != 7) return 5;
     return 0;
