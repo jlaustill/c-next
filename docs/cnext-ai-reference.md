@@ -452,8 +452,8 @@ scope Counter {
 }
 
 // External usage
-Counter.increment();                // → Counter_increment()
-u32 v <- Counter.get();             // → Counter_get()
+Counter.increment();                // → Counter__increment()
+u32 v <- Counter.get();             // → Counter__get()
 ```
 
 Prefer **bare names** inside a scope — they resolve to the scope member
@@ -490,9 +490,9 @@ scope Foo {
 
 ```cnx
 scope LED {
-    private u32 pin <- 13;            // → static uint32_t LED_pin = 13;
-    void on() { }                    // → void LED_on(void) { } (public by default)
-    private void helper() { }        // → static void LED_helper(void) { }
+    private u32 pin <- 13;            // → static uint32_t LED__pin = 13;
+    void on() { }                    // → void LED__on(void) { } (public by default)
+    private void helper() { }        // → static void LED__helper(void) { }
 }
 ```
 

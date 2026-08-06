@@ -6,13 +6,10 @@
 
 **Related:** ADR-063 (Identifier Syntax — amends the qualified-name separator)
 
-> **Pending amendment (ADR-063, Issue #1117).** The enum member names documented below
-> join their components with a single underscore (`State_IDLE`, `Motor_State_IDLE`).
-> That join is **not injective** — a global `u8 State_IDLE` is a legal declaration that
-> produces the same C identifier as the member `State.IDLE`. ADR-063 changes the
-> separator to `__` (`State__IDLE`, `Motor__State__IDLE`) and forbids identifiers from
-> ending with `_` or containing `__`. The text below describes currently shipped
-> behavior; it will be updated when ADR-063 is implemented.
+> **Amended by ADR-063 (Issue #1117).** Enum members join their components with
+> `__`: `State__IDLE` globally, `Motor__State__IDLE` inside a scope. ADR-063
+> forbids a C-Next identifier from containing `__`, so a generated member name
+> can no longer collide with a plain identifier such as `u8 State_IDLE`.
 
 ## Context
 
@@ -167,12 +164,12 @@ Generates:
 
 ```c
 typedef enum {
-    Motor_State_IDLE = 0,
-    Motor_State_RUNNING = 1,
-    Motor_State_STALLED = 2
-} Motor_State;
+    Motor__State__IDLE = 0,
+    Motor__State__RUNNING = 1,
+    Motor__State__STALLED = 2
+} Motor__State;
 
-Motor_State current = Motor_State_IDLE;
+Motor__State current = Motor__State__IDLE;
 ```
 
 ### Error Messages
@@ -200,14 +197,14 @@ Generates:
 
 ```c
 typedef enum {
-    State_IDLE = 0,
-    State_RUNNING = 1,
-    State_ERROR = 255
+    State__IDLE = 0,
+    State__RUNNING = 1,
+    State__ERROR = 255
 } State;
 
-State currentState = State_IDLE;
-if (currentState == State_IDLE) { }
-uint8_t val = (uint8_t)State_ERROR;
+State currentState = State__IDLE;
+if (currentState == State__IDLE) { }
+uint8_t val = (uint8_t)State__ERROR;
 ```
 
 ## Implementation
@@ -242,7 +239,7 @@ castExpression
 - Generate typedef enum with prefixed member names
 - Handle explicit value assignments with `<-`
 - Auto-increment values when not specified (like C)
-- Prefix member names: `State.IDLE` → `State_IDLE`
+- Prefix member names: `State.IDLE` → `State__IDLE`
 
 ## Consequences
 

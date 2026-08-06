@@ -74,7 +74,7 @@ flags.length;               // 8 (bit width of u8)
 Write-only registers generate optimized code:
 
 ```cnx
-GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7_DR_SET = (1 << LED_BIT);
+GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7__DR_SET = (1 << LED_BIT);
 ```
 
 ### Slice Assignment for Memory Operations
@@ -177,12 +177,12 @@ Transpiles to:
 ```c
 const uint8_t LED_BIT = 3;
 
-static uint8_t LED_brightness = 100;
+static uint8_t LED__brightness = 100;
 
-void LED_on(void) { GPIO7_DR_SET = (1 << LED_BIT); }
-void LED_off(void) { GPIO7_DR_CLEAR = (1 << LED_BIT); }
+void LED__on(void) { GPIO7__DR_SET = (1 << LED_BIT); }
+void LED__off(void) { GPIO7__DR_CLEAR = (1 << LED_BIT); }
 
-uint8_t LED_getBrightness(void) { return LED_brightness; }
+uint8_t LED__getBrightness(void) { return LED__brightness; }
 ```
 
 ### Switch Statements (ADR-025)
