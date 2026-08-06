@@ -10,6 +10,7 @@ import type IParameterInfo from "../transpiler/types/symbols/IParameterInfo";
 import type TType from "../transpiler/types/TType";
 import ESourceLanguage from "./types/ESourceLanguage";
 import ScopeUtils from "./ScopeUtils";
+import QualifiedCName from "./QualifiedCName";
 
 /**
  * Options for creating a function symbol
@@ -63,11 +64,10 @@ class FunctionUtils {
    * For nested scopes, returns "Outer_Inner_name".
    */
   static getTranspiledCName(func: IFunctionSymbol): string {
-    const scopePath = ScopeUtils.getScopePath(func.scope);
-    if (scopePath.length === 0) {
-      return func.name;
-    }
-    return `${scopePath.join("_")}_${func.name}`;
+    return QualifiedCName.join(
+      ...ScopeUtils.getScopePath(func.scope),
+      func.name,
+    );
   }
 
   // ============================================================================

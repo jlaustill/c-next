@@ -2,6 +2,8 @@
  * Utility functions for symbol name manipulation.
  */
 
+import QualifiedCName from "../../../../../utils/QualifiedCName";
+
 /**
  * Get the transpiled C name for a symbol (e.g., "Geometry_Point" for Point in Geometry scope).
  * Use only at the output layer for C code generation, not for input-side logic.
@@ -13,11 +15,7 @@ function getTranspiledCName(symbol: {
   name: string;
   scope: { name: string };
 }): string {
-  const scopeName = symbol.scope.name;
-  if (scopeName === "") {
-    return symbol.name;
-  }
-  return `${scopeName}_${symbol.name}`;
+  return QualifiedCName.join(symbol.scope.name, symbol.name);
 }
 
 class SymbolNameUtils {

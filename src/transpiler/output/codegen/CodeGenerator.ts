@@ -149,6 +149,7 @@ import ScopeResolver from "./resolution/ScopeResolver";
 // Issue #797: Centralized C-style name generation
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -2126,8 +2127,7 @@ export default class CodeGenerator implements IOrchestrator {
       // Check if this is a scoped register (defined within the current scope)
       // The registerName may already be the fully qualified name (e.g., "GPIO_PORTA")
       // if accessed as PORTA from inside scope GPIO
-      const scopePrefix = `${CodeGenState.currentScope}_`;
-      if (registerName.startsWith(scopePrefix)) {
+      if (QualifiedCName.isInScope(registerName, CodeGenState.currentScope)) {
         // This is a scoped register - allow bare access
         return;
       }

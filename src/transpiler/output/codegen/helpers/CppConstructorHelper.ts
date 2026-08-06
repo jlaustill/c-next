@@ -7,6 +7,7 @@
  */
 
 import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind.js";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Symbol lookup interface for constructor detection
@@ -21,8 +22,11 @@ class CppConstructorHelper {
    * e.g., TestNS_MyClass -> TestNS::MyClass
    */
   static toQualifiedName(typeName: string): string {
-    if (typeName.includes("_") && !typeName.includes("::")) {
-      return typeName.replaceAll("_", "::");
+    if (QualifiedCName.isQualified(typeName) && !typeName.includes("::")) {
+      // Split on the qualified-name separator rather than replacing every
+      // underscore: a component may legally contain single underscores
+      // (`tick_count`), and a blanket replace would mangle those too.
+      return QualifiedCName.toCppQualified(typeName, "::");
     }
     return typeName;
   }

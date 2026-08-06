@@ -17,6 +17,7 @@ import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 import FunctionUtils from "../../../../utils/FunctionUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 class QualifiedNameGenerator {
   // ============================================================================
@@ -84,13 +85,8 @@ class QualifiedNameGenerator {
       }
     }
 
-    // Fallback to string concatenation
-    if (!scopeName) {
-      return funcName;
-    }
-    // Convert dotted scope path to underscores
-    const scopePrefix = scopeName.replaceAll(".", "_");
-    return `${scopePrefix}_${funcName}`;
+    // Fallback: build the name directly (dotted scope paths are expanded by join)
+    return QualifiedCName.join(scopeName, funcName);
   }
 
   /**
@@ -103,11 +99,7 @@ class QualifiedNameGenerator {
    * @returns Transpiled C name
    */
   static forMember(scopeName: string | undefined, memberName: string): string {
-    if (!scopeName) {
-      return memberName;
-    }
-    const scopePrefix = scopeName.replaceAll(".", "_");
-    return `${scopePrefix}_${memberName}`;
+    return QualifiedCName.join(scopeName, memberName);
   }
 }
 

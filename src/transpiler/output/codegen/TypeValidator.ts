@@ -11,6 +11,7 @@ import TypeResolver from "./TypeResolver";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import LiteralEvaluator from "./helpers/LiteralEvaluator";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 /**
  * ADR-010: Implementation file extensions that should NOT be #included
@@ -347,7 +348,7 @@ class TypeValidator {
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !identifier.startsWith(currentScope + "_")
+      !QualifiedCName.isInScope(identifier, currentScope)
     ) {
       throw new Error(
         `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${currentScope}'`,
@@ -367,7 +368,7 @@ class TypeValidator {
     }
 
     const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
-    if (typeInfo && !identifier.includes("_")) {
+    if (typeInfo && !QualifiedCName.isQualified(identifier)) {
       throw new Error(
         `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScope}'`,
       );
@@ -429,13 +430,13 @@ class TypeValidator {
     isKnownStruct: (name: string) => boolean,
   ): boolean {
     const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
-    if (typeInfo && !identifier.includes("_")) {
+    if (typeInfo && !QualifiedCName.isQualified(identifier)) {
       return true;
     }
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !identifier.startsWith(currentScope + "_")
+      !QualifiedCName.isInScope(identifier, currentScope)
     ) {
       return true;
     }
