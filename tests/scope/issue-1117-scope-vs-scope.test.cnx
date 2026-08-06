@@ -1,0 +1,40 @@
+// test-execution
+// Issue #1117, collision class 2: two scopes whose members generate the same
+// C name because a scope name may itself contain an underscore.
+//
+// Before ADR-063, `scope A_B { c }` and `scope A { B_c }` both emitted `A_B_c`.
+// That was worse than a duplicate definition: `A_readIt()` was generated as
+// `return A_B_c;`, silently returning the OTHER scope's variable. Reading the
+// wrong storage is exactly the class of bug C-Next exists to prevent.
+//
+// They are now `A_B__c` and `A__B_c`. This test fails on the VALUES, so it
+// catches the silent-miscompile form, not just the non-compiling form.
+
+scope A_B {
+    u8 c <- 11;
+
+    u8 readIt() {
+        return this.c;
+    }
+}
+
+scope A {
+    u8 B_c <- 22;
+
+    u8 readIt() {
+        return this.B_c;
+    }
+}
+
+u32 main() {
+    u8 fromA_B <- A_B.readIt();
+    if (fromA_B != 11) return 1;
+
+    u8 fromA <- A.readIt();
+    if (fromA != 22) return 2;
+
+    // Each scope must read its own storage, not the other's
+    if (fromA_B = fromA) return 3;
+
+    return 0;
+}

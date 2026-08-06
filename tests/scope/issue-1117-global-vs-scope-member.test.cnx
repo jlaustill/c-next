@@ -1,0 +1,39 @@
+// test-execution
+// Issue #1117, collision class 1: a global whose name matches a scope member's
+// generated C name.
+//
+// Before ADR-063 both emitted `Reg_flags` and the translation unit did not
+// compile ("redefinition of 'Reg_flags'"). They are now `Reg_flags` and
+// `Reg__flags`, so both declarations coexist as the language always intended.
+//
+// This also pins issue #1117's second defect: the bare name `Reg_flags` written
+// INSIDE scope Reg must reach the global, not the member. It previously reached
+// the member, because the symbol table was keyed by the generated name.
+
+u8 Reg_flags <- 99;
+
+scope Reg {
+    u8 flags <- 7;
+
+    // Reads the global: `Reg_flags` is not a spelling for `this.flags`
+    u8 readBare() {
+        return Reg_flags;
+    }
+
+    u8 readMember() {
+        return this.flags;
+    }
+}
+
+u32 main() {
+    u8 fromGlobal <- Reg.readBare();
+    if (fromGlobal != 99) return 1;
+
+    u8 fromMember <- Reg.readMember();
+    if (fromMember != 7) return 2;
+
+    // The two are genuinely distinct storage
+    if (fromGlobal = fromMember) return 3;
+
+    return 0;
+}
