@@ -97,7 +97,7 @@ class MemberSeparatorResolver {
 
     // Cross-scope access (global.Scope.member or global.Register.member)
     if (ctx.isCrossScope) {
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
@@ -108,7 +108,7 @@ class MemberSeparatorResolver {
         memberName,
         ctx.hasGlobal,
       );
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Scope member access: Sensor.buffer -> Sensor_buffer
@@ -123,12 +123,12 @@ class MemberSeparatorResolver {
       if (!deps.isKnownRegister(scopedRegisterName)) {
         deps.validateCrossScopeVisibility(identifierChain[0], memberName);
       }
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Scoped register: this.MOTOR_REG.SPEED -> Scope_MOTOR_REG_SPEED
     if (ctx.isScopedRegister) {
-      return "_";
+      return QualifiedCName.SEPARATOR;
     }
 
     // Default: struct field access
@@ -150,7 +150,7 @@ class MemberSeparatorResolver {
       deps.isKnownRegister(chainSoFar) ||
       (ctx.scopedRegName !== null && deps.isKnownRegister(ctx.scopedRegName));
 
-    return isRegisterChain ? "_" : ".";
+    return isRegisterChain ? QualifiedCName.SEPARATOR : ".";
   }
 
   /**

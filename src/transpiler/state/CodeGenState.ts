@@ -1134,14 +1134,18 @@ export default class CodeGenState {
    * Mark a clamp operation as used.
    */
   static markClampOpUsed(operation: string, cnxType: string): void {
-    this.usedClampOps.add(QualifiedCName.join(operation, cnxType));
+    // Internal helper-op key (e.g. "add_u32"), not a scope-qualified C name.
+    // HelperGenerator splits this on a single underscore.
+    this.usedClampOps.add(`${operation}_${cnxType}`);
   }
 
   /**
    * Mark a safe div operation as used.
    */
   static markSafeDivOpUsed(operation: string, cnxType: string): void {
-    this.usedSafeDivOps.add(QualifiedCName.join(operation, cnxType));
+    // Internal helper-op key (e.g. "div_u32"), not a scope-qualified C name.
+    // HelperGenerator matches these with a single underscore.
+    this.usedSafeDivOps.add(`${operation}_${cnxType}`);
   }
 
   // ===========================================================================

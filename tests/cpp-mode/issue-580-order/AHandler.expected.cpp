@@ -13,11 +13,11 @@
 
 /* Scope: AHandler */
 
-void AHandler_passThrough(Config& config) {
-    ZModifier_reset(config);
+void AHandler__passThrough(Config& config) {
+    ZModifier__reset(config);
 }
 
 int main(void) {
     Config c = { .value = 0U };
-    AHandler_passThrough(c);
+    AHandler__passThrough(c);
 }

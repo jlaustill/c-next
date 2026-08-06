@@ -15,11 +15,11 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EHttpStatus_OK = 0,
-    EHttpStatus_CREATED = 1,
-    EHttpStatus_BAD_REQUEST = 2,
-    EHttpStatus_UNAUTHORIZED = 3,
-    EHttpStatus_NOT_FOUND = 4
+    EHttpStatus__OK = 0,
+    EHttpStatus__CREATED = 1,
+    EHttpStatus__BAD_REQUEST = 2,
+    EHttpStatus__UNAUTHORIZED = 3,
+    EHttpStatus__NOT_FOUND = 4
 } EHttpStatus;
 
 #ifdef __cplusplus

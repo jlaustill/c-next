@@ -15,7 +15,7 @@
 
 int main(void) {
     uint8_t buffer[256] = {};
-    SliceFields_Config config = {};
+    SliceFields__Config config = {};
     config.magic = 0x43534E58U;
     config.version = 0x0101U;
     config.flags = 0x0FU;

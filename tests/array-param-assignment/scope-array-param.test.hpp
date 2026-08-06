@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Test_writeToArray(uint8_t data[8], uint8_t value);
-void Test_writeAtIndex(uint8_t data[8], uint32_t index, uint8_t value);
+void Test__writeToArray(uint8_t data[8], uint8_t value);
+void Test__writeAtIndex(uint8_t data[8], uint32_t index, uint8_t value);
 
 #ifdef __cplusplus
 }

@@ -14,22 +14,22 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Container_Item {
+typedef struct Container__Item {
     int32_t value;
     uint8_t flags;
-} Container_Item;
-typedef struct Container_Collection {
-    Container_Item items[4];
+} Container__Item;
+typedef struct Container__Collection {
+    Container__Item items[4];
     uint32_t count;
-} Container_Collection;
-typedef struct User_Data {
-    Container_Item cached[2];
+} Container__Collection;
+typedef struct User__Data {
+    Container__Item cached[2];
     uint32_t version;
-} User_Data;
+} User__Data;
 
 /* External variables */
-extern Container_Collection collection;
-extern User_Data userData;
+extern Container__Collection collection;
+extern User__Data userData;
 
 #ifdef __cplusplus
 }

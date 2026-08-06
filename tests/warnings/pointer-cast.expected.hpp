@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct PtrCast_Data {
+typedef struct PtrCast__Data {
     uint32_t value;
     uint8_t flags;
-} PtrCast_Data;
-typedef struct PtrCast_Container {
-    PtrCast_Data inner;
+} PtrCast__Data;
+typedef struct PtrCast__Container {
+    PtrCast__Data inner;
     uint32_t count;
-} PtrCast_Container;
+} PtrCast__Container;
 
 #ifdef __cplusplus
 }

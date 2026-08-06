@@ -11,11 +11,11 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t sum = MathUtils_add(10U, 20U);
+    uint32_t sum = MathUtils__add(10U, 20U);
     if (sum != 30) return 1;
-    uint32_t product = MathUtils_multiply(5U, 6U);
+    uint32_t product = MathUtils__multiply(5U, 6U);
     if (product != 30) return 2;
-    uint32_t combined = MathUtils_add(sum, product);
+    uint32_t combined = MathUtils__add(sum, product);
     if (combined != 60) return 3;
     return 0;
 }

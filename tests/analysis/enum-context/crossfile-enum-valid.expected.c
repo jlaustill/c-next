@@ -12,23 +12,23 @@
 // Valid: return type IS ESpnCategory - unqualified enum should work
 ESpnCategory getCategory(uint16_t spn) {
     if (spn == 100) {
-        return ESpnCategory_SPN_CAT_PRESSURE;
+        return ESpnCategory__SPN_CAT_PRESSURE;
     }
-    return ESpnCategory_SPN_CAT_UNKNOWN;
+    return ESpnCategory__SPN_CAT_UNKNOWN;
 }
 
 // Valid: switch on enum type with unqualified case labels
 uint32_t categoryToValue(ESpnCategory cat) {
     switch (cat) {
-        case ESpnCategory_SPN_CAT_TEMPERATURE: {
+        case ESpnCategory__SPN_CAT_TEMPERATURE: {
             return 0;
             break;
         }
-        case ESpnCategory_SPN_CAT_PRESSURE: {
+        case ESpnCategory__SPN_CAT_PRESSURE: {
             return 1;
             break;
         }
-        case ESpnCategory_SPN_CAT_UNKNOWN: {
+        case ESpnCategory__SPN_CAT_UNKNOWN: {
             return 2;
             break;
         }
@@ -41,14 +41,14 @@ uint32_t categoryToValue(ESpnCategory cat) {
 
 int main(void) {
     ESpnCategory cat = getCategory(100U);
-    if (cat != ESpnCategory_SPN_CAT_PRESSURE) return 1;
+    if (cat != ESpnCategory__SPN_CAT_PRESSURE) return 1;
     cat = getCategory(0U);
-    if (cat != ESpnCategory_SPN_CAT_UNKNOWN) return 2;
-    uint32_t val1 = categoryToValue(ESpnCategory_SPN_CAT_TEMPERATURE);
+    if (cat != ESpnCategory__SPN_CAT_UNKNOWN) return 2;
+    uint32_t val1 = categoryToValue(ESpnCategory__SPN_CAT_TEMPERATURE);
     if (val1 != 0) return 3;
-    uint32_t val2 = categoryToValue(ESpnCategory_SPN_CAT_PRESSURE);
+    uint32_t val2 = categoryToValue(ESpnCategory__SPN_CAT_PRESSURE);
     if (val2 != 1) return 4;
-    uint32_t val3 = categoryToValue(ESpnCategory_SPN_CAT_UNKNOWN);
+    uint32_t val3 = categoryToValue(ESpnCategory__SPN_CAT_UNKNOWN);
     if (val3 != 2) return 5;
     return 0;
 }

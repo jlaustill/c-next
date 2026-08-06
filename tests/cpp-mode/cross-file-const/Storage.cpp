@@ -10,6 +10,6 @@
 
 /* Scope: Storage */
 
-void Storage_loadDefaults(Config& cfg) {
+void Storage__loadDefaults(Config& cfg) {
     cfg.value = 42U;
 }

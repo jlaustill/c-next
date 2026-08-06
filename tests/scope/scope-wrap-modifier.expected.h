@@ -14,28 +14,28 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t WrapTest_getByteCounter(void);
-uint16_t WrapTest_getTickCount(void);
-uint32_t WrapTest_getCycleCounter(void);
-uint8_t WrapTest_getBrightness(void);
-uint16_t WrapTest_getSensorValue(void);
-uint32_t WrapTest_getPosition(void);
-void WrapTest_incrementByteCounter(void);
-void WrapTest_incrementTickCount(void);
-void WrapTest_incrementCycleCounter(void);
-void WrapTest_incrementBrightness(void);
-void WrapTest_incrementSensorValue(void);
-void WrapTest_incrementPosition(void);
-void WrapTest_decrementBrightness(void);
-void WrapTest_decrementSensorValue(void);
-void WrapTest_decrementPosition(void);
-void WrapTest_decrementByteCounter(void);
-void WrapTest_decrementTickCount(void);
-void WrapTest_decrementCycleCounter(void);
-void WrapTest_setByteCounter(uint8_t val);
-void WrapTest_setBrightness(uint8_t val);
-void WrapTest_setSensorValue(uint16_t val);
-void WrapTest_setPosition(uint32_t val);
+uint8_t WrapTest__getByteCounter(void);
+uint16_t WrapTest__getTickCount(void);
+uint32_t WrapTest__getCycleCounter(void);
+uint8_t WrapTest__getBrightness(void);
+uint16_t WrapTest__getSensorValue(void);
+uint32_t WrapTest__getPosition(void);
+void WrapTest__incrementByteCounter(void);
+void WrapTest__incrementTickCount(void);
+void WrapTest__incrementCycleCounter(void);
+void WrapTest__incrementBrightness(void);
+void WrapTest__incrementSensorValue(void);
+void WrapTest__incrementPosition(void);
+void WrapTest__decrementBrightness(void);
+void WrapTest__decrementSensorValue(void);
+void WrapTest__decrementPosition(void);
+void WrapTest__decrementByteCounter(void);
+void WrapTest__decrementTickCount(void);
+void WrapTest__decrementCycleCounter(void);
+void WrapTest__setByteCounter(uint8_t val);
+void WrapTest__setBrightness(uint8_t val);
+void WrapTest__setSensorValue(uint16_t val);
+void WrapTest__setPosition(uint32_t val);
 
 #ifdef __cplusplus
 }

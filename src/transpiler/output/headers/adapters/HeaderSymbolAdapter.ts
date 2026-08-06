@@ -10,6 +10,7 @@ import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import SymbolNameUtils from "../../../logic/symbols/cnext/utils/SymbolNameUtils";
+import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Adapter to convert TSymbol to IHeaderSymbol
@@ -204,16 +205,17 @@ class HeaderSymbolAdapter {
 
   /**
    * Convert an array dimension string to C-compatible format.
-   * Converts qualified enum access (e.g., "EColor.COUNT") to C-style ("EColor_COUNT").
+   * Converts qualified enum access (e.g., "EColor.COUNT") to its generated C name.
    * @param dim - The dimension string, may contain qualified enum access
-   * @returns C-compatible dimension string with dots replaced by underscores
-   * @example resolveArrayDimension("EColor.COUNT") => "EColor_COUNT"
+   * @returns C-compatible dimension string
+   * @example resolveArrayDimension("EColor.COUNT") => "EColor__COUNT"
    * @example resolveArrayDimension("10") => "10"
    */
   private static resolveArrayDimension(dim: string): string {
-    // Qualified enum access (e.g., "EColor.COUNT") - convert dots to underscores
-    if (dim.includes(".")) {
-      return dim.replaceAll(".", "_");
+    // Qualified enum access (e.g., "EColor.COUNT") - join through the shared
+    // separator so the dimension matches the enum member emitted elsewhere.
+    if (dim.includes(QualifiedCName.SOURCE_SEPARATOR)) {
+      return QualifiedCName.join(dim);
     }
     return dim;
   }

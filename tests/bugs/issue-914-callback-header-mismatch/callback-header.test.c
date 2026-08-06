@@ -15,10 +15,10 @@
 
 /* Scope: Renderer */
 
-void Renderer_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
+void Renderer__flush(widget_t* w, const rect_t* area, uint8_t* buf) {
 }
 
-void Renderer_init(void) {
+void Renderer__init(void) {
     widget_t* w = widget_create();
-    widget_set_flush_cb(w, Renderer_flush);
+    widget_set_flush_cb(w, Renderer__flush);
 }

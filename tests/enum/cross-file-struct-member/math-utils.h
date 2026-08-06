@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t MathUtils_add(uint32_t a, uint32_t b);
-uint32_t MathUtils_multiply(uint32_t a, uint32_t b);
+uint32_t MathUtils__add(uint32_t a, uint32_t b);
+uint32_t MathUtils__multiply(uint32_t a, uint32_t b);
 
 #ifdef __cplusplus
 }

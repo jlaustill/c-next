@@ -16,27 +16,27 @@
 
 /* Scope: SerialHandler */
 
-void SerialHandler_handleReset(Config& config) {
-    Serial_println(1);
-    CommandHandler_reset(config);
-    Serial_println(2);
+void SerialHandler__handleReset(Config& config) {
+    Serial__println(1);
+    CommandHandler__reset(config);
+    Serial__println(2);
 }
 
-void SerialHandler_handlePreset(Config& config) {
+void SerialHandler__handlePreset(Config& config) {
     if (config.value < 10) {
-        Serial_println(3);
+        Serial__println(3);
         return;
     }
     uint8_t input = 1U;
     uint8_t preset = 2U;
-    CommandHandler_applyPreset(config, input, preset);
+    CommandHandler__applyPreset(config, input, preset);
 }
 
-void SerialHandler_handleSave(Config& config) {
-    CommandHandler_reset(config);
+void SerialHandler__handleSave(Config& config) {
+    CommandHandler__reset(config);
 }
 
 int main(void) {
     Config c = { .value = 0U };
-    SerialHandler_handleReset(c);
+    SerialHandler__handleReset(c);
 }

@@ -14,21 +14,21 @@
 // - Unmodified scalars: passed by value (optimization over const pointer)
 /* Scope: TestScope */
 
-void TestScope_increment(uint32_t* x) {
+void TestScope__increment(uint32_t* x) {
     (*x) = (*x) + 1U;
 }
 
-uint32_t TestScope_accumulate(uint32_t* sum, uint32_t value) {
+uint32_t TestScope__accumulate(uint32_t* sum, uint32_t value) {
     (*sum) = (*sum) + value;
     return (*sum);
 }
 
-void TestScope_doubleIncrement(uint32_t* x) {
+void TestScope__doubleIncrement(uint32_t* x) {
     (*x) = (*x) + 1U;
     (*x) = (*x) + 1U;
 }
 
-void TestScope_switchIncrement(uint32_t* x, uint32_t mode) {
+void TestScope__switchIncrement(uint32_t* x, uint32_t mode) {
     switch (mode) {
         case 1: {
             (*x) = (*x) + 10U;
@@ -45,42 +45,42 @@ void TestScope_switchIncrement(uint32_t* x, uint32_t mode) {
     }
 }
 
-uint32_t TestScope_readOnly(uint32_t x) {
+uint32_t TestScope__readOnly(uint32_t x) {
     return x * 2;
 }
 
-uint32_t TestScope_mixedParams(uint32_t* counter, uint32_t multiplier) {
+uint32_t TestScope__mixedParams(uint32_t* counter, uint32_t multiplier) {
     (*counter) = (*counter) + 1U;
     return (*counter) * multiplier;
 }
 
 int main(void) {
     uint32_t counter = 10U;
-    TestScope_increment(&counter);
+    TestScope__increment(&counter);
     if (counter != 11) return 1;
     uint32_t total = 100U;
-    uint32_t result = TestScope_accumulate(&total, 50U);
+    uint32_t result = TestScope__accumulate(&total, 50U);
     if (total != 150) return 2;
     if (result != 150) return 3;
     uint32_t doubled = 5U;
-    TestScope_doubleIncrement(&doubled);
+    TestScope__doubleIncrement(&doubled);
     if (doubled != 7) return 4;
     uint32_t switchVal = 100U;
-    TestScope_switchIncrement(&switchVal, 1U);
+    TestScope__switchIncrement(&switchVal, 1U);
     if (switchVal != 110) return 5;
     switchVal = 100U;
-    TestScope_switchIncrement(&switchVal, 2U);
+    TestScope__switchIncrement(&switchVal, 2U);
     if (switchVal != 120) return 6;
     switchVal = 100U;
-    TestScope_switchIncrement(&switchVal, 99U);
+    TestScope__switchIncrement(&switchVal, 99U);
     if (switchVal != 101) return 7;
     uint32_t readVal = 25U;
-    uint32_t readResult = TestScope_readOnly(readVal);
+    uint32_t readResult = TestScope__readOnly(readVal);
     if (readVal != 25) return 8;
     if (readResult != 50) return 9;
     uint32_t mixedCounter = 10U;
     uint32_t mixedMult = 3U;
-    uint32_t mixedResult = TestScope_mixedParams(&mixedCounter, mixedMult);
+    uint32_t mixedResult = TestScope__mixedParams(&mixedCounter, mixedMult);
     if (mixedCounter != 11) return 10;
     if (mixedMult != 3) return 11;
     if (mixedResult != 33) return 12;

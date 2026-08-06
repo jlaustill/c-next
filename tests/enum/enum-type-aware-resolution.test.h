@@ -15,14 +15,14 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1,
-    Color_BLUE = 2
+    Color__RED = 0,
+    Color__GREEN = 1,
+    Color__BLUE = 2
 } Color;
 typedef enum {
-    Status_RED = 10,
-    Status_YELLOW = 20,
-    Status_GREEN = 30
+    Status__RED = 10,
+    Status__YELLOW = 20,
+    Status__GREEN = 30
 } Status;
 
 /* Struct definitions */

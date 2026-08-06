@@ -15,20 +15,20 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Color_Red = 0,
-    Color_Green = 1,
-    Color_Blue = 2
+    Color__Red = 0,
+    Color__Green = 1,
+    Color__Blue = 2
 } Color;
 typedef enum {
-    State_IDLE = 0,
-    State_RUNNING = 1,
-    State_STOPPED = 2
+    State__IDLE = 0,
+    State__RUNNING = 1,
+    State__STOPPED = 2
 } State;
 
 /* Struct definitions */
-typedef struct EnumByteLen_TestStruct {
+typedef struct EnumByteLen__TestStruct {
     State state;
-} EnumByteLen_TestStruct;
+} EnumByteLen__TestStruct;
 
 /* External variables */
 extern Color globalColor;

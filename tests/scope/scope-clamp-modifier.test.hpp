@@ -14,22 +14,22 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t ClampTest_getBrightness(void);
-uint16_t ClampTest_getSensorValue(void);
-uint32_t ClampTest_getCounter(void);
-int8_t ClampTest_getTemperature(void);
-int16_t ClampTest_getAltitude(void);
-int32_t ClampTest_getPosition(void);
-void ClampTest_increaseBrightness(void);
-void ClampTest_increaseSensorValue(void);
-void ClampTest_increaseCounter(void);
-void ClampTest_decreaseTemperature(void);
-void ClampTest_decreaseAltitude(void);
-void ClampTest_decreasePosition(void);
-void ClampTest_dimBrightness(void);
-void ClampTest_resetSensor(void);
-void ClampTest_setBrightness(uint8_t val);
-void ClampTest_setSensorValue(uint16_t val);
+uint8_t ClampTest__getBrightness(void);
+uint16_t ClampTest__getSensorValue(void);
+uint32_t ClampTest__getCounter(void);
+int8_t ClampTest__getTemperature(void);
+int16_t ClampTest__getAltitude(void);
+int32_t ClampTest__getPosition(void);
+void ClampTest__increaseBrightness(void);
+void ClampTest__increaseSensorValue(void);
+void ClampTest__increaseCounter(void);
+void ClampTest__decreaseTemperature(void);
+void ClampTest__decreaseAltitude(void);
+void ClampTest__decreasePosition(void);
+void ClampTest__dimBrightness(void);
+void ClampTest__resetSensor(void);
+void ClampTest__setBrightness(uint8_t val);
+void ClampTest__setSensorValue(uint16_t val);
 
 #ifdef __cplusplus
 }

@@ -15,10 +15,10 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EColor_RED = 0,
-    EColor_GREEN = 1,
-    EColor_BLUE = 2,
-    EColor_COUNT = 3
+    EColor__RED = 0,
+    EColor__GREEN = 1,
+    EColor__BLUE = 2,
+    EColor__COUNT = 3
 } EColor;
 
 #ifdef __cplusplus

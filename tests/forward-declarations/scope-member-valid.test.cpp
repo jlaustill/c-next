@@ -11,15 +11,15 @@
 // Tests: calling Scope.member() works when member is defined in scope
 /* Scope: LED */
 
-void LED_on(void) {
+void LED__on(void) {
     uint32_t x = 1U;
 }
 
-void LED_off(void) {
+void LED__off(void) {
     uint32_t x = 0U;
 }
 
 int main(void) {
-    LED_on();
-    LED_off();
+    LED__on();
+    LED__off();
 }

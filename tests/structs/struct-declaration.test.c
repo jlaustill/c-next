@@ -11,5 +11,5 @@
 
 int main(void) {
     Point p = {0};
-    StructDecl_Color c = {0};
+    StructDecl__Color c = {0};
 }

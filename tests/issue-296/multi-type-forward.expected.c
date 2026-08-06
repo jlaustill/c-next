@@ -16,42 +16,42 @@
 #include <stdbool.h>
 
 /* Scope: DeviceManager */
-static DeviceConfig DeviceManager_config = {0};
-static DeviceStatus DeviceManager_status = {0};
+static DeviceConfig DeviceManager__config = {0};
+static DeviceStatus DeviceManager__status = {0};
 
-void DeviceManager_configure(const DeviceConfig* newConfig) {
-    DeviceManager_config = (*newConfig);
+void DeviceManager__configure(const DeviceConfig* newConfig) {
+    DeviceManager__config = (*newConfig);
 }
 
-DeviceConfig DeviceManager_getConfig(void) {
-    return DeviceManager_config;
+DeviceConfig DeviceManager__getConfig(void) {
+    return DeviceManager__config;
 }
 
-void DeviceManager_setStatus(const DeviceStatus* newStatus) {
-    DeviceManager_status = (*newStatus);
+void DeviceManager__setStatus(const DeviceStatus* newStatus) {
+    DeviceManager__status = (*newStatus);
 }
 
-DeviceStatus DeviceManager_getStatus(void) {
-    return DeviceManager_status;
+DeviceStatus DeviceManager__getStatus(void) {
+    return DeviceManager__status;
 }
 
-EDeviceState DeviceManager_getState(void) {
-    return DeviceManager_status.state;
+EDeviceState DeviceManager__getState(void) {
+    return DeviceManager__status.state;
 }
 
 int main(void) {
     DeviceConfig cfg = { .baudRate = 115200U, .address = 0x42U };
-    DeviceManager_configure(&cfg);
-    DeviceConfig retrievedCfg = DeviceManager_getConfig();
+    DeviceManager__configure(&cfg);
+    DeviceConfig retrievedCfg = DeviceManager__getConfig();
     if (retrievedCfg.baudRate != 115200) return 1;
     if (retrievedCfg.address != 0x42) return 2;
-    DeviceStatus stat = { .state = EDeviceState_STATE_ACTIVE, .errorCount = 0U, .connected = true };
-    DeviceManager_setStatus(&stat);
-    DeviceStatus retrievedStat = DeviceManager_getStatus();
-    if (retrievedStat.state != EDeviceState_STATE_ACTIVE) return 3;
+    DeviceStatus stat = { .state = EDeviceState__STATE_ACTIVE, .errorCount = 0U, .connected = true };
+    DeviceManager__setStatus(&stat);
+    DeviceStatus retrievedStat = DeviceManager__getStatus();
+    if (retrievedStat.state != EDeviceState__STATE_ACTIVE) return 3;
     if (retrievedStat.errorCount != 0) return 4;
     if (retrievedStat.connected != true) return 5;
-    EDeviceState state = DeviceManager_getState();
-    if (state != EDeviceState_STATE_ACTIVE) return 6;
+    EDeviceState state = DeviceManager__getState();
+    if (state != EDeviceState__STATE_ACTIVE) return 6;
     return 0;
 }

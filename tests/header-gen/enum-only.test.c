@@ -7,8 +7,8 @@
 // This file contains only an enum declaration - no functions.
 // The generated header should contain the full typedef enum definition.
 typedef enum {
-    ESensorType_SENSOR_DISABLED = 0,
-    ESensorType_PRESSURE_0_100PSI = 1,
-    ESensorType_PRESSURE_0_500PSI = 2,
-    ESensorType_TEMPERATURE_TYPE_K = 3
+    ESensorType__SENSOR_DISABLED = 0,
+    ESensorType__PRESSURE_0_100PSI = 1,
+    ESensorType__PRESSURE_0_500PSI = 2,
+    ESensorType__TEMPERATURE_TYPE_K = 3
 } ESensorType;

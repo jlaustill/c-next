@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Bitmaps */
-/* Bitmap: Timer_ControlBits
+/* Bitmap: Timer__ControlBits
  *   ENABLE: bit 0
  *   TICKINT: bit 1
  *   CLKSOURCE: bit 2
@@ -24,10 +24,10 @@ extern "C" {
  *   Reserved_6: bit 6
  *   Reserved_7: bit 7
  */
-typedef uint8_t Timer_ControlBits;
+typedef uint8_t Timer__ControlBits;
 
 /* Function prototypes */
-void Timer_init(void);
+void Timer__init(void);
 
 #ifdef __cplusplus
 }

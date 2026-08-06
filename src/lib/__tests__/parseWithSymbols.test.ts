@@ -45,7 +45,7 @@ describe("parseWithSymbols", () => {
       expect(scope).toBeDefined();
       expect(scope?.kind).toBe("namespace");
       // Scope functions get prefixed names like LED_on
-      const onFunc = result.symbols.find((s) => s.fullName === "LED_on");
+      const onFunc = result.symbols.find((s) => s.fullName === "LED__on");
       expect(onFunc).toBeDefined();
       expect(onFunc?.kind).toBe("function");
     });
@@ -152,7 +152,7 @@ describe("parseWithSymbols", () => {
 
       expect(result.success).toBe(true);
       // Find the toggle function - it should have LED_ prefix
-      const func = result.symbols.find((s) => s.fullName === "LED_toggle");
+      const func = result.symbols.find((s) => s.fullName === "LED__toggle");
       expect(func).toBeDefined();
       expect(func?.kind).toBe("function");
     });
@@ -181,7 +181,7 @@ describe("parseWithSymbols", () => {
       const result = parseWithSymbols(source);
 
       expect(result.success).toBe(true);
-      const func = result.symbols.find((s) => s.fullName === "Math_add");
+      const func = result.symbols.find((s) => s.fullName === "Math__add");
       expect(func).toBeDefined();
       expect(func?.kind).toBe("function");
     });

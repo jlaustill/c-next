@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void TestScope_increment(uint32_t* x);
-uint32_t TestScope_accumulate(uint32_t* sum, uint32_t value);
-void TestScope_doubleIncrement(uint32_t* x);
-void TestScope_switchIncrement(uint32_t* x, uint32_t mode);
-uint32_t TestScope_readOnly(uint32_t x);
-uint32_t TestScope_mixedParams(uint32_t* counter, uint32_t multiplier);
+void TestScope__increment(uint32_t* x);
+uint32_t TestScope__accumulate(uint32_t* sum, uint32_t value);
+void TestScope__doubleIncrement(uint32_t* x);
+void TestScope__switchIncrement(uint32_t* x, uint32_t mode);
+uint32_t TestScope__readOnly(uint32_t x);
+uint32_t TestScope__mixedParams(uint32_t* counter, uint32_t multiplier);
 
 #ifdef __cplusplus
 }

@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void LED_on(void);
-void LED_off(void);
-void LED_setBrightness(uint8_t level);
-uint8_t LED_getBrightness(void);
-void LED_privateReset(void);
+void LED__on(void);
+void LED__off(void);
+void LED__setBrightness(uint8_t level);
+uint8_t LED__getBrightness(void);
+void LED__privateReset(void);
 
 #ifdef __cplusplus
 }

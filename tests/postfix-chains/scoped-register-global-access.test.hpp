@@ -24,10 +24,10 @@ extern "C" {
 typedef uint8_t MotorFlags;
 
 /* Function prototypes */
-void MotorController_start(void);
-bool MotorController_isRunning(void);
-uint8_t MotorController_getMode(void);
-void Board_toggleLed(void);
+void MotorController__start(void);
+bool MotorController__isRunning(void);
+uint8_t MotorController__getMode(void);
+void Board__toggleLed(void);
 
 #ifdef __cplusplus
 }

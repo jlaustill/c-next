@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Priority_LOW = 1,
-    Priority_MEDIUM = 2,
-    Priority_HIGH = 3
+    Priority__LOW = 1,
+    Priority__MEDIUM = 2,
+    Priority__HIGH = 3
 } Priority;
 
 /* External variables */

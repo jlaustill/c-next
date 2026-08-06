@@ -15,20 +15,20 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EGlobalState_IDLE = 0,
-    EGlobalState_RUNNING = 1,
-    EGlobalState_STOPPED = 2
+    EGlobalState__IDLE = 0,
+    EGlobalState__RUNNING = 1,
+    EGlobalState__STOPPED = 2
 } EGlobalState;
 typedef enum {
-    Motor_EMode_OFF = 0,
-    Motor_EMode_LOW = 1,
-    Motor_EMode_HIGH = 2
-} Motor_EMode;
+    Motor__EMode__OFF = 0,
+    Motor__EMode__LOW = 1,
+    Motor__EMode__HIGH = 2
+} Motor__EMode;
 
 /* Function prototypes */
-Motor_EMode Motor_getMode(void);
-void Motor_setMode(Motor_EMode newMode);
-bool Motor_isOff(void);
+Motor__EMode Motor__getMode(void);
+void Motor__setMode(Motor__EMode newMode);
+bool Motor__isOff(void);
 
 #ifdef __cplusplus
 }

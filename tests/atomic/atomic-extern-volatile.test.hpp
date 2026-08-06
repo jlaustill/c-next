@@ -25,7 +25,7 @@ extern volatile uint32_t counter;
 extern volatile uint8_t flags;
 
 /* Function prototypes */
-void Manager_test(void);
+void Manager__test(void);
 
 #ifdef __cplusplus
 }

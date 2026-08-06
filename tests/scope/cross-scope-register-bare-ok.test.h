@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Motor_configure(void);
+void Motor__configure(void);
 
 #ifdef __cplusplus
 }

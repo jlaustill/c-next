@@ -20,8 +20,8 @@ typedef struct AppConfig {
 } AppConfig;
 
 /* Function prototypes */
-void Storage_load(AppConfig* config);
-void Storage_save(const AppConfig* config);
+void Storage__load(AppConfig* config);
+void Storage__save(const AppConfig* config);
 
 #ifdef __cplusplus
 }

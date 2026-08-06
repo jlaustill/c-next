@@ -16,8 +16,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-Color Graphics_getDefaultColor(void);
-Size Graphics_getDefaultSize(void);
+Color Graphics__getDefaultColor(void);
+Size Graphics__getDefaultSize(void);
 
 #ifdef __cplusplus
 }

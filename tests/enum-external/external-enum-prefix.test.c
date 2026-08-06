@@ -14,20 +14,20 @@
 
 /* Scope: ExtEnumPrefix */
 
-void setDefault(ExtEnumPrefix_Config* config) {
-    config->pType = EPressureType_PRESSURE_TYPE_PSIG;
+void setDefault(ExtEnumPrefix__Config* config) {
+    config->pType = EPressureType__PRESSURE_TYPE_PSIG;
 }
 
-void setExplicit(ExtEnumPrefix_Config* config) {
-    config->pType = EPressureType_PRESSURE_TYPE_PSIA;
+void setExplicit(ExtEnumPrefix__Config* config) {
+    config->pType = EPressureType__PRESSURE_TYPE_PSIA;
 }
 
 int main(void) {
-    ExtEnumPrefix_Config cfg = { .pType = EPressureType_PRESSURE_TYPE_PSIA };
-    if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 1;
+    ExtEnumPrefix__Config cfg = { .pType = EPressureType__PRESSURE_TYPE_PSIA };
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 1;
     setDefault(&cfg);
-    if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIG) return 2;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIG) return 2;
     setExplicit(&cfg);
-    if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 3;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 3;
     return 0;
 }

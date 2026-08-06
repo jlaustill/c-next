@@ -170,7 +170,10 @@ describe("CppNamespaceUtils", () => {
   describe("isCppNamespaceType", () => {
     it("should return false with no symbol table", () => {
       expect(
-        CppNamespaceUtils.isCppNamespaceType("SeaDash_Parse_Result", undefined),
+        CppNamespaceUtils.isCppNamespaceType(
+          "SeaDash__Parse__Result",
+          undefined,
+        ),
       ).toBe(false);
     });
 
@@ -193,7 +196,7 @@ describe("CppNamespaceUtils", () => {
       symbolTable.addCppSymbol(makeCppNamespace("SeaDash", "SeaDash.hpp"));
       expect(
         CppNamespaceUtils.isCppNamespaceType(
-          "SeaDash_Parse_ParseResult",
+          "SeaDash__Parse__ParseResult",
           symbolTable,
         ),
       ).toBe(true);
@@ -222,10 +225,10 @@ describe("CppNamespaceUtils", () => {
     it("should return original if no symbol table", () => {
       expect(
         CppNamespaceUtils.convertToCppNamespace(
-          "SeaDash_Parse_Result",
+          "SeaDash__Parse__Result",
           undefined,
         ),
-      ).toBe("SeaDash_Parse_Result");
+      ).toBe("SeaDash__Parse__Result");
     });
 
     it("should return original for type already in :: format", () => {
@@ -247,7 +250,7 @@ describe("CppNamespaceUtils", () => {
       symbolTable.addCppSymbol(makeCppNamespace("SeaDash", "SeaDash.hpp"));
       expect(
         CppNamespaceUtils.convertToCppNamespace(
-          "SeaDash_Parse_ParseResult",
+          "SeaDash__Parse__ParseResult",
           symbolTable,
         ),
       ).toBe("SeaDash::Parse::ParseResult");
@@ -271,7 +274,7 @@ describe("CppNamespaceUtils", () => {
       symbolTable.addCppSymbol(makeCppNamespace("Lib", "Lib.hpp"));
       expect(
         CppNamespaceUtils.convertToCppNamespace(
-          "Lib_Sub_Deep_Type",
+          "Lib__Sub__Deep__Type",
           symbolTable,
         ),
       ).toBe("Lib::Sub::Deep::Type");

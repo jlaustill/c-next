@@ -13,29 +13,29 @@
 // === GLOBAL ENUM ===
 // === SCOPE WITH ENUM ===
 /* Scope: Motor */
-static Motor_EMode Motor_mode = Motor_EMode_OFF;
+static Motor__EMode Motor__mode = Motor__EMode__OFF;
 
-Motor_EMode Motor_getMode(void) {
-    return Motor_mode;
+Motor__EMode Motor__getMode(void) {
+    return Motor__mode;
 }
 
-void Motor_setMode(Motor_EMode newMode) {
-    Motor_mode = newMode;
+void Motor__setMode(Motor__EMode newMode) {
+    Motor__mode = newMode;
 }
 
-bool Motor_isOff(void) {
-    return (Motor_mode == Motor_EMode_OFF);
+bool Motor__isOff(void) {
+    return (Motor__mode == Motor__EMode__OFF);
 }
 
 int main(void) {
-    EGlobalState state = EGlobalState_IDLE;
-    if (state != EGlobalState_IDLE) return 1;
-    state = EGlobalState_RUNNING;
-    if (state != EGlobalState_RUNNING) return 2;
-    Motor_setMode(Motor_EMode_LOW);
-    Motor_EMode motorMode = Motor_getMode();
-    if (motorMode != Motor_EMode_LOW) return 3;
-    bool isOff = Motor_isOff();
+    EGlobalState state = EGlobalState__IDLE;
+    if (state != EGlobalState__IDLE) return 1;
+    state = EGlobalState__RUNNING;
+    if (state != EGlobalState__RUNNING) return 2;
+    Motor__setMode(Motor__EMode__LOW);
+    Motor__EMode motorMode = Motor__getMode();
+    if (motorMode != Motor__EMode__LOW) return 3;
+    bool isOff = Motor__isOff();
     if (isOff == true) return 4;
     return 0;
 }

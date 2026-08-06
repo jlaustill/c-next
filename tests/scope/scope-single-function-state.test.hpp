@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t SingleFunctionState_countCalls(void);
+uint32_t SingleFunctionState__countCalls(void);
 
 #ifdef __cplusplus
 }

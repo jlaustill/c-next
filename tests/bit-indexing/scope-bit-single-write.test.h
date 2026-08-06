@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Flags_setReady(void);
-void Flags_clearReady(void);
-void Flags_setError(void);
-uint8_t Flags_getStatus(void);
-void Flags_reset(void);
+void Flags__setReady(void);
+void Flags__clearReady(void);
+void Flags__setError(void);
+uint8_t Flags__getStatus(void);
+void Flags__reset(void);
 
 #ifdef __cplusplus
 }

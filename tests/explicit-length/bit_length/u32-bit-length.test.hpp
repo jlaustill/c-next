@@ -14,17 +14,17 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct U32BitLen_TestStruct {
+typedef struct U32BitLen__TestStruct {
     uint32_t member;
-} U32BitLen_TestStruct;
+} U32BitLen__TestStruct;
 
 /* External variables */
 extern uint32_t globalVar;
-extern uint32_t TestScope_publicMember;
+extern uint32_t TestScope__publicMember;
 
 /* Function prototypes */
-uint32_t TestScope_getGlobalBitLength(void);
-uint32_t TestScope_getMemberBitLength(void);
+uint32_t TestScope__getGlobalBitLength(void);
+uint32_t TestScope__getMemberBitLength(void);
 
 #ifdef __cplusplus
 }

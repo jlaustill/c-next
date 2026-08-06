@@ -16,7 +16,7 @@ describe("BaseIdentifierBuilder", () => {
       const result = BaseIdentifierBuilder.build("speed", false, true, "Motor");
 
       expect(result).toEqual({
-        result: "Motor_speed",
+        result: "Motor__speed",
         firstId: "speed",
       });
     });

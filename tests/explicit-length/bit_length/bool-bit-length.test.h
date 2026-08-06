@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct BoolBitLen_TestStruct {
+typedef struct BoolBitLen__TestStruct {
     bool flag;
-} BoolBitLen_TestStruct;
+} BoolBitLen__TestStruct;
 
 /* External variables */
 extern bool globalBool;

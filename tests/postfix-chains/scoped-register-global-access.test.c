@@ -14,50 +14,50 @@
 // Extracted from: scoped-register-bitmap-chain.test.cnx.skip (valid portions only)
 /* Scope: MotorController */
 
-/* Register: MotorController_MOTOR_REG @ 0x40002000 */
-#define MotorController_MOTOR_REG_CTRL (*(volatile MotorFlags*)(0x40002000 + 0x00))
-#define MotorController_MOTOR_REG_SPEED (*(volatile uint32_t*)(0x40002000 + 0x04))
-#define MotorController_MOTOR_REG_STATUS (*(volatile uint32_t const *)(0x40002000 + 0x08))
+/* Register: MotorController__MOTOR_REG @ 0x40002000 */
+#define MotorController__MOTOR_REG__CTRL (*(volatile MotorFlags*)(0x40002000 + 0x00))
+#define MotorController__MOTOR_REG__SPEED (*(volatile uint32_t*)(0x40002000 + 0x04))
+#define MotorController__MOTOR_REG__STATUS (*(volatile uint32_t const *)(0x40002000 + 0x08))
 
 
-void MotorController_start(void) {
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1U << 0)) | (1U << 0);
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7U << 3)) | ((3 & 0x7U) << 3);
-    MotorController_MOTOR_REG_SPEED = 100;
+void MotorController__start(void) {
+    MotorController__MOTOR_REG__CTRL = (MotorController__MOTOR_REG__CTRL & ~(1U << 0)) | (1U << 0);
+    MotorController__MOTOR_REG__CTRL = (MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((3 & 0x7U) << 3);
+    MotorController__MOTOR_REG__SPEED = 100;
 }
 
-bool MotorController_isRunning(void) {
-    return ((MotorController_MOTOR_REG_CTRL >> 0) & 1);
+bool MotorController__isRunning(void) {
+    return ((MotorController__MOTOR_REG__CTRL >> 0) & 1);
 }
 
-uint8_t MotorController_getMode(void) {
-    return ((MotorController_MOTOR_REG_CTRL >> 3) & 0x7);
+uint8_t MotorController__getMode(void) {
+    return ((MotorController__MOTOR_REG__CTRL >> 3) & 0x7);
 }
 
 /* Scope: Board */
 
-/* Register: Board_GPIO @ 0x40000000 */
-#define Board_GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define Board_GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
+/* Register: Board__GPIO @ 0x40000000 */
+#define Board__GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define Board__GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 
-void Board_toggleLed(void) {
-    Board_GPIO_DR_SET = (1U << 3);
+void Board__toggleLed(void) {
+    Board__GPIO__DR_SET = (1U << 3);
 }
 
 int main(void) {
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1U << 0)) | (1U << 0);
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(1U << 1)) | (0U << 1);
-    MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
-    bool running = ((((MotorController_MOTOR_REG_CTRL >> 0) & 1)) != 0U);
-    uint8_t mode = (uint8_t)((MotorController_MOTOR_REG_CTRL >> 3) & 0x7);
-    Board_GPIO_DR = (Board_GPIO_DR & ~(1U << 0)) | (1U << 0);
-    bool ledState = ((((Board_GPIO_DR >> 3U) & 1)) != 0U);
-    MotorController_start();
-    bool isRun = MotorController_isRunning();
-    uint8_t currentMode = MotorController_getMode();
-    Board_toggleLed();
-    if (((MotorController_MOTOR_REG_CTRL >> 2) & 1) == true) {
-        MotorController_MOTOR_REG_CTRL = (MotorController_MOTOR_REG_CTRL & ~(0x7U << 3)) | ((0 & 0x7U) << 3);
+    MotorController__MOTOR_REG__CTRL = (MotorController__MOTOR_REG__CTRL & ~(1U << 0)) | (1U << 0);
+    MotorController__MOTOR_REG__CTRL = (MotorController__MOTOR_REG__CTRL & ~(1U << 1)) | (0U << 1);
+    MotorController__MOTOR_REG__CTRL = (MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
+    bool running = ((((MotorController__MOTOR_REG__CTRL >> 0) & 1)) != 0U);
+    uint8_t mode = (uint8_t)((MotorController__MOTOR_REG__CTRL >> 3) & 0x7);
+    Board__GPIO__DR = (Board__GPIO__DR & ~(1U << 0)) | (1U << 0);
+    bool ledState = ((((Board__GPIO__DR >> 3U) & 1)) != 0U);
+    MotorController__start();
+    bool isRun = MotorController__isRunning();
+    uint8_t currentMode = MotorController__getMode();
+    Board__toggleLed();
+    if (((MotorController__MOTOR_REG__CTRL >> 2) & 1) == true) {
+        MotorController__MOTOR_REG__CTRL = (MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((0 & 0x7U) << 3);
     }
 }

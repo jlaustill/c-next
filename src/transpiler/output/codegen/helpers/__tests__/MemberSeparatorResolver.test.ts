@@ -83,7 +83,7 @@ describe("MemberSeparatorResolver", () => {
 
     it("should build scoped register name when using this prefix", () => {
       const deps = createMockDeps({
-        isKnownRegister: vi.fn((name) => name === "Motor_CONTROL_REG"),
+        isKnownRegister: vi.fn((name) => name === "Motor__CONTROL_REG"),
       });
 
       const ctx = MemberSeparatorResolver.buildContext(
@@ -98,7 +98,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(ctx.scopedRegName).toBe("Motor_CONTROL_REG");
+      expect(ctx.scopedRegName).toBe("Motor__CONTROL_REG");
       expect(ctx.isScopedRegister).toBe(true);
     });
 
@@ -216,7 +216,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
     });
 
     it("should return _ for global register member access", () => {
@@ -232,7 +232,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
     });
 
     it("should validate visibility and return _ for global scope access", () => {
@@ -250,7 +250,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
       expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
         "Motor",
         "speed",
@@ -268,7 +268,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
     });
 
     it("should return . for normal struct field access", () => {
@@ -299,7 +299,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
     });
 
     it("should return _ when chain so far is a register", () => {
@@ -314,14 +314,14 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
     });
 
     it("should return _ when scoped register name is a register", () => {
       const deps = createMockDeps({
-        isKnownRegister: vi.fn((name) => name === "Motor_CONTROL_REG"),
+        isKnownRegister: vi.fn((name) => name === "Motor__CONTROL_REG"),
       });
-      const ctx = createContext({ scopedRegName: "Motor_CONTROL_REG" });
+      const ctx = createContext({ scopedRegName: "Motor__CONTROL_REG" });
 
       const sep = MemberSeparatorResolver.getSubsequentSeparator(
         ["CONTROL_REG", "SPEED"],
@@ -329,7 +329,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
     });
 
     it("should return . for non-register subsequent access", () => {
@@ -376,7 +376,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(sep).toBe("_");
+      expect(sep).toBe("__");
     });
   });
 

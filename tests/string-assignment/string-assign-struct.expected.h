@@ -14,13 +14,13 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct StrAssign_Config {
+typedef struct StrAssign__Config {
     char name[33];
     uint32_t value;
-} StrAssign_Config;
+} StrAssign__Config;
 
 /* External variables */
-extern StrAssign_Config config;
+extern StrAssign__Config config;
 
 #ifdef __cplusplus
 }

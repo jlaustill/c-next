@@ -11,19 +11,19 @@
 // test-execution
 // Tests: this.method() returning enum inside scope
 /* Scope: Motor */
-static Motor_EMode Motor_mode = Motor_EMode_OFF;
+static Motor__EMode Motor__mode = Motor__EMode__OFF;
 
-Motor_EMode Motor_getMode(void) {
-    return Motor_mode;
+Motor__EMode Motor__getMode(void) {
+    return Motor__mode;
 }
 
-bool Motor_test(void) {
-    Motor_EMode current = Motor_getMode();
-    return (current == Motor_EMode_OFF);
+bool Motor__test(void) {
+    Motor__EMode current = Motor__getMode();
+    return (current == Motor__EMode__OFF);
 }
 
 int main(void) {
-    bool result = Motor_test();
+    bool result = Motor__test();
     if (result == false) return 1;
     return 0;
 }

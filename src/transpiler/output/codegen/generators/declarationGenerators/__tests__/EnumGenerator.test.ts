@@ -114,9 +114,9 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    State_IDLE = 0,
-    State_RUNNING = 1,
-    State_ERROR = 2
+    State__IDLE = 0,
+    State__RUNNING = 1,
+    State__ERROR = 2
 } State;
 `,
       );
@@ -138,9 +138,9 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    Severity_OK = 0,
-    Severity_WARNING = 100,
-    Severity_CRITICAL = 255
+    Severity__OK = 0,
+    Severity__WARNING = 100,
+    Severity__CRITICAL = 255
 } Severity;
 `,
       );
@@ -157,7 +157,7 @@ describe("EnumGenerator", () => {
 
       expect(result.code).toBe(
         `typedef enum {
-    Single_ONLY = 42
+    Single__ONLY = 42
 } Single;
 `,
       );

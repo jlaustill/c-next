@@ -17,20 +17,20 @@
 SeaDash::Parse::ParseResult globalResult = {};
 
 /* Scope: EdgeCases */
-static SeaDash::Config EdgeCases_scopeConfig = {};
+static SeaDash::Config EdgeCases__scopeConfig = {};
 
-void EdgeCases_testAssignmentTarget(void) {
+void EdgeCases__testAssignmentTarget(void) {
     SeaDash::Parse::ParseResult result = {};
     result = SeaDash::Parse::parse("test", ',');
 }
 
-void EdgeCases_testNestedAccess(void) {
+void EdgeCases__testNestedAccess(void) {
     SeaDash::Parse::ParseResult result = SeaDash::Parse::parse("1,2,3", ',');
     int32_t count = result.count;
     bool ok = result.success;
 }
 
-void EdgeCases_testMultipleCallsInSequence(void) {
+void EdgeCases__testMultipleCallsInSequence(void) {
     SeaDash::Parse::ParseResult r1 = SeaDash::Parse::parse("a", ',');
     SeaDash::Parse::ParseResult r2 = SeaDash::Parse::parse("b", ';');
     SeaDash::Config c1 = SeaDash::getDefaultConfig();
@@ -38,11 +38,11 @@ void EdgeCases_testMultipleCallsInSequence(void) {
     Deep::Level1::Level2::DeepType d2 = Deep::Level1::Level2::create(2);
 }
 
-void EdgeCases_testGlobalPrefixStillWorks(void) {
+void EdgeCases__testGlobalPrefixStillWorks(void) {
     globalResult = SeaDash::Parse::parse("global", ',');
 }
 
-void EdgeCases_testThisMemberWithNamespaceType(void) {
-    EdgeCases_scopeConfig = SeaDash::getDefaultConfig();
-    int32_t timeout = EdgeCases_scopeConfig.timeout;
+void EdgeCases__testThisMemberWithNamespaceType(void) {
+    EdgeCases__scopeConfig = SeaDash::getDefaultConfig();
+    int32_t timeout = EdgeCases__scopeConfig.timeout;
 }

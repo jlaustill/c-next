@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Motor_EMode_OFF = 0,
-    Motor_EMode_LOW = 1
-} Motor_EMode;
+    Motor__EMode__OFF = 0,
+    Motor__EMode__LOW = 1
+} Motor__EMode;
 
 #ifdef __cplusplus
 }

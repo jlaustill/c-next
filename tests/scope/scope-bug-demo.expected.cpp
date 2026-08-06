@@ -17,24 +17,24 @@ extern const uint8_t limit = 10U;
 
 // Global const
 /* Scope: Counter */
-static uint8_t Counter_count = 0U;
+static uint8_t Counter__count = 0U;
 
-void Counter_increment(void) {
-    Counter_count = Counter_count + 1U;
+void Counter__increment(void) {
+    Counter__count = Counter__count + 1U;
 }
 
-uint8_t Counter_getCount(void) {
-    return Counter_count;
+uint8_t Counter__getCount(void) {
+    return Counter__count;
 }
 
 int main(void) {
-    uint8_t val = Counter_getCount();
+    uint8_t val = Counter__getCount();
     if (val != 0) return 1;
-    Counter_increment();
-    val = Counter_getCount();
+    Counter__increment();
+    val = Counter__getCount();
     if (val != 1) return 2;
-    Counter_increment();
-    val = Counter_getCount();
+    Counter__increment();
+    val = Counter__getCount();
     if (val != 2) return 3;
     if (globalCount != 0) return 4;
     return 0;

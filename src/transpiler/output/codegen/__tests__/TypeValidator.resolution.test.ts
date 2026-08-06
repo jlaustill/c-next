@@ -45,7 +45,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       isArray: false,
       isConst: false,
     });
-    CodeGenState.setVariableTypeInfo("Motor_speed", {
+    CodeGenState.setVariableTypeInfo("Motor__speed", {
       baseType: "u32",
       bitWidth: 32,
       isArray: false,
@@ -78,7 +78,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         false,
         () => false,
       );
-      expect(result).toBe("Motor_speed");
+      expect(result).toBe("Motor__speed");
     });
 
     it("resolves global variable to itself", () => {

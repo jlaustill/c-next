@@ -16,14 +16,14 @@ ExternalStruct globalExt = {};
 
 /* Scope: Test */
 
-uint8_t Test_getFromGlobal(void) {
+uint8_t Test__getFromGlobal(void) {
     return globalExt.data[1U];
 }
 
-uint8_t Test_getFromParam(const ExternalStruct& ext) {
+uint8_t Test__getFromParam(const ExternalStruct& ext) {
     return ext.data[1U];
 }
 
-uint8_t Test_getCount(void) {
+uint8_t Test__getCount(void) {
     return globalExt.count;
 }

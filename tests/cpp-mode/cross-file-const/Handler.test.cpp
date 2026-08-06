@@ -16,12 +16,12 @@
 
 /* Scope: Handler */
 
-uint8_t Handler_reset(Config& cfg) {
-    Storage_loadDefaults(cfg);
+uint8_t Handler__reset(Config& cfg) {
+    Storage__loadDefaults(cfg);
     return 0;
 }
 
 int main(void) {
     Config c = { .value = 0U };
-    Handler_reset(c);
+    Handler__reset(c);
 }

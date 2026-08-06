@@ -14,20 +14,20 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t AtomicTest_getCounterU8(void);
-uint16_t AtomicTest_getCounterU16(void);
-uint32_t AtomicTest_getCounterU32(void);
-uint8_t AtomicTest_getBrightness(void);
-uint16_t AtomicTest_getPosition(void);
-uint32_t AtomicTest_getTicks(void);
-void AtomicTest_incrementU8(void);
-void AtomicTest_incrementU16(void);
-void AtomicTest_incrementU32(void);
-void AtomicTest_decrementBrightness(void);
-void AtomicTest_decrementPosition(void);
-void AtomicTest_maskTicks(void);
-void AtomicTest_setTickFlag(void);
-void AtomicTest_incrementAll(void);
+uint8_t AtomicTest__getCounterU8(void);
+uint16_t AtomicTest__getCounterU16(void);
+uint32_t AtomicTest__getCounterU32(void);
+uint8_t AtomicTest__getBrightness(void);
+uint16_t AtomicTest__getPosition(void);
+uint32_t AtomicTest__getTicks(void);
+void AtomicTest__incrementU8(void);
+void AtomicTest__incrementU16(void);
+void AtomicTest__incrementU32(void);
+void AtomicTest__decrementBrightness(void);
+void AtomicTest__decrementPosition(void);
+void AtomicTest__maskTicks(void);
+void AtomicTest__setTickFlag(void);
+void AtomicTest__incrementAll(void);
 
 #ifdef __cplusplus
 }

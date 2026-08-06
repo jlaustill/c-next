@@ -15,15 +15,15 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Status_Ok = 0,
-    Status_Error = 1
+    Status__Ok = 0,
+    Status__Error = 1
 } Status;
 
 /* Function prototypes */
-float Api_addFloats(float a, float b);
-bool Api_isOk(Status status);
-void Api_updateValue(uint32_t& value);
-uint32_t Api_readValue(uint32_t value);
+float Api__addFloats(float a, float b);
+bool Api__isOk(Status status);
+void Api__updateValue(uint32_t& value);
+uint32_t Api__readValue(uint32_t value);
 
 #ifdef __cplusplus
 }

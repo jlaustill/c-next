@@ -255,8 +255,8 @@ void main() {
       // Main file should have correct enum references
       const mainFile = result.files.find((f) => f.sourcePath === mainPath);
       expect(mainFile).toBeDefined();
-      expect(mainFile!.code).toContain("Status_Idle");
-      expect(mainFile!.code).toContain("Status_Running");
+      expect(mainFile!.code).toContain("Status__Idle");
+      expect(mainFile!.code).toContain("Status__Running");
     });
 
     it("run() handles cross-file struct references", async () => {
@@ -357,9 +357,9 @@ void main() {
       );
       expect(consumerFile).toBeDefined();
       // Verify underscore notation (not dot notation)
-      expect(consumerFile!.code).toContain("Provider_getValue()");
+      expect(consumerFile!.code).toContain("Provider__getValue()");
       expect(consumerFile!.code).not.toContain("Provider.getValue()");
-      expect(consumerFile!.code).toContain("Consumer_fetch()");
+      expect(consumerFile!.code).toContain("Consumer__fetch()");
 
       // Via transpileSource() with context from run()
       const transpiler2 = createTranspiler("");
@@ -373,7 +373,7 @@ void main() {
       ).files[0];
 
       expect(result2.success).toBe(true);
-      expect(result2.code).toContain("Provider_getValue()");
+      expect(result2.code).toContain("Provider__getValue()");
       expect(result2.code).not.toContain("Provider.getValue()");
     });
 
@@ -414,9 +414,9 @@ void main() {
       const writerFile = result1.files.find((f) => f.sourcePath === writerPath);
       expect(writerFile).toBeDefined();
       // Verify underscore notation for scope variable assignment
-      expect(writerFile!.code).toContain("Storage_value = 42");
+      expect(writerFile!.code).toContain("Storage__value = 42");
       expect(writerFile!.code).not.toContain("Storage.value = 42");
-      expect(writerFile!.code).toContain("Storage_value = data");
+      expect(writerFile!.code).toContain("Storage__value = data");
 
       // Via transpileSource()
       const transpiler2 = createTranspiler("");
@@ -430,7 +430,7 @@ void main() {
       ).files[0];
 
       expect(result2.success).toBe(true);
-      expect(result2.code).toContain("Storage_value = 42");
+      expect(result2.code).toContain("Storage__value = 42");
       expect(result2.code).not.toContain("Storage.value = 42");
     });
   });
@@ -582,8 +582,8 @@ void main() {
       expect(result1.files[0].code).toBe(result2.code);
 
       // Verify enum prefixing works correctly
-      expect(result2.code).toContain("State_Init");
-      expect(result2.code).toContain("State_Running");
+      expect(result2.code).toContain("State__Init");
+      expect(result2.code).toContain("State__Running");
     });
 
     it("nested struct types work in both paths", async () => {

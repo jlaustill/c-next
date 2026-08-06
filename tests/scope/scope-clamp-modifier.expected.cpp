@@ -71,115 +71,115 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators
 /* Scope: ClampTest */
-static uint8_t ClampTest_brightness = 200U;
-static uint16_t ClampTest_sensorValue = 60000U;
-static uint32_t ClampTest_counter = 4000000000U;
-static int8_t ClampTest_temperature = -100;
-static int16_t ClampTest_altitude = 30000;
-static int32_t ClampTest_position = 2000000000;
+static uint8_t ClampTest__brightness = 200U;
+static uint16_t ClampTest__sensorValue = 60000U;
+static uint32_t ClampTest__counter = 4000000000U;
+static int8_t ClampTest__temperature = -100;
+static int16_t ClampTest__altitude = 30000;
+static int32_t ClampTest__position = 2000000000;
 
-uint8_t ClampTest_getBrightness(void) {
-    return ClampTest_brightness;
+uint8_t ClampTest__getBrightness(void) {
+    return ClampTest__brightness;
 }
 
-uint16_t ClampTest_getSensorValue(void) {
-    return ClampTest_sensorValue;
+uint16_t ClampTest__getSensorValue(void) {
+    return ClampTest__sensorValue;
 }
 
-uint32_t ClampTest_getCounter(void) {
-    return ClampTest_counter;
+uint32_t ClampTest__getCounter(void) {
+    return ClampTest__counter;
 }
 
-int8_t ClampTest_getTemperature(void) {
-    return ClampTest_temperature;
+int8_t ClampTest__getTemperature(void) {
+    return ClampTest__temperature;
 }
 
-int16_t ClampTest_getAltitude(void) {
-    return ClampTest_altitude;
+int16_t ClampTest__getAltitude(void) {
+    return ClampTest__altitude;
 }
 
-int32_t ClampTest_getPosition(void) {
-    return ClampTest_position;
+int32_t ClampTest__getPosition(void) {
+    return ClampTest__position;
 }
 
-void ClampTest_increaseBrightness(void) {
-    ClampTest_brightness = cnx_clamp_add_u8(ClampTest_brightness, 100U);
+void ClampTest__increaseBrightness(void) {
+    ClampTest__brightness = cnx_clamp_add_u8(ClampTest__brightness, 100U);
 }
 
-void ClampTest_increaseSensorValue(void) {
-    ClampTest_sensorValue = cnx_clamp_add_u16(ClampTest_sensorValue, 10000U);
+void ClampTest__increaseSensorValue(void) {
+    ClampTest__sensorValue = cnx_clamp_add_u16(ClampTest__sensorValue, 10000U);
 }
 
-void ClampTest_increaseCounter(void) {
-    ClampTest_counter = cnx_clamp_add_u32(ClampTest_counter, 500000000U);
+void ClampTest__increaseCounter(void) {
+    ClampTest__counter = cnx_clamp_add_u32(ClampTest__counter, 500000000U);
 }
 
-void ClampTest_decreaseTemperature(void) {
-    ClampTest_temperature = cnx_clamp_sub_i8(ClampTest_temperature, 50);
+void ClampTest__decreaseTemperature(void) {
+    ClampTest__temperature = cnx_clamp_sub_i8(ClampTest__temperature, 50);
 }
 
-void ClampTest_decreaseAltitude(void) {
-    ClampTest_altitude = cnx_clamp_sub_i16(ClampTest_altitude, 5000);
+void ClampTest__decreaseAltitude(void) {
+    ClampTest__altitude = cnx_clamp_sub_i16(ClampTest__altitude, 5000);
 }
 
-void ClampTest_decreasePosition(void) {
-    ClampTest_position = cnx_clamp_sub_i32(ClampTest_position, 100000000);
+void ClampTest__decreasePosition(void) {
+    ClampTest__position = cnx_clamp_sub_i32(ClampTest__position, 100000000);
 }
 
-void ClampTest_dimBrightness(void) {
-    ClampTest_brightness = cnx_clamp_sub_u8(ClampTest_brightness, 250U);
+void ClampTest__dimBrightness(void) {
+    ClampTest__brightness = cnx_clamp_sub_u8(ClampTest__brightness, 250U);
 }
 
-void ClampTest_resetSensor(void) {
-    ClampTest_sensorValue = cnx_clamp_sub_u16(ClampTest_sensorValue, 65000U);
+void ClampTest__resetSensor(void) {
+    ClampTest__sensorValue = cnx_clamp_sub_u16(ClampTest__sensorValue, 65000U);
 }
 
-void ClampTest_setBrightness(uint8_t val) {
-    ClampTest_brightness = val;
+void ClampTest__setBrightness(uint8_t val) {
+    ClampTest__brightness = val;
 }
 
-void ClampTest_setSensorValue(uint16_t val) {
-    ClampTest_sensorValue = val;
+void ClampTest__setSensorValue(uint16_t val) {
+    ClampTest__sensorValue = val;
 }
 
 int main(void) {
-    uint8_t resultBrightness = ClampTest_getBrightness();
+    uint8_t resultBrightness = ClampTest__getBrightness();
     if (resultBrightness != 200) return 1;
-    uint16_t resultSensor = ClampTest_getSensorValue();
+    uint16_t resultSensor = ClampTest__getSensorValue();
     if (resultSensor != 60000) return 2;
-    uint32_t resultCounter = ClampTest_getCounter();
+    uint32_t resultCounter = ClampTest__getCounter();
     if (resultCounter != 4000000000) return 3;
-    int8_t resultTemp = ClampTest_getTemperature();
+    int8_t resultTemp = ClampTest__getTemperature();
     if (resultTemp != -100) return 4;
-    int16_t resultAlt = ClampTest_getAltitude();
+    int16_t resultAlt = ClampTest__getAltitude();
     if (resultAlt != 30000) return 5;
-    int32_t resultPos = ClampTest_getPosition();
+    int32_t resultPos = ClampTest__getPosition();
     if (resultPos != 2000000000) return 6;
-    ClampTest_increaseBrightness();
-    resultBrightness = ClampTest_getBrightness();
+    ClampTest__increaseBrightness();
+    resultBrightness = ClampTest__getBrightness();
     if (resultBrightness != 255) return 7;
-    ClampTest_increaseSensorValue();
-    resultSensor = ClampTest_getSensorValue();
+    ClampTest__increaseSensorValue();
+    resultSensor = ClampTest__getSensorValue();
     if (resultSensor != 65535) return 8;
-    ClampTest_increaseCounter();
-    resultCounter = ClampTest_getCounter();
+    ClampTest__increaseCounter();
+    resultCounter = ClampTest__getCounter();
     if (resultCounter != 4294967295) return 9;
-    ClampTest_decreaseTemperature();
-    resultTemp = ClampTest_getTemperature();
+    ClampTest__decreaseTemperature();
+    resultTemp = ClampTest__getTemperature();
     if (resultTemp != -128) return 10;
-    ClampTest_decreaseAltitude();
-    resultAlt = ClampTest_getAltitude();
+    ClampTest__decreaseAltitude();
+    resultAlt = ClampTest__getAltitude();
     if (resultAlt != 25000) return 11;
-    ClampTest_decreasePosition();
-    resultPos = ClampTest_getPosition();
+    ClampTest__decreasePosition();
+    resultPos = ClampTest__getPosition();
     if (resultPos != 1900000000) return 12;
-    ClampTest_setBrightness(100U);
-    ClampTest_dimBrightness();
-    resultBrightness = ClampTest_getBrightness();
+    ClampTest__setBrightness(100U);
+    ClampTest__dimBrightness();
+    resultBrightness = ClampTest__getBrightness();
     if (resultBrightness != 0) return 13;
-    ClampTest_setSensorValue(1000U);
-    ClampTest_resetSensor();
-    resultSensor = ClampTest_getSensorValue();
+    ClampTest__setSensorValue(1000U);
+    ClampTest__resetSensor();
+    resultSensor = ClampTest__getSensorValue();
     if (resultSensor != 0) return 14;
     return 0;
 }

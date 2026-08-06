@@ -11,10 +11,10 @@
 // Coverage: Section 12 - Register Declaration (write-only bit access)
 // Extracted from: write-only-register-chain.test.cnx.skip
 /* Register: GPIO @ 0x42000000 */
-#define GPIO_DR (*(volatile uint32_t*)(0x42000000 + 0x00))
-#define GPIO_DR_SET (*(volatile uint32_t*)(0x42000000 + 0x84))
-#define GPIO_DR_CLEAR (*(volatile uint32_t*)(0x42000000 + 0x88))
-#define GPIO_DR_TOGGLE (*(volatile uint32_t*)(0x42000000 + 0x8C))
+#define GPIO__DR (*(volatile uint32_t*)(0x42000000 + 0x00))
+#define GPIO__DR_SET (*(volatile uint32_t*)(0x42000000 + 0x84))
+#define GPIO__DR_CLEAR (*(volatile uint32_t*)(0x42000000 + 0x88))
+#define GPIO__DR_TOGGLE (*(volatile uint32_t*)(0x42000000 + 0x8C))
 
 extern const uint32_t LED_BIT = 3U;
 
@@ -23,25 +23,25 @@ extern const uint32_t BUTTON_BIT = 7U;
 uint32_t dynamicBit = 5U;
 
 int main(void) {
-    GPIO_DR_SET = (1U << 0);
-    GPIO_DR_SET = (1U << 31);
-    GPIO_DR_SET = (1U << LED_BIT);
-    GPIO_DR_CLEAR = (1U << LED_BIT);
-    GPIO_DR_TOGGLE = (1U << LED_BIT);
-    GPIO_DR_SET = (1U << BUTTON_BIT);
-    GPIO_DR_CLEAR = (1U << BUTTON_BIT);
-    GPIO_DR_SET = (1U << dynamicBit);
-    GPIO_DR_CLEAR = (1U << dynamicBit);
-    GPIO_DR_SET = (1U << LED_BIT + 1);
-    GPIO_DR_CLEAR = (1U << LED_BIT * 2);
+    GPIO__DR_SET = (1U << 0);
+    GPIO__DR_SET = (1U << 31);
+    GPIO__DR_SET = (1U << LED_BIT);
+    GPIO__DR_CLEAR = (1U << LED_BIT);
+    GPIO__DR_TOGGLE = (1U << LED_BIT);
+    GPIO__DR_SET = (1U << BUTTON_BIT);
+    GPIO__DR_CLEAR = (1U << BUTTON_BIT);
+    GPIO__DR_SET = (1U << dynamicBit);
+    GPIO__DR_CLEAR = (1U << dynamicBit);
+    GPIO__DR_SET = (1U << LED_BIT + 1);
+    GPIO__DR_CLEAR = (1U << LED_BIT * 2);
     uint32_t targetBit = LED_BIT;
-    GPIO_DR_TOGGLE = (1U << targetBit);
-    GPIO_DR = (GPIO_DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
-    GPIO_DR = (GPIO_DR & ~(1U << BUTTON_BIT)) | (0U << BUTTON_BIT);
-    bool state = ((((GPIO_DR >> LED_BIT) & 1)) != 0U);
+    GPIO__DR_TOGGLE = (1U << targetBit);
+    GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
+    GPIO__DR = (GPIO__DR & ~(1U << BUTTON_BIT)) | (0U << BUTTON_BIT);
+    bool state = ((((GPIO__DR >> LED_BIT) & 1)) != 0U);
     if (state == true) {
-        GPIO_DR_CLEAR = (1U << LED_BIT);
+        GPIO__DR_CLEAR = (1U << LED_BIT);
     } else {
-        GPIO_DR_SET = (1U << LED_BIT);
+        GPIO__DR_SET = (1U << LED_BIT);
     }
 }

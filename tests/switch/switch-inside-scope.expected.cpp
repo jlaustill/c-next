@@ -12,78 +12,78 @@
 uint32_t globalResult = 0U;
 
 /* Scope: CommandProcessor */
-static uint32_t CommandProcessor_lastCommand = 0U;
-static uint32_t CommandProcessor_result = 0U;
+static uint32_t CommandProcessor__lastCommand = 0U;
+static uint32_t CommandProcessor__result = 0U;
 
-void CommandProcessor_execute(uint32_t command) {
-    CommandProcessor_lastCommand = command;
+void CommandProcessor__execute(uint32_t command) {
+    CommandProcessor__lastCommand = command;
     switch (command) {
         case 1: {
-            CommandProcessor_result = 100U;
+            CommandProcessor__result = 100U;
             break;
         }
         case 2: {
-            CommandProcessor_result = 200U;
+            CommandProcessor__result = 200U;
             break;
         }
         case 3: {
-            CommandProcessor_result = 300U;
+            CommandProcessor__result = 300U;
             break;
         }
         default: {
-            CommandProcessor_result = 0U;
+            CommandProcessor__result = 0U;
             break;
         }
     }
 }
 
-uint32_t CommandProcessor_getResult(void) {
-    return CommandProcessor_result;
+uint32_t CommandProcessor__getResult(void) {
+    return CommandProcessor__result;
 }
 
 /* Scope: Calculator */
-static uint32_t Calculator_mode = 0U;
-static uint32_t Calculator_a = 0U;
-static uint32_t Calculator_b = 0U;
-static uint32_t Calculator_output = 0U;
+static uint32_t Calculator__mode = 0U;
+static uint32_t Calculator__a = 0U;
+static uint32_t Calculator__b = 0U;
+static uint32_t Calculator__output = 0U;
 
-void Calculator_setOperands(uint32_t x, uint32_t y) {
-    Calculator_a = x;
-    Calculator_b = y;
+void Calculator__setOperands(uint32_t x, uint32_t y) {
+    Calculator__a = x;
+    Calculator__b = y;
 }
 
-void Calculator_compute(uint32_t operation) {
-    Calculator_mode = operation;
+void Calculator__compute(uint32_t operation) {
+    Calculator__mode = operation;
     switch (operation) {
         case 0: {
-            Calculator_output = Calculator_a + Calculator_b;
+            Calculator__output = Calculator__a + Calculator__b;
             break;
         }
         case 1: {
-            Calculator_output = Calculator_a - Calculator_b;
+            Calculator__output = Calculator__a - Calculator__b;
             break;
         }
         case 2: {
-            Calculator_output = Calculator_a * Calculator_b;
+            Calculator__output = Calculator__a * Calculator__b;
             break;
         }
         default: {
-            Calculator_output = 0U;
+            Calculator__output = 0U;
             break;
         }
     }
 }
 
-uint32_t Calculator_getOutput(void) {
-    return Calculator_output;
+uint32_t Calculator__getOutput(void) {
+    return Calculator__output;
 }
 
 int main(void) {
-    CommandProcessor_execute(2U);
-    globalResult = CommandProcessor_getResult();
-    Calculator_setOperands(10U, 5U);
-    Calculator_compute(0U);
-    globalResult = Calculator_getOutput();
-    Calculator_compute(1U);
-    globalResult = Calculator_getOutput();
+    CommandProcessor__execute(2U);
+    globalResult = CommandProcessor__getResult();
+    Calculator__setOperands(10U, 5U);
+    Calculator__compute(0U);
+    globalResult = Calculator__getOutput();
+    Calculator__compute(1U);
+    globalResult = Calculator__getOutput();
 }

@@ -30,7 +30,7 @@ extern uint16_t both[4][2];
 extern bool literal_arr[4];
 
 /* Function prototypes */
-void Manager_test(void);
+void Manager__test(void);
 
 #ifdef __cplusplus
 }

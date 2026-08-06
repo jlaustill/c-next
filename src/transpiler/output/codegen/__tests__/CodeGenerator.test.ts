@@ -826,7 +826,7 @@ describe("CodeGenerator", () => {
       it("should return _ for C-Next access", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.getScopeSeparator(false)).toBe("_");
+        expect(generator.getScopeSeparator(false)).toBe("__");
       });
     });
 
@@ -1069,9 +1069,9 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("typedef enum");
-      expect(code).toContain("Color_RED");
-      expect(code).toContain("Color_GREEN");
-      expect(code).toContain("Color_BLUE");
+      expect(code).toContain("Color__RED");
+      expect(code).toContain("Color__GREEN");
+      expect(code).toContain("Color__BLUE");
     });
   });
 
@@ -1120,9 +1120,9 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("uint32_t Motor_speed");
-      expect(code).toContain("void Motor_setSpeed");
-      expect(code).toContain("Motor_speed = s;");
+      expect(code).toContain("uint32_t Motor__speed");
+      expect(code).toContain("void Motor__setSpeed");
+      expect(code).toContain("Motor__speed = s;");
     });
   });
 
@@ -1818,7 +1818,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Color_RED");
+      expect(code).toContain("Color__RED");
     });
   });
 
@@ -1910,7 +1910,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Math_square(5U)");
+      expect(code).toContain("Math__square(5U)");
     });
   });
 
@@ -2265,9 +2265,9 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("switch (s)");
-      expect(code).toContain("case State_IDLE:");
-      expect(code).toContain("case State_RUNNING:");
-      expect(code).toContain("case State_STOPPED:");
+      expect(code).toContain("case State__IDLE:");
+      expect(code).toContain("case State__RUNNING:");
+      expect(code).toContain("case State__STOPPED:");
     });
   });
 
@@ -2341,9 +2341,9 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("static uint32_t Motor_privateSpeed");
-      expect(code).toContain("Motor_privateSpeed = s");
-      expect(code).toContain("return Motor_privateSpeed");
+      expect(code).toContain("static uint32_t Motor__privateSpeed");
+      expect(code).toContain("Motor__privateSpeed = s");
+      expect(code).toContain("return Motor__privateSpeed");
     });
   });
 
@@ -2583,9 +2583,9 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Priority_LOW = 1");
-      expect(code).toContain("Priority_MEDIUM = 5");
-      expect(code).toContain("Priority_HIGH = 10");
+      expect(code).toContain("Priority__LOW = 1");
+      expect(code).toContain("Priority__MEDIUM = 5");
+      expect(code).toContain("Priority__HIGH = 10");
     });
   });
 
@@ -2629,7 +2629,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Motor_speed = s");
+      expect(code).toContain("Motor__speed = s");
     });
   });
 
@@ -2677,7 +2677,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Motor_stop()");
+      expect(code).toContain("Motor__stop()");
     });
   });
 
@@ -2934,10 +2934,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Motor_speed");
-      expect(code).toContain("Motor_start");
-      expect(code).toContain("LED_on");
-      expect(code).toContain("LED_toggle");
+      expect(code).toContain("Motor__speed");
+      expect(code).toContain("Motor__start");
+      expect(code).toContain("LED__on");
+      expect(code).toContain("LED__toggle");
     });
   });
 
@@ -3219,7 +3219,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("current = State_RUNNING");
+      expect(code).toContain("current = State__RUNNING");
     });
   });
 
@@ -3268,9 +3268,9 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("void Timer_reset");
-      expect(code).toContain("void Timer_increment");
-      expect(code).toContain("uint32_t Timer_getCount");
+      expect(code).toContain("void Timer__reset");
+      expect(code).toContain("void Timer__increment");
+      expect(code).toContain("uint32_t Timer__getCount");
     });
   });
 
@@ -3625,7 +3625,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Motor_speed = 100");
+      expect(code).toContain("Motor__speed = 100");
     });
   });
 
@@ -3646,7 +3646,7 @@ describe("CodeGenerator", () => {
       });
 
       // Should use first enum member (value 0)
-      expect(code).toContain("State current = State_IDLE");
+      expect(code).toContain("State current = State__IDLE");
     });
 
     it("should use first member when no member has value 0", () => {
@@ -3688,7 +3688,7 @@ describe("CodeGenerator", () => {
       });
 
       // Should initialize to first member
-      expect(code).toContain("Motor_Mode Motor_currentMode =");
+      expect(code).toContain("Motor__Mode Motor__currentMode =");
     });
 
     it("should initialize scoped struct with {0}", () => {
@@ -3731,7 +3731,7 @@ describe("CodeGenerator", () => {
       });
 
       // Should initialize to first member
-      expect(code).toContain("GlobalState Worker_state =");
+      expect(code).toContain("GlobalState Worker__state =");
     });
   });
 
@@ -3754,7 +3754,7 @@ describe("CodeGenerator", () => {
       });
 
       // Should use qualified type
-      expect(code).toContain("Config_Level setting =");
+      expect(code).toContain("Config__Level setting =");
     });
   });
 
@@ -4596,7 +4596,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Color_GREEN");
+      expect(code).toContain("Color__GREEN");
     });
   });
 
@@ -4825,8 +4825,8 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("void Motor_start(void)");
-      expect(code).toContain("void Motor_stop(void)");
+      expect(code).toContain("void Motor__start(void)");
+      expect(code).toContain("void Motor__stop(void)");
     });
   });
 
@@ -4850,7 +4850,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Counter_value");
+      expect(code).toContain("Counter__value");
     });
   });
 
@@ -5122,7 +5122,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("return Status_OK");
+      expect(code).toContain("return Status__OK");
     });
   });
 
@@ -5490,8 +5490,8 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Priority_LOW = 1");
-      expect(code).toContain("Priority_HIGH = 10");
+      expect(code).toContain("Priority__LOW = 1");
+      expect(code).toContain("Priority__HIGH = 10");
     });
   });
 
@@ -5710,7 +5710,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("State_Mode_ON");
+      expect(code).toContain("State__Mode__ON");
     });
   });
 
@@ -5934,7 +5934,7 @@ describe("CodeGenerator", () => {
       });
 
       // = becomes == in C
-      expect(code).toContain("current == State_RUNNING");
+      expect(code).toContain("current == State__RUNNING");
     });
   });
 
@@ -5962,8 +5962,8 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("case State_IDLE:");
-      expect(code).toContain("case State_RUNNING:");
+      expect(code).toContain("case State__IDLE:");
+      expect(code).toContain("case State__RUNNING:");
     });
   });
 
@@ -6105,7 +6105,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Settings_cfg");
+      expect(code).toContain("Settings__cfg");
     });
   });
 
@@ -6209,8 +6209,8 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("typedef enum");
-      expect(code).toContain("Color_RED");
-      expect(code).toContain("Size_SMALL");
+      expect(code).toContain("Color__RED");
+      expect(code).toContain("Size__SMALL");
     });
   });
 
@@ -6272,7 +6272,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Types_Mode");
+      expect(code).toContain("Types__Mode");
     });
   });
 
@@ -6404,8 +6404,8 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("ScopeA_methodA");
-      expect(code).toContain("ScopeB_methodB");
+      expect(code).toContain("ScopeA__methodA");
+      expect(code).toContain("ScopeB__methodB");
     });
   });
 
@@ -6426,7 +6426,7 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("Motor_speed = 100");
+      expect(code).toContain("Motor__speed = 100");
     });
   });
 
@@ -6734,7 +6734,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Color c = Color_Red");
+        expect(code).toContain("Color c = Color__Red");
       });
 
       it("should initialize scoped enum to first member", () => {
@@ -6756,7 +6756,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("LED_State s = LED_State_Off");
+        expect(code).toContain("LED__State s = LED__State__Off");
       });
 
       it("should initialize qualified enum to first member", () => {
@@ -6778,7 +6778,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_Direction d = Motor_Direction_Forward");
+        expect(code).toContain(
+          "Motor__Direction d = Motor__Direction__Forward",
+        );
       });
 
       it("should find enum member with explicit value 0", () => {
@@ -6799,7 +6801,7 @@ describe("CodeGenerator", () => {
         });
 
         // Should find Success which has explicit value 0
-        expect(code).toContain("Status s = Status_Success");
+        expect(code).toContain("Status s = Status__Success");
       });
     });
 
@@ -6843,7 +6845,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Sensor_Data d = {0}");
+        expect(code).toContain("Sensor__Data d = {0}");
       });
 
       it("should initialize qualified struct to {0}", () => {
@@ -6865,7 +6867,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Config_Settings cfg = {0}");
+        expect(code).toContain("Config__Settings cfg = {0}");
       });
     });
 
@@ -7115,7 +7117,7 @@ describe("CodeGenerator", () => {
         });
 
         // Register bit write generates bit-manipulation code
-        expect(code).toContain("GPIO_DR");
+        expect(code).toContain("GPIO__DR");
       });
 
       it("should generate bit range write to register", () => {
@@ -7137,7 +7139,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("TIMER_CTRL");
+        expect(code).toContain("TIMER__CTRL");
       });
     });
 
@@ -7161,7 +7163,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("GPIO_DR = 0xFF");
+        expect(code).toContain("GPIO__DR = 0xFF");
       });
 
       it("should allow write to write-only register member", () => {
@@ -7183,7 +7185,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("CONTROL_COMMAND = 0x42");
+        expect(code).toContain("CONTROL__COMMAND = 0x42");
       });
     });
 
@@ -7209,7 +7211,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Sensor_value = 100");
+        expect(code).toContain("Sensor__value = 100");
       });
 
       it("should throw on self-scope reference in assignment target", () => {
@@ -7254,7 +7256,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_position.x = 10");
+        expect(code).toContain("Motor__position.x = 10");
       });
     });
 
@@ -7325,7 +7327,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Sensor_readings[0] = 42");
+        expect(code).toContain("Sensor__readings[0] = 42");
       });
     });
 
@@ -7349,7 +7351,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Counter_value = 42");
+        expect(code).toContain("Counter__value = 42");
       });
 
       it("should generate simple struct member write (no register, no scope)", () => {
@@ -7424,7 +7426,7 @@ describe("CodeGenerator", () => {
         });
 
         // Should generate GPIO_DR without error since GPIO is unambiguous
-        expect(code).toContain("GPIO_DR = 0xFF");
+        expect(code).toContain("GPIO__DR = 0xFF");
       });
 
       it("should generate scope member write from outside any scope", () => {
@@ -7446,7 +7448,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Timer_count = 0");
+        expect(code).toContain("Timer__count = 0");
       });
 
       it("should generate scope variable write with non-struct type (3+ parts)", () => {
@@ -7470,7 +7472,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_nested_value = 0");
+        expect(code).toContain("Motor__nested_value = 0");
       });
 
       it("should generate struct param member access in function", () => {
@@ -7561,7 +7563,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_current = Motor_State_IDLE");
+        expect(code).toContain("Motor__current = Motor__State__IDLE");
       });
 
       it("should resolve global.EnumType.MEMBER pattern", () => {
@@ -7584,7 +7586,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Task_level = Priority_HIGH");
+        expect(code).toContain("Task__level = Priority__HIGH");
       });
 
       it("should resolve this.variable pattern for enum type variable", () => {
@@ -7607,7 +7609,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Controller_mode = Mode_AUTO");
+        expect(code).toContain("Controller__mode = Mode__AUTO");
       });
 
       it("should resolve Scope.EnumType.MEMBER pattern", () => {
@@ -7629,7 +7631,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("LED_Color_RED");
+        expect(code).toContain("LED__Color__RED");
       });
     });
 
@@ -7795,7 +7797,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("State_IDLE");
+        expect(code).toContain("State__IDLE");
       });
 
       it("should handle nested if-else with blocks", () => {
@@ -7932,7 +7934,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("callee(Motor_speed)");
+        expect(code).toContain("callee(Motor__speed)");
       });
 
       it("should handle expression argument", () => {
@@ -8533,7 +8535,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_speed");
+        expect(code).toContain("Motor__speed");
       });
 
       it("should generate scope function", () => {
@@ -8552,7 +8554,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("void Motor_start(void)");
+        expect(code).toContain("void Motor__start(void)");
       });
 
       it("should generate scope with enum and function using it", () => {
@@ -8575,8 +8577,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_current = s");
-        expect(code).toContain("void Motor_setState(State s)");
+        expect(code).toContain("Motor__current = s");
+        expect(code).toContain("void Motor__setState(State s)");
       });
     });
 
@@ -9083,7 +9085,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("LED_state");
+        expect(code).toContain("LED__state");
       });
 
       it("should handle array access in assignment target", () => {
@@ -9288,7 +9290,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_Config");
+        expect(code).toContain("Motor__Config");
       });
     });
 
@@ -9614,7 +9616,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Color_RED");
+        expect(code).toContain("Color__RED");
       });
 
       it("should generate enum with explicit values", () => {
@@ -9631,9 +9633,9 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Priority_LOW = 0");
-        expect(code).toContain("Priority_MEDIUM = 5");
-        expect(code).toContain("Priority_HIGH = 10");
+        expect(code).toContain("Priority__LOW = 0");
+        expect(code).toContain("Priority__MEDIUM = 5");
+        expect(code).toContain("Priority__HIGH = 10");
       });
     });
 
@@ -9842,7 +9844,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_Config");
+        expect(code).toContain("Motor__Config");
       });
     });
 
@@ -9869,8 +9871,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("LED_State_OFF");
-        expect(code).toContain("LED_State_ON");
+        expect(code).toContain("LED__State__OFF");
+        expect(code).toContain("LED__State__ON");
       });
 
       it("should resolve global.EnumType.MEMBER", () => {
@@ -9893,7 +9895,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Color_GREEN");
+        expect(code).toContain("Color__GREEN");
       });
 
       it("should resolve Scope.EnumType.MEMBER from outside", () => {
@@ -9915,7 +9917,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_State_RUNNING");
+        expect(code).toContain("Motor__State__RUNNING");
       });
     });
 
@@ -9939,7 +9941,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("sizeof(Motor_Config)");
+        expect(code).toContain("sizeof(Motor__Config)");
       });
 
       it("should handle sizeof on expression", () => {
@@ -10094,7 +10096,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Counter_count");
+        expect(code).toContain("Counter__count");
       });
 
       it("should generate scope function with string return type capacity", () => {
@@ -10115,7 +10117,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Greeter_getMessage");
+        expect(code).toContain("Greeter__getMessage");
       });
     });
 
@@ -10349,7 +10351,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Logger_buffer");
+        expect(code).toContain("Logger__buffer");
       });
     });
 
@@ -10374,7 +10376,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_State_RUNNING");
+        expect(code).toContain("Motor__State__RUNNING");
       });
     });
 
@@ -10490,7 +10492,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Sensor_Reading r");
+        expect(code).toContain("Sensor__Reading r");
       });
     });
 
@@ -10554,7 +10556,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("State_ON");
+        expect(code).toContain("State__ON");
       });
     });
 
@@ -10923,7 +10925,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Device_Mode_ACTIVE");
+        expect(code).toContain("Device__Mode__ACTIVE");
       });
     });
 
@@ -10999,7 +11001,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Math_add");
+        expect(code).toContain("Math__add");
       });
 
       it("should generate scope function with struct return", () => {
@@ -11024,8 +11026,8 @@ describe("CodeGenerator", () => {
         });
 
         // Scope function name is prefixed, struct return type uses its own name
-        expect(code).toContain("Product Factory_create");
-        expect(code).toContain("Factory_create(uint32_t id)");
+        expect(code).toContain("Product Factory__create");
+        expect(code).toContain("Factory__create(uint32_t id)");
       });
     });
 
@@ -11052,8 +11054,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Controller_State_ERROR");
-        expect(code).toContain("Controller_State_INIT");
+        expect(code).toContain("Controller__State__ERROR");
+        expect(code).toContain("Controller__State__INIT");
       });
     });
 
@@ -11170,7 +11172,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("uint32_t v = Device_getValue()");
+        expect(code).toContain("uint32_t v = Device__getValue()");
       });
 
       it("should resolve enum from this.method() inside scope", () => {
@@ -11195,7 +11197,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Controller_getState()");
+        expect(code).toContain("Controller__getState()");
       });
 
       it("should resolve enum from global.func() inside scope", () => {
@@ -11480,7 +11482,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Util_getValue()");
+        expect(code).toContain("Util__getValue()");
       });
 
       it("should handle global struct type reference in scope", () => {
@@ -11735,7 +11737,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Graphics_Color");
+        expect(code).toContain("Graphics__Color");
       });
 
       it("should handle scoped type parameter (this.Type)", () => {
@@ -11757,7 +11759,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Device_Config");
+        expect(code).toContain("Device__Config");
       });
 
       it("should handle global type parameter inside scope", () => {
@@ -11844,7 +11846,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_Direction_FORWARD");
+        expect(code).toContain("Motor__Direction__FORWARD");
       });
 
       it("should resolve global.Enum.MEMBER pattern inside scope", () => {
@@ -11867,7 +11869,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Priority_HIGH");
+        expect(code).toContain("Priority__HIGH");
       });
 
       it("should resolve Scope.Enum.MEMBER from outside scope", () => {
@@ -11889,7 +11891,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("LED_Color_RED");
+        expect(code).toContain("LED__Color__RED");
       });
 
       it("should resolve enum from this.variable type", () => {
@@ -11914,8 +11916,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Sensor_Status_ERROR");
-        expect(code).toContain("Sensor_Status_OK");
+        expect(code).toContain("Sensor__Status__ERROR");
+        expect(code).toContain("Sensor__Status__OK");
       });
     });
 
@@ -12262,7 +12264,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("sizeof(IO_Buffer)");
+        expect(code).toContain("sizeof(IO__Buffer)");
       });
 
       it("should handle sizeof on variable", () => {
@@ -12390,7 +12392,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("void Logger_info");
+        expect(code).toContain("void Logger__info");
       });
 
       it("should generate scope function with primitive return", () => {
@@ -12412,7 +12414,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("uint32_t Counter_getCount");
+        expect(code).toContain("uint32_t Counter__getCount");
       });
 
       it("should generate private scope variable access", () => {
@@ -12434,7 +12436,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("State_value");
+        expect(code).toContain("State__value");
       });
     });
 
@@ -12524,7 +12526,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Mode_AUTO");
+        expect(code).toContain("Mode__AUTO");
       });
     });
 
@@ -12551,8 +12553,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Controller_Phase_RUN");
-        expect(code).toContain("Controller_Phase_STOP");
+        expect(code).toContain("Controller__Phase__RUN");
+        expect(code).toContain("Controller__Phase__STOP");
       });
     });
 
@@ -12927,7 +12929,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Counter_count");
+        expect(code).toContain("Counter__count");
       });
 
       it("should generate scope member access with this", () => {
@@ -12949,7 +12951,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("State_value");
+        expect(code).toContain("State__value");
       });
     });
   });
@@ -13112,7 +13114,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_State");
+        expect(code).toContain("Motor__State");
       });
 
       it("should handle array type with user-defined struct", () => {
@@ -13353,7 +13355,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Category_A");
+        expect(code).toContain("Category__A");
       });
 
       it("should resolve this.Enum.Member pattern inside scope", () => {
@@ -13373,7 +13375,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_State_IDLE");
+        expect(code).toContain("Motor__State__IDLE");
       });
 
       it("should resolve Scope.Enum.Member from outside scope", () => {
@@ -13393,7 +13395,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_State_IDLE");
+        expect(code).toContain("Motor__State__IDLE");
       });
     });
 
@@ -13524,7 +13526,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Counter_count");
+        expect(code).toContain("Counter__count");
       });
 
       it("should generate scope function call", () => {
@@ -13546,7 +13548,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Timer_start()");
+        expect(code).toContain("Timer__start()");
       });
     });
 
@@ -13677,8 +13679,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Device_current");
-        expect(code).toContain("Status_ACTIVE");
+        expect(code).toContain("Device__current");
+        expect(code).toContain("Status__ACTIVE");
       });
     });
 
@@ -13700,7 +13702,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Priority_HIGH");
+        expect(code).toContain("Priority__HIGH");
       });
     });
 
@@ -13868,7 +13870,7 @@ describe("CodeGenerator", () => {
         });
 
         // this.bar() should become Foo_bar()
-        expect(code).toContain("Foo_bar()");
+        expect(code).toContain("Foo__bar()");
       });
 
       it("should resolve Scope.method() to Scope_method", () => {
@@ -13892,7 +13894,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Utils_getValue()");
+        expect(code).toContain("Utils__getValue()");
       });
 
       it("should resolve global.func() to func", () => {
@@ -13944,7 +13946,7 @@ describe("CodeGenerator", () => {
         });
 
         // global.Config.getTimeout() should become Config_getTimeout()
-        expect(code).toContain("Config_getTimeout()");
+        expect(code).toContain("Config__getTimeout()");
       });
     });
 
@@ -14257,7 +14259,7 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("Color colors[3]");
-        expect(code).toContain("colors[0] = Color_RED");
+        expect(code).toContain("colors[0] = Color__RED");
       });
 
       it("should handle struct array initializer with C-Next syntax", () => {
@@ -14494,8 +14496,8 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Color_RED");
-        expect(code).toContain("Color_GREEN");
+        expect(code).toContain("Color__RED");
+        expect(code).toContain("Color__GREEN");
       });
 
       it("should handle enum comparison", () => {
@@ -14518,7 +14520,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("s == Status_ERROR");
+        expect(code).toContain("s == Status__ERROR");
       });
 
       it("should handle enum return from function", () => {
@@ -14541,7 +14543,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Result_SUCCESS");
+        expect(code).toContain("Result__SUCCESS");
         expect(code).toContain("getResult()");
       });
     });
@@ -14775,7 +14777,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Motor_State");
+        expect(code).toContain("Motor__State");
       });
 
       it("should resolve global.Type for global types inside scope", () => {
@@ -14824,8 +14826,8 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("switch");
-        expect(code).toContain("case State_OFF");
-        expect(code).toContain("case State_ON");
+        expect(code).toContain("case State__OFF");
+        expect(code).toContain("case State__ON");
         expect(code).toContain("break;");
       });
 
@@ -15315,7 +15317,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("Math_square(5U)");
+        expect(code).toContain("Math__square(5U)");
       });
     });
 

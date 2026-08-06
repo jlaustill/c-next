@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct ConstInferred_TItem {
+typedef struct ConstInferred__TItem {
     uint32_t id;
     uint16_t value;
-} ConstInferred_TItem;
+} ConstInferred__TItem;
 
 /* External variables */
-extern const ConstInferred_TItem ITEMS[3];
-extern ConstInferred_TItem mutableItems[2];
+extern const ConstInferred__TItem ITEMS[3];
+extern ConstInferred__TItem mutableItems[2];
 extern const uint8_t SIZES[4];
 extern const int32_t EXPLICIT[2];
 extern const uint8_t ITEM_COUNT;

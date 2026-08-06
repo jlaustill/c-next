@@ -10,12 +10,12 @@
 // Test: Basic scoped register declaration and access
 /* Scope: Teensy4 */
 
-/* Register: Teensy4_GPIO7 @ 0x42004000 */
-#define Teensy4_GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-#define Teensy4_GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
-#define Teensy4_GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
+/* Register: Teensy4__GPIO7 @ 0x42004000 */
+#define Teensy4__GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+#define Teensy4__GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
+#define Teensy4__GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
 
 int main(void) {
-    Teensy4_GPIO7_DR_SET = 8;
+    Teensy4__GPIO7__DR_SET = 8;
 }

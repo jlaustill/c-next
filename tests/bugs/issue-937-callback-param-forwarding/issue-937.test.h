@@ -15,8 +15,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Port_my_flush(widget_t* w, const rect_t* area, uint8_t* buf);
-void Port_init(void);
+void Port__my_flush(widget_t* w, const rect_t* area, uint8_t* buf);
+void Port__init(void);
 
 #ifdef __cplusplus
 }

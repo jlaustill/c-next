@@ -10,29 +10,29 @@
 // Test bare function names call scope functions
 // test-execution
 /* Scope: Calculator */
-static uint32_t Calculator_result = 0U;
+static uint32_t Calculator__result = 0U;
 
-void Calculator_reset(void) {
-    Calculator_result = 0U;
+void Calculator__reset(void) {
+    Calculator__result = 0U;
 }
 
-void Calculator_addTen(void) {
-    Calculator_result += 10U;
+void Calculator__addTen(void) {
+    Calculator__result += 10U;
 }
 
-void Calculator_compute(void) {
-    Calculator_reset();
-    Calculator_addTen();
-    Calculator_addTen();
+void Calculator__compute(void) {
+    Calculator__reset();
+    Calculator__addTen();
+    Calculator__addTen();
 }
 
-uint32_t Calculator_getResult(void) {
-    return Calculator_result;
+uint32_t Calculator__getResult(void) {
+    return Calculator__result;
 }
 
 int main(void) {
-    Calculator_compute();
-    uint32_t result = Calculator_getResult();
+    Calculator__compute();
+    uint32_t result = Calculator__getResult();
     if (result != 20) return 1;
     return 0;
 }

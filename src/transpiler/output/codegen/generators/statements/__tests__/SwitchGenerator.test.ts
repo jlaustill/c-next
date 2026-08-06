@@ -307,7 +307,7 @@ describe("SwitchGenerator", () => {
 
         const result = generateCaseLabel(ctx, input, state, orchestrator);
 
-        expect(result.code).toBe("State_IDLE");
+        expect(result.code).toBe("State__IDLE");
         expect(result.effects).toEqual([]);
       });
 
@@ -319,7 +319,7 @@ describe("SwitchGenerator", () => {
 
         const result = generateCaseLabel(ctx, input, state, orchestrator);
 
-        expect(result.code).toBe("Motor_State_RUNNING");
+        expect(result.code).toBe("Motor__State__RUNNING");
       });
     });
 
@@ -360,7 +360,7 @@ describe("SwitchGenerator", () => {
           "State",
         );
 
-        expect(result.code).toBe("State_IDLE");
+        expect(result.code).toBe("State__IDLE");
       });
 
       it("throws for unqualified enum member when switch is not on enum (Issue #477)", () => {
@@ -615,7 +615,7 @@ describe("SwitchGenerator", () => {
         "State",
       );
 
-      expect(result.code).toContain("case State_IDLE: {");
+      expect(result.code).toContain("case State__IDLE: {");
     });
 
     it("handles empty block (no statements)", () => {
@@ -798,7 +798,7 @@ describe("SwitchGenerator", () => {
       const result = generateSwitch(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("switch (currentState) {");
-      expect(result.code).toContain("case State_IDLE: {");
+      expect(result.code).toContain("case State__IDLE: {");
     });
 
     it("calls getExpressionEnumType to determine switch type", () => {

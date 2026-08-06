@@ -12,43 +12,43 @@
 // Issue #954: Single bit write on scope variables not lowered to C
 // Tests: scope variable LHS single bit write should use read-modify-write pattern
 /* Scope: Flags */
-static uint8_t Flags_status = 0;
+static uint8_t Flags__status = 0;
 
-void Flags_setReady(void) {
-    Flags_status = (uint8_t)((Flags_status & ~(1U << 0)) | (1U << 0));
+void Flags__setReady(void) {
+    Flags__status = (uint8_t)((Flags__status & ~(1U << 0)) | (1U << 0));
 }
 
-void Flags_clearReady(void) {
-    Flags_status = (uint8_t)((Flags_status & ~(1U << 0)) | (0U << 0));
+void Flags__clearReady(void) {
+    Flags__status = (uint8_t)((Flags__status & ~(1U << 0)) | (0U << 0));
 }
 
-void Flags_setError(void) {
-    Flags_status = (uint8_t)((Flags_status & ~(1U << 7)) | (1U << 7));
+void Flags__setError(void) {
+    Flags__status = (uint8_t)((Flags__status & ~(1U << 7)) | (1U << 7));
 }
 
-uint8_t Flags_getStatus(void) {
-    return Flags_status;
+uint8_t Flags__getStatus(void) {
+    return Flags__status;
 }
 
-void Flags_reset(void) {
-    Flags_status = 0U;
+void Flags__reset(void) {
+    Flags__status = 0U;
 }
 
 int main(void) {
     uint8_t result = 0;
-    Flags_reset();
-    Flags_setReady();
-    result = Flags_getStatus();
+    Flags__reset();
+    Flags__setReady();
+    result = Flags__getStatus();
     if (result != 0x01) {
         return 1;
     }
-    Flags_setError();
-    result = Flags_getStatus();
+    Flags__setError();
+    result = Flags__getStatus();
     if (result != 0x81) {
         return 2;
     }
-    Flags_clearReady();
-    result = Flags_getStatus();
+    Flags__clearReady();
+    result = Flags__getStatus();
     if (result != 0x80) {
         return 3;
     }

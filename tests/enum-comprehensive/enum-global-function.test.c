@@ -8,11 +8,11 @@
 // test-execution
 // Tests: Global function returning enum
 typedef enum {
-    EState_OFF = 0,
-    EState_ON = 1
+    EState__OFF = 0,
+    EState__ON = 1
 } EState;
 
-EState globalState = EState_OFF;
+EState globalState = EState__OFF;
 
 EState getState(void) {
     return globalState;
@@ -20,6 +20,6 @@ EState getState(void) {
 
 int main(void) {
     EState current = getState();
-    if (current != EState_OFF) return 1;
+    if (current != EState__OFF) return 1;
     return 0;
 }

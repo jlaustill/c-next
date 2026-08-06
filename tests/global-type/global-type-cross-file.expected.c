@@ -14,33 +14,33 @@
 
 /* Scope: TaskManager */
 
-EPriority TaskManager_getPriority(void) {
-    return EPriority_HIGH;
+EPriority TaskManager__getPriority(void) {
+    return EPriority__HIGH;
 }
 
-int32_t TaskManager_priorityToInt(EPriority p) {
+int32_t TaskManager__priorityToInt(EPriority p) {
     return (int32_t)p;
 }
 
-Vec2 TaskManager_getPosition(void) {
+Vec2 TaskManager__getPosition(void) {
     Vec2 pos = { .x = 100, .y = 200 };
     return pos;
 }
 
-int32_t TaskManager_sumVec(const Vec2* v) {
+int32_t TaskManager__sumVec(const Vec2* v) {
     return v->x + v->y;
 }
 
 int main(void) {
-    EPriority priority = EPriority_HIGH;
+    EPriority priority = EPriority__HIGH;
     if ((int32_t)priority != 2) return 1;
-    int32_t pval = TaskManager_priorityToInt(EPriority_MEDIUM);
+    int32_t pval = TaskManager__priorityToInt(EPriority__MEDIUM);
     if (pval != 1) return 2;
-    Vec2 pos = TaskManager_getPosition();
+    Vec2 pos = TaskManager__getPosition();
     if (pos.x != 100) return 3;
     if (pos.y != 200) return 4;
     Vec2 v = { .x = 15, .y = 25 };
-    int32_t total = TaskManager_sumVec(&v);
+    int32_t total = TaskManager__sumVec(&v);
     if (total != 40) return 5;
     return 0;
 }

@@ -12,39 +12,39 @@
 // Issue #478: global.EnumType not recognized as type reference inside scope
 // Define struct in same file to avoid cross-file header conflicts
 /* Scope: PointManager */
-static Point2D PointManager_point = {};
+static Point2D PointManager__point = {};
 
-void PointManager_setPoint(int32_t px, int32_t py) {
-    PointManager_point.x = px;
-    PointManager_point.y = py;
+void PointManager__setPoint(int32_t px, int32_t py) {
+    PointManager__point.x = px;
+    PointManager__point.y = py;
 }
 
-int32_t PointManager_getX(void) {
-    return PointManager_point.x;
+int32_t PointManager__getX(void) {
+    return PointManager__point.x;
 }
 
-int32_t PointManager_getY(void) {
-    return PointManager_point.y;
+int32_t PointManager__getY(void) {
+    return PointManager__point.y;
 }
 
-Point2D PointManager_getPoint(void) {
-    return PointManager_point;
+Point2D PointManager__getPoint(void) {
+    return PointManager__point;
 }
 
-int32_t PointManager_sum(const Point2D& p) {
+int32_t PointManager__sum(const Point2D& p) {
     return p.x + p.y;
 }
 
 int main(void) {
-    PointManager_setPoint(10, 20);
-    int32_t x = PointManager_getX();
-    int32_t y = PointManager_getY();
+    PointManager__setPoint(10, 20);
+    int32_t x = PointManager__getX();
+    int32_t y = PointManager__getY();
     if (x != 10) return 1;
     if (y != 20) return 2;
-    Point2D p = PointManager_getPoint();
+    Point2D p = PointManager__getPoint();
     if (p.x != 10) return 3;
     if (p.y != 20) return 4;
-    int32_t total = PointManager_sum(p);
+    int32_t total = PointManager__sum(p);
     if (total != 30) return 5;
     return 0;
 }

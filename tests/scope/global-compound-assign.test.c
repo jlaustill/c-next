@@ -26,19 +26,19 @@ int32_t values[4] = {0};
 
 /* Scope: Worker */
 
-void Worker_updateGlobal(void) {
+void Worker__updateGlobal(void) {
     counter = cnx_clamp_add_i32(counter, 50);
 }
 
-void Worker_updateGlobalArray(void) {
+void Worker__updateGlobalArray(void) {
     values[0] = 200;
     values[0] += 100;
 }
 
 int main(void) {
     values[0] = 0;
-    Worker_updateGlobal();
-    Worker_updateGlobalArray();
+    Worker__updateGlobal();
+    Worker__updateGlobalArray();
     if (counter != 150) {
         return 1;
     }

@@ -60,7 +60,7 @@ int main(void) {
     Point p4 = { .x = -3, .y = 4 };
     int32_t dist = manhattanDistance(p4);
     if (dist != 7) return 10;
-    SimpleStruct_Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
+    SimpleStruct__Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
     if (s1.id != 42) return 11;
     if (s1.active != true) return 12;
     return 0;

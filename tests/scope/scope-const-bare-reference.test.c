@@ -12,19 +12,19 @@
 // Issue #741: const variables inside scopes are referenced but never declared
 /* Scope: Foo */
 
-uint32_t Foo_getConstant(void) {
+uint32_t Foo__getConstant(void) {
     return 42;
 }
 
-uint8_t Foo_useInExpression(void) {
+uint8_t Foo__useInExpression(void) {
     uint8_t result = 10 + 5U;
     return result;
 }
 
 int main(void) {
-    uint32_t val = Foo_getConstant();
+    uint32_t val = Foo__getConstant();
     if (val != 42) return 1;
-    uint8_t expr = Foo_useInExpression();
+    uint8_t expr = Foo__useInExpression();
     if (expr != 15) return 2;
     return 0;
 }

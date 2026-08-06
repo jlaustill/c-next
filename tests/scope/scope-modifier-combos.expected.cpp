@@ -36,172 +36,172 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
 // Verifies that combined modifiers (const clamp, const wrap, public clamp, etc.)
 // work correctly with scope variables accessed via this. accessor
 /* Scope: ModifierCombos */
-uint8_t ModifierCombos_publicClampByte = 200U;
-uint16_t ModifierCombos_publicClampWord = 60000U;
-int8_t ModifierCombos_publicClampSigned = 100;
-static uint8_t ModifierCombos_privateClampByte = 50U;
-static uint16_t ModifierCombos_privateClampWord = 10000U;
-static int8_t ModifierCombos_privateClampSigned = -50;
-uint8_t ModifierCombos_publicWrapByte = 250U;
-uint16_t ModifierCombos_publicWrapWord = 65530U;
-static uint8_t ModifierCombos_privateWrapByte = 5U;
-static uint16_t ModifierCombos_privateWrapWord = 100U;
-const uint8_t ModifierCombos_PUBLIC_CONST = 42U;
-const bool ModifierCombos_PUBLIC_FLAG = true;
+uint8_t ModifierCombos__publicClampByte = 200U;
+uint16_t ModifierCombos__publicClampWord = 60000U;
+int8_t ModifierCombos__publicClampSigned = 100;
+static uint8_t ModifierCombos__privateClampByte = 50U;
+static uint16_t ModifierCombos__privateClampWord = 10000U;
+static int8_t ModifierCombos__privateClampSigned = -50;
+uint8_t ModifierCombos__publicWrapByte = 250U;
+uint16_t ModifierCombos__publicWrapWord = 65530U;
+static uint8_t ModifierCombos__privateWrapByte = 5U;
+static uint16_t ModifierCombos__privateWrapWord = 100U;
+const uint8_t ModifierCombos__PUBLIC_CONST = 42U;
+const bool ModifierCombos__PUBLIC_FLAG = true;
 
-uint8_t ModifierCombos_getMaxBrightness(void) {
+uint8_t ModifierCombos__getMaxBrightness(void) {
     return 255;
 }
 
-uint16_t ModifierCombos_getMaxSensor(void) {
+uint16_t ModifierCombos__getMaxSensor(void) {
     return 65535;
 }
 
-int8_t ModifierCombos_getMinTemp(void) {
+int8_t ModifierCombos__getMinTemp(void) {
     return -128;
 }
 
-uint8_t ModifierCombos_getCounterStart(void) {
+uint8_t ModifierCombos__getCounterStart(void) {
     return 0;
 }
 
-uint16_t ModifierCombos_getTickStart(void) {
+uint16_t ModifierCombos__getTickStart(void) {
     return 1000;
 }
 
-uint8_t ModifierCombos_getPublicClampByte(void) {
-    return ModifierCombos_publicClampByte;
+uint8_t ModifierCombos__getPublicClampByte(void) {
+    return ModifierCombos__publicClampByte;
 }
 
-uint16_t ModifierCombos_getPublicClampWord(void) {
-    return ModifierCombos_publicClampWord;
+uint16_t ModifierCombos__getPublicClampWord(void) {
+    return ModifierCombos__publicClampWord;
 }
 
-int8_t ModifierCombos_getPublicClampSigned(void) {
-    return ModifierCombos_publicClampSigned;
+int8_t ModifierCombos__getPublicClampSigned(void) {
+    return ModifierCombos__publicClampSigned;
 }
 
-uint8_t ModifierCombos_getPrivateClampByte(void) {
-    return ModifierCombos_privateClampByte;
+uint8_t ModifierCombos__getPrivateClampByte(void) {
+    return ModifierCombos__privateClampByte;
 }
 
-uint16_t ModifierCombos_getPrivateClampWord(void) {
-    return ModifierCombos_privateClampWord;
+uint16_t ModifierCombos__getPrivateClampWord(void) {
+    return ModifierCombos__privateClampWord;
 }
 
-int8_t ModifierCombos_getPrivateClampSigned(void) {
-    return ModifierCombos_privateClampSigned;
+int8_t ModifierCombos__getPrivateClampSigned(void) {
+    return ModifierCombos__privateClampSigned;
 }
 
-uint8_t ModifierCombos_getPublicWrapByte(void) {
-    return ModifierCombos_publicWrapByte;
+uint8_t ModifierCombos__getPublicWrapByte(void) {
+    return ModifierCombos__publicWrapByte;
 }
 
-uint16_t ModifierCombos_getPublicWrapWord(void) {
-    return ModifierCombos_publicWrapWord;
+uint16_t ModifierCombos__getPublicWrapWord(void) {
+    return ModifierCombos__publicWrapWord;
 }
 
-uint8_t ModifierCombos_getPrivateWrapByte(void) {
-    return ModifierCombos_privateWrapByte;
+uint8_t ModifierCombos__getPrivateWrapByte(void) {
+    return ModifierCombos__privateWrapByte;
 }
 
-uint16_t ModifierCombos_getPrivateWrapWord(void) {
-    return ModifierCombos_privateWrapWord;
+uint16_t ModifierCombos__getPrivateWrapWord(void) {
+    return ModifierCombos__privateWrapWord;
 }
 
-uint8_t ModifierCombos_getPublicConst(void) {
-    return ModifierCombos_PUBLIC_CONST;
+uint8_t ModifierCombos__getPublicConst(void) {
+    return ModifierCombos__PUBLIC_CONST;
 }
 
-bool ModifierCombos_getPublicFlag(void) {
-    return ModifierCombos_PUBLIC_FLAG;
+bool ModifierCombos__getPublicFlag(void) {
+    return ModifierCombos__PUBLIC_FLAG;
 }
 
-uint8_t ModifierCombos_getPrivateConst(void) {
+uint8_t ModifierCombos__getPrivateConst(void) {
     return 99;
 }
 
-bool ModifierCombos_getPrivateFlag(void) {
+bool ModifierCombos__getPrivateFlag(void) {
     return false;
 }
 
-void ModifierCombos_increasePublicClampByte(void) {
-    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 100U);
+void ModifierCombos__increasePublicClampByte(void) {
+    ModifierCombos__publicClampByte = cnx_clamp_add_u8(ModifierCombos__publicClampByte, 100U);
 }
 
-void ModifierCombos_decreasePublicClampSigned(void) {
-    ModifierCombos_publicClampSigned = cnx_clamp_sub_i8(ModifierCombos_publicClampSigned, 50);
+void ModifierCombos__decreasePublicClampSigned(void) {
+    ModifierCombos__publicClampSigned = cnx_clamp_sub_i8(ModifierCombos__publicClampSigned, 50);
 }
 
-void ModifierCombos_increasePrivateClampByte(void) {
-    ModifierCombos_privateClampByte = cnx_clamp_add_u8(ModifierCombos_privateClampByte, 220U);
+void ModifierCombos__increasePrivateClampByte(void) {
+    ModifierCombos__privateClampByte = cnx_clamp_add_u8(ModifierCombos__privateClampByte, 220U);
 }
 
-void ModifierCombos_decreasePrivateClampWord(void) {
-    ModifierCombos_privateClampWord = cnx_clamp_sub_u16(ModifierCombos_privateClampWord, 15000U);
+void ModifierCombos__decreasePrivateClampWord(void) {
+    ModifierCombos__privateClampWord = cnx_clamp_sub_u16(ModifierCombos__privateClampWord, 15000U);
 }
 
-void ModifierCombos_incrementPublicWrapByte(void) {
-    ModifierCombos_publicWrapByte += 10U;
+void ModifierCombos__incrementPublicWrapByte(void) {
+    ModifierCombos__publicWrapByte += 10U;
 }
 
-void ModifierCombos_incrementPublicWrapWord(void) {
-    ModifierCombos_publicWrapWord += 10U;
+void ModifierCombos__incrementPublicWrapWord(void) {
+    ModifierCombos__publicWrapWord += 10U;
 }
 
-void ModifierCombos_decrementPrivateWrapByte(void) {
-    ModifierCombos_privateWrapByte -= 10U;
+void ModifierCombos__decrementPrivateWrapByte(void) {
+    ModifierCombos__privateWrapByte -= 10U;
 }
 
-void ModifierCombos_decrementPrivateWrapWord(void) {
-    ModifierCombos_privateWrapWord -= 150U;
+void ModifierCombos__decrementPrivateWrapWord(void) {
+    ModifierCombos__privateWrapWord -= 150U;
 }
 
-void ModifierCombos_adjustAllClamp(void) {
-    ModifierCombos_publicClampByte = cnx_clamp_add_u8(ModifierCombos_publicClampByte, 10U);
-    ModifierCombos_publicClampSigned = cnx_clamp_sub_i8(ModifierCombos_publicClampSigned, 5);
-    ModifierCombos_increasePrivateClampByte();
+void ModifierCombos__adjustAllClamp(void) {
+    ModifierCombos__publicClampByte = cnx_clamp_add_u8(ModifierCombos__publicClampByte, 10U);
+    ModifierCombos__publicClampSigned = cnx_clamp_sub_i8(ModifierCombos__publicClampSigned, 5);
+    ModifierCombos__increasePrivateClampByte();
 }
 
-void ModifierCombos_adjustAllWrap(void) {
-    ModifierCombos_publicWrapByte += 1U;
-    ModifierCombos_publicWrapWord += 1U;
-    ModifierCombos_decrementPrivateWrapByte();
+void ModifierCombos__adjustAllWrap(void) {
+    ModifierCombos__publicWrapByte += 1U;
+    ModifierCombos__publicWrapWord += 1U;
+    ModifierCombos__decrementPrivateWrapByte();
 }
 
 int main(void) {
-    ModifierCombos_getMaxBrightness();
-    ModifierCombos_getMaxSensor();
-    ModifierCombos_getMinTemp();
-    ModifierCombos_getCounterStart();
-    ModifierCombos_getTickStart();
-    ModifierCombos_getPublicClampByte();
-    ModifierCombos_getPublicClampWord();
-    ModifierCombos_getPublicClampSigned();
-    ModifierCombos_getPrivateClampByte();
-    ModifierCombos_getPrivateClampWord();
-    ModifierCombos_getPrivateClampSigned();
-    ModifierCombos_getPublicWrapByte();
-    ModifierCombos_getPublicWrapWord();
-    ModifierCombos_getPrivateWrapByte();
-    ModifierCombos_getPrivateWrapWord();
-    ModifierCombos_getPublicConst();
-    ModifierCombos_getPublicFlag();
-    ModifierCombos_getPrivateConst();
-    ModifierCombos_getPrivateFlag();
-    ModifierCombos_increasePublicClampByte();
-    ModifierCombos_decreasePublicClampSigned();
-    ModifierCombos_incrementPublicWrapByte();
-    ModifierCombos_incrementPublicWrapWord();
-    ModifierCombos_adjustAllClamp();
-    ModifierCombos_adjustAllWrap();
-    uint8_t testClampByte = ModifierCombos_publicClampByte;
-    uint16_t testClampWord = ModifierCombos_publicClampWord;
-    int8_t testClampSigned = ModifierCombos_publicClampSigned;
-    uint8_t testWrapByte = ModifierCombos_publicWrapByte;
-    uint16_t testWrapWord = ModifierCombos_publicWrapWord;
-    uint8_t testConst = ModifierCombos_PUBLIC_CONST;
-    bool testConstFlag = ModifierCombos_PUBLIC_FLAG;
+    ModifierCombos__getMaxBrightness();
+    ModifierCombos__getMaxSensor();
+    ModifierCombos__getMinTemp();
+    ModifierCombos__getCounterStart();
+    ModifierCombos__getTickStart();
+    ModifierCombos__getPublicClampByte();
+    ModifierCombos__getPublicClampWord();
+    ModifierCombos__getPublicClampSigned();
+    ModifierCombos__getPrivateClampByte();
+    ModifierCombos__getPrivateClampWord();
+    ModifierCombos__getPrivateClampSigned();
+    ModifierCombos__getPublicWrapByte();
+    ModifierCombos__getPublicWrapWord();
+    ModifierCombos__getPrivateWrapByte();
+    ModifierCombos__getPrivateWrapWord();
+    ModifierCombos__getPublicConst();
+    ModifierCombos__getPublicFlag();
+    ModifierCombos__getPrivateConst();
+    ModifierCombos__getPrivateFlag();
+    ModifierCombos__increasePublicClampByte();
+    ModifierCombos__decreasePublicClampSigned();
+    ModifierCombos__incrementPublicWrapByte();
+    ModifierCombos__incrementPublicWrapWord();
+    ModifierCombos__adjustAllClamp();
+    ModifierCombos__adjustAllWrap();
+    uint8_t testClampByte = ModifierCombos__publicClampByte;
+    uint16_t testClampWord = ModifierCombos__publicClampWord;
+    int8_t testClampSigned = ModifierCombos__publicClampSigned;
+    uint8_t testWrapByte = ModifierCombos__publicWrapByte;
+    uint16_t testWrapWord = ModifierCombos__publicWrapWord;
+    uint8_t testConst = ModifierCombos__PUBLIC_CONST;
+    bool testConstFlag = ModifierCombos__PUBLIC_FLAG;
     if (testClampByte == 0 && testClampWord == 0 && testClampSigned == 0 && testWrapByte == 0 && testWrapWord == 0 && testConst == 0 && testConstFlag == false) {
     }
 }

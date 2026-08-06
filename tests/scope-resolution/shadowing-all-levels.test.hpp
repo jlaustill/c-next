@@ -17,7 +17,7 @@ extern "C" {
 extern uint32_t globalCount;
 
 /* Function prototypes */
-uint32_t Counter_testAllLevels(void);
+uint32_t Counter__testAllLevels(void);
 
 #ifdef __cplusplus
 }

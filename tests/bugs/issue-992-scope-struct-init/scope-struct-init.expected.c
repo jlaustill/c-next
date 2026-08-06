@@ -10,4 +10,4 @@
 // Bug #992: Scope variables with struct initializers must use designated initializers
 // (no compound literals at file scope) to compile on GCC 9-12
 /* Scope: Origin */
-Point Origin_p = { .x = 0, .y = 0 };
+Point Origin__p = { .x = 0, .y = 0 };

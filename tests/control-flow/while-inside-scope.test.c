@@ -23,51 +23,51 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t globalResult = 0U;
 
 /* Scope: Counter */
-static uint32_t Counter_value = 0U;
+static uint32_t Counter__value = 0U;
 
-void Counter_countToFive(void) {
+void Counter__countToFive(void) {
     uint32_t i = 0U;
     while (i < 5) {
-        Counter_value = cnx_clamp_add_u32(Counter_value, 1U);
+        Counter__value = cnx_clamp_add_u32(Counter__value, 1U);
         i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
-void Counter_countWhileCondition(bool shouldCount) {
+void Counter__countWhileCondition(bool shouldCount) {
     uint32_t i = 0U;
     while (i < 3 && shouldCount == true) {
-        Counter_value = cnx_clamp_add_u32(Counter_value, 10U);
+        Counter__value = cnx_clamp_add_u32(Counter__value, 10U);
         i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
-uint32_t Counter_getValue(void) {
-    return Counter_value;
+uint32_t Counter__getValue(void) {
+    return Counter__value;
 }
 
-void Counter_reset(void) {
-    Counter_value = 0U;
+void Counter__reset(void) {
+    Counter__value = 0U;
 }
 
 /* Scope: Accumulator */
-static uint32_t Accumulator_sum = 0U;
+static uint32_t Accumulator__sum = 0U;
 
-void Accumulator_sumRange(uint32_t limit) {
+void Accumulator__sumRange(uint32_t limit) {
     uint32_t i = 1U;
     while (i <= limit) {
-        Accumulator_sum = cnx_clamp_add_u32(Accumulator_sum, i);
+        Accumulator__sum = cnx_clamp_add_u32(Accumulator__sum, i);
         i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
-uint32_t Accumulator_getSum(void) {
-    return Accumulator_sum;
+uint32_t Accumulator__getSum(void) {
+    return Accumulator__sum;
 }
 
 int main(void) {
-    Counter_countToFive();
-    globalResult = Counter_getValue();
-    Counter_reset();
-    Counter_countWhileCondition(true);
-    Accumulator_sumRange(5U);
+    Counter__countToFive();
+    globalResult = Counter__getValue();
+    Counter__reset();
+    Counter__countWhileCondition(true);
+    Accumulator__sumRange(5U);
 }

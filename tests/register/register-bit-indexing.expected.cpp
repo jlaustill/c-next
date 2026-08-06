@@ -9,12 +9,12 @@
 // ADR-004 + ADR-007: Bit indexing on registers
 // Tests: single bit access on register members
 /* Register: GPIO @ 0x40000000 */
-#define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
+#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 int main(void) {
-    GPIO_DR = (GPIO_DR & ~(1U << 0)) | (1U << 0);
-    GPIO_DR = (GPIO_DR & ~(1U << 7)) | (1U << 7);
-    bool bit3 = ((((GPIO_DR >> 3U) & 1)) != 0U);
-    GPIO_DR_SET = (1U << 4);
+    GPIO__DR = (GPIO__DR & ~(1U << 0)) | (1U << 0);
+    GPIO__DR = (GPIO__DR & ~(1U << 7)) | (1U << 7);
+    bool bit3 = ((((GPIO__DR >> 3U) & 1)) != 0U);
+    GPIO__DR_SET = (1U << 4);
 }

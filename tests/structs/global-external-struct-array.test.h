@@ -18,9 +18,9 @@ extern "C" {
 extern ExternalStruct globalExt;
 
 /* Function prototypes */
-uint8_t Test_getFromGlobal(void);
-uint8_t Test_getFromParam(const ExternalStruct* ext);
-uint8_t Test_getCount(void);
+uint8_t Test__getFromGlobal(void);
+uint8_t Test__getFromParam(const ExternalStruct* ext);
+uint8_t Test__getCount(void);
 
 #ifdef __cplusplus
 }

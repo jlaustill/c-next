@@ -16,7 +16,7 @@
 
 /* Scope: Handler */
 
-uint32_t Handler_processBuffer(const uint8_t data[8], uint8_t len) {
+uint32_t Handler__processBuffer(const uint8_t data[8], uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
@@ -26,7 +26,7 @@ uint32_t Handler_processBuffer(const uint8_t data[8], uint8_t len) {
     return sum;
 }
 
-uint32_t Handler_processData(const uint8_t data[16], uint8_t len) {
+uint32_t Handler__processData(const uint8_t data[16], uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
@@ -36,18 +36,18 @@ uint32_t Handler_processData(const uint8_t data[16], uint8_t len) {
     return sum;
 }
 
-uint32_t Handler_handleMessage(const CAN_message_t& msg) {
-    return Handler_processBuffer(msg.buf, msg.len);
+uint32_t Handler__handleMessage(const CAN_message_t& msg) {
+    return Handler__processBuffer(msg.buf, msg.len);
 }
 
-uint32_t Handler_processMultiArray(const MultiArray_t& multi) {
-    uint32_t headerSum = Handler_processBuffer(multi.header, 4U);
-    uint32_t bodySum = Handler_processData(multi.body, multi.sizes[1U]);
+uint32_t Handler__processMultiArray(const MultiArray_t& multi) {
+    uint32_t headerSum = Handler__processBuffer(multi.header, 4U);
+    uint32_t bodySum = Handler__processData(multi.body, multi.sizes[1U]);
     return headerSum + bodySum;
 }
 
-uint32_t Handler_handleMutableMessage(const CAN_message_t& msg) {
-    return Handler_processBuffer(msg.buf, msg.len);
+uint32_t Handler__handleMutableMessage(const CAN_message_t& msg) {
+    return Handler__processBuffer(msg.buf, msg.len);
 }
 
 uint32_t testNamedTypedefConstArrayMember(void) {
@@ -62,7 +62,7 @@ uint32_t testNamedTypedefConstArrayMember(void) {
     msg.buf[6] = 0U;
     msg.buf[7] = 0U;
     msg.len = 4U;
-    uint32_t result = Handler_handleMessage(msg);
+    uint32_t result = Handler__handleMessage(msg);
     return result;
 }
 
@@ -77,7 +77,7 @@ uint32_t testMultipleArrayMembers(void) {
     multi.sizes[0] = 4U;
     multi.sizes[1] = 2U;
     multi.sizes[2] = 2U;
-    uint32_t result = Handler_processMultiArray(multi);
+    uint32_t result = Handler__processMultiArray(multi);
     return result;
 }
 
@@ -87,7 +87,7 @@ uint32_t testNonConstArrayMember(void) {
     msg.buf[0] = 100U;
     msg.buf[1] = 50U;
     msg.len = 2U;
-    uint32_t result = Handler_handleMutableMessage(msg);
+    uint32_t result = Handler__handleMutableMessage(msg);
     return result;
 }
 

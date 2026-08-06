@@ -12,24 +12,24 @@
 // Tests: Issue #369 - enum definitions should NOT be duplicated in both .h and .c files
 // When generating headers, enum definitions should ONLY appear in the .h file
 /* Scope: Motor */
-Motor_State Motor_current = Motor_State_IDLE;
+Motor__State Motor__current = Motor__State__IDLE;
 
-uint8_t Motor_start(void) {
-    Motor_current = Motor_State_RUNNING;
+uint8_t Motor__start(void) {
+    Motor__current = Motor__State__RUNNING;
     return 1;
 }
 
-bool Motor_isRunning(void) {
-    if (Motor_current == Motor_State_RUNNING) {
+bool Motor__isRunning(void) {
+    if (Motor__current == Motor__State__RUNNING) {
         return true;
     }
     return false;
 }
 
 int main(void) {
-    Motor_start();
-    if (Motor_current != Motor_State_RUNNING) return 1;
-    bool running = Motor_isRunning();
+    Motor__start();
+    if (Motor__current != Motor__State__RUNNING) return 1;
+    bool running = Motor__isRunning();
     if (running != true) return 2;
     return 0;
 }

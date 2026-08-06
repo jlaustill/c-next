@@ -15,17 +15,17 @@
 // Issue: https://github.com/jlaustill/c-next/issues/452
 /* Scope: EnumUnqualRef */
 
-void setDefault(EnumUnqualRef_Config* config) {
-    config->pType = EPressureType_PRESSURE_TYPE_PSIG;
+void setDefault(EnumUnqualRef__Config* config) {
+    config->pType = EPressureType__PRESSURE_TYPE_PSIG;
 }
 
 int main(void) {
-    EnumUnqualRef_Config cfg = { .pType = EPressureType_PRESSURE_TYPE_PSIA };
-    if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 1;
+    EnumUnqualRef__Config cfg = { .pType = EPressureType__PRESSURE_TYPE_PSIA };
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 1;
     setDefault(&cfg);
-    if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIG) return 2;
-    cfg.pType = EPressureType_PRESSURE_TYPE_PSIA;
-    if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 3;
-    if (cfg.pType != EPressureType_PRESSURE_TYPE_PSIA) return 4;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIG) return 2;
+    cfg.pType = EPressureType__PRESSURE_TYPE_PSIA;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 3;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 4;
     return 0;
 }

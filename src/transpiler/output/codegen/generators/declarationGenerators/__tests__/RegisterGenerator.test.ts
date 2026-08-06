@@ -115,7 +115,7 @@ describe("RegisterGenerator", () => {
 
       expect(result.code).toBe(
         `/* Register: GPIO7 @ 0x42004000 */
-#define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+#define GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
 `,
       );
       expect(result.effects).toEqual([]);
@@ -153,13 +153,13 @@ describe("RegisterGenerator", () => {
 
       expect(result.code).toContain("/* Register: TIMER @ 0x40000000 */");
       expect(result.code).toContain(
-        "#define TIMER_CTRL (*(volatile uint32_t*)(0x40000000 + 0x00))",
+        "#define TIMER__CTRL (*(volatile uint32_t*)(0x40000000 + 0x00))",
       );
       expect(result.code).toContain(
-        "#define TIMER_COUNT (*(volatile uint32_t const *)(0x40000000 + 0x04))",
+        "#define TIMER__COUNT (*(volatile uint32_t const *)(0x40000000 + 0x04))",
       );
       expect(result.code).toContain(
-        "#define TIMER_LOAD (*(volatile uint32_t*)(0x40000000 + 0x08))",
+        "#define TIMER__LOAD (*(volatile uint32_t*)(0x40000000 + 0x08))",
       );
     });
   });
@@ -182,7 +182,7 @@ describe("RegisterGenerator", () => {
       const result = generateRegister(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "#define STATUS_FLAGS (*(volatile uint8_t const *)(0x50000000 + 0x00))",
+        "#define STATUS__FLAGS (*(volatile uint8_t const *)(0x50000000 + 0x00))",
       );
     });
 
@@ -203,7 +203,7 @@ describe("RegisterGenerator", () => {
       const result = generateRegister(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "#define COMMAND_SET (*(volatile uint16_t*)(0x50000000 + 0x00))",
+        "#define COMMAND__SET (*(volatile uint16_t*)(0x50000000 + 0x00))",
       );
     });
 
@@ -224,7 +224,7 @@ describe("RegisterGenerator", () => {
       const result = generateRegister(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "#define CONFIG_VALUE (*(volatile uint32_t*)(0x50000000 + 0x00))",
+        "#define CONFIG__VALUE (*(volatile uint32_t*)(0x50000000 + 0x00))",
       );
     });
   });
@@ -371,16 +371,16 @@ describe("RegisterGenerator", () => {
       const result = generateRegister(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "#define GPIO_DR (*(volatile uint32_t*)(0x401B8000 + 0x00))",
+        "#define GPIO__DR (*(volatile uint32_t*)(0x401B8000 + 0x00))",
       );
       expect(result.code).toContain(
-        "#define GPIO_DR_SET (*(volatile uint32_t*)(0x401B8000 + 0x84))",
+        "#define GPIO__DR_SET (*(volatile uint32_t*)(0x401B8000 + 0x84))",
       );
       expect(result.code).toContain(
-        "#define GPIO_DR_CLEAR (*(volatile uint32_t*)(0x401B8000 + 0x88))",
+        "#define GPIO__DR_CLEAR (*(volatile uint32_t*)(0x401B8000 + 0x88))",
       );
       expect(result.code).toContain(
-        "#define GPIO_DR_TOGGLE (*(volatile uint32_t*)(0x401B8000 + 0x8C))",
+        "#define GPIO__DR_TOGGLE (*(volatile uint32_t*)(0x401B8000 + 0x8C))",
       );
     });
   });

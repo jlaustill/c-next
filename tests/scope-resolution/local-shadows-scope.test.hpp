@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t State_shadowTest(void);
+uint32_t State__shadowTest(void);
 
 #ifdef __cplusplus
 }

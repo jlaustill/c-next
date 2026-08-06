@@ -11,15 +11,15 @@
 
 uint32_t classify(EStatus status) {
     switch (status) {
-        case EStatus_PENDING: {
+        case EStatus__PENDING: {
             return 1;
             break;
         }
-        case EStatus_ACTIVE: {
+        case EStatus__ACTIVE: {
             return 2;
             break;
         }
-        case EStatus_COMPLETED: {
+        case EStatus__COMPLETED: {
             return 3;
             break;
         }

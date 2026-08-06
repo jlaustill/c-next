@@ -12,11 +12,11 @@
 
 /* Scope: Handler */
 
-void Handler_passThrough(Config& config) {
-    Modifier_reset(config);
+void Handler__passThrough(Config& config) {
+    Modifier__reset(config);
 }
 
 int main(void) {
     Config c = { .value = 0U };
-    Handler_passThrough(c);
+    Handler__passThrough(c);
 }

@@ -13,90 +13,90 @@
 // Verifies public members are accessible from outside scope and private are only internal
 // NEW DEFAULTS: Functions are public by default, variables are private by default
 /* Scope: Visibility */
-static uint8_t Visibility_privateCounter = 0U;
-static bool Visibility_privateFlag = false;
-uint8_t Visibility_publicCounter = 10U;
-bool Visibility_publicFlag = true;
+static uint8_t Visibility__privateCounter = 0U;
+static bool Visibility__privateFlag = false;
+uint8_t Visibility__publicCounter = 10U;
+bool Visibility__publicFlag = true;
 
-static uint8_t Visibility_getPrivateCounterInternal(void) {
-    return Visibility_privateCounter;
+static uint8_t Visibility__getPrivateCounterInternal(void) {
+    return Visibility__privateCounter;
 }
 
-static void Visibility_incrementPrivateCounter(void) {
-    Visibility_privateCounter = Visibility_privateCounter + 1U;
+static void Visibility__incrementPrivateCounter(void) {
+    Visibility__privateCounter = Visibility__privateCounter + 1U;
 }
 
-static bool Visibility_checkPrivateFlag(void) {
-    return Visibility_privateFlag;
+static bool Visibility__checkPrivateFlag(void) {
+    return Visibility__privateFlag;
 }
 
-uint8_t Visibility_getPrivateCounter(void) {
-    return Visibility_privateCounter;
+uint8_t Visibility__getPrivateCounter(void) {
+    return Visibility__privateCounter;
 }
 
-uint8_t Visibility_getPrivateCounterViaInternal(void) {
-    return Visibility_getPrivateCounterInternal();
+uint8_t Visibility__getPrivateCounterViaInternal(void) {
+    return Visibility__getPrivateCounterInternal();
 }
 
-uint8_t Visibility_getPublicCounter(void) {
-    return Visibility_publicCounter;
+uint8_t Visibility__getPublicCounter(void) {
+    return Visibility__publicCounter;
 }
 
-void Visibility_setPublicCounter(uint8_t value) {
-    Visibility_publicCounter = value;
+void Visibility__setPublicCounter(uint8_t value) {
+    Visibility__publicCounter = value;
 }
 
-void Visibility_incrementPrivate(void) {
-    Visibility_incrementPrivateCounter();
+void Visibility__incrementPrivate(void) {
+    Visibility__incrementPrivateCounter();
 }
 
-uint8_t Visibility_getSum(void) {
-    return Visibility_privateCounter + Visibility_publicCounter;
+uint8_t Visibility__getSum(void) {
+    return Visibility__privateCounter + Visibility__publicCounter;
 }
 
-bool Visibility_getBothFlags(void) {
-    return Visibility_privateFlag && Visibility_publicFlag;
+bool Visibility__getBothFlags(void) {
+    return Visibility__privateFlag && Visibility__publicFlag;
 }
 
-void Visibility_setPrivateFlag(bool value) {
-    Visibility_privateFlag = value;
+void Visibility__setPrivateFlag(bool value) {
+    Visibility__privateFlag = value;
 }
 
-void Visibility_setPublicFlag(bool value) {
-    Visibility_publicFlag = value;
+void Visibility__setPublicFlag(bool value) {
+    Visibility__publicFlag = value;
 }
 
-void Visibility_setPrivateCounter(uint8_t value) {
-    Visibility_privateCounter = value;
+void Visibility__setPrivateCounter(uint8_t value) {
+    Visibility__privateCounter = value;
 }
 
 int main(void) {
-    if (Visibility_publicCounter != 10) return 1;
-    if (Visibility_publicFlag != true) return 2;
-    uint8_t result3 = Visibility_getPrivateCounter();
+    if (Visibility__publicCounter != 10) return 1;
+    if (Visibility__publicFlag != true) return 2;
+    uint8_t result3 = Visibility__getPrivateCounter();
     if (result3 != 0) return 3;
-    uint8_t result4 = Visibility_getPrivateCounterViaInternal();
+    uint8_t result4 = Visibility__getPrivateCounterViaInternal();
     if (result4 != 0) return 4;
-    uint8_t result5 = Visibility_getPublicCounter();
+    uint8_t result5 = Visibility__getPublicCounter();
     if (result5 != 10) return 5;
-    Visibility_publicCounter = 20;
-    if (Visibility_publicCounter != 20) return 6;
-    Visibility_setPublicCounter(30U);
-    uint8_t result7 = Visibility_getPublicCounter();
+    Visibility__publicCounter = 20;
+    if (Visibility__publicCounter != 20) return 6;
+    Visibility__setPublicCounter(30U);
+    uint8_t result7 = Visibility__getPublicCounter();
     if (result7 != 30) return 7;
-    Visibility_incrementPrivate();
-    uint8_t result8 = Visibility_getPrivateCounter();
+    Visibility__incrementPrivate();
+    uint8_t result8 = Visibility__getPrivateCounter();
     if (result8 != 1) return 8;
-    uint8_t result9 = Visibility_getSum();
+    uint8_t result9 = Visibility__getSum();
     if (result9 != 31) return 9;
-    Visibility_setPrivateFlag(true);
-    bool result10 = Visibility_getBothFlags();
+    Visibility__setPrivateFlag(true);
+    bool result10 = Visibility__getBothFlags();
     if (result10 != true) return 10;
-    Visibility_setPublicFlag(false);
-    bool result11 = Visibility_getBothFlags();
+    Visibility__setPublicFlag(false);
+    bool result11 = Visibility__getBothFlags();
     if (result11 != false) return 11;
-    Visibility_setPrivateCounter(100U);
-    uint8_t result12 = Visibility_getPrivateCounter();
+    Visibility__setPrivateCounter(100U);
+    uint8_t result12 = Visibility__getPrivateCounter();
     if (result12 != 100) return 12;
     return 0;
 }

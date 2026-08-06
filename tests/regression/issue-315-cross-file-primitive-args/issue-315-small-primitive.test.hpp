@@ -21,8 +21,8 @@ typedef struct ByteData {
 } ByteData;
 
 /* Function prototypes */
-void ByteCaller_init(void);
-uint8_t ByteCaller_test(void);
+void ByteCaller__init(void);
+uint8_t ByteCaller__test(void);
 
 #ifdef __cplusplus
 }

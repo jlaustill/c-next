@@ -17,12 +17,12 @@ extern "C" {
 extern uint32_t globalResult;
 
 /* Function prototypes */
-void Counter_countToFive(void);
-void Counter_countWhileCondition(bool shouldCount);
-uint32_t Counter_getValue(void);
-void Counter_reset(void);
-void Accumulator_sumRange(uint32_t limit);
-uint32_t Accumulator_getSum(void);
+void Counter__countToFive(void);
+void Counter__countWhileCondition(bool shouldCount);
+uint32_t Counter__getValue(void);
+void Counter__reset(void);
+void Accumulator__sumRange(uint32_t limit);
+uint32_t Accumulator__getSum(void);
 
 #ifdef __cplusplus
 }

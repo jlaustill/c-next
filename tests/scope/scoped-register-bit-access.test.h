@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Board_toggleLed(void);
+void Board__toggleLed(void);
 
 #ifdef __cplusplus
 }

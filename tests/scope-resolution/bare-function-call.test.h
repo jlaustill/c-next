@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Calculator_reset(void);
-void Calculator_addTen(void);
-void Calculator_compute(void);
-uint32_t Calculator_getResult(void);
+void Calculator__reset(void);
+void Calculator__addTen(void);
+void Calculator__compute(void);
+uint32_t Calculator__getResult(void);
 
 #ifdef __cplusplus
 }

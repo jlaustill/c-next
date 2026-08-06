@@ -17,8 +17,8 @@ extern "C" {
 extern uint8_t globalCount;
 
 /* Function prototypes */
-void Counter_init(void);
-void Counter_increment(void);
+void Counter__init(void);
+void Counter__increment(void);
 
 #ifdef __cplusplus
 }

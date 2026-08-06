@@ -11,41 +11,41 @@
 // Issue #954: Bit-index write on scope variables not lowered to C
 // Tests: scope variable LHS bit-write should use read-modify-write pattern
 /* Scope: Sensor */
-static uint16_t Sensor_value = 0;
+static uint16_t Sensor__value = 0;
 
-void Sensor_setLowByte(uint8_t byte) {
-    Sensor_value = (uint16_t)((Sensor_value & ~(0xFFU << 0)) | ((byte & 0xFFU) << 0));
+void Sensor__setLowByte(uint8_t byte) {
+    Sensor__value = (uint16_t)((Sensor__value & ~(0xFFU << 0)) | ((byte & 0xFFU) << 0));
 }
 
-void Sensor_setHighNibble(uint8_t nibble) {
-    Sensor_value = (uint16_t)((Sensor_value & ~(((1U << 4) - 1) << 12)) | ((nibble & ((1U << 4) - 1)) << 12));
+void Sensor__setHighNibble(uint8_t nibble) {
+    Sensor__value = (uint16_t)((Sensor__value & ~(((1U << 4) - 1) << 12)) | ((nibble & ((1U << 4) - 1)) << 12));
 }
 
-uint16_t Sensor_getValue(void) {
-    return Sensor_value;
+uint16_t Sensor__getValue(void) {
+    return Sensor__value;
 }
 
-void Sensor_reset(uint16_t v) {
-    Sensor_value = v;
+void Sensor__reset(uint16_t v) {
+    Sensor__value = v;
 }
 
 int main(void) {
     uint16_t result = 0;
-    Sensor_reset(0xF000U);
-    Sensor_setLowByte(0xABU);
-    result = Sensor_getValue();
+    Sensor__reset(0xF000U);
+    Sensor__setLowByte(0xABU);
+    result = Sensor__getValue();
     if (result != 0xF0AB) {
         return 1;
     }
-    Sensor_reset(0x0FFFU);
-    Sensor_setHighNibble(0x05U);
-    result = Sensor_getValue();
+    Sensor__reset(0x0FFFU);
+    Sensor__setHighNibble(0x05U);
+    result = Sensor__getValue();
     if (result != 0x5FFF) {
         return 2;
     }
-    Sensor_reset(0x1234U);
-    Sensor_setLowByte(0xFFU);
-    result = Sensor_getValue();
+    Sensor__reset(0x1234U);
+    Sensor__setLowByte(0xFFU);
+    result = Sensor__getValue();
     if (result != 0x12FF) {
         return 3;
     }

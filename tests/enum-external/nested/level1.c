@@ -10,6 +10,6 @@
 
 /* Scope: NestedExtEnum */
 
-void setMedium(NestedExtEnum_Config* cfg) {
-    cfg->level = ELevel_LEVEL_MEDIUM;
+void setMedium(NestedExtEnum__Config* cfg) {
+    cfg->level = ELevel__LEVEL_MEDIUM;
 }

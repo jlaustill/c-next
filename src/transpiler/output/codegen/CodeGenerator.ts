@@ -452,13 +452,15 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Helper function effects
         case "helper":
+          // Internal helper-op key, not a scope-qualified C name
           CodeGenState.usedClampOps.add(
-            QualifiedCName.join(effect.operation, effect.cnxType),
+            `${effect.operation}_${effect.cnxType}`,
           );
           break;
         case "safe-div":
+          // Internal helper-op key, not a scope-qualified C name
           CodeGenState.usedSafeDivOps.add(
-            QualifiedCName.join(effect.operation, effect.cnxType),
+            `${effect.operation}_${effect.cnxType}`,
           );
           // ADR-051 safe-div helpers return a bool error flag. Route that
           // dependency through the single include path (#1108) rather than
@@ -4268,7 +4270,10 @@ export default class CodeGenerator implements IOrchestrator {
    * Returns member with value 0, or first member, or casted 0.
    * ADR-017: Enums initialize to first member
    */
-  private _getEnumZeroValue(enumName: string, separator: string = "_"): string {
+  private _getEnumZeroValue(
+    enumName: string,
+    separator: string = QualifiedCName.SEPARATOR,
+  ): string {
     const members = CodeGenState.symbols!.enumMembers.get(enumName);
     if (!members) {
       return `(${enumName})0`;
@@ -4304,14 +4309,14 @@ export default class CodeGenerator implements IOrchestrator {
       const name = CodeGenState.currentScope
         ? QualifiedCName.join(CodeGenState.currentScope, localName)
         : localName;
-      return { name, separator: "_" };
+      return { name, separator: QualifiedCName.SEPARATOR };
     }
 
     // Issue #478: Check for global types (global.Type)
     if (typeCtx.globalType()) {
       return {
         name: typeCtx.globalType()!.IDENTIFIER().getText(),
-        separator: "_",
+        separator: QualifiedCName.SEPARATOR,
       };
     }
 
@@ -4320,7 +4325,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (typeCtx.qualifiedType()) {
       const parts = typeCtx.qualifiedType()!.IDENTIFIER();
       const name = this.resolveQualifiedType(parts.map((id) => id.getText()));
-      const separator = name.includes("::") ? "::" : "_";
+      const separator = name.includes("::") ? "::" : QualifiedCName.SEPARATOR;
       return { name, separator };
     }
 
@@ -4328,7 +4333,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (typeCtx.userType()) {
       return {
         name: typeCtx.userType()!.getText(),
-        separator: "_",
+        separator: QualifiedCName.SEPARATOR,
       };
     }
 
@@ -5006,7 +5011,8 @@ export default class CodeGenerator implements IOrchestrator {
   private markClampOpUsed(operation: string, cnxType: string): void {
     // Only generate helpers for integer types (not float/bool)
     if (TYPE_WIDTH[cnxType] && TypeCheckUtils.isInteger(cnxType)) {
-      CodeGenState.usedClampOps.add(QualifiedCName.join(operation, cnxType));
+      // Internal helper-op key, not a scope-qualified C name
+      CodeGenState.usedClampOps.add(`${operation}_${cnxType}`);
     }
   }
 

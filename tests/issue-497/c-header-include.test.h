@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-Data Manager_getData(void);
+Data Manager__getData(void);
 
 #ifdef __cplusplus
 }

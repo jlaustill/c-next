@@ -14,12 +14,12 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char Logger_message[65];
+extern char Logger__message[65];
 
 /* Function prototypes */
-void Logger_setMessage(void);
-void Logger_clear(void);
-void Logger_setCustom(void);
+void Logger__setMessage(void);
+void Logger__clear(void);
+void Logger__setCustom(void);
 
 #ifdef __cplusplus
 }

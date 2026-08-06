@@ -11,6 +11,6 @@
 
 /* Scope: Level2 */
 
-void Level2_passToLevel3(Config& c) {
-    Level3_modify(c);
+void Level2__passToLevel3(Config& c) {
+    Level3__modify(c);
 }

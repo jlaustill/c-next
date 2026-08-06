@@ -12,32 +12,32 @@
 // ADR-016: Functions are public by default, use 'private' keyword for internal helpers
 /* Scope: Calculator */
 
-static uint32_t Calculator_square(uint32_t n) {
+static uint32_t Calculator__square(uint32_t n) {
     return n * n;
 }
 
-static uint32_t Calculator_cube(uint32_t n) {
-    return n * Calculator_square(n);
+static uint32_t Calculator__cube(uint32_t n) {
+    return n * Calculator__square(n);
 }
 
-uint32_t Calculator_computeSquare(uint32_t n) {
-    return Calculator_square(n);
+uint32_t Calculator__computeSquare(uint32_t n) {
+    return Calculator__square(n);
 }
 
-uint32_t Calculator_computeCube(uint32_t n) {
-    return Calculator_cube(n);
+uint32_t Calculator__computeCube(uint32_t n) {
+    return Calculator__cube(n);
 }
 
-uint32_t Calculator_sumOfSquareAndCube(uint32_t n) {
-    return Calculator_square(n) + Calculator_cube(n);
+uint32_t Calculator__sumOfSquareAndCube(uint32_t n) {
+    return Calculator__square(n) + Calculator__cube(n);
 }
 
 int main(void) {
-    uint32_t result1 = Calculator_computeSquare(5U);
+    uint32_t result1 = Calculator__computeSquare(5U);
     if (result1 != 25) return 1;
-    uint32_t result2 = Calculator_computeCube(3U);
+    uint32_t result2 = Calculator__computeCube(3U);
     if (result2 != 27) return 2;
-    uint32_t result3 = Calculator_sumOfSquareAndCube(2U);
+    uint32_t result3 = Calculator__sumOfSquareAndCube(2U);
     if (result3 != 12) return 3;
     return 0;
 }

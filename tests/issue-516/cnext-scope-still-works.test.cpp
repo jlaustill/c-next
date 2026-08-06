@@ -10,32 +10,32 @@
 // Tests: C-Next scopes still use _ separator after issue #516 fix
 // Ensures we didn't break existing C-Next scope functionality
 /* Scope: Motor */
-uint8_t Motor_speed = 0;
+uint8_t Motor__speed = 0;
 
-void Motor_start(void) {
-    Motor_speed = 100U;
+void Motor__start(void) {
+    Motor__speed = 100U;
 }
 
-void Motor_stop(void) {
-    Motor_speed = 0U;
+void Motor__stop(void) {
+    Motor__speed = 0U;
 }
 
 /* Scope: Controller */
 
-void Controller_run(void) {
-    Motor_start();
-    Motor_stop();
-    uint8_t s = Motor_speed;
+void Controller__run(void) {
+    Motor__start();
+    Motor__stop();
+    uint8_t s = Motor__speed;
 }
 
 int main(void) {
-    if (Motor_speed != 0) return 1;
-    Motor_start();
-    if (Motor_speed != 100) return 2;
-    Motor_stop();
-    if (Motor_speed != 0) return 3;
-    Motor_start();
-    Controller_run();
-    if (Motor_speed != 0) return 4;
+    if (Motor__speed != 0) return 1;
+    Motor__start();
+    if (Motor__speed != 100) return 2;
+    Motor__stop();
+    if (Motor__speed != 0) return 3;
+    Motor__start();
+    Controller__run();
+    if (Motor__speed != 0) return 4;
     return 0;
 }

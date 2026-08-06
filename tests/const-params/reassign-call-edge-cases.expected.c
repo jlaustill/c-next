@@ -60,38 +60,38 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Handler */
 
-uint8_t Handler_setValue(ConstEdge_Config* cfg, uint32_t val) {
+uint8_t Handler__setValue(ConstEdge__Config* cfg, uint32_t val) {
     cfg->value = val;
     return 0;
 }
 
-uint8_t Handler_setSecond(uint32_t dummy, ConstEdge_Config* cfg) {
+uint8_t Handler__setSecond(uint32_t dummy, ConstEdge__Config* cfg) {
     cfg->value = 999U;
     return 0;
 }
 
-uint32_t Handler_getValue(const ConstEdge_Config* cfg) {
+uint32_t Handler__getValue(const ConstEdge__Config* cfg) {
     return cfg->value;
 }
 
-uint8_t Handler_wrapSetValue(ConstEdge_Config* cfg, uint32_t val) {
-    return Handler_setValue(cfg, val);
+uint8_t Handler__wrapSetValue(ConstEdge__Config* cfg, uint32_t val) {
+    return Handler__setValue(cfg, val);
 }
 
 // Edge case 1: Nested conditionals
-void handleNestedIf(ConstEdge_Config* config) {
+void handleNestedIf(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
     bool a = true;
     bool b = true;
     if (a == true) {
         if (b == true) {
-            errorCode = Handler_setValue(config, 10U);
+            errorCode = Handler__setValue(config, 10U);
         }
     }
 }
 
 // Edge case 2: Switch statement
-void handleSwitch(ConstEdge_Config* config) {
+void handleSwitch(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
     uint32_t choice = 1U;
     switch (choice) {
@@ -100,7 +100,7 @@ void handleSwitch(ConstEdge_Config* config) {
             break;
         }
         case 1: {
-            errorCode = Handler_setValue(config, 20U);
+            errorCode = Handler__setValue(config, 20U);
             break;
         }
         default: {
@@ -111,22 +111,22 @@ void handleSwitch(ConstEdge_Config* config) {
 }
 
 // Edge case 3: do-while loop
-void handleDoWhile(ConstEdge_Config* config) {
+void handleDoWhile(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
     uint32_t count = 0U;
     do {
-        errorCode = Handler_setValue(config, 30U);
+        errorCode = Handler__setValue(config, 30U);
         count = count + 1U;
     } while (count < 1);
 }
 
 // Edge case 4: Critical block
-void handleCritical(ConstEdge_Config* config) {
+void handleCritical(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        errorCode = Handler_setValue(config, 40U);
+        errorCode = Handler__setValue(config, 40U);
         __cnx_set_PRIMASK(__primask);
     }
 }
@@ -134,70 +134,70 @@ void handleCritical(ConstEdge_Config* config) {
 // Edge case 5: this.method() call in reassignment (within a scope)
 /* Scope: Processor */
 
-uint8_t Processor_helper(ConstEdge_Config* cfg) {
+uint8_t Processor__helper(ConstEdge__Config* cfg) {
     cfg->value = 50U;
     return 0;
 }
 
-void Processor_process(ConstEdge_Config* config) {
+void Processor__process(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
-    errorCode = Processor_helper(config);
+    errorCode = Processor__helper(config);
 }
 
 // Edge case 6: Second parameter is modified (not first)
-void handleSecondParam(ConstEdge_Config* config) {
+void handleSecondParam(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
     uint32_t dummy = 0U;
-    errorCode = Handler_setSecond(dummy, config);
+    errorCode = Handler__setSecond(dummy, config);
 }
 
 // Edge case 7: Nested function call in RHS
-void handleNestedCall(const ConstEdge_Config* config) {
+void handleNestedCall(const ConstEdge__Config* config) {
     uint32_t result = 0U;
-    result = Handler_getValue(config);
+    result = Handler__getValue(config);
 }
 
 // Edge case 8: Transitive modification via wrapper
-void handleTransitive(ConstEdge_Config* config) {
+void handleTransitive(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
-    errorCode = Handler_wrapSetValue(config, 60U);
+    errorCode = Handler__wrapSetValue(config, 60U);
 }
 
 // Edge case 9: Multiple reassignments, only one modifies
-void handleMultipleReassign(ConstEdge_Config* config) {
+void handleMultipleReassign(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
     uint32_t readVal = 0U;
-    readVal = Handler_getValue(config);
-    errorCode = Handler_setValue(config, 70U);
+    readVal = Handler__getValue(config);
+    errorCode = Handler__setValue(config, 70U);
 }
 
 // Edge case 10: Compound assignment with modifying call
 // Note: compound assignment like a +<- b is equivalent to a <- a + b
 // The RHS here is an expression, so we need to ensure it's walked
-void handleCompoundAssign(const ConstEdge_Config* config) {
+void handleCompoundAssign(const ConstEdge__Config* config) {
     uint32_t total = 0U;
-    total = cnx_clamp_add_u32(total, Handler_getValue(config));
+    total = cnx_clamp_add_u32(total, Handler__getValue(config));
 }
 
 // Edge case 11: Compound assignment where the call modifies
-void handleCompoundModify(ConstEdge_Config* config) {
+void handleCompoundModify(ConstEdge__Config* config) {
     uint32_t total = 0U;
-    uint8_t code = Handler_setValue(config, 80U);
+    uint8_t code = Handler__setValue(config, 80U);
     total = cnx_clamp_add_u32(total, code);
 }
 
 // Edge case 12: Bare function call (expression statement, no assignment)
-void handleBareCall(ConstEdge_Config* config) {
-    Handler_setValue(config, 90U);
+void handleBareCall(ConstEdge__Config* config) {
+    Handler__setValue(config, 90U);
 }
 
 // Edge case 13: Bare function call that only reads (should be const)
-void handleBareReadOnly(const ConstEdge_Config* config) {
-    Handler_getValue(config);
+void handleBareReadOnly(const ConstEdge__Config* config) {
+    Handler__getValue(config);
 }
 
 int main(void) {
-    ConstEdge_Config cfg = {0};
+    ConstEdge__Config cfg = {0};
     cfg.value = 0U;
     handleNestedIf(&cfg);
     if (cfg.value != 10) return 1;
@@ -211,7 +211,7 @@ int main(void) {
     handleCritical(&cfg);
     if (cfg.value != 40) return 4;
     cfg.value = 0U;
-    Processor_process(&cfg);
+    Processor__process(&cfg);
     if (cfg.value != 50) return 5;
     cfg.value = 0U;
     handleSecondParam(&cfg);

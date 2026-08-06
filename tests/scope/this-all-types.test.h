@@ -14,21 +14,21 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t AllTypesTest_getU8(void);
-uint16_t AllTypesTest_getU16(void);
-uint32_t AllTypesTest_getU32(void);
-uint64_t AllTypesTest_getU64(void);
-int8_t AllTypesTest_getI8(void);
-int16_t AllTypesTest_getI16(void);
-int32_t AllTypesTest_getI32(void);
-int64_t AllTypesTest_getI64(void);
-float AllTypesTest_getF32(void);
-double AllTypesTest_getF64(void);
-bool AllTypesTest_getBool(void);
-void AllTypesTest_setU8(uint8_t val);
-void AllTypesTest_setBool(bool val);
-void AllTypesTest_setF32(float val);
-void AllTypesTest_setF64(double val);
+uint8_t AllTypesTest__getU8(void);
+uint16_t AllTypesTest__getU16(void);
+uint32_t AllTypesTest__getU32(void);
+uint64_t AllTypesTest__getU64(void);
+int8_t AllTypesTest__getI8(void);
+int16_t AllTypesTest__getI16(void);
+int32_t AllTypesTest__getI32(void);
+int64_t AllTypesTest__getI64(void);
+float AllTypesTest__getF32(void);
+double AllTypesTest__getF64(void);
+bool AllTypesTest__getBool(void);
+void AllTypesTest__setU8(uint8_t val);
+void AllTypesTest__setBool(bool val);
+void AllTypesTest__setF32(float val);
+void AllTypesTest__setF64(double val);
 
 #ifdef __cplusplus
 }

@@ -15,8 +15,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void DataHandler_initialize(const AppData& data);
-AppData DataHandler_getData(void);
+void DataHandler__initialize(const AppData& data);
+AppData DataHandler__getData(void);
 
 #ifdef __cplusplus
 }

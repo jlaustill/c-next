@@ -11,26 +11,26 @@
 // test-execution
 // Issue #139: Test this.member string assignment in scopes (ADR-016)
 /* Scope: Logger */
-char Logger_message[65] = "";
+char Logger__message[65] = "";
 
-void Logger_setMessage(void) {
-    strncpy(Logger_message, "Hello from scope", 64); Logger_message[64] = '\0';
+void Logger__setMessage(void) {
+    strncpy(Logger__message, "Hello from scope", 64); Logger__message[64] = '\0';
 }
 
-void Logger_clear(void) {
-    strncpy(Logger_message, "", 64); Logger_message[64] = '\0';
+void Logger__clear(void) {
+    strncpy(Logger__message, "", 64); Logger__message[64] = '\0';
 }
 
-void Logger_setCustom(void) {
-    strncpy(Logger_message, "Custom", 64); Logger_message[64] = '\0';
+void Logger__setCustom(void) {
+    strncpy(Logger__message, "Custom", 64); Logger__message[64] = '\0';
 }
 
 int main(void) {
-    Logger_setMessage();
-    if (strlen(Logger_message) != 16) return 1;
-    Logger_clear();
-    if (strlen(Logger_message) != 0) return 2;
-    Logger_setCustom();
-    if (strlen(Logger_message) != 6) return 3;
+    Logger__setMessage();
+    if (strlen(Logger__message) != 16) return 1;
+    Logger__clear();
+    if (strlen(Logger__message) != 0) return 2;
+    Logger__setCustom();
+    if (strlen(Logger__message) != 6) return 3;
     return 0;
 }

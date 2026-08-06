@@ -763,7 +763,7 @@ class FunctionCallAnalyzer {
     // Scope-qualified names use dot in source (MyScope.handler) but
     // allLocalFunctions stores them with underscore (MyScope_handler)
     const lookupName = funcRef.includes(".")
-      ? funcRef.replace(".", "_")
+      ? QualifiedCName.join(funcRef)
       : funcRef;
 
     if (this.allLocalFunctions.has(lookupName)) {
@@ -846,7 +846,7 @@ class FunctionCallAnalyzer {
 
       // Normalize scope-qualified names
       const lookupName = funcRef.includes(".")
-        ? funcRef.replace(".", "_")
+        ? QualifiedCName.join(funcRef)
         : funcRef;
 
       // Mark as callback-compatible if it's a local C-Next function

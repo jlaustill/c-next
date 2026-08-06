@@ -14,15 +14,15 @@ uint32_t globalVar = 100000U;
 
 /* Scope: TestScope */
 
-uint32_t TestScope_getGlobalBitLength(void) {
+uint32_t TestScope__getGlobalBitLength(void) {
     return 32;
 }
-static uint32_t TestScope_scopeMember = 100000U;
+static uint32_t TestScope__scopeMember = 100000U;
 
-uint32_t TestScope_getMemberBitLength(void) {
+uint32_t TestScope__getMemberBitLength(void) {
     return 32;
 }
-uint32_t TestScope_publicMember = 100000U;
+uint32_t TestScope__publicMember = 100000U;
 
 uint32_t checkParamBitLength(uint32_t param) {
     return 32;
@@ -34,11 +34,11 @@ int main(void) {
     if (32 != 32) {
         return 1;
     }
-    uint32_t result = TestScope_getGlobalBitLength();
+    uint32_t result = TestScope__getGlobalBitLength();
     if (result != 32) {
         return 2;
     }
-    result = TestScope_getMemberBitLength();
+    result = TestScope__getMemberBitLength();
     if (result != 32) {
         return 3;
     }
@@ -54,7 +54,7 @@ int main(void) {
     if (result != 32) {
         return 6;
     }
-    U32BitLen_TestStruct ts = {0};
+    U32BitLen__TestStruct ts = {0};
     ts.member = 100000U;
     if (32 != 32) {
         return 7;

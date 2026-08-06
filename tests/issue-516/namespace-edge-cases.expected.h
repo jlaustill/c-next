@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void EdgeCases_testAssignmentTarget(void);
-void EdgeCases_testNestedAccess(void);
-void EdgeCases_testMultipleCallsInSequence(void);
-void EdgeCases_testGlobalPrefixStillWorks(void);
-void EdgeCases_testThisMemberWithNamespaceType(void);
+void EdgeCases__testAssignmentTarget(void);
+void EdgeCases__testNestedAccess(void);
+void EdgeCases__testMultipleCallsInSequence(void);
+void EdgeCases__testGlobalPrefixStillWorks(void);
+void EdgeCases__testThisMemberWithNamespaceType(void);
 
 #ifdef __cplusplus
 }

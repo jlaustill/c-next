@@ -8,13 +8,13 @@
 // ADR-004: Register access modifiers test
 // Tests: rw (read-write), ro (read-only), wo (write-only) modifiers
 /* Register: PERIPH @ 0x50000000 */
-#define PERIPH_CTRL (*(volatile uint32_t*)(0x50000000 + 0x00))
-#define PERIPH_STATUS (*(volatile uint32_t const *)(0x50000000 + 0x04))
-#define PERIPH_CMD (*(volatile uint32_t*)(0x50000000 + 0x08))
+#define PERIPH__CTRL (*(volatile uint32_t*)(0x50000000 + 0x00))
+#define PERIPH__STATUS (*(volatile uint32_t const *)(0x50000000 + 0x04))
+#define PERIPH__CMD (*(volatile uint32_t*)(0x50000000 + 0x08))
 
 int main(void) {
-    PERIPH_CTRL = 0x01;
-    uint32_t ctrl = PERIPH_CTRL;
-    uint32_t status = PERIPH_STATUS;
-    PERIPH_CMD = 0xAB;
+    PERIPH__CTRL = 0x01;
+    uint32_t ctrl = PERIPH__CTRL;
+    uint32_t status = PERIPH__STATUS;
+    PERIPH__CMD = 0xAB;
 }

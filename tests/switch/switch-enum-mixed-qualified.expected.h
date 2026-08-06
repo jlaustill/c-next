@@ -15,10 +15,10 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EPriority_LOW = 0,
-    EPriority_MEDIUM = 1,
-    EPriority_HIGH = 2,
-    EPriority_CRITICAL = 3
+    EPriority__LOW = 0,
+    EPriority__MEDIUM = 1,
+    EPriority__HIGH = 2,
+    EPriority__CRITICAL = 3
 } EPriority;
 
 #ifdef __cplusplus

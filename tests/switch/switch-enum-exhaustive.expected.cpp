@@ -6,9 +6,9 @@
 // ADR-025: Exhaustive Enum Switch Test
 // Tests switch with all enum variants covered
 typedef enum {
-    EState_IDLE = 0,
-    EState_RUNNING = 1,
-    EState_STOPPED = 2
+    EState__IDLE = 0,
+    EState__RUNNING = 1,
+    EState__STOPPED = 2
 } EState;
 
 void onIdle(void) {
@@ -22,15 +22,15 @@ void onStopped(void) {
 
 void handleState(EState state) {
     switch (state) {
-        case EState_IDLE: {
+        case EState__IDLE: {
             onIdle();
             break;
         }
-        case EState_RUNNING: {
+        case EState__RUNNING: {
             onActive();
             break;
         }
-        case EState_STOPPED: {
+        case EState__STOPPED: {
             onStopped();
             break;
         }

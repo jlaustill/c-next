@@ -12,51 +12,51 @@
 // Coverage: Section 13.2 this.Type as return, 13.3 Scope.Type as return/parameter
 /* Scope: Geometry */
 
-Geometry_Point Geometry_makePoint(int32_t x, int32_t y) {
-    Geometry_Point p = { .x = x, .y = y };
+Geometry__Point Geometry__makePoint(int32_t x, int32_t y) {
+    Geometry__Point p = { .x = x, .y = y };
     return p;
 }
 
-Geometry_Point Geometry_origin(void) {
-    Geometry_Point p = { .x = 0, .y = 0 };
+Geometry__Point Geometry__origin(void) {
+    Geometry__Point p = { .x = 0, .y = 0 };
     return p;
 }
 
-Geometry_Point Geometry_midpoint(const Geometry_Point* a, const Geometry_Point* b) {
+Geometry__Point Geometry__midpoint(const Geometry__Point* a, const Geometry__Point* b) {
     int32_t mx = (a->x + b->x) / 2;
     int32_t my = (a->y + b->y) / 2;
-    Geometry_Point m = { .x = mx, .y = my };
+    Geometry__Point m = { .x = mx, .y = my };
     return m;
 }
 
 // Function outside scope taking Scope.Type as parameter
-void movePoint(Geometry_Point* p, int32_t dx, int32_t dy) {
+void movePoint(Geometry__Point* p, int32_t dx, int32_t dy) {
     p->x = p->x + dx;
     p->y = p->y + dy;
 }
 
 // Function outside scope returning Scope.Type
-Geometry_Point createPoint(int32_t x, int32_t y) {
-    Geometry_Point result = { .x = x, .y = y };
+Geometry__Point createPoint(int32_t x, int32_t y) {
+    Geometry__Point result = { .x = x, .y = y };
     return result;
 }
 
 int main(void) {
-    Geometry_Point p1 = Geometry_makePoint(10, 20);
+    Geometry__Point p1 = Geometry__makePoint(10, 20);
     if (p1.x != 10) return 1;
     if (p1.y != 20) return 2;
-    Geometry_Point o = Geometry_origin();
+    Geometry__Point o = Geometry__origin();
     if (o.x != 0) return 3;
     if (o.y != 0) return 4;
-    Geometry_Point p2 = Geometry_makePoint(20, 40);
-    Geometry_Point mid = Geometry_midpoint(&p1, &p2);
+    Geometry__Point p2 = Geometry__makePoint(20, 40);
+    Geometry__Point mid = Geometry__midpoint(&p1, &p2);
     if (mid.x != 15) return 5;
     if (mid.y != 30) return 6;
-    Geometry_Point p3 = Geometry_makePoint(5, 5);
+    Geometry__Point p3 = Geometry__makePoint(5, 5);
     movePoint(&p3, 10, 20);
     if (p3.x != 15) return 7;
     if (p3.y != 25) return 8;
-    Geometry_Point p4 = createPoint(100, 200);
+    Geometry__Point p4 = createPoint(100, 200);
     if (p4.x != 100) return 9;
     if (p4.y != 200) return 10;
     return 0;

@@ -10,9 +10,9 @@
 // Tests: assign struct enum field to local enum variable (bug fix)
 // Validates that enum-typed fields in structs can be read via global prefix
 typedef enum {
-    EValueId_VALUE_A = 0,
-    EValueId_VALUE_B = 1,
-    EValueId_VALUE_UNASSIGNED = 255
+    EValueId__VALUE_A = 0,
+    EValueId__VALUE_B = 1,
+    EValueId__VALUE_UNASSIGNED = 255
 } EValueId;
 
 typedef struct TInput {
@@ -22,11 +22,11 @@ typedef struct TInput {
 TInput input = {0};
 
 int main(void) {
-    input.assignedValue = EValueId_VALUE_B;
+    input.assignedValue = EValueId__VALUE_B;
     EValueId val = input.assignedValue;
-    if (val != EValueId_VALUE_B) return 1;
-    input.assignedValue = EValueId_VALUE_A;
+    if (val != EValueId__VALUE_B) return 1;
+    input.assignedValue = EValueId__VALUE_A;
     EValueId val2 = input.assignedValue;
-    if (val2 != EValueId_VALUE_A) return 2;
+    if (val2 != EValueId__VALUE_A) return 2;
     return 0;
 }

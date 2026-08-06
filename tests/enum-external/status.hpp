@@ -15,9 +15,9 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EStatus_STATUS_IDLE = 0,
-    EStatus_STATUS_ACTIVE = 1,
-    EStatus_STATUS_ERROR = 2
+    EStatus__STATUS_IDLE = 0,
+    EStatus__STATUS_ACTIVE = 1,
+    EStatus__STATUS_ERROR = 2
 } EStatus;
 
 #ifdef __cplusplus

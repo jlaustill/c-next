@@ -15,14 +15,14 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EState_IDLE = 0,
-    EState_RUNNING = 1,
-    EState_STOPPED = 2
+    EState__IDLE = 0,
+    EState__RUNNING = 1,
+    EState__STOPPED = 2
 } EState;
 
 /* Function prototypes */
-void StateMachine_setState(EState state);
-EState StateMachine_getState(void);
+void StateMachine__setState(EState state);
+EState StateMachine__getState(void);
 
 #ifdef __cplusplus
 }

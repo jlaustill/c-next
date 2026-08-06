@@ -12,30 +12,30 @@
 #include <stdbool.h>
 
 EPressureType selectPressure(bool usePsig) {
-    return (usePsig == true) ? EPressureType_PRESSURE_TYPE_PSIG : EPressureType_PRESSURE_TYPE_PSIA;
+    return (usePsig == true) ? EPressureType__PRESSURE_TYPE_PSIG : EPressureType__PRESSURE_TYPE_PSIA;
 }
 
 bool isPsia(EPressureType ptype) {
-    return ptype == EPressureType_PRESSURE_TYPE_PSIA;
+    return ptype == EPressureType__PRESSURE_TYPE_PSIA;
 }
 
 bool isPsig(EPressureType ptype) {
-    return ptype == EPressureType_PRESSURE_TYPE_PSIG;
+    return ptype == EPressureType__PRESSURE_TYPE_PSIG;
 }
 
 int main(void) {
     EPressureType p1 = selectPressure(true);
-    if (p1 != EPressureType_PRESSURE_TYPE_PSIG) return 1;
+    if (p1 != EPressureType__PRESSURE_TYPE_PSIG) return 1;
     EPressureType p2 = selectPressure(false);
-    if (p2 != EPressureType_PRESSURE_TYPE_PSIA) return 2;
-    bool result1 = isPsia(EPressureType_PRESSURE_TYPE_PSIA);
+    if (p2 != EPressureType__PRESSURE_TYPE_PSIA) return 2;
+    bool result1 = isPsia(EPressureType__PRESSURE_TYPE_PSIA);
     if (result1 != true) return 3;
-    bool result2 = isPsia(EPressureType_PRESSURE_TYPE_PSIG);
+    bool result2 = isPsia(EPressureType__PRESSURE_TYPE_PSIG);
     if (result2 != false) return 4;
-    EPressureType ptype = EPressureType_PRESSURE_TYPE_PSIG;
+    EPressureType ptype = EPressureType__PRESSURE_TYPE_PSIG;
     bool result3 = isPsig(ptype);
     if (result3 != true) return 5;
-    EPressureType p3 = (true == true) ? EPressureType_PRESSURE_TYPE_PSIA : EPressureType_PRESSURE_TYPE_PSIG;
-    if (p3 != EPressureType_PRESSURE_TYPE_PSIA) return 6;
+    EPressureType p3 = (true == true) ? EPressureType__PRESSURE_TYPE_PSIA : EPressureType__PRESSURE_TYPE_PSIG;
+    if (p3 != EPressureType__PRESSURE_TYPE_PSIA) return 6;
     return 0;
 }

@@ -46,124 +46,124 @@ static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 // Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
 // === GLOBAL ENUM ===
 // === GLOBAL ENUM VARIABLE ===
-EGlobalState globalState = EGlobalState_IDLE;
+EGlobalState globalState = EGlobalState__IDLE;
 
 // === SCOPE WITH ENUM ===
 /* Scope: Motor */
-static Motor_EMode Motor_mode = Motor_EMode_OFF;
-static volatile Motor_EMode Motor_atomicMode = Motor_EMode_OFF;
+static Motor__EMode Motor__mode = Motor__EMode__OFF;
+static volatile Motor__EMode Motor__atomicMode = Motor__EMode__OFF;
 
-Motor_EMode Motor_getMode(void) {
-    return Motor_mode;
+Motor__EMode Motor__getMode(void) {
+    return Motor__mode;
 }
 
-Motor_EMode Motor_getAtomicMode(void) {
-    return Motor_atomicMode;
+Motor__EMode Motor__getAtomicMode(void) {
+    return Motor__atomicMode;
 }
 
-void Motor_setMode(Motor_EMode newMode) {
-    Motor_mode = newMode;
+void Motor__setMode(Motor__EMode newMode) {
+    Motor__mode = newMode;
 }
 
-void Motor_setAtomicMode(Motor_EMode newMode) {
-    Motor_atomicMode = newMode;
+void Motor__setAtomicMode(Motor__EMode newMode) {
+    Motor__atomicMode = newMode;
 }
 
-bool Motor_testThisMethodEnum(void) {
-    Motor_EMode currentMode = Motor_getMode();
-    return (currentMode == Motor_EMode_OFF);
+bool Motor__testThisMethodEnum(void) {
+    Motor__EMode currentMode = Motor__getMode();
+    return (currentMode == Motor__EMode__OFF);
 }
 
-bool Motor_isOff(void) {
-    return (Motor_mode == Motor_EMode_OFF);
+bool Motor__isOff(void) {
+    return (Motor__mode == Motor__EMode__OFF);
 }
 
-bool Motor_isMode(Motor_EMode checkMode) {
-    return (Motor_mode == checkMode);
+bool Motor__isMode(Motor__EMode checkMode) {
+    return (Motor__mode == checkMode);
 }
 
-EGlobalState Motor_getGlobalState(void) {
-    return EGlobalState_IDLE;
+EGlobalState Motor__getGlobalState(void) {
+    return EGlobalState__IDLE;
 }
 
-void Motor_criticalEnumUpdate(void) {
+void Motor__criticalEnumUpdate(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        Motor_mode = Motor_EMode_HIGH;
+        Motor__mode = Motor__EMode__HIGH;
         __cnx_set_PRIMASK(__primask);
     }
 }
 
 // === SECOND SCOPE (for cross-scope testing) ===
 /* Scope: Controller */
-static Controller_EStatus Controller_status = Controller_EStatus_OK;
+static Controller__EStatus Controller__status = Controller__EStatus__OK;
 
-void Controller_setMotorMode(void) {
-    Motor_setMode(Motor_EMode_HIGH);
+void Controller__setMotorMode(void) {
+    Motor__setMode(Motor__EMode__HIGH);
 }
 
-Controller_EStatus Controller_getStatus(void) {
-    return Controller_status;
+Controller__EStatus Controller__getStatus(void) {
+    return Controller__status;
 }
 
 // === MAIN TEST FUNCTION ===
 int main(void) {
     uint32_t errors = 0U;
-    EGlobalState state = EGlobalState_IDLE;
-    if (state != EGlobalState_IDLE) {
+    EGlobalState state = EGlobalState__IDLE;
+    if (state != EGlobalState__IDLE) {
         errors = errors + 1U;
     }
-    state = EGlobalState_RUNNING;
-    if (state != EGlobalState_RUNNING) {
+    state = EGlobalState__RUNNING;
+    if (state != EGlobalState__RUNNING) {
         errors = errors + 2U;
     }
-    if (state != EGlobalState_RUNNING) {
+    if (state != EGlobalState__RUNNING) {
         errors = errors + 4U;
     }
-    Motor_setMode(Motor_EMode_LOW);
-    Motor_EMode motorMode = Motor_getMode();
-    if (motorMode != Motor_EMode_LOW) {
+    Motor__setMode(Motor__EMode__LOW);
+    Motor__EMode motorMode = Motor__getMode();
+    if (motorMode != Motor__EMode__LOW) {
         errors = errors + 8U;
     }
-    bool isOff = Motor_isOff();
+    bool isOff = Motor__isOff();
     if (isOff == true) {
         errors = errors + 16U;
     }
-    bool isLow = Motor_isMode(Motor_EMode_LOW);
+    bool isLow = Motor__isMode(Motor__EMode__LOW);
     if (isLow == false) {
         errors = errors + 32U;
     }
-    Motor_setAtomicMode(Motor_EMode_HIGH);
-    Motor_EMode atomicResult = Motor_getAtomicMode();
-    if (atomicResult != Motor_EMode_HIGH) {
+    Motor__setAtomicMode(Motor__EMode__HIGH);
+    Motor__EMode atomicResult = Motor__getAtomicMode();
+    if (atomicResult != Motor__EMode__HIGH) {
         errors = errors + 64U;
     }
-    Motor_criticalEnumUpdate();
-    Motor_EMode afterCritical = Motor_getMode();
-    if (afterCritical != Motor_EMode_HIGH) {
+    Motor__criticalEnumUpdate();
+    Motor__EMode afterCritical = Motor__getMode();
+    if (afterCritical != Motor__EMode__HIGH) {
         errors = errors + 128U;
     }
-    Controller_setMotorMode();
-    EGlobalState loopState = EGlobalState_IDLE;
+    Controller__setMotorMode();
+    EGlobalState loopState = EGlobalState__IDLE;
     uint32_t i = 0U;
     while (i < 3) {
-        if (loopState == EGlobalState_IDLE) {
-            loopState = EGlobalState_RUNNING;
+        if (loopState == EGlobalState__IDLE) {
+            loopState = EGlobalState__RUNNING;
         } else {
-            loopState = EGlobalState_STOPPED;
+            loopState = EGlobalState__STOPPED;
         }
         i = i + 1U;
     }
-    if (loopState != EGlobalState_STOPPED) {
+    if (loopState != EGlobalState__STOPPED) {
         errors = errors + 256U;
     }
-    EGlobalState fromScope = Motor_getGlobalState();
-    if (fromScope != EGlobalState_IDLE) {
+    EGlobalState fromScope = Motor__getGlobalState();
+    if (fromScope != EGlobalState__IDLE) {
         errors = errors + 512U;
     }
-    Controller_EStatus ctrlStatus = Controller_getStatus();
-    if (ctrlStatus != Controller_EStatus_OK) {
+    Controller__EStatus ctrlStatus = Controller__getStatus();
+    if (ctrlStatus != Controller__EStatus__OK) {
         errors = errors + 1024U;
     }
     return errors;

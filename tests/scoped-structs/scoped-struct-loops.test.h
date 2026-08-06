@@ -14,19 +14,19 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Sensor_Reading {
+typedef struct Sensor__Reading {
     uint16_t value;
     uint8_t channel;
-} Sensor_Reading;
+} Sensor__Reading;
 
 /* External variables */
-extern Sensor_Reading Sensor_buffer[4];
-extern uint8_t Sensor_count;
+extern Sensor__Reading Sensor__buffer[4];
+extern uint8_t Sensor__count;
 
 /* Function prototypes */
-void Sensor_addReading(uint16_t val, uint8_t ch);
-uint16_t Sensor_sumValues(void);
-void Sensor_clear(void);
+void Sensor__addReading(uint16_t val, uint8_t ch);
+uint16_t Sensor__sumValues(void);
+void Sensor__clear(void);
 
 #ifdef __cplusplus
 }

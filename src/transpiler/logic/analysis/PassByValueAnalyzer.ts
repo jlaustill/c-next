@@ -453,12 +453,15 @@ class PassByValueAnalyzer {
 
     // Fallback to legacy string-based lookup for backward compatibility
     // (handles functions from C headers, external functions, etc.)
-    const underscoreIndex = callerFuncName.indexOf("_");
-    if (underscoreIndex === -1) {
+    const separatorIndex = callerFuncName.indexOf(QualifiedCName.SEPARATOR);
+    if (separatorIndex === -1) {
       return bareCalleeName;
     }
 
-    const scopePrefix = callerFuncName.substring(0, underscoreIndex + 1);
+    const scopePrefix = callerFuncName.substring(
+      0,
+      separatorIndex + QualifiedCName.SEPARATOR.length,
+    );
     const qualifiedName = scopePrefix + bareCalleeName;
 
     if (CodeGenState.functionParamLists.has(qualifiedName)) {

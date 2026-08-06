@@ -10,7 +10,7 @@
 /* Scope: StructWithArray */
 
 int main(void) {
-    StructWithArray_Buffer buf = {0};
+    StructWithArray__Buffer buf = {0};
     buf.len = 0U;
     buf.data[0] = 0x41U;
     buf.data[1] = 0x42U;

@@ -16,23 +16,23 @@
 uint32_t call_arg = 0U;
 
 /* Scope: Reentrant */
-static uint32_t Reentrant_outer_temp = 0U;
-static uint32_t Reentrant_inner_temp = 0U;
+static uint32_t Reentrant__outer_temp = 0U;
+static uint32_t Reentrant__inner_temp = 0U;
 
-uint32_t Reentrant_inner(void) {
-    Reentrant_inner_temp = call_arg;
+uint32_t Reentrant__inner(void) {
+    Reentrant__inner_temp = call_arg;
     return call_arg;
 }
 
-uint32_t Reentrant_outer(uint32_t x) {
-    Reentrant_outer_temp = x;
+uint32_t Reentrant__outer(uint32_t x) {
+    Reentrant__outer_temp = x;
     call_arg = x + 100U;
-    uint32_t inner_result = Reentrant_inner();
-    return Reentrant_outer_temp;
+    uint32_t inner_result = Reentrant__inner();
+    return Reentrant__outer_temp;
 }
 
 int main(void) {
-    uint32_t result = Reentrant_outer(10U);
+    uint32_t result = Reentrant__outer(10U);
     if (result != 10) return 1;
     return 0;
 }

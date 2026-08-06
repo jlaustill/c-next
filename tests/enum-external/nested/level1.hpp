@@ -15,9 +15,9 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct NestedExtEnum_Config {
+typedef struct NestedExtEnum__Config {
     ELevel level;
-} NestedExtEnum_Config;
+} NestedExtEnum__Config;
 
 #ifdef __cplusplus
 }

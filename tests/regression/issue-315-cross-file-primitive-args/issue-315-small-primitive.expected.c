@@ -14,23 +14,23 @@
 #include <stdint.h>
 
 /* Scope: ByteCaller */
-static ByteData ByteCaller_data = {0};
+static ByteData ByteCaller__data = {0};
 
-void ByteCaller_init(void) {
-    ByteCaller_data.value1 = 0U;
-    ByteCaller_data.value2 = 0U;
+void ByteCaller__init(void) {
+    ByteCaller__data.value1 = 0U;
+    ByteCaller__data.value2 = 0U;
 }
 
-uint8_t ByteCaller_test(void) {
-    ByteCaller_data.value1 = 10U;
-    ByteCaller_data.value2 = 25U;
-    uint8_t result = TestFuncSmall_addBytes(ByteCaller_data.value1, ByteCaller_data.value2);
+uint8_t ByteCaller__test(void) {
+    ByteCaller__data.value1 = 10U;
+    ByteCaller__data.value2 = 25U;
+    uint8_t result = TestFuncSmall__addBytes(ByteCaller__data.value1, ByteCaller__data.value2);
     return result;
 }
 
 int main(void) {
-    ByteCaller_init();
-    uint8_t result = ByteCaller_test();
+    ByteCaller__init();
+    uint8_t result = ByteCaller__test();
     if (result != 35) return 1;
     return 0;
 }

@@ -12,51 +12,51 @@
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
 /* Scope: ConstTest */
-const uint8_t ConstTest_PUBLIC_MAX = 200U;
-const uint32_t ConstTest_PUBLIC_ID = 42U;
-static uint8_t ConstTest_counter = 0U;
+const uint8_t ConstTest__PUBLIC_MAX = 200U;
+const uint32_t ConstTest__PUBLIC_ID = 42U;
+static uint8_t ConstTest__counter = 0U;
 
-uint8_t ConstTest_getMaxValue(void) {
+uint8_t ConstTest__getMaxValue(void) {
     return 255;
 }
 
-uint16_t ConstTest_getBufferSize(void) {
+uint16_t ConstTest__getBufferSize(void) {
     return 1024;
 }
 
-int32_t ConstTest_getOffset(void) {
+int32_t ConstTest__getOffset(void) {
     return -100;
 }
 
-bool ConstTest_getEnabled(void) {
+bool ConstTest__getEnabled(void) {
     return true;
 }
 
-uint8_t ConstTest_getPublicMax(void) {
-    return ConstTest_PUBLIC_MAX;
+uint8_t ConstTest__getPublicMax(void) {
+    return ConstTest__PUBLIC_MAX;
 }
 
-uint32_t ConstTest_getPublicId(void) {
-    return ConstTest_PUBLIC_ID;
+uint32_t ConstTest__getPublicId(void) {
+    return ConstTest__PUBLIC_ID;
 }
 
-uint8_t ConstTest_getCounter(void) {
-    return ConstTest_counter;
+uint8_t ConstTest__getCounter(void) {
+    return ConstTest__counter;
 }
 
-uint8_t ConstTest_getHexFlags(void) {
+uint8_t ConstTest__getHexFlags(void) {
     return 0xAB;
 }
 
-uint8_t ConstTest_getBinMask(void) {
+uint8_t ConstTest__getBinMask(void) {
     return 0b11001010;
 }
 
-uint32_t ConstTest_getHexAddr(void) {
+uint32_t ConstTest__getHexAddr(void) {
     return 0x40001000;
 }
 
-uint16_t ConstTest_multipleRefs(void) {
+uint16_t ConstTest__multipleRefs(void) {
     uint16_t a = 255;
     uint16_t b = 255 + 1U;
     uint16_t c = 255 * 2U;
@@ -64,29 +64,29 @@ uint16_t ConstTest_multipleRefs(void) {
 }
 
 int main(void) {
-    uint8_t maxVal = ConstTest_getMaxValue();
+    uint8_t maxVal = ConstTest__getMaxValue();
     if (maxVal != 255) return 1;
-    uint16_t bufSize = ConstTest_getBufferSize();
+    uint16_t bufSize = ConstTest__getBufferSize();
     if (bufSize != 1024) return 2;
-    int32_t offset = ConstTest_getOffset();
+    int32_t offset = ConstTest__getOffset();
     if (offset != -100) return 3;
-    bool enabled = ConstTest_getEnabled();
+    bool enabled = ConstTest__getEnabled();
     if (enabled != true) return 4;
-    uint8_t pubMax = ConstTest_getPublicMax();
+    uint8_t pubMax = ConstTest__getPublicMax();
     if (pubMax != 200) return 5;
-    uint32_t pubId = ConstTest_getPublicId();
+    uint32_t pubId = ConstTest__getPublicId();
     if (pubId != 42) return 6;
-    if (ConstTest_PUBLIC_MAX != 200) return 7;
-    if (ConstTest_PUBLIC_ID != 42) return 8;
-    uint8_t cnt = ConstTest_getCounter();
+    if (ConstTest__PUBLIC_MAX != 200) return 7;
+    if (ConstTest__PUBLIC_ID != 42) return 8;
+    uint8_t cnt = ConstTest__getCounter();
     if (cnt != 0) return 9;
-    uint8_t hexFlags = ConstTest_getHexFlags();
+    uint8_t hexFlags = ConstTest__getHexFlags();
     if (hexFlags != 171) return 10;
-    uint8_t binMask = ConstTest_getBinMask();
+    uint8_t binMask = ConstTest__getBinMask();
     if (binMask != 202) return 11;
-    uint32_t hexAddr = ConstTest_getHexAddr();
+    uint32_t hexAddr = ConstTest__getHexAddr();
     if (hexAddr != 1073745920) return 12;
-    uint16_t multiResult = ConstTest_multipleRefs();
+    uint16_t multiResult = ConstTest__multipleRefs();
     if (multiResult != 1021) return 13;
     return 0;
 }

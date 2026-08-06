@@ -237,7 +237,7 @@ function createMockOrchestrator(overrides?: {
       overrides?.generatePrimaryExpr ?? vi.fn((ctx) => ctx.getText()),
     isKnownScope: overrides?.isKnownScope ?? vi.fn(() => false),
     isCppScopeSymbol: overrides?.isCppScopeSymbol ?? vi.fn(() => false),
-    getScopeSeparator: overrides?.getScopeSeparator ?? vi.fn(() => "_"),
+    getScopeSeparator: overrides?.getScopeSeparator ?? vi.fn(() => "__"),
     getStructFieldInfo: overrides?.getStructFieldInfo ?? vi.fn(() => null),
     getMemberTypeInfo: overrides?.getMemberTypeInfo ?? vi.fn(() => null),
     generateBitMask:
@@ -455,7 +455,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Motor_length");
+      expect(result.code).toBe("Motor__length");
     });
 
     it("throws when using this outside a scope", () => {
@@ -485,7 +485,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Motor_speed");
+      expect(result.code).toBe("Motor__speed");
     });
 
     it("resolves this.member to const value when available", () => {
@@ -536,13 +536,13 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Motor_config.speed");
+      expect(result.code).toBe("Motor__config.speed");
     });
 
     it("resolves this.member without struct type when not a known struct", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
-          "Motor_value",
+          "Motor__value",
           {
             baseType: "u32",
             bitWidth: 32,
@@ -563,12 +563,12 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Motor_value");
+      expect(result.code).toBe("Motor__value");
     });
 
     it("resolves this.member when member is a known enum", () => {
       const symbols = createMockSymbols({
-        knownEnums: new Set(["Motor_State"]),
+        knownEnums: new Set(["Motor__State"]),
       });
       const ctx = createMockPostfixExpressionContext("this", [
         createMockPostfixOp({ identifier: "State" }),
@@ -580,7 +580,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Motor_State");
+      expect(result.code).toBe("Motor__State");
     });
   });
 
@@ -841,11 +841,11 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "LED",
         isKnownScope: (name) => name === "LED",
-        getScopeSeparator: () => "_",
+        getScopeSeparator: () => "__",
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("LED_on");
+      expect(result.code).toBe("LED__on");
     });
 
     it("throws when referencing own scope by name", () => {
@@ -874,7 +874,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "LED",
         isKnownScope: (name) => name === "LED",
         isCppScopeSymbol: () => true,
-        getScopeSeparator: (isCpp) => (isCpp ? "::" : "_"),
+        getScopeSeparator: (isCpp) => (isCpp ? "::" : "__"),
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
@@ -894,11 +894,11 @@ describe("PostfixExpressionGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "Color",
-        getScopeSeparator: () => "_",
+        getScopeSeparator: () => "__",
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Color_Red");
+      expect(result.code).toBe("Color__Red");
     });
 
     it("throws when accessing enum with naming conflict inside scope", () => {
@@ -913,7 +913,7 @@ describe("PostfixExpressionGenerator", () => {
       const state = createMockState({ currentScope: "Motor", scopeMembers });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "Color",
-        getScopeSeparator: () => "_",
+        getScopeSeparator: () => "__",
       });
 
       expect(() =>
@@ -933,11 +933,11 @@ describe("PostfixExpressionGenerator", () => {
       const state = createMockState({ currentScope: "Motor", scopeMembers });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "Color",
-        getScopeSeparator: () => "_",
+        getScopeSeparator: () => "__",
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Color_Red");
+      expect(result.code).toBe("Color__Red");
     });
 
     it("throws when scope member shadows global enum (resolved identifier differs)", () => {
@@ -953,7 +953,7 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         // Simulates identifier resolution: Color -> Motor_Color (scope member)
         generatePrimaryExpr: () => "Motor_Color",
-        getScopeSeparator: () => "_",
+        getScopeSeparator: () => "__",
       });
 
       expect(() =>
@@ -979,7 +979,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("GPIO_PIN0");
+      expect(result.code).toBe("GPIO__PIN0");
     });
 
     it("throws for write-only register read", () => {
@@ -1035,7 +1035,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("GPIO_PIN0");
+      expect(result.code).toBe("GPIO__PIN0");
     });
   });
 
@@ -1613,7 +1613,7 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
         isCppScopeSymbol: (name) => name === "std",
-        getScopeSeparator: (isCpp) => (isCpp ? "::" : "_"),
+        getScopeSeparator: (isCpp) => (isCpp ? "::" : "__"),
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
@@ -1635,7 +1635,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("GPIO_PIN0");
+      expect(result.code).toBe("GPIO__PIN0");
     });
   });
 
@@ -1658,7 +1658,7 @@ describe("PostfixExpressionGenerator", () => {
     it("resolves this.length to scope member when length is a struct type", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
-          "Motor_length",
+          "Motor__length",
           {
             baseType: "LengthConfig",
             bitWidth: 0,
@@ -1686,43 +1686,43 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("Motor_length.value");
+      expect(result.code).toBe("Motor__length.value");
     });
   });
 
   describe("register member with bitmap type", () => {
     it("generates bitmap field access on register member", () => {
       const symbols = createMockSymbols({
-        registerMemberTypes: new Map([["MOTOR_CTRL", "CtrlBits"]]),
+        registerMemberTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
         bitmapFields: new Map([
           ["CtrlBits", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
       });
-      const ctx = createMockPostfixExpressionContext("MOTOR_CTRL", [
+      const ctx = createMockPostfixExpressionContext("MOTOR__CTRL", [
         createMockPostfixOp({ identifier: "Running" }),
       ]);
       const input = createMockInput({ symbols });
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "MOTOR_CTRL",
+        generatePrimaryExpr: () => "MOTOR__CTRL",
       });
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
-      expect(result.code).toBe("((MOTOR_CTRL >> 0) & 1)");
+      expect(result.code).toBe("((MOTOR__CTRL >> 0) & 1)");
     });
 
     it("throws for unknown field on register bitmap member", () => {
       const symbols = createMockSymbols({
-        registerMemberTypes: new Map([["MOTOR_CTRL", "CtrlBits"]]),
+        registerMemberTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
         bitmapFields: new Map([["CtrlBits", new Map()]]),
       });
-      const ctx = createMockPostfixExpressionContext("MOTOR_CTRL", [
+      const ctx = createMockPostfixExpressionContext("MOTOR__CTRL", [
         createMockPostfixOp({ identifier: "Unknown" }),
       ]);
       const input = createMockInput({ symbols });
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "MOTOR_CTRL",
+        generatePrimaryExpr: () => "MOTOR__CTRL",
       });
 
       expect(() =>

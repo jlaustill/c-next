@@ -15,10 +15,10 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Mode_OFF = 0,
-    Mode_LOW = 1,
-    Mode_MEDIUM = 2,
-    Mode_HIGH = 3
+    Mode__OFF = 0,
+    Mode__LOW = 1,
+    Mode__MEDIUM = 2,
+    Mode__HIGH = 3
 } Mode;
 
 #ifdef __cplusplus

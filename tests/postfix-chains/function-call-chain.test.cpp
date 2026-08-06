@@ -13,7 +13,7 @@
 // HIGH RISK: Float parameters in postfix chains (line 6260 in CodeGenerator.ts)
 /* Scope: FuncCallChain */
 
-FuncCallChain_Transform transforms[4] = {};
+FuncCallChain__Transform transforms[4] = {};
 
 // Functions with various parameter types
 uint32_t addU32(uint32_t a, uint32_t b) {
@@ -28,8 +28,8 @@ float multiplyF32(float a, float b) {
     return a * b;
 }
 
-FuncCallChain_Vec3 scaleVec3(const FuncCallChain_Vec3& v, float scale) {
-    FuncCallChain_Vec3 result = { .x = v.x * scale, .y = v.y * scale, .z = v.z * scale };
+FuncCallChain__Vec3 scaleVec3(const FuncCallChain__Vec3& v, float scale) {
+    FuncCallChain__Vec3 result = { .x = v.x * scale, .y = v.y * scale, .z = v.z * scale };
     return result;
 }
 
@@ -37,7 +37,7 @@ bool isGreater(float a, float b) {
     return a > b;
 }
 
-void setTransform(const FuncCallChain_Transform& t, uint32_t index) {
+void setTransform(const FuncCallChain__Transform& t, uint32_t index) {
     transforms[index] = t;
 }
 
@@ -53,10 +53,10 @@ int main(void) {
     float sumZ = addF32(transforms[0U].position.z, transforms[0U].scale.z);
     float product = multiplyF32(transforms[1U].position.x, transforms[1U].scale.x);
     float nestedSum = addF32(multiplyF32(transforms[0U].position.x, 2.0), transforms[0U].position.y);
-    FuncCallChain_Vec3 scaled = scaleVec3(transforms[0U].position, 2.0);
+    FuncCallChain__Vec3 scaled = scaleVec3(transforms[0U].position, 2.0);
     float scaledX = scaled.x;
     bool result = isGreater(transforms[0U].position.x, transforms[1U].position.x);
-    FuncCallChain_Transform temp = {};
+    FuncCallChain__Transform temp = {};
     temp.position = transforms[0U].position;
     temp.scale = transforms[0U].scale;
     setTransform(temp, 2U);

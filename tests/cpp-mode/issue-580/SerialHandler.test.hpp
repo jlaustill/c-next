@@ -17,9 +17,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void SerialHandler_handleReset(Config& config);
-void SerialHandler_handlePreset(Config& config);
-void SerialHandler_handleSave(Config& config);
+void SerialHandler__handleReset(Config& config);
+void SerialHandler__handlePreset(Config& config);
+void SerialHandler__handleSave(Config& config);
 
 #ifdef __cplusplus
 }

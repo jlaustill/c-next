@@ -65,7 +65,7 @@ describe("HeaderSymbolAdapter", () => {
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
-      expect(result.name).toBe("Motor_speed");
+      expect(result.name).toBe("Motor__speed");
       expect(result.type).toBe("f32");
       expect(result.isAtomic).toBe(true);
       expect(result.parent).toBe("Motor");
@@ -163,12 +163,12 @@ describe("HeaderSymbolAdapter", () => {
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
-      expect(result.name).toBe("Motor_setSpeed");
+      expect(result.name).toBe("Motor__setSpeed");
       expect(result.type).toBe("void");
       expect(result.parameters).toHaveLength(1);
       expect(result.parameters?.[0].name).toBe("value");
       expect(result.parameters?.[0].type).toBe("f32");
-      expect(result.signature).toBe("void Motor_setSpeed(f32)");
+      expect(result.signature).toBe("void Motor__setSpeed(f32)");
       expect(result.parent).toBe("Motor");
     });
 
@@ -250,7 +250,7 @@ describe("HeaderSymbolAdapter", () => {
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
-      expect(result.name).toBe("Geometry_Vector");
+      expect(result.name).toBe("Geometry__Vector");
       expect(result.parent).toBe("Geometry");
     });
   });
@@ -296,7 +296,7 @@ describe("HeaderSymbolAdapter", () => {
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
-      expect(result.name).toBe("Motor_EMode");
+      expect(result.name).toBe("Motor__EMode");
       expect(result.parent).toBe("Motor");
     });
   });
@@ -343,7 +343,7 @@ describe("HeaderSymbolAdapter", () => {
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
-      expect(result.name).toBe("Motor_Status");
+      expect(result.name).toBe("Motor__Status");
       expect(result.type).toBe("u16");
       expect(result.parent).toBe("Motor");
     });
@@ -388,7 +388,7 @@ describe("HeaderSymbolAdapter", () => {
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
 
-      expect(result.name).toBe("Motor_CTRL");
+      expect(result.name).toBe("Motor__CTRL");
       expect(result.parent).toBe("Motor");
     });
   });

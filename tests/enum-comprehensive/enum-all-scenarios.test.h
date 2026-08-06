@@ -15,35 +15,35 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EGlobalState_IDLE = 0,
-    EGlobalState_RUNNING = 1,
-    EGlobalState_STOPPED = 2
+    EGlobalState__IDLE = 0,
+    EGlobalState__RUNNING = 1,
+    EGlobalState__STOPPED = 2
 } EGlobalState;
 typedef enum {
-    Motor_EMode_OFF = 0,
-    Motor_EMode_LOW = 1,
-    Motor_EMode_HIGH = 2
-} Motor_EMode;
+    Motor__EMode__OFF = 0,
+    Motor__EMode__LOW = 1,
+    Motor__EMode__HIGH = 2
+} Motor__EMode;
 typedef enum {
-    Controller_EStatus_OK = 0,
-    Controller_EStatus_ERROR = 1
-} Controller_EStatus;
+    Controller__EStatus__OK = 0,
+    Controller__EStatus__ERROR = 1
+} Controller__EStatus;
 
 /* External variables */
 extern EGlobalState globalState;
 
 /* Function prototypes */
-Motor_EMode Motor_getMode(void);
-Motor_EMode Motor_getAtomicMode(void);
-void Motor_setMode(Motor_EMode newMode);
-void Motor_setAtomicMode(Motor_EMode newMode);
-bool Motor_testThisMethodEnum(void);
-bool Motor_isOff(void);
-bool Motor_isMode(Motor_EMode checkMode);
-EGlobalState Motor_getGlobalState(void);
-void Motor_criticalEnumUpdate(void);
-void Controller_setMotorMode(void);
-Controller_EStatus Controller_getStatus(void);
+Motor__EMode Motor__getMode(void);
+Motor__EMode Motor__getAtomicMode(void);
+void Motor__setMode(Motor__EMode newMode);
+void Motor__setAtomicMode(Motor__EMode newMode);
+bool Motor__testThisMethodEnum(void);
+bool Motor__isOff(void);
+bool Motor__isMode(Motor__EMode checkMode);
+EGlobalState Motor__getGlobalState(void);
+void Motor__criticalEnumUpdate(void);
+void Controller__setMotorMode(void);
+Controller__EStatus Controller__getStatus(void);
 
 #ifdef __cplusplus
 }

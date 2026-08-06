@@ -21,8 +21,8 @@ typedef struct TestData {
 } TestData;
 
 /* Function prototypes */
-void TestCaller_init(void);
-float TestCaller_test(void);
+void TestCaller__init(void);
+float TestCaller__test(void);
 
 #ifdef __cplusplus
 }

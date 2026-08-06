@@ -24,19 +24,19 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 const uint8_t COUNT = 4U;
 
-SingleFileEnum_Config config = {0};
+SingleFileEnum__Config config = {0};
 
 int main(void) {
-    config.items[0].assigned = MyEnum_A;
-    config.items[1].assigned = MyEnum_B;
-    config.items[2].assigned = MyEnum_NONE;
-    config.items[3].assigned = MyEnum_A;
+    config.items[0].assigned = MyEnum__A;
+    config.items[1].assigned = MyEnum__B;
+    config.items[2].assigned = MyEnum__NONE;
+    config.items[3].assigned = MyEnum__A;
     MyEnum val = config.items[0U].assigned;
-    if (val != MyEnum_A) return 1;
+    if (val != MyEnum__A) return 1;
     uint8_t countAssigned = 0U;
     for (uint8_t i = 0; i < COUNT; i += 1) {
         MyEnum current = config.items[i].assigned;
-        if (current != MyEnum_NONE) {
+        if (current != MyEnum__NONE) {
             countAssigned = cnx_clamp_add_u8(countAssigned, 1U);
         }
     }

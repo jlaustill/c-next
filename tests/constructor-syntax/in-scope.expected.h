@@ -15,11 +15,11 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint8_t Sensor_pin;
-extern Adafruit_MAX31856 Sensor_device;
+extern const uint8_t Sensor__pin;
+extern Adafruit_MAX31856 Sensor__device;
 
 /* Function prototypes */
-void Sensor_init(void);
+void Sensor__init(void);
 
 #ifdef __cplusplus
 }

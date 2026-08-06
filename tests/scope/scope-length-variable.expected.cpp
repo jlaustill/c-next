@@ -12,54 +12,54 @@
 // When a scope variable is named 'length', this.length should access the variable,
 // not be interpreted as a .length property accessor
 /* Scope: LengthTest */
-static uint8_t LengthTest_length = 0U;
-static uint16_t LengthTest_offset = 0U;
+static uint8_t LengthTest__length = 0U;
+static uint16_t LengthTest__offset = 0U;
 
-uint8_t LengthTest_getLength(void) {
-    return LengthTest_length;
+uint8_t LengthTest__getLength(void) {
+    return LengthTest__length;
 }
 
-void LengthTest_setLength(uint8_t newLen) {
-    LengthTest_length = newLen;
+void LengthTest__setLength(uint8_t newLen) {
+    LengthTest__length = newLen;
 }
 
-uint16_t LengthTest_getOffset(void) {
-    return LengthTest_offset;
+uint16_t LengthTest__getOffset(void) {
+    return LengthTest__offset;
 }
 
-void LengthTest_setOffset(uint16_t newOffset) {
-    LengthTest_offset = newOffset;
+void LengthTest__setOffset(uint16_t newOffset) {
+    LengthTest__offset = newOffset;
 }
 
-uint16_t LengthTest_getLengthPlusOffset(void) {
-    return LengthTest_offset + LengthTest_length;
+uint16_t LengthTest__getLengthPlusOffset(void) {
+    return LengthTest__offset + LengthTest__length;
 }
 
 int main(void) {
-    uint8_t resultLen = LengthTest_getLength();
+    uint8_t resultLen = LengthTest__getLength();
     if (resultLen != 0) {
         return 1;
     }
-    LengthTest_setLength(42U);
-    resultLen = LengthTest_getLength();
+    LengthTest__setLength(42U);
+    resultLen = LengthTest__getLength();
     if (resultLen != 42) {
         return 2;
     }
-    uint16_t resultOffset = LengthTest_getOffset();
+    uint16_t resultOffset = LengthTest__getOffset();
     if (resultOffset != 0) {
         return 3;
     }
-    LengthTest_setOffset(100U);
-    resultOffset = LengthTest_getOffset();
+    LengthTest__setOffset(100U);
+    resultOffset = LengthTest__getOffset();
     if (resultOffset != 100) {
         return 4;
     }
-    uint16_t resultSum = LengthTest_getLengthPlusOffset();
+    uint16_t resultSum = LengthTest__getLengthPlusOffset();
     if (resultSum != 142) {
         return 5;
     }
-    LengthTest_setLength(255U);
-    resultLen = LengthTest_getLength();
+    LengthTest__setLength(255U);
+    resultLen = LengthTest__getLength();
     if (resultLen != 255) {
         return 6;
     }

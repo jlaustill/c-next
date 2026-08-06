@@ -9,10 +9,10 @@
 
 // Tests: Qualified enum member used as array dimension
 // EColor.COUNT should generate EColor_COUNT in both code and header
-extern const uint8_t DATA[EColor_COUNT] = {10U, 20U, 30U};
+extern const uint8_t DATA[EColor__COUNT] = {10U, 20U, 30U};
 
 /* Scope: Test */
 
-uint8_t Test_get(uint8_t idx) {
+uint8_t Test__get(uint8_t idx) {
     return DATA[idx];
 }

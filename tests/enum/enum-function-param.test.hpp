@@ -15,10 +15,10 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Status_OK = 0,
-    Status_WARNING = 1,
-    Status_ERROR = 2,
-    Status_CRITICAL = 3
+    Status__OK = 0,
+    Status__WARNING = 1,
+    Status__ERROR = 2,
+    Status__CRITICAL = 3
 } Status;
 
 #ifdef __cplusplus

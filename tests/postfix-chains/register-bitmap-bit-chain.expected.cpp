@@ -28,29 +28,29 @@ typedef uint8_t StatusFlags;
 typedef uint16_t ControlFlags;
 
 /* Register: MOTOR @ 0x40001000 */
-#define MOTOR_STATUS (*(volatile StatusFlags*)(0x40001000 + 0x00))
-#define MOTOR_CONTROL (*(volatile ControlFlags*)(0x40001000 + 0x04))
-#define MOTOR_DATA (*(volatile uint32_t*)(0x40001000 + 0x08))
+#define MOTOR__STATUS (*(volatile StatusFlags*)(0x40001000 + 0x00))
+#define MOTOR__CONTROL (*(volatile ControlFlags*)(0x40001000 + 0x04))
+#define MOTOR__DATA (*(volatile uint32_t*)(0x40001000 + 0x08))
 
 int main(void) {
-    MOTOR_STATUS = (MOTOR_STATUS & ~(1U << 0)) | (1U << 0);
-    MOTOR_STATUS = (MOTOR_STATUS & ~(1U << 1)) | (0U << 1);
-    MOTOR_STATUS = (MOTOR_STATUS & ~(0x7U << 2)) | ((5 & 0x7U) << 2);
-    bool isReady = ((((MOTOR_STATUS >> 0) & 1)) != 0U);
-    bool hasError = ((((MOTOR_STATUS >> 1) & 1)) != 0U);
-    uint8_t mode = static_cast<uint8_t>(((MOTOR_STATUS >> 2) & 0x7));
-    MOTOR_CONTROL = (MOTOR_CONTROL & ~(1U << 0)) | (1U << 0);
-    MOTOR_CONTROL = (MOTOR_CONTROL & ~(1U << 1)) | (0U << 1);
-    MOTOR_CONTROL = (MOTOR_CONTROL & ~(0xFFU << 2)) | ((127 & 0xFFU) << 2);
-    uint8_t speed = static_cast<uint8_t>(((MOTOR_CONTROL >> 2) & 0xFF));
-    bool enabled = ((((MOTOR_CONTROL >> 0) & 1)) != 0U);
-    MOTOR_DATA = (MOTOR_DATA & ~(1U << 0)) | (1U << 0);
-    MOTOR_DATA = (MOTOR_DATA & ~(1U << 15)) | (0U << 15);
-    MOTOR_DATA = (MOTOR_DATA & ~(1U << 31)) | (1U << 31);
-    bool bit0 = ((((MOTOR_DATA) & 1)) != 0U);
-    bool bit15 = ((((MOTOR_DATA >> 15U) & 1)) != 0U);
-    if (((MOTOR_STATUS >> 0) & 1) == true) {
-        MOTOR_CONTROL = (MOTOR_CONTROL & ~(1U << 0)) | (1U << 0);
+    MOTOR__STATUS = (MOTOR__STATUS & ~(1U << 0)) | (1U << 0);
+    MOTOR__STATUS = (MOTOR__STATUS & ~(1U << 1)) | (0U << 1);
+    MOTOR__STATUS = (MOTOR__STATUS & ~(0x7U << 2)) | ((5 & 0x7U) << 2);
+    bool isReady = ((((MOTOR__STATUS >> 0) & 1)) != 0U);
+    bool hasError = ((((MOTOR__STATUS >> 1) & 1)) != 0U);
+    uint8_t mode = static_cast<uint8_t>(((MOTOR__STATUS >> 2) & 0x7));
+    MOTOR__CONTROL = (MOTOR__CONTROL & ~(1U << 0)) | (1U << 0);
+    MOTOR__CONTROL = (MOTOR__CONTROL & ~(1U << 1)) | (0U << 1);
+    MOTOR__CONTROL = (MOTOR__CONTROL & ~(0xFFU << 2)) | ((127 & 0xFFU) << 2);
+    uint8_t speed = static_cast<uint8_t>(((MOTOR__CONTROL >> 2) & 0xFF));
+    bool enabled = ((((MOTOR__CONTROL >> 0) & 1)) != 0U);
+    MOTOR__DATA = (MOTOR__DATA & ~(1U << 0)) | (1U << 0);
+    MOTOR__DATA = (MOTOR__DATA & ~(1U << 15)) | (0U << 15);
+    MOTOR__DATA = (MOTOR__DATA & ~(1U << 31)) | (1U << 31);
+    bool bit0 = ((((MOTOR__DATA) & 1)) != 0U);
+    bool bit15 = ((((MOTOR__DATA >> 15U) & 1)) != 0U);
+    if (((MOTOR__STATUS >> 0) & 1) == true) {
+        MOTOR__CONTROL = (MOTOR__CONTROL & ~(1U << 0)) | (1U << 0);
     }
-    uint8_t doubleSpeed = static_cast<uint8_t>(((MOTOR_CONTROL >> 2) & 0xFF)) * 2U;
+    uint8_t doubleSpeed = static_cast<uint8_t>(((MOTOR__CONTROL >> 2) & 0xFF)) * 2U;
 }

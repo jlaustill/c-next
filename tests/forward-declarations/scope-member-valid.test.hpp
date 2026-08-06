@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void LED_on(void);
-void LED_off(void);
+void LED__on(void);
+void LED__off(void);
 
 #ifdef __cplusplus
 }

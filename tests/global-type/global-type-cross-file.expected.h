@@ -15,10 +15,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-EPriority TaskManager_getPriority(void);
-int32_t TaskManager_priorityToInt(EPriority p);
-Vec2 TaskManager_getPosition(void);
-int32_t TaskManager_sumVec(const Vec2* v);
+EPriority TaskManager__getPriority(void);
+int32_t TaskManager__priorityToInt(EPriority p);
+Vec2 TaskManager__getPosition(void);
+int32_t TaskManager__sumVec(const Vec2* v);
 
 #ifdef __cplusplus
 }

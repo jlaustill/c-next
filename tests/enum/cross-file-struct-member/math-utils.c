@@ -10,10 +10,10 @@
 // Helper file: math utilities for cross-file function test
 /* Scope: MathUtils */
 
-uint32_t MathUtils_add(uint32_t a, uint32_t b) {
+uint32_t MathUtils__add(uint32_t a, uint32_t b) {
     return a + b;
 }
 
-uint32_t MathUtils_multiply(uint32_t a, uint32_t b) {
+uint32_t MathUtils__multiply(uint32_t a, uint32_t b) {
     return a * b;
 }

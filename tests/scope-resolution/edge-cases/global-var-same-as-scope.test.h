@@ -15,11 +15,11 @@ extern "C" {
 
 /* External variables */
 extern uint8_t LED;
-extern uint8_t LED_brightness;
+extern uint8_t LED__brightness;
 
 /* Function prototypes */
-void LED_on(void);
-uint32_t Motor_test(void);
+void LED__on(void);
+uint32_t Motor__test(void);
 
 #ifdef __cplusplus
 }

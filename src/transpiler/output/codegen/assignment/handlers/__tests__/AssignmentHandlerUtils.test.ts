@@ -110,14 +110,14 @@ describe("AssignmentHandlerUtils", () => {
         "GPIO7",
         "DR_SET",
       ]);
-      expect(result).toBe("Motor_GPIO7_DR_SET");
+      expect(result).toBe("Motor__GPIO7__DR_SET");
     });
 
     it("should handle single part", () => {
       const result = AssignmentHandlerUtils.buildScopedRegisterName("Scope", [
         "REG",
       ]);
-      expect(result).toBe("Scope_REG");
+      expect(result).toBe("Scope__REG");
     });
   });
 
@@ -130,8 +130,8 @@ describe("AssignmentHandlerUtils", () => {
         mockIsKnownScope,
       );
       expect(result).toEqual({
-        fullName: "Motor_GPIO7_DR_SET",
-        regName: "Motor_GPIO7",
+        fullName: "Motor__GPIO7__DR_SET",
+        regName: "Motor__GPIO7",
         isScoped: true,
       });
     });
@@ -142,7 +142,7 @@ describe("AssignmentHandlerUtils", () => {
         mockIsKnownScope,
       );
       expect(result).toEqual({
-        fullName: "GPIO7_DR_SET",
+        fullName: "GPIO7__DR_SET",
         regName: "GPIO7",
         isScoped: false,
       });
@@ -155,7 +155,7 @@ describe("AssignmentHandlerUtils", () => {
         mockIsKnownScope,
       );
       expect(result).toEqual({
-        fullName: "Motor_DR_SET",
+        fullName: "Motor__DR__SET",
         regName: "Motor",
         isScoped: false,
       });

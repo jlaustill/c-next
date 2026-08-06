@@ -8,9 +8,9 @@
 // Helper file: defines types used by cross-file tests
 // This file is NOT a test file - it provides types for other tests
 typedef enum {
-    EPriority_LOW = 0,
-    EPriority_MEDIUM = 1,
-    EPriority_HIGH = 2
+    EPriority__LOW = 0,
+    EPriority__MEDIUM = 1,
+    EPriority__HIGH = 2
 } EPriority;
 
 typedef struct Vec2 {

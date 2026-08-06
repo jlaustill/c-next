@@ -14,29 +14,29 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct DataManager_Point {
+typedef struct DataManager__Point {
     int16_t x;
     int16_t y;
-} DataManager_Point;
-typedef struct DataManager_Size {
+} DataManager__Point;
+typedef struct DataManager__Size {
     uint16_t width;
     uint16_t height;
-} DataManager_Size;
-typedef struct DataManager_Rect {
-    DataManager_Point origin;
-    DataManager_Size dimensions;
-} DataManager_Rect;
+} DataManager__Size;
+typedef struct DataManager__Rect {
+    DataManager__Point origin;
+    DataManager__Size dimensions;
+} DataManager__Rect;
 
 /* External variables */
-extern DataManager_Point DataManager_cursor;
-extern DataManager_Size DataManager_screenSize;
-extern DataManager_Rect DataManager_viewport;
+extern DataManager__Point DataManager__cursor;
+extern DataManager__Size DataManager__screenSize;
+extern DataManager__Rect DataManager__viewport;
 
 /* Function prototypes */
-void DataManager_setCursor(int16_t x, int16_t y);
-void DataManager_setScreen(uint16_t w, uint16_t h);
-void DataManager_setViewport(int16_t x, int16_t y, uint16_t w, uint16_t h);
-uint32_t DataManager_getViewportArea(void);
+void DataManager__setCursor(int16_t x, int16_t y);
+void DataManager__setScreen(uint16_t w, uint16_t h);
+void DataManager__setViewport(int16_t x, int16_t y, uint16_t w, uint16_t h);
+uint32_t DataManager__getViewportArea(void);
 
 #ifdef __cplusplus
 }

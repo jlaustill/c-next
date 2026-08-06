@@ -8,27 +8,27 @@
 // Issue #471: Mixed qualified and unqualified enum references
 // Tests that both syntaxes work correctly in the same switch
 typedef enum {
-    EPriority_LOW = 0,
-    EPriority_MEDIUM = 1,
-    EPriority_HIGH = 2,
-    EPriority_CRITICAL = 3
+    EPriority__LOW = 0,
+    EPriority__MEDIUM = 1,
+    EPriority__HIGH = 2,
+    EPriority__CRITICAL = 3
 } EPriority;
 
 uint32_t getPriorityValue(EPriority p) {
     switch (p) {
-        case EPriority_LOW: {
+        case EPriority__LOW: {
             return 1;
             break;
         }
-        case EPriority_MEDIUM: {
+        case EPriority__MEDIUM: {
             return 5;
             break;
         }
-        case EPriority_HIGH: {
+        case EPriority__HIGH: {
             return 10;
             break;
         }
-        case EPriority_CRITICAL: {
+        case EPriority__CRITICAL: {
             return 100;
             break;
         }

@@ -15,13 +15,13 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    GlobalState_IDLE = 0,
-    GlobalState_RUNNING = 1,
-    GlobalState_STOPPED = 2
+    GlobalState__IDLE = 0,
+    GlobalState__RUNNING = 1,
+    GlobalState__STOPPED = 2
 } GlobalState;
 
 /* Function prototypes */
-GlobalState Motor_test(void);
+GlobalState Motor__test(void);
 
 #ifdef __cplusplus
 }

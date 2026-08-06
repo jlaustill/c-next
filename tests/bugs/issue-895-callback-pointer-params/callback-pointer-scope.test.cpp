@@ -15,13 +15,13 @@
 
 /* Scope: Renderer */
 
-void Renderer_my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
+void Renderer__my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
     widget_flush_was_called = true;
     widget_flush_area_x = area->x;
     widget_flush_buf_first_byte = (*buf);
 }
 
-void Renderer_init(void) {
+void Renderer__init(void) {
     widget_t* w = widget_create();
-    widget_set_flush_cb(w, Renderer_my_flush);
+    widget_set_flush_cb(w, Renderer__my_flush);
 }

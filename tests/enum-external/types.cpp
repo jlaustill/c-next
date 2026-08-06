@@ -5,6 +5,6 @@
 
 // Helper file: defines enum for external reference
 typedef enum {
-    EPressureType_PRESSURE_TYPE_PSIA = 0,
-    EPressureType_PRESSURE_TYPE_PSIG = 1
+    EPressureType__PRESSURE_TYPE_PSIA = 0,
+    EPressureType__PRESSURE_TYPE_PSIG = 1
 } EPressureType;

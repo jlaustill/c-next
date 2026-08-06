@@ -15,16 +15,16 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    Priority_LOW = 1,
-    Priority_MEDIUM = 5,
-    Priority_HIGH = 10,
-    Priority_CRITICAL = 100
+    Priority__LOW = 1,
+    Priority__MEDIUM = 5,
+    Priority__HIGH = 10,
+    Priority__CRITICAL = 100
 } Priority;
 typedef enum {
-    Flags_NONE = 0,
-    Flags_READ = 1,
-    Flags_WRITE = 2,
-    Flags_EXECUTE = 4
+    Flags__NONE = 0,
+    Flags__READ = 1,
+    Flags__WRITE = 2,
+    Flags__EXECUTE = 4
 } Flags;
 
 #ifdef __cplusplus

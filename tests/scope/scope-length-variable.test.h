@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t LengthTest_getLength(void);
-void LengthTest_setLength(uint8_t newLen);
-uint16_t LengthTest_getOffset(void);
-void LengthTest_setOffset(uint16_t newOffset);
-uint16_t LengthTest_getLengthPlusOffset(void);
+uint8_t LengthTest__getLength(void);
+void LengthTest__setLength(uint8_t newLen);
+uint16_t LengthTest__getOffset(void);
+void LengthTest__setOffset(uint16_t newOffset);
+uint16_t LengthTest__getLengthPlusOffset(void);
 
 #ifdef __cplusplus
 }

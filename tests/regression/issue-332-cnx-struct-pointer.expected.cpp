@@ -15,26 +15,26 @@
 #include "issue-332-external-processor.hpp"
 
 /* Scope: Issue332Storage */
-static Issue332AppData Issue332Storage_appData = {};
-static struct Issue332AppConfig Issue332Storage_appConfig = {};
+static Issue332AppData Issue332Storage__appData = {};
+static struct Issue332AppConfig Issue332Storage__appConfig = {};
 
-void Issue332Storage_setup(void) {
-    Issue332Storage_appConfig.setting = 100;
-    Issue332Storage_appConfig.flags = 5U;
-    Issue332Storage_appData.value = 10.5;
-    Issue332Storage_appData.count = 0U;
+void Issue332Storage__setup(void) {
+    Issue332Storage__appConfig.setting = 100;
+    Issue332Storage__appConfig.flags = 5U;
+    Issue332Storage__appData.value = 10.5;
+    Issue332Storage__appData.count = 0U;
 }
 
-void Issue332Storage_processAll(void) {
-    Issue332DataProcessor::processConfig(&Issue332Storage_appConfig);
-    Issue332DataProcessor::processData(&Issue332Storage_appData);
+void Issue332Storage__processAll(void) {
+    Issue332DataProcessor::processConfig(&Issue332Storage__appConfig);
+    Issue332DataProcessor::processData(&Issue332Storage__appData);
 }
 
-void Issue332Storage_initFromConfig(void) {
-    Issue332DataProcessor::initialize(&Issue332Storage_appConfig, &Issue332Storage_appData);
+void Issue332Storage__initFromConfig(void) {
+    Issue332DataProcessor::initialize(&Issue332Storage__appConfig, &Issue332Storage__appData);
 }
 
 int main(void) {
-    Issue332Storage_setup();
-    Issue332Storage_processAll();
+    Issue332Storage__setup();
+    Issue332Storage__processAll();
 }

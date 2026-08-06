@@ -15,7 +15,7 @@
 
 Point origin = {0};
 
-ZeroInit_Config settings = {0};
+ZeroInit__Config settings = {0};
 
 int main(void) {
     if (origin.x == 0 && origin.y == 0) {

@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct F32AllCtx_Point {
+typedef struct F32AllCtx__Point {
     float x;
     float y;
-} F32AllCtx_Point;
+} F32AllCtx__Point;
 
 /* External variables */
 extern float global_f;

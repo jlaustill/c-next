@@ -11,53 +11,53 @@
 // test-execution
 // Tests: Basic scoped struct declaration, read and write operations
 /* Scope: Motor */
-Motor_Config Motor_current = {0};
+Motor__Config Motor__current = {0};
 
-void Motor_setSpeed(uint8_t s) {
-    Motor_current.speed = s;
+void Motor__setSpeed(uint8_t s) {
+    Motor__current.speed = s;
 }
 
-uint8_t Motor_getSpeed(void) {
-    return Motor_current.speed;
+uint8_t Motor__getSpeed(void) {
+    return Motor__current.speed;
 }
 
-void Motor_setDirection(uint8_t d) {
-    Motor_current.direction = d;
+void Motor__setDirection(uint8_t d) {
+    Motor__current.direction = d;
 }
 
-void Motor_enable(void) {
-    Motor_current.enabled = true;
+void Motor__enable(void) {
+    Motor__current.enabled = true;
 }
 
-void Motor_disable(void) {
-    Motor_current.enabled = false;
+void Motor__disable(void) {
+    Motor__current.enabled = false;
 }
 
-bool Motor_isEnabled(void) {
-    return Motor_current.enabled;
+bool Motor__isEnabled(void) {
+    return Motor__current.enabled;
 }
 
 int main(void) {
-    if (Motor_current.speed != 0) return 1;
-    if (Motor_current.direction != 0) return 2;
-    if (Motor_current.enabled != false) return 3;
-    Motor_setSpeed(100U);
-    if (Motor_current.speed != 100) return 4;
-    uint8_t speed = Motor_getSpeed();
+    if (Motor__current.speed != 0) return 1;
+    if (Motor__current.direction != 0) return 2;
+    if (Motor__current.enabled != false) return 3;
+    Motor__setSpeed(100U);
+    if (Motor__current.speed != 100) return 4;
+    uint8_t speed = Motor__getSpeed();
     if (speed != 100) return 5;
-    Motor_setDirection(1U);
-    if (Motor_current.direction != 1) return 6;
-    Motor_enable();
-    bool enabled = Motor_isEnabled();
+    Motor__setDirection(1U);
+    if (Motor__current.direction != 1) return 6;
+    Motor__enable();
+    bool enabled = Motor__isEnabled();
     if (enabled != true) return 7;
-    Motor_disable();
-    enabled = Motor_isEnabled();
+    Motor__disable();
+    enabled = Motor__isEnabled();
     if (enabled != false) return 8;
-    Motor_current.speed = 50;
-    if (Motor_current.speed != 50) return 9;
-    Motor_current.direction = 2;
-    if (Motor_current.direction != 2) return 10;
-    Motor_current.enabled = true;
-    if (Motor_current.enabled != true) return 11;
+    Motor__current.speed = 50;
+    if (Motor__current.speed != 50) return 9;
+    Motor__current.direction = 2;
+    if (Motor__current.direction != 2) return 10;
+    Motor__current.enabled = true;
+    if (Motor__current.enabled != true) return 11;
     return 0;
 }

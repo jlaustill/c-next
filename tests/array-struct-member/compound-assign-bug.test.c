@@ -11,7 +11,7 @@
 // Verifies arr[i].field +<- value generates += correctly (was losing the +=)
 /* Scope: CompoundBug */
 
-CompoundBug_Counter counters[2] = {0};
+CompoundBug__Counter counters[2] = {0};
 
 int main(void) {
     counters[0].value = 100;

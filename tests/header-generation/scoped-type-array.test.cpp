@@ -14,9 +14,9 @@
 // Test qualified type array from outside scope
 /* Scope: User */
 
-Container_Collection collection = {};
+Container__Collection collection = {};
 
-User_Data userData = {};
+User__Data userData = {};
 
 int main(void) {
     collection.items[0].value = 42;

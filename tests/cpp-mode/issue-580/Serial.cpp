@@ -11,5 +11,5 @@
 // Mock Serial for logging - does NOT modify Config
 /* Scope: Serial */
 
-void Serial_println(uint32_t msg) {
+void Serial__println(uint32_t msg) {
 }

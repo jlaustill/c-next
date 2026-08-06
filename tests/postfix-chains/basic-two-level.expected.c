@@ -19,8 +19,8 @@ typedef struct Line {
 } Line;
 
 /* Register: GPIO @ 0x40000000 */
-#define GPIO_DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO_DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
+#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 Point points[4] = {0};
 
@@ -36,7 +36,7 @@ int main(void) {
     points[0].x = 5;
     points[0].y = 15;
     int32_t px = points[0U].x;
-    GPIO_DR = (GPIO_DR & ~(1U << 3)) | (1U << 3);
-    bool bit = ((((GPIO_DR >> 5U) & 1)) != 0U);
-    GPIO_DR_SET = (1U << 7);
+    GPIO__DR = (GPIO__DR & ~(1U << 3)) | (1U << 3);
+    bool bit = ((((GPIO__DR >> 5U) & 1)) != 0U);
+    GPIO__DR_SET = (1U << 7);
 }

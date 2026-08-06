@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-float Math_add(float x, float y);
-float Math_multiply(float x, float y);
-float Math_subtract(float x, float y);
+float Math__add(float x, float y);
+float Math__multiply(float x, float y);
+float Math__subtract(float x, float y);
 
 #ifdef __cplusplus
 }

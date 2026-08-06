@@ -11,21 +11,21 @@
 // Tests: Cross-scope method call returning enum (global.Scope.method() pattern)
 /* Scope: Provider */
 
-ECategory Provider_getCategory(void) {
-    return ECategory_CAT_A;
+ECategory Provider__getCategory(void) {
+    return ECategory__CAT_A;
 }
 
 /* Scope: Consumer */
 
-uint32_t Consumer_test(void) {
-    ECategory cat = Provider_getCategory();
-    if (cat == ECategory_CAT_A) {
+uint32_t Consumer__test(void) {
+    ECategory cat = Provider__getCategory();
+    if (cat == ECategory__CAT_A) {
         return 0;
     }
     return 1;
 }
 
 int main(void) {
-    uint32_t result = Consumer_test();
+    uint32_t result = Consumer__test();
     return result;
 }

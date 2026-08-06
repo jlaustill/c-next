@@ -14,15 +14,15 @@ uint32_t globalArr[16] = {0};
 
 /* Scope: TestScope */
 
-uint32_t TestScope_getGlobalArrayElementCount(void) {
+uint32_t TestScope__getGlobalArrayElementCount(void) {
     return 16;
 }
-static uint32_t TestScope_scopeArr[16] = {0};
+static uint32_t TestScope__scopeArr[16] = {0};
 
-uint32_t TestScope_getScopeArrayElementCount(void) {
+uint32_t TestScope__getScopeArrayElementCount(void) {
     return 16;
 }
-uint32_t TestScope_publicArr[16] = {0};
+uint32_t TestScope__publicArr[16] = {0};
 
 uint32_t checkArrayElementCount(uint32_t arr[16]) {
     return 16;
@@ -35,11 +35,11 @@ int main(void) {
     if (16 != 16) {
         return 1;
     }
-    uint32_t result = TestScope_getGlobalArrayElementCount();
+    uint32_t result = TestScope__getGlobalArrayElementCount();
     if (result != 16) {
         return 2;
     }
-    result = TestScope_getScopeArrayElementCount();
+    result = TestScope__getScopeArrayElementCount();
     if (result != 16) {
         return 3;
     }
@@ -57,7 +57,7 @@ int main(void) {
     if (result != 16) {
         return 6;
     }
-    U32ArrayElementCount_TestStruct ts = {0};
+    U32ArrayElementCount__TestStruct ts = {0};
     ts.arr[0] = 100000U;
     if (16 != 16) {
         return 7;

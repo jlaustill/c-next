@@ -10,50 +10,50 @@
 // test-execution
 // Tests: Multiple scoped structs in the same scope
 /* Scope: DataManager */
-DataManager_Point DataManager_cursor = {0};
-DataManager_Size DataManager_screenSize = {0};
-DataManager_Rect DataManager_viewport = {0};
+DataManager__Point DataManager__cursor = {0};
+DataManager__Size DataManager__screenSize = {0};
+DataManager__Rect DataManager__viewport = {0};
 
-void DataManager_setCursor(int16_t x, int16_t y) {
-    DataManager_cursor.x = x;
-    DataManager_cursor.y = y;
+void DataManager__setCursor(int16_t x, int16_t y) {
+    DataManager__cursor.x = x;
+    DataManager__cursor.y = y;
 }
 
-void DataManager_setScreen(uint16_t w, uint16_t h) {
-    DataManager_screenSize.width = w;
-    DataManager_screenSize.height = h;
+void DataManager__setScreen(uint16_t w, uint16_t h) {
+    DataManager__screenSize.width = w;
+    DataManager__screenSize.height = h;
 }
 
-void DataManager_setViewport(int16_t x, int16_t y, uint16_t w, uint16_t h) {
-    DataManager_viewport.origin.x = x;
-    DataManager_viewport.origin.y = y;
-    DataManager_viewport.dimensions.width = w;
-    DataManager_viewport.dimensions.height = h;
+void DataManager__setViewport(int16_t x, int16_t y, uint16_t w, uint16_t h) {
+    DataManager__viewport.origin.x = x;
+    DataManager__viewport.origin.y = y;
+    DataManager__viewport.dimensions.width = w;
+    DataManager__viewport.dimensions.height = h;
 }
 
-uint32_t DataManager_getViewportArea(void) {
-    return (uint32_t)DataManager_viewport.dimensions.width * (uint32_t)DataManager_viewport.dimensions.height;
+uint32_t DataManager__getViewportArea(void) {
+    return (uint32_t)DataManager__viewport.dimensions.width * (uint32_t)DataManager__viewport.dimensions.height;
 }
 
 int main(void) {
-    DataManager_setCursor(10, 20);
-    if (DataManager_cursor.x != 10) return 1;
-    if (DataManager_cursor.y != 20) return 2;
-    DataManager_setScreen(800U, 600U);
-    if (DataManager_screenSize.width != 800) return 3;
-    if (DataManager_screenSize.height != 600) return 4;
-    DataManager_setViewport(50, 50, 200U, 150U);
-    if (DataManager_viewport.origin.x != 50) return 5;
-    if (DataManager_viewport.origin.y != 50) return 6;
-    if (DataManager_viewport.dimensions.width != 200) return 7;
-    if (DataManager_viewport.dimensions.height != 150) return 8;
-    uint32_t area = DataManager_getViewportArea();
+    DataManager__setCursor(10, 20);
+    if (DataManager__cursor.x != 10) return 1;
+    if (DataManager__cursor.y != 20) return 2;
+    DataManager__setScreen(800U, 600U);
+    if (DataManager__screenSize.width != 800) return 3;
+    if (DataManager__screenSize.height != 600) return 4;
+    DataManager__setViewport(50, 50, 200U, 150U);
+    if (DataManager__viewport.origin.x != 50) return 5;
+    if (DataManager__viewport.origin.y != 50) return 6;
+    if (DataManager__viewport.dimensions.width != 200) return 7;
+    if (DataManager__viewport.dimensions.height != 150) return 8;
+    uint32_t area = DataManager__getViewportArea();
     if (area != 30000) return 9;
-    DataManager_cursor.x = -5;
-    DataManager_cursor.y = -10;
-    if (DataManager_cursor.x != -5) return 10;
-    if (DataManager_cursor.y != -10) return 11;
-    DataManager_viewport.origin.x = 100;
-    if (DataManager_viewport.origin.x != 100) return 12;
+    DataManager__cursor.x = -5;
+    DataManager__cursor.y = -10;
+    if (DataManager__cursor.x != -5) return 10;
+    if (DataManager__cursor.y != -10) return 11;
+    DataManager__viewport.origin.x = 100;
+    if (DataManager__viewport.origin.x != 100) return 12;
     return 0;
 }

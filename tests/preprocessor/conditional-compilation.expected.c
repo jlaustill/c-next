@@ -26,24 +26,24 @@ const uint32_t LED_BIT = 3U;
 const uint32_t BLINK_DELAY = 1000U;
 
 /* Register: GPIO7 @ 0x42004000 */
-#define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-#define GPIO7_DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
-#define GPIO7_DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
-#define GPIO7_DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
+#define GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+#define GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
+#define GPIO7__DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
+#define GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
 /* Scope: LED */
 
-void LED_on(void) {
-    GPIO7_DR_SET = (1U << LED_BIT);
+void LED__on(void) {
+    GPIO7__DR_SET = (1U << LED_BIT);
 }
 
-void LED_off(void) {
-    GPIO7_DR_CLEAR = (1U << LED_BIT);
+void LED__off(void) {
+    GPIO7__DR_CLEAR = (1U << LED_BIT);
 }
 
 void setup(void) {
 }
 
 void loop(void) {
-    LED_on();
+    LED__on();
 }

@@ -11,15 +11,15 @@
 // When multiple enums have the same member name, the assignment target's type
 // determines which enum to use.
 typedef enum {
-    Color_RED = 0,
-    Color_GREEN = 1,
-    Color_BLUE = 2
+    Color__RED = 0,
+    Color__GREEN = 1,
+    Color__BLUE = 2
 } Color;
 
 typedef enum {
-    Status_RED = 10,
-    Status_YELLOW = 20,
-    Status_GREEN = 30
+    Status__RED = 10,
+    Status__YELLOW = 20,
+    Status__GREEN = 30
 } Status;
 
 typedef struct ColorConfig {
@@ -31,27 +31,27 @@ typedef struct StatusConfig {
 } StatusConfig;
 
 void setColorRed(ColorConfig* cfg) {
-    cfg->color = Color_RED;
+    cfg->color = Color__RED;
 }
 
 void setStatusRed(StatusConfig* cfg) {
-    cfg->status = Status_RED;
+    cfg->status = Status__RED;
 }
 
 int main(void) {
-    ColorConfig colorCfg = { .color = Color_BLUE };
+    ColorConfig colorCfg = { .color = Color__BLUE };
     setColorRed(&colorCfg);
     if ((uint32_t)colorCfg.color != 0) return 1;
-    StatusConfig statusCfg = { .status = Status_YELLOW };
+    StatusConfig statusCfg = { .status = Status__YELLOW };
     setStatusRed(&statusCfg);
     if ((uint32_t)statusCfg.status != 10) return 2;
-    colorCfg.color = Color_GREEN;
+    colorCfg.color = Color__GREEN;
     if ((uint32_t)colorCfg.color != 1) return 3;
-    statusCfg.status = Status_GREEN;
+    statusCfg.status = Status__GREEN;
     if ((uint32_t)statusCfg.status != 30) return 4;
-    colorCfg.color = Color_BLUE;
+    colorCfg.color = Color__BLUE;
     if ((uint32_t)colorCfg.color != 2) return 5;
-    statusCfg.status = Status_YELLOW;
+    statusCfg.status = Status__YELLOW;
     if ((uint32_t)statusCfg.status != 20) return 6;
     return 0;
 }

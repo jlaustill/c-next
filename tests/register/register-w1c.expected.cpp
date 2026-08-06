@@ -10,27 +10,27 @@
 // Tests: Write-1-to-Clear register access modifier
 // Writing 1 to a bit clears it, writing 0 has no effect
 /* Register: INT @ 0x40001000 */
-#define INT_STATUS (*(volatile uint32_t*)(0x40001000 + 0x00))
-#define INT_PENDING (*(volatile uint32_t*)(0x40001000 + 0x04))
+#define INT__STATUS (*(volatile uint32_t*)(0x40001000 + 0x00))
+#define INT__PENDING (*(volatile uint32_t*)(0x40001000 + 0x04))
 
 /* Register: GPIO @ 0x40002000 */
-#define GPIO_DR (*(volatile uint32_t*)(0x40002000 + 0x00))
-#define GPIO_INTSTAT (*(volatile uint32_t*)(0x40002000 + 0x10))
+#define GPIO__DR (*(volatile uint32_t*)(0x40002000 + 0x00))
+#define GPIO__INTSTAT (*(volatile uint32_t*)(0x40002000 + 0x10))
 
 void clearInterrupt(uint32_t mask) {
-    INT_STATUS = mask;
+    INT__STATUS = mask;
 }
 
 void clearPendingIRQ(uint8_t irqNum) {
-    INT_PENDING = (1U << irqNum);
+    INT__PENDING = (1U << irqNum);
 }
 
 void clearGpioInterrupt(uint32_t bitMask) {
-    GPIO_INTSTAT = bitMask;
+    GPIO__INTSTAT = bitMask;
 }
 
 void clearSingleBit(uint8_t bit) {
-    INT_STATUS = (1U << bit);
+    INT__STATUS = (1U << bit);
 }
 
 int main(void) {

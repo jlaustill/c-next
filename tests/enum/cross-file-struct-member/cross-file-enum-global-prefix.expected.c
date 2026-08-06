@@ -11,8 +11,8 @@
 #include <stdint.h>
 
 int main(void) {
-    config.items[0].assigned = MyEnum_A;
+    config.items[0].assigned = MyEnum__A;
     MyEnum val = config.items[0U].assigned;
-    if (val != MyEnum_A) return 1;
+    if (val != MyEnum__A) return 1;
     return 0;
 }

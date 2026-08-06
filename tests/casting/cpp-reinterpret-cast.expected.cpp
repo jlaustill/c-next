@@ -17,20 +17,20 @@
 
 /* Scope: ByteProcessor */
 
-uint32_t ByteProcessor_processByte(uint32_t crc, uint8_t byte) {
+uint32_t ByteProcessor__processByte(uint32_t crc, uint8_t byte) {
     return crc ^ byte;
 }
 
-uint32_t ByteProcessor_processBuffer(void) {
+uint32_t ByteProcessor__processBuffer(void) {
     char buf[5] = "ABCD";
     uint32_t crc = 0U;
-    crc = ByteProcessor_processByte(crc, buf[0U]);
-    crc = ByteProcessor_processByte(crc, buf[1U]);
+    crc = ByteProcessor__processByte(crc, buf[0U]);
+    crc = ByteProcessor__processByte(crc, buf[1U]);
     return crc;
 }
 
 int main(void) {
-    uint32_t result = ByteProcessor_processBuffer();
+    uint32_t result = ByteProcessor__processBuffer();
     if (result != 0x03) return 1;
     return 0;
 }

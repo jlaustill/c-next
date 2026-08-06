@@ -10,65 +10,65 @@
 // test-execution
 // Tests: Scoped structs in loops - reading and writing in for/while loops
 /* Scope: Sensor */
-Sensor_Reading Sensor_buffer[4] = {0};
-uint8_t Sensor_count = 0U;
+Sensor__Reading Sensor__buffer[4] = {0};
+uint8_t Sensor__count = 0U;
 
-void Sensor_addReading(uint16_t val, uint8_t ch) {
-    if (Sensor_count < 4) {
-        Sensor_buffer[Sensor_count].value = val;
-        Sensor_buffer[Sensor_count].channel = ch;
-        Sensor_count = Sensor_count + 1U;
+void Sensor__addReading(uint16_t val, uint8_t ch) {
+    if (Sensor__count < 4) {
+        Sensor__buffer[Sensor__count].value = val;
+        Sensor__buffer[Sensor__count].channel = ch;
+        Sensor__count = Sensor__count + 1U;
     }
 }
 
-uint16_t Sensor_sumValues(void) {
+uint16_t Sensor__sumValues(void) {
     uint16_t total = 0U;
     uint8_t i = 0U;
-    while (i < Sensor_count) {
-        total = total + Sensor_buffer[i].value;
+    while (i < Sensor__count) {
+        total = total + Sensor__buffer[i].value;
         i = i + 1U;
     }
     return total;
 }
 
-void Sensor_clear(void) {
+void Sensor__clear(void) {
     uint8_t i = 0U;
     while (i < 4) {
-        Sensor_buffer[i].value = 0U;
-        Sensor_buffer[i].channel = 0U;
+        Sensor__buffer[i].value = 0U;
+        Sensor__buffer[i].channel = 0U;
         i = i + 1U;
     }
-    Sensor_count = 0U;
+    Sensor__count = 0U;
 }
 
 int main(void) {
-    if (Sensor_count != 0) return 1;
+    if (Sensor__count != 0) return 1;
     uint8_t i = 0U;
     while (i < 3) {
         uint16_t val = (uint16_t)(100U + i * 10U);
-        Sensor_addReading(val, i);
+        Sensor__addReading(val, i);
         i = i + 1U;
     }
-    if (Sensor_count != 3) return 2;
-    if (Sensor_buffer[0U].value != 100) return 3;
-    if (Sensor_buffer[0U].channel != 0) return 4;
-    if (Sensor_buffer[1U].value != 110) return 5;
-    if (Sensor_buffer[1U].channel != 1) return 6;
-    if (Sensor_buffer[2U].value != 120) return 7;
-    if (Sensor_buffer[2U].channel != 2) return 8;
-    uint16_t sum = Sensor_sumValues();
+    if (Sensor__count != 3) return 2;
+    if (Sensor__buffer[0U].value != 100) return 3;
+    if (Sensor__buffer[0U].channel != 0) return 4;
+    if (Sensor__buffer[1U].value != 110) return 5;
+    if (Sensor__buffer[1U].channel != 1) return 6;
+    if (Sensor__buffer[2U].value != 120) return 7;
+    if (Sensor__buffer[2U].channel != 2) return 8;
+    uint16_t sum = Sensor__sumValues();
     if (sum != 330) return 9;
-    Sensor_clear();
-    if (Sensor_count != 0) return 10;
-    if (Sensor_buffer[0U].value != 0) return 11;
+    Sensor__clear();
+    if (Sensor__count != 0) return 10;
+    if (Sensor__buffer[0U].value != 0) return 11;
     i = 0U;
     while (i < 2) {
-        Sensor_buffer[i].value = (uint16_t)(200 + i);
-        Sensor_buffer[i].channel = i;
+        Sensor__buffer[i].value = (uint16_t)(200 + i);
+        Sensor__buffer[i].channel = i;
         i = i + 1U;
     }
-    Sensor_count = 2;
-    if (Sensor_buffer[0U].value != 200) return 12;
-    if (Sensor_buffer[1U].value != 201) return 13;
+    Sensor__count = 2;
+    if (Sensor__buffer[0U].value != 200) return 12;
+    if (Sensor__buffer[1U].value != 201) return 13;
     return 0;
 }

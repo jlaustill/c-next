@@ -24,7 +24,7 @@ class QualifiedCName {
    * ADR-063 reserves this sequence: no C-Next identifier may contain it, which is
    * what makes the join injective. Enforced by E0201 (IdentifierSyntaxAnalyzer).
    */
-  static readonly SEPARATOR = "_";
+  static readonly SEPARATOR = "__";
 
   /**
    * The separator used in C-Next source to qualify a name (`Scope.member`).

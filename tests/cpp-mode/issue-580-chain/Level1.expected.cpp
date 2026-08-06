@@ -13,11 +13,11 @@
 
 /* Scope: Level1 */
 
-void Level1_entry(Config& config) {
-    Level2_passToLevel3(config);
+void Level1__entry(Config& config) {
+    Level2__passToLevel3(config);
 }
 
 int main(void) {
     Config c = { .value = 0U };
-    Level1_entry(c);
+    Level1__entry(c);
 }

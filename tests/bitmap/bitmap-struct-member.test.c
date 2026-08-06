@@ -13,9 +13,9 @@
 // Tests: Bitmap as struct member
 /* Scope: BitmapMember */
 
-BitmapMember_Device device = {0};
+BitmapMember__Device device = {0};
 
-BitmapMember_Controller ctrl = {0};
+BitmapMember__Controller ctrl = {0};
 
 int main(void) {
     device.id = 12345U;

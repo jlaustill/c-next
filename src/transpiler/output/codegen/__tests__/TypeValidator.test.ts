@@ -1238,14 +1238,14 @@ describe("TypeValidator", () => {
     it("allows scoped variable names (with underscore)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
-          "Motor_speed",
+          "Motor__speed",
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
       setupState({ currentScope: "Motor", typeRegistry });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
-          "Motor_speed",
+          "Motor__speed",
           false,
           () => false,
         ),

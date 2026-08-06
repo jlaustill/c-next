@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Foo_getConstant(void);
-uint8_t Foo_useInExpression(void);
+uint32_t Foo__getConstant(void);
+uint8_t Foo__useInExpression(void);
 
 #ifdef __cplusplus
 }

@@ -17,8 +17,8 @@ extern "C" {
 extern uint32_t call_arg;
 
 /* Function prototypes */
-uint32_t Reentrant_inner(void);
-uint32_t Reentrant_outer(uint32_t x);
+uint32_t Reentrant__inner(void);
+uint32_t Reentrant__outer(uint32_t x);
 
 #ifdef __cplusplus
 }

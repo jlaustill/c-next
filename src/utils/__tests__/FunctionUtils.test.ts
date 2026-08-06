@@ -14,7 +14,7 @@ describe("IFunctionSymbol", () => {
       const testScope = ScopeUtils.createScope("Test", global);
 
       const func = FunctionUtils.create({
-        name: "fillData", // Bare name, NOT "Test_fillData"
+        name: "fillData", // Bare name, NOT "Test__fillData"
         scope: testScope,
         parameters: [
           ParameterUtils.create({
@@ -186,7 +186,7 @@ describe("IFunctionSymbol", () => {
         sourceLine: 10,
       });
 
-      expect(FunctionUtils.getTranspiledCName(func)).toBe("Test_fillData");
+      expect(FunctionUtils.getTranspiledCName(func)).toBe("Test__fillData");
     });
 
     it("returns nested scope-prefixed name for nested scope function", () => {
@@ -206,7 +206,7 @@ describe("IFunctionSymbol", () => {
       });
 
       expect(FunctionUtils.getTranspiledCName(func)).toBe(
-        "Outer_Inner_process",
+        "Outer__Inner__process",
       );
     });
   });

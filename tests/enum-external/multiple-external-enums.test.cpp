@@ -16,20 +16,20 @@ typedef struct DeviceState {
 } DeviceState;
 
 void configure(DeviceState& state) {
-    state.pressure = EPressureType_PRESSURE_TYPE_PSIG;
-    state.status = EStatus_STATUS_ACTIVE;
+    state.pressure = EPressureType__PRESSURE_TYPE_PSIG;
+    state.status = EStatus__STATUS_ACTIVE;
 }
 
 int main(void) {
-    DeviceState dev = { .pressure = EPressureType_PRESSURE_TYPE_PSIA, .status = EStatus_STATUS_IDLE };
-    if (dev.pressure != EPressureType_PRESSURE_TYPE_PSIA) return 1;
-    if (dev.status != EStatus_STATUS_IDLE) return 2;
+    DeviceState dev = { .pressure = EPressureType__PRESSURE_TYPE_PSIA, .status = EStatus__STATUS_IDLE };
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) return 1;
+    if (dev.status != EStatus__STATUS_IDLE) return 2;
     configure(dev);
-    if (dev.pressure != EPressureType_PRESSURE_TYPE_PSIG) return 3;
-    if (dev.status != EStatus_STATUS_ACTIVE) return 4;
-    dev.pressure = EPressureType_PRESSURE_TYPE_PSIA;
-    dev.status = EStatus_STATUS_ERROR;
-    if (dev.pressure != EPressureType_PRESSURE_TYPE_PSIA) return 5;
-    if (dev.status != EStatus_STATUS_ERROR) return 6;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIG) return 3;
+    if (dev.status != EStatus__STATUS_ACTIVE) return 4;
+    dev.pressure = EPressureType__PRESSURE_TYPE_PSIA;
+    dev.status = EStatus__STATUS_ERROR;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) return 5;
+    if (dev.status != EStatus__STATUS_ERROR) return 6;
     return 0;
 }

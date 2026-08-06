@@ -984,7 +984,7 @@ describe("TypeResolver", () => {
 
     it("should resolve this.scopeVar type", () => {
       CodeGenState.currentScope = "Motor";
-      setTypeInfo("Motor_speed", {
+      setTypeInfo("Motor__speed", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,

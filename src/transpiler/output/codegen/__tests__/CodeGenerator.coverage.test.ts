@@ -249,7 +249,7 @@ describe("CodeGenerator Coverage Tests", () => {
 
       // Now resolve should return prefixed name (line 633)
       const resolved = generator.resolveIdentifier("speed");
-      expect(resolved).toBe("Motor_speed");
+      expect(resolved).toBe("Motor__speed");
     });
 
     it("should return unchanged identifier when not a scope member", () => {
@@ -477,7 +477,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("uint8_t LED_brightness");
+      expect(code).toContain("uint8_t LED__brightness");
       expect(code).not.toContain("static uint8_t LED_brightness");
     });
 
@@ -488,7 +488,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("static uint8_t LED_internalState");
+      expect(code).toContain("static uint8_t LED__internalState");
     });
 
     it("should generate scope with public function", () => {
@@ -498,7 +498,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("void Motor_start(void)");
+      expect(code).toContain("void Motor__start(void)");
     });
 
     it("should generate scope with private function", () => {
@@ -509,7 +509,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("static void Motor_internalUpdate(void)");
+      expect(code).toContain("static void Motor__internalUpdate(void)");
     });
 
     it("should generate scope with enum member", () => {
@@ -523,7 +523,7 @@ describe("CodeGenerator Coverage Tests", () => {
       `;
       const { code } = setupGenerator(source);
       // Enum values get scope-prefixed
-      expect(code).toContain("Config_State_IDLE");
+      expect(code).toContain("Config__State__IDLE");
     });
 
     it("should generate scope with bitmap member", () => {
@@ -556,7 +556,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("GPIO_PORTA");
+      expect(code).toContain("GPIO__PORTA");
       // Address format is 0x40000000 + 0x00
       expect(code).toContain("0x40000000");
     });
@@ -573,7 +573,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("uint8_t Buffer_data[16]");
+      expect(code).toContain("uint8_t Buffer__data[16]");
     });
 
     it("should generate scope variable with C-style array dimension", () => {
@@ -583,7 +583,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("uint8_t Buffer_legacy[32]");
+      expect(code).toContain("uint8_t Buffer__legacy[32]");
     });
 
     it("should generate scope variable with string capacity", () => {
@@ -594,7 +594,7 @@ describe("CodeGenerator Coverage Tests", () => {
       `;
       const { code } = setupGenerator(source);
       // String<64> becomes char[65] (capacity + 1 for null)
-      expect(code).toContain("char Config_name[65]");
+      expect(code).toContain("char Config__name[65]");
     });
 
     it("should handle private array scope variable", () => {
@@ -604,7 +604,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("static uint32_t Internal_counters[8]");
+      expect(code).toContain("static uint32_t Internal__counters[8]");
     });
   });
 
@@ -829,7 +829,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("uint32_t Utils_helper(void)");
+      expect(code).toContain("uint32_t Utils__helper(void)");
     });
 
     it("should track function return type for enum inference", () => {
@@ -845,7 +845,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const { code } = setupGenerator(source);
       expect(code).toContain("Status getStatus(void)");
       // Enum values are prefixed with enum name
-      expect(code).toContain("return Status_OK");
+      expect(code).toContain("return Status__OK");
     });
   });
 
@@ -889,7 +889,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("uint32_t Counter_value = 100");
+      expect(code).toContain("uint32_t Counter__value = 100");
     });
 
     it("should handle nested scope member access in function", () => {
@@ -902,7 +902,7 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("Timer_ticks");
+      expect(code).toContain("Timer__ticks");
     });
   });
 
@@ -1174,8 +1174,8 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("Mixed_counter");
-      expect(code).toContain("Mixed_increment");
+      expect(code).toContain("Mixed__counter");
+      expect(code).toContain("Mixed__increment");
       expect(code).toContain("INIT");
     });
   });
@@ -1375,7 +1375,7 @@ describe("CodeGenerator Coverage Tests", () => {
       `;
       const { code } = setupGenerator(source);
       expect(code).toContain(
-        "static Point Drawing_origin = { .x = 0, .y = 0 }",
+        "static Point Drawing__origin = { .x = 0, .y = 0 }",
       );
     });
   });

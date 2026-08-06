@@ -20,7 +20,7 @@ typedef struct Point {
 } Point;
 
 /* External variables */
-extern Point Origin_p;
+extern Point Origin__p;
 
 #ifdef __cplusplus
 }

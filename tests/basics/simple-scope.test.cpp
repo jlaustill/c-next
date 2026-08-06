@@ -12,64 +12,64 @@
 // Demonstrates: scope keyword, public functions, state encapsulation
 // Simple counter scope
 /* Scope: Counter */
-static uint32_t Counter_value = 0;
+static uint32_t Counter__value = 0;
 
-void Counter_reset(void) {
-    Counter_value = 0U;
+void Counter__reset(void) {
+    Counter__value = 0U;
 }
 
-void Counter_increment(void) {
-    Counter_value = Counter_value + 1U;
+void Counter__increment(void) {
+    Counter__value = Counter__value + 1U;
 }
 
-void Counter_add(uint32_t amount) {
-    Counter_value = Counter_value + amount;
+void Counter__add(uint32_t amount) {
+    Counter__value = Counter__value + amount;
 }
 
-uint32_t Counter_get(void) {
-    return Counter_value;
+uint32_t Counter__get(void) {
+    return Counter__value;
 }
 
 // Scope with initialization
 /* Scope: Temperature */
-static int32_t Temperature_celsius = 0;
+static int32_t Temperature__celsius = 0;
 
-void Temperature_set(int32_t temp) {
-    Temperature_celsius = temp;
+void Temperature__set(int32_t temp) {
+    Temperature__celsius = temp;
 }
 
-int32_t Temperature_getCelsius(void) {
-    return Temperature_celsius;
+int32_t Temperature__getCelsius(void) {
+    return Temperature__celsius;
 }
 
-int32_t Temperature_getFahrenheit(void) {
-    return (Temperature_celsius * 9 / 5) + 32;
+int32_t Temperature__getFahrenheit(void) {
+    return (Temperature__celsius * 9 / 5) + 32;
 }
 
 int main(void) {
-    Counter_reset();
-    uint32_t val = Counter_get();
+    Counter__reset();
+    uint32_t val = Counter__get();
     if (val != 0) return 1;
-    Counter_increment();
-    val = Counter_get();
+    Counter__increment();
+    val = Counter__get();
     if (val != 1) return 2;
-    Counter_increment();
-    Counter_increment();
-    val = Counter_get();
+    Counter__increment();
+    Counter__increment();
+    val = Counter__get();
     if (val != 3) return 3;
-    Counter_add(10U);
-    val = Counter_get();
+    Counter__add(10U);
+    val = Counter__get();
     if (val != 13) return 4;
-    Counter_reset();
-    val = Counter_get();
+    Counter__reset();
+    val = Counter__get();
     if (val != 0) return 5;
-    Temperature_set(25);
-    int32_t celsius = Temperature_getCelsius();
+    Temperature__set(25);
+    int32_t celsius = Temperature__getCelsius();
     if (celsius != 25) return 6;
-    int32_t fahrenheit = Temperature_getFahrenheit();
+    int32_t fahrenheit = Temperature__getFahrenheit();
     if (fahrenheit != 77) return 7;
-    Temperature_set(0);
-    fahrenheit = Temperature_getFahrenheit();
+    Temperature__set(0);
+    fahrenheit = Temperature__getFahrenheit();
     if (fahrenheit != 32) return 8;
     return 0;
 }

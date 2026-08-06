@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-extern const uint8_t DATA[EColor_COUNT] = {10U, 20U, 30U};
+extern const uint8_t DATA[EColor__COUNT] = {10U, 20U, 30U};
 
 int main(void) {
     if (DATA[0U] != 10) return 1;

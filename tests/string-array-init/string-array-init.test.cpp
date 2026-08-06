@@ -22,7 +22,7 @@ char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};
 
 /* Scope: Test */
 
-void Test_init(void) {
+void Test__init(void) {
     uint8_t len = strlen(LABELS[0U]);
 }
 
@@ -36,6 +36,6 @@ int main(void) {
     if (strlen(colors[1U]) != 5) return 7;
     if (strlen(colors[2U]) != 4) return 8;
     if (strlen(colors[3U]) != 6) return 9;
-    Test_init();
+    Test__init();
     return 0;
 }

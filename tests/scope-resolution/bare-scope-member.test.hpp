@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Counter_increment(void);
-uint32_t Counter_getValue(void);
+void Counter__increment(void);
+uint32_t Counter__getValue(void);
 
 #ifdef __cplusplus
 }

@@ -13,19 +13,19 @@
 // Scope variables must persist across all calls (ADR-016), even if only
 // accessed by a single function. This test verifies the fix.
 /* Scope: SingleFunctionState */
-static uint32_t SingleFunctionState_callCount = 0U;
+static uint32_t SingleFunctionState__callCount = 0U;
 
-uint32_t SingleFunctionState_countCalls(void) {
-    SingleFunctionState_callCount = SingleFunctionState_callCount + 1U;
-    return SingleFunctionState_callCount;
+uint32_t SingleFunctionState__countCalls(void) {
+    SingleFunctionState__callCount = SingleFunctionState__callCount + 1U;
+    return SingleFunctionState__callCount;
 }
 
 int main(void) {
-    uint32_t first = SingleFunctionState_countCalls();
+    uint32_t first = SingleFunctionState__countCalls();
     if (first != 1) return 1;
-    uint32_t second = SingleFunctionState_countCalls();
+    uint32_t second = SingleFunctionState__countCalls();
     if (second != 2) return 2;
-    uint32_t third = SingleFunctionState_countCalls();
+    uint32_t third = SingleFunctionState__countCalls();
     if (third != 3) return 3;
     return 0;
 }

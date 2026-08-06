@@ -15,8 +15,8 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EState_OFF = 0,
-    EState_ON = 1
+    EState__OFF = 0,
+    EState__ON = 1
 } EState;
 
 /* External variables */

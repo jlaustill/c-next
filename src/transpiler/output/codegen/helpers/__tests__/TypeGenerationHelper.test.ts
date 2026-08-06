@@ -90,7 +90,7 @@ describe("TypeGenerationHelper", () => {
   describe("generateScopedType", () => {
     it("generates prefixed type name within scope", () => {
       const result = TypeGenerationHelper.generateScopedType("State", "Motor");
-      expect(result).toBe("Motor_State");
+      expect(result).toBe("Motor__State");
     });
 
     it("throws when called outside scope", () => {
@@ -121,7 +121,7 @@ describe("TypeGenerationHelper", () => {
         ["Motor", "State"],
         false,
       );
-      expect(result).toBe("Motor_State");
+      expect(result).toBe("Motor__State");
     });
 
     it("validates visibility for 2-part C-Next types", () => {
@@ -260,7 +260,7 @@ describe("TypeGenerationHelper", () => {
         ...defaultDeps,
         currentScope: "Motor",
       });
-      expect(result).toBe("Motor_State");
+      expect(result).toBe("Motor__State");
     });
 
     it("throws for scoped type outside scope", () => {
@@ -282,7 +282,7 @@ describe("TypeGenerationHelper", () => {
       const ctx = getTypeContext("Motor.State status;");
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("Motor_State");
+      expect(result).toBe("Motor__State");
     });
 
     it("generates qualified C++ namespace type", () => {

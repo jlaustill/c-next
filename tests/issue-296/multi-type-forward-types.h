@@ -15,10 +15,10 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EDeviceState_STATE_OFF = 0,
-    EDeviceState_STATE_IDLE = 1,
-    EDeviceState_STATE_ACTIVE = 2,
-    EDeviceState_STATE_ERROR = 3
+    EDeviceState__STATE_OFF = 0,
+    EDeviceState__STATE_IDLE = 1,
+    EDeviceState__STATE_ACTIVE = 2,
+    EDeviceState__STATE_ERROR = 3
 } EDeviceState;
 
 /* Struct definitions */

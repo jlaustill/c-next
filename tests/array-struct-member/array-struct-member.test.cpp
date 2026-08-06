@@ -25,7 +25,7 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Test arrays
 Point points[3] = {};
 
-ArrayStructMember_Sensor sensors[4] = {};
+ArrayStructMember__Sensor sensors[4] = {};
 
 // Test function to verify array-of-struct assignment
 int main(void) {

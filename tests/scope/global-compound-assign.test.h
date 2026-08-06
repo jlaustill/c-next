@@ -18,8 +18,8 @@ extern int32_t counter;
 extern int32_t values[4];
 
 /* Function prototypes */
-void Worker_updateGlobal(void);
-void Worker_updateGlobalArray(void);
+void Worker__updateGlobal(void);
+void Worker__updateGlobalArray(void);
 
 #ifdef __cplusplus
 }

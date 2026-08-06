@@ -15,9 +15,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Issue332Storage_setup(void);
-void Issue332Storage_processAll(void);
-void Issue332Storage_initFromConfig(void);
+void Issue332Storage__setup(void);
+void Issue332Storage__processAll(void);
+void Issue332Storage__initFromConfig(void);
 
 #ifdef __cplusplus
 }

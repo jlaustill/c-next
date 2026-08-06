@@ -53,7 +53,7 @@ int main(void) {
     if (aliceMatch == false) return 15;
     bool bobMatch = compareName(alice, "Bob");
     if (bobMatch == true) return 16;
-    StrMember_Config cfg = {};
+    StrMember__Config cfg = {};
     strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
     strncpy(cfg.value, "https://example.com/api/v1", 256); cfg.value[256] = '\0';
     if (strlen(cfg.key) != 7) return 17;

@@ -21,16 +21,16 @@ typedef uint8_t MotorControl;
 
 // Use bitmap type inside a register definition
 /* Register: MOTOR @ 0x40001000 */
-#define MOTOR_CTRL (*(volatile MotorControl*)(0x40001000 + 0x00))
-#define MOTOR_STATUS (*(volatile uint8_t const *)(0x40001000 + 0x04))
+#define MOTOR__CTRL (*(volatile MotorControl*)(0x40001000 + 0x00))
+#define MOTOR__STATUS (*(volatile uint8_t const *)(0x40001000 + 0x04))
 
 int main(void) {
-    MOTOR_CTRL = (MOTOR_CTRL & ~(1U << 0)) | (1U << 0);
-    MOTOR_CTRL = (MOTOR_CTRL & ~(1U << 1)) | (0U << 1);
-    MOTOR_CTRL = (MOTOR_CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
-    bool isRunning = ((((MOTOR_CTRL >> 0) & 1)) != 0U);
-    uint8_t mode = (uint8_t)((MOTOR_CTRL >> 3) & 0x7);
-    if (((MOTOR_CTRL >> 2) & 1) == true) {
-        MOTOR_CTRL = (MOTOR_CTRL & ~(0x7U << 3)) | ((0 & 0x7U) << 3);
+    MOTOR__CTRL = (MOTOR__CTRL & ~(1U << 0)) | (1U << 0);
+    MOTOR__CTRL = (MOTOR__CTRL & ~(1U << 1)) | (0U << 1);
+    MOTOR__CTRL = (MOTOR__CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
+    bool isRunning = ((((MOTOR__CTRL >> 0) & 1)) != 0U);
+    uint8_t mode = (uint8_t)((MOTOR__CTRL >> 3) & 0x7);
+    if (((MOTOR__CTRL >> 2) & 1) == true) {
+        MOTOR__CTRL = (MOTOR__CTRL & ~(0x7U << 3)) | ((0 & 0x7U) << 3);
     }
 }

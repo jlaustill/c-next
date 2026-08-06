@@ -535,7 +535,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("static uint32_t Stats_counter = 0;");
+      expect(result.code).toContain("static uint32_t Stats__counter = 0;");
     });
 
     it("generates public variable without static modifier", () => {
@@ -555,7 +555,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("uint16_t API_value = 100;");
+      expect(result.code).toContain("uint16_t API__value = 100;");
       expect(result.code).not.toContain("static uint16_t API_value");
     });
 
@@ -595,7 +595,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("const uint8_t App_VERSION = 1;");
+      expect(result.code).toContain("const uint8_t App__VERSION = 1;");
     });
 
     it("emits private const array variables (Issue #500)", () => {
@@ -615,7 +615,7 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "static const uint8_t Data_LOOKUP[10] = {0};",
+        "static const uint8_t Data__LOOKUP[10] = {0};",
       );
     });
 
@@ -633,7 +633,9 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("static uint8_t Serial_buffer[256] = {0};");
+      expect(result.code).toContain(
+        "static uint8_t Serial__buffer[256] = {0};",
+      );
     });
 
     it("generates C-Next style array variable with constant size", () => {
@@ -653,7 +655,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("static u16[8] Buffer_data[8] = {0};");
+      expect(result.code).toContain("static u16[8] Buffer__data[8] = {0};");
     });
 
     it("generates C-Next style array variable with non-constant expression (fallback)", () => {
@@ -675,7 +677,7 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "static u16[BUFFER_SIZE] Storage_items[BUFFER_SIZE] = {0};",
+        "static u16[BUFFER_SIZE] Storage__items[BUFFER_SIZE] = {0};",
       );
     });
 
@@ -693,7 +695,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("static u8[] Dynamic_flexible[] = {0};");
+      expect(result.code).toContain("static u8[] Dynamic__flexible[] = {0};");
     });
 
     it("generates string variable with capacity dimension (ADR-045)", () => {
@@ -712,7 +714,7 @@ describe("ScopeGenerator", () => {
 
       // Capacity + 1 for null terminator
       expect(result.code).toContain(
-        "static string<32> Logger_message[33] = 0;",
+        "static string<32> Logger__message[33] = 0;",
       );
     });
 
@@ -729,7 +731,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("static uint32_t Device_status = 0;");
+      expect(result.code).toContain("static uint32_t Device__status = 0;");
       expect(orchestrator.getZeroInitializer).toHaveBeenCalled();
     });
 
@@ -751,7 +753,7 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       // Should generate as pointer with NULL initialization
-      expect(result.code).toContain("static widget_t* GUI_widget = NULL;");
+      expect(result.code).toContain("static widget_t* GUI__widget = NULL;");
       // Should call markOpaqueScopeVariable
       expect(orchestrator.markOpaqueScopeVariable).toHaveBeenCalledWith(
         "GUI_widget",
@@ -775,7 +777,7 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       // Should generate as value with {0} initialization
-      expect(result.code).toContain("static Point Canvas_point = 0;");
+      expect(result.code).toContain("static Point Canvas__point = 0;");
       expect(result.code).not.toContain("Point*");
     });
 
@@ -795,7 +797,7 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "static volatile uint32_t ISR_counter = 0;",
+        "static volatile uint32_t ISR__counter = 0;",
       );
     });
 
@@ -817,7 +819,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("volatile bool Shared_flag = false;");
+      expect(result.code).toContain("volatile bool Shared__flag = false;");
       expect(result.code).not.toContain("static volatile bool Shared_flag");
     });
 
@@ -836,7 +838,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("static volatile uint8_t HW_reg = 0;");
+      expect(result.code).toContain("static volatile uint8_t HW__reg = 0;");
     });
 
     it("throws error when both atomic and volatile are specified (Issue #998)", () => {
@@ -883,7 +885,7 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "static Sensor HW_sensor(HW_PIN, HW_RATE);",
+        "static Sensor HW__sensor(HW__PIN, HW__RATE);",
       );
     });
 
@@ -928,7 +930,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("Device App_device(App_CONFIG);");
+      expect(result.code).toContain("Device App__device(App__CONFIG);");
       expect(result.code).not.toContain("static Device App_device");
     });
   });
@@ -955,7 +957,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("static void Utils_helper(void) { }");
+      expect(result.code).toContain("static void Utils__helper(void) { }");
     });
 
     it("generates public function without static modifier", () => {
@@ -974,7 +976,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("void Motor_init(void) { }");
+      expect(result.code).toContain("void Motor__init(void) { }");
       expect(result.code).not.toContain("static void Motor_init");
     });
 
@@ -999,7 +1001,7 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "uint32_t Data_process(uint8_t* data, uint32_t len) { }",
+        "uint32_t Data__process(uint8_t* data, uint32_t len) { }",
       );
     });
 
@@ -1091,9 +1093,9 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("typedef enum {");
-      expect(result.code).toContain("Machine_Status_IDLE = 0,");
-      expect(result.code).toContain("Machine_Status_RUNNING = 1");
-      expect(result.code).toContain("} Machine_Status;");
+      expect(result.code).toContain("Machine__Status__IDLE = 0,");
+      expect(result.code).toContain("Machine__Status__RUNNING = 1");
+      expect(result.code).toContain("} Machine__Status;");
     });
 
     it("generates scoped enum with AST fallback", () => {
@@ -1110,9 +1112,9 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("Audio_Level_LOW = 0,");
-      expect(result.code).toContain("Audio_Level_MEDIUM = 1,");
-      expect(result.code).toContain("Audio_Level_HIGH = 2");
+      expect(result.code).toContain("Audio__Level__LOW = 0,");
+      expect(result.code).toContain("Audio__Level__MEDIUM = 1,");
+      expect(result.code).toContain("Audio__Level__HIGH = 2");
     });
 
     it("skips enum when selfIncludeAdded (Issue #369)", () => {
@@ -1148,9 +1150,9 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("System_ErrorCode_OK = 0,");
-      expect(result.code).toContain("System_ErrorCode_WARNING = 100,");
-      expect(result.code).toContain("System_ErrorCode_ERROR = 200");
+      expect(result.code).toContain("System__ErrorCode__OK = 0,");
+      expect(result.code).toContain("System__ErrorCode__WARNING = 100,");
+      expect(result.code).toContain("System__ErrorCode__ERROR = 200");
     });
   });
 
@@ -1186,10 +1188,10 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("/* Bitmap: Config_Flags */");
+      expect(result.code).toContain("/* Bitmap: Config__Flags */");
       expect(result.code).toContain("enabled: bit 0 (1 bit)");
       expect(result.code).toContain("mode: bits 1-3 (3 bits)");
-      expect(result.code).toContain("typedef uint8_t Config_Flags;");
+      expect(result.code).toContain("typedef uint8_t Config__Flags;");
     });
 
     it("generates scoped bitmap with AST fallback", () => {
@@ -1205,7 +1207,7 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("typedef uint16_t Device_Status;");
+      expect(result.code).toContain("typedef uint16_t Device__Status;");
     });
 
     it("generates bitmap8/16/32/64 with correct backing type", () => {
@@ -1262,10 +1264,10 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("typedef struct Graphics_Point {");
+      expect(result.code).toContain("typedef struct Graphics__Point {");
       expect(result.code).toContain("int32_t x;");
       expect(result.code).toContain("int32_t y;");
-      expect(result.code).toContain("} Graphics_Point;");
+      expect(result.code).toContain("} Graphics__Point;");
     });
 
     it("generates struct field with array dimensions", () => {
@@ -1384,8 +1386,8 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("/* Register: HAL_GPIO");
-      expect(result.code).toContain("#define HAL_GPIO_DATA");
+      expect(result.code).toContain("/* Register: HAL__GPIO");
+      expect(result.code).toContain("#define HAL__GPIO__DATA");
     });
   });
 
@@ -1417,8 +1419,8 @@ describe("ScopeGenerator", () => {
       const result = generateScope(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("/* Scope: Counter */");
-      expect(result.code).toContain("static uint32_t Counter_count = 0;");
-      expect(result.code).toContain("void Counter_increment(void) { }");
+      expect(result.code).toContain("static uint32_t Counter__count = 0;");
+      expect(result.code).toContain("void Counter__increment(void) { }");
     });
   });
 });

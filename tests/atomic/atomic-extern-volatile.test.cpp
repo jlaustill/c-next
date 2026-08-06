@@ -32,7 +32,7 @@ volatile uint8_t flags = 0U;
 
 /* Scope: Manager */
 
-void Manager_test(void) {
+void Manager__test(void) {
     readings[0].valid = true;
     do {
         uint32_t __old = __LDREXW(&counter);
@@ -43,5 +43,5 @@ void Manager_test(void) {
 }
 
 int main(void) {
-    Manager_test();
+    Manager__test();
 }

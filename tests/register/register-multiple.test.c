@@ -8,21 +8,21 @@
 // ADR-004: Multiple registers in same file
 // Tests: defining and using multiple register blocks
 /* Register: GPIOA @ 0x40020000 */
-#define GPIOA_DR (*(volatile uint32_t*)(0x40020000 + 0x00))
-#define GPIOA_GDIR (*(volatile uint32_t*)(0x40020000 + 0x04))
+#define GPIOA__DR (*(volatile uint32_t*)(0x40020000 + 0x00))
+#define GPIOA__GDIR (*(volatile uint32_t*)(0x40020000 + 0x04))
 
 /* Register: GPIOB @ 0x40020400 */
-#define GPIOB_DR (*(volatile uint32_t*)(0x40020400 + 0x00))
-#define GPIOB_GDIR (*(volatile uint32_t*)(0x40020400 + 0x04))
+#define GPIOB__DR (*(volatile uint32_t*)(0x40020400 + 0x00))
+#define GPIOB__GDIR (*(volatile uint32_t*)(0x40020400 + 0x04))
 
 /* Register: TIMER @ 0x40000000 */
-#define TIMER_CR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define TIMER_CNT (*(volatile uint32_t const *)(0x40000000 + 0x04))
+#define TIMER__CR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define TIMER__CNT (*(volatile uint32_t const *)(0x40000000 + 0x04))
 
 int main(void) {
-    GPIOA_GDIR = 0xFF;
-    GPIOA_DR = 0x01;
-    GPIOB_GDIR = 0x00;
-    uint32_t input = GPIOB_DR;
-    uint32_t count = TIMER_CNT;
+    GPIOA__GDIR = 0xFF;
+    GPIOA__DR = 0x01;
+    GPIOB__GDIR = 0x00;
+    uint32_t input = GPIOB__DR;
+    uint32_t count = TIMER__CNT;
 }

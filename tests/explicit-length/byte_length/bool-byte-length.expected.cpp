@@ -23,7 +23,7 @@ int main(void) {
     if (1 != 1) {
         return 2;
     }
-    BoolByteLen_TestStruct ts = {};
+    BoolByteLen__TestStruct ts = {};
     ts.flag = true;
     if (1 != 1) {
         return 3;

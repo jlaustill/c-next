@@ -4,15 +4,15 @@ import CppConstructorHelper from "../CppConstructorHelper.js";
 describe("CppConstructorHelper", () => {
   describe("toQualifiedName", () => {
     it("converts underscore format to :: notation", () => {
-      expect(CppConstructorHelper.toQualifiedName("TestNS_MyClass")).toBe(
+      expect(CppConstructorHelper.toQualifiedName("TestNS__MyClass")).toBe(
         "TestNS::MyClass",
       );
     });
 
     it("handles multiple underscores", () => {
-      expect(CppConstructorHelper.toQualifiedName("Outer_Inner_MyClass")).toBe(
-        "Outer::Inner::MyClass",
-      );
+      expect(
+        CppConstructorHelper.toQualifiedName("Outer__Inner__MyClass"),
+      ).toBe("Outer::Inner::MyClass");
     });
 
     it("leaves :: notation unchanged", () => {
@@ -117,7 +117,7 @@ describe("CppConstructorHelper", () => {
         },
       };
       expect(
-        CppConstructorHelper.hasConstructor("TestNS_MyClass", mockSymbolTable),
+        CppConstructorHelper.hasConstructor("TestNS__MyClass", mockSymbolTable),
       ).toBe(true);
     });
 

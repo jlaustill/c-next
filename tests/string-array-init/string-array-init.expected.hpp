@@ -18,7 +18,7 @@ extern const char LABELS[3][11];
 extern char colors[4][9];
 
 /* Function prototypes */
-void Test_init(void);
+void Test__init(void);
 
 #ifdef __cplusplus
 }

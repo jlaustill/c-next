@@ -17,20 +17,20 @@ extern "C" {
 extern uint8_t globalBuffer[16];
 extern uint8_t globalSlice[16];
 extern uint8_t globalFlags;
-extern uint8_t Other_buffer[16];
-extern uint8_t Other_slice[16];
-extern uint8_t Other_flags;
+extern uint8_t Other__buffer[16];
+extern uint8_t Other__slice[16];
+extern uint8_t Other__flags;
 
 /* Function prototypes */
-uint8_t Reg_elementBit(void);
-uint8_t Reg_sliceByte(uint32_t index);
-uint8_t Reg_bitRange(void);
-uint8_t Reg_viaGlobalPrefix(void);
-uint8_t Reg_globalBitRange(void);
-uint8_t Reg_globalSliceByte(uint32_t index);
-uint8_t Reg_scopedElementBit(void);
-uint8_t Reg_scopedSliceByte(uint32_t index);
-uint8_t Reg_scopedBitRange(void);
+uint8_t Reg__elementBit(void);
+uint8_t Reg__sliceByte(uint32_t index);
+uint8_t Reg__bitRange(void);
+uint8_t Reg__viaGlobalPrefix(void);
+uint8_t Reg__globalBitRange(void);
+uint8_t Reg__globalSliceByte(uint32_t index);
+uint8_t Reg__scopedElementBit(void);
+uint8_t Reg__scopedSliceByte(uint32_t index);
+uint8_t Reg__scopedBitRange(void);
 
 #ifdef __cplusplus
 }

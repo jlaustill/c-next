@@ -8,29 +8,29 @@
 // test-execution
 // Tests: Unqualified enum values work correctly when type context is enum
 typedef enum {
-    Priority_LOW = 1,
-    Priority_MEDIUM = 2,
-    Priority_HIGH = 3
+    Priority__LOW = 1,
+    Priority__MEDIUM = 2,
+    Priority__HIGH = 3
 } Priority;
 
 // Valid: assignment to enum type
-Priority globalPriority = Priority_LOW;
+Priority globalPriority = Priority__LOW;
 
 // Valid: return type is Priority (enum)
 Priority getPriority(void) {
-    return Priority_HIGH;
+    return Priority__HIGH;
 }
 
 // Valid: parameter has enum type - use qualified comparison for now
 // (Unqualified in comparison requires type inference from left operand - future enhancement)
 uint32_t priorityToValue(Priority p) {
-    if (p == Priority_LOW) {
+    if (p == Priority__LOW) {
         return 1;
     }
-    if (p == Priority_MEDIUM) {
+    if (p == Priority__MEDIUM) {
         return 2;
     }
-    if (p == Priority_HIGH) {
+    if (p == Priority__HIGH) {
         return 3;
     }
     return 0;
@@ -39,15 +39,15 @@ uint32_t priorityToValue(Priority p) {
 // Valid: switch on enum type with unqualified case labels
 uint32_t switchPriority(Priority p) {
     switch (p) {
-        case Priority_LOW: {
+        case Priority__LOW: {
             return 10;
             break;
         }
-        case Priority_MEDIUM: {
+        case Priority__MEDIUM: {
             return 20;
             break;
         }
-        case Priority_HIGH: {
+        case Priority__HIGH: {
             return 30;
             break;
         }
@@ -59,20 +59,20 @@ uint32_t switchPriority(Priority p) {
 }
 
 int main(void) {
-    if (globalPriority != Priority_LOW) return 1;
+    if (globalPriority != Priority__LOW) return 1;
     Priority p = getPriority();
-    if (p != Priority_HIGH) return 2;
-    uint32_t lowVal = priorityToValue(Priority_LOW);
+    if (p != Priority__HIGH) return 2;
+    uint32_t lowVal = priorityToValue(Priority__LOW);
     if (lowVal != 1) return 3;
-    uint32_t medVal = priorityToValue(Priority_MEDIUM);
+    uint32_t medVal = priorityToValue(Priority__MEDIUM);
     if (medVal != 2) return 4;
-    uint32_t highVal = priorityToValue(Priority_HIGH);
+    uint32_t highVal = priorityToValue(Priority__HIGH);
     if (highVal != 3) return 5;
-    uint32_t switchLow = switchPriority(Priority_LOW);
+    uint32_t switchLow = switchPriority(Priority__LOW);
     if (switchLow != 10) return 6;
-    uint32_t switchMed = switchPriority(Priority_MEDIUM);
+    uint32_t switchMed = switchPriority(Priority__MEDIUM);
     if (switchMed != 20) return 7;
-    uint32_t switchHigh = switchPriority(Priority_HIGH);
+    uint32_t switchHigh = switchPriority(Priority__HIGH);
     if (switchHigh != 30) return 8;
     return 0;
 }

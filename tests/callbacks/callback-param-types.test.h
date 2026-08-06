@@ -13,19 +13,19 @@
 extern "C" {
 #endif
 
-typedef struct CallbackParamType_Point CallbackParamType_Point;
+typedef struct CallbackParamType__Point CallbackParamType__Point;
 
 /* Callback typedefs */
 typedef uint32_t (*processU8_fp)(uint8_t);
 typedef uint32_t (*processU32_fp)(uint32_t);
 typedef uint32_t (*processBool_fp)(bool);
-typedef uint32_t (*processPoint_fp)(CallbackParamType_Point*);
+typedef uint32_t (*processPoint_fp)(CallbackParamType__Point*);
 
 /* Struct definitions */
-typedef struct CallbackParamType_Point {
+typedef struct CallbackParamType__Point {
     uint32_t x;
     uint32_t y;
-} CallbackParamType_Point;
+} CallbackParamType__Point;
 typedef struct U8Handler {
     processU8_fp handler;
 } U8Handler;

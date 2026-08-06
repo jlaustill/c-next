@@ -15,28 +15,28 @@
 // Updated for Issue #234: Uses compile-time constant offsets
 /* Scope: StringSliceTest */
 
-void StringSliceTest_copyToBuffer(char* buffer, uint16_t value) {
+void StringSliceTest__copyToBuffer(char* buffer, uint16_t value) {
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: char* vs uint16_t*). */
     const uint16_t _tmp0 = (uint16_t)(value);
     buffer[0] = (char)(uint8_t)(_tmp0);
     buffer[1] = (char)(uint8_t)(_tmp0 >> 8U);
 }
 
-void StringSliceTest_copyToBufferAt2(char* buffer, uint16_t value) {
+void StringSliceTest__copyToBufferAt2(char* buffer, uint16_t value) {
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: char* vs uint16_t*). */
     const uint16_t _tmp1 = (uint16_t)(value);
     buffer[2] = (char)(uint8_t)(_tmp1);
     buffer[3] = (char)(uint8_t)(_tmp1 >> 8U);
 }
 
-uint32_t StringSliceTest_testSliceAssignment(void) {
+uint32_t StringSliceTest__testSliceAssignment(void) {
     char buffer[65] = "";
-    StringSliceTest_copyToBuffer(&buffer, 0x1234U);
+    StringSliceTest__copyToBuffer(&buffer, 0x1234U);
     uint8_t byte0 = buffer[0U];
     uint8_t byte1 = buffer[1U];
     if (byte0 != 0x34) return 1;
     if (byte1 != 0x12) return 2;
-    StringSliceTest_copyToBufferAt2(&buffer, 0x5678U);
+    StringSliceTest__copyToBufferAt2(&buffer, 0x5678U);
     uint8_t byte2 = buffer[2U];
     uint8_t byte3 = buffer[3U];
     if (byte2 != 0x78) return 3;
@@ -45,5 +45,5 @@ uint32_t StringSliceTest_testSliceAssignment(void) {
 }
 
 int main(void) {
-    return StringSliceTest_testSliceAssignment();
+    return StringSliceTest__testSliceAssignment();
 }

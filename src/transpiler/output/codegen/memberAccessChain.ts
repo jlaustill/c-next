@@ -11,6 +11,7 @@
 
 import { ParseTree } from "antlr4ng";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils.js";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
 /**
  * Options for struct parameter access helpers.
@@ -103,7 +104,7 @@ function determineSeparator(
 
   // ADR-016: Cross-scope access uses underscore (scope_member)
   if (options.isCrossScope) {
-    return "_";
+    return QualifiedCName.SEPARATOR;
   }
 
   return ".";

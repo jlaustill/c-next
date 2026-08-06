@@ -15,16 +15,16 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EGlobal_A = 0,
-    EGlobal_B = 1
+    EGlobal__A = 0,
+    EGlobal__B = 1
 } EGlobal;
 
 /* External variables */
 extern EGlobal globalVar;
 
 /* Function prototypes */
-EGlobal Test_getGlobalEnum(void);
-bool Test_testGlobalFunction(void);
+EGlobal Test__getGlobalEnum(void);
+bool Test__testGlobalFunction(void);
 
 #ifdef __cplusplus
 }

@@ -14,15 +14,15 @@
 // parameters are local to their function scope.
 /* Scope: Math */
 
-float Math_add(float x, float y) {
+float Math__add(float x, float y) {
     return x + y;
 }
 
-float Math_multiply(float x, float y) {
+float Math__multiply(float x, float y) {
     return x * y;
 }
 
-float Math_subtract(float x, float y) {
+float Math__subtract(float x, float y) {
     return x - y;
 }
 
@@ -31,9 +31,13 @@ float divide(float x, float y) {
     return x / y;
 }
 
+// NOTE (ADR-063 / #1117): these calls used to be written `Math_add(...)`,
+// spelling the generated C name directly. That only worked because the
+// symbol table was keyed by the qualified name, leaking generated naming
+// into the source namespace. `Math.add(...)` is the correct C-Next syntax.
 int main(void) {
-    float result = Math_add(1.0, 2.0);
-    result = Math_multiply(3.0, 4.0);
-    result = Math_subtract(5.0, 2.0);
+    float result = Math__add(1.0, 2.0);
+    result = Math__multiply(3.0, 4.0);
+    result = Math__subtract(5.0, 2.0);
     result = divide(10.0, 2.0);
 }

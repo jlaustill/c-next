@@ -13,7 +13,7 @@
 /* Scope: LengthPropMembers */
 
 int main(void) {
-    LengthPropMembers_Config cfg = {0};
+    LengthPropMembers__Config cfg = {0};
     cfg.magic = 0x12345678U;
     cfg.version = 1U;
     cfg.flags = 0xFFU;

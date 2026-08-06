@@ -9,15 +9,15 @@
 // Coverage: Section 1.1 u64 in register field
 // 64-bit timer register (common in modern MCUs)
 /* Register: TIMER64 @ 0x40001000 */
-#define TIMER64_COUNT (*(volatile uint64_t const *)(0x40001000 + 0x00))
-#define TIMER64_COMPARE (*(volatile uint64_t*)(0x40001000 + 0x08))
-#define TIMER64_CONTROL (*(volatile uint32_t*)(0x40001000 + 0x10))
+#define TIMER64__COUNT (*(volatile uint64_t const *)(0x40001000 + 0x00))
+#define TIMER64__COMPARE (*(volatile uint64_t*)(0x40001000 + 0x08))
+#define TIMER64__CONTROL (*(volatile uint32_t*)(0x40001000 + 0x10))
 
 int main(void) {
-    TIMER64_COMPARE = 0x123456789ABCDEF0;
-    uint64_t compare_val = TIMER64_COMPARE;
-    uint64_t count = TIMER64_COUNT;
-    TIMER64_COMPARE = 1000000000000;
-    TIMER64_CONTROL = 0x00000001;
-    uint32_t ctrl = TIMER64_CONTROL;
+    TIMER64__COMPARE = 0x123456789ABCDEF0;
+    uint64_t compare_val = TIMER64__COMPARE;
+    uint64_t count = TIMER64__COUNT;
+    TIMER64__COMPARE = 1000000000000;
+    TIMER64__CONTROL = 0x00000001;
+    uint32_t ctrl = TIMER64__CONTROL;
 }

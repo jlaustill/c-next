@@ -14,27 +14,27 @@
 #include <stdint.h>
 
 /* Scope: ConfigManager */
-static AppConfig ConfigManager_config = {};
+static AppConfig ConfigManager__config = {};
 
-void ConfigManager_initConfig(void) {
-    ConfigManager_config.timeout = 1000U;
-    ConfigManager_config.retries = 3U;
+void ConfigManager__initConfig(void) {
+    ConfigManager__config.timeout = 1000U;
+    ConfigManager__config.retries = 3U;
 }
 
-void ConfigManager_loadFromStorage(void) {
-    ConfigStorage::loadConfig(&ConfigManager_config);
+void ConfigManager__loadFromStorage(void) {
+    ConfigStorage::loadConfig(&ConfigManager__config);
 }
 
-uint32_t ConfigManager_getTimeout(void) {
-    return ConfigStorage::getTimeout(&ConfigManager_config);
+uint32_t ConfigManager__getTimeout(void) {
+    return ConfigStorage::getTimeout(&ConfigManager__config);
 }
 
 int main(void) {
-    ConfigManager_initConfig();
-    uint32_t timeout = ConfigManager_getTimeout();
+    ConfigManager__initConfig();
+    uint32_t timeout = ConfigManager__getTimeout();
     if (timeout != 1000) return 1;
-    ConfigManager_loadFromStorage();
-    timeout = ConfigManager_getTimeout();
+    ConfigManager__loadFromStorage();
+    timeout = ConfigManager__getTimeout();
     if (timeout != 2000) return 2;
     return 0;
 }

@@ -225,7 +225,7 @@ describe("CNextResolver Integration", () => {
       expect(regSymbol!.scope.name).toBe("Motor");
       if (SymbolGuards.isRegister(regSymbol!)) {
         expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe(
-          "Motor_CtrlFlags",
+          "Motor__CtrlFlags",
         );
       }
     });

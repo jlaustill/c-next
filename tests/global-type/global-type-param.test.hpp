@@ -15,13 +15,13 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
-    EPriority_LOW = 0,
-    EPriority_MEDIUM = 1,
-    EPriority_HIGH = 2
+    EPriority__LOW = 0,
+    EPriority__MEDIUM = 1,
+    EPriority__HIGH = 2
 } EPriority;
 
 /* Function prototypes */
-int32_t Processor_process(EPriority priority);
+int32_t Processor__process(EPriority priority);
 
 #ifdef __cplusplus
 }

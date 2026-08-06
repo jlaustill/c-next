@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t Test_from_local(uint8_t idx);
+uint8_t Test__from_local(uint8_t idx);
 
 #ifdef __cplusplus
 }
