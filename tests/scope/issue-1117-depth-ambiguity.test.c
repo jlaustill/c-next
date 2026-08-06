@@ -6,7 +6,6 @@
 #include "issue-1117-depth-ambiguity.test.h"
 
 #include <stdint.h>
-#include <stdbool.h>
 
 // test-execution
 // Issue #1117, collision class 3: qualification-DEPTH ambiguity inside one scope.
@@ -26,13 +25,15 @@
 //
 //     error: 'A_B_c' redeclared as different kind of symbol
 //
-// This is why forbidding `__` inside identifiers is not on its own sufficient, and why
-// the cheaper alternative — keeping a single `_` separator and merely forbidding `_` in
-// scope/enum names — does not work either: `A` and `B` are both underscore-free here.
-// Injectivity needs a separator that a leaf name cannot contain at all.
+// Injectivity needs BOTH halves of ADR-063's rule: a separator no leaf name may
+// contain (`__`), and no leaf name ending in `_`. This case pins the first half. It
+// rules out the two single-`_` alternatives, which both mangle to `A_B_c` here. It does
+// NOT reach the boundary counterexample (`A_`/`B` vs `A`/`_B`, both `A___B`) that makes
+// the trailing-`_` half necessary; that is pinned by tests/analysis/identifier-trailing-underscore.
 //
-// They are now `A__B__c` and `A__B_c`. Values are asserted so a silent mis-resolution
-// fails the test too, not only the non-compiling form.
+// They are now `A__B__c` and `A__B_c`. The assertions compare enum ordinals against the
+// variable's value, so a resolution that collapsed the two onto one object would fail on
+// values rather than only on the non-compiling form.
 /* Scope: A */
 uint8_t A__B_c = 7U;
 
@@ -40,22 +41,20 @@ uint8_t A__readVariable(void) {
     return A__B_c;
 }
 
-bool A__enumIsFirst(void) {
+uint8_t A__firstOrdinal(void) {
     A__B current = A__B__c;
-    if (current == A__B__c) {
-        return true;
-    }
-    return false;
+    return current;
 }
 
 int main(void) {
     uint8_t fromVariable = A__readVariable();
     if (fromVariable != 7) return 1;
     if (A__B_c != 7) return 2;
-    bool enumOk = A__enumIsFirst();
-    if (enumOk == false) return 3;
-    A__B state = A__B__d;
-    if (state != A__B__d) return 4;
+    uint8_t inScopeOrdinal = A__firstOrdinal();
+    if (inScopeOrdinal != 0) return 3;
+    A__B second = A__B__d;
+    uint8_t secondOrdinal = second;
+    if (secondOrdinal != 1) return 4;
     if (A__B_c != 7) return 5;
     return 0;
 }

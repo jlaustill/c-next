@@ -24,7 +24,7 @@ extern uint8_t A__B_c;
 
 /* Function prototypes */
 uint8_t A__readVariable(void);
-bool A__enumIsFirst(void);
+uint8_t A__firstOrdinal(void);
 
 #ifdef __cplusplus
 }
