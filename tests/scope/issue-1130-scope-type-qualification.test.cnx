@@ -1,0 +1,23 @@
+// test-transpile-only
+// Issue #1130: Bare reference to a scope's own type is not qualified
+// Verifies that bare enum/struct type names inside a scope are properly
+// qualified in the generated C output.
+
+scope A {
+    public enum B { c, d }
+
+    public struct S { u8 x; }
+
+    public B pick() {
+        return B.d;
+    }
+
+    public void take(B value) {
+        S local <- {x: 1};
+        if (value = B.c) { return; }
+        return;
+    }
+}
+
+void main() {
+}
