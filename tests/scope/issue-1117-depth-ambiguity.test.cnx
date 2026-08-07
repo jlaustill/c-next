@@ -1,0 +1,76 @@
+// test-execution
+// Issue #1117, collision class 3: qualification-DEPTH ambiguity inside one scope.
+//
+// Neither of ADR-063's two documented classes covers this. Both declarations live in
+// the SAME scope, and no name contains an underscore in a scope position. What collides
+// is how many components the qualified name has:
+//
+//     A . B . c    three components: scope, enum, enum member
+//     A . B_c      two components:   scope, member whose leaf legally contains '_'
+//
+// Under the old single-underscore separator both produced `A_B_c`, so the generated
+// header declared the same identifier twice, as an enum constant and as an object:
+//
+//     A_B_c = 0,             -- the enum member  A.B.c
+//     extern uint8_t A_B_c;  -- the scope member A.B_c
+//
+//     error: 'A_B_c' redeclared as different kind of symbol
+//
+// Injectivity needs BOTH halves of ADR-063's rule: a separator no leaf name may
+// contain (`__`), and no leaf name ending in `_`. This case pins the first half. It
+// rules out the two single-`_` alternatives, which both mangle to `A_B_c` here. It does
+// NOT reach the boundary counterexample (`A_`/`B` vs `A`/`_B`, both `A___B`) that makes
+// the trailing-`_` half necessary; that is pinned by tests/analysis/identifier-trailing-underscore.
+//
+// They are now `A__B__c` and `A__B_c`. The assertions compare enum ordinals against the
+// variable's value, so a resolution that collapsed the two onto one object would fail on
+// values rather than only on the non-compiling form.
+
+scope A {
+    public enum B { c, d }
+
+    public u8 B_c <- 7;
+
+    // Bare name on purpose: this exercises implicit scope resolution (ADR-057), the
+    // path of #1117's companion defect that ADR-063 lists as fixed as a consequence.
+    // `B_c` must reach the scope member, not the enum.
+    public u8 readVariable() {
+        return B_c;
+    }
+
+    // TODO(#1130): drop the `this.` prefix once bare scope-local type names resolve.
+    // It is load-bearing here, not style — the bare form emits an unqualified type
+    // (`B current = A__B__c;` -> "unknown type name 'B'"). Pre-existing on main. The
+    // value side (`this.B.c`) resolves correctly either way, so only the type moves.
+    // Keeping `this.` also costs coverage: readVariable() above uses the bare form, so
+    // implicit resolution is still exercised by this file.
+    public u8 firstOrdinal() {
+        this.B current <- this.B.c;
+        return current;
+    }
+}
+
+u32 main() {
+    // The scope member A.B_c holds its own value, reached by bare name inside the scope
+    u8 fromVariable <- A.readVariable();
+    if (fromVariable != 7) return 1;
+
+    // ...and reached directly from outside
+    if (A.B_c != 7) return 2;
+
+    // A.B.c and A.B_c are distinct objects: the enum member's ordinal is 0 while the
+    // variable holds 7, so any shared-storage resolution shows up as a value mismatch.
+    u8 inScopeOrdinal <- A.firstOrdinal();
+    if (inScopeOrdinal != 0) return 3;
+
+    // The cast is required: assigning an enum straight to u8 crosses essential type
+    // categories, which MISRA C:2012 Rule 10.3 forbids.
+    A.B second <- A.B.d;
+    u8 secondOrdinal <- (u8)second;
+    if (secondOrdinal != 1) return 4;
+
+    // Using the enum type did not disturb the variable's storage
+    if (A.B_c != 7) return 5;
+
+    return 0;
+}
