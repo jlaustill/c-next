@@ -25,8 +25,6 @@
 // Target Platform (for atomic operations - ADR-049)
 // =============================================================================
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <cmsis_gcc.h>
 
 // ADR-044: Overflow helper functions
@@ -46,20 +44,20 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Base address: 0xE000E010 (part of System Control Space)
 /* Scope: SysTick */
 
-/* Register: SysTick_Regs @ 0xE000E010 */
-#define SysTick_Regs_CTRL (*(volatile SysTick_ControlBits*)(0xE000E010 + 0x00))
-#define SysTick_Regs_LOAD (*(volatile uint32_t*)(0xE000E010 + 0x04))
-#define SysTick_Regs_VAL (*(volatile uint32_t*)(0xE000E010 + 0x08))
-#define SysTick_Regs_CALIB (*(volatile uint32_t const *)(0xE000E010 + 0x0C))
+/* Register: SysTick__Regs @ 0xE000E010 */
+#define SysTick__Regs__CTRL (*(volatile SysTick__ControlBits*)(0xE000E010 + 0x00))
+#define SysTick__Regs__LOAD (*(volatile uint32_t*)(0xE000E010 + 0x04))
+#define SysTick__Regs__VAL (*(volatile uint32_t*)(0xE000E010 + 0x08))
+#define SysTick__Regs__CALIB (*(volatile uint32_t const *)(0xE000E010 + 0x0C))
 
 
-void SysTick_init(void) {
-    SysTick_Regs_CTRL = (SysTick_Regs_CTRL & ~(1U << 0)) | (0U << 0);
-    SysTick_Regs_LOAD = 15999;
-    SysTick_Regs_VAL = 0;
-    SysTick_Regs_CTRL = (SysTick_Regs_CTRL & ~(1U << 2)) | (1U << 2);
-    SysTick_Regs_CTRL = (SysTick_Regs_CTRL & ~(1U << 1)) | (1U << 1);
-    SysTick_Regs_CTRL = (SysTick_Regs_CTRL & ~(1U << 0)) | (1U << 0);
+void SysTick__init(void) {
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 0)) | (0U << 0);
+    SysTick__Regs__LOAD = 15999;
+    SysTick__Regs__VAL = 0;
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 2)) | (1U << 2);
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 1)) | (1U << 1);
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 0)) | (1U << 0);
 }
 
 // =============================================================================
@@ -67,8 +65,8 @@ void SysTick_init(void) {
 // =============================================================================
 /* Scope: RCC */
 
-/* Register: RCC_RCC @ 0x40023800 */
-#define RCC_RCC_AHB1ENR (*(volatile RCC_AHB1Peripherals*)(0x40023800 + 0x30))
+/* Register: RCC__RCC @ 0x40023800 */
+#define RCC__RCC__AHB1ENR (*(volatile RCC__AHB1Peripherals*)(0x40023800 + 0x30))
 
 
 // =============================================================================
@@ -76,17 +74,17 @@ void SysTick_init(void) {
 // =============================================================================
 /* Scope: STM32F446 */
 
-/* Register: STM32F446_GPIOA @ 0x40020000 */
-#define STM32F446_GPIOA_ModeRegister (*(volatile uint32_t*)(0x40020000 + 0x00))
-#define STM32F446_GPIOA_OutputTypeRegister (*(volatile STM32F446_GPIOAPins*)(0x40020000 + 0x04))
-#define STM32F446_GPIOA_OutputSpeedRegister (*(volatile uint32_t*)(0x40020000 + 0x08))
-#define STM32F446_GPIOA_PullUpDownRegister (*(volatile uint32_t*)(0x40020000 + 0x0C))
-#define STM32F446_GPIOA_InputData (*(volatile STM32F446_GPIOAPins const *)(0x40020000 + 0x10))
-#define STM32F446_GPIOA_OutputData (*(volatile STM32F446_GPIOAPins*)(0x40020000 + 0x14))
-#define STM32F446_GPIOA_BitSetReset (*(volatile STM32F446_GPIOAPins*)(0x40020000 + 0x18))
-#define STM32F446_GPIOA_LockRegister (*(volatile STM32F446_GPIOAPins*)(0x40020000 + 0x1C))
-#define STM32F446_GPIOA_AlternateFunctionLow (*(volatile uint32_t*)(0x40020000 + 0x20))
-#define STM32F446_GPIOA_AlternateFunctionHigh (*(volatile uint32_t*)(0x40020000 + 0x24))
+/* Register: STM32F446__GPIOA @ 0x40020000 */
+#define STM32F446__GPIOA__ModeRegister (*(volatile uint32_t*)(0x40020000 + 0x00))
+#define STM32F446__GPIOA__OutputTypeRegister (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x04))
+#define STM32F446__GPIOA__OutputSpeedRegister (*(volatile uint32_t*)(0x40020000 + 0x08))
+#define STM32F446__GPIOA__PullUpDownRegister (*(volatile uint32_t*)(0x40020000 + 0x0C))
+#define STM32F446__GPIOA__InputData (*(volatile STM32F446__GPIOAPins const *)(0x40020000 + 0x10))
+#define STM32F446__GPIOA__OutputData (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x14))
+#define STM32F446__GPIOA__BitSetReset (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x18))
+#define STM32F446__GPIOA__LockRegister (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x1C))
+#define STM32F446__GPIOA__AlternateFunctionLow (*(volatile uint32_t*)(0x40020000 + 0x20))
+#define STM32F446__GPIOA__AlternateFunctionHigh (*(volatile uint32_t*)(0x40020000 + 0x24))
 
 
 // =============================================================================
@@ -94,32 +92,32 @@ void SysTick_init(void) {
 // =============================================================================
 /* Scope: LED */
 
-void LED_init(void) {
-    RCC_RCC_AHB1ENR = (RCC_RCC_AHB1ENR & ~(1U << 0)) | (1U << 0);
-    STM32F446_GPIOA_ModeRegister = (STM32F446_GPIOA_ModeRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446_GPIOMode_OUTPUT & ((1U << 2) - 1)) << 10);
-    STM32F446_GPIOA_OutputTypeRegister = (STM32F446_GPIOA_OutputTypeRegister & ~(1U << 5)) | (((bool)STM32F446_GPIOOutputType_PUSH_PULL ? 1U : 0U) << 5);
-    STM32F446_GPIOA_OutputSpeedRegister = (STM32F446_GPIOA_OutputSpeedRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446_GPIOSpeed_MEDIUM & ((1U << 2) - 1)) << 10);
-    STM32F446_GPIOA_PullUpDownRegister = (STM32F446_GPIOA_PullUpDownRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446_GPIOPull_NO_PULL & ((1U << 2) - 1)) << 10);
+void LED__init(void) {
+    RCC__RCC__AHB1ENR = (RCC__RCC__AHB1ENR & ~(1U << 0)) | (1U << 0);
+    STM32F446__GPIOA__ModeRegister = (STM32F446__GPIOA__ModeRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446__GPIOMode__OUTPUT & ((1U << 2) - 1)) << 10);
+    STM32F446__GPIOA__OutputTypeRegister = (STM32F446__GPIOA__OutputTypeRegister & ~(1U << 5)) | (((bool)STM32F446__GPIOOutputType__PUSH_PULL ? 1U : 0U) << 5);
+    STM32F446__GPIOA__OutputSpeedRegister = (STM32F446__GPIOA__OutputSpeedRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446__GPIOSpeed__MEDIUM & ((1U << 2) - 1)) << 10);
+    STM32F446__GPIOA__PullUpDownRegister = (STM32F446__GPIOA__PullUpDownRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446__GPIOPull__NO_PULL & ((1U << 2) - 1)) << 10);
 }
 
-void LED_on(void) {
-    STM32F446_GPIOA_BitSetReset = (1U << 5);
+void LED__on(void) {
+    STM32F446__GPIOA__BitSetReset = (1U << 5);
 }
 
-void LED_off(void) {
-    STM32F446_GPIOA_BitSetReset = (1U << 21);
+void LED__off(void) {
+    STM32F446__GPIOA__BitSetReset = (1U << 21);
 }
 
-void LED_toggle(void) {
-    if (((STM32F446_GPIOA_OutputData >> 5) & 1) == true) {
-        LED_off();
+void LED__toggle(void) {
+    if (((STM32F446__GPIOA__OutputData >> 5) & 1) == true) {
+        LED__off();
     } else {
-        LED_on();
+        LED__on();
     }
 }
 
-bool LED_isOn(void) {
-    return ((STM32F446_GPIOA_OutputData >> 5) & 1);
+bool LED__isOn(void) {
+    return ((STM32F446__GPIOA__OutputData >> 5) & 1);
 }
 
 // =============================================================================
@@ -151,13 +149,13 @@ void SysTick_Handler(void) {
 // Main Entry Point
 // =============================================================================
 void setup(void) {
-    SysTick_init();
-    LED_init();
+    SysTick__init();
+    LED__init();
 }
 
 void loop(void) {
     if (tick_count >= BLINK_DELAY_MS) {
-        LED_toggle();
+        LED__toggle();
         tick_count = 0U;
     }
 }

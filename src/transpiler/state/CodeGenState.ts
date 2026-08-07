@@ -22,6 +22,7 @@
  */
 
 import SymbolTable from "../logic/symbols/SymbolTable";
+import ReservedCnxName from "../../utils/ReservedCnxName";
 import ICodeGenSymbols from "../types/ICodeGenSymbols";
 import TTypeInfo from "../output/codegen/types/TTypeInfo";
 import TParameterInfo from "../output/codegen/types/TParameterInfo";
@@ -1244,6 +1245,6 @@ export default class CodeGenState {
    * Get a unique temp variable name.
    */
   static getNextTempVarName(): string {
-    return `_tmp${this.tempVarCounter++}`;
+    return ReservedCnxName.temporary(this.tempVarCounter++);
   }
 }

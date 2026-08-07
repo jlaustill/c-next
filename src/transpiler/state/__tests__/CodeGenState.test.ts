@@ -807,27 +807,29 @@ describe("CodeGenState", () => {
 
   describe("C++ Mode Helpers", () => {
     it("addPendingTempDeclaration adds declaration", () => {
-      CodeGenState.addPendingTempDeclaration("int _tmp0 = x;");
-      expect(CodeGenState.pendingTempDeclarations).toContain("int _tmp0 = x;");
+      CodeGenState.addPendingTempDeclaration("int cnx_tmp0 = x;");
+      expect(CodeGenState.pendingTempDeclarations).toContain(
+        "int cnx_tmp0 = x;",
+      );
     });
 
     it("flushPendingTempDeclarations returns and clears declarations", () => {
-      CodeGenState.addPendingTempDeclaration("int _tmp0 = x;");
-      CodeGenState.addPendingTempDeclaration("int _tmp1 = y;");
+      CodeGenState.addPendingTempDeclaration("int cnx_tmp0 = x;");
+      CodeGenState.addPendingTempDeclaration("int cnx_tmp1 = y;");
 
       const decls = CodeGenState.flushPendingTempDeclarations();
 
       expect(decls).toHaveLength(2);
-      expect(decls).toContain("int _tmp0 = x;");
-      expect(decls).toContain("int _tmp1 = y;");
+      expect(decls).toContain("int cnx_tmp0 = x;");
+      expect(decls).toContain("int cnx_tmp1 = y;");
       expect(CodeGenState.pendingTempDeclarations).toHaveLength(0);
     });
 
     it("getNextTempVarName returns incrementing names", () => {
       CodeGenState.reset(); // Reset counter
-      expect(CodeGenState.getNextTempVarName()).toBe("_tmp0");
-      expect(CodeGenState.getNextTempVarName()).toBe("_tmp1");
-      expect(CodeGenState.getNextTempVarName()).toBe("_tmp2");
+      expect(CodeGenState.getNextTempVarName()).toBe("cnx_tmp0");
+      expect(CodeGenState.getNextTempVarName()).toBe("cnx_tmp1");
+      expect(CodeGenState.getNextTempVarName()).toBe("cnx_tmp2");
     });
   });
 

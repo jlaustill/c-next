@@ -39,28 +39,57 @@ function makeParam(
 describe("HeaderGeneratorUtils", () => {
   describe("makeGuard", () => {
     it("creates guard from simple filename", () => {
-      expect(HeaderGeneratorUtils.makeGuard("test.h")).toBe("TEST_H");
+      expect(HeaderGeneratorUtils.makeGuard("test.h")).toBe("CNX_TEST_H");
     });
 
-    it("creates guard from filename with path", () => {
-      expect(HeaderGeneratorUtils.makeGuard("/path/to/test.h")).toBe("TEST_H");
+    // Issue #1133: the guard must key on the PATH, not the basename. Keying on
+    // the basename made can/config.cnx and uart/config.cnx share CONFIG_H, so a
+    // translation unit including both had the second silently skipped.
+    it("distinguishes same-basename files in different directories", () => {
+      expect(HeaderGeneratorUtils.makeGuard("can/config.cnx")).toBe(
+        "CNX_CAN_CONFIG_H",
+      );
+      expect(HeaderGeneratorUtils.makeGuard("uart/config.cnx")).toBe(
+        "CNX_UART_CONFIG_H",
+      );
     });
 
-    it("creates guard with prefix", () => {
-      expect(HeaderGeneratorUtils.makeGuard("test.h", "MY_PREFIX")).toBe(
-        "MY_PREFIX_TEST_H",
+    it("preserves nested directory structure in the guard", () => {
+      expect(HeaderGeneratorUtils.makeGuard("Display/Utils.cnx")).toBe(
+        "CNX_DISPLAY_UTILS_H",
+      );
+    });
+
+    // ADR-063 part 2: every generated name carries the reserved prefix, so a
+    // user constant whose name equals a guard can no longer erase it.
+    it("carries the reserved CNX_ prefix", () => {
+      expect(HeaderGeneratorUtils.makeGuard("settings.cnx")).toBe(
+        "CNX_SETTINGS_H",
       );
     });
 
     it("replaces non-alphanumeric characters with underscores", () => {
       expect(HeaderGeneratorUtils.makeGuard("my-test-file.h")).toBe(
-        "MY_TEST_FILE_H",
+        "CNX_MY_TEST_FILE_H",
       );
     });
 
     it("handles windows-style paths", () => {
-      expect(HeaderGeneratorUtils.makeGuard("C:\\path\\to\\test.h")).toBe(
-        "TEST_H",
+      expect(HeaderGeneratorUtils.makeGuard("path\\to\\test.h")).toBe(
+        "CNX_PATH_TO_TEST_H",
+      );
+    });
+
+    it("strips a leading ./ so it does not become a stray underscore", () => {
+      expect(HeaderGeneratorUtils.makeGuard("./test.cnx")).toBe("CNX_TEST_H");
+    });
+
+    // Conversion to upper case is lossy, so makeGuard alone is NOT injective. These
+    // two collide by design; ADR-063 diagnoses the residue with E0203 rather
+    // than complicating the mapping with a hash or an escape encoding.
+    it("collapses `-` and `_`, which is the residue E0203 covers", () => {
+      expect(HeaderGeneratorUtils.makeGuard("mod-a.cnx")).toBe(
+        HeaderGeneratorUtils.makeGuard("mod_a.cnx"),
       );
     });
   });

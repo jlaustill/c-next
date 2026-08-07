@@ -19,6 +19,7 @@ import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IIdentifierSyntaxError from "./types/IIdentifierSyntaxError";
 import TIdentifierViolation from "./types/TIdentifierViolation";
+import ReservedCnxName from "../../../utils/ReservedCnxName";
 
 /**
  * Pure function classifying an identifier against the ADR-063 rule.
@@ -29,6 +30,12 @@ import TIdentifierViolation from "./types/TIdentifierViolation";
 function classifyIdentifier(
   identifierName: string,
 ): TIdentifierViolation | null {
+  // Checked first because it is the more specific diagnosis: `cnx__value` breaks
+  // both rules, and naming the reserved prefix tells the author more than
+  // pointing at the underscores.
+  if (ReservedCnxName.isReserved(identifierName)) {
+    return "reserved-prefix";
+  }
   if (identifierName.includes("__")) {
     return "consecutive";
   }
@@ -39,12 +46,30 @@ function classifyIdentifier(
 }
 
 /**
+ * The diagnostic code for each violation kind.
+ *
+ * Part 1 of ADR-063 is E0201; part 2 is E0202. Keeping the mapping beside the
+ * classifier means a new rule cannot be added without deciding its code.
+ */
+const VIOLATION_CODES: Readonly<Record<TIdentifierViolation, string>> = {
+  trailing: "E0201",
+  consecutive: "E0201",
+  "reserved-prefix": "E0202",
+};
+
+/**
  * Pure function creating the error message for a violation.
  */
 function formatIdentifierSyntaxError(
   identifierName: string,
   violation: TIdentifierViolation,
 ): string {
+  if (violation === "reserved-prefix") {
+    return (
+      `Identifier '${identifierName}' cannot begin with '${ReservedCnxName.PREFIX}'. ` +
+      `That prefix is reserved for names the transpiler generates, compared case-insensitively.`
+    );
+  }
   if (violation === "consecutive") {
     return (
       `Identifier '${identifierName}' cannot contain consecutive underscores. ` +
@@ -66,7 +91,15 @@ function formatIdentifierSyntaxError(
  * E0201 itself rejects.
  */
 function suggestLegalIdentifier(identifierName: string): string {
-  return identifierName.replaceAll(/_+/g, "_").replace(/_+$/, "");
+  const withoutReservedPrefix = ReservedCnxName.isReserved(identifierName)
+    ? identifierName.slice(ReservedCnxName.PREFIX.length)
+    : identifierName;
+
+  // The trailing match is a single `_`, not `_+`: the collapse above has already
+  // reduced every run to one underscore, so at most one can remain at the end.
+  // `_+$` would be equivalent but backtracks super-linearly on a long run of
+  // underscores (SonarCloud S8786).
+  return withoutReservedPrefix.replaceAll(/_+/g, "_").replace(/_$/, "");
 }
 
 /**
@@ -77,6 +110,9 @@ function formatIdentifierSyntaxHelp(
   violation: TIdentifierViolation,
 ): string {
   const suggestion = suggestLegalIdentifier(identifierName);
+  if (violation === "reserved-prefix") {
+    return `Drop the reserved prefix (e.g. '${suggestion}')`;
+  }
   if (violation === "consecutive") {
     return `Use a single underscore instead (e.g. '${suggestion}')`;
   }
@@ -201,7 +237,7 @@ class IdentifierSyntaxAnalyzer {
     }
 
     this.errors.push({
-      code: "E0201",
+      code: VIOLATION_CODES[violation],
       identifierName,
       violation,
       // The identifier's own token, not the enclosing rule's start token

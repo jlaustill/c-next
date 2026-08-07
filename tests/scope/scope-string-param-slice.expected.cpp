@@ -17,16 +17,16 @@
 
 void StringSliceTest__copyToBuffer(char* buffer, uint16_t value) {
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: char* vs uint16_t*). */
-    const uint16_t _tmp0 = (uint16_t)(value);
-    buffer[0] = (char)(uint8_t)(_tmp0);
-    buffer[1] = (char)(uint8_t)(_tmp0 >> 8U);
+    const uint16_t cnx_tmp0 = (uint16_t)(value);
+    buffer[0] = (char)(uint8_t)(cnx_tmp0);
+    buffer[1] = (char)(uint8_t)(cnx_tmp0 >> 8U);
 }
 
 void StringSliceTest__copyToBufferAt2(char* buffer, uint16_t value) {
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: char* vs uint16_t*). */
-    const uint16_t _tmp1 = (uint16_t)(value);
-    buffer[2] = (char)(uint8_t)(_tmp1);
-    buffer[3] = (char)(uint8_t)(_tmp1 >> 8U);
+    const uint16_t cnx_tmp1 = (uint16_t)(value);
+    buffer[2] = (char)(uint8_t)(cnx_tmp1);
+    buffer[3] = (char)(uint8_t)(cnx_tmp1 >> 8U);
 }
 
 uint32_t StringSliceTest__testSliceAssignment(void) {

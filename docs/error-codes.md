@@ -7,7 +7,7 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | Range     | Category                | Count  |
 | --------- | ----------------------- | ------ |
 | E00xx     | Reserved/Test           | 1      |
-| E02xx     | Identifier/Param Naming | 2      |
+| E02xx     | Identifier/Param Naming | 4      |
 | E03xx     | Struct Fields           | 1      |
 | E04xx     | Symbol Resolution       | 3      |
 | E05xx     | Include/Preprocessor    | 4      |
@@ -15,7 +15,7 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E07xx     | Control Flow            | 6      |
 | E08xx     | Arithmetic/Array Safety | 12     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **39** |
+| **Total** |                         | **41** |
 
 ---
 
@@ -32,14 +32,33 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | Code  | Message                                                    | Help                                                              | Source                                       |
 | ----- | ---------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------- |
 | E0201 | Identifier ends with, or contains consecutive, underscores | Remove the trailing underscore, or collapse `__` to `_`           | `logic/analysis/IdentifierSyntaxAnalyzer.ts` |
+| E0202 | Identifier begins with the reserved prefix `cnx_`          | Drop the reserved prefix                                          | `logic/analysis/IdentifierSyntaxAnalyzer.ts` |
+| E0203 | Two source files produce the same include guard            | Rename one so the generated headers stay distinguishable          | `Transpiler.ts`                              |
 | E0227 | Parameter cannot start with function name prefix           | Consider renaming to a name that doesn't start with function name | `logic/analysis/ParameterNamingAnalyzer.ts`  |
 
-**Related:** ADR-063 and Issue #1117 (E0201); Issue #227 (E0227)
+**Related:** ADR-063 and Issue #1117 (E0201); ADR-063 and Issues #1131/#1132 (E0202);
+ADR-063 and Issues #1133/#1134 (E0203); Issue #227 (E0227)
 
 E0201 reserves `__` as the qualified-name separator so that `Scope__member` cannot
 collide with a plain identifier. A **leading** underscore is legal — injectivity
 constrains only the separator's left boundary. Checked on declarations only, so
 references to C/C++ header symbols such as `__disable_irq()` are unaffected.
+
+E0202 reserves the `cnx_` prefix, compared case-insensitively, for names the
+transpiler generates — `cnx_tmp<N>`, `cnx_len_<var>`, `cnx_clamp_<op>_<type>` and
+the `CNX_<PATH>_H` include guard. It is a different guarantee from E0201: `__`
+says which components built a qualified name, while `cnx_` keeps the transpiler's
+namespace and the user's disjoint. Prefix-only, so `my_cnx_buffer` is legal, and
+declarations-only, so calling an external C symbol named `cnx_foo()` is fine.
+
+E0203 fires when two files in one compilation map to the same include guard.
+Guards are built from the project-relative path, and conversion to upper case
+is lossy, so
+`mod-a.cnx` and `mod_a.cnx` collide, as do filenames differing only by case.
+ADR-063 diagnoses that residue rather than hashing or escape-encoding the path,
+which would trade away the readability of the generated artifact. The requirement
+is only that it is never silent: before this check the preprocessor skipped the
+second header and the program ran with a wrong value.
 
 ---
 

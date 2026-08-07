@@ -1,0 +1,24 @@
+// test-execution
+// Issue #1131: a generated slice-unroll temporary shadowed a user global.
+//
+// The temporary was named `_tmp<N>`, counting from zero, so a user global named
+// `_tmp0` was shadowed by the first temporary the transpiler emitted. As with
+// the strlen cache, the result was a wrong value with a clean compile.
+//
+// ADR-063 part 2 renames it to `cnx_tmp<N>` — the same rename also absorbs the
+// argument temporary that spelled itself `_cnx_tmp_<N>`. Both families already
+// drew from one counter, so unifying the spelling cannot collide.
+
+u8[4] buffer;
+u8 _tmp0 <- 7;
+
+u32 main() {
+    u32 magic <- 0;
+
+    buffer[0, 4] <- magic;
+    buffer[0] <- buffer[0] + _tmp0;
+
+    if (buffer[0] != 7) return 1;
+
+    return 0;
+}

@@ -20,10 +20,10 @@ int main(void) {
     uint8_t a = 0U;
     uint32_t b = 0x12345678U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t _tmp0 = (uint32_t)(a + ((b) & ((1U << 24U) - 1)));
-    buf[0] = (uint8_t)(_tmp0);
-    buf[1] = (uint8_t)(_tmp0 >> 8U);
-    buf[2] = (uint8_t)(_tmp0 >> 16U);
+    const uint32_t cnx_tmp0 = (uint32_t)(a + ((b) & ((1U << 24U) - 1)));
+    buf[0] = (uint8_t)(cnx_tmp0);
+    buf[1] = (uint8_t)(cnx_tmp0 >> 8U);
+    buf[2] = (uint8_t)(cnx_tmp0 >> 16U);
     if (buf[0U] != 0x78) return 1;
     if (buf[1U] != 0x56) return 2;
     if (buf[2U] != 0x34) return 3;

@@ -56,7 +56,7 @@ abstract class BaseHeaderGenerator {
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
   ): string {
-    const guard = HeaderGeneratorUtils.makeGuard(filename, options.guardPrefix);
+    const guard = HeaderGeneratorUtils.makeGuard(filename);
 
     // Filter to exported symbols if requested
     const exportedSymbols = options.exportedOnly

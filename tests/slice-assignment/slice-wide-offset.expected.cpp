@@ -26,9 +26,9 @@ int main(void) {
     uint16_t arr16[8] = {};
     uint32_t v16 = 0x11223344U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint32_t*). */
-    const uint32_t _tmp0 = (uint32_t)(v16);
-    arr16[2] = (uint16_t)(_tmp0);
-    arr16[3] = (uint16_t)(_tmp0 >> 16U);
+    const uint32_t cnx_tmp0 = (uint32_t)(v16);
+    arr16[2] = (uint16_t)(cnx_tmp0);
+    arr16[3] = (uint16_t)(cnx_tmp0 >> 16U);
     if (arr16[1U] != 0x0000) return 6;
     if (arr16[2U] != 0x3344) return 7;
     if (arr16[3U] != 0x1122) return 8;

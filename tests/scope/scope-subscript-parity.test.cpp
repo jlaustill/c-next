@@ -52,11 +52,11 @@ uint8_t Reg__elementBit(void) {
 uint8_t Reg__sliceByte(uint32_t index) {
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t _tmp0 = (uint32_t)(magic);
-    Reg__slice[0] = (uint8_t)(_tmp0);
-    Reg__slice[1] = (uint8_t)(_tmp0 >> 8U);
-    Reg__slice[2] = (uint8_t)(_tmp0 >> 16U);
-    Reg__slice[3] = (uint8_t)(_tmp0 >> 24U);
+    const uint32_t cnx_tmp0 = (uint32_t)(magic);
+    Reg__slice[0] = (uint8_t)(cnx_tmp0);
+    Reg__slice[1] = (uint8_t)(cnx_tmp0 >> 8U);
+    Reg__slice[2] = (uint8_t)(cnx_tmp0 >> 16U);
+    Reg__slice[3] = (uint8_t)(cnx_tmp0 >> 24U);
     return Reg__slice[index];
 }
 
@@ -81,11 +81,11 @@ uint8_t Reg__globalBitRange(void) {
 uint8_t Reg__globalSliceByte(uint32_t index) {
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t _tmp1 = (uint32_t)(magic);
-    globalSlice[0] = (uint8_t)(_tmp1);
-    globalSlice[1] = (uint8_t)(_tmp1 >> 8U);
-    globalSlice[2] = (uint8_t)(_tmp1 >> 16U);
-    globalSlice[3] = (uint8_t)(_tmp1 >> 24U);
+    const uint32_t cnx_tmp1 = (uint32_t)(magic);
+    globalSlice[0] = (uint8_t)(cnx_tmp1);
+    globalSlice[1] = (uint8_t)(cnx_tmp1 >> 8U);
+    globalSlice[2] = (uint8_t)(cnx_tmp1 >> 16U);
+    globalSlice[3] = (uint8_t)(cnx_tmp1 >> 24U);
     return globalSlice[index];
 }
 
@@ -98,11 +98,11 @@ uint8_t Reg__scopedElementBit(void) {
 uint8_t Reg__scopedSliceByte(uint32_t index) {
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t _tmp2 = (uint32_t)(magic);
-    Other__slice[0] = (uint8_t)(_tmp2);
-    Other__slice[1] = (uint8_t)(_tmp2 >> 8U);
-    Other__slice[2] = (uint8_t)(_tmp2 >> 16U);
-    Other__slice[3] = (uint8_t)(_tmp2 >> 24U);
+    const uint32_t cnx_tmp2 = (uint32_t)(magic);
+    Other__slice[0] = (uint8_t)(cnx_tmp2);
+    Other__slice[1] = (uint8_t)(cnx_tmp2 >> 8U);
+    Other__slice[2] = (uint8_t)(cnx_tmp2 >> 16U);
+    Other__slice[3] = (uint8_t)(cnx_tmp2 >> 24U);
     return Other__slice[index];
 }
 
@@ -121,11 +121,11 @@ int main(void) {
     if (viaThis != globalBuffer[3U]) return 3;
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t _tmp3 = (uint32_t)(magic);
-    globalSlice[0] = (uint8_t)(_tmp3);
-    globalSlice[1] = (uint8_t)(_tmp3 >> 8U);
-    globalSlice[2] = (uint8_t)(_tmp3 >> 16U);
-    globalSlice[3] = (uint8_t)(_tmp3 >> 24U);
+    const uint32_t cnx_tmp3 = (uint32_t)(magic);
+    globalSlice[0] = (uint8_t)(cnx_tmp3);
+    globalSlice[1] = (uint8_t)(cnx_tmp3 >> 8U);
+    globalSlice[2] = (uint8_t)(cnx_tmp3 >> 16U);
+    globalSlice[3] = (uint8_t)(cnx_tmp3 >> 24U);
     if (globalSlice[0U] != 1) return 4;
     if (globalSlice[3U] != 4) return 5;
     uint8_t byte0 = Reg__sliceByte(0U);

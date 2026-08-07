@@ -4,6 +4,7 @@
  */
 
 import { basename } from "node:path";
+import ReservedCnxName from "../../../utils/ReservedCnxName";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 
@@ -1290,7 +1291,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     for (const [varName, count] of counts) {
       if (count >= 2) {
-        const tempVar = `_${varName}_len`;
+        const tempVar = ReservedCnxName.stringLengthCache(varName);
         cache.set(varName, tempVar);
         declarations.push(`size_t ${tempVar} = strlen(${varName});`);
       }

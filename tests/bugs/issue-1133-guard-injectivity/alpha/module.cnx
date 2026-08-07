@@ -1,0 +1,6 @@
+// Helper for issue #1133 — shares a basename with beta/module.cnx.
+scope AlphaModule {
+    public u8 one() {
+        return 1;
+    }
+}

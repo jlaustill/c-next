@@ -97,21 +97,25 @@ describe("CHeaderGenerator", () => {
 
       const result = generator.generate(symbols, "test.h");
 
-      expect(result).toContain("#ifndef TEST_H");
-      expect(result).toContain("#define TEST_H");
-      expect(result).toContain("#endif /* TEST_H */");
+      expect(result).toContain("#ifndef CNX_TEST_H");
+      expect(result).toContain("#define CNX_TEST_H");
+      expect(result).toContain("#endif /* CNX_TEST_H */");
     });
 
-    it("generates header with custom guard prefix", () => {
+    // Issue #1133: the guard keys on the PATH, so same-basename files in
+    // different directories stay distinguishable. The former `guardPrefix`
+    // option is gone: CNX_ is now mandatory, and a second, optional prefix
+    // mechanism beside it would be a duplicate path to the same decision.
+    it("builds the guard from the full relative path", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [];
 
-      const result = generator.generate(symbols, "module.h", {
-        guardPrefix: "MY_PROJECT",
-      });
+      const canResult = generator.generate(symbols, "can/config.h");
+      const uartResult = generator.generate(symbols, "uart/config.h");
 
-      expect(result).toContain("#ifndef MY_PROJECT_MODULE_H");
-      expect(result).toContain("#define MY_PROJECT_MODULE_H");
+      expect(canResult).toContain("#ifndef CNX_CAN_CONFIG_H");
+      expect(canResult).toContain("#define CNX_CAN_CONFIG_H");
+      expect(uartResult).toContain("#ifndef CNX_UART_CONFIG_H");
     });
 
     it("generates extern C wrapper for C++ compatibility", () => {
@@ -646,9 +650,9 @@ describe("CHeaderGenerator", () => {
 
       const result = generator.generate(symbols, "empty.h");
 
-      expect(result).toContain("#ifndef EMPTY_H");
-      expect(result).toContain("#define EMPTY_H");
-      expect(result).toContain("#endif /* EMPTY_H */");
+      expect(result).toContain("#ifndef CNX_EMPTY_H");
+      expect(result).toContain("#define CNX_EMPTY_H");
+      expect(result).toContain("#endif /* CNX_EMPTY_H */");
       expect(result).not.toContain("Function prototypes");
     });
   });

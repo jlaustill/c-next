@@ -16,8 +16,8 @@ uint32_t getVal(void) {
 
 int main(void) {
     uint32_t arr[8] = {0};
-    const uint32_t _tmp0 = (uint32_t)(getVal());
-    arr[0] = (uint32_t)(_tmp0);
+    const uint32_t cnx_tmp0 = (uint32_t)(getVal());
+    arr[0] = (uint32_t)(cnx_tmp0);
     if (arr[0U] != 0xAABBCCDD) return 1;
     return 0;
 }

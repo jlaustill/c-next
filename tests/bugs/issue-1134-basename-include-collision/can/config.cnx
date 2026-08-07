@@ -1,0 +1,6 @@
+// Helper for issue #1134 — shares a basename with uart/config.cnx.
+scope CanConfig {
+    public u8 bitRate() {
+        return 5;
+    }
+}

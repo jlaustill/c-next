@@ -10,7 +10,7 @@
  * ONE pipeline for all transpilation.
  */
 
-import { join, basename, dirname, resolve } from "node:path";
+import { join, basename, dirname, resolve, relative } from "node:path";
 
 import IFileSystem from "./types/IFileSystem";
 import NodeFileSystem from "./NodeFileSystem";
@@ -22,6 +22,7 @@ import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
+import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
@@ -101,6 +102,16 @@ class Transpiler {
   private readonly pathResolver: PathResolver;
   /** File system abstraction for testability */
   private readonly fs: IFileSystem;
+  /**
+   * Issue #1133: project root, used as the include guard's base directory.
+   *
+   * The guard must identify a source file the SAME WAY no matter how the
+   * transpiler was invoked — building `app.cnx` (which pulls in can/config.cnx)
+   * and building `can/config.cnx` directly must agree, or a consumer including
+   * both separately-built headers hits the collision again. Anchoring on the
+   * input directory does not have that property; the project root does.
+   */
+  private readonly projectRoot: string | undefined;
 
   constructor(config: ITranspilerConfig, fs?: IFileSystem) {
     // Use injected file system or default to Node.js implementation
@@ -133,6 +144,7 @@ class Transpiler {
     // The include paths + defines + compiler are the contract every build system
     // converges on. (Issue #985 external-symbol recovery; unblocks ADR-062.)
     const projectRoot = this.determineProjectRoot();
+    this.projectRoot = projectRoot;
     const compileDb = projectRoot
       ? CompileCommandsReader.load(join(projectRoot, "compile_commands.json"))
       : null;
@@ -301,6 +313,11 @@ class Transpiler {
 
     // Stage 4: Check for symbol conflicts
     if (!this._checkSymbolConflicts(result)) {
+      return;
+    }
+
+    // Stage 4b: Check for include guard collisions (ADR-063, issue #1133)
+    if (!this._checkIncludeGuardCollisions(input.cnextFiles, result)) {
       return;
     }
 
@@ -843,6 +860,52 @@ class Transpiler {
   }
 
   /**
+   * Stage 4b: Reject two source files that would produce the same include guard.
+   *
+   * ADR-063 builds the guard from the project-relative path in upper case, with
+   * non-alphanumerics collapsed to `_`. That keeps the generated artifact
+   * readable but is NOT injective — the case change is lossy, so `mod-a.cnx` and
+   * `mod_a.cnx` both land on CNX_MOD_A_H, as do filenames differing only by
+   * case. This check is what makes that residue loud instead of silent: before
+   * it, the preprocessor skipped the second header and the program ran with an
+   * implicitly-declared function and a wrong value (#1133).
+   *
+   * @returns true when every guard is unique
+   */
+  private _checkIncludeGuardCollisions(
+    cnextFiles: IPipelineFile[],
+    result: ITranspilerResult,
+  ): boolean {
+    const sourceByGuard = new Map<string, string>();
+
+    for (const file of cnextFiles) {
+      const guard = HeaderGeneratorUtils.makeGuard(
+        this._guardIdentity(file.path),
+      );
+      const existing = sourceByGuard.get(guard);
+
+      if (existing === undefined) {
+        sourceByGuard.set(guard, file.path);
+        continue;
+      }
+
+      // The code is embedded in the message: ITranspileError carries no `code`
+      // field, and runAnalyzers formats analyzer codes the same way.
+      result.errors.push({
+        line: 1,
+        column: 0,
+        message:
+          `error[E0203]: Source files '${basename(existing)}' and '${basename(file.path)}' both ` +
+          `produce the include guard '${guard}'. Rename one so the generated headers stay distinguishable.`,
+        severity: "error",
+      });
+      result.success = false;
+    }
+
+    return result.success;
+  }
+
+  /**
    * Stage 4: Check for symbol conflicts
    * @returns true if no blocking conflicts, false otherwise
    */
@@ -1029,10 +1092,17 @@ class Transpiler {
         this.state.setHeaderDirective(includePath, directive);
       }
 
-      // Don't add if already in the list
-      const alreadyExists =
-        cnextBaseNames.has(includeBaseName) ||
-        cnextFiles.some((f) => resolve(f.path) === includePath);
+      // Don't add if already in the list.
+      //
+      // Issue #1134: identity here is the RESOLVED PATH, never the basename.
+      // Keying on the basename made can/config.cnx and uart/config.cnx the same
+      // file, so the second was dropped from the compilation entirely — the
+      // transpiler exited 0 and emitted C-Next source syntax into the C output.
+      // `cnextBaseNames` still tracks base names, but only for header shadowing
+      // in _collectHeaders; it is not a file identity.
+      const alreadyExists = cnextFiles.some(
+        (f) => resolve(f.path) === includePath,
+      );
       if (!alreadyExists) {
         cnextFiles.push(cnxInclude);
         cnextBaseNames.add(includeBaseName);
@@ -1634,10 +1704,31 @@ class Transpiler {
   // ===========================================================================
 
   /**
+   * Path identifying a source file for include-guard construction (issue #1133).
+   *
+   * Anchored on the PROJECT ROOT, not the input directory, so the guard for a
+   * given file does not depend on which entry point pulled it in. Building
+   * `app.cnx` and building `can/config.cnx` directly must produce the same guard
+   * for can/config.cnx — otherwise separately-compiled translation units
+   * reintroduce the collision as soon as a consumer includes both headers.
+   *
+   * Falls back to the input directory when no project marker is found, and to
+   * the basename for a file outside that base. Both fallbacks can in principle
+   * map two files onto one guard; that is what E0203 is for.
+   */
+  private _guardIdentity(sourcePath: string): string {
+    const base = this.projectRoot ?? dirname(resolve(this.config.input));
+    const relativePath = relative(base, resolve(sourcePath));
+
+    return relativePath.startsWith("..") || relativePath === ""
+      ? basename(sourcePath)
+      : relativePath;
+  }
+
+  /**
    * Stage 6: Generate header file for a C-Next file
    * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
-   */
-  /**
+   *
    * Generate header content for a single file's exported symbols.
    * Unified method replacing both generateHeader() and generateHeaderContent().
    * Reads all needed data from state (populated during Stage 5).
@@ -1653,7 +1744,10 @@ class Transpiler {
 
     // Issue #933: Use .hpp extension for include guard in C++ mode
     const ext = this.cppDetected ? ".hpp" : ".h";
-    const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ext);
+    const headerName = this._guardIdentity(sourcePath).replace(
+      /\.cnx$|\.cnext$/,
+      ext,
+    );
 
     const typeInput = this.state.getSymbolInfo(sourcePath);
     const passByValueParams =

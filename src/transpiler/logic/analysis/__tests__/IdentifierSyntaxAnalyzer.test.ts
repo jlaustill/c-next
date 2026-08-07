@@ -219,4 +219,81 @@ describe("IdentifierSyntaxAnalyzer", () => {
       ]);
     });
   });
+
+  // ==========================================================================
+  // Reserved transpiler prefix (ADR-063 part 2, E0202)
+  // ==========================================================================
+
+  describe("reserved cnx_ prefix", () => {
+    it("rejects a declaration carrying the prefix", () => {
+      const errors = analyze(`u8 cnx_counter <- 1;`);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0202");
+      expect(errors[0].identifierName).toBe("cnx_counter");
+      expect(errors[0].violation).toBe("reserved-prefix");
+    });
+
+    // Include guards are uppercase by C convention while identifiers are not,
+    // so one case-insensitive rule has to cover both spellings.
+    it("is case-insensitive", () => {
+      for (const name of ["CNX_LIMIT", "Cnx_state", "cNx_value"]) {
+        const errors = analyze(`u8 ${name} <- 1;`);
+
+        expect(errors).toHaveLength(1);
+        expect(errors[0].code).toBe("E0202");
+        expect(errors[0].identifierName).toBe(name);
+      }
+    });
+
+    it("explains which prefix is reserved and why", () => {
+      const errors = analyze(`u8 cnx_buffer <- 1;`);
+
+      expect(errors[0].message).toContain("cannot begin with 'cnx_'");
+      expect(errors[0].message).toContain("case-insensitively");
+    });
+
+    it("suggests the name with the reserved prefix removed", () => {
+      const errors = analyze(`u8 cnx_buffer <- 1;`);
+
+      expect(errors[0].helpText).toContain("buffer");
+      expect(errors[0].helpText).not.toContain("cnx_buffer");
+    });
+
+    // Prefix-only: a prefix is all that is needed to keep the transpiler's
+    // namespace and the user's disjoint, so that is all the rule constrains.
+    it("allows the sequence anywhere but the start", () => {
+      expect(analyze(`u8 my_cnx_buffer <- 1;`)).toHaveLength(0);
+      expect(analyze(`u8 buffer_cnx <- 1;`)).toHaveLength(0);
+    });
+
+    it("allows an identifier that merely starts with the letters", () => {
+      expect(analyze(`u8 cnxState <- 1;`)).toHaveLength(0);
+    });
+
+    // A name can break both rules at once. The reserved prefix is reported
+    // because it is the more specific diagnosis, and the suggestion has to
+    // repair BOTH — stripping only the prefix would leave `value_`, which
+    // E0201 then rejects.
+    it("reports the prefix first and still suggests a fully legal name", () => {
+      const errors = analyze(`u8 cnx_value_ <- 1;`);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0202");
+      expect(errors[0].helpText).toContain("value");
+      expect(errors[0].helpText).not.toMatch(/value_'/);
+    });
+
+    // References are deliberately unchecked, which is what lets a C-Next file
+    // call an external C symbol that happens to use the prefix (ADR-010).
+    it("does not check references", () => {
+      const errors = analyze(`
+        u8 caller() {
+            return cnx_external_thing();
+        }
+      `);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
 });

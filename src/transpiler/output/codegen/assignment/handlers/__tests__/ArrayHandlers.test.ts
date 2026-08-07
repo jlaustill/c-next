@@ -303,11 +303,11 @@ describe("ArrayHandlers", () => {
       // exactly once (Issue #1085 review, Finding 2).
       expect(result).toBe(
         `${sliceComment("uint8_t", "uint32_t")}\n` +
-          "const uint32_t _tmp0 = (uint32_t)(source);\n" +
-          "buffer[0] = (uint8_t)(_tmp0);\n" +
-          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
-          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
-          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
+          "const uint32_t cnx_tmp0 = (uint32_t)(source);\n" +
+          "buffer[0] = (uint8_t)(cnx_tmp0);\n" +
+          "buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
       // No memcpy means <string.h> is not required.
       expect(CodeGenState.needsString).toBe(false);
@@ -337,11 +337,11 @@ describe("ArrayHandlers", () => {
 
       expect(result).toBe(
         `${sliceComment("uint16_t", "uint64_t")}\n` +
-          "const uint64_t _tmp0 = (uint64_t)(value);\n" +
-          "arr16[0] = (uint16_t)(_tmp0);\n" +
-          "arr16[1] = (uint16_t)(_tmp0 >> 16U);\n" +
-          "arr16[2] = (uint16_t)(_tmp0 >> 32U);\n" +
-          "arr16[3] = (uint16_t)(_tmp0 >> 48U);",
+          "const uint64_t cnx_tmp0 = (uint64_t)(value);\n" +
+          "arr16[0] = (uint16_t)(cnx_tmp0);\n" +
+          "arr16[1] = (uint16_t)(cnx_tmp0 >> 16U);\n" +
+          "arr16[2] = (uint16_t)(cnx_tmp0 >> 32U);\n" +
+          "arr16[3] = (uint16_t)(cnx_tmp0 >> 48U);",
       );
     });
 
@@ -452,11 +452,11 @@ describe("ArrayHandlers", () => {
       // temp declaration, so every shift on the temp is MISRA Rule 10.1-clean.
       expect(result).toBe(
         `${sliceComment("uint8_t", "int32_t")}\n` +
-          "const uint32_t _tmp0 = (uint32_t)(value);\n" +
-          "buffer[0] = (uint8_t)(_tmp0);\n" +
-          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
-          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
-          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
+          "const uint32_t cnx_tmp0 = (uint32_t)(value);\n" +
+          "buffer[0] = (uint8_t)(cnx_tmp0);\n" +
+          "buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
     });
 
@@ -518,9 +518,9 @@ describe("ArrayHandlers", () => {
 
       expect(result).toBe(
         `${sliceComment("char", "uint16_t")}\n` +
-          "const uint16_t _tmp0 = (uint16_t)(data);\n" +
-          "str[5] = (char)(uint8_t)(_tmp0);\n" +
-          "str[6] = (char)(uint8_t)(_tmp0 >> 8U);",
+          "const uint16_t cnx_tmp0 = (uint16_t)(data);\n" +
+          "str[5] = (char)(uint8_t)(cnx_tmp0);\n" +
+          "str[6] = (char)(uint8_t)(cnx_tmp0 >> 8U);",
       );
     });
 
@@ -554,11 +554,11 @@ describe("ArrayHandlers", () => {
       // (MISRA Rule 10.8), while every shift on the temp stays unsigned (10.1)
       // and in range (Finding 3).
       expect(result).toBe(
-        "const uint32_t _tmp0 = (uint32_t)(expr);\n" +
-          "buffer[0] = (uint8_t)(_tmp0);\n" +
-          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
-          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
-          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
+        "const uint32_t cnx_tmp0 = (uint32_t)(expr);\n" +
+          "buffer[0] = (uint8_t)(cnx_tmp0);\n" +
+          "buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
     });
 
@@ -592,12 +592,12 @@ describe("ArrayHandlers", () => {
       expect(result).toBe(
         "/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes " +
           "(memcpy would pass incompatible pointer types: uint8_t* vs int32_t*). */\n" +
-          "const int32_t _tmp0 = a + b;\n" +
-          "const uint32_t _tmp1 = (uint32_t)_tmp0;\n" +
-          "buffer[0] = (uint8_t)(_tmp1);\n" +
-          "buffer[1] = (uint8_t)(_tmp1 >> 8U);\n" +
-          "buffer[2] = (uint8_t)(_tmp1 >> 16U);\n" +
-          "buffer[3] = (uint8_t)(_tmp1 >> 24U);",
+          "const int32_t cnx_tmp0 = a + b;\n" +
+          "const uint32_t cnx_tmp1 = (uint32_t)cnx_tmp0;\n" +
+          "buffer[0] = (uint8_t)(cnx_tmp1);\n" +
+          "buffer[1] = (uint8_t)(cnx_tmp1 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(cnx_tmp1 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(cnx_tmp1 >> 24U);",
       );
     });
 
@@ -758,11 +758,11 @@ describe("ArrayHandlers", () => {
 
       expect(result).toBe(
         `${sliceComment("uint8_t", "uint32_t")}\n` +
-          "const uint32_t _tmp0 = (uint32_t)(-1);\n" +
-          "buffer[0] = (uint8_t)(_tmp0);\n" +
-          "buffer[1] = (uint8_t)(_tmp0 >> 8U);\n" +
-          "buffer[2] = (uint8_t)(_tmp0 >> 16U);\n" +
-          "buffer[3] = (uint8_t)(_tmp0 >> 24U);",
+          "const uint32_t cnx_tmp0 = (uint32_t)(-1);\n" +
+          "buffer[0] = (uint8_t)(cnx_tmp0);\n" +
+          "buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);\n" +
+          "buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);\n" +
+          "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
     });
 
