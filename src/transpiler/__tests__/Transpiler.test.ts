@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
@@ -420,6 +420,81 @@ describe("Transpiler", () => {
         expect(result.errors.length).toBeGreaterThan(0);
       });
     });
+
+    // ========================================================================
+    // Include guard collisions (ADR-063, issue #1133)
+    // ========================================================================
+
+    describe("include guard collisions", () => {
+      // NOTE: the positive case (same basename, different directories) lives in
+      // the real-file-system block below. It has to reach code generation, and
+      // IncludeGenerator validates quote-style .cnx includes through
+      // CnxFileResolver.cnxFileExists, which calls existsSync directly instead
+      // of the injected IFileSystem. The collision tests here stop at stage 4b,
+      // before generation, so MockFileSystem is sufficient for them.
+
+      // Conversion to upper case is lossy, so `-` and `_` collapse together.
+      // ADR-063 diagnoses that residue rather than complicating the mapping;
+      // the requirement is only that it is never silent.
+      it("rejects two files whose paths differ only by a collapsing character", async () => {
+        mockFs.addFile(
+          "/project/src/mod-a.cnx",
+          "scope Alpha { public u8 one() { return 1; } }",
+        );
+        mockFs.addFile(
+          "/project/src/mod_a.cnx",
+          "scope Beta { public u8 two() { return 2; } }",
+        );
+        mockFs.addFile(
+          "/project/src/app.cnx",
+          `#include "mod-a.cnx"\n#include "mod_a.cnx"\nu32 main() { return 0; }\n`,
+        );
+
+        const transpiler = new Transpiler(
+          { input: "/project/src/app.cnx", noCache: true },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(false);
+
+        const collision = result.errors.find((e) =>
+          e.message.includes("E0203"),
+        );
+        expect(collision).toBeDefined();
+        expect(collision?.message).toContain("mod-a.cnx");
+        expect(collision?.message).toContain("mod_a.cnx");
+        expect(collision?.message).toContain("include guard");
+      });
+
+      it("does not emit output when guards collide", async () => {
+        mockFs.addFile(
+          "/project/src/mod-a.cnx",
+          "scope Alpha { public u8 one() { return 1; } }",
+        );
+        mockFs.addFile(
+          "/project/src/mod_a.cnx",
+          "scope Beta { public u8 two() { return 2; } }",
+        );
+        mockFs.addFile(
+          "/project/src/app.cnx",
+          `#include "mod-a.cnx"\n#include "mod_a.cnx"\nu32 main() { return 0; }\n`,
+        );
+
+        const transpiler = new Transpiler(
+          { input: "/project/src/app.cnx", noCache: true },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        // The check runs before code generation, so a colliding build produces
+        // nothing rather than a set of headers that silently shadow each other.
+        expect(result.success).toBe(false);
+        expect(result.outputFiles).toHaveLength(0);
+      });
+    });
   });
 
   // Integration tests with real file system
@@ -450,6 +525,49 @@ describe("Transpiler", () => {
         expect(result.success).toBe(true);
         expect(result.filesProcessed).toBe(1);
         expect(result.outputFiles.length).toBeGreaterThan(0);
+      });
+
+      // Issue #1133 / #1134: keyed on the basename, can/config.cnx and
+      // uart/config.cnx were the same file to include resolution, and their
+      // headers both carried CONFIG_H. Needs the real file system because
+      // IncludeGenerator validates quote-style .cnx includes through
+      // existsSync rather than the injected IFileSystem.
+      it("gives same-basename files in different directories distinct guards", async () => {
+        mkdirSync(join(testDir, "can"), { recursive: true });
+        mkdirSync(join(testDir, "uart"), { recursive: true });
+        writeFileSync(
+          join(testDir, "can", "config.cnx"),
+          "scope CanConfig { public u8 bitRate() { return 5; } }",
+        );
+        writeFileSync(
+          join(testDir, "uart", "config.cnx"),
+          "scope UartConfig { public u8 baudRate() { return 9; } }",
+        );
+        const entry = join(testDir, "app.cnx");
+        writeFileSync(
+          entry,
+          `#include "can/config.cnx"\n#include "uart/config.cnx"\nu32 main() { return 0; }\n`,
+        );
+
+        const transpiler = new Transpiler({ input: entry, noCache: true });
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(true);
+
+        // Both files must reach the compilation (#1134) — before the fix only
+        // can/config.* was generated and uart/config.* was silently dropped.
+        const headers = result.outputFiles.filter((p) => p.endsWith(".h"));
+        expect(headers.length).toBeGreaterThanOrEqual(2);
+
+        // ... and carry distinct guards (#1133).
+        const guards = headers.map(
+          (p) => /#ifndef (\S+)/.exec(readFileSync(p, "utf-8"))?.[1],
+        );
+        expect(new Set(guards).size).toBe(guards.length);
+        for (const guard of guards) {
+          expect(guard).toMatch(/^CNX_/);
+        }
       });
 
       it("formats parse errors with file path", async () => {

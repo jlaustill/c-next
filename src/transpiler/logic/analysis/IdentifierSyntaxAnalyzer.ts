@@ -95,7 +95,11 @@ function suggestLegalIdentifier(identifierName: string): string {
     ? identifierName.slice(ReservedCnxName.PREFIX.length)
     : identifierName;
 
-  return withoutReservedPrefix.replaceAll(/_+/g, "_").replace(/_+$/, "");
+  // The trailing match is a single `_`, not `_+`: the collapse above has already
+  // reduced every run to one underscore, so at most one can remain at the end.
+  // `_+$` would be equivalent but backtracks super-linearly on a long run of
+  // underscores (SonarCloud S8786).
+  return withoutReservedPrefix.replaceAll(/_+/g, "_").replace(/_$/, "");
 }
 
 /**
