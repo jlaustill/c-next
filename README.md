@@ -87,13 +87,14 @@ C-Next uses the standard C preprocessor — no custom module system. This means:
 - Full compatibility with existing toolchains (PlatformIO, arm-gcc, etc.)
 - Conditional compilation (`#ifdef`) works as expected
 
-Generated headers automatically include guards:
+Generated headers automatically include guards, built from the file's path
+relative to the project root (see [the reserved `cnx_` prefix](#the-reserved-cnx_-prefix-adr-063)):
 
 ```c
-#ifndef MYFILE_H
-#define MYFILE_H
+#ifndef CNX_SRC_MYFILE_H
+#define CNX_SRC_MYFILE_H
 // ...
-#endif /* MYFILE_H */
+#endif /* CNX_SRC_MYFILE_H */
 ```
 
 ### The Simplicity Constraint
@@ -206,9 +207,36 @@ translation unit did not compile ([#1117](https://github.com/jlaustill/c-next/is
 `SysTick_Handler` are all unaffected. Only a trailing underscore or a run of
 two or more is rejected (error **E0201**).
 
+### The reserved `cnx_` prefix (ADR-063)
+
+Names the transpiler invents — temporaries, the cached `strlen` of a string,
+overflow helpers, include guards — all begin with `cnx_`, and an identifier you
+declare may not (error **E0202**, compared case-insensitively):
+
+```cnx
+u8 cnx_counter <- 1;      // error[E0202] — reserved prefix
+u8 my_cnx_buffer <- 1;    // fine — only the leading position is reserved
+```
+
+This is a different guarantee from the `__` separator above, and both are
+needed. `__` makes `Scope__member` unambiguous about _which components_ built
+it; `cnx_` keeps the transpiler's names and yours in separate namespaces. Before
+it, a generated temporary could shadow a global of the same name and every later
+read silently bound to the wrong storage, with a clean `-Wall -Wextra` compile
+([#1131](https://github.com/jlaustill/c-next/issues/1131)).
+
+Include guards follow the same rule and are built from the file's path relative
+to the project root, so `src/can/config.cnx` yields `CNX_SRC_CAN_CONFIG_H`. Two
+files whose paths differ only in ways that vanish in upper case — `mod-a.cnx`
+versus `mod_a.cnx`, or a difference of case alone — are rejected with error
+**E0203** rather than silently sharing a guard
+([#1133](https://github.com/jlaustill/c-next/issues/1133)).
+
 > **Migrating from a pre-ADR-063 release:** generated symbol names changed, so
 > C/C++ that calls into C-Next must be updated — `LED_on()` becomes `LED__on()`.
-> No `.cnx` source changes are required.
+> No `.cnx` source changes are required unless you declared a name starting with
+> `cnx_`. Include guards also changed, but they are internal to the generated
+> headers and need no downstream update.
 
 ## VS Code Extension
 

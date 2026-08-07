@@ -1,0 +1,1 @@
+1:0 error[E0203]: Source files 'mod-a.cnx' and 'mod_a.cnx' both produce the include guard 'CNX_TESTS_BUGS_ISSUE_1133_GUARD_COLLISION_DIAGNOSTIC_MOD_A_H'. Rename one so the generated headers stay distinguishable.

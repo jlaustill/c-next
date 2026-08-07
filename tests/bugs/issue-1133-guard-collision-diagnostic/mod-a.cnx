@@ -1,0 +1,8 @@
+// Helper for issue #1133 — sanitizes to the same include guard as mod_a.cnx.
+// Uppercasing collapses `-` and `_` to the same character, so both files map to
+// CNX_MOD_A_H. That residue is diagnosed (E0203) rather than silently skipped.
+scope Alpha {
+    public u8 one() {
+        return 1;
+    }
+}

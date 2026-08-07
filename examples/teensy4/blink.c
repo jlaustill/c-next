@@ -36,9 +36,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-
 // =============================================================================
 // Teensy 4.x Platform Scope
 // =============================================================================
@@ -46,19 +43,19 @@
 // Generates: Teensy4_GPIO7_DR, Teensy4_GPIO7Pins, Teensy4_InterruptType, etc.
 /* Scope: Teensy4 */
 
-/* Register: Teensy4_GPIO7 @ 0x42004000 */
-#define Teensy4_GPIO7_DataRegister (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x00))
-#define Teensy4_GPIO7_DirectionRegister (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x04))
-#define Teensy4_GPIO7_PadStatusRegister (*(volatile Teensy4_GPIO7Pins const *)(0x42004000 + 0x08))
-#define Teensy4_GPIO7_InterruptConfig1 (*(volatile Teensy4_ICR1Config*)(0x42004000 + 0x0C))
-#define Teensy4_GPIO7_InterruptMaskRegister (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x14))
-#define Teensy4_GPIO7_InterruptStatus (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x18))
-#define Teensy4_GPIO7_DataRegister_Set (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x84))
-#define Teensy4_GPIO7_DataRegister_Clear (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x88))
-#define Teensy4_GPIO7_DataRegister_Toggle (*(volatile Teensy4_GPIO7Pins*)(0x42004000 + 0x8C))
+/* Register: Teensy4__GPIO7 @ 0x42004000 */
+#define Teensy4__GPIO7__DataRegister (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x00))
+#define Teensy4__GPIO7__DirectionRegister (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x04))
+#define Teensy4__GPIO7__PadStatusRegister (*(volatile Teensy4__GPIO7Pins const *)(0x42004000 + 0x08))
+#define Teensy4__GPIO7__InterruptConfig1 (*(volatile Teensy4__ICR1Config*)(0x42004000 + 0x0C))
+#define Teensy4__GPIO7__InterruptMaskRegister (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x14))
+#define Teensy4__GPIO7__InterruptStatus (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x18))
+#define Teensy4__GPIO7__DataRegister_Set (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x84))
+#define Teensy4__GPIO7__DataRegister_Clear (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x88))
+#define Teensy4__GPIO7__DataRegister_Toggle (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x8C))
 
 
-uint8_t Teensy4_doSomething(void) {
+uint8_t Teensy4__doSomething(void) {
     uint8_t someByte = 123U;
     uint8_t nextByte = someByte;
     return nextByte;
@@ -70,29 +67,29 @@ uint8_t Teensy4_doSomething(void) {
 // LED functions use the Teensy4 platform scope for hardware access.
 /* Scope: LED */
 
-void LED_on(void) {
-    Teensy4_GPIO7_DataRegister_Set = (1U << 3);
+void LED__on(void) {
+    Teensy4__GPIO7__DataRegister_Set = (1U << 3);
 }
 
-void LED_off(void) {
-    Teensy4_GPIO7_DataRegister_Clear = (1U << 3);
+void LED__off(void) {
+    Teensy4__GPIO7__DataRegister_Clear = (1U << 3);
 }
 
-void LED_toggle(void) {
-    Teensy4_GPIO7_DataRegister_Toggle = (1U << 3);
+void LED__toggle(void) {
+    Teensy4__GPIO7__DataRegister_Toggle = (1U << 3);
 }
 
-bool LED_isOn(void) {
-    return ((Teensy4_GPIO7_PadStatusRegister >> 3) & 1);
+bool LED__isOn(void) {
+    return ((Teensy4__GPIO7__PadStatusRegister >> 3) & 1);
 }
 
-void LED_configureInterrupt(void) {
-    Teensy4_GPIO7_InterruptConfig1 = (Teensy4_GPIO7_InterruptConfig1 & ~(0x3U << 6)) | (((uint8_t)Teensy4_InterruptType_RISING_EDGE & 0x3U) << 6);
-    Teensy4_GPIO7_InterruptMaskRegister = (Teensy4_GPIO7_InterruptMaskRegister & ~(1U << 3)) | (1U << 3);
+void LED__configureInterrupt(void) {
+    Teensy4__GPIO7__InterruptConfig1 = (Teensy4__GPIO7__InterruptConfig1 & ~(0x3U << 6)) | (((uint8_t)Teensy4__InterruptType__RISING_EDGE & 0x3U) << 6);
+    Teensy4__GPIO7__InterruptMaskRegister = (Teensy4__GPIO7__InterruptMaskRegister & ~(1U << 3)) | (1U << 3);
 }
 
-void LED_clearInterrupt(void) {
-    Teensy4_GPIO7_InterruptStatus = (Teensy4_GPIO7_InterruptStatus & ~(1U << 3)) | (1U << 3);
+void LED__clearInterrupt(void) {
+    Teensy4__GPIO7__InterruptStatus = (Teensy4__GPIO7__InterruptStatus & ~(1U << 3)) | (1U << 3);
 }
 
 // =============================================================================
@@ -108,6 +105,6 @@ void setup(void) {
 }
 
 void loop(void) {
-    LED_toggle();
+    LED__toggle();
     delay(BLINK_DELAY_MS);
 }

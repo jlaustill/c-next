@@ -201,9 +201,9 @@ describe("ArgumentGenerator", () => {
         callbacks,
       );
 
-      expect(result).toBe("_cnx_tmp_0");
+      expect(result).toBe("cnx_tmp0");
       expect(CodeGenState.pendingTempDeclarations).toContain(
-        "uint8_t _cnx_tmp_0 = static_cast<uint8_t>(cfg.value);",
+        "uint8_t cnx_tmp0 = static_cast<uint8_t>(cfg.value);",
       );
       expect(CodeGenState.tempVarCounter).toBe(1);
     });
@@ -221,7 +221,7 @@ describe("ArgumentGenerator", () => {
         callbacks,
       );
 
-      expect(result).toBe("_cnx_tmp_5");
+      expect(result).toBe("cnx_tmp5");
       expect(CodeGenState.tempVarCounter).toBe(6);
     });
   });
@@ -346,7 +346,7 @@ describe("ArgumentGenerator", () => {
         callbacks,
       );
 
-      expect(result).toBe("_cnx_tmp_0");
+      expect(result).toBe("cnx_tmp0");
       expect(CodeGenState.pendingTempDeclarations).toHaveLength(1);
     });
 

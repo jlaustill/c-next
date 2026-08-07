@@ -1,0 +1,6 @@
+// Helper for issue #1134 — shares a basename with can/config.cnx.
+scope UartConfig {
+    public u8 baudRate() {
+        return 9;
+    }
+}

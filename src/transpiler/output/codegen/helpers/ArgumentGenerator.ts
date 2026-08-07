@@ -115,7 +115,11 @@ class ArgumentGenerator {
   ): string {
     const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
     const value = callbacks.generateExpression(ctx);
-    const tempName = `_cnx_tmp_${CodeGenState.tempVarCounter++}`;
+    // Issue #1131: one temporary namer for every family. This site previously
+    // incremented the shared counter itself and spelled the name a third way
+    // (`_cnx_tmp_<N>` alongside `_tmp<N>`), so the two families agreed only by
+    // coincidence of drawing from the same counter.
+    const tempName = CodeGenState.getNextTempVarName();
     const castExpr = CppModeHelper.cast(cType, value);
     CodeGenState.pendingTempDeclarations.push(
       `${cType} ${tempName} = ${castExpr};`,

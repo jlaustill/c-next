@@ -391,8 +391,8 @@ describe("HeaderGenerator", () => {
 
       expect(header).toContain("myFunc");
       expect(header).not.toContain("otherFunc");
-      expect(header).toContain("#ifndef MODULE_H");
-      expect(header).toContain("#define MODULE_H");
+      expect(header).toContain("#ifndef CNX_MODULE_H");
+      expect(header).toContain("#define CNX_MODULE_H");
     });
 
     it("should use correct header name from source file", () => {
@@ -482,8 +482,8 @@ describe("HeaderGenerator", () => {
 
       const header = generator.generateCNextHeader(symbolTable, "custom_api.h");
 
-      expect(header).toContain("#ifndef CUSTOM_API_H");
-      expect(header).toContain("#define CUSTOM_API_H");
+      expect(header).toContain("#ifndef CNX_CUSTOM_API_H");
+      expect(header).toContain("#define CNX_CUSTOM_API_H");
     });
 
     it("should pass options through to underlying generate method", () => {

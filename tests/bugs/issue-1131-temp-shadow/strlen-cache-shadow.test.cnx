@@ -1,0 +1,34 @@
+// test-execution
+// Issue #1131: the generated strlen cache shadowed a user global.
+//
+// The cache was named `_<var>_len`, a shape a user is allowed to declare. With a
+// global `_msg_len` in scope, the generated `size_t _msg_len = strlen(msg);`
+// shadowed it, and BOTH operands of `msg.char_count + _msg_len` resolved to the
+// shadowing local — the sum became 5 + 5 rather than 5 + 42.
+//
+// It produced a wrong value with gcc -std=c99 -Wall -Wextra completely clean and
+// the transpiler exiting 0, which is the worst failure mode this project has.
+//
+// ADR-063 part 2 renames the cache to `cnx_len_<var>`, in a namespace E0202
+// forbids the user from declaring, so the collision is unrepresentable.
+
+u8 _msg_len <- 42;
+
+u8 count() {
+    string<16> msg <- "hello";
+    u8 total <- 0;
+
+    if (msg.char_count > 2) {
+        total <- msg.char_count + _msg_len;
+    }
+
+    return total;
+}
+
+u32 main() {
+    u8 total <- count();
+
+    if (total != 47) return 1;
+
+    return 0;
+}

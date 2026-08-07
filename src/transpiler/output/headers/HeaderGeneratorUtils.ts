@@ -26,20 +26,39 @@ const { mapType, isBuiltInType } = typeUtils;
  */
 class HeaderGeneratorUtils {
   /**
-   * Create an include guard macro from filename
+   * Create an include guard macro from a source path (ADR-063, issue #1133).
+   *
+   * The identity is the path RELATIVE TO THE PROJECT ROOT, not the basename.
+   * Keying on the basename made can/config.cnx and uart/config.cnx share
+   * CONFIG_H, so a translation unit including both had the second silently
+   * skipped by the preprocessor — one warning, wrong runtime value, exit 0.
+   * The caller supplies that path; see Transpiler._guardIdentity, which anchors
+   * on the project root so the guard does not depend on which entry point
+   * pulled the file in.
+   *
+   * The CNX_ prefix is the reserved transpiler namespace (ADR-063 part 2), which
+   * is what stops a user constant whose name happens to equal a guard from
+   * erasing it.
+   *
+   * NOTE: this is deliberately NOT injective. Conversion to upper case is a
+   * lossy map, so `mod-a.cnx` and `mod_a.cnx` both land on CNX_MOD_A_H, as do
+   * filenames differing only by case. ADR-063 handles that residue with the
+   * E0203 diagnostic rather than appending a hash or escape-encoding the path,
+   * both of which would trade away the readability of the generated artifact.
+   * Callers MUST run the collision check — see
+   * Transpiler._checkIncludeGuardCollisions.
+   *
+   * @param sourcePath - Path relative to the project root, e.g. "src/can/config.cnx"
+   * @returns The include guard macro, e.g. "CNX_SRC_CAN_CONFIG_H"
    */
-  static makeGuard(filename: string, prefix?: string): string {
-    // Remove path and extension
-    const base = filename.replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, "");
+  static makeGuard(sourcePath: string): string {
+    const normalized = sourcePath.replaceAll("\\", "/").replace(/^\.\//, "");
+    const withoutExtension = normalized.replace(/\.[^./]+$/, "");
+    const sanitized = withoutExtension
+      .toUpperCase()
+      .replaceAll(/[^A-Z0-9]/g, "_");
 
-    // Convert to uppercase and replace non-alphanumeric with underscore
-    const sanitized = base.toUpperCase().replaceAll(/[^A-Z0-9]/g, "_");
-
-    if (prefix) {
-      return `${prefix.toUpperCase()}_${sanitized}_H`;
-    }
-
-    return `${sanitized}_H`;
+    return `CNX_${sanitized}_H`;
   }
 
   /**

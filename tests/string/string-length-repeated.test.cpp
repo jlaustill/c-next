@@ -12,8 +12,8 @@
 char text[65] = "Hello World";
 
 void test(void) {
-    size_t _text_len = strlen(text);
-    if (_text_len > 0 && text[_text_len - 1U] == 'd') {
-        text[_text_len - 1] = 'D';
+    size_t cnx_len_text = strlen(text);
+    if (cnx_len_text > 0 && text[cnx_len_text - 1U] == 'd') {
+        text[cnx_len_text - 1] = 'D';
     }
 }

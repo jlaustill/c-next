@@ -9,6 +9,7 @@
  */
 
 import TYPE_MAP from "../../types/TYPE_MAP";
+import ReservedCnxName from "../../../../../utils/ReservedCnxName";
 import WIDER_TYPE_MAP from "../../types/WIDER_TYPE_MAP";
 import TYPE_LIMITS from "../../types/TYPE_LIMITS";
 
@@ -68,7 +69,7 @@ function generateSignature(
   bParamType?: string,
 ): string {
   const paramB = bParamType ?? info.cType;
-  return `static inline ${info.cType} cnx_clamp_${operation}_${info.cnxType}(${info.cType} a, ${paramB} b)`;
+  return `static inline ${info.cType} ${ReservedCnxName.clampHelper(operation, info.cnxType)}(${info.cType} a, ${paramB} b)`;
 }
 
 /**

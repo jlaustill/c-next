@@ -763,10 +763,10 @@ describe("CodeGenerator", () => {
       it("should add temp declaration that can be flushed", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
-        generator.addPendingTempDeclaration("int _tmp1 = 0;");
+        generator.addPendingTempDeclaration("int cnx_tmp1 = 0;");
 
         const decls = generator.flushPendingTempDeclarations();
-        expect(decls).toBe("int _tmp1 = 0;");
+        expect(decls).toBe("int cnx_tmp1 = 0;");
 
         // After flush, should be empty
         expect(generator.flushPendingTempDeclarations()).toBe("");

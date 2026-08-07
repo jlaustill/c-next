@@ -1,0 +1,6 @@
+// Helper for issue #1133 — sanitizes to the same include guard as mod-a.cnx.
+scope Beta {
+    public u8 two() {
+        return 2;
+    }
+}

@@ -198,8 +198,8 @@ describe("BaseHeaderGenerator", () => {
 
       const result = generator.generate(symbols, "my_module.h");
 
-      expect(result).toContain("#ifndef MY_MODULE_H");
-      expect(result).toContain("#define MY_MODULE_H");
+      expect(result).toContain("#ifndef CNX_MY_MODULE_H");
+      expect(result).toContain("#define CNX_MY_MODULE_H");
       expect(result).toContain("#endif");
     });
 

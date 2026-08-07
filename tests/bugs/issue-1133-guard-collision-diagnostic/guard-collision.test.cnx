@@ -1,0 +1,26 @@
+// test-error
+// Issue #1133: the residual include-guard collision is diagnosed, not silent.
+//
+// Keying the guard on the relative path (ADR-063) separates same-basename files
+// in different directories, but uppercasing is still a lossy map: `-` and `_`
+// both sanitize to `_`, so mod-a.cnx and mod_a.cnx share CNX_MOD_A_H. Filenames
+// differing only by case collapse the same way.
+//
+// ADR-063 handles that residue with E0203 rather than a hash or an escape
+// encoding, on the grounds that two files in one build differing only by `-`
+// versus `_` are confusing to a human reader before they are confusing to the
+// preprocessor, and renaming one is trivial. The requirement is that it is never
+// silent — the pre-ADR behaviour skipped the second header and produced a wrong
+// runtime value with a single warning.
+#include "mod-a.cnx"
+#include "mod_a.cnx"
+
+u32 main() {
+    u8 first <- Alpha.one();
+    u8 second <- Beta.two();
+
+    if (first != 1) return 1;
+    if (second != 2) return 2;
+
+    return 0;
+}

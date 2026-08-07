@@ -1,0 +1,13 @@
+// test-error
+// Tests: an identifier may not begin with the reserved prefix `cnx_` (E0202, ADR-063)
+// The transpiler spells every name it invents with that prefix — cnx_tmp<N>,
+// cnx_len_<var>, cnx_clamp_<op>_<type>, CNX_<PATH>_H — so a user declaration in
+// the same namespace could be shadowed by one. Issue #1131 verified that shape
+// of failure: a generated temporary shadowed a user global and every later read
+// silently bound to the wrong storage, with a clean compile and exit 0.
+
+u8 cnx_counter <- 1;
+
+u32 main() {
+    return 0;
+}

@@ -1,0 +1,28 @@
+// test-execution
+// Issue #1133: include-guard macros were not injective.
+//
+// The guard was built by uppercasing the file's BASENAME and collapsing every
+// non-alphanumeric character to `_`, so alpha/module.cnx and beta/module.cnx
+// both produced MODULE_H. A translation unit including both headers had the
+// second silently skipped by the preprocessor — BetaModule__big was then only
+// implicitly declared, C assumed int, and the u64 return truncated.
+//
+// ADR-063 keys the guard on the path relative to the input directory and
+// reserves the CNX_ prefix, so these become CNX_ALPHA_MODULE_H and
+// CNX_BETA_MODULE_H.
+//
+// The u64 is what makes this test discriminating: the companion #1134 test uses
+// u8 returns, which survive the implicit-int truncation and pass even while the
+// guards collide.
+#include "alpha/module.cnx"
+#include "beta/module.cnx"
+
+u32 main() {
+    u8 small <- AlphaModule.one();
+    u64 large <- BetaModule.big();
+
+    if (small != 1) return 1;
+    if (large != 4294967296) return 2;
+
+    return 0;
+}
