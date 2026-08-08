@@ -249,6 +249,7 @@ export default new Registry();
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0
 - **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
+- **Scope type predicate**: `CodeGenState.isScopeType(qualifiedName)` at `CodeGenState.ts:580` — checks if a qualified name is a known enum/struct/bitmap. Used as the predicate for `QualifiedCName.qualifyScopeType()` at all call sites. Avoids inlining `knownEnums || knownStructs || knownBitmaps` at each site.
 
 ---
 
@@ -401,6 +402,10 @@ Update both when adding new statement types.
 - **Self-scope reference**: `Scope.member` inside `Scope` → error, use `this.member`
 - **Global prefix**: `global.Scope.member` inside `Scope` → allowed
 - **Private access**: Own scope can access via `this.` or `global.Scope.`
+- **ADR-057 type qualification**: Check the _qualified_ name against `knownEnums`/`knownStructs`/`knownBitmaps`, not the bare name against `scopeMembers`. This prevents non-type scope members (functions/variables) from capturing a same-named global type at a type position.
+- **`QualifiedCName.qualifyScopeType()`**: Shared utility in `src/utils/QualifiedCName.ts`. Takes `typeName`, `currentScope`, and `isKnownType(qualifiedName)` predicate. Used by `TypeGenerationHelper`, `TypeRegistrationEngine`, `HeaderSymbolAdapter`, `FunctionContextManager`, and `CodeGenerator.getTypeName()`. All call sites use `CodeGenState.isScopeType()` as the predicate.
+- **Struct field type qualification timing**: `knownEnums`/`knownStructs`/`knownBitmaps` are populated during `TSymbolInfoAdapter.convert()`. Since structs may be collected before enums, struct-field type qualification must be a post-processing step after all symbols are processed (see `TSymbolInfoAdapter.ts:163-178`), not inline during `processStruct`.
+- **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`QualifiedCName.join(currentScope, typeName)`) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 
 ---
 
