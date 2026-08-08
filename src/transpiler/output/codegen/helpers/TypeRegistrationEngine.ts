@@ -184,7 +184,11 @@ class TypeRegistrationEngine {
     }
 
     if (typeCtx.userType()) {
-      return typeCtx.userType()!.getText();
+      const typeName = typeCtx.userType()!.getText();
+      // ADR-057: bare type name inside a scope — qualify if it's a scope type
+      return QualifiedCName.qualifyScopeType(typeName, currentScope, (qn) =>
+        CodeGenState.isScopeType(qn),
+      );
     }
 
     // String types and array types are handled separately
@@ -490,7 +494,14 @@ class TypeRegistrationEngine {
     }
 
     if (arrayTypeCtx.userType()) {
-      return { baseType: arrayTypeCtx.userType()!.getText(), bitWidth: 0 };
+      const typeName = arrayTypeCtx.userType()!.getText();
+      // ADR-057: bare type name inside a scope — qualify if it's a scope type
+      const qualified = QualifiedCName.qualifyScopeType(
+        typeName,
+        CodeGenState.currentScope,
+        (qn) => CodeGenState.isScopeType(qn),
+      );
+      return { baseType: qualified, bitWidth: 0 };
     }
 
     return { baseType: "", bitWidth: 0 };

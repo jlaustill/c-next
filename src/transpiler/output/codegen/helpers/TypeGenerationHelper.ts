@@ -28,6 +28,12 @@ interface ITypeGenerationDeps {
   isCppScopeSymbol: (name: string) => boolean;
   checkNeedsStructKeyword: (name: string) => boolean;
   validateCrossScopeVisibility: (scope: string, member: string) => void;
+  /**
+   * Check if a *qualified* type name is a known type declared in the current
+   * scope (ADR-057). Receives the already-joined C name (e.g. "A__B") so
+   * only actual enum/struct/bitmap declarations capture the name.
+   */
+  isScopeType: (qualifiedName: string) => boolean;
 }
 
 /**
@@ -216,6 +222,15 @@ class TypeGenerationHelper {
       // ADR-046: cstring maps to char* for C library interop
       if (typeName === "cstring") {
         return "char*";
+      }
+      // ADR-057: bare type name inside a scope — qualify if it's a scope type
+      const qualified = QualifiedCName.qualifyScopeType(
+        typeName,
+        deps.currentScope,
+        deps.isScopeType,
+      );
+      if (qualified !== typeName) {
+        return qualified;
       }
       const needsStruct = deps.checkNeedsStructKeyword(typeName);
       return TypeGenerationHelper.generateUserType(typeName, needsStruct);

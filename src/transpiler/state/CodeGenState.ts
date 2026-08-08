@@ -578,6 +578,23 @@ export default class CodeGenState {
   }
 
   /**
+   * Check if a *qualified* name is a known type declared in a scope.
+   * Used by QualifedCName.qualifyScopeType() to ensure only actual type
+   * declarations (enum/struct/bitmap) capture the name at a type position.
+   *
+   * @param qualifiedName The already-joined C name (e.g. "A__B")
+   * @returns true if the qualified name is a known enum, struct, or bitmap
+   */
+  static isScopeType(qualifiedName: string): boolean {
+    return (
+      this.symbols?.knownEnums.has(qualifiedName) ||
+      this.symbols?.knownStructs.has(qualifiedName) ||
+      this.symbols?.knownBitmaps.has(qualifiedName) ||
+      false
+    );
+  }
+
+  /**
    * Check if a type name is a known register.
    */
   static isKnownRegister(name: string): boolean {

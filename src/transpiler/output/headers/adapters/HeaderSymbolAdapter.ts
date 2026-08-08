@@ -59,29 +59,44 @@ class HeaderSymbolAdapter {
     // Get transpiled C name (scope-prefixed)
     const cName = SymbolNameUtils.getTranspiledCName(func);
     const isGlobal = func.scope.name === "";
+    const scopeName = isGlobal ? null : func.scope.name;
 
-    // Convert parameters to IParameterSymbol[]
-    const parameters: IParameterSymbol[] = func.parameters.map((p) => ({
-      name: p.name,
-      type: TypeResolver.getTypeName(p.type),
-      isConst: p.isConst,
-      isArray: p.isArray,
-      arrayDimensions: p.arrayDimensions?.map((d) =>
-        typeof d === "number" ? String(d) : d,
-      ),
-      isAutoConst: p.isAutoConst,
-    }));
+    // ADR-057: qualify bare scope-local type names so .h matches .c
+    const isScopeType = (qn: string) => CodeGenState.isScopeType(qn);
 
-    // Build signature
-    const paramTypes = func.parameters.map((p) =>
-      TypeResolver.getTypeName(p.type),
+    // Convert parameters to IParameterSymbol[] with qualified type names
+    const parameters: IParameterSymbol[] = func.parameters.map((p) => {
+      const rawType = TypeResolver.getTypeName(p.type);
+      const qualified = QualifiedCName.qualifyScopeType(
+        rawType,
+        scopeName,
+        isScopeType,
+      );
+      return {
+        name: p.name,
+        type: qualified,
+        isConst: p.isConst,
+        isArray: p.isArray,
+        arrayDimensions: p.arrayDimensions?.map((d) =>
+          typeof d === "number" ? String(d) : d,
+        ),
+        isAutoConst: p.isAutoConst,
+      };
+    });
+
+    // Build signature with qualified return type and param types
+    const qualifiedReturn = QualifiedCName.qualifyScopeType(
+      returnTypeStr,
+      scopeName,
+      isScopeType,
     );
-    const signature = `${returnTypeStr} ${cName}(${paramTypes.join(", ")})`;
+    const paramTypes = parameters.map((p) => p.type);
+    const signature = `${qualifiedReturn} ${cName}(${paramTypes.join(", ")})`;
 
     return {
       name: cName,
       kind: "function",
-      type: returnTypeStr,
+      type: qualifiedReturn,
       isExported: func.isExported,
       parameters,
       signature,
@@ -97,9 +112,18 @@ class HeaderSymbolAdapter {
     // Get transpiled C name (scope-prefixed)
     const cName = SymbolNameUtils.getTranspiledCName(variable);
     const isGlobal = variable.scope.name === "";
+    const scopeName = isGlobal ? null : variable.scope.name;
 
-    // Convert TType to string
-    const typeStr = TypeResolver.getTypeName(variable.type);
+    // ADR-057: qualify bare scope-local type names so .h matches .c
+    const isScopeType = (qn: string) => CodeGenState.isScopeType(qn);
+
+    // Convert TType to string with scope qualification
+    const rawType = TypeResolver.getTypeName(variable.type);
+    const typeStr = QualifiedCName.qualifyScopeType(
+      rawType,
+      scopeName,
+      isScopeType,
+    );
 
     // Convert dimensions to strings and resolve qualified enum access
     const arrayDimensions = variable.arrayDimensions?.map((d) =>

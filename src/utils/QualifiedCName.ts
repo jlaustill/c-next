@@ -84,6 +84,37 @@ class QualifiedCName {
   }
 
   /**
+   * Qualify a bare type name with the current scope if it is a known type
+   * declared in that scope.
+   *
+   * ADR-057: bare names inside a scope resolve local → scope → global. The
+   * *value* side already qualifies correctly; this is the *type* side helper
+   * that every code path that resolves type names should use.
+   *
+   * Unlike the value-side resolver, this checks the **qualified** name against
+   * the known-type sets so that only actual type declarations (enum/struct/
+   * bitmap) capture the name — a function or variable member with the same
+   * leaf name does not shadow a global type at a type position.
+   *
+   * @param typeName       Bare C-Next type name from the AST (e.g., "B")
+   * @param currentScope   The scope currently being processed, or null for global
+   * @param isKnownType    Check if the *qualified* name is a known type
+   *                       (e.g., isKnownType("A__B") → true for enum B in scope A)
+   * @returns Qualified C name (e.g., "A__B") or the bare name if not a scope type
+   */
+  static qualifyScopeType(
+    typeName: string,
+    currentScope: string | null,
+    isKnownType: (qualifiedName: string) => boolean,
+  ): string {
+    if (!currentScope) {
+      return typeName;
+    }
+    const qualified = QualifiedCName.join(currentScope, typeName);
+    return isKnownType(qualified) ? qualified : typeName;
+  }
+
+  /**
    * The prefix a member of the given scope carries, separator included.
    */
   static prefixFor(scopeName: string): string {
