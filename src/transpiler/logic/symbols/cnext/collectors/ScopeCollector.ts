@@ -35,6 +35,10 @@ class ScopeCollector {
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for register resolution
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
+   * @param isScopeType ADR-057: predicate answering whether a *qualified* name
+   *                    is a type declared in a scope. Supplied by CNextResolver
+   *                    from a pre-pass so the answer is complete before any
+   *                    member's types are resolved.
    * @returns The scope symbol and all member symbols
    */
   static collect(
@@ -42,6 +46,7 @@ class ScopeCollector {
     sourceFile: string,
     knownBitmaps: Set<string>,
     constValues?: Map<string, number>,
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IScopeCollectorResult {
     const scopeName = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -93,6 +98,7 @@ class ScopeCollector {
           scope,
           isPublic,
           constValues,
+          isScopeType,
         );
         memberSymbols.push(varSymbol);
       }
@@ -112,6 +118,7 @@ class ScopeCollector {
           scopeName,
           body,
           visibility,
+          isScopeType,
         );
         memberSymbols.push(funcSymbol);
       }
@@ -154,6 +161,7 @@ class ScopeCollector {
           sourceFile,
           scope,
           constValues,
+          isScopeType,
         );
         memberSymbols.push(structSymbol);
       }
@@ -170,6 +178,7 @@ class ScopeCollector {
           sourceFile,
           knownBitmaps,
           scope,
+          isScopeType,
         );
         memberSymbols.push(regSymbol);
       }

@@ -60,28 +60,30 @@ class HeaderSymbolAdapter {
     const cName = SymbolNameUtils.getTranspiledCName(func);
     const isGlobal = func.scope.name === "";
 
-    // Convert parameters to IParameterSymbol[]
-    const parameters: IParameterSymbol[] = func.parameters.map((p) => ({
-      name: p.name,
-      type: TypeResolver.getTypeName(p.type),
-      isConst: p.isConst,
-      isArray: p.isArray,
-      arrayDimensions: p.arrayDimensions?.map((d) =>
-        typeof d === "number" ? String(d) : d,
-      ),
-      isAutoConst: p.isAutoConst,
-    }));
+    // ADR-057: type names arrive already scope-qualified from the symbol
+    // layer (CNextResolver pre-pass), so no qualification is needed here.
+    const parameters: IParameterSymbol[] = func.parameters.map((p) => {
+      return {
+        name: p.name,
+        type: TypeResolver.getTypeName(p.type),
+        isConst: p.isConst,
+        isArray: p.isArray,
+        arrayDimensions: p.arrayDimensions?.map((d) =>
+          typeof d === "number" ? String(d) : d,
+        ),
+        isAutoConst: p.isAutoConst,
+      };
+    });
 
-    // Build signature
-    const paramTypes = func.parameters.map((p) =>
-      TypeResolver.getTypeName(p.type),
-    );
-    const signature = `${returnTypeStr} ${cName}(${paramTypes.join(", ")})`;
+    // Build signature with return type and param types
+    const qualifiedReturn = returnTypeStr;
+    const paramTypes = parameters.map((p) => p.type);
+    const signature = `${qualifiedReturn} ${cName}(${paramTypes.join(", ")})`;
 
     return {
       name: cName,
       kind: "function",
-      type: returnTypeStr,
+      type: qualifiedReturn,
       isExported: func.isExported,
       parameters,
       signature,
@@ -98,7 +100,7 @@ class HeaderSymbolAdapter {
     const cName = SymbolNameUtils.getTranspiledCName(variable);
     const isGlobal = variable.scope.name === "";
 
-    // Convert TType to string
+    // ADR-057: the symbol layer already qualified scope-local type names.
     const typeStr = TypeResolver.getTypeName(variable.type);
 
     // Convert dimensions to strings and resolve qualified enum access

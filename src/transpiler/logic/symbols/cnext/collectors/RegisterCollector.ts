@@ -24,6 +24,7 @@ class RegisterCollector {
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for reference resolution
    * @param scope The scope this register belongs to (IScopeSymbol)
+   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The register symbol with proper scope reference
    */
   static collect(
@@ -31,6 +32,7 @@ class RegisterCollector {
     sourceFile: string,
     knownBitmaps: Set<string>,
     scope: IScopeSymbol,
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IRegisterSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -48,7 +50,11 @@ class RegisterCollector {
       const accessMod = member.accessModifier().getText() as TAccessMode;
 
       // Get member type and convert to C type
-      const typeName = TypeUtils.getTypeName(member.type(), scopeName);
+      const typeName = TypeUtils.getTypeName(
+        member.type(),
+        scopeName,
+        isScopeType,
+      );
       const cType = TypeUtils.cnextTypeToCType(typeName);
 
       // Check if member type is a bitmap

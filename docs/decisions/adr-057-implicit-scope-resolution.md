@@ -106,3 +106,61 @@ New tests in `tests/scope-resolution/`:
 - `local-shadows-scope.test.cnx` - Local shadowing with this. access
 - `shadowing-all-levels.test.cnx` - All three resolution levels
 - `edge-cases/global-var-same-as-scope.test.cnx` - Scope name collision
+
+### Type positions (Issue #1130)
+
+The resolution above is the **value** side. Type positions need the same rule:
+inside `scope A`, a bare `B` at a type position must resolve to `A`'s own `B`
+when `A` declares one. Before #1130 the type side did not resolve at all, so the
+generated C carried a bare name that no longer existed — non-compiling output,
+`.c`/`.h` signature mismatches, and a fabricated `typedef struct B B;`.
+
+**Key rule — qualify from the parse tree, never from a resolved name.** Once a
+type name has been reduced to a string, `global.Mode` and a bare `Mode` are
+byte-identical. Any pass that qualifies after that point silently rewrites
+`global.` references to the scope-local type. Qualification therefore happens in
+the `userType()` branch only; `this.T`, `globalType()` and `qualifiedType()`
+carry their answer in the syntax and keep their own branches.
+
+**Kind-awareness.** The predicate keys on the _qualified_ name against the known
+enum/struct/bitmap sets, not on scope membership. A scope function or variable
+named `Config` must not capture a global `struct Config` at a type position.
+
+**Two resolution points.** Type names are resolved in two layers, and both
+qualify through `QualifiedCName.qualifyScopeType()`:
+
+- **Symbols layer** — `TypeUtils.dispatchTypeResolution()`, given an
+  `isScopeType` predicate threaded down from `CNextResolver.resolve()`. Consumers
+  of `TSymbol` (including `HeaderSymbolAdapter` and therefore the `.h`) inherit
+  the qualified name and must not re-qualify. This is what keeps the header
+  correct in multi-file builds, where the shared codegen state describes only
+  the last file transpiled.
+- **Codegen layer** — `CodeGenerator.getTypeName()`, `TypeRegistrationEngine`,
+  `FunctionContextManager` and `TypeGenerationHelper`, via
+  `CodeGenState.qualifyScopeType()`.
+
+**Declaration-order independence.** `CNextResolver` Pass 0b collects the
+qualified names of every scope-declared enum, struct and bitmap before any type
+is resolved. Using `scope.members` instead would be wrong twice over: it is
+kind-agnostic, and it is still being populated while collectors read it, so a
+type declared below its use would resolve differently from one declared above.
+
+### Files Modified (type side)
+
+- `src/utils/QualifiedCName.ts` — `qualifyScopeType()`
+- `src/transpiler/state/CodeGenState.ts` — `isScopeType()`, `qualifyScopeType()`
+- `src/transpiler/logic/symbols/cnext/index.ts` — Pass 0b
+- `src/transpiler/logic/symbols/cnext/utils/TypeUtils.ts` — `userType()` branch
+- `src/transpiler/output/codegen/CodeGenerator.ts` — `getTypeName()`
+- `src/transpiler/output/codegen/helpers/EnumAssignmentValidator.ts` — compare like-for-like
+
+### Test Coverage (type side)
+
+- `tests/scope/issue-1130-scope-type-qualification.test.cnx` — execution test
+  covering enum/struct at local, parameter, return, field and scope-variable
+  positions, plus `global.T` and non-type-member shadowing
+- `bugs/issue-1130-multi-file-scope-type/` — multi-file reproduction; the header
+  defect is invisible to any single-file test
+- `src/utils/__tests__/QualifiedCName.test.ts`,
+  `src/transpiler/state/__tests__/CodeGenState.test.ts`,
+  `src/transpiler/logic/symbols/cnext/__tests__/CNextResolver.integration.test.ts`

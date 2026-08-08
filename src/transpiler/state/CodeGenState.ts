@@ -578,6 +578,41 @@ export default class CodeGenState {
   }
 
   /**
+   * Check if a *qualified* name is a known type declared in a scope.
+   * Used by QualifedCName.qualifyScopeType() to ensure only actual type
+   * declarations (enum/struct/bitmap) capture the name at a type position.
+   *
+   * @param qualifiedName The already-joined C name (e.g. "A__B")
+   * @returns true if the qualified name is a known enum, struct, or bitmap
+   */
+  static isScopeType(qualifiedName: string): boolean {
+    return (
+      this.symbols?.knownEnums.has(qualifiedName) ||
+      this.symbols?.knownStructs.has(qualifiedName) ||
+      this.symbols?.knownBitmaps.has(qualifiedName) ||
+      false
+    );
+  }
+
+  /**
+   * ADR-057: qualify a bare type name against the scope being generated.
+   *
+   * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
+   * type sets, so every codegen site asks the question one way. Call this rather
+   * than re-pairing `currentScope` with `isScopeType()` at each site.
+   *
+   * Only bare names belong here — `this.T`, `global.T` and `Scope.T` carry an
+   * explicit answer in the syntax and must keep their own branches.
+   */
+  static qualifyScopeType(typeName: string): string {
+    return QualifiedCName.qualifyScopeType(
+      typeName,
+      this.currentScope,
+      (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+    );
+  }
+
+  /**
    * Check if a type name is a known register.
    */
   static isKnownRegister(name: string): boolean {

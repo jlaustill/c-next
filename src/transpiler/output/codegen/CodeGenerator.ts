@@ -628,6 +628,7 @@ export default class CodeGenerator implements IOrchestrator {
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
       validateCrossScopeVisibility: (scope, member) =>
         ScopeResolver.validateCrossScopeVisibility(scope, member),
+      isScopeType: (qn) => CodeGenState.isScopeType(qn),
     });
   }
 
@@ -1375,11 +1376,13 @@ export default class CodeGenerator implements IOrchestrator {
         return arrayTypeCtx.primitiveType()!.getText();
       }
       if (arrayTypeCtx.userType()) {
-        return arrayTypeCtx.userType()!.getText();
+        return CodeGenState.qualifyScopeType(
+          arrayTypeCtx.userType()!.getText(),
+        );
       }
     }
     if (ctx.userType()) {
-      return ctx.userType()!.getText();
+      return CodeGenState.qualifyScopeType(ctx.userType()!.getText());
     }
     if (ctx.primitiveType()) {
       return ctx.primitiveType()!.getText();
@@ -3920,7 +3923,14 @@ export default class CodeGenerator implements IOrchestrator {
       generateType: (t) => this.generateType(t),
       generateExpression: (e) => this.generateExpression(e),
       callbackTypes: CodeGenState.callbackTypes,
-      isKnownStruct: (t) => this.isKnownStruct(t),
+      isKnownStruct: (t) => {
+        if (this.isKnownStruct(t)) return true;
+        // ADR-057: check qualified name for scope-local struct types only
+        const qualified = CodeGenState.currentScope
+          ? QualifiedCName.join(CodeGenState.currentScope, t)
+          : t;
+        return CodeGenState.symbols?.knownStructs.has(qualified) ?? false;
+      },
       typeMap: TYPE_MAP,
       isModified,
       isPassByValue,

@@ -47,6 +47,15 @@ class CNextResolver {
     // Local constants override external ones (unlikely but handles shadowing)
     CNextResolver.collectConstValuesPass0(tree, constValues);
 
+    // Pass 0b: Collect the qualified names of every type declared inside a
+    // scope (ADR-057). This must complete before any type is resolved, so that
+    // a bare type name is qualified the same way no matter where its
+    // declaration appears relative to its use.
+    const scopeTypes = new Set<string>();
+    CNextResolver.collectScopeTypesPass0b(tree, scopeTypes);
+    const isScopeType = (qualifiedName: string): boolean =>
+      scopeTypes.has(qualifiedName);
+
     // Pass 1: Collect all bitmap names (needed before registers reference them)
     // This includes bitmaps in scopes
     CNextResolver.collectBitmapsPass1(
@@ -55,6 +64,7 @@ class CNextResolver {
       symbols,
       knownBitmaps,
       constValues,
+      isScopeType,
     );
 
     // Pass 2: Collect everything else (with bitmap set and const values available)
@@ -64,6 +74,7 @@ class CNextResolver {
       symbols,
       knownBitmaps,
       constValues,
+      isScopeType,
     );
 
     return symbols;
@@ -142,6 +153,40 @@ class CNextResolver {
   }
 
   /**
+   * Pass 0b: Collect the qualified name of every *type* declared inside a
+   * scope — enums, structs and bitmaps (ADR-057).
+   *
+   * Only type declarations are collected. A scope function or variable sharing
+   * a leaf name with a global type must not capture that name at a type
+   * position, which is why this cannot key on scope membership generally.
+   *
+   * Runs before any collector resolves a type so the answer does not depend on
+   * whether the declaration appears above or below its use.
+   */
+  private static collectScopeTypesPass0b(
+    tree: Parser.ProgramContext,
+    scopeTypes: Set<string>,
+  ): void {
+    for (const decl of tree.declaration()) {
+      const scopeDecl = decl.scopeDeclaration();
+      if (!scopeDecl) continue;
+
+      const scopeName = scopeDecl.IDENTIFIER().getText();
+      for (const member of scopeDecl.scopeMember()) {
+        const typeDecl =
+          member.enumDeclaration() ??
+          member.structDeclaration() ??
+          member.bitmapDeclaration();
+        if (typeDecl) {
+          scopeTypes.add(
+            QualifiedCName.join(scopeName, typeDecl.IDENTIFIER().getText()),
+          );
+        }
+      }
+    }
+  }
+
+  /**
    * Pass 1: Collect all bitmaps (including those in scopes).
    * Also collects structs in scopes early for type availability.
    * SonarCloud S3776: Refactored to use helper methods.
@@ -152,6 +197,7 @@ class CNextResolver {
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     constValues: Map<string, number>,
+    isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const globalScope = SymbolRegistry.getGlobalScope();
 
@@ -177,6 +223,7 @@ class CNextResolver {
           symbols,
           knownBitmaps,
           constValues,
+          isScopeType,
         );
       }
     }
@@ -192,6 +239,7 @@ class CNextResolver {
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     constValues: Map<string, number>,
+    isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
     const scope = SymbolRegistry.getOrCreateScope(scopeName);
@@ -214,6 +262,7 @@ class CNextResolver {
           sourceFile,
           scope,
           constValues,
+          isScopeType,
         );
         symbols.push(symbol);
       }
@@ -230,6 +279,7 @@ class CNextResolver {
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     constValues: Map<string, number>,
+    isScopeType: (qualifiedName: string) => boolean,
   ): void {
     for (const decl of tree.declaration()) {
       // Skip bitmaps (already collected in pass 1)
@@ -243,12 +293,16 @@ class CNextResolver {
         symbols,
         knownBitmaps,
         constValues,
+        isScopeType,
       );
     }
   }
 
   /**
    * Collect symbols from a single declaration.
+   *
+   * Top-level declarations are outside any scope, so ADR-057 scope
+   * qualification only applies on the scope path.
    */
   private static _collectDeclaration(
     decl: Parser.DeclarationContext,
@@ -256,6 +310,7 @@ class CNextResolver {
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     constValues: Map<string, number>,
+    isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const globalScope = SymbolRegistry.getGlobalScope();
 
@@ -267,6 +322,7 @@ class CNextResolver {
         symbols,
         knownBitmaps,
         constValues,
+        isScopeType,
       );
       return;
     }
@@ -344,12 +400,14 @@ class CNextResolver {
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     constValues: Map<string, number>,
+    isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const result = ScopeCollector.collect(
       scopeCtx,
       sourceFile,
       knownBitmaps,
       constValues,
+      isScopeType,
     );
 
     symbols.push(result.scopeSymbol);

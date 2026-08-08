@@ -119,6 +119,7 @@ class StructCollector {
    * @param sourceFile Source file path
    * @param scope The scope this struct belongs to (IScopeSymbol)
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
+   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The struct symbol with TType-based types and scope reference
    */
   static collect(
@@ -126,6 +127,7 @@ class StructCollector {
     sourceFile: string,
     scope: IScopeSymbol,
     constValues?: Map<string, number>,
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IStructSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -140,6 +142,7 @@ class StructCollector {
         fieldName,
         scopeName,
         constValues,
+        isScopeType,
       );
       fields.set(fieldName, fieldInfo);
     }
@@ -165,9 +168,10 @@ class StructCollector {
     fieldName: string,
     scopeName?: string,
     constValues?: Map<string, number>,
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IFieldInfo {
     const typeCtx = member.type();
-    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopeName);
+    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopeName, isScopeType);
     const fieldType = TypeResolver.resolve(fieldTypeStr);
     // Note: C-Next struct members don't have const modifier in grammar
     const isConst = false;

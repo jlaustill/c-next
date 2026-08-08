@@ -230,6 +230,7 @@ describe("TypeGenerationHelper", () => {
       isCppScopeSymbol: () => false,
       checkNeedsStructKeyword: () => false,
       validateCrossScopeVisibility: vi.fn(),
+      isScopeType: () => false,
     };
 
     it("generates primitive type u32", () => {

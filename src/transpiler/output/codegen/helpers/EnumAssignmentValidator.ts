@@ -195,7 +195,13 @@ class EnumAssignmentValidator {
    * Check if an identifier is the target enum type or a known enum type.
    */
   private static isMatchingEnum(identifier: string, typeName: string): boolean {
-    return identifier === typeName || CodeGenState.isKnownEnum(identifier);
+    if (identifier === typeName || CodeGenState.isKnownEnum(identifier)) {
+      return true;
+    }
+    // ADR-057: inside a scope, a bare enum name resolves to that scope's enum,
+    // so compare like-for-like against the (now qualified) declared type.
+    const qualified = CodeGenState.qualifyScopeType(identifier);
+    return qualified === typeName || CodeGenState.isKnownEnum(qualified);
   }
 }
 
