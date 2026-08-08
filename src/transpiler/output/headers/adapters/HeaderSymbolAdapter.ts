@@ -59,22 +59,13 @@ class HeaderSymbolAdapter {
     // Get transpiled C name (scope-prefixed)
     const cName = SymbolNameUtils.getTranspiledCName(func);
     const isGlobal = func.scope.name === "";
-    const scopeName = isGlobal ? null : func.scope.name;
 
-    // ADR-057: qualify bare scope-local type names so .h matches .c
-    const isScopeType = (qn: string) => CodeGenState.isScopeType(qn);
-
-    // Convert parameters to IParameterSymbol[] with qualified type names
+    // ADR-057: type names arrive already scope-qualified from the symbol
+    // layer (CNextResolver pre-pass), so no qualification is needed here.
     const parameters: IParameterSymbol[] = func.parameters.map((p) => {
-      const rawType = TypeResolver.getTypeName(p.type);
-      const qualified = QualifiedCName.qualifyScopeType(
-        rawType,
-        scopeName,
-        isScopeType,
-      );
       return {
         name: p.name,
-        type: qualified,
+        type: TypeResolver.getTypeName(p.type),
         isConst: p.isConst,
         isArray: p.isArray,
         arrayDimensions: p.arrayDimensions?.map((d) =>
@@ -84,12 +75,8 @@ class HeaderSymbolAdapter {
       };
     });
 
-    // Build signature with qualified return type and param types
-    const qualifiedReturn = QualifiedCName.qualifyScopeType(
-      returnTypeStr,
-      scopeName,
-      isScopeType,
-    );
+    // Build signature with return type and param types
+    const qualifiedReturn = returnTypeStr;
     const paramTypes = parameters.map((p) => p.type);
     const signature = `${qualifiedReturn} ${cName}(${paramTypes.join(", ")})`;
 
@@ -112,18 +99,9 @@ class HeaderSymbolAdapter {
     // Get transpiled C name (scope-prefixed)
     const cName = SymbolNameUtils.getTranspiledCName(variable);
     const isGlobal = variable.scope.name === "";
-    const scopeName = isGlobal ? null : variable.scope.name;
 
-    // ADR-057: qualify bare scope-local type names so .h matches .c
-    const isScopeType = (qn: string) => CodeGenState.isScopeType(qn);
-
-    // Convert TType to string with scope qualification
-    const rawType = TypeResolver.getTypeName(variable.type);
-    const typeStr = QualifiedCName.qualifyScopeType(
-      rawType,
-      scopeName,
-      isScopeType,
-    );
+    // ADR-057: the symbol layer already qualified scope-local type names.
+    const typeStr = TypeResolver.getTypeName(variable.type);
 
     // Convert dimensions to strings and resolve qualified enum access
     const arrayDimensions = variable.arrayDimensions?.map((d) =>

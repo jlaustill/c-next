@@ -120,6 +120,7 @@ class VariableCollector {
    * @param scope The scope this variable belongs to (IScopeSymbol)
    * @param isPublic Whether this variable is public (default true for top-level)
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
+   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The variable symbol with TType-based types and scope reference
    */
   static collect(
@@ -128,6 +129,7 @@ class VariableCollector {
     scope: IScopeSymbol,
     isPublic: boolean = true,
     constValues?: Map<string, number>,
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IVariableSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -135,7 +137,7 @@ class VariableCollector {
     // Get type string and convert to TType
     const typeCtx = ctx.type();
     const scopeName = scope.name === "" ? undefined : scope.name;
-    const typeStr = TypeUtils.getTypeName(typeCtx, scopeName);
+    const typeStr = TypeUtils.getTypeName(typeCtx, scopeName, isScopeType);
     const type = TypeResolver.resolve(typeStr);
 
     // Check for const modifier

@@ -152,4 +152,57 @@ describe("QualifiedCName", () => {
       expect(new Set(generated).size).toBe(cases.length);
     });
   });
+  describe("qualifyScopeType (ADR-057)", () => {
+    const scopeTypes = new Set(["A__B", "A__S", "A__Flags"]);
+    const isKnownType = (qualifiedName: string): boolean =>
+      scopeTypes.has(qualifiedName);
+
+    it("qualifies a bare name that names a type in the current scope", () => {
+      expect(QualifiedCName.qualifyScopeType("B", "A", isKnownType)).toBe(
+        "A__B",
+      );
+      expect(QualifiedCName.qualifyScopeType("S", "A", isKnownType)).toBe(
+        "A__S",
+      );
+    });
+
+    it("leaves a bare name alone when the scope declares no such type", () => {
+      expect(QualifiedCName.qualifyScopeType("Other", "A", isKnownType)).toBe(
+        "Other",
+      );
+    });
+
+    it("leaves a bare name alone outside any scope", () => {
+      expect(QualifiedCName.qualifyScopeType("B", null, isKnownType)).toBe("B");
+    });
+
+    it("does not qualify when a different scope declares the type", () => {
+      expect(QualifiedCName.qualifyScopeType("B", "Z", isKnownType)).toBe("B");
+    });
+
+    it("keys on the qualified name, so a non-type member cannot capture a global type", () => {
+      // "A__Config" is NOT in the known-type set even though scope A may well
+      // have a function or variable named Config — the predicate is what keeps
+      // that member from shadowing a global type at a type position.
+      expect(QualifiedCName.qualifyScopeType("Config", "A", isKnownType)).toBe(
+        "Config",
+      );
+    });
+
+    it("consults the predicate with the joined name, not the bare name", () => {
+      const seen: string[] = [];
+      QualifiedCName.qualifyScopeType("B", "A", (qualifiedName) => {
+        seen.push(qualifiedName);
+        return false;
+      });
+
+      expect(seen).toEqual(["A__B"]);
+    });
+
+    it("qualifies bitmap types the same way as enums and structs", () => {
+      expect(QualifiedCName.qualifyScopeType("Flags", "A", isKnownType)).toBe(
+        "A__Flags",
+      );
+    });
+  });
 });

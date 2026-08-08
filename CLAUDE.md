@@ -249,7 +249,7 @@ export default new Registry();
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0
 - **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
-- **Scope type predicate**: `CodeGenState.isScopeType(qualifiedName)` at `CodeGenState.ts:580` — checks if a qualified name is a known enum/struct/bitmap. Used as the predicate for `QualifiedCName.qualifyScopeType()` at all call sites. Avoids inlining `knownEnums || knownStructs || knownBitmaps` at each site.
+- **Scope type predicate**: `CodeGenState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites should call `CodeGenState.qualifyScopeType(bareName)`, which binds that predicate to `currentScope` — don't re-pair the two at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`.
 
 ---
 
@@ -403,8 +403,12 @@ Update both when adding new statement types.
 - **Global prefix**: `global.Scope.member` inside `Scope` → allowed
 - **Private access**: Own scope can access via `this.` or `global.Scope.`
 - **ADR-057 type qualification**: Check the _qualified_ name against `knownEnums`/`knownStructs`/`knownBitmaps`, not the bare name against `scopeMembers`. This prevents non-type scope members (functions/variables) from capturing a same-named global type at a type position.
-- **`QualifiedCName.qualifyScopeType()`**: Shared utility in `src/utils/QualifiedCName.ts`. Takes `typeName`, `currentScope`, and `isKnownType(qualifiedName)` predicate. Used by `TypeGenerationHelper`, `TypeRegistrationEngine`, `HeaderSymbolAdapter`, `FunctionContextManager`, and `CodeGenerator.getTypeName()`. All call sites use `CodeGenState.isScopeType()` as the predicate.
-- **Struct field type qualification timing**: `knownEnums`/`knownStructs`/`knownBitmaps` are populated during `TSymbolInfoAdapter.convert()`. Since structs may be collected before enums, struct-field type qualification must be a post-processing step after all symbols are processed (see `TSymbolInfoAdapter.ts:163-178`), not inline during `processStruct`.
+- **Qualify only the bare `userType()` branch.** `this.T`, `global.T` and `Scope.T` state their answer in the syntax and keep their own branches. This is not a style point: once a type name is resolved to a string, `global.Mode` and a bare `Mode` are byte-identical, so anything that qualifies _after_ resolution silently rewrites `global.` references. A post-pass over resolved names cannot be made correct — qualify while the parse tree is still available.
+- **Two resolution points, one decision.** Type names are resolved twice, in different layers, and both must qualify:
+  - **Symbols layer** — `TypeUtils.dispatchTypeResolution()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the qualified name from here and must NOT re-qualify.
+  - **Codegen layer** — `CodeGenerator.getTypeName()` and friends, via `CodeGenState.qualifyScopeType()`.
+- **`CNextResolver` Pass 0b** collects the qualified names of scope-declared enums/structs/bitmaps _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a function named `B` would capture global type `B`) and is still being built while collectors read it.
+- **`QualifiedCName.qualifyScopeType()`**: Shared utility in `src/utils/QualifiedCName.ts`. Takes `typeName`, `currentScope`, and an `isKnownType(qualifiedName)` predicate. Call it via `CodeGenState.qualifyScopeType()` in codegen; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
 - **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`QualifiedCName.join(currentScope, typeName)`) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 
 ---

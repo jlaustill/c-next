@@ -15,18 +15,41 @@ extern "C" {
 
 /* Enumerations */
 typedef enum {
+    Mode__idle = 0,
+    Mode__busy = 1
+} Mode;
+typedef enum {
     A__B__c = 0,
     A__B__d = 1
 } A__B;
+typedef enum {
+    A__Mode__off = 0,
+    A__Mode__on = 1
+} A__Mode;
 
 /* Struct definitions */
 typedef struct A__S {
     uint8_t x;
+    A__B kind;
 } A__S;
+typedef struct A__Wrapper {
+    Mode mode;
+    uint8_t v;
+} A__Wrapper;
+typedef struct Config {
+    uint8_t x;
+} Config;
+
+/* External variables */
+extern A__B A__current;
 
 /* Function prototypes */
 A__B A__pick(void);
-void A__take(A__B value);
+uint8_t A__readStruct(const A__S* value);
+uint8_t A__wrapperValue(const A__Wrapper* w);
+uint8_t A__isBusy(A__B value);
+uint8_t A__useGlobalConfig(const Config* cfg);
+uint8_t A__configValue(void);
 
 #ifdef __cplusplus
 }

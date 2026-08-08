@@ -225,12 +225,9 @@ class FunctionContextManager {
     }
 
     if (typeCtx.userType()) {
-      const typeName = typeCtx.userType()!.getText();
       // ADR-057: bare type name inside a scope — qualify if it's a scope type
-      const qualified = QualifiedCName.qualifyScopeType(
-        typeName,
-        CodeGenState.currentScope,
-        (qn) => CodeGenState.isScopeType(qn),
+      const qualified = CodeGenState.qualifyScopeType(
+        typeCtx.userType()!.getText(),
       );
       return {
         typeName: qualified,

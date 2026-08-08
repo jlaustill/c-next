@@ -1376,11 +1376,13 @@ export default class CodeGenerator implements IOrchestrator {
         return arrayTypeCtx.primitiveType()!.getText();
       }
       if (arrayTypeCtx.userType()) {
-        return arrayTypeCtx.userType()!.getText();
+        return CodeGenState.qualifyScopeType(
+          arrayTypeCtx.userType()!.getText(),
+        );
       }
     }
     if (ctx.userType()) {
-      return ctx.userType()!.getText();
+      return CodeGenState.qualifyScopeType(ctx.userType()!.getText());
     }
     if (ctx.primitiveType()) {
       return ctx.primitiveType()!.getText();

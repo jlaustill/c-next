@@ -878,6 +878,64 @@ describe("CodeGenState", () => {
     });
   });
 
+  describe("Scope Type Qualification (ADR-057)", () => {
+    it("isScopeType matches enums, structs and bitmaps by qualified name", () => {
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["A__B"]),
+        knownStructs: new Set(["A__S"]),
+        knownBitmaps: new Set(["A__Flags"]),
+      });
+
+      expect(CodeGenState.isScopeType("A__B")).toBe(true);
+      expect(CodeGenState.isScopeType("A__S")).toBe(true);
+      expect(CodeGenState.isScopeType("A__Flags")).toBe(true);
+      expect(CodeGenState.isScopeType("A__Nope")).toBe(false);
+    });
+
+    it("isScopeType returns false without symbols", () => {
+      CodeGenState.symbols = null;
+      expect(CodeGenState.isScopeType("A__B")).toBe(false);
+    });
+
+    it("qualifyScopeType qualifies a bare scope-local type name", () => {
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["A__B"]),
+      });
+      CodeGenState.currentScope = "A";
+
+      expect(CodeGenState.qualifyScopeType("B")).toBe("A__B");
+    });
+
+    it("qualifyScopeType leaves names the scope does not declare", () => {
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["A__B"]),
+      });
+      CodeGenState.currentScope = "A";
+
+      expect(CodeGenState.qualifyScopeType("Other")).toBe("Other");
+    });
+
+    it("qualifyScopeType leaves names alone outside any scope", () => {
+      CodeGenState.symbols = createMockSymbols({
+        knownEnums: new Set(["A__B"]),
+      });
+      CodeGenState.currentScope = null;
+
+      expect(CodeGenState.qualifyScopeType("B")).toBe("B");
+    });
+
+    it("qualifyScopeType does not let a non-type member capture a global type", () => {
+      // Scope A has a function/variable named Config, but no *type* named
+      // Config — so Config must keep resolving to the global struct.
+      CodeGenState.symbols = createMockSymbols({
+        knownStructs: new Set(["Config"]),
+      });
+      CodeGenState.currentScope = "A";
+
+      expect(CodeGenState.qualifyScopeType("Config")).toBe("Config");
+    });
+  });
+
   describe("Local Variable Helpers", () => {
     it("isLocalVariable returns correct value", () => {
       expect(CodeGenState.isLocalVariable("myVar")).toBe(false);

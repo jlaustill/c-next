@@ -1,0 +1,21 @@
+#include "sensors.cnx"
+
+u32 main() {
+    // Struct whose field type is a bare scope-local enum
+    Sensors.Reading sample <- {value: 42, status: Sensors.Status.ok};
+    if (sample.value != 42) return 1;
+    if (sample.status != Sensors.Status.ok) return 2;
+
+    // Bare scope-local enum as a return type
+    Sensors.Status picked <- Sensors.pick();
+    if (picked != Sensors.Status.fault) return 3;
+
+    // global.Mode field keeps the GLOBAL enum, not Sensors' own type
+    Sensors.Tagged tagged <- {mode: busy, id: 7};
+    if (tagged.id != 7) return 4;
+
+    // Scope variable of a bare scope-local enum type
+    if (Sensors.current != Sensors.Status.ok) return 5;
+
+    return 0;
+}

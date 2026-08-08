@@ -162,26 +162,6 @@ class TSymbolInfoAdapter {
       }
     }
 
-    // ADR-057: Post-process struct fields to qualify bare scope-local type names.
-    // This must run AFTER all symbols are processed so knownEnums/knownStructs/
-    // knownBitmaps are complete.
-    // Iterate over structFields entries to extract scope from qualified struct name.
-    for (const [structQName, fields] of [...structFields]) {
-      const parts = QualifiedCName.split(structQName);
-      if (parts.length < 2) continue; // Global struct, no scope
-      const scopeName = parts[0]; // e.g., "A" from "A__Outer"
-      for (const [fieldName, fieldType] of [...fields]) {
-        const qualified = QualifiedCName.join(scopeName, fieldType);
-        if (
-          knownEnums.has(qualified) ||
-          knownStructs.has(qualified) ||
-          knownBitmaps.has(qualified)
-        ) {
-          fields.set(fieldName, qualified);
-        }
-      }
-    }
-
     // Build the ISymbolInfo result
     const result: ICodeGenSymbols = {
       // Type sets

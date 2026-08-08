@@ -32,11 +32,16 @@ function resolveStringType(stringCtx: Parser.StringTypeContext): string {
  * Handles scoped, qualified, global, primitive, string, and user types.
  * Used by both bare type contexts and array element type contexts.
  *
+ * @param isScopeType ADR-057: predicate answering whether a *qualified* name
+ *                    (e.g. "A__B") is a type declared in the current scope.
+ *                    Only consulted for bare `userType()` names — `global.T`
+ *                    and `this.T` carry an explicit answer in the syntax.
  * @returns The resolved type name, or null if no matching type accessor found
  */
 function dispatchTypeResolution(
   accessors: ITypeAccessors,
   scopeName?: string,
+  isScopeType?: (qualifiedName: string) => boolean,
 ): string | null {
   // Handle this.Type for scoped types (e.g., this.State -> Motor_State)
   if (accessors.scopedType()) {
@@ -58,7 +63,17 @@ function dispatchTypeResolution(
 
   // Handle user-defined types
   if (accessors.userType()) {
-    return accessors.userType()!.getText();
+    const typeName = accessors.userType()!.getText();
+    // ADR-057: a bare name inside a scope resolves local -> scope -> global.
+    // Qualify here, while the parse tree still distinguishes a bare `T` from
+    // an explicit `global.T` — downstream both are the same string.
+    return isScopeType
+      ? QualifiedCName.qualifyScopeType(
+          typeName,
+          scopeName ?? null,
+          isScopeType,
+        )
+      : typeName;
   }
 
   // Handle primitive types
@@ -82,18 +97,26 @@ class TypeUtils {
    *
    * @param ctx The type context (may be null)
    * @param scopeName Optional current scope for this.Type resolution
+   * @param isScopeType ADR-057: predicate answering whether a *qualified* name
+   *                    is a type declared in the current scope. Omit at call
+   *                    sites that have no scope context.
    * @returns The resolved type name
    */
   static getTypeName(
     ctx: Parser.TypeContext | null,
     scopeName?: string,
+    isScopeType?: (qualifiedName: string) => boolean,
   ): string {
     if (!ctx) return "void";
 
     // Handle arrayType: Type[size] - extract the inner type without dimension
     // The dimension is tracked separately in arrayDimensions
     if (ctx.arrayType()) {
-      const result = dispatchTypeResolution(ctx.arrayType()!, scopeName);
+      const result = dispatchTypeResolution(
+        ctx.arrayType()!,
+        scopeName,
+        isScopeType,
+      );
       if (result !== null) {
         return result;
       }
@@ -104,7 +127,7 @@ class TypeUtils {
     }
 
     // Non-array types - dispatch directly
-    const result = dispatchTypeResolution(ctx, scopeName);
+    const result = dispatchTypeResolution(ctx, scopeName, isScopeType);
     if (result !== null) {
       return result;
     }

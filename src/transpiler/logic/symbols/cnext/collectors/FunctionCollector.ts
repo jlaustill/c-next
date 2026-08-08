@@ -23,6 +23,7 @@ class FunctionCollector {
    * @param scope The scope this function belongs to (IScopeSymbol)
    * @param body AST reference for the function body
    * @param visibility Visibility for scope functions (default "private")
+   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The function symbol with TType-based types and scope reference
    */
   static collect(
@@ -31,6 +32,7 @@ class FunctionCollector {
     scope: IScopeSymbol,
     body: Parser.BlockContext | null,
     visibility: "public" | "private" = "private",
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -38,12 +40,20 @@ class FunctionCollector {
     // Get return type string and convert to TType
     const returnTypeCtx = ctx.type();
     const scopeName = scope.name === "" ? undefined : scope.name;
-    const returnTypeStr = TypeUtils.getTypeName(returnTypeCtx, scopeName);
+    const returnTypeStr = TypeUtils.getTypeName(
+      returnTypeCtx,
+      scopeName,
+      isScopeType,
+    );
     const returnType = TypeResolver.resolve(returnTypeStr);
 
     // Collect parameters with TType
     const params = ctx.parameterList()?.parameter() ?? [];
-    const parameters = FunctionCollector.collectParameters(params, scopeName);
+    const parameters = FunctionCollector.collectParameters(
+      params,
+      scopeName,
+      isScopeType,
+    );
 
     return {
       kind: "function",
@@ -73,6 +83,7 @@ class FunctionCollector {
    * @param scopeName Optional scope name for nested functions
    * @param body AST reference for the function body
    * @param visibility Visibility for scope functions (default "private")
+   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The function symbol
    */
   static collectAndRegister(
@@ -81,6 +92,7 @@ class FunctionCollector {
     scopeName: string | undefined,
     body: Parser.BlockContext,
     visibility: "public" | "private" = "private",
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     // 1. Get or create the scope in SymbolRegistry
     const scope = SymbolRegistry.getOrCreateScope(scopeName ?? "");
@@ -92,6 +104,7 @@ class FunctionCollector {
       scope,
       body,
       visibility,
+      isScopeType,
     );
 
     // 3. Register in SymbolRegistry
@@ -107,11 +120,12 @@ class FunctionCollector {
   private static collectParameters(
     params: Parser.ParameterContext[],
     scopeName?: string,
+    isScopeType?: (qualifiedName: string) => boolean,
   ): IParameterInfo[] {
     return params.map((p) => {
       const name = p.IDENTIFIER().getText();
       const typeCtx = p.type();
-      const typeStr = TypeUtils.getTypeName(typeCtx, scopeName);
+      const typeStr = TypeUtils.getTypeName(typeCtx, scopeName, isScopeType);
       const type = TypeResolver.resolve(typeStr);
       const isConst = p.constModifier() !== null;
 

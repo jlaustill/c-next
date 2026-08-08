@@ -595,6 +595,24 @@ export default class CodeGenState {
   }
 
   /**
+   * ADR-057: qualify a bare type name against the scope being generated.
+   *
+   * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
+   * type sets, so every codegen site asks the question one way. Call this rather
+   * than re-pairing `currentScope` with `isScopeType()` at each site.
+   *
+   * Only bare names belong here — `this.T`, `global.T` and `Scope.T` carry an
+   * explicit answer in the syntax and must keep their own branches.
+   */
+  static qualifyScopeType(typeName: string): string {
+    return QualifiedCName.qualifyScopeType(
+      typeName,
+      this.currentScope,
+      (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+    );
+  }
+
+  /**
    * Check if a type name is a known register.
    */
   static isKnownRegister(name: string): boolean {

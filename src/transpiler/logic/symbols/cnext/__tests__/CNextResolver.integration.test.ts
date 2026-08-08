@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CNextResolver from "../index";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
+import TypeResolver from "../../../../../utils/TypeResolver";
 
 describe("CNextResolver Integration", () => {
   describe("single declaration types", () => {
@@ -480,6 +481,111 @@ describe("CNextResolver Integration", () => {
       if (SymbolGuards.isVariable(arrSymbol!)) {
         expect(arrSymbol.isArray).toBe(true);
         expect(arrSymbol.arrayDimensions).toEqual(["SIZE*2"]);
+      }
+    });
+  });
+  describe("ADR-057 scope type qualification (#1130)", () => {
+    const typeOf = (
+      symbols: ReturnType<typeof CNextResolver.resolve>,
+      name: string,
+    ) => symbols.find((sym) => sym.name === name);
+
+    it("qualifies a bare scope-local type at a parameter and return position", () => {
+      const code = `
+        scope A {
+          public enum B { c, d }
+          public B pick(B value) { return value; }
+        }
+      `;
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+
+      const pick = typeOf(symbols, "pick");
+      expect(pick && SymbolGuards.isFunction(pick)).toBe(true);
+      if (pick && SymbolGuards.isFunction(pick)) {
+        expect(TypeResolver.getTypeName(pick.returnType)).toBe("A__B");
+        expect(TypeResolver.getTypeName(pick.parameters[0].type)).toBe("A__B");
+      }
+    });
+
+    it("qualifies the same way when the type is declared BELOW its use", () => {
+      // The pre-pass exists so this answer cannot depend on declaration order.
+      const code = `
+        scope A {
+          public B pick(B value) { return value; }
+          public enum B { c, d }
+        }
+      `;
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+
+      const pick = typeOf(symbols, "pick");
+      if (pick && SymbolGuards.isFunction(pick)) {
+        expect(TypeResolver.getTypeName(pick.returnType)).toBe("A__B");
+        expect(TypeResolver.getTypeName(pick.parameters[0].type)).toBe("A__B");
+      }
+    });
+
+    it("qualifies a bare scope-local type on a struct field", () => {
+      const code = `
+        scope A {
+          public enum B { c, d }
+          public struct S { u8 x; B kind; }
+        }
+      `;
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+
+      const structSymbol = typeOf(symbols, "S");
+      expect(structSymbol && SymbolGuards.isStruct(structSymbol)).toBe(true);
+      if (structSymbol && SymbolGuards.isStruct(structSymbol)) {
+        const kind = structSymbol.fields.get("kind");
+        expect(kind && TypeResolver.getTypeName(kind.type)).toBe("A__B");
+      }
+    });
+
+    it("leaves an explicit global.Type field UNqualified even when the scope shadows it", () => {
+      // Regression guard: a post-pass over resolved names cannot tell
+      // `global.Mode` from a bare `Mode`, and rewrote both.
+      const code = `
+        enum Mode { idle, busy }
+        scope A {
+          public enum Mode { off, on }
+          public struct W { global.Mode mode; u8 v; }
+        }
+      `;
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+
+      const structSymbol = typeOf(symbols, "W");
+      if (structSymbol && SymbolGuards.isStruct(structSymbol)) {
+        const mode = structSymbol.fields.get("mode");
+        expect(mode && TypeResolver.getTypeName(mode.type)).toBe("Mode");
+      }
+    });
+
+    it("does not let a non-type scope member capture a same-named global type", () => {
+      const code = `
+        struct Config { u8 x; }
+        scope A {
+          private u8 Config <- 3;
+          public void use(Config cfg) { }
+        }
+      `;
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+
+      const use = typeOf(symbols, "use");
+      if (use && SymbolGuards.isFunction(use)) {
+        expect(TypeResolver.getTypeName(use.parameters[0].type)).toBe("Config");
+      }
+    });
+
+    it("leaves a bare global type name alone at top level", () => {
+      const code = `
+        struct Point { i32 x; }
+        void move(Point p) { }
+      `;
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+
+      const move = typeOf(symbols, "move");
+      if (move && SymbolGuards.isFunction(move)) {
+        expect(TypeResolver.getTypeName(move.parameters[0].type)).toBe("Point");
       }
     });
   });
