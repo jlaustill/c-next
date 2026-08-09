@@ -102,6 +102,7 @@ class CallExprUtils {
               baseType,
               isConst: p.isConst,
               isArray: p.isArray,
+              isAutoConst: p.isAutoConst,
             },
             isCrossFile: true,
           };
