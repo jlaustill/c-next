@@ -13,6 +13,27 @@
 #include <string.h>
 #include <cmsis_gcc.h>
 
+/* ADR-044: the clamp/wrap helpers below use __builtin_add_overflow,
+   __builtin_sub_overflow and __builtin_mul_overflow. These are GCC 5+ / Clang 3.4+
+   extensions, not standard C99, and are chosen because they lower to a single
+   add-and-branch-on-carry on Cortex-M. Fail here rather than at the first use */
+#ifdef __cppcheck__
+/* cppcheck bug: nested #if/#elif inside #ifndef is not fully skipped,
+   so we use a positive check (empty body) instead. */
+#else
+#if defined(__clang__)
+#if (__clang_major__ < 3) || ((__clang_major__ == 3) && (__clang_minor__ < 4))
+#error "C-Next overflow helpers require Clang 3.4 or later (__builtin_add_overflow)."
+#endif
+#elif defined(__GNUC__)
+#if __GNUC__ < 5
+#error "C-Next overflow helpers require GCC 5 or later (__builtin_add_overflow)."
+#endif
+#else
+#error "C-Next overflow helpers require GCC 5+ or Clang 3.4+ (__builtin_add_overflow)."
+#endif
+#endif /* __cppcheck__ */
+
 // ADR-044: Overflow helper functions
 #include <limits.h>
 

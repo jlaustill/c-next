@@ -410,20 +410,29 @@ cycleCount = (uint32_t)(cycleCount + 1);  // Natural wrap
 
 #### Helper Macros (Generated)
 
+> **Note:** The generated helpers use `__builtin_add_overflow`, `__builtin_sub_overflow` and `__builtin_mul_overflow` — GCC 5+ / Clang 3.4+ extensions, not standard C99. These were adopted to defeat a `-Wstringop-overflow` false positive (issue #231 / PR #238) and because they lower to a single add-and-branch-on-carry on Cortex-M. A compile-time `#error` guard is emitted alongside the helpers to catch unsupported toolchains early.
+
 ```c
-// Saturating addition for u16
-static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
-    uint16_t result = a + b;
-    if (result < a) return UINT16_MAX;  // Overflow detected
+// Saturating addition for u8
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
     return result;
 }
 
 // Debug mode: panic on any overflow
-static inline uint16_t cnx_debug_add_u16(uint16_t a, uint16_t b) {
-    if (a > UINT16_MAX - b) {
-        cnx_panic("Integer overflow");
+static inline uint8_t cnx_debug_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) {
+        fprintf(stderr, "PANIC: Integer overflow in u8 addition\n");
+        abort();
     }
-    return a + b;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) {
+        fprintf(stderr, "PANIC: Integer overflow in u8 addition\n");
+        abort();
+    }
+    return result;
 }
 ```
 

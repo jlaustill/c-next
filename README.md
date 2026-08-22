@@ -46,7 +46,7 @@ void LED__toggle(void) {
 
 ## Why C-Next?
 
-C-Next transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
+C-Next transpiles to C99 with no compiler-specific extensions for most constructs. Overflow-safe arithmetic helpers use `__builtin_add_overflow` / `__builtin_sub_overflow` / `__builtin_mul_overflow` (GCC 5+ / Clang 3.4+), and ARM critical-section wrappers use `__attribute__((always_inline))` and inline assembly. See [Toolchain Requirements](#toolchain-requirements) for details.
 
 This means:
 
@@ -309,8 +309,10 @@ C-Next has two separate toolchain contexts with different requirements:
 
 **End users** (transpiling `.cnx` files and compiling the generated C/C++ output):
 
-- Any C99-compatible compiler — GCC, Clang, IAR, `arm-none-eabi-gcc`, etc. No minimum version.
-- The generated code uses standard C99 and C++14 with no compiler-specific extensions.
+- Any C99-compatible compiler — GCC, Clang, IAR, `arm-none-eabi-gcc`, etc.
+- Most generated code is standard C99 with no compiler-specific extensions.
+- Overflow-safe arithmetic helpers (`clamp` mode, the default) require **GCC 5+ or Clang 3.4+** because they use `__builtin_add_overflow`, `__builtin_sub_overflow` and `__builtin_mul_overflow`. A compile-time `#error` guard catches unsupported toolchains early.
+- ARM critical-section wrappers use `__attribute__((always_inline))` and ARM inline assembly (GCC/Clang compatible). AVR and other platforms use portable C99 equivalents.
 
 **Contributors** (running the test suite locally):
 

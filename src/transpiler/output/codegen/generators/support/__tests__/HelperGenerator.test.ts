@@ -151,6 +151,28 @@ describe("HelperGenerator - generateOverflowHelpers", () => {
     });
   });
 
+  describe("compile-time portability guard", () => {
+    it("emits #error guard when overflow helpers are generated", () => {
+      const result = generateOverflowHelpers(new Set(["add_u8"]), false);
+      const code = result.join("\n");
+      expect(code).toContain("#error");
+      expect(code).toContain("__builtin_add_overflow");
+      expect(code).toContain("__GNUC__");
+      expect(code).toContain("__clang__");
+      expect(code).toContain("#ifdef __cppcheck__");
+      expect(code).toContain("#else");
+      // Guard must appear before the helper function body
+      const guardIdx = code.indexOf("#error");
+      const helperIdx = code.indexOf("cnx_clamp_add_u8");
+      expect(guardIdx).toBeLessThan(helperIdx);
+    });
+
+    it("does not emit guard when no helpers are needed", () => {
+      const result = generateOverflowHelpers(new Set(), false);
+      expect(result).toEqual([]);
+    });
+  });
+
   describe("invalid operations", () => {
     it("skips unknown operations", () => {
       const result = generateOverflowHelpers(new Set(["unknown_u8"]), false);
