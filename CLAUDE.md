@@ -99,7 +99,12 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 **MISRA rule details**: `cppcheck --addon=misra -I tests/include <file.c>` shows specific rule violations (batch-validate only shows file names)
 
-**Regenerate all snapshots**: `npm test -- --update` (after codegen changes)
+**Snapshot updates**: `.expected.*` files are rewritten **only** under `--update`. A plain
+`npm test` regenerates transpiler output (`.test.c/.h/.cpp/.hpp`) and _compares_ it against the
+snapshots — it never edits them. That is why `test:all` is a gate and must never include an
+update step: an `--update` inside it could not fail on a mismatch. `npm run test:update`
+regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
+it to the regression fixtures.
 
 **C vs C++ const linkage**: C const at file scope has external linkage; C++ const has internal linkage (needs `extern`). `CodeGenState.cppMode` controls this.
 
