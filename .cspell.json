@@ -132,6 +132,7 @@
     "getchar",
     "getenv",
     "globl",
+    "GNUC",
     "gmtime",
     "Graphviz",
     "hardline",
