@@ -298,7 +298,7 @@ foo.expected.error    # Expected error (if test-error)
 - **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)
 - **Helper files**: Create `.expected.h` to prevent test framework cleanup
 - **Struct tests**: Need `.expected.h` alongside `.expected.c`
-- **Bug reproduction**: `bugs/issue-<name>/` directories — commit with fixes for regression prevention
+- **Bug reproduction**: `tests/bugs/issue-<name>/` directories — commit with fixes for regression prevention. They live under `tests/` so every fixture-walking script picks them up (#1142); a top-level `bugs/` tree was invisible to `npm test`, `test:all` and `validate:c`
 - **test-error stale artifacts**: a test that compiled before becoming `test-error` leaves `.test.c/.test.h` behind — `rm` them or the guard fails with "stale generated artifacts"
 - **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
 

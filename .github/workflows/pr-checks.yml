@@ -124,10 +124,13 @@ jobs:
             src/transpiler/logic/parser/cpp/grammar/
 
   # ============================================================================
-  # STAGE 2: Integration + bugs tests — full pipeline (transpile + compile +
-  # execute) in one pass, so every test-execution test is re-transpiled in the
-  # same run that compiles and executes it (Issue #1018). Also generates the
-  # C/C++ files consumed by the static-analysis stage.
+  # STAGE 2: Integration tests — full pipeline (transpile + compile + execute)
+  # in one pass, so every test-execution test is re-transpiled in the same run
+  # that compiles and executes it (Issue #1018). Also generates the C/C++ files
+  # consumed by the static-analysis stage.
+  #
+  # Covers tests/bugs/ (per-issue regression fixtures) too: those used to live in
+  # a top-level bugs/ tree with its own job, which no local script ran (#1142).
   # ============================================================================
   integration:
     name: Integration Tests
@@ -157,6 +160,7 @@ jobs:
           name: build-output
 
       - name: Run integration tests (transpile + compile + execute)
+        # Covers tests/bugs/ regression fixtures — same command a developer runs.
         run: npm test
 
       - name: Upload generated test files
@@ -168,47 +172,7 @@ jobs:
             tests/**/*.test.c
             tests/**/*.test.cpp
             tests/**/*.test.h
-
-  bugs:
-    name: Bugs Regression
-    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
-    needs: [build]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Volta
-        uses: volta-cli/action@v4
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-npm-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
-
-      - name: Run bugs/ regression tests (transpile + compile + execute)
-        run: npm run test:bugs
-
-      - name: Upload generated bugs test files
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-bugs-files
-          retention-days: 1
-          path: |
-            bugs/**/*.test.c
-            bugs/**/*.test.cpp
-            bugs/**/*.test.h
-            bugs/**/*.test.hpp
+            tests/**/*.test.hpp
 
   unit-tests:
     name: Unit Tests
@@ -340,40 +304,10 @@ jobs:
             git status --porcelain
             echo ""
             echo "Run 'npm run antlr:all' and 'npm test' locally, then commit."
+            echo "If expected output changed, run 'npm run test:update' first."
             exit 1
           fi
           echo "✅ No uncommitted changes"
-
-  bugs-verify-clean:
-    name: Bugs Verify Clean
-    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
-    needs: [bugs]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
-
-      - name: Download generated bugs test files
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-bugs-files
-          path: bugs
-
-      - name: Check for uncommitted changes in bugs/
-        run: |
-          if [ -n "$(git status --porcelain bugs/)" ]; then
-            echo "::error::Uncommitted changes detected in bugs/!"
-            git status --porcelain bugs/
-            echo ""
-            echo "Run 'npm run test:bugs' locally, then commit generated files."
-            exit 1
-          fi
-          echo "✅ No uncommitted changes in bugs/"
 
   # ============================================================================
   # STAGE 3 (parallel): Analysis that needs generated files
@@ -458,12 +392,10 @@ jobs:
         lint,
         build,
         integration,
-        bugs,
         unit-tests,
         cli-tests,
         grammar-coverage,
         verify-clean,
-        bugs-verify-clean,
         c-validation,
         sonar,
       ]
@@ -477,12 +409,10 @@ jobs:
           [ "${{ needs.lint.result }}" != "success" ] && echo "❌ Static Analysis" && FAILED=1 || echo "✅ Static Analysis"
           [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
           [ "${{ needs.integration.result }}" != "success" ] && echo "❌ Integration Tests" && FAILED=1 || echo "✅ Integration Tests"
-          [ "${{ needs.bugs.result }}" != "success" ] && echo "❌ Bugs Regression" && FAILED=1 || echo "✅ Bugs Regression"
           [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
           [ "${{ needs.cli-tests.result }}" != "success" ] && echo "❌ CLI Tests" && FAILED=1 || echo "✅ CLI Tests"
           [ "${{ needs.grammar-coverage.result }}" != "success" ] && echo "❌ Grammar Coverage" && FAILED=1 || echo "✅ Grammar Coverage"
           [ "${{ needs.verify-clean.result }}" != "success" ] && echo "❌ Verify Clean" && FAILED=1 || echo "✅ Verify Clean"
-          [ "${{ needs.bugs-verify-clean.result }}" != "success" ] && echo "❌ Bugs Verify Clean" && FAILED=1 || echo "✅ Bugs Verify Clean"
           [ "${{ needs.c-validation.result }}" != "success" ] && echo "⚠️ C Static Analysis (advisory)" || echo "✅ C Static Analysis"
           [ "${{ needs.sonar.result }}" != "success" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
           [ $FAILED -eq 1 ] && exit 1 || echo "::notice::All checks passed!"

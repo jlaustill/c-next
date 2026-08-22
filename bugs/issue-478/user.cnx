@@ -1,8 +1,0 @@
-#include <config.cnx>
-
-scope Test {
-    // ERROR: parser rejects "global.ECategory" as return type
-    public global.ECategory getCategory() {
-        return global.ECategory.CAT_A;
-    }
-}
