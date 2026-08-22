@@ -99,7 +99,12 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 **MISRA rule details**: `cppcheck --addon=misra -I tests/include <file.c>` shows specific rule violations (batch-validate only shows file names)
 
-**Regenerate all snapshots**: `npm test -- --update` (after codegen changes)
+**Snapshot updates**: `.expected.*` files are rewritten **only** under `--update`. A plain
+`npm test` regenerates transpiler output (`.test.c/.h/.cpp/.hpp`) and _compares_ it against the
+snapshots — it never edits them. That is why `test:all` is a gate and must never include an
+update step: an `--update` inside it could not fail on a mismatch. `npm run test:update`
+regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
+it to the regression fixtures.
 
 **C vs C++ const linkage**: C const at file scope has external linkage; C++ const has internal linkage (needs `extern`). `CodeGenState.cppMode` controls this.
 
@@ -298,7 +303,7 @@ foo.expected.error    # Expected error (if test-error)
 - **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)
 - **Helper files**: Create `.expected.h` to prevent test framework cleanup
 - **Struct tests**: Need `.expected.h` alongside `.expected.c`
-- **Bug reproduction**: `bugs/issue-<name>/` directories — commit with fixes for regression prevention
+- **Bug reproduction**: `tests/bugs/issue-<name>/` directories — commit with fixes for regression prevention. They live under `tests/` so every fixture-walking script picks them up (#1142); a top-level `bugs/` tree was invisible to `npm test`, `test:all` and `validate:c`
 - **test-error stale artifacts**: a test that compiled before becoming `test-error` leaves `.test.c/.test.h` behind — `rm` them or the guard fails with "stale generated artifacts"
 - **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
 

@@ -1,2 +1,0 @@
-// Bug #525: Top-level const needs extern for C++ external linkage
-const u8 MAX_COUNT <- 8;

@@ -49,6 +49,7 @@ if [ -n "$(git status --porcelain)" ]; then
     echo ""
     echo "This usually means generated files need to be committed."
     echo "Run 'npm run antlr' and 'npm test' locally, then commit the changes."
+    echo "If expected output changed, run 'npm run test:update' first."
     all_passed=false
 else
     echo "✅ No uncommitted changes"

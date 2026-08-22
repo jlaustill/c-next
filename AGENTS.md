@@ -153,7 +153,7 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 ### Bug Reproduction Files
 
-- `bugs/issue-<name>/` directories contain minimal reproduction cases from GitHub issues
+- `tests/bugs/issue-<name>/` directories contain minimal reproduction cases from GitHub issues
 - **Commit these with fixes** - they serve as additional regression prevention
 - Regenerate after fix to show corrected output
 

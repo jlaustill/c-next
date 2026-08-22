@@ -299,7 +299,7 @@ FOR bugs, follow Test-Driven Development with c-next test conventions:
      - Compile-error bug      → // test-error  + a .expected.error file
      - Wrong runtime behavior → // test-execution (validate every result, unique return codes)
      - Wrong generated code   → .expected.c / .expected.cpp / .expected.h snapshot
-     - Place reproduction under tests/ (or bugs/issue-<name>/ for regression cases)
+     - Place reproduction under tests/ (or tests/bugs/issue-<name>/ for regression cases)
      - Run it (npm test -- <path>) and confirm it FAILS with a useful message
 
   3. PRESENT THE PLAN:

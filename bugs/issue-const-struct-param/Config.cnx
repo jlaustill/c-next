@@ -1,3 +1,0 @@
-struct Config {
-    u32 value;
-}

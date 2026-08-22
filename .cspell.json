@@ -422,7 +422,7 @@
     "*.expected.error",
     ".jscpd/**",
     "dependency-graph.svg",
-    "bugs/**",
+    "tests/bugs/**",
     "examples/**",
     "tests/libs/**",
     "tests/**/*.cnx",

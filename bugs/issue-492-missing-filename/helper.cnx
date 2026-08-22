@@ -1,4 +1,0 @@
-// Helper file - this one should compile fine
-struct Data {
-    i32 value;
-}

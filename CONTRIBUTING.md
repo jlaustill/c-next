@@ -314,12 +314,22 @@ npm test -- tests/postfix-chains/
 # Run single test file
 npm test -- tests/postfix-chains/basic-chaining.test.cnx
 
+# Regenerate .expected.* snapshots after an intentional codegen change
+npm run test:update                      # every snapshot, tests/bugs/ included
+npm run test:update -- tests/my-feature/ # or narrow it to one directory
+
 # Transpile single test file (without running full test validation)
 cnext tests/my-feature/basic.test.cnx
 
 # Verify output matches expected
 diff tests/my-feature/basic.c tests/my-feature/basic.expected.c
 ```
+
+**Snapshots are only ever rewritten by `--update`.** A plain `npm test` regenerates the
+transpiler's own output (`.test.c`, `.test.h`, `.test.cpp`, `.test.hpp`) and compares it
+against the committed `.expected.*` files — it never edits a snapshot. So a failing test means
+either a real regression or an intentional codegen change you still need to `test:update`.
+Commit both the generated files and the updated snapshots.
 
 ### What to Test
 
