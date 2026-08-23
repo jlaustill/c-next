@@ -42,11 +42,20 @@ describe("ArrayDimensionText", () => {
       expect(ArrayDimensionText.parse("u8[][4]")).toEqual(["", 4]);
     });
 
-    it("is not affected by a previous call's lastIndex", () => {
-      // The pattern is a module-level global regex, so lastIndex must be reset
-      // per call or every second call would start mid-string.
+    it("returns the same result on repeated calls", () => {
+      // Guards against reintroducing shared scan state. The first version used
+      // a module-level global regex, where a stale lastIndex made every second
+      // call start mid-string.
       expect(ArrayDimensionText.parse("u8[2][3]")).toEqual([2, 3]);
       expect(ArrayDimensionText.parse("u8[2][3]")).toEqual([2, 3]);
+    });
+
+    it.each([
+      ["an unterminated bracket", "u8[8", []],
+      ["a dimension before an unterminated bracket", "u8[2][3", [2]],
+      ["a stray closing bracket", "u8]8[", []],
+    ])("stops cleanly on %s", (_label, source, expected) => {
+      expect(ArrayDimensionText.parse(source as string)).toEqual(expected);
     });
   });
 });

@@ -21,9 +21,6 @@
 
 import LiteralUtils from "./LiteralUtils.js";
 
-/** Matches one bracketed dimension; `[^\]]` cannot span a closing bracket. */
-const DIMENSION_PATTERN = /\[([^\]]*)\]/g;
-
 class ArrayDimensionText {
   /**
    * Extract every bracketed dimension from a type or declarator string.
@@ -40,15 +37,29 @@ class ArrayDimensionText {
    * @example parse("u8[8+1]")     => ["8+1"]
    */
   static parse(text: string): (number | string)[] {
+    // Scanned rather than matched with /\[([^\]]*)\]/g. That pattern is
+    // super-linear (SonarCloud S8786): on a '[' with no closing bracket the
+    // greedy class runs to the end of the string and then backtracks a
+    // character at a time, once per '[' in the input. indexOf is linear, needs
+    // no lastIndex bookkeeping, and says plainly what it does.
     const dimensions: (number | string)[] = [];
-    DIMENSION_PATTERN.lastIndex = 0;
+    let cursor = 0;
 
-    let match: RegExpExecArray | null = DIMENSION_PATTERN.exec(text);
-    while (match !== null) {
-      const content = match[1].trim();
+    while (cursor < text.length) {
+      const open = text.indexOf("[", cursor);
+      if (open === -1) {
+        break;
+      }
+      const close = text.indexOf("]", open + 1);
+      if (close === -1) {
+        // Unterminated bracket: nothing after it is a well-formed dimension.
+        break;
+      }
+
+      const content = text.slice(open + 1, close).trim();
       const literal = LiteralUtils.parseIntegerLiteral(content);
       dimensions.push(literal ?? content);
-      match = DIMENSION_PATTERN.exec(text);
+      cursor = close + 1;
     }
 
     return dimensions;
