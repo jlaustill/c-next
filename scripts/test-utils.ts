@@ -510,12 +510,24 @@ class TestUtils {
       const compiler = useCpp ? "g++" : "gcc";
       const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
 
-      // Compile with -Werror to treat warnings as errors
-      // Include common warning flags that catch issues like -Wstringop-overflow
+      // Compile with -Werror to treat warnings as errors.
+      // Issue #1143: -Wstringop-overflow / -Warray-bounds are middle-end
+      // diagnostics produced by value-range propagation, so they need an
+      // optimizing compile. The previous "-fsyntax-only" (with no -O) stopped
+      // after parsing and could not emit them at all -- a guaranteed 32-byte
+      // memcpy into an 8-byte buffer passed silently.
+      //
+      // -O3 rather than -O2: measured against a known-bad fixture (a clamped
+      // offset saturating to UINT32_MAX past a wrapping bounds guard), -O2
+      // reports nothing and -O3 reports it. All test-no-warnings fixtures are
+      // clean at -O3, so the extra inlining costs no false positives here.
       execFileSync(
         compiler,
         [
-          "-fsyntax-only",
+          "-c",
+          "-o",
+          "/dev/null",
+          "-O3",
           stdFlag,
           "-Wall",
           "-Wextra",

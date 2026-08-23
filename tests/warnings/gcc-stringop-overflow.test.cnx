@@ -1,44 +1,60 @@
 /* test-no-warnings */
 // test-execution
 // Tests: GCC -Wstringop-overflow false positive with clamp helpers (Issue #231)
-// Validates: Clamp compound assignment should not trigger false warnings
-// Coverage: __builtin_*_overflow allows GCC to track value bounds correctly
+// Validates: a clamp-derived offset used to index a buffer must not trigger
+//            false -Wstringop-overflow / -Warray-bounds diagnostics.
+// Coverage: writeChunk reproduces the shape #231 was reported against --
+//           memcpy(&buffer[crc32_offset], src, 4), i.e. consecutive writes at
+//           a clamp-derived offset. The offset comes from parameters, so the
+//           compiler must reason about cnx_clamp_add_u32's value range instead
+//           of constant-folding the indices away.
+
+u8[513] buffer;
+
+// Issue #231 shape. Every index below derives from the clamp helper, so GCC's
+// value-range propagation has to prove the writes are in bounds.
+//
+// The guard is written as `offset <= 509` rather than `offset + length <= 513`.
+// The latter is what #231's reporter used, and it is genuinely unsafe: the
+// clamp saturates offset to UINT32_MAX, the sum wraps to a small number, the
+// guard passes, and buffer[UINT32_MAX] is written. GCC diagnoses that
+// correctly -- it is a true positive, not the false positive this test guards.
+void writeChunk(u32 start, u32 step, u8 value) {
+    clamp u32 offset <- start;
+    offset +<- step;
+    if (offset <= 509) {
+        buffer[offset] <- value;
+        buffer[offset + 1] <- value;
+        buffer[offset + 2] <- value;
+        buffer[offset + 3] <- value;
+    }
+}
 
 u32 main() {
-    // Test clamp compound assignment without array access
-    // The old helper implementation could cause GCC to emit -Wstringop-overflow
-    // because it couldn't track value bounds through the manual overflow check
-
-    // Use clamp compound assignment to compute values
+    // --- clamp arithmetic still behaves correctly (original coverage) ---
     clamp u32 index <- 100;
     index +<- 50;  // Uses cnx_clamp_add_u32
     if (index != 150) return 1;
 
-    // Test subtraction clamp
     index -<- 50;  // Uses cnx_clamp_sub_u32
     if (index != 100) return 2;
 
-    // Test multiplication clamp
     clamp u32 mult_val <- 5;
     mult_val *<- 10;  // Uses cnx_clamp_mul_u32
     if (mult_val != 50) return 3;
 
-    // Test overflow clamping behavior with addition
     clamp u32 overflow_test <- 4294967290;
     overflow_test +<- 100;  // Should clamp to UINT32_MAX
     if (overflow_test != 4294967295) return 4;
 
-    // Test underflow clamping behavior with subtraction
     clamp u32 underflow_test <- 10;
     underflow_test -<- 100;  // Should clamp to 0
     if (underflow_test != 0) return 5;
 
-    // Test overflow clamping with multiplication
     clamp u32 mul_overflow <- 100000;
     mul_overflow *<- 100000;  // 10B > UINT32_MAX, should clamp
     if (mul_overflow != 4294967295) return 6;
 
-    // Test u8 types which are more likely to trigger the warning
     clamp u8 byte_val <- 100;
     byte_val +<- 50;
     if (byte_val != 150) return 7;
@@ -46,10 +62,20 @@ u32 main() {
     byte_val +<- 200;  // 150 + 200 = 350, should clamp to 255
     if (byte_val != 255) return 8;
 
-    // Test u16 types
     clamp u16 short_val <- 60000;
     short_val +<- 10000;  // 70000 > UINT16_MAX, should clamp
     if (short_val != 65535) return 9;
+
+    // --- Issue #231 shape: clamp-derived buffer indexing ---
+    writeChunk(100, 7, 0x41);
+    if (buffer[107] != 0x41) return 10;
+    if (buffer[110] != 0x41) return 11;
+    if (buffer[111] != 0) return 12;
+
+    // A clamped offset that saturates must not write anywhere: the guard
+    // rejects it, which is exactly the bound GCC has to prove.
+    writeChunk(4294967290, 100, 0x42);
+    if (buffer[107] != 0x41) return 13;
 
     return 0;
 }
