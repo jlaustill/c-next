@@ -125,6 +125,31 @@ describe("ToolchainRequirementUtils", () => {
     });
   });
 
+  describe("unconditionalExtensions", () => {
+    it("excludes an extension confined to one platform arm", () => {
+      expect(
+        ToolchainRequirementUtils.unconditionalExtensions(
+          recorded("critical-arm-gnu"),
+        ),
+      ).toEqual([]);
+    });
+
+    it("includes an extension with no platform arm", () => {
+      expect(
+        ToolchainRequirementUtils.unconditionalExtensions(
+          recorded("cpp-compound-literal"),
+        ),
+      ).toEqual(["compound literals in C++"]);
+    });
+
+    it("is the one rule both the banner and the report ask", () => {
+      const mixed = recorded("critical-arm-gnu", "cpp-compound-literal");
+      expect(ToolchainRequirementUtils.unconditionalExtensions(mixed)).toEqual([
+        "compound literals in C++",
+      ]);
+    });
+  });
+
   describe("distinctCompilerFloors", () => {
     it("reports no floor for anything in the registry today", () => {
       // The only floor C-Next ever had came from the unreachable
@@ -222,10 +247,25 @@ describe("ToolchainRequirementUtils", () => {
       expect(lines).toContain("atomic read-modify-write requires CMSIS.");
     });
 
-    it("lists compiler extensions separately from standards", () => {
+    it("does not claim an extension that only one platform arm needs", () => {
+      // critical-arm-gnu's inline assembly lives inside the
+      // `#if defined(__arm__)` arm, so an AVR or CMSIS build compiles none of
+      // it. Reported in review of #1153, where the banner and the
+      // transpile-time report answered this question differently.
       const lines = ToolchainRequirementUtils.describeForBanner(
         recorded("baseline-c", "critical-arm-gnu"),
         "c",
+      );
+      expect(
+        lines.some((line) => line.startsWith("GNU/Clang extensions:")),
+      ).toBe(false);
+    });
+
+    it("does list an extension every target needs", () => {
+      // Compound literals in C++ are not tied to a platform arm.
+      const lines = ToolchainRequirementUtils.describeForBanner(
+        recorded("baseline-cpp", "cpp-compound-literal"),
+        "cpp",
       );
       expect(
         lines.some((line) => line.startsWith("GNU/Clang extensions:")),

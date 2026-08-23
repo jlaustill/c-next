@@ -131,10 +131,19 @@ class ResultPrinter {
     reportable: readonly IRecordedRequirement[],
     mode: TOutputMode,
   ): void {
+    // `unconditionalExtensions` owns the "does every target need this?"
+    // decision, so this report and the per-file banner cannot answer it
+    // differently -- they are the same question asked twice.
+    const unconditionalNames = new Set<string>(
+      ToolchainRequirementUtils.unconditionalExtensions(reportable),
+    );
     const unconditional = reportable.filter((entry) => {
       const requirement = ToolchainRequirementUtils.lookup(entry.key);
-      if (requirement.extensions.length === 0) return false;
-      if (requirement.platformLib !== null) return false;
+      if (
+        !requirement.extensions.some((name) => unconditionalNames.has(name))
+      ) {
+        return false;
+      }
       // Already reported under Language standard, with its extension fallback
       // noted there -- no standard removes the need for the ones left here.
       //

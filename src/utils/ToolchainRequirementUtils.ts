@@ -5,6 +5,7 @@ import type ICompilerFloor from "../transpiler/types/ICompilerFloor";
 import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
 import type IToolchainRequirement from "../transpiler/types/IToolchainRequirement";
 import type TLanguageStandard from "../transpiler/types/TLanguageStandard";
+import type TCompilerExtension from "../transpiler/types/TCompilerExtension";
 import type TOutputMode from "../transpiler/types/TOutputMode";
 import type TRequirementKey from "../transpiler/types/TRequirementKey";
 
@@ -122,6 +123,30 @@ class ToolchainRequirementUtils {
   }
 
   /**
+   * Extensions the toolchain needs **whatever target is selected**.
+   *
+   * An extension belonging to a requirement that also names a platform library
+   * lives inside one arm of a `#if` chain, so only that arm's targets compile
+   * it. Listing it unconditionally tells an AVR user they need ARM inline
+   * assembly for code their build never sees.
+   *
+   * One home for the rule, because the banner and the transpile-time report
+   * are the same question asked twice: CLAUDE.md's single-source-of-truth rule
+   * is about the *decision*, not just the data behind it.
+   */
+  static unconditionalExtensions(
+    reportable: readonly IRecordedRequirement[],
+  ): readonly TCompilerExtension[] {
+    const extensions = new Set<TCompilerExtension>();
+    for (const entry of reportable) {
+      const requirement = TOOLCHAIN_REQUIREMENTS[entry.key];
+      if (requirement.platformLib !== null) continue;
+      for (const extension of requirement.extensions) extensions.add(extension);
+    }
+    return Array.from(extensions);
+  }
+
+  /**
    * Distinct compiler-version floors across the recorded set, for the guard
    * emitter. Returns an empty array when nothing recorded carries a floor,
    * which is the current state of the registry.
@@ -154,7 +179,9 @@ class ToolchainRequirementUtils {
     if (reportable.length === 0) return [];
 
     const standards = new Set<string>();
-    const extensions = new Set<string>();
+    const extensions = new Set<string>(
+      ToolchainRequirementUtils.unconditionalExtensions(reportable),
+    );
     const platformsByFeature = new Map<string, Set<string>>();
 
     for (const entry of reportable) {
@@ -162,7 +189,6 @@ class ToolchainRequirementUtils {
       if (ToolchainRequirementUtils.exceedsBaselineStandard(entry.key, mode)) {
         standards.add(requirement.standard);
       }
-      for (const extension of requirement.extensions) extensions.add(extension);
       if (requirement.platformLib !== null) {
         const libraries =
           platformsByFeature.get(requirement.feature) ?? new Set<string>();

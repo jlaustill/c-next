@@ -18,6 +18,11 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
 static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
     if (b > 0 && a > INT64_MAX - b) return INT64_MAX;
     if (b < 0 && a < INT64_MIN - b) return INT64_MIN;

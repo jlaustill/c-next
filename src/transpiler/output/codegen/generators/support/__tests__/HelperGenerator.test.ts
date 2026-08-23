@@ -1,7 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import helperGenerators from "../HelperGenerator";
+import CodeGenState from "../../../../../state/CodeGenState";
 
 const { generateOverflowHelpers, generateSafeDivHelpers } = helperGenerators;
+
+/**
+ * Issue #1143: the debug branch records `overflow-panic-hosted-libc`, so these
+ * template functions are no longer pure. Vitest's per-file isolation hides the
+ * leak today, which makes it a trap rather than a failure -- the same reason
+ * CLAUDE.md already requires this for analyzer tests.
+ */
+afterEach(() => {
+  CodeGenState.reset();
+});
 
 describe("HelperGenerator - generateOverflowHelpers", () => {
   describe("empty input", () => {

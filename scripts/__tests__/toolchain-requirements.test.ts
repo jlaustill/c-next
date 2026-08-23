@@ -19,6 +19,18 @@ const script = join(repoRoot, "scripts", "toolchain-requirements.ts");
 /** Spawning `npx tsx` is seconds, not milliseconds; well clear of the 5s default. */
 const SUBPROCESS_TIMEOUT_MS = 60000;
 
+/**
+ * Cells in a markdown table row, split the way a renderer does: on pipes that
+ * are not backslash-escaped. Counting raw `|` would treat a correctly escaped
+ * `\|` inside a code span as a separator and report false corruption.
+ */
+function countCells(row: string): number {
+  let inner = row.trim();
+  if (inner.startsWith("|")) inner = inner.slice(1);
+  if (inner.endsWith("|")) inner = inner.slice(0, -1);
+  return inner.split(/(?<!\\)\|/).length;
+}
+
 function render(): string {
   return execFileSync("npx", ["tsx", script, "console"], {
     cwd: repoRoot,
@@ -80,6 +92,59 @@ describe("toolchain documentation generator", () => {
     expect(rendered).toContain(
       "No construct C-Next emits has a minimum compiler version",
     );
+  });
+
+  it("emits structurally valid markdown tables", () => {
+    // `docs:toolchain:check` diffs generated against committed, so it passes
+    // happily when BOTH are corrupt -- generating from the registry rules out
+    // drift, not a wrong generator. This asserts the output itself.
+    //
+    // The bug it was written for: `code()` already escapes pipes, and the row
+    // builder escaped the composed string again, turning `a || b` into an
+    // unescaped separator and splitting one row into 9 cells under a 7-cell
+    // header. The shipped matrix claimed a requirement's platform library was
+    // "C99".
+    const malformed: string[] = [];
+    let header: number | null = null;
+
+    for (const [index, line] of rendered.split("\n").entries()) {
+      if (!line.trimStart().startsWith("|")) {
+        header = null;
+        continue;
+      }
+      const cells = countCells(line);
+      if (header === null) {
+        header = cells;
+        continue;
+      }
+      // separator row
+      if (/^[\s|:-]+$/.test(line)) continue;
+      if (cells !== header) {
+        malformed.push(
+          `line ${index + 1}: ${cells} cells under a ${header}-cell header`,
+        );
+      }
+    }
+
+    expect(malformed).toEqual([]);
+  });
+
+  it("never leaves an unescaped pipe inside a code span in a table", () => {
+    // A pipe surviving unescaped inside a cell is the mechanism of the
+    // corruption above, whatever produces it. Code spans are extracted first
+    // and checked individually: testing the whole line lets the regex pair a
+    // closing backtick with a later opening one and "find" a span straddling
+    // the cell separator, which reports every row as an offender.
+    const offenders: string[] = [];
+
+    for (const line of rendered.split("\n")) {
+      if (!line.trimStart().startsWith("|")) continue;
+      for (const span of line.match(/`[^`]*`/g) ?? []) {
+        if (/(?<!\\)\|/.test(span)) offenders.push(span);
+      }
+    }
+
+    expect(offenders).toEqual([]);
   });
 
   it(

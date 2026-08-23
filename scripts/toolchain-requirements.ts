@@ -126,16 +126,19 @@ function buildCompatibility(): string {
     "| ------- | --------------- | ---- | ----------------- | -------- | ---------------- | ------- |",
   );
   for (const requirement of conditional()) {
+    // Escape each half once. `code()` already escapes, so running cell() over
+    // the composed string turned `a || b` into `\\|\\|`, which markdown reads
+    // as a literal backslash followed by a cell separator -- splitting the row.
     const when =
       requirement.condition === null
-        ? requirement.incurredBy
-        : `${requirement.incurredBy}, and ${code(requirement.condition)}`;
+        ? cell(requirement.incurredBy)
+        : `${cell(requirement.incurredBy)}, and ${code(requirement.condition)}`;
     const extensions =
       requirement.extensions.length > 0
         ? requirement.extensions.map(code).join(", ")
         : "any conforming";
     lines.push(
-      `| ${cell(requirement.feature)} | ${cell(when)} | ` +
+      `| ${cell(requirement.feature)} | ${when} | ` +
         `${requirement.modes.join(", ")} | ${requirement.standard} | ` +
         `${extensions} | ${requirement.platformLib === null ? "none" : cell(requirement.platformLib)} | ` +
         `${code(requirement.reason)} |`,
@@ -416,9 +419,10 @@ async function main(): Promise<void> {
             splice(misraExisting, MISRA_BEGIN, MISRA_END, buildMisraBlock()),
             SUMMARY_BEGIN,
             SUMMARY_END,
-            // Counted after the toolchain rows are spliced in, and with all
-            // generated regions stripped, so the aggregate reflects the
-            // hand-maintained guideline tables only.
+            // Counted from the PRE-splice document, which is equivalent
+            // precisely because stripGeneratedBlocks removes every generated
+            // region either way -- so the aggregate reflects only the
+            // hand-maintained guideline tables.
             buildSummaryBlock(misraExisting),
           ),
           misraPath,

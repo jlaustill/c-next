@@ -30,6 +30,7 @@ import IFunctionSignature from "../output/codegen/types/IFunctionSignature";
 import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import type IRequirementSite from "../types/IRequirementSite";
 import type TRequirementKey from "../types/TRequirementKey";
+import RequirementSites from "../../utils/RequirementSites";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
@@ -1228,11 +1229,7 @@ export default class CodeGenState {
       return;
     }
     for (const site of sites) {
-      const duplicate = existing.some(
-        (seen) =>
-          seen.sourcePath === site.sourcePath && seen.line === site.line,
-      );
-      if (!duplicate) existing.push(site);
+      RequirementSites.addUnique(existing, site);
     }
   }
 
@@ -1250,10 +1247,7 @@ export default class CodeGenState {
       this.deferredRequirementSites.set(requestKey, [site]);
       return;
     }
-    const duplicate = existing.some(
-      (seen) => seen.sourcePath === site.sourcePath && seen.line === site.line,
-    );
-    if (!duplicate) existing.push(site);
+    RequirementSites.addUnique(existing, site);
   }
 
   /** Issue #1143: Sites recorded for a deferred emission. */

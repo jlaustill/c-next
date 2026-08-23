@@ -458,19 +458,6 @@ export default class CodeGenerator implements IOrchestrator {
    * Process effects returned by generators, updating internal state.
    * This centralizes all side-effect handling.
    */
-  /**
-   * Issue #1143: Snapshot the toolchain requirements recorded during the last
-   * generate() call.
-   *
-   * Must be read before the next file's CodeGenState.reset(), which clears the
-   * recording map.
-   */
-  getToolchainRequirements(): readonly IRecordedRequirement[] {
-    return Array.from(CodeGenState.recordedRequirements.entries()).map(
-      ([key, sites]) => ({ key, sites: [...sites] }),
-    );
-  }
-
   applyEffects(effects: readonly TGeneratorEffect[]): void {
     for (const effect of effects) {
       switch (effect.type) {
@@ -564,6 +551,19 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * Issue #1143: Snapshot the toolchain requirements recorded during the last
+   * generate() call.
+   *
+   * Must be read before the next file's CodeGenState.reset(), which clears the
+   * recording map.
+   */
+  getToolchainRequirements(): readonly IRecordedRequirement[] {
+    return Array.from(CodeGenState.recordedRequirements.entries()).map(
+      ([key, sites]) => ({ key, sites: [...sites] }),
+    );
+  }
+
+  /**
    * Register a required include header. Centralizes all include flag management
    * to reduce scattered assignments throughout the codebase.
    *
@@ -579,11 +579,12 @@ export default class CodeGenerator implements IOrchestrator {
     // requirement is recorded here -- the code does not exist yet, and
     // recording a requirement for text that may never be emitted is exactly
     // the mistake that made #1141's guard fire on files without the construct.
-    if (
-      header === "irq_wrappers" ||
-      header === "float_static_assert" ||
-      header === "isr"
-    ) {
+    // Only the two headers that have a claiming emitter. "isr" was noted here
+    // and never read: takeDeferredSites is called for float_static_assert and
+    // irq_wrappers alone, and the ISR typedef carries no requirement. Keeping
+    // the deferred keys equal to the set that gets claimed is the property the
+    // rest of this design leans on.
+    if (header === "irq_wrappers" || header === "float_static_assert") {
       CodeGenState.noteDeferredSite(header, line);
     }
 

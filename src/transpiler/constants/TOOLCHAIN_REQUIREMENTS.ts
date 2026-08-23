@@ -108,8 +108,12 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     feature: "critical section",
     standard: "C99",
     compiler: null,
-    extensions: [],
-    platformLib: "Arduino core",
+    // The Arduino `#if` is nested INSIDE the ARM arm, so an ARM+Arduino target
+    // compiles the PRIMASK helpers as well as noInterrupts(). It needs the ARM
+    // arm's extensions too -- this is a refinement of that arm, not an
+    // alternative to it, and declaring `[]` here understated it.
+    extensions: ["GNU inline assembly", "__attribute__((always_inline))"],
+    platformLib: "ARMv7-M core + Arduino core",
     condition: "defined(__arm__) && defined(ARDUINO)",
     reason: "noInterrupts()",
     incurredBy: "a critical block",
@@ -202,7 +206,13 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     condition: null,
     reason: ".field = value inside a braced initializer",
     incurredBy: "initializing a struct in --cpp mode",
-    probe: /=\s*\{\s*\.[A-Za-z_]\w*\s*=/,
+    // Anchored on the brace, not on `= {`: the key is recorded before
+    // formatStructInitializer decides whether to wrap the braces in a cast, so
+    // the same requirement also appears as `= (T){ .field = ... }`. Anchoring
+    // on the assignment made the probe unable to match a form it is recorded
+    // for -- a recorded requirement whose emission the probe cannot see, which
+    // is the #1141 shape this registry exists to prevent.
+    probe: /\{\s*\.[A-Za-z_]\w*\s*=/,
     adr: "ADR-035",
     misra: [],
   },

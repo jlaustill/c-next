@@ -2,6 +2,7 @@ import type IFileResult from "../transpiler/types/IFileResult";
 import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
 import type IRequirementSite from "../transpiler/types/IRequirementSite";
 import type TRequirementKey from "../transpiler/types/TRequirementKey";
+import RequirementSites from "./RequirementSites";
 
 /**
  * Issue #1143: Fold per-file toolchain requirements into a project-level view.
@@ -23,11 +24,7 @@ class RequirementAggregator {
           continue;
         }
         for (const site of entry.sites) {
-          const duplicate = sites.some(
-            (seen) =>
-              seen.sourcePath === site.sourcePath && seen.line === site.line,
-          );
-          if (!duplicate) sites.push(site);
+          RequirementSites.addUnique(sites, site);
         }
       }
     }

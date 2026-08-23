@@ -32,6 +32,14 @@ const testsDir = join(repoRoot, "tests");
 const ACCOUNTED_TOKENS: ReadonlyArray<{
   readonly pattern: RegExp;
   readonly keys: readonly TRequirementKey[];
+  /**
+   * Modes in which the token implies a cost. Omitted means every mode.
+   *
+   * Needed because a construct can be free in one mode and not the other:
+   * `{ .field = value }` is baseline C99 in C output and C++20-or-an-extension
+   * in C++ output, spelled identically.
+   */
+  readonly modes?: readonly TOutputMode[];
 }> = [
   { pattern: /\b__asm\b/, keys: ["critical-arm-gnu"] },
   { pattern: /\b__attribute__\b/, keys: ["critical-arm-gnu"] },
@@ -46,6 +54,13 @@ const ACCOUNTED_TOKENS: ReadonlyArray<{
     keys: ["critical-cmsis-fallback", "atomic-primask-cmsis"],
   },
   { pattern: /\bfprintf\b/, keys: ["overflow-panic-hosted-libc"] },
+  {
+    // C99 spells designated initializers identically and pays nothing for
+    // them, so this only implies a cost in C++ output.
+    pattern: /\{\s*\.[A-Za-z_]\w*\s*=/,
+    keys: ["cpp-designated-initializer"],
+    modes: ["cpp"],
+  },
 ];
 
 /**
@@ -105,6 +120,7 @@ describe("committed generated output vs the requirements registry", () => {
       const mode = modeOf(snapshot);
 
       for (const token of ACCOUNTED_TOKENS) {
+        if (token.modes !== undefined && !token.modes.includes(mode)) continue;
         if (!token.pattern.test(text)) continue;
         const explained = token.keys.some((key) => {
           const requirement = TOOLCHAIN_REQUIREMENTS[key];

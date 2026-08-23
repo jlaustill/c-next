@@ -64,6 +64,15 @@ const CASES: readonly ICase[] = [
     source: `struct P { i32 x; i32 y; }\nu32 main() { P p <- {x: 1, y: 2}; if (p.x != 1) return 1; return 0; }`,
   },
   {
+    // The declaration form takes an early return and emits a bare `= { .x = }`;
+    // assigning after declaration wraps it in a cast, giving
+    // `= (T){ .x = }`. Only the second shape exposed a probe anchored on `= {`.
+    name: "struct assignment after declaration",
+    source:
+      `struct P { i32 x; i32 y; }\n` +
+      `u32 main() { P p; p <- {x: 1, y: 2}; if (p.x != 1) return 1; return 0; }`,
+  },
+  {
     name: "array indexing",
     source: `u32 main() { u8[4] a <- [1, 2, 3, 4]; if (a[0] != 1) return 1; return 0; }`,
   },
@@ -154,8 +163,12 @@ describe("generated file banner", () => {
       "c",
     );
     expect(text).toContain(" * Requires: C99.");
-    expect(text).toContain("GNU inline assembly");
     expect(text).toContain("critical section requires one of:");
+    // The ARM arm's inline assembly is NOT claimed unconditionally: it lives
+    // inside `#if defined(__arm__)`, so an AVR or CMSIS build compiles none of
+    // it. Reported in review of #1153, where this banner and the
+    // transpile-time report disagreed about the same question.
+    expect(text).not.toContain("GNU/Clang extensions:");
   });
 
   it("names the highest standard, not every standard on the way to it", async () => {
