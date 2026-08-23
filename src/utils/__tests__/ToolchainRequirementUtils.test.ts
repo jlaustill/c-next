@@ -24,6 +24,48 @@ describe("ToolchainRequirementUtils", () => {
     });
   });
 
+  describe("isBaseline", () => {
+    it("recognizes both baselines and nothing else", () => {
+      // Asked against the baseline keys, not a `baseline-` name prefix, so a
+      // rename cannot silently change what a consumer treats as free.
+      expect(ToolchainRequirementUtils.isBaseline("baseline-c")).toBe(true);
+      expect(ToolchainRequirementUtils.isBaseline("baseline-cpp")).toBe(true);
+      expect(ToolchainRequirementUtils.isBaseline("float-assert-c11")).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("modeOf", () => {
+    it("reads the mode from the recorded baseline", () => {
+      expect(
+        ToolchainRequirementUtils.modeOf(
+          recorded("baseline-cpp", "cpp-compound-literal"),
+        ),
+      ).toBe("cpp");
+      expect(
+        ToolchainRequirementUtils.modeOf(
+          recorded("baseline-c", "float-assert-c11"),
+        ),
+      ).toBe("c");
+    });
+
+    it("defaults to C when nothing was recorded", () => {
+      expect(ToolchainRequirementUtils.modeOf([])).toBe("c");
+    });
+
+    it("is not fooled by a requirement that is merely valid in C++", () => {
+      // `critical-arm-gnu` has modes ["c", "cpp"]. Inferring the mode from a
+      // requirement's `modes` rather than the recorded baseline would call
+      // this a C++ transpile.
+      expect(
+        ToolchainRequirementUtils.modeOf(
+          recorded("baseline-c", "critical-arm-gnu"),
+        ),
+      ).toBe("c");
+    });
+  });
+
   describe("isAboveBaseline", () => {
     it("is false for the mode's own baseline", () => {
       expect(ToolchainRequirementUtils.isAboveBaseline("baseline-c", "c")).toBe(

@@ -71,11 +71,7 @@ class ResultPrinter {
    */
   private static printRequirements(result: ITranspilerResult): void {
     const recorded = result.requirements ?? [];
-    const mode: TOutputMode = recorded.some(
-      (entry) => entry.key === "baseline-cpp",
-    )
-      ? "cpp"
-      : "c";
+    const mode = ToolchainRequirementUtils.modeOf(recorded);
     const reportable = ToolchainRequirementUtils.reportable(recorded, mode);
     if (reportable.length === 0) return;
 
@@ -87,7 +83,7 @@ class ResultPrinter {
     console.log("Toolchain requirements for this project:");
     console.log("");
     ResultPrinter.printStandardSection(reportable, mode, baseline.standard);
-    ResultPrinter.printCompilerSection(reportable);
+    ResultPrinter.printCompilerSection(reportable, mode);
     ResultPrinter.printPlatformSection(reportable);
 
     console.log("");
@@ -133,6 +129,7 @@ class ResultPrinter {
    */
   private static printCompilerSection(
     reportable: readonly IRecordedRequirement[],
+    mode: TOutputMode,
   ): void {
     const unconditional = reportable.filter((entry) => {
       const requirement = ToolchainRequirementUtils.lookup(entry.key);
@@ -140,9 +137,14 @@ class ResultPrinter {
       if (requirement.platformLib !== null) return false;
       // Already reported under Language standard, with its extension fallback
       // noted there -- no standard removes the need for the ones left here.
+      //
+      // Compared against the report's mode, not one inferred from the
+      // requirement. Inferring it from `modes` is right only while every entry
+      // reaching here is single-mode; one dual-mode entry with an extension
+      // would be judged against the C++ baseline during a C transpile.
       return !ToolchainRequirementUtils.exceedsBaselineStandard(
         entry.key,
-        requirement.modes.includes("cpp") ? "cpp" : "c",
+        mode,
       );
     });
     if (unconditional.length === 0) return;

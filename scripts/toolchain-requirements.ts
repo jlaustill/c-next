@@ -25,6 +25,7 @@ import prettier from "prettier";
 
 import TOOLCHAIN_REQUIREMENTS from "../src/transpiler/constants/TOOLCHAIN_REQUIREMENTS";
 import type IToolchainRequirement from "../src/transpiler/types/IToolchainRequirement";
+import ToolchainRequirementUtils from "../src/utils/ToolchainRequirementUtils";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const compatibilityPath = join(rootDir, "docs", "compatibility.md");
@@ -79,8 +80,10 @@ function code(text: string): string {
 }
 
 function conditional(): readonly IToolchainRequirement[] {
+  // Asked through the shared predicate rather than a name prefix, so the doc
+  // and the transpile-time report cannot disagree about what counts as free.
   return requirements.filter(
-    (requirement) => !requirement.key.startsWith("baseline-"),
+    (requirement) => !ToolchainRequirementUtils.isBaseline(requirement.key),
   );
 }
 

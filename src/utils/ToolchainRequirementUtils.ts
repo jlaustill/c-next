@@ -23,6 +23,33 @@ class ToolchainRequirementUtils {
     return mode === "cpp" ? "baseline-cpp" : "baseline-c";
   }
 
+  /**
+   * Is this key one of the per-mode baselines?
+   *
+   * Asked against the baseline keys themselves rather than a `baseline-` name
+   * prefix, so renaming a key cannot silently change which entries a consumer
+   * treats as free.
+   */
+  static isBaseline(key: TRequirementKey): boolean {
+    return (
+      key === ToolchainRequirementUtils.baselineKey("c") ||
+      key === ToolchainRequirementUtils.baselineKey("cpp")
+    );
+  }
+
+  /**
+   * Which output mode produced a recorded set.
+   *
+   * Every file records its mode's baseline, so the answer is in the data. Read
+   * it here rather than at each consumer: a consumer that infers the mode from
+   * some other property of a requirement gets the right answer only while the
+   * registry happens to contain nothing that contradicts it.
+   */
+  static modeOf(recorded: readonly IRecordedRequirement[]): TOutputMode {
+    const cppBaseline = ToolchainRequirementUtils.baselineKey("cpp");
+    return recorded.some((entry) => entry.key === cppBaseline) ? "cpp" : "c";
+  }
+
   /** Look up a registry entry by key. */
   static lookup(key: TRequirementKey): IToolchainRequirement {
     return TOOLCHAIN_REQUIREMENTS[key];
