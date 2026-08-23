@@ -27,9 +27,15 @@ class DimensionResolver {
    * @param sizeExpr The dimension expression
    * @param constValues Const name -> value, as known at collection time
    * @returns The folded size, or the expression's source text when it does not
-   *          fold at compile time (an enum-qualified count, or a C macro).
-   *          Never undefined: dropping a dimension loses the field's
-   *          array-ness and shifts every dimension after it.
+   *          fold at compile time. Never undefined: dropping a dimension loses
+   *          the field's array-ness and shifts every dimension after it.
+   *
+   *          Source text is only correct for a name C will also know -- an
+   *          enum-qualified count, which qualifyStructFieldDimensions turns
+   *          into `EColor__COUNT`, or a macro from an included header. For
+   *          anything else it leaks a C-Next name into generated C and the
+   *          header fails to compile. That hole is #1175; the evaluator folds
+   *          the arithmetic forms that were hitting it in practice.
    */
   static resolve(
     sizeExpr: Parser.ExpressionContext,

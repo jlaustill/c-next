@@ -1,13 +1,27 @@
 /**
- * ArrayDimensionParser - Utility for parsing array dimension expressions
+ * ArrayDimensionParser - the single evaluator for array dimension expressions.
  *
- * Issue #644: Extracted from CodeGenerator to consolidate array dimension parsing.
+ * Issue #644 extracted it from CodeGenerator; issue #1127 made it the only
+ * place a dimension is decided. It lives in utils/ rather than output/ so the
+ * symbol layer can reach it too -- `logic/` cannot import `output/`, and
+ * collection folding fewer forms than codegen is what let the .c and the .h
+ * disagree.
  *
- * This helper consolidates 4 different patterns for array dimension parsing:
- * 1. _tryEvaluateConstant() - Full constant evaluation with const map
- * 2. _evaluateArrayDimensions() - Parse all dimensions, drop unresolved
- * 3. extractArrayDimensionsSimple() - Simple parseInt only
- * 4. _setParameters() inline - Use 0 for unresolved dimensions
+ * Three rules hold across every entry point:
+ *
+ * 1. One evaluator. `parseSingleDimension` decides what an expression is
+ *    worth; the other methods differ only in the shape of input they take
+ *    (one expression, a dimension list) -- never in the answer.
+ * 2. One lookup set. Callers pass `IConstantEvalOptions`, built by
+ *    `dimensionEvalOptions()` in codegen and from the collection-time const
+ *    map in the symbol layer. A caller that supplies fewer resolves fewer
+ *    forms than its peers, which is a divergence waiting to happen.
+ * 3. An unresolved dimension keeps its slot, as `UNRESOLVED_DIMENSION`.
+ *    Dropping one shifts every dimension after it, so a subscript gets
+ *    validated against the wrong bound.
+ *
+ * The string-level counterpart is `ArrayDimensionText`, for C and C++
+ * declarators that arrive as text with no parse tree behind them.
  */
 
 import LiteralUtils from "./LiteralUtils.js";
@@ -46,6 +60,10 @@ class ArrayDimensionParser {
    * scalar and the body fell back to bit indexing.
    */
   private static readonly ADD_RE = /^(\w+)\+(\w+)$/;
+  /** Same shape as ADD_RE for subtraction and multiplication. */
+  private static readonly SUBTRACT_RE = /^(\w+)-(\w+)$/;
+  private static readonly MULTIPLY_RE = /^(\w+)\*(\w+)$/;
+  private static readonly DIVIDE_RE = /^(\w+)\/(\w+)$/;
   /** Regex for sizeof(type) */
   private static readonly SIZEOF_RE = /^sizeof\(([a-zA-Z_]\w*)\)$/;
   /** Regex for sizeof(type) * N */
@@ -116,15 +134,31 @@ class ArrayDimensionParser {
     text: string,
     options?: IConstantEvalOptions,
   ): number | undefined {
-    const match = this.ADD_RE.exec(text);
-    if (!match) {
-      return undefined;
-    }
+    // Issue #1127: `+` alone was not enough. A dimension that does not fold is
+    // carried as source text, and source text in a header is a C-Next name
+    // that does not exist in C -- `u8[LOCAL*2]` reached the .h as
+    // `uint8_t localMul[LOCAL*2]`, which fails to compile. Folding the common
+    // const arithmetic removes the cases that actually occur; the residual
+    // category is tracked separately.
+    const operators: [RegExp, (a: number, b: number) => number][] = [
+      [this.ADD_RE, (a, b) => a + b],
+      [this.SUBTRACT_RE, (a, b) => a - b],
+      [this.MULTIPLY_RE, (a, b) => a * b],
+      // Integer division, matching C semantics for an array bound.
+      [this.DIVIDE_RE, (a, b) => (b === 0 ? Number.NaN : Math.trunc(a / b))],
+    ];
 
-    const left = this._resolveOperand(match[1], options);
-    const right = this._resolveOperand(match[2], options);
-    if (left !== undefined && right !== undefined) {
-      return left + right;
+    for (const [pattern, apply] of operators) {
+      const match = pattern.exec(text);
+      if (!match) {
+        continue;
+      }
+      const left = this._resolveOperand(match[1], options);
+      const right = this._resolveOperand(match[2], options);
+      if (left !== undefined && right !== undefined) {
+        const value = apply(left, right);
+        return Number.isNaN(value) ? undefined : value;
+      }
     }
     return undefined;
   }
@@ -224,18 +258,20 @@ class ArrayDimensionParser {
       return undefined;
     }
 
+    // Issue #1127: keep the slot, the same policy parseDimensions applies.
+    // This filtered `size > 0` and so dropped an unresolved dimension, which
+    // shifts every dimension after it -- `u8[2] x[EColor.COUNT]` recorded [2]
+    // here and [2, UNRESOLVED_DIMENSION] through the sibling loop 15 lines
+    // away that shares this evaluator. Inert today only because trailing
+    // C-style dimensions are rejected later, which is agreement by
+    // coincidence rather than one policy.
     const dimensions: number[] = [];
     for (const dim of arrayDims) {
       const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        const size = ArrayDimensionParser.parseSingleDimension(
-          sizeExpr,
-          options,
-        );
-        if (size !== undefined && size > 0) {
-          dimensions.push(size);
-        }
-      }
+      const size = sizeExpr
+        ? ArrayDimensionParser.parseSingleDimension(sizeExpr, options)
+        : undefined;
+      dimensions.push(size ?? UNRESOLVED_DIMENSION);
     }
 
     return dimensions.length > 0 ? dimensions : undefined;
@@ -282,16 +318,18 @@ class ArrayDimensionParser {
    */
   static parseDimensions(
     arrayDims: Parser.ArrayDimensionContext[] | null,
+    options?: IConstantEvalOptions,
   ): number[] {
     return ArrayDimensionParser.forEachDimension(
       arrayDims,
       (sizeExpr, dimensions) => {
-        // parseIntegerLiteral honours hex and binary notation; the base-10
-        // Number.parseInt this replaced read "0x10" as 0, which was
-        // indistinguishable from a genuinely unresolved size and silently
-        // disabled ADR-036 bounds checking for those arrays (#1159).
+        // Issue #1127: takes the same options every other entry point takes.
+        // Without them this was the one entry point that structurally could
+        // not reach constValues or typeWidths, so `u8 buf[SIZE]` recorded
+        // UNRESOLVED_DIMENSION while `u8[SIZE] buf` -- the other branch of the
+        // very same function -- recorded 6.
         const size = sizeExpr
-          ? LiteralUtils.parseIntegerLiteral(sizeExpr.getText())
+          ? ArrayDimensionParser.parseSingleDimension(sizeExpr, options)
           : undefined;
         dimensions.push(size ?? UNRESOLVED_DIMENSION);
       },

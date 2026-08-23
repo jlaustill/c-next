@@ -39,7 +39,7 @@ uint8_t globalSlots[EColor__COUNT] = {};
 // struct; the transpiler did not reject it, because a dimension that stays
 // symbolic ("EColor__COUNT") gives TypeValidator.checkArrayBounds nothing
 // numeric to compare against -- even though the enum value is known at compile
-// time. That gap is noted on #1159 and is not addressed here.
+// time. That gap is #1174, and is not addressed here.
 int main(void) {
     Palette p = {};
     p.slots[0] = 10U;

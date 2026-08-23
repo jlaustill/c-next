@@ -273,18 +273,39 @@ describe("ArrayDimensionParser", () => {
       expect(result).toEqual([20]);
     });
 
-    it("drops unresolved dimensions", () => {
+    it("keeps the slot for an unresolved dimension", () => {
+      // Issue #1127: this previously asserted undefined. Dropping the slot is
+      // the policy parseSimpleDimensions and parseForParameters were merged to
+      // eliminate -- it shifts every dimension after it, so a subscript gets
+      // validated against the wrong bound. This was the third entry point
+      // still carrying it.
       const dims = getArrayDimensions("u8 arr[UNKNOWN];");
       expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseAllDimensions(dims!);
-      expect(result).toBeUndefined();
+      expect(ArrayDimensionParser.parseAllDimensions(dims!)).toEqual([
+        UNRESOLVED_DIMENSION,
+      ]);
     });
 
-    it("drops zero or negative dimensions", () => {
+    it("keeps unresolved slots in position among resolved ones", () => {
+      const dims = getArrayDimensions("u8 arr[2][UNKNOWN][3];");
+      expect(dims).not.toBeNull();
+      expect(ArrayDimensionParser.parseAllDimensions(dims!)).toEqual([
+        2,
+        UNRESOLVED_DIMENSION,
+        3,
+      ]);
+    });
+
+    it("keeps a slot for a literal zero dimension", () => {
+      // A zero-length array is not valid C, and the value 0 is also how
+      // UNRESOLVED_DIMENSION spells "size unknown" -- so this slot reads as
+      // unknown and skips bounds checking rather than rejecting every index.
+      // Keeping the slot is still right: dropping it would silently renumber
+      // the dimensions that follow. The 0/unknown overlap is inherent to
+      // UNRESOLVED_DIMENSION's encoding and documented on that constant.
       const dims = getArrayDimensions("u8 arr[0];");
       expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseAllDimensions(dims!);
-      expect(result).toBeUndefined();
+      expect(ArrayDimensionParser.parseAllDimensions(dims!)).toEqual([0]);
     });
   });
 

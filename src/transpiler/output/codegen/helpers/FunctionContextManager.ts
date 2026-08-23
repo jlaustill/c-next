@@ -392,7 +392,10 @@ class FunctionContextManager {
 
     // Try C-style first (param.arrayDimension())
     if (param.arrayDimension().length > 0) {
-      return ArrayDimensionParser.parseDimensions(param.arrayDimension());
+      return ArrayDimensionParser.parseDimensions(
+        param.arrayDimension(),
+        dimensionEvalOptions(),
+      );
     }
 
     // C-Next style: get dimensions from arrayType

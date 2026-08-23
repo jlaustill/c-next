@@ -27,6 +27,9 @@ interface IArrayTypeResult {
    * it as source text, and qualifyStructFieldDimensions resolves it later. So
    * `u8[EColor.COUNT][3]` yields ["EColor.COUNT", 3], not undefined.
    *
+   * That resolution covers enum-qualified names. Text naming anything else C
+   * does not know reaches the header verbatim and does not compile -- #1175.
+   *
    * Position matters more than resolution (issue #1158). A partial list
    * silently shifts later dimensions -- `u8[N][3]` reporting [3] makes the
    * consumer treat 3 as dimension 1 -- and a truncated list is worse than no
