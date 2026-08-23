@@ -446,7 +446,10 @@ class PassByValueAnalyzer {
         callerScope,
       );
       if (callee) {
-        // Use FunctionUtils to get the transpiled C name (types layer, not output layer)
+        // ScopeUtils.getTranspiledCName is the single encoder for symbol identity.
+        // Not QualifiedNameGenerator: this is the logic layer, and depcruise's
+        // logic-cannot-import-output rule (severity: error) forbids reaching into
+        // output/codegen for it.
         return ScopeUtils.getTranspiledCName(callee);
       }
     }

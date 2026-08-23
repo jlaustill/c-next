@@ -25,7 +25,17 @@
 //      cross-file lookup found nothing and the call was treated as a C/C++
 //      call with pass-by-value semantics.
 //
-// Both are invisible in a single file: there the header's second pass still
+// SCOPE OF THIS FIXTURE. It covers the DIRECT caller of a cross-file function
+// taking a struct parameter, which is what #1139 was about and what is fixed.
+// It does NOT cover a caller that forwards its own parameter to a cross-file
+// mutating callee — that still gets auto-const while the callee wants a mutable
+// pointer, so the generated C trips -Wdiscarded-qualifiers (#1171). Nor does it
+// cover the scalar form, which passes the value where a pointer is expected
+// (#1173), or the const-argument check, which is skipped cross-file (#1170).
+// `main` below passes a local, not a forwarded parameter, so none of those
+// paths are exercised here.
+//
+// Both defects below are invisible in a single file: there the header's second pass still
 // sees the right state, and the per-file knownFunctions set answers the
 // C-Next-function question before the broken SymbolTable lookup is reached.
 #include "lib/sensors.hpp"

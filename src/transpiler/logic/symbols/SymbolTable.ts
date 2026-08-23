@@ -152,38 +152,43 @@ class SymbolTable {
   // ========================================================================
 
   /**
-   * Add a C-Next TSymbol to the table
+   * Append a symbol to one of the multi-value indexes, creating the bucket on
+   * first use.
+   *
+   * Every index in this class is `Map<string, T[]>` and was maintained by its
+   * own copy of this get/push-or-set block. Adding an index meant writing the
+   * block again and remembering `clear()` — the "edit it in two places"
+   * anti-pattern CLAUDE.md calls the worst in the project.
    */
-  addTSymbol(symbol: TSymbol): void {
-    // Add to name index
-    const existing = this.tSymbols.get(symbol.name);
+  private static appendToIndex<T>(
+    index: Map<string, T[]>,
+    key: string,
+    symbol: T,
+  ): void {
+    const existing = index.get(key);
     if (existing) {
       existing.push(symbol);
     } else {
-      this.tSymbols.set(symbol.name, [symbol]);
+      index.set(key, [symbol]);
     }
+  }
 
-    // Add to canonical-identity index. Keyed with the same encoder codegen uses
-    // to build the name it will later look up, so the two cannot drift.
+  /**
+   * Add a C-Next TSymbol to the table
+   */
+  addTSymbol(symbol: TSymbol): void {
+    // The canonical-identity key uses the same encoder codegen uses to build
+    // the name it will later look up, so the two cannot drift. Computed once
+    // and handed to registerStructFields rather than derived again there.
     const cName = ScopeUtils.getTranspiledCName(symbol);
-    const existingByCName = this.tSymbolsByCName.get(cName);
-    if (existingByCName) {
-      existingByCName.push(symbol);
-    } else {
-      this.tSymbolsByCName.set(cName, [symbol]);
-    }
 
-    // Add to file index
-    const fileSymbols = this.tSymbolsByFile.get(symbol.sourceFile);
-    if (fileSymbols) {
-      fileSymbols.push(symbol);
-    } else {
-      this.tSymbolsByFile.set(symbol.sourceFile, [symbol]);
-    }
+    SymbolTable.appendToIndex(this.tSymbols, symbol.name, symbol);
+    SymbolTable.appendToIndex(this.tSymbolsByCName, cName, symbol);
+    SymbolTable.appendToIndex(this.tSymbolsByFile, symbol.sourceFile, symbol);
 
     // Auto-register struct fields for TypeResolver.getMemberTypeInfo()
     if (symbol.kind === "struct") {
-      this.registerStructFields(symbol);
+      this.registerStructFields(symbol, cName);
     }
   }
 
@@ -191,10 +196,12 @@ class SymbolTable {
    * Register struct fields in structFields map for cross-file type resolution.
    * Called automatically when adding struct symbols.
    * Issue #981: Now preserves string dimensions (macro names) for proper array detection.
+   *
+   * @param cName The struct's transpiled C name, already computed by the caller —
+   *   passed in rather than re-derived so this symbol's identity has one producer
+   *   per call, matching the canonical-identity rule the index above relies on.
    */
-  private registerStructFields(struct: IStructSymbol): void {
-    const cName = ScopeUtils.getTranspiledCName(struct);
-
+  private registerStructFields(struct: IStructSymbol, cName: string): void {
     for (const [fieldName, fieldInfo] of struct.fields) {
       // Convert TType to string for structFields map
       const typeString = TypeResolver.getTypeName(fieldInfo.type);
@@ -338,21 +345,8 @@ class SymbolTable {
    * Issue #981: Also register struct fields for type resolution
    */
   addCSymbol(symbol: TCSymbol): void {
-    // Add to name index
-    const existing = this.cSymbols.get(symbol.name);
-    if (existing) {
-      existing.push(symbol);
-    } else {
-      this.cSymbols.set(symbol.name, [symbol]);
-    }
-
-    // Add to file index
-    const fileSymbols = this.cSymbolsByFile.get(symbol.sourceFile);
-    if (fileSymbols) {
-      fileSymbols.push(symbol);
-    } else {
-      this.cSymbolsByFile.set(symbol.sourceFile, [symbol]);
-    }
+    SymbolTable.appendToIndex(this.cSymbols, symbol.name, symbol);
+    SymbolTable.appendToIndex(this.cSymbolsByFile, symbol.sourceFile, symbol);
 
     // Issue #981: Register struct fields for getMemberTypeInfo() lookups
     if (symbol.kind === "struct" && symbol.fields) {
@@ -446,21 +440,8 @@ class SymbolTable {
    * Add a C++ symbol to the table
    */
   addCppSymbol(symbol: TCppSymbol): void {
-    // Add to name index
-    const existing = this.cppSymbols.get(symbol.name);
-    if (existing) {
-      existing.push(symbol);
-    } else {
-      this.cppSymbols.set(symbol.name, [symbol]);
-    }
-
-    // Add to file index
-    const fileSymbols = this.cppSymbolsByFile.get(symbol.sourceFile);
-    if (fileSymbols) {
-      fileSymbols.push(symbol);
-    } else {
-      this.cppSymbolsByFile.set(symbol.sourceFile, [symbol]);
-    }
+    SymbolTable.appendToIndex(this.cppSymbols, symbol.name, symbol);
+    SymbolTable.appendToIndex(this.cppSymbolsByFile, symbol.sourceFile, symbol);
   }
 
   /**
