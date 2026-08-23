@@ -3,6 +3,8 @@
  * Used by the C collectors in logic/symbols/c/ and C++ collectors in logic/symbols/cpp/.
  */
 
+import ArrayDimensionText from "../../../utils/ArrayDimensionText";
+
 /**
  * Reserved field names that conflict with C-Next built-in properties.
  * These should not be used as struct field names.
@@ -25,27 +27,9 @@ const RESERVED_FIELD_NAMES = new Set<string>([]);
  *          e.g., [8] returns [8], [BUF_SIZE] returns ["BUF_SIZE"], [2][N] returns [2, "N"]
  */
 function parseArrayDimensions(text: string): (number | string)[] {
-  const dimensions: (number | string)[] = [];
-  // Match any bracket content: digits, identifiers, or expressions
-  // Captures: [8], [BUF_SIZE], [N], [SIZE + 1], etc.
-  const arrayMatches = text.match(/\[([^\]]+)\]/g);
-
-  if (arrayMatches) {
-    for (const match of arrayMatches) {
-      const content = match.slice(1, -1).trim();
-      // Try to parse as numeric first
-      const numericValue = Number.parseInt(content, 10);
-      if (!Number.isNaN(numericValue) && String(numericValue) === content) {
-        // Pure numeric dimension
-        dimensions.push(numericValue);
-      } else {
-        // Macro name or expression - store as string
-        dimensions.push(content);
-      }
-    }
-  }
-
-  return dimensions;
+  // Issue #1127: shared with TypeResolver.parseArrayType, which read the same
+  // text with a base-10 parseInt and so reported "0x10" as dimension 0.
+  return ArrayDimensionText.parse(text);
 }
 
 /**

@@ -230,32 +230,11 @@ class HeaderSymbolAdapter {
    * @example resolveArrayDimension("10", "Motor") => "10"
    */
   private static resolveArrayDimension(dim: string, scopeName: string): string {
-    if (!dim.includes(QualifiedCName.SOURCE_SEPARATOR)) {
-      return dim;
-    }
-
-    const parts = dim.split(QualifiedCName.SOURCE_SEPARATOR);
-
-    // `global.X.Y` is explicitly global — drop the marker, add no scope prefix
-    if (parts[0] === "global") {
-      return QualifiedCName.join(...parts.slice(1));
-    }
-
-    // `this.X.Y` is explicitly scope-local — drop the marker, prefix the scope
-    if (parts[0] === "this") {
-      return QualifiedCName.join(scopeName, ...parts.slice(1));
-    }
-
-    // Bare `X.Y` inside a scope resolves scope-first, then global (ADR-057).
-    // Prefix only when the scope really declares that enum, matching the `.c` path.
-    if (
-      scopeName &&
-      CodeGenState.isKnownEnum(QualifiedCName.join(scopeName, parts[0]))
-    ) {
-      return QualifiedCName.join(scopeName, ...parts);
-    }
-
-    return QualifiedCName.join(...parts);
+    // Issue #1127: the rule itself lives on QualifiedCName so the struct-field
+    // path applies the same one. This wrapper only binds the predicate.
+    return QualifiedCName.resolveDimensionName(dim, scopeName, (qualified) =>
+      CodeGenState.isKnownEnum(qualified),
+    );
   }
 }
 

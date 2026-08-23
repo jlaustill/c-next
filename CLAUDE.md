@@ -125,14 +125,49 @@ it to the regression fixtures.
 
 **Pre-commit hooks handle formatting automatically.** Manual if needed: `npm run prettier:fix && npm run oxlint:check`
 
+### SonarCloud — Never Merge a New Issue — ZERO EXCEPTIONS
+
+**A PR that introduces ANY new SonarCloud issue does not merge, whatever the
+quality gate says.** Not one Code Smell, not one Minor, not "it's only a test
+file."
+
+**The gate passing is NOT the standard.** The gate scores _ratings_ on new code,
+so a handful of new Code Smells can land while it still reports OK. Reading a
+green gate as permission to merge is the mistake — check the issue list, not the
+gate:
+
+```
+# issues introduced by a PR (must report total 0 before merge)
+# statuses= is REQUIRED: without it the response also lists CLOSED/FIXED issues,
+# so a PR whose issues you already fixed still reports a non-zero total.
+curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&pullRequest=<PR>&statuses=OPEN,CONFIRMED,REOPENED&ps=100"
+
+# and the gate, which is necessary but NOT sufficient
+curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=jlaustill_c-next&pullRequest=<PR>"
+```
+
+**A moved file re-attributes its issues to the mover.** Relocating a file makes
+its pre-existing issues count as new code. "It was already there" is not an
+out — if the PR moved it, the PR owns it.
+
+**Fix the clusters you create, not just the ones reported.** If a PR adds tests
+in the shape SonarCloud flags (S5976 parameterized-test clusters are the common
+one), convert them in the same PR rather than waiting for the next scan to
+report them.
+
+Resolving an issue means fixing the code. Marking it Won't Fix or False Positive
+to clear the list requires explicit user approval, the same as any other
+shortcut.
+
 ### SonarCloud Quality Gate
 
-| Requirement          | Threshold        |
-| -------------------- | ---------------- |
-| Coverage (new code)  | >= 80%           |
-| Duplicated lines     | <= 3%            |
-| Cognitive complexity | <= 15 per method |
-| Bugs/vulnerabilities | 0 new            |
+| Requirement          | Threshold                                      |
+| -------------------- | ---------------------------------------------- |
+| Coverage (new code)  | >= 80%                                         |
+| Duplicated lines     | <= 3%                                          |
+| Cognitive complexity | <= 15 per method                               |
+| Bugs/vulnerabilities | 0 new                                          |
+| **New issues**       | **0 — blocks merge regardless of gate status** |
 
 **Before PRs**: Run `npm run unit:coverage` and check new/modified files.
 

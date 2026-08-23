@@ -33,7 +33,8 @@ import type TRequirementKey from "../types/TRequirementKey";
 import RequirementSites from "../../utils/RequirementSites";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
-import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
+import TYPE_WIDTH from "../constants/TYPE_WIDTH";
+import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
 import QualifiedCName from "../../utils/QualifiedCName";
@@ -1032,8 +1033,16 @@ export default class CodeGenState {
       (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
       (this.symbols?.structFieldArrays.get(structType)?.has(memberName) ??
         false);
-    const dims = fieldInfo.dimensions?.filter(
-      (d): d is number => typeof d === "number",
+    // Issue #1127: map a non-numeric dimension to UNRESOLVED_DIMENSION rather
+    // than filtering it out. TTypeInfo.arrayDimensions is number[], so an
+    // enum-qualified count cannot be carried here -- but dropping it shifts
+    // every dimension after it, so `u8[EColor.COUNT][3] cells` came back as
+    // [3] and put dimension 2's bound in dimension 1's slot.
+    //
+    // UNRESOLVED_DIMENSION holds the slot and reads as "size unknown";
+    // TypeValidator.checkArrayBounds skips it because it is not > 0.
+    const dims = fieldInfo.dimensions?.map((d) =>
+      typeof d === "number" ? d : UNRESOLVED_DIMENSION,
     );
 
     return {

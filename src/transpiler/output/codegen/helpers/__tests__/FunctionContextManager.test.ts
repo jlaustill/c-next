@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FunctionContextManager from "../FunctionContextManager.js";
+import UNRESOLVED_DIMENSION from "../../../../constants/UNRESOLVED_DIMENSION";
 import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
 
@@ -960,7 +961,7 @@ describe("FunctionContextManager", () => {
       expect(result).toEqual([10]);
     });
 
-    it("skips non-numeric dimension values", () => {
+    it("keeps the slot for a non-literal dimension so positions stay aligned", () => {
       const param = {
         arrayDimension: () => [],
       } as never;
@@ -978,7 +979,14 @@ describe("FunctionContextManager", () => {
         true,
       );
 
-      expect(result).toEqual([]);
+      // Issue #1159: this previously asserted [] — the dimension was dropped.
+      // Dropping shifts every later dimension, so `u8[SIZE][4] grid` reported
+      // [4] and TypeValidator.checkArrayBounds validated subscript 0 against
+      // dimension 2's bound, falsely rejecting `grid[5][0]` on a [6][4] array.
+      // UNRESOLVED_DIMENSION holds the slot; checkArrayBounds skips it because
+      // it is not > 0. This also matches parseForParameters, which the C-style
+      // branch of this same function already delegates to.
+      expect(result).toEqual([UNRESOLVED_DIMENSION]);
     });
   });
 });

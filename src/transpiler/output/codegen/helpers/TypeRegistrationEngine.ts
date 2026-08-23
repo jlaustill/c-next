@@ -10,12 +10,15 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import TIncludeHeader from "../generators/TIncludeHeader";
 import TOverflowBehavior from "../types/TOverflowBehavior";
-import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../constants/TYPE_WIDTH";
 import CodeGenState from "../../../state/CodeGenState";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
-import ArrayDimensionParser from "./ArrayDimensionParser";
+import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import LiteralUtils from "../../../../utils/LiteralUtils";
+import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
+import dimensionEvalOptions from "./dimensionEvalOptions";
 
 /**
  * Callbacks required for type registration.
@@ -125,8 +128,7 @@ class TypeRegistrationEngine {
     if (!sizeExpr) {
       return undefined;
     }
-    const size = Number.parseInt(sizeExpr.getText(), 10);
-    return Number.isNaN(size) ? undefined : size;
+    return LiteralUtils.parseIntegerLiteral(sizeExpr.getText());
   }
 
   /**
@@ -321,7 +323,7 @@ class TypeRegistrationEngine {
     callbacks.requireInclude("string");
     const stringDim = capacity + 1;
 
-    const additionalDims = ArrayDimensionParser.parseSimpleDimensions(arrayDim);
+    const additionalDims = ArrayDimensionParser.parseDimensions(arrayDim);
     const allDims =
       additionalDims.length > 0 ? [...additionalDims, stringDim] : [stringDim];
 
@@ -371,13 +373,24 @@ class TypeRegistrationEngine {
 
     // Collect dimensions: arrayTypeDimension from arrayType, then string capacity
     // Build all dimensions at once to avoid multiple push() calls (SonarCloud S7778)
+    //
+    // Issue #1159: hold the slot for a count that does not fold rather than
+    // filtering it out. Dropping it slid the string capacity into dimension 1,
+    // so `string<8>[COUNT] names` recorded [9] instead of [4, 9] -- names[7]
+    // was accepted against a bound of 4, and the field missed the string-array
+    // shape entirely, emitting an assignment instead of strncpy.
     const arrayTypeDims = arrayTypeCtx
       .arrayTypeDimension()
       .map((dim) => dim.expression())
       .filter((expr): expr is Parser.ExpressionContext => expr !== null)
-      .map((expr) => Number.parseInt(expr.getText(), 10))
-      .filter((size) => !Number.isNaN(size));
-    const additionalDims = ArrayDimensionParser.parseSimpleDimensions(arrayDim);
+      .map(
+        (expr) =>
+          ArrayDimensionParser.parseSingleDimension(
+            expr,
+            dimensionEvalOptions(),
+          ) ?? UNRESOLVED_DIMENSION,
+      );
+    const additionalDims = ArrayDimensionParser.parseDimensions(arrayDim);
     const dimensions = [...arrayTypeDims, ...additionalDims, stringDim];
 
     CodeGenState.setVariableTypeInfo(registryName, {
@@ -562,10 +575,16 @@ class TypeRegistrationEngine {
     for (const dim of arrayTypeCtx.arrayTypeDimension()) {
       const sizeExpr = dim.expression();
       if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size)) {
-          arrayDimensions.push(size);
-        }
+        // Issue #1159: resolve through the same evaluator the sibling
+        // _evaluateArrayDimensions() uses, so every notation (hex, binary,
+        // const, sizeof) yields the same dimension the .c declaration emits.
+        // UNRESOLVED_DIMENSION keeps the slot so later dimensions stay aligned
+        // with their subscripts in TypeValidator.checkArrayBounds().
+        const size = ArrayDimensionParser.parseSingleDimension(
+          sizeExpr,
+          dimensionEvalOptions(),
+        );
+        arrayDimensions.push(size ?? UNRESOLVED_DIMENSION);
       }
     }
 
@@ -584,11 +603,10 @@ class TypeRegistrationEngine {
     arrayDim: Parser.ArrayDimensionContext[] | null,
     _callbacks: ITypeRegistrationCallbacks,
   ): number[] | undefined {
-    return ArrayDimensionParser.parseAllDimensions(arrayDim, {
-      constValues: CodeGenState.constValues,
-      typeWidths: TYPE_WIDTH,
-      isKnownStruct: (name) => CodeGenState.isKnownStruct(name),
-    });
+    return ArrayDimensionParser.parseAllDimensions(
+      arrayDim,
+      dimensionEvalOptions(),
+    );
   }
 
   private static _registerStandardType(

@@ -93,7 +93,7 @@ function getTrackedFieldDimensions(
   symbols: ICodeGenSymbols | null,
   structName: string,
   fieldName: string,
-): readonly number[] | undefined {
+): readonly (number | string)[] | undefined {
   if (!symbols) {
     return undefined;
   }

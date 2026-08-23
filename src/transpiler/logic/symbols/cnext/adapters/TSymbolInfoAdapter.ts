@@ -66,7 +66,10 @@ class TSymbolInfoAdapter {
     // === Struct Information ===
     const structFields = new Map<string, Map<string, string>>();
     const structFieldArrays = new Map<string, Set<string>>();
-    const structFieldDimensions = new Map<string, Map<string, number[]>>();
+    const structFieldDimensions = new Map<
+      string,
+      Map<string, (number | string)[]>
+    >();
 
     // === Enum Information ===
     const enumMembers = new Map<string, Map<string, number>>();
@@ -162,6 +165,18 @@ class TSymbolInfoAdapter {
       }
     }
 
+    // Issue #1127: qualify struct field dimensions that name a symbol.
+    //
+    // A second pass, not inline in processStruct: structs and enums are
+    // processed by one loop in symbol order, so knownEnums is still being
+    // filled while structs are read. Qualifying inline would make the result
+    // depend on whether the enum happens to be declared above the struct.
+    TSymbolInfoAdapter.qualifyStructFieldDimensions(
+      symbols,
+      structFieldDimensions,
+      knownEnums,
+    );
+
     // Build the ISymbolInfo result
     const result: ICodeGenSymbols = {
       // Type sets
@@ -248,7 +263,7 @@ class TSymbolInfoAdapter {
     knownStructs: Set<string>,
     structFields: Map<string, Map<string, string>>,
     structFieldArrays: Map<string, Set<string>>,
-    structFieldDimensions: Map<string, Map<string, number[]>>,
+    structFieldDimensions: Map<string, Map<string, (number | string)[]>>,
   ): void {
     // Use transpiled C name for lookups (e.g., "Geometry_Point")
     const cName = TSymbolInfoAdapter.getTranspiledCName(struct);
@@ -256,7 +271,7 @@ class TSymbolInfoAdapter {
 
     const fields = new Map<string, string>();
     const arrayFields = new Set<string>();
-    const dimensions = new Map<string, number[]>();
+    const dimensions = new Map<string, (number | string)[]>();
 
     for (const [fieldName, fieldInfo] of struct.fields) {
       // Convert TType to string for legacy ISymbolInfo format
@@ -267,13 +282,11 @@ class TSymbolInfoAdapter {
         arrayFields.add(fieldName);
 
         if (fieldInfo.dimensions && fieldInfo.dimensions.length > 0) {
-          // Filter to only include numeric dimensions
-          const numericDims = fieldInfo.dimensions.filter(
-            (d): d is number => typeof d === "number",
-          );
-          if (numericDims.length > 0) {
-            dimensions.set(fieldName, numericDims);
-          }
+          // Issue #1127: keep non-numeric dimensions. Filtering them out
+          // dropped enum-qualified counts, so `u8[EColor.COUNT] slots` reached
+          // the header as a scalar and the body as a bit-indexed value.
+          // Filtering also shifted any dimension that followed a dropped one.
+          dimensions.set(fieldName, [...fieldInfo.dimensions]);
         }
       }
     }
@@ -282,6 +295,48 @@ class TSymbolInfoAdapter {
     structFieldArrays.set(cName, arrayFields);
     if (dimensions.size > 0) {
       structFieldDimensions.set(cName, dimensions);
+    }
+  }
+
+  /**
+   * Resolve struct field dimensions that name a symbol to their C identifier.
+   *
+   * Runs after every symbol has been seen, so `knownEnums` is complete and the
+   * answer does not depend on declaration order. Numeric dimensions and plain
+   * macro names pass through untouched.
+   */
+  private static qualifyStructFieldDimensions(
+    symbols: readonly TSymbol[],
+    structFieldDimensions: Map<string, Map<string, (number | string)[]>>,
+    knownEnums: ReadonlySet<string>,
+  ): void {
+    const isKnownEnum = (qualifiedName: string): boolean =>
+      knownEnums.has(qualifiedName);
+
+    for (const symbol of symbols) {
+      if (symbol.kind !== "struct") {
+        continue;
+      }
+      const cName = TSymbolInfoAdapter.getTranspiledCName(symbol);
+      const fieldDimensions = structFieldDimensions.get(cName);
+      if (!fieldDimensions) {
+        continue;
+      }
+      const scopeName = symbol.scope.name;
+      for (const [fieldName, dimensions] of fieldDimensions) {
+        fieldDimensions.set(
+          fieldName,
+          dimensions.map((dimension) =>
+            typeof dimension === "string"
+              ? QualifiedCName.resolveDimensionName(
+                  dimension,
+                  scopeName,
+                  isKnownEnum,
+                )
+              : dimension,
+          ),
+        );
+      }
     }
   }
 

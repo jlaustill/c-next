@@ -6,13 +6,13 @@
  */
 
 import * as Parser from "../../../parser/grammar/CNextParser";
+import DimensionResolver from "../utils/DimensionResolver";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
-import LiteralUtils from "../../../../../utils/LiteralUtils";
 
 class VariableCollector {
   /**
@@ -98,16 +98,13 @@ class VariableCollector {
         continue;
       }
 
-      const dimText = sizeExpr.getText();
-      const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-      if (literalSize !== undefined) {
-        dimensions.push(literalSize);
-      } else if (constValues?.has(dimText)) {
-        dimensions.push(constValues.get(dimText)!);
-      } else {
-        // Keep as string for macro/enum references
-        dimensions.push(dimText);
-      }
+      // Issue #1127: fold through the shared resolver so a dimension resolves
+      // identically here and in codegen. Folding only literals and consts here
+      // meant `u8[sizeof(u32)]` reached the header as `sizeof(u32)` -- a
+      // C-Next type name in generated C, which does not compile -- while the
+      // .c correctly said [4]. Text that does not fold is still kept, for macro and
+      // enum references.
+      dimensions.push(DimensionResolver.resolve(sizeExpr, constValues));
     }
     return dimensions;
   }

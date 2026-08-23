@@ -20,7 +20,7 @@ interface IHeaderTypeInput {
   /** Array dimensions for struct fields: structName -> (fieldName -> dimensions) */
   readonly structFieldDimensions: ReadonlyMap<
     string,
-    ReadonlyMap<string, readonly number[]>
+    ReadonlyMap<string, readonly (number | string)[]>
   >;
 
   /** Backing type for each bitmap: bitmapName -> typeName (e.g., "uint8_t") */
