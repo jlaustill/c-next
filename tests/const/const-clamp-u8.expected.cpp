@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    uint8_t result;
+    if (__builtin_sub_overflow(a, (uint8_t)b, &result)) return 0;
+    return result;
+}
+
 // test-execution
 // ADR-013 + ADR-044: Const clamp u8 combination
 // Tests: const clamp u8 declaration and read access
@@ -17,7 +27,7 @@ int main(void) {
     if (maxVal != 255) return 1;
     uint8_t midVal = MID_VALUE;
     if (midVal != 128) return 2;
-    uint8_t diff = MAX_VALUE - MID_VALUE;
+    uint8_t diff = cnx_clamp_sub_u8(MAX_VALUE, MID_VALUE);
     if (diff != 127) return 3;
     return 0;
 }

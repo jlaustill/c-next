@@ -95,7 +95,7 @@ void criticalInDoWhile(void) {
 }
 
 void criticalInNestedLoop(void) {
-    for (uint32_t i = 0; i < 3; i = i + 1) {
+    for (uint32_t i = 0; i < 3; i = cnx_clamp_add_u32(i, 1)) {
         for (uint32_t j = 0; j < 3; j = j + 1) {
             {
                 uint32_t __primask = __cnx_get_PRIMASK();

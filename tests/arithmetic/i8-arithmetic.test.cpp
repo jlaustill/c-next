@@ -5,37 +5,61 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline int8_t cnx_clamp_add_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
+}
+
+static inline int8_t cnx_clamp_mul_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a * b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
+}
+
+static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
+}
+
 // test-execution
 // Test i8 arithmetic operations
 // Coverage: Section 4.1-4.5 for i8 type
 int main(void) {
     int8_t a = 50;
     int8_t b = 30;
-    int8_t sum = a + b;
+    int8_t sum = cnx_clamp_add_i8(a, b);
     int8_t c = -50;
     int8_t d = 30;
-    int8_t sum_neg = c + d;
+    int8_t sum_neg = cnx_clamp_add_i8(c, d);
     int8_t e = -40;
     int8_t f = -20;
-    int8_t sum_both_neg = e + f;
+    int8_t sum_both_neg = cnx_clamp_add_i8(e, f);
     int8_t g = 50;
     int8_t h = 30;
-    int8_t diff = g - h;
+    int8_t diff = cnx_clamp_sub_i8(g, h);
     int8_t i = 30;
     int8_t j = 50;
-    int8_t diff_neg = i - j;
+    int8_t diff_neg = cnx_clamp_sub_i8(i, j);
     int8_t k = -30;
     int8_t l = 20;
-    int8_t diff_mixed = k - l;
+    int8_t diff_mixed = cnx_clamp_sub_i8(k, l);
     int8_t m = 10;
     int8_t n = 5;
-    int8_t product = m * n;
+    int8_t product = cnx_clamp_mul_i8(m, n);
     int8_t o = -10;
     int8_t p = 5;
-    int8_t product_neg = o * p;
+    int8_t product_neg = cnx_clamp_mul_i8(o, p);
     int8_t q = -10;
     int8_t r = -5;
-    int8_t product_pos = q * r;
+    int8_t product_pos = cnx_clamp_mul_i8(q, r);
     int8_t s = 60;
     int8_t t = 3;
     int8_t quotient = s / t;
@@ -53,9 +77,9 @@ int main(void) {
     int8_t remainder_neg = aa % bb;
     int8_t max_val = 127;
     int8_t one = 1;
-    int8_t max_minus_one = max_val - one;
+    int8_t max_minus_one = cnx_clamp_sub_i8(max_val, one);
     int8_t min_val = -128;
-    int8_t min_plus_one = min_val + one;
+    int8_t min_plus_one = cnx_clamp_add_i8(min_val, one);
     if (sum == 80 && sum_neg == -20 && sum_both_neg == -60) {
         if (diff == 20 && diff_neg == -20 && diff_mixed == -50) {
             if (product == 50 && product_neg == -50 && product_pos == 50) {

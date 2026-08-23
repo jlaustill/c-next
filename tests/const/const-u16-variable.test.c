@@ -5,6 +5,23 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    uint16_t result;
+    if (__builtin_add_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
+    return result;
+}
+
+static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    uint16_t result;
+    if (__builtin_sub_overflow(a, (uint16_t)b, &result)) return 0;
+    return result;
+}
+
 // test-execution
 // ADR-013: Const u16 variable
 // Tests: const u16 declaration and read access
@@ -17,13 +34,13 @@ int main(void) {
     if (port != 65535) return 1;
     uint16_t defPort = DEFAULT_PORT;
     if (defPort != 8080) return 2;
-    uint16_t result = MAX_PORT - DEFAULT_PORT;
+    uint16_t result = cnx_clamp_sub_u16(MAX_PORT, DEFAULT_PORT);
     if (result != 57455) return 3;
     if (DEFAULT_PORT >= MAX_PORT) return 4;
     uint16_t values[3] = {100U, 200U, 300U};
     uint16_t sum = 0U;
     for (uint16_t i = 0; i < 3; i = i + 1) {
-        sum = sum + values[i];
+        sum = cnx_clamp_add_u16(sum, values[i]);
     }
     if (sum != 600) return 5;
     return 0;

@@ -6,6 +6,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Basic array declaration, initialization, and indexing
 // Demonstrates: array literals, element access, array.length
@@ -26,7 +36,7 @@ int main(void) {
     if (5 != 5) return 7;
     uint32_t sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
-        sum = sum + numbers[i];
+        sum = cnx_clamp_add_u32(sum, numbers[i]);
     }
     if (sum != 150) return 8;
     numbers[2] = 100U;

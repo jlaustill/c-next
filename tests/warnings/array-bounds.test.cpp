@@ -35,7 +35,7 @@ int main(void) {
     if (sum != 150) return 4;
     uint32_t offset = 1U;
     uint32_t base = 2U;
-    if (arr[base + offset] != 40) return 5;
+    if (arr[cnx_clamp_add_u32(base, offset)] != 40) return 5;
     uint32_t matrix[3][3] = {{1U, 2U, 3U}, {4U, 5U, 6U}, {7U, 8U, 9U}};
     if (matrix[0U][0U] != 1) return 6;
     if (matrix[2U][2U] != 9) return 7;

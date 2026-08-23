@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline int8_t cnx_clamp_sub_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
+}
+
 // test-execution
 // ADR-013: Const i8 variable
 // Tests: const i8 declaration and read access with negative values
@@ -21,7 +31,7 @@ int main(void) {
     if (maxT != 85) return 2;
     int8_t zero = ZERO_POINT;
     if (zero != 0) return 3;
-    int8_t range = MAX_TEMP - MIN_TEMP;
+    int8_t range = cnx_clamp_sub_i8(MAX_TEMP, MIN_TEMP);
     if (range != 125) return 4;
     if (MIN_TEMP >= ZERO_POINT) return 5;
     int8_t temp = -20;

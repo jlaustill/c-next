@@ -10,6 +10,23 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
+}
+
 uint32_t checkValue(uint8_t x) {
     return x;
 }
@@ -18,24 +35,24 @@ int main(void) {
     uint8_t a = 5U;
     uint8_t b = 3U;
     uint32_t result = 0U;
-    uint32_t check1 = checkValue(a + b);
+    uint32_t check1 = checkValue(cnx_clamp_add_u8(a, b));
     if (check1 > 5) {
         result = 1U;
     }
     if (result != 1) return 1;
     uint8_t iterations = 0U;
     uint8_t limit = 2U;
-    uint32_t check2 = checkValue(limit + 1U);
+    uint32_t check2 = checkValue(cnx_clamp_add_u8(limit, 1U));
     while (check2 > iterations) {
-        iterations = iterations + 1U;
+        iterations = cnx_clamp_add_u8(iterations, 1U);
         if (iterations > 10) return 2;
     }
     if (iterations != 3) return 3;
     uint32_t sum = 0U;
     uint8_t maxVal = 3U;
-    uint32_t check3 = checkValue(maxVal + 1U);
+    uint32_t check3 = checkValue(cnx_clamp_add_u8(maxVal, 1U));
     for (uint8_t i = 0; i < check3; i = i + 1) {
-        sum = sum + 1U;
+        sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 4) return 4;
     return 0;

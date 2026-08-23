@@ -6,6 +6,16 @@
 #include <stdint.h>
 #include <string.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Issue #1029: .element_count should work on string arrays inside functions
 int main(void) {
@@ -20,8 +30,8 @@ int main(void) {
     uint32_t count = 0U;
     uint32_t i = 0U;
     while (i < 4) {
-        count = count + 1U;
-        i = i + 1U;
+        count = cnx_clamp_add_u32(count, 1U);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (count != 4) {
         return 2;

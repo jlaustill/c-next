@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Pass-by-value in nested function calls
 // Coverage: Values passed through call chains
@@ -31,7 +41,7 @@ void modifyAddTwo(uint32_t& val) {
 uint32_t mixedChain(uint32_t& val) {
     uint32_t result = addOne(val);
     modifyAddOne(val);
-    return result + val;
+    return cnx_clamp_add_u32(result, val);
 }
 
 // Level 1: top functions
@@ -53,7 +63,7 @@ uint32_t sumThree(uint32_t a, uint32_t b, uint32_t c) {
 uint32_t sumSix(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e, uint32_t f) {
     uint32_t first = sumThree(a, b, c);
     uint32_t second = sumThree(d, e, f);
-    return first + second;
+    return cnx_clamp_add_u32(first, second);
 }
 
 // Mixed modification through chain

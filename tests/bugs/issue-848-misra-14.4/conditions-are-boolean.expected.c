@@ -6,6 +6,23 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    uint32_t result;
+    if (__builtin_sub_overflow(a, (uint32_t)b, &result)) return 0;
+    return result;
+}
+
 // test-execution
 // Issue #848: MISRA C:2012 Rule 14.4 — the controlling expression of an `if`
 // statement and of an iteration-statement shall have essentially Boolean type.
@@ -23,8 +40,8 @@ uint32_t countDownWhile(uint32_t start) {
     uint32_t n = start;
     uint32_t iterations = 0U;
     while (n > 0) {
-        n = n - 1U;
-        iterations = iterations + 1U;
+        n = cnx_clamp_sub_u32(n, 1U);
+        iterations = cnx_clamp_add_u32(iterations, 1U);
     }
     return iterations;
 }
@@ -32,7 +49,7 @@ uint32_t countDownWhile(uint32_t start) {
 uint32_t sumForLoop(uint32_t limit) {
     uint32_t total = 0U;
     for (uint32_t i = 0; i < limit; i = i + 1) {
-        total = total + i;
+        total = cnx_clamp_add_u32(total, i);
     }
     return total;
 }
@@ -40,7 +57,7 @@ uint32_t sumForLoop(uint32_t limit) {
 uint32_t firstMultiple(uint32_t step) {
     uint32_t value = 0U;
     do {
-        value = value + step;
+        value = cnx_clamp_add_u32(value, step);
     } while (value < step);
     return value;
 }

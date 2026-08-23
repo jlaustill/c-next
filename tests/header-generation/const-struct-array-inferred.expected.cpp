@@ -7,6 +7,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // Tests: Issue #636 - Const struct array with inferred size must include dimension in header
 // This is a regression test to ensure headers correctly declare array dimensions
 // when the size is inferred from an initializer.
@@ -32,6 +42,6 @@ int main(void) {
     uint32_t total = 0U;
     for (uint8_t i = 0; i < ITEM_COUNT; i = i + 1) {
         ConstInferred__TItem item = ITEMS[i];
-        total = total + item.value;
+        total = cnx_clamp_add_u32(total, item.value);
     }
 }

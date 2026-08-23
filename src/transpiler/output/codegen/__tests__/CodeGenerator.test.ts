@@ -6358,7 +6358,7 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("int32_t a = -10");
-      expect(code).toContain("b - a");
+      expect(code).toContain("cnx_clamp_sub_i32(b, a)"); // #1152: clamp is the default
     });
   });
 
@@ -7956,7 +7956,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("callee(a + b)");
+        expect(code).toContain("callee(cnx_clamp_add_u32(a, b))"); // #1152
       });
 
       it("should handle struct field array argument", () => {
@@ -9961,7 +9961,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("sizeof(x + 1U)");
+        expect(code).toContain("sizeof(cnx_clamp_add_u32(x, 1U))"); // #1152
       });
     });
 
@@ -11432,7 +11432,7 @@ describe("CodeGenerator", () => {
         });
 
         // Local variables don't need dereferencing
-        expect(code).toContain("uint32_t sum = a + b");
+        expect(code).toContain("uint32_t sum = cnx_clamp_add_u32(a, b)"); // #1152
       });
 
       it("should handle complex arithmetic with parentheses", () => {
@@ -13502,7 +13502,7 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("process(x + 5U)");
+        expect(code).toContain("process(cnx_clamp_add_u32(x, 5U))"); // #1152
       });
     });
 
@@ -15434,7 +15434,12 @@ describe("CodeGenerator", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("(a + b) * c");
+        // #1152: u32 is clamp by default, so the operators become saturating
+        // helpers. Grouping is still preserved -- and more explicitly: the
+        // addition is nested inside the multiplication.
+        expect(code).toContain(
+          "cnx_clamp_mul_u32((cnx_clamp_add_u32(a, b)), c)",
+        );
       });
     });
 

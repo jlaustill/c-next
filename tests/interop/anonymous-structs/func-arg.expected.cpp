@@ -10,6 +10,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // Test function that takes struct with anonymous member
 int32_t check_simple(const SimpleConfig& cfg) {
     if (cfg.value != 99) return 1;
@@ -37,9 +47,9 @@ int main(void) {
     if (result != 0) return result;
     DisplayConfig disp = { .resolution = { .width = 1024, .height = 768 }, .settings = { .brightness = 100, .contrast = 75 } };
     result = check_display(disp);
-    if (result != 0) return 10 + result;
+    if (result != 0) return cnx_clamp_add_i32(10, result);
     PanelConfig panel = { .clk_src = 1, .timings = { .pclk_hz = 16000000, .h_res = 800, .v_res = 480 }, .flags = { .fb_in_psram = 1, .double_fb = 0 } };
     result = check_panel(panel);
-    if (result != 0) return 20 + result;
+    if (result != 0) return cnx_clamp_add_i32(20, result);
     return 0;
 }

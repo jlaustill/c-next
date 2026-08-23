@@ -41,6 +41,16 @@ static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
 static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 #endif
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-c-only
 // test-execution
 // Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
@@ -112,37 +122,37 @@ int main(void) {
     uint32_t errors = 0U;
     EGlobalState state = EGlobalState__IDLE;
     if (state != EGlobalState__IDLE) {
-        errors = errors + 1U;
+        errors = cnx_clamp_add_u32(errors, 1U);
     }
     state = EGlobalState__RUNNING;
     if (state != EGlobalState__RUNNING) {
-        errors = errors + 2U;
+        errors = cnx_clamp_add_u32(errors, 2U);
     }
     if (state != EGlobalState__RUNNING) {
-        errors = errors + 4U;
+        errors = cnx_clamp_add_u32(errors, 4U);
     }
     Motor__setMode(Motor__EMode__LOW);
     Motor__EMode motorMode = Motor__getMode();
     if (motorMode != Motor__EMode__LOW) {
-        errors = errors + 8U;
+        errors = cnx_clamp_add_u32(errors, 8U);
     }
     bool isOff = Motor__isOff();
     if (isOff == true) {
-        errors = errors + 16U;
+        errors = cnx_clamp_add_u32(errors, 16U);
     }
     bool isLow = Motor__isMode(Motor__EMode__LOW);
     if (isLow == false) {
-        errors = errors + 32U;
+        errors = cnx_clamp_add_u32(errors, 32U);
     }
     Motor__setAtomicMode(Motor__EMode__HIGH);
     Motor__EMode atomicResult = Motor__getAtomicMode();
     if (atomicResult != Motor__EMode__HIGH) {
-        errors = errors + 64U;
+        errors = cnx_clamp_add_u32(errors, 64U);
     }
     Motor__criticalEnumUpdate();
     Motor__EMode afterCritical = Motor__getMode();
     if (afterCritical != Motor__EMode__HIGH) {
-        errors = errors + 128U;
+        errors = cnx_clamp_add_u32(errors, 128U);
     }
     Controller__setMotorMode();
     EGlobalState loopState = EGlobalState__IDLE;
@@ -153,18 +163,18 @@ int main(void) {
         } else {
             loopState = EGlobalState__STOPPED;
         }
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (loopState != EGlobalState__STOPPED) {
-        errors = errors + 256U;
+        errors = cnx_clamp_add_u32(errors, 256U);
     }
     EGlobalState fromScope = Motor__getGlobalState();
     if (fromScope != EGlobalState__IDLE) {
-        errors = errors + 512U;
+        errors = cnx_clamp_add_u32(errors, 512U);
     }
     Controller__EStatus ctrlStatus = Controller__getStatus();
     if (ctrlStatus != Controller__EStatus__OK) {
-        errors = errors + 1024U;
+        errors = cnx_clamp_add_u32(errors, 1024U);
     }
     return errors;
 }

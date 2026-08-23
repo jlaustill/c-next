@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
+}
+
 // test-execution
 // Issue #1085 review, Finding 2: the slice source is evaluated exactly once.
 // The unrolled writes previously inlined the source expression into every
@@ -14,7 +24,7 @@
 uint8_t sliceSourceCallCount = 0U;
 
 uint32_t nextSliceValue(void) {
-    sliceSourceCallCount = sliceSourceCallCount + 1U;
+    sliceSourceCallCount = cnx_clamp_add_u8(sliceSourceCallCount, 1U);
     return 0x11223344;
 }
 

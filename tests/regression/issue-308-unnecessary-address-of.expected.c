@@ -11,6 +11,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
+}
+
 // Bug: The transpiler incorrectly added & to struct member arrays:
 //   result.data becomes &result.data (wrong - array should decay to pointer)
 //
@@ -41,8 +51,8 @@ uint8_t sumArray(uint8_t arr[6], uint8_t len) {
     uint8_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
-        sum = sum + arr[i];
-        i = i + 1U;
+        sum = cnx_clamp_add_u8(sum, arr[i]);
+        i = cnx_clamp_add_u8(i, 1U);
     }
     return sum;
 }

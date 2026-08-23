@@ -15,6 +15,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return result;
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_mul_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: 2D struct array access with variable indices
 // Coverage: Runtime index computation, nested loops
@@ -31,9 +38,9 @@ int main(void) {
     while (y < 4) {
         uint32_t x = 0U;
         while (x < 4) {
-            image[y][x].r = y * 64U;
-            image[y][x].g = x * 64U;
-            image[y][x].b = (y + x) * 32U;
+            image[y][x].r = cnx_clamp_mul_u32(y, 64U);
+            image[y][x].g = cnx_clamp_mul_u32(x, 64U);
+            image[y][x].b = (cnx_clamp_add_u32(y, x)) * 32U;
             x = cnx_clamp_add_u32(x, 1U);
         }
         y = cnx_clamp_add_u32(y, 1U);
@@ -51,7 +58,7 @@ int main(void) {
     if (image[3U][3U].b != 192) return 9;
     uint32_t baseRow = 1U;
     uint32_t offset = 1U;
-    if (image[baseRow + offset][offset].r != 128) return 10;
+    if (image[cnx_clamp_add_u32(baseRow, offset)][offset].r != 128) return 10;
     uint32_t targetRow = 2U;
     uint32_t targetCol = 2U;
     image[targetRow][targetCol].r = 255U;
