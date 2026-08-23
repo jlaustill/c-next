@@ -16,7 +16,7 @@ Every rule below exists because the cheap version of it already failed.
 
 ---
 
-## The five non-negotiables
+## The six non-negotiables
 
 These are from `CLAUDE.md`. They are absolute. If following one is genuinely
 impossible, **ask** — do not decide alone.
@@ -41,11 +41,22 @@ Real example (#1143): a report inferred output mode from a requirement's own
 reaching that line happened to be single-mode. One dual-mode entry would have
 judged a C transpile against the C++ baseline.
 
-### 3. A bug is fixed or filed. Never neither.
+### 3. Nothing goes under the rug. Fix it or file it. Hard stop.
 
-Including pre-existing bugs found while doing something else, and bugs you have
-decided not to fix. **Never file without a minimal reproduction you have
-actually run.** Touching code containing a defect means owning it.
+Not just bugs — **anything you notice**. A smell, a doubt, a "that looks wrong",
+a pre-existing defect you tripped over while doing something else, a thing you
+decided not to fix. Every one of them ends in exactly one of two states:
+
+- **fixed**, or
+- **filed**, with a minimal reproduction you have actually run.
+
+There is no third state. "Worth noting" is not a state. "I'll mention it in the
+summary" is not a state — a summary scrolls away, an issue does not. Deciding
+something is not worth fixing is fine; deciding it is not worth *recording* is
+not yours to make.
+
+Touching code containing a defect means owning it. "It pre-dates this change"
+and "it follows an existing pattern" are not defences.
 
 ### 4. Syntax and behavior changes need an ADR and the user's word
 
@@ -64,6 +75,25 @@ is the authority — read it before concluding something is a bug.
 
 Update the relevant ADR with findings as you go. Never change an ADR's Status
 or Decision without explicit direction.
+
+### 6. Never merge a new SonarQube issue — gate green or not
+
+The quality gate is a floor, not the standard. It permits duplication up to 3%,
+coverage down to 80%, and says nothing at all about an issue that does not move
+a rating. **A green gate with an open issue on your code is still a fail.**
+
+Check the issues themselves, not the badge:
+
+```bash
+curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&pullRequest=<n>&statuses=OPEN,CONFIRMED&ps=100"
+```
+
+Real example (#1153): the gate reported **OK** while one CRITICAL cognitive-
+complexity issue sat on new code. Nothing would have failed; the PR would have
+merged carrying it.
+
+If an issue is genuinely a false positive, that is a case to make explicitly —
+say why, in the PR — not to leave sitting open because the gate tolerated it.
 
 ---
 
@@ -153,7 +183,8 @@ Then ask yourself:
 
 - [ ] Did I **mutation-check** every test and guard I added?
 - [ ] Would changing one fact require editing **more than one place**?
-- [ ] Is every bug I found **fixed or filed with a reproduction I ran**?
+- [ ] Is **everything** I noticed fixed or filed — not just the bugs?
+- [ ] Are there **zero** open Sonar issues on my code, regardless of the gate?
 - [ ] Did I **regenerate** rather than edit or merge any generated file?
 - [ ] Did I verify each claim in my commit message, or am I repeating something?
 - [ ] Does anything I wrote agree with the truth only **by coincidence**?
