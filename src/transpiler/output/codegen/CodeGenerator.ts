@@ -3674,6 +3674,32 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * The struct type for an initializer: explicit if written, else inferred
+   * from the expected type at this position.
+   *
+   * Rejects a redundant explicit type, which is the case where both are
+   * present: `const Point p <- Point { x: 0 };` should be written
+   * `const Point p <- { x: 0 };`.
+   */
+  private _resolveStructInitializerTypeName(
+    ctx: Parser.StructInitializerContext,
+  ): string {
+    const explicit = ctx.IDENTIFIER();
+    if (explicit && CodeGenState.expectedType) {
+      throw new Error(
+        `Redundant type '${explicit.getText()}' in struct initializer. ` +
+          `Use '{ field: value }' syntax when type is already declared.`,
+      );
+    }
+    if (explicit) return explicit.getText();
+    if (CodeGenState.expectedType) return CodeGenState.expectedType;
+    // This should not happen in valid code
+    throw new Error(
+      "Cannot infer struct type - no explicit type and no context",
+    );
+  }
+
+  /**
    * ADR-014: Generate struct initializer
    * { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 } (type inferred from context)
    *
@@ -3683,30 +3709,7 @@ export default class CodeGenerator implements IOrchestrator {
   private generateStructInitializer(
     ctx: Parser.StructInitializerContext,
   ): string {
-    // Reject redundant type in struct initializer
-    // Wrong: const Point p <- Point { x: 0 };
-    // Right: const Point p <- { x: 0 };
-    if (ctx.IDENTIFIER() && CodeGenState.expectedType) {
-      const explicitType = ctx.IDENTIFIER()!.getText();
-      throw new Error(
-        `Redundant type '${explicitType}' in struct initializer. ` +
-          `Use '{ field: value }' syntax when type is already declared.`,
-      );
-    }
-
-    // Get type name - either explicit or inferred from context
-    let typeName: string;
-    if (ctx.IDENTIFIER()) {
-      typeName = ctx.IDENTIFIER()!.getText();
-    } else if (CodeGenState.expectedType) {
-      typeName = CodeGenState.expectedType;
-    } else {
-      // This should not happen in valid code
-      throw new Error(
-        "Cannot infer struct type - no explicit type and no context",
-      );
-    }
-
+    const typeName = this._resolveStructInitializerTypeName(ctx);
     const fieldList = ctx.fieldInitializerList();
 
     // Issue #517: Check if this is a C++ class with a user-defined constructor.

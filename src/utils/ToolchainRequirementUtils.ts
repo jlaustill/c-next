@@ -149,12 +149,15 @@ class ToolchainRequirementUtils {
       TOOLCHAIN_REQUIREMENTS[ToolchainRequirementUtils.baselineKey(mode)]
         .standard;
     // The highest standard subsumes the baseline, so listing both would read as
-    // needing two standards at once.
-    const highest = [baseline, ...standards].reduce((left, right) =>
-      LANGUAGE_STANDARD_ORDER[right as TLanguageStandard] >
-      LANGUAGE_STANDARD_ORDER[left as TLanguageStandard]
-        ? right
-        : left,
+    // needing two standards at once. Seeded with the baseline rather than
+    // relying on the array being non-empty.
+    const highest = Array.from(standards).reduce(
+      (left, right) =>
+        LANGUAGE_STANDARD_ORDER[right as TLanguageStandard] >
+        LANGUAGE_STANDARD_ORDER[left as TLanguageStandard]
+          ? right
+          : left,
+      baseline as string,
     );
     parts.push(`Requires: ${highest}.`);
     if (extensions.size > 0) {

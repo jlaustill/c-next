@@ -86,8 +86,29 @@ class ResultPrinter {
     console.log("");
     console.log("Toolchain requirements for this project:");
     console.log("");
+    ResultPrinter.printStandardSection(reportable, mode, baseline.standard);
+    ResultPrinter.printCompilerSection(reportable);
+    ResultPrinter.printPlatformSection(reportable);
+
+    console.log("");
+    console.log("  See docs/compatibility.md for the full matrix.");
+  }
+
+  /**
+   * Requirements whose cost is a later language standard than the baseline.
+   *
+   * A requirement that also names an extension gets a second line: GCC and
+   * Clang accept it below the standard, so a reader already on that standard
+   * must not be told they need an extension.
+   */
+  private static printStandardSection(
+    reportable: readonly IRecordedRequirement[],
+    mode: TOutputMode,
+    baselineStandard: string,
+  ): void {
     console.log("  Language standard");
-    console.log(`    ${baseline.standard.padEnd(LABEL_WIDTH)}baseline`);
+    console.log(`    ${baselineStandard.padEnd(LABEL_WIDTH)}baseline`);
+
     for (const entry of reportable) {
       const requirement = ToolchainRequirementUtils.lookup(entry.key);
       if (requirement.platformLib !== null) continue;
@@ -96,17 +117,10 @@ class ResultPrinter {
       }
       ResultPrinter.printLeaf(requirement.standard, requirement, entry);
       if (requirement.extensions.length > 0) {
-        console.log(
-          `    ${"".padEnd(LABEL_WIDTH)}  (or a GNU/Clang extension below ${requirement.standard})`,
-        );
+        const note = `(or a GNU/Clang extension below ${requirement.standard})`;
+        console.log(`    ${"".padEnd(LABEL_WIDTH)}  ${note}`);
       }
     }
-
-    ResultPrinter.printCompilerSection(reportable);
-    ResultPrinter.printPlatformSection(reportable);
-
-    console.log("");
-    console.log("  See docs/compatibility.md for the full matrix.");
   }
 
   /**
@@ -218,9 +232,8 @@ class ResultPrinter {
     for (const site of entry.sites.slice(0, SITE_LIMIT)) {
       if (site.sourcePath.length === 0) continue;
       const path = relative(process.cwd(), site.sourcePath) || site.sourcePath;
-      console.log(
-        `${indent}${site.line === null ? path : `${path}:${site.line}`}`,
-      );
+      const where = site.line === null ? path : `${path}:${site.line}`;
+      console.log(`${indent}${where}`);
     }
     if (entry.sites.length > SITE_LIMIT) {
       console.log(`${indent}(+${entry.sites.length - SITE_LIMIT} more)`);
