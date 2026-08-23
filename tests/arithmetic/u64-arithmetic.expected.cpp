@@ -5,6 +5,30 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT64_MAX - a)) return UINT64_MAX;
+    uint64_t result;
+    if (__builtin_add_overflow(a, (uint64_t)b, &result)) return UINT64_MAX;
+    return result;
+}
+
+static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
+    if (b != 0 && a > UINT64_MAX / b) return UINT64_MAX;
+    uint64_t result;
+    if (__builtin_mul_overflow(a, (uint64_t)b, &result)) return UINT64_MAX;
+    return result;
+}
+
+static inline uint64_t cnx_clamp_sub_u64(uint64_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    uint64_t result;
+    if (__builtin_sub_overflow(a, (uint64_t)b, &result)) return 0;
+    return result;
+}
+
 // test-coverage: 1.1-u64-in-arithmetic-expression
 // test-execution
 // Tests: u64 arithmetic operations (+, -, *, /, %)
@@ -13,39 +37,39 @@
 int main(void) {
     uint64_t a = 1000000000000ULL;
     uint64_t b = 500000000000ULL;
-    uint64_t result = a + b;
+    uint64_t result = cnx_clamp_add_u64(a, b);
     if (result != 1500000000000) return 1;
-    result = a + 1000ULL;
+    result = cnx_clamp_add_u64(a, 1000ULL);
     if (result != 1000000001000) return 2;
-    result = 5000ULL + a;
+    result = cnx_clamp_add_u64(5000ULL, a);
     if (result != 1000000005000) return 3;
     uint64_t large1 = 9000000000000000000ULL;
     uint64_t large2 = 1000000000000000000ULL;
-    result = large1 + large2;
+    result = cnx_clamp_add_u64(large1, large2);
     if (result != 10000000000000000000) return 4;
     a = 1000000000000ULL;
     b = 300000000000ULL;
-    result = a - b;
+    result = cnx_clamp_sub_u64(a, b);
     if (result != 700000000000) return 5;
-    result = a - 1000ULL;
+    result = cnx_clamp_sub_u64(a, 1000ULL);
     if (result != 999999999000) return 6;
-    result = 2000000000000ULL - a;
+    result = cnx_clamp_sub_u64(2000000000000ULL, a);
     if (result != 1000000000000) return 7;
     uint64_t c = 1000ULL;
     uint64_t d = 999ULL;
-    result = c - d;
+    result = cnx_clamp_sub_u64(c, d);
     if (result != 1) return 8;
     uint64_t m1 = 1000000ULL;
     uint64_t m2 = 1000000ULL;
-    result = m1 * m2;
+    result = cnx_clamp_mul_u64(m1, m2);
     if (result != 1000000000000) return 9;
-    result = m1 * 2ULL;
+    result = cnx_clamp_mul_u64(m1, 2ULL);
     if (result != 2000000) return 10;
-    result = 1000ULL * m1;
+    result = cnx_clamp_mul_u64(1000ULL, m1);
     if (result != 1000000000) return 11;
     uint64_t m3 = 100000000ULL;
     uint64_t m4 = 10000ULL;
-    result = m3 * m4;
+    result = cnx_clamp_mul_u64(m3, m4);
     if (result != 1000000000000) return 12;
     uint64_t div1 = 1000000000000ULL;
     uint64_t div2 = 1000ULL;
@@ -73,37 +97,37 @@ int main(void) {
     uint64_t e1 = 10000ULL;
     uint64_t e2 = 5000ULL;
     uint64_t e3 = 2000ULL;
-    result = e1 + e2 * e3;
+    result = cnx_clamp_add_u64(e1, cnx_clamp_mul_u64(e2, e3));
     if (result != 10010000) return 21;
-    result = (e1 + e2) * e3;
+    result = cnx_clamp_mul_u64((cnx_clamp_add_u64(e1, e2)), e3);
     if (result != 30000000) return 22;
-    result = e1 / e2 + e3;
+    result = cnx_clamp_add_u64(e1 / e2, e3);
     if (result != 2002) return 23;
-    result = e1 - e2 / e3;
+    result = cnx_clamp_sub_u64(e1, e2 / e3);
     if (result != 9998) return 24;
-    result = (e1 * e2) / e3 + 1000ULL;
+    result = cnx_clamp_add_u64((cnx_clamp_mul_u64(e1, e2)) / e3, 1000ULL);
     if (result != 26000) return 25;
-    result = (e1 + e2) / (e3 - 1000ULL);
+    result = (cnx_clamp_add_u64(e1, e2)) / (cnx_clamp_sub_u64(e3, 1000ULL));
     if (result != 15) return 26;
     uint64_t zero = 0ULL;
     uint64_t val = 1000000ULL;
-    result = zero + val;
+    result = cnx_clamp_add_u64(zero, val);
     if (result != 1000000) return 27;
-    result = val - zero;
+    result = cnx_clamp_sub_u64(val, zero);
     if (result != 1000000) return 28;
-    result = zero * val;
+    result = cnx_clamp_mul_u64(zero, val);
     if (result != 0) return 29;
     result = zero / 1ULL;
     if (result != 0) return 30;
     result = zero % 100ULL;
     if (result != 0) return 31;
-    result = val * 1ULL;
+    result = cnx_clamp_mul_u64(val, 1ULL);
     if (result != 1000000) return 32;
     result = val / 1ULL;
     if (result != 1000000) return 33;
     uint64_t timestamp1 = 1609459200000ULL;
     uint64_t timestamp2 = 1609545600000ULL;
-    result = timestamp2 - timestamp1;
+    result = cnx_clamp_sub_u64(timestamp2, timestamp1);
     if (result != 86400000) return 34;
     return 0;
 }

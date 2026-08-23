@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Basic control flow structures
 // Demonstrates: if/else, while, for, do-while
@@ -36,29 +46,29 @@ int main(void) {
     uint32_t counter = 0U;
     uint32_t sum = 0U;
     while (counter < 5) {
-        sum = sum + counter;
-        counter = counter + 1U;
+        sum = cnx_clamp_add_u32(sum, counter);
+        counter = cnx_clamp_add_u32(counter, 1U);
     }
     if (sum != 10) return 4;
     sum = 0U;
     for (uint32_t i = 1; i <= 5; i = i + 1) {
-        sum = sum + i;
+        sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 15) return 5;
     counter = 0U;
     do {
-        counter = counter + 1U;
+        counter = cnx_clamp_add_u32(counter, 1U);
     } while (counter < 3);
     if (counter != 3) return 6;
     sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
-        sum = sum + 1U;
+        sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 5) return 7;
     sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
         if (i != 2) {
-            sum = sum + 1U;
+            sum = cnx_clamp_add_u32(sum, 1U);
         }
     }
     if (sum != 4) return 8;

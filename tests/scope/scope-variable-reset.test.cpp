@@ -7,6 +7,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Issue #233 - Scope variables persist like C static variables
 //
@@ -17,7 +27,7 @@ static uint32_t Calculator__operationCount = 0U;
 
 uint32_t Calculator__addAndCount(uint32_t value) {
     uint32_t accumulator = 0U;
-    accumulator = accumulator + value;
+    accumulator = cnx_clamp_add_u32(accumulator, value);
     Calculator__operationCount = Calculator__operationCount + 1U;
     return accumulator;
 }

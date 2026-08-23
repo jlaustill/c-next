@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Implicit type widening (safe conversions)
 // Demonstrates: smaller types implicitly widen to larger types
@@ -31,7 +41,9 @@ int main(void) {
     if (precise < 3.13 || precise > 3.15) return 8;
     uint8_t a = 200U;
     uint8_t b = 200U;
-    uint16_t sum = a + b;
-    if (sum != 400) return 9;
+    uint16_t clamped = cnx_clamp_add_u8(a, b);
+    if (clamped != 255) return 9;
+    uint16_t sum = (uint16_t)a + (uint16_t)b;
+    if (sum != 400) return 10;
     return 0;
 }

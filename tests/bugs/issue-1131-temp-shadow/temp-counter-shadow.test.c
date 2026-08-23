@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
+}
+
 // test-execution
 // Issue #1131: a generated slice-unroll temporary shadowed a user global.
 //
@@ -27,7 +37,7 @@ int main(void) {
     buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    buffer[0] = buffer[0U] + _tmp0;
+    buffer[0] = cnx_clamp_add_u8(buffer[0U], _tmp0);
     if (buffer[0U] != 7) return 1;
     return 0;
 }

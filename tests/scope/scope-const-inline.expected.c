@@ -8,6 +8,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    uint16_t result;
+    if (__builtin_add_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
@@ -60,7 +70,7 @@ uint16_t ConstTest__multipleRefs(void) {
     uint16_t a = 255;
     uint16_t b = 255 + 1U;
     uint16_t c = 255 * 2U;
-    return a + b + c;
+    return cnx_clamp_add_u16(cnx_clamp_add_u16(a, b), c);
 }
 
 int main(void) {

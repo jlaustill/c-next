@@ -7,6 +7,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: For loop init and update expressions should be walked for modifying calls
 // This tests that function calls in for-init and for-update are detected
@@ -31,7 +41,7 @@ void handleForUpdate(Config& config) {
 // For loop with modifying call in the INIT part (via forAssignment)
 void handleForInit(Config& config) {
     uint32_t start = 0U;
-    for (start = Handler__setValue(config, 10U); start < 1; start = start + 1) {
+    for (start = Handler__setValue(config, 10U); start < 1; start = cnx_clamp_add_u32(start, 1)) {
     }
 }
 

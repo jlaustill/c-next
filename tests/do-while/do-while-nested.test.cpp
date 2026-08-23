@@ -55,7 +55,7 @@ int main(void) {
         do {
             count = cnx_clamp_add_u32(count, 1U);
             j = cnx_clamp_add_u32(j, 1U);
-        } while (j < i + 1);
+        } while (j < cnx_clamp_add_u32(i, 1));
         i = cnx_clamp_add_u32(i, 1U);
     } while (i < 4);
     if (count != 10) return 3;

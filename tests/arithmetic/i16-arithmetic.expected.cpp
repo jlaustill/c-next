@@ -5,37 +5,61 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
+static inline int16_t cnx_clamp_mul_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a * b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
+static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
 // test-execution
 // Test i16 arithmetic operations
 // Coverage: Section 4.1-4.5 for i16 type
 int main(void) {
     int16_t a = 5000;
     int16_t b = 3000;
-    int16_t sum = a + b;
+    int16_t sum = cnx_clamp_add_i16(a, b);
     int16_t c = -5000;
     int16_t d = 3000;
-    int16_t sum_neg = c + d;
+    int16_t sum_neg = cnx_clamp_add_i16(c, d);
     int16_t e = -4000;
     int16_t f = -2000;
-    int16_t sum_both_neg = e + f;
+    int16_t sum_both_neg = cnx_clamp_add_i16(e, f);
     int16_t g = 5000;
     int16_t h = 3000;
-    int16_t diff = g - h;
+    int16_t diff = cnx_clamp_sub_i16(g, h);
     int16_t i = 3000;
     int16_t j = 5000;
-    int16_t diff_neg = i - j;
+    int16_t diff_neg = cnx_clamp_sub_i16(i, j);
     int16_t k = -3000;
     int16_t l = 2000;
-    int16_t diff_mixed = k - l;
+    int16_t diff_mixed = cnx_clamp_sub_i16(k, l);
     int16_t m = 100;
     int16_t n = 50;
-    int16_t product = m * n;
+    int16_t product = cnx_clamp_mul_i16(m, n);
     int16_t o = -100;
     int16_t p = 50;
-    int16_t product_neg = o * p;
+    int16_t product_neg = cnx_clamp_mul_i16(o, p);
     int16_t q = -100;
     int16_t r = -50;
-    int16_t product_pos = q * r;
+    int16_t product_pos = cnx_clamp_mul_i16(q, r);
     int16_t s = 6000;
     int16_t t = 3;
     int16_t quotient = s / t;
@@ -53,9 +77,9 @@ int main(void) {
     int16_t remainder_neg = aa % bb;
     int16_t max_val = 32767;
     int16_t one = 1;
-    int16_t max_minus_one = max_val - one;
+    int16_t max_minus_one = cnx_clamp_sub_i16(max_val, one);
     int16_t min_val = -32768;
-    int16_t min_plus_one = min_val + one;
+    int16_t min_plus_one = cnx_clamp_add_i16(min_val, one);
     if (sum == 8000 && sum_neg == -2000 && sum_both_neg == -6000) {
         if (diff == 2000 && diff_neg == -2000 && diff_mixed == -5000) {
             if (product == 5000 && product_neg == -5000 && product_pos == 5000) {

@@ -8,6 +8,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Issue #565 - const inference fails for reassignment inside conditionals
 // When a variable is declared first and later reassigned with a modifying call
@@ -56,7 +66,7 @@ void handleWhileLoop(ConstCond__Config& config) {
     uint32_t count = 0U;
     while (count < 1) {
         errorCode = CommandHandler__setValue(config, 100U);
-        count = count + 1U;
+        count = cnx_clamp_add_u32(count, 1U);
     }
 }
 

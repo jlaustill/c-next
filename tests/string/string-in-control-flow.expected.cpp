@@ -6,6 +6,16 @@
 #include <stdint.h>
 #include <string.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // ADR-045: Test strings in control flow structures
 // Validates: string operations in if, while, for conditions
@@ -41,8 +51,8 @@ int main(void) {
     uint32_t totalLen = 0U;
     uint32_t i = 0U;
     while (i < 4) {
-        totalLen = totalLen + strlen(items[i]);
-        i = i + 1U;
+        totalLen = cnx_clamp_add_u32(totalLen, strlen(items[i]));
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (totalLen != 15) return 6;
     char maybeEmpty[33] = "";

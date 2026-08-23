@@ -6,6 +6,23 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_mul_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // ADR-004: Write-only register operations test
 // Tests: Valid write-only register bit operations with various index types
 // Coverage: Section 12 - Register Declaration (write-only bit access)
@@ -32,8 +49,8 @@ int main(void) {
     GPIO__DR_CLEAR = (1U << BUTTON_BIT);
     GPIO__DR_SET = (1U << dynamicBit);
     GPIO__DR_CLEAR = (1U << dynamicBit);
-    GPIO__DR_SET = (1U << LED_BIT + 1);
-    GPIO__DR_CLEAR = (1U << LED_BIT * 2);
+    GPIO__DR_SET = (1U << cnx_clamp_add_u32(LED_BIT, 1));
+    GPIO__DR_CLEAR = (1U << cnx_clamp_mul_u32(LED_BIT, 2));
     uint32_t targetBit = LED_BIT;
     GPIO__DR_TOGGLE = (1U << targetBit);
     GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
