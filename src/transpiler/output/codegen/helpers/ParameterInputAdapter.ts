@@ -12,6 +12,8 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import IParameterInput from "../types/IParameterInput";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
+import ArrayDimensionParser from "./ArrayDimensionParser";
+import dimensionEvalOptions from "./dimensionEvalOptions";
 
 /**
  * Dependencies required by fromAST() to resolve types and state.
@@ -289,11 +291,27 @@ class ParameterInputAdapter {
   ): IParameterInput {
     const allDims = arrayTypeCtx.arrayTypeDimension();
 
-    // Build dimension strings
+    // Build dimension strings.
+    //
+    // Issue #1159: fold a compile-time constant to its value first. Emitting
+    // the identifier makes `u8[SIZE] buf` a VLA parameter (`uint8_t buf[SIZE]`)
+    // while the matching local declaration folds to `uint8_t b[6]` — the same
+    // const rendered two ways in one .c, and a construct CLAUDE.md rules out
+    // ("resolves consts to their value, no C VLA"). generateExpression stays
+    // as the fallback for dimensions that are genuinely not constant.
     const dims: string[] = allDims.map(
       (d: Parser.ArrayTypeDimensionContext) => {
         const expr = d.expression();
-        return expr ? deps.generateExpression(expr) : "";
+        if (!expr) {
+          return "";
+        }
+        const folded = ArrayDimensionParser.parseSingleDimension(
+          expr,
+          dimensionEvalOptions(),
+        );
+        return folded === undefined
+          ? deps.generateExpression(expr)
+          : String(folded);
       },
     );
 

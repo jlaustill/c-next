@@ -1,0 +1,22 @@
+// test-execution
+// Issue #1159: a non-literal parameter dimension must keep its slot so that
+// later dimensions stay aligned with their subscripts.
+//
+// `u8[SIZE][4] grid` previously reported dimensions [4], because SIZE was not a
+// literal and was dropped rather than held. TypeValidator.checkArrayBounds then
+// validated subscript 0 against dimension 2's bound and rejected `grid[5][0]`
+// on a [6][4] array at compile time, reporting "5 >= 4 for dimension 1".
+const u8 SIZE <- 6;
+
+void fill(u8[SIZE][4] grid) {
+    grid[5][0] <- 42;
+    grid[0][3] <- 7;
+}
+
+i32 main() {
+    u8[SIZE][4] grid;
+    fill(grid);
+    if (grid[5][0] != 42) return 1;
+    if (grid[0][3] != 7) return 2;
+    return 0;
+}

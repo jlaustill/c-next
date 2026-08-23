@@ -16,6 +16,9 @@ import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import ArrayDimensionParser from "./ArrayDimensionParser";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import LiteralUtils from "../../../../utils/LiteralUtils";
+import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
+import dimensionEvalOptions from "./dimensionEvalOptions";
 
 /**
  * Callbacks required for type registration.
@@ -125,8 +128,7 @@ class TypeRegistrationEngine {
     if (!sizeExpr) {
       return undefined;
     }
-    const size = Number.parseInt(sizeExpr.getText(), 10);
-    return Number.isNaN(size) ? undefined : size;
+    return LiteralUtils.parseIntegerLiteral(sizeExpr.getText());
   }
 
   /**
@@ -375,8 +377,8 @@ class TypeRegistrationEngine {
       .arrayTypeDimension()
       .map((dim) => dim.expression())
       .filter((expr): expr is Parser.ExpressionContext => expr !== null)
-      .map((expr) => Number.parseInt(expr.getText(), 10))
-      .filter((size) => !Number.isNaN(size));
+      .map((expr) => LiteralUtils.parseIntegerLiteral(expr.getText()))
+      .filter((size): size is number => size !== undefined);
     const additionalDims = ArrayDimensionParser.parseSimpleDimensions(arrayDim);
     const dimensions = [...arrayTypeDims, ...additionalDims, stringDim];
 
@@ -562,10 +564,16 @@ class TypeRegistrationEngine {
     for (const dim of arrayTypeCtx.arrayTypeDimension()) {
       const sizeExpr = dim.expression();
       if (sizeExpr) {
-        const size = Number.parseInt(sizeExpr.getText(), 10);
-        if (!Number.isNaN(size)) {
-          arrayDimensions.push(size);
-        }
+        // Issue #1159: resolve through the same evaluator the sibling
+        // _evaluateArrayDimensions() uses, so every notation (hex, binary,
+        // const, sizeof) yields the same dimension the .c declaration emits.
+        // UNRESOLVED_DIMENSION keeps the slot so later dimensions stay aligned
+        // with their subscripts in TypeValidator.checkArrayBounds().
+        const size = ArrayDimensionParser.parseSingleDimension(
+          sizeExpr,
+          dimensionEvalOptions(),
+        );
+        arrayDimensions.push(size ?? UNRESOLVED_DIMENSION);
       }
     }
 
@@ -584,11 +592,10 @@ class TypeRegistrationEngine {
     arrayDim: Parser.ArrayDimensionContext[] | null,
     _callbacks: ITypeRegistrationCallbacks,
   ): number[] | undefined {
-    return ArrayDimensionParser.parseAllDimensions(arrayDim, {
-      constValues: CodeGenState.constValues,
-      typeWidths: TYPE_WIDTH,
-      isKnownStruct: (name) => CodeGenState.isKnownStruct(name),
-    });
+    return ArrayDimensionParser.parseAllDimensions(
+      arrayDim,
+      dimensionEvalOptions(),
+    );
   }
 
   private static _registerStandardType(

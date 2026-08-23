@@ -18,6 +18,8 @@ import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import LiteralUtils from "../../../../utils/LiteralUtils";
+import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 
 /**
  * Result from resolving parameter type information.
@@ -401,10 +403,10 @@ class FunctionContextManager {
     for (const dim of arrayTypeCtx.arrayTypeDimension()) {
       const expr = dim.expression();
       if (!expr) continue;
-      const size = Number.parseInt(expr.getText(), 10);
-      if (!Number.isNaN(size)) {
-        dimensions.push(size);
-      }
+      // Issue #1159: honour hex/binary notation, and keep the slot when the
+      // size is not a literal so dimension i still matches subscript i.
+      const size = LiteralUtils.parseIntegerLiteral(expr.getText());
+      dimensions.push(size ?? UNRESOLVED_DIMENSION);
     }
     return dimensions;
   }

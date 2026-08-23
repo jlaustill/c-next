@@ -337,12 +337,22 @@ describe("ArrayDimensionParser", () => {
       expect(result).toEqual([]);
     });
 
-    it("skips hex literals (parseInt doesn't parse 0x)", () => {
+    it("resolves hex literals to the same value as decimal notation", () => {
       const dims = getArrayDimensions("u8 arr[0x10];");
       expect(dims).not.toBeNull();
       const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
-      // parseInt("0x10", 10) returns 0, which is filtered out as not > 0
-      expect(result).toEqual([]);
+      // Issue #1159: this previously asserted [] because parseInt("0x10", 10)
+      // returns 0 and 0 was filtered out. That made u8[0x10] indistinguishable
+      // from an unresolvable dimension, so ADR-036 bounds checking was silently
+      // skipped for hex-sized arrays. u8[16] and u8[0x10] are the same array.
+      expect(result).toEqual([16]);
+    });
+
+    it("resolves binary literals to the same value as decimal notation", () => {
+      const dims = getArrayDimensions("u8 arr[0b10000];");
+      expect(dims).not.toBeNull();
+      const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
+      expect(result).toEqual([16]);
     });
   });
 

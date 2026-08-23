@@ -12,6 +12,7 @@
 
 import LiteralUtils from "../../../../utils/LiteralUtils.js";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
+import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION.js";
 
 /**
  * Options for evaluating constant expressions.
@@ -265,8 +266,11 @@ class ArrayDimensionParser {
       arrayDims,
       (sizeExpr, dimensions) => {
         if (sizeExpr) {
-          const size = Number.parseInt(sizeExpr.getText(), 10);
-          if (!Number.isNaN(size) && size > 0) {
+          // Issue #1159: parseIntegerLiteral honours hex and binary notation.
+          // Number.parseInt(text, 10) read "0x10" as 0 and "0b10000" as 0,
+          // which silently disabled ADR-036 bounds checking for those arrays.
+          const size = LiteralUtils.parseIntegerLiteral(sizeExpr.getText());
+          if (size !== undefined && size > 0) {
             dimensions.push(size);
           }
         }
@@ -290,17 +294,15 @@ class ArrayDimensionParser {
       arrayDims,
       (sizeExpr, dimensions) => {
         if (sizeExpr) {
-          const sizeText = sizeExpr.getText();
-          const size = Number.parseInt(sizeText, 10);
-          if (Number.isNaN(size)) {
-            // Non-numeric size (e.g., constant identifier) - still count the dimension
-            dimensions.push(0);
-          } else {
-            dimensions.push(size);
-          }
+          // Issue #1159: parseIntegerLiteral honours hex and binary notation;
+          // Number.parseInt(text, 10) read "0x10" as 0, which is indistinguishable
+          // from a genuinely unresolved size.
+          const size = LiteralUtils.parseIntegerLiteral(sizeExpr.getText());
+          // Non-literal size (e.g. constant identifier) still counts the dimension
+          dimensions.push(size ?? UNRESOLVED_DIMENSION);
         } else {
-          // Unsized dimension (e.g., arr[]) - use 0 to indicate unknown size
-          dimensions.push(0);
+          // Unsized dimension (e.g. arr[]) - size is unknown
+          dimensions.push(UNRESOLVED_DIMENSION);
         }
       },
     );

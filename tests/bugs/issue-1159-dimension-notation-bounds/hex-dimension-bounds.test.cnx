@@ -1,0 +1,15 @@
+// test-error
+// Issue #1159: a hex-sized array must be bounds-checked exactly like a
+// decimal-sized one.
+//
+// TypeRegistrationEngine registered dimensions with Number.parseInt(text, 10),
+// which reads "0x10" as 0 because parsing stops at 'x'. TypeValidator's
+// checkArrayBounds guards with `dimensions[i] > 0`, so a mis-parsed 0 skipped
+// validation entirely and the out-of-range write below was silently accepted.
+// u8[16] and u8[0x10] declare the same array; only one of them was checked.
+u8[0x10] data;
+
+i32 main() {
+    data[9999] <- 1;
+    return 0;
+}

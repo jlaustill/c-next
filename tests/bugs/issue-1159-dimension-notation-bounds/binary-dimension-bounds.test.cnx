@@ -1,0 +1,9 @@
+// test-error
+// Issue #1159: same defect via binary notation — Number.parseInt("0b10000", 10)
+// is 0, so bounds checking was skipped for binary-sized arrays too.
+u8[0b10000] data;
+
+i32 main() {
+    data[9999] <- 1;
+    return 0;
+}
