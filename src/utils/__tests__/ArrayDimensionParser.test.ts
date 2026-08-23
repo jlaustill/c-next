@@ -34,46 +34,18 @@ describe("ArrayDimensionParser", () => {
 
   describe("parseSingleDimension", () => {
     describe("integer literals", () => {
-      it("parses decimal integer", () => {
-        const expr = getExpression("u8 x <- 42;");
+      it.each([
+        ["decimal", "u8 x <- 42;", 42],
+        ["negative decimal", "i8 x <- -17;", -17],
+        ["hex", "u8 x <- 0x2A;", 42],
+        ["hex with lowercase x", "u8 x <- 0xff;", 255],
+        ["binary", "u8 x <- 0b101010;", 42],
+        ["binary with uppercase B", "u8 x <- 0B1111;", 15],
+      ])("parses a %s literal", (_label, source, expected) => {
+        const expr = getExpression(source as string);
         expect(expr).not.toBeNull();
         const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(42);
-      });
-
-      it("parses negative decimal integer", () => {
-        const expr = getExpression("i8 x <- -17;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(-17);
-      });
-
-      it("parses hex literal", () => {
-        const expr = getExpression("u8 x <- 0x2A;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(42);
-      });
-
-      it("parses hex literal with lowercase x", () => {
-        const expr = getExpression("u8 x <- 0xff;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(255);
-      });
-
-      it("parses binary literal", () => {
-        const expr = getExpression("u8 x <- 0b101010;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(42);
-      });
-
-      it("parses binary literal with uppercase B", () => {
-        const expr = getExpression("u8 x <- 0B1111;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(15);
+        expect(result).toBe(expected);
       });
     });
 
@@ -142,32 +114,22 @@ describe("ArrayDimensionParser", () => {
     });
 
     describe("sizeof expressions", () => {
-      it("evaluates sizeof(u32)", () => {
-        const expr = getExpression("u8 x <- sizeof(u32);");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          typeWidths: TYPE_WIDTH,
-        });
-        expect(result).toBe(4); // 32 bits / 8 = 4 bytes
-      });
-
-      it("evaluates sizeof(u8)", () => {
-        const expr = getExpression("u8 x <- sizeof(u8);");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          typeWidths: TYPE_WIDTH,
-        });
-        expect(result).toBe(1);
-      });
-
-      it("evaluates sizeof(u64)", () => {
-        const expr = getExpression("u8 x <- sizeof(u64);");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          typeWidths: TYPE_WIDTH,
-        });
-        expect(result).toBe(8);
-      });
+      // Bit width divided by 8, so sizeof(u32) is 4 bytes.
+      it.each([
+        ["u32", "u8 x <- sizeof(u32);", 4],
+        ["u8", "u8 x <- sizeof(u8);", 1],
+        ["u64", "u8 x <- sizeof(u64);", 8],
+      ])(
+        "evaluates sizeof(%s) to its width in bytes",
+        (_label, source, expected) => {
+          const expr = getExpression(source as string);
+          expect(expr).not.toBeNull();
+          const result = ArrayDimensionParser.parseSingleDimension(expr!, {
+            typeWidths: TYPE_WIDTH,
+          });
+          expect(result).toBe(expected);
+        },
+      );
 
       it("returns undefined for unknown type without struct check", () => {
         const expr = getExpression("u8 x <- sizeof(Unknown);");
@@ -237,51 +199,30 @@ describe("ArrayDimensionParser", () => {
         expect(result).toBeUndefined();
       });
 
-      it("folds addition of two integer literals", () => {
-        const expr = getExpression("u8 x <- 1 + 2;");
-        expect(expr).not.toBeNull();
-        // Issue #1157: this previously asserted undefined, on the stated
-        // grounds that "1 + 2" has spaces and so misses the CONST+CONST
-        // pattern. getText() strips whitespace, so the text is "1+2"; the real
-        // reason it did not fold is that the pattern required an identifier on
-        // both sides. A dimension that does not fold is dropped by the collectors,
-        // which is what left `u8[8+1]` as a scalar in the header.
-        const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(3);
-      });
-
-      it("folds addition mixing a const and a literal", () => {
-        const expr = getExpression("u8 x <- SIZE + 2;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues: new Map([["SIZE", 6]]),
-        });
-        expect(result).toBe(8);
-      });
-
-      it("folds addition in either operand order", () => {
-        const expr = getExpression("u8 x <- 2 + SIZE;");
+      // Issue #1157: the two-literal row previously asserted undefined, on the
+      // stated grounds that "1 + 2" has spaces and so misses the CONST+CONST
+      // pattern. getText() strips whitespace, so the text is "1+2"; the real
+      // reason it did not fold is that the pattern required an identifier on
+      // both sides. A dimension that does not fold is dropped by the
+      // collectors, which is what left `u8[8+1]` as a scalar in the header.
+      //
+      // An operand is a literal in any notation or the name of a known const,
+      // resolved by one rule, so operand order does not matter and the last
+      // row -- an identifier that is not a known const -- still yields
+      // undefined rather than a partial answer.
+      it.each([
+        ["two integer literals", "u8 x <- 1 + 2;", 3],
+        ["a const and a literal", "u8 x <- SIZE + 2;", 8],
+        ["a literal and a const", "u8 x <- 2 + SIZE;", 8],
+        ["a hex operand", "u8 x <- 0x10 + 1;", 17],
+        ["an unknown identifier", "u8 x <- UNKNOWN + 1;", undefined],
+      ])("resolves addition of %s", (_label, source, expected) => {
+        const expr = getExpression(source as string);
         expect(expr).not.toBeNull();
         const result = ArrayDimensionParser.parseSingleDimension(expr!, {
           constValues: new Map([["SIZE", 6]]),
         });
-        expect(result).toBe(8);
-      });
-
-      it("folds addition where an operand uses hex notation", () => {
-        const expr = getExpression("u8 x <- 0x10 + 1;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!);
-        expect(result).toBe(17);
-      });
-
-      it("returns undefined when an operand is not a literal or known const", () => {
-        const expr = getExpression("u8 x <- UNKNOWN + 1;");
-        expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues: new Map([["SIZE", 6]]),
-        });
-        expect(result).toBeUndefined();
+        expect(result).toBe(expected);
       });
     });
   });
@@ -354,44 +295,24 @@ describe("ArrayDimensionParser", () => {
       expect(result).toEqual([]);
     });
 
-    it("parses single integer dimension", () => {
-      const dims = getArrayDimensions("u8 arr[10];");
+    // Issue #1159: the hex and binary rows previously expected []. parseInt with
+    // radix 10 reads "0x10" as 0, and 0 was filtered out as not > 0, so a
+    // hex-sized array was indistinguishable from one whose size could not be
+    // resolved -- and ADR-036 bounds checking was silently skipped for it.
+    // u8[16], u8[0x10] and u8[0b10000] all describe the same array.
+    //
+    // SIZE has no entry because parseSimpleDimensions takes no const map.
+    it.each([
+      ["a single integer dimension", "u8 arr[10];", [10]],
+      ["multiple dimensions", "u8 arr[2][3];", [2, 3]],
+      ["an unresolvable dimension", "u8 arr[SIZE];", []],
+      ["a hex dimension", "u8 arr[0x10];", [16]],
+      ["a binary dimension", "u8 arr[0b10000];", [16]],
+    ])("parses %s", (_label, source, expected) => {
+      const dims = getArrayDimensions(source as string);
       expect(dims).not.toBeNull();
       const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
-      expect(result).toEqual([10]);
-    });
-
-    it("parses multiple dimensions", () => {
-      const dims = getArrayDimensions("u8 arr[2][3];");
-      expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
-      expect(result).toEqual([2, 3]);
-    });
-
-    it("skips non-numeric dimensions", () => {
-      const dims = getArrayDimensions("u8 arr[SIZE];");
-      expect(dims).not.toBeNull();
-      // parseSimpleDimensions doesn't use const map, so SIZE is not resolved
-      const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
-      expect(result).toEqual([]);
-    });
-
-    it("resolves hex literals to the same value as decimal notation", () => {
-      const dims = getArrayDimensions("u8 arr[0x10];");
-      expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
-      // Issue #1159: this previously asserted [] because parseInt("0x10", 10)
-      // returns 0 and 0 was filtered out. That made u8[0x10] indistinguishable
-      // from an unresolvable dimension, so ADR-036 bounds checking was silently
-      // skipped for hex-sized arrays. u8[16] and u8[0x10] are the same array.
-      expect(result).toEqual([16]);
-    });
-
-    it("resolves binary literals to the same value as decimal notation", () => {
-      const dims = getArrayDimensions("u8 arr[0b10000];");
-      expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
-      expect(result).toEqual([16]);
+      expect(result).toEqual(expected);
     });
   });
 
