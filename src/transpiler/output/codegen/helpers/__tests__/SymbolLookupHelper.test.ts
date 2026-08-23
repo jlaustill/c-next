@@ -1,6 +1,27 @@
 import { describe, it, expect } from "vitest";
 import SymbolLookupHelper from "../SymbolLookupHelper.js";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage.js";
+import type TSymbolKind from "../../../../types/symbol-kinds/TSymbolKind.js";
+
+/**
+ * Build an ISymbolTable stub for these tests.
+ *
+ * Both lookups answer with the same symbols. The helper resolves by transpiled
+ * C name (#1139) while other callers still resolve by bare name, and fixing the
+ * result rather than the key keeps each test about the behavior it names. One
+ * factory also means the next method added to ISymbolTable is a single edit
+ * here, not twenty-five.
+ */
+const makeSymbolTable = <
+  T extends { kind: TSymbolKind; sourceLanguage: ESourceLanguage },
+>(
+  symbols: T[] = [],
+  extras: { getStructFields?: (name: string) => unknown } = {},
+) => ({
+  getOverloads: () => symbols,
+  getOverloadsByCName: () => symbols,
+  ...extras,
+});
 
 describe("SymbolLookupHelper", () => {
   describe("hasSymbolWithKindAndLanguage", () => {
@@ -27,9 +48,7 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns false when no matching symbol found", () => {
-      const mockTable = {
-        getOverloads: () => [],
-      };
+      const mockTable = makeSymbolTable();
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
@@ -41,11 +60,9 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns false when kind doesn't match", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "variable" as const, sourceLanguage: ESourceLanguage.C },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "variable" as const, sourceLanguage: ESourceLanguage.C },
+      ]);
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
@@ -57,11 +74,9 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns false when language doesn't match", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+      ]);
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
@@ -73,11 +88,9 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true when matching symbol found", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
+      ]);
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
@@ -89,11 +102,9 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true when any language in list matches", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
+      ]);
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
           mockTable,
@@ -111,20 +122,16 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true for C++ enum", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "enum" as const, sourceLanguage: ESourceLanguage.Cpp },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "enum" as const, sourceLanguage: ESourceLanguage.Cpp },
+      ]);
       expect(SymbolLookupHelper.isCppEnumClass(mockTable, "MyEnum")).toBe(true);
     });
 
     it("returns false for C enum", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "enum" as const, sourceLanguage: ESourceLanguage.C },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "enum" as const, sourceLanguage: ESourceLanguage.C },
+      ]);
       expect(SymbolLookupHelper.isCppEnumClass(mockTable, "MyEnum")).toBe(
         false,
       );
@@ -139,33 +146,27 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true for C function", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
+      ]);
       expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
         true,
       );
     });
 
     it("returns true for C++ function", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
+      ]);
       expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
         true,
       );
     });
 
     it("returns false for C-Next function", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+      ]);
       expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
         false,
       );
@@ -182,23 +183,19 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true when namespace symbol found", () => {
-      const mockTable = {
-        getOverloads: () => [
-          {
-            kind: "namespace" as const,
-            sourceLanguage: ESourceLanguage.CNext,
-          },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        {
+          kind: "namespace" as const,
+          sourceLanguage: ESourceLanguage.CNext,
+        },
+      ]);
       expect(SymbolLookupHelper.isNamespace(mockTable, "MyNS")).toBe(true);
     });
 
     it("returns false when no namespace symbol", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+      ]);
       expect(SymbolLookupHelper.isNamespace(mockTable, "MyNS")).toBe(false);
     });
   });
@@ -215,44 +212,36 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true for C-Next function", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+      ]);
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
         true,
       );
     });
 
     it("returns false for C function", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
+      ]);
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
         false,
       );
     });
 
     it("returns false for C++ function", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
+      ]);
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
         false,
       );
     });
 
     it("returns false for C-Next struct", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "struct" as const, sourceLanguage: ESourceLanguage.CNext },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "struct" as const, sourceLanguage: ESourceLanguage.CNext },
+      ]);
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "MyStruct")).toBe(
         false,
       );
@@ -272,11 +261,9 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true when in symbol table as C-Next function", () => {
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+      ]);
       expect(
         SymbolLookupHelper.isCNextFunctionCombined(
           new Set(),
@@ -287,9 +274,7 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns false when not in knownFunctions and not in symbol table", () => {
-      const mockTable = {
-        getOverloads: () => [],
-      };
+      const mockTable = makeSymbolTable([]);
       expect(
         SymbolLookupHelper.isCNextFunctionCombined(
           new Set(),
@@ -307,11 +292,9 @@ describe("SymbolLookupHelper", () => {
 
     it("prioritizes knownFunctions over symbol table", () => {
       const knownFunctions = new Set(["myFunc"]);
-      const mockTable = {
-        getOverloads: () => [
-          { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
+      ]);
       expect(
         SymbolLookupHelper.isCNextFunctionCombined(
           knownFunctions,
@@ -331,23 +314,19 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true when in symbol table as namespace", () => {
-      const mockTable = {
-        getOverloads: () => [
-          {
-            kind: "namespace" as const,
-            sourceLanguage: ESourceLanguage.CNext,
-          },
-        ],
-      };
+      const mockTable = makeSymbolTable([
+        {
+          kind: "namespace" as const,
+          sourceLanguage: ESourceLanguage.CNext,
+        },
+      ]);
       expect(
         SymbolLookupHelper.isKnownScope(new Set(), mockTable, "MyScope"),
       ).toBe(true);
     });
 
     it("returns false when not in knownScopes and not in symbol table", () => {
-      const mockTable = {
-        getOverloads: () => [],
-      };
+      const mockTable = makeSymbolTable([]);
       expect(
         SymbolLookupHelper.isKnownScope(new Set(), mockTable, "MyScope"),
       ).toBe(false);
@@ -361,9 +340,7 @@ describe("SymbolLookupHelper", () => {
 
     it("prioritizes knownScopes over symbol table", () => {
       const knownScopes = new Set(["MyScope"]);
-      const mockTable = {
-        getOverloads: () => [],
-      };
+      const mockTable = makeSymbolTable([]);
       expect(
         SymbolLookupHelper.isKnownScope(knownScopes, mockTable, "MyScope"),
       ).toBe(true);
@@ -396,11 +373,10 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns true when in symbol table via getStructFields", () => {
-      const mockTable = {
-        getOverloads: () => [],
+      const mockTable = makeSymbolTable([], {
         getStructFields: (name: string) =>
           name === "CStruct" ? new Map([["field", "int"]]) : undefined,
-      };
+      });
       expect(
         SymbolLookupHelper.isKnownStruct(
           new Set(),
@@ -412,10 +388,9 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("returns false when not found anywhere", () => {
-      const mockTable = {
-        getOverloads: () => [],
+      const mockTable = makeSymbolTable([], {
         getStructFields: () => undefined,
-      };
+      });
       expect(
         SymbolLookupHelper.isKnownStruct(
           new Set(),
@@ -446,9 +421,7 @@ describe("SymbolLookupHelper", () => {
     });
 
     it("handles symbol table without getStructFields method", () => {
-      const mockTable = {
-        getOverloads: () => [],
-      };
+      const mockTable = makeSymbolTable();
       expect(
         SymbolLookupHelper.isKnownStruct(
           new Set(),

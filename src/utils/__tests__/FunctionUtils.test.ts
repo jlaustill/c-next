@@ -153,64 +153,6 @@ describe("IFunctionSymbol", () => {
     });
   });
 
-  describe("FunctionUtils.getTranspiledCName", () => {
-    it("returns bare name for global scope function", () => {
-      const global = ScopeUtils.createGlobalScope();
-
-      const func = FunctionUtils.create({
-        name: "main",
-        scope: global,
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("i32"),
-        visibility: "public",
-        body: null,
-        sourceFile: "main.cnx",
-        sourceLine: 1,
-      });
-
-      expect(FunctionUtils.getTranspiledCName(func)).toBe("main");
-    });
-
-    it("returns scope-prefixed name for scoped function", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const testScope = ScopeUtils.createScope("Test", global);
-
-      const func = FunctionUtils.create({
-        name: "fillData",
-        scope: testScope,
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "public",
-        body: null,
-        sourceFile: "test.cnx",
-        sourceLine: 10,
-      });
-
-      expect(FunctionUtils.getTranspiledCName(func)).toBe("Test__fillData");
-    });
-
-    it("returns nested scope-prefixed name for nested scope function", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const outerScope = ScopeUtils.createScope("Outer", global);
-      const innerScope = ScopeUtils.createScope("Inner", outerScope);
-
-      const func = FunctionUtils.create({
-        name: "process",
-        scope: innerScope,
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "public",
-        body: null,
-        sourceFile: "nested.cnx",
-        sourceLine: 20,
-      });
-
-      expect(FunctionUtils.getTranspiledCName(func)).toBe(
-        "Outer__Inner__process",
-      );
-    });
-  });
-
   describe("FunctionUtils.isPublic", () => {
     it("returns true for public function", () => {
       const global = ScopeUtils.createGlobalScope();

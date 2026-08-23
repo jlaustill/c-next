@@ -19,7 +19,7 @@ import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
-import SymbolNameUtils from "../utils/SymbolNameUtils";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
@@ -241,8 +241,7 @@ class TSymbolInfoAdapter {
   // === Private Processing Methods ===
 
   // Use shared utility for transpiled C names
-  private static readonly getTranspiledCName =
-    SymbolNameUtils.getTranspiledCName;
+  private static readonly getTranspiledCName = ScopeUtils.getTranspiledCName;
 
   private static processStruct(
     struct: IStructSymbol,

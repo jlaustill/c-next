@@ -163,7 +163,7 @@ describe("CallExprUtils", () => {
 
     it("falls back to SymbolTable when no local signature", () => {
       const symbolTable = {
-        getOverloads: vi.fn(() => [
+        getOverloadsByCName: vi.fn(() => [
           {
             kind: "function",
             parameters: [
@@ -187,12 +187,17 @@ describe("CallExprUtils", () => {
         isArray: false,
       });
       expect(result.isCrossFile).toBe(true);
-      expect(symbolTable.getOverloads).toHaveBeenCalledWith("crossFunc");
+      // Issue #1139: cross-file resolution goes by transpiled C name, which is
+      // what codegen holds; the bare-name index misses every scoped function.
+      expect(symbolTable.getOverloadsByCName).toHaveBeenCalledWith("crossFunc");
     });
 
     it("skips non-function symbols in SymbolTable", () => {
       const symbolTable = {
-        getOverloads: vi.fn(() => [{ kind: "variable" }, { kind: "struct" }]),
+        getOverloadsByCName: vi.fn(() => [
+          { kind: "variable" },
+          { kind: "struct" },
+        ]),
       };
 
       const result = CallExprUtils.resolveTargetParam(
@@ -208,7 +213,7 @@ describe("CallExprUtils", () => {
 
     it("skips function symbols without parameter at index", () => {
       const symbolTable = {
-        getOverloads: vi.fn(() => [
+        getOverloadsByCName: vi.fn(() => [
           {
             kind: "function",
             parameters: [
@@ -237,7 +242,7 @@ describe("CallExprUtils", () => {
         ],
       };
       const symbolTable = {
-        getOverloads: vi.fn(() => [
+        getOverloadsByCName: vi.fn(() => [
           {
             kind: "function",
             parameters: [
@@ -256,7 +261,7 @@ describe("CallExprUtils", () => {
 
       expect(result.param).toEqual(sig.parameters[0]);
       expect(result.isCrossFile).toBe(false);
-      expect(symbolTable.getOverloads).not.toHaveBeenCalled();
+      expect(symbolTable.getOverloadsByCName).not.toHaveBeenCalled();
     });
   });
 });

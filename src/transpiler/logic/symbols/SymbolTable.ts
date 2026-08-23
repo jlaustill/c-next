@@ -22,7 +22,7 @@ import IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../utils/TypeResolver";
-import SymbolNameUtils from "./cnext/utils/SymbolNameUtils";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -69,8 +69,23 @@ class SymbolTable {
   // C-Next Symbol Storage (TSymbol)
   // ========================================================================
 
-  /** All C-Next TSymbols indexed by name */
+  /** All C-Next TSymbols indexed by bare name (ADR-055: `init`, not `Motor__init`) */
   private readonly tSymbols: Map<string, TSymbol[]> = new Map();
+
+  /**
+   * All C-Next TSymbols indexed by transpiled C name — their canonical identity.
+   *
+   * ADR-063 makes the qualified name injective, so it identifies a symbol
+   * without needing a scope to interpret it. The bare-name index above answers
+   * a different question ("what does `init` mean *here*?", which needs ADR-057
+   * local->scope->global context); this one answers "which symbol is
+   * `Motor__init`?". Codegen holds the latter, and before this index existed it
+   * had to ask the former and got a silent empty result.
+   *
+   * For a global symbol both indexes share a key, since its bare name already
+   * is its canonical identity.
+   */
+  private readonly tSymbolsByCName: Map<string, TSymbol[]> = new Map();
 
   /** C-Next TSymbols indexed by source file */
   private readonly tSymbolsByFile: Map<string, TSymbol[]> = new Map();
@@ -148,6 +163,16 @@ class SymbolTable {
       this.tSymbols.set(symbol.name, [symbol]);
     }
 
+    // Add to canonical-identity index. Keyed with the same encoder codegen uses
+    // to build the name it will later look up, so the two cannot drift.
+    const cName = ScopeUtils.getTranspiledCName(symbol);
+    const existingByCName = this.tSymbolsByCName.get(cName);
+    if (existingByCName) {
+      existingByCName.push(symbol);
+    } else {
+      this.tSymbolsByCName.set(cName, [symbol]);
+    }
+
     // Add to file index
     const fileSymbols = this.tSymbolsByFile.get(symbol.sourceFile);
     if (fileSymbols) {
@@ -168,7 +193,7 @@ class SymbolTable {
    * Issue #981: Now preserves string dimensions (macro names) for proper array detection.
    */
   private registerStructFields(struct: IStructSymbol): void {
-    const cName = SymbolNameUtils.getTranspiledCName(struct);
+    const cName = ScopeUtils.getTranspiledCName(struct);
 
     for (const [fieldName, fieldInfo] of struct.fields) {
       // Convert TType to string for structFields map
@@ -507,13 +532,46 @@ class SymbolTable {
   }
 
   /**
-   * Get all overloads for a name across all languages
+   * Get all overloads for a name across all languages.
+   *
+   * C-Next symbols are matched on their **bare** name, so a scoped member is
+   * found by the name it carries inside its scope (`readValue`), not by its
+   * transpiled C name. Callers holding a transpiled C name want
+   * getOverloadsByCName instead.
    */
   getOverloads(name: string): TAnySymbol[] {
     return [
       ...this.getTOverloads(name),
       ...this.getCOverloads(name),
       ...this.getCppOverloads(name),
+    ];
+  }
+
+  /**
+   * Get all C-Next overloads whose canonical identity is the given transpiled
+   * C name (e.g. "Motor__init").
+   *
+   * The inverse of ScopeUtils.getTranspiledCName: that builds the name, this
+   * resolves it back to the symbol. Exact match — no decomposition, so nothing
+   * has to re-derive how a qualified name is spelled.
+   */
+  getTOverloadsByCName(cName: string): TSymbol[] {
+    return this.tSymbolsByCName.get(cName) ?? [];
+  }
+
+  /**
+   * Get all overloads across all languages for a transpiled C name.
+   *
+   * Use this wherever the caller already holds a generated C identifier —
+   * codegen and anything downstream of it. C and C++ symbols have no scopes,
+   * so their name is already their identity and they are matched directly;
+   * C-Next symbols are matched through the canonical-identity index.
+   */
+  getOverloadsByCName(cName: string): TAnySymbol[] {
+    return [
+      ...this.getTOverloadsByCName(cName),
+      ...this.getCOverloads(cName),
+      ...this.getCppOverloads(cName),
     ];
   }
 
@@ -1304,6 +1362,7 @@ class SymbolTable {
   clear(): void {
     // C-Next
     this.tSymbols.clear();
+    this.tSymbolsByCName.clear();
     this.tSymbolsByFile.clear();
     // C
     this.cSymbols.clear();

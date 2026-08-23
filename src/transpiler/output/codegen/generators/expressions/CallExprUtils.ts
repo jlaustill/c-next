@@ -70,6 +70,12 @@ class CallExprUtils {
   /**
    * Issue #315: Resolve target parameter info from local signature or cross-file SymbolTable.
    * Returns the parameter info and whether it came from a cross-file lookup.
+   *
+   * Issue #1139: `funcName` is a transpiled C name (`Sensors__readValue`), so
+   * the cross-file lookup resolves by canonical identity. Asking the bare-name
+   * index returned nothing for every scoped function, leaving `param`
+   * undefined — which the caller could not distinguish from a function that
+   * genuinely takes no such parameter, so a struct argument lost its `&`.
    */
   static resolveTargetParam(
     sig: IFunctionSignature | undefined,
@@ -86,7 +92,7 @@ class CallExprUtils {
     }
 
     if (symbolTable) {
-      const symbols = symbolTable.getOverloads(funcName);
+      const symbols = symbolTable.getOverloadsByCName(funcName);
       for (const sym of symbols) {
         if (sym.kind === "function" && sym.parameters?.[paramIndex]) {
           const p = sym.parameters[paramIndex];

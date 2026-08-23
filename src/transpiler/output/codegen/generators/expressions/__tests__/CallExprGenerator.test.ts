@@ -834,7 +834,7 @@ describe("CallExprGenerator", () => {
       const argExprs = [createMockExpressionContext("myVal")];
       const argCtx = createMockArgListContext(argExprs);
       const symbolTable = {
-        getOverloads: vi.fn(() => [
+        getOverloadsByCName: vi.fn(() => [
           {
             kind: "function",
             parameters: [
@@ -862,7 +862,11 @@ describe("CallExprGenerator", () => {
         orchestrator,
       );
 
-      expect(symbolTable.getOverloads).toHaveBeenCalledWith("crossFileFunc");
+      // Issue #1139: cross-file lookup resolves by transpiled C name, so a
+      // scoped callee is found instead of silently missing.
+      expect(symbolTable.getOverloadsByCName).toHaveBeenCalledWith(
+        "crossFileFunc",
+      );
       // Issue #786: Primitive types like u32 are now passed by value for cross-file calls
       expect(result.code).toBe("crossFileFunc(myVal)");
     });
@@ -871,7 +875,7 @@ describe("CallExprGenerator", () => {
       const argExprs = [createMockExpressionContext("flag")];
       const argCtx = createMockArgListContext(argExprs);
       const symbolTable = {
-        getOverloads: vi.fn(() => [
+        getOverloadsByCName: vi.fn(() => [
           {
             kind: "function",
             parameters: [
@@ -906,7 +910,7 @@ describe("CallExprGenerator", () => {
       const argExprs = [createMockExpressionContext("val")];
       const argCtx = createMockArgListContext(argExprs);
       const symbolTable = {
-        getOverloads: vi.fn(() => [
+        getOverloadsByCName: vi.fn(() => [
           { kind: "variable", parameters: undefined },
         ]),
       };

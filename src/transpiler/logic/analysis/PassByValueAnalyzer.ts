@@ -25,7 +25,7 @@
 import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import SymbolRegistry from "../../state/SymbolRegistry";
-import FunctionUtils from "../../../utils/FunctionUtils";
+import ScopeUtils from "../../../utils/ScopeUtils";
 import TransitiveModificationPropagator from "./helpers/TransitiveModificationPropagator";
 import StatementExpressionCollector from "./helpers/StatementExpressionCollector";
 import ChildStatementCollector from "./helpers/ChildStatementCollector";
@@ -447,7 +447,7 @@ class PassByValueAnalyzer {
       );
       if (callee) {
         // Use FunctionUtils to get the transpiled C name (types layer, not output layer)
-        return FunctionUtils.getTranspiledCName(callee);
+        return ScopeUtils.getTranspiledCName(callee);
       }
     }
 
