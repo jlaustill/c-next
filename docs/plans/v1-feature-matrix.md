@@ -61,7 +61,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 | Initialization       | ✅ Implemented | ADR-015 | Zero-init by default                     |
 | Assignment operator  | ✅ Implemented | ADR-001 | `<-` not `=`                             |
 | Constants            | ✅ Implemented | ADR-013 | `const u32 X <- 5;`                      |
-| Volatile             | ✅ Implemented | ADR-108 | `volatile` keyword prevents optimization |
+| Volatile             | ✅ Implemented | ADR-064 | `volatile` keyword prevents optimization |
 
 ---
 
@@ -168,7 +168,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 | Bit indexing      | ✅ Implemented | ADR-007 | `reg[bit] <- true`             |
 | Bit ranges        | ✅ Implemented | ADR-007 | `reg[start, width]`            |
 | ISR declaration   | 🔧 Partial     | ADR-009 | Research phase                 |
-| Volatile access   | ✅ Implemented | ADR-108 | `volatile` keyword             |
+| Volatile access   | ✅ Implemented | ADR-064 | `volatile` keyword             |
 | Critical sections | ✅ Implemented | ADR-050 | `critical { }` blocks          |
 | Atomic types      | ✅ Implemented | ADR-049 | `atomic` keyword               |
 

@@ -1,5 +1,5 @@
 /**
- * Context extracted from an assignment statement for classification (ADR-109).
+ * Context extracted from an assignment statement for classification (ADR-065).
  *
  * This interface captures all information needed to classify and generate
  * code for an assignment. Built once by the context extractor, then used

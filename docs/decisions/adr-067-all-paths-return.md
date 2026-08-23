@@ -1,9 +1,13 @@
-# ADR-112: All-Paths-Return Diagnostic
+# ADR-067: All-Paths-Return Diagnostic
+
+> **Formerly ADR-112.** Renumbered 2026-08-23 into the `0xx` band — this is
+> v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
+> mapping table.
 
 **Status:** Implemented
 **Date:** 2026-06-25
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-022 (Conditional Expressions), ADR-025 (Switch Statements), ADR-026 (Break and Continue), ADR-027 (Do-While), ADR-113 (Forever Loops — extends `definitelyReturns` with a divergence primitive)
+**Related ADRs:** ADR-022 (Conditional Expressions), ADR-025 (Switch Statements), ADR-026 (Break and Continue), ADR-027 (Do-While), ADR-068 (Forever Loops — extends `definitelyReturns` with a divergence primitive), ADR-069 (Dead-Code / Reachability — consumes the dual of this ADR's `definitelyReturns` machinery)
 
 ## Context
 

@@ -1,6 +1,6 @@
 /**
  * Unit tests for TypeValidator.validateLoopConditionNotAlwaysTrue
- * ADR-113 / Issue #1075: reject always-true literal loop conditions (E0707).
+ * ADR-068 / Issue #1075: reject always-true literal loop conditions (E0707).
  *
  * Only the v0.2.18 literal slice — integer/bool literal comparisons decided
  * without symbol resolution. Named constants, non-literal operands, and

@@ -366,7 +366,7 @@ buffer[0] = (uint8_t)(magic);
 - **Handler state**: Access via `CodeGenState` (properties) and `CodeGenState.generator!` (methods)
 - **CodeGenState**: Sole state container — don't add instance state to CodeGenerator
 
-### Assignment Classification (ADR-109)
+### Assignment Classification (ADR-065)
 
 To add new patterns: (1) Add `AssignmentKind` enum, (2) Update `AssignmentClassifier`, (3) Create handler, (4) Register handler, (5) Update test count.
 
@@ -448,11 +448,33 @@ Update both when adding new statement types.
 | Research    | Proposal under investigation — NOT established syntax |
 | Accepted    | User-approved decision                                |
 | Implemented | User-confirmed complete                               |
+| WIP         | Accepted design, implementation in progress           |
 | Rejected    | Decision NOT to implement                             |
+| Superseded  | Replaced by a later ADR                               |
 
 - **DO**: Update ADRs with research, context, links, findings
 - **DO NOT**: Change Status or Decision without explicit approval
 - **Sync order**: Update ADR file FIRST, then README.md
+
+### Numbering — an ADR's number band is the release it must ship in
+
+**Never pick "the next free number."** Ask which release the decision must ship in:
+
+| Band  | Work done during | Release gate                          |
+| ----- | ---------------- | ------------------------------------- |
+| `0xx` | v0.x             | All must be implemented to cut **v1** |
+| `1xx` | v1.x             | All must be implemented to cut **v2** |
+| `2xx` | v2.x             | All must be implemented to cut **v3** |
+
+A band is a commitment, not a label: cutting `v(N+1)` requires every non-terminal ADR in band
+`N` to be fully implemented (`Rejected` and `Superseded` are exempt). An ADR filed today but
+deliberately deferred until after v1 is `1xx` work, even though it was written during v0.x.
+
+Numbers are never reused, and changing an ADR's target release means `git mv` plus updating
+every reference — including `.test.cnx` fixture comments, which ADR-043 carries into generated
+output, so `npm run test:update` is required.
+
+**Full rules and the old→new mapping table: [`docs/decisions/README.md`](docs/decisions/README.md).**
 
 ---
 

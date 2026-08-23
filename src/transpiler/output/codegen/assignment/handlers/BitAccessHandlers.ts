@@ -1,5 +1,5 @@
 /**
- * Integer bit access assignment handlers (ADR-109).
+ * Integer bit access assignment handlers (ADR-065).
  *
  * Handles bit manipulation on integer variables:
  * - INTEGER_BIT: flags[3] <- true

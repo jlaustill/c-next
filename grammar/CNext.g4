@@ -217,7 +217,7 @@ statement
     | whileStatement
     | doWhileStatement
     | forStatement
-    | foreverStatement     // ADR-113: Infinite loops
+    | foreverStatement     // ADR-068: Infinite loops
     | switchStatement
     | returnStatement
     | criticalStatement    // ADR-050: Critical sections
@@ -284,7 +284,7 @@ forStatement
     : 'for' '(' forInit? ';' expression? ';' forUpdate? ')' statement
     ;
 
-// ADR-113: Infinite loop. Braces always required (no single-statement form),
+// ADR-068: Infinite loop. Braces always required (no single-statement form),
 // matching switch/scope/critical. Lowers to MISRA-compliant for(;;).
 foreverStatement
     : FOREVER block
@@ -649,7 +649,7 @@ ELSE        : 'else';
 WHILE       : 'while';
 DO          : 'do';       // ADR-027: Do-while loops
 FOR         : 'for';
-FOREVER     : 'forever';  // ADR-113: Infinite loops
+FOREVER     : 'forever';  // ADR-068: Infinite loops
 SWITCH      : 'switch';   // ADR-025: Switch statements
 CASE        : 'case';
 DEFAULT     : 'default';

@@ -16,7 +16,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // test-coverage: 30a-volatile-for-loop
 // Tests: Volatile variable in for loop (iteration variable)
-// ADR-108: Prevent loop optimization in timing-critical code
+// ADR-064: Prevent loop optimization in timing-critical code
 int main(void) {
     uint32_t sum = 0U;
     for (volatile uint32_t i = 0; i < 5; i += 1) {

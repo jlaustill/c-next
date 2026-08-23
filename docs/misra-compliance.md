@@ -285,7 +285,7 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 | ---- | ------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 14.1 | Loop counter float                         | **By Design** | Loop validation                                                                                                                                          |
 | 14.2 | For loop well-formed                       | Partial       | Some validation                                                                                                                                          |
-| 14.3 | Controlling expression not invariant       | Partial       | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-113 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
+| 14.3 | Controlling expression not invariant       | Partial       | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-068 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
 | 14.4 | Controlling expression essentially boolean | Partial       | E0701 for do-while only                                                                                                                                  |
 
 ---
