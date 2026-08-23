@@ -102,7 +102,7 @@ class VariableCollector {
       // identically here and in codegen. Folding only literals and consts here
       // meant `u8[sizeof(u32)]` reached the header as `sizeof(u32)` -- a
       // C-Next type name in generated C, which does not compile -- while the
-      // .c correctly said [4]. Unfoldable text is still kept, for macro and
+      // .c correctly said [4]. Text that does not fold is still kept, for macro and
       // enum references.
       dimensions.push(DimensionResolver.resolve(sizeExpr, constValues));
     }

@@ -43,7 +43,7 @@ class ArrayDimensionParser {
    * identifier: `8+1`, `SIZE+1`, `1+SIZE`, `SIZE+OFFSET`.
    *
    * Issue #1157: this required an identifier on both sides, so `u8[8+1]` did
-   * not fold. An unfoldable dimension is dropped by the collectors, which left
+   * not fold. A dimension that does not fold is dropped by the collectors, which left
    * the field marked as an array with no dimensions -- the header emitted a
    * scalar and the body fell back to bit indexing.
    */

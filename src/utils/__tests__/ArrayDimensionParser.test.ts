@@ -244,7 +244,7 @@ describe("ArrayDimensionParser", () => {
         // grounds that "1 + 2" has spaces and so misses the CONST+CONST
         // pattern. getText() strips whitespace, so the text is "1+2"; the real
         // reason it did not fold is that the pattern required an identifier on
-        // both sides. An unfoldable dimension is dropped by the collectors,
+        // both sides. A dimension that does not fold is dropped by the collectors,
         // which is what left `u8[8+1]` as a scalar in the header.
         const result = ArrayDimensionParser.parseSingleDimension(expr!);
         expect(result).toBe(3);
