@@ -48,7 +48,7 @@ import scopedRegisterGenerator from "./generators/declarationGenerators/ScopedRe
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
-// ADR-109: Extracted utilities
+// ADR-065: Extracted utilities
 import BitUtils from "../../../utils/BitUtils";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
@@ -63,7 +63,7 @@ import commentUtils from "./generators/support/CommentUtils";
 import NullCheckAnalyzer from "../../logic/analysis/NullCheckAnalyzer";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
-// ADR-109: Assignment decomposition (Phase 2)
+// ADR-065: Assignment decomposition (Phase 2)
 import AssignmentHandlerRegistry from "./assignment/index";
 import AssignmentClassifier from "./assignment/AssignmentClassifier";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
@@ -1133,7 +1133,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-113 / #1075: reject an always-true literal loop condition (E0707).
+   * ADR-068 / #1075: reject an always-true literal loop condition (E0707).
    * Part of IOrchestrator interface.
    */
   validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void {
@@ -4362,7 +4362,7 @@ export default class CodeGenerator implements IOrchestrator {
   // Issue #644: _generateBitMask removed, now delegating to BitUtils.generateMask
   // ========================================================================
 
-  // ADR-109: buildHandlerDeps removed - handlers now use CodeGenState.generator directly
+  // ADR-065: buildHandlerDeps removed - handlers now use CodeGenState.generator directly
 
   /**
    * Analyze a member chain target to detect bit access at the end.
@@ -4454,7 +4454,7 @@ export default class CodeGenerator implements IOrchestrator {
       },
     );
 
-    // ADR-109: Dispatch to assignment handlers
+    // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(ctx, {
       typeRegistry: CodeGenState.getTypeRegistryView(),
@@ -4464,7 +4464,7 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownRegister: (name) => CodeGenState.symbols!.knownRegisters.has(name),
       currentScope: CodeGenState.currentScope,
     });
-    // ADR-109: Handlers access CodeGenState directly, no deps needed
+    // ADR-065: Handlers access CodeGenState directly, no deps needed
     const assignmentKind = AssignmentClassifier.classify(assignCtx);
     const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
     return handler(assignCtx);

@@ -2,7 +2,7 @@
  * String utilities for C code generation.
  * Pure functions that generate C code strings for string operations.
  *
- * Extracted from CodeGenerator.ts as part of ADR-109 decomposition.
+ * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
  */
 /** C null terminator character literal for generated code */
 const C_NULL_CHAR = String.raw`'\0'`;

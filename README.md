@@ -274,6 +274,7 @@ _Using C-Next in your project? Open an issue to get listed!_
 | ------------------------------------------------------------- | ------------------------------------------ |
 | [Language Guide](docs/language-guide.md)                      | Complete reference for all C-Next features |
 | [Architecture Decisions](docs/architecture-decisions.md)      | 70+ ADRs documenting design choices        |
+| [ADR Numbering](docs/decisions/README.md)                     | How ADRs are numbered by release band      |
 | [Learn C-Next in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview                      |
 | [Error Codes](docs/error-codes.md)                            | Compiler error reference                   |
 | [MISRA Compliance](docs/misra-compliance.md)                  | MISRA C:2012 compliance details            |

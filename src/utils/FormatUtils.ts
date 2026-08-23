@@ -2,7 +2,7 @@
  * Code formatting utilities for C code generation.
  * Pure functions for text formatting and indentation.
  *
- * Extracted from CodeGenerator.ts as part of ADR-109 decomposition.
+ * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
  */
 
 import QualifiedCName from "./QualifiedCName";

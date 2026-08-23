@@ -1,4 +1,8 @@
-# ADR-110: DO-178C Compliance Support
+# ADR-066: DO-178C Compliance Support
+
+> **Formerly ADR-110.** Renumbered 2026-08-23 into the `0xx` band — this is
+> v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
+> mapping table.
 
 ## Status
 

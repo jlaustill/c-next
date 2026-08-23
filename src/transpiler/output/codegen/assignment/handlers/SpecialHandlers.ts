@@ -1,5 +1,5 @@
 /**
- * Special assignment handlers (ADR-109).
+ * Special assignment handlers (ADR-065).
  *
  * Handles special compound assignment operations:
  * - ATOMIC_RMW: atomic counter +<- 1

@@ -343,7 +343,7 @@ Generates optimized code based on target platform:
 
 Target detection priority: `--target` CLI flag > `platformio.ini` > `#pragma target` > default
 
-### Volatile Variables (ADR-108)
+### Volatile Variables (ADR-064)
 
 Prevent compiler optimization for variables that change outside normal program flow:
 

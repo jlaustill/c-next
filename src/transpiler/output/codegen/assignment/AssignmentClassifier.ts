@@ -1,5 +1,5 @@
 /**
- * Assignment classifier for dispatch-based code generation (ADR-109).
+ * Assignment classifier for dispatch-based code generation (ADR-065).
  *
  * Analyzes an assignment context and determines which AssignmentKind it is.
  * The classification order matches the original generateAssignment() method's

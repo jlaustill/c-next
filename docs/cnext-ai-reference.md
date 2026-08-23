@@ -643,7 +643,7 @@ u32 val <- counter;                  // atomic load
 
 Transpiles to LDREX/STREX loops on Cortex-M3+, critical sections on Cortex-M0.
 
-`volatile` is a separate modifier (ADR-108) that stops the compiler caching a variable (C `volatile` semantics) — for memory-mapped/shared flags that aren't lock-free atomics: `volatile u32 status <- 0;`. It is **distinct from `atomic`** (lock-free ISR-safe ops); combining them (`atomic volatile`) is a compile error.
+`volatile` is a separate modifier (ADR-064) that stops the compiler caching a variable (C `volatile` semantics) — for memory-mapped/shared flags that aren't lock-free atomics: `volatile u32 status <- 0;`. It is **distinct from `atomic`** (lock-free ISR-safe ops); combining them (`atomic volatile`) is a compile error.
 
 ## Critical Sections (ADR-050)
 

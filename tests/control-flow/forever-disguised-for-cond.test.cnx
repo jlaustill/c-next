@@ -1,4 +1,4 @@
-// Coverage: ADR-113 / #1075 - always-true for-loop literal condition (E0707)
+// Coverage: ADR-068 / #1075 - always-true for-loop literal condition (E0707)
 // test-error
 void run() {
     u8 state <- 0;

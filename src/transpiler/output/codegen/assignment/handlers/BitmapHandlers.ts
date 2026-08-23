@@ -1,5 +1,5 @@
 /**
- * Bitmap field assignment handlers (ADR-109).
+ * Bitmap field assignment handlers (ADR-065).
  *
  * Handles assignments to bitmap fields:
  * - BITMAP_FIELD_SINGLE_BIT: flags.Running <- true

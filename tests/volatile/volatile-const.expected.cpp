@@ -8,7 +8,7 @@
 // test-execution
 // test-coverage: 30a-volatile-const
 // Tests: Volatile + const combination
-// ADR-108: Hardware status register pattern (read-only volatile)
+// ADR-064: Hardware status register pattern (read-only volatile)
 // Const volatile - can be read but not modified by this code
 // Used for hardware status registers that change externally
 extern const volatile uint32_t hardware_status = 0x0000FFFFU;

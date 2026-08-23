@@ -1,5 +1,5 @@
 /**
- * Assignment handler registry (ADR-109).
+ * Assignment handler registry (ADR-065).
  *
  * Maps AssignmentKind to handler functions for clean dispatch-based
  * code generation. Each handler is responsible for generating the C

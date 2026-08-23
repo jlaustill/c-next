@@ -1,5 +1,5 @@
 /**
- * Assignment module public API (ADR-109).
+ * Assignment module public API (ADR-065).
  *
  * This module initializes the handler registry with all handlers.
  * For Phase 3 integration, CodeGenerator will import directly from:
