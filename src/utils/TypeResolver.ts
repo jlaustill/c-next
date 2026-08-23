@@ -7,11 +7,11 @@
 import type TType from "../transpiler/types/TType";
 import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
+import ArrayDimensionText from "./ArrayDimensionText";
 
 // Regex patterns for type parsing
 const STRING_TYPE_PATTERN = /^string\s*<\s*(\d+)\s*>$/;
 const ARRAY_TYPE_PATTERN = /^(.+?)(\[\s*[^\]]+\s*\])+$/;
-const ARRAY_DIMENSION_PATTERN = /\[\s*([^\]]+)\s*\]/g;
 const EXTERNAL_TYPE_PATTERN = /[:<>]/;
 const ENUM_PREFIX_PATTERN = /^E[A-Z]/;
 
@@ -69,24 +69,10 @@ class TypeResolver {
    * Parse an array type and return the TType.
    */
   private static parseArrayType(fullType: string, baseTypeStr: string): TType {
-    // Extract all dimensions from the full type string
-    const dimensions: (number | string)[] = [];
-    let match: RegExpExecArray | null = null;
-
-    // Reset lastIndex for global regex
-    ARRAY_DIMENSION_PATTERN.lastIndex = 0;
-
-    while ((match = ARRAY_DIMENSION_PATTERN.exec(fullType)) !== null) {
-      const dimStr = match[1].trim();
-      const dimNum = Number.parseInt(dimStr, 10);
-
-      if (Number.isNaN(dimNum)) {
-        // String dimension (C macro)
-        dimensions.push(dimStr);
-      } else {
-        dimensions.push(dimNum);
-      }
-    }
+    // Issue #1127: shared with SymbolUtils.parseArrayDimensions. This used a
+    // base-10 parseInt, which read "0x10" as 0 and "8+1" as 8 -- a 16-element
+    // array reported as dimension 0, and an expression silently truncated.
+    const dimensions = ArrayDimensionText.parse(fullType);
 
     // Resolve the base type (recursively handles string<N> as base type)
     const elementType = TypeResolver.resolve(baseTypeStr.trim());

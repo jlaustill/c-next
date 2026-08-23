@@ -1,0 +1,52 @@
+import { describe, expect, it } from "vitest";
+
+import ArrayDimensionText from "../ArrayDimensionText";
+
+describe("ArrayDimensionText", () => {
+  describe("parse", () => {
+    // Issue #1127: SymbolUtils.parseArrayDimensions and
+    // TypeResolver.parseArrayType each extracted dimensions from a string and
+    // disagreed. TypeResolver used a base-10 parseInt, so "0x10" -- a
+    // 16-element array -- was reported as dimension 0, and "8+1" was truncated
+    // to 8. Both now call this, so the rows below hold for either caller.
+    it.each([
+      ["a decimal dimension", "u8[10]", [10]],
+      ["a hex dimension", "u8[0x10]", [16]],
+      ["a binary dimension", "u8[0b1010]", [10]],
+      ["a macro dimension", "u8[BUF_SIZE]", ["BUF_SIZE"]],
+      ["an enum-qualified dimension", "u8[EColor.COUNT]", ["EColor.COUNT"]],
+      ["multiple dimensions", "u8[2][3]", [2, 3]],
+      ["mixed numeric and symbolic", "u8[2][N]", [2, "N"]],
+      ["surrounding whitespace", "u8[ 8 ]", [8]],
+      ["no dimensions at all", "u8", []],
+    ])("parses %s", (_label, source, expected) => {
+      expect(ArrayDimensionText.parse(source as string)).toEqual(expected);
+    });
+
+    // These previously produced a truncated number rather than text. Keeping
+    // the source is what stops a silently wrong size reaching the generated C.
+    it.each([
+      ["an arithmetic expression", "u8[8+1]", ["8+1"]],
+      ["a spaced arithmetic expression", "u8[SIZE + 1]", ["SIZE + 1"]],
+      ["a literal with a C suffix", "u8[8ul]", ["8ul"]],
+    ])(
+      "keeps %s as source text rather than truncating it",
+      (_label, source, expected) => {
+        expect(ArrayDimensionText.parse(source as string)).toEqual(expected);
+      },
+    );
+
+    it("keeps the position of an unsized dimension", () => {
+      // The empty string holds the slot so dimension i still matches subscript
+      // i; dropping it would shift every dimension that follows.
+      expect(ArrayDimensionText.parse("u8[][4]")).toEqual(["", 4]);
+    });
+
+    it("is not affected by a previous call's lastIndex", () => {
+      // The pattern is a module-level global regex, so lastIndex must be reset
+      // per call or every second call would start mid-string.
+      expect(ArrayDimensionText.parse("u8[2][3]")).toEqual([2, 3]);
+      expect(ArrayDimensionText.parse("u8[2][3]")).toEqual([2, 3]);
+    });
+  });
+});
