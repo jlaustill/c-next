@@ -5,6 +5,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    return (uint8_t)(a - (uint8_t)b);
+}
+
 // test-execution
 // ADR-013 + ADR-044: Const clamp u8 combination
 // Tests: const clamp u8 declaration and read access
@@ -17,7 +30,7 @@ int main(void) {
     if (maxVal != 255) return 1;
     uint8_t midVal = MID_VALUE;
     if (midVal != 128) return 2;
-    uint8_t diff = MAX_VALUE - MID_VALUE;
+    uint8_t diff = cnx_clamp_sub_u8(MAX_VALUE, MID_VALUE);
     if (diff != 127) return 3;
     return 0;
 }

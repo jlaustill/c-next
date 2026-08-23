@@ -13,6 +13,8 @@ import TYPE_WIDTH from "./types/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
+import type TOverflowBehavior from "./types/TOverflowBehavior";
+import type TTypeInfo from "./types/TTypeInfo";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -263,8 +265,58 @@ class TypeResolver {
    * its EXTRACTED width, not the variable's full width (typing `a + b[0, 32]`
    * as u64 would cast the composite to a wider type — MISRA Rule 10.8).
    */
+  /**
+   * Issue #1152: the C-Next integer type of any composite node, for callers
+   * that hold an `additiveExpression`/`multiplicativeExpression` rather than a
+   * whole `expression`. Same rule as getIntegerExpressionType: the (uniform,
+   * per Rule 10.4) category at the widest operand's width.
+   */
+  static getCompositeIntegerType(node: ParserRuleContext): string | null {
+    return TypeResolver.resolveCompositeIntegerType(node);
+  }
+
+  /**
+   * Issue #1152: the overflow behavior of a composite arithmetic expression.
+   *
+   * `clamp` is the default (ADR-044), and safety wins a mix: the expression
+   * wraps only when EVERY integer operand was explicitly declared `wrap`. One
+   * saturating operand is enough to make the result saturate, which is what
+   * makes a bounds guard like `offset + length <= limit` trustworthy when
+   * `offset` can saturate (see #231).
+   *
+   * Returns null when no operand resolves to a declared integer variable, in
+   * which case the caller should leave the expression alone.
+   */
+  static getCompositeOverflowBehavior(
+    node: ParserRuleContext,
+  ): TOverflowBehavior | null {
+    let sawInteger = false;
+    for (const operand of TypeResolver.collectOperandPostfixes(node)) {
+      const info = TypeResolver.operandTypeInfo(operand);
+      if (info === undefined) continue;
+      if (!TypeResolver.isIntegerType(info.baseType)) continue;
+      sawInteger = true;
+      if (info.overflowBehavior === "clamp") return "clamp";
+    }
+    return sawInteger ? "wrap" : null;
+  }
+
+  /**
+   * The declared type info for a leaf operand, when it is a plain variable.
+   * Anything else (array element, member chain, call result) has no declared
+   * overflow behavior of its own to consult.
+   */
+  private static operandTypeInfo(
+    postfix: Parser.PostfixExpressionContext,
+  ): TTypeInfo | undefined {
+    if (postfix.postfixOp().length > 0) return undefined;
+    const name = postfix.primaryExpression()?.getText();
+    if (!name) return undefined;
+    return CodeGenState.getVariableTypeInfo(name);
+  }
+
   private static resolveCompositeIntegerType(
-    ctx: Parser.ExpressionContext,
+    ctx: ParserRuleContext,
   ): string | null {
     let category: "i" | "u" | null = null;
     let width = 0;
@@ -313,6 +365,22 @@ class TypeResolver {
     node: ParserRuleContext,
   ): Parser.PostfixExpressionContext[] {
     if (node instanceof Parser.PostfixExpressionContext) return [node];
+
+    // Issue #1152: a ternary's VALUE is its two arms; the condition is a
+    // separate expression contributing no value operand. Counting it types
+    // `(val > 0) ? 1 : -1` by `val`, reporting an i32 result as u32.
+    // Addressed via orExpression() rather than child indices because the
+    // condition is parenthesised, so it sits at child index 1, not 0.
+    const arms = TypeResolver.ternaryValueArms(node);
+    if (arms !== null) {
+      return arms.flatMap((arm) => TypeResolver.collectOperandPostfixes(arm));
+    }
+
+    // Issue #1152: `&x` (address-of, ADR-006) yields an ADDRESS, not x's
+    // value, so x's type must not flow out as the expression's type --
+    // `u32 addr <- &counter` with an i32 counter is not a sign conversion.
+    if (TypeResolver.isAddressOf(node)) return [];
+
     const operands: Parser.PostfixExpressionContext[] = [];
     for (let i = 0; i < node.getChildCount(); i += 1) {
       const child = node.getChild(i);
@@ -321,6 +389,32 @@ class TypeResolver {
       }
     }
     return operands;
+  }
+
+  /**
+   * True for a `&expr` address-of node (ADR-006). Detected by the leading
+   * token rather than by child count, since the operand is itself a
+   * unaryExpression.
+   */
+  private static isAddressOf(node: ParserRuleContext): boolean {
+    return (
+      node instanceof Parser.UnaryExpressionContext &&
+      node.getChildCount() === 2 &&
+      node.getChild(0)?.getText() === "&"
+    );
+  }
+
+  /**
+   * The two value arms of a conditional ternary, or null when this node is not
+   * one. A ternaryExpression with a single orExpression child is a
+   * pass-through and has no condition to exclude.
+   */
+  private static ternaryValueArms(
+    node: ParserRuleContext,
+  ): Parser.OrExpressionContext[] | null {
+    if (!(node instanceof Parser.TernaryExpressionContext)) return null;
+    const branches = node.orExpression();
+    return branches.length === 3 ? [branches[1]!, branches[2]!] : null;
   }
 
   /**

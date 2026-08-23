@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // Tests: Issue #636 - Const struct array with inferred size must include dimension in header
 // This is a regression test to ensure headers correctly declare array dimensions
 // when the size is inferred from an initializer.
@@ -32,6 +45,6 @@ int main(void) {
     uint32_t total = 0U;
     for (uint8_t i = 0; i < ITEM_COUNT; i = i + 1) {
         ConstInferred__TItem item = ITEMS[i];
-        total = total + item.value;
+        total = cnx_clamp_add_u32(total, item.value);
     }
 }

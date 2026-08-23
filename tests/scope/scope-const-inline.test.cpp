@@ -8,6 +8,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    return (uint16_t)(a + (uint16_t)b);
+}
+
 // test-execution
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
@@ -60,7 +73,7 @@ uint16_t ConstTest__multipleRefs(void) {
     uint16_t a = 255;
     uint16_t b = 255 + 1U;
     uint16_t c = 255 * 2U;
-    return a + b + c;
+    return cnx_clamp_add_u16(cnx_clamp_add_u16(a, b), c);
 }
 
 int main(void) {

@@ -1,5 +1,5 @@
 /**
- * Array assignment handlers (ADR-109).
+ * Array assignment handlers (ADR-065).
  *
  * Handles assignments to array elements:
  * - ARRAY_ELEMENT: arr[i] <- value

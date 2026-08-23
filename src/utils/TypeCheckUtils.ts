@@ -2,7 +2,7 @@
  * Type checking utilities for C-Next types.
  * Pure predicate functions for type classification.
  *
- * Extracted from CodeGenerator.ts as part of ADR-109 decomposition.
+ * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
  */
 
 /** All integer types in C-Next */

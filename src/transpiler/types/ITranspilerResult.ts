@@ -1,6 +1,7 @@
 import ITranspileError from "../../lib/types/ITranspileError";
 import IGrammarCoverageReport from "../logic/analysis/types/IGrammarCoverageReport";
 import IFileResult from "./IFileResult";
+import type IRecordedRequirement from "./IRecordedRequirement";
 
 /**
  * Result of running the unified transpiler
@@ -32,6 +33,13 @@ interface ITranspilerResult {
 
   /** Grammar coverage (if collectGrammarCoverage was enabled) */
   grammarCoverage?: IGrammarCoverageReport;
+
+  /**
+   * Issue #1143: Union of every file's toolchain requirements, with the source
+   * sites that incurred each. Printed by ResultPrinter and used to answer
+   * "what does *my* project need?" rather than "what might C-Next need?".
+   */
+  requirements?: readonly IRecordedRequirement[];
 }
 
 export default ITranspilerResult;

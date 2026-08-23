@@ -10,6 +10,7 @@
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import OverflowHelperTemplates from "./OverflowHelperTemplates";
+import CodeGenState from "../../../../state/CodeGenState";
 
 /**
  * Generate a safe arithmetic helper function (div or mod).
@@ -47,17 +48,31 @@ const generateOverflowHelpers = (
   const lines: string[] = [];
 
   if (debugMode) {
+    // Issue #1143: this branch, and only this branch, pulls in a hosted libc.
+    // Release-mode clamp helpers are freestanding-safe, so the requirement is
+    // recorded here rather than wherever a clamp op happens to be registered.
+    CodeGenState.requireToolchain("overflow-panic-hosted-libc");
     lines.push(
       "// ADR-044: Debug overflow helper functions (panic on overflow)",
       "#include <limits.h>",
       "#include <stdio.h>",
       "#include <stdlib.h>",
       "",
+      "/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.",
+      "   Narrowing it first would let an out-of-range operand truncate INTO range and defeat",
+      "   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a",
+      "   uint8_t parameter would return 0 -- the opposite of saturation. */",
+      "",
     );
   } else {
     lines.push(
       "// ADR-044: Overflow helper functions",
       "#include <limits.h>",
+      "",
+      "/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.",
+      "   Narrowing it first would let an out-of-range operand truncate INTO range and defeat",
+      "   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a",
+      "   uint8_t parameter would return 0 -- the opposite of saturation. */",
       "",
     );
   }

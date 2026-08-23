@@ -1,5 +1,5 @@
 /**
- * Assignment kinds for classification-based dispatch (ADR-109).
+ * Assignment kinds for classification-based dispatch (ADR-065).
  *
  * The classifier checks conditions in priority order - earlier kinds
  * take precedence when multiple could match. This ordering matches

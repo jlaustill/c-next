@@ -5,39 +5,62 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    return (uint16_t)(a + (uint16_t)b);
+}
+
+static inline uint16_t cnx_clamp_mul_u16(uint16_t a, uint32_t b) {
+    if (b != 0 && a > UINT16_MAX / b) return UINT16_MAX;
+    return (uint16_t)(a * (uint16_t)b);
+}
+
+static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    return (uint16_t)(a - (uint16_t)b);
+}
+
 // test-execution
 // Tests: u16 arithmetic operations (+, -, *, /, %)
 // Coverage: Section 4.1-4.5 for u16 type
 int main(void) {
     uint16_t a = 30000U;
     uint16_t b = 15000U;
-    uint16_t sum = a + b;
+    uint16_t sum = cnx_clamp_add_u16(a, b);
     if (sum != 45000) return 1;
-    uint16_t sum_zero = a + 0U;
+    uint16_t sum_zero = cnx_clamp_add_u16(a, 0U);
     if (sum_zero != 30000) return 2;
     uint16_t c = 60000U;
     uint16_t d = 5535U;
-    uint16_t sum_large = c + d;
+    uint16_t sum_large = cnx_clamp_add_u16(c, d);
     if (sum_large != 65535) return 3;
-    uint16_t diff = a - b;
+    uint16_t diff = cnx_clamp_sub_u16(a, b);
     if (diff != 15000) return 4;
     uint16_t e = 30000U;
     uint16_t f = 30000U;
-    uint16_t diff_zero = e - f;
+    uint16_t diff_zero = cnx_clamp_sub_u16(e, f);
     if (diff_zero != 0) return 5;
-    uint16_t diff_zero2 = a - 0U;
+    uint16_t diff_zero2 = cnx_clamp_sub_u16(a, 0U);
     if (diff_zero2 != 30000) return 6;
     uint16_t g = 100U;
     uint16_t h = 50U;
-    uint16_t product = g * h;
+    uint16_t product = cnx_clamp_mul_u16(g, h);
     if (product != 5000) return 7;
-    uint16_t product_zero = g * 0U;
+    uint16_t product_zero = cnx_clamp_mul_u16(g, 0U);
     if (product_zero != 0) return 8;
-    uint16_t product_one = g * 1U;
+    uint16_t product_one = cnx_clamp_mul_u16(g, 1U);
     if (product_one != 100) return 9;
     uint16_t i = 255U;
     uint16_t j = 257U;
-    uint16_t product_large = i * j;
+    uint16_t product_large = cnx_clamp_mul_u16(i, j);
     if (product_large != 65535) return 10;
     uint16_t k = 10000U;
     uint16_t l = 50U;
@@ -72,7 +95,7 @@ int main(void) {
     if (max_div != 1) return 19;
     uint16_t max_mod = max_val % max_val;
     if (max_mod != 0) return 20;
-    uint16_t max_minus_one = max_val - one;
+    uint16_t max_minus_one = cnx_clamp_sub_u16(max_val, one);
     if (max_minus_one != 65534) return 21;
     uint16_t combined = (100U + 200U) * 20U;
     if (combined != 6000) return 22;

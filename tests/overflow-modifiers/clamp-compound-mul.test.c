@@ -9,6 +9,11 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
 static inline int16_t cnx_clamp_mul_i16(int16_t a, int32_t b) {
     int32_t result = (int32_t)a * b;
     if (result > INT16_MAX) return INT16_MAX;
@@ -41,30 +46,22 @@ static inline int8_t cnx_clamp_mul_i8(int8_t a, int32_t b) {
 
 static inline uint16_t cnx_clamp_mul_u16(uint16_t a, uint32_t b) {
     if (b != 0 && a > UINT16_MAX / b) return UINT16_MAX;
-    uint16_t result;
-    if (__builtin_mul_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
-    return result;
+    return (uint16_t)(a * (uint16_t)b);
 }
 
 static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
-    uint32_t result;
-    if (__builtin_mul_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
-    return result;
+    return (uint32_t)(a * (uint32_t)b);
 }
 
 static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
     if (b != 0 && a > UINT64_MAX / b) return UINT64_MAX;
-    uint64_t result;
-    if (__builtin_mul_overflow(a, (uint64_t)b, &result)) return UINT64_MAX;
-    return result;
+    return (uint64_t)(a * (uint64_t)b);
 }
 
 static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
     if (b != 0 && a > UINT8_MAX / b) return UINT8_MAX;
-    uint8_t result;
-    if (__builtin_mul_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
-    return result;
+    return (uint8_t)(a * (uint8_t)b);
 }
 
 // test-execution

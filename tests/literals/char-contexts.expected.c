@@ -5,6 +5,24 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    return (uint8_t)(a - (uint8_t)b);
+}
+
 // test-coverage: 32.4-variable-init, 32.4-array-element, 32.4-comparison, 32.4-in-switch-case
 // test-execution
 // Tests: Character literal usage in various contexts
@@ -111,10 +129,10 @@ int main(void) {
     }
     if (heading != 180) return 20;
     uint8_t upperA = (uint8_t)'A';
-    uint8_t lowerA = upperA + 32U;
+    uint8_t lowerA = cnx_clamp_add_u8(upperA, 32U);
     if (lowerA != 'a') return 21;
     uint8_t lowerZ = (uint8_t)'z';
-    uint8_t upperZ = lowerZ - 32U;
+    uint8_t upperZ = cnx_clamp_sub_u8(lowerZ, 32U);
     if (upperZ != 'Z') return 22;
     return 0;
 }

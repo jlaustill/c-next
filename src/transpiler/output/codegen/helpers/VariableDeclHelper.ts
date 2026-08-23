@@ -26,6 +26,7 @@ import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 
 /**
  * Callbacks for integer validation in variable declarations.
@@ -318,7 +319,23 @@ class VariableDeclHelper {
       validateLiteralFitsType: TypeResolver.validateLiteralFitsType,
       getExpressionType: (_text: string) => {
         // IntegerLiteralValidator passes text, but our callback uses the context
-        return callbacks.getExpressionType(ctx.expression()!);
+        const direct = callbacks.getExpressionType(ctx.expression()!);
+        if (direct !== null) return direct;
+        // Issue #1152: getExpressionType returns null for a COMPOSITE
+        // expression (`a + b`), so every conversion rule keyed on the source
+        // type silently no-ops on exactly the expressions MISRA 10.8 is about.
+        // resolveCompositeIntegerType already types these correctly -- it was
+        // written for slice assignment and cites 10.8 -- so reuse it rather
+        // than leaving composites untyped here.
+        //
+        // Only for a genuine composite. A lone postfix that direct typing
+        // declined is a bit extraction (`x[0, 32]`), which ADR-024 defines as
+        // the EXPLICIT reinterpret -- typing it here would make the sanctioned
+        // escape hatch fail the very check it exists to satisfy.
+        if (ExpressionUnwrapper.getPostfixExpression(ctx.expression()!)) {
+          return null;
+        }
+        return TypeResolver.getIntegerExpressionType(ctx.expression()!);
       },
       validateTypeConversion: TypeResolver.validateTypeConversion,
     });

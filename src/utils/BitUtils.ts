@@ -11,7 +11,7 @@ const NARROW_TYPES = new Set(["u8", "u16", "i8", "i16"]);
  * Bit manipulation utilities for C code generation.
  * Pure functions that generate C code strings for bit operations.
  *
- * Extracted from CodeGenerator.ts as part of ADR-109 decomposition.
+ * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
  */
 class BitUtils {
   /**

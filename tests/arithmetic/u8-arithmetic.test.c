@@ -5,39 +5,62 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
+static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
+    if (b != 0 && a > UINT8_MAX / b) return UINT8_MAX;
+    return (uint8_t)(a * (uint8_t)b);
+}
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    return (uint8_t)(a - (uint8_t)b);
+}
+
 // test-execution
 // Tests: u8 arithmetic operations (+, -, *, /, %)
 // Coverage: Section 4.1-4.5 for u8 type
 int main(void) {
     uint8_t a = 100U;
     uint8_t b = 50U;
-    uint8_t sum = a + b;
+    uint8_t sum = cnx_clamp_add_u8(a, b);
     if (sum != 150) return 1;
-    uint8_t sum_zero = a + 0U;
+    uint8_t sum_zero = cnx_clamp_add_u8(a, 0U);
     if (sum_zero != 100) return 2;
     uint8_t c = 200U;
     uint8_t d = 55U;
-    uint8_t sum_large = c + d;
+    uint8_t sum_large = cnx_clamp_add_u8(c, d);
     if (sum_large != 255) return 3;
-    uint8_t diff = a - b;
+    uint8_t diff = cnx_clamp_sub_u8(a, b);
     if (diff != 50) return 4;
     uint8_t e = 100U;
     uint8_t f = 100U;
-    uint8_t diff_zero = e - f;
+    uint8_t diff_zero = cnx_clamp_sub_u8(e, f);
     if (diff_zero != 0) return 5;
-    uint8_t diff_zero2 = a - 0U;
+    uint8_t diff_zero2 = cnx_clamp_sub_u8(a, 0U);
     if (diff_zero2 != 100) return 6;
     uint8_t g = 10U;
     uint8_t h = 5U;
-    uint8_t product = g * h;
+    uint8_t product = cnx_clamp_mul_u8(g, h);
     if (product != 50) return 7;
-    uint8_t product_zero = g * 0U;
+    uint8_t product_zero = cnx_clamp_mul_u8(g, 0U);
     if (product_zero != 0) return 8;
-    uint8_t product_one = g * 1U;
+    uint8_t product_one = cnx_clamp_mul_u8(g, 1U);
     if (product_one != 10) return 9;
     uint8_t i = 15U;
     uint8_t j = 17U;
-    uint8_t product_large = i * j;
+    uint8_t product_large = cnx_clamp_mul_u8(i, j);
     if (product_large != 255) return 10;
     uint8_t k = 100U;
     uint8_t l = 5U;
@@ -72,7 +95,7 @@ int main(void) {
     if (max_div != 1) return 19;
     uint8_t max_mod = max_val % max_val;
     if (max_mod != 0) return 20;
-    uint8_t max_minus_one = max_val - one;
+    uint8_t max_minus_one = cnx_clamp_sub_u8(max_val, one);
     if (max_minus_one != 254) return 21;
     uint8_t combined = (10U + 20U) * 2U;
     if (combined != 60) return 22;

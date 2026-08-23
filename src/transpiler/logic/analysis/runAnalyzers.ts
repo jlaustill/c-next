@@ -183,7 +183,7 @@ function runAnalyzers(
     return errors;
   }
 
-  // 12. Return-path analysis (ADR-112: non-void functions must return on all paths)
+  // 12. Return-path analysis (ADR-067: non-void functions must return on all paths)
   const returnPathAnalyzer = new ReturnPathAnalyzer();
   if (collectErrors(returnPathAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;

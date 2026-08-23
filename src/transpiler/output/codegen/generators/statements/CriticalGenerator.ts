@@ -45,7 +45,15 @@ const generateCriticalStatement = (
 
   // Mark that we need IRQ wrapper functions (not cmsis_gcc.h include)
   // This avoids macro collisions with platform headers like Teensy's imxrt.h
-  effects.push({ type: "include", header: "irq_wrappers" });
+  //
+  // Issue #1143: the line is carried so the deferred emitter can tell the user
+  // *which* critical block made their project depend on CMSIS or avr-libc.
+  // This records no requirement -- the wrappers have not been emitted yet.
+  effects.push({
+    type: "include",
+    header: "irq_wrappers",
+    line: node.start?.line,
+  });
 
   // Generate the block contents
   const blockCode = orchestrator.generateBlock(node.block());

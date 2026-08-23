@@ -13,13 +13,31 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // Function that takes an array parameter
 uint32_t processBuffer(const uint8_t data[8], uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
-        sum = sum + data[i];
-        i = i + 1U;
+        sum = cnx_clamp_add_u32(sum, data[i]);
+        i = cnx_clamp_add_u8(i, 1U);
     }
     return sum;
 }
@@ -34,8 +52,8 @@ uint32_t processPayload(const uint8_t payload[16], uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
-        sum = sum + payload[i];
-        i = i + 1U;
+        sum = cnx_clamp_add_u32(sum, payload[i]);
+        i = cnx_clamp_add_u8(i, 1U);
     }
     return sum;
 }
@@ -67,7 +85,7 @@ uint32_t testMultipleArrayMembers(void) {
     packet.payload[3] = 40U;
     uint32_t headerSum = processHeader(packet.header);
     uint32_t payloadSum = processPayload(packet.payload, 4U);
-    return headerSum + payloadSum;
+    return cnx_clamp_add_u32(headerSum, payloadSum);
 }
 
 uint32_t testArrayMemberInCondition(void) {

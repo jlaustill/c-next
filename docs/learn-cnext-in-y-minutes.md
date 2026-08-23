@@ -8,7 +8,7 @@ contributors:
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C.
 
 ```c
-// Single-line comments work like C99
+// Single-line comments work as you expect
 /* Multi-line comments too */
 
 // =============================================================================
@@ -152,7 +152,7 @@ do {
 } while (byte != END_MARKER);   // OK: comparison
 // } while (byte);              // ERROR: must be boolean
 
-// Forever - the one intentional infinite loop (ADR-113). Braces always required.
+// Forever - the one intentional infinite loop (ADR-068). Braces always required.
 // Lowers to MISRA-compliant for(;;). Allowed ONLY in void functions: a loop that
 // never ends can never honor a return type (E0705 otherwise).
 void main() {

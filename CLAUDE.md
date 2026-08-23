@@ -2,6 +2,10 @@
 
 ## Critical Rules
 
+> **The C-Next way** is captured as a skill: `.claude/skills/cnext-way/SKILL.md`
+> (`/cnext-way`). Read it before implementing, and again before calling work done —
+> it carries the verification discipline these rules depend on.
+
 ### Correctness Over Convenience — ZERO EXCEPTIONS
 
 **NEVER take shortcuts without explicit user permission.** This is non-negotiable.
@@ -99,6 +103,13 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 **MISRA rule details**: `cppcheck --addon=misra -I tests/include <file.c>` shows specific rule violations (batch-validate only shows file names)
 
+**Transpiler failures**: `npx tsx src/index.ts` prints `Error:` (capital E) and exits non-zero —
+detect with the exit code. `grep -q error` silently misses every diagnostic.
+
+**Mismatch masks execution**: a fixture failing `C output mismatch` never runs, so behavioral
+regressions only surface _after_ `npm run test:update`. Re-run the suite post-regeneration before
+calling a codegen change behavior-preserving.
+
 **Snapshot updates**: `.expected.*` files are rewritten **only** under `--update`. A plain
 `npm test` regenerates transpiler output (`.test.c/.h/.cpp/.hpp`) and _compares_ it against the
 snapshots — it never edits them. That is why `test:all` is a gate and must never include an
@@ -127,7 +138,15 @@ it to the regression fixtures.
 
 **Reducing complexity**: Extract nested logic to private helpers with early returns. Check `src/utils/ExpressionUtils.ts` for existing patterns first.
 
-**API queries**: See `https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED`
+**Generated Markdown**: format the generator's output through Prettier before writing or diffing —
+the pre-commit hook formats staged `.md`, so unformatted output makes the committed file
+permanently differ from what the generator produces. Emit no timestamp (it churns every run and
+makes a diff gate useless — see `GRAMMAR-COVERAGE.md`, #1150). **Verify Clean runs no generators**
+(it only re-downloads build artifacts), so gate generated docs in the `lint` job instead.
+
+**API queries**: `https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED`
+— add `&pullRequest=<n>` for PR-scoped issues, and
+`api/qualitygates/project_status?projectKey=jlaustill_c-next&pullRequest=<n>` for the gate.
 
 ### Other Tools
 
@@ -253,7 +272,7 @@ export default new Registry();
 - **Analyzer symbols**: `CodeGenState.symbols` is set before `runAnalyzers()` in `_transpileFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
 - **Analyzer test isolation**: Use `CodeGenState.reset()` in `afterEach` when tests set `CodeGenState.symbols`
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
-- **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0
+- **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
 - **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
 - **Scope type predicate**: `CodeGenState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites should call `CodeGenState.qualifyScopeType(bareName)`, which binds that predicate to `currentScope` — don't re-pair the two at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`.
 
@@ -307,6 +326,8 @@ foo.expected.error    # Expected error (if test-error)
 - **Bug reproduction**: `tests/bugs/issue-<name>/` directories — commit with fixes for regression prevention. They live under `tests/` so every fixture-walking script picks them up (#1142); a top-level `bugs/` tree was invisible to `npm test`, `test:all` and `validate:c`
 - **test-error stale artifacts**: a test that compiled before becoming `test-error` leaves `.test.c/.test.h` behind — `rm` them or the guard fails with "stale generated artifacts"
 - **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
+- **Orphaned snapshots**: `.expected.cpp/.hpp` beside a `// test-c-only` fixture (or `.c/.h` beside `test-cpp-only`) is never regenerated _or_ compared — 30 exist, preserving dead codegen shapes (#1149). Exclude them from any corpus-wide analysis
+- **`/* test-no-warnings */`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143)
 
 ### Transpiler Entry Point
 
@@ -346,7 +367,7 @@ buffer[0] = (uint8_t)(magic);
 - **Handler state**: Access via `CodeGenState` (properties) and `CodeGenState.generator!` (methods)
 - **CodeGenState**: Sole state container — don't add instance state to CodeGenerator
 
-### Assignment Classification (ADR-109)
+### Assignment Classification (ADR-065)
 
 To add new patterns: (1) Add `AssignmentKind` enum, (2) Update `AssignmentClassifier`, (3) Create handler, (4) Register handler, (5) Update test count.
 
@@ -428,11 +449,33 @@ Update both when adding new statement types.
 | Research    | Proposal under investigation — NOT established syntax |
 | Accepted    | User-approved decision                                |
 | Implemented | User-confirmed complete                               |
+| WIP         | Accepted design, implementation in progress           |
 | Rejected    | Decision NOT to implement                             |
+| Superseded  | Replaced by a later ADR                               |
 
 - **DO**: Update ADRs with research, context, links, findings
 - **DO NOT**: Change Status or Decision without explicit approval
 - **Sync order**: Update ADR file FIRST, then README.md
+
+### Numbering — an ADR's number band is the release it must ship in
+
+**Never pick "the next free number."** Ask which release the decision must ship in:
+
+| Band  | Work done during | Release gate                          |
+| ----- | ---------------- | ------------------------------------- |
+| `0xx` | v0.x             | All must be implemented to cut **v1** |
+| `1xx` | v1.x             | All must be implemented to cut **v2** |
+| `2xx` | v2.x             | All must be implemented to cut **v3** |
+
+A band is a commitment, not a label: cutting `v(N+1)` requires every non-terminal ADR in band
+`N` to be fully implemented (`Rejected` and `Superseded` are exempt). An ADR filed today but
+deliberately deferred until after v1 is `1xx` work, even though it was written during v0.x.
+
+Numbers are never reused, and changing an ADR's target release means `git mv` plus updating
+every reference — including `.test.cnx` fixture comments, which ADR-043 carries into generated
+output, so `npm run test:update` is required.
+
+**Full rules and the old→new mapping table: [`docs/decisions/README.md`](docs/decisions/README.md).**
 
 ---
 

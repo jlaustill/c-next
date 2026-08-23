@@ -6,6 +6,26 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // Tests: Ternary conditional operator
 // Demonstrates: condition ? value_if_true : value_if_false
@@ -21,8 +41,8 @@ int main(void) {
     if (result != 200) return 3;
     int32_t negative = -42;
     int32_t positive = 42;
-    int32_t absNeg = (negative < 0) ? (0 - negative) : negative;
-    int32_t absPos = (positive < 0) ? (0 - positive) : positive;
+    int32_t absNeg = (negative < 0) ? (cnx_clamp_sub_i32(0, negative)) : negative;
+    int32_t absPos = (positive < 0) ? (cnx_clamp_sub_i32(0, positive)) : positive;
     if (absNeg != 42) return 4;
     if (absPos != 42) return 5;
     bool isEven = ((0) == 0) ? true : false;
@@ -30,7 +50,7 @@ int main(void) {
     isEven = ((1) == 0) ? true : false;
     if (isEven != false) return 7;
     uint32_t bonus = (a < b) ? 50U : 0U;
-    uint32_t total = a + bonus;
+    uint32_t total = cnx_clamp_add_u32(a, bonus);
     if (total != 60) return 8;
     return 0;
 }

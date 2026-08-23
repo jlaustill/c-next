@@ -50,7 +50,7 @@ describe("OverflowHelperTemplates", () => {
 
         expect(helper).not.toBeNull();
         expect(helper).toContain("cnx_clamp_add_u32");
-        expect(helper).toContain("__builtin_add_overflow");
+        expect(helper).toContain("(uint32_t)(a + (uint32_t)b)");
         expect(helper).toContain("return UINT32_MAX");
       });
 
@@ -73,7 +73,7 @@ describe("OverflowHelperTemplates", () => {
 
         expect(helper).not.toBeNull();
         expect(helper).toContain("cnx_clamp_mul_u32");
-        expect(helper).toContain("__builtin_mul_overflow");
+        expect(helper).toContain("(uint32_t)(a * (uint32_t)b)");
       });
     });
 

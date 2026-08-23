@@ -5,6 +5,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
+    if (b != 0 && a > UINT64_MAX / b) return UINT64_MAX;
+    return (uint64_t)(a * (uint64_t)b);
+}
+
 // test-execution
 // ADR-013: Const u64 variable
 // Tests: const u64 declaration and read access
@@ -20,7 +33,7 @@ int main(void) {
     uint64_t numChunks = MAX_FILE_SIZE / CHUNK_SIZE;
     if (numChunks != 4096) return 3;
     if (CHUNK_SIZE >= MAX_FILE_SIZE) return 4;
-    uint64_t doubleChunk = CHUNK_SIZE * 2ULL;
+    uint64_t doubleChunk = cnx_clamp_mul_u64(CHUNK_SIZE, 2ULL);
     if (doubleChunk != 2097152) return 5;
     return 0;
 }

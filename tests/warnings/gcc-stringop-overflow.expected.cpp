@@ -8,46 +8,67 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
 static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
-    uint16_t result;
-    if (__builtin_add_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
-    return result;
+    return (uint16_t)(a + (uint16_t)b);
 }
 
 static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
-    uint32_t result;
-    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
-    return result;
+    return (uint32_t)(a + (uint32_t)b);
 }
 
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
-    uint8_t result;
-    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
-    return result;
+    return (uint8_t)(a + (uint8_t)b);
 }
 
 static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
-    uint32_t result;
-    if (__builtin_mul_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
-    return result;
+    return (uint32_t)(a * (uint32_t)b);
 }
 
 static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
     if (b > (uint64_t)a) return 0;
-    uint32_t result;
-    if (__builtin_sub_overflow(a, (uint32_t)b, &result)) return 0;
-    return result;
+    return (uint32_t)(a - (uint32_t)b);
 }
 
 /* test-no-warnings */
 // test-execution
 // Tests: GCC -Wstringop-overflow false positive with clamp helpers (Issue #231)
-// Validates: Clamp compound assignment should not trigger false warnings
-// Coverage: __builtin_*_overflow allows GCC to track value bounds correctly
+// Validates: a clamp-derived offset used to index a buffer must not trigger
+//            false -Wstringop-overflow / -Warray-bounds diagnostics.
+// Coverage: writeChunk reproduces the shape #231 was reported against --
+//           memcpy(&buffer[crc32_offset], src, 4), i.e. consecutive writes at
+//           a clamp-derived offset. The offset comes from parameters, so the
+//           compiler must reason about cnx_clamp_add_u32's value range instead
+//           of constant-folding the indices away.
+uint8_t buffer[513] = {};
+
+// Issue #231 shape. Every index below derives from the clamp helper, so GCC's
+// value-range propagation has to prove the writes are in bounds.
+//
+// The guard is written as `offset <= 509` rather than `offset + length <= 513`.
+// The latter is what #231's reporter used, and it is genuinely unsafe: the
+// clamp saturates offset to UINT32_MAX, the sum wraps to a small number, the
+// guard passes, and buffer[UINT32_MAX] is written. GCC diagnoses that
+// correctly -- it is a true positive, not the false positive this test guards.
+void writeChunk(uint32_t start, uint32_t step, uint8_t value) {
+    uint32_t offset = start;
+    offset = cnx_clamp_add_u32(offset, step);
+    if (offset <= 509) {
+        buffer[offset] = value;
+        buffer[cnx_clamp_add_u32(offset, 1)] = value;
+        buffer[cnx_clamp_add_u32(offset, 2)] = value;
+        buffer[cnx_clamp_add_u32(offset, 3)] = value;
+    }
+}
+
 int main(void) {
     uint32_t index = 100U;
     index = cnx_clamp_add_u32(index, 50U);
@@ -74,5 +95,11 @@ int main(void) {
     uint16_t short_val = 60000U;
     short_val = cnx_clamp_add_u16(short_val, 10000U);
     if (short_val != 65535) return 9;
+    writeChunk(100U, 7U, 0x41U);
+    if (buffer[107U] != 0x41) return 10;
+    if (buffer[110U] != 0x41) return 11;
+    if (buffer[111U] != 0) return 12;
+    writeChunk(4294967290U, 100U, 0x42U);
+    if (buffer[107U] != 0x41) return 13;
     return 0;
 }

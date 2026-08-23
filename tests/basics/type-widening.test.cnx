@@ -35,11 +35,18 @@ u32 main() {
     f64 precise <- single;
     if (precise < 3.13 || precise > 3.15) return 8;
 
-    // Widening in expressions
+    // Widening in expressions (#1152, ADR-024 correction)
     u8 a <- 200;
     u8 b <- 200;
-    u16 sum <- a + b;  // Result fits in u16
-    if (sum != 400) return 9;
+
+    // `a + b` is a u8 operation: it saturates at u8 BEFORE any widening, so
+    // widening the result cannot recover the lost range.
+    u16 clamped <- a + b;
+    if (clamped != 255) return 9;
+
+    // To add at u16 width, widen the operands, not the result.
+    u16 sum <- (u16)a + (u16)b;
+    if (sum != 400) return 10;
 
     return 0;
 }

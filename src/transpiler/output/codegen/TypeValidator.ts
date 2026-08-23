@@ -763,11 +763,11 @@ class TypeValidator {
   }
 
   // ========================================================================
-  // Disguised Infinite Loop Validation (ADR-113 / #1075, E0707)
+  // Disguised Infinite Loop Validation (ADR-068 / #1075, E0707)
   // ========================================================================
 
   /**
-   * ADR-113 / #1075 (E0707): reject a loop whose controlling expression is an
+   * ADR-068 / #1075 (E0707): reject a loop whose controlling expression is an
    * always-TRUE comparison of literal operands (`while (1 = 1)`, `5 > 3`,
    * `true = true`). C-Next has one source form for an intentional infinite loop —
    * `forever`. This is the v0.2.18 *literal* slice only: named constants and

@@ -5,6 +5,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-coverage: 33.2-if-inside-if
 // test-execution
 // Coverage: Section 7.1, 33.2 - Nested if statements
@@ -64,7 +77,7 @@ int main(void) {
     if (result != 7) return 5;
     result = 0U;
     if (a < b && b < c) {
-        if (a + b < c + 10) {
+        if (cnx_clamp_add_u32(a, b) < cnx_clamp_add_u32(c, 10)) {
             result = 11U;
         }
     }

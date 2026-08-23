@@ -65,9 +65,59 @@ MISRA C has extensive rules about type conversions:
 
 CNX eliminates dangerous casts by design:
 
-1. **Widening conversions**: Implicit (always safe)
+1. **Widening conversions**: Implicit for a **value**; a **composite expression**
+   requires an explicit cast (see the correction below)
 2. **Narrowing conversions**: **Compiler error** - use bit indexing instead
 3. **Signed/unsigned conversions**: **Compiler error** - be explicit about intent
+
+### Correction: widening a composite expression is not safe
+
+> **This corrects the original decision, which stated widening is implicit in all
+> cases. Raised in #1152.**
+
+The original rationale is _"widening never loses data"_. That is true of a
+**value** conversion and false of a **composite expression**:
+
+```cnx
+u8 a <- 250;
+u8 b <- 250;
+u16 wide <- a + b;    // 500? No -- a + b is computed at u8 width first
+```
+
+`a + b` is an operation between two `u8` operands, so it is evaluated at `u8`
+width and has already lost data **before** the widening happens. Widening the
+result cannot recover it. The ADR proved the claim for values and then applied
+the conclusion to expressions, where it does not hold.
+
+This is exactly what **MISRA C:2012 Rule 10.8** prohibits: _"The value of a
+composite expression shall not be cast to a different essential type category or
+a wider essential type."_ ADR-012 already claims C-Next addresses Rule 10.8;
+`docs/misra-compliance.md` lists it as **Not Enforced**, and #846 reports 37
+violations in generated output. So the original decision is in conflict with a
+rule the project has already committed to, not merely with a preference.
+
+**Corrected rule:**
+
+| conversion                                             | status                     |
+| ------------------------------------------------------ | -------------------------- |
+| widening a **value** (`u8 x; u16 y <- x`)              | implicit, unchanged        |
+| widening a **composite expression** (`u16 y <- a + b`) | **explicit cast required** |
+
+The two intents then have two distinct spellings, and neither is silent:
+
+```cnx
+u16 narrow <- (u16)(a + b);      // add at u8 (saturating), then widen  -> 255
+u16 full   <- (u16)a + (u16)b;   // widen operands, then add at u16     -> 500
+```
+
+This composes with `clamp` (ADR-044): once arithmetic on a `clamp` type
+saturates (#1152), `a + b` yields 255 rather than a wrapped 244, so the first
+spelling is both safe and predictable.
+
+**Same-category widening of a composite is included.** The statement below that
+_"same-category widening stays implicit"_ holds for a value operand; for a
+composite expression it is superseded by this correction, because the loss
+occurs in the operation rather than in the conversion.
 
 ### Widening Conversions (Implicit, Safe)
 

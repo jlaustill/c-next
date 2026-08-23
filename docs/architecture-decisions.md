@@ -3,6 +3,12 @@
 This document lists all Architecture Decision Records (ADRs) for the C-Next project.
 
 ADRs are stored in [`docs/decisions/`](decisions/) and document significant design choices.
+This page groups them **by status**; [`docs/decisions/README.md`](decisions/README.md) defines
+how they are **numbered**.
+
+An ADR's number band is the release it must ship in: `0xx` must all be implemented to cut v1
+(so "Research (v1 Roadmap)" below holds `0xx` ADRs), and `1xx` must all be implemented to cut
+v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 
 ## Implemented
 
@@ -40,13 +46,13 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 | [ADR-048](decisions/adr-048-cli-executable.md)                   | CLI Executable             | `cnext` command with smart defaults                          |
 | [ADR-049](decisions/adr-049-atomic-types.md)                     | Atomic Types               | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
 | [ADR-050](decisions/adr-050-critical-sections.md)                | Critical Sections          | `critical { }` blocks with PRIMASK save/restore              |
-| [ADR-108](decisions/adr-108-volatile-keyword.md)                 | Volatile Variables         | `volatile` keyword prevents compiler optimization            |
+| [ADR-064](decisions/adr-064-volatile-keyword.md)                 | Volatile Variables         | `volatile` keyword prevents compiler optimization            |
 | [ADR-046](decisions/adr-046-nullable-c-interop.md)               | Nullable C Interop         | `c_` prefix for nullable C pointer types                     |
 | [ADR-053](decisions/adr-053-transpiler-pipeline-architecture.md) | Transpiler Pipeline        | Unified multi-pass pipeline with header symbol extraction    |
 | [ADR-057](decisions/adr-057-implicit-scope-resolution.md)        | Implicit Scope Resolution  | Bare identifiers resolve local -> scope -> global            |
 | [ADR-055](decisions/adr-055-symbol-parser-architecture.md)       | Symbol Parser Architecture | Unified symbol resolution with composable collectors         |
 | [ADR-058](decisions/adr-058-explicit-length-properties.md)       | Explicit Length Properties | `.bit_length`/`.byte_length`/`.element_count`/`.char_count`  |
-| [ADR-112](decisions/adr-112-all-paths-return.md)                 | All-Paths-Return           | Reject non-void functions that can fall off the end (E0704)  |
+| [ADR-067](decisions/adr-067-all-paths-return.md)                 | All-Paths-Return           | Reject non-void functions that can fall off the end (E0704)  |
 
 ## Accepted
 
@@ -54,14 +60,15 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 | --------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------- |
 | [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection                                |
 | [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion                              |
-| [ADR-115](decisions/adr-115-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708)                              |
+| [ADR-070](decisions/adr-070-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708)                              |
 | [ADR-063](decisions/adr-063-identifier-syntax.md)               | Identifier Syntax     | No trailing/consecutive `_`; `__` reserved as the qualified-name separator (E0201) |
 
 ## WIP (Implementation In Progress)
 
-| ADR                                           | Title         | Description                                                                                    |
-| --------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------- |
-| [ADR-113](decisions/adr-113-forever-loops.md) | Forever Loops | `forever { }` divergent infinite loop (void-only); core landed (#1074), completes with ADR-114 |
+| ADR                                                         | Title                       | Description                                                                                                                                   |
+| ----------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| [ADR-068](decisions/adr-068-forever-loops.md)               | Forever Loops               | `forever { }` divergent infinite loop (void-only); core landed (#1074), completes with ADR-069                                                |
+| [ADR-065](decisions/adr-065-codegenerator-decomposition.md) | CodeGenerator Decomposition | Classifier + handler + utils pattern landed (PR #447); `_generatePostfixExpr`, `trackVariableType`, `generateMemberAccess` not yet decomposed |
 
 ## Superseded
 
@@ -78,9 +85,8 @@ ADRs are stored in [`docs/decisions/`](decisions/) and document significant desi
 | [ADR-054](decisions/adr-054-array-index-overflow.md)        | Array Index Overflow          | Overflow semantics for array index expressions   |
 | [ADR-056](decisions/adr-056-cast-overflow-behavior.md)      | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
 | [ADR-060](decisions/adr-060-vscode-extension-separation.md) | VS Code Extension Separation  | Separate repository for VS Code extension        |
-| [ADR-109](decisions/adr-109-codegenerator-decomposition.md) | CodeGenerator Decomposition   | Breaking down CodeGenerator into modules         |
-| [ADR-110](decisions/adr-110-do178c-compliance.md)           | DO-178C Compliance            | Safety-critical software certification framework |
-| [ADR-114](decisions/adr-114-dead-code-reachability.md)      | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
+| [ADR-066](decisions/adr-066-do178c-compliance.md)           | DO-178C Compliance            | Safety-critical software certification framework |
+| [ADR-069](decisions/adr-069-dead-code-reachability.md)      | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
 
 ## Research (v2 Roadmap)
 

@@ -8,6 +8,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // Postfix Chain Test: Const Expressions in Chains
 // Tests: Using const values and expressions as indices in chains
 const uint32_t INDEX_0 = 0U;
@@ -42,7 +55,7 @@ int main(void) {
     GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
     GPIO__DR = (GPIO__DR & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
     GPIO__DR_SET = (1U << LED_BIT);
-    const uint32_t COMPUTED_IDX = INDEX_1 + INDEX_1;
+    const uint32_t COMPUTED_IDX = cnx_clamp_add_u32(INDEX_1, INDEX_1);
     sensors[COMPUTED_IDX].id = 500U;
     uint32_t computedId = sensors[COMPUTED_IDX].id;
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (1U << LED_BIT);

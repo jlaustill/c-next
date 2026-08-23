@@ -148,16 +148,23 @@ critical {
 | Closure-based (Rust) | C-Next doesn't have first-class closures                         |
 | Automatic (Ada)      | Complex implementation, may defer to v2 for protected objects    |
 
+> **Toolchain note (#1143).** The `__cnx_*` wrappers are emitted as a four-arm
+> `#if`/`#elif`/`#else` block: ARM uses GNU inline assembly on PRIMASK, Arduino on
+> ARM uses `noInterrupts()`, AVR uses avr-libc `SREG`/`cli()`, and everything else
+> falls back to CMSIS. So a `critical` block costs a platform interrupt API, chosen
+> by the compiler rather than by the transpiler. The current requirements are in
+> [compatibility.md](../compatibility.md), generated from the transpiler's registry.
+
 **Transpiled Output:**
 
 ```c
 // critical { ... }
-uint32_t __primask = __get_PRIMASK();
-__disable_irq();
+uint32_t __primask = __cnx_get_PRIMASK();
+__cnx_disable_irq();
 {
     // Critical section code here
 }
-__set_PRIMASK(__primask);
+__cnx_set_PRIMASK(__primask);
 ```
 
 ### Q2: PRIMASK vs BASEPRI ✓
@@ -220,13 +227,13 @@ __set_BASEPRI(__basepri);
 
 ```c
 // Falls back to PRIMASK (disables all interrupts)
-uint32_t __primask = __get_PRIMASK();
-__disable_irq();
+uint32_t __primask = __cnx_get_PRIMASK();
+__cnx_disable_irq();
 {
     shared_buffer[idx] = data;
     idx = idx + 1;
 }
-__set_PRIMASK(__primask);
+__cnx_set_PRIMASK(__primask);
 ```
 
 #### Benefits

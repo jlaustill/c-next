@@ -1,9 +1,13 @@
-# ADR-115: Mandatory Use of Non-Void Return Values
+# ADR-070: Mandatory Use of Non-Void Return Values
+
+> **Formerly ADR-115.** Renumbered 2026-08-23 into the `0xx` band — this is
+> v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
+> mapping table.
 
 **Status:** Accepted
 **Date:** 2026-06-27 (accepted 2026-06-28)
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-051 (Safe Division), ADR-110 (DO-178C Compliance), ADR-112 (All-Paths-Return), ADR-113 (Forever Loops), ADR-114 (Dead-Code / Reachability)
+**Related ADRs:** ADR-051 (Safe Division), ADR-066 (DO-178C Compliance), ADR-067 (All-Paths-Return), ADR-068 (Forever Loops), ADR-069 (Dead-Code / Reachability)
 **Related Issues:** #1080 (this ADR), #847 (MISRA Rule 17.7 `(void)` casts in generated C — the codegen counterpart), #1081 (Rule 21.15, unmasked by the slice-`memcpy` cast)
 
 ## Context
@@ -24,7 +28,7 @@ Ignoring a return value is a classic embedded foot-gun: a dropped error/status c
 discarded `safe_div` outcome, an unchecked parse result. C-Next's whole premise is "a safer
 C" with **explicit data flow** (`<-` for assignment, no implicit conversions, no `switch`
 fallthrough, all-paths-return). "You must acknowledge what a function hands back" fits that
-philosophy directly — and is exactly the class of bug ADR-110 (DO-178C) and MISRA care about.
+philosophy directly — and is exactly the class of bug ADR-066 (DO-178C) and MISRA care about.
 
 ### Why the #847 codegen fix is not enough
 
@@ -147,8 +151,8 @@ Components and constraints:
 | ----- | ------------------------------------------- |
 | E0708 | Return value of non-void function discarded |
 
-(E0708 is the next free Control-Flow code: E0705/E0707 are used by ADR-113, E0706 is reserved
-by ADR-114.)
+(E0708 is the next free Control-Flow code: E0705/E0707 are used by ADR-068, E0706 is reserved
+by ADR-069.)
 
 ## What counts as "used"
 
@@ -227,9 +231,9 @@ C-Next is C.
 - Issue #1080 (this ADR's tracking issue, with the original design discussion)
 - Issue #847 (MISRA Rule 17.7 `(void)` casts — Case 1 codegen counterpart)
 - Issue #1081 (MISRA Rule 21.15 — unmasked by the slice-`memcpy` cast)
-- ADR-112 / ADR-114 (`ReturnPathAnalyzer` + analyzer-pass precedent: E0704)
-- ADR-113 (Forever Loops — most recent compile-time control-flow rejection precedent)
-- ADR-110 (DO-178C Compliance — frames unchecked returns as a certification concern)
+- ADR-067 / ADR-069 (`ReturnPathAnalyzer` + analyzer-pass precedent: E0704)
+- ADR-068 (Forever Loops — most recent compile-time control-flow rejection precedent)
+- ADR-066 (DO-178C Compliance — frames unchecked returns as a certification concern)
 - `docs/error-codes.md` (E07xx Control-Flow range; E0708 next free)
 - MISRA C:2012 Rule 17.7 (the output-level rule #847 satisfies)
 - Rust `unused_must_use` / `unused_results` lints; RFC 1940 (must-use functions)

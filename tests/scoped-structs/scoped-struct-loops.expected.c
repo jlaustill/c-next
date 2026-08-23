@@ -7,6 +7,29 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    return (uint16_t)(a + (uint16_t)b);
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
+static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
+    if (b != 0 && a > UINT8_MAX / b) return UINT8_MAX;
+    return (uint8_t)(a * (uint8_t)b);
+}
+
 // test-execution
 // Tests: Scoped structs in loops - reading and writing in for/while loops
 /* Scope: Sensor */
@@ -25,8 +48,8 @@ uint16_t Sensor__sumValues(void) {
     uint16_t total = 0U;
     uint8_t i = 0U;
     while (i < Sensor__count) {
-        total = total + Sensor__buffer[i].value;
-        i = i + 1U;
+        total = cnx_clamp_add_u16(total, Sensor__buffer[i].value);
+        i = cnx_clamp_add_u8(i, 1U);
     }
     return total;
 }
@@ -36,7 +59,7 @@ void Sensor__clear(void) {
     while (i < 4) {
         Sensor__buffer[i].value = 0U;
         Sensor__buffer[i].channel = 0U;
-        i = i + 1U;
+        i = cnx_clamp_add_u8(i, 1U);
     }
     Sensor__count = 0U;
 }
@@ -45,9 +68,9 @@ int main(void) {
     if (Sensor__count != 0) return 1;
     uint8_t i = 0U;
     while (i < 3) {
-        uint16_t val = (uint16_t)(100U + i * 10U);
+        uint16_t val = (uint16_t)(cnx_clamp_add_u8(100U, cnx_clamp_mul_u8(i, 10U)));
         Sensor__addReading(val, i);
-        i = i + 1U;
+        i = cnx_clamp_add_u8(i, 1U);
     }
     if (Sensor__count != 3) return 2;
     if (Sensor__buffer[0U].value != 100) return 3;
@@ -63,9 +86,9 @@ int main(void) {
     if (Sensor__buffer[0U].value != 0) return 11;
     i = 0U;
     while (i < 2) {
-        Sensor__buffer[i].value = (uint16_t)(200 + i);
+        Sensor__buffer[i].value = (uint16_t)(cnx_clamp_add_u8(200, i));
         Sensor__buffer[i].channel = i;
-        i = i + 1U;
+        i = cnx_clamp_add_u8(i, 1U);
     }
     Sensor__count = 2;
     if (Sensor__buffer[0U].value != 200) return 12;

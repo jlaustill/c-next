@@ -7,13 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- ADR numbering now follows an explicit release-band rule: an ADR's band is the release it must
+  ship in, and cutting `v(N+1)` requires every non-terminal ADR in band `N` to be implemented.
+  The rule is documented in [`docs/decisions/README.md`](docs/decisions/README.md) and CLAUDE.md.
+- Seven ADRs that were mis-filed in the `1xx` band were renumbered into `0xx`, since they are
+  v1-gating work: ADR-108 → ADR-064, ADR-109 → ADR-065, ADR-110 → ADR-066, ADR-112 → ADR-067,
+  ADR-113 → ADR-068, ADR-114 → ADR-069, ADR-115 → ADR-070. Older entries in this changelog and
+  all cross-references were updated to the new numbers; the old→new mapping table lives in
+  `docs/decisions/README.md`, because existing GitHub issues and merged PRs still cite the old
+  numbers. The `1xx` band now holds only the v2 roadmap (ADR-100–106, ADR-111), which is what it
+  was created for.
+- ADR-065 (CodeGenerator Decomposition) status corrected from `Research` to `WIP` — its
+  classifier + handler + utils pattern shipped in PR #447, but the decomposition it prescribes
+  is not finished.
+
 ## [0.2.18] - 2026-07-10
 
 ### Added
 
-- `forever` infinite-loop statement (ADR-113, Issue #1074)
-- Disguised infinite loops (e.g. `while (1)`, `for (;;)`) are now rejected — E0707 (ADR-113, Issue #1075)
-- All-paths-return diagnostic E0704 for non-void functions (ADR-112, Issue #1040)
+- `forever` infinite-loop statement (ADR-068, Issue #1074)
+- Disguised infinite loops (e.g. `while (1)`, `for (;;)`) are now rejected — E0707 (ADR-068, Issue #1075)
+- All-paths-return diagnostic E0704 for non-void functions (ADR-067, Issue #1040)
 - MISRA C:2012 Rule 21.15: slice assignments are unrolled to per-element writes, annotated with the rule they satisfy (Issue #1081)
 - MISRA C:2012 Rule 10.4: mixed essential-type-category arithmetic is now rejected — E0810 (Issue #1091)
 - MISRA C:2012 Rule 10.8: composite slice sources are lowered in two steps to avoid an incompatible-type cast (Issue #1085)
@@ -809,7 +825,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Float bit indexing support using shadow variable + memcpy (PR #490)
 - `basePath` option to strip path prefix from header output (PR #489)
 - ADR-057: Implicit scope resolution - bare function calls resolve to scope functions (PR #504)
-- ADR-109: CodeGenerator decomposition with extracted utilities (PR #447)
+- ADR-065: CodeGenerator decomposition with extracted utilities (PR #447)
 - npm scripts for duplication detection (PR #518)
 - CallExprUtils and BinaryExprUtils extraction (PR #499, PR #496)
 

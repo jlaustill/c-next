@@ -5,6 +5,24 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // test-coverage: 27-ref-in-loop
 // test-execution
 // Tests: Modifying reference parameter inside loops
@@ -13,7 +31,7 @@ void incrementN(uint32_t* value, uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
         (*value) = (*value) + 1U;
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
@@ -22,7 +40,7 @@ void doubleN(uint32_t* value, uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
         (*value) = (*value) * 2U;
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
@@ -31,8 +49,8 @@ void accumulate(uint32_t start, uint32_t end, uint32_t* result) {
     (*result) = 0U;
     uint32_t i = start;
     while (i <= end) {
-        (*result) = (*result) + i;
-        i = i + 1U;
+        (*result) = cnx_clamp_add_u32((*result), i);
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
@@ -41,8 +59,8 @@ void factorial(uint32_t n, uint32_t* result) {
     (*result) = 1U;
     uint32_t i = 1U;
     while (i <= n) {
-        (*result) = (*result) * i;
-        i = i + 1U;
+        (*result) = cnx_clamp_mul_u32((*result), i);
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
@@ -52,7 +70,7 @@ void parallelIncrement(uint32_t* a, uint32_t* b, uint32_t times) {
     while (i < times) {
         (*a) = (*a) + 1U;
         (*b) = (*b) + 2U;
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 

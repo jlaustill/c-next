@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-// Coverage: ADR-113 - forever loop lowers to MISRA-compliant for(;;)
+// Coverage: ADR-068 - forever loop lowers to MISRA-compliant for(;;)
 // test-transpile-only
 void loopForever(void) {
     uint8_t state = 0U;

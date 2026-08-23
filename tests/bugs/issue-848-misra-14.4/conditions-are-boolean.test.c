@@ -6,6 +6,24 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // test-execution
 // Issue #848: MISRA C:2012 Rule 14.4 — the controlling expression of an `if`
 // statement and of an iteration-statement shall have essentially Boolean type.
@@ -23,8 +41,8 @@ uint32_t countDownWhile(uint32_t start) {
     uint32_t n = start;
     uint32_t iterations = 0U;
     while (n > 0) {
-        n = n - 1U;
-        iterations = iterations + 1U;
+        n = cnx_clamp_sub_u32(n, 1U);
+        iterations = cnx_clamp_add_u32(iterations, 1U);
     }
     return iterations;
 }
@@ -32,7 +50,7 @@ uint32_t countDownWhile(uint32_t start) {
 uint32_t sumForLoop(uint32_t limit) {
     uint32_t total = 0U;
     for (uint32_t i = 0; i < limit; i = i + 1) {
-        total = total + i;
+        total = cnx_clamp_add_u32(total, i);
     }
     return total;
 }
@@ -40,7 +58,7 @@ uint32_t sumForLoop(uint32_t limit) {
 uint32_t firstMultiple(uint32_t step) {
     uint32_t value = 0U;
     do {
-        value = value + step;
+        value = cnx_clamp_add_u32(value, step);
     } while (value < step);
     return value;
 }

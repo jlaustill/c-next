@@ -6,6 +6,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // Tests: Basic array declaration, initialization, and indexing
 // Demonstrates: array literals, element access, array.length
@@ -26,7 +39,7 @@ int main(void) {
     if (5 != 5) return 7;
     uint32_t sum = 0U;
     for (uint32_t i = 0; i < 5; i = i + 1) {
-        sum = sum + numbers[i];
+        sum = cnx_clamp_add_u32(sum, numbers[i]);
     }
     if (sum != 150) return 8;
     numbers[2] = 100U;

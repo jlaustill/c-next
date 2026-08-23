@@ -18,6 +18,9 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import BinaryExprUtils from "./BinaryExprUtils";
+import { ParserRuleContext } from "antlr4ng";
+import TypeResolver from "../../TypeResolver";
+import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import CodeGenState from "../../../../state/CodeGenState";
 
 /**
@@ -352,6 +355,68 @@ const generateShiftExpr = (
 };
 
 /**
+ * Issue #1152: C-Next operators that have a saturating helper.
+ *
+ * Only `+ - *` can overflow into a helper. Unsigned division and modulo cannot
+ * overflow at all, and the sole signed case (`INT_MIN / -1`) is left to the
+ * existing safe-division path rather than folded in here.
+ */
+const CLAMP_HELPER_FOR_OPERATOR: Readonly<Record<string, string>> = {
+  "+": "add",
+  "-": "sub",
+  "*": "mul",
+};
+
+/**
+ * Issue #1152: Fold a chain of operands into saturating helper calls when the
+ * expression's operands are of a `clamp` integer type.
+ *
+ * `clamp` is C-Next's default overflow behavior (ADR-044), but it used to apply
+ * only to compound assignment (`+<-`), so `c <- a + b` wrapped while
+ * `c +<- b` saturated -- and `wrap` was indistinguishable from `clamp` in every
+ * expression. Routing here makes the modifier mean the same thing wherever the
+ * arithmetic is written, which is what lets a bounds guard built from
+ * saturating values be trusted (#231).
+ *
+ * Returns null when the expression should be emitted as plain C: a float or
+ * other natively-handled type, a `wrap` type, or operands whose type cannot be
+ * resolved.
+ */
+const tryClampOperands = (
+  node: ParserRuleContext,
+  operandCodes: readonly string[],
+  operators: readonly string[],
+  defaultOperator: string,
+  effects: TGeneratorEffect[],
+): string | null => {
+  const cnxType = TypeResolver.getCompositeIntegerType(node);
+  if (cnxType === null) return null;
+  if (TypeCheckUtils.usesNativeArithmetic(cnxType)) return null;
+  if (TypeResolver.getCompositeOverflowBehavior(node) !== "clamp") return null;
+
+  // Every operator in the chain must have a helper; a mixed chain such as
+  // `a * b / c` is left alone rather than clamped in part, which would be
+  // harder to reason about than not clamping at all.
+  const chain = operandCodes.slice(1).map((_, index) => {
+    return CLAMP_HELPER_FOR_OPERATOR[operators[index] ?? defaultOperator];
+  });
+  if (chain.some((helperOperation) => helperOperation === undefined)) {
+    return null;
+  }
+
+  let code = operandCodes[0];
+  chain.forEach((helperOperation, index) => {
+    effects.push({
+      type: "helper",
+      operation: helperOperation!,
+      cnxType,
+    });
+    code = `cnx_clamp_${helperOperation}_${cnxType}(${code}, ${operandCodes[index + 1]})`;
+  });
+  return code;
+};
+
+/**
  * Generate C code for an additive expression.
  * Issue #235: Includes constant folding for compile-time constant expressions.
  */
@@ -385,6 +450,12 @@ const generateAdditiveExpr = (
   );
   if (foldedResult !== undefined) {
     return { code: String(foldedResult), effects };
+  }
+
+  // Issue #1152: saturate when the operands are of a clamp integer type
+  const clamped = tryClampOperands(node, operandCodes, operators, "+", effects);
+  if (clamped !== null) {
+    return { code: clamped, effects };
   }
 
   // Fall back to standard code generation
@@ -431,6 +502,13 @@ const generateMultiplicativeExpr = (
   );
   if (foldedResult !== undefined) {
     return { code: String(foldedResult), effects: [] };
+  }
+
+  // Issue #1152: saturate when the operands are of a clamp integer type
+  const effects: TGeneratorEffect[] = [];
+  const clamped = tryClampOperands(node, operandCodes, operators, "*", effects);
+  if (clamped !== null) {
+    return { code: clamped, effects };
   }
 
   // Fall back to standard code generation

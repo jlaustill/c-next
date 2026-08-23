@@ -6,37 +6,66 @@
 #include <stdint.h>
 #include <limits.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int64_t cnx_clamp_add_i64(int64_t a, int64_t b) {
+    if (b > 0 && a > INT64_MAX - b) return INT64_MAX;
+    if (b < 0 && a < INT64_MIN - b) return INT64_MIN;
+    return a + b;
+}
+
+static inline int64_t cnx_clamp_mul_i64(int64_t a, int64_t b) {
+    if (a == 0 || b == 0) return 0;
+    if (a > 0 && b > 0 && a > INT64_MAX / b) return INT64_MAX;
+    if (a < 0 && b < 0 && a < INT64_MAX / b) return INT64_MAX;
+    if (a > 0 && b < 0 && b < INT64_MIN / a) return INT64_MIN;
+    if (a < 0 && b > 0 && a < INT64_MIN / b) return INT64_MIN;
+    return a * b;
+}
+
+static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
+    if (b < 0 && a > INT64_MAX + b) return INT64_MAX;
+    if (b > 0 && a < INT64_MIN + b) return INT64_MIN;
+    return a - b;
+}
+
 // test-execution
 // Test i64 arithmetic operations
 // Coverage: Section 4.1-4.5 for i64 type
 int main(void) {
     int64_t a = 5000000000;
     int64_t b = 3000000000;
-    int64_t sum = a + b;
+    int64_t sum = cnx_clamp_add_i64(a, b);
     int64_t c = -5000000000;
     int64_t d = 3000000000;
-    int64_t sum_neg = c + d;
+    int64_t sum_neg = cnx_clamp_add_i64(c, d);
     int64_t e = -4000000000;
     int64_t f = -2000000000;
-    int64_t sum_both_neg = e + f;
+    int64_t sum_both_neg = cnx_clamp_add_i64(e, f);
     int64_t g = 5000000000;
     int64_t h = 3000000000;
-    int64_t diff = g - h;
+    int64_t diff = cnx_clamp_sub_i64(g, h);
     int64_t i = 3000000000;
     int64_t j = 5000000000;
-    int64_t diff_neg = i - j;
+    int64_t diff_neg = cnx_clamp_sub_i64(i, j);
     int64_t k = -3000000000;
     int64_t l = 2000000000;
-    int64_t diff_mixed = k - l;
+    int64_t diff_mixed = cnx_clamp_sub_i64(k, l);
     int64_t m = 1000000;
     int64_t n = 5000;
-    int64_t product = m * n;
+    int64_t product = cnx_clamp_mul_i64(m, n);
     int64_t o = -1000000;
     int64_t p = 5000;
-    int64_t product_neg = o * p;
+    int64_t product_neg = cnx_clamp_mul_i64(o, p);
     int64_t q = -1000000;
     int64_t r = -5000;
-    int64_t product_pos = q * r;
+    int64_t product_pos = cnx_clamp_mul_i64(q, r);
     int64_t s = 6000000000;
     int64_t t = 3;
     int64_t quotient = s / t;
@@ -54,9 +83,9 @@ int main(void) {
     int64_t remainder_neg = aa % bb;
     int64_t max_val = 9223372036854775807;
     int64_t one = 1;
-    int64_t max_minus_one = max_val - one;
+    int64_t max_minus_one = cnx_clamp_sub_i64(max_val, one);
     int64_t min_val = (int64_t)INT64_MIN;
-    int64_t min_plus_one = min_val + one;
+    int64_t min_plus_one = cnx_clamp_add_i64(min_val, one);
     if (sum == 8000000000 && sum_neg == -2000000000 && sum_both_neg == -6000000000) {
         if (diff == 2000000000 && diff_neg == -2000000000 && diff_mixed == -5000000000) {
             if (product == 5000000000 && product_neg == -5000000000 && product_pos == 5000000000) {

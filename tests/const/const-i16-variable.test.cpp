@@ -5,6 +5,21 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
 // test-execution
 // ADR-013: Const i16 variable
 // Tests: const i16 declaration and read access with negative values
@@ -21,7 +36,7 @@ int main(void) {
     if (maxAlt != 10000) return 2;
     int16_t sea = SEA_LEVEL;
     if (sea != 0) return 3;
-    int16_t range = MAX_ALTITUDE - MIN_ALTITUDE;
+    int16_t range = cnx_clamp_sub_i16(MAX_ALTITUDE, MIN_ALTITUDE);
     if (range != 10500) return 4;
     if (MIN_ALTITUDE >= SEA_LEVEL) return 5;
     int16_t altitude = 5000;

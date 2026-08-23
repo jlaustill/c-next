@@ -5,6 +5,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // Issue #1085 review: a composite slice source whose bit-extraction width is a
 // CONST (b[0, WIDTH]) must type at the extracted width, exactly like the literal
@@ -20,7 +33,7 @@ int main(void) {
     uint8_t a = 0U;
     uint32_t b = 0x12345678U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t cnx_tmp0 = (uint32_t)(a + ((b) & ((1U << 24U) - 1)));
+    const uint32_t cnx_tmp0 = (uint32_t)(cnx_clamp_add_u32(a, ((b) & ((1U << 24U) - 1))));
     buf[0] = (uint8_t)(cnx_tmp0);
     buf[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buf[2] = (uint8_t)(cnx_tmp0 >> 16U);

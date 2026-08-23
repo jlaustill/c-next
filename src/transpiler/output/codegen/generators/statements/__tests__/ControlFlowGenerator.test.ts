@@ -899,7 +899,7 @@ describe("ControlFlowGenerator", () => {
   // ========================================================================
 
   describe("generateFor", () => {
-    it("rejects an empty for(;;) header as a disguised infinite loop (ADR-113 / #1075, E0707)", () => {
+    it("rejects an empty for(;;) header as a disguised infinite loop (ADR-068 / #1075, E0707)", () => {
       const ctx = createMockForStatement(); // no controlling expression
       const input = createMockInput();
       const state = createMockState();

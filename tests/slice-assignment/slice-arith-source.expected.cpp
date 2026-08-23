@@ -5,6 +5,21 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // Issue #1085: a same-category arithmetic slice source (i32 + i32, permitted by
 // MISRA Rule 10.4) must serialize MISRA Rule 10.8-clean. The signed composite is
@@ -14,7 +29,7 @@ int main(void) {
     int32_t a = 0x12340000;
     int32_t b = 0x00005678;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs int32_t*). */
-    const int32_t cnx_tmp0 = a + b;
+    const int32_t cnx_tmp0 = cnx_clamp_add_i32(a, b);
     const uint32_t cnx_tmp1 = (uint32_t)cnx_tmp0;
     buf[0] = (uint8_t)(cnx_tmp1);
     buf[1] = (uint8_t)(cnx_tmp1 >> 8U);

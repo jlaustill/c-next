@@ -5,6 +5,29 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    return (uint16_t)(a + (uint16_t)b);
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
+static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
+    if (b != 0 && a > UINT8_MAX / b) return UINT8_MAX;
+    return (uint8_t)(a * (uint8_t)b);
+}
+
 /* test-no-warnings */
 // test-execution
 // Tests: Integer promotion in expressions should not trigger warnings
@@ -13,19 +36,21 @@
 int main(void) {
     uint8_t a = 100U;
     uint8_t b = 50U;
-    uint32_t sum = a + b;
+    uint32_t sum = cnx_clamp_add_u8(a, b);
     if (sum != 150) return 1;
     uint8_t c = 200U;
     uint8_t d = 2U;
-    uint32_t product = c * d;
-    if (product != 400) return 2;
+    uint32_t clampedProduct = cnx_clamp_mul_u8(c, d);
+    if (clampedProduct != 255) return 2;
+    uint32_t product = static_cast<uint32_t>(c) * static_cast<uint32_t>(d);
+    if (product != 400) return 3;
     uint16_t e = 30000U;
     uint16_t f = 20000U;
-    uint32_t large_sum = e + f;
+    uint32_t large_sum = cnx_clamp_add_u16(e, f);
     if (large_sum != 50000) return 3;
     uint8_t small = 255U;
     uint16_t medium = 1000U;
-    uint32_t mixed = small + medium;
+    uint32_t mixed = cnx_clamp_add_u16(small, medium);
     if (mixed != 1255) return 4;
     uint32_t shift_val = 1U;
     uint32_t shifted = shift_val << 8U;

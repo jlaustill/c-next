@@ -6,6 +6,19 @@
 #include <stdint.h>
 #include <string.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // test-execution
 // Issue #1131: the generated strlen cache shadowed a user global.
 //
@@ -26,7 +39,7 @@ uint8_t count(void) {
     uint8_t total = 0U;
     size_t cnx_len_msg = strlen(msg);
     if (cnx_len_msg > 2) {
-        total = cnx_len_msg + _msg_len;
+        total = cnx_clamp_add_u8(cnx_len_msg, _msg_len);
     }
     return total;
 }

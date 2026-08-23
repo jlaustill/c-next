@@ -5,31 +5,68 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a * b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // test-execution
 // Tests: Basic arithmetic operators
 // Demonstrates: +, -, *, /, % with different types
 int main(void) {
     uint32_t a = 10U;
     uint32_t b = 20U;
-    uint32_t sum = a + b;
+    uint32_t sum = cnx_clamp_add_u32(a, b);
     if (sum != 30) return 1;
-    uint32_t diff = b - a;
+    uint32_t diff = cnx_clamp_sub_u32(b, a);
     if (diff != 10) return 2;
-    uint32_t product = a * b;
+    uint32_t product = cnx_clamp_mul_u32(a, b);
     if (product != 200) return 3;
     uint32_t quotient = b / a;
     if (quotient != 2) return 4;
     uint32_t remainder = 17U % 5U;
     if (remainder != 2) return 5;
-    uint32_t result = (a + b) * 2U;
+    uint32_t result = (cnx_clamp_add_u32(a, b)) * 2U;
     if (result != 60) return 6;
-    result = a + b * 2U;
+    result = cnx_clamp_add_u32(a, cnx_clamp_mul_u32(b, 2U));
     if (result != 50) return 7;
     int32_t x = -10;
     int32_t y = 3;
-    int32_t signedSum = x + y;
+    int32_t signedSum = cnx_clamp_add_i32(x, y);
     if (signedSum != -7) return 8;
-    int32_t signedProduct = x * y;
+    int32_t signedProduct = cnx_clamp_mul_i32(x, y);
     if (signedProduct != -30) return 9;
     float f1 = 10.5;
     float f2 = 3.0;

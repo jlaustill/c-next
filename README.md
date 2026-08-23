@@ -46,7 +46,7 @@ void LED__toggle(void) {
 
 ## Why C-Next?
 
-C-Next transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
+C-Next transpiles to **C**, and your existing toolchain compiles the output. The baseline is C99; a few features cost more — a critical section needs a platform interrupt API, float bit indexing needs C11 — and you pay only for what you use. See [toolchain compatibility](docs/compatibility.md) for the per-feature matrix, or just transpile your project: it reports its own requirements.
 
 This means:
 
@@ -274,6 +274,7 @@ _Using C-Next in your project? Open an issue to get listed!_
 | ------------------------------------------------------------- | ------------------------------------------ |
 | [Language Guide](docs/language-guide.md)                      | Complete reference for all C-Next features |
 | [Architecture Decisions](docs/architecture-decisions.md)      | 70+ ADRs documenting design choices        |
+| [ADR Numbering](docs/decisions/README.md)                     | How ADRs are numbered by release band      |
 | [Learn C-Next in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview                      |
 | [Error Codes](docs/error-codes.md)                            | Compiler error reference                   |
 | [MISRA Compliance](docs/misra-compliance.md)                  | MISRA C:2012 compliance details            |
@@ -309,8 +310,14 @@ C-Next has two separate toolchain contexts with different requirements:
 
 **End users** (transpiling `.cnx` files and compiling the generated C/C++ output):
 
-- Any C99-compatible compiler — GCC, Clang, IAR, `arm-none-eabi-gcc`, etc. No minimum version.
-- The generated code uses standard C99 and C++14 with no compiler-specific extensions.
+- The baseline is **C99** (**C++11** with `--cpp`), with no minimum compiler version.
+- Individual features can require more — a later standard, a compiler extension, or a
+  platform library such as CMSIS or avr-libc. Requirements are **per-feature**: a file that
+  uses none of those features needs nothing beyond the baseline.
+- The full matrix is [docs/compatibility.md](docs/compatibility.md), generated from the
+  transpiler's own requirements registry so it cannot drift from what codegen emits.
+- Transpiling reports what _your_ project needs, with the source line that incurred each
+  requirement.
 
 **Contributors** (running the test suite locally):
 

@@ -14,15 +14,44 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 | **Not Enforced** | Currently not checked                                      |
 | **Deviation**    | Documented deviation with inline suppression for valid use |
 
+<!-- BEGIN GENERATED: toolchain-guidelines -->
+
+### Toolchain-derived guidelines
+
+Generated from the transpiler's requirements registry by
+`npm run docs:toolchain`. These rows state what generated output actually
+contains, which is why they may read as deviations where a hand-written
+assessment claimed N/A.
+
+| guideline | bears on                                   | emitted constructs                                                                                                                                                      |
+| --------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1       | baseline, float bit indexing               | `<stdint.h> fixed-width types, // comments, mixed declarations`; `nullptr, static_cast, reinterpret_cast`; `_Static_assert`                                             |
+| 1.2       | critical section, struct initializer       | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `(T){ ... } in C++`                                                                               |
+| 20.8      | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`              |
+| 20.9      | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`              |
+| 20.14     | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`              |
+| 21.6      | overflow panic (--debug)                   | `fprintf(stderr, ...), abort()`                                                                                                                                         |
+| 21.8      | overflow panic (--debug)                   | `fprintf(stderr, ...), abort()`                                                                                                                                         |
+| Dir 4.3   | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`                                                                                                    |
+| Dir 4.9   | critical section, atomic read-modify-write | `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`; `__LDREXB/H/W, __STREXB/H/W`; `__get_PRIMASK(), __disable_irq(), __set_PRIMASK()` |
+
+<!-- END GENERATED: toolchain-guidelines -->
+
+<!-- BEGIN GENERATED: misra-summary -->
+
 ## Summary
 
-| Category         | Enforced | By Design | Partial | N/A | Not Enforced |
-| ---------------- | -------- | --------- | ------- | --- | ------------ |
-| Directives (1-4) | 0        | 2         | 0       | 2   | 0            |
-| Rules 1-5        | 3        | 5         | 1       | 8   | 6            |
-| Rules 6-10       | 2        | 3         | 2       | 5   | 8            |
-| Rules 11-15      | 1        | 12        | 2       | 8   | 4            |
-| Rules 16-22      | 4        | 8         | 2       | 12  | 6            |
+| Category         | Enforced | By Design | Partial | Planned | N/A | Not Enforced | Deviation |
+| ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
+| Directives (1-4) | 1        | 9         | 1       | 0       | 1   | 0            | 1         |
+| Rules 1-5        | 2        | 8         | 2       | 0       | 3   | 7            | 1         |
+| Rules 6-10       | 2        | 15        | 7       | 0       | 0   | 9            | 0         |
+| Rules 11-15      | 2        | 16        | 6       | 0       | 1   | 6            | 0         |
+| Rules 16-22      | 4        | 29        | 5       | 0       | 11  | 7            | 1         |
+
+Counted from the guideline tables below by `npm run docs:toolchain` (157 guidelines).
+
+<!-- END GENERATED: misra-summary -->
 
 ---
 
@@ -68,28 +97,28 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ### Dir 4 - Code Design
 
-| Rule     | Description                                  | Status        | Reference                          |
-| -------- | -------------------------------------------- | ------------- | ---------------------------------- |
-| Dir 4.1  | Run-time failures shall be minimized         | **By Design** | No dynamic allocation, type safety |
-| Dir 4.3  | Assembly shall be encapsulated               | N/A           | No inline assembly in C-Next       |
-| Dir 4.6  | typedefs for basic types should be used      | **By Design** | Fixed-width types (u8, i32, etc.)  |
-| Dir 4.7  | Check return values of error-prone functions | **Enforced**  | E0901: NULL check required         |
-| Dir 4.8  | Pointer members should be hidden             | **By Design** | No raw pointers                    |
-| Dir 4.9  | Function-like macros should be avoided       | **By Design** | No preprocessor macros             |
-| Dir 4.10 | Precautions against multiple inclusion       | **By Design** | Module system handles this         |
-| Dir 4.11 | Check validity of function parameters        | Partial       | Some validation, not comprehensive |
-| Dir 4.12 | Dynamic memory shall not be used             | **By Design** | ADR-003: Static allocation only    |
-| Dir 4.13 | Resource lifetime management                 | **By Design** | No dynamic resources               |
+| Rule     | Description                                  | Status        | Reference                                                                                              |
+| -------- | -------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
+| Dir 4.1  | Run-time failures shall be minimized         | **By Design** | No dynamic allocation, type safety                                                                     |
+| Dir 4.3  | Assembly shall be encapsulated               | **By Design** | Emitted ARM asm is encapsulated in `__cnx_*` wrappers; See "Toolchain-derived guidelines" above        |
+| Dir 4.6  | typedefs for basic types should be used      | **By Design** | Fixed-width types (u8, i32, etc.)                                                                      |
+| Dir 4.7  | Check return values of error-prone functions | **Enforced**  | E0901: NULL check required                                                                             |
+| Dir 4.8  | Pointer members should be hidden             | **By Design** | No raw pointers                                                                                        |
+| Dir 4.9  | Function-like macros should be avoided       | **Deviation** | Platform macros `cli()`, `noInterrupts()`, `__disable_irq()`; See "Toolchain-derived guidelines" above |
+| Dir 4.10 | Precautions against multiple inclusion       | **By Design** | Module system handles this                                                                             |
+| Dir 4.11 | Check validity of function parameters        | Partial       | Some validation, not comprehensive                                                                     |
+| Dir 4.12 | Dynamic memory shall not be used             | **By Design** | ADR-003: Static allocation only                                                                        |
+| Dir 4.13 | Resource lifetime management                 | **By Design** | No dynamic resources                                                                                   |
 
 ---
 
 ## Rule 1 - Standard C Environment
 
-| Rule | Description                                | Status        | Reference                      |
-| ---- | ------------------------------------------ | ------------- | ------------------------------ |
-| 1.1  | Conform to C90/C99/C11                     | **By Design** | Generates C99-compliant code   |
-| 1.2  | Language extensions usage                  | N/A           | No extensions used             |
-| 1.3  | No undefined/critical unspecified behavior | Partial       | Many cases prevented by design |
+| Rule | Description                                | Status        | Reference                                                                                    |
+| ---- | ------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------- |
+| 1.1  | Conform to C90/C99/C11                     | **By Design** | C99 baseline; C11 when `_Static_assert` is emitted; See "Toolchain-derived guidelines" above |
+| 1.2  | Language extensions usage                  | **Deviation** | GNU inline asm and `__attribute__`; See "Toolchain-derived guidelines" above                 |
+| 1.3  | No undefined/critical unspecified behavior | Partial       | Many cases prevented by design                                                               |
 
 ---
 
@@ -256,7 +285,7 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 | ---- | ------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 14.1 | Loop counter float                         | **By Design** | Loop validation                                                                                                                                          |
 | 14.2 | For loop well-formed                       | Partial       | Some validation                                                                                                                                          |
-| 14.3 | Controlling expression not invariant       | Partial       | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-113 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
+| 14.3 | Controlling expression not invariant       | Partial       | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-068 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
 | 14.4 | Controlling expression essentially boolean | Partial       | E0701 for do-while only                                                                                                                                  |
 
 ---
@@ -330,22 +359,22 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 20 - Preprocessing Directives
 
-| Rule  | Description                        | Status       | Reference       |
-| ----- | ---------------------------------- | ------------ | --------------- |
-| 20.1  | #include preceded only by comments | N/A          | No preprocessor |
-| 20.2  | No ' " \ in header names           | N/A          | No preprocessor |
-| 20.3  | #include with <> or ""             | N/A          | Module system   |
-| 20.4  | No macro with keyword name         | N/A          | No macros       |
-| 20.5  | No #undef                          | N/A          | No macros       |
-| 20.6  | No macro parameter in # or ##      | N/A          | No macros       |
-| 20.7  | Macro parameters in parentheses    | N/A          | No macros       |
-| 20.8  | #if conditions well-defined        | N/A          | No preprocessor |
-| 20.9  | All identifiers in #if defined     | N/A          | No preprocessor |
-| 20.10 | No # or ## operators               | N/A          | No macros       |
-| 20.11 | Macro parameter after # is not ##  | N/A          | No macros       |
-| 20.12 | Macro parameter used once per ##   | N/A          | No macros       |
-| 20.13 | No continuation in // comment      | **Enforced** | ADR-043         |
-| 20.14 | All #else/#elif after #if          | N/A          | No preprocessor |
+| Rule  | Description                        | Status        | Reference                                                                                        |
+| ----- | ---------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| 20.1  | #include preceded only by comments | **By Design** | Includes follow only the banner comment                                                          |
+| 20.2  | No ' " \ in header names           | N/A           | No preprocessor                                                                                  |
+| 20.3  | #include with <> or ""             | **By Design** | All emitted includes use `<>` or `""`                                                            |
+| 20.4  | No macro with keyword name         | N/A           | No `#define` is emitted                                                                          |
+| 20.5  | No #undef                          | N/A           | No macros                                                                                        |
+| 20.6  | No macro parameter in # or ##      | N/A           | No macros                                                                                        |
+| 20.7  | Macro parameters in parentheses    | N/A           | No macros                                                                                        |
+| 20.8  | #if conditions well-defined        | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
+| 20.9  | All identifiers in #if defined     | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
+| 20.10 | No # or ## operators               | N/A           | No macros                                                                                        |
+| 20.11 | Macro parameter after # is not ##  | N/A           | No macros                                                                                        |
+| 20.12 | Macro parameter used once per ##   | N/A           | No macros                                                                                        |
+| 20.13 | No continuation in // comment      | **Enforced**  | ADR-043                                                                                          |
+| 20.14 | All #else/#elif after #if          | **By Design** | IRQ wrapper `#if`/`#elif`/`#else` chain is well-formed; See "Toolchain-derived guidelines" above |
 
 ---
 

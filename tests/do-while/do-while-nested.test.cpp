@@ -8,11 +8,14 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
 static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
-    uint32_t result;
-    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
-    return result;
+    return (uint32_t)(a + (uint32_t)b);
 }
 
 // test-execution
@@ -55,7 +58,7 @@ int main(void) {
         do {
             count = cnx_clamp_add_u32(count, 1U);
             j = cnx_clamp_add_u32(j, 1U);
-        } while (j < i + 1);
+        } while (j < cnx_clamp_add_u32(i, 1));
         i = cnx_clamp_add_u32(i, 1U);
     } while (i < 4);
     if (count != 10) return 3;

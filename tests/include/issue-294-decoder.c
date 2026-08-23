@@ -7,13 +7,26 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    return (uint16_t)(a + (uint16_t)b);
+}
+
 // Issue #294: Helper scope for cross-file scope resolution test
 // This file defines a scope that will be included by another file
 /* Scope: decoder */
 
 uint16_t decoder__getSpn(const uint8_t data[8]) {
     uint16_t result = data[0U];
-    result = result + (data[1U] * 256U);
+    result = cnx_clamp_add_u16(result, (data[1U] * 256U));
     return result;
 }
 

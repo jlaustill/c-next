@@ -1,9 +1,13 @@
-# ADR-113: Forever Loops
+# ADR-068: Forever Loops
 
-**Status:** WIP — Accepted design, implementation in progress (completes only when ADR-114 lands)
+> **Formerly ADR-113.** Renumbered 2026-08-23 into the `0xx` band — this is
+> v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
+> mapping table.
+
+**Status:** WIP — Accepted design, implementation in progress (completes only when ADR-069 lands)
 **Date:** 2026-06-26
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-026 (Break and Continue), ADR-027 (Do-While), ADR-112 (All-Paths-Return), ADR-114 (Dead-Code / Reachability Analysis)
+**Related ADRs:** ADR-026 (Break and Continue), ADR-027 (Do-While), ADR-067 (All-Paths-Return), ADR-069 (Dead-Code / Reachability Analysis)
 
 ## Context
 
@@ -45,7 +49,7 @@ This is unsatisfying for a "safer C": the intent (_this loop never ends_) is bur
 an arithmetic identity that the transpiler cannot recognize as deliberate. Two concrete
 problems follow from the transpiler not understanding the loop is infinite:
 
-1. **It forces dead code.** `ReturnPathAnalyzer` (ADR-112) treats a `while` body as
+1. **It forces dead code.** `ReturnPathAnalyzer` (ADR-067) treats a `while` body as
    _possibly skipped_, so a non-void function whose only terminal path is `while (1 = 1)`
    fails with **E0704** unless an unreachable trailing `return` is added. The project's own
    flagship example ships exactly this dead code:
@@ -62,7 +66,7 @@ problems follow from the transpiler not understanding the loop is infinite:
    ```
 
 2. **It cannot express divergence.** There is no way to tell the compiler "control never
-   leaves this loop," so the compiler cannot reason about the code around it (see ADR-114).
+   leaves this loop," so the compiler cannot reason about the code around it (see ADR-069).
 
 ### Relevant existing constraints
 
@@ -70,7 +74,7 @@ problems follow from the transpiler not understanding the loop is infinite:
   _only_ way out of any loop is a `return` from the enclosing function. This makes a
   conditionless loop **unconditionally divergent** — a stronger guarantee than in C or Rust,
   where `break` can escape. There are zero edge cases for the analyzer to consider.
-- **All-paths-return (ADR-112).** A `do-while` counts as a guaranteed return (its body always
+- **All-paths-return (ADR-067).** A `do-while` counts as a guaranteed return (its body always
   runs at least once); `while`/`for` never do. The analyzer makes no attempt to prove a loop
   is infinite.
 
@@ -98,7 +102,7 @@ nothing today (see "Migration Impact").
 ## Decision
 
 > This ADR's design is **Accepted** (2026-06-27); status is now **WIP** — the `forever`
-> core landed in #1074, but ADR-113 is not considered _Implemented_ until ADR-114 (the
+> core landed in #1074, but ADR-068 is not considered _Implemented_ until ADR-069 (the
 > reachability pass that consumes its divergence primitive) also lands. The open questions
 > raised during research are recorded as resolved in the
 > _Resolved (2026-06-26 design session)_ section.
@@ -131,7 +135,7 @@ generate.
    explicitly permits as an infinite loop (Rule 14.3 carve-out), with no controlling
    expression to be flagged as invariant. The lowered for statement will include a detailed comment specifying the MISRA 14.3 rule etc.
 2. **Divergent.** Because C-Next has no `break`/`continue` (ADR-026), `forever` never completes.
-   The all-paths-return analyzer (ADR-112) treats it as a **divergent statement** — a terminal
+   The all-paths-return analyzer (ADR-067) treats it as a **divergent statement** — a terminal
    path, like an unconditional `return`. A function whose every path either returns a value or
    diverges via `forever` satisfies E0704 with **no dead trailing return**.
 3. **`void`-only.** A `forever` loop may appear **only in a function with a `void` return
@@ -153,7 +157,7 @@ generate.
 
 4. **No code after `forever`.** Any statement following a `forever` loop in the same block is
    unreachable and is an error. This is the first concrete consumer of the divergence primitive
-   that ADR-114 (Dead-Code / Reachability Analysis) generalizes — see "Relationship to ADR-114."
+   that ADR-069 (Dead-Code / Reachability Analysis) generalizes — see "Relationship to ADR-069."
 
 ### Proposed error codes (not yet allocated)
 
@@ -165,13 +169,13 @@ Diagnostics follow the existing `Error EXXXX: <message>\n  help: <suggestion>` f
 | E0707 | `for (;;)` in source                               | `empty for-loop header is an infinite loop` → `write 'forever { … }' for an intentional infinite loop`                                                       |
 | E0707 | always-true loop condition (`while (1 = 1)`, etc.) | `loop condition is always true` → `write 'forever { … }' for an intentional infinite loop`                                                                   |
 
-**E0706 is allocated to ADR-114** (unreachable code); "code after a `forever` loop" is reported
+**E0706 is allocated to ADR-069** (unreachable code); "code after a `forever` loop" is reported
 there, not by a `forever`-specific diagnostic.
 
 ### Grammar (proposed)
 
 ```antlr
-FOREVER : 'forever';   // ADR-113
+FOREVER : 'forever';   // ADR-068
 
 foreverStatement : FOREVER block ;   // `block` requires braces — no single-statement form
 ```
@@ -182,7 +186,7 @@ in the repo uses it). The forbidden `for (;;)` and always-true `while` forms are
 by the grammar** and rejected in the analysis/codegen layer (E0707) — so the diagnostic can carry
 the steer-to-`forever` help text instead of a generic parse error.
 
-## Relationship to ADR-114
+## Relationship to ADR-069
 
 `forever` and general dead-code detection are **independent** (neither strictly requires the
 other) but **share one primitive**. The decision (recorded in the design discussion) is **two
@@ -192,11 +196,11 @@ ADRs sharing a single divergence primitive**:
   (a `forever` loop is divergent) and the minimal rule "no code after `forever`." Small,
   self-contained, **non-breaking** (it only accepts more programs — those that previously
   needed a dead trailing return).
-- **ADR-114** _generalizes the consumption_ of that same primitive into a full reachability
+- **ADR-069** _generalizes the consumption_ of that same primitive into a full reachability
   pass (unreachable code after `return`, after fully-returning `if`/`else`, etc.). It is a
   **breaking** change and is independently motivated by MISRA 2.1/2.2 and DO-178C.
 
-Adhering to a single shared primitive (rather than ADR-114 re-deriving reachability) is required by
+Adhering to a single shared primitive (rather than ADR-069 re-deriving reachability) is required by
 the project's "No Duplicate Code Paths" rule.
 
 ## Migration Impact
@@ -319,23 +323,23 @@ post-`forever` the form has no legitimate use.
 The `forever` core shipped: grammar (`FOREVER` token + `foreverStatement : FOREVER block`),
 lowering to `for (;;)` with a MISRA 14.3 comment, the divergence primitive in
 `ReturnPathAnalyzer`, **E0705** (confirmed allocated), and the `blink.cnx` migration to
-`void main()` + `forever`. **Status is _WIP_, not _Implemented_: ADR-113 completes only when
-ADR-114 (which consumes the divergence primitive) also lands.**
+`void main()` + `forever`. **Status is _WIP_, not _Implemented_: ADR-068 completes only when
+ADR-069 (which consumes the divergence primitive) also lands.**
 
-Key finding for ADR-114 / #849 — **the divergence primitive is not inert in ADR-113**, contrary
+Key finding for ADR-069 / #849 — **the divergence primitive is not inert in ADR-068**, contrary
 to the naive reading that "`forever` is void-only and `ReturnPathAnalyzer` only checks non-void
 functions, so it never sees a `forever`." A non-void function _can_ contain a `forever` loop in
 source; the analyzer runs **before** codegen, so without the primitive it emits the **misleading
 E0704** ("must return a value on all paths") instead of the precise **E0705**. Marking `forever`
 as a terminal/divergent path in `statementDefinitelyReturns` suppresses the wrong E0704 so E0705
-surfaces. This is exactly the shared decision ADR-114 must reuse rather than re-derive.
+surfaces. This is exactly the shared decision ADR-069 must reuse rather than re-derive.
 
 Scope held: the unreachable-code-after-`forever` diagnostic (E0706) is **not** part of #1074 — it
-belongs to ADR-114's reachability pass. #1074 delivers only the divergence primitive + E0704 relief.
+belongs to ADR-069's reachability pass. #1074 delivers only the divergence primitive + E0704 relief.
 
 ## Implementation Notes (Issue #1075, 2026-06-27)
 
-The v0.2.18 **disguised-loop slice** shipped as **E0707** (E0706 stays reserved for ADR-114):
+The v0.2.18 **disguised-loop slice** shipped as **E0707** (E0706 stays reserved for ADR-069):
 
 - **`for (;;)`** — a for-loop with no controlling expression is rejected in `generateFor`.
 - **Always-true literal conditions** — `while`/`for`/`do-while` conditions that are a single
@@ -350,14 +354,14 @@ so this breaking change flags nothing existing.
 
 ## Remaining
 
-- **Back-reference ADR-112:** ADR-113 added to ADR-112's _Related ADRs_ (2026-06-27, on
-  acceptance). ADR-114 still to be added when it is accepted/implemented — both extend
-  ADR-112's `definitelyReturns` machinery. Documentation counterpart, not a code change.
+- **Back-reference ADR-067:** ADR-068 added to ADR-067's _Related ADRs_ (2026-06-27, on
+  acceptance). ADR-069 still to be added when it is accepted/implemented — both extend
+  ADR-067's `definitelyReturns` machinery. Documentation counterpart, not a code change.
 
 ## References
 
 - ADR-026 (Break/Continue rejected — why a conditionless loop is unconditionally divergent)
-- ADR-112 (All-Paths-Return — the analyzer this extends with a divergence primitive)
-- ADR-114 (Dead-Code / Reachability Analysis — generalizes the divergence primitive)
+- ADR-067 (All-Paths-Return — the analyzer this extends with a divergence primitive)
+- ADR-069 (Dead-Code / Reachability Analysis — generalizes the divergence primitive)
 - MISRA C:2012 Rule 14.3 (infinite-loop idiom carve-out for `for(;;)`)
 - Swift SE-0102 (removal of `@noreturn` in favor of the `Never` bottom type)

@@ -5,6 +5,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-coverage: 27-array-pass-by-ref
 // test-execution
 // Tests: Array passed to function (pass-by-reference behavior)
@@ -18,8 +31,8 @@ uint32_t sumArray(uint32_t arr[5], uint32_t count) {
     uint32_t sum = 0U;
     uint32_t i = 0U;
     while (i < count) {
-        sum = sum + arr[i];
-        i = i + 1U;
+        sum = cnx_clamp_add_u32(sum, arr[i]);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     return sum;
 }
@@ -29,7 +42,7 @@ void zeroArray(uint32_t arr[8], uint32_t count) {
     uint32_t i = 0U;
     while (i < count) {
         arr[i] = 0U;
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
@@ -38,7 +51,7 @@ void copyArray(uint32_t src[4], uint32_t dst[4], uint32_t count) {
     uint32_t i = 0U;
     while (i < count) {
         dst[i] = src[i];
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 

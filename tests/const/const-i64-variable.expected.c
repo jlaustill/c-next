@@ -6,6 +6,20 @@
 #include <stdint.h>
 #include <limits.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
+    if (b < 0 && a > INT64_MAX + b) return INT64_MAX;
+    if (b > 0 && a < INT64_MIN + b) return INT64_MIN;
+    return a - b;
+}
+
 // test-execution
 // ADR-013: Const i64 variable
 // Tests: const i64 declaration and read access with negative values
@@ -22,7 +36,7 @@ int main(void) {
     if (maxTs != 2147483647) return 2;
     int64_t epoch = EPOCH;
     if (epoch != 0) return 3;
-    int64_t range = MAX_TIMESTAMP - MIN_TIMESTAMP;
+    int64_t range = cnx_clamp_sub_i64(MAX_TIMESTAMP, MIN_TIMESTAMP);
     if (range != 4294967295) return 4;
     if (MIN_TIMESTAMP >= EPOCH) return 5;
     int64_t timestamp = 1000000;

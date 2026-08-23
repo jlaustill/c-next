@@ -6,6 +6,19 @@
 #include <stdint.h>
 #include <string.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // ADR-045: Test strings in control flow structures
 // Validates: string operations in if, while, for conditions
@@ -41,8 +54,8 @@ int main(void) {
     uint32_t totalLen = 0U;
     uint32_t i = 0U;
     while (i < 4) {
-        totalLen = totalLen + strlen(items[i]);
-        i = i + 1U;
+        totalLen = cnx_clamp_add_u32(totalLen, strlen(items[i]));
+        i = cnx_clamp_add_u32(i, 1U);
     }
     if (totalLen != 15) return 6;
     char maybeEmpty[33] = "";
