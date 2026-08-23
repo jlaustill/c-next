@@ -405,27 +405,58 @@ uint32_t cycleCount = 0;
 cycleCount = (uint32_t)(cycleCount + 1);  // Natural wrap
 
 // With --debug flag, ALL operations become:
-// cnx_debug_add_u16(egtTemp, 100);  // Panics on overflow
+// cnx_clamp_add_u16(egtTemp, 100);  // Panics on overflow
 ```
 
-#### Helper Macros (Generated)
+#### Helper Functions (Generated)
+
+Transcribed from actual transpiler output. Note that `b` is the **wider** type,
+not the value type: the right-hand operand is checked before any narrowing, so
+an out-of-range operand cannot be truncated into an in-range one (Issue #94).
 
 ```c
-// Saturating addition for u16
-static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint16_t b) {
-    uint16_t result = a + b;
-    if (result < a) return UINT16_MAX;  // Overflow detected
-    return result;
-}
-
-// Debug mode: panic on any overflow
-static inline uint16_t cnx_debug_add_u16(uint16_t a, uint16_t b) {
-    if (a > UINT16_MAX - b) {
-        cnx_panic("Integer overflow");
-    }
-    return a + b;
+// Saturating addition for u16 (default: clamp)
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    return (uint16_t)(a + (uint16_t)b);
 }
 ```
+
+With `--debug`, the same function name is generated with a panic body -- there
+is no separate `cnx_debug_*` symbol; both modes route through
+`ReservedCnxName.clampHelper()`:
+
+```c
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) {
+        fprintf(stderr, "PANIC: Integer overflow in u16 addition\n");
+        abort();
+    }
+    return (uint16_t)(a + (uint16_t)b);
+}
+```
+
+Debug mode therefore pulls in `<stdio.h>` and `<stdlib.h>`, which a freestanding
+target may not have. Release mode needs neither.
+
+**The range check is the whole overflow test.** Falling through it proves
+`a + b <= UINT16_MAX` _and_ that `(uint16_t)b` does not truncate, so the
+addition below it cannot overflow.
+
+Between #238 and #1143 these helpers also called `__builtin_add_overflow` /
+`__builtin_sub_overflow` / `__builtin_mul_overflow` after the range check. That
+call was unreachable for exactly the reason above, and was removed in #1143:
+
+- Verified unreachable over 58,903,538 cases (u8 exhaustive, u16 exhaustive,
+  u32/u64 boundary-biased); the builtin branch fired zero times, and the range
+  check alone produced the correct saturating value every time.
+- It was introduced as a value-range hint to suppress a `-Wstringop-overflow`
+  false positive (#231), but it does not suppress that diagnostic: with and
+  without it, GCC emits identical `-Wstringop-overflow` and `-Warray-bounds`
+  output.
+- Removing it drops a **GCC 5+ / Clang 3.8+** floor from generated code, which
+  is otherwise C99, and shrinks these helpers by roughly 30% at `-Os` on
+  Cortex-M4.
 
 #### Trade-offs
 

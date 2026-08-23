@@ -10,9 +10,7 @@
 
 static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     if (b > (uint64_t)(UINT64_MAX - a)) return UINT64_MAX;
-    uint64_t result;
-    if (__builtin_add_overflow(a, (uint64_t)b, &result)) return UINT64_MAX;
-    return result;
+    return (uint64_t)(a + (uint64_t)b);
 }
 
 // test-execution
