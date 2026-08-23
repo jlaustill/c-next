@@ -20,7 +20,15 @@ interface ISymbol {
  * Symbol table interface
  */
 interface ISymbolTable {
-  getOverloads(name: string): ISymbol[];
+  /**
+   * Resolve by transpiled C name — the only lookup this layer may use.
+   *
+   * The bare-name lookup is deliberately absent. Everything here holds a
+   * generated identifier (`Motor__init`), and asking the bare-name index for
+   * one returns an empty result that reads as "no such symbol" rather than
+   * "wrong question" — which is precisely how #1139's defect 2 happened. Not
+   * declaring it means the next lookup added to this file cannot reach for it.
+   */
   getOverloadsByCName(cName: string): ISymbol[];
   getStructFields?(name: string): unknown;
 }

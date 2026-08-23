@@ -131,6 +131,22 @@ class ScopeUtils {
       seen.add(current);
 
       path.unshift(current.name);
+
+      // A chain that simply ends is the other way this walk fails to terminate
+      // at the global scope, and it is the shape hand-built scopes actually
+      // have — the encoder this replaced took `{ name: string }` structurally,
+      // so an object with no parent was a complete scope to it. Without this the
+      // next line hands `undefined` to isGlobalScope and the whole transpile
+      // dies on a bare TypeError, now from inside SymbolTable.addTSymbol, which
+      // runs for every symbol.
+      if (!current.parent) {
+        throw new Error(
+          `Malformed scope chain: '${current.name}' has no parent, so it never ` +
+            `reaches the global scope. Build scopes with ` +
+            `ScopeUtils.createGlobalScope()/createScope().`,
+        );
+      }
+
       current = current.parent;
     }
 

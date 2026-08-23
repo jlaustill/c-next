@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import ScopeUtils from "../ScopeUtils";
+import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 
 describe("IScopeSymbol", () => {
   describe("createGlobalScope", () => {
@@ -77,6 +78,17 @@ describe("IScopeSymbol", () => {
       expect(() => ScopeUtils.getScopePath(cyclic)).toThrow(
         /is its own ancestor/,
       );
+    });
+
+    it("throws a named error when the chain ends instead of reaching global", () => {
+      // The other non-terminating shape. Hand-built mocks reach it via
+      // `as unknown as IScopeSymbol`, and the walk runs for every symbol added
+      // to the SymbolTable, so a raw TypeError here is very hard to trace back.
+      const orphan = { name: "Motor" } as unknown as IScopeSymbol;
+
+      expect(() => ScopeUtils.getScopePath(orphan)).toThrow(/has no parent/);
+      // Specifically not a TypeError from dereferencing undefined.
+      expect(() => ScopeUtils.getScopePath(orphan)).not.toThrow(TypeError);
     });
 
     it("throws on a longer parent cycle", () => {

@@ -58,7 +58,7 @@ class HeaderSymbolAdapter {
 
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(func);
-    const isGlobal = func.scope.name === "";
+    const isGlobal = ScopeUtils.isGlobalScope(func.scope);
 
     // ADR-057: type names arrive already scope-qualified from the symbol
     // layer (CNextResolver pre-pass), so no qualification is needed here.
@@ -98,7 +98,7 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(variable);
-    const isGlobal = variable.scope.name === "";
+    const isGlobal = ScopeUtils.isGlobalScope(variable.scope);
 
     // ADR-057: the symbol layer already qualified scope-local type names.
     const typeStr = TypeResolver.getTypeName(variable.type);
@@ -130,7 +130,7 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(struct);
-    const isGlobal = struct.scope.name === "";
+    const isGlobal = ScopeUtils.isGlobalScope(struct.scope);
 
     return {
       name: cName,
@@ -147,7 +147,7 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(enumSym);
-    const isGlobal = enumSym.scope.name === "";
+    const isGlobal = ScopeUtils.isGlobalScope(enumSym.scope);
 
     return {
       name: cName,
@@ -164,7 +164,7 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(bitmap);
-    const isGlobal = bitmap.scope.name === "";
+    const isGlobal = ScopeUtils.isGlobalScope(bitmap.scope);
 
     return {
       name: cName,
@@ -182,7 +182,7 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(register);
-    const isGlobal = register.scope.name === "";
+    const isGlobal = ScopeUtils.isGlobalScope(register.scope);
 
     return {
       name: cName,

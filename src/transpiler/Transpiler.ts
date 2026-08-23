@@ -1754,6 +1754,19 @@ class Transpiler {
    * transpiled. Call this exactly once per file, from _transpileFile(), while
    * that file's state is warm — calling it later rebuilds the header from
    * whichever file ran last (issue #1139).
+   *
+   * **Depends on topological file order.** Two of the reads below are
+   * whole-project accumulators — `state.getAllSymbolInfo()` and
+   * `state.getAllHeaderDirectives()` — and from here they hold only the files
+   * transpiled *so far*, not the whole project as they did when this ran after
+   * every file. That is sufficient because `_sortFilesByDependency()` orders
+   * files by `depGraph.getSortedFiles()`, so every transitive dependency has
+   * already been transpiled by the time its dependent's header is built.
+   *
+   * Anything added here that needs to see the *entire* project would therefore
+   * be wrong, and a dependency cycle would break the ordering this relies on —
+   * `_sortFilesByDependency` currently drains `depGraph.getWarnings()` into
+   * warnings rather than failing, so cycle order is arbitrary (#1167).
    */
   private generateHeaderForFile(file: IPipelineFile): string | null {
     const sourcePath = file.path;

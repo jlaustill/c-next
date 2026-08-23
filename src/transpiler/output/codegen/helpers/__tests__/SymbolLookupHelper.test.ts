@@ -6,11 +6,11 @@ import type TSymbolKind from "../../../../types/symbol-kinds/TSymbolKind.js";
 /**
  * Build an ISymbolTable stub for these tests.
  *
- * Both lookups answer with the same symbols. The helper resolves by transpiled
- * C name (#1139) while other callers still resolve by bare name, and fixing the
- * result rather than the key keeps each test about the behavior it names. One
- * factory also means the next method added to ISymbolTable is a single edit
- * here, not twenty-five.
+ * Keyed by transpiled C name, because that is the only lookup this layer is
+ * allowed to make (#1139). Stubbing a closure that ignores its argument
+ * would make every test here pass against the bare-name index too, which is the
+ * defect the layer exists to prevent — see the "resolves by transpiled C name"
+ * test below, which fails if the lookup key regresses.
  */
 const makeSymbolTable = <
   T extends { kind: TSymbolKind; sourceLanguage: ESourceLanguage },
@@ -18,8 +18,7 @@ const makeSymbolTable = <
   symbols: T[] = [],
   extras: { getStructFields?: (name: string) => unknown } = {},
 ) => ({
-  getOverloads: () => symbols,
-  getOverloadsByCName: () => symbols,
+  getOverloadsByCName: (_cName: string) => symbols,
   ...extras,
 });
 
@@ -225,6 +224,31 @@ describe("SymbolLookupHelper", () => {
         { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
       ]);
       expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
+        false,
+      );
+    });
+
+    // Issue #1139 regression guard. The two indexes answer different questions:
+    // the bare-name index needs ADR-057 scope context, the C-name index is an
+    // exact canonical identity. Codegen holds the latter. This is the only test
+    // in the file where the two disagree, so it is the one that fails if the
+    // lookup key regresses — the rest assert kind/language filtering and would
+    // stay green either way.
+    it("resolves a scoped function by its transpiled C name, not its bare name", () => {
+      const fn = {
+        kind: "function" as const,
+        sourceLanguage: ESourceLanguage.CNext,
+      };
+      const table = {
+        getOverloadsByCName: (cName: string) =>
+          cName === "Sensors__readValue" ? [fn] : [],
+      };
+
+      expect(
+        SymbolLookupHelper.isCNextFunction(table, "Sensors__readValue"),
+      ).toBe(true);
+      // The bare name is not this symbol's identity, so it must not resolve.
+      expect(SymbolLookupHelper.isCNextFunction(table, "readValue")).toBe(
         false,
       );
     });
