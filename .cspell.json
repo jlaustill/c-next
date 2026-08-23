@@ -382,6 +382,7 @@
     "vtables",
     "Waddress",
     "wantarray",
+    "Noreturn",
     "Warray",
     "Wbool",
     "Wdouble",

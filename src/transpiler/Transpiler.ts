@@ -71,6 +71,8 @@ import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
 import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
+import type IRecordedRequirement from "./types/IRecordedRequirement";
+import RequirementAggregator from "../utils/RequirementAggregator";
 
 /**
  * Unified transpiler
@@ -521,11 +523,17 @@ class Transpiler {
       // Generate header content (reads from state populated above)
       const headerCode = this.generateHeaderForFile(file) ?? undefined;
 
+      // Issue #1143: read after header generation -- a header can carry
+      // requirements of its own -- and before the next file's
+      // CodeGenState.reset() clears the recording map.
+      const requirements = this.codeGenerator.getToolchainRequirements();
+
       return this.buildSuccessResult(
         sourcePath,
         code,
         headerCode,
         declarationCount,
+        requirements,
       );
     } catch (err) {
       return this.buildCatchResult(sourcePath, err);
@@ -1001,6 +1009,8 @@ class Transpiler {
     }
     result.symbolsCollected = CodeGenState.symbolTable.size;
     result.warnings = [...result.warnings, ...this.warnings];
+    // Issue #1143: union of what each file's emitters recorded.
+    result.requirements = RequirementAggregator.merge(result.files);
 
     if (this.cacheManager) {
       await this.cacheManager.flush();
@@ -2010,6 +2020,7 @@ class Transpiler {
     code: string,
     headerCode: string | undefined,
     declarationCount: number,
+    requirements: readonly IRecordedRequirement[] = [],
   ): IFileResult {
     return {
       sourcePath,
@@ -2018,6 +2029,7 @@ class Transpiler {
       success: true,
       errors: [],
       declarationCount,
+      requirements,
     };
   }
 
