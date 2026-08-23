@@ -1504,9 +1504,9 @@ This document tracks test coverage for every language construct in every valid c
 | With atomic **(ERROR)**  | [x]    | `atomic/atomic-volatile-error.test.cnx`      |
 | In for loop              | [x]    | `volatile/volatile-in-for-loop.test.cnx`     |
 
-**Implementation Note (ADR-108):**
+**Implementation Note (ADR-064):**
 
-ADR-108 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE. Test suite now covers:
+ADR-064 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE. Test suite now covers:
 
 - Global volatile variables
 - Local volatile variables (delay loop pattern)
@@ -1520,7 +1520,7 @@ ADR-108 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE
 - Register bindings for hardware access (implicit volatile)
 - `atomic` keyword for ISR-shared data (volatile + atomicity)
 
-See `/docs/decisions/adr-108-volatile-keyword.md` for implementation details and usage patterns.
+See `/docs/decisions/adr-064-volatile-keyword.md` for implementation details and usage patterns.
 
 ---
 

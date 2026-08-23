@@ -1,8 +1,19 @@
-# ADR-109: CodeGenerator Decomposition
+# ADR-065: CodeGenerator Decomposition
+
+> **Formerly ADR-109.** Renumbered 2026-08-23 into the `0xx` band — this is
+> v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
+> mapping table.
 
 ## Status
 
-**Research**
+**WIP** — the decision below is implemented and in active use; the decomposition it prescribes
+is incomplete.
+
+The classifier + handler + utils pattern landed in PR #447 and is the documented way to add new
+assignment kinds (see CLAUDE.md, "Assignment Classification"). `CodeGenerator.ts` is down from
+10,570 lines to roughly 5,000. But three methods named as targets below — `_generatePostfixExpr`,
+`trackVariableType` and `generateMemberAccess` — are still in `CodeGenerator.ts`. As an `0xx`
+ADR this is v1-gating work: see [`README.md`](README.md) for what the band commits to.
 
 ## Context
 

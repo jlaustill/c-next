@@ -1,6 +1,6 @@
 /**
  * Unit tests for ReturnPathAnalyzer
- * ADR-112 / Issue #1040: non-void functions must return a value on all paths.
+ * ADR-067 / Issue #1040: non-void functions must return a value on all paths.
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
@@ -203,11 +203,11 @@ describe("ReturnPathAnalyzer", () => {
     });
   });
 
-  describe("treats `forever` as a divergent terminal path (ADR-113, the primitive #849 consumes)", () => {
+  describe("treats `forever` as a divergent terminal path (ADR-068, the primitive #849 consumes)", () => {
     // A `forever` loop never exits (C-Next has no break/continue, ADR-026), so a
     // function whose terminal path is `forever` never falls through and must not
     // be flagged E0704. (In real programs `forever` is void-only via E0705 in
-    // codegen; this is the shared divergence primitive ADR-114 reuses.)
+    // codegen; this is the shared divergence primitive ADR-069 reuses.)
     it("does not flag a function whose only path is a forever loop", () => {
       expect(
         analyze(`

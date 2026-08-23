@@ -1,5 +1,5 @@
 /**
- * Builder for IAssignmentContext (ADR-109).
+ * Builder for IAssignmentContext (ADR-065).
  *
  * Extracts all context from an assignment statement parse tree
  * needed for classification and code generation.

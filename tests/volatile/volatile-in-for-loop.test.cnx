@@ -1,7 +1,7 @@
 // test-execution
 // test-coverage: 30a-volatile-for-loop
 // Tests: Volatile variable in for loop (iteration variable)
-// ADR-108: Prevent loop optimization in timing-critical code
+// ADR-064: Prevent loop optimization in timing-critical code
 u32 main() {
    
 // Test 1: Volatile loop counter - basic pattern

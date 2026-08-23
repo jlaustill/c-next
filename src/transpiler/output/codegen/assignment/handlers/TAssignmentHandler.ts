@@ -1,5 +1,5 @@
 /**
- * Type for assignment handler functions (ADR-109).
+ * Type for assignment handler functions (ADR-065).
  *
  * Handlers access state via CodeGenState and CodeGenState.generator
  * instead of receiving deps as a parameter.

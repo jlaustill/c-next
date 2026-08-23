@@ -168,7 +168,7 @@ const generateWhile = (
   // Issue #884: Validate condition is a boolean expression (E0701)
   orchestrator.validateConditionIsBoolean(node.expression(), "while");
 
-  // ADR-113 / #1075: reject always-true literal condition (E0707)
+  // ADR-068 / #1075: reject always-true literal condition (E0707)
   orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
 
   const condition = orchestrator.generateExpression(node.expression());
@@ -205,7 +205,7 @@ const generateDoWhile = (
   // Issue #884: Validate condition is a boolean expression (E0701)
   orchestrator.validateConditionIsBoolean(node.expression(), "do-while");
 
-  // ADR-113 / #1075: reject always-true literal condition (E0707)
+  // ADR-068 / #1075: reject always-true literal condition (E0707)
   orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
 
   const body = orchestrator.generateBlock(node.block());
@@ -293,7 +293,7 @@ const generateFor = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // ADR-113 / #1075 E0707: a for-loop with no controlling expression (`for (;;)`)
+  // ADR-068 / #1075 E0707: a for-loop with no controlling expression (`for (;;)`)
   // is a disguised infinite loop. C-Next has one source form for that — `forever`.
   if (!node.expression()) {
     throw new Error(
@@ -339,7 +339,7 @@ const generateFor = (
   // Issue #884: Validate condition is a boolean expression (E0701)
   orchestrator.validateConditionIsBoolean(conditionExpr, "for");
 
-  // ADR-113 / #1075: reject always-true literal condition (E0707)
+  // ADR-068 / #1075: reject always-true literal condition (E0707)
   orchestrator.validateLoopConditionNotAlwaysTrue(conditionExpr);
 
   const condition = orchestrator.generateExpression(conditionExpr);
@@ -379,7 +379,7 @@ const generateFor = (
 };
 
 /**
- * Generate C code for a forever statement (ADR-113).
+ * Generate C code for a forever statement (ADR-068).
  *
  * Lowers to the MISRA C:2012 Rule 14.3-compliant infinite-loop idiom `for (;;)`
  * (the carve-out that rule explicitly permits — no controlling expression to be
@@ -395,7 +395,7 @@ const generateForever = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // ADR-113 E0705: forever is void-only.
+  // ADR-068 E0705: forever is void-only.
   const returnType = orchestrator.getCurrentFunctionReturnType();
   if (returnType && returnType !== "void") {
     throw new Error(

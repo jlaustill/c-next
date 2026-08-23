@@ -1,5 +1,5 @@
 /**
- * String assignment handlers (ADR-109).
+ * String assignment handlers (ADR-065).
  *
  * Handles assignments to string variables:
  * - STRING_SIMPLE: str <- "hello"

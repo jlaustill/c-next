@@ -1,5 +1,5 @@
 /**
- * Register bit assignment handlers (ADR-109).
+ * Register bit assignment handlers (ADR-065).
  *
  * Handles assignments to register bits:
  * - REGISTER_BIT: GPIO7.DR_SET[LED_BIT] <- true

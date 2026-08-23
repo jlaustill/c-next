@@ -1,6 +1,6 @@
 /**
  * Return-Path Analyzer
- * ADR-112 / Issue #1040: reject a non-void function that can reach the end of
+ * ADR-067 / Issue #1040: reject a non-void function that can reach the end of
  * its body without returning a value (undefined behavior in C).
  *
  * The analysis is intentionally strict and conservative (sound): it never
@@ -46,10 +46,10 @@ function statementDefinitelyReturns(ctx: Parser.StatementContext): boolean {
   }
 
   if (ctx.foreverStatement()) {
-    // ADR-113: a `forever` loop is divergent — C-Next has no break/continue
+    // ADR-068: a `forever` loop is divergent — C-Next has no break/continue
     // (ADR-026), so control never passes beyond it. It is therefore a terminal
     // path, like an unconditional return, and the function never falls through
-    // here. This is the shared "divergence" primitive ADR-114 (#849) reuses.
+    // here. This is the shared "divergence" primitive ADR-069 (#849) reuses.
     //
     // `forever` is void-only (E0705, enforced in codegen). Marking it terminal
     // here keeps a non-void function containing a `forever` loop from emitting a
@@ -143,7 +143,7 @@ class ReturnPathListener extends CNextListener {
 }
 
 /**
- * Analyzer for missing return paths (ADR-112).
+ * Analyzer for missing return paths (ADR-067).
  */
 class ReturnPathAnalyzer {
   private errors: IReturnPathError[] = [];

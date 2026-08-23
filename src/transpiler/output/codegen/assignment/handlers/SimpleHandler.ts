@@ -1,5 +1,5 @@
 /**
- * Handler for simple assignments (ADR-109).
+ * Handler for simple assignments (ADR-065).
  *
  * The fallback case: generates `target = value;` or `target op= value;`
  * Used when no special handling is needed.

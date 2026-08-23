@@ -1,4 +1,4 @@
-// Coverage: ADR-113 / #1075 - always-true literal while condition forbidden (E0707)
+// Coverage: ADR-068 / #1075 - always-true literal while condition forbidden (E0707)
 // test-error
 void run() {
     u8 state <- 0;

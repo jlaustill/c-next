@@ -1,5 +1,5 @@
 /**
- * Access pattern assignment handlers (ADR-109).
+ * Access pattern assignment handlers (ADR-065).
  *
  * Handles assignments with global/this prefix and member chains:
  * - GLOBAL_ARRAY: global.obj.field[i] <- value (member chain)
