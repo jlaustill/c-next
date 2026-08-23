@@ -13,7 +13,7 @@ import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
 import CommentFormatter from "./CommentFormatter";
 import IncludeDiscovery from "../../data/IncludeDiscovery";
 import IComment from "../../types/IComment";
-import TYPE_WIDTH from "./types/TYPE_WIDTH";
+import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
 import TYPE_LIMITS from "./types/TYPE_LIMITS";
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
@@ -75,7 +75,7 @@ import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
 // Issue #644: Array dimension parsing helper for consolidation
-import ArrayDimensionParser from "./helpers/ArrayDimensionParser";
+import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
 // Issue #644: Member chain analyzer for bit access pattern detection
 import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 // Issue #644: Float bit write helper for shadow variable pattern

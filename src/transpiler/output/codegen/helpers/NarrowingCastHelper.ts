@@ -8,7 +8,7 @@
  * which MISRA flags when assigned back to narrower types without explicit cast.
  */
 
-import TYPE_WIDTH from "../types/TYPE_WIDTH.js";
+import TYPE_WIDTH from "../../../constants/TYPE_WIDTH.js";
 import CppModeHelper from "./CppModeHelper.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 

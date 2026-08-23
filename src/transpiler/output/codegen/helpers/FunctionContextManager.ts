@@ -12,8 +12,8 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
-import TYPE_WIDTH from "../types/TYPE_WIDTH.js";
-import ArrayDimensionParser from "./ArrayDimensionParser.js";
+import TYPE_WIDTH from "../../../constants/TYPE_WIDTH.js";
+import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser.js";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser.js";

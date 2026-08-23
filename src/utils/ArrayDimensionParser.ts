@@ -10,9 +10,9 @@
  * 4. _setParameters() inline - Use 0 for unresolved dimensions
  */
 
-import LiteralUtils from "../../../../utils/LiteralUtils.js";
-import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
-import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION.js";
+import LiteralUtils from "./LiteralUtils.js";
+import * as Parser from "../transpiler/logic/parser/grammar/CNextParser.js";
+import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION.js";
 
 /**
  * Options for evaluating constant expressions.
@@ -38,8 +38,16 @@ interface IConstantEvalOptions {
 class ArrayDimensionParser {
   /** Regex for identifier pattern */
   private static readonly IDENTIFIER_RE = /^[a-zA-Z_]\w*$/;
-  /** Regex for const addition: CONST + CONST */
-  private static readonly CONST_ADD_RE = /^([a-zA-Z_]\w*)\+([a-zA-Z_]\w*)$/;
+  /**
+   * Regex for addition of two operands, each an integer literal or a const
+   * identifier: `8+1`, `SIZE+1`, `1+SIZE`, `SIZE+OFFSET`.
+   *
+   * Issue #1157: this required an identifier on both sides, so `u8[8+1]` did
+   * not fold. An unfoldable dimension is dropped by the collectors, which left
+   * the field marked as an array with no dimensions -- the header emitted a
+   * scalar and the body fell back to bit indexing.
+   */
+  private static readonly ADD_RE = /^(\w+)\+(\w+)$/;
   /** Regex for sizeof(type) */
   private static readonly SIZEOF_RE = /^sizeof\(([a-zA-Z_]\w*)\)$/;
   /** Regex for sizeof(type) * N */
@@ -110,22 +118,36 @@ class ArrayDimensionParser {
     text: string,
     options?: IConstantEvalOptions,
   ): number | undefined {
-    const constValues = options?.constValues;
-    if (!constValues) {
-      return undefined;
-    }
-
-    const match = this.CONST_ADD_RE.exec(text);
+    const match = this.ADD_RE.exec(text);
     if (!match) {
       return undefined;
     }
 
-    const left = constValues.get(match[1]);
-    const right = constValues.get(match[2]);
+    const left = this._resolveOperand(match[1], options);
+    const right = this._resolveOperand(match[2], options);
     if (left !== undefined && right !== undefined) {
       return left + right;
     }
     return undefined;
+  }
+
+  /**
+   * Resolve one operand of a constant expression.
+   *
+   * An operand is either an integer literal in any notation that
+   * `LiteralUtils.parseIntegerLiteral` accepts (decimal, hex, binary) or the
+   * name of a known const. Resolving both operand kinds in one place is what
+   * lets `8+1`, `SIZE+1` and `SIZE+OFFSET` fold by the same rule.
+   */
+  private static _resolveOperand(
+    text: string,
+    options?: IConstantEvalOptions,
+  ): number | undefined {
+    const literal = LiteralUtils.parseIntegerLiteral(text);
+    if (literal !== undefined) {
+      return literal;
+    }
+    return options?.constValues?.get(text);
   }
 
   /**

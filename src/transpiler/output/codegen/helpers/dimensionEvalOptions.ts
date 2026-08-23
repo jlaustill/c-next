@@ -17,7 +17,7 @@
  */
 
 import CodeGenState from "../../../state/CodeGenState";
-import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../constants/TYPE_WIDTH";
 
 /**
  * Build the constant-folding options for an array dimension from current state.

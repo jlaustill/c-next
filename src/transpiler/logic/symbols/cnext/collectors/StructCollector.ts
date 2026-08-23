@@ -12,7 +12,8 @@ import IFieldInfo from "../../../../types/symbols/IFieldInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
-import LiteralUtils from "../../../../../utils/LiteralUtils";
+import ArrayDimensionParser from "../../../../../utils/ArrayDimensionParser";
+import TYPE_WIDTH from "../../../../constants/TYPE_WIDTH";
 
 /**
  * Result of processing an arrayType syntax context.
@@ -103,15 +104,21 @@ function tryResolveExpressionDimension(
   sizeExpr: Parser.ExpressionContext,
   constValues?: Map<string, number>,
 ): number | undefined {
-  const dimText = sizeExpr.getText();
-  const literalSize = LiteralUtils.parseIntegerLiteral(dimText);
-  if (literalSize !== undefined) {
-    return literalSize;
-  }
-  if (constValues?.has(dimText)) {
-    return constValues.get(dimText);
-  }
-  return undefined;
+  // Issue #1157: defer to the shared evaluator rather than re-implementing a
+  // weaker one here. This used to accept only a bare integer literal or a bare
+  // const name, so `u8[8+1]` did not resolve; the dimension was dropped while
+  // isArray stayed true, and the field reached the header as a scalar and the
+  // body as a bit-indexed value while the .c declaration -- which folds through
+  // its own path -- correctly said [9].
+  // typeWidths comes from the same TYPE_WIDTH table codegen uses, so a
+  // sizeof dimension folds identically here and in the .c. constValues is
+  // the collection-time map rather than CodeGenState -- same evaluator and
+  // same width table, different source for the consts, which is the only
+  // part that legitimately differs between the two layers.
+  return ArrayDimensionParser.parseSingleDimension(sizeExpr, {
+    constValues,
+    typeWidths: TYPE_WIDTH,
+  });
 }
 
 /**

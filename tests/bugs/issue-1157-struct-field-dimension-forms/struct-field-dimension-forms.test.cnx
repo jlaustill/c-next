@@ -1,0 +1,55 @@
+// test-execution
+// Issue #1157: every dimension form a struct field can use must resolve to the
+// same value in the .c, the .h, and the body.
+//
+// StructCollector re-implemented a weaker evaluator than the one codegen used:
+// it accepted only a bare integer literal or a bare const name. Anything else
+// returned undefined, the dimension was dropped, and isArray stayed true -- so
+// the field reached the header as a scalar and the body as a bit-indexed value
+// while the .c declaration, which folds through its own path, was correct:
+//
+//   struct Buffer { u8[8+1] data; }
+//
+//   .c decl:  uint8_t data[9];                                  correct
+//   .c body:  b.data = (b.data & ~(1U << 8)) | ...;             bit manipulation
+//   .h:       uint8_t data;                                     scalar
+//
+//   error: invalid operands to binary & (have 'uint8_t *' and 'unsigned int')
+//
+// Collection now defers to ArrayDimensionParser, the same evaluator codegen
+// uses, with the same TYPE_WIDTH table.
+//
+// Each subscript below is the LAST valid index for its dimension, so a dimension
+// resolved even one too small fails ADR-036 bounds checking at compile time
+// rather than silently passing.
+const u8 SIZE <- 6;
+
+struct Buffer {
+    u8[8] plain;
+    u8[0x10] hex;
+    u8[0b100] binary;
+    u8[SIZE] constRef;
+    u8[8+1] addLiteral;
+    u8[SIZE+2] addConst;
+    u8[sizeof(u32)] sizeofDim;
+}
+
+i32 main() {
+    Buffer b;
+    b.plain[7] <- 1;
+    b.hex[15] <- 2;
+    b.binary[3] <- 3;
+    b.constRef[5] <- 4;
+    b.addLiteral[8] <- 5;
+    b.addConst[7] <- 6;
+    b.sizeofDim[3] <- 7;
+
+    if (b.plain[7] != 1) return 1;
+    if (b.hex[15] != 2) return 2;
+    if (b.binary[3] != 3) return 3;
+    if (b.constRef[5] != 4) return 4;
+    if (b.addLiteral[8] != 5) return 5;
+    if (b.addConst[7] != 6) return 6;
+    if (b.sizeofDim[3] != 7) return 7;
+    return 0;
+}

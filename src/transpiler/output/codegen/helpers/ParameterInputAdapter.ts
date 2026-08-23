@@ -12,7 +12,7 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import IParameterInput from "../types/IParameterInput";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import ArrayDimensionParser from "./ArrayDimensionParser";
+import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 
 /**

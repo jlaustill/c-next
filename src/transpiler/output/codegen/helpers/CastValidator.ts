@@ -8,7 +8,7 @@
  * Issue #632: Float-to-integer clamping
  */
 
-import TYPE_WIDTH from "../types/TYPE_WIDTH.js";
+import TYPE_WIDTH from "../../../constants/TYPE_WIDTH.js";
 
 /**
  * Set of signed integer type names.

@@ -9,7 +9,7 @@ import INTEGER_TYPES from "./types/INTEGER_TYPES";
 import FLOAT_TYPES from "./types/FLOAT_TYPES";
 import SIGNED_TYPES from "./types/SIGNED_TYPES";
 import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
-import TYPE_WIDTH from "./types/TYPE_WIDTH";
+import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";

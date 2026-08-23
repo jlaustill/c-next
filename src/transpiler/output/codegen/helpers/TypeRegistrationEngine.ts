@@ -10,11 +10,11 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import TIncludeHeader from "../generators/TIncludeHeader";
 import TOverflowBehavior from "../types/TOverflowBehavior";
-import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../constants/TYPE_WIDTH";
 import CodeGenState from "../../../state/CodeGenState";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
-import ArrayDimensionParser from "./ArrayDimensionParser";
+import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import LiteralUtils from "../../../../utils/LiteralUtils";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";

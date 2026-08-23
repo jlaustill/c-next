@@ -30,7 +30,7 @@ import IFunctionSignature from "../output/codegen/types/IFunctionSignature";
 import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
-import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
+import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
 import QualifiedCName from "../../utils/QualifiedCName";

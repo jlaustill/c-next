@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
 import ArrayDimensionParser from "../ArrayDimensionParser";
-import * as Parser from "../../../../logic/parser/grammar/CNextParser";
-import TYPE_WIDTH from "../../types/TYPE_WIDTH";
+import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 
 describe("ArrayDimensionParser", () => {
   /**
@@ -237,11 +237,50 @@ describe("ArrayDimensionParser", () => {
         expect(result).toBeUndefined();
       });
 
-      it("returns undefined for arithmetic expressions", () => {
+      it("folds addition of two integer literals", () => {
         const expr = getExpression("u8 x <- 1 + 2;");
         expect(expr).not.toBeNull();
-        // Note: This is "1 + 2" with spaces, which doesn't match the CONST+CONST pattern
+        // Issue #1157: this previously asserted undefined, on the stated
+        // grounds that "1 + 2" has spaces and so misses the CONST+CONST
+        // pattern. getText() strips whitespace, so the text is "1+2"; the real
+        // reason it did not fold is that the pattern required an identifier on
+        // both sides. An unfoldable dimension is dropped by the collectors,
+        // which is what left `u8[8+1]` as a scalar in the header.
         const result = ArrayDimensionParser.parseSingleDimension(expr!);
+        expect(result).toBe(3);
+      });
+
+      it("folds addition mixing a const and a literal", () => {
+        const expr = getExpression("u8 x <- SIZE + 2;");
+        expect(expr).not.toBeNull();
+        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
+          constValues: new Map([["SIZE", 6]]),
+        });
+        expect(result).toBe(8);
+      });
+
+      it("folds addition in either operand order", () => {
+        const expr = getExpression("u8 x <- 2 + SIZE;");
+        expect(expr).not.toBeNull();
+        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
+          constValues: new Map([["SIZE", 6]]),
+        });
+        expect(result).toBe(8);
+      });
+
+      it("folds addition where an operand uses hex notation", () => {
+        const expr = getExpression("u8 x <- 0x10 + 1;");
+        expect(expr).not.toBeNull();
+        const result = ArrayDimensionParser.parseSingleDimension(expr!);
+        expect(result).toBe(17);
+      });
+
+      it("returns undefined when an operand is not a literal or known const", () => {
+        const expr = getExpression("u8 x <- UNKNOWN + 1;");
+        expect(expr).not.toBeNull();
+        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
+          constValues: new Map([["SIZE", 6]]),
+        });
         expect(result).toBeUndefined();
       });
     });

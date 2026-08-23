@@ -26,7 +26,7 @@ import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
 import SubscriptDepthValidator from "../../subscript/SubscriptDepthValidator";
-import TYPE_WIDTH from "../../types/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../../constants/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState";
