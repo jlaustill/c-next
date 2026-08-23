@@ -58,9 +58,9 @@ void writeChunk(uint32_t start, uint32_t step, uint8_t value) {
     offset = cnx_clamp_add_u32(offset, step);
     if (offset <= 509) {
         buffer[offset] = value;
-        buffer[offset + 1] = value;
-        buffer[offset + 2] = value;
-        buffer[offset + 3] = value;
+        buffer[cnx_clamp_add_u32(offset, 1)] = value;
+        buffer[cnx_clamp_add_u32(offset, 2)] = value;
+        buffer[cnx_clamp_add_u32(offset, 3)] = value;
     }
 }
 

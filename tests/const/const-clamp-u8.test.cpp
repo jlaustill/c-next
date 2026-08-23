@@ -10,9 +10,7 @@
 
 static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
     if (b > (uint32_t)a) return 0;
-    uint8_t result;
-    if (__builtin_sub_overflow(a, (uint8_t)b, &result)) return 0;
-    return result;
+    return (uint8_t)(a - (uint8_t)b);
 }
 
 // test-execution

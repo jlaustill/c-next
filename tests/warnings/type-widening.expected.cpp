@@ -10,9 +10,7 @@
 
 static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
-    uint16_t result;
-    if (__builtin_add_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
-    return result;
+    return (uint16_t)(a + (uint16_t)b);
 }
 
 /* test-no-warnings */

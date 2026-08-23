@@ -10,9 +10,7 @@
 
 static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
     if (b != 0 && a > UINT64_MAX / b) return UINT64_MAX;
-    uint64_t result;
-    if (__builtin_mul_overflow(a, (uint64_t)b, &result)) return UINT64_MAX;
-    return result;
+    return (uint64_t)(a * (uint64_t)b);
 }
 
 // test-execution

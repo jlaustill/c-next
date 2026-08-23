@@ -16,9 +16,7 @@
 
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
-    uint8_t result;
-    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
-    return result;
+    return (uint8_t)(a + (uint8_t)b);
 }
 
 // Bug: The transpiler incorrectly added & to struct member arrays:
