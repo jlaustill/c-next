@@ -178,15 +178,7 @@ class ResultPrinter {
     console.log("");
     console.log("  Platform library");
 
-    const byFeature = new Map<string, IRecordedRequirement[]>();
-    for (const entry of withPlatform) {
-      const feature = ToolchainRequirementUtils.lookup(entry.key).feature;
-      const group = byFeature.get(feature);
-      if (group === undefined) byFeature.set(feature, [entry]);
-      else group.push(entry);
-    }
-
-    for (const [feature, group] of byFeature) {
+    for (const [feature, group] of ResultPrinter.groupByFeature(withPlatform)) {
       if (group.length === 1) {
         const requirement = ToolchainRequirementUtils.lookup(group[0]!.key);
         ResultPrinter.printLeaf(
@@ -196,22 +188,47 @@ class ResultPrinter {
         );
         continue;
       }
-
-      console.log(`    ${"one of, by target".padEnd(LABEL_WIDTH)}${feature}`);
-      for (const entry of group) {
-        const requirement = ToolchainRequirementUtils.lookup(entry.key);
-        const when =
-          requirement.condition === null
-            ? "always"
-            : `when ${requirement.condition}`;
-        const extensions =
-          requirement.extensions.length > 0 ? "  [GNU/Clang extension]" : "";
-        console.log(
-          `      ${(requirement.platformLib ?? "").padEnd(LABEL_WIDTH - 2)}${when}${extensions}`,
-        );
-      }
-      ResultPrinter.printSites(group[0]!);
+      ResultPrinter.printAlternatives(feature, group);
     }
+  }
+
+  /** Bucket requirements by the feature they belong to, preserving order. */
+  private static groupByFeature(
+    entries: readonly IRecordedRequirement[],
+  ): ReadonlyMap<string, IRecordedRequirement[]> {
+    const byFeature = new Map<string, IRecordedRequirement[]>();
+    for (const entry of entries) {
+      const feature = ToolchainRequirementUtils.lookup(entry.key).feature;
+      const group = byFeature.get(feature);
+      if (group === undefined) byFeature.set(feature, [entry]);
+      else group.push(entry);
+    }
+    return byFeature;
+  }
+
+  /**
+   * One feature satisfied by any of several platform libraries, chosen by the
+   * compiler rather than by the user. Printing them as separate requirements
+   * would tell an AVR user they need CMSIS.
+   */
+  private static printAlternatives(
+    feature: string,
+    group: readonly IRecordedRequirement[],
+  ): void {
+    console.log(`    ${"one of, by target".padEnd(LABEL_WIDTH)}${feature}`);
+    for (const entry of group) {
+      const requirement = ToolchainRequirementUtils.lookup(entry.key);
+      const when =
+        requirement.condition === null
+          ? "always"
+          : `when ${requirement.condition}`;
+      const extensions =
+        requirement.extensions.length > 0 ? "  [GNU/Clang extension]" : "";
+      console.log(
+        `      ${(requirement.platformLib ?? "").padEnd(LABEL_WIDTH - 2)}${when}${extensions}`,
+      );
+    }
+    ResultPrinter.printSites(group[0]!);
   }
 
   /** One requirement row plus the source sites that incurred it. */
@@ -226,17 +243,34 @@ class ResultPrinter {
     ResultPrinter.printSites(entry);
   }
 
-  /** Up to three source locations, relative to the working directory. */
+  /**
+   * Where a requirement came from: up to three source locations, or what the
+   * user did to incur it when it has no single location.
+   *
+   * Some requirements are genuinely file-scoped rather than sited -- the
+   * `--debug` panic helpers are incurred by a compiler flag plus any clamp
+   * type, and the C++ initializer forms by a whole transpile mode. Attributing
+   * those to an arbitrary line would invent precision the requirement does not
+   * have, so the registry's `incurredBy` is shown instead. Reported in review
+   * of #1153, where the absence of any explanation was the real gap.
+   */
   private static printSites(entry: IRecordedRequirement): void {
     const indent = " ".repeat(LABEL_WIDTH + 6);
-    for (const site of entry.sites.slice(0, SITE_LIMIT)) {
-      if (site.sourcePath.length === 0) continue;
+    const located = entry.sites.filter((site) => site.sourcePath.length > 0);
+
+    if (located.length === 0) {
+      const requirement = ToolchainRequirementUtils.lookup(entry.key);
+      console.log(`${indent}from ${requirement.incurredBy}`);
+      return;
+    }
+
+    for (const site of located.slice(0, SITE_LIMIT)) {
       const path = relative(process.cwd(), site.sourcePath) || site.sourcePath;
       const where = site.line === null ? path : `${path}:${site.line}`;
       console.log(`${indent}${where}`);
     }
-    if (entry.sites.length > SITE_LIMIT) {
-      console.log(`${indent}(+${entry.sites.length - SITE_LIMIT} more)`);
+    if (located.length > SITE_LIMIT) {
+      console.log(`${indent}(+${located.length - SITE_LIMIT} more)`);
     }
   }
 }

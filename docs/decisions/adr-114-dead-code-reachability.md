@@ -47,7 +47,7 @@ of reachability: `blockDefinitelyReturns` is true iff any contained statement
 `definitelyReturns`, with the explicit note that _"statements after an unconditional return are
 unreachable."_ Reachability is the inverse question over the same structural walk:
 
-> A statement is **unreachable** iff some earlier statement in its block is a **divergent
+> A statement is **unreachable** if some earlier statement in its block is a **divergent
 > statement** (an unconditional `return`, a fully-returning `if`/`else` or `switch`, or — once
 > ADR-113 lands — a `forever` loop).
 

@@ -119,6 +119,39 @@ describe("ResultPrinter toolchain requirements", () => {
     expect(output).not.toContain("or a GNU/Clang extension below");
   });
 
+  it("explains a site-less requirement instead of showing nothing", () => {
+    // Some requirements are file-scoped rather than sited: --debug plus any
+    // clamp type, or a whole transpile mode. Reported in review of #1153 --
+    // the report named the cost but never said what incurred it.
+    output = print([
+      { key: "baseline-c", sites: [] },
+      { key: "overflow-panic-hosted-libc", sites: [] },
+    ]);
+    expect(output).toContain(
+      "from transpiling with --debug and using a clamp type",
+    );
+  });
+
+  it("prefers real sites over the explanation when it has them", () => {
+    output = print([
+      { key: "baseline-c", sites: [] },
+      {
+        key: "float-assert-c11",
+        sites: [{ sourcePath: "sensors.cnx", line: 12 }],
+      },
+    ]);
+    expect(output).toContain("sensors.cnx:12");
+    expect(output).not.toContain("from reading or writing a bit range");
+  });
+
+  it("ignores site entries that carry no path", () => {
+    output = print([
+      { key: "baseline-c", sites: [] },
+      { key: "float-assert-c11", sites: [{ sourcePath: "", line: null }] },
+    ]);
+    expect(output).toContain("from reading or writing a bit range");
+  });
+
   it("collapses more than three sites to a count", () => {
     output = print([
       { key: "baseline-c", sites: [] },
@@ -128,6 +161,31 @@ describe("ResultPrinter toolchain requirements", () => {
       },
     ]);
     expect(output).toContain("(+2 more)");
+  });
+
+  it("labels an unconditional alternative 'always'", () => {
+    // The two atomic paths share one feature but neither carries a compile-time
+    // condition: which is emitted is decided at transpile time by the target's
+    // LDREX/STREX support, not by the preprocessor.
+    output = print([
+      { key: "baseline-c", sites: [] },
+      { key: "atomic-ldrex-cmsis", sites: [] },
+      { key: "atomic-primask-cmsis", sites: [] },
+    ]);
+    expect(output).toContain("one of, by target");
+    expect(output).toContain("always");
+  });
+
+  it("shows a bare path when a site has no line", () => {
+    output = print([
+      { key: "baseline-c", sites: [] },
+      {
+        key: "float-assert-c11",
+        sites: [{ sourcePath: "sensors.cnx", line: null }],
+      },
+    ]);
+    expect(output).toContain("sensors.cnx");
+    expect(output).not.toContain("sensors.cnx:");
   });
 
   it("points at the generated matrix for the full picture", () => {

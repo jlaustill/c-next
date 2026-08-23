@@ -236,8 +236,10 @@ const DEFAULT_TARGET: TargetCapabilities = {
 /**
  * Issue #1143: The requirements carried by generateIrqWrappers()'s output.
  *
- * One key per arm of the emitted #if/#elif/#else chain. Kept adjacent to the
- * emitter so adding an arm without declaring its cost is visible in review.
+ * One key per arm of the emitted #if/#elif/#else chain, consumed by
+ * addGeneratedHelpers(). Declaring them as one list means adding a platform arm
+ * without stating its cost shows up as a list that no longer matches the
+ * emitter -- and the probe invariant test fails on the mismatch.
  */
 const IRQ_WRAPPER_REQUIREMENTS: readonly TRequirementKey[] = [
   "critical-arm-gnu",
