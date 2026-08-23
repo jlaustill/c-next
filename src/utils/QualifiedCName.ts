@@ -153,6 +153,58 @@ class QualifiedCName {
     }
     return parts;
   }
+
+  /**
+   * Resolve an array dimension that names a symbol (an enum count, a macro) to
+   * the identifier the generated C should use.
+   *
+   * Issue #1127: this rule previously lived only in
+   * HeaderSymbolAdapter.resolveArrayDimension() and served variables only, so
+   * a struct field carrying `EColor.COUNT` had no way to reach `EColor__COUNT`.
+   * It lives here so the variable path and the struct-field path apply one
+   * rule; `isKnownEnum` is injected rather than read from CodeGenState so this
+   * stays usable from any layer.
+   *
+   * @param dim Dimension text as written in the source
+   * @param scopeName Enclosing scope, or "" at global scope
+   * @param isKnownEnum Does this *qualified* name name an enum?
+   * @returns The C identifier, or `dim` unchanged when it names nothing
+   *
+   * @example resolveDimensionName("EColor.COUNT", "", p)        => "EColor__COUNT"
+   * @example resolveDimensionName("State.COUNT", "Motor", p)    => "Motor__State__COUNT"
+   * @example resolveDimensionName("this.State.COUNT", "Motor", p) => "Motor__State__COUNT"
+   * @example resolveDimensionName("global.EColor.COUNT", "Motor", p) => "EColor__COUNT"
+   * @example resolveDimensionName("10", "Motor", p)             => "10"
+   */
+  static resolveDimensionName(
+    dim: string,
+    scopeName: string,
+    isKnownEnum: (qualifiedName: string) => boolean,
+  ): string {
+    if (!dim.includes(QualifiedCName.SOURCE_SEPARATOR)) {
+      return dim;
+    }
+
+    const parts = dim.split(QualifiedCName.SOURCE_SEPARATOR);
+
+    // `global.X.Y` is explicitly global - drop the marker, add no scope prefix
+    if (parts[0] === "global") {
+      return QualifiedCName.join(...parts.slice(1));
+    }
+
+    // `this.X.Y` is explicitly scope-local - drop the marker, prefix the scope
+    if (parts[0] === "this") {
+      return QualifiedCName.join(scopeName, ...parts.slice(1));
+    }
+
+    // Bare `X.Y` inside a scope resolves scope-first, then global (ADR-057).
+    // Prefix only when the scope really declares that enum.
+    if (scopeName && isKnownEnum(QualifiedCName.join(scopeName, parts[0]))) {
+      return QualifiedCName.join(scopeName, ...parts);
+    }
+
+    return QualifiedCName.join(...parts);
+  }
 }
 
 export default QualifiedCName;

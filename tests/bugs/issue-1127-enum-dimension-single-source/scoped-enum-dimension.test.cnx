@@ -1,0 +1,20 @@
+// Issue #1127: every qualification form must produce the same identifier in the
+// .c and the .h, for struct fields as well as variables. Snapshot test so the
+// two files can be compared directly for all four forms.
+enum Top { A, B, COUNT }
+
+scope Motor {
+    enum State { IDLE, RUN, COUNT }
+
+    struct Info {
+        u8[State.COUNT] viaBare;
+        u8[this.State.COUNT] viaThis;
+        u8[global.Top.COUNT] viaGlobal;
+    }
+
+    public u8[State.COUNT] varBare;
+    public u8[this.State.COUNT] varThis;
+    public u8[global.Top.COUNT] varGlobal;
+}
+
+i32 main() { return 0; }

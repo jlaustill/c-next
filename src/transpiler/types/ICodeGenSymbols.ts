@@ -42,10 +42,18 @@ interface ICodeGenSymbols {
   /** Fields that are arrays: structName -> Set of array field names */
   readonly structFieldArrays: ReadonlyMap<string, ReadonlySet<string>>;
 
-  /** Array dimensions for struct fields: structName -> (fieldName -> dimensions) */
+  /**
+   * Array dimensions for struct fields: structName -> (fieldName -> dimensions)
+   *
+   * A dimension is a number when it folds at compile time, or a string when it
+   * does not -- an enum-qualified count such as `EColor__COUNT`, already
+   * resolved to its generated C name. Issue #1127: this was `readonly number[]`
+   * and non-numeric dimensions were filtered out, so `u8[EColor.COUNT] slots`
+   * reached the header as a scalar.
+   */
   readonly structFieldDimensions: ReadonlyMap<
     string,
-    ReadonlyMap<string, readonly number[]>
+    ReadonlyMap<string, readonly (number | string)[]>
   >;
 
   // === Enum Information (ADR-017) ===

@@ -179,8 +179,22 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   }
 
   // String arrays: dimensions are [array_size, string_capacity+1]
-  // -1 because we added +1 for null terminator during symbol collection
-  const capacity = dimensions.at(-1)! - 1;
+  // -1 because we added +1 for null terminator during symbol collection.
+  //
+  // The capacity is always numeric: it comes from the INTEGER_LITERAL in
+  // `string<N>`, and the grammar restricts that token to [0-9]+. Since #1127
+  // widened dimensions to (number | string)[] to carry enum-qualified counts,
+  // assert that here rather than coercing -- a string in this slot would mean
+  // the string-array shape changed, and silently producing NaN capacity would
+  // corrupt every strncpy bound generated from it.
+  const rawCapacity = dimensions.at(-1);
+  if (typeof rawCapacity !== "number") {
+    throw new TypeError(
+      `Error: Cannot determine string capacity for struct field '${structType}.${fieldName}': ` +
+        `expected a numeric capacity, got '${String(rawCapacity)}'`,
+    );
+  }
+  const capacity = rawCapacity - 1;
 
   CodeGenState.needsString = true;
 

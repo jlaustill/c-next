@@ -38,7 +38,7 @@ function resolveFieldCType(fieldType: string, input: IHeaderTypeInput): string {
 function generateFieldLine(
   fieldName: string,
   cType: string,
-  dims: readonly number[] | undefined,
+  dims: readonly (number | string)[] | undefined,
 ): string {
   const dimSuffix =
     dims && dims.length > 0 ? dims.map((d) => `[${d}]`).join("") : "";
