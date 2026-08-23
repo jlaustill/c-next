@@ -12,6 +12,8 @@
  * - Unsized const strings: const string name <- "literal"
  */
 
+import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
+import dimensionEvalOptions from "./dimensionEvalOptions";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import StringUtils from "../../../../utils/StringUtils.js";
 import CodeGenState from "../../../state/CodeGenState.js";
@@ -181,7 +183,16 @@ class StringDeclHelper {
     for (const dim of arrayTypeCtx.arrayTypeDimension()) {
       const sizeExpr = dim.expression();
       if (sizeExpr) {
-        arrayDimStr += `[${sizeExpr.getText()}]`;
+        // Issue #1127: fold a compile-time constant rather than emitting its
+        // source text. `string<32>[COUNT] items` produced
+        // `char items[COUNT][33] = {0}` -- a variably-modified type, which C
+        // rejects here outright ("variable-sized object may not be
+        // initialized") and which CLAUDE.md rules out.
+        const folded = ArrayDimensionParser.parseSingleDimension(
+          sizeExpr,
+          dimensionEvalOptions(),
+        );
+        arrayDimStr += `[${folded ?? sizeExpr.getText()}]`;
       } else {
         arrayDimStr += "[]";
       }

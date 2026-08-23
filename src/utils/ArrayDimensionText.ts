@@ -17,6 +17,28 @@
  * This is the string-level counterpart to `ArrayDimensionParser`, which works
  * from the parse tree. Two entry points exist because C and C++ declarators
  * reach the symbol layer as text, with no C-Next parse tree behind them.
+ *
+ * ## An unsized `[]` now yields an entry
+ *
+ * Both replaced implementations matched `[^\]]+` -- one or more -- so `[]`
+ * produced *no* entry and an unsized array was indistinguishable from a
+ * non-array. This yields `""`, so `extern unsigned char buf[]` and a flexible
+ * array member now reach the C and C++ symbol layers as arrays of one unsized
+ * dimension rather than as scalars.
+ *
+ * ## `""` is not `UNRESOLVED_DIMENSION`
+ *
+ * They describe different facts and must not be merged:
+ *
+ * - `""` -- the source declares NO size (`u8[]`). A fact about the
+ *   declaration, and the dimension renders back as `[]`, which is valid C for
+ *   an extern or a flexible array member.
+ * - `UNRESOLVED_DIMENSION` -- the source declares a size that could not be
+ *   folded here. A fact about resolution, in a numeric list, where it means
+ *   "cannot bounds-check this subscript".
+ *
+ * Collapsing them would make an unsized array look like a resolution failure,
+ * or a resolution failure look like a deliberate `[]` in the emitted C.
  */
 
 import LiteralUtils from "./LiteralUtils.js";

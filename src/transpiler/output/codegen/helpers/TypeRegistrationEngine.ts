@@ -323,7 +323,7 @@ class TypeRegistrationEngine {
     callbacks.requireInclude("string");
     const stringDim = capacity + 1;
 
-    const additionalDims = ArrayDimensionParser.parseSimpleDimensions(arrayDim);
+    const additionalDims = ArrayDimensionParser.parseDimensions(arrayDim);
     const allDims =
       additionalDims.length > 0 ? [...additionalDims, stringDim] : [stringDim];
 
@@ -373,13 +373,24 @@ class TypeRegistrationEngine {
 
     // Collect dimensions: arrayTypeDimension from arrayType, then string capacity
     // Build all dimensions at once to avoid multiple push() calls (SonarCloud S7778)
+    //
+    // Issue #1159: hold the slot for a count that does not fold rather than
+    // filtering it out. Dropping it slid the string capacity into dimension 1,
+    // so `string<8>[COUNT] names` recorded [9] instead of [4, 9] -- names[7]
+    // was accepted against a bound of 4, and the field missed the string-array
+    // shape entirely, emitting an assignment instead of strncpy.
     const arrayTypeDims = arrayTypeCtx
       .arrayTypeDimension()
       .map((dim) => dim.expression())
       .filter((expr): expr is Parser.ExpressionContext => expr !== null)
-      .map((expr) => LiteralUtils.parseIntegerLiteral(expr.getText()))
-      .filter((size): size is number => size !== undefined);
-    const additionalDims = ArrayDimensionParser.parseSimpleDimensions(arrayDim);
+      .map(
+        (expr) =>
+          ArrayDimensionParser.parseSingleDimension(
+            expr,
+            dimensionEvalOptions(),
+          ) ?? UNRESOLVED_DIMENSION,
+      );
+    const additionalDims = ArrayDimensionParser.parseDimensions(arrayDim);
     const dimensions = [...arrayTypeDims, ...additionalDims, stringDim];
 
     CodeGenState.setVariableTypeInfo(registryName, {

@@ -10,11 +10,16 @@
  * `grid[i]` against 4.
  *
  * `0` is the value because `checkArrayBounds` already skips non-positive
- * dimensions, and `ArrayDimensionParser.parseForParameters` established the
+ * dimensions, and `ArrayDimensionParser.parseDimensions` established the
  * same convention. It means "size unknown, cannot validate" — never "size
  * zero". A dimension that IS statically known must never be recorded as this;
  * conflating the two is what silently disabled bounds checking for hex-sized
  * arrays before #1159.
+ *
+ * Distinct from the `""` that `ArrayDimensionText` records for an unsized
+ * `[]`: that says the source declared no size, and renders back as `[]`. This
+ * says the source declared a size that could not be folded. See the note in
+ * `src/utils/ArrayDimensionText.ts`.
  */
 const UNRESOLVED_DIMENSION = 0;
 

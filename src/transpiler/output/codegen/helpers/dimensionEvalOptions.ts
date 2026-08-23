@@ -26,7 +26,6 @@ function dimensionEvalOptions() {
   return {
     constValues: CodeGenState.constValues,
     typeWidths: TYPE_WIDTH,
-    isKnownStruct: (name: string) => CodeGenState.isKnownStruct(name),
   };
 }
 

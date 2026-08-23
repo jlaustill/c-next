@@ -22,8 +22,6 @@ interface IConstantEvalOptions {
   constValues?: Map<string, number>;
   /** Map of type names to their bit widths (for sizeof) */
   typeWidths?: Record<string, number>;
-  /** Function to check if a type name is a known struct */
-  isKnownStruct?: (name: string) => boolean;
 }
 
 /**
@@ -166,11 +164,7 @@ class ArrayDimensionParser {
     // Try sizeof(type)
     const sizeofMatch = this.SIZEOF_RE.exec(text);
     if (sizeofMatch) {
-      return this._evaluateSimpleSizeof(
-        sizeofMatch[1],
-        typeWidths,
-        options?.isKnownStruct,
-      );
+      return this._evaluateSimpleSizeof(sizeofMatch[1], typeWidths);
     }
 
     // Try sizeof(type) * N
@@ -202,17 +196,14 @@ class ArrayDimensionParser {
   private static _evaluateSimpleSizeof(
     typeName: string,
     typeWidths: Record<string, number>,
-    isKnownStruct?: (name: string) => boolean,
   ): number | undefined {
+    // Issue #1127: an isKnownStruct predicate used to be threaded in here to
+    // distinguish "known struct, size not computable yet" from "unknown type".
+    // Both returned undefined, so it changed no answer -- but it meant callers
+    // supplied different option sets and agreed only because the difference was
+    // inert, which is the divergence dimensionEvalOptions exists to prevent.
     const bitWidth = typeWidths[typeName];
-    if (bitWidth) {
-      return bitWidth / 8; // Convert bits to bytes
-    }
-    // Check if it's a known struct - can't compute size at this point
-    if (isKnownStruct?.(typeName)) {
-      return undefined;
-    }
-    return undefined;
+    return bitWidth ? bitWidth / 8 : undefined;
   }
 
   /**
@@ -273,59 +264,36 @@ class ArrayDimensionParser {
   }
 
   /**
-   * Parse array dimensions using simple parseInt only.
+   * Parse array dimensions, keeping one entry per dimension.
    *
-   * Used for contexts where only literal integers are expected
-   * (e.g., string array dimensions).
+   * Issue #1127: this replaces `parseSimpleDimensions` and
+   * `parseForParameters`, which differed only in what they did with a
+   * dimension that did not resolve -- one omitted it, the other recorded 0.
+   * Omitting shifts every dimension after it out of position, so a subscript
+   * gets validated against the wrong bound; that is the failure
+   * `UNRESOLVED_DIMENSION` exists to prevent, and there is no context in which
+   * omitting is the better answer. Two near-identical bodies with divergent
+   * policies is also exactly the duplicate path this work set out to remove.
    *
    * @param arrayDims - The array dimension contexts to parse
-   * @returns Array of resolved dimension values (may be empty)
+   * @returns One entry per dimension: the literal value, or
+   *          `UNRESOLVED_DIMENSION` when the size is not a literal (a const
+   *          identifier, an expression) or the dimension is unsized (`arr[]`)
    */
-  static parseSimpleDimensions(
+  static parseDimensions(
     arrayDims: Parser.ArrayDimensionContext[] | null,
   ): number[] {
     return ArrayDimensionParser.forEachDimension(
       arrayDims,
       (sizeExpr, dimensions) => {
-        if (sizeExpr) {
-          // Issue #1159: parseIntegerLiteral honours hex and binary notation.
-          // Number.parseInt(text, 10) read "0x10" as 0 and "0b10000" as 0,
-          // which silently disabled ADR-036 bounds checking for those arrays.
-          const size = LiteralUtils.parseIntegerLiteral(sizeExpr.getText());
-          if (size !== undefined && size > 0) {
-            dimensions.push(size);
-          }
-        }
-      },
-    );
-  }
-
-  /**
-   * Parse array dimensions for parameters, using 0 for unresolved sizes.
-   *
-   * Parameters need to track dimension count even when size is unknown
-   * (e.g., constant identifiers or unsized dimensions like arr[]).
-   *
-   * @param arrayDims - The array dimension contexts to parse
-   * @returns Array of dimension values (0 for unresolved/unsized)
-   */
-  static parseForParameters(
-    arrayDims: Parser.ArrayDimensionContext[] | null,
-  ): number[] {
-    return ArrayDimensionParser.forEachDimension(
-      arrayDims,
-      (sizeExpr, dimensions) => {
-        if (sizeExpr) {
-          // Issue #1159: parseIntegerLiteral honours hex and binary notation;
-          // Number.parseInt(text, 10) read "0x10" as 0, which is indistinguishable
-          // from a genuinely unresolved size.
-          const size = LiteralUtils.parseIntegerLiteral(sizeExpr.getText());
-          // Non-literal size (e.g. constant identifier) still counts the dimension
-          dimensions.push(size ?? UNRESOLVED_DIMENSION);
-        } else {
-          // Unsized dimension (e.g. arr[]) - size is unknown
-          dimensions.push(UNRESOLVED_DIMENSION);
-        }
+        // parseIntegerLiteral honours hex and binary notation; the base-10
+        // Number.parseInt this replaced read "0x10" as 0, which was
+        // indistinguishable from a genuinely unresolved size and silently
+        // disabled ADR-036 bounds checking for those arrays (#1159).
+        const size = sizeExpr
+          ? LiteralUtils.parseIntegerLiteral(sizeExpr.getText())
+          : undefined;
+        dimensions.push(size ?? UNRESOLVED_DIMENSION);
       },
     );
   }

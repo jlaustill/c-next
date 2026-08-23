@@ -14,11 +14,11 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import TYPE_WIDTH from "../../../constants/TYPE_WIDTH.js";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser.js";
+import dimensionEvalOptions from "./dimensionEvalOptions.js";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import LiteralUtils from "../../../../utils/LiteralUtils";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 
 /**
@@ -392,7 +392,7 @@ class FunctionContextManager {
 
     // Try C-style first (param.arrayDimension())
     if (param.arrayDimension().length > 0) {
-      return ArrayDimensionParser.parseForParameters(param.arrayDimension());
+      return ArrayDimensionParser.parseDimensions(param.arrayDimension());
     }
 
     // C-Next style: get dimensions from arrayType
@@ -403,9 +403,18 @@ class FunctionContextManager {
     for (const dim of arrayTypeCtx.arrayTypeDimension()) {
       const expr = dim.expression();
       if (!expr) continue;
-      // Issue #1159: honour hex/binary notation, and keep the slot when the
-      // size is not a literal so dimension i still matches subscript i.
-      const size = LiteralUtils.parseIntegerLiteral(expr.getText());
+      // Issue #1159: fold through the shared evaluator, and keep the slot when
+      // the size does not fold so dimension i still matches subscript i.
+      //
+      // parseIntegerLiteral alone folds literals only, so a const-sized
+      // parameter recorded UNRESOLVED_DIMENSION and lost ADR-036 bounds
+      // checking while ParameterInputAdapter folded the same const for the
+      // signature -- `void fill(u8[SIZE] buf)` emitted `uint8_t buf[6]` and
+      // still accepted `buf[9]`.
+      const size = ArrayDimensionParser.parseSingleDimension(
+        expr,
+        dimensionEvalOptions(),
+      );
       dimensions.push(size ?? UNRESOLVED_DIMENSION);
     }
     return dimensions;

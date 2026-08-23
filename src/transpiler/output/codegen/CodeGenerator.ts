@@ -76,6 +76,7 @@ import StringLengthCounter from "./analysis/StringLengthCounter";
 import CppModeHelper from "./helpers/CppModeHelper";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
+import dimensionEvalOptions from "./helpers/dimensionEvalOptions";
 // Issue #644: Member chain analyzer for bit access pattern detection
 import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 // Issue #644: Float bit write helper for shadow variable pattern
@@ -1392,11 +1393,14 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Try to evaluate a constant expression at compile time */
   tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined {
-    return ArrayDimensionParser.parseSingleDimension(ctx, {
-      constValues: CodeGenState.constValues,
-      typeWidths: TYPE_WIDTH,
-      isKnownStruct: (name) => this.isKnownStruct(name),
-    });
+    // Issue #1127: the shared builder, not a fourth inline copy of the same
+    // three lookups. This is the orchestrator entry point that
+    // ArrayDimensionUtils uses to emit declaration dimensions, so it is on the
+    // hot path for exactly the divergences this work closes.
+    return ArrayDimensionParser.parseSingleDimension(
+      ctx,
+      dimensionEvalOptions(),
+    );
   }
 
   /**
@@ -2856,11 +2860,25 @@ export default class CodeGenerator implements IOrchestrator {
           arrayDims = dims.map((d) => this.generateArrayDimension(d)).join("");
         } else if (arrayTypeCtx) {
           // Generate all dimensions from arrayType (supports multi-dimensional)
+          // Issue #1127: fold the same way ParameterInputAdapter does. Emitting
+          // the identifier here made one const render two ways in a single .c
+          // -- `void OnData(uint8_t buf[6])` beside
+          // `typedef void (*OnData_fp)(uint8_t buf[SIZE])` -- and the typedef
+          // form is a variably-modified type, which MISRA C:2012 Rule 18.8
+          // forbids and which gcc warns about under its variable-length-array
+          // diagnostic.
           arrayDims = arrayTypeCtx
             .arrayTypeDimension()
             .map((d) => {
               const expr = d.expression();
-              return expr ? `[${this.generateExpression(expr)}]` : "[]";
+              if (!expr) {
+                return "[]";
+              }
+              const folded = ArrayDimensionParser.parseSingleDimension(
+                expr,
+                dimensionEvalOptions(),
+              );
+              return `[${folded ?? this.generateExpression(expr)}]`;
             })
             .join("");
         } else {

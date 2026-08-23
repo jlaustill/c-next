@@ -20,13 +20,19 @@ import DimensionResolver from "../utils/DimensionResolver";
 interface IArrayTypeResult {
   isArray: boolean;
   /**
-   * Every dimension, or undefined if any one of them could not be resolved.
+   * Every dimension, or undefined when the count is not knowable here -- no
+   * dimensions at all, or an unsized `[]`.
    *
-   * All-or-nothing on purpose (issue #1158). A partial list silently shifts
-   * later dimensions out of position -- `u8[N][3]` reporting [3] makes the
+   * A dimension that does not fold is NOT dropped: DimensionResolver carries
+   * it as source text, and qualifyStructFieldDimensions resolves it later. So
+   * `u8[EColor.COUNT][3]` yields ["EColor.COUNT", 3], not undefined.
+   *
+   * Position matters more than resolution (issue #1158). A partial list
+   * silently shifts later dimensions -- `u8[N][3]` reporting [3] makes the
    * consumer treat 3 as dimension 1 -- and a truncated list is worse than no
    * list, because a non-empty list suppresses StructGenerator's AST fallback,
-   * which resolves all dimensions correctly on its own.
+   * which resolves all dimensions correctly on its own. Either every slot is
+   * present, or the list is undefined.
    */
   dimensions: (number | string)[] | undefined;
 }
@@ -58,13 +64,9 @@ function processArrayTypeSyntax(
       // Unsized `[]` -- size is not knowable here.
       return { isArray: true, dimensions: undefined };
     }
-    const resolved = tryResolveExpressionDimension(sizeExpr, constValues);
-    if (resolved === undefined) {
-      // One unresolved dimension makes the whole list unusable; see the
-      // all-or-nothing note on IArrayTypeResult.
-      return { isArray: true, dimensions: undefined };
-    }
-    dimensions.push(resolved);
+    // Always a number or the source text -- never undefined -- so every slot
+    // is filled and positions are preserved.
+    dimensions.push(tryResolveExpressionDimension(sizeExpr, constValues));
   }
 
   return { isArray: true, dimensions };
@@ -117,10 +119,7 @@ function parseArrayDimensions(
   for (const dim of arrayDims) {
     const sizeExpr = dim.expression();
     if (sizeExpr) {
-      const resolved = tryResolveExpressionDimension(sizeExpr, constValues);
-      if (resolved !== undefined) {
-        dimensions.push(resolved);
-      }
+      dimensions.push(tryResolveExpressionDimension(sizeExpr, constValues));
     }
   }
 }
@@ -206,9 +205,9 @@ class StructCollector {
       if (arrayTypeResult.dimensions !== undefined) {
         dimensions.push(...arrayTypeResult.dimensions);
       }
-      // Note: non-literal, non-const expressions (like global.EnumName.COUNT)
-      // won't be resolvable at symbol collection time - dimensions stays empty
-      // but isArray is still true so the field is tracked as an array
+      // dimensions is undefined only for an unsized `[]` or no dimensions at
+      // all; an expression that does not fold (global.EnumName.COUNT) is
+      // carried as source text and resolved by qualifyStructFieldDimensions.
     }
 
     // Handle string types specially
