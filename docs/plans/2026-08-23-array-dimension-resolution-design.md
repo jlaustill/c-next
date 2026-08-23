@@ -3,7 +3,7 @@
 **Date:** 2026-08-23
 **Issues:** closes #1127, #1157, #1158, #1159
 **Branch:** `fix/1127-unify-array-dimension-resolution`
-**Status:** Design — awaiting approval
+**Status:** Implemented
 
 ## Problem
 
@@ -266,3 +266,73 @@ build, and it must be called out in the PR description and release notes.
 - The 138 SonarCloud code smells — deferred to the follow-up PR so this one stays reviewable.
 - #1114 (over-indexing a correctly-declared field) — a bounds-checking concern distinct
   from dimension resolution.
+
+## Outcome
+
+Implemented on `fix/1127-unify-array-dimension-resolution`. What shipped differs
+from this design in two ways worth recording.
+
+**The derivation count was an undercount, twice.** The design opened at six, was
+corrected to nine, and the work turned up four more: `TypeRegistrationEngine`'s
+own second dimension path, `SymbolTable.getStructFieldInfo().arrayDimensions`,
+`ExpressionEvaluator.evaluateConstant` in `logic/` (a near-duplicate of
+`LiteralUtils.parseIntegerLiteral` carrying the same weak parse), and
+`VariableCollector.collectArrayTypeDimensions`. Thirteen in total. Each was found
+by testing a dimension form the previous fix had not covered, which is the only
+method that worked — reading the code found six of them.
+
+**Stage 3b was not extended.** The design proposed making
+`SymbolTable.resolveExternalArrayDimensions()` the single finalization pass. The
+implementation instead put resolution where each layer already had the data:
+`DimensionResolver` at collection (both collectors), and a qualification pass at
+the end of `TSymbolInfoAdapter` once `knownEnums` is complete. That achieves the
+same invariant — one rule, applied once, consumers only read — without moving
+data across a layer boundary it did not need to cross. The `logic/` layer cannot
+import `output/`, which is what forced `ArrayDimensionParser` and `TYPE_WIDTH` to
+relocate rather than Stage 3b to grow.
+
+### Bugs fixed
+
+| issue | defect                                                                                                                                                |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #1159 | `parseInt(text, 10)` at five sites; hex- and binary-sized arrays silently lost ADR-036 bounds checking, arithmetic-sized arrays were falsely rejected |
+| #1158 | multi-dimensional struct fields kept only their first dimension                                                                                       |
+| #1157 | struct field dimensions that did not fold were dropped, so the header emitted a scalar and the body bit-indexed                                       |
+| #1127 | enum-qualified dimensions resolved by two derivations; struct fields could reach neither                                                              |
+
+Three further defects surfaced while validating those fixes: a dropped dimension
+shifted every later one so subscript 0 was checked against dimension 2's bound; a
+const parameter dimension emitted a VLA (`uint8_t buf[SIZE]`) while the matching
+local folded; and the variable path put a C-Next type name into a C header
+(`extern uint8_t sz[sizeof(u32)]`), which did not compile.
+
+### Deliberately not done
+
+- **Bounds checking for symbolic dimensions.** An enum-dimensioned array still
+  gets no ADR-036 checking: the dimension stays `EColor__COUNT` and
+  `checkArrayBounds` has no number. The value is knowable — `enumMembers` carries
+  it — but codegen wants the symbol and the validator wants the number. Noted
+  on #1159.
+- **Reading a multi-dimensional struct field.** `g.cells[1][2]` on the
+  right-hand side still generates `(g.cells[1] >> 2) & 1`. That is the
+  root-vs-member resolution gap on #1114, unrelated to dimension collection, and
+  reproduces identically before and after this work. It is why the #1158 fixture
+  is a snapshot test rather than an execution test.
+- **`HeaderSymbolAdapter.resolveArrayDimension` still exists**, as a wrapper that
+  binds the `isKnownEnum` predicate and delegates. #1127 asked for it to
+  disappear; the rule it contained has moved, which satisfies the standard that
+  matters (one decision, not one call site). Deleting the wrapper would mean
+  qualifying variable dimensions in the struct-field pass, and those live on
+  `IVariableSymbol` in the SymbolTable — a different data flow. Forcing them
+  together would be contrivance.
+
+### A note on method
+
+Two fixtures passed under `npm test -- <path> --update` and then failed
+`test:all` — once on C compilation, once on execution. Update mode regenerates
+snapshots without exercising the same checks, so a green `--update` is not
+evidence. Only `test:all` is.
+
+One fixture's failure was the test's own bug: `EColor.COUNT` is 3, so indexing
+`[3]` overflowed the struct. The transpiler accepted it, which is how the
+symbolic-dimension bounds gap above was found.
