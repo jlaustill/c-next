@@ -91,7 +91,7 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     feature: "critical section",
     standard: "C99",
     compiler: null,
-    extensions: ["gnu-inline-asm", "gnu-attribute-always-inline"],
+    extensions: ["GNU inline assembly", "__attribute__((always_inline))"],
     platformLib: "ARMv7-M core",
     condition: "defined(__arm__) || defined(__ARM_ARCH)",
     reason:
@@ -197,7 +197,7 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     compiler: null,
     // Accepted by GCC and Clang before C++20 as an extension, which is how the
     // repo's own -std=c++14 harness compiles this output.
-    extensions: ["designated-initializer-in-cpp"],
+    extensions: ["designated initializers in C++"],
     platformLib: null,
     condition: null,
     reason: ".field = value inside a braced initializer",
@@ -214,7 +214,7 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     standard: "C++11",
     compiler: null,
     // Compound literals are not ISO C++ at any version.
-    extensions: ["compound-literal-in-cpp"],
+    extensions: ["compound literals in C++"],
     platformLib: null,
     condition: null,
     reason: "(T){ ... } in C++",

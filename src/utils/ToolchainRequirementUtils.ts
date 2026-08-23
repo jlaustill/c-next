@@ -4,6 +4,7 @@ import TOOLCHAIN_REQUIREMENTS from "../transpiler/constants/TOOLCHAIN_REQUIREMEN
 import type ICompilerFloor from "../transpiler/types/ICompilerFloor";
 import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
 import type IToolchainRequirement from "../transpiler/types/IToolchainRequirement";
+import type TLanguageStandard from "../transpiler/types/TLanguageStandard";
 import type TOutputMode from "../transpiler/types/TOutputMode";
 import type TRequirementKey from "../transpiler/types/TRequirementKey";
 
@@ -107,6 +108,67 @@ class ToolchainRequirementUtils {
       if (floor !== null) seen.set(floor.guardExpression, floor);
     }
     return Array.from(seen.values());
+  }
+
+  /**
+   * The `Requires:` lines for a generated file's banner.
+   *
+   * Empty when nothing exceeds the baseline, so plain C99 output keeps the
+   * banner it has always had. Sibling arms of one feature are collapsed into a
+   * single "one of" line: a critical section needs ARMv7-M *or* Arduino *or*
+   * avr-libc *or* CMSIS, and listing four requirements would misstate what the
+   * reader has to provide.
+   */
+  static describeForBanner(
+    recorded: readonly IRecordedRequirement[],
+    mode: TOutputMode,
+  ): readonly string[] {
+    const reportable = ToolchainRequirementUtils.reportable(recorded, mode);
+    if (reportable.length === 0) return [];
+
+    const standards = new Set<string>();
+    const extensions = new Set<string>();
+    const platformsByFeature = new Map<string, Set<string>>();
+
+    for (const entry of reportable) {
+      const requirement = TOOLCHAIN_REQUIREMENTS[entry.key];
+      if (ToolchainRequirementUtils.exceedsBaselineStandard(entry.key, mode)) {
+        standards.add(requirement.standard);
+      }
+      for (const extension of requirement.extensions) extensions.add(extension);
+      if (requirement.platformLib !== null) {
+        const libraries =
+          platformsByFeature.get(requirement.feature) ?? new Set<string>();
+        libraries.add(requirement.platformLib);
+        platformsByFeature.set(requirement.feature, libraries);
+      }
+    }
+
+    const parts: string[] = [];
+    const baseline =
+      TOOLCHAIN_REQUIREMENTS[ToolchainRequirementUtils.baselineKey(mode)]
+        .standard;
+    // The highest standard subsumes the baseline, so listing both would read as
+    // needing two standards at once.
+    const highest = [baseline, ...standards].reduce((left, right) =>
+      LANGUAGE_STANDARD_ORDER[right as TLanguageStandard] >
+      LANGUAGE_STANDARD_ORDER[left as TLanguageStandard]
+        ? right
+        : left,
+    );
+    parts.push(`Requires: ${highest}.`);
+    if (extensions.size > 0) {
+      parts.push(`GNU/Clang extensions: ${Array.from(extensions).join(", ")}.`);
+    }
+    for (const [feature, libraries] of platformsByFeature) {
+      const list = Array.from(libraries);
+      parts.push(
+        list.length === 1
+          ? `${feature} requires ${list[0]}.`
+          : `${feature} requires one of: ${list.join(", ")} (by target).`,
+      );
+    }
+    return parts;
   }
 
   /**

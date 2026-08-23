@@ -28,19 +28,19 @@ requirements are reported at the end of the run.
 
 ## Conditional requirements
 
-| feature                  | you pay it when                                                           | mode   | language standard      | compiler                        | platform library | emitted                                             |
-| ------------------------ | ------------------------------------------------------------------------- | ------ | ---------------------- | ------------------------------- | ---------------- | --------------------------------------------------- | ------------ | -------------------------------------------------------------------- |
-| float bit indexing       | reading or writing a bit range of an f32 or f64                           | c      | C11                    | any conforming                  | none             | `_Static_assert`                                    |
-| float bit indexing       | reading or writing a bit range of an f32 or f64 with --cpp                | cpp    | C++11                  | any conforming                  | none             | `static_assert`                                     |
-| critical section         | a critical block, and `defined(**arm**) \\                                | \\     | defined(\_\_ARM_ARCH)` | c, cpp                          | C99              | `gnu-inline-asm`, `gnu-attribute-always-inline`     | ARMv7-M core | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))` |
-| critical section         | a critical block, and `defined(__arm__) && defined(ARDUINO)`              | c, cpp | C99                    | any conforming                  | Arduino core     | `noInterrupts()`                                    |
-| critical section         | a critical block, and `defined(__AVR__)`                                  | c, cpp | C99                    | any conforming                  | avr-libc         | `SREG, cli()`                                       |
-| critical section         | a critical block, and `neither ARM nor AVR`                               | c, cpp | C99                    | any conforming                  | CMSIS            | `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
-| atomic read-modify-write | compound assignment to an atomic variable on a target with LDREX/STREX    | c, cpp | C99                    | any conforming                  | CMSIS + ARMv7-M  | `__LDREXB/H/W, __STREXB/H/W`                        |
-| atomic read-modify-write | compound assignment to an atomic variable on a target without LDREX/STREX | c, cpp | C99                    | any conforming                  | CMSIS            | `__get_PRIMASK(), __disable_irq(), __set_PRIMASK()` |
-| struct initializer       | initializing a struct in --cpp mode                                       | cpp    | C++20                  | `designated-initializer-in-cpp` | none             | `.field = value inside a braced initializer`        |
-| struct initializer       | a non-declaration struct literal in --cpp mode                            | cpp    | C++11                  | `compound-literal-in-cpp`       | none             | `(T){ ... } in C++`                                 |
-| overflow panic (--debug) | transpiling with --debug and using a clamp type                           | c, cpp | C99                    | any conforming                  | hosted libc      | `fprintf(stderr, ...), abort()`                     |
+| feature                  | you pay it when                                                           | mode   | language standard      | compiler                         | platform library | emitted                                                 |
+| ------------------------ | ------------------------------------------------------------------------- | ------ | ---------------------- | -------------------------------- | ---------------- | ------------------------------------------------------- | ------------ | -------------------------------------------------------------------- |
+| float bit indexing       | reading or writing a bit range of an f32 or f64                           | c      | C11                    | any conforming                   | none             | `_Static_assert`                                        |
+| float bit indexing       | reading or writing a bit range of an f32 or f64 with --cpp                | cpp    | C++11                  | any conforming                   | none             | `static_assert`                                         |
+| critical section         | a critical block, and `defined(**arm**) \\                                | \\     | defined(\_\_ARM_ARCH)` | c, cpp                           | C99              | `GNU inline assembly`, `__attribute__((always_inline))` | ARMv7-M core | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))` |
+| critical section         | a critical block, and `defined(__arm__) && defined(ARDUINO)`              | c, cpp | C99                    | any conforming                   | Arduino core     | `noInterrupts()`                                        |
+| critical section         | a critical block, and `defined(__AVR__)`                                  | c, cpp | C99                    | any conforming                   | avr-libc         | `SREG, cli()`                                           |
+| critical section         | a critical block, and `neither ARM nor AVR`                               | c, cpp | C99                    | any conforming                   | CMSIS            | `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`     |
+| atomic read-modify-write | compound assignment to an atomic variable on a target with LDREX/STREX    | c, cpp | C99                    | any conforming                   | CMSIS + ARMv7-M  | `__LDREXB/H/W, __STREXB/H/W`                            |
+| atomic read-modify-write | compound assignment to an atomic variable on a target without LDREX/STREX | c, cpp | C99                    | any conforming                   | CMSIS            | `__get_PRIMASK(), __disable_irq(), __set_PRIMASK()`     |
+| struct initializer       | initializing a struct in --cpp mode                                       | cpp    | C++20                  | `designated initializers in C++` | none             | `.field = value inside a braced initializer`            |
+| struct initializer       | a non-declaration struct literal in --cpp mode                            | cpp    | C++11                  | `compound literals in C++`       | none             | `(T){ ... } in C++`                                     |
+| overflow panic (--debug) | transpiling with --debug and using a clamp type                           | c, cpp | C99                    | any conforming                   | hosted libc      | `fprintf(stderr, ...), abort()`                         |
 
 ## Compiler version floors
 
@@ -56,11 +56,11 @@ a complete overflow test -- and were removed in #1143.
 These are not standard C or C++. GCC and Clang accept them; IAR, TI CGT,
 Keil and MSVC may not.
 
-| extension                                       | used by            | emitted                                                              |
-| ----------------------------------------------- | ------------------ | -------------------------------------------------------------------- |
-| `gnu-inline-asm`, `gnu-attribute-always-inline` | critical section   | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))` |
-| `designated-initializer-in-cpp`                 | struct initializer | `.field = value inside a braced initializer`                         |
-| `compound-literal-in-cpp`                       | struct initializer | `(T){ ... } in C++`                                                  |
+| extension                                               | used by            | emitted                                                              |
+| ------------------------------------------------------- | ------------------ | -------------------------------------------------------------------- |
+| `GNU inline assembly`, `__attribute__((always_inline))` | critical section   | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))` |
+| `designated initializers in C++`                        | struct initializer | `.field = value inside a braced initializer`                         |
+| `compound literals in C++`                              | struct initializer | `(T){ ... } in C++`                                                  |
 
 ## Platform libraries
 

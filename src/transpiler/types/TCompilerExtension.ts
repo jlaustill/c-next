@@ -6,9 +6,9 @@
  * need a newer standard. MISRA C:2012 Rule 1.2 is about exactly this set.
  */
 type TCompilerExtension =
-  | "gnu-inline-asm"
-  | "gnu-attribute-always-inline"
-  | "designated-initializer-in-cpp"
-  | "compound-literal-in-cpp";
+  | "GNU inline assembly"
+  | "__attribute__((always_inline))"
+  | "designated initializers in C++"
+  | "compound literals in C++";
 
 export default TCompilerExtension;
