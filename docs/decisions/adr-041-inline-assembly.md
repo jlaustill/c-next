@@ -8,6 +8,13 @@
 
 **No inline assembly in C-Next for v1.** When assembly is needed, write it in C.
 
+> **Note (#1143).** This ADR governs C-Next _source_ syntax: a user cannot write
+> inline assembly. The transpiler itself does emit it — `generateIrqWrappers()`
+> produces GNU extended assembly on PRIMASK for the ARM arm of a `critical`
+> block (ADR-050). That is a toolchain requirement of the generated output, not
+> a language feature, and it is recorded in
+> [compatibility.md](../compatibility.md). The Decision above is unchanged.
+
 ## Rationale
 
 C-Next transpiles to C, so inline assembly can be handled at the C level:

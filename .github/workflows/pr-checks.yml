@@ -69,6 +69,17 @@ jobs:
         run: npm run analyze:duplication
         continue-on-error: true
 
+      # Issue #1143: docs/compatibility.md and the generated block in
+      # docs/misra-compliance.md are derived from the transpiler's requirements
+      # registry. Verify Clean cannot catch staleness here -- it runs no
+      # generators, only re-downloads build artifacts -- so the diff is checked
+      # explicitly, which also gives a precise message instead of
+      # "uncommitted changes".
+      - name: Check toolchain documentation is in sync
+        id: toolchaindocs
+        run: npm run docs:toolchain:check
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -80,6 +91,7 @@ jobs:
           [ "${{ steps.depcruise.outcome }}" != "success" ] && echo "❌ Architecture (depcruise)" && FAILED=1 || echo "✅ Architecture (depcruise)"
           [ "${{ steps.testlocation.outcome }}" != "success" ] && echo "❌ Test file locations" && FAILED=1 || echo "✅ Test file locations"
           [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
+          [ "${{ steps.toolchaindocs.outcome }}" != "success" ] && echo "❌ Toolchain docs" && FAILED=1 || echo "✅ Toolchain docs"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   build:

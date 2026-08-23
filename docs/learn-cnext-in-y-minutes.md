@@ -8,7 +8,7 @@ contributors:
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C.
 
 ```c
-// Single-line comments work like C99
+// Single-line comments work as you expect
 /* Multi-line comments too */
 
 // =============================================================================
