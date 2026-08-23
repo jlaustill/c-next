@@ -2,26 +2,19 @@ import { describe, it, expect } from "vitest";
 import type IBaseSymbol from "../IBaseSymbol";
 import type TSymbolKindCNext from "../../symbol-kinds/TSymbolKindCNext";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 describe("IBaseSymbol", () => {
   it("accepts valid symbol with TSymbolKindCNext kind", () => {
-    // Create a mock scope for circular reference using object literal with self-reference
-    const mockScope: IBaseSymbol = {
-      kind: "scope",
-      name: "global",
-      scope: null as unknown as IBaseSymbol, // Will be set after creation
-      sourceFile: "test.cnx",
-      sourceLine: 1,
-      sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
-    };
-    // Use Object.defineProperty to set the circular reference
-    Object.defineProperty(mockScope, "scope", { value: mockScope });
+    // `scope` is an IScopeSymbol, so use the real factory rather than a bare
+    // object literal — a symbol's scope always carries the parent chain that
+    // ScopeUtils.getTranspiledCName walks.
+    const scope = ScopeUtils.createGlobalScope();
 
     const symbol: IBaseSymbol = {
       kind: "function" as TSymbolKindCNext,
       name: "testFunc",
-      scope: mockScope,
+      scope,
       sourceFile: "test.cnx",
       sourceLine: 10,
       sourceLanguage: ESourceLanguage.CNext,
@@ -31,6 +24,7 @@ describe("IBaseSymbol", () => {
     expect(symbol.kind).toBe("function");
     expect(symbol.name).toBe("testFunc");
     expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+    expect(ScopeUtils.isGlobalScope(symbol.scope)).toBe(true);
   });
 
   it("kind field accepts all TSymbolKindCNext values", () => {

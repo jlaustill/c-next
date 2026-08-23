@@ -19,14 +19,14 @@
 /* Scope: SerialHandler */
 
 void SerialHandler__handleReset(Config& config) {
-    Serial__println(1);
+    Serial__println(1U);
     CommandHandler__reset(config);
-    Serial__println(2);
+    Serial__println(2U);
 }
 
 void SerialHandler__handlePreset(Config& config) {
     if (config.value < 10) {
-        Serial__println(3);
+        Serial__println(3U);
         return;
     }
     uint8_t input = 1U;

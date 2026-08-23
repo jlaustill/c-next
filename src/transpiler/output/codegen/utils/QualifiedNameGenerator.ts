@@ -2,12 +2,12 @@
  * QualifiedNameGenerator - C-style name generation for C-Next symbols
  *
  * Provides transpiled C name generation for use in the output layer.
- * Delegates to FunctionUtils.getTranspiledCName() for the actual implementation
- * to avoid duplication with the types layer.
+ * Delegates to ScopeUtils for the actual implementation to avoid duplication
+ * with the types layer.
  *
  * Design decisions:
  * - Lives in output layer (codegen) since it generates C output
- * - Delegates to FunctionUtils for symbol-based name generation
+ * - Delegates to ScopeUtils for symbol-based name generation
  * - Provides string-based methods for backward compatibility
  * - Handles nested scopes: Outer.Inner.func -> Outer_Inner_func
  * - Global scope functions keep their bare names
@@ -15,7 +15,6 @@
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
-import FunctionUtils from "../../../../utils/FunctionUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 
@@ -31,10 +30,10 @@ class QualifiedNameGenerator {
    * For scoped functions, returns "Scope_name" (e.g., "Test_fillData").
    * For nested scopes, returns "Outer_Inner_name" (e.g., "Outer_Inner_deepFunc").
    *
-   * Delegates to FunctionUtils.getTranspiledCName() to avoid duplication.
+   * Delegates to ScopeUtils.getTranspiledCName() to avoid duplication.
    */
   static forFunction(func: IFunctionSymbol): string {
-    return FunctionUtils.getTranspiledCName(func);
+    return ScopeUtils.getTranspiledCName(func);
   }
 
   /**

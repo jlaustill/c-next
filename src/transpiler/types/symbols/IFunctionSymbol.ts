@@ -1,5 +1,4 @@
 import type IBaseSymbol from "./IBaseSymbol";
-import type IScopeSymbol from "./IScopeSymbol";
 import type IParameterInfo from "./IParameterInfo";
 import type TType from "../TType";
 import type TVisibility from "../TVisibility";
@@ -10,9 +9,6 @@ import type TVisibility from "../TVisibility";
 interface IFunctionSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "function" */
   readonly kind: "function";
-
-  /** Scope this function belongs to (overrides IBaseSymbol.scope with specific type) */
-  readonly scope: IScopeSymbol;
 
   /** Function parameters */
   readonly parameters: ReadonlyArray<IParameterInfo>;

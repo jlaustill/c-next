@@ -5,7 +5,7 @@
 
 import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
 import CNextResolver from "../transpiler/logic/symbols/cnext/index";
-import SymbolNameUtils from "../transpiler/logic/symbols/cnext/utils/SymbolNameUtils";
+import ScopeUtils from "../utils/ScopeUtils";
 import TypeResolver from "../utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
@@ -58,7 +58,7 @@ function convertBitmap(
   bitmap: import("../transpiler/types/symbols/IBitmapSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const cName = SymbolNameUtils.getTranspiledCName(bitmap);
+  const cName = ScopeUtils.getTranspiledCName(bitmap);
   const parent = bitmap.scope.name || undefined;
   const bitmapId = getDotPathId(bitmap);
   const bitmapParentId = getParentId(bitmap.scope);
@@ -95,7 +95,7 @@ function convertEnum(
   enumSym: import("../transpiler/types/symbols/IEnumSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const cName = SymbolNameUtils.getTranspiledCName(enumSym);
+  const cName = ScopeUtils.getTranspiledCName(enumSym);
   const parent = enumSym.scope.name || undefined;
   const enumId = getDotPathId(enumSym);
   const enumParentId = getParentId(enumSym.scope);
@@ -130,7 +130,7 @@ function convertStruct(
   struct: import("../transpiler/types/symbols/IStructSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const cName = SymbolNameUtils.getTranspiledCName(struct);
+  const cName = ScopeUtils.getTranspiledCName(struct);
   const parent = struct.scope.name || undefined;
   const structId = getDotPathId(struct);
   const structParentId = getParentId(struct.scope);
@@ -166,7 +166,7 @@ function convertFunction(
   func: import("../transpiler/types/symbols/IFunctionSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const cName = SymbolNameUtils.getTranspiledCName(func);
+  const cName = ScopeUtils.getTranspiledCName(func);
   const parent = func.scope.name || undefined;
   const returnType = TypeResolver.getTypeName(func.returnType);
 
@@ -195,7 +195,7 @@ function convertFunction(
 function convertVariable(
   variable: import("../transpiler/types/symbols/IVariableSymbol").default,
 ): ISymbolInfo {
-  const cName = SymbolNameUtils.getTranspiledCName(variable);
+  const cName = ScopeUtils.getTranspiledCName(variable);
   const parent = variable.scope.name || undefined;
   const typeStr = TypeResolver.getTypeName(variable.type);
 
@@ -215,7 +215,7 @@ function convertRegister(
   register: import("../transpiler/types/symbols/IRegisterSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
-  const cName = SymbolNameUtils.getTranspiledCName(register);
+  const cName = ScopeUtils.getTranspiledCName(register);
   const parent = register.scope.name || undefined;
   const registerId = getDotPathId(register);
   const registerParentId = getParentId(register.scope);

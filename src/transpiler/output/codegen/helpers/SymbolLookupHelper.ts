@@ -20,13 +20,27 @@ interface ISymbol {
  * Symbol table interface
  */
 interface ISymbolTable {
-  getOverloads(name: string): ISymbol[];
+  /**
+   * Resolve by transpiled C name — the only lookup this layer may use.
+   *
+   * The bare-name lookup is deliberately absent. Everything here holds a
+   * generated identifier (`Motor__init`), and asking the bare-name index for
+   * one returns an empty result that reads as "no such symbol" rather than
+   * "wrong question" — which is precisely how #1139's defect 2 happened. Not
+   * declaring it means the next lookup added to this file cannot reach for it.
+   */
+  getOverloadsByCName(cName: string): ISymbol[];
   getStructFields?(name: string): unknown;
 }
 
 class SymbolLookupHelper {
   /**
    * Check if a symbol exists with the given kind and language.
+   *
+   * Resolves by transpiled C name: every caller here is in the output layer and
+   * holds a generated identifier (`Motor__init`), never a bare scope-member
+   * name. Looking those up by bare name silently found nothing for any scoped
+   * symbol, which read as "no such symbol" rather than "wrong question".
    */
   static hasSymbolWithKindAndLanguage(
     symbolTable: ISymbolTable | null | undefined,
@@ -36,7 +50,7 @@ class SymbolLookupHelper {
   ): boolean {
     if (!symbolTable) return false;
 
-    const symbols = symbolTable.getOverloads(name);
+    const symbols = symbolTable.getOverloadsByCName(name);
     return symbols.some(
       (sym) => sym.kind === kind && languages.includes(sym.sourceLanguage),
     );
@@ -76,6 +90,12 @@ class SymbolLookupHelper {
 
   /**
    * Check if a name refers to a namespace/scope.
+   *
+   * Resolves by transpiled C name for the same reason as the helper above, so
+   * this file has one convention rather than two. Only C++ symbols carry the
+   * "namespace" kind and their name is already their identity, so the result is
+   * unchanged — the point is that the next lookup added here inherits the
+   * correct convention by default.
    */
   static isNamespace(
     symbolTable: ISymbolTable | null | undefined,
@@ -83,7 +103,7 @@ class SymbolLookupHelper {
   ): boolean {
     if (!symbolTable) return false;
 
-    const symbols = symbolTable.getOverloads(name);
+    const symbols = symbolTable.getOverloadsByCName(name);
     return symbols.some((sym) => sym.kind === "namespace");
   }
 

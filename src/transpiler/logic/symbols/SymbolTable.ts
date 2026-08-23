@@ -22,7 +22,7 @@ import IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../utils/TypeResolver";
-import SymbolNameUtils from "./cnext/utils/SymbolNameUtils";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -69,8 +69,23 @@ class SymbolTable {
   // C-Next Symbol Storage (TSymbol)
   // ========================================================================
 
-  /** All C-Next TSymbols indexed by name */
+  /** All C-Next TSymbols indexed by bare name (ADR-055: `init`, not `Motor__init`) */
   private readonly tSymbols: Map<string, TSymbol[]> = new Map();
+
+  /**
+   * All C-Next TSymbols indexed by transpiled C name — their canonical identity.
+   *
+   * ADR-063 makes the qualified name injective, so it identifies a symbol
+   * without needing a scope to interpret it. The bare-name index above answers
+   * a different question ("what does `init` mean *here*?", which needs ADR-057
+   * local->scope->global context); this one answers "which symbol is
+   * `Motor__init`?". Codegen holds the latter, and before this index existed it
+   * had to ask the former and got a silent empty result.
+   *
+   * For a global symbol both indexes share a key, since its bare name already
+   * is its canonical identity.
+   */
+  private readonly tSymbolsByCName: Map<string, TSymbol[]> = new Map();
 
   /** C-Next TSymbols indexed by source file */
   private readonly tSymbolsByFile: Map<string, TSymbol[]> = new Map();
@@ -137,28 +152,43 @@ class SymbolTable {
   // ========================================================================
 
   /**
-   * Add a C-Next TSymbol to the table
+   * Append a symbol to one of the multi-value indexes, creating the bucket on
+   * first use.
+   *
+   * Every index in this class is `Map<string, T[]>` and was maintained by its
+   * own copy of this get/push-or-set block. Adding an index meant writing the
+   * block again and remembering `clear()` — the "edit it in two places"
+   * anti-pattern CLAUDE.md calls the worst in the project.
    */
-  addTSymbol(symbol: TSymbol): void {
-    // Add to name index
-    const existing = this.tSymbols.get(symbol.name);
+  private static appendToIndex<T>(
+    index: Map<string, T[]>,
+    key: string,
+    symbol: T,
+  ): void {
+    const existing = index.get(key);
     if (existing) {
       existing.push(symbol);
     } else {
-      this.tSymbols.set(symbol.name, [symbol]);
+      index.set(key, [symbol]);
     }
+  }
 
-    // Add to file index
-    const fileSymbols = this.tSymbolsByFile.get(symbol.sourceFile);
-    if (fileSymbols) {
-      fileSymbols.push(symbol);
-    } else {
-      this.tSymbolsByFile.set(symbol.sourceFile, [symbol]);
-    }
+  /**
+   * Add a C-Next TSymbol to the table
+   */
+  addTSymbol(symbol: TSymbol): void {
+    // The canonical-identity key uses the same encoder codegen uses to build
+    // the name it will later look up, so the two cannot drift. Computed once
+    // and handed to registerStructFields rather than derived again there.
+    const cName = ScopeUtils.getTranspiledCName(symbol);
+
+    SymbolTable.appendToIndex(this.tSymbols, symbol.name, symbol);
+    SymbolTable.appendToIndex(this.tSymbolsByCName, cName, symbol);
+    SymbolTable.appendToIndex(this.tSymbolsByFile, symbol.sourceFile, symbol);
 
     // Auto-register struct fields for TypeResolver.getMemberTypeInfo()
     if (symbol.kind === "struct") {
-      this.registerStructFields(symbol);
+      this.registerStructFields(symbol, cName);
     }
   }
 
@@ -166,10 +196,12 @@ class SymbolTable {
    * Register struct fields in structFields map for cross-file type resolution.
    * Called automatically when adding struct symbols.
    * Issue #981: Now preserves string dimensions (macro names) for proper array detection.
+   *
+   * @param cName The struct's transpiled C name, already computed by the caller —
+   *   passed in rather than re-derived so this symbol's identity has one producer
+   *   per call, matching the canonical-identity rule the index above relies on.
    */
-  private registerStructFields(struct: IStructSymbol): void {
-    const cName = SymbolNameUtils.getTranspiledCName(struct);
-
+  private registerStructFields(struct: IStructSymbol, cName: string): void {
     for (const [fieldName, fieldInfo] of struct.fields) {
       // Convert TType to string for structFields map
       const typeString = TypeResolver.getTypeName(fieldInfo.type);
@@ -313,21 +345,8 @@ class SymbolTable {
    * Issue #981: Also register struct fields for type resolution
    */
   addCSymbol(symbol: TCSymbol): void {
-    // Add to name index
-    const existing = this.cSymbols.get(symbol.name);
-    if (existing) {
-      existing.push(symbol);
-    } else {
-      this.cSymbols.set(symbol.name, [symbol]);
-    }
-
-    // Add to file index
-    const fileSymbols = this.cSymbolsByFile.get(symbol.sourceFile);
-    if (fileSymbols) {
-      fileSymbols.push(symbol);
-    } else {
-      this.cSymbolsByFile.set(symbol.sourceFile, [symbol]);
-    }
+    SymbolTable.appendToIndex(this.cSymbols, symbol.name, symbol);
+    SymbolTable.appendToIndex(this.cSymbolsByFile, symbol.sourceFile, symbol);
 
     // Issue #981: Register struct fields for getMemberTypeInfo() lookups
     if (symbol.kind === "struct" && symbol.fields) {
@@ -421,21 +440,8 @@ class SymbolTable {
    * Add a C++ symbol to the table
    */
   addCppSymbol(symbol: TCppSymbol): void {
-    // Add to name index
-    const existing = this.cppSymbols.get(symbol.name);
-    if (existing) {
-      existing.push(symbol);
-    } else {
-      this.cppSymbols.set(symbol.name, [symbol]);
-    }
-
-    // Add to file index
-    const fileSymbols = this.cppSymbolsByFile.get(symbol.sourceFile);
-    if (fileSymbols) {
-      fileSymbols.push(symbol);
-    } else {
-      this.cppSymbolsByFile.set(symbol.sourceFile, [symbol]);
-    }
+    SymbolTable.appendToIndex(this.cppSymbols, symbol.name, symbol);
+    SymbolTable.appendToIndex(this.cppSymbolsByFile, symbol.sourceFile, symbol);
   }
 
   /**
@@ -507,13 +513,46 @@ class SymbolTable {
   }
 
   /**
-   * Get all overloads for a name across all languages
+   * Get all overloads for a name across all languages.
+   *
+   * C-Next symbols are matched on their **bare** name, so a scoped member is
+   * found by the name it carries inside its scope (`readValue`), not by its
+   * transpiled C name. Callers holding a transpiled C name want
+   * getOverloadsByCName instead.
    */
   getOverloads(name: string): TAnySymbol[] {
     return [
       ...this.getTOverloads(name),
       ...this.getCOverloads(name),
       ...this.getCppOverloads(name),
+    ];
+  }
+
+  /**
+   * Get all C-Next overloads whose canonical identity is the given transpiled
+   * C name (e.g. "Motor__init").
+   *
+   * The inverse of ScopeUtils.getTranspiledCName: that builds the name, this
+   * resolves it back to the symbol. Exact match — no decomposition, so nothing
+   * has to re-derive how a qualified name is spelled.
+   */
+  getTOverloadsByCName(cName: string): TSymbol[] {
+    return this.tSymbolsByCName.get(cName) ?? [];
+  }
+
+  /**
+   * Get all overloads across all languages for a transpiled C name.
+   *
+   * Use this wherever the caller already holds a generated C identifier —
+   * codegen and anything downstream of it. C and C++ symbols have no scopes,
+   * so their name is already their identity and they are matched directly;
+   * C-Next symbols are matched through the canonical-identity index.
+   */
+  getOverloadsByCName(cName: string): TAnySymbol[] {
+    return [
+      ...this.getTOverloadsByCName(cName),
+      ...this.getCOverloads(cName),
+      ...this.getCppOverloads(cName),
     ];
   }
 
@@ -1304,6 +1343,7 @@ class SymbolTable {
   clear(): void {
     // C-Next
     this.tSymbols.clear();
+    this.tSymbolsByCName.clear();
     this.tSymbolsByFile.clear();
     // C
     this.cSymbols.clear();

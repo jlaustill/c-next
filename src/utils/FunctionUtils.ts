@@ -1,7 +1,8 @@
 /**
  * Factory functions and utilities for IFunctionSymbol.
  *
- * Provides utilities for creating, inspecting, and name-mangling C-Next functions.
+ * Provides utilities for creating and inspecting C-Next functions.
+ * Scope-qualified C names come from ScopeUtils.getTranspiledCName.
  */
 import type IFunctionSymbol from "../transpiler/types/symbols/IFunctionSymbol";
 import type TVisibility from "../transpiler/types/TVisibility";
@@ -10,7 +11,6 @@ import type IParameterInfo from "../transpiler/types/symbols/IParameterInfo";
 import type TType from "../transpiler/types/TType";
 import ESourceLanguage from "./types/ESourceLanguage";
 import ScopeUtils from "./ScopeUtils";
-import QualifiedCName from "./QualifiedCName";
 
 /**
  * Options for creating a function symbol
@@ -50,24 +50,6 @@ class FunctionUtils {
       sourceLanguage: ESourceLanguage.CNext,
       isExported: options.visibility === "public",
     };
-  }
-
-  // ============================================================================
-  // Transpiled C Names
-  // ============================================================================
-
-  /**
-   * Get the transpiled C name for a function.
-   *
-   * For global scope functions, returns the bare name.
-   * For scoped functions, returns "Scope_name" (e.g., "Test_fillData").
-   * For nested scopes, returns "Outer_Inner_name".
-   */
-  static getTranspiledCName(func: IFunctionSymbol): string {
-    return QualifiedCName.join(
-      ...ScopeUtils.getScopePath(func.scope),
-      func.name,
-    );
   }
 
   // ============================================================================

@@ -9,7 +9,7 @@ import TSymbol from "../../../types/symbols/TSymbol";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
-import SymbolNameUtils from "../../../logic/symbols/cnext/utils/SymbolNameUtils";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import CodeGenState from "../../../state/CodeGenState";
 
@@ -57,8 +57,8 @@ class HeaderSymbolAdapter {
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
 
     // Get transpiled C name (scope-prefixed)
-    const cName = SymbolNameUtils.getTranspiledCName(func);
-    const isGlobal = func.scope.name === "";
+    const cName = ScopeUtils.getTranspiledCName(func);
+    const isGlobal = ScopeUtils.isGlobalScope(func.scope);
 
     // ADR-057: type names arrive already scope-qualified from the symbol
     // layer (CNextResolver pre-pass), so no qualification is needed here.
@@ -97,8 +97,8 @@ class HeaderSymbolAdapter {
     variable: import("../../../types/symbols/IVariableSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
-    const cName = SymbolNameUtils.getTranspiledCName(variable);
-    const isGlobal = variable.scope.name === "";
+    const cName = ScopeUtils.getTranspiledCName(variable);
+    const isGlobal = ScopeUtils.isGlobalScope(variable.scope);
 
     // ADR-057: the symbol layer already qualified scope-local type names.
     const typeStr = TypeResolver.getTypeName(variable.type);
@@ -129,8 +129,8 @@ class HeaderSymbolAdapter {
     struct: import("../../../types/symbols/IStructSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
-    const cName = SymbolNameUtils.getTranspiledCName(struct);
-    const isGlobal = struct.scope.name === "";
+    const cName = ScopeUtils.getTranspiledCName(struct);
+    const isGlobal = ScopeUtils.isGlobalScope(struct.scope);
 
     return {
       name: cName,
@@ -146,8 +146,8 @@ class HeaderSymbolAdapter {
     enumSym: import("../../../types/symbols/IEnumSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
-    const cName = SymbolNameUtils.getTranspiledCName(enumSym);
-    const isGlobal = enumSym.scope.name === "";
+    const cName = ScopeUtils.getTranspiledCName(enumSym);
+    const isGlobal = ScopeUtils.isGlobalScope(enumSym.scope);
 
     return {
       name: cName,
@@ -163,8 +163,8 @@ class HeaderSymbolAdapter {
     bitmap: import("../../../types/symbols/IBitmapSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
-    const cName = SymbolNameUtils.getTranspiledCName(bitmap);
-    const isGlobal = bitmap.scope.name === "";
+    const cName = ScopeUtils.getTranspiledCName(bitmap);
+    const isGlobal = ScopeUtils.isGlobalScope(bitmap.scope);
 
     return {
       name: cName,
@@ -181,8 +181,8 @@ class HeaderSymbolAdapter {
     register: import("../../../types/symbols/IRegisterSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
-    const cName = SymbolNameUtils.getTranspiledCName(register);
-    const isGlobal = register.scope.name === "";
+    const cName = ScopeUtils.getTranspiledCName(register);
+    const isGlobal = ScopeUtils.isGlobalScope(register.scope);
 
     return {
       name: cName,

@@ -283,8 +283,8 @@ class Transpiler {
    * Stage 3: Collect symbols from C-Next files
    * Stage 3b: Resolve external const array dimensions
    * Stage 4: Check for symbol conflicts
-   * Stage 5: Generate code (per-file)
-   * Stage 6: Generate headers (per-file)
+   * Stage 5: Generate code and its header (per-file, while that file's state is warm)
+   * Stage 6: Write the Stage 5 headers to disk (per-file)
    */
   private async _executePipeline(
     input: IPipelineInput,
@@ -338,7 +338,7 @@ class Transpiler {
       );
     }
 
-    // Stage 6: Generate headers (only write to disk in files mode)
+    // Stage 6: Write the Stage 5 headers (only to disk in files mode)
     if (result.success && input.writeOutputToDisk) {
       this._generateAllHeadersFromPipeline(input.cnextFiles, result);
     }
@@ -974,17 +974,36 @@ class Transpiler {
   }
 
   /**
-   * Stage 6: Generate headers for pipeline files
+   * Stage 6: Write the headers Stage 5 generated for pipeline files.
+   *
+   * Issue #1139: this stage used to call generateHeaderForFile() a second time,
+   * once per file, after every file had been transpiled. That function reads
+   * live CodeGenState — which is per-file — so by then it saw only the
+   * last-transpiled file's data and rebuilt every other file's header from it.
+   * A dependency lost the ADR-006 auto-const its own .c definition carried,
+   * giving conflicting types. Single-file builds hid it because the only file
+   * is also the last one.
+   *
+   * The header each file needs was already produced in _transpileFile(), at the
+   * one moment its state was warm. Writing that result keeps the derivation in
+   * one place instead of performing it twice and shipping the wrong copy.
    */
   private _generateAllHeadersFromPipeline(
     cnextFiles: IPipelineFile[],
     result: ITranspilerResult,
   ): void {
+    const headersBySourcePath = new Map<string, string>();
+    for (const fileResult of result.files) {
+      if (fileResult.headerCode) {
+        headersBySourcePath.set(fileResult.sourcePath, fileResult.headerCode);
+      }
+    }
+
     for (const file of cnextFiles) {
       if (file.symbolOnly) {
         continue;
       }
-      const headerContent = this.generateHeaderForFile(file);
+      const headerContent = headersBySourcePath.get(file.path);
       if (headerContent) {
         // Issue #933: Pass cppDetected to generate .hpp in C++ mode
         const headerPath = this.pathResolver.getHeaderOutputPath(
@@ -1736,12 +1755,28 @@ class Transpiler {
   }
 
   /**
-   * Stage 6: Generate header file for a C-Next file
+   * Stage 5: Generate header content for a single file's exported symbols.
    * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
    *
-   * Generate header content for a single file's exported symbols.
    * Unified method replacing both generateHeader() and generateHeaderContent().
-   * Reads all needed data from state (populated during Stage 5).
+   *
+   * Reads live CodeGenState, which holds only the file currently being
+   * transpiled. Call this exactly once per file, from _transpileFile(), while
+   * that file's state is warm — calling it later rebuilds the header from
+   * whichever file ran last (issue #1139).
+   *
+   * **Depends on topological file order.** Two of the reads below are
+   * whole-project accumulators — `state.getAllSymbolInfo()` and
+   * `state.getAllHeaderDirectives()` — and from here they hold only the files
+   * transpiled *so far*, not the whole project as they did when this ran after
+   * every file. That is sufficient because `_sortFilesByDependency()` orders
+   * files by `depGraph.getSortedFiles()`, so every transitive dependency has
+   * already been transpiled by the time its dependent's header is built.
+   *
+   * Anything added here that needs to see the *entire* project would therefore
+   * be wrong, and a dependency cycle would break the ordering this relies on —
+   * `_sortFilesByDependency` currently drains `depGraph.getWarnings()` into
+   * warnings rather than failing, so cycle order is arbitrary (#1167).
    */
   private generateHeaderForFile(file: IPipelineFile): string | null {
     const sourcePath = file.path;

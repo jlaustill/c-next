@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CppNamespaceUtils from "../CppNamespaceUtils";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
+import ScopeUtils from "../ScopeUtils";
 import type TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
 import type TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
 import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
@@ -75,28 +76,16 @@ describe("CppNamespaceUtils", () => {
     };
   }
 
-  // Helper to create a C-Next scope symbol (minimal)
+  // Helper to create a C-Next scope symbol.
+  //
+  // Built through the real factories so the parent chain terminates. The
+  // previous version was self-parented under a non-empty name — a shape no
+  // factory produces, since only the global scope is its own parent and its
+  // name is empty. Walking that chain never reaches global, so it hung any
+  // caller that resolves a scope path.
   function makeCNextScope(name: string, sourceFile: string): IScopeSymbol {
-    const scope: IScopeSymbol = {
-      kind: "scope",
-      name,
-      sourceFile,
-      sourceLine: 1,
-      sourceLanguage: ESourceLanguage.CNext,
-      isExported: false,
-      members: [],
-      functions: [],
-      variables: [],
-      memberVisibility: new Map(),
-      // Self-referencing for global scope
-      get parent(): IScopeSymbol {
-        return scope;
-      },
-      get scope(): IScopeSymbol {
-        return scope;
-      },
-    } as IScopeSymbol;
-    return scope;
+    const global = ScopeUtils.createGlobalScope();
+    return { ...ScopeUtils.createScope(name, global), sourceFile };
   }
 
   beforeEach(() => {
