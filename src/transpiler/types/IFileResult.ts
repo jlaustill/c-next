@@ -1,3 +1,4 @@
+import type IRecordedRequirement from "./IRecordedRequirement";
 import ITranspileError from "../../lib/types/ITranspileError";
 
 /**
@@ -24,6 +25,12 @@ interface IFileResult {
 
   /** Number of top-level declarations found */
   declarationCount: number;
+
+  /**
+   * Issue #1143: Toolchain requirements this file's generated output actually
+   * carries, recorded by the emitters that produced the text.
+   */
+  requirements?: readonly IRecordedRequirement[];
 }
 
 export default IFileResult;

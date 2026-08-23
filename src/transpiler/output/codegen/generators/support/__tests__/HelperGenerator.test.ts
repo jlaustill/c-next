@@ -1,7 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import helperGenerators from "../HelperGenerator";
+import CodeGenState from "../../../../../state/CodeGenState";
 
 const { generateOverflowHelpers, generateSafeDivHelpers } = helperGenerators;
+
+/**
+ * Issue #1143: the debug branch records `overflow-panic-hosted-libc`, so these
+ * template functions are no longer pure. Vitest's per-file isolation hides the
+ * leak today, which makes it a trap rather than a failure -- the same reason
+ * CLAUDE.md already requires this for analyzer tests.
+ */
+afterEach(() => {
+  CodeGenState.reset();
+});
 
 describe("HelperGenerator - generateOverflowHelpers", () => {
   describe("empty input", () => {
@@ -17,10 +28,10 @@ describe("HelperGenerator - generateOverflowHelpers", () => {
   });
 
   describe("unsigned types - clamp mode", () => {
-    it("generates u8 add helper with builtin overflow check", () => {
+    it("generates u8 add helper", () => {
       const result = generateOverflowHelpers(new Set(["add_u8"]), false);
       expect(result.join("\n")).toContain("cnx_clamp_add_u8");
-      expect(result.join("\n")).toContain("__builtin_add_overflow");
+      expect(result.join("\n")).toContain("(uint8_t)(a + (uint8_t)b)");
       expect(result.join("\n")).toContain("uint8_t");
       expect(result.join("\n")).toContain("return UINT8_MAX");
     });
@@ -28,7 +39,7 @@ describe("HelperGenerator - generateOverflowHelpers", () => {
     it("generates u16 sub helper", () => {
       const result = generateOverflowHelpers(new Set(["sub_u16"]), false);
       expect(result.join("\n")).toContain("cnx_clamp_sub_u16");
-      expect(result.join("\n")).toContain("__builtin_sub_overflow");
+      expect(result.join("\n")).toContain("(uint16_t)(a - (uint16_t)b)");
       expect(result.join("\n")).toContain("uint16_t");
       expect(result.join("\n")).toContain("return 0");
     });
@@ -36,7 +47,7 @@ describe("HelperGenerator - generateOverflowHelpers", () => {
     it("generates u32 mul helper", () => {
       const result = generateOverflowHelpers(new Set(["mul_u32"]), false);
       expect(result.join("\n")).toContain("cnx_clamp_mul_u32");
-      expect(result.join("\n")).toContain("__builtin_mul_overflow");
+      expect(result.join("\n")).toContain("(uint32_t)(a * (uint32_t)b)");
       expect(result.join("\n")).toContain("uint32_t");
     });
 

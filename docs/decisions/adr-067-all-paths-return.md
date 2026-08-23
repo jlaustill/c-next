@@ -43,17 +43,17 @@ The analysis is intentionally **strict and conservative** (sound): it never acce
 
 A non-void function is rejected unless `definitelyReturns(body)` is true, computed structurally:
 
-| Construct                                   | `definitelyReturns`                                                                                                 |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `return <expression>;`                      | **true**                                                                                                            |
-| `return;` (no value) in a non-void function | **false** — and reported, since it returns no value                                                                 |
-| block / statement list                      | true iff **any** contained statement `definitelyReturns` (statements after an unconditional return are unreachable) |
-| `if`/`else`                                 | true iff an `else` is present **and** both branches `definitelyReturns`                                             |
-| `if` without `else`                         | **false**                                                                                                           |
-| `switch`                                    | true iff a `default` is present **and** every case block **and** the default `definitelyReturns`                    |
-| `while` / `for`                             | **false** (the body may not execute)                                                                                |
-| `do-while`                                  | `definitelyReturns(body)` (the body always executes once)                                                           |
-| any other statement                         | **false**                                                                                                           |
+| Construct                                   | `definitelyReturns`                                                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `return <expression>;`                      | **true**                                                                                                                       |
+| `return;` (no value) in a non-void function | **false** — and reported, since it returns no value                                                                            |
+| block / statement list                      | true if and only if **any** contained statement `definitelyReturns` (statements after an unconditional return are unreachable) |
+| `if`/`else`                                 | true if and only if an `else` is present **and** both branches `definitelyReturns`                                             |
+| `if` without `else`                         | **false**                                                                                                                      |
+| `switch`                                    | true if and only if a `default` is present **and** every case block **and** the default `definitelyReturns`                    |
+| `while` / `for`                             | **false** (the body may not execute)                                                                                           |
+| `do-while`                                  | `definitelyReturns(body)` (the body always executes once)                                                                      |
+| any other statement                         | **false**                                                                                                                      |
 
 Because C-Next has no `break`/`continue` (ADR-026), loop bodies have no early structural exits to reason about, which keeps the analysis simple.
 

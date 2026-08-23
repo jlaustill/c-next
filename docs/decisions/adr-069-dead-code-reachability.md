@@ -47,11 +47,11 @@ language should reject it at the source.
 ### The dual already exists
 
 The machinery is mostly present. `ReturnPathAnalyzer` (ADR-067) already computes the **dual**
-of reachability: `blockDefinitelyReturns` is true iff any contained statement
+of reachability: `blockDefinitelyReturns` is true if and only if any contained statement
 `definitelyReturns`, with the explicit note that _"statements after an unconditional return are
 unreachable."_ Reachability is the inverse question over the same structural walk:
 
-> A statement is **unreachable** iff some earlier statement in its block is a **divergent
+> A statement is **unreachable** if and only if some earlier statement in its block is a **divergent
 > statement** (an unconditional `return`, a fully-returning `if`/`else` or `switch`, or — once
 > ADR-068 lands — a `forever` loop).
 

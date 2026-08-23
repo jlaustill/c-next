@@ -128,8 +128,14 @@ function generateLdrexStrexLoop(
   const strex = STREX_MAP[typeInfo.baseType];
   const cType = TYPE_MAP[typeInfo.baseType];
 
-  // Mark that we need CMSIS headers
-  effects.push({ type: "include", header: "cmsis" });
+  // Mark that we need CMSIS headers, and record what this branch costs.
+  // Issue #1143: recorded here, in the branch that emits __LDREX*/__STREX*,
+  // so the requirement cannot be attributed to a file that took the other
+  // branch below.
+  effects.push(
+    { type: "include", header: "cmsis" },
+    { type: "requires", key: "atomic-ldrex-cmsis", line: null },
+  );
 
   // Generate LDREX/STREX retry loop
   // Uses do-while because we always need at least one attempt
@@ -156,8 +162,15 @@ function generatePrimaskWrapper(
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
 
-  // Mark that we need CMSIS headers
-  effects.push({ type: "include", header: "cmsis" });
+  // Mark that we need CMSIS headers, and record what this branch costs.
+  // Issue #1143: this branch emits raw CMSIS names with no #if guard and no
+  // __cnx_ indirection, unlike the ADR-050 critical-section wrappers -- see
+  // #1146. The requirement is recorded as unconditional because the emitted
+  // code is unconditional.
+  effects.push(
+    { type: "include", header: "cmsis" },
+    { type: "requires", key: "atomic-primask-cmsis", line: null },
+  );
 
   // Generate the actual assignment operation inside the critical section
   let assignment: string;

@@ -9,11 +9,20 @@
 import TTypeInfo from "../types/TTypeInfo";
 import TParameterInfo from "../types/TParameterInfo";
 import TIncludeHeader from "./TIncludeHeader";
+import type TRequirementKey from "../../../types/TRequirementKey";
 
 type TGeneratorEffect =
   // === Include Effects ===
-  | { type: "include"; header: TIncludeHeader }
+  // `line` is only meaningful for the code-emission headers (irq_wrappers,
+  // float_static_assert, isr): it lets the deferred emitter attribute the
+  // requirement back to the .cnx line that asked for it (Issue #1143).
+  | { type: "include"; header: TIncludeHeader; line?: number }
   | { type: "isr" } // Needs ISR typedef
+
+  // === Toolchain Requirement Effects (Issue #1143) ===
+  // Emitted by the branch that produced requirement-bearing text, so no
+  // consumer has to infer which branch ran.
+  | { type: "requires"; key: TRequirementKey; line: number | null }
 
   // === Helper Function Effects ===
   | { type: "helper"; operation: string; cnxType: string } // Overflow clamp helper

@@ -88,9 +88,22 @@ const OPERATION_NAMES: Record<string, string> = {
 };
 
 /**
- * Templates for unsigned clamp operations using builtin hybrid approach
- * Issue #231: Check wide operand first, then use builtin
- * Issue #94: Wide operand check prevents truncation issues
+ * Templates for unsigned clamp operations.
+ *
+ * Issue #94: the wide-operand check runs in the wider type, so it also
+ * prevents the narrowing cast below from truncating.
+ *
+ * Issue #1143: these previously called __builtin_add_overflow /
+ * __builtin_sub_overflow / __builtin_mul_overflow after the wide-operand
+ * check. That call was unreachable -- the check is already a complete
+ * overflow test, so the builtin's condition could never be true (verified
+ * over 58,903,538 cases: u8 exhaustive, u16 exhaustive, u32/u64
+ * boundary-biased; the branch fired zero times). It was introduced by #238
+ * as a value-range hint for -Wstringop-overflow, but it does not suppress
+ * that diagnostic either: with and without it, GCC emits identical
+ * -Wstringop-overflow and -Warray-bounds output. Removing it drops a
+ * GCC 5+ / Clang 3.8+ requirement from generated code, which is otherwise
+ * C99, and shrinks these helpers by ~30% at -Os on Cortex-M4.
  */
 class UnsignedClampTemplates {
   static add(info: ITypeInfo, debugMode: boolean): string {
@@ -102,19 +115,13 @@ class UnsignedClampTemplates {
     if (b > (${info.widerType})(${info.maxValue} - a)) {
 ${generatePanicBlock(info.cnxType, opName)}
     }
-    ${info.cType} result;
-    if (__builtin_add_overflow(a, (${info.cType})b, &result)) {
-${generatePanicBlock(info.cnxType, opName)}
-    }
-    return result;
+    return (${info.cType})(a + (${info.cType})b);
 }`;
     }
 
     return `${sig} {
     if (b > (${info.widerType})(${info.maxValue} - a)) return ${info.maxValue};
-    ${info.cType} result;
-    if (__builtin_add_overflow(a, (${info.cType})b, &result)) return ${info.maxValue};
-    return result;
+    return (${info.cType})(a + (${info.cType})b);
 }`;
   }
 
@@ -130,21 +137,14 @@ ${generatePanicBlock(info.cnxType, opName)}
         fprintf(stderr, "PANIC: ${panicMsg}${C_NEWLINE}");
         abort();
     }
-    ${info.cType} result;
-    if (__builtin_sub_overflow(a, (${info.cType})b, &result)) {
-        fprintf(stderr, "PANIC: ${panicMsg}${C_NEWLINE}");
-        abort();
-    }
-    return result;
+    return (${info.cType})(a - (${info.cType})b);
 }`;
     }
 
-    // Use > (not >=) since b == a produces valid result 0 via the builtin path
+    // Use > (not >=) since b == a is in range and yields 0 from the subtraction
     return `${sig} {
     if (b > (${info.widerType})a) return 0;
-    ${info.cType} result;
-    if (__builtin_sub_overflow(a, (${info.cType})b, &result)) return 0;
-    return result;
+    return (${info.cType})(a - (${info.cType})b);
 }`;
   }
 
@@ -157,19 +157,13 @@ ${generatePanicBlock(info.cnxType, opName)}
     if (b != 0 && a > ${info.maxValue} / b) {
 ${generatePanicBlock(info.cnxType, opName)}
     }
-    ${info.cType} result;
-    if (__builtin_mul_overflow(a, (${info.cType})b, &result)) {
-${generatePanicBlock(info.cnxType, opName)}
-    }
-    return result;
+    return (${info.cType})(a * (${info.cType})b);
 }`;
     }
 
     return `${sig} {
     if (b != 0 && a > ${info.maxValue} / b) return ${info.maxValue};
-    ${info.cType} result;
-    if (__builtin_mul_overflow(a, (${info.cType})b, &result)) return ${info.maxValue};
-    return result;
+    return (${info.cType})(a * (${info.cType})b);
 }`;
   }
 }

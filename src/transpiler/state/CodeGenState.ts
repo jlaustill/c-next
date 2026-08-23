@@ -28,6 +28,9 @@ import TTypeInfo from "../output/codegen/types/TTypeInfo";
 import TParameterInfo from "../output/codegen/types/TParameterInfo";
 import IFunctionSignature from "../output/codegen/types/IFunctionSignature";
 import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
+import type IRequirementSite from "../types/IRequirementSite";
+import type TRequirementKey from "../types/TRequirementKey";
+import RequirementSites from "../../utils/RequirementSites";
 import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../output/codegen/types/TYPE_WIDTH";
@@ -191,6 +194,33 @@ export default class CodeGenState {
 
   /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
   static usedSafeDivOps: Set<string> = new Set();
+
+  // ===========================================================================
+  // TOOLCHAIN REQUIREMENTS (Issue #1143)
+  // ===========================================================================
+
+  /**
+   * What the generated output for this file actually costs the user, recorded
+   * by each emitter as it produces the text.
+   *
+   * Consumers read this; nothing re-derives it. PR #1141 failed by re-deriving
+   * -- its #error guard keyed on `usedClampOps.size > 0` while the emission it
+   * described keyed on the template family, so 96 snapshots shipped a guard for
+   * a builtin they did not contain.
+   */
+  static recordedRequirements: Map<TRequirementKey, IRequirementSite[]> =
+    new Map();
+
+  /**
+   * Source sites for emissions that are DEFERRED to assembleGeneratedOutput --
+   * clamp helpers, IRQ wrappers, float asserts. Keyed by the request that
+   * triggered the deferral ("add_u32", "irq_wrappers", "float_static_assert").
+   *
+   * Kept separate from recordedRequirements because at request time the code
+   * has not been emitted yet, so there is nothing to record a requirement for.
+   * The emitter claims these sites when it actually produces the block.
+   */
+  static deferredRequirementSites: Map<string, IRequirementSite[]> = new Map();
 
   // ===========================================================================
   // CURRENT CONTEXT (changes during AST traversal)
@@ -387,6 +417,12 @@ export default class CodeGenState {
     // Overflow & division helpers
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
+
+    // Toolchain requirements (Issue #1143). Both MUST be cleared per file:
+    // leaking them makes a project report attribute one file's CMSIS or C11
+    // cost to every later file.
+    this.recordedRequirements = new Map();
+    this.deferredRequirementSites = new Map();
 
     // Current context
     this.currentScope = null;
@@ -1173,6 +1209,50 @@ export default class CodeGenState {
     // Internal helper-op key (e.g. "add_u32"), not a scope-qualified C name.
     // HelperGenerator splits this on a single underscore.
     this.usedClampOps.add(`${operation}_${cnxType}`);
+  }
+
+  /**
+   * Issue #1143: THE recording sink for toolchain requirements.
+   *
+   * Every requirement, from every transport -- generator effects, the include
+   * funnel, and direct calls from static helpers -- lands here. Call it from
+   * the branch that emits the text, never from a caller that infers which
+   * branch ran.
+   */
+  static requireToolchain(
+    key: TRequirementKey,
+    sites: readonly IRequirementSite[] = [],
+  ): void {
+    const existing = this.recordedRequirements.get(key);
+    if (existing === undefined) {
+      this.recordedRequirements.set(key, [...sites]);
+      return;
+    }
+    for (const site of sites) {
+      RequirementSites.addUnique(existing, site);
+    }
+  }
+
+  /**
+   * Issue #1143: Note where a deferred emission was requested, so the emitter
+   * can attribute it once it actually produces the block.
+   */
+  static noteDeferredSite(requestKey: string, line: number | null): void {
+    const site: IRequirementSite = {
+      sourcePath: this.sourcePath ?? "",
+      line,
+    };
+    const existing = this.deferredRequirementSites.get(requestKey);
+    if (existing === undefined) {
+      this.deferredRequirementSites.set(requestKey, [site]);
+      return;
+    }
+    RequirementSites.addUnique(existing, site);
+  }
+
+  /** Issue #1143: Sites recorded for a deferred emission. */
+  static takeDeferredSites(requestKey: string): readonly IRequirementSite[] {
+    return this.deferredRequirementSites.get(requestKey) ?? [];
   }
 
   /**
