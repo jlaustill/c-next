@@ -313,6 +313,22 @@ class TypeResolver {
     node: ParserRuleContext,
   ): Parser.PostfixExpressionContext[] {
     if (node instanceof Parser.PostfixExpressionContext) return [node];
+
+    // Issue #1152: a ternary's VALUE is its two arms; the condition is a
+    // separate expression contributing no value operand. Counting it types
+    // `(val > 0) ? 1 : -1` by `val`, reporting an i32 result as u32.
+    // Addressed via orExpression() rather than child indices because the
+    // condition is parenthesised, so it sits at child index 1, not 0.
+    const arms = TypeResolver.ternaryValueArms(node);
+    if (arms !== null) {
+      return arms.flatMap((arm) => TypeResolver.collectOperandPostfixes(arm));
+    }
+
+    // Issue #1152: `&x` (address-of, ADR-006) yields an ADDRESS, not x's
+    // value, so x's type must not flow out as the expression's type --
+    // `u32 addr <- &counter` with an i32 counter is not a sign conversion.
+    if (TypeResolver.isAddressOf(node)) return [];
+
     const operands: Parser.PostfixExpressionContext[] = [];
     for (let i = 0; i < node.getChildCount(); i += 1) {
       const child = node.getChild(i);
@@ -321,6 +337,32 @@ class TypeResolver {
       }
     }
     return operands;
+  }
+
+  /**
+   * True for a `&expr` address-of node (ADR-006). Detected by the leading
+   * token rather than by child count, since the operand is itself a
+   * unaryExpression.
+   */
+  private static isAddressOf(node: ParserRuleContext): boolean {
+    return (
+      node instanceof Parser.UnaryExpressionContext &&
+      node.getChildCount() === 2 &&
+      node.getChild(0)?.getText() === "&"
+    );
+  }
+
+  /**
+   * The two value arms of a conditional ternary, or null when this node is not
+   * one. A ternaryExpression with a single orExpression child is a
+   * pass-through and has no condition to exclude.
+   */
+  private static ternaryValueArms(
+    node: ParserRuleContext,
+  ): Parser.OrExpressionContext[] | null {
+    if (!(node instanceof Parser.TernaryExpressionContext)) return null;
+    const branches = node.orExpression();
+    return branches.length === 3 ? [branches[1]!, branches[2]!] : null;
   }
 
   /**
