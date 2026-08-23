@@ -5,6 +5,23 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    uint8_t result;
+    if (__builtin_add_overflow(a, (uint8_t)b, &result)) return UINT8_MAX;
+    return result;
+}
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    uint8_t result;
+    if (__builtin_sub_overflow(a, (uint8_t)b, &result)) return 0;
+    return result;
+}
+
 // test-coverage: 32.4-variable-init, 32.4-array-element, 32.4-comparison, 32.4-in-switch-case
 // test-execution
 // Tests: Character literal usage in various contexts
@@ -111,10 +128,10 @@ int main(void) {
     }
     if (heading != 180) return 20;
     uint8_t upperA = static_cast<uint8_t>('A');
-    uint8_t lowerA = upperA + 32U;
+    uint8_t lowerA = cnx_clamp_add_u8(upperA, 32U);
     if (lowerA != 'a') return 21;
     uint8_t lowerZ = static_cast<uint8_t>('z');
-    uint8_t upperZ = lowerZ - 32U;
+    uint8_t upperZ = cnx_clamp_sub_u8(lowerZ, 32U);
     if (upperZ != 'Z') return 22;
     return 0;
 }

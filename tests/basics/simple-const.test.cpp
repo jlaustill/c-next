@@ -6,6 +6,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: Const variable declarations and usage
 // Demonstrates: const primitives, const in expressions
@@ -27,7 +37,7 @@ int main(void) {
     if (ENABLED != true) return 4;
     const uint32_t LOCAL_LIMIT = 50U;
     if (LOCAL_LIMIT != 50) return 5;
-    uint32_t result = MAX_VALUE + LOCAL_LIMIT;
+    uint32_t result = cnx_clamp_add_u32(MAX_VALUE, LOCAL_LIMIT);
     if (result != 150) return 6;
     uint32_t data[3] = {1U, 2U, 3U};
     const uint32_t EXPECTED_LENGTH = 3U;
@@ -35,7 +45,7 @@ int main(void) {
     uint32_t sum = 0U;
     const uint32_t ITERATIONS = 5U;
     for (uint32_t i = 0; i < ITERATIONS; i = i + 1) {
-        sum = sum + 1U;
+        sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 5) return 8;
     float radius = 2.0;

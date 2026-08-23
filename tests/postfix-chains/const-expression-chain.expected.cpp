@@ -8,6 +8,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // Postfix Chain Test: Const Expressions in Chains
 // Tests: Using const values and expressions as indices in chains
 extern const uint32_t INDEX_0 = 0U;
@@ -42,7 +52,7 @@ int main(void) {
     GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
     GPIO__DR = (GPIO__DR & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
     GPIO__DR_SET = (1U << LED_BIT);
-    const uint32_t COMPUTED_IDX = INDEX_1 + INDEX_1;
+    const uint32_t COMPUTED_IDX = cnx_clamp_add_u32(INDEX_1, INDEX_1);
     sensors[COMPUTED_IDX].id = 500U;
     uint32_t computedId = sensors[COMPUTED_IDX].id;
     sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (1U << LED_BIT);

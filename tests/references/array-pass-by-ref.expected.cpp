@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-coverage: 27-array-pass-by-ref
 // test-execution
 // Tests: Array passed to function (pass-by-reference behavior)
@@ -18,8 +28,8 @@ uint32_t sumArray(uint32_t arr[5], uint32_t count) {
     uint32_t sum = 0U;
     uint32_t i = 0U;
     while (i < count) {
-        sum = sum + arr[i];
-        i = i + 1U;
+        sum = cnx_clamp_add_u32(sum, arr[i]);
+        i = cnx_clamp_add_u32(i, 1U);
     }
     return sum;
 }
@@ -29,7 +39,7 @@ void zeroArray(uint32_t arr[8], uint32_t count) {
     uint32_t i = 0U;
     while (i < count) {
         arr[i] = 0U;
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 
@@ -38,7 +48,7 @@ void copyArray(uint32_t src[4], uint32_t dst[4], uint32_t count) {
     uint32_t i = 0U;
     while (i < count) {
         dst[i] = src[i];
-        i = i + 1U;
+        i = cnx_clamp_add_u32(i, 1U);
     }
 }
 

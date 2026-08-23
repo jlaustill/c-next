@@ -6,6 +6,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-coverage: 25-comment-in-expression
 // test-execution
 // Tests: Comments within expressions
@@ -14,7 +24,7 @@ int main(void) {
     if (a != 30) return 1;
     uint32_t b = (5U * 4U) + 3U;
     if (b != 23) return 2;
-    uint32_t c = a + b;
+    uint32_t c = cnx_clamp_add_u32(a, b);
     if (c != 53) return 3;
     uint32_t arr[5] = {};
     arr[0] = 100U;

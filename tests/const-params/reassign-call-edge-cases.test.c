@@ -117,7 +117,7 @@ void handleDoWhile(ConstEdge__Config* config) {
     uint32_t count = 0U;
     do {
         errorCode = Handler__setValue(config, 30U);
-        count = count + 1U;
+        count = cnx_clamp_add_u32(count, 1U);
     } while (count < 1);
 }
 

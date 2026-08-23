@@ -6,6 +6,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_add_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-coverage: 33.1-multiple-operators-same-precedence
 // test-execution
 // Tests: multiple operators with same precedence (left-to-right associativity)
@@ -24,7 +34,7 @@ int main(void) {
     uint32_t b = 20U;
     uint32_t c = 30U;
     uint32_t d = 40U;
-    uint32_t result = a + b + c + d;
+    uint32_t result = cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c), d);
     if (result != 100) return 1;
     result = 100U - 30U - 20U - 10U;
     if (result != 40) return 2;

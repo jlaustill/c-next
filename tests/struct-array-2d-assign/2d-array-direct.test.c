@@ -13,6 +13,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    uint32_t result;
+    if (__builtin_mul_overflow(a, (uint32_t)b, &result)) return UINT32_MAX;
+    return result;
+}
+
 // test-execution
 // Tests: 2D struct array direct access (no scope/global prefix)
 // Coverage: Basic 2D array indexing, row/column patterns
@@ -31,7 +38,7 @@ int main(void) {
         while (c < 4) {
             grid[r][c].row = r;
             grid[r][c].col = c;
-            grid[r][c].data = r * 4U + c;
+            grid[r][c].data = cnx_clamp_add_u32(cnx_clamp_mul_u32(r, 4U), c);
             c = cnx_clamp_add_u32(c, 1U);
         }
         r = cnx_clamp_add_u32(r, 1U);

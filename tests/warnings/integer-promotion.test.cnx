@@ -11,11 +11,16 @@ u32 main() {
     u32 sum <- a + b;
     if (sum != 150) return 1;
 
-    // Test u8 multiplication (could overflow u8, but result stored in u32)
+    // Test u8 multiplication (#1152, ADR-024 correction).
+    // `c * d` is a u8 operation and saturates at u8; storing into a u32 does
+    // not widen the operation, so widen the operands to multiply at u32.
     u8 c <- 200;
     u8 d <- 2;
-    u32 product <- c * d;
-    if (product != 400) return 2;
+    u32 clampedProduct <- c * d;
+    if (clampedProduct != 255) return 2;
+
+    u32 product <- (u32)c * (u32)d;
+    if (product != 400) return 3;
 
     // Test u16 arithmetic
     u16 e <- 30000;

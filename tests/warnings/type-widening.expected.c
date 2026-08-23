@@ -5,6 +5,16 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
+    uint16_t result;
+    if (__builtin_add_overflow(a, (uint16_t)b, &result)) return UINT16_MAX;
+    return result;
+}
+
 /* test-no-warnings */
 // test-execution
 // Tests: Type widening conversions should not trigger -Wconversion warnings
@@ -20,7 +30,7 @@ int main(void) {
     if (qword != 255) return 3;
     uint64_t direct = byte;
     if (direct != 255) return 4;
-    uint32_t result = byte + word;
+    uint32_t result = cnx_clamp_add_u16(byte, word);
     if (result != 510) return 5;
     uint16_t large_word = 65535U;
     uint32_t large_dword = large_word;
