@@ -73,7 +73,7 @@ function statementDefinitelyReturns(ctx: Parser.StatementContext): boolean {
 }
 
 /**
- * A block guarantees a return iff any of its statements does: statements after
+ * A block guarantees a return if and only if any of its statements does: statements after
  * an unconditional return are unreachable.
  */
 function blockDefinitelyReturns(ctx: Parser.BlockContext): boolean {
