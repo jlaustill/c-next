@@ -19,9 +19,17 @@
 // Collection now defers to ArrayDimensionParser, the same evaluator codegen
 // uses, with the same TYPE_WIDTH table.
 //
-// Each subscript below is the LAST valid index for its dimension, so a dimension
-// resolved even one too small fails ADR-036 bounds checking at compile time
-// rather than silently passing.
+// Each subscript below is the LAST valid index for its dimension.
+//
+// What guards this fixture is the .expected.c / .expected.h snapshots: a
+// dimension resolved one too small changes `uint8_t addLiteral[9]` and the
+// comparison fails. It is NOT guarded by bounds checking -- struct field
+// subscripts get none (#1168), so `b.plain[99]` on a u8[8] field compiles
+// clean. Nor is it reliably guarded at run time: the write and the read-back
+// go to the same overflowed address, so the assertions below would still pass.
+//
+// Do not relax the snapshots on the strength of a compile-time check that is
+// not running.
 const u8 SIZE <- 6;
 
 struct Buffer {

@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
 import ArrayDimensionParser from "../ArrayDimensionParser";
+import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 
@@ -140,13 +141,16 @@ describe("ArrayDimensionParser", () => {
         expect(result).toBeUndefined();
       });
 
-      it("returns undefined for known struct type", () => {
+      it("returns undefined for a type with no known width", () => {
         const expr = getExpression("u8 x <- sizeof(MyStruct);");
         expect(expr).not.toBeNull();
         const result = ArrayDimensionParser.parseSingleDimension(expr!, {
           typeWidths: TYPE_WIDTH,
-          isKnownStruct: (name) => name === "MyStruct",
         });
+        // Issue #1127: this used to pass an isKnownStruct predicate to
+        // distinguish "known struct, size not computable yet" from "unknown
+        // type". Both returned undefined, so the predicate changed no answer
+        // and was removed; the behavior asserted here is unchanged.
         expect(result).toBeUndefined();
       });
     });
@@ -284,75 +288,57 @@ describe("ArrayDimensionParser", () => {
     });
   });
 
-  describe("parseSimpleDimensions", () => {
-    it("returns empty array for null input", () => {
-      const result = ArrayDimensionParser.parseSimpleDimensions(null);
-      expect(result).toEqual([]);
+  describe("parseDimensions", () => {
+    // Issue #1127: parseSimpleDimensions and parseForParameters merged here.
+    // They differed only in what an unresolved dimension produced -- omitted
+    // vs 0 -- and omitting shifts every later dimension out of position.
+    it.each([
+      ["null input", null, []],
+      ["empty input", [], []],
+    ])("returns an empty list for %s", (_label, input, expected) => {
+      expect(
+        ArrayDimensionParser.parseDimensions(
+          input as Parser.ArrayDimensionContext[] | null,
+        ),
+      ).toEqual(expected);
     });
 
-    it("returns empty array for empty input", () => {
-      const result = ArrayDimensionParser.parseSimpleDimensions([]);
-      expect(result).toEqual([]);
-    });
-
-    // Issue #1159: the hex and binary rows previously expected []. parseInt with
-    // radix 10 reads "0x10" as 0, and 0 was filtered out as not > 0, so a
-    // hex-sized array was indistinguishable from one whose size could not be
-    // resolved -- and ADR-036 bounds checking was silently skipped for it.
+    // The hex and binary rows previously expected [] from
+    // parseSimpleDimensions: base-10 parseInt read "0x10" as 0 and 0 was
+    // filtered out, so a hex-sized array looked identical to one whose size
+    // could not be resolved and lost ADR-036 bounds checking (#1159).
     // u8[16], u8[0x10] and u8[0b10000] all describe the same array.
     //
-    // SIZE has no entry because parseSimpleDimensions takes no const map.
+    // An unresolved dimension keeps its slot as UNRESOLVED_DIMENSION; there is
+    // no const map here, so SIZE cannot fold.
     it.each([
       ["a single integer dimension", "u8 arr[10];", [10]],
       ["multiple dimensions", "u8 arr[2][3];", [2, 3]],
-      ["an unresolvable dimension", "u8 arr[SIZE];", []],
       ["a hex dimension", "u8 arr[0x10];", [16]],
       ["a binary dimension", "u8 arr[0b10000];", [16]],
+      ["a const identifier", "u8 arr[SIZE];", [UNRESOLVED_DIMENSION]],
+      ["an unsized dimension", "u8 arr[];", [UNRESOLVED_DIMENSION]],
+      [
+        "mixed resolved and unresolved",
+        "u8 arr[10][SIZE];",
+        [10, UNRESOLVED_DIMENSION],
+      ],
     ])("parses %s", (_label, source, expected) => {
       const dims = getArrayDimensions(source as string);
       expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseSimpleDimensions(dims!);
-      expect(result).toEqual(expected);
-    });
-  });
-
-  describe("parseForParameters", () => {
-    it("returns empty array for null input", () => {
-      const result = ArrayDimensionParser.parseForParameters(null);
-      expect(result).toEqual([]);
+      expect(ArrayDimensionParser.parseDimensions(dims!)).toEqual(expected);
     });
 
-    it("returns empty array for empty input", () => {
-      const result = ArrayDimensionParser.parseForParameters([]);
-      expect(result).toEqual([]);
-    });
-
-    it("parses single numeric dimension", () => {
-      const dims = getArrayDimensions("u8 arr[10];");
+    it("keeps an unresolved dimension in position", () => {
+      // The whole reason the two methods merged: `u8 arr[SIZE][4]` reporting
+      // [4] makes checkArrayBounds validate subscript 0 against dimension 2's
+      // bound.
+      const dims = getArrayDimensions("u8 arr[SIZE][4];");
       expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseForParameters(dims!);
-      expect(result).toEqual([10]);
-    });
-
-    it("uses 0 for non-numeric dimension (const identifier)", () => {
-      const dims = getArrayDimensions("u8 arr[SIZE];");
-      expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseForParameters(dims!);
-      expect(result).toEqual([0]);
-    });
-
-    it("uses 0 for unsized dimension", () => {
-      const dims = getArrayDimensions("u8 arr[];");
-      expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseForParameters(dims!);
-      expect(result).toEqual([0]);
-    });
-
-    it("handles mixed dimensions", () => {
-      const dims = getArrayDimensions("u8 arr[10][SIZE];");
-      expect(dims).not.toBeNull();
-      const result = ArrayDimensionParser.parseForParameters(dims!);
-      expect(result).toEqual([10, 0]);
+      expect(ArrayDimensionParser.parseDimensions(dims!)).toEqual([
+        UNRESOLVED_DIMENSION,
+        4,
+      ]);
     });
   });
 });
