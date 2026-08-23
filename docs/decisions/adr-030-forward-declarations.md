@@ -109,21 +109,35 @@ However, these are **C compiler limitations**, not fundamental language requirem
 
 ### Generated Headers Handle C Compatibility
 
-The C-Next transpiler generates `.h` files with prototypes for all functions:
+The C-Next transpiler generates `.h` files with prototypes for every top-level function except `main`:
 
 ```c
 // generated: myfile.h
-#ifndef MYFILE_H
-#define MYFILE_H
+#ifndef CNX_MYFILE_H
+#define CNX_MYFILE_H
 
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Function prototypes */
 void helper(void);
 void doWork(uint32_t* value);
-void main(void);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* CNX_MYFILE_H */
 ```
 
 This provides C compatibility without exposing forward declaration complexity to C-Next developers.
+
+**`main` is excluded.** It is called by the C runtime, never by another translation unit, so a prototype for it serves no consumer. MISRA C:2012 Rule 8.4 — which otherwise requires a compatible declaration to be visible wherever a function with external linkage is defined — exempts `main` for exactly this reason. Emitting one would also have to invent a return type, since C-Next writes `u32 main()` while C requires `int main(void)`.
+
+Include guards follow ADR-063 (`CNX_`-prefixed and derived from the path relative to the project root), so same-basename files in different directories stay distinguishable.
 
 ### Parameters Are Always Named
 
@@ -208,11 +222,12 @@ Note: Indirect recursion (A calls B, B calls A) is naturally prevented by define
 
 ### 3. Header Generation
 
-Generate `.h` file with prototypes for all non-static functions:
+Generate `.h` file with prototypes for every function that is not `private`:
 
-- Include guards
+- Include guards (ADR-063 naming)
 - Named parameters (matching definition)
 - C++ compatibility (`extern "C"`)
+- `main` excluded — see "Generated Headers Handle C Compatibility" above
 
 ### 4. Parameter Name Enforcement
 
