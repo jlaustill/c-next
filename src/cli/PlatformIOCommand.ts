@@ -32,9 +32,6 @@ function getPioProjectPaths(): IPioProjectPaths {
   return { pioIniPath, scriptPath };
 }
 
-/**
- * PlatformIO integration commands
- */
 /** The pre-build script entry cnext writes into platformio.ini. */
 const CNEXT_BUILD_SCRIPT = "pre:cnext_build.py";
 
@@ -74,6 +71,9 @@ function removeEntryWithLeadingWhitespace(text: string, entry: string): string {
   }
 }
 
+/**
+ * PlatformIO integration commands
+ */
 class PlatformIOCommand {
   /**
    * Setup PlatformIO integration

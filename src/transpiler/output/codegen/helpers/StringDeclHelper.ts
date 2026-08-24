@@ -33,9 +33,6 @@ interface IStringConcatOps {
 }
 
 /**
- * Substring extraction operands extracted from expression.
- */
-/**
  * Declaration modifiers for string variable declarations.
  */
 interface IStringDeclModifiers {

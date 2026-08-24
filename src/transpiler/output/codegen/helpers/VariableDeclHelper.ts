@@ -108,9 +108,6 @@ interface IStringConcatOps {
 }
 
 /**
- * Substring extraction operands extracted from expression.
- */
-/**
  * Callbacks for the full variable declaration orchestrator.
  */
 interface IVariableDeclCallbacks {

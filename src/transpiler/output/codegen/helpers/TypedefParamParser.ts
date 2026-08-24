@@ -51,7 +51,8 @@ const TRAILING_TYPE_KEYWORDS = new Set([
 ]);
 
 /**
- * Drop a trailing space-separated identifier, exactly as /\s+\w+$/ did.
+ * Drop a trailing space-separated parameter name, as /\s+\w+$/ did -- except
+ * for a trailing type keyword, which belongs to the type (#1189).
  *
  * Scanned from the end rather than matched, avoiding the super-linear
  * backtracking of /\s+\w+$/ (S8786).
