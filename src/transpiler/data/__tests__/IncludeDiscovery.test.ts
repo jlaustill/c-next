@@ -410,6 +410,56 @@ lib_extra_dirs = extra_libs
       expect(paths.some((p) => p.includes("extra_libs"))).toBe(true);
     });
 
+    it("collects every path from a multi-line lib_extra_dirs (#1181)", () => {
+      // The multi-line form is what PlatformIO's own docs show for more than
+      // one directory. The previous pattern captured only the first path,
+      // because under /m its `$` lookahead alternative matched at the end of
+      // the first line and the lazy capture stopped there.
+      mkdirSync(join(testDir, "libs_one"), { recursive: true });
+      mkdirSync(join(testDir, "libs_two"), { recursive: true });
+      writeFileSync(
+        join(testDir, "platformio.ini"),
+        `
+[env:esp32]
+lib_extra_dirs =
+    libs_one
+    libs_two
+`,
+      );
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+
+      const paths = IncludeDiscovery.discoverIncludePaths(
+        join(testDir, "src", "main.cnx"),
+      );
+
+      expect(paths.some((p) => p.includes("libs_one"))).toBe(true);
+      expect(paths.some((p) => p.includes("libs_two"))).toBe(true);
+    });
+
+    it("stops a multi-line lib_extra_dirs at the next key (#1181)", () => {
+      mkdirSync(join(testDir, "libs_one"), { recursive: true });
+      mkdirSync(join(testDir, "not_a_lib_dir"), { recursive: true });
+      writeFileSync(
+        join(testDir, "platformio.ini"),
+        `
+[env:esp32]
+lib_extra_dirs =
+    libs_one
+build_flags = not_a_lib_dir
+`,
+      );
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+
+      const paths = IncludeDiscovery.discoverIncludePaths(
+        join(testDir, "src", "main.cnx"),
+      );
+
+      expect(paths.some((p) => p.includes("libs_one"))).toBe(true);
+      expect(paths.some((p) => p.includes("not_a_lib_dir"))).toBe(false);
+    });
+
     it("handles comma-separated lib_extra_dirs", () => {
       mkdirSync(join(testDir, "lib1"), { recursive: true });
       mkdirSync(join(testDir, "lib2"), { recursive: true });

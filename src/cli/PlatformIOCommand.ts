@@ -35,6 +35,45 @@ function getPioProjectPaths(): IPioProjectPaths {
 /**
  * PlatformIO integration commands
  */
+/** The pre-build script entry cnext writes into platformio.ini. */
+const CNEXT_BUILD_SCRIPT = "pre:cnext_build.py";
+
+/**
+ * Remove every occurrence of `entry` together with the whitespace run
+ * immediately before it.
+ *
+ * Replaces /[\n\t ]+pre:cnext_build\.py/g, which retries the whitespace run
+ * from each of its positions and is super-linear on a long run (S8786).
+ *
+ * An occurrence with no whitespace before it is left in place, matching the
+ * `+` in the original -- that form is handled by the standalone-line replace
+ * above.
+ */
+function removeEntryWithLeadingWhitespace(text: string, entry: string): string {
+  const isIndent = (character: string): boolean =>
+    character === "\n" || character === "\t" || character === " ";
+
+  let result = "";
+  let cursor = 0;
+  for (;;) {
+    const at = text.indexOf(entry, cursor);
+    if (at === -1) {
+      return result + text.slice(cursor);
+    }
+
+    let start = at;
+    while (start > cursor && isIndent(text[start - 1])) {
+      start -= 1;
+    }
+
+    result +=
+      start === at
+        ? text.slice(cursor, at + entry.length) // no leading whitespace: keep it
+        : text.slice(cursor, start);
+    cursor = at + entry.length;
+  }
+}
+
 class PlatformIOCommand {
   /**
    * Setup PlatformIO integration
@@ -198,14 +237,15 @@ transpile_cnext()
     if (pioIni.includes("cnext_build.py")) {
       // Remove the cnext_build.py reference
       // Handle both standalone and appended cases
-      pioIni = pioIni
-        // Remove standalone "extra_scripts = pre:cnext_build.py" line (with newline)
-        .replace(/^extra_scripts[ \t]*=[ \t]*pre:cnext_build\.py[ \t]*\n/m, "")
-        // Remove from multi-line extra_scripts (e.g., "    pre:cnext_build.py")
-        // Use explicit whitespace chars to avoid backtracking with \s+
-        .replaceAll(/[\n\t ]+pre:cnext_build\.py/g, "")
-        // Clean up multiple consecutive blank lines
-        .replaceAll(/\n\n\n+/g, "\n\n");
+      // Remove standalone "extra_scripts = pre:cnext_build.py" line (with newline)
+      pioIni = pioIni.replace(
+        /^extra_scripts[ \t]*=[ \t]*pre:cnext_build\.py[ \t]*\n/m,
+        "",
+      );
+      // Remove from multi-line extra_scripts (e.g., "    pre:cnext_build.py")
+      pioIni = removeEntryWithLeadingWhitespace(pioIni, CNEXT_BUILD_SCRIPT);
+      // Clean up multiple consecutive blank lines
+      pioIni = pioIni.replaceAll(/\n\n\n+/g, "\n\n");
 
       writeFileSync(pioIniPath, pioIni, "utf-8");
       console.log(`✓ Modified: ${pioIniPath}`);

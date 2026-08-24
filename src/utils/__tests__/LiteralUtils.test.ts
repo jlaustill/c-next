@@ -163,22 +163,14 @@ describe("LiteralUtils", () => {
   // ========================================================================
 
   describe("isZero - integer literals", () => {
-    it("should return true for integer zero", () => {
-      const literal = extractLiteral("0");
+    it.each([
+      ["0", true],
+      ["1", false],
+      ["42", false],
+    ])("isZero(%s) is %s", (source, expected) => {
+      const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return false for non-zero integer", () => {
-      const literal = extractLiteral("1");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
-    });
-
-    it("should return false for larger integers", () => {
-      const literal = extractLiteral("42");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
+      expect(LiteralUtils.isZero(literal!)).toBe(expected);
     });
   });
 
@@ -187,28 +179,15 @@ describe("LiteralUtils", () => {
   // ========================================================================
 
   describe("isZero - hex literals", () => {
-    it("should return true for hex zero (0x0)", () => {
-      const literal = extractLiteral("0x0");
+    it.each([
+      ["0x0", true],
+      ["0X0", true],
+      ["0xFF", false],
+      ["0x1", false],
+    ])("isZero(%s) is %s", (source, expected) => {
+      const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for uppercase hex zero (0X0)", () => {
-      const literal = extractLiteral("0X0");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return false for non-zero hex", () => {
-      const literal = extractLiteral("0xFF");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
-    });
-
-    it("should return false for hex one (0x1)", () => {
-      const literal = extractLiteral("0x1");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
+      expect(LiteralUtils.isZero(literal!)).toBe(expected);
     });
   });
 
@@ -217,28 +196,15 @@ describe("LiteralUtils", () => {
   // ========================================================================
 
   describe("isZero - binary literals", () => {
-    it("should return true for binary zero (0b0)", () => {
-      const literal = extractLiteral("0b0");
+    it.each([
+      ["0b0", true],
+      ["0B0", true],
+      ["0b1010", false],
+      ["0b1", false],
+    ])("isZero(%s) is %s", (source, expected) => {
+      const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for uppercase binary zero (0B0)", () => {
-      const literal = extractLiteral("0B0");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return false for non-zero binary", () => {
-      const literal = extractLiteral("0b1010");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
-    });
-
-    it("should return false for binary one (0b1)", () => {
-      const literal = extractLiteral("0b1");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
+      expect(LiteralUtils.isZero(literal!)).toBe(expected);
     });
   });
 
@@ -247,62 +213,38 @@ describe("LiteralUtils", () => {
   // ========================================================================
 
   describe("isZero - suffixed decimal literals", () => {
-    it("should return true for suffixed unsigned zero (0u8)", () => {
-      const literal = extractLiteral("0u8");
+    it.each([
+      ["0u8", true],
+      ["0i32", true],
+      ["5u32", false],
+    ])("isZero(%s) is %s", (source, expected) => {
+      const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for suffixed signed zero (0i32)", () => {
-      const literal = extractLiteral("0i32");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return false for suffixed non-zero (5u32)", () => {
-      const literal = extractLiteral("5u32");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
+      expect(LiteralUtils.isZero(literal!)).toBe(expected);
     });
   });
 
   describe("isZero - suffixed hex literals", () => {
-    it("should return true for suffixed hex zero (0x0u8)", () => {
-      const literal = extractLiteral("0x0u8");
+    it.each([
+      ["0x0u8", true],
+      ["0X0i32", true],
+      ["0xFFu8", false],
+    ])("isZero(%s) is %s", (source, expected) => {
+      const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for uppercase suffixed hex zero (0X0i32)", () => {
-      const literal = extractLiteral("0X0i32");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return false for suffixed non-zero hex (0xFFu8)", () => {
-      const literal = extractLiteral("0xFFu8");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
+      expect(LiteralUtils.isZero(literal!)).toBe(expected);
     });
   });
 
   describe("isZero - suffixed binary literals", () => {
-    it("should return true for suffixed binary zero (0b0u8)", () => {
-      const literal = extractLiteral("0b0u8");
+    it.each([
+      ["0b0u8", true],
+      ["0B0i16", true],
+      ["0b1u8", false],
+    ])("isZero(%s) is %s", (source, expected) => {
+      const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for uppercase suffixed binary zero (0B0i16)", () => {
-      const literal = extractLiteral("0B0i16");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return false for suffixed non-zero binary (0b1u8)", () => {
-      const literal = extractLiteral("0b1u8");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
+      expect(LiteralUtils.isZero(literal!)).toBe(expected);
     });
   });
 
@@ -311,40 +253,17 @@ describe("LiteralUtils", () => {
   // ========================================================================
 
   describe("isZero - float literals (Issue #1010)", () => {
-    it("should return true for float zero (0.0)", () => {
-      const literal = extractFloatLiteral("0.0");
+    it.each([
+      ["0.0", true],
+      ["0.0f", true],
+      ["0.0F", true],
+      [".0", true],
+      ["1.0", false],
+      ["0.001", false],
+    ])("isZero(%s) is %s", (source, expected) => {
+      const literal = extractFloatLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for float zero with suffix (0.0f)", () => {
-      const literal = extractFloatLiteral("0.0f");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for float zero with uppercase suffix (0.0F)", () => {
-      const literal = extractFloatLiteral("0.0F");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return true for leading-dot zero (.0)", () => {
-      const literal = extractFloatLiteral(".0");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(true);
-    });
-
-    it("should return false for non-zero float (1.0)", () => {
-      const literal = extractFloatLiteral("1.0");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
-    });
-
-    it("should return false for small non-zero float (0.001)", () => {
-      const literal = extractFloatLiteral("0.001");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(false);
+      expect(LiteralUtils.isZero(literal!)).toBe(expected);
     });
 
     it("should return false for negative float (-0.5)", () => {

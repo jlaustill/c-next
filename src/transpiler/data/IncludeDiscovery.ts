@@ -186,6 +186,51 @@ class IncludeDiscovery {
   }
 
   /**
+   * Collect the raw value of every `lib_extra_dirs` key in a platformio.ini.
+   *
+   * Line-based rather than a single pattern. The previous
+   * /^\s*lib_extra_dirs\s*=\s*(.+?)(?=^\s*\[|\s*^\w+\s*=|$)/gms was
+   * super-linear (S8786) and, more importantly, wrong: under /m the `$`
+   * alternative matches at the end of every line, so the lazy capture stopped
+   * at the first one and the documented multi-line form kept only its first
+   * path (#1181). The section and next-key alternatives were unreachable.
+   *
+   * A continuation line is one that is indented and contains no `=` of its
+   * own; the value ends at the next section header, the next key, or the end
+   * of the file.
+   */
+  private static _collectLibExtraDirsValues(content: string): string[] {
+    const values: string[] = [];
+    const lines = content.split("\n");
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const keyMatch = /^[ \t]*lib_extra_dirs[ \t]*=(.*)$/.exec(lines[index]);
+      if (!keyMatch) {
+        continue;
+      }
+
+      const collected = [keyMatch[1]];
+      for (let next = index + 1; next < lines.length; next += 1) {
+        const line = lines[next];
+        const isIndented = /^[ \t]+\S/.test(line);
+        if (
+          !isIndented ||
+          line.includes("=") ||
+          line.trimStart().startsWith("[")
+        ) {
+          break;
+        }
+        collected.push(line);
+        index = next;
+      }
+
+      values.push(collected.join("\n"));
+    }
+
+    return values;
+  }
+
+  /**
    * Parse platformio.ini for lib_extra_dirs
    *
    * Issue #355: PlatformIO allows specifying additional library directories
@@ -213,13 +258,9 @@ class IncludeDiscovery {
       //   lib_extra_dirs =
       //     path1
       //     path2
-      const libExtraDirsRegex =
-        /^\s*lib_extra_dirs\s*=\s*(.+?)(?=^\s*\[|\s*^\w+\s*=|$)/gms;
-      let match;
-
-      while ((match = libExtraDirsRegex.exec(content)) !== null) {
-        const value = match[1];
-
+      for (const value of IncludeDiscovery._collectLibExtraDirsValues(
+        content,
+      )) {
         // Split by newlines or commas, handling both single-line and multi-line formats
         const dirs = value
           .split(/[\n,]/)
@@ -315,6 +356,81 @@ class IncludeDiscovery {
   }
 
   /**
+   * Scan `#include` directives, replacing
+   * /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm, which backtracks
+   * super-linearly on its whitespace runs (S8786).
+   *
+   * Behaviour is preserved exactly, including two quirks worth naming:
+   * the closing delimiter is not required to match the opening one
+   * (`#include <a.h"` is accepted), and every whitespace run may span
+   * newlines, so a `#` alone on one line with `include` on the next still
+   * matches. Only whitespace may precede the `#` on its own line.
+   */
+  private static _scanIncludeDirectives(
+    content: string,
+  ): { delimiter: string; path: string }[] {
+    const found: { delimiter: string; path: string }[] = [];
+    const isSpace = (character: string | undefined): boolean =>
+      character !== undefined && /\s/.test(character);
+
+    for (let index = 0; index < content.length; index += 1) {
+      if (content[index] !== "#") {
+        continue;
+      }
+
+      // Only whitespace between the start of this line and the '#'
+      let before = index - 1;
+      let lineStartIsClear = true;
+      while (before >= 0 && content[before] !== "\n") {
+        if (!isSpace(content[before])) {
+          lineStartIsClear = false;
+          break;
+        }
+        before -= 1;
+      }
+      if (!lineStartIsClear) {
+        continue;
+      }
+
+      let cursor = index + 1;
+      while (isSpace(content[cursor])) {
+        cursor += 1;
+      }
+      if (!content.startsWith("include", cursor)) {
+        continue;
+      }
+      cursor += "include".length;
+
+      while (isSpace(content[cursor])) {
+        cursor += 1;
+      }
+      const delimiter = content[cursor];
+      if (delimiter !== "<" && delimiter !== '"') {
+        continue;
+      }
+      cursor += 1;
+
+      const pathStart = cursor;
+      while (
+        cursor < content.length &&
+        content[cursor] !== ">" &&
+        content[cursor] !== '"'
+      ) {
+        cursor += 1;
+      }
+      // [^>"]+ requires at least one character, and a closing delimiter
+      if (cursor === pathStart || cursor >= content.length) {
+        continue;
+      }
+
+      found.push({ delimiter, path: content.slice(pathStart, cursor) });
+      index = cursor;
+    }
+
+    return found;
+  }
+
+  /**
    * Extract #include directives with local/system info
    *
    * Issue #355: Returns whether each include is local ("...") or system (<...>)
@@ -329,15 +445,10 @@ class IncludeDiscovery {
     const includes: Array<{ path: string; isLocal: boolean }> = [];
 
     // Match #include directives, capturing the delimiter to determine local vs system
-    const includeRegex = /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm;
-    let match;
-
-    while ((match = includeRegex.exec(content)) !== null) {
-      const delimiter = match[1];
-      const path = match[2];
+    for (const directive of IncludeDiscovery._scanIncludeDirectives(content)) {
       includes.push({
-        path,
-        isLocal: delimiter === '"',
+        path: directive.path,
+        isLocal: directive.delimiter === '"',
       });
     }
 
