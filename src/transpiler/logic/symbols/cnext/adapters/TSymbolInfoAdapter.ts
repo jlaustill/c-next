@@ -501,6 +501,23 @@ class TSymbolInfoAdapter {
   }
 
   /**
+   * Deep-copy a scopeName -> (memberName -> visibility) map so the merged
+   * result never aliases the base's inner maps.
+   */
+  private static _copyScopeMemberVisibility(
+    scopeMemberVisibility: ReadonlyMap<
+      string,
+      ReadonlyMap<string, "public" | "private">
+    >,
+  ): Map<string, Map<string, "public" | "private">> {
+    const copy = new Map<string, Map<string, "public" | "private">>();
+    for (const [scopeName, visibility] of scopeMemberVisibility) {
+      copy.set(scopeName, new Map(visibility));
+    }
+    return copy;
+  }
+
+  /**
    * Merge a single external source into the merged data structures
    */
   private static _mergeExternalSource(
@@ -509,14 +526,27 @@ class TSymbolInfoAdapter {
     mergedKnownScopes: Set<string>,
     mergedEnumMembers: Map<string, Map<string, number>>,
     mergedFunctionReturnTypes: Map<string, string>,
+    mergedScopeMemberVisibility: Map<string, Map<string, "public" | "private">>,
   ): void {
     // Merge known enums
     for (const enumName of external.knownEnums) {
       mergedKnownEnums.add(enumName);
     }
-    // Merge scopes from external sources for cross-scope method calls
+    // Merge scopes from external sources for cross-scope method calls.
+    //
+    // Issue #1190: the visibility map travels with the scope name. Registering
+    // a scope as known while leaving its visibility unknown makes every member
+    // of an included scope look public, because the access check reads
+    // `undefined` and only rejects an explicit "private". That silently emitted
+    // a reference to a member the generator had already declined to declare.
     for (const scopeName of external.knownScopes) {
       mergedKnownScopes.add(scopeName);
+    }
+    // Merge scope member visibility (local takes precedence)
+    for (const [scopeName, visibility] of external.scopeMemberVisibility) {
+      if (!mergedScopeMemberVisibility.has(scopeName)) {
+        mergedScopeMemberVisibility.set(scopeName, new Map(visibility));
+      }
     }
     // Merge enum members (local takes precedence)
     for (const [enumName, members] of external.enumMembers) {
@@ -539,20 +569,21 @@ class TSymbolInfoAdapter {
    * external files need to be available for code generation. This enables:
    * - Enum member prefixing for external enums
    * - Cross-scope method calls like global.Scope.method() returning enums
+   * - Visibility enforcement on members of included scopes (#1190)
    *
    * This method creates a new ISymbolInfo that includes both the base symbols
    * and merged info from external sources.
    *
    * @param base The ISymbolInfo from the current file
-   * @param externalEnumSources Array of ISymbolInfo from included .cnx files
-   * @returns New ISymbolInfo with merged enum and scope data
+   * @param externalSources Array of ISymbolInfo from included .cnx files
+   * @returns New ISymbolInfo with merged enum, scope and visibility data
    */
-  static mergeExternalEnums(
+  static mergeExternalSymbols(
     base: ICodeGenSymbols,
-    externalEnumSources: ICodeGenSymbols[],
+    externalSources: ICodeGenSymbols[],
   ): ICodeGenSymbols {
     // If no external sources, return base unchanged
-    if (externalEnumSources.length === 0) {
+    if (externalSources.length === 0) {
       return base;
     }
 
@@ -561,15 +592,19 @@ class TSymbolInfoAdapter {
     const mergedKnownScopes = new Set(base.knownScopes);
     const mergedEnumMembers = this._copyEnumMembers(base.enumMembers);
     const mergedFunctionReturnTypes = new Map(base.functionReturnTypes);
+    const mergedScopeMemberVisibility = this._copyScopeMemberVisibility(
+      base.scopeMemberVisibility,
+    );
 
-    // Merge in external enum info, function return types, and scopes
-    for (const external of externalEnumSources) {
+    // Merge in external enum info, function return types, scopes and visibility
+    for (const external of externalSources) {
       this._mergeExternalSource(
         external,
         mergedKnownEnums,
         mergedKnownScopes,
         mergedEnumMembers,
         mergedFunctionReturnTypes,
+        mergedScopeMemberVisibility,
       );
     }
 
@@ -580,6 +615,7 @@ class TSymbolInfoAdapter {
       knownEnums: mergedKnownEnums,
       enumMembers: mergedEnumMembers,
       functionReturnTypes: mergedFunctionReturnTypes,
+      scopeMemberVisibility: mergedScopeMemberVisibility,
     };
   }
 
