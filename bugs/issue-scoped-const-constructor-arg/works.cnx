@@ -1,9 +1,0 @@
-// WORKS: object at global scope, const at global scope.
-#include <FakeSensor.h>
-
-const u8 SENSOR_CHIP_SELECT_PIN <- 10;
-FakeSensor sensor(SENSOR_CHIP_SELECT_PIN);
-
-scope Works {
-    bool start() { return sensor.begin(); }
-}
