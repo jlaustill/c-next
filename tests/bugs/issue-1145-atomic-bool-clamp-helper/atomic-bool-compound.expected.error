@@ -1,0 +1,1 @@
+1:0 Code generation failed: E0806: Compound assignment is not valid on bool 'flag' - only '<-' is. To flip a flag, use 'flag <- !flag'.

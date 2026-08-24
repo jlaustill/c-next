@@ -1,0 +1,16 @@
+// test-error
+// Issue #1145: compound assignment on an atomic bool registered a clamp helper
+// op (cnx_clamp_add_bool) that no template can emit, so the call site was left
+// with no definition -- an implicit declaration under C99, a link failure, and
+// a hard error under GCC 14 / C23 defaults.
+//
+// Compound assignment was never valid on a bool: only '<-' is. Flip a flag with
+// 'flag <- !flag'. Arithmetic on an essentially Boolean operand also violates
+// MISRA C:2012 Rule 10.1.
+#pragma target teensy41
+
+atomic bool flag <- false;
+
+void main() {
+    flag +<- true; // E0806: compound assignment not valid on bool
+}

@@ -31,6 +31,11 @@ bool flag;      // bool
 // Assignment uses <- (not =)
 u32 x <- 42;
 
+// bool takes plain assignment only - compound assignment is not valid on it
+flag <- true;
+flag <- !flag;      // flip a flag this way
+// flag +<- true;   // ERROR E0806: only <- is valid on a bool
+
 // Comparison uses = (not ==)
 if (x = 42) { }     // "x equals 42"
 if (x != 0) { }     // "x not equal to 0"
