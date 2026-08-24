@@ -1,0 +1,7 @@
+#include <private-config.cnx>
+
+scope Consumer {
+    u32 read() {
+        return PrivateConfig.SERIAL_BAUD;
+    }
+}

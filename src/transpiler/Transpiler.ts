@@ -452,7 +452,7 @@ class Transpiler {
         file.cnextIncludes,
       );
       if (externalEnumSources.length > 0) {
-        symbolInfo = TSymbolInfoAdapter.mergeExternalEnums(
+        symbolInfo = TSymbolInfoAdapter.mergeExternalSymbols(
           symbolInfo,
           externalEnumSources,
         );

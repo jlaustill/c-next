@@ -1,0 +1,3 @@
+scope PublicConfig {
+    public const u32 BAUD <- 115200;
+}

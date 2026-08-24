@@ -1,0 +1,1 @@
+1:0 Code generation failed: Cannot access private member 'SERIAL_BAUD' of scope 'PrivateConfig' from scope 'TransitiveConsumer'. Only public members are accessible outside their scope.

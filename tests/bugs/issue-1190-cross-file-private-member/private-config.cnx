@@ -1,0 +1,7 @@
+// Helper for issue-1190. SERIAL_BAUD has no `public`, so per ADR-016 it is
+// private (only functions are public by default). Reading it from another
+// file must be rejected, exactly as reading it from another scope in the
+// same file already is.
+scope PrivateConfig {
+    const u32 SERIAL_BAUD <- 115200;
+}
