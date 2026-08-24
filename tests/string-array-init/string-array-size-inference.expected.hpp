@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern const char DAYS[3][17];
 
+/* Function prototypes */
+uint32_t test(void);
+
 #ifdef __cplusplus
 }
 #endif

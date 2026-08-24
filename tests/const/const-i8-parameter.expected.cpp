@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-i8-parameter.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

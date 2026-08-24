@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern char msg[33];
 
+/* Function prototypes */
+void clearMessage(void);
+
 #ifdef __cplusplus
 }
 #endif

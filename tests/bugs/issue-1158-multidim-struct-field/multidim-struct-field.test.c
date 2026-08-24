@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "multidim-struct-field.test.h"
+
 #include <stdint.h>
 
 // Issue #1158: a multi-dimensional struct field must keep every dimension.
@@ -23,10 +25,6 @@
 // tracked on #1114, is unrelated to dimension collection, and reproduces
 // identically before and after this fix. Once it is fixed this should gain
 // read-back assertions and become an execution test.
-typedef struct Grid {
-    uint8_t cells[2][3];
-} Grid;
-
 uint8_t topLevel[2][3] = {0};
 
 int main(void) {

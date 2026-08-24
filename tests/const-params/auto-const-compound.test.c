@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "auto-const-compound.test.h"
+
 #include <stdint.h>
 
 // test-execution

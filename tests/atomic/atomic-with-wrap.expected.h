@@ -20,6 +20,13 @@ extern volatile uint32_t tick32;
 extern volatile uint8_t sequenceNumber;
 extern volatile uint16_t frameCounter;
 
+/* Function prototypes */
+void incrementTicks(void);
+void nextSequence(void);
+void nextFrame(void);
+void addToTicks(uint32_t delta);
+void subtractFromTick8(uint8_t delta);
+
 #ifdef __cplusplus
 }
 #endif

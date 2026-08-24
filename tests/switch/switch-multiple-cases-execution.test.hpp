@@ -16,6 +16,13 @@ extern "C" {
 /* External variables */
 extern uint32_t result;
 
+/* Function prototypes */
+void testMultiCase(uint32_t val);
+void testMultiCaseHex(uint8_t val);
+void testMultiCaseBinary(uint8_t val);
+void testMultiCaseSigned(int8_t val);
+void testManyMultiCases(uint16_t val);
+
 #ifdef __cplusplus
 }
 #endif

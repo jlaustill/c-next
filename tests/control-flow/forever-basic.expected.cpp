@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "forever-basic.test.hpp"
+
 #include <stdint.h>
 
 // Coverage: ADR-068 - forever loop lowers to MISRA-compliant for(;;)

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-wo-operations.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

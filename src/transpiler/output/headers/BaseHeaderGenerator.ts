@@ -70,12 +70,19 @@ abstract class BaseHeaderGenerator {
     const localTypes = HeaderGeneratorUtils.getLocalTypeNames(groups);
 
     // Collect external type dependencies
+    // #1164: typedefs this header emits itself are local. Without this the
+    // header forward-declares its own callback typedef as an unknown struct.
+    const localTypeNamesWithCallbacks = new Set(localTypes.localTypeNames);
+    for (const [, cbInfo] of typeInput?.callbackTypes ?? []) {
+      localTypeNamesWithCallbacks.add(cbInfo.typedefName);
+    }
+
     const externalTypes = HeaderGeneratorUtils.collectExternalTypes(
       groups.functions,
       groups.variables,
       localTypes.localStructNames,
       localTypes.localEnumNames,
-      localTypes.localTypeNames,
+      localTypeNamesWithCallbacks,
       localTypes.localBitmapNames,
       allKnownEnums,
     );
@@ -112,6 +119,10 @@ abstract class BaseHeaderGenerator {
       ...HeaderGeneratorUtils.generateCppWrapperStart(),
       ...HeaderGeneratorUtils.generateForwardDeclarations(
         cCompatibleExternalTypes,
+      ),
+      ...HeaderGeneratorUtils.generateIsrTypedefSection(
+        exportedSymbols,
+        typeInput,
       ),
       ...HeaderGeneratorUtils.generateEnumSection(groups.enums, typeInput),
       ...HeaderGeneratorUtils.generateBitmapSection(groups.bitmaps, typeInput),

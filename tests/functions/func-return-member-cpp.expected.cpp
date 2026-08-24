@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "func-return-member-cpp.test.hpp"
+
 // tests/functions/func-return-member-cpp.test.cnx
 // test-execution
 // Tests: Issue #256 - function return member passing in C++ mode

@@ -5,15 +5,13 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "struct-member-unsigned-shift.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Unsigned compound shift-assign on struct members should be allowed
 // Verifies that the struct member resolution doesn't over-reject
-typedef struct Data {
-    uint8_t value;
-} Data;
-
 int main(void) {
     Data d = { .value = 1U };
     d.value <<= 2U;

@@ -41,6 +41,10 @@ interface IHeaderTypeInput {
       readonly parameters: ReadonlyArray<{
         readonly type: string;
         readonly isStruct: boolean;
+        readonly isConst?: boolean;
+        readonly isArray?: boolean;
+        readonly arrayDims?: string;
+        readonly name?: string;
       }>;
     }
   >;

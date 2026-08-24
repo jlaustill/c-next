@@ -3,30 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "register-bitmap-bit-chain.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // Postfix Chain Test: Register + Bitmap + Bit Indexing
 // Tests: Complex chains mixing hardware registers, bitmap fields, and bit access
 // HIGH RISK AREA: Lines 5850-6285 in CodeGenerator.ts
-/* Bitmap: StatusFlags */
-/* Fields:
- *   Ready: bit 0 (1 bit)
- *   Error: bit 1 (1 bit)
- *   Mode: bits 2-4 (3 bits)
- *   Reserved: bits 5-7 (3 bits)
- */
-typedef uint8_t StatusFlags;
-
-/* Bitmap: ControlFlags */
-/* Fields:
- *   Enable: bit 0 (1 bit)
- *   Direction: bit 1 (1 bit)
- *   Speed: bits 2-9 (8 bits)
- *   Reserved: bits 10-15 (6 bits)
- */
-typedef uint16_t ControlFlags;
-
 /* Register: MOTOR @ 0x40001000 */
 #define MOTOR__STATUS (*(volatile StatusFlags*)(0x40001000 + 0x00))
 #define MOTOR__CONTROL (*(volatile ControlFlags*)(0x40001000 + 0x04))

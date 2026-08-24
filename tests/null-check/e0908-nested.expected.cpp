@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "e0908-nested.test.hpp"
+
 // E0908: Nested if blocks with NULL checks
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>

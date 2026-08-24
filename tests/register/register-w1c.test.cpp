@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-w1c.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

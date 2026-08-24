@@ -24,6 +24,10 @@ extern bool globalTrue;
 extern bool globalFalse;
 extern bool flagArray[4];
 
+/* Function prototypes */
+bool negate(bool value);
+bool identity(bool value);
+
 #ifdef __cplusplus
 }
 #endif

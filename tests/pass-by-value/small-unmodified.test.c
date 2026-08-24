@@ -5,6 +5,8 @@
  * critical section requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
  */
 
+#include "small-unmodified.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

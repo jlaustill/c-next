@@ -13,8 +13,17 @@
 extern "C" {
 #endif
 
+/* ADR-040: ISR function pointer type */
+typedef void (*ISR)(void);
+
 /* External variables */
 extern ISR vectorTable[3];
+
+/* Function prototypes */
+void resetHandler(void);
+void nmiHandler(void);
+void hardFaultHandler(void);
+void initVectors(void);
 
 #ifdef __cplusplus
 }

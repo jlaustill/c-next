@@ -5,6 +5,8 @@
  * GNU/Clang extensions: compound literals in C++, designated initializers in C++.
  */
 
+#include "assignment-after-decl.test.hpp"
+
 // test-transpile-only
 // Tests: Issue #502 - Assignment after declaration (not just initialization)
 #include "SeaDash.hpp"

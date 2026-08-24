@@ -17,6 +17,11 @@ extern "C" {
 /* External variables */
 extern SensorReading sensors[4];
 
+/* Function prototypes */
+uint32_t process(uint32_t crc, uint8_t byte);
+uint32_t testArrayStructMembers(void);
+uint32_t testMultipleIndices(void);
+
 #ifdef __cplusplus
 }
 #endif

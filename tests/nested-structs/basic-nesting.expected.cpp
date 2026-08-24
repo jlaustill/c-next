@@ -5,25 +5,12 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "basic-nesting.test.hpp"
+
 #include <stdint.h>
 
 // ADR-032: Basic Nested Struct Test
 // Tests: struct member with struct type, chained member access
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Line {
-    Point start;
-    Point end;
-} Line;
-
-typedef struct Rectangle {
-    Point topLeft;
-    Point bottomRight;
-} Rectangle;
-
 // Global nested struct instance
 Line segment = { .start = { .x = 0, .y = 0 }, .end = { .x = 100, .y = 100 } };
 

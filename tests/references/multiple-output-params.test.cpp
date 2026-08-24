@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "multiple-output-params.test.hpp"
+
 #include <stdint.h>
 
 // test-coverage: 27-multiple-output-params

@@ -3,23 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "length-property-array-members.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Regression test: .length on struct members that are arrays
 // Tests both array.length (element count) and array[i].field.bit_length
-typedef struct DataPoint {
-    uint32_t timestamp;
-    uint16_t value;
-    uint8_t quality;
-} DataPoint;
-
-typedef struct Dataset {
-    uint32_t id;
-    DataPoint samples[10];
-    uint8_t count;
-} Dataset;
-
 int main(void) {
     Dataset data = {};
     data.id = 12345U;

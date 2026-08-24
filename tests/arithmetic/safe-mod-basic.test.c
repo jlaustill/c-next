@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "safe-mod-basic.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

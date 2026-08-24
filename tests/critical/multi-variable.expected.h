@@ -18,6 +18,9 @@ extern uint32_t readIdx;
 extern uint32_t writeIdx;
 extern uint8_t buffer[64];
 
+/* Function prototypes */
+void transfer(void);
+
 #ifdef __cplusplus
 }
 #endif

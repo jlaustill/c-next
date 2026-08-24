@@ -3,14 +3,10 @@
  * A safer C for embedded systems
  */
 
+#include "switch-enum-exhaustive.test.h"
+
 // ADR-025: Exhaustive Enum Switch Test
 // Tests switch with all enum variants covered
-typedef enum {
-    EState__IDLE = 0,
-    EState__RUNNING = 1,
-    EState__STOPPED = 2
-} EState;
-
 void onIdle(void) {
 }
 

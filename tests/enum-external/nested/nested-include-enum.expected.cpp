@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "nested-include-enum.test.hpp"
+
 // Issue #465: Test nested includes with enum at deepest level
 // A includes B, B includes C (with enum) - C's enum should work in A
 // Note: transpile-only because header generation for transitive includes is a separate issue

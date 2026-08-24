@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "identifier-leading-underscore-ok.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -11,11 +13,6 @@
 // Injectivity of Scope__member constrains only the separator's left boundary, so
 // what a member name begins with never matters. This guards the private-member
 // idiom taught in ADR-029 and docs/language-guide.md against a future tightening.
-typedef struct Controller {
-    uint8_t _handler;
-    uint8_t count;
-} Controller;
-
 int main(void) {
     Controller c = { ._handler = 42U, .count = 7U };
     if (c._handler != 42) return 1;

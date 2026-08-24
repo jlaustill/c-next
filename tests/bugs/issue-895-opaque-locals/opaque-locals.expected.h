@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
+void test_opaque_local(void);
 void Display__init(void);
 
 #ifdef __cplusplus

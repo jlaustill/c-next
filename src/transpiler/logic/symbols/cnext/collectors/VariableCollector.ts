@@ -13,8 +13,39 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
+import StringUtils from "../../../../../utils/StringUtils";
+import TTypeUtils from "../../../../../utils/TTypeUtils";
+import type TType from "../../../../types/TType";
 
 class VariableCollector {
+  /**
+   * Resolve a variable's declared type.
+   *
+   * ADR-045: a bare `string` takes its capacity from the initialising literal.
+   * TypeResolver cannot do this on the type string alone — bare `string` matches
+   * no pattern there and falls through to a *struct* named "string", which the
+   * header then emits verbatim (`extern const string VERSION;`). The `.c` path
+   * inferred the capacity independently, so the two disagreed silently until
+   * the `.c` began including its own header (#1164).
+   *
+   * The inference rule itself is StringUtils.literalLength, shared with codegen.
+   */
+  private static resolveDeclaredType(
+    typeStr: string,
+    ctx: Parser.VariableDeclarationContext,
+  ): TType {
+    if (typeStr !== "string") {
+      return TypeResolver.resolve(typeStr);
+    }
+
+    const initText = ctx.expression()?.getText() ?? "";
+    if (!initText.startsWith('"') || !initText.endsWith('"')) {
+      return TypeResolver.resolve(typeStr);
+    }
+
+    return TTypeUtils.createString(StringUtils.literalLength(initText));
+  }
+
   /**
    * Resolve a single array dimension to a number or string.
    * Returns undefined if the dimension cannot be resolved.
@@ -135,13 +166,14 @@ class VariableCollector {
     const typeCtx = ctx.type();
     const scopeName = scope.name === "" ? undefined : scope.name;
     const typeStr = TypeUtils.getTypeName(typeCtx, scopeName, isScopeType);
-    const type = TypeResolver.resolve(typeStr);
+    const type = VariableCollector.resolveDeclaredType(typeStr, ctx);
 
     // Check for const modifier
     const isConst = ctx.constModifier() !== null;
 
     // Issue #468: Check for atomic modifier
     const isAtomic = ctx.atomicModifier() !== null;
+    const isVolatile = ctx.volatileModifier() !== null;
 
     // Check for array dimensions - both C-style (arrayDimension) and C-Next style (arrayType)
     const arrayDims = ctx.arrayDimension();
@@ -188,6 +220,7 @@ class VariableCollector {
       type,
       isConst,
       isAtomic,
+      isVolatile,
       isArray,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
       initialValue,

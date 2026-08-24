@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "slice-const-offsets.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions

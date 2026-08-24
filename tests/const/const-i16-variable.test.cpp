@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-i16-variable.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions

@@ -23,6 +23,7 @@ typedef enum {
 extern EGlobal globalVar;
 
 /* Function prototypes */
+EGlobal getGlobal(void);
 EGlobal Test__getGlobalEnum(void);
 bool Test__testGlobalFunction(void);
 

@@ -5,6 +5,8 @@
  * atomic read-modify-write requires CMSIS + ARMv7-M.
  */
 
+#include "atomic-with-clamp.test.h"
+
 // test-c-only
 // test-coverage: 20-atomic-with-clamp
 // Tests: atomic combined with clamp modifier

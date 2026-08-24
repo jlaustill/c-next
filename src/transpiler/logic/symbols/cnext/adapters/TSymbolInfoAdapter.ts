@@ -21,6 +21,7 @@ import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import PublicInterface from "../../PublicInterface";
 
 /**
  * Groups register-related maps for processRegister method.
@@ -222,35 +223,17 @@ class TSymbolInfoAdapter {
       opaqueTypes,
 
       // Methods
+      hasPublicInterface: PublicInterface.existsIn(symbols),
+
       getSingleFunctionForVariable: (scopeName: string, varName: string) =>
         TSymbolInfoAdapter.getSingleFunctionForVariable(
           scopeVariableUsage,
           scopeName,
           varName,
         ),
-
-      hasPublicSymbols: () =>
-        TSymbolInfoAdapter.checkHasPublicSymbols(scopeMemberVisibility),
     };
 
     return result;
-  }
-
-  /**
-   * Check if any scope members are public (exported).
-   * Used to determine if a self-include header is needed for extern "C" linkage.
-   */
-  private static checkHasPublicSymbols(
-    scopeMemberVisibility: Map<string, Map<string, "public" | "private">>,
-  ): boolean {
-    for (const [, visibilityMap] of scopeMemberVisibility) {
-      for (const [, visibility] of visibilityMap) {
-        if (visibility === "public") {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   // === Private Processing Methods ===

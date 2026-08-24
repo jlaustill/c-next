@@ -3,15 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "struct-initialization.test.h"
+
 #include <stdint.h>
 
 // ADR-014: Named field initialization
 // Tests: struct initialization with named fields
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 int main(void) {
     Point origin = { .x = 0, .y = 0 };
     Point p = { .x = 100, .y = 200 };

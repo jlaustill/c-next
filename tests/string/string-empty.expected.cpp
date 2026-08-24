@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-empty.test.hpp"
+
 #include <string.h>
 
 // ADR-045: Test empty string declaration

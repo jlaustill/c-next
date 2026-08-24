@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "ternary-u64.test.h"
+
 #include <stdint.h>
 
 // test-coverage: 1.1-u64-in-ternary-expression

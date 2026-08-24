@@ -19,6 +19,9 @@ typedef struct Point {
     int32_t y;
 } Point;
 
+/* Function prototypes */
+Point addPoints(const Point* a, const Point* b);
+
 #ifdef __cplusplus
 }
 #endif

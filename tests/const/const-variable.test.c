@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-variable.test.h"
+
 #include <stdint.h>
 
 // test-coverage: 1.1-u8-with-const-modifier, 1.1-u32-with-const-modifier

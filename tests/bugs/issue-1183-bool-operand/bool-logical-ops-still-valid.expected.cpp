@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bool-logical-ops-still-valid.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

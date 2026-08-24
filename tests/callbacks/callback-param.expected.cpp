@@ -3,21 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "callback-param.test.hpp"
+
 #include <stdint.h>
 
 // ADR-029: Test callback as function parameter
-typedef struct Message {
-    uint32_t id;
-} Message;
-
 void onReceive(const Message& msg) {
 }
-
-typedef void (*onReceive_fp)(const Message&);
-
-typedef struct Controller {
-    onReceive_fp _handler;
-} Controller;
 
 Controller Controller_init(void) {
     return (Controller){

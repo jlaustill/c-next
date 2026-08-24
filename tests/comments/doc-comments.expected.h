@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern const uint32_t MAX_BUFFER;
 
+/* Function prototypes */
+uint32_t doubleValue(uint32_t value);
+
 #ifdef __cplusplus
 }
 #endif

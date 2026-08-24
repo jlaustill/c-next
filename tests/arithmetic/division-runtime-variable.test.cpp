@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "division-runtime-variable.test.hpp"
+
 #include <stdint.h>
 
 // ADR-051: Runtime variable division should compile (no static check)

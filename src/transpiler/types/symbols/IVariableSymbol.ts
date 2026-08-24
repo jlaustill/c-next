@@ -17,6 +17,15 @@ interface IVariableSymbol extends IBaseSymbol {
   /** Whether this variable is atomic (volatile in C) */
   readonly isAtomic: boolean;
 
+  /**
+   * Whether this variable carries an explicit `volatile` modifier.
+   *
+   * Resolved here, once, so the `.c` definition and the `.h` declaration cannot
+   * disagree: the header used to hardcode this false, which is a "conflicting
+   * type qualifiers" error as soon as the `.c` includes its own header.
+   */
+  readonly isVolatile: boolean;
+
   /** Whether this variable is an array */
   readonly isArray: boolean;
 

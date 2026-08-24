@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "function-params.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -22,16 +24,6 @@ static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
 
 // ADR-032: Nested Structs with Function Parameters
 // Tests: passing and accessing nested struct members via function params
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Rectangle {
-    Point topLeft;
-    Point bottomRight;
-} Rectangle;
-
 // Access nested members from struct parameter (ADR-006: pass by reference)
 int32_t getWidth(const Rectangle* rect) {
     return rect->bottomRight.x - rect->topLeft.x;

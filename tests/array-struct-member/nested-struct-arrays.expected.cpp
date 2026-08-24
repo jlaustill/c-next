@@ -3,26 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "nested-struct-arrays.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Nested structs containing array members
 // Coverage: Array access through nested struct paths
-typedef struct Coordinate {
-    int32_t x;
-    int32_t y;
-} Coordinate;
-
-typedef struct Path {
-    Coordinate points[4];
-    uint32_t count;
-} Path;
-
-typedef struct Route {
-    Path segments[2];
-    uint32_t totalSegments;
-} Route;
-
 int main(void) {
     Path path = {};
     path.count = 3U;

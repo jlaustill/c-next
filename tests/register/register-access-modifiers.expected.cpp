@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-access-modifiers.test.hpp"
+
 #include <stdint.h>
 
 // ADR-004: Register access modifiers test

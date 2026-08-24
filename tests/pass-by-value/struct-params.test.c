@@ -3,22 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "struct-params.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // Tests: Struct parameters are always pass-by-reference (ADR-006)
 // Coverage: Struct modification visible to caller
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Counter {
-    uint32_t value;
-    uint32_t maxValue;
-} Counter;
-
 // Struct params are ALWAYS pass-by-reference in C-Next
 // Modifications are visible to caller
 void movePoint(Point* p, int32_t dx, int32_t dy) {

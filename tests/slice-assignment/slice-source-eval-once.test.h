@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern uint8_t sliceSourceCallCount;
 
+/* Function prototypes */
+uint32_t nextSliceValue(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-308-unnecessary-address-of.test.hpp"
+
 // test-execution
 // Tests: Issue #308 - Unnecessary & added to struct member arrays
 // NOTE: Uses cpp mode because C++ has stricter type checking that catches this error
@@ -31,12 +33,6 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // broken - it uses the pass-by-value path (isPrimitivePassByValue). This test
 // validates both scenarios work correctly.
 // Struct with array member to test the fix
-typedef struct DataResult {
-    uint8_t errorCode;
-    uint8_t data[6];
-    uint8_t dataLen;
-} DataResult;
-
 // ============================================================
 // Scenario 1: Array element access (was never broken)
 // Primitive parameters use pass-by-value path (isPrimitivePassByValue)

@@ -18,6 +18,8 @@ import generateBitmapHeader from "./generators/generateBitmapHeader";
 import VariableDeclarationFormatter from "../codegen/helpers/VariableDeclarationFormatter";
 import type IVariableFormatInput from "../codegen/types/IVariableFormatInput";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
+import CallbackTypedefFormatter from "../codegen/helpers/CallbackTypedefFormatter";
+const ISR_TYPE_NAME = "ISR";
 
 const { mapType, isBuiltInType } = typeUtils;
 
@@ -536,21 +538,15 @@ class HeaderGeneratorUtils {
 
     const lines: string[] = ["/* Callback typedefs */"];
     for (const [, cbInfo] of typeInput.callbackTypes) {
-      const params =
-        cbInfo.parameters.length > 0
-          ? cbInfo.parameters
-              .map((p) => {
-                // ADR-006: Struct parameters become pointers (C) or references (C++)
-                if (p.isStruct) {
-                  const ptrOrRef = isCppMode ? "&" : "*";
-                  return `${p.type}${ptrOrRef}`;
-                }
-                return p.type;
-              })
-              .join(", ")
-          : "void";
+      // #1164: formatted by the same code as the .c, so the two declarations of
+      // one typedef cannot drift apart.
       lines.push(
-        `typedef ${cbInfo.returnType} (*${cbInfo.typedefName})(${params});`,
+        CallbackTypedefFormatter.format(
+          cbInfo.returnType,
+          cbInfo.typedefName,
+          cbInfo.parameters,
+          isCppMode ?? false,
+        ),
       );
     }
     lines.push("");
@@ -593,6 +589,61 @@ class HeaderGeneratorUtils {
   }
 
   /**
+   * ADR-040: emit the ISR function-pointer typedef when the header declares
+   * anything of that type.
+   *
+   * The `.c` emits this typedef for itself. While nothing included the header,
+   * a header that named `ISR` without defining it still "worked" because no
+   * translation unit ever compiled it. Once the `.c` includes its own header
+   * (#1164) the header must stand on its own, and the `.c` must stop emitting a
+   * second copy — two typedefs of the same name are a redeclaration error.
+   */
+  static generateIsrTypedefSection(
+    symbols: IHeaderSymbol[],
+    typeInput?: IHeaderTypeInput,
+  ): string[] {
+    if (!HeaderGeneratorUtils.usesIsrType(symbols, typeInput)) {
+      return [];
+    }
+    return [
+      "/* ADR-040: ISR function pointer type */",
+      "typedef void (*ISR)(void);",
+      "",
+    ];
+  }
+
+  /**
+   * Whether any declaration in this header names the ISR type -- as a variable,
+   * a function return type, a parameter, or a struct field.
+   */
+  private static usesIsrType(
+    symbols: IHeaderSymbol[],
+    typeInput?: IHeaderTypeInput,
+  ): boolean {
+    const isIsr = (type: string | undefined): boolean =>
+      type === ISR_TYPE_NAME || type === `${ISR_TYPE_NAME}*`;
+
+    const inDeclarations = symbols.some(
+      (sym) =>
+        isIsr(sym.type) ||
+        (sym.parameters?.some((param) => isIsr(param.type)) ?? false),
+    );
+    if (inDeclarations) {
+      return true;
+    }
+
+    // A struct field of type ISR names it just as a variable does.
+    for (const [, fields] of typeInput?.structFields ?? []) {
+      for (const [, fieldType] of fields) {
+        if (isIsr(fieldType)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Generate extern variable declarations section
    *
    * Uses VariableDeclarationFormatter for consistent formatting with CodeGenerator.
@@ -612,7 +663,7 @@ class HeaderGeneratorUtils {
         modifiers: {
           isConst: sym.isConst ?? false,
           isAtomic: sym.isAtomic ?? false,
-          isVolatile: false, // C-Next uses atomic, not volatile directly
+          isVolatile: sym.isVolatile ?? false,
           isExtern: true, // Headers always use extern
         },
         arrayDimensions:

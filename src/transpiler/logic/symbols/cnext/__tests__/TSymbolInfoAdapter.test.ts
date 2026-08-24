@@ -41,6 +41,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: false,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
             },
           ],
           [
@@ -51,6 +52,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: false,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
             },
           ],
         ]),
@@ -79,6 +81,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: false,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
             },
           ],
           [
@@ -89,6 +92,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: false,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
             },
           ],
         ]),
@@ -118,6 +122,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: true,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
               dimensions: [256],
             },
           ],
@@ -129,6 +134,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: false,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
             },
           ],
         ]),
@@ -158,6 +164,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: true,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
               dimensions: [4, 4],
             },
           ],
@@ -475,6 +482,7 @@ describe("TSymbolInfoAdapter", () => {
         type: TypeResolver.resolve("u32"),
         isConst: true,
         isAtomic: false,
+        isVolatile: false,
         isArray: false,
         initialValue: "255",
       };
@@ -498,6 +506,7 @@ describe("TSymbolInfoAdapter", () => {
         type: TypeResolver.resolve("u32"),
         isConst: true,
         isAtomic: false,
+        isVolatile: false,
         isArray: false,
         initialValue: "100",
       };
@@ -522,6 +531,7 @@ describe("TSymbolInfoAdapter", () => {
         type: TypeResolver.resolve("u32"),
         isConst: false, // not const
         isAtomic: false,
+        isVolatile: false,
         isArray: false,
       };
 
@@ -544,6 +554,7 @@ describe("TSymbolInfoAdapter", () => {
         type: TypeResolver.resolve("u16"),
         isConst: true,
         isAtomic: false,
+        isVolatile: false,
         isArray: true,
         arrayDimensions: [4],
         initialValue: "[10,20,30,40]",
@@ -571,6 +582,7 @@ describe("TSymbolInfoAdapter", () => {
         type: TypeResolver.resolve("u8"),
         isConst: true,
         isAtomic: false,
+        isVolatile: false,
         isArray: true,
         arrayDimensions: [2, 3],
         initialValue: "[[1,2,3],[4,5,6]]",
@@ -579,59 +591,6 @@ describe("TSymbolInfoAdapter", () => {
       const info = TSymbolInfoAdapter.convert([variable]);
 
       expect(info.scopePrivateConstValues.has("Motor_MATRIX")).toBe(false);
-    });
-  });
-
-  describe("hasPublicSymbols", () => {
-    it("should return true when scope has public members", () => {
-      const ledScope = TestScopeUtils.createMockScope("LED");
-      (ledScope.members as string[]).push("on");
-      (ledScope.memberVisibility as Map<string, string>).set("on", "public");
-
-      const info = TSymbolInfoAdapter.convert([ledScope]);
-
-      expect(info.hasPublicSymbols()).toBe(true);
-    });
-
-    it("should return false when all scope members are private", () => {
-      const internalScope = TestScopeUtils.createMockScope("Internal");
-      (internalScope.members as string[]).push("helper");
-      (internalScope.memberVisibility as Map<string, string>).set(
-        "helper",
-        "private",
-      );
-
-      const info = TSymbolInfoAdapter.convert([internalScope]);
-
-      expect(info.hasPublicSymbols()).toBe(false);
-    });
-
-    it("should return false when there are no scopes", () => {
-      const struct: IStructSymbol = {
-        kind: "struct",
-        name: "Point",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-            },
-          ],
-        ]),
-      };
-
-      const info = TSymbolInfoAdapter.convert([struct]);
-
-      expect(info.hasPublicSymbols()).toBe(false);
     });
   });
 
@@ -731,6 +690,7 @@ describe("TSymbolInfoAdapter", () => {
               isArray: false,
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
             },
           ],
         ]),
@@ -775,6 +735,7 @@ describe("TSymbolInfoAdapter", () => {
                 isArray: false,
                 isConst: false,
                 isAtomic: false,
+                isVolatile: false,
               },
             ],
           ]),
@@ -813,7 +774,6 @@ describe("TSymbolInfoAdapter", () => {
       expect(info.knownStructs.has("Point")).toBe(true);
       expect(info.knownEnums.has("Color")).toBe(true);
       expect(info.knownScopes.has("Motor")).toBe(true);
-      expect(info.hasPublicSymbols()).toBe(true);
     });
   });
 });

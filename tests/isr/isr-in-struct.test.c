@@ -3,10 +3,9 @@
  * A safer C for embedded systems
  */
 
-#include <stdint.h>
+#include "isr-in-struct.test.h"
 
-/* ADR-040: ISR function pointer type */
-typedef void (*ISR)(void);
+#include <stdint.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -46,11 +45,6 @@ void structHandler3(void) {
 }
 
 // Struct with ISR fields
-typedef struct IsrHolder {
-    ISR primary;
-    ISR secondary;
-} IsrHolder;
-
 // Initialize struct with ISR values
 void initStructHolder(IsrHolder* hld, ISR prim, ISR sec) {
     hld->primary = (*prim);

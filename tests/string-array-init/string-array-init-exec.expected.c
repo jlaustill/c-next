@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-array-init-exec.test.h"
+
 #include <stdint.h>
 #include <string.h>
 

@@ -13,14 +13,11 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct string string;
-
 /* External variables */
-extern const string VERSION;
-extern const string APP_NAME;
-extern const string EMPTY_CONST;
-extern const string LONG_CONST;
+extern const char VERSION[6];
+extern const char APP_NAME[8];
+extern const char EMPTY_CONST[1];
+extern const char LONG_CONST[45];
 
 #ifdef __cplusplus
 }

@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern char haystack[65];
 
+/* Function prototypes */
+void testWhileLoop(void);
+
 #ifdef __cplusplus
 }
 #endif

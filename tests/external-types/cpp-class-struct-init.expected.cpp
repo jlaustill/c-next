@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "cpp-class-struct-init.test.hpp"
+
 // Issue #517: C++ class struct initialization
 // When initializing a C++ class with struct syntax { field: value },
 // generate field assignments instead of designated initializers

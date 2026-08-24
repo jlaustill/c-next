@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "array-member-access.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -21,15 +23,6 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Regression test: accessing array members within structs
 // Verifies config.items[i].value transpiles correctly (was generating bit operations)
-typedef struct Item {
-    uint32_t value;
-    uint8_t flags;
-} Item;
-
-typedef struct Container {
-    Item items[3];
-} Container;
-
 int main(void) {
     Container cfg = {};
     cfg.items[0].value = 100U;

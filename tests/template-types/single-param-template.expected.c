@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "single-param-template.test.hpp"
+
 // Issue #291: Test single parameter template type
 // Tests template with a single type parameter like Vector<u32>
 #include "template-stubs.h"

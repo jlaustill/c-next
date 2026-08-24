@@ -3,17 +3,9 @@
  * A safer C for embedded systems
  */
 
+#include "cross-file-types.hpp"
+
 #include <stdint.h>
 
 // Helper file: defines types used by cross-file tests
 // This file is NOT a test file - it provides types for other tests
-typedef enum {
-    EPriority__LOW = 0,
-    EPriority__MEDIUM = 1,
-    EPriority__HIGH = 2
-} EPriority;
-
-typedef struct Vec2 {
-    int32_t x;
-    int32_t y;
-} Vec2;

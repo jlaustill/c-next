@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "valid-c-prefix-while-loop.test.hpp"
+
 // ADR-046: Valid c_ prefix with while loop pattern
 // Tests that c_ prefixed variables work correctly in while loops.
 // The while condition provides the NULL check, and reassignment is allowed.

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-int-conversion.test.hpp"
+
 #include <stdint.h>
 #include <limits.h>
 

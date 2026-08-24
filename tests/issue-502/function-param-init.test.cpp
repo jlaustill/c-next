@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "function-param-init.test.hpp"
+
 // test-transpile-only
 // Tests: Issue #502 - Function parameters and return types with C++ namespaced types
 #include "SeaDash.hpp"

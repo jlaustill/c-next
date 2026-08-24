@@ -24,8 +24,20 @@ uint8_t Handler__setValue(ConstEdge__Config* cfg, uint32_t val);
 uint8_t Handler__setSecond(uint32_t dummy, ConstEdge__Config* cfg);
 uint32_t Handler__getValue(const ConstEdge__Config* cfg);
 uint8_t Handler__wrapSetValue(ConstEdge__Config* cfg, uint32_t val);
+void handleNestedIf(ConstEdge__Config* config);
+void handleSwitch(ConstEdge__Config* config);
+void handleDoWhile(ConstEdge__Config* config);
+void handleCritical(ConstEdge__Config* config);
 uint8_t Processor__helper(ConstEdge__Config* cfg);
 void Processor__process(ConstEdge__Config* config);
+void handleSecondParam(ConstEdge__Config* config);
+void handleNestedCall(const ConstEdge__Config* config);
+void handleTransitive(ConstEdge__Config* config);
+void handleMultipleReassign(ConstEdge__Config* config);
+void handleCompoundAssign(const ConstEdge__Config* config);
+void handleCompoundModify(ConstEdge__Config* config);
+void handleBareCall(ConstEdge__Config* config);
+void handleBareReadOnly(const ConstEdge__Config* config);
 
 #ifdef __cplusplus
 }

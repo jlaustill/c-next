@@ -16,7 +16,7 @@ extern "C" {
 typedef struct Message Message;
 
 /* Callback typedefs */
-typedef void (*onReceive_fp)(Message*);
+typedef void (*onReceive_fp)(const Message*);
 
 /* Struct definitions */
 typedef struct Message {
@@ -25,6 +25,10 @@ typedef struct Message {
 typedef struct Controller {
     onReceive_fp _handler;
 } Controller;
+
+/* Function prototypes */
+void onReceive(const Message* msg);
+void setHandler(Controller* c, onReceive_fp handler);
 
 #ifdef __cplusplus
 }

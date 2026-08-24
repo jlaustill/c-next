@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "do-while-boolean-var.test.h"
+
 #include <stdbool.h>
 
 // ADR-027: Do-while with boolean variable condition

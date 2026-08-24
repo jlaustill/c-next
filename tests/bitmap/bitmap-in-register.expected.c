@@ -3,22 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap-in-register.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // ADR-034 + ADR-004: Bitmap inside Register Test
 // This is the "million dollar feature" - using bitmaps for type-safe hardware registers
 // Define a bitmap for motor control register
-/* Bitmap: MotorControl */
-/* Fields:
- *   Running: bit 0 (1 bit)
- *   Direction: bit 1 (1 bit)
- *   Fault: bit 2 (1 bit)
- *   Mode: bits 3-5 (3 bits)
- *   Reserved: bits 6-7 (2 bits)
- */
-typedef uint8_t MotorControl;
-
 // Use bitmap type inside a register definition
 /* Register: MOTOR @ 0x40001000 */
 #define MOTOR__CTRL (*(volatile MotorControl*)(0x40001000 + 0x00))

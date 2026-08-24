@@ -3,8 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* ADR-040: ISR function pointer type */
-typedef void (*ISR)(void);
+#include "isr-assignment.test.hpp"
 
 // ADR-040: ISR assignment
 // Tests: assigning handler functions to ISR variables

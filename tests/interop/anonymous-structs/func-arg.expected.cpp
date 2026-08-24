@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "func-arg.test.hpp"
+
 // test-cpp-only
 // test-execution
 // Test: Struct with anonymous member used as function argument

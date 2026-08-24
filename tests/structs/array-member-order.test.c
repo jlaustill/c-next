@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "array-member-order.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -21,15 +23,6 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Regression test: postfix chain ordering for reads and assignments
 // Verifies cfg.items[0].value transpiles correctly (was generating cfg.items.value[0])
-typedef struct Item {
-    uint32_t value;
-    uint8_t flags;
-} Item;
-
-typedef struct Container {
-    Item items[3];
-} Container;
-
 int main(void) {
     Container cfg = {0};
     cfg.items[0].value = 100U;

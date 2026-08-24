@@ -3,17 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "static-struct-buffer.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // ADR-003: Static struct buffer allocation
 // Tests: array of structs with member access
-typedef struct SensorReading {
-    uint32_t timestamp;
-    int16_t value;
-    uint8_t sensorId;
-} SensorReading;
-
 // Fixed-size array of readings - no heap allocation
 SensorReading readings[10] = {};
 

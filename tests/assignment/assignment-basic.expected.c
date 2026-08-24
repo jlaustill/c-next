@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "assignment-basic.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

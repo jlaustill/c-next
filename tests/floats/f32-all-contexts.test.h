@@ -24,6 +24,13 @@ extern float global_f;
 extern float global_uninit;
 extern float samples[4];
 
+/* Function prototypes */
+float add(float a, float b);
+void process(void);
+void arithmetic(void);
+void compare(void);
+float max(float a, float b);
+
 #ifdef __cplusplus
 }
 #endif

@@ -36,6 +36,7 @@ describe("HeaderSymbolAdapter", () => {
         type: TTypeUtils.createPrimitive("u32"),
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         isArray: false,
       };
 
@@ -60,6 +61,7 @@ describe("HeaderSymbolAdapter", () => {
         type: TTypeUtils.createPrimitive("f32"),
         isConst: false,
         isAtomic: true,
+        isVolatile: false,
         isArray: false,
       };
 
@@ -83,6 +85,7 @@ describe("HeaderSymbolAdapter", () => {
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         isArray: true,
         arrayDimensions: [256, 4],
       };
@@ -105,6 +108,7 @@ describe("HeaderSymbolAdapter", () => {
         type: TTypeUtils.createPrimitive("u32"),
         isConst: true,
         isAtomic: false,
+        isVolatile: false,
         isArray: false,
       };
 
@@ -221,6 +225,7 @@ describe("HeaderSymbolAdapter", () => {
               type: TTypeUtils.createPrimitive("i32"),
               isConst: false,
               isAtomic: false,
+              isVolatile: false,
               isArray: false,
             },
           ],
@@ -432,6 +437,7 @@ describe("HeaderSymbolAdapter", () => {
           type: TTypeUtils.createPrimitive("u32"),
           isConst: false,
           isAtomic: false,
+          isVolatile: false,
           isArray: false,
         },
         {
@@ -476,6 +482,7 @@ describe("HeaderSymbolAdapter", () => {
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         isArray: true,
         arrayDimensions: ["DEVICE_COUNT"],
       };
@@ -497,6 +504,7 @@ describe("HeaderSymbolAdapter", () => {
         type: TTypeUtils.createPrimitive("u8"),
         isConst: true,
         isAtomic: false,
+        isVolatile: false,
         isArray: true,
         arrayDimensions: ["EColor.COUNT"],
       };
@@ -525,6 +533,7 @@ describe("HeaderSymbolAdapter", () => {
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         isArray: true,
         arrayDimensions: [dim],
       });

@@ -19,6 +19,9 @@ typedef struct NestedExtEnum__Config {
     ELevel level;
 } NestedExtEnum__Config;
 
+/* Function prototypes */
+void setMedium(NestedExtEnum__Config& cfg);
+
 #ifdef __cplusplus
 }
 #endif

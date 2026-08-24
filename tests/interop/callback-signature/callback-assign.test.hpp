@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "callback_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,6 +16,9 @@ extern "C" {
 
 /* External variables */
 extern int32_t handler_sum;
+
+/* Function prototypes */
+void my_point_handler(Point& p);
 
 #ifdef __cplusplus
 }

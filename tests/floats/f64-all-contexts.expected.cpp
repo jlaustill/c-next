@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "f64-all-contexts.test.hpp"
+
 #include <stdint.h>
 
 // Test f64 in all language contexts
@@ -12,12 +14,6 @@ double global_d = 3.141592653589793;
 double global_uninit = 0.0;
 
 // Struct member
-typedef struct Vector {
-    double x;
-    double y;
-    double z;
-} Vector;
-
 // Array element type
 double measurements[8] = {};
 

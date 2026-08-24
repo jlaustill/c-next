@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern char line[257];
 
+/* Function prototypes */
+void readFile(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -72,7 +72,9 @@ describe("Transpiler", () => {
         const result = (
           await transpiler.transpile({
             kind: "source",
-            source: "void privateFunc() { }",
+            // #1161: top-level functions are public (ADR-016); a scope with
+            // only private members is what exports nothing.
+            source: "scope Internal { private void helper() { } }",
           })
         ).files[0];
 
@@ -229,9 +231,12 @@ describe("Transpiler", () => {
         ).files[0];
 
         expect(result.success).toBe(true);
-        expect(result.code).toContain("typedef struct");
-        expect(result.code).toContain("int32_t x");
-        expect(result.code).toContain("int32_t y");
+        // #1164: the definition is emitted once, in the header, and the .c
+        // includes it. It used to be emitted in both.
+        expect(result.headerCode).toContain("typedef struct");
+        expect(result.headerCode).toContain("int32_t x");
+        expect(result.headerCode).toContain("int32_t y");
+        expect(result.code).not.toContain("typedef struct");
       });
 
       it("generates enum definitions", async () => {
@@ -251,10 +256,12 @@ describe("Transpiler", () => {
         ).files[0];
 
         expect(result.success).toBe(true);
-        expect(result.code).toContain("typedef enum");
-        expect(result.code).toContain("Color__RED");
-        expect(result.code).toContain("Color__GREEN");
-        expect(result.code).toContain("Color__BLUE");
+        // #1164: emitted once, in the header, and included by the .c.
+        expect(result.headerCode).toContain("typedef enum");
+        expect(result.headerCode).toContain("Color__RED");
+        expect(result.headerCode).toContain("Color__GREEN");
+        expect(result.headerCode).toContain("Color__BLUE");
+        expect(result.code).not.toContain("typedef enum");
       });
 
       it("handles scope definitions", async () => {

@@ -117,6 +117,7 @@ class HeaderSymbolAdapter {
       isExported: variable.isExported,
       isConst: variable.isConst,
       isAtomic: variable.isAtomic,
+      isVolatile: variable.isVolatile,
       isArray: variable.isArray,
       arrayDimensions,
       parent: isGlobal ? undefined : variable.scope.name,

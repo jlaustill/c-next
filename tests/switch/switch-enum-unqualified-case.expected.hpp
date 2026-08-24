@@ -20,6 +20,9 @@ typedef enum {
     ECategory__CAT_C = 2
 } ECategory;
 
+/* Function prototypes */
+uint32_t categorize(ECategory cat);
+
 #ifdef __cplusplus
 }
 #endif

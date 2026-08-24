@@ -23,6 +23,14 @@ typedef struct Point {
     int32_t y;
 } Point;
 
+/* Function prototypes */
+int32_t getPointSum(const Point* p);
+void movePoint(Point* p, int32_t dx, int32_t dy);
+uint32_t getConfigValue(const AutoConst__Config* c);
+void toggleAndRead(AutoConst__Config* c);
+int32_t wrapGetSum(const Point* p);
+void wrapMovePoint(Point* p);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,8 +3,6 @@
  * A safer C for embedded systems
  */
 
+#include "types.hpp"
+
 // Helper file: defines enum for external reference
-typedef enum {
-    EPressureType__PRESSURE_TYPE_PSIA = 0,
-    EPressureType__PRESSURE_TYPE_PSIG = 1
-} EPressureType;

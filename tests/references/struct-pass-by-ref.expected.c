@@ -3,15 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "struct-pass-by-ref.test.h"
+
 #include <stdint.h>
 
 // ADR-006: Struct pass-by-reference
 // Tests: struct modification persists after function call
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 void moveRight(Point* p) {
     p->x = p->x + 10;
 }

@@ -22,6 +22,10 @@ typedef struct Processor {
     uint32_t baseValue;
 } Processor;
 
+/* Function prototypes */
+uint32_t computeValue(uint32_t input);
+uint32_t tripleValue(uint32_t input);
+
 #ifdef __cplusplus
 }
 #endif

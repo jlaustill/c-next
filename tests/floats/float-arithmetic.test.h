@@ -17,6 +17,11 @@ extern "C" {
 extern float result_f32;
 extern double result_f64;
 
+/* Function prototypes */
+void test_f32_arithmetic(void);
+void test_f64_arithmetic(void);
+void test_complex_expressions(void);
+
 #ifdef __cplusplus
 }
 #endif

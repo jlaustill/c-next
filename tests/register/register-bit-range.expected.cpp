@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-bit-range.test.hpp"
+
 #include <stdint.h>
 
 // test-coverage: 12-bit-range-access

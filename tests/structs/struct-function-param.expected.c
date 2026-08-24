@@ -3,15 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "struct-function-param.test.h"
+
 #include <stdint.h>
 
 // ADR-014 + ADR-006: Struct as function parameter
 // Tests: pass-by-reference for struct parameters
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 void movePoint(Point* p, int32_t dx, int32_t dy) {
     p->x += dx;
     p->y += dy;

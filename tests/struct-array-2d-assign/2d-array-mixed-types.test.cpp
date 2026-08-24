@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "2d-array-mixed-types.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
@@ -10,16 +12,6 @@
 // test-execution
 // Tests: 2D struct arrays with various member types
 // Coverage: u8, u16, u32, u64, i8, i16, i32, bool members
-typedef struct MixedData {
-    uint8_t byteVal;
-    uint16_t shortVal;
-    uint32_t intVal;
-    int8_t signedByte;
-    int16_t signedShort;
-    int32_t signedInt;
-    bool flag;
-} MixedData;
-
 MixedData matrix[2][2] = {};
 
 int main(void) {

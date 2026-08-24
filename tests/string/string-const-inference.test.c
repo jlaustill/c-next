@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-const-inference.test.h"
+
 #include <string.h>
 
 // ADR-045: Test const string capacity inference from literal

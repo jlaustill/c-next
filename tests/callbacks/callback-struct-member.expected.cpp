@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "callback-struct-member.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
@@ -13,19 +15,12 @@ uint32_t computeValue(uint32_t input) {
     return input * 2;
 }
 
-typedef uint32_t (*computeValue_fp)(uint32_t);
-
 // Alternative implementation with same signature
 uint32_t tripleValue(uint32_t input) {
     return input * 3;
 }
 
 // Struct with callback member
-typedef struct Processor {
-    computeValue_fp handler;
-    uint32_t baseValue;
-} Processor;
-
 Processor Processor_init(void) {
     return (Processor){
         .handler = computeValue

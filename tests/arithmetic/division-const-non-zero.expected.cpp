@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "division-const-non-zero.test.hpp"
+
 #include <stdint.h>
 
 // ADR-051 Phase 3: Division by const non-zero

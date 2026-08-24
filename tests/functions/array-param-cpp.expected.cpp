@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "array-param-cpp.test.hpp"
+
 #include <stdint.h>
 
 // test-cpp-only

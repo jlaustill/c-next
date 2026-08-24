@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-struct-field-array.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -16,15 +18,6 @@ extern const uint8_t COLS = 3U;
 extern const uint8_t HEX_SIZE = 0x10U;
 
 extern const uint8_t BIN_SIZE = 0b1010U;
-
-typedef struct TData {
-    uint8_t buffer[8];
-    int16_t matrix[4][3];
-    bool flags[16];
-    uint16_t binary_arr[10];
-    uint32_t literal_arr[5];
-    int32_t value;
-} TData;
 
 TData data = {};
 

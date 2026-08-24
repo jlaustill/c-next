@@ -17,6 +17,9 @@ extern "C" {
 extern char source[65];
 extern char dest[65];
 
+/* Function prototypes */
+void copyString(void);
+
 #ifdef __cplusplus
 }
 #endif

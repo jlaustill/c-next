@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "output-parameter.test.hpp"
+
 #include <stdint.h>
 
 // ADR-006: Output parameter pattern

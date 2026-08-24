@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "basic-2d.test.h"
+
 #include <stdint.h>
 
 // ADR-036: Basic 2D array declaration and access

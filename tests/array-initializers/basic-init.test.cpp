@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "basic-init.test.hpp"
+
 #include <stdint.h>
 
 // ADR-035: Basic Array Initialization Test

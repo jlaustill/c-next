@@ -21,6 +21,13 @@ extern volatile int8_t temperature;
 extern volatile int16_t offset;
 extern volatile int32_t position;
 
+/* Function prototypes */
+void adjustBrightness(uint8_t delta);
+void decreaseBrightness(uint8_t delta);
+void updateVolume(uint16_t delta);
+void incrementCounter(void);
+void adjustTemperature(int8_t delta);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "simple-const.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "uri-exception.test.hpp"
+
 // URI Exception Test (ADR-043)
 // Tests that :// patterns are allowed per MISRA Amendment 4
 #include <stdint.h>

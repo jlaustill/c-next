@@ -3,17 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "switch-enum-unqualified-case.test.hpp"
+
 #include <stdint.h>
 
 // Issue #471: Unqualified enum values in case labels
 // Tests that enum values without type prefix get resolved correctly
 // in both if conditions and case labels
-typedef enum {
-    ECategory__CAT_A = 0,
-    ECategory__CAT_B = 1,
-    ECategory__CAT_C = 2
-} ECategory;
-
 uint32_t categorize(ECategory cat) {
     if (cat == ECategory__CAT_A) {
         return 100;

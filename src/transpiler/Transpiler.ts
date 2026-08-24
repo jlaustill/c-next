@@ -20,6 +20,7 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
+import PublicInterface from "./logic/symbols/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
@@ -504,6 +505,12 @@ class Transpiler {
       const userIncludes = IncludeExtractor.collectUserIncludes(
         tree,
         this.cppDetected,
+      );
+      // Issue #424: kept separate — added to the header only when it names a
+      // macro that one of these supplies (see _headerNeedsMacroIncludes).
+      this.state.setUserIncludes(
+        `${sourcePath}\u0000c-headers`,
+        IncludeExtractor.collectCHeaderIncludes(tree),
       );
 
       // Get pass-by-value params (snapshot before next file clears it)
@@ -1780,8 +1787,12 @@ class Transpiler {
    */
   private generateHeaderForFile(file: IPipelineFile): string | null {
     const sourcePath = file.path;
-    const tSymbols = CodeGenState.symbolTable.getTSymbolsByFile(sourcePath);
-    const exportedSymbols = tSymbols.filter((s) => s.isExported);
+    // Issues #1161/#1164: the same predicate decides whether this header is
+    // written and whether the generated .c includes it. Do not re-derive it.
+    const exportedSymbols = PublicInterface.forFile(
+      CodeGenState.symbolTable,
+      sourcePath,
+    );
 
     if (exportedSymbols.length === 0) {
       return null;
@@ -1798,7 +1809,22 @@ class Transpiler {
     const passByValueParams =
       this.state.getPassByValueParams(sourcePath) ??
       new Map<string, Set<string>>();
-    const userIncludes = this.state.getUserIncludes(sourcePath);
+    const cnxIncludes = this.state.getUserIncludes(sourcePath) ?? [];
+    // Issue #424: a dimension that is not a number is a macro the header names
+    // but does not define, so the header must carry its source include.
+    const namesAMacroDimension = exportedSymbols.some((symbol) =>
+      symbol.kind === "variable"
+        ? (symbol.arrayDimensions?.some(
+            (dimension) => typeof dimension === "string",
+          ) ?? false)
+        : false,
+    );
+    const userIncludes = namesAMacroDimension
+      ? [
+          ...cnxIncludes,
+          ...(this.state.getUserIncludes(`${sourcePath}\u0000c-headers`) ?? []),
+        ]
+      : cnxIncludes;
 
     const allKnownEnums = TransitiveEnumCollector.aggregateKnownEnums(
       this.state.getAllSymbolInfo(),
@@ -1865,22 +1891,29 @@ class Transpiler {
       }
     >();
 
-    // Collect callback function names that are actually used as struct field types
+    // Issue #1164: same predicate the .c uses to decide it must NOT emit these.
     const usedCallbackTypes = new Set<string>();
-    for (const [, funcName] of CodeGenState.callbackFieldTypes) {
-      usedCallbackTypes.add(funcName);
+    for (const funcName of CodeGenState.callbackTypes.keys()) {
+      if (CodeGenState.headerOwnsCallbackTypedef(funcName)) {
+        usedCallbackTypes.add(funcName);
+      }
     }
 
-    // Only include callbacks that are used as struct field types
     for (const funcName of usedCallbackTypes) {
       const cbInfo = CodeGenState.callbackTypes.get(funcName);
       if (cbInfo) {
         result.set(funcName, {
           typedefName: cbInfo.typedefName,
           returnType: cbInfo.returnType,
+          // #1164: pass the parameter through whole. Dropping isConst/isArray
+          // here is what made the header's typedef disagree with the .c's.
           parameters: cbInfo.parameters.map((p) => ({
             type: p.type,
             isStruct: p.isStruct,
+            isConst: p.isConst,
+            isArray: p.isArray,
+            arrayDims: p.arrayDims,
+            name: p.name,
           })),
         });
       }
@@ -1975,6 +2008,23 @@ class Transpiler {
       // Apply auto-const and resolve opaque type info for non-callback function parameters
       const unmodified = unmodifiedParams.get(headerSymbol.name);
       const updatedParams = headerSymbol.parameters.map((param) => {
+        // ADR-029 / #1164: a parameter whose declared type IS a callback
+        // function takes that function's typedef, exactly as the .c does via
+        // CodeGenState.callbackTypes. Without this the header emitted the bare
+        // function name as a type ("const onReceive*"), which both contradicts
+        // the .c's "onReceive_fp" and collides with the function's own
+        // prototype ("redeclared as different kind of symbol").
+        const callbackType = CodeGenState.callbackTypes.get(param.type ?? "");
+        if (callbackType) {
+          return {
+            ...param,
+            type: callbackType.typedefName,
+            isCallback: true,
+            callbackTypedefName: callbackType.typedefName,
+            isStruct: false,
+          };
+        }
+
         // Issue #995: Resolve opaque type info ONCE onto the symbol.
         // This is the single source of truth for both body (.c/.cpp) and header (.h/.hpp).
         const isOpaque = CodeGenState.isOpaqueType(param.type ?? "");

@@ -152,6 +152,24 @@ export default class CodeGenState {
   static callbackFieldTypes: Map<string, string> = new Map();
 
   /**
+   * Issue #1164: does the generated header own this callback's typedef?
+   *
+   * The header emits typedefs only for callbacks used as struct field types.
+   * When the `.c` includes its own header, whichever typedefs the header emits
+   * must not be emitted a second time in the `.c` — C99 rejects even an
+   * identical typedef redefinition. Both sides ask this one question so they
+   * cannot disagree about who owns a given typedef.
+   */
+  static headerOwnsCallbackTypedef(functionName: string): boolean {
+    for (const [, callbackTypeName] of this.callbackFieldTypes) {
+      if (callbackTypeName === functionName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Functions that are assigned to C callback typedefs.
    * Maps function name -> typedef name (e.g., "my_flush" -> "flush_cb_t")
    * Issue #895: We need the typedef name to look up parameter types.

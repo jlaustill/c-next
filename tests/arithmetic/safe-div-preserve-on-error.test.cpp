@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "safe-div-preserve-on-error.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

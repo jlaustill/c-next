@@ -16,6 +16,13 @@ extern "C" {
 /* External variables */
 extern uint32_t globalCounter;
 
+/* Function prototypes */
+void testEmptyInit(void);
+void testEmptyUpdate(void);
+void testEmptyInitAndUpdate(void);
+void testExplicitCondition(void);
+void testStructuredLoop(void);
+
 #ifdef __cplusplus
 }
 #endif

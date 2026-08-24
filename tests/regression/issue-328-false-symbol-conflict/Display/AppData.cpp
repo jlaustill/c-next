@@ -3,10 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "AppData.hpp"
+
 #include <stdint.h>
 
 // AppData struct definition (the original source)
-typedef struct AppData {
-    float humidity;
-    float temperature;
-} AppData;

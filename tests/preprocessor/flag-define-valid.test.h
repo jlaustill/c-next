@@ -17,6 +17,9 @@ extern "C" {
 extern const uint32_t LED_PIN;
 extern const uint32_t ALT_PIN;
 
+/* Function prototypes */
+void setup(void);
+
 #ifdef __cplusplus
 }
 #endif

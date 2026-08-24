@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-array-subscript.test.h"
+
 #include <stdint.h>
 
 // test-execution

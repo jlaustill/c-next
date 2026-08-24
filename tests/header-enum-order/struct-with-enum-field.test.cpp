@@ -3,33 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "struct-with-enum-field.test.hpp"
+
 #include <stdint.h>
 
 // Test header generation order: enums before structs
 // Issue #449: Structs containing enum fields need enums defined first
 // This test verifies the generated header has correct declaration order
-typedef enum {
-    EPressureType__PRESSURE_TYPE_PSIA = 0,
-    EPressureType__PRESSURE_TYPE_PSIG = 1
-} EPressureType;
-
-typedef enum {
-    EDeviceState__STATE_IDLE = 0,
-    EDeviceState__STATE_RUNNING = 1,
-    EDeviceState__STATE_ERROR = 2
-} EDeviceState;
-
-typedef struct TPressureInputConfig {
-    uint16_t assignedSpn;
-    EPressureType pressureType;
-} TPressureInputConfig;
-
-typedef struct TDeviceStatus {
-    uint32_t deviceId;
-    EDeviceState state;
-    uint8_t errorCode;
-} TDeviceStatus;
-
 int main(void) {
     TPressureInputConfig config = {};
     config.assignedSpn = 100U;

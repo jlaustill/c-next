@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "size-inference.test.hpp"
+
 #include <stdint.h>
 
 // ADR-035: Size Inference Test

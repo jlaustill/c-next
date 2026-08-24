@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-negative-i8-edge.test.h"
+
 #include <stdint.h>
 
 // test-execution

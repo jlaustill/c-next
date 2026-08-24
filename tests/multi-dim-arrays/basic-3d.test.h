@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern uint8_t voxels[4][4][4];
 
+/* Function prototypes */
+void init(void);
+
 #ifdef __cplusplus
 }
 #endif

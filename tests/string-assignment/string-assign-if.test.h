@@ -16,6 +16,10 @@ extern "C" {
 /* External variables */
 extern char status[33];
 
+/* Function prototypes */
+void setStatus(bool ok);
+void setNested(uint32_t level);
+
 #ifdef __cplusplus
 }
 #endif

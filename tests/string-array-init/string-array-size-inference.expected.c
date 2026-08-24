@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-array-size-inference.test.h"
+
 #include <stdint.h>
 #include <string.h>
 

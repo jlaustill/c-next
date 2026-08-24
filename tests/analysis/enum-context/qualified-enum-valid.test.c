@@ -3,16 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "qualified-enum-valid.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Unqualified enum values work correctly when type context is enum
-typedef enum {
-    Priority__LOW = 1,
-    Priority__MEDIUM = 2,
-    Priority__HIGH = 3
-} Priority;
-
 // Valid: assignment to enum type
 Priority globalPriority = Priority__LOW;
 

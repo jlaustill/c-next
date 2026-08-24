@@ -3,16 +3,10 @@
  * A safer C for embedded systems
  */
 
+#include "switch-enum-default-counted.test.h"
+
 // ADR-025: Counted Default Test
 // Tests default(n) syntax for large enums
-typedef enum {
-    EHttpStatus__OK = 0,
-    EHttpStatus__CREATED = 1,
-    EHttpStatus__BAD_REQUEST = 2,
-    EHttpStatus__UNAUTHORIZED = 3,
-    EHttpStatus__NOT_FOUND = 4
-} EHttpStatus;
-
 void handleSuccess(void) {
 }
 

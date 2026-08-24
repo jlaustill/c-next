@@ -3,17 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "sizeof-in-expression.test.hpp"
+
 #include <stdint.h>
 
 // test-coverage: 23-sizeof-in-expression
 // test-execution
 // Tests: sizeof used in arithmetic expressions
-typedef struct Header {
-    uint32_t magic;
-    uint32_t version;
-    uint32_t length;
-} Header;
-
 int main(void) {
     uint32_t totalSize = sizeof(uint32_t) + sizeof(uint16_t);
     if (totalSize != 6) return 1;

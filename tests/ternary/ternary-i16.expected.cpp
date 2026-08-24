@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "ternary-i16.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

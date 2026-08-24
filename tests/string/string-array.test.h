@@ -16,6 +16,10 @@ extern "C" {
 /* External variables */
 extern char globalNames[5][33];
 
+/* Function prototypes */
+uint32_t getArrayLength(char arr[5][33]);
+uint32_t getElementLength(char arr[5][33], uint32_t index);
+
 #ifdef __cplusplus
 }
 #endif

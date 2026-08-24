@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "clamp-declaration.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Test clamp keyword in variable declarations

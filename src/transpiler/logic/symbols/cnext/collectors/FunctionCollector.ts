@@ -22,7 +22,9 @@ class FunctionCollector {
    * @param sourceFile Source file path
    * @param scope The scope this function belongs to (IScopeSymbol)
    * @param body AST reference for the function body
-   * @param visibility Visibility for scope functions (default "private")
+   * @param visibility Required: #1161 — a default here is a third source
+   *   of truth for ADR-016 and drifted from it. Callers pass
+   *   ScopeUtils.getDefaultVisibility() or an explicit keyword.
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The function symbol with TType-based types and scope reference
    */
@@ -31,7 +33,7 @@ class FunctionCollector {
     sourceFile: string,
     scope: IScopeSymbol,
     body: Parser.BlockContext | null,
-    visibility: "public" | "private" = "private",
+    visibility: "public" | "private",
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     const name = ctx.IDENTIFIER().getText();
@@ -82,7 +84,9 @@ class FunctionCollector {
    * @param sourceFile Source file path
    * @param scopeName Optional scope name for nested functions
    * @param body AST reference for the function body
-   * @param visibility Visibility for scope functions (default "private")
+   * @param visibility Required: #1161 — a default here is a third source
+   *   of truth for ADR-016 and drifted from it. Callers pass
+   *   ScopeUtils.getDefaultVisibility() or an explicit keyword.
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The function symbol
    */
@@ -91,7 +95,7 @@ class FunctionCollector {
     sourceFile: string,
     scopeName: string | undefined,
     body: Parser.BlockContext,
-    visibility: "public" | "private" = "private",
+    visibility: "public" | "private",
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     // 1. Get or create the scope in SymbolRegistry

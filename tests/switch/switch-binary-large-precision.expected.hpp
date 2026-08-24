@@ -16,6 +16,10 @@ extern "C" {
 /* External variables */
 extern uint32_t result;
 
+/* Function prototypes */
+void testLargeBinaryPrecision(uint64_t val);
+void testVeryLargeBinary(uint64_t val);
+
 #ifdef __cplusplus
 }
 #endif

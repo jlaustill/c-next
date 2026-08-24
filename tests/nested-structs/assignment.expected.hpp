@@ -26,6 +26,10 @@ typedef struct Line {
 /* External variables */
 extern Line segment;
 
+/* Function prototypes */
+void moveEndPoint(void);
+void setStartPoint(int32_t newX, int32_t newY);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "valid-c-prefix-reassignment.test.h"
+
 // ADR-046: Valid c_ prefix reassignment pattern
 // Tests that c_ prefixed variables can be reassigned (e.g., in while loops).
 // After reassignment, a new NULL check is required (stricter E0908 behavior).

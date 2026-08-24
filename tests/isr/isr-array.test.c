@@ -3,8 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* ADR-040: ISR function pointer type */
-typedef void (*ISR)(void);
+#include "isr-array.test.h"
 
 // ADR-040: ISR array test (for vector tables)
 void resetHandler(void) {

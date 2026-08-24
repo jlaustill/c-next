@@ -25,6 +25,7 @@ extern uint32_t TestScope__publicArr[16];
 /* Function prototypes */
 uint32_t TestScope__getGlobalArrayElementCount(void);
 uint32_t TestScope__getScopeArrayElementCount(void);
+uint32_t checkArrayElementCount(uint32_t arr[16]);
 
 #ifdef __cplusplus
 }

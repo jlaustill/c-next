@@ -13,9 +13,20 @@
 extern "C" {
 #endif
 
+/* ADR-040: ISR function pointer type */
+typedef void (*ISR)(void);
+
 /* External variables */
 extern uint32_t paramCallCount;
 extern uint32_t paramLastHandler;
+
+/* Function prototypes */
+void paramHandler1(void);
+void paramHandler2(void);
+void paramHandler3(void);
+void executeParamHandler(ISR cb);
+void executeParamMultiple(ISR fn, uint32_t times);
+void executeParamBoth(ISR first, ISR second);
 
 #ifdef __cplusplus
 }

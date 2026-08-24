@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "do-while-equality.test.h"
+
 #include <stdint.h>
 
 // ADR-027: Do-while with equality condition

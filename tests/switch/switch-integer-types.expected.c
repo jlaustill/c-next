@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-integer-types.test.h"
+
 #include <stdint.h>
 
 // test-execution

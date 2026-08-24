@@ -3,17 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "generated-c-readable.test.h"
+
 #include <stdint.h>
 
 // ADR-010: C Interoperability - Readable output
 // Tests: generated C is idiomatic and maintainable
 // This test verifies the generated C is clean and readable
 // The expected.c file should be human-readable C code
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 Point addPoints(const Point* a, const Point* b) {
     Point result = {0};
     result.x = a->x + b->x;

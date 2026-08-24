@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern uint32_t result;
 
+/* Function prototypes */
+void handleCommand(uint32_t cmd);
+
 #ifdef __cplusplus
 }
 #endif

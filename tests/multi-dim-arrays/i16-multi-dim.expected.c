@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "i16-multi-dim.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions

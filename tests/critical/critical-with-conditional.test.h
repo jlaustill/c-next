@@ -17,6 +17,9 @@ extern "C" {
 extern uint32_t counter;
 extern uint32_t overflows;
 
+/* Function prototypes */
+void safeIncrement(void);
+
 #ifdef __cplusplus
 }
 #endif

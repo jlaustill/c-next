@@ -3,26 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "simple-enum.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // Tests: Basic enum definition and usage
 // Demonstrates: enum declaration, values, assignment, comparison
-typedef enum {
-    Status__IDLE = 0,
-    Status__RUNNING = 1,
-    Status__PAUSED = 2,
-    Status__STOPPED = 3
-} Status;
-
-typedef enum {
-    Priority__LOW = 1,
-    Priority__MEDIUM = 5,
-    Priority__HIGH = 10,
-    Priority__CRITICAL = 100
-} Priority;
-
 int main(void) {
     Status s = Status__IDLE;
     if (s != Status__IDLE) return 1;

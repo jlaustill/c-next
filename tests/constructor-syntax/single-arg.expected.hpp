@@ -18,6 +18,10 @@ extern "C" {
 extern const uint8_t thermoCouplePin;
 extern Adafruit_MAX31856 thermocouple;
 
+/* Function prototypes */
+void setup(void);
+void loop(void);
+
 #ifdef __cplusplus
 }
 #endif

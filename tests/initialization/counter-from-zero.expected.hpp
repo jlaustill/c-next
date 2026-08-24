@@ -17,6 +17,9 @@ extern "C" {
 extern uint32_t eventCount;
 extern uint32_t maxEvents;
 
+/* Function prototypes */
+void recordEvent(void);
+
 #ifdef __cplusplus
 }
 #endif

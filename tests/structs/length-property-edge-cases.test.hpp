@@ -27,6 +27,10 @@ typedef struct AllTypes {
     double field_f64;
 } AllTypes;
 
+/* Function prototypes */
+uint32_t testConst(const AllTypes& data);
+uint32_t testParam(const AllTypes& data);
+
 #ifdef __cplusplus
 }
 #endif

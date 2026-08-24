@@ -16,6 +16,11 @@ extern "C" {
 /* External variables */
 extern int32_t result;
 
+/* Function prototypes */
+void testNegativeGroup(int8_t val);
+void testMixedGroup(int16_t val);
+void testNegativeHexGroup(int32_t val);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-assign-for.test.hpp"
+
 #include <stdint.h>
 #include <string.h>
 

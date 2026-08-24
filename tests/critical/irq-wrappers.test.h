@@ -17,6 +17,9 @@ extern "C" {
 extern uint8_t buffer[64];
 extern uint32_t writeIdx;
 
+/* Function prototypes */
+void enqueue(uint8_t data);
+
 #ifdef __cplusplus
 }
 #endif

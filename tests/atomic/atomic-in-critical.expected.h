@@ -19,6 +19,12 @@ extern volatile uint16_t sequence;
 extern uint8_t buffer[64];
 extern uint32_t writeIdx;
 
+/* Function prototypes */
+void criticalUpdate(void);
+void enqueueWithCount(uint8_t data);
+void batchUpdate(uint32_t delta);
+void conditionalIncrement(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-parameter.test.hpp"
+
 #include <stdint.h>
 
 // ADR-013: Const function parameter

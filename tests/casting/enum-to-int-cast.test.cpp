@@ -3,25 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "enum-to-int-cast.test.hpp"
+
 #include <stdint.h>
 
 // test-coverage: 22-enum-to-int-cast
 // test-execution
 // Tests: Explicit enum to integer cast
-typedef enum {
-    Priority__LOW = 1,
-    Priority__MEDIUM = 5,
-    Priority__HIGH = 10,
-    Priority__CRITICAL = 100
-} Priority;
-
-typedef enum {
-    Flags__NONE = 0,
-    Flags__READ = 1,
-    Flags__WRITE = 2,
-    Flags__EXECUTE = 4
-} Flags;
-
 int main(void) {
     uint32_t lowVal = static_cast<uint32_t>(Priority__LOW);
     if (lowVal != 1) return 1;

@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "anon_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,6 +16,9 @@ extern "C" {
 
 /* External variables */
 extern int32_t g_callback_value;
+
+/* Function prototypes */
+void my_config_handler(const SimpleConfig& cfg);
 
 #ifdef __cplusplus
 }

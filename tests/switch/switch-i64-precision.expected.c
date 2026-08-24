@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-i64-precision.test.h"
+
 #include <stdint.h>
 
 // test-execution

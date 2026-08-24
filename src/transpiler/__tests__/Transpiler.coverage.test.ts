@@ -509,7 +509,12 @@ describe("Transpiler coverage tests", () => {
 
   describe("Header generation", () => {
     it("skips header generation when no exported symbols", async () => {
-      mockFs.addFile("/project/src/internal.cnx", "void privateFunc() { }");
+      // #1161: a top-level function is public (ADR-016), so it would export.
+      // Privacy is what `scope` is for — this is a file that truly exports nothing.
+      mockFs.addFile(
+        "/project/src/internal.cnx",
+        "scope Internal { private void helper() { } }",
+      );
 
       const transpiler = new Transpiler(
         {

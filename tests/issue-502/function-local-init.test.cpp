@@ -5,6 +5,8 @@
  * GNU/Clang extensions: compound literals in C++, designated initializers in C++.
  */
 
+#include "function-local-init.test.hpp"
+
 // test-transpile-only
 // Tests: Issue #502 - Function-local struct initialization with C++ namespaced types
 #include "SeaDash.hpp"

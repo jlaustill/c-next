@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "nested-control-3-levels.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

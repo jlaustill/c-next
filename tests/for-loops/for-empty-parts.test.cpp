@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "for-empty-parts.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions

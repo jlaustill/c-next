@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "compound-assign-2d.test.hpp"
+
 #include <stdint.h>
 
 // Test: Compound assignment on multi-dimensional arrays

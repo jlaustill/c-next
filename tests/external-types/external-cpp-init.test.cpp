@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "external-cpp-init.test.hpp"
+
 // Issue #309: External C++ type initialization
 // When outputting C++ and a type is not in the symbol table
 // (e.g., external library with --no-preprocess), use {} not {0}

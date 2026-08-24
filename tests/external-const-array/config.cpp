@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "config.hpp"
+
 #include <stdint.h>
 
 // Configuration constants for external-const-array test

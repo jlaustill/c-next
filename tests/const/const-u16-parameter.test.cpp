@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-u16-parameter.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
