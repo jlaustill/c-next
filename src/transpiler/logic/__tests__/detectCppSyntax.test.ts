@@ -164,7 +164,7 @@ describe("detectCppSyntax", () => {
     });
 
     it.each([
-      ["a keyword that is only a suffix", "mypublic:"],
+      ["a keyword that is only a suffix", "my_public:"],
       ["a keyword followed by more identifier", "public_x:"],
       ["a keyword with a word suffix", "publicly:"],
       ["a label with code before it on the line", "x = public:"],

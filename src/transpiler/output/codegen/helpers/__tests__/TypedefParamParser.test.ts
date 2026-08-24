@@ -10,7 +10,7 @@ describe("TypedefParamParser", () => {
   describe("parse", () => {
     // The base type is derived by dropping a trailing parameter name. These
     // rows are the corpus that replacement was checked against when it stopped
-    // using /\s+\w+$/ (S8786), kept so the behaviour stays pinned -- in
+    // using /\s+\w+$/ (S8786), kept so the behavior stays pinned -- in
     // particular that a trailing token which is not a plain identifier is left
     // alone rather than cut at the last space.
     it.each([
