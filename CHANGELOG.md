@@ -7,11 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-24
+
+> Minor rather than patch because generated C symbol names changed: scope members now
+> transpile with a `__` separator (`LED_on()` becomes `LED__on()`). No `.cnx` source
+> changes are required; C/C++ that calls generated names does need updating.
+
+### Added
+
+- Toolchain requirements are now a per-feature registry, and `docs/compatibility.md` is generated
+  from it, so what the output costs the user is recorded where it is emitted (Issue #1143)
+- E0806: compound assignment on a `bool` is rejected — only `<-` is valid; flip a flag with
+  `flag <- !flag` (MISRA C:2012 Rule 10.1, Issue #1145)
+- E0807: arithmetic, bitwise, shift and relational operators are rejected on a `bool` operand,
+  including bool-valued expressions — a comparison, a logical result, a bool-returning call, or a
+  ternary with bool arms (MISRA C:2012 Rule 10.1, Issue #1183)
+- E0201: source identifiers containing `__` are rejected, reserving it as the qualified-name
+  separator (ADR-063, Issue #1117)
+
 ### Changed
 
-- ADR numbering now follows an explicit release-band rule: an ADR's band is the release it must
-  ship in, and cutting `v(N+1)` requires every non-terminal ADR in band `N` to be implemented.
-  The rule is documented in [`docs/decisions/README.md`](docs/decisions/README.md) and CLAUDE.md.
+- **BREAKING** — generated C symbol names for scope members use `__` instead of `_`
+  (`LED_on()` → `LED__on()`). `Scope_member` was not injective: a global `Reg_flags` and a
+  scope member `Reg.flags` both emitted `Reg_flags`, and two different scopes could collide on
+  one identifier. Both transpiled with exit 0 and failed in the C compiler (ADR-063, Issue #1117)
+- **BREAKING** — `bool` no longer participates in arithmetic. `flag +<- true` and
+  `n / (a && b)` were accepted and are now rejected; the latter compiled to a runtime
+  division by zero (Issues #1145, #1183)
+- `clamp` now governs arithmetic expressions, not only compound assignment (Issue #1152)
+- The `cnx_` prefix is reserved, and include identity is keyed on path rather than basename
+- Regression fixtures moved from `bugs/` into `tests/bugs/`, so every fixture-walking script
+  covers them (Issue #1142)
+- - ADR numbering now follows an explicit release-band rule: an ADR's band is the release it must
+    ship in, and cutting `v(N+1)` requires every non-terminal ADR in band `N` to be implemented.
+    The rule is documented in [`docs/decisions/README.md`](docs/decisions/README.md) and CLAUDE.md.
 - Seven ADRs that were mis-filed in the `1xx` band were renumbered into `0xx`, since they are
   v1-gating work: ADR-108 → ADR-064, ADR-109 → ADR-065, ADR-110 → ADR-066, ADR-112 → ADR-067,
   ADR-113 → ADR-068, ADR-114 → ADR-069, ADR-115 → ADR-070. Older entries in this changelog and
@@ -22,6 +51,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR-065 (CodeGenerator Decomposition) status corrected from `Research` to `WIP` — its
   classifier + handler + utils pattern shipped in PR #447, but the decomposition it prescribes
   is not finished.
+
+### Fixed
+
+- Scope member visibility is carried across `#include`, so a private member is no longer
+  silently dropped from a consuming file (Issue #1190)
+- Array dimensions resolve through one shared evaluator: an arithmetic dimension
+  (`u8[8+1]`) no longer loses its array-ness, a multi-dimensional struct field (`u8[2][3]`)
+  keeps every dimension, and a hex-sized array (`u8[0x10]`) keeps its bounds checking
+  (Issues #1127, #1157, #1158, #1159)
+- Cross-file struct parameters resolve by canonical identity: the header keeps auto-`const`
+  and the call site passes an address (Issue #1139)
+- Bare scope-local type names are qualified in generated C output (ADR-057, Issue #1130)
+- Over-indexing a scalar or array base is rejected instead of silently emitting wrong C (Issue #1106)
+- Duplicate system `#include` directives are removed (Issue #1108)
+- A multi-line `lib_extra_dirs` in `platformio.ini` keeps every path, not just the first
+  (Issue #1181)
+- `TypedefParamParser` no longer strips the last word of an unnamed multi-word type, so
+  `void (*)(unsigned int)` keeps `unsigned int` rather than becoming `unsigned` (Issue #1189)
 
 ## [0.2.18] - 2026-07-10
 
@@ -1322,6 +1369,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.18...HEAD
+[0.3.0]: https://github.com/jlaustill/c-next/compare/v0.2.18...v0.3.0
 [0.2.18]: https://github.com/jlaustill/c-next/compare/v0.2.17...v0.2.18
 [0.2.17]: https://github.com/jlaustill/c-next/compare/v0.2.16...v0.2.17
 [0.2.16]: https://github.com/jlaustill/c-next/compare/v0.2.15...v0.2.16
