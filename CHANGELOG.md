@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.19] - 2026-08-24
+## [0.3.0] - 2026-08-24
 
-> **Upgrading:** this release changes generated C symbol names. Scope members now
+> Minor rather than patch because generated C symbol names changed: scope members now
 > transpile with a `__` separator (`LED_on()` becomes `LED__on()`). No `.cnx` source
-> changes are required, but C/C++ code that calls generated names must be updated.
+> changes are required; C/C++ that calls generated names does need updating.
 
 ### Added
 
@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-file struct parameters resolve by canonical identity: the header keeps auto-`const`
   and the call site passes an address (Issue #1139)
 - Bare scope-local type names are qualified in generated C output (ADR-057, Issue #1130)
-- Over-indexing a scalar or array base is rejected instead of miscompiling (Issue #1106)
+- Over-indexing a scalar or array base is rejected instead of silently emitting wrong C (Issue #1106)
 - Duplicate system `#include` directives are removed (Issue #1108)
 - A multi-line `lib_extra_dirs` in `platformio.ini` keeps every path, not just the first
   (Issue #1181)
@@ -1369,7 +1369,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
 [Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.18...HEAD
-[0.2.19]: https://github.com/jlaustill/c-next/compare/v0.2.18...v0.2.19
+[0.3.0]: https://github.com/jlaustill/c-next/compare/v0.2.18...v0.3.0
 [0.2.18]: https://github.com/jlaustill/c-next/compare/v0.2.17...v0.2.18
 [0.2.17]: https://github.com/jlaustill/c-next/compare/v0.2.16...v0.2.17
 [0.2.16]: https://github.com/jlaustill/c-next/compare/v0.2.15...v0.2.16
