@@ -14,6 +14,7 @@
  * CodeGenerator dependencies.
  */
 
+import ISubstringOps from "../types/ISubstringOps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import TypeResolver from "../TypeResolver.js";
@@ -109,13 +110,6 @@ interface IStringConcatOps {
 /**
  * Substring extraction operands extracted from expression.
  */
-interface ISubstringOps {
-  source: string;
-  start: string;
-  length: string;
-  sourceCapacity: number;
-}
-
 /**
  * Callbacks for the full variable declaration orchestrator.
  */

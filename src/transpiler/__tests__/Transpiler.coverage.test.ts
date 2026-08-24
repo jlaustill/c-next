@@ -295,7 +295,7 @@ describe("Transpiler coverage tests", () => {
 
       expect(result.success).toBe(true);
       // In parse-only mode, no output files should be written
-      expect(result.outputFiles.length).toBe(0);
+      expect(result.outputFiles).toHaveLength(0);
     });
   });
 
@@ -526,7 +526,7 @@ describe("Transpiler coverage tests", () => {
       // No header file should be generated
       const writeCalls = mockFs.getWriteLog();
       const headerWrites = writeCalls.filter((w) => w.path.endsWith(".h"));
-      expect(headerWrites.length).toBe(0);
+      expect(headerWrites).toHaveLength(0);
     });
 
     it("generates header with function parameters marked as const", async () => {
@@ -559,7 +559,7 @@ describe("Transpiler coverage tests", () => {
       // Issue #933: C++ mode generates .hpp extension
       const writeCalls = mockFs.getWriteLog();
       const headerWrites = writeCalls.filter((w) => w.path.endsWith(".hpp"));
-      expect(headerWrites.length).toBe(1);
+      expect(headerWrites).toHaveLength(1);
     });
   });
 
@@ -1346,7 +1346,7 @@ describe("Transpiler coverage integration tests", () => {
     const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(true);
-    expect(result.files.length).toBe(2);
+    expect(result.files).toHaveLength(2);
   });
 
   it("uses cache on second run when enabled", async () => {

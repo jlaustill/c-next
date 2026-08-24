@@ -223,7 +223,7 @@ describe("SymbolTable", () => {
       });
 
       const all = symbolTable.getAllSymbols();
-      expect(all.length).toBe(3);
+      expect(all).toHaveLength(3);
     });
   });
 
@@ -257,7 +257,7 @@ describe("SymbolTable", () => {
       });
 
       const overloads = symbolTable.getOverloads("process");
-      expect(overloads.length).toBe(2);
+      expect(overloads).toHaveLength(2);
     });
   });
 
@@ -590,7 +590,7 @@ describe("SymbolTable", () => {
       });
 
       const structs = symbolTable.getStructSymbols();
-      expect(structs.length).toBe(1);
+      expect(structs).toHaveLength(1);
       expect(structs[0].name).toBe("MyStruct");
     });
 
@@ -607,7 +607,7 @@ describe("SymbolTable", () => {
       } as IEnumSymbol);
 
       const enums = symbolTable.getEnumSymbols();
-      expect(enums.length).toBe(1);
+      expect(enums).toHaveLength(1);
       expect(enums[0].name).toBe("MyEnum");
     });
 
@@ -627,7 +627,7 @@ describe("SymbolTable", () => {
       } as IFunctionSymbol);
 
       const functions = symbolTable.getFunctionSymbols();
-      expect(functions.length).toBe(1);
+      expect(functions).toHaveLength(1);
       expect(functions[0].name).toBe("myFunc");
     });
   });
@@ -959,7 +959,7 @@ describe("SymbolTable", () => {
 
       symbolTable.clear();
 
-      expect(symbolTable.getAllSymbols().length).toBe(0);
+      expect(symbolTable.getAllSymbols()).toHaveLength(0);
       expect(symbolTable.getStructFieldType("Point", "x")).toBeUndefined();
       expect(symbolTable.checkNeedsStructKeyword("RawStruct")).toBe(false);
       expect(symbolTable.isOpaqueType("widget_t")).toBe(false);

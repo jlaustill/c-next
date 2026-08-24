@@ -371,7 +371,7 @@ describe("IncludeDiscovery", () => {
       );
 
       const uniquePaths = new Set(paths);
-      expect(paths.length).toBe(uniquePaths.size);
+      expect(paths).toHaveLength(uniquePaths.size);
     });
 
     it("discovers PlatformIO library paths when platformio.ini exists", () => {

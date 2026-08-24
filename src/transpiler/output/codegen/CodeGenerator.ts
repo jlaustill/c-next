@@ -3,6 +3,7 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
+import type ISubstringOps from "./types/ISubstringOps";
 import { basename } from "node:path";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
@@ -1533,12 +1534,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /** Get substring operands if expression is a substring call */
-  getSubstringOperands(ctx: Parser.ExpressionContext): {
-    source: string;
-    start: string;
-    length: string;
-    sourceCapacity: number;
-  } | null {
+  getSubstringOperands(ctx: Parser.ExpressionContext): ISubstringOps | null {
     return this._getSubstringOperands(ctx);
   }
 
@@ -3041,12 +3037,9 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-045: Check if an expression is a substring extraction.
    * Delegates to StringOperationsHelper.
    */
-  private _getSubstringOperands(ctx: Parser.ExpressionContext): {
-    source: string;
-    start: string;
-    length: string;
-    sourceCapacity: number;
-  } | null {
+  private _getSubstringOperands(
+    ctx: Parser.ExpressionContext,
+  ): ISubstringOps | null {
     return StringOperationsHelper.getSubstringOperands(ctx, {
       generateExpression: (exprCtx) => this.generateExpression(exprCtx),
     });
@@ -4262,7 +4255,10 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check if the base return type matches the declared type
     // e.g., "widget_t *" or "widget_t*" matches declared "widget_t"
-    const returnBaseType = returnType.replace(/\s*\*\s*$/, "").trim();
+    // The guard above established the last character is '*', so dropping it and
+    // trimming is exactly what /\s*\*\s*$/ did -- without the super-linear
+    // backtracking that pattern has on a long run of spaces (S8786).
+    const returnBaseType = returnType.slice(0, -1).trim();
     if (returnBaseType === declaredType) {
       return `${declaredType}*`;
     }
@@ -5038,6 +5034,38 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * True when the text contains an identifier followed by `(`, as
+   * /[a-zA-Z_]\w*\s*\(/ did -- scanned rather than matched, because that
+   * pattern retries \w* from every position when no `(` follows (S8786).
+   *
+   * The match may begin anywhere inside a word run, so the run before the
+   * parenthesis needs only to contain one letter or underscore: "9a8(" matches
+   * (starting at 'a') while "99(" does not.
+   */
+  private static _hasIdentifierBeforeParen(text: string): boolean {
+    for (let index = 0; index < text.length; index += 1) {
+      if (text[index] !== "(") {
+        continue;
+      }
+      let cursor = index - 1;
+      while (cursor >= 0 && /\s/.test(text[cursor])) {
+        cursor -= 1;
+      }
+      let sawIdentifierStart = false;
+      while (cursor >= 0 && /\w/.test(text[cursor])) {
+        if (/[a-zA-Z_]/.test(text[cursor])) {
+          sawIdentifierStart = true;
+        }
+        cursor -= 1;
+      }
+      if (sawIdentifierStart) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * ADR-023: Check if expression has side effects (E0602)
    * Side effects include: assignments, function calls
    */
@@ -5059,7 +5087,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Check for function calls by looking for identifier followed by (
     // This is a heuristic - looking for "name(" pattern that's not a cast
-    if (/[a-zA-Z_]\w*\s*\(/.exec(text)) {
+    if (CodeGenerator._hasIdentifierBeforeParen(text)) {
       // Could be a function call - walk the tree to confirm
       return this.hasPostfixFunctionCall(expr);
     }

@@ -117,7 +117,7 @@ describe("MemberSeparatorResolver", () => {
         deps,
       );
 
-      expect(ctx.scopedRegName).toBe(null);
+      expect(ctx.scopedRegName).toBeNull();
       expect(ctx.isScopedRegister).toBe(false);
     });
 

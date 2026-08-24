@@ -35,6 +35,35 @@ interface ITypedefParseResult {
   params: ITypedefParam[];
 }
 
+/**
+ * Drop a trailing space-separated identifier, exactly as /\s+\w+$/ did.
+ *
+ * Scanned from the end rather than matched, avoiding the super-linear
+ * backtracking of /\s+\w+$/ (S8786).
+ *
+ * The word-character check is load-bearing: \w+ does not match a final token
+ * containing anything else, so "int (fn)(void)" -- what a function-pointer
+ * parameter looks like once the stars are stripped -- is left alone. Cutting
+ * at the last space unconditionally would reduce it to "int".
+ */
+function stripTrailingIdentifier(text: string): string {
+  let start = text.length;
+  while (start > 0 && /\w/.test(text[start - 1])) {
+    start -= 1;
+  }
+  if (start === text.length) {
+    return text; // no trailing identifier
+  }
+  // Consume the whole whitespace run, not just the last space. The caller
+  // normalises runs to a single space today, but depending on that would make
+  // this correct only by coincidence.
+  let cut = start;
+  while (cut > 0 && /\s/.test(text[cut - 1])) {
+    cut -= 1;
+  }
+  return cut === start ? text : text.slice(0, cut);
+}
+
 class TypedefParamParser {
   /**
    * Parse a function pointer typedef type string.
@@ -157,7 +186,7 @@ class TypedefParamParser {
     // Remove trailing param name if present (e.g., "rect_t area" -> "rect_t")
     // Only remove if there are multiple words (space-separated)
     if (baseType.includes(" ")) {
-      baseType = baseType.replace(/\s+\w+$/, "");
+      baseType = stripTrailingIdentifier(baseType);
     }
 
     // Handle struct keyword

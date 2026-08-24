@@ -664,6 +664,63 @@ class SymbolTable {
   }
 
   /**
+   * Issue #221: function parameters must not count as conflicting definitions.
+   * They have a parent, but their name is not qualified with the parent prefix.
+   *
+   * Only C/C++ symbols are filtered. A C-Next variable is always kept: at this
+   * point a scope-level variable and a function parameter are indistinguishable,
+   * so the original code returned true down both of its branches.
+   */
+  private static isNotFunctionParameter(def: TAnySymbol): boolean {
+    if (
+      def.sourceLanguage === ESourceLanguage.CNext &&
+      def.kind === "variable"
+    ) {
+      return true;
+    }
+    if ("parent" in def && def.parent) {
+      // A non-variable with a parent is a real definition; a variable with a
+      // parent may be a function parameter, so it is dropped.
+      return def.kind !== "variable";
+    }
+    return true;
+  }
+
+  /**
+   * True when every definition is a C++ function and all their signatures
+   * differ -- overloads, which are legal rather than a conflict.
+   *
+   * Currently redundant (#1180): no path in detectConflict reports a conflict
+   * between two C++ symbols, so an all-C++ group returns null whether this
+   * short-circuits or falls through. Verified by mutation -- forcing this to
+   * false left all 49 SymbolTable tests passing. Extracted here unchanged
+   * rather than deleted, because which way to resolve it (drop the branch, or
+   * add the same-signature conflict it implies) is a behaviour decision.
+   */
+  private static areAllDistinctCppOverloads(
+    globalDefinitions: TAnySymbol[],
+  ): boolean {
+    const cppFunctions = globalDefinitions.filter(
+      (s) =>
+        s.sourceLanguage === ESourceLanguage.Cpp &&
+        s.kind === "function" &&
+        "parameters" in s,
+    );
+    if (cppFunctions.length !== globalDefinitions.length) {
+      return false;
+    }
+
+    const signatures = cppFunctions.map((f) => {
+      if ("parameters" in f && f.parameters) {
+        const params = f.parameters as ReadonlyArray<{ type?: string }>;
+        return params.map((p) => p.type ?? "").join(",");
+      }
+      return "";
+    });
+    return new Set(signatures).size === cppFunctions.length;
+  }
+
+  /**
    * Detect if a set of symbols with the same name represents a conflict
    */
   private detectConflict(symbols: TAnySymbol[]): IConflict | null {
@@ -677,56 +734,16 @@ class SymbolTable {
       return null;
     }
 
-    // Issue #221: Filter out function parameters from conflict detection
-    // Function parameters have a parent but their name is NOT qualified with the parent prefix.
-    const globalDefinitions = definitions.filter((def) => {
-      // C-Next variables with scope need special handling
-      if (
-        def.sourceLanguage === ESourceLanguage.CNext &&
-        def.kind === "variable"
-      ) {
-        // After sourceLanguage check, def is narrowed to TSymbol
-        // After kind check, def is narrowed to IVariableSymbol
-        // Global scope means no conflict filtering needed
-        if (def.scope.name === "") return true;
-        // Scope-level variables vs function parameters:
-        // We can't easily distinguish here, so keep all for now
-        return true;
-      }
-      // C/C++ symbols: check parent field
-      if ("parent" in def && def.parent) {
-        // Non-variable symbols with parents are kept
-        if (def.kind !== "variable") return true;
-        // Variables with parents might be function parameters - filter out
-        return false;
-      }
-      return true;
-    });
+    const globalDefinitions = definitions.filter(
+      SymbolTable.isNotFunctionParameter,
+    );
 
     if (globalDefinitions.length <= 1) {
       return null;
     }
 
-    // Check for C++ function overloads (different signatures are OK)
-    const cppFunctions = globalDefinitions.filter(
-      (s) =>
-        s.sourceLanguage === ESourceLanguage.Cpp &&
-        s.kind === "function" &&
-        "parameters" in s,
-    );
-    if (cppFunctions.length === globalDefinitions.length) {
-      // All are C++ functions with signatures - check for unique signatures
-      const signatures = cppFunctions.map((f) => {
-        if ("parameters" in f && f.parameters) {
-          const params = f.parameters as ReadonlyArray<{ type?: string }>;
-          return params.map((p) => p.type ?? "").join(",");
-        }
-        return "";
-      });
-      const uniqueSignatures = new Set(signatures);
-      if (uniqueSignatures.size === cppFunctions.length) {
-        return null;
-      }
+    if (SymbolTable.areAllDistinctCppOverloads(globalDefinitions)) {
+      return null;
     }
 
     // Check for cross-language conflict (C-Next vs C or C++)

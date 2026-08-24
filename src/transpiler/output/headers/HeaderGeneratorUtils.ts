@@ -81,7 +81,13 @@ class HeaderGeneratorUtils {
    */
   static extractBaseType(type: string): string {
     // Remove pointer suffix
-    let baseType = type.replace(/\*+$/, "").trim();
+    // Scanned rather than /\*+$/, which backtracks super-linearly on a long
+    // run of '*' (S8786).
+    let end = type.length;
+    while (end > 0 && type[end - 1] === "*") {
+      end -= 1;
+    }
+    let baseType = type.slice(0, end).trim();
 
     // Remove array brackets
     baseType = baseType.replace(/\[\d*\]$/, "").trim();

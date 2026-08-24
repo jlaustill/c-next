@@ -77,13 +77,13 @@ describe("TypeGenerationHelper", () => {
     it("returns void unchanged with no include", () => {
       const result = TypeGenerationHelper.generatePrimitiveType("void");
       expect(result.cType).toBe("void");
-      expect(result.include).toBe(null);
+      expect(result.include).toBeNull();
     });
 
     it("returns unknown type unchanged", () => {
       const result = TypeGenerationHelper.generatePrimitiveType("CustomType");
       expect(result.cType).toBe("CustomType");
-      expect(result.include).toBe(null);
+      expect(result.include).toBeNull();
     });
   });
 

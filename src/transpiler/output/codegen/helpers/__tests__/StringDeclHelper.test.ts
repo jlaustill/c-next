@@ -575,7 +575,7 @@ describe("StringDeclHelper", () => {
       const substringOps = {
         source: "srcStr",
         start: "0",
-        length: "5",
+        lengthExpression: "5",
         sourceCapacity: 32,
       };
       const callbacks = {
@@ -616,7 +616,7 @@ describe("StringDeclHelper", () => {
       const substringOps = {
         source: "srcStr",
         start: "0",
-        length: "5",
+        lengthExpression: "5",
         sourceCapacity: 32,
       };
       const callbacks = {
@@ -651,7 +651,7 @@ describe("StringDeclHelper", () => {
       const substringOps = {
         source: "srcStr",
         start: "30",
-        length: "10",
+        lengthExpression: "10",
         sourceCapacity: 32, // start + length = 40 > 32
       };
       const callbacks = {
@@ -686,7 +686,7 @@ describe("StringDeclHelper", () => {
       const substringOps = {
         source: "srcStr",
         start: "0",
-        length: "20",
+        lengthExpression: "20",
         sourceCapacity: 32,
       };
       const callbacks = {
@@ -721,7 +721,7 @@ describe("StringDeclHelper", () => {
       const substringOps = {
         source: "srcStr",
         start: "startVar", // Non-numeric
-        length: "5",
+        lengthExpression: "5",
         sourceCapacity: 32,
       };
       const callbacks = {
@@ -757,7 +757,7 @@ describe("StringDeclHelper", () => {
       const substringOps = {
         source: "srcStr",
         start: "0",
-        length: "lenVar", // Non-numeric
+        lengthExpression: "lenVar", // Non-numeric
         sourceCapacity: 32,
       };
       const callbacks = {
@@ -793,7 +793,7 @@ describe("StringDeclHelper", () => {
       const substringOps = {
         source: "srcStr",
         start: "5",
-        length: "3",
+        lengthExpression: "3",
         sourceCapacity: 32,
       };
       const callbacks = {

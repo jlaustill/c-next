@@ -919,7 +919,7 @@ describe("HeaderGeneratorUtils", () => {
         input,
       );
       const myStructDecls = result.filter((l) => l.includes("MyStruct"));
-      expect(myStructDecls.length).toBe(1);
+      expect(myStructDecls).toHaveLength(1);
     });
 
     it("ignores non-struct parameters", () => {

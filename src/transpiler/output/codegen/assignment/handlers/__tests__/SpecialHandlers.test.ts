@@ -62,7 +62,7 @@ describe("SpecialHandlers", () => {
     });
 
     it("exports exactly 2 handlers", () => {
-      expect(specialHandlers.length).toBe(2);
+      expect(specialHandlers).toHaveLength(2);
     });
   });
 

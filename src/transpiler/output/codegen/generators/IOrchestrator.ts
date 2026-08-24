@@ -11,6 +11,7 @@
  * - Testing generators with mock orchestrators
  * - Gradual migration via "strangler fig" pattern
  */
+import type ISubstringOps from "../types/ISubstringOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
@@ -274,12 +275,7 @@ interface IOrchestrator {
   } | null;
 
   /** Get substring operands if expression is a substring call */
-  getSubstringOperands(ctx: Parser.ExpressionContext): {
-    source: string;
-    start: string;
-    length: string;
-    sourceCapacity: number;
-  } | null;
+  getSubstringOperands(ctx: Parser.ExpressionContext): ISubstringOps | null;
 
   /** Get the capacity of a string expression (for validation) */
   getStringExprCapacity(exprCode: string): number | null;

@@ -206,7 +206,7 @@ describe("StringOperationsHelper", () => {
       expect(result).not.toBeNull();
       expect(result!.source).toBe("myStr");
       expect(result!.start).toBe("0");
-      expect(result!.length).toBe("5");
+      expect(result!.lengthExpression).toBe("5");
       expect(result!.sourceCapacity).toBe(64);
     });
 
@@ -219,7 +219,7 @@ describe("StringOperationsHelper", () => {
       expect(result).not.toBeNull();
       expect(result!.source).toBe("myStr");
       expect(result!.start).toBe("3");
-      expect(result!.length).toBe("1");
+      expect(result!.lengthExpression).toBe("1");
       expect(result!.sourceCapacity).toBe(64);
     });
 
@@ -263,7 +263,7 @@ describe("StringOperationsHelper", () => {
 
       expect(result).not.toBeNull();
       expect(result!.start).toBe("generated_idx");
-      expect(result!.length).toBe("generated_len");
+      expect(result!.lengthExpression).toBe("generated_len");
     });
   });
 });

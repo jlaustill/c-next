@@ -6,6 +6,7 @@
  * - MULTI_DIM_ARRAY_ELEMENT: matrix[i][j] <- value
  * - ARRAY_SLICE: buffer[0, 10] <- source
  */
+import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
@@ -162,6 +163,29 @@ function unsignedCTypeForBytes(bytes: number): string {
  * are null and `bytes` is the widest serializable width (8), so the caller caps
  * the length and sizes the temp from the length to keep the cast Rule 10.8-clean.
  */
+/**
+ * Fold a slice source that has no fixed essential category of its own.
+ *
+ * A bare integer literal types as `int`; a negative literal (unary minus) types
+ * as null yet is still a compile-time constant. Both are contextually typed to
+ * the slice byte-width (ADR-052), so both are folded here and range-checked.
+ * A source that already resolves to a fixed-width type keeps that type and is
+ * not folded.
+ *
+ * @returns the folded value, or undefined when the source is not a
+ *          contextually-typed literal or does not evaluate to a constant
+ */
+function foldContextuallyTypedLiteral(
+  directType: string | null,
+  valueCtx: Parser.ExpressionContext | null | undefined,
+): number | undefined {
+  const isContextuallyTyped = directType === "int" || directType === null;
+  if (!isContextuallyTyped || !valueCtx) {
+    return undefined;
+  }
+  return CodeGenState.requireGenerator().tryEvaluateConstant(valueCtx);
+}
+
 function resolveSliceSource(
   ctx: IAssignmentContext,
   line: number,
@@ -190,12 +214,7 @@ function resolveSliceSource(
   // truncated (e.g. buf[0,1] <- -300 -> (uint8_t)(-300)) (Issue #1085 review).
   // A source that resolves to a fixed-width type (variable, struct field, …)
   // keeps that type and is not folded here.
-  const literalValue =
-    directType === "int" || directType === null
-      ? ctx.valueCtx
-        ? CodeGenState.requireGenerator().tryEvaluateConstant(ctx.valueCtx)
-        : undefined
-      : undefined;
+  const literalValue = foldContextuallyTypedLiteral(directType, ctx.valueCtx);
   if (literalValue !== undefined) {
     return resolveLiteralSliceSource(ctx, line, rawName, lengthValue);
   }

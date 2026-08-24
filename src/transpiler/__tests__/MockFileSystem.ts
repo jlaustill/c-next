@@ -33,7 +33,13 @@ class MockFileSystem implements IFileSystem {
    */
   private normalizePath(path: string): string {
     if (path === "/") return path;
-    return path.replace(/\/+$/, "");
+    // Scanned rather than /\/+$/, which backtracks super-linearly on a long
+    // run of '/' (S8786).
+    let end = path.length;
+    while (end > 0 && path[end - 1] === "/") {
+      end -= 1;
+    }
+    return path.slice(0, end);
   }
 
   /**

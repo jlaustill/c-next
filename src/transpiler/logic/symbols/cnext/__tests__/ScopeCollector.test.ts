@@ -51,7 +51,7 @@ describe("ScopeCollector", () => {
       // update() has explicit 'private' keyword
       expect(result.scopeSymbol.memberVisibility.get("update")).toBe("private");
 
-      expect(result.memberSymbols.length).toBe(2);
+      expect(result.memberSymbols).toHaveLength(2);
 
       // Functions now have bare names with scope references
       const initFunc = result.memberSymbols.find((s) => s.name === "init");
@@ -90,7 +90,7 @@ describe("ScopeCollector", () => {
       );
       expect(result.scopeSymbol.memberVisibility.get("speed")).toBe("public");
 
-      expect(result.memberSymbols.length).toBe(2);
+      expect(result.memberSymbols).toHaveLength(2);
 
       // Variables now have bare names with scope references
       const posVar = result.memberSymbols.find((s) => s.name === "position");
@@ -237,7 +237,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
       expect(result.scopeSymbol.members).toEqual(["position", "init", "State"]);
-      expect(result.memberSymbols.length).toBe(3);
+      expect(result.memberSymbols).toHaveLength(3);
 
       // Verify each type was collected correctly with bare names
       const varSymbol = result.memberSymbols.find((s) => s.name === "position");
