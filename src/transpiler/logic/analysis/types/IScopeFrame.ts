@@ -11,6 +11,12 @@
 interface IScopeFrame {
   readonly vars: Map<string, string>;
   readonly parent: IScopeFrame | null;
+  /**
+   * Name of the `scope` this frame belongs to, or null outside one. Carried so
+   * a `this.member()` call can be keyed by its transpiled C name, which is
+   * qualified by the scope (Issue #1183 review).
+   */
+  readonly scopeName: string | null;
 }
 
 export default IScopeFrame;

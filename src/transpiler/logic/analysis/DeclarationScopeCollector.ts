@@ -21,7 +21,11 @@ import * as Parser from "../parser/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
 
 class DeclarationScopeCollector extends CNextListener {
-  private readonly globalFrame: IScopeFrame = { vars: new Map(), parent: null };
+  private readonly globalFrame: IScopeFrame = {
+    vars: new Map(),
+    parent: null,
+    scopeName: null,
+  };
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly frameOf: Map<ParserRuleContext, IScopeFrame> = new Map();
@@ -41,8 +45,14 @@ class DeclarationScopeCollector extends CNextListener {
     return this.stack.at(-1) ?? this.globalFrame;
   }
 
-  private pushFrame(node: ParserRuleContext): void {
-    const frame: IScopeFrame = { vars: new Map(), parent: this.top() };
+  private pushFrame(node: ParserRuleContext, scopeName?: string): void {
+    const parent = this.top();
+    const frame: IScopeFrame = {
+      vars: new Map(),
+      parent,
+      // Inherited so a nested block inside a scope still knows its scope.
+      scopeName: scopeName ?? parent.scopeName,
+    };
     this.frameOf.set(node, frame);
     this.stack.push(frame);
   }
@@ -72,7 +82,7 @@ class DeclarationScopeCollector extends CNextListener {
   override enterScopeDeclaration = (
     ctx: Parser.ScopeDeclarationContext,
   ): void => {
-    this.pushFrame(ctx);
+    this.pushFrame(ctx, ctx.IDENTIFIER()?.getText());
   };
 
   override exitScopeDeclaration = (): void => {

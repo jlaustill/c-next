@@ -361,11 +361,28 @@ describe("BooleanOperandAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("does not flag a call result, whose type it cannot resolve", () => {
+    it("rejects a ternary whose arms are bool", () => {
+      const errors = analyze(inMain("u8 c <- n / ((n < 2) ? a : b);"));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("accepts a ternary with integer arms", () => {
+      expect(analyze(inMain("u8 c <- n / ((n < 5) ? 2 : 3);"))).toHaveLength(0);
+    });
+
+    it("does not flag a call whose return type is not bool", () => {
       const errors = analyze(`
         u8 get() { return 1; }
         void main() { u8 c <- get() + 1; }
       `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag a call to an unknown function", () => {
+      // Unresolvable stays permitted: rejecting what cannot be proven bool
+      // would fail valid code that calls into C.
+      const errors = analyze("void main() { u8 c <- unknownFn() + 1; }");
       expect(errors).toHaveLength(0);
     });
   });

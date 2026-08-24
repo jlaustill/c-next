@@ -22,11 +22,13 @@ import * as Parser from "../parser/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import CodeGenState from "../../state/CodeGenState";
+import QualifiedCName from "../../../utils/QualifiedCName";
 
-/** One step of a member/subscript chain. */
+/** One step of a member/subscript/call chain. */
 interface IChainStep {
   readonly member: string | null;
   readonly isSubscript: boolean;
+  readonly isCall: boolean;
 }
 
 /** The one type name that is essentially Boolean (MISRA C:2012 Rule 10.1). */
@@ -46,6 +48,29 @@ class OperandTypeResolver {
    */
   public static isBooleanType(typeName: string | null): boolean {
     return typeName === BOOLEAN_TYPE_NAME;
+  }
+
+  /**
+   * Type of a ternary: the type its ARMS agree on. The condition does not
+   * contribute -- it is always Boolean and says nothing about the result.
+   *
+   * The arms are reached through `orExpression()`, never `getChild(i)`: the
+   * condition is parenthesized, so child 0 is `(` and an index-based skip
+   * silently does nothing (CLAUDE.md). A real ternary has exactly three
+   * orExpression children; anything else is a pass-through this never sees.
+   */
+  private typeOfTernary(
+    ctx: Parser.TernaryExpressionContext,
+    frame: IScopeFrame,
+  ): string | null {
+    const branches = ctx.orExpression();
+    if (branches.length !== 3) return null;
+
+    const whenTrue = this.typeOfOperand(branches[1], frame);
+    const whenFalse = this.typeOfOperand(branches[2], frame);
+    // Arms that disagree are a separate defect; report no type rather than
+    // guessing which one the expression takes.
+    return whenTrue !== null && whenTrue === whenFalse ? whenTrue : null;
   }
 
   /**
@@ -90,11 +115,46 @@ class OperandTypeResolver {
     return typeName.slice(0, open) + typeName.slice(close + 1);
   }
 
-  /** Walk a resolved base type through the chain steps. */
-  private applyChain(base: string | null, steps: IChainStep[]): string | null {
+  /**
+   * Walk a chain from its base, applying one step at a time.
+   *
+   * `current` carries a type for a subscript or member step, and the callee's
+   * NAME for a call step -- a call is applied to what precedes it, which is a
+   * function name rather than a value. The name path is tracked alongside so a
+   * call can be resolved whether it is written bare (`isReady()`) or qualified
+   * (`Sensors.isReady()`).
+   */
+  private applyChain(
+    base: string | null,
+    baseName: string,
+    steps: IChainStep[],
+  ): string | null {
     let current = base;
+    const nameParts = [baseName];
+
     for (const step of steps) {
-      if (!current) return null;
+      if (step.isCall) {
+        // Issue #1183 review: a bool-returning call was unresolvable, so
+        // `n / isReady()` passed and divided by zero at runtime.
+        //
+        // functionReturnTypes is keyed by transpiled C name, so the key is
+        // built with QualifiedCName -- the single encoder -- rather than
+        // re-derived by hand (CLAUDE.md).
+        return (
+          CodeGenState.getFunctionReturnType(
+            QualifiedCName.join(...nameParts),
+          ) ?? null
+        );
+      }
+      if (step.member) {
+        nameParts.push(step.member);
+      }
+      if (!current) {
+        // No value type yet. A member step may still be building a callee name,
+        // so keep walking; anything else cannot be resolved.
+        if (step.member) continue;
+        return null;
+      }
       if (step.isSubscript) {
         current = OperandTypeResolver.elementType(current);
       } else if (step.member) {
@@ -122,9 +182,14 @@ class OperandTypeResolver {
     const steps: IChainStep[] = ctx.postfixTargetOp().map((op) => ({
       member: op.DOT() !== null ? (op.IDENTIFIER()?.getText() ?? null) : null,
       isSubscript: op.LBRACKET() !== null,
+      isCall: false, // an assignment target is never a call
     }));
 
-    return this.applyChain(this.scopes.typeOfName(baseName, frame), steps);
+    return this.applyChain(
+      this.scopes.typeOfName(baseName, frame),
+      baseName,
+      steps,
+    );
   }
 
   /**
@@ -142,29 +207,39 @@ class OperandTypeResolver {
     // Copy: shifting the parser's own child array would corrupt the tree.
     const ops = [...ctx.postfixOp()];
     let base: string | null;
+    let baseName: string;
 
     if (primary.THIS() ?? primary.GLOBAL()) {
       // `this.member` / `global.member`: the first step names the declaration.
       const firstMember = ops.shift()?.IDENTIFIER()?.getText();
       if (!firstMember) return null;
+      // `this.member()` transpiles to a scope-qualified C name, so the callee
+      // key needs the enclosing scope. `global.` is deliberately not qualified.
+      baseName =
+        primary.THIS() !== null && frame.scopeName
+          ? QualifiedCName.join(frame.scopeName, firstMember)
+          : firstMember;
       base = this.scopes.typeOfName(firstMember, frame);
     } else {
       const identifier = primary.IDENTIFIER()?.getText();
       if (!identifier) return null;
+      baseName = identifier;
       base = this.scopes.typeOfName(identifier, frame);
     }
 
     const steps: IChainStep[] = [];
     for (const op of ops) {
-      // Neither `.member` nor `[index]` means a call suffix: the result type is
-      // a function's, not a declaration's, so it is not resolvable here.
+      // Neither `.member` nor `[index]` is a call suffix.
       const isSubscript = op.LBRACKET() !== null;
       const member = op.DOT() !== null ? op.IDENTIFIER()?.getText() : null;
-      if (!isSubscript && !member) return null;
-      steps.push({ member: member ?? null, isSubscript });
+      steps.push({
+        member: member ?? null,
+        isSubscript,
+        isCall: !isSubscript && !member,
+      });
     }
 
-    return this.applyChain(base, steps);
+    return this.applyChain(base, baseName, steps);
   }
 
   /**
@@ -194,6 +269,10 @@ class OperandTypeResolver {
     // nothing reports at the child level.
     if (OperandTypeResolver.isBooleanValuedOperator(node)) {
       return BOOLEAN_TYPE_NAME;
+    }
+
+    if (node instanceof Parser.TernaryExpressionContext) {
+      return this.typeOfTernary(node, frame);
     }
 
     if (node instanceof Parser.UnaryExpressionContext) {
