@@ -361,7 +361,10 @@ const generateShiftExpr = (
  * overflow at all, and the sole signed case (`INT_MIN / -1`) is left to the
  * existing safe-division path rather than folded in here.
  */
-const CLAMP_HELPER_FOR_OPERATOR: Readonly<Record<string, string>> = {
+// Partial: an operator outside this map yields undefined, which the chain
+// guard below relies on. Typing it as a total Record made that lookup appear
+// to always produce a string, so the guard read as dead code (S7765).
+const CLAMP_HELPER_FOR_OPERATOR: Readonly<Partial<Record<string, string>>> = {
   "+": "add",
   "-": "sub",
   "*": "mul",
@@ -400,7 +403,7 @@ const tryClampOperands = (
   const chain = operandCodes.slice(1).map((_, index) => {
     return CLAMP_HELPER_FOR_OPERATOR[operators[index] ?? defaultOperator];
   });
-  if (chain.some((helperOperation) => helperOperation === undefined)) {
+  if (chain.includes(undefined)) {
     return null;
   }
 

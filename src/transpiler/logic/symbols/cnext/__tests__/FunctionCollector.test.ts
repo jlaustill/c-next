@@ -77,7 +77,7 @@ describe("FunctionCollector", () => {
         body,
       );
 
-      expect(symbol.parameters.length).toBe(2);
+      expect(symbol.parameters).toHaveLength(2);
       expect(symbol.parameters[0].name).toBe("a");
       expect(TypeResolver.getTypeName(symbol.parameters[0].type)).toBe("i32");
       expect(symbol.parameters[0].isConst).toBe(false);
@@ -341,7 +341,7 @@ describe("FunctionCollector", () => {
       );
 
       const globalScope = SymbolRegistry.getGlobalScope();
-      expect(globalScope.functions.length).toBe(1);
+      expect(globalScope.functions).toHaveLength(1);
       expect(globalScope.functions[0].name).toBe("getValue");
     });
 
@@ -363,7 +363,7 @@ describe("FunctionCollector", () => {
       );
 
       const motorScope = SymbolRegistry.getOrCreateScope("Motor");
-      expect(motorScope.functions.length).toBe(1);
+      expect(motorScope.functions).toHaveLength(1);
       expect(motorScope.functions[0].name).toBe("init");
       expect(motorScope.functions[0].visibility).toBe("public");
     });
@@ -395,7 +395,7 @@ describe("FunctionCollector", () => {
       );
 
       const testScope = SymbolRegistry.getOrCreateScope("Test");
-      expect(testScope.functions.length).toBe(2);
+      expect(testScope.functions).toHaveLength(2);
       expect(testScope.functions[0].name).toBe("funcA");
       expect(testScope.functions[1].name).toBe("funcB");
     });

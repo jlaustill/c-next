@@ -57,6 +57,27 @@ class VariableTypeCollector extends CNextListener {
 }
 
 /**
+ * Drop a trailing `[...]` group, exactly as /\[[^\]]*\]$/ did.
+ *
+ * Returns the input unchanged when there is no such group -- including when
+ * the brackets nest ("u8[a[b]]"), which the regex also declines to match
+ * because its character class cannot cross the inner ']'.
+ */
+function stripFinalBracketGroup(text: string): string {
+  if (!text.endsWith("]")) {
+    return text;
+  }
+  const open = text.lastIndexOf("[");
+  if (open === -1) {
+    return text;
+  }
+  if (text.slice(open + 1, -1).includes("]")) {
+    return text;
+  }
+  return text.slice(0, open);
+}
+
+/**
  * Second pass: Validate subscript index expressions use unsigned integer types
  */
 class IndexTypeListener extends CNextListener {
@@ -284,7 +305,13 @@ class IndexTypeListener extends CNextListener {
       }
       // Array element type — strip rightmost array dimension
       // e.g., "u8[8]" → "u8", "u8[8][4]" → "u8[8]", "u8[CONST]" → "u8"
-      const strippedType = currentType.replace(/\[[^\]]*\]$/, "");
+      // Scanned rather than /\[[^\]]*\]$/: that pattern restarts its scan at every '['
+      // when the string does not end in ']' (S8786).
+      //
+      // The containment check is load-bearing: [^\]]* cannot span a ']', so
+      // "u8[a[b]]" does not match the regex at all. Dropping it made the scan
+      // return "u8[a" where the regex returns the string unchanged.
+      const strippedType = stripFinalBracketGroup(currentType);
       if (strippedType !== currentType) {
         return strippedType;
       }

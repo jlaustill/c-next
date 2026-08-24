@@ -60,22 +60,12 @@ describe("ExpressionUnwrapper", () => {
       expect(postfix?.primaryExpression().literal()).not.toBeNull();
     });
 
-    it("should return null for binary operation (addition)", () => {
-      const expr = parseExpression("a + b");
-      const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
-
-      expect(postfix).toBeNull();
-    });
-
-    it("should return null for binary operation (comparison)", () => {
-      const expr = parseExpression("a > b");
-      const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
-
-      expect(postfix).toBeNull();
-    });
-
-    it("should return null for logical OR", () => {
-      const expr = parseExpression("a || b");
+    it.each([
+      ["should return null for binary operation (addition)", "a + b"],
+      ["should return null for binary operation (comparison)", "a > b"],
+      ["should return null for logical OR", "a || b"],
+    ])("%s", (_label, source) => {
+      const expr = parseExpression(source);
       const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
 
       expect(postfix).toBeNull();
@@ -107,29 +97,13 @@ describe("ExpressionUnwrapper", () => {
       expect(name).toBe("myVar");
     });
 
-    it("should return null for member access", () => {
-      const expr = parseExpression("obj.field");
-      const name = ExpressionUnwrapper.getSimpleIdentifier(expr);
-
-      expect(name).toBeNull();
-    });
-
-    it("should return null for array indexing", () => {
-      const expr = parseExpression("arr[0]");
-      const name = ExpressionUnwrapper.getSimpleIdentifier(expr);
-
-      expect(name).toBeNull();
-    });
-
-    it("should return null for numeric literal", () => {
-      const expr = parseExpression("42");
-      const name = ExpressionUnwrapper.getSimpleIdentifier(expr);
-
-      expect(name).toBeNull();
-    });
-
-    it("should return null for binary expression", () => {
-      const expr = parseExpression("a + b");
+    it.each([
+      ["should return null for member access", "obj.field"],
+      ["should return null for array indexing", "arr[0]"],
+      ["should return null for numeric literal", "42"],
+      ["should return null for binary expression", "a + b"],
+    ])("%s", (_label, source) => {
+      const expr = parseExpression(source);
       const name = ExpressionUnwrapper.getSimpleIdentifier(expr);
 
       expect(name).toBeNull();

@@ -171,7 +171,7 @@ describe("CommentFormatter", () => {
         makeComment(ECommentType.Doc, " Second"),
       ];
       const result = formatter.formatLeadingComments(comments);
-      expect(result.length).toBe(1);
+      expect(result).toHaveLength(1);
       expect(result[0]).toContain("/**");
       expect(result[0]).toContain("First");
       expect(result[0]).toContain("Second");
@@ -184,7 +184,7 @@ describe("CommentFormatter", () => {
         makeComment(ECommentType.Doc, " Doc 2"),
       ];
       const result = formatter.formatLeadingComments(comments);
-      expect(result.length).toBe(3);
+      expect(result).toHaveLength(3);
       expect(result[0]).toContain("Doc 1"); // First doc
       expect(result[1]).toBe("// separator"); // Line comment
       expect(result[2]).toContain("Doc 2"); // Second doc (separate)

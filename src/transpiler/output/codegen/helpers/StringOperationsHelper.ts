@@ -8,6 +8,7 @@
  * Issue #707: Uses ExpressionUnwrapper for tree navigation
  */
 
+import ISubstringOps from "../types/ISubstringOps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import StringUtils from "../../../../utils/StringUtils.js";
@@ -24,16 +25,6 @@ interface IStringConcatOps {
   right: string;
   leftCapacity: number;
   rightCapacity: number;
-}
-
-/**
- * Substring extraction operands extracted from expression.
- */
-interface ISubstringOps {
-  source: string;
-  start: string;
-  length: string;
-  sourceCapacity: number;
 }
 
 /**
@@ -183,7 +174,7 @@ class StringOperationsHelper {
       return {
         source: sourceName,
         start: callbacks.generateExpression(exprs[0]),
-        length: callbacks.generateExpression(exprs[1]),
+        lengthExpression: callbacks.generateExpression(exprs[1]),
         sourceCapacity: typeInfo.stringCapacity,
       };
     } else if (exprs.length === 1) {
@@ -191,7 +182,7 @@ class StringOperationsHelper {
       return {
         source: sourceName,
         start: callbacks.generateExpression(exprs[0]),
-        length: "1",
+        lengthExpression: "1",
         sourceCapacity: typeInfo.stringCapacity,
       };
     }

@@ -14,6 +14,50 @@
  */
 
 /**
+ * True when the source contains an access-specifier label, as
+ * /^\s*(public|private|protected)\s*:/m did.
+ *
+ * Scanned rather than matched: under /m the leading \s* can span newlines, so
+ * the engine retries that run from every line start (S8786).
+ *
+ * Both whitespace runs may cross lines, matching the original: only whitespace
+ * may precede the keyword on its line, and the colon may sit on a later line.
+ */
+function hasAccessSpecifierLabel(content: string): boolean {
+  for (const keyword of ["public", "private", "protected"]) {
+    let from = content.indexOf(keyword);
+    while (from !== -1) {
+      if (isAccessSpecifierAt(content, from, keyword.length)) {
+        return true;
+      }
+      from = content.indexOf(keyword, from + 1);
+    }
+  }
+  return false;
+}
+
+/** Only whitespace before it on its line, and a colon after any whitespace. */
+function isAccessSpecifierAt(
+  content: string,
+  start: number,
+  length: number,
+): boolean {
+  let before = start - 1;
+  while (before >= 0 && content[before] !== "\n") {
+    if (!/\s/.test(content[before])) {
+      return false;
+    }
+    before -= 1;
+  }
+
+  let after = start + length;
+  while (after < content.length && /\s/.test(content[after])) {
+    after += 1;
+  }
+  return content[after] === ":";
+}
+
+/**
  * Detect if header content contains C++ syntax requiring C++14 parser
  * @param content Raw header file content
  * @returns true if C++ parser should be used, false for C parser
@@ -33,7 +77,7 @@ function detectCppSyntax(content: string): boolean {
   if (/\btemplate\s*</.test(content)) return true;
 
   // Access specifiers at line start (class members)
-  if (/^\s*(public|private|protected)\s*:/m.test(content)) return true;
+  if (hasAccessSpecifierLabel(content)) return true;
 
   // Default to C parser for pure C headers
   return false;

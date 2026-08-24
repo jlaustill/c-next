@@ -97,7 +97,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("exports exactly 3 handlers", () => {
-      expect(arrayHandlers.length).toBe(3);
+      expect(arrayHandlers).toHaveLength(3);
     });
   });
 

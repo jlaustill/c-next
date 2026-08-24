@@ -35,6 +35,57 @@ interface ITypedefParseResult {
   params: ITypedefParam[];
 }
 
+/**
+ * C type keywords that can trail a multi-word type. A parameter name can never
+ * be one of these, so a trailing word from this set belongs to the type.
+ */
+const TRAILING_TYPE_KEYWORDS = new Set([
+  "int",
+  "long",
+  "short",
+  "char",
+  "float",
+  "double",
+  "signed",
+  "unsigned",
+]);
+
+/**
+ * Drop a trailing space-separated parameter name, as /\s+\w+$/ did -- except
+ * for a trailing type keyword, which belongs to the type (#1189).
+ *
+ * Scanned from the end rather than matched, avoiding the super-linear
+ * backtracking of /\s+\w+$/ (S8786).
+ *
+ * The word-character check is load-bearing: \w+ does not match a final token
+ * containing anything else, so "int (fn)(void)" -- what a function-pointer
+ * parameter looks like once the stars are stripped -- is left alone. Cutting
+ * at the last space unconditionally would reduce it to "int".
+ */
+function stripTrailingIdentifier(text: string): string {
+  let start = text.length;
+  while (start > 0 && /\w/.test(text[start - 1])) {
+    start -= 1;
+  }
+  if (start === text.length) {
+    return text; // no trailing identifier
+  }
+  // Issue #1189: an unnamed multi-word type ends in a type keyword, not a
+  // parameter name -- `unsigned int` must not become `unsigned`.
+  if (TRAILING_TYPE_KEYWORDS.has(text.slice(start))) {
+    return text;
+  }
+
+  // Consume the whole whitespace run, not just the last space. The caller
+  // normalizes runs to a single space today, but depending on that would make
+  // this correct only by coincidence.
+  let cut = start;
+  while (cut > 0 && /\s/.test(text[cut - 1])) {
+    cut -= 1;
+  }
+  return cut === start ? text : text.slice(0, cut);
+}
+
 class TypedefParamParser {
   /**
    * Parse a function pointer typedef type string.
@@ -157,7 +208,7 @@ class TypedefParamParser {
     // Remove trailing param name if present (e.g., "rect_t area" -> "rect_t")
     // Only remove if there are multiple words (space-separated)
     if (baseType.includes(" ")) {
-      baseType = baseType.replace(/\s+\w+$/, "");
+      baseType = stripTrailingIdentifier(baseType);
     }
 
     // Handle struct keyword

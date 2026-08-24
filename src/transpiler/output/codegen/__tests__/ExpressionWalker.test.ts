@@ -204,7 +204,7 @@ describe("ExpressionWalker - getChildStatements", () => {
       const ifStmt = stmt.ifStatement();
       expect(ifStmt).not.toBeNull();
       // Should have both then and else branches
-      expect(ifStmt!.statement().length).toBe(2);
+      expect(ifStmt!.statement()).toHaveLength(2);
     });
 
     it("should get child statement from whileStatement", () => {
@@ -266,7 +266,7 @@ describe("ExpressionWalker - getChildStatements", () => {
       const stmt = parseFirstStatement(source);
       const switchStmt = stmt.switchStatement();
       expect(switchStmt).not.toBeNull();
-      expect(switchStmt!.switchCase().length).toBe(2);
+      expect(switchStmt!.switchCase()).toHaveLength(2);
     });
 
     it("should get block from criticalStatement", () => {

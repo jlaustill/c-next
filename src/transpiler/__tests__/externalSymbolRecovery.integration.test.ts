@@ -83,8 +83,10 @@ describe("external-symbol recovery (integration)", () => {
     if (dir) rmSync(dir, { recursive: true, force: true });
   });
 
-  it("recovers full signatures so codegen adds & and pointer handles", async () => {
-    if (!available) return; // no toolchain in this env
+  it("recovers full signatures so codegen adds & and pointer handles", async (ctx) => {
+    // Vitest reports this as skipped; an early return reported it as a
+    // PASS, so a missing toolchain looked like a green test (S8968).
+    if (!available) ctx.skip();
 
     const transpiler = new Transpiler({
       input: join(dir, "main.cnx"),
@@ -119,8 +121,10 @@ describe("external-symbol recovery (integration)", () => {
     expect(code).toMatch(/widget_t\s*\*\s*\w*handle/);
   });
 
-  it("folds a recovered struct into externalStructFields so it stays subject to init-completeness checking", async () => {
-    if (!available) return;
+  it("folds a recovered struct into externalStructFields so it stays subject to init-completeness checking", async (ctx) => {
+    // Vitest reports this as skipped; an early return reported it as a
+    // PASS, so a missing toolchain looked like a green test (S8968).
+    if (!available) ctx.skip();
 
     // widget_cfg_t only becomes known through #985 recovery (its typedef is
     // emitted by the DECLARE_WIDGET_API macro inside the un-standalone header).
@@ -144,8 +148,10 @@ describe("external-symbol recovery (integration)", () => {
     expect([...(external.get("widget_cfg_t") ?? [])]).toContain("mode");
   });
 
-  it("re-applies recovery on a warm header cache (Issue #985 regression)", async () => {
-    if (!available) return;
+  it("re-applies recovery on a warm header cache (Issue #985 regression)", async (ctx) => {
+    // Vitest reports this as skipped; an early return reported it as a
+    // PASS, so a missing toolchain looked like a green test (S8968).
+    if (!available) ctx.skip();
 
     // Fresh project dir with a project marker so on-disk caching activates
     // (determineProjectRoot needs a marker like cnext.config.json). The first
@@ -190,8 +196,10 @@ describe("external-symbol recovery (integration)", () => {
     }
   });
 
-  it("does nothing when no header failed to preprocess (clean project)", async () => {
-    if (!available) return;
+  it("does nothing when no header failed to preprocess (clean project)", async (ctx) => {
+    // Vitest reports this as skipped; an early return reported it as a
+    // PASS, so a missing toolchain looked like a green test (S8968).
+    if (!available) ctx.skip();
 
     // A .cnx with no C includes never trips anyHeaderPreprocessFailed, so the
     // recovery pass is a no-op and transpilation still succeeds.

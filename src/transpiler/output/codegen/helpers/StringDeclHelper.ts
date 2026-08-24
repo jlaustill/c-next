@@ -12,6 +12,7 @@
  * - Unsized const strings: const string name <- "literal"
  */
 
+import ISubstringOps from "../types/ISubstringOps";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
@@ -29,16 +30,6 @@ interface IStringConcatOps {
   right: string;
   leftCapacity: number;
   rightCapacity: number;
-}
-
-/**
- * Substring extraction operands extracted from expression.
- */
-interface ISubstringOps {
-  source: string;
-  start: string;
-  length: string;
-  sourceCapacity: number;
 }
 
 /**
@@ -683,7 +674,7 @@ class StringDeclHelper {
 
     // For compile-time validation, we need numeric literals
     const startNum = Number.parseInt(substringOps.start, 10);
-    const lengthNum = Number.parseInt(substringOps.length, 10);
+    const lengthNum = Number.parseInt(substringOps.lengthExpression, 10);
 
     // Only validate bounds if both start and length are compile-time constants
     if (!Number.isNaN(startNum) && !Number.isNaN(lengthNum)) {
@@ -707,8 +698,8 @@ class StringDeclHelper {
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.length});`,
-      `${name}[${substringOps.length}] = ${C_NULL_CHAR};`,
+      `strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.lengthExpression});`,
+      `${name}[${substringOps.lengthExpression}] = ${C_NULL_CHAR};`,
     );
     return { code: lines.join("\n"), handled: true };
   }

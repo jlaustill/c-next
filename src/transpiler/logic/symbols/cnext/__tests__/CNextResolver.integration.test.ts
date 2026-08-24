@@ -16,7 +16,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(1);
+      expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isStruct(symbols[0])).toBe(true);
       expect(symbols[0].name).toBe("Point");
     });
@@ -32,7 +32,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(1);
+      expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isEnum(symbols[0])).toBe(true);
     });
 
@@ -44,7 +44,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(1);
+      expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isFunction(symbols[0])).toBe(true);
       expect(symbols[0].name).toBe("main");
     });
@@ -56,7 +56,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(1);
+      expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isVariable(symbols[0])).toBe(true);
       expect(symbols[0].name).toBe("counter");
     });
@@ -73,7 +73,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(1);
+      expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isBitmap(symbols[0])).toBe(true);
       expect(symbols[0].name).toBe("Flags");
     });
@@ -88,7 +88,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(1);
+      expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isRegister(symbols[0])).toBe(true);
       expect(symbols[0].name).toBe("GPIO");
     });
@@ -112,7 +112,7 @@ describe("CNextResolver Integration", () => {
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
       // Scope + 3 members
-      expect(symbols.length).toBe(4);
+      expect(symbols).toHaveLength(4);
 
       const scope = symbols.find((s) => s.name === "Motor");
       expect(scope).toBeDefined();
@@ -158,7 +158,7 @@ describe("CNextResolver Integration", () => {
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
       // Scope + enum + struct
-      expect(symbols.length).toBe(3);
+      expect(symbols).toHaveLength(3);
 
       // Nested types have bare names with scope references
       const enumSym = symbols.find((s) => s.name === "State");
@@ -190,7 +190,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(2);
+      expect(symbols).toHaveLength(2);
 
       const regSymbol = symbols.find((s) => s.name === "GPIO");
       expect(regSymbol).toBeDefined();
@@ -218,7 +218,7 @@ describe("CNextResolver Integration", () => {
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
       // Scope + bitmap + register
-      expect(symbols.length).toBe(3);
+      expect(symbols).toHaveLength(3);
 
       // Both bitmap and register have bare names with scope references
       const regSymbol = symbols.find((s) => s.name === "CTRL");
@@ -286,29 +286,29 @@ describe("CNextResolver Integration", () => {
       // 2 scope functions (init, move)
       // 1 top-level function (main)
       // Total: 10
-      expect(symbols.length).toBe(10);
+      expect(symbols).toHaveLength(10);
 
       // Verify each type is present
       const structSymbols = symbols.filter((s) => s.kind === "struct");
-      expect(structSymbols.length).toBe(1);
+      expect(structSymbols).toHaveLength(1);
 
       const enumSymbols = symbols.filter((s) => s.kind === "enum");
-      expect(enumSymbols.length).toBe(1);
+      expect(enumSymbols).toHaveLength(1);
 
       const bitmapSymbols = symbols.filter((s) => s.kind === "bitmap");
-      expect(bitmapSymbols.length).toBe(1);
+      expect(bitmapSymbols).toHaveLength(1);
 
       const registerSymbols = symbols.filter((s) => s.kind === "register");
-      expect(registerSymbols.length).toBe(1);
+      expect(registerSymbols).toHaveLength(1);
 
       const scopeSymbols = symbols.filter((s) => s.kind === "scope");
-      expect(scopeSymbols.length).toBe(1);
+      expect(scopeSymbols).toHaveLength(1);
 
       const functionSymbols = symbols.filter((s) => s.kind === "function");
-      expect(functionSymbols.length).toBe(3);
+      expect(functionSymbols).toHaveLength(3);
 
       const variableSymbols = symbols.filter((s) => s.kind === "variable");
-      expect(variableSymbols.length).toBe(2);
+      expect(variableSymbols).toHaveLength(2);
     });
 
     it("resolves multiple scopes", () => {
@@ -333,7 +333,7 @@ describe("CNextResolver Integration", () => {
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
       // 2 scopes + 2 functions each = 6
-      expect(symbols.length).toBe(6);
+      expect(symbols).toHaveLength(6);
 
       const ledScope = symbols.find((s) => s.name === "LED");
       const motorScope = symbols.find((s) => s.name === "Motor");
@@ -378,7 +378,7 @@ describe("CNextResolver Integration", () => {
       const tree = parse(code);
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
-      expect(symbols.length).toBe(2);
+      expect(symbols).toHaveLength(2);
 
       const arrSymbol = symbols.find((s) => s.name === "arr");
       expect(arrSymbol).toBeDefined();
@@ -448,7 +448,7 @@ describe("CNextResolver Integration", () => {
       const symbols = CNextResolver.resolve(tree, "test.cnx");
 
       // Should still parse without error
-      expect(symbols.length).toBe(2);
+      expect(symbols).toHaveLength(2);
     });
 
     it("passes through unresolved identifiers for C macros", () => {

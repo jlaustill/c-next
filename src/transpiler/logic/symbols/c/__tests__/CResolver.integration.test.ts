@@ -385,7 +385,7 @@ describe("CResolver - Struct Fields", () => {
     const result = CResolver.resolve(tree!, "test.h", symbolTable);
 
     // No warnings since "length" is no longer reserved
-    expect(result.warnings.length).toBe(0);
+    expect(result.warnings).toHaveLength(0);
   });
 });
 

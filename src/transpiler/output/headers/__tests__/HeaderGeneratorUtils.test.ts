@@ -430,8 +430,16 @@ describe("HeaderGeneratorUtils", () => {
       expect(result).not.toContain("TypeA");
     });
 
-    it("excludes C++ template types", () => {
-      const externalTypes = new Set(["vector<int>", "MyType"]);
+    it.each([
+      ["excludes C++ template types", "vector<int>", "vector<int>"],
+      ["excludes namespace types with ::", "std::string", "std::string"],
+      [
+        "excludes dot-notation namespace types",
+        "Lib.Module.Type",
+        "Lib.Module.Type",
+      ],
+    ])("%s", (_label, source, source2) => {
+      const externalTypes = new Set([source, "MyType"]);
       const typesWithHeaders = new Set<string>();
 
       const result = HeaderGeneratorUtils.filterCCompatibleTypes(
@@ -440,33 +448,7 @@ describe("HeaderGeneratorUtils", () => {
       );
 
       expect(result).toContain("MyType");
-      expect(result).not.toContain("vector<int>");
-    });
-
-    it("excludes namespace types with ::", () => {
-      const externalTypes = new Set(["std::string", "MyType"]);
-      const typesWithHeaders = new Set<string>();
-
-      const result = HeaderGeneratorUtils.filterCCompatibleTypes(
-        externalTypes,
-        typesWithHeaders,
-      );
-
-      expect(result).toContain("MyType");
-      expect(result).not.toContain("std::string");
-    });
-
-    it("excludes dot-notation namespace types", () => {
-      const externalTypes = new Set(["Lib.Module.Type", "MyType"]);
-      const typesWithHeaders = new Set<string>();
-
-      const result = HeaderGeneratorUtils.filterCCompatibleTypes(
-        externalTypes,
-        typesWithHeaders,
-      );
-
-      expect(result).toContain("MyType");
-      expect(result).not.toContain("Lib.Module.Type");
+      expect(result).not.toContain(source2);
     });
   });
 
@@ -919,7 +901,7 @@ describe("HeaderGeneratorUtils", () => {
         input,
       );
       const myStructDecls = result.filter((l) => l.includes("MyStruct"));
-      expect(myStructDecls.length).toBe(1);
+      expect(myStructDecls).toHaveLength(1);
     });
 
     it("ignores non-struct parameters", () => {

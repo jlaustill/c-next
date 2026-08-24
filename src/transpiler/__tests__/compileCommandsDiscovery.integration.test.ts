@@ -66,8 +66,10 @@ describe("compile_commands.json auto-discovery (integration)", () => {
     if (dir) rmSync(dir, { recursive: true, force: true });
   });
 
-  it("resolves a header supplied only by the compile database", async () => {
-    if (!available) return; // no toolchain in this env
+  it("resolves a header supplied only by the compile database", async (ctx) => {
+    // Vitest reports this as skipped; an early return reported it as a
+    // PASS, so a missing toolchain looked like a green test (S8968).
+    if (!available) ctx.skip();
 
     // Note: NO includeDirs — the ext/ path exists solely in compile_commands.json.
     const transpiler = new Transpiler({

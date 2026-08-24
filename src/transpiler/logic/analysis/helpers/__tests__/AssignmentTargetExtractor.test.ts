@@ -66,31 +66,32 @@ describe("AssignmentTargetExtractor", () => {
     });
 
     describe("array access", () => {
-      it("extracts base identifier and flags single-index subscript", () => {
-        const target = getAssignmentTarget("arr[0] <- 100");
+      it.each([
+        [
+          "extracts base identifier and flags single-index subscript",
+          "arr[0] <- 100",
+          "arr",
+          true,
+        ],
+        [
+          "extracts base identifier with variable index",
+          "buffer[i] <- 50",
+          "buffer",
+          true,
+        ],
+        [
+          "detects two-index subscript as bit extraction (not array)",
+          "value[0, 8] <- 255",
+          "value",
+          false,
+        ],
+      ])("%s", (_label, source, argument2, expected) => {
+        const target = getAssignmentTarget(source);
         expect(target).toBeDefined();
 
         const result = AssignmentTargetExtractor.extract(target);
-        expect(result.baseIdentifier).toBe("arr");
-        expect(result.hasSingleIndexSubscript).toBe(true);
-      });
-
-      it("extracts base identifier with variable index", () => {
-        const target = getAssignmentTarget("buffer[i] <- 50");
-        expect(target).toBeDefined();
-
-        const result = AssignmentTargetExtractor.extract(target);
-        expect(result.baseIdentifier).toBe("buffer");
-        expect(result.hasSingleIndexSubscript).toBe(true);
-      });
-
-      it("detects two-index subscript as bit extraction (not array)", () => {
-        const target = getAssignmentTarget("value[0, 8] <- 255");
-        expect(target).toBeDefined();
-
-        const result = AssignmentTargetExtractor.extract(target);
-        expect(result.baseIdentifier).toBe("value");
-        expect(result.hasSingleIndexSubscript).toBe(false);
+        expect(result.baseIdentifier).toBe(argument2);
+        expect(result.hasSingleIndexSubscript).toBe(expected);
       });
     });
 

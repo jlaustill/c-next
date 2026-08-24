@@ -368,6 +368,25 @@ describe("PlatformIOCommand", () => {
       expect(iniCall?.[1]).not.toContain("cnext_build.py");
     });
 
+    it("removes an indented cnext_build.py and keeps its sibling scripts", () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        "[env:esp32]\nextra_scripts =\n    pre:cnext_build.py\n    post:other.py\n",
+      );
+
+      PlatformIOCommand.uninstall();
+
+      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
+      const iniCall = writeCalls.find((call) =>
+        (call[0] as string).includes("platformio.ini"),
+      );
+
+      expect(iniCall).toBeDefined();
+      expect(iniCall?.[1]).not.toContain("cnext_build.py");
+      // The removed run reaches back only to the previous entry, never through it.
+      expect(iniCall?.[1]).toContain("post:other.py");
+    });
+
     it("reports when no integration found", () => {
       vi.mocked(fs.existsSync).mockImplementation((path) => {
         if ((path as string).includes("platformio.ini")) return true;

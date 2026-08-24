@@ -140,7 +140,7 @@ describe("FormatUtils.wrapInBraces", () => {
 describe("FormatUtils.INDENT", () => {
   it("is 4 spaces", () => {
     expect(FormatUtils.INDENT).toBe("    ");
-    expect(FormatUtils.INDENT.length).toBe(4);
+    expect(FormatUtils.INDENT).toHaveLength(4);
   });
 });
 

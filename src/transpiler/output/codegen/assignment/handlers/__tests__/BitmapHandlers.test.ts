@@ -78,7 +78,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("exports exactly 6 handlers", () => {
-      expect(bitmapHandlers.length).toBe(6);
+      expect(bitmapHandlers).toHaveLength(6);
     });
   });
 

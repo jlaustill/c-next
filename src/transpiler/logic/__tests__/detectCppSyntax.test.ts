@@ -148,4 +148,37 @@ describe("detectCppSyntax", () => {
       expect(detectCppSyntax("int template_id;")).toBe(false);
     });
   });
+
+  describe("access specifier labels (S8786 scan)", () => {
+    // These rows are the corpus the scan was checked against when it replaced
+    // /^\s*(public|private|protected)\s*:/m. Kept as tests so the equivalence
+    // is permanent rather than a one-off check.
+    it.each([
+      ["a bare label", "public:", true],
+      ["an indented label", "  private :", true],
+      ["a tab-indented label", "\n\tprotected:\n", true],
+      ["a colon on the following line", "public\n:", true],
+      ["a blank line before the colon", "private\n\n  :", true],
+    ])("detects %s", (_label, source, expected) => {
+      expect(detectCppSyntax(source)).toBe(expected);
+    });
+
+    it.each([
+      ["a keyword that is only a suffix", "my_public:"],
+      ["a keyword followed by more identifier", "public_x:"],
+      ["a keyword with a word suffix", "publicly:"],
+      ["a label with code before it on the line", "x = public:"],
+      ["a keyword with no colon", "public"],
+      ["a bare colon", ":"],
+      // A label needs its own line: only whitespace may precede it. A one-line
+      // `class A { public: };` is therefore not detected by this check, and
+      // the inheritance check above wants `class A : public B`, so it misses
+      // too. That is the existing heuristic's boundary, unchanged by the scan
+      // that replaced the regex -- both agree here.
+      ["a label mid-line inside a one-line class body", "class A { public: };"],
+      ["empty input", ""],
+    ])("does not treat %s as an access specifier", (_label, source) => {
+      expect(detectCppSyntax(source)).toBe(false);
+    });
+  });
 });

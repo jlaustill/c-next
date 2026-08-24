@@ -30,60 +30,40 @@ describe("TypeGenerationHelper", () => {
   }
 
   describe("generatePrimitiveType", () => {
-    it("maps bool type and requires stdbool", () => {
-      const result = TypeGenerationHelper.generatePrimitiveType("bool");
-      expect(result.cType).toBe("bool");
-      expect(result.include).toBe("stdbool");
-    });
-
-    it("maps ISR type and requires isr include", () => {
-      const result = TypeGenerationHelper.generatePrimitiveType("ISR");
-      expect(result.cType).toBe("ISR");
-      expect(result.include).toBe("isr");
-    });
-
-    it("maps u8 to uint8_t and requires stdint", () => {
-      const result = TypeGenerationHelper.generatePrimitiveType("u8");
-      expect(result.cType).toBe("uint8_t");
-      expect(result.include).toBe("stdint");
-    });
-
-    it("maps i32 to int32_t and requires stdint", () => {
-      const result = TypeGenerationHelper.generatePrimitiveType("i32");
-      expect(result.cType).toBe("int32_t");
-      expect(result.include).toBe("stdint");
-    });
-
-    it("maps u64 to uint64_t and requires stdint", () => {
-      const result = TypeGenerationHelper.generatePrimitiveType("u64");
-      expect(result.cType).toBe("uint64_t");
-      expect(result.include).toBe("stdint");
-    });
-
-    it("maps f32 to float with stdint include", () => {
-      // Note: floats are in TYPE_MAP so they require stdint per original logic
-      const result = TypeGenerationHelper.generatePrimitiveType("f32");
-      expect(result.cType).toBe("float");
-      expect(result.include).toBe("stdint");
-    });
-
-    it("maps f64 to double with stdint include", () => {
-      // Note: doubles are in TYPE_MAP so they require stdint per original logic
-      const result = TypeGenerationHelper.generatePrimitiveType("f64");
-      expect(result.cType).toBe("double");
-      expect(result.include).toBe("stdint");
+    it.each([
+      ["maps bool type and requires stdbool", "bool", "bool", "stdbool"],
+      ["maps ISR type and requires isr include", "ISR", "ISR", "isr"],
+      ["maps u8 to uint8_t and requires stdint", "u8", "uint8_t", "stdint"],
+      ["maps i32 to int32_t and requires stdint", "i32", "int32_t", "stdint"],
+      ["maps u64 to uint64_t and requires stdint", "u64", "uint64_t", "stdint"],
+      [
+        "maps f32 to float with stdint include (Note: floats are in TYPE_MAP so they require stdint per original logic)",
+        "f32",
+        "float",
+        "stdint",
+      ],
+      [
+        "maps f64 to double with stdint include (Note: doubles are in TYPE_MAP so they require stdint per original logic)",
+        "f64",
+        "double",
+        "stdint",
+      ],
+    ])("%s", (_label, source, argument2, expected) => {
+      const result = TypeGenerationHelper.generatePrimitiveType(source);
+      expect(result.cType).toBe(argument2);
+      expect(result.include).toBe(expected);
     });
 
     it("returns void unchanged with no include", () => {
       const result = TypeGenerationHelper.generatePrimitiveType("void");
       expect(result.cType).toBe("void");
-      expect(result.include).toBe(null);
+      expect(result.include).toBeNull();
     });
 
     it("returns unknown type unchanged", () => {
       const result = TypeGenerationHelper.generatePrimitiveType("CustomType");
       expect(result.cType).toBe("CustomType");
-      expect(result.include).toBe(null);
+      expect(result.include).toBeNull();
     });
   });
 
@@ -233,25 +213,15 @@ describe("TypeGenerationHelper", () => {
       isScopeType: () => false,
     };
 
-    it("generates primitive type u32", () => {
-      const ctx = getTypeContext("u32 x;");
+    it.each([
+      ["generates primitive type u32", "u32 x;", "uint32_t"],
+      ["generates primitive type bool", "bool flag;", "bool"],
+      ["generates string type", "string<32> name;", "char"],
+    ])("%s", (_label, source, expected) => {
+      const ctx = getTypeContext(source);
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("uint32_t");
-    });
-
-    it("generates primitive type bool", () => {
-      const ctx = getTypeContext("bool flag;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("bool");
-    });
-
-    it("generates string type", () => {
-      const ctx = getTypeContext("string<32> name;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("char");
+      expect(result).toBe(expected);
     });
 
     it("generates scoped type within scope", () => {
@@ -272,52 +242,44 @@ describe("TypeGenerationHelper", () => {
       }).toThrow();
     });
 
-    it("generates global type", () => {
-      const ctx = getTypeContext("global.Config cfg;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("Config");
-    });
+    // The deps column keeps the two cases needing a non-default dependency in
+    // the same table as the rest, rather than stranding them between merged
+    // rows. It also makes what each case overrides obvious at a glance.
+    // Mirrors the optional half of ITypeGenerationDeps, which is not exported
+    // (the project uses default exports only). Deriving from typeof defaultDeps
+    // instead would narrow the mocks to their zero-argument shapes.
+    type DepsOverride = {
+      currentScope?: string | null;
+      isCppScopeSymbol?: (name: string) => boolean;
+      checkNeedsStructKeyword?: (name: string) => boolean;
+      isScopeType?: (qualifiedName: string) => boolean;
+    };
 
-    it("generates qualified C-Next type", () => {
-      const ctx = getTypeContext("Motor.State status;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("Motor__State");
-    });
-
-    it("generates qualified C++ namespace type", () => {
-      const ctx = getTypeContext("Lib.Type val;");
+    it.each<[string, string, DepsOverride, string]>([
+      ["global type", "global.Config cfg;", {}, "Config"],
+      ["qualified C-Next type", "Motor.State status;", {}, "Motor__State"],
+      [
+        "qualified C++ namespace type",
+        "Lib.Type val;",
+        { isCppScopeSymbol: (name: string) => name === "Lib" },
+        "Lib::Type",
+      ],
+      ["user type", "MyStruct obj;", {}, "MyStruct"],
+      [
+        "user type with struct keyword",
+        "CStruct obj;",
+        { checkNeedsStructKeyword: (name: string) => name === "CStruct" },
+        "struct CStruct",
+      ],
+      ["cstring as char*", "cstring ptr;", {}, "char*"],
+    ])("generates %s", (_label, source, depsOverride, expected) => {
+      const ctx = getTypeContext(source);
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.generate(ctx!, {
         ...defaultDeps,
-        isCppScopeSymbol: (name) => name === "Lib",
+        ...depsOverride,
       });
-      expect(result).toBe("Lib::Type");
-    });
-
-    it("generates user type", () => {
-      const ctx = getTypeContext("MyStruct obj;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("MyStruct");
-    });
-
-    it("generates user type with struct keyword", () => {
-      const ctx = getTypeContext("CStruct obj;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, {
-        ...defaultDeps,
-        checkNeedsStructKeyword: (name) => name === "CStruct",
-      });
-      expect(result).toBe("struct CStruct");
-    });
-
-    it("generates cstring as char*", () => {
-      const ctx = getTypeContext("cstring ptr;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("char*");
+      expect(result).toBe(expected);
     });
 
     it("generates array base type for primitive array", () => {
@@ -381,25 +343,15 @@ describe("TypeGenerationHelper", () => {
   });
 
   describe("getRequiredInclude", () => {
-    it("returns stdbool for bool type", () => {
-      const ctx = getTypeContext("bool x;");
+    it.each([
+      ["returns stdbool for bool type", "bool x;", "stdbool"],
+      ["returns stdint for integer types", "u32 x;", "stdint"],
+      ["returns string for string type", "string<32> name;", "string"],
+    ])("%s", (_label, source, expected) => {
+      const ctx = getTypeContext(source);
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.getRequiredInclude(ctx!);
-      expect(result).toBe("stdbool");
-    });
-
-    it("returns stdint for integer types", () => {
-      const ctx = getTypeContext("u32 x;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.getRequiredInclude(ctx!);
-      expect(result).toBe("stdint");
-    });
-
-    it("returns string for string type", () => {
-      const ctx = getTypeContext("string<32> name;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.getRequiredInclude(ctx!);
-      expect(result).toBe("string");
+      expect(result).toBe(expected);
     });
 
     it("returns null for user types", () => {

@@ -46,9 +46,14 @@ describe("StringOperationsHelper", () => {
       expect(capacity).toBe(0);
     });
 
-    it("returns null for non-string expression", () => {
-      const capacity = StringOperationsHelper.getStringExprCapacity("123");
-      expect(capacity).toBeNull();
+    it.each([
+      ["non-string expression", "123"],
+      ["unknown variable", "unknownVar"],
+      ["complex expression", "a + b"],
+    ])("returns null for %s", (_label, expression) => {
+      expect(
+        StringOperationsHelper.getStringExprCapacity(expression),
+      ).toBeNull();
     });
 
     it("returns capacity from type registry for string variable", () => {
@@ -76,17 +81,6 @@ describe("StringOperationsHelper", () => {
       });
 
       const capacity = StringOperationsHelper.getStringExprCapacity("myInt");
-      expect(capacity).toBeNull();
-    });
-
-    it("returns null for unknown variable", () => {
-      const capacity =
-        StringOperationsHelper.getStringExprCapacity("unknownVar");
-      expect(capacity).toBeNull();
-    });
-
-    it("returns null for complex expression", () => {
-      const capacity = StringOperationsHelper.getStringExprCapacity("a + b");
       expect(capacity).toBeNull();
     });
   });
@@ -140,20 +134,12 @@ describe("StringOperationsHelper", () => {
       expect(result!.rightCapacity).toBe(5);
     });
 
-    it("returns null for integer addition", () => {
-      const expr = parseExpression("1 + 2");
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for subtraction", () => {
-      const expr = parseExpression("str1 - str2");
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for mixed string/non-string", () => {
-      const expr = parseExpression("str1 + 5");
+    it.each([
+      ["returns null for integer addition", "1 + 2"],
+      ["returns null for subtraction", "str1 - str2"],
+      ["returns null for mixed string/non-string", "str1 + 5"],
+    ])("%s", (_label, expected) => {
+      const expr = parseExpression(expected);
       const result = StringOperationsHelper.getStringConcatOperands(expr);
       expect(result).toBeNull();
     });
@@ -206,7 +192,7 @@ describe("StringOperationsHelper", () => {
       expect(result).not.toBeNull();
       expect(result!.source).toBe("myStr");
       expect(result!.start).toBe("0");
-      expect(result!.length).toBe("5");
+      expect(result!.lengthExpression).toBe("5");
       expect(result!.sourceCapacity).toBe(64);
     });
 
@@ -219,7 +205,7 @@ describe("StringOperationsHelper", () => {
       expect(result).not.toBeNull();
       expect(result!.source).toBe("myStr");
       expect(result!.start).toBe("3");
-      expect(result!.length).toBe("1");
+      expect(result!.lengthExpression).toBe("1");
       expect(result!.sourceCapacity).toBe(64);
     });
 
@@ -263,7 +249,7 @@ describe("StringOperationsHelper", () => {
 
       expect(result).not.toBeNull();
       expect(result!.start).toBe("generated_idx");
-      expect(result!.length).toBe("generated_len");
+      expect(result!.lengthExpression).toBe("generated_len");
     });
   });
 });

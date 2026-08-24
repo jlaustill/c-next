@@ -250,7 +250,7 @@ void main() {
       const result = await transpiler.transpile({ kind: "files" });
 
       expect(result.success).toBe(true);
-      expect(result.files.length).toBe(2);
+      expect(result.files).toHaveLength(2);
 
       // Main file should have correct enum references
       const mainFile = result.files.find((f) => f.sourcePath === mainPath);

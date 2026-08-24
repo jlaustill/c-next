@@ -34,85 +34,66 @@ describe("JsonRpcHandler", () => {
       });
     });
 
-    it("returns parse error for invalid JSON", () => {
-      const line = "not valid json";
+    it.each([
+      [
+        "returns parse error for invalid JSON",
+        "not valid json",
+        32700,
+        "Parse error",
+      ],
+      [
+        "returns invalid request for non-object JSON",
+        '"just a string"',
+        32600,
+        "Invalid request",
+      ],
+      [
+        "returns invalid request for null JSON",
+        "null",
+        32600,
+        "Invalid request",
+      ],
+    ])("%s", (_label, source, value2, source3) => {
+      const line = source;
 
       const result = JsonRpcHandler.parseRequest(line);
 
       expect(result.success).toBe(false);
       expect(result.error).toEqual({
         id: 0,
-        error: { code: -32700, message: "Parse error" },
+        error: { code: -value2, message: source3 },
       });
     });
 
-    it("returns invalid request for non-object JSON", () => {
-      const line = '"just a string"';
+    it.each([
+      [
+        "returns invalid request when id is missing",
+        '{"method":"getVersion"}',
+        32600,
+      ],
+      ["returns invalid request when method is missing", '{"id":1}', 32600],
+      [
+        "returns invalid request for non-string/number id",
+        '{"id":{},"method":"getVersion"}',
+        32600,
+      ],
+      [
+        "returns invalid request for non-string method",
+        '{"id":1,"method":123}',
+        32600,
+      ],
+      [
+        "returns invalid params for non-object params",
+        '{"id":1,"method":"test","params":"string"}',
+        32602,
+      ],
+    ])("%s", (_label, source, expected) => {
+      const line = source;
 
       const result = JsonRpcHandler.parseRequest(line);
 
       expect(result.success).toBe(false);
-      expect(result.error).toEqual({
-        id: 0,
-        error: { code: -32600, message: "Invalid request" },
-      });
-    });
-
-    it("returns invalid request for null JSON", () => {
-      const line = "null";
-
-      const result = JsonRpcHandler.parseRequest(line);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toEqual({
-        id: 0,
-        error: { code: -32600, message: "Invalid request" },
-      });
-    });
-
-    it("returns invalid request when id is missing", () => {
-      const line = '{"method":"getVersion"}';
-
-      const result = JsonRpcHandler.parseRequest(line);
-
-      expect(result.success).toBe(false);
-      expect(result.error?.error?.code).toBe(-32600);
-    });
-
-    it("returns invalid request when method is missing", () => {
-      const line = '{"id":1}';
-
-      const result = JsonRpcHandler.parseRequest(line);
-
-      expect(result.success).toBe(false);
-      expect(result.error?.error?.code).toBe(-32600);
-    });
-
-    it("returns invalid request for non-string/number id", () => {
-      const line = '{"id":{},"method":"getVersion"}';
-
-      const result = JsonRpcHandler.parseRequest(line);
-
-      expect(result.success).toBe(false);
-      expect(result.error?.error?.code).toBe(-32600);
-    });
-
-    it("returns invalid request for non-string method", () => {
-      const line = '{"id":1,"method":123}';
-
-      const result = JsonRpcHandler.parseRequest(line);
-
-      expect(result.success).toBe(false);
-      expect(result.error?.error?.code).toBe(-32600);
-    });
-
-    it("returns invalid params for non-object params", () => {
-      const line = '{"id":1,"method":"test","params":"string"}';
-
-      const result = JsonRpcHandler.parseRequest(line);
-
-      expect(result.success).toBe(false);
-      expect(result.error?.error?.code).toBe(-32602);
+      expect(result.error?.error?.code).toBe(-expected);
     });
   });
 

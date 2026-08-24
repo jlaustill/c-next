@@ -155,32 +155,13 @@ describe("ChildStatementCollector", () => {
     });
 
     describe("non-control-flow statements", () => {
-      it("returns empty for expression statement", () => {
-        const stmt = getStatement("foo();");
-        expect(stmt).not.toBeNull();
-        const result = ChildStatementCollector.collectAll(stmt!);
-        expect(result.blocks).toHaveLength(0);
-        expect(result.statements).toHaveLength(0);
-      });
-
-      it("returns empty for assignment statement", () => {
-        const stmt = getStatement("x <- 42;");
-        expect(stmt).not.toBeNull();
-        const result = ChildStatementCollector.collectAll(stmt!);
-        expect(result.blocks).toHaveLength(0);
-        expect(result.statements).toHaveLength(0);
-      });
-
-      it("returns empty for variable declaration", () => {
-        const stmt = getStatement("u32 x <- 10;");
-        expect(stmt).not.toBeNull();
-        const result = ChildStatementCollector.collectAll(stmt!);
-        expect(result.blocks).toHaveLength(0);
-        expect(result.statements).toHaveLength(0);
-      });
-
-      it("returns empty for return statement", () => {
-        const stmt = getStatement("return;");
+      it.each([
+        ["returns empty for expression statement", "foo();"],
+        ["returns empty for assignment statement", "x <- 42;"],
+        ["returns empty for variable declaration", "u32 x <- 10;"],
+        ["returns empty for return statement", "return;"],
+      ])("%s", (_label, source) => {
+        const stmt = getStatement(source);
         expect(stmt).not.toBeNull();
         const result = ChildStatementCollector.collectAll(stmt!);
         expect(result.blocks).toHaveLength(0);

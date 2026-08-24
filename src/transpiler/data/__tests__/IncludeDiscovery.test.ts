@@ -34,35 +34,17 @@ describe("IncludeDiscovery", () => {
   // ==========================================================================
 
   describe("findProjectRoot", () => {
-    it("finds project root with platformio.ini", () => {
-      writeFileSync(join(testDir, "platformio.ini"), "[env:esp32]");
-      mkdirSync(join(testDir, "src"), { recursive: true });
-
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
-
-      expect(result).toBe(resolve(testDir));
-    });
-
-    it("finds project root with cnext.config.json", () => {
-      writeFileSync(join(testDir, "cnext.config.json"), "{}");
-      mkdirSync(join(testDir, "src"), { recursive: true });
-
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
-
-      expect(result).toBe(resolve(testDir));
-    });
-
-    it("finds project root with .cnext.json", () => {
-      writeFileSync(join(testDir, ".cnext.json"), "{}");
-      mkdirSync(join(testDir, "src"), { recursive: true });
-
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
-
-      expect(result).toBe(resolve(testDir));
-    });
-
-    it("finds project root with .cnextrc", () => {
-      writeFileSync(join(testDir, ".cnextrc"), "{}");
+    it.each([
+      [
+        "finds project root with platformio.ini",
+        "platformio.ini",
+        "[env:esp32]",
+      ],
+      ["finds project root with cnext.config.json", "cnext.config.json", "{}"],
+      ["finds project root with .cnext.json", ".cnext.json", "{}"],
+      ["finds project root with .cnextrc", ".cnextrc", "{}"],
+    ])("%s", (_label, source, source2) => {
+      writeFileSync(join(testDir, source), source2);
       mkdirSync(join(testDir, "src"), { recursive: true });
 
       const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
@@ -217,6 +199,43 @@ describe("IncludeDiscovery", () => {
   // ==========================================================================
 
   describe("extractIncludesWithInfo", () => {
+    // The corpus the scan was checked against when it replaced
+    // /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm. Two behaviours are
+    // deliberate rather than accidental: the closing delimiter need not match
+    // the opening one, and whitespace runs may span newlines.
+    it.each([
+      ["a plain angle include", "#include <stdio.h>\n", [["stdio.h", false]]],
+      ["a plain quoted include", '#include "local.h"\n', [["local.h", true]]],
+      ["an indented include", "   #include <a.h>\n", [["a.h", false]]],
+      ["space after the hash", "#   include <a.h>\n", [["a.h", false]]],
+      ["no space before the delimiter", "#include<a.h>\n", [["a.h", false]]],
+      ["mismatched delimiters", '#include <a.h"\n', [["a.h", false]]],
+      ["the hash on its own line", "#\ninclude <a.h>\n", [["a.h", false]]],
+      // Only the first is read: the second does not start its line, and the
+      // original regex anchored with ^\\s* too. A directive must begin its line.
+      [
+        "back-to-back includes on one line",
+        "#include <a.h>#include <b.h>\n",
+        [["a.h", false]],
+      ],
+    ])("reads %s", (_label, source, expected) => {
+      const result = IncludeDiscovery.extractIncludesWithInfo(source as string);
+      expect(result.map((r) => [r.path, r.isLocal])).toEqual(expected);
+    });
+
+    it.each([
+      ["an include not at line start", "int x; #include <a.h>\n"],
+      ["an empty path", "#include <>\n"],
+      ["a commented-out include", "// #include <a.h>\n"],
+      ["an unterminated delimiter", "#include <unterminated"],
+      ["a bare hash", "#"],
+      ["the word include with no delimiter", "#include"],
+    ])("reads no directive from %s", (_label, source) => {
+      expect(
+        IncludeDiscovery.extractIncludesWithInfo(source as string),
+      ).toEqual([]);
+    });
+
     it("identifies local includes", () => {
       const content = '#include "local.h"';
 
@@ -371,7 +390,7 @@ describe("IncludeDiscovery", () => {
       );
 
       const uniquePaths = new Set(paths);
-      expect(paths.length).toBe(uniquePaths.size);
+      expect(paths).toHaveLength(uniquePaths.size);
     });
 
     it("discovers PlatformIO library paths when platformio.ini exists", () => {
@@ -408,6 +427,79 @@ lib_extra_dirs = extra_libs
       );
 
       expect(paths.some((p) => p.includes("extra_libs"))).toBe(true);
+    });
+
+    it("collects every path from a multi-line lib_extra_dirs (#1181)", () => {
+      // The multi-line form is what PlatformIO's own docs show for more than
+      // one directory. The previous pattern captured only the first path,
+      // because under /m its `$` lookahead alternative matched at the end of
+      // the first line and the lazy capture stopped there.
+      mkdirSync(join(testDir, "libs_one"), { recursive: true });
+      mkdirSync(join(testDir, "libs_two"), { recursive: true });
+      writeFileSync(
+        join(testDir, "platformio.ini"),
+        `
+[env:esp32]
+lib_extra_dirs =
+    libs_one
+    libs_two
+`,
+      );
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+
+      const paths = IncludeDiscovery.discoverIncludePaths(
+        join(testDir, "src", "main.cnx"),
+      );
+
+      expect(paths.some((p) => p.includes("libs_one"))).toBe(true);
+      expect(paths.some((p) => p.includes("libs_two"))).toBe(true);
+    });
+
+    it("stops a multi-line lib_extra_dirs at the next key (#1181)", () => {
+      mkdirSync(join(testDir, "libs_one"), { recursive: true });
+      mkdirSync(join(testDir, "not_a_lib_dir"), { recursive: true });
+      writeFileSync(
+        join(testDir, "platformio.ini"),
+        `
+[env:esp32]
+lib_extra_dirs =
+    libs_one
+build_flags = not_a_lib_dir
+`,
+      );
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+
+      const paths = IncludeDiscovery.discoverIncludePaths(
+        join(testDir, "src", "main.cnx"),
+      );
+
+      expect(paths.some((p) => p.includes("libs_one"))).toBe(true);
+      expect(paths.some((p) => p.includes("not_a_lib_dir"))).toBe(false);
+    });
+
+    it("keeps a continuation path containing = (#1181)", () => {
+      mkdirSync(join(testDir, "vendor", "lib=v2"), { recursive: true });
+      mkdirSync(join(testDir, "libs_after"), { recursive: true });
+      writeFileSync(
+        join(testDir, "platformio.ini"),
+        `
+[env:esp32]
+lib_extra_dirs =
+    vendor/lib=v2
+    libs_after
+`,
+      );
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+
+      const paths = IncludeDiscovery.discoverIncludePaths(
+        join(testDir, "src", "main.cnx"),
+      );
+
+      expect(paths.some((p) => p.includes("lib=v2"))).toBe(true);
+      expect(paths.some((p) => p.includes("libs_after"))).toBe(true);
     });
 
     it("handles comma-separated lib_extra_dirs", () => {

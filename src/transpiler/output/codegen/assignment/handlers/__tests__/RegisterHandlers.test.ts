@@ -65,7 +65,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("exports exactly 4 handlers", () => {
-      expect(registerHandlers.length).toBe(4);
+      expect(registerHandlers).toHaveLength(4);
     });
   });
 

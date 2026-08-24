@@ -295,7 +295,7 @@ describe("Transpiler coverage tests", () => {
 
       expect(result.success).toBe(true);
       // In parse-only mode, no output files should be written
-      expect(result.outputFiles.length).toBe(0);
+      expect(result.outputFiles).toHaveLength(0);
     });
   });
 
@@ -526,7 +526,7 @@ describe("Transpiler coverage tests", () => {
       // No header file should be generated
       const writeCalls = mockFs.getWriteLog();
       const headerWrites = writeCalls.filter((w) => w.path.endsWith(".h"));
-      expect(headerWrites.length).toBe(0);
+      expect(headerWrites).toHaveLength(0);
     });
 
     it("generates header with function parameters marked as const", async () => {
@@ -559,7 +559,7 @@ describe("Transpiler coverage tests", () => {
       // Issue #933: C++ mode generates .hpp extension
       const writeCalls = mockFs.getWriteLog();
       const headerWrites = writeCalls.filter((w) => w.path.endsWith(".hpp"));
-      expect(headerWrites.length).toBe(1);
+      expect(headerWrites).toHaveLength(1);
     });
   });
 
@@ -1346,7 +1346,7 @@ describe("Transpiler coverage integration tests", () => {
     const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(true);
-    expect(result.files.length).toBe(2);
+    expect(result.files).toHaveLength(2);
   });
 
   it("uses cache on second run when enabled", async () => {
@@ -1580,5 +1580,59 @@ describe("Transpiler coverage integration tests", () => {
     const result = await transpiler.transpile({ kind: "files" });
     // The transpiler should still succeed and add a warning
     expect(result.success).toBe(true);
+  });
+
+  // ==========================================================================
+  // E0602: side effects in sizeof (ADR-023, MISRA C:2012 Rule 13.6)
+  //
+  // Covered by .cnx fixtures, but those run outside vitest, so the scanner that
+  // decides "is there a call in here?" had no unit coverage. Its edge cases are
+  // the reason it replaced /[a-zA-Z_]\w*\s*\(/ (S8786), so they are asserted
+  // here against the real pipeline rather than a copy of the scan.
+  // ==========================================================================
+
+  describe("sizeof side effects (E0602)", () => {
+    const transpileSource = async (body: string) => {
+      const transpiler = new Transpiler(
+        { input: "", noCache: true },
+        new MockFileSystem(),
+      );
+      return await transpiler.transpile({
+        kind: "source",
+        source: `u32 getValue() {
+  return 42;
+}
+
+void main() {
+  u32 counter <- 1;
+  ${body}
+}
+`,
+      });
+    };
+
+    it.each([
+      ["a direct call", "u32 bad <- sizeof(getValue());"],
+      ["a call within an expression", "u32 bad <- sizeof(getValue() + 1);"],
+    ])("rejects %s as a sizeof operand", async (_label, body) => {
+      const result = await transpileSource(body);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.map((error) => error.message).join("\n")).toContain(
+        "E0602",
+      );
+    });
+
+    it.each([
+      ["a plain variable", "u32 size <- sizeof(counter);"],
+      ["a parenthesized variable", "u32 size <- sizeof((counter));"],
+    ])("accepts %s as a sizeof operand", async (_label, body) => {
+      const result = await transpileSource(body);
+
+      expect(
+        result.errors.map((error) => error.message).join("\n"),
+      ).not.toContain("E0602");
+      expect(result.success).toBe(true);
+    });
   });
 });

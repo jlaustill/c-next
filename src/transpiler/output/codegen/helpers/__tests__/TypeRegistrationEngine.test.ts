@@ -87,46 +87,28 @@ describe("TypeRegistrationEngine", () => {
   });
 
   describe("resolveBaseType", () => {
-    it("resolves primitive types", () => {
-      const ctx = parseTypeContext("u32 counter;");
+    it.each([
+      ["resolves primitive types", "u32 counter;", null, "u32"],
+      [
+        "resolves scoped types with currentScope",
+        "this.State value;",
+        "Motor",
+        "Motor__State",
+      ],
+      [
+        "resolves scoped types without currentScope",
+        "this.State value;",
+        null,
+        "State",
+      ],
+      ["resolves user types", "Point origin;", null, "Point"],
+      ["resolves global types", "global.Config cfg;", "Motor", "Config"],
+      ["resolves qualified types", "Motor.State state;", null, "Motor__State"],
+    ])("%s", (_label, source, argument2, expected) => {
+      const ctx = parseTypeContext(source);
       expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, null);
-      expect(result).toBe("u32");
-    });
-
-    it("resolves scoped types with currentScope", () => {
-      const ctx = parseTypeContext("this.State value;");
-      expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, "Motor");
-      expect(result).toBe("Motor__State");
-    });
-
-    it("resolves scoped types without currentScope", () => {
-      const ctx = parseTypeContext("this.State value;");
-      expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, null);
-      expect(result).toBe("State");
-    });
-
-    it("resolves user types", () => {
-      const ctx = parseTypeContext("Point origin;");
-      expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, null);
-      expect(result).toBe("Point");
-    });
-
-    it("resolves global types", () => {
-      const ctx = parseTypeContext("global.Config cfg;");
-      expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, "Motor");
-      expect(result).toBe("Config");
-    });
-
-    it("resolves qualified types", () => {
-      const ctx = parseTypeContext("Motor.State state;");
-      expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, null);
-      expect(result).toBe("Motor__State");
+      const result = TypeRegistrationEngine.resolveBaseType(ctx!, argument2);
+      expect(result).toBe(expected);
     });
 
     it("returns null for string types", () => {

@@ -170,7 +170,7 @@ describe("IBaseAnalysisError", () => {
         } as IFunctionCallError,
       ];
 
-      expect(errors.length).toBe(3);
+      expect(errors).toHaveLength(3);
       expect(errors.every((e) => typeof e.code === "string")).toBe(true);
       expect(errors.every((e) => typeof e.line === "number")).toBe(true);
       expect(errors.every((e) => typeof e.column === "number")).toBe(true);
