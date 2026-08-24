@@ -1,0 +1,7 @@
+#include <transitive-middle.cnx>
+
+scope TransitiveConsumer {
+    u32 read() {
+        return PrivateConfig.SERIAL_BAUD;
+    }
+}

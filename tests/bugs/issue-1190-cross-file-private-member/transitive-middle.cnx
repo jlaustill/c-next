@@ -1,0 +1,7 @@
+// Middle layer for the transitive case: includes the scope holding the
+// private member, and is itself included by the test file.
+#include <private-config.cnx>
+
+scope TransitiveMiddle {
+    public const u32 VISIBLE <- 1;
+}

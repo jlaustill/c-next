@@ -1,0 +1,7 @@
+#include <public-config.cnx>
+
+scope PublicConsumer {
+    u32 read() {
+        return PublicConfig.BAUD;
+    }
+}
