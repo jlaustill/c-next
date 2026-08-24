@@ -1,0 +1,15 @@
+// test-error
+// Issue #1183 review, round 2: the rule enumerated which expression FORMS are
+// Boolean, so anything it did not recognize defaulted to permitted. A
+// bool-returning call was unresolvable, and reached the binary:
+//     uint8_t c = n / isReady();   ->  SIGFPE, exit 136
+//
+// Resolved through CodeGenState.getFunctionReturnType, keyed by transpiled C
+// name via QualifiedCName -- the single encoder -- so the bare, scope-qualified
+// and this.member() spellings all resolve to the same answer.
+bool isReady() { return false; }
+u8 n <- 10;
+
+void main() {
+    u8 c <- n / isReady(); // E0807: divide by zero at runtime
+}

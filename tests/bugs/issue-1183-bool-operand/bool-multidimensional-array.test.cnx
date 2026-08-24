@@ -1,0 +1,10 @@
+// test-error
+// /cnext-way audit of #1183: the subscript step stripped every dimension at
+// once, which is indistinguishable from correct for a 1-D array and wrong for
+// any other. `flags[0][1]` resolved to nothing, so this divide by zero was
+// accepted while the 1-D form was rejected.
+bool[2][3] flags;
+
+void main() {
+    u8 c <- flags[0][1] / flags[1][2]; // E0807: flags[1][2] is false
+}

@@ -1,0 +1,9 @@
+// test-error
+// Issue #1183 review: the array-element path had no test -- removing its guard
+// left every suite green. The diagnostic must also name the ELEMENT, since
+// `flags <- !flags` (the old suggestion) is not valid C-Next.
+bool[2] flags;
+
+void main() {
+    flags[0] +<- true; // E0806: names flags[0], not flags
+}

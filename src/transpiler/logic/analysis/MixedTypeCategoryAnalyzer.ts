@@ -36,121 +36,15 @@ import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
+import IScopeFrame from "./types/IScopeFrame";
+import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ScopeFrameResolver from "./ScopeFrameResolver";
+import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
 
 /** Essential type category of an operand, or null when it cannot be resolved. */
 type Category = "signed" | "unsigned" | null;
-
-/**
- * Declarations directly in one lexical scope (a function, named scope, block, or
- * for-loop header), with a link to the enclosing scope. Resolution searches
- * outward to the global frame, so inner declarations shadow outer ones.
- */
-interface ScopeFrame {
-  readonly vars: Map<string, string>;
-  readonly parent: ScopeFrame | null;
-}
-
-/**
- * First pass: build per-scope frames. Frames are anchored to the function /
- * scope context node so the second pass can find an operand's frame by walking
- * up its parent chain — no shared walk state between the passes.
- */
-class ScopeCollector extends CNextListener {
-  private readonly globalFrame: ScopeFrame = { vars: new Map(), parent: null };
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly frameOf: Map<ParserRuleContext, ScopeFrame> = new Map();
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly stack: ScopeFrame[] = [this.globalFrame];
-
-  public getGlobalFrame(): ScopeFrame {
-    return this.globalFrame;
-  }
-
-  public getFrameOf(): Map<ParserRuleContext, ScopeFrame> {
-    return this.frameOf;
-  }
-
-  private top(): ScopeFrame {
-    return this.stack.at(-1) ?? this.globalFrame;
-  }
-
-  private pushFrame(node: ParserRuleContext): void {
-    const frame: ScopeFrame = { vars: new Map(), parent: this.top() };
-    this.frameOf.set(node, frame);
-    this.stack.push(frame);
-  }
-
-  private popFrame(): void {
-    this.stack.pop();
-  }
-
-  private record(
-    typeCtx: Parser.TypeContext | null,
-    identifier: { getText(): string } | null,
-  ): void {
-    if (!typeCtx || !identifier) return;
-    this.top().vars.set(identifier.getText(), typeCtx.getText());
-  }
-
-  override enterFunctionDeclaration = (
-    ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    this.pushFrame(ctx);
-  };
-
-  override exitFunctionDeclaration = (): void => {
-    this.popFrame();
-  };
-
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.pushFrame(ctx);
-  };
-
-  override exitScopeDeclaration = (): void => {
-    this.popFrame();
-  };
-
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    this.record(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.record(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.record(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  // Each braced block (if/while/for body, and a function/scope body) is its own
-  // lexical scope, so a different-category redeclaration shadows only within the
-  // block instead of poisoning the name function-wide (Issue #1085 review).
-  override enterBlock = (ctx: Parser.BlockContext): void => {
-    this.pushFrame(ctx);
-  };
-
-  override exitBlock = (): void => {
-    this.popFrame();
-  };
-
-  // The for-loop header is its own scope so the loop variable is confined to the
-  // loop (header + body) and never overwrites an outer same-named variable.
-  override enterForStatement = (ctx: Parser.ForStatementContext): void => {
-    this.pushFrame(ctx);
-  };
-
-  override exitForStatement = (): void => {
-    this.popFrame();
-  };
-}
 
 /**
  * Second pass: detect binary operators combining mixed essential categories.
@@ -159,47 +53,20 @@ class MixedCategoryListener extends CNextListener {
   private readonly analyzer: MixedTypeCategoryAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly globalFrame: ScopeFrame;
+  private readonly scopes: ScopeFrameResolver;
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly frameOf: Map<ParserRuleContext, ScopeFrame>;
-
-  constructor(
-    analyzer: MixedTypeCategoryAnalyzer,
-    globalFrame: ScopeFrame,
-    frameOf: Map<ParserRuleContext, ScopeFrame>,
-  ) {
+  constructor(analyzer: MixedTypeCategoryAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
-    this.globalFrame = globalFrame;
-    this.frameOf = frameOf;
-  }
-
-  /** The scope frame enclosing an operand: nearest function/scope ancestor. */
-  private frameFor(ctx: ParserRuleContext): ScopeFrame {
-    let node: ParserRuleContext | null = ctx;
-    while (node) {
-      const frame = this.frameOf.get(node);
-      if (frame) return frame;
-      node = node.parent;
-    }
-    return this.globalFrame;
+    this.scopes = scopes;
   }
 
   /** Map a known variable name to its essential type category within a scope. */
-  private categoryOfName(name: string, frame: ScopeFrame): Category {
-    let current: ScopeFrame | null = frame;
-    while (current) {
-      const typeName = current.vars.get(name);
-      if (typeName) {
-        if (TypeConstants.SIGNED_TYPES.includes(typeName)) return "signed";
-        if (TypeConstants.UNSIGNED_INT_TYPES.includes(typeName)) {
-          return "unsigned";
-        }
-        return null;
-      }
-      current = current.parent;
-    }
+  private categoryOfName(name: string, frame: IScopeFrame): Category {
+    const typeName = this.scopes.typeOfName(name, frame);
+    if (!typeName) return null;
+    if (TypeConstants.SIGNED_TYPES.includes(typeName)) return "signed";
+    if (TypeConstants.UNSIGNED_INT_TYPES.includes(typeName)) return "unsigned";
     return null;
   }
 
@@ -222,7 +89,7 @@ class MixedCategoryListener extends CNextListener {
    */
   private collectOperandCategories(
     ctx: ParserRuleContext,
-    frame: ScopeFrame,
+    frame: IScopeFrame,
     out: Category[],
   ): void {
     if (ctx instanceof Parser.UnaryExpressionContext) {
@@ -280,7 +147,10 @@ class MixedCategoryListener extends CNextListener {
    * operands always reflects a real signed/unsigned combination — no false
    * positive on uniform code.
    */
-  private operandCategory(ctx: ParserRuleContext, frame: ScopeFrame): Category {
+  private operandCategory(
+    ctx: ParserRuleContext,
+    frame: IScopeFrame,
+  ): Category {
     const leaves: Category[] = [];
     this.collectOperandCategories(ctx, frame, leaves);
 
@@ -300,9 +170,8 @@ class MixedCategoryListener extends CNextListener {
    * Compare adjacent operands at one binary-operator level and report any pair
    * whose categories are both resolved and differ.
    */
-  private checkLevel(operands: ParserRuleContext[]): void {
-    if (operands.length < 2) return;
-    const frame = this.frameFor(operands[0]);
+  public checkLevel(operands: ParserRuleContext[]): void {
+    const frame = this.scopes.frameFor(operands[0]);
     for (let i = 0; i < operands.length - 1; i += 1) {
       const left = this.operandCategory(operands[i], frame);
       const right = this.operandCategory(operands[i + 1], frame);
@@ -312,48 +181,6 @@ class MixedCategoryListener extends CNextListener {
       }
     }
   }
-
-  override enterMultiplicativeExpression = (
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.unaryExpression());
-  };
-
-  override enterAdditiveExpression = (
-    ctx: Parser.AdditiveExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.multiplicativeExpression());
-  };
-
-  override enterBitwiseAndExpression = (
-    ctx: Parser.BitwiseAndExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.shiftExpression());
-  };
-
-  override enterBitwiseXorExpression = (
-    ctx: Parser.BitwiseXorExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseAndExpression());
-  };
-
-  override enterBitwiseOrExpression = (
-    ctx: Parser.BitwiseOrExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseXorExpression());
-  };
-
-  override enterRelationalExpression = (
-    ctx: Parser.RelationalExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseOrExpression());
-  };
-
-  override enterEqualityExpression = (
-    ctx: Parser.EqualityExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.relationalExpression());
-  };
 }
 
 /**
@@ -368,15 +195,25 @@ class MixedTypeCategoryAnalyzer {
   public analyze(tree: Parser.ProgramContext): IMixedTypeCategoryError[] {
     this.errors = [];
 
-    const collector = new ScopeCollector();
+    const collector = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(collector, tree);
 
     const listener = new MixedCategoryListener(
       this,
-      collector.getGlobalFrame(),
-      collector.getFrameOf(),
+      new ScopeFrameResolver(collector),
     );
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
+
+    // Every binary level EXCEPT shift: Rule 10.4 governs only operators subject
+    // to the usual arithmetic conversions, and a shift count is promoted
+    // independently. A signed shift count is Rule 10.1 (E0805), handled
+    // elsewhere (Issue #1085 review).
+    ParseTreeWalker.DEFAULT.walk(
+      new BinaryOperatorLevelListener((operands, level) => {
+        if (level === "shift") return;
+        listener.checkLevel(operands);
+      }),
+      tree,
+    );
 
     return this.errors;
   }

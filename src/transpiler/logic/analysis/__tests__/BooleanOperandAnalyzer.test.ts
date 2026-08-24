@@ -1,0 +1,443 @@
+/**
+ * Unit tests for BooleanOperandAnalyzer
+ * Tests detection of arithmetic, bitwise, shift and relational operators
+ * applied to an essentially Boolean operand
+ * (MISRA C:2012 Rule 10.1, Issue #1183).
+ */
+import { describe, it, expect } from "vitest";
+import { CharStream, CommonTokenStream } from "antlr4ng";
+import { CNextLexer } from "../../parser/grammar/CNextLexer";
+import { CNextParser } from "../../parser/grammar/CNextParser";
+import BooleanOperandAnalyzer from "../BooleanOperandAnalyzer";
+
+function parse(source: string) {
+  const charStream = CharStream.fromString(source);
+  const lexer = new CNextLexer(charStream);
+  const tokenStream = new CommonTokenStream(lexer);
+  const parser = new CNextParser(tokenStream);
+  return parser.program();
+}
+
+function analyze(source: string) {
+  return new BooleanOperandAnalyzer().analyze(parse(source));
+}
+
+/** Wrap a statement in a function with two bool locals and an integer local. */
+function inMain(statement: string) {
+  return `
+    void main() {
+      bool a <- true;
+      bool b <- false;
+      u8 n <- 1;
+      ${statement}
+    }
+  `;
+}
+
+describe("BooleanOperandAnalyzer", () => {
+  describe("bool operands of guarded operators (rejected)", () => {
+    it.each([
+      ["+", "bool c <- a + b;"],
+      ["-", "bool c <- a - b;"],
+      ["*", "bool c <- a * b;"],
+      ["/", "bool c <- a / b;"],
+      ["%", "bool c <- a % b;"],
+    ])("rejects arithmetic operator %s on two bools", (operator, statement) => {
+      const errors = analyze(inMain(statement));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+      expect(errors[0].message).toBe(
+        `Operator '${operator}' is not valid on a bool operand`,
+      );
+    });
+
+    it.each([
+      ["&", "bool c <- a & b;"],
+      ["|", "bool c <- a | b;"],
+      ["^", "bool c <- a ^ b;"],
+    ])("rejects bitwise operator %s on two bools", (operator, statement) => {
+      const errors = analyze(inMain(statement));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain(`Operator '${operator}'`);
+    });
+
+    it.each([
+      ["<<", "u8 c <- a << 1;"],
+      [">>", "u8 c <- a >> 1;"],
+    ])("rejects shift operator %s on a bool", (operator, statement) => {
+      const errors = analyze(inMain(statement));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain(`Operator '${operator}'`);
+    });
+
+    // Boolean values are not ordered, so relational comparison is meaningless.
+    it.each([
+      ["<", "bool c <- (a < b);"],
+      [">", "bool c <- (a > b);"],
+      ["<=", "bool c <- (a <= b);"],
+      [">=", "bool c <- (a >= b);"],
+    ])("rejects relational operator %s on two bools", (operator, statement) => {
+      const errors = analyze(inMain(statement));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain(`Operator '${operator}'`);
+    });
+
+    it.each([
+      ["-", "i8 c <- -a;"],
+      ["~", "bool c <- ~a;"],
+    ])("rejects prefix operator %s on a bool", (operator, statement) => {
+      const errors = analyze(inMain(statement));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain(`Operator '${operator}'`);
+    });
+
+    // Every shape a Boolean operand can take, each reported exactly once: the
+    // count also pins that a two-bool operator reports per operator, not per
+    // operand.
+    it.each([
+      ["a bool mixed with an integer operand", "u8 c <- a + n;"],
+      ["a bool on the right-hand side of an integer", "u8 c <- n * a;"],
+      ["true/false literal operands", "bool c <- true + false;"],
+      ["a negation result used as an operand", "u8 c <- !a + n;"],
+      ["a parenthesised bool operand", "u8 c <- (a) + n;"],
+      ["both operands bool, reported once", "bool c <- a / b;"],
+    ])("rejects %s", (_label, statement) => {
+      const errors = analyze(inMain(statement));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    // Issue #1183 review: a comparison or logical result is a bool that no
+    // declaration names. It is well-formed on its own, so the parent arithmetic
+    // operator is the only place its misuse can be reported. `n / (a && b)`
+    // reached the binary and died with SIGFPE.
+    it.each([
+      ["logical and", "u8 c <- n / (a && b);"],
+      ["logical or", "u8 c <- n / (a || b);"],
+      ["equality", "u8 c <- n / (a = b);"],
+      ["relational", "u8 c <- n / (n < 2);"],
+      ["negation", "u8 c <- n / !a;"],
+      ["comparison as a left operand", "u8 c <- (n < 2) + n;"],
+    ])(
+      "rejects a bool-valued %s expression as an operand",
+      (_label, statement) => {
+        const errors = analyze(inMain(statement));
+        expect(errors).toHaveLength(1);
+        expect(errors[0].code).toBe("E0807");
+      },
+    );
+
+    it("reports each offending operator in a chain", () => {
+      const errors = analyze(inMain("bool c <- a + b + a;"));
+      expect(errors).toHaveLength(2);
+    });
+
+    it("reports the position of the offending operand", () => {
+      const errors = analyze(inMain("bool c <- a / b;"));
+      expect(errors[0].line).toBeGreaterThan(0);
+      expect(errors[0].column).toBeGreaterThanOrEqual(0);
+    });
+
+    it("carries help text naming the rule and the valid operators", () => {
+      const errors = analyze(inMain("bool c <- a + b;"));
+      expect(errors[0].helpText).toContain("Rule 10.1");
+      expect(errors[0].helpText).toContain("&&");
+    });
+  });
+
+  describe("operators that remain valid on a bool (accepted)", () => {
+    it.each([
+      ["logical and", "bool c <- a && b;"],
+      ["logical or", "bool c <- a || b;"],
+      ["negation", "bool c <- !a;"],
+      ["equality", "bool c <- (a = b);"],
+      ["inequality", "bool c <- (a != b);"],
+      ["plain assignment", "a <- b;"],
+      ["negating assignment", "a <- !a;"],
+    ])("accepts %s", (_label, statement) => {
+      expect(analyze(inMain(statement))).toHaveLength(0);
+    });
+
+    it("accepts a bool comparison as a controlling expression", () => {
+      expect(analyze(inMain("if (a = true) { n <- 2; }"))).toHaveLength(0);
+    });
+
+    // The same shapes as a bool VALUE remain legal -- the operand position is
+    // what is forbidden, not the expression itself.
+    it.each([
+      ["logical and", "bool c <- a && b;"],
+      ["logical or", "bool c <- a || b;"],
+      ["equality", "bool c <- (a = b);"],
+      ["relational on integers", "bool c <- (n < 2);"],
+      ["negation", "bool c <- !a;"],
+    ])(
+      "accepts a bool-valued %s expression as a value",
+      (_label, statement) => {
+        expect(analyze(inMain(statement))).toHaveLength(0);
+      },
+    );
+
+    it("accepts arithmetic on integers", () => {
+      expect(analyze(inMain("u8 c <- n + n;"))).toHaveLength(0);
+    });
+
+    it("accepts arithmetic on integers compared with a relational operator", () => {
+      expect(analyze(inMain("bool c <- (n < 2);"))).toHaveLength(0);
+    });
+  });
+
+  // Issue #1183 review: a compound assignment applies an operator the
+  // expression grammar never expresses as a level, so neither the operator
+  // levels nor a target-only check saw both halves.
+  describe("compound assignment (Issue #1183 review)", () => {
+    it("rejects a compound assignment to a bool target", () => {
+      const errors = analyze(inMain("a +<- true;"));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0806");
+      expect(errors[0].message).toContain("bool 'a'");
+    });
+
+    it.each(["+<-", "-<-", "*<-", "/<-", "&<-", "|<-", "^<-"])(
+      "rejects compound operator %s on a bool target",
+      (operator) => {
+        const errors = analyze(inMain(`a ${operator} true;`));
+        expect(errors).toHaveLength(1);
+        expect(errors[0].code).toBe("E0806");
+      },
+    );
+
+    it("rejects a bool on the right-hand side of a compound assignment", () => {
+      const errors = analyze(inMain("n +<- a;"));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+      expect(errors[0].message).toContain("'+<-'");
+    });
+
+    it("matches the binary form it is equivalent to", () => {
+      const compound = analyze(inMain("n +<- a;"));
+      const binary = analyze(inMain("n <- n + a;"));
+      expect(compound).toHaveLength(1);
+      expect(binary).toHaveLength(1);
+      expect(compound[0].code).toBe(binary[0].code);
+    });
+
+    it("accepts plain assignment to a bool", () => {
+      expect(analyze(inMain("a <- true;"))).toHaveLength(0);
+    });
+
+    it("accepts a compound assignment between integers", () => {
+      expect(analyze(inMain("n +<- 1;"))).toHaveLength(0);
+    });
+
+    it("names an array element target as written, so the fix can be pasted back", () => {
+      const errors = analyze(`
+        bool[2] flags;
+        void main() { flags[0] +<- true; }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0806");
+      expect(errors[0].message).toContain("'flags[0]'");
+      expect(errors[0].helpText).toContain("flags[0] <- !flags[0]");
+    });
+  });
+
+  // Issue #1183 review: an operand carrying a postfix op used to be classified
+  // as not-Boolean, leaving the divide-by-zero hazard reachable.
+  describe("postfix operands", () => {
+    it("rejects arithmetic on a bool array element", () => {
+      const errors = analyze(`
+        bool[2] flags;
+        void main() { u8 c <- flags[0] / flags[1]; }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("rejects arithmetic on a scope member reached through this", () => {
+      const errors = analyze(`
+        scope S {
+          bool ready <- true;
+          public u8 go() { return this.ready + 1; }
+        }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("treats this.member and the bare member the same way", () => {
+      const qualified = analyze(`
+        scope S {
+          bool ready <- true;
+          public u8 go() { return this.ready + 1; }
+        }
+      `);
+      const bare = analyze(`
+        scope S {
+          bool ready <- true;
+          public u8 go() { return ready + 1; }
+        }
+      `);
+      expect(qualified).toHaveLength(bare.length);
+    });
+
+    // /cnext-way audit: stripping every dimension at once is correct only for
+    // a 1-D array. Each subscript must remove exactly one dimension.
+    it.each([
+      [
+        "2-D fully indexed",
+        "bool[2][3] flags;",
+        "u8 c <- flags[0][1] / flags[1][2];",
+      ],
+      [
+        "3-D fully indexed",
+        "bool[2][3][4] flags;",
+        "u8 c <- flags[0][1][2] + flags[1][2][3];",
+      ],
+    ])("rejects arithmetic on %s bool elements", (_label, decl, statement) => {
+      const errors = analyze(`${decl}\nvoid main() { ${statement} }`);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("rejects a compound assignment to a 2-D bool element, naming it", () => {
+      const errors = analyze(`
+        bool[2][3] flags;
+        void main() { flags[0][1] +<- true; }
+      `);
+      expect(errors[0].code).toBe("E0806");
+      expect(errors[0].message).toContain("'flags[0][1]'");
+    });
+
+    it("does not treat a partially indexed bool array as a bool", () => {
+      // flags[0] on a bool[2][3] is bool[3] -- an array, not a bool. Arithmetic
+      // on it is a separate defect, tracked as #1191.
+      const errors = analyze(`
+        bool[2][3] flags;
+        void main() { u8 c <- flags[0] / flags[1]; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag an integer array element", () => {
+      const errors = analyze(`
+        u8[2] values;
+        void main() { u8 c <- values[0] + values[1]; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("rejects a compound assignment through this.member", () => {
+      const errors = analyze(`
+        scope S {
+          bool ready <- true;
+          public void go() { this.ready +<- true; }
+        }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0806");
+    });
+
+    it("rejects arithmetic on a global.member bool", () => {
+      const errors = analyze(`
+        bool ready <- true;
+        scope S {
+          public u8 go() { return global.ready + 1; }
+        }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("does not flag a subscript into a non-array bool", () => {
+      // `flag[0]` is a bit index, not an element of a declared array type.
+      const errors = analyze(inMain("u8 c <- a[0] + n;"));
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag a member of an unknown struct type", () => {
+      const errors = analyze(`
+        void main() { u8 c <- unknown.field + 1; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("rejects a ternary whose arms are bool", () => {
+      const errors = analyze(inMain("u8 c <- n / ((n < 2) ? a : b);"));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("accepts a ternary with integer arms", () => {
+      expect(analyze(inMain("u8 c <- n / ((n < 5) ? 2 : 3);"))).toHaveLength(0);
+    });
+
+    it("does not flag a call whose return type is not bool", () => {
+      const errors = analyze(`
+        u8 get() { return 1; }
+        void main() { u8 c <- get() + 1; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag a call to an unknown function", () => {
+      // Unresolvable stays permitted: rejecting what cannot be proven bool
+      // would fail valid code that calls into C.
+      const errors = analyze("void main() { u8 c <- unknownFn() + 1; }");
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  describe("scope resolution", () => {
+    it("does not flag a same-named integer in another function", () => {
+      const errors = analyze(`
+        void first() {
+          bool value <- true;
+          bool other <- false;
+          bool c <- value && other;
+        }
+        void second() {
+          u8 value <- 1;
+          u8 c <- value + 1;
+        }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("resolves a bool shadowing an outer integer of the same name", () => {
+      const errors = analyze(`
+        void main() {
+          u8 value <- 1;
+          {
+            bool value <- true;
+            u8 c <- value + 1;
+          }
+        }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("flags a bool parameter used in arithmetic", () => {
+      const errors = analyze(`
+        void go(bool flag) {
+          u8 c <- flag + 1;
+        }
+      `);
+      expect(errors).toHaveLength(1);
+    });
+
+    it("flags a global bool used in arithmetic inside a function", () => {
+      const errors = analyze(`
+        bool ready <- false;
+        void main() {
+          u8 c <- ready + 1;
+        }
+      `);
+      expect(errors).toHaveLength(1);
+    });
+
+    it("returns no errors for a program with no bool operands", () => {
+      expect(analyze("void main() { u8 c <- 1 + 2; }")).toHaveLength(0);
+    });
+  });
+});

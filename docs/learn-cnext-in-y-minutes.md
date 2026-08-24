@@ -31,6 +31,16 @@ bool flag;      // bool
 // Assignment uses <- (not =)
 u32 x <- 42;
 
+// A bool is not a number. It takes plain assignment, the logical operators,
+// and equality - never arithmetic, bitwise, shift or relational operators.
+flag <- true;
+flag <- !flag;              // flip a flag this way
+bool both <- flag && x = 42;
+bool same <- (flag = true);
+// flag +<- true;           // ERROR E0806: only <- is valid on a bool
+// bool c <- flag + flag;   // ERROR E0807: '+' is not valid on a bool operand
+// bool c <- flag / flag;   // ERROR E0807: and this one is a divide by zero
+
 // Comparison uses = (not ==)
 if (x = 42) { }     // "x equals 42"
 if (x != 0) { }     // "x not equal to 0"

@@ -1,0 +1,1 @@
+15:4 error[E0806]: Compound assignment is not valid on bool 'flag' - only '<-' is

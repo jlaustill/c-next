@@ -1,0 +1,14 @@
+// test-error
+// Issue #1183: a bool is not a number. `a / b` on two bools passed straight
+// through to C, so a false divisor was an unguarded division by zero that
+// DivisionByZeroAnalyzer (E0800) cannot see -- the risk is carried by the TYPE,
+// not by a literal value.
+//
+// MISRA C:2012 Rule 10.1: an essentially Boolean operand is permitted only for
+// the logical operators, for equality, and as a controlling expression.
+bool a <- true;
+bool b <- false;
+
+void main() {
+    bool c <- a / b; // E0807: '/' is not valid on a bool operand
+}

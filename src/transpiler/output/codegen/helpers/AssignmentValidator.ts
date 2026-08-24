@@ -174,6 +174,7 @@ class AssignmentValidator {
 
     // ADR-036: Compile-time bounds checking
     const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
+
     if (typeInfo?.isArray && typeInfo.arrayDimensions) {
       TypeValidator.checkArrayBounds(
         arrayName,
@@ -221,6 +222,7 @@ class AssignmentValidator {
     const rootTypeInfo = CodeGenState.getVariableTypeInfo(rootName);
     if (rootTypeInfo && CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
       const structType = rootTypeInfo.baseType;
+
       const callbackFieldKey = `${structType}.${memberName}`;
       const expectedCallbackType =
         CodeGenState.callbackFieldTypes.get(callbackFieldKey);

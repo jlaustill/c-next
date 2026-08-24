@@ -1,0 +1,15 @@
+// test-error
+// Issue #1183 review: a comparison or logical result is a bool that no
+// declaration names, so it read as "type unknown" and passed. `a && b` is
+// well-formed on its own -- nothing reports at that level -- which makes the
+// parent arithmetic operator the only place the violation can be caught.
+//
+// Before the fix this compiled and died at runtime:
+//     uint8_t c = n / (a && b);   ->  SIGFPE, exit 136
+bool a <- true;
+bool b <- false;
+u8 n <- 10;
+
+void main() {
+    u8 c <- n / (a && b); // E0807: divide by zero at runtime
+}

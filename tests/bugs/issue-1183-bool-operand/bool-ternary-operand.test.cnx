@@ -1,0 +1,11 @@
+// test-error
+// Issue #1183 review, round 2: a ternary takes its type from its ARMS. The
+// condition is parenthesized, so the arms are reached through orExpression()
+// -- never getChild(0), which is '(' (CLAUDE.md).
+bool a <- true;
+bool b <- false;
+u8 n <- 10;
+
+void main() {
+    u8 c <- n / ((n < 2) ? a : b); // E0807
+}
