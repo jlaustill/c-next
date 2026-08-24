@@ -331,20 +331,12 @@ describe("LiteralUtils", () => {
   // ========================================================================
 
   describe("isFloat", () => {
-    it("should return true for simple float literal", () => {
-      const literal = extractFloatLiteral("1.5");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isFloat(literal!)).toBe(true);
-    });
-
-    it("should return true for float with leading zero", () => {
-      const literal = extractFloatLiteral("0.5");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isFloat(literal!)).toBe(true);
-    });
-
-    it("should return true for float zero", () => {
-      const literal = extractFloatLiteral("0.0");
+    it.each([
+      ["should return true for simple float literal", "1.5"],
+      ["should return true for float with leading zero", "0.5"],
+      ["should return true for float zero", "0.0"],
+    ])("%s", (_label, expected) => {
+      const literal = extractFloatLiteral(expected);
       expect(literal).not.toBeNull();
       expect(LiteralUtils.isFloat(literal!)).toBe(true);
     });

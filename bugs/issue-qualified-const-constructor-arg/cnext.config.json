@@ -1,0 +1,1 @@
+{ "cppRequired": true, "include": ["."], "headerOut": ".", "basePath": "." }

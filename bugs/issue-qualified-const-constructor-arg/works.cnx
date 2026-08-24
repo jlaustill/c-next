@@ -1,0 +1,9 @@
+// WORKS: unqualified const declared in the same scope as the object.
+#include <FakeSensor.h>
+
+scope Works {
+    const u8 SENSOR_CHIP_SELECT_PIN <- 10;
+    FakeSensor sensor(SENSOR_CHIP_SELECT_PIN);
+
+    bool start() { return sensor.begin(); }
+}

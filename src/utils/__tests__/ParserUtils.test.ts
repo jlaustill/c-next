@@ -137,25 +137,19 @@ describe("ParserUtils", () => {
       expect(result.message).toBe("Error: something went wrong");
     });
 
-    it("should default for empty string", () => {
-      const result = ParserUtils.parseErrorLocation("");
+    it.each([
+      ["should default for empty string", "", ""],
+      [
+        "should not match non-numeric prefix",
+        "abc:def some error",
+        "abc:def some error",
+      ],
+      ["should not match if no space after column", "8:4", "8:4"],
+    ])("%s", (_label, source, expected) => {
+      const result = ParserUtils.parseErrorLocation(source);
       expect(result.line).toBe(1);
       expect(result.column).toBe(0);
-      expect(result.message).toBe("");
-    });
-
-    it("should not match non-numeric prefix", () => {
-      const result = ParserUtils.parseErrorLocation("abc:def some error");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe("abc:def some error");
-    });
-
-    it("should not match if no space after column", () => {
-      const result = ParserUtils.parseErrorLocation("8:4");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe("8:4");
+      expect(result.message).toBe(expected);
     });
 
     it("should preserve full message content after prefix", () => {

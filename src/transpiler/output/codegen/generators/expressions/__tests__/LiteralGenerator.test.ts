@@ -142,109 +142,81 @@ describe("LiteralGenerator", () => {
       return { expectedType } as IGeneratorState;
     }
 
-    it("should add U suffix to decimal literal when expectedType is u8", () => {
-      const node = createMockLiteral("255");
-      const state = createStateWithExpectedType("u8");
+    it.each([
+      [
+        "should add U suffix to decimal literal when expectedType is u8",
+        "255",
+        "u8",
+        "255U",
+      ],
+      [
+        "should add U suffix to decimal literal when expectedType is u16",
+        "60000",
+        "u16",
+        "60000U",
+      ],
+      [
+        "should add U suffix to decimal literal when expectedType is u32",
+        "4000000000",
+        "u32",
+        "4000000000U",
+      ],
+      [
+        "should add ULL suffix to decimal literal when expectedType is u64",
+        "42",
+        "u64",
+        "42ULL",
+      ],
+      [
+        "should add U suffix to hex literal when expectedType is u8",
+        "0xFF",
+        "u8",
+        "0xFFU",
+      ],
+      [
+        "should add U suffix to binary literal when expectedType is u8",
+        "0b11110000",
+        "u8",
+        "0b11110000U",
+      ],
+      [
+        "should NOT add U suffix when expectedType is signed (i32)",
+        "42",
+        "i32",
+        "42",
+      ],
+      ["should NOT add U suffix when expectedType is null", "42", null, "42"],
+      [
+        "should NOT add U suffix to string literals even with unsigned expectedType",
+        '"hello"',
+        "u8",
+        '"hello"',
+      ],
+      [
+        "should NOT add U suffix to float literals even with unsigned expectedType",
+        "3.14",
+        "u32",
+        "3.14",
+      ],
+      [
+        "should NOT double-add U suffix if already present via explicit suffix (u32 suffix is stripped, then U is added based on expectedType)",
+        "42u32",
+        "u32",
+        "42U",
+      ],
+      ["should handle uint8_t C type as unsigned", "42", "uint8_t", "42U"],
+      [
+        "should handle uint32_t C type as unsigned",
+        "0x80000000",
+        "uint32_t",
+        "0x80000000U",
+      ],
+    ])("%s", (_label, source, argument2, expected) => {
+      const node = createMockLiteral(source);
+      const state = createStateWithExpectedType(argument2);
       const result = generateLiteral(node, mockInput, state, mockOrchestrator);
 
-      expect(result.code).toBe("255U");
-    });
-
-    it("should add U suffix to decimal literal when expectedType is u16", () => {
-      const node = createMockLiteral("60000");
-      const state = createStateWithExpectedType("u16");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("60000U");
-    });
-
-    it("should add U suffix to decimal literal when expectedType is u32", () => {
-      const node = createMockLiteral("4000000000");
-      const state = createStateWithExpectedType("u32");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("4000000000U");
-    });
-
-    it("should add ULL suffix to decimal literal when expectedType is u64", () => {
-      const node = createMockLiteral("42");
-      const state = createStateWithExpectedType("u64");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("42ULL");
-    });
-
-    it("should add U suffix to hex literal when expectedType is u8", () => {
-      const node = createMockLiteral("0xFF");
-      const state = createStateWithExpectedType("u8");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("0xFFU");
-    });
-
-    it("should add U suffix to binary literal when expectedType is u8", () => {
-      const node = createMockLiteral("0b11110000");
-      const state = createStateWithExpectedType("u8");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("0b11110000U");
-    });
-
-    it("should NOT add U suffix when expectedType is signed (i32)", () => {
-      const node = createMockLiteral("42");
-      const state = createStateWithExpectedType("i32");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("42");
-    });
-
-    it("should NOT add U suffix when expectedType is null", () => {
-      const node = createMockLiteral("42");
-      const state = createStateWithExpectedType(null);
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("42");
-    });
-
-    it("should NOT add U suffix to string literals even with unsigned expectedType", () => {
-      const node = createMockLiteral('"hello"');
-      const state = createStateWithExpectedType("u8");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe('"hello"');
-    });
-
-    it("should NOT add U suffix to float literals even with unsigned expectedType", () => {
-      const node = createMockLiteral("3.14");
-      const state = createStateWithExpectedType("u32");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("3.14");
-    });
-
-    it("should NOT double-add U suffix if already present via explicit suffix", () => {
-      const node = createMockLiteral("42u32");
-      const state = createStateWithExpectedType("u32");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      // u32 suffix is stripped, then U is added based on expectedType
-      expect(result.code).toBe("42U");
-    });
-
-    it("should handle uint8_t C type as unsigned", () => {
-      const node = createMockLiteral("42");
-      const state = createStateWithExpectedType("uint8_t");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("42U");
-    });
-
-    it("should handle uint32_t C type as unsigned", () => {
-      const node = createMockLiteral("0x80000000");
-      const state = createStateWithExpectedType("uint32_t");
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
-
-      expect(result.code).toBe("0x80000000U");
+      expect(result.code).toBe(expected);
     });
   });
 });

@@ -140,20 +140,12 @@ describe("StringOperationsHelper", () => {
       expect(result!.rightCapacity).toBe(5);
     });
 
-    it("returns null for integer addition", () => {
-      const expr = parseExpression("1 + 2");
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for subtraction", () => {
-      const expr = parseExpression("str1 - str2");
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for mixed string/non-string", () => {
-      const expr = parseExpression("str1 + 5");
+    it.each([
+      ["returns null for integer addition", "1 + 2"],
+      ["returns null for subtraction", "str1 - str2"],
+      ["returns null for mixed string/non-string", "str1 + 5"],
+    ])("%s", (_label, expected) => {
+      const expr = parseExpression(expected);
       const result = StringOperationsHelper.getStringConcatOperands(expr);
       expect(result).toBeNull();
     });

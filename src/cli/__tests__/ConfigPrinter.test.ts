@@ -140,10 +140,18 @@ describe("ConfigPrinter", () => {
       expect(fullOutput).toContain("target:         teensy41");
     });
 
-    it("displays (none) for target when not set", () => {
+    it.each([
+      ["displays (none) for target when not set", "", "target:         (none)"],
+      ["displays output path when set", "build/", "output:         build/"],
+      [
+        "displays (same dir as input) when output not set",
+        "",
+        "output:         (same dir as input)",
+      ],
+    ])("%s", (_label, source, expected) => {
       const config: ICliConfig = {
         input: "",
-        outputPath: "",
+        outputPath: source,
         includeDirs: [],
         defines: {},
         preprocess: true,
@@ -156,45 +164,7 @@ describe("ConfigPrinter", () => {
       ConfigPrinter.showConfig(config, {});
 
       const fullOutput = output.join("\n");
-      expect(fullOutput).toContain("target:         (none)");
-    });
-
-    it("displays output path when set", () => {
-      const config: ICliConfig = {
-        input: "",
-        outputPath: "build/",
-        includeDirs: [],
-        defines: {},
-        preprocess: true,
-        verbose: false,
-        cppRequired: false,
-        noCache: false,
-        parseOnly: false,
-      };
-
-      ConfigPrinter.showConfig(config, {});
-
-      const fullOutput = output.join("\n");
-      expect(fullOutput).toContain("output:         build/");
-    });
-
-    it("displays (same dir as input) when output not set", () => {
-      const config: ICliConfig = {
-        input: "",
-        outputPath: "",
-        includeDirs: [],
-        defines: {},
-        preprocess: true,
-        verbose: false,
-        cppRequired: false,
-        noCache: false,
-        parseOnly: false,
-      };
-
-      ConfigPrinter.showConfig(config, {});
-
-      const fullOutput = output.join("\n");
-      expect(fullOutput).toContain("output:         (same dir as input)");
+      expect(fullOutput).toContain(expected);
     });
 
     it("displays include directories", () => {

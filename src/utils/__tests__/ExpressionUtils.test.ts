@@ -111,30 +111,16 @@ describe("ExpressionUtils", () => {
       expect(primary).toBeNull();
     });
 
-    it("should return null for function call", () => {
-      const expr = extractExpression("foo()");
+    it.each([
+      ["should return null for function call", "foo()"],
+      ["should return null for array access", "arr[0]"],
+      ["should return null for member access", "obj.field"],
+    ])("%s", (_label, expected) => {
+      const expr = extractExpression(expected);
       expect(expr).not.toBeNull();
 
       const primary = ExpressionUtils.extractPrimaryExpression(expr!);
-      // Function call has postfixOps, so should return null
-      expect(primary).toBeNull();
-    });
 
-    it("should return null for array access", () => {
-      const expr = extractExpression("arr[0]");
-      expect(expr).not.toBeNull();
-
-      const primary = ExpressionUtils.extractPrimaryExpression(expr!);
-      // Array access has postfixOps, so should return null
-      expect(primary).toBeNull();
-    });
-
-    it("should return null for member access", () => {
-      const expr = extractExpression("obj.field");
-      expect(expr).not.toBeNull();
-
-      const primary = ExpressionUtils.extractPrimaryExpression(expr!);
-      // Member access has postfixOps, so should return null
       expect(primary).toBeNull();
     });
   });
@@ -209,164 +195,53 @@ describe("ExpressionUtils", () => {
   // ========================================================================
 
   describe("hasFunctionCall", () => {
-    it("should detect simple function call", () => {
-      const expr = extractExpression("getValue()");
+    it.each([
+      ["should detect simple function call", "getValue()", true],
+      ["should detect function call with arguments", "foo(1, 2, 3)", true],
+      ["should detect function call in addition", "a + getValue()", true],
+      ["should detect function call in subtraction", "getValue() - b", true],
+      ["should detect function call in multiplication", "a * compute()", true],
+      ["should detect function call in logical AND", "flag && isReady()", true],
+      ["should detect function call in logical OR", "check() || backup", true],
+      ["should detect function call in comparison", "getCount() < 10", true],
+      [
+        "should detect function call in equality check",
+        "status = getStatus()",
+        true,
+      ],
+      ["should detect function call in bitwise OR", "flags | getFlags()", true],
+      ["should detect function call in bitwise XOR", "mask ^ getMask()", true],
+      ["should detect function call in bitwise AND", "value & getMask()", true],
+      [
+        "should detect function call in shift expression",
+        "getBase() << 4",
+        true,
+      ],
+      ["should return false for simple literal", "42", false],
+      ["should return false for simple identifier", "myVar", false],
+      [
+        "should return false for arithmetic without function calls",
+        "a + b * c",
+        false,
+      ],
+      [
+        "should return false for comparison without function calls",
+        "a < b",
+        false,
+      ],
+      [
+        "should return false for logical expression without function calls",
+        "flag && ready",
+        false,
+      ],
+      ["should return false for array access", "arr[0]", false],
+      ["should return false for member access", "obj.field", false],
+    ])("%s", (_label, source, expected) => {
+      const expr = extractExpression(source);
       expect(expr).not.toBeNull();
 
       const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call with arguments", () => {
-      const expr = extractExpression("foo(1, 2, 3)");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in addition", () => {
-      const expr = extractExpression("a + getValue()");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in subtraction", () => {
-      const expr = extractExpression("getValue() - b");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in multiplication", () => {
-      const expr = extractExpression("a * compute()");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in logical AND", () => {
-      const expr = extractExpression("flag && isReady()");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in logical OR", () => {
-      const expr = extractExpression("check() || backup");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in comparison", () => {
-      const expr = extractExpression("getCount() < 10");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in equality check", () => {
-      const expr = extractExpression("status = getStatus()");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in bitwise OR", () => {
-      const expr = extractExpression("flags | getFlags()");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in bitwise XOR", () => {
-      const expr = extractExpression("mask ^ getMask()");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in bitwise AND", () => {
-      const expr = extractExpression("value & getMask()");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should detect function call in shift expression", () => {
-      const expr = extractExpression("getBase() << 4");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(true);
-    });
-
-    it("should return false for simple literal", () => {
-      const expr = extractExpression("42");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(false);
-    });
-
-    it("should return false for simple identifier", () => {
-      const expr = extractExpression("myVar");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(false);
-    });
-
-    it("should return false for arithmetic without function calls", () => {
-      const expr = extractExpression("a + b * c");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(false);
-    });
-
-    it("should return false for comparison without function calls", () => {
-      const expr = extractExpression("a < b");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(false);
-    });
-
-    it("should return false for logical expression without function calls", () => {
-      const expr = extractExpression("flag && ready");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(false);
-    });
-
-    it("should return false for array access", () => {
-      const expr = extractExpression("arr[0]");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(false);
-    });
-
-    it("should return false for member access", () => {
-      const expr = extractExpression("obj.field");
-      expect(expr).not.toBeNull();
-
-      const hasFn = ExpressionUtils.hasFunctionCall(expr!);
-      expect(hasFn).toBe(false);
+      expect(hasFn).toBe(expected);
     });
   });
 });

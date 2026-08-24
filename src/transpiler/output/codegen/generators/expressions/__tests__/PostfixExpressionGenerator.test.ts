@@ -2266,39 +2266,13 @@ describe("PostfixExpressionGenerator", () => {
       ).toThrow(".byte_length is not supported on 'args'");
     });
 
-    it("throws error for unknown type bit_length", () => {
+    it.each([
+      ["throws error for unknown type bit_length", "bit_length"],
+      ["throws error for unknown type byte_length", "byte_length"],
+      ["throws error for unknown type element_count", "element_count"],
+    ])("%s", (_label, expected) => {
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "bit_length" }),
-      ]);
-      const input = createMockInput({ typeRegistry: new Map() });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "val",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("type not found in registry");
-    });
-
-    it("throws error for unknown type byte_length", () => {
-      const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "byte_length" }),
-      ]);
-      const input = createMockInput({ typeRegistry: new Map() });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "val",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("type not found in registry");
-    });
-
-    it("throws error for unknown type element_count", () => {
-      const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: expected }),
       ]);
       const input = createMockInput({ typeRegistry: new Map() });
       const state = createMockState();

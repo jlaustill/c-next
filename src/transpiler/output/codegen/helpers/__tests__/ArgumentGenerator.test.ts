@@ -255,38 +255,23 @@ describe("ArgumentGenerator", () => {
       expect(result).toBe("&arr[0]");
     });
 
-    it("casts string subscript to integer pointer type in C mode", () => {
-      CodeGenState.cppMode = false;
-      const callbacks = createMockCallbacks({
-        isStringSubscriptAccess: () => true,
-      });
-
-      const result = ArgumentGenerator.maybeCastStringSubscript(
-        null as never,
-        "&buf[0]",
+    it.each([
+      [
+        "casts string subscript to integer pointer type in C mode",
+        false,
         "u8",
-        callbacks,
-      );
-      expect(result).toBe("(uint8_t*)&buf[0]");
-    });
-
-    it("casts string subscript with reinterpret_cast in C++ mode", () => {
-      CodeGenState.cppMode = true;
-      const callbacks = createMockCallbacks({
-        isStringSubscriptAccess: () => true,
-      });
-
-      const result = ArgumentGenerator.maybeCastStringSubscript(
-        null as never,
-        "&buf[0]",
+        "(uint8_t*)&buf[0]",
+      ],
+      [
+        "casts string subscript with reinterpret_cast in C++ mode",
+        true,
         "u8",
-        callbacks,
-      );
-      expect(result).toBe("reinterpret_cast<uint8_t*>(&buf[0])");
-    });
-
-    it("does not cast for float types", () => {
-      CodeGenState.cppMode = false;
+        "reinterpret_cast<uint8_t*>(&buf[0])",
+      ],
+      ["does not cast for float types", false, "f32", "&buf[0]"],
+      ["does not cast for bool type", false, "bool", "&buf[0]"],
+    ])("%s", (_label, source, argument2, expected) => {
+      CodeGenState.cppMode = source;
       const callbacks = createMockCallbacks({
         isStringSubscriptAccess: () => true,
       });
@@ -294,25 +279,10 @@ describe("ArgumentGenerator", () => {
       const result = ArgumentGenerator.maybeCastStringSubscript(
         null as never,
         "&buf[0]",
-        "f32",
+        argument2,
         callbacks,
       );
-      expect(result).toBe("&buf[0]");
-    });
-
-    it("does not cast for bool type", () => {
-      CodeGenState.cppMode = false;
-      const callbacks = createMockCallbacks({
-        isStringSubscriptAccess: () => true,
-      });
-
-      const result = ArgumentGenerator.maybeCastStringSubscript(
-        null as never,
-        "&buf[0]",
-        "bool",
-        callbacks,
-      );
-      expect(result).toBe("&buf[0]");
+      expect(result).toBe(expected);
     });
   });
 
