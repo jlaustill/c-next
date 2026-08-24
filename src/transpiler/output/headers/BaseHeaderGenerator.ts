@@ -118,7 +118,14 @@ abstract class BaseHeaderGenerator {
       ...HeaderGeneratorUtils.generateIncludes(options, headersToInclude),
       ...HeaderGeneratorUtils.generateCppWrapperStart(),
       ...HeaderGeneratorUtils.generateForwardDeclarations(
-        cCompatibleExternalTypes,
+        // #1164: `typedef struct opaque_t* handle_t` is a different type from
+        // `struct handle_t`, so the usual forward declaration contradicts the
+        // real definition. Its defining header is included instead.
+        options.cHeadersIncluded
+          ? []
+          : cCompatibleExternalTypes.filter(
+              (typeName) => !(symbolTable?.isPointerTypedef(typeName) ?? false),
+            ),
       ),
       ...HeaderGeneratorUtils.generateIsrTypedefSection(
         exportedSymbols,

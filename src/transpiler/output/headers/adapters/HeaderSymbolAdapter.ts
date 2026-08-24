@@ -69,7 +69,9 @@ class HeaderSymbolAdapter {
         isConst: p.isConst,
         isArray: p.isArray,
         arrayDimensions: p.arrayDimensions?.map((d) =>
-          typeof d === "number" ? String(d) : d,
+          typeof d === "number"
+            ? String(d)
+            : HeaderSymbolAdapter.resolveConstDimension(d),
         ),
         isAutoConst: p.isAutoConst,
       };
@@ -124,6 +126,22 @@ class HeaderSymbolAdapter {
       sourceFile: variable.sourceFile,
       sourceLine: variable.sourceLine,
     };
+  }
+
+  /**
+   * Resolve a parameter's array dimension that names a `const`.
+   *
+   * C-Next resolves const-sized arrays to their value rather than emitting a C
+   * VLA, so the implementation writes `uint8_t grid[6][4]`. The header kept the
+   * source text and wrote `grid[SIZE][4]`, which is a different declaration --
+   * and in C++ not a constant expression at all, since SIZE is an `extern
+   * const` there (#1164).
+   *
+   * Enum-qualified dimensions keep their own resolution path.
+   */
+  private static resolveConstDimension(dimension: string): string {
+    const constValue = CodeGenState.constValues.get(dimension);
+    return constValue === undefined ? dimension : String(constValue);
   }
 
   private static convertStruct(

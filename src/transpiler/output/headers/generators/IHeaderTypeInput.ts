@@ -17,6 +17,16 @@ interface IHeaderTypeInput {
   /** Struct field types: structName -> (fieldName -> typeName) */
   readonly structFields: ReadonlyMap<string, ReadonlyMap<string, string>>;
 
+  /**
+   * Types that are opaque typedefs from a C/C++ header, e.g.
+   * `typedef struct opaque_t* handle_t`.
+   *
+   * These cannot be forward-declared as `typedef struct handle_t handle_t;` --
+   * that declares a different type and contradicts the real definition. The
+   * header has to include the one that defines them (#1164).
+   */
+  readonly opaqueTypes?: ReadonlySet<string>;
+
   /** Array dimensions for struct fields: structName -> (fieldName -> dimensions) */
   readonly structFieldDimensions: ReadonlyMap<
     string,

@@ -214,18 +214,50 @@ class CppResolver {
     const initDeclList = simpleDecl.initDeclaratorList?.();
     if (!initDeclList) return;
 
+    // Issue #1164: `typedef struct opaque_t* handle_t;` is a type, not a
+    // variable. Nothing here checked for `typedef`, so it was collected as a
+    // variable named handle_t of type int -- and the generated header then
+    // emitted both a bogus `typedef struct handle_t handle_t;` forward
+    // declaration and a conflicting `typedef int handle_t`.
+    const isTypedef = CppResolver._hasTypedefSpecifier(declSpecSeq);
+
     for (const initDecl of initDeclList.initDeclarator()) {
       const declarator = initDecl.declarator?.();
-      if (declarator) {
-        CppResolver._collectDeclarator(
-          declarator,
-          baseType,
-          line,
-          ctx,
-          anonymousClassSpec,
-        );
+      if (!declarator) {
+        continue;
+      }
+
+      if (isTypedef && DeclaratorUtils.declaratorHasPointer(declarator)) {
+        const typedefName = DeclaratorUtils.extractDeclaratorName(declarator);
+        if (typedefName) {
+          // Record it so the header includes the defining file rather than
+          // forward-declaring a struct of the same name, which is a different
+          // type entirely.
+          ctx.symbolTable?.markPointerTypedef(typedefName);
+        }
+        continue;
+      }
+
+      CppResolver._collectDeclarator(
+        declarator,
+        baseType,
+        line,
+        ctx,
+        anonymousClassSpec,
+      );
+    }
+  }
+
+  /**
+   * Whether a declaration specifier sequence carries the `typedef` keyword.
+   */
+  private static _hasTypedefSpecifier(declSpecSeq: any): boolean {
+    for (const spec of declSpecSeq.declSpecifier?.() ?? []) {
+      if (spec.getText?.() === "typedef") {
+        return true;
       }
     }
+    return false;
   }
 
   /**

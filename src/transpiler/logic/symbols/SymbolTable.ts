@@ -43,6 +43,17 @@ interface IStructSymbolState {
   typedefToTag: Map<string, string>;
   /** Struct tags that have full definitions (bodies) */
   structTagsWithBodies: Set<string>;
+  /**
+   * Typedefs of a pointer to a struct, e.g. `typedef struct opaque_t* handle_t`.
+   *
+   * Issue #957 rightly keeps these out of opaqueTypes -- they are already
+   * pointers, not incomplete structs. But the fact was then discarded, and a
+   * generated header cannot tell one from a plain external struct: it emitted
+   * `typedef struct handle_t handle_t;`, declaring a different type than the
+   * real definition (#1164). Recorded here so both the forward-declaration
+   * filter and the include-propagation check can ask.
+   */
+  pointerTypedefs: Set<string>;
 }
 
 /** Create a fresh initial struct symbol state */
@@ -53,6 +64,7 @@ function createInitialStructState(): IStructSymbolState {
     structTagAliases: new Map(),
     typedefToTag: new Map(),
     structTagsWithBodies: new Set(),
+    pointerTypedefs: new Set(),
   };
 }
 
@@ -1026,6 +1038,25 @@ class SymbolTable {
     this.structState = produce(this.structState, (draft) => {
       draft.opaqueTypes.add(typeName);
     });
+  }
+
+  /**
+   * Issue #957/#1164: record a typedef of a pointer to a struct.
+   */
+  markPointerTypedef(typeName: string): void {
+    this.structState = produce(this.structState, (draft) => {
+      draft.pointerTypedefs.add(typeName);
+    });
+  }
+
+  /**
+   * Issue #957/#1164: is this typedef a pointer to a struct?
+   *
+   * Such a type must never be forward-declared as `typedef struct X X;` -- the
+   * header has to include the one that defines it.
+   */
+  isPointerTypedef(typeName: string): boolean {
+    return this.structState.pointerTypedefs.has(typeName);
   }
 
   /**

@@ -29,6 +29,17 @@ interface IHeaderOptions {
    * This allows C-Next callbacks to match C++ function pointer signatures.
    */
   cppMode?: boolean;
+
+  /**
+   * Issue #1164: the source's own C/C++ headers were propagated into this
+   * header because it names something only they define.
+   *
+   * When they are present an external type's real declaration is already in
+   * scope, and the usual `typedef struct X X;` forward declaration becomes a
+   * competing -- and for a pointer typedef, contradictory -- declaration of the
+   * same name. Guessing is only justified when nothing better is available.
+   */
+  readonly cHeadersIncluded?: boolean;
 }
 
 export default IHeaderOptions;

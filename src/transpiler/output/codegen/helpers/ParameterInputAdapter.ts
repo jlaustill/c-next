@@ -253,8 +253,15 @@ class ParameterInputAdapter {
       };
     }
 
-    // Issue #914: Callback typedef overrides — param carries resolved pointer/const info
-    const isCallbackPointer = param.isCallbackPointer ?? false;
+    // Issue #914: Callback typedef overrides — param carries resolved pointer/const
+    // info. This is deliberately tri-state (TypedefParamParser.shouldBePointer
+    // returns boolean | null): true means the typedef takes a pointer, FALSE
+    // means it takes the value, and undefined means there is no typedef to
+    // follow. Collapsing false into undefined with `?? false` sent a by-value
+    // typedef back through ADR-006 reference semantics, so `void (*)(Point)`
+    // got a `Point*` prototype against a `Point` definition (#1164).
+    const callbackWantsPointer = param.isCallbackPointer;
+    const callbackWantsValue = callbackWantsPointer === false;
 
     return {
       name: param.name,
@@ -265,9 +272,13 @@ class ParameterInputAdapter {
       isArray: false,
       isCallback: false,
       isString: false,
-      isPassByValue: isCallbackPointer ? false : deps.isPassByValue,
-      isPassByReference: isCallbackPointer ? true : !deps.isPassByValue,
-      forcePointerSyntax: isCallbackPointer || undefined,
+      isPassByValue: callbackWantsPointer
+        ? false
+        : (callbackWantsValue ?? false) || deps.isPassByValue,
+      isPassByReference: callbackWantsPointer
+        ? true
+        : !callbackWantsValue && !deps.isPassByValue,
+      forcePointerSyntax: callbackWantsPointer || undefined,
       forceConst: param.isCallbackConst || undefined,
       // Issue #995: Pass through opaque handle detection — rule applied in builder
       isOpaqueHandle: param.isOpaqueHandle || undefined,

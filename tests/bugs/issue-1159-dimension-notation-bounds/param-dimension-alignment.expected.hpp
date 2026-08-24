@@ -17,7 +17,7 @@ extern "C" {
 extern const uint8_t SIZE;
 
 /* Function prototypes */
-void fill(uint8_t grid[SIZE][4]);
+void fill(uint8_t grid[6][4]);
 
 #ifdef __cplusplus
 }

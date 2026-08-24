@@ -20,6 +20,7 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
+import TypeResolver from "../utils/TypeResolver";
 import PublicInterface from "./logic/symbols/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
@@ -1785,6 +1786,76 @@ class Transpiler {
    * `_sortFilesByDependency` currently drains `depGraph.getWarnings()` into
    * warnings rather than failing, so cycle order is arbitrary (#1167).
    */
+  /**
+   * Issue #424/#1164: does this header name something only the source's own C
+   * headers define, so that it cannot compile standalone?
+   *
+   * Two cases. A non-numeric array dimension is a macro the header uses but does
+   * not define. An opaque typedef (`typedef struct opaque_t* handle_t`) cannot be
+   * forward-declared as a struct, so it too has to come from its real header.
+   *
+   * Deliberately narrow: propagating every C include into every generated header
+   * would put implementation-only dependencies into the public interface, and
+   * would double-include any hand-written header lacking an include guard.
+   */
+  /**
+   * A type the header names but cannot correctly declare for itself.
+   *
+   * The forward declaration the header would otherwise emit,
+   * `typedef struct X X;`, is a guess: it is right only when X really is an
+   * opaque struct. For `typedef struct opaque_t* handle_t` it declares a
+   * different type and contradicts the real definition. When we know a C/C++
+   * header declares the type, including that header beats guessing.
+   */
+  private static _needsDefiningHeader(typeName: string): boolean {
+    if (CodeGenState.symbolTable.isPointerTypedef(typeName)) {
+      return true;
+    }
+
+    // Known to a C/C++ header, but not as something forward-declarable.
+    const declared =
+      CodeGenState.symbolTable.getCppSymbol(typeName) ??
+      CodeGenState.symbolTable.getCSymbol(typeName);
+    if (!declared) {
+      return false;
+    }
+
+    return (
+      !CodeGenState.symbolTable.isOpaqueType(typeName) &&
+      !declared.sourceFile.endsWith(".cnx")
+    );
+  }
+
+  private static _headerNeedsUserCHeaders(symbols: TSymbol[]): boolean {
+    return symbols.some((symbol) => {
+      if (symbol.kind === "variable") {
+        const namesMacroDimension =
+          symbol.arrayDimensions?.some(
+            (dimension) => typeof dimension === "string",
+          ) ?? false;
+        return (
+          namesMacroDimension ||
+          Transpiler._needsDefiningHeader(TypeResolver.getTypeName(symbol.type))
+        );
+      }
+
+      if (symbol.kind === "function") {
+        return (
+          Transpiler._needsDefiningHeader(
+            TypeResolver.getTypeName(symbol.returnType),
+          ) ||
+          symbol.parameters.some((parameter) =>
+            Transpiler._needsDefiningHeader(
+              TypeResolver.getTypeName(parameter.type),
+            ),
+          )
+        );
+      }
+
+      return false;
+    });
+  }
+
   private generateHeaderForFile(file: IPipelineFile): string | null {
     const sourcePath = file.path;
     // Issues #1161/#1164: the same predicate decides whether this header is
@@ -1812,14 +1883,9 @@ class Transpiler {
     const cnxIncludes = this.state.getUserIncludes(sourcePath) ?? [];
     // Issue #424: a dimension that is not a number is a macro the header names
     // but does not define, so the header must carry its source include.
-    const namesAMacroDimension = exportedSymbols.some((symbol) =>
-      symbol.kind === "variable"
-        ? (symbol.arrayDimensions?.some(
-            (dimension) => typeof dimension === "string",
-          ) ?? false)
-        : false,
-    );
-    const userIncludes = namesAMacroDimension
+    const cHeadersIncluded =
+      Transpiler._headerNeedsUserCHeaders(exportedSymbols);
+    const userIncludes = cHeadersIncluded
       ? [
           ...cnxIncludes,
           ...(this.state.getUserIncludes(`${sourcePath}\u0000c-headers`) ?? []),
@@ -1859,6 +1925,7 @@ class Transpiler {
       {
         exportedOnly: true,
         userIncludes,
+        cHeadersIncluded,
         externalTypeHeaders,
         cppMode: this.cppDetected,
       },
