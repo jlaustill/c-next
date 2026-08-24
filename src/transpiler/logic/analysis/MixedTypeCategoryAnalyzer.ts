@@ -38,6 +38,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
 import IScopeFrame from "./types/IScopeFrame";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ScopeFrameResolver from "./ScopeFrameResolver";
 import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
 
@@ -51,47 +52,20 @@ class MixedCategoryListener extends CNextListener {
   private readonly analyzer: MixedTypeCategoryAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly globalFrame: IScopeFrame;
+  private readonly scopes: ScopeFrameResolver;
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly frameOf: Map<ParserRuleContext, IScopeFrame>;
-
-  constructor(
-    analyzer: MixedTypeCategoryAnalyzer,
-    globalFrame: IScopeFrame,
-    frameOf: Map<ParserRuleContext, IScopeFrame>,
-  ) {
+  constructor(analyzer: MixedTypeCategoryAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
-    this.globalFrame = globalFrame;
-    this.frameOf = frameOf;
-  }
-
-  /** The scope frame enclosing an operand: nearest function/scope ancestor. */
-  private frameFor(ctx: ParserRuleContext): IScopeFrame {
-    let node: ParserRuleContext | null = ctx;
-    while (node) {
-      const frame = this.frameOf.get(node);
-      if (frame) return frame;
-      node = node.parent;
-    }
-    return this.globalFrame;
+    this.scopes = scopes;
   }
 
   /** Map a known variable name to its essential type category within a scope. */
   private categoryOfName(name: string, frame: IScopeFrame): Category {
-    let current: IScopeFrame | null = frame;
-    while (current) {
-      const typeName = current.vars.get(name);
-      if (typeName) {
-        if (TypeConstants.SIGNED_TYPES.includes(typeName)) return "signed";
-        if (TypeConstants.UNSIGNED_INT_TYPES.includes(typeName)) {
-          return "unsigned";
-        }
-        return null;
-      }
-      current = current.parent;
-    }
+    const typeName = this.scopes.typeOfName(name, frame);
+    if (!typeName) return null;
+    if (TypeConstants.SIGNED_TYPES.includes(typeName)) return "signed";
+    if (TypeConstants.UNSIGNED_INT_TYPES.includes(typeName)) return "unsigned";
     return null;
   }
 
@@ -197,7 +171,7 @@ class MixedCategoryListener extends CNextListener {
    */
   private checkLevel(operands: ParserRuleContext[]): void {
     if (operands.length < 2) return;
-    const frame = this.frameFor(operands[0]);
+    const frame = this.scopes.frameFor(operands[0]);
     for (let i = 0; i < operands.length - 1; i += 1) {
       const left = this.operandCategory(operands[i], frame);
       const right = this.operandCategory(operands[i + 1], frame);
@@ -268,8 +242,7 @@ class MixedTypeCategoryAnalyzer {
 
     const listener = new MixedCategoryListener(
       this,
-      collector.getGlobalFrame(),
-      collector.getFrameOf(),
+      new ScopeFrameResolver(collector),
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 

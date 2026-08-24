@@ -91,36 +91,20 @@ describe("BooleanOperandAnalyzer", () => {
       expect(errors[0].message).toContain(`Operator '${operator}'`);
     });
 
-    it("rejects a bool mixed with an integer operand", () => {
-      const errors = analyze(inMain("u8 c <- a + n;"));
+    // Every shape a Boolean operand can take, each reported exactly once: the
+    // count also pins that a two-bool operator reports per operator, not per
+    // operand.
+    it.each([
+      ["a bool mixed with an integer operand", "u8 c <- a + n;"],
+      ["a bool on the right-hand side of an integer", "u8 c <- n * a;"],
+      ["true/false literal operands", "bool c <- true + false;"],
+      ["a negation result used as an operand", "u8 c <- !a + n;"],
+      ["a parenthesised bool operand", "u8 c <- (a) + n;"],
+      ["both operands bool, reported once", "bool c <- a / b;"],
+    ])("rejects %s", (_label, statement) => {
+      const errors = analyze(inMain(statement));
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0807");
-    });
-
-    it("rejects a bool on the right-hand side of an integer operand", () => {
-      const errors = analyze(inMain("u8 c <- n * a;"));
-      expect(errors).toHaveLength(1);
-    });
-
-    it("rejects true/false literal operands", () => {
-      const errors = analyze(inMain("bool c <- true + false;"));
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain("Operator '+'");
-    });
-
-    it("rejects a negation result used as an arithmetic operand", () => {
-      const errors = analyze(inMain("u8 c <- !a + n;"));
-      expect(errors).toHaveLength(1);
-    });
-
-    it("rejects a parenthesised bool operand", () => {
-      const errors = analyze(inMain("u8 c <- (a) + n;"));
-      expect(errors).toHaveLength(1);
-    });
-
-    it("reports once per operator, not once per operand", () => {
-      const errors = analyze(inMain("bool c <- a / b;"));
-      expect(errors).toHaveLength(1);
     });
 
     it("reports each offending operator in a chain", () => {

@@ -35,6 +35,7 @@ import * as Parser from "../parser/grammar/CNextParser";
 import IBooleanOperandError from "./types/IBooleanOperandError";
 import IScopeFrame from "./types/IScopeFrame";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ScopeFrameResolver from "./ScopeFrameResolver";
 import ParserUtils from "../../../utils/ParserUtils";
 
 /**
@@ -44,42 +45,17 @@ class BooleanOperandListener extends CNextListener {
   private readonly analyzer: BooleanOperandAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly globalFrame: IScopeFrame;
+  private readonly scopes: ScopeFrameResolver;
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly frameOf: Map<ParserRuleContext, IScopeFrame>;
-
-  constructor(
-    analyzer: BooleanOperandAnalyzer,
-    globalFrame: IScopeFrame,
-    frameOf: Map<ParserRuleContext, IScopeFrame>,
-  ) {
+  constructor(analyzer: BooleanOperandAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
-    this.globalFrame = globalFrame;
-    this.frameOf = frameOf;
-  }
-
-  /** Innermost scope frame enclosing a node, walking up its parent chain. */
-  private frameFor(ctx: ParserRuleContext): IScopeFrame {
-    let node: ParserRuleContext | null = ctx;
-    while (node) {
-      const frame = this.frameOf.get(node);
-      if (frame) return frame;
-      node = node.parent;
-    }
-    return this.globalFrame;
+    this.scopes = scopes;
   }
 
   /** True when a declared name resolves to `bool` within its scope. */
   private isBooleanName(name: string, frame: IScopeFrame): boolean {
-    let current: IScopeFrame | null = frame;
-    while (current) {
-      const typeName = current.vars.get(name);
-      if (typeName) return typeName === "bool";
-      current = current.parent;
-    }
-    return false;
+    return this.scopes.typeOfName(name, frame) === "bool";
   }
 
   /**
@@ -140,7 +116,7 @@ class BooleanOperandListener extends CNextListener {
    */
   private checkLevel(operands: ParserRuleContext[]): void {
     if (operands.length < 2) return;
-    const frame = this.frameFor(operands[0]);
+    const frame = this.scopes.frameFor(operands[0]);
     const parent = operands[0].parent;
 
     for (let i = 0; i < operands.length - 1; i += 1) {
@@ -209,7 +185,7 @@ class BooleanOperandListener extends CNextListener {
     const operand = ctx.unaryExpression();
     if (!operand) return;
 
-    if (this.isBooleanOperand(operand, this.frameFor(ctx))) {
+    if (this.isBooleanOperand(operand, this.scopes.frameFor(ctx))) {
       const { line, column } = ParserUtils.getPosition(ctx);
       this.analyzer.addError(line, column, operator);
     }
@@ -234,8 +210,7 @@ class BooleanOperandAnalyzer {
 
     const listener = new BooleanOperandListener(
       this,
-      collector.getGlobalFrame(),
-      collector.getFrameOf(),
+      new ScopeFrameResolver(collector),
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
