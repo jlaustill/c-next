@@ -242,52 +242,44 @@ describe("TypeGenerationHelper", () => {
       }).toThrow();
     });
 
-    it("generates global type", () => {
-      const ctx = getTypeContext("global.Config cfg;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("Config");
-    });
+    // The deps column keeps the two cases needing a non-default dependency in
+    // the same table as the rest, rather than stranding them between merged
+    // rows. It also makes what each case overrides obvious at a glance.
+    // Mirrors the optional half of ITypeGenerationDeps, which is not exported
+    // (the project uses default exports only). Deriving from typeof defaultDeps
+    // instead would narrow the mocks to their zero-argument shapes.
+    type DepsOverride = {
+      currentScope?: string | null;
+      isCppScopeSymbol?: (name: string) => boolean;
+      checkNeedsStructKeyword?: (name: string) => boolean;
+      isScopeType?: (qualifiedName: string) => boolean;
+    };
 
-    it("generates qualified C-Next type", () => {
-      const ctx = getTypeContext("Motor.State status;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("Motor__State");
-    });
-
-    it("generates qualified C++ namespace type", () => {
-      const ctx = getTypeContext("Lib.Type val;");
+    it.each<[string, string, DepsOverride, string]>([
+      ["global type", "global.Config cfg;", {}, "Config"],
+      ["qualified C-Next type", "Motor.State status;", {}, "Motor__State"],
+      [
+        "qualified C++ namespace type",
+        "Lib.Type val;",
+        { isCppScopeSymbol: (name: string) => name === "Lib" },
+        "Lib::Type",
+      ],
+      ["user type", "MyStruct obj;", {}, "MyStruct"],
+      [
+        "user type with struct keyword",
+        "CStruct obj;",
+        { checkNeedsStructKeyword: (name: string) => name === "CStruct" },
+        "struct CStruct",
+      ],
+      ["cstring as char*", "cstring ptr;", {}, "char*"],
+    ])("generates %s", (_label, source, depsOverride, expected) => {
+      const ctx = getTypeContext(source);
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.generate(ctx!, {
         ...defaultDeps,
-        isCppScopeSymbol: (name) => name === "Lib",
+        ...depsOverride,
       });
-      expect(result).toBe("Lib::Type");
-    });
-
-    it("generates user type", () => {
-      const ctx = getTypeContext("MyStruct obj;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("MyStruct");
-    });
-
-    it("generates user type with struct keyword", () => {
-      const ctx = getTypeContext("CStruct obj;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, {
-        ...defaultDeps,
-        checkNeedsStructKeyword: (name) => name === "CStruct",
-      });
-      expect(result).toBe("struct CStruct");
-    });
-
-    it("generates cstring as char*", () => {
-      const ctx = getTypeContext("cstring ptr;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("char*");
+      expect(result).toBe(expected);
     });
 
     it("generates array base type for primitive array", () => {

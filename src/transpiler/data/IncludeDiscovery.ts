@@ -203,31 +203,39 @@ class IncludeDiscovery {
     const values: string[] = [];
     const lines = content.split("\n");
 
-    for (let index = 0; index < lines.length; index += 1) {
+    let index = 0;
+    while (index < lines.length) {
       const keyMatch = /^[ \t]*lib_extra_dirs[ \t]*=(.*)$/.exec(lines[index]);
+      index += 1;
       if (!keyMatch) {
         continue;
       }
 
       const collected = [keyMatch[1]];
-      for (let next = index + 1; next < lines.length; next += 1) {
-        const line = lines[next];
-        const isIndented = /^[ \t]+\S/.test(line);
-        if (
-          !isIndented ||
-          line.includes("=") ||
-          line.trimStart().startsWith("[")
-        ) {
-          break;
-        }
-        collected.push(line);
-        index = next;
+      while (
+        index < lines.length &&
+        IncludeDiscovery._isContinuationLine(lines[index])
+      ) {
+        collected.push(lines[index]);
+        index += 1;
       }
 
       values.push(collected.join("\n"));
     }
 
     return values;
+  }
+
+  /**
+   * A continuation of the value above it: indented, carrying no `=` of its
+   * own, and not opening a new section.
+   */
+  private static _isContinuationLine(line: string): boolean {
+    return (
+      /^[ \t]+\S/.test(line) &&
+      !line.includes("=") &&
+      !line.trimStart().startsWith("[")
+    );
   }
 
   /**
@@ -370,64 +378,94 @@ class IncludeDiscovery {
     content: string,
   ): { delimiter: string; path: string }[] {
     const found: { delimiter: string; path: string }[] = [];
-    const isSpace = (character: string | undefined): boolean =>
-      character !== undefined && /\s/.test(character);
 
-    for (let index = 0; index < content.length; index += 1) {
+    let index = 0;
+    while (index < content.length) {
       if (content[index] !== "#") {
+        index += 1;
         continue;
       }
-
-      // Only whitespace between the start of this line and the '#'
-      let before = index - 1;
-      let lineStartIsClear = true;
-      while (before >= 0 && content[before] !== "\n") {
-        if (!isSpace(content[before])) {
-          lineStartIsClear = false;
-          break;
-        }
-        before -= 1;
-      }
-      if (!lineStartIsClear) {
+      const directive = IncludeDiscovery._readIncludeAt(content, index);
+      if (directive === null) {
+        index += 1;
         continue;
       }
-
-      let cursor = index + 1;
-      while (isSpace(content[cursor])) {
-        cursor += 1;
-      }
-      if (!content.startsWith("include", cursor)) {
-        continue;
-      }
-      cursor += "include".length;
-
-      while (isSpace(content[cursor])) {
-        cursor += 1;
-      }
-      const delimiter = content[cursor];
-      if (delimiter !== "<" && delimiter !== '"') {
-        continue;
-      }
-      cursor += 1;
-
-      const pathStart = cursor;
-      while (
-        cursor < content.length &&
-        content[cursor] !== ">" &&
-        content[cursor] !== '"'
-      ) {
-        cursor += 1;
-      }
-      // [^>"]+ requires at least one character, and a closing delimiter
-      if (cursor === pathStart || cursor >= content.length) {
-        continue;
-      }
-
-      found.push({ delimiter, path: content.slice(pathStart, cursor) });
-      index = cursor;
+      found.push({ delimiter: directive.delimiter, path: directive.path });
+      index = directive.next;
     }
 
     return found;
+  }
+
+  /** True when only whitespace separates `index` from the start of its line. */
+  private static _lineStartIsClear(content: string, index: number): boolean {
+    for (
+      let before = index - 1;
+      before >= 0 && content[before] !== "\n";
+      before -= 1
+    ) {
+      if (!IncludeDiscovery._isSpace(content[before])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static _isSpace(character: string | undefined): boolean {
+    return character !== undefined && /\s/.test(character);
+  }
+
+  /** Advance past a run of whitespace. */
+  private static _skipSpace(content: string, from: number): number {
+    let cursor = from;
+    while (IncludeDiscovery._isSpace(content[cursor])) {
+      cursor += 1;
+    }
+    return cursor;
+  }
+
+  /**
+   * Read one `#include` beginning at the `#` in `index`, or null if there
+   * isn't one there. `next` is the index just past the closing delimiter.
+   */
+  private static _readIncludeAt(
+    content: string,
+    index: number,
+  ): { delimiter: string; path: string; next: number } | null {
+    if (!IncludeDiscovery._lineStartIsClear(content, index)) {
+      return null;
+    }
+
+    let cursor = IncludeDiscovery._skipSpace(content, index + 1);
+    if (!content.startsWith("include", cursor)) {
+      return null;
+    }
+
+    cursor = IncludeDiscovery._skipSpace(content, cursor + "include".length);
+    const delimiter = content[cursor];
+    if (delimiter !== "<" && delimiter !== '"') {
+      return null;
+    }
+
+    const pathStart = cursor + 1;
+    let pathEnd = pathStart;
+    while (
+      pathEnd < content.length &&
+      content[pathEnd] !== ">" &&
+      content[pathEnd] !== '"'
+    ) {
+      pathEnd += 1;
+    }
+    // [^>"]+ requires at least one character, and a closing delimiter
+    if (pathEnd === pathStart || pathEnd >= content.length) {
+      return null;
+    }
+
+    return {
+      delimiter,
+      path: content.slice(pathStart, pathEnd),
+      next: pathEnd,
+    };
   }
 
   /**

@@ -46,6 +46,21 @@ interface ITypedefParseResult {
  * parameter looks like once the stars are stripped -- is left alone. Cutting
  * at the last space unconditionally would reduce it to "int".
  */
+/**
+ * C type keywords that can trail a multi-word type. A parameter name can never
+ * be one of these, so a trailing word from this set belongs to the type.
+ */
+const TRAILING_TYPE_KEYWORDS = new Set([
+  "int",
+  "long",
+  "short",
+  "char",
+  "float",
+  "double",
+  "signed",
+  "unsigned",
+]);
+
 function stripTrailingIdentifier(text: string): string {
   let start = text.length;
   while (start > 0 && /\w/.test(text[start - 1])) {
@@ -54,6 +69,12 @@ function stripTrailingIdentifier(text: string): string {
   if (start === text.length) {
     return text; // no trailing identifier
   }
+  // Issue #1189: an unnamed multi-word type ends in a type keyword, not a
+  // parameter name -- `unsigned int` must not become `unsigned`.
+  if (TRAILING_TYPE_KEYWORDS.has(text.slice(start))) {
+    return text;
+  }
+
   // Consume the whole whitespace run, not just the last space. The caller
   // normalizes runs to a single space today, but depending on that would make
   // this correct only by coincidence.

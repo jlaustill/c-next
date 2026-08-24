@@ -74,7 +74,7 @@ function stripFinalBracketGroup(text: string): string {
   if (open === -1) {
     return text;
   }
-  if (text.slice(open + 1, text.length - 1).includes("]")) {
+  if (text.slice(open + 1, -1).includes("]")) {
     return text;
   }
   return text.slice(0, open);

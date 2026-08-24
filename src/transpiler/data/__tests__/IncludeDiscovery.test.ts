@@ -199,6 +199,43 @@ describe("IncludeDiscovery", () => {
   // ==========================================================================
 
   describe("extractIncludesWithInfo", () => {
+    // The corpus the scan was checked against when it replaced
+    // /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm. Two behaviours are
+    // deliberate rather than accidental: the closing delimiter need not match
+    // the opening one, and whitespace runs may span newlines.
+    it.each([
+      ["a plain angle include", "#include <stdio.h>\n", [["stdio.h", false]]],
+      ["a plain quoted include", '#include "local.h"\n', [["local.h", true]]],
+      ["an indented include", "   #include <a.h>\n", [["a.h", false]]],
+      ["space after the hash", "#   include <a.h>\n", [["a.h", false]]],
+      ["no space before the delimiter", "#include<a.h>\n", [["a.h", false]]],
+      ["mismatched delimiters", '#include <a.h"\n', [["a.h", false]]],
+      ["the hash on its own line", "#\ninclude <a.h>\n", [["a.h", false]]],
+      // Only the first is read: the second does not start its line, and the
+      // original regex anchored with ^\\s* too. A directive must begin its line.
+      [
+        "back-to-back includes on one line",
+        "#include <a.h>#include <b.h>\n",
+        [["a.h", false]],
+      ],
+    ])("reads %s", (_label, source, expected) => {
+      const result = IncludeDiscovery.extractIncludesWithInfo(source as string);
+      expect(result.map((r) => [r.path, r.isLocal])).toEqual(expected);
+    });
+
+    it.each([
+      ["an include not at line start", "int x; #include <a.h>\n"],
+      ["an empty path", "#include <>\n"],
+      ["a commented-out include", "// #include <a.h>\n"],
+      ["an unterminated delimiter", "#include <unterminated"],
+      ["a bare hash", "#"],
+      ["the word include with no delimiter", "#include"],
+    ])("reads no directive from %s", (_label, source) => {
+      expect(
+        IncludeDiscovery.extractIncludesWithInfo(source as string),
+      ).toEqual([]);
+    });
+
     it("identifies local includes", () => {
       const content = '#include "local.h"';
 
