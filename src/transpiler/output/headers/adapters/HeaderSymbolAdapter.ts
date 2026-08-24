@@ -12,6 +12,7 @@ import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import CodeGenState from "../../../state/CodeGenState";
+import type TType from "../../../types/TType";
 
 /**
  * Adapter to convert TSymbol to IHeaderSymbol
@@ -68,11 +69,7 @@ class HeaderSymbolAdapter {
         type: TypeResolver.getTypeName(p.type),
         isConst: p.isConst,
         isArray: p.isArray,
-        arrayDimensions: p.arrayDimensions?.map((d) =>
-          typeof d === "number"
-            ? String(d)
-            : HeaderSymbolAdapter.resolveConstDimension(d),
-        ),
+        arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p),
         isAutoConst: p.isAutoConst,
       };
     });
@@ -126,6 +123,41 @@ class HeaderSymbolAdapter {
       sourceFile: variable.sourceFile,
       sourceLine: variable.sourceLine,
     };
+  }
+
+  /**
+   * A parameter's array dimensions as the C declaration needs them.
+   *
+   * A bounded string array carries its capacity as the innermost dimension --
+   * `string<32>[5]` is `char[5][33]`. ParameterSignatureBuilder documents that
+   * "dimensions include capacity" and the .c path supplies it; the header did
+   * not, so it declared `char arr[5]` against a `char arr[5][33]` definition
+   * (#1164).
+   */
+  private static headerArrayDimensions(parameter: {
+    readonly type: TType;
+    readonly arrayDimensions?: ReadonlyArray<number | string>;
+  }): string[] | undefined {
+    const dimensions = parameter.arrayDimensions?.map((d) =>
+      typeof d === "number"
+        ? String(d)
+        : HeaderSymbolAdapter.resolveConstDimension(d),
+    );
+    if (!dimensions) {
+      return undefined;
+    }
+
+    const capacityMatch = /^string<(\d+)>$/.exec(
+      TypeResolver.getTypeName(parameter.type),
+    );
+    if (!capacityMatch) {
+      return dimensions;
+    }
+
+    const capacity = String(Number.parseInt(capacityMatch[1], 10) + 1);
+    return dimensions.at(-1) === capacity
+      ? dimensions
+      : [...dimensions, capacity];
   }
 
   /**

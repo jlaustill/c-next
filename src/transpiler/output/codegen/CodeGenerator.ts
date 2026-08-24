@@ -3331,16 +3331,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // ADR-017: Handle enum declarations
     if (ctx.enumDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateEnum(ctx.enumDeclaration()!);
     }
     // ADR-034: Handle bitmap declarations
     if (ctx.bitmapDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateBitmap(ctx.bitmapDeclaration()!);
     }
     if (ctx.functionDeclaration()) {
@@ -3627,7 +3621,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
-    return result.code;
+    // Issues #369/#1164: the included header owns the definition. The generator
+    // still runs so its effects are registered -- returning early here would
+    // silently drop them, which is how the ADR-029 struct init function was lost.
+    return CodeGenState.selfIncludeAdded ? "" : result.code;
   }
 
   /**
@@ -3643,7 +3640,8 @@ export default class CodeGenerator implements IOrchestrator {
     if (generator) {
       const result = generator(ctx, this.getInput(), this.getState(), this);
       this.applyEffects(result.effects);
-      return result.code;
+      // Issues #369/#1164: the included header owns the definition.
+      return CodeGenState.selfIncludeAdded ? "" : result.code;
     }
 
     // Fallback to inline implementation (will be removed after migration)

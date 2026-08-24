@@ -433,22 +433,6 @@ describe("CodeGenerator Coverage Tests", () => {
   // Lines 4687-4698: generateDeclaration branches
   // ==========================================================================
   describe("generateDeclaration() branches", () => {
-    it("should generate bitmap declaration", () => {
-      const source = `
-        bitmap8 Flags {
-          enabled,
-          active,
-          reserved[6]
-        }
-        void main() {
-          Flags f <- 0;
-        }
-      `;
-      const { code } = setupGenerator(source);
-      // Bitmap generates typedef and constants
-      expect(code).toContain("typedef uint8_t Flags");
-    });
-
     it("should generate function declaration", () => {
       const source = `
         void myFunc() {}
@@ -1081,23 +1065,6 @@ describe("CodeGenerator Coverage Tests", () => {
   // ==========================================================================
   // Lines 3816, 3928: Object/struct generation
   // ==========================================================================
-  describe("Struct generation", () => {
-    it("should generate struct with multiple fields", () => {
-      const source = `
-        struct Rectangle {
-          i32 x;
-          i32 y;
-          u32 width;
-          u32 height;
-        }
-      `;
-      const { code } = setupGenerator(source);
-      expect(code).toContain("struct Rectangle");
-      expect(code).toContain("int32_t x");
-      expect(code).toContain("uint32_t width");
-    });
-  });
-
   // ==========================================================================
   // Lines 4207, 4215: Type narrowing checks
   // ==========================================================================

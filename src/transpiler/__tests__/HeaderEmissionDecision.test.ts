@@ -133,6 +133,66 @@ const Point ORIGIN <- {x: 0};
     });
   });
 
+  // Replaces the per-shape CodeGenerator tests that asserted the .c contained
+  // `typedef struct` / `typedef enum` / `typedef uint8_t`. Those asserted the
+  // duplicate definition this issue removes: the type is emitted once, in the
+  // header, and the .c includes it. Parameterised rather than repeated per
+  // shape (SonarCloud S5976).
+  describe("#1164: a type is defined once, in the header", () => {
+    const shapes: ReadonlyArray<{
+      name: string;
+      source: string;
+      definition: string;
+    }> = [
+      {
+        name: "struct",
+        source: "struct Point { i32 x; i32 y; }",
+        definition: "typedef struct Point",
+      },
+      {
+        name: "struct with an array field",
+        source: "struct Buffer { u8[4] data; }",
+        definition: "typedef struct Buffer",
+      },
+      {
+        name: "struct with a bool field",
+        source: "struct Flag { bool enabled; }",
+        definition: "typedef struct Flag",
+      },
+      {
+        name: "nested struct",
+        source: "struct Inner { u8 v; }\nstruct Outer { Inner inner; }",
+        definition: "typedef struct Outer",
+      },
+      {
+        name: "enum",
+        source: "enum Color { RED, GREEN, BLUE }",
+        definition: "typedef enum",
+      },
+      {
+        name: "enum with explicit values",
+        source: "enum Status { OK <- 1, ERROR <- 255 }",
+        definition: "typedef enum",
+      },
+      {
+        name: "bitmap",
+        source: "bitmap8 Flags { enabled, active, reserved[6] }",
+        definition: "typedef uint8_t Flags;",
+      },
+    ];
+
+    it.each(shapes)(
+      "$name: defined in the header, not repeated in the .c",
+      async ({ source, definition }) => {
+        const { code, headerCode } = await transpileSource(source, "shape.cnx");
+        expect(headerCode).toContain(definition);
+        // A repeat would be a redefinition error: the .c includes the header.
+        expect(code).not.toContain(definition);
+        expect(code).toContain('#include "shape.h"');
+      },
+    );
+  });
+
   describe("one decision, not two", () => {
     // Each source is a shape that previously made the two predicates disagree.
     const shapes: ReadonlyArray<{ name: string; source: string }> = [

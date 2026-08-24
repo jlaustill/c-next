@@ -390,17 +390,6 @@ class ParameterInputAdapter {
     // For header generator, we need to use char for string arrays
     const actualMappedType = isString ? "char" : mappedType;
 
-    // #1164: a bounded string array's capacity is one of its C dimensions --
-    // string<32>[5] is char[5][33]. ParameterSignatureBuilder expects it to be
-    // present ("dimensions include capacity"); the .c path supplies it and this
-    // one did not, so the header declared char arr[5] against a char arr[5][33]
-    // definition.
-    const arrayDimensions = ParameterInputAdapter._withStringCapacityDimension(
-      param.arrayDimensions,
-      param.type,
-      isString && !isUnboundedString,
-    );
-
     return {
       name: param.name,
       baseType: param.type,
@@ -408,36 +397,13 @@ class ParameterInputAdapter {
       isConst: param.isConst,
       isAutoConst: param.isAutoConst ?? false,
       isArray: true,
-      arrayDimensions,
+      arrayDimensions: param.arrayDimensions,
       isCallback: false,
       isString,
       isUnboundedString,
       isPassByValue: false,
       isPassByReference: false,
     };
-  }
-
-  /**
-   * Append a bounded string's capacity as the innermost C array dimension.
-   *
-   * `string<32>` holds 32 characters plus a NUL, so its C form is `char[33]`.
-   */
-  private static _withStringCapacityDimension(
-    dimensions: string[] | undefined,
-    typeName: string,
-    isBoundedString: boolean,
-  ): string[] | undefined {
-    if (!isBoundedString || !dimensions) {
-      return dimensions;
-    }
-
-    const capacityMatch = /^string<(\d+)>$/.exec(typeName);
-    if (!capacityMatch) {
-      return dimensions;
-    }
-
-    const capacity = Number.parseInt(capacityMatch[1], 10);
-    return [...dimensions, String(capacity + 1)];
   }
 
   /**
