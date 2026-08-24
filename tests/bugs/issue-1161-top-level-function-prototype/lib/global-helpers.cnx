@@ -1,0 +1,19 @@
+// Issue #1161: top-level (non-scope) functions are public by default (ADR-016)
+// and must appear in the generated header.
+//
+// They were collected as private, so they never reached the header, and any
+// other .cnx that included this file called them with no declaration in scope:
+// a warning under C99, an error under -Werror=implicit-function-declaration and
+// under GCC 14 / C23 defaults. Neither `public` nor `private` parses at top
+// level -- scopes are how C-Next expresses privacy.
+struct Point {
+    u8 value;
+}
+
+u8 readStructField(Point point) {
+    return point.value;
+}
+
+u8 addOne(u8 x) {
+    return x + 1;
+}

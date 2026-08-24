@@ -1,0 +1,28 @@
+// test-execution
+// Issue #1164: a file whose public interface is types and consts, with no
+// public scope member.
+//
+// Two predicates decided "does this file have a public C interface?" and
+// disagreed. One wrote the .h (isExported: functions, structs, enums, bitmaps,
+// consts); the other decided whether the .c included it, and looked only at
+// scope-member visibility -- which nothing declared at top level can satisfy.
+//
+// So this file got a header that nothing included. Every external-linkage
+// definition in the .c lost its visible declaration (MISRA C:2012 Rule 8.4),
+// and the .c redefined the struct inline: one source of truth emitting two
+// definitions that stayed consistent only by luck.
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+const Point ORIGIN <- {x: 0, y: 0};
+const Point UNIT <- {x: 1, y: 1};
+
+u32 main() {
+    if (ORIGIN.x != 0) return 1;
+    if (ORIGIN.y != 0) return 2;
+    if (UNIT.x != 1) return 3;
+    if (UNIT.y != 1) return 4;
+    return 0;
+}

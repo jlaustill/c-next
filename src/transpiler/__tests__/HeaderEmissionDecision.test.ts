@@ -136,7 +136,7 @@ const Point ORIGIN <- {x: 0};
   // Replaces the per-shape CodeGenerator tests that asserted the .c contained
   // `typedef struct` / `typedef enum` / `typedef uint8_t`. Those asserted the
   // duplicate definition this issue removes: the type is emitted once, in the
-  // header, and the .c includes it. Parameterised rather than repeated per
+  // header, and the .c includes it. Parameterized rather than repeated per
   // shape (SonarCloud S5976).
   describe("#1164: a type is defined once, in the header", () => {
     const shapes: ReadonlyArray<{

@@ -21,7 +21,7 @@ class VariableCollector {
   /**
    * Resolve a variable's declared type.
    *
-   * ADR-045: a bare `string` takes its capacity from the initialising literal.
+   * ADR-045: a bare `string` takes its capacity from the initializing literal.
    * TypeResolver cannot do this on the type string alone — bare `string` matches
    * no pattern there and falls through to a *struct* named "string", which the
    * header then emits verbatim (`extern const string VERSION;`). The `.c` path

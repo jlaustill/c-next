@@ -1,0 +1,19 @@
+// test-execution
+// Issue #1161: a cross-file caller of a top-level function.
+//
+// Without the prototype in lib/global-helpers.h this compiles against implicit
+// declarations. The struct-parameter case and the primitive case were both
+// affected -- the defect was the function's visibility, not its signature.
+#include "lib/global-helpers.cnx"
+
+u32 main() {
+    Point point <- {value: 7};
+
+    u8 fromStruct <- readStructField(point);
+    if (fromStruct != 7) return 1;
+
+    u8 fromPrimitive <- addOne(41);
+    if (fromPrimitive != 42) return 2;
+
+    return 0;
+}
