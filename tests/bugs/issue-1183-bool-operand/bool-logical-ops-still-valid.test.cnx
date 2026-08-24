@@ -1,0 +1,22 @@
+// The operators that remain valid on a bool must keep working: logical
+// combination, negation, equality comparison, plain assignment, and use as a
+// controlling expression (Issue #1183, sibling of #1145).
+bool a <- true;
+bool b <- false;
+u8 hits <- 0;
+
+void main() {
+    bool both <- a && b;
+    bool either <- a || b;
+    bool negated <- !a;
+    bool same <- (a = b);
+    bool different <- (a != b);
+
+    a <- !a;
+
+    if (both = false) { hits +<- 1; }
+    if (either = true) { hits +<- 1; }
+    if (negated = false) { hits +<- 1; }
+    if (same = false) { hits +<- 1; }
+    if (different = true) { hits +<- 1; }
+}

@@ -2,7 +2,7 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 12 analyzers (plus comment validation) run in sequence, each returning
+ * All 13 analyzers (plus comment validation) run in sequence, each returning
  * errors that block compilation.
  */
 
@@ -18,6 +18,7 @@ import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
 import ArrayIndexTypeAnalyzer from "./ArrayIndexTypeAnalyzer";
 import SignedShiftAnalyzer from "./SignedShiftAnalyzer";
+import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
 import CommentExtractor from "./CommentExtractor";
@@ -171,7 +172,18 @@ function runAnalyzers(
     return errors;
   }
 
-  // 11. Mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)
+  // 11. Boolean operands of arithmetic/bitwise/shift/relational operators
+  // (MISRA C:2012 Rule 10.1, Issue #1183). Runs before the Rule 10.4 check so a
+  // bool in an arithmetic expression is reported as "not a number" rather than
+  // as a category mismatch with whatever it was combined with.
+  const booleanOperandAnalyzer = new BooleanOperandAnalyzer();
+  if (
+    collectErrors(booleanOperandAnalyzer.analyze(tree), errors, formatWithCode)
+  ) {
+    return errors;
+  }
+
+  // 12. Mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)
   const mixedTypeCategoryAnalyzer = new MixedTypeCategoryAnalyzer();
   if (
     collectErrors(
@@ -183,13 +195,13 @@ function runAnalyzers(
     return errors;
   }
 
-  // 12. Return-path analysis (ADR-067: non-void functions must return on all paths)
+  // 13. Return-path analysis (ADR-067: non-void functions must return on all paths)
   const returnPathAnalyzer = new ReturnPathAnalyzer();
   if (collectErrors(returnPathAnalyzer.analyze(tree), errors, formatWithCode)) {
     return errors;
   }
 
-  // 13. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 14. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   collectErrors(
     commentExtractor.validate(),

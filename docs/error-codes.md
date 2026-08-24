@@ -13,9 +13,9 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E05xx     | Include/Preprocessor    | 4      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 6      |
-| E08xx     | Arithmetic/Array Safety | 13     |
+| E08xx     | Arithmetic/Array Safety | 14     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **42** |
+| **Total** |                         | **43** |
 
 ---
 
@@ -132,11 +132,12 @@ second header and the program ran with a wrong value.
 
 ### Essential Type Safety (MISRA C:2012)
 
-| Code  | Message                                                                              | Help                                                                                     | Source                                        |
-| ----- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------- |
-| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                | Shift an unsigned value; signed shifts are UB / implementation-defined in C              | `logic/analysis/SignedShiftAnalyzer.ts`       |
-| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                        | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                           | `output/codegen/TypeValidator.ts`             |
-| E0810 | Binary operator combines operands of different essential type categories (Rule 10.4) | Reinterpret one operand's bits to match the other with bit indexing, e.g. `value[0, 32]` | `logic/analysis/MixedTypeCategoryAnalyzer.ts` |
+| Code  | Message                                                                                                | Help                                                                                         | Source                                        |
+| ----- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                  | Shift an unsigned value; signed shifts are UB / implementation-defined in C                  | `logic/analysis/SignedShiftAnalyzer.ts`       |
+| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                          | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                               | `output/codegen/TypeValidator.ts`             |
+| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1) | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=` | `logic/analysis/BooleanOperandAnalyzer.ts`    |
+| E0810 | Binary operator combines operands of different essential type categories (Rule 10.4)                   | Reinterpret one operand's bits to match the other with bit indexing, e.g. `value[0, 32]`     | `logic/analysis/MixedTypeCategoryAnalyzer.ts` |
 
 ### Array Index Type Safety
 
