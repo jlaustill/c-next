@@ -26,64 +26,21 @@ describe("ArrayInitializerUtils", () => {
       expect(arrayInit).not.toBeNull();
     });
 
-    it("returns null when expression is not an array initializer", () => {
-      const expr = getVariableExpression("u8 x <- 42;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for identifier expression", () => {
-      const expr = getVariableExpression("u8 x <- other;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for arithmetic expression", () => {
-      const expr = getVariableExpression("u8 x <- 1 + 2;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for logical expression", () => {
-      const expr = getVariableExpression("bool x <- true && false;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for comparison expression", () => {
-      const expr = getVariableExpression("bool x <- 1 < 2;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for bitwise expression", () => {
-      const expr = getVariableExpression("u8 x <- 0xFF & 0x0F;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for shift expression", () => {
-      const expr = getVariableExpression("u8 x <- 1 << 2;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for unary expression", () => {
-      const expr = getVariableExpression("bool x <- !true;");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-
-    it("returns null for string literal", () => {
-      const expr = getVariableExpression('string<10> s <- "hello";');
+    it.each([
+      [
+        "returns null when expression is not an array initializer",
+        "u8 x <- 42;",
+      ],
+      ["returns null for identifier expression", "u8 x <- other;"],
+      ["returns null for arithmetic expression", "u8 x <- 1 + 2;"],
+      ["returns null for logical expression", "bool x <- true && false;"],
+      ["returns null for comparison expression", "bool x <- 1 < 2;"],
+      ["returns null for bitwise expression", "u8 x <- 0xFF & 0x0F;"],
+      ["returns null for shift expression", "u8 x <- 1 << 2;"],
+      ["returns null for unary expression", "bool x <- !true;"],
+      ["returns null for string literal", 'string<10> s <- "hello";'],
+    ])("%s", (_label, source) => {
+      const expr = getVariableExpression(source);
       expect(expr).not.toBeNull();
       const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
       expect(arrayInit).toBeNull();
@@ -166,20 +123,12 @@ Point points[] <- [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }];
       expect(size).toBe(1);
     });
 
-    it("returns undefined for fill-all syntax", () => {
-      const expr = getVariableExpression("u8 arr[5] <- [0*];");
-      const size = ArrayInitializerUtils.getInferredSize(expr!);
-      expect(size).toBeUndefined();
-    });
-
-    it("returns undefined for non-array expression", () => {
-      const expr = getVariableExpression("u8 x <- 42;");
-      const size = ArrayInitializerUtils.getInferredSize(expr!);
-      expect(size).toBeUndefined();
-    });
-
-    it("returns undefined for arithmetic expression", () => {
-      const expr = getVariableExpression("u8 x <- 1 + 2 + 3;");
+    it.each([
+      ["returns undefined for fill-all syntax", "u8 arr[5] <- [0*];"],
+      ["returns undefined for non-array expression", "u8 x <- 42;"],
+      ["returns undefined for arithmetic expression", "u8 x <- 1 + 2 + 3;"],
+    ])("%s", (_label, source) => {
+      const expr = getVariableExpression(source);
       const size = ArrayInitializerUtils.getInferredSize(expr!);
       expect(size).toBeUndefined();
     });

@@ -85,8 +85,13 @@ describe("LiteralGenerator", () => {
   });
 
   describe("integer suffixes (Issue #130)", () => {
-    it("should transform u64 suffix to ULL", () => {
-      const node = createMockLiteral("42u64");
+    it.each([
+      ["should transform u64 suffix to ULL", "42u64", "42ULL"],
+      ["should transform i64 suffix to LL", "42i64", "42LL"],
+      ["should strip 8/16/32-bit integer suffixes", "42u8", "42"],
+      ["should transform uppercase U64 suffix to ULL", "0xFFU64", "0xFFULL"],
+    ])("%s", (_label, source, source2) => {
+      const node = createMockLiteral(source);
       const result = generateLiteral(
         node,
         mockInput,
@@ -94,46 +99,7 @@ describe("LiteralGenerator", () => {
         mockOrchestrator,
       );
 
-      expect(result.code).toBe("42ULL");
-      expect(result.effects).toEqual([]);
-    });
-
-    it("should transform i64 suffix to LL", () => {
-      const node = createMockLiteral("42i64");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
-
-      expect(result.code).toBe("42LL");
-      expect(result.effects).toEqual([]);
-    });
-
-    it("should strip 8/16/32-bit integer suffixes", () => {
-      const node = createMockLiteral("42u8");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
-
-      expect(result.code).toBe("42");
-      expect(result.effects).toEqual([]);
-    });
-
-    it("should transform uppercase U64 suffix to ULL", () => {
-      const node = createMockLiteral("0xFFU64");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
-
-      expect(result.code).toBe("0xFFULL");
+      expect(result.code).toBe(source2);
       expect(result.effects).toEqual([]);
     });
   });

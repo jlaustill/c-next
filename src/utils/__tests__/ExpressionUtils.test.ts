@@ -44,125 +44,34 @@ describe("ExpressionUtils", () => {
   // ========================================================================
 
   describe("extractLiteral", () => {
-    it("should extract integer literal", () => {
-      const expr = extractExpression("42");
+    it.each([
+      ["should extract integer literal", "42", "42"],
+      ["should extract zero literal", "0", "0"],
+      ["should extract hex literal", "0xFF", "0xFF"],
+      ["should extract binary literal", "0b1010", "0b1010"],
+      ["should extract suffixed literal", "42u32", "42u32"],
+    ])("%s", (_label, source, source2) => {
+      const expr = extractExpression(source);
       expect(expr).not.toBeNull();
 
       const literal = ExpressionUtils.extractLiteral(expr!);
       expect(literal).not.toBeNull();
-      expect(literal!.getText()).toBe("42");
+      expect(literal!.getText()).toBe(source2);
     });
 
-    it("should extract zero literal", () => {
-      const expr = extractExpression("0");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).not.toBeNull();
-      expect(literal!.getText()).toBe("0");
-    });
-
-    it("should extract hex literal", () => {
-      const expr = extractExpression("0xFF");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).not.toBeNull();
-      expect(literal!.getText()).toBe("0xFF");
-    });
-
-    it("should extract binary literal", () => {
-      const expr = extractExpression("0b1010");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).not.toBeNull();
-      expect(literal!.getText()).toBe("0b1010");
-    });
-
-    it("should extract suffixed literal", () => {
-      const expr = extractExpression("42u32");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).not.toBeNull();
-      expect(literal!.getText()).toBe("42u32");
-    });
-
-    it("should return null for addition expression", () => {
-      const expr = extractExpression("1 + 2");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for subtraction expression", () => {
-      const expr = extractExpression("5 - 3");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for multiplication expression", () => {
-      const expr = extractExpression("2 * 3");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for division expression", () => {
-      const expr = extractExpression("10 / 2");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for identifier expression", () => {
-      const expr = extractExpression("someVar");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for comparison expression", () => {
-      const expr = extractExpression("a < b");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for logical OR expression", () => {
-      const expr = extractExpression("a || b");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for logical AND expression", () => {
-      const expr = extractExpression("a && b");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for bitwise OR expression", () => {
-      const expr = extractExpression("a | b");
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-
-    it("should return null for shift expression", () => {
-      const expr = extractExpression("a << 2");
+    it.each([
+      ["should return null for addition expression", "1 + 2"],
+      ["should return null for subtraction expression", "5 - 3"],
+      ["should return null for multiplication expression", "2 * 3"],
+      ["should return null for division expression", "10 / 2"],
+      ["should return null for identifier expression", "someVar"],
+      ["should return null for comparison expression", "a < b"],
+      ["should return null for logical OR expression", "a || b"],
+      ["should return null for logical AND expression", "a && b"],
+      ["should return null for bitwise OR expression", "a | b"],
+      ["should return null for shift expression", "a << 2"],
+    ])("%s", (_label, source) => {
+      const expr = extractExpression(source);
       expect(expr).not.toBeNull();
 
       const literal = ExpressionUtils.extractLiteral(expr!);
@@ -281,32 +190,13 @@ describe("ExpressionUtils", () => {
       expect(identifier).toBe("myVariable");
     });
 
-    it("should return null for literal expression", () => {
-      const expr = extractExpression("42");
-      expect(expr).not.toBeNull();
-
-      const identifier = ExpressionUtils.extractIdentifier(expr!);
-      expect(identifier).toBeNull();
-    });
-
-    it("should return null for binary expression with identifiers", () => {
-      const expr = extractExpression("a + b");
-      expect(expr).not.toBeNull();
-
-      const identifier = ExpressionUtils.extractIdentifier(expr!);
-      expect(identifier).toBeNull();
-    });
-
-    it("should return null for function call", () => {
-      const expr = extractExpression("getValue()");
-      expect(expr).not.toBeNull();
-
-      const identifier = ExpressionUtils.extractIdentifier(expr!);
-      expect(identifier).toBeNull();
-    });
-
-    it("should return null for member access", () => {
-      const expr = extractExpression("obj.field");
+    it.each([
+      ["should return null for literal expression", "42"],
+      ["should return null for binary expression with identifiers", "a + b"],
+      ["should return null for function call", "getValue()"],
+      ["should return null for member access", "obj.field"],
+    ])("%s", (_label, source) => {
+      const expr = extractExpression(source);
       expect(expr).not.toBeNull();
 
       const identifier = ExpressionUtils.extractIdentifier(expr!);

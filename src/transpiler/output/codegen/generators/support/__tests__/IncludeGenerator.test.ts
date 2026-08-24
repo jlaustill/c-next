@@ -461,49 +461,27 @@ describe("IncludeGenerator", () => {
   // ==========================================================================
 
   describe("processConditionalDirective", () => {
-    it("passes through #ifdef directive", () => {
+    it.each([
+      ["passes through #ifdef directive", "#ifdef DEBUG\n", "#ifdef DEBUG"],
+      [
+        "passes through #ifndef directive",
+        "#ifndef GUARD_H\n",
+        "#ifndef GUARD_H",
+      ],
+      ["passes through #else directive", "#else\n", "#else"],
+      ["passes through #endif directive", "#endif\n", "#endif"],
+      [
+        "trims whitespace from directive",
+        "  #ifdef FEATURE  \n",
+        "#ifdef FEATURE",
+      ],
+    ])("%s", (_label, source, source2) => {
       const mockCtx = {
-        getText: () => "#ifdef DEBUG\n",
+        getText: () => source,
       };
 
       const result = processConditionalDirective(mockCtx as any);
-      expect(result).toBe("#ifdef DEBUG");
-    });
-
-    it("passes through #ifndef directive", () => {
-      const mockCtx = {
-        getText: () => "#ifndef GUARD_H\n",
-      };
-
-      const result = processConditionalDirective(mockCtx as any);
-      expect(result).toBe("#ifndef GUARD_H");
-    });
-
-    it("passes through #else directive", () => {
-      const mockCtx = {
-        getText: () => "#else\n",
-      };
-
-      const result = processConditionalDirective(mockCtx as any);
-      expect(result).toBe("#else");
-    });
-
-    it("passes through #endif directive", () => {
-      const mockCtx = {
-        getText: () => "#endif\n",
-      };
-
-      const result = processConditionalDirective(mockCtx as any);
-      expect(result).toBe("#endif");
-    });
-
-    it("trims whitespace from directive", () => {
-      const mockCtx = {
-        getText: () => "  #ifdef FEATURE  \n",
-      };
-
-      const result = processConditionalDirective(mockCtx as any);
-      expect(result).toBe("#ifdef FEATURE");
+      expect(result).toBe(source2);
     });
   });
 

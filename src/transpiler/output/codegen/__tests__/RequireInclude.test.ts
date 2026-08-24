@@ -28,41 +28,17 @@ describe("CodeGenerator requireInclude", () => {
       expect(result.code).toContain("#include <stdint.h>");
     });
 
-    it("includes stdint.h for u16 type", async () => {
+    it.each([
+      ["includes stdint.h for u16 type", "u16 value <- 0;"],
+      ["includes stdint.h for u32 type", "u32 value <- 0;"],
+      ["includes stdint.h for i32 type", "i32 value <- 0;"],
+    ])("%s", async (_label, source) => {
       const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
       const result = (
         await transpiler.transpile({
           kind: "source",
-          source: "u16 value <- 0;",
-        })
-      ).files[0];
-
-      expect(result.success).toBe(true);
-      expect(result.code).toContain("#include <stdint.h>");
-    });
-
-    it("includes stdint.h for u32 type", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
-
-      const result = (
-        await transpiler.transpile({
-          kind: "source",
-          source: "u32 value <- 0;",
-        })
-      ).files[0];
-
-      expect(result.success).toBe(true);
-      expect(result.code).toContain("#include <stdint.h>");
-    });
-
-    it("includes stdint.h for i32 type", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
-
-      const result = (
-        await transpiler.transpile({
-          kind: "source",
-          source: "i32 value <- 0;",
+          source: source,
         })
       ).files[0];
 

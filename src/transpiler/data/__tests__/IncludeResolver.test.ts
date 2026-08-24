@@ -331,37 +331,31 @@ describe("IncludeResolver", () => {
       expect(directives[0]).toBe('#include "shared.h"');
     });
 
-    it("should use .hpp extension for cnx includes in C++ mode", () => {
+    it.each([
+      [
+        "should use .hpp extension for cnx includes in C++ mode",
+        '#include "shared.cnx"',
+        '#include "shared.hpp"',
+      ],
+      [
+        "should use .hpp for angle-bracket cnx includes in C++ mode",
+        "#include <shared.cnx>",
+        "#include <shared.hpp>",
+      ],
+      [
+        "should not affect C/C++ header directives (only cnx includes)",
+        '#include "types.h"',
+        '#include "types.h"',
+      ],
+    ])("%s", (_label, source, source2) => {
       const resolver = new IncludeResolver([includeDir], undefined, true);
-      const content = '#include "shared.cnx"';
+      const content = source;
 
       const result = resolver.resolve(content);
 
       const directives = [...result.headerIncludeDirectives.values()];
       expect(directives).toHaveLength(1);
-      expect(directives[0]).toBe('#include "shared.hpp"');
-    });
-
-    it("should use .hpp for angle-bracket cnx includes in C++ mode", () => {
-      const resolver = new IncludeResolver([includeDir], undefined, true);
-      const content = "#include <shared.cnx>";
-
-      const result = resolver.resolve(content);
-
-      const directives = [...result.headerIncludeDirectives.values()];
-      expect(directives).toHaveLength(1);
-      expect(directives[0]).toBe("#include <shared.hpp>");
-    });
-
-    it("should not affect C/C++ header directives (only cnx includes)", () => {
-      const resolver = new IncludeResolver([includeDir], undefined, true);
-      const content = '#include "types.h"';
-
-      const result = resolver.resolve(content);
-
-      const directives = [...result.headerIncludeDirectives.values()];
-      expect(directives).toHaveLength(1);
-      expect(directives[0]).toBe('#include "types.h"');
+      expect(directives[0]).toBe(source2);
     });
   });
 

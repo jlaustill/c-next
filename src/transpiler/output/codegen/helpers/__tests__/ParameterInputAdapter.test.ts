@@ -187,40 +187,14 @@ describe("ParameterInputAdapter", () => {
       expect(result.mappedType).toBe("char");
     });
 
-    it("uses pass-by-value from deps for ISR", () => {
+    it.each([
+      ["uses pass-by-value from deps for ISR", "handler", "ISR"],
+      ["uses pass-by-value from deps for float types", "value", "f32"],
+      ["uses pass-by-value from deps for enums", "status", "Status"],
+    ])("%s", (_label, source, source2) => {
       const param: IParameterSymbol = {
-        name: "handler",
-        type: "ISR",
-        isConst: false,
-        isArray: false,
-      };
-
-      const deps = { ...defaultDeps, isPassByValue: true };
-      const result = ParameterInputAdapter.fromSymbol(param, deps);
-
-      expect(result.isPassByValue).toBe(true);
-      expect(result.isPassByReference).toBe(false);
-    });
-
-    it("uses pass-by-value from deps for float types", () => {
-      const param: IParameterSymbol = {
-        name: "value",
-        type: "f32",
-        isConst: false,
-        isArray: false,
-      };
-
-      const deps = { ...defaultDeps, isPassByValue: true };
-      const result = ParameterInputAdapter.fromSymbol(param, deps);
-
-      expect(result.isPassByValue).toBe(true);
-      expect(result.isPassByReference).toBe(false);
-    });
-
-    it("uses pass-by-value from deps for enums", () => {
-      const param: IParameterSymbol = {
-        name: "status",
-        type: "Status",
+        name: source,
+        type: source2,
         isConst: false,
         isArray: false,
       };

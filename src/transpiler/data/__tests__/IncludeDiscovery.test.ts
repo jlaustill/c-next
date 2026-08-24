@@ -34,35 +34,17 @@ describe("IncludeDiscovery", () => {
   // ==========================================================================
 
   describe("findProjectRoot", () => {
-    it("finds project root with platformio.ini", () => {
-      writeFileSync(join(testDir, "platformio.ini"), "[env:esp32]");
-      mkdirSync(join(testDir, "src"), { recursive: true });
-
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
-
-      expect(result).toBe(resolve(testDir));
-    });
-
-    it("finds project root with cnext.config.json", () => {
-      writeFileSync(join(testDir, "cnext.config.json"), "{}");
-      mkdirSync(join(testDir, "src"), { recursive: true });
-
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
-
-      expect(result).toBe(resolve(testDir));
-    });
-
-    it("finds project root with .cnext.json", () => {
-      writeFileSync(join(testDir, ".cnext.json"), "{}");
-      mkdirSync(join(testDir, "src"), { recursive: true });
-
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
-
-      expect(result).toBe(resolve(testDir));
-    });
-
-    it("finds project root with .cnextrc", () => {
-      writeFileSync(join(testDir, ".cnextrc"), "{}");
+    it.each([
+      [
+        "finds project root with platformio.ini",
+        "platformio.ini",
+        "[env:esp32]",
+      ],
+      ["finds project root with cnext.config.json", "cnext.config.json", "{}"],
+      ["finds project root with .cnext.json", ".cnext.json", "{}"],
+      ["finds project root with .cnextrc", ".cnextrc", "{}"],
+    ])("%s", (_label, source, source2) => {
+      writeFileSync(join(testDir, source), source2);
       mkdirSync(join(testDir, "src"), { recursive: true });
 
       const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));

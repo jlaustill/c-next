@@ -154,9 +154,13 @@ describe("UnaryExprGenerator", () => {
   });
 
   describe("other unary operators", () => {
-    it("should generate logical NOT unchanged", () => {
-      const node = createMockUnaryNode("!flag");
-      const orchestrator = createMockOrchestrator("flag");
+    it.each([
+      ["should generate logical NOT unchanged", "!flag", "flag", "!flag"],
+      ["should generate negation unchanged", "-x", "x", "-x"],
+      ["should generate address-of unchanged", "&x", "x", "&x"],
+    ])("%s", (_label, source, source2, source3) => {
+      const node = createMockUnaryNode(source);
+      const orchestrator = createMockOrchestrator(source2);
       const result = generateUnaryExpr(
         node,
         mockInput,
@@ -164,33 +168,7 @@ describe("UnaryExprGenerator", () => {
         orchestrator,
       );
 
-      expect(result.code).toBe("!flag");
-    });
-
-    it("should generate negation unchanged", () => {
-      const node = createMockUnaryNode("-x");
-      const orchestrator = createMockOrchestrator("x");
-      const result = generateUnaryExpr(
-        node,
-        mockInput,
-        mockState,
-        orchestrator,
-      );
-
-      expect(result.code).toBe("-x");
-    });
-
-    it("should generate address-of unchanged", () => {
-      const node = createMockUnaryNode("&x");
-      const orchestrator = createMockOrchestrator("x");
-      const result = generateUnaryExpr(
-        node,
-        mockInput,
-        mockState,
-        orchestrator,
-      );
-
-      expect(result.code).toBe("&x");
+      expect(result.code).toBe(source3);
     });
   });
 });

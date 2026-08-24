@@ -137,55 +137,28 @@ describe("CodegenParserUtils", () => {
       expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBe("myVar");
     });
 
-    it("returns null for member access", () => {
-      const expr = parseExpression("obj.field");
-      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
-    });
-
-    it("returns null for array access", () => {
-      const expr = parseExpression("arr[0]");
-      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
-    });
-
-    it("returns null for binary expression", () => {
-      const expr = parseExpression("a + b");
-      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
-    });
-
-    it("returns null for function call", () => {
-      const expr = parseExpression("foo()");
-      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
-    });
-
-    it("returns null for literal", () => {
-      const expr = parseExpression("42");
+    it.each([
+      ["returns null for member access", "obj.field"],
+      ["returns null for array access", "arr[0]"],
+      ["returns null for binary expression", "a + b"],
+      ["returns null for function call", "foo()"],
+      ["returns null for literal", "42"],
+    ])("%s", (_label, source) => {
+      const expr = parseExpression(source);
       expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
     });
   });
 
   describe("isMainFunctionWithArgs", () => {
-    it("returns true for main with string args[]", () => {
-      const { name, paramList } = parseFunctionDeclaration(
+    it.each([
+      [
+        "returns true for main with string args[]",
         "void main(string args[]) {}",
-      );
-      expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
-        true,
-      );
-    });
-
-    it("returns true for main with u8 args[][]", () => {
-      const { name, paramList } = parseFunctionDeclaration(
-        "void main(u8 args[][]) {}",
-      );
-      expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
-        true,
-      );
-    });
-
-    it("returns true for main with i8 args[][]", () => {
-      const { name, paramList } = parseFunctionDeclaration(
-        "void main(i8 args[][]) {}",
-      );
+      ],
+      ["returns true for main with u8 args[][]", "void main(u8 args[][]) {}"],
+      ["returns true for main with i8 args[][]", "void main(i8 args[][]) {}"],
+    ])("%s", (_label, source) => {
+      const { name, paramList } = parseFunctionDeclaration(source);
       expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
         true,
       );
@@ -198,28 +171,18 @@ describe("CodegenParserUtils", () => {
       );
     });
 
-    it("returns false for non-main function", () => {
-      const { name, paramList } = parseFunctionDeclaration(
-        "void foo(string args[]) {}",
-      );
-      expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
-        false,
-      );
-    });
-
-    it("returns false for main with wrong parameter type", () => {
-      const { name, paramList } = parseFunctionDeclaration(
+    it.each([
+      ["returns false for non-main function", "void foo(string args[]) {}"],
+      [
+        "returns false for main with wrong parameter type",
         "void main(u32 count) {}",
-      );
-      expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
-        false,
-      );
-    });
-
-    it("returns false for main with multiple parameters", () => {
-      const { name, paramList } = parseFunctionDeclaration(
+      ],
+      [
+        "returns false for main with multiple parameters",
         "void main(string args[], u32 count) {}",
-      );
+      ],
+    ])("%s", (_label, source) => {
+      const { name, paramList } = parseFunctionDeclaration(source);
       expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
         false,
       );

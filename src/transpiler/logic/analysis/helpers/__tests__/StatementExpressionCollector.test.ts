@@ -80,29 +80,16 @@ describe("StatementExpressionCollector", () => {
     });
 
     describe("control flow conditions", () => {
-      it("collects expression from ifStatement", () => {
-        const stmt = getStatement("if (x = 1) { }");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("collects expression from whileStatement", () => {
-        const stmt = getStatement("while (x > 0) { }");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("collects expression from doWhileStatement", () => {
-        const stmt = getStatement("do { } while (x != 0);");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("collects expression from switchStatement", () => {
-        const stmt = getStatement("switch (x) { case 1 { } }");
+      it.each([
+        ["collects expression from ifStatement", "if (x = 1) { }"],
+        ["collects expression from whileStatement", "while (x > 0) { }"],
+        ["collects expression from doWhileStatement", "do { } while (x != 0);"],
+        [
+          "collects expression from switchStatement",
+          "switch (x) { case 1 { } }",
+        ],
+      ])("%s", (_label, source) => {
+        const stmt = getStatement(source);
         expect(stmt).not.toBeNull();
         const expressions = StatementExpressionCollector.collectAll(stmt!);
         expect(expressions).toHaveLength(1);
@@ -159,59 +146,34 @@ describe("StatementExpressionCollector", () => {
     });
 
     describe("edge cases", () => {
-      it("returns empty for block statement", () => {
-        const stmt = getStatement("{ }");
+      it.each([
+        ["returns empty for block statement", "{ }", 0],
+        ["handles compound assignment operator", "x +<- 5;", 1],
+        [
+          "handles function call in expression statement",
+          "doSomething(x, y);",
+          1,
+        ],
+        ["handles member access in assignment", "obj.field <- 10;", 1],
+        ["handles array access in assignment", "arr[0] <- 10;", 1],
+      ])("%s", (_label, source, expected) => {
+        const stmt = getStatement(source);
         expect(stmt).not.toBeNull();
         const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(0);
-      });
-
-      it("handles compound assignment operator", () => {
-        const stmt = getStatement("x +<- 5;");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("handles function call in expression statement", () => {
-        const stmt = getStatement("doSomething(x, y);");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("handles member access in assignment", () => {
-        const stmt = getStatement("obj.field <- 10;");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("handles array access in assignment", () => {
-        const stmt = getStatement("arr[0] <- 10;");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
+        expect(expressions).toHaveLength(expected);
       });
     });
 
     describe("nested expressions", () => {
-      it("collects complex if condition", () => {
-        const stmt = getStatement("if (x > 0 && y < 10) { }");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("collects ternary in assignment", () => {
-        const stmt = getStatement("x <- (a > b) ? a : b;");
-        expect(stmt).not.toBeNull();
-        const expressions = StatementExpressionCollector.collectAll(stmt!);
-        expect(expressions).toHaveLength(1);
-      });
-
-      it("collects function call with complex arguments", () => {
-        const stmt = getStatement("result <- compute(a + b, c * d);");
+      it.each([
+        ["collects complex if condition", "if (x > 0 && y < 10) { }"],
+        ["collects ternary in assignment", "x <- (a > b) ? a : b;"],
+        [
+          "collects function call with complex arguments",
+          "result <- compute(a + b, c * d);",
+        ],
+      ])("%s", (_label, source) => {
+        const stmt = getStatement(source);
         expect(stmt).not.toBeNull();
         const expressions = StatementExpressionCollector.collectAll(stmt!);
         expect(expressions).toHaveLength(1);

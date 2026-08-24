@@ -301,43 +301,15 @@ describe("TypeValidator", () => {
       ).toThrow("Line 5");
     });
 
-    it("rejects .cpp file includes", () => {
+    it.each([
+      ["rejects .cpp file includes", '#include "impl.cpp"'],
+      ["rejects .cc file includes", "#include <impl.cc>"],
+      ["rejects .cxx file includes", '#include "impl.cxx"'],
+      ["rejects .c++ file includes", '#include "impl.c++"'],
+    ])("%s", (_label, source) => {
       setupState();
       expect(() =>
-        TypeValidator.validateIncludeNotImplementationFile(
-          '#include "impl.cpp"',
-          1,
-        ),
-      ).toThrow("E0503");
-    });
-
-    it("rejects .cc file includes", () => {
-      setupState();
-      expect(() =>
-        TypeValidator.validateIncludeNotImplementationFile(
-          "#include <impl.cc>",
-          1,
-        ),
-      ).toThrow("E0503");
-    });
-
-    it("rejects .cxx file includes", () => {
-      setupState();
-      expect(() =>
-        TypeValidator.validateIncludeNotImplementationFile(
-          '#include "impl.cxx"',
-          1,
-        ),
-      ).toThrow("E0503");
-    });
-
-    it("rejects .c++ file includes", () => {
-      setupState();
-      expect(() =>
-        TypeValidator.validateIncludeNotImplementationFile(
-          '#include "impl.c++"',
-          1,
-        ),
+        TypeValidator.validateIncludeNotImplementationFile(source, 1),
       ).toThrow("E0503");
     });
 
