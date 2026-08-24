@@ -29,6 +29,9 @@ interface IChainStep {
   readonly isSubscript: boolean;
 }
 
+/** The one type name that is essentially Boolean (MISRA C:2012 Rule 10.1). */
+const BOOLEAN_TYPE_NAME = "bool";
+
 class OperandTypeResolver {
   private readonly scopes: ScopeFrameResolver;
 
@@ -37,13 +40,36 @@ class OperandTypeResolver {
   }
 
   /**
-   * Strip one array dimension: `bool[2]` indexed once yields `bool`. Returns
-   * null for a subscript into something with no dimension left, which is a bit
-   * index or an error -- either way not a declared element type.
+   * Whether a resolved type is essentially Boolean. Callers test through this
+   * rather than comparing to a literal, so what counts as Boolean is decided
+   * once.
+   */
+  public static isBooleanType(typeName: string | null): boolean {
+    return typeName === BOOLEAN_TYPE_NAME;
+  }
+
+  /**
+   * Strip ONE array dimension per subscript, leading dimension first, matching
+   * the C the transpiler emits: `bool[2][3] flags` becomes `bool flags[2][3]`,
+   * so `flags[0]` is `bool[3]` and `flags[0][1]` is `bool`.
+   *
+   * Slicing at the first `[` and discarding the rest would collapse every
+   * dimension at once. That is indistinguishable from the correct answer for a
+   * one-dimensional array and wrong for every other -- `flags[0][1]` would
+   * resolve to nothing, leaving `flags[0][1] / flags[1][2]` accepted as a
+   * divide by zero.
+   *
+   * Returns null for a subscript into something with no dimension left, which
+   * is a bit index or an error -- either way not a declared element type.
    */
   private static elementType(typeName: string): string | null {
-    const bracket = typeName.indexOf("[");
-    return bracket > 0 ? typeName.slice(0, bracket) : null;
+    const open = typeName.indexOf("[");
+    if (open <= 0) return null;
+
+    const close = typeName.indexOf("]", open);
+    if (close < 0) return null;
+
+    return typeName.slice(0, open) + typeName.slice(close + 1);
   }
 
   /** Walk a resolved base type through the chain steps. */
@@ -153,7 +179,7 @@ class OperandTypeResolver {
     if (node instanceof ParserRuleContext) return null;
 
     const text = node.getText();
-    if (text === "true" || text === "false") return "bool";
+    if (text === "true" || text === "false") return BOOLEAN_TYPE_NAME;
     return this.scopes.typeOfName(text, frame);
   }
 }

@@ -245,6 +245,44 @@ describe("BooleanOperandAnalyzer", () => {
       expect(qualified).toHaveLength(bare.length);
     });
 
+    // /cnext-way audit: stripping every dimension at once is correct only for
+    // a 1-D array. Each subscript must remove exactly one dimension.
+    it.each([
+      [
+        "2-D fully indexed",
+        "bool[2][3] flags;",
+        "u8 c <- flags[0][1] / flags[1][2];",
+      ],
+      [
+        "3-D fully indexed",
+        "bool[2][3][4] flags;",
+        "u8 c <- flags[0][1][2] + flags[1][2][3];",
+      ],
+    ])("rejects arithmetic on %s bool elements", (_label, decl, statement) => {
+      const errors = analyze(`${decl}\nvoid main() { ${statement} }`);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("rejects a compound assignment to a 2-D bool element, naming it", () => {
+      const errors = analyze(`
+        bool[2][3] flags;
+        void main() { flags[0][1] +<- true; }
+      `);
+      expect(errors[0].code).toBe("E0806");
+      expect(errors[0].message).toContain("'flags[0][1]'");
+    });
+
+    it("does not treat a partially indexed bool array as a bool", () => {
+      // flags[0] on a bool[2][3] is bool[3] -- an array, not a bool. Arithmetic
+      // on it is a separate defect, tracked as #1191.
+      const errors = analyze(`
+        bool[2][3] flags;
+        void main() { u8 c <- flags[0] / flags[1]; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
     it("does not flag an integer array element", () => {
       const errors = analyze(`
         u8[2] values;

@@ -85,7 +85,9 @@ class BooleanOperandListener extends CNextListener {
       return node.getChild(0)?.getText() === "!";
     }
 
-    return this.types.typeOfOperand(ctx, frame) === "bool";
+    return OperandTypeResolver.isBooleanType(
+      this.types.typeOfOperand(ctx, frame),
+    );
   }
 
   /**
@@ -106,7 +108,11 @@ class BooleanOperandListener extends CNextListener {
     const target = ctx.assignmentTarget();
     const frame = this.scopes.frameFor(ctx);
 
-    if (this.types.typeOfAssignmentTarget(target, frame) === "bool") {
+    if (
+      OperandTypeResolver.isBooleanType(
+        this.types.typeOfAssignmentTarget(target, frame),
+      )
+    ) {
       const { line, column } = ParserUtils.getPosition(target);
       this.analyzer.addCompoundAssignmentError(line, column, target.getText());
       return;
