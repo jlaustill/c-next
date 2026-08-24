@@ -107,6 +107,26 @@ describe("BooleanOperandAnalyzer", () => {
       expect(errors[0].code).toBe("E0807");
     });
 
+    // Issue #1183 review: a comparison or logical result is a bool that no
+    // declaration names. It is well-formed on its own, so the parent arithmetic
+    // operator is the only place its misuse can be reported. `n / (a && b)`
+    // reached the binary and died with SIGFPE.
+    it.each([
+      ["logical and", "u8 c <- n / (a && b);"],
+      ["logical or", "u8 c <- n / (a || b);"],
+      ["equality", "u8 c <- n / (a = b);"],
+      ["relational", "u8 c <- n / (n < 2);"],
+      ["negation", "u8 c <- n / !a;"],
+      ["comparison as a left operand", "u8 c <- (n < 2) + n;"],
+    ])(
+      "rejects a bool-valued %s expression as an operand",
+      (_label, statement) => {
+        const errors = analyze(inMain(statement));
+        expect(errors).toHaveLength(1);
+        expect(errors[0].code).toBe("E0807");
+      },
+    );
+
     it("reports each offending operator in a chain", () => {
       const errors = analyze(inMain("bool c <- a + b + a;"));
       expect(errors).toHaveLength(2);
@@ -141,6 +161,21 @@ describe("BooleanOperandAnalyzer", () => {
     it("accepts a bool comparison as a controlling expression", () => {
       expect(analyze(inMain("if (a = true) { n <- 2; }"))).toHaveLength(0);
     });
+
+    // The same shapes as a bool VALUE remain legal -- the operand position is
+    // what is forbidden, not the expression itself.
+    it.each([
+      ["logical and", "bool c <- a && b;"],
+      ["logical or", "bool c <- a || b;"],
+      ["equality", "bool c <- (a = b);"],
+      ["relational on integers", "bool c <- (n < 2);"],
+      ["negation", "bool c <- !a;"],
+    ])(
+      "accepts a bool-valued %s expression as a value",
+      (_label, statement) => {
+        expect(analyze(inMain(statement))).toHaveLength(0);
+      },
+    );
 
     it("accepts arithmetic on integers", () => {
       expect(analyze(inMain("u8 c <- n + n;"))).toHaveLength(0);

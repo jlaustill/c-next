@@ -49,6 +49,24 @@ class OperandTypeResolver {
   }
 
   /**
+   * Whether a node is an applied operator whose result is Boolean: `||`, `&&`,
+   * `=` / `!=`, or a relational comparison.
+   *
+   * Only an APPLIED one reaches here. Each of these grammar levels is a
+   * pass-through when it holds a single operand, and the caller descends
+   * through those before asking, so a node arriving here with more than one
+   * child is a real operator application.
+   */
+  private static isBooleanValuedOperator(node: ParseTree): boolean {
+    return (
+      node instanceof Parser.OrExpressionContext ||
+      node instanceof Parser.AndExpressionContext ||
+      node instanceof Parser.EqualityExpressionContext ||
+      node instanceof Parser.RelationalExpressionContext
+    );
+  }
+
+  /**
    * Strip ONE array dimension per subscript, leading dimension first, matching
    * the C the transpiler emits: `bool[2][3] flags` becomes `bool flags[2][3]`,
    * so `flags[0]` is `bool[3]` and `flags[0][1]` is `bool`.
@@ -165,6 +183,22 @@ class OperandTypeResolver {
       const child = node.getChild(0);
       if (!child) break;
       node = child;
+    }
+
+    // A comparison or logical operator yields a Boolean whatever its operands
+    // were, so the expression HAS a type even though no declaration names it.
+    //
+    // Issue #1183 review: without this, `n / (a && b)` read as "type unknown"
+    // and passed. The parent arithmetic operator is the only place that
+    // violation can be reported -- `a && b` is well-formed on its own, so
+    // nothing reports at the child level.
+    if (OperandTypeResolver.isBooleanValuedOperator(node)) {
+      return BOOLEAN_TYPE_NAME;
+    }
+
+    if (node instanceof Parser.UnaryExpressionContext) {
+      // `!x` is Boolean; `-x`, `~x` and `&x` are not.
+      return node.getChild(0)?.getText() === "!" ? BOOLEAN_TYPE_NAME : null;
     }
 
     if (node instanceof Parser.PostfixExpressionContext) {

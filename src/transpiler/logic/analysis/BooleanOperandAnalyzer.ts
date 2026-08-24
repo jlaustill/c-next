@@ -29,7 +29,7 @@
  * 2. Walk each guarded operator level and report any Boolean operand.
  */
 
-import { ParseTreeWalker, ParserRuleContext, ParseTree } from "antlr4ng";
+import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IBooleanOperandError from "./types/IBooleanOperandError";
@@ -62,29 +62,20 @@ class BooleanOperandListener extends CNextListener {
   /**
    * Whether an operand is essentially Boolean.
    *
-   * `!x` is Boolean by construction. Everything else defers to the shared type
-   * resolver, so a bool reads the same whether it is spelled `flag`,
-   * `this.flag`, `sensor.ready`, `outer.inner.ready`, or `flags[0]`
-   * (Issue #1183 review).
+   * Every case defers to the shared type resolver, so a bool reads the same
+   * however it is spelled: a declaration (`flag`, `this.flag`, `sensor.ready`,
+   * `outer.inner.ready`, `flags[0]`), a literal, `!x`, or a comparison or
+   * logical result (`a && b`, `a = b`, `n < 5`) that no declaration names.
    *
-   * A multi-operand level below this one (e.g. `a + b` inside `(a + b) * c`) is
-   * arithmetic, not Boolean, and reports at its own level.
+   * An ARITHMETIC child is deliberately not Boolean and needs no case here:
+   * `a + b` inside `(a + b) * c` reports at its own level. A Boolean child is
+   * the opposite -- it is well-formed alone, so the parent operator is the only
+   * place its misuse can be reported (Issue #1183 review).
    */
   private isBooleanOperand(
     ctx: ParserRuleContext,
     frame: IScopeFrame,
   ): boolean {
-    let node: ParseTree = ctx;
-    while (node instanceof ParserRuleContext && node.getChildCount() === 1) {
-      const child = node.getChild(0);
-      if (!child) break;
-      node = child;
-    }
-
-    if (node instanceof Parser.UnaryExpressionContext) {
-      return node.getChild(0)?.getText() === "!";
-    }
-
     return OperandTypeResolver.isBooleanType(
       this.types.typeOfOperand(ctx, frame),
     );
