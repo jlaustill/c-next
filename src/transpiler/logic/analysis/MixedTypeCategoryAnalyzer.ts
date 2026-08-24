@@ -39,6 +39,7 @@ import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
 import IScopeFrame from "./types/IScopeFrame";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
 
@@ -169,8 +170,7 @@ class MixedCategoryListener extends CNextListener {
    * Compare adjacent operands at one binary-operator level and report any pair
    * whose categories are both resolved and differ.
    */
-  private checkLevel(operands: ParserRuleContext[]): void {
-    if (operands.length < 2) return;
+  public checkLevel(operands: ParserRuleContext[]): void {
     const frame = this.scopes.frameFor(operands[0]);
     for (let i = 0; i < operands.length - 1; i += 1) {
       const left = this.operandCategory(operands[i], frame);
@@ -181,48 +181,6 @@ class MixedCategoryListener extends CNextListener {
       }
     }
   }
-
-  override enterMultiplicativeExpression = (
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.unaryExpression());
-  };
-
-  override enterAdditiveExpression = (
-    ctx: Parser.AdditiveExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.multiplicativeExpression());
-  };
-
-  override enterBitwiseAndExpression = (
-    ctx: Parser.BitwiseAndExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.shiftExpression());
-  };
-
-  override enterBitwiseXorExpression = (
-    ctx: Parser.BitwiseXorExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseAndExpression());
-  };
-
-  override enterBitwiseOrExpression = (
-    ctx: Parser.BitwiseOrExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseXorExpression());
-  };
-
-  override enterRelationalExpression = (
-    ctx: Parser.RelationalExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseOrExpression());
-  };
-
-  override enterEqualityExpression = (
-    ctx: Parser.EqualityExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.relationalExpression());
-  };
 }
 
 /**
@@ -244,7 +202,18 @@ class MixedTypeCategoryAnalyzer {
       this,
       new ScopeFrameResolver(collector),
     );
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
+
+    // Every binary level EXCEPT shift: Rule 10.4 governs only operators subject
+    // to the usual arithmetic conversions, and a shift count is promoted
+    // independently. A signed shift count is Rule 10.1 (E0805), handled
+    // elsewhere (Issue #1085 review).
+    ParseTreeWalker.DEFAULT.walk(
+      new BinaryOperatorLevelListener((operands, level) => {
+        if (level === "shift") return;
+        listener.checkLevel(operands);
+      }),
+      tree,
+    );
 
     return this.errors;
   }

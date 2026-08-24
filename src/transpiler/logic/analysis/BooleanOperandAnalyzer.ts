@@ -36,6 +36,7 @@ import IBooleanOperandError from "./types/IBooleanOperandError";
 import IScopeFrame from "./types/IScopeFrame";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import ParserUtils from "../../../utils/ParserUtils";
 
 /**
@@ -114,8 +115,7 @@ class BooleanOperandListener extends CNextListener {
    * Reported once per operator rather than once per operand: `flag / other` is
    * a single mistake, and naming both operands would double every diagnostic.
    */
-  private checkLevel(operands: ParserRuleContext[]): void {
-    if (operands.length < 2) return;
+  public checkLevel(operands: ParserRuleContext[]): void {
     const frame = this.scopes.frameFor(operands[0]);
     const parent = operands[0].parent;
 
@@ -130,50 +130,6 @@ class BooleanOperandListener extends CNextListener {
       this.analyzer.addError(line, column, operator);
     }
   }
-
-  override enterMultiplicativeExpression = (
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.unaryExpression());
-  };
-
-  override enterAdditiveExpression = (
-    ctx: Parser.AdditiveExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.multiplicativeExpression());
-  };
-
-  override enterShiftExpression = (
-    ctx: Parser.ShiftExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.additiveExpression());
-  };
-
-  override enterBitwiseAndExpression = (
-    ctx: Parser.BitwiseAndExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.shiftExpression());
-  };
-
-  override enterBitwiseXorExpression = (
-    ctx: Parser.BitwiseXorExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseAndExpression());
-  };
-
-  override enterBitwiseOrExpression = (
-    ctx: Parser.BitwiseOrExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseXorExpression());
-  };
-
-  // Boolean values are not ordered, so `<`, `>`, `<=`, `>=` are meaningless on
-  // them. Equality (the equalityExpression level) is permitted and not checked.
-  override enterRelationalExpression = (
-    ctx: Parser.RelationalExpressionContext,
-  ): void => {
-    this.checkLevel(ctx.bitwiseOrExpression());
-  };
 
   // Prefix `-` and `~` are arithmetic/bitwise; `!` is the correct negation.
   override enterUnaryExpression = (
@@ -212,6 +168,18 @@ class BooleanOperandAnalyzer {
       this,
       new ScopeFrameResolver(collector),
     );
+
+    // Every binary level EXCEPT equality: comparing two bools with = / != is
+    // permitted by Rule 10.1 and is how C-Next tests a flag.
+    ParseTreeWalker.DEFAULT.walk(
+      new BinaryOperatorLevelListener((operands, level) => {
+        if (level === "equality") return;
+        listener.checkLevel(operands);
+      }),
+      tree,
+    );
+
+    // Prefix `-` / `~` are not a binary level, so the listener hooks them.
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;
