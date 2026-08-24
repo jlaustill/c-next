@@ -73,12 +73,15 @@ describe("Transpiler.determineProjectRoot", () => {
       expect(getProjectRoot(transpiler)).toBe(projectDir);
     });
 
-    it("finds cnext.config.json in parent directory", () => {
-      // Create project structure
+    it.each([
+      ["cnext.config.json in parent directory", "cnext.config.json", "{}"],
+      ["package.json as project marker", "package.json", "{}"],
+      ["platformio.ini as project marker", "platformio.ini", "[env:uno]"],
+    ])("finds %s", (_label, marker, contents) => {
       const projectDir = join(testDir, "project");
       const srcDir = join(projectDir, "src");
       mkdirSync(srcDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, marker), contents);
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({
@@ -94,36 +97,6 @@ describe("Transpiler.determineProjectRoot", () => {
       const srcDir = join(projectDir, "src");
       mkdirSync(join(projectDir, ".git"), { recursive: true });
       mkdirSync(srcDir, { recursive: true });
-      writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
-
-      const transpiler = new Transpiler({
-        input: join(srcDir, "main.cnx"),
-        noCache: true,
-      });
-
-      expect(getProjectRoot(transpiler)).toBe(projectDir);
-    });
-
-    it("finds package.json as project marker", () => {
-      const projectDir = join(testDir, "project");
-      const srcDir = join(projectDir, "src");
-      mkdirSync(srcDir, { recursive: true });
-      writeFileSync(join(projectDir, "package.json"), "{}");
-      writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
-
-      const transpiler = new Transpiler({
-        input: join(srcDir, "main.cnx"),
-        noCache: true,
-      });
-
-      expect(getProjectRoot(transpiler)).toBe(projectDir);
-    });
-
-    it("finds platformio.ini as project marker", () => {
-      const projectDir = join(testDir, "project");
-      const srcDir = join(projectDir, "src");
-      mkdirSync(srcDir, { recursive: true });
-      writeFileSync(join(projectDir, "platformio.ini"), "[env:uno]");
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler({

@@ -46,9 +46,14 @@ describe("StringOperationsHelper", () => {
       expect(capacity).toBe(0);
     });
 
-    it("returns null for non-string expression", () => {
-      const capacity = StringOperationsHelper.getStringExprCapacity("123");
-      expect(capacity).toBeNull();
+    it.each([
+      ["non-string expression", "123"],
+      ["unknown variable", "unknownVar"],
+      ["complex expression", "a + b"],
+    ])("returns null for %s", (_label, expression) => {
+      expect(
+        StringOperationsHelper.getStringExprCapacity(expression),
+      ).toBeNull();
     });
 
     it("returns capacity from type registry for string variable", () => {
@@ -76,17 +81,6 @@ describe("StringOperationsHelper", () => {
       });
 
       const capacity = StringOperationsHelper.getStringExprCapacity("myInt");
-      expect(capacity).toBeNull();
-    });
-
-    it("returns null for unknown variable", () => {
-      const capacity =
-        StringOperationsHelper.getStringExprCapacity("unknownVar");
-      expect(capacity).toBeNull();
-    });
-
-    it("returns null for complex expression", () => {
-      const capacity = StringOperationsHelper.getStringExprCapacity("a + b");
       expect(capacity).toBeNull();
     });
   });

@@ -41,24 +41,17 @@ describe("VariableDeclHelper", () => {
   // ========================================================================
 
   describe("parseArrayTypeDimension", () => {
-    it("returns null for non-array types", () => {
-      const typeCtx = parseType("u8 x;");
-      expect(VariableDeclHelper.parseArrayTypeDimension(typeCtx)).toBeNull();
-    });
-
-    it("returns numeric dimension for literal array type", () => {
-      const typeCtx = parseType("u8[10] x;");
-      expect(VariableDeclHelper.parseArrayTypeDimension(typeCtx)).toBe(10);
-    });
-
-    it("returns null for empty array dimension", () => {
-      const typeCtx = parseType("u8[] x;");
-      expect(VariableDeclHelper.parseArrayTypeDimension(typeCtx)).toBeNull();
-    });
-
-    it("returns null for expression dimension", () => {
-      const typeCtx = parseType("u8[SIZE] x;");
-      expect(VariableDeclHelper.parseArrayTypeDimension(typeCtx)).toBeNull();
+    it.each([
+      ["non-array types", "u8 x;", null],
+      ["literal array type", "u8[10] x;", 10],
+      ["empty array dimension", "u8[] x;", null],
+      ["expression dimension", "u8[SIZE] x;", null],
+    ])("parseArrayTypeDimension returns %s", (_label, source, expected) => {
+      // toBeNull() is toBe(null), so the numeric row belongs in the same table
+      // rather than sitting between the null rows as SonarCloud grouped it.
+      expect(
+        VariableDeclHelper.parseArrayTypeDimension(parseType(source)),
+      ).toBe(expected);
     });
   });
 
@@ -114,89 +107,49 @@ describe("VariableDeclHelper", () => {
   // ========================================================================
 
   describe("validateArrayDeclarationSyntax", () => {
-    it("allows C-Next style array syntax", () => {
-      const varDecl = parseVarDecl("u8[10] arr;");
-      const typeCtx = varDecl.type();
-      // Should not throw
-      expect(() => {
+    const validateSyntax = (source: string, name: string): (() => void) => {
+      const varDecl = parseVarDecl(source);
+      return () =>
         VariableDeclHelper.validateArrayDeclarationSyntax(
           varDecl,
-          typeCtx,
-          "arr",
+          varDecl.type(),
+          name,
         );
-      }).not.toThrow();
+    };
+
+    it.each([
+      ["C-Next style array syntax", "u8[10] arr;", "arr"],
+      [
+        "empty dimension for size inference in arrayType",
+        "u8[] arr <- [1, 2, 3];",
+        "arr",
+      ],
+      ["string type with arrayType syntax", "string<32>[4] names;", "names"],
+    ])("allows %s", (_label, source, name) => {
+      expect(validateSyntax(source, name)).not.toThrow();
     });
 
-    it("allows empty dimension for size inference in arrayType", () => {
-      const varDecl = parseVarDecl("u8[] arr <- [1, 2, 3];");
-      const typeCtx = varDecl.type();
-      expect(() => {
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          typeCtx,
-          "arr",
-        );
-      }).not.toThrow();
-    });
-
-    it("rejects empty dimension with C-style trailing brackets (Issue #1017)", () => {
-      const varDecl = parseVarDecl("u8 arr[] <- [1, 2, 3];");
-      const typeCtx = varDecl.type();
-      expect(() => {
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          typeCtx,
-          "arr",
-        );
-      }).toThrow("C-style array declaration is not allowed");
-    });
-
-    it("rejects multi-dimensional C-style (Issue #1014)", () => {
-      const varDecl = parseVarDecl("u8 matrix[4][4];");
-      const typeCtx = varDecl.type();
-      expect(() => {
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          typeCtx,
-          "matrix",
-        );
-      }).toThrow("C-style array declaration is not allowed");
-    });
-
-    it("allows string type with arrayType syntax", () => {
-      const varDecl = parseVarDecl("string<32>[4] names;");
-      const typeCtx = varDecl.type();
-      expect(() => {
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          typeCtx,
-          "names",
-        );
-      }).not.toThrow();
-    });
-
-    it("rejects string type with C-style trailing brackets (Issue #1016)", () => {
-      const varDecl = parseVarDecl("string<32> names[4];");
-      const typeCtx = varDecl.type();
-      expect(() => {
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          typeCtx,
-          "names",
-        );
-      }).toThrow("C-style array declaration is not allowed");
-    });
-
-    it("rejects C-style single dimension for primitives", () => {
-      const varDecl = parseVarDecl("u8 arr[10];");
-      const typeCtx = varDecl.type();
-      expect(() => {
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          typeCtx,
-          "arr",
-        );
-      }).toThrow(/C-style array declaration is not allowed/);
+    // The final row previously asserted with /C-style array declaration is not
+    // allowed/ rather than the string. The pattern has no metacharacters, so
+    // regex match and substring match agree; normalised to the string form the
+    // other rows use.
+    it.each([
+      [
+        "empty dimension with C-style trailing brackets (Issue #1017)",
+        "u8 arr[] <- [1, 2, 3];",
+        "arr",
+      ],
+      ["multi-dimensional C-style (Issue #1014)", "u8 matrix[4][4];", "matrix"],
+      [
+        "string type with C-style trailing brackets (Issue #1016)",
+        "string<32> names[4];",
+        "names",
+      ],
+      ["C-style single dimension for primitives", "u8 arr[10];", "arr"],
+    ])("rejects %s", (_label, source, name) => {
+      expect(validateSyntax(source, name)).toThrow(
+        "C-style array declaration is not allowed",
+      );
     });
   });
 

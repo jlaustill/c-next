@@ -692,115 +692,46 @@ describe("TypeValidator", () => {
       expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
     });
 
-    it("returns false for different parameter types", () => {
-      setupState();
-      const a: ICallbackTypeInfo = {
-        functionName: "a",
-        returnType: "void",
-        parameters: [
-          {
-            name: "x",
-            type: "int",
-            isConst: false,
-            isPointer: false,
-            isStruct: false,
-            isArray: false,
-            arrayDims: "",
-          },
-        ],
-        typedefName: "a_fp",
-      };
-      const b: ICallbackTypeInfo = {
-        functionName: "b",
-        returnType: "void",
-        parameters: [
-          {
-            name: "x",
-            type: "float",
-            isConst: false,
-            isPointer: false,
-            isStruct: false,
-            isArray: false,
-            arrayDims: "",
-          },
-        ],
-        typedefName: "b_fp",
-      };
-      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
+    /**
+     * A single-parameter callback signature, with one field overridden.
+     *
+     * The three cases below differ by exactly one parameter field each. Spelled
+     * out in full they were ~90 lines of near-identical object literals, where
+     * the one field that mattered was easy to miss.
+     */
+    const callbackWithParameter = (
+      name: string,
+      overrides: Partial<ICallbackTypeInfo["parameters"][number]>,
+    ): ICallbackTypeInfo => ({
+      functionName: name,
+      returnType: "void",
+      parameters: [
+        {
+          name: "x",
+          type: "int",
+          isConst: false,
+          isPointer: false,
+          isStruct: false,
+          isArray: false,
+          arrayDims: "",
+          ...overrides,
+        },
+      ],
+      typedefName: `${name}_fp`,
     });
 
-    it("returns false for different const-ness", () => {
+    it.each([
+      ["parameter types", { type: "int" }, { type: "float" }],
+      ["const-ness", { isConst: true }, { isConst: false }],
+      ["pointer-ness", { isPointer: true }, { isPointer: false }],
+    ])("returns false for different %s", (_label, left, right) => {
       setupState();
-      const a: ICallbackTypeInfo = {
-        functionName: "a",
-        returnType: "void",
-        parameters: [
-          {
-            name: "x",
-            type: "int",
-            isConst: true,
-            isPointer: false,
-            isStruct: false,
-            isArray: false,
-            arrayDims: "",
-          },
-        ],
-        typedefName: "a_fp",
-      };
-      const b: ICallbackTypeInfo = {
-        functionName: "b",
-        returnType: "void",
-        parameters: [
-          {
-            name: "x",
-            type: "int",
-            isConst: false,
-            isPointer: false,
-            isStruct: false,
-            isArray: false,
-            arrayDims: "",
-          },
-        ],
-        typedefName: "b_fp",
-      };
-      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
-    });
-
-    it("returns false for different pointer-ness", () => {
-      setupState();
-      const a: ICallbackTypeInfo = {
-        functionName: "a",
-        returnType: "void",
-        parameters: [
-          {
-            name: "x",
-            type: "int",
-            isConst: false,
-            isPointer: true,
-            isStruct: false,
-            isArray: false,
-            arrayDims: "",
-          },
-        ],
-        typedefName: "a_fp",
-      };
-      const b: ICallbackTypeInfo = {
-        functionName: "b",
-        returnType: "void",
-        parameters: [
-          {
-            name: "x",
-            type: "int",
-            isConst: false,
-            isPointer: false,
-            isStruct: false,
-            isArray: false,
-            arrayDims: "",
-          },
-        ],
-        typedefName: "b_fp",
-      };
-      expect(TypeValidator.callbackSignaturesMatch(a, b)).toBe(false);
+      expect(
+        TypeValidator.callbackSignaturesMatch(
+          callbackWithParameter("a", left),
+          callbackWithParameter("b", right),
+        ),
+      ).toBe(false);
     });
 
     it("returns false for different array-ness", () => {
@@ -2490,11 +2421,15 @@ describe("TypeValidator", () => {
       ).toThrow("Shift amount (64) exceeds type width (64 bits)");
     });
 
-    it("handles signed types", () => {
+    it.each([
+      ["signed types", "i8", "8"],
+      ["hex shift amounts", "u8", "0x08"],
+      ["binary shift amounts", "u8", "0b1000"],
+    ])("handles %s", (_label, leftTypeName, amount) => {
       setupState();
       const { leftType, rightExpr, op, ctx } = createShiftExpression(
-        "i8",
-        "8",
+        leftTypeName,
+        amount,
         "<<",
       );
       expect(() =>
@@ -2538,30 +2473,6 @@ describe("TypeValidator", () => {
       expect(() =>
         TypeValidator.validateShiftAmount("u8", addExpr, "<<", ctx),
       ).not.toThrow();
-    });
-
-    it("handles hex shift amounts", () => {
-      setupState();
-      const { leftType, rightExpr, op, ctx } = createShiftExpression(
-        "u8",
-        "0x08",
-        "<<",
-      );
-      expect(() =>
-        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
-      ).toThrow("Shift amount (8) exceeds type width (8 bits)");
-    });
-
-    it("handles binary shift amounts", () => {
-      setupState();
-      const { leftType, rightExpr, op, ctx } = createShiftExpression(
-        "u8",
-        "0b1000",
-        "<<",
-      );
-      expect(() =>
-        TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx),
-      ).toThrow("Shift amount (8) exceeds type width (8 bits)");
     });
 
     it("handles complex multiplicative expressions gracefully", () => {
@@ -2929,50 +2840,30 @@ describe("TypeValidator", () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it("validates decimal literal fits in target type", () => {
-      setupState();
-      const spy = vi
-        .spyOn(TypeResolver, "validateLiteralFitsType")
-        .mockImplementation(() => {});
+    it.each([
+      ["decimal literal", "u8", "100", "100"],
+      ["negative decimal literal", "i8", "-50", "-50"],
+      ["hex literal", "u8", "0xFF", "0xFF"],
+      ["binary literal", "u8", "0b11111111", "0b11111111"],
+      ["expression text with surrounding whitespace", "u8", "  100  ", "100"],
+    ])(
+      "validates %s fits the target type",
+      (_label, targetType, expression, forwarded) => {
+        setupState();
+        const spy = vi
+          .spyOn(TypeResolver, "validateLiteralFitsType")
+          .mockImplementation(() => {});
 
-      TypeValidator.validateIntegerAssignment("u8", "100", null, false);
+        TypeValidator.validateIntegerAssignment(
+          targetType,
+          expression,
+          null,
+          false,
+        );
 
-      expect(spy).toHaveBeenCalledWith("100", "u8");
-    });
-
-    it("validates negative decimal literal fits in target type", () => {
-      setupState();
-      const spy = vi
-        .spyOn(TypeResolver, "validateLiteralFitsType")
-        .mockImplementation(() => {});
-
-      TypeValidator.validateIntegerAssignment("i8", "-50", null, false);
-
-      expect(spy).toHaveBeenCalledWith("-50", "i8");
-    });
-
-    it("validates hex literal fits in target type", () => {
-      setupState();
-      const spy = vi
-        .spyOn(TypeResolver, "validateLiteralFitsType")
-        .mockImplementation(() => {});
-
-      TypeValidator.validateIntegerAssignment("u8", "0xFF", null, false);
-
-      expect(spy).toHaveBeenCalledWith("0xFF", "u8");
-    });
-
-    it("validates binary literal fits in target type", () => {
-      setupState();
-      const spy = vi
-        .spyOn(TypeResolver, "validateLiteralFitsType")
-        .mockImplementation(() => {});
-
-      TypeValidator.validateIntegerAssignment("u8", "0b11111111", null, false);
-
-      expect(spy).toHaveBeenCalledWith("0b11111111", "u8");
-    });
-
+        expect(spy).toHaveBeenCalledWith(forwarded, targetType);
+      },
+    );
     it("validates type conversion for non-literal expressions", () => {
       setupState();
       const spy = vi
@@ -2982,17 +2873,6 @@ describe("TypeValidator", () => {
       TypeValidator.validateIntegerAssignment("u8", "myVariable", "u16", false);
 
       expect(spy).toHaveBeenCalledWith("u8", "u16");
-    });
-
-    it("trims whitespace from expression text", () => {
-      setupState();
-      const spy = vi
-        .spyOn(TypeResolver, "validateLiteralFitsType")
-        .mockImplementation(() => {});
-
-      TypeValidator.validateIntegerAssignment("u8", "  100  ", null, false);
-
-      expect(spy).toHaveBeenCalledWith("100", "u8");
     });
   });
 });

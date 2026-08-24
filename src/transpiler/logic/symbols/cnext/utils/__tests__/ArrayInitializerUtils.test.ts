@@ -111,16 +111,17 @@ Point points[] <- [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }];
   });
 
   describe("getInferredSize", () => {
-    it("returns element count for list initializer", () => {
-      const expr = getVariableExpression("u8 arr[] <- [10, 20, 30];");
-      const size = ArrayInitializerUtils.getInferredSize(expr!);
-      expect(size).toBe(3);
-    });
-
-    it("returns 1 for single element array", () => {
-      const expr = getVariableExpression("u8 arr[] <- [42];");
-      const size = ArrayInitializerUtils.getInferredSize(expr!);
-      expect(size).toBe(1);
+    it.each([
+      ["element count for a list initializer", "u8 arr[] <- [10, 20, 30];", 3],
+      ["1 for a single element array", "u8 arr[] <- [42];", 1],
+      [
+        "the outer dimension for a nested array",
+        "u8 arr[][] <- [[1, 2], [3, 4]];",
+        2,
+      ],
+    ])("returns %s", (_label, source, expected) => {
+      const expr = getVariableExpression(source);
+      expect(ArrayInitializerUtils.getInferredSize(expr!)).toBe(expected);
     });
 
     it.each([
@@ -145,12 +146,6 @@ const TItem ITEMS[] <- [{ id: 1, value: 100 }, { id: 2, value: 200 }, { id: 3, v
       expect(expr).not.toBeNull();
       const size = ArrayInitializerUtils.getInferredSize(expr!);
       expect(size).toBe(3);
-    });
-
-    it("handles nested array and returns outer dimension", () => {
-      const expr = getVariableExpression("u8 arr[][] <- [[1, 2], [3, 4]];");
-      const size = ArrayInitializerUtils.getInferredSize(expr!);
-      expect(size).toBe(2);
     });
   });
 });
