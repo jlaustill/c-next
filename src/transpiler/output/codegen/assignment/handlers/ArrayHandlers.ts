@@ -144,26 +144,6 @@ function unsignedCTypeForBytes(bytes: number): string {
 }
 
 /**
- * Resolve the *source* value's type for a slice assignment (Issue #1081 review).
- *
- * The source is materialized once into an unsigned temp before the writes
- * (`buildSliceWrites`), so this drives the right-hand side of the unrolled copy:
- *  - non-integer sources (float/struct/string) cannot be shifted — reject them
- *    with a clear C-Next error instead of emitting non-compiling C;
- *  - `bytes` lets the caller reject `length > sizeof(source)` (an over-read that
- *    would otherwise emit an undefined out-of-range shift);
- *  - `unsignedCType` is the type of the materialized temp. Shifting that temp
- *    is MISRA Rule 10.1-clean (always unsigned); a signed source is cast to its
- *    same-width unsigned type once, in the temp declaration. It is null when the
- *    source type is unresolved — the caller sizes the temp to the slice length.
- *
- * `cType` is the source's actual C type (used to detect a Rule 21.15 mismatch
- * against the destination element type). When the type can't be statically
- * resolved (e.g. a computed expression or function call), `cType`/`unsignedCType`
- * are null and `bytes` is the widest serializable width (8), so the caller caps
- * the length and sizes the temp from the length to keep the cast Rule 10.8-clean.
- */
-/**
  * Fold a slice source that has no fixed essential category of its own.
  *
  * A bare integer literal types as `int`; a negative literal (unary minus) types
@@ -186,6 +166,26 @@ function foldContextuallyTypedLiteral(
   return CodeGenState.requireGenerator().tryEvaluateConstant(valueCtx);
 }
 
+/**
+ * Resolve the *source* value's type for a slice assignment (Issue #1081 review).
+ *
+ * The source is materialized once into an unsigned temp before the writes
+ * (`buildSliceWrites`), so this drives the right-hand side of the unrolled copy:
+ *  - non-integer sources (float/struct/string) cannot be shifted — reject them
+ *    with a clear C-Next error instead of emitting non-compiling C;
+ *  - `bytes` lets the caller reject `length > sizeof(source)` (an over-read that
+ *    would otherwise emit an undefined out-of-range shift);
+ *  - `unsignedCType` is the type of the materialized temp. Shifting that temp
+ *    is MISRA Rule 10.1-clean (always unsigned); a signed source is cast to its
+ *    same-width unsigned type once, in the temp declaration. It is null when the
+ *    source type is unresolved — the caller sizes the temp to the slice length.
+ *
+ * `cType` is the source's actual C type (used to detect a Rule 21.15 mismatch
+ * against the destination element type). When the type can't be statically
+ * resolved (e.g. a computed expression or function call), `cType`/`unsignedCType`
+ * are null and `bytes` is the widest serializable width (8), so the caller caps
+ * the length and sizes the temp from the length to keep the cast Rule 10.8-clean.
+ */
 function resolveSliceSource(
   ctx: IAssignmentContext,
   line: number,

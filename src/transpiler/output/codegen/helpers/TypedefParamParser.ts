@@ -36,17 +36,6 @@ interface ITypedefParseResult {
 }
 
 /**
- * Drop a trailing space-separated identifier, exactly as /\s+\w+$/ did.
- *
- * Scanned from the end rather than matched, avoiding the super-linear
- * backtracking of /\s+\w+$/ (S8786).
- *
- * The word-character check is load-bearing: \w+ does not match a final token
- * containing anything else, so "int (fn)(void)" -- what a function-pointer
- * parameter looks like once the stars are stripped -- is left alone. Cutting
- * at the last space unconditionally would reduce it to "int".
- */
-/**
  * C type keywords that can trail a multi-word type. A parameter name can never
  * be one of these, so a trailing word from this set belongs to the type.
  */
@@ -61,6 +50,17 @@ const TRAILING_TYPE_KEYWORDS = new Set([
   "unsigned",
 ]);
 
+/**
+ * Drop a trailing space-separated identifier, exactly as /\s+\w+$/ did.
+ *
+ * Scanned from the end rather than matched, avoiding the super-linear
+ * backtracking of /\s+\w+$/ (S8786).
+ *
+ * The word-character check is load-bearing: \w+ does not match a final token
+ * containing anything else, so "int (fn)(void)" -- what a function-pointer
+ * parameter looks like once the stars are stripped -- is left alone. Cutting
+ * at the last space unconditionally would reduce it to "int".
+ */
 function stripTrailingIdentifier(text: string): string {
   let start = text.length;
   while (start > 0 && /\w/.test(text[start - 1])) {

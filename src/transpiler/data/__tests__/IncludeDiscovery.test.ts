@@ -479,6 +479,29 @@ build_flags = not_a_lib_dir
       expect(paths.some((p) => p.includes("not_a_lib_dir"))).toBe(false);
     });
 
+    it("keeps a continuation path containing = (#1181)", () => {
+      mkdirSync(join(testDir, "vendor", "lib=v2"), { recursive: true });
+      mkdirSync(join(testDir, "libs_after"), { recursive: true });
+      writeFileSync(
+        join(testDir, "platformio.ini"),
+        `
+[env:esp32]
+lib_extra_dirs =
+    vendor/lib=v2
+    libs_after
+`,
+      );
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+
+      const paths = IncludeDiscovery.discoverIncludePaths(
+        join(testDir, "src", "main.cnx"),
+      );
+
+      expect(paths.some((p) => p.includes("lib=v2"))).toBe(true);
+      expect(paths.some((p) => p.includes("libs_after"))).toBe(true);
+    });
+
     it("handles comma-separated lib_extra_dirs", () => {
       mkdirSync(join(testDir, "lib1"), { recursive: true });
       mkdirSync(join(testDir, "lib2"), { recursive: true });

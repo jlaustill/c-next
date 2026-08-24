@@ -14,11 +14,6 @@
  */
 
 /**
- * Detect if header content contains C++ syntax requiring C++14 parser
- * @param content Raw header file content
- * @returns true if C++ parser should be used, false for C parser
- */
-/**
  * True when the source contains an access-specifier label, as
  * /^\s*(public|private|protected)\s*:/m did.
  *
@@ -62,6 +57,11 @@ function isAccessSpecifierAt(
   return content[after] === ":";
 }
 
+/**
+ * Detect if header content contains C++ syntax requiring C++14 parser
+ * @param content Raw header file content
+ * @returns true if C++ parser should be used, false for C parser
+ */
 function detectCppSyntax(content: string): boolean {
   // Typed enums: enum Name : type { (C++14 feature, key for Issue #208)
   if (/enum\s+\w+\s*:\s*\w+\s*\{/.test(content)) return true;

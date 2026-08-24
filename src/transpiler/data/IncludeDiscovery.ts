@@ -227,13 +227,18 @@ class IncludeDiscovery {
   }
 
   /**
-   * A continuation of the value above it: indented, carrying no `=` of its
+   * A continuation of the value above it: indented, not starting a key of its
    * own, and not opening a new section.
+   *
+   * The key test is anchored rather than a bare `includes("=")`: a directory
+   * name may contain `=` (`/opt/vendor/lib=v2`), and treating that as a new key
+   * would end the value early and silently drop it -- the same loss #1181 was
+   * about. Only `name =` at the start of the line begins a key.
    */
   private static _isContinuationLine(line: string): boolean {
     return (
       /^[ \t]+\S/.test(line) &&
-      !line.includes("=") &&
+      !/^[ \t]*[\w.]+[ \t]*=/.test(line) &&
       !line.trimStart().startsWith("[")
     );
   }
@@ -464,7 +469,7 @@ class IncludeDiscovery {
     return {
       delimiter,
       path: content.slice(pathStart, pathEnd),
-      next: pathEnd,
+      next: pathEnd + 1,
     };
   }
 

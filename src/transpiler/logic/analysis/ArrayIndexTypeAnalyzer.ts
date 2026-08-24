@@ -57,9 +57,6 @@ class VariableTypeCollector extends CNextListener {
 }
 
 /**
- * Second pass: Validate subscript index expressions use unsigned integer types
- */
-/**
  * Drop a trailing `[...]` group, exactly as /\[[^\]]*\]$/ did.
  *
  * Returns the input unchanged when there is no such group -- including when
@@ -80,6 +77,9 @@ function stripFinalBracketGroup(text: string): string {
   return text.slice(0, open);
 }
 
+/**
+ * Second pass: Validate subscript index expressions use unsigned integer types
+ */
 class IndexTypeListener extends CNextListener {
   private readonly analyzer: ArrayIndexTypeAnalyzer;
 
