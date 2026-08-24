@@ -305,7 +305,7 @@ class IndexTypeListener extends CNextListener {
       }
       // Array element type — strip rightmost array dimension
       // e.g., "u8[8]" → "u8", "u8[8][4]" → "u8[8]", "u8[CONST]" → "u8"
-      // Scanned rather than /\[[^\]]*\]$/: that pattern rescans from every '['
+      // Scanned rather than /\[[^\]]*\]$/: that pattern restarts its scan at every '['
       // when the string does not end in ']' (S8786).
       //
       // The containment check is load-bearing: [^\]]* cannot span a ']', so

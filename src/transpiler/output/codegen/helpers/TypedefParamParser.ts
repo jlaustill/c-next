@@ -55,7 +55,7 @@ function stripTrailingIdentifier(text: string): string {
     return text; // no trailing identifier
   }
   // Consume the whole whitespace run, not just the last space. The caller
-  // normalises runs to a single space today, but depending on that would make
+  // normalizes runs to a single space today, but depending on that would make
   // this correct only by coincidence.
   let cut = start;
   while (cut > 0 && /\s/.test(text[cut - 1])) {

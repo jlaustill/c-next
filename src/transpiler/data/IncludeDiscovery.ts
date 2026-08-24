@@ -360,7 +360,7 @@ class IncludeDiscovery {
    * /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm, which backtracks
    * super-linearly on its whitespace runs (S8786).
    *
-   * Behaviour is preserved exactly, including two quirks worth naming:
+   * Behavior is preserved exactly, including two quirks worth naming:
    * the closing delimiter is not required to match the opening one
    * (`#include <a.h"` is accepted), and every whitespace run may span
    * newlines, so a `#` alone on one line with `include` on the next still

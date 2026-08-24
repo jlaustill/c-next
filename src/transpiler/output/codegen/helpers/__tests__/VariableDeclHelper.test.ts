@@ -131,7 +131,7 @@ describe("VariableDeclHelper", () => {
 
     // The final row previously asserted with /C-style array declaration is not
     // allowed/ rather than the string. The pattern has no metacharacters, so
-    // regex match and substring match agree; normalised to the string form the
+    // regex match and substring match agree; normalized to the string form the
     // other rows use.
     it.each([
       [

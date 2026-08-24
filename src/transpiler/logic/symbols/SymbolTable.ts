@@ -695,7 +695,7 @@ class SymbolTable {
    * short-circuits or falls through. Verified by mutation -- forcing this to
    * false left all 49 SymbolTable tests passing. Extracted here unchanged
    * rather than deleted, because which way to resolve it (drop the branch, or
-   * add the same-signature conflict it implies) is a behaviour decision.
+   * add the same-signature conflict it implies) is a behavior decision.
    */
   private static areAllDistinctCppOverloads(
     globalDefinitions: TAnySymbol[],
