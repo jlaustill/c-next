@@ -151,6 +151,152 @@ describe("BooleanOperandAnalyzer", () => {
     });
   });
 
+  // Issue #1183 review: a compound assignment applies an operator the
+  // expression grammar never expresses as a level, so neither the operator
+  // levels nor a target-only check saw both halves.
+  describe("compound assignment (Issue #1183 review)", () => {
+    it("rejects a compound assignment to a bool target", () => {
+      const errors = analyze(inMain("a +<- true;"));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0806");
+      expect(errors[0].message).toContain("bool 'a'");
+    });
+
+    it.each(["+<-", "-<-", "*<-", "/<-", "&<-", "|<-", "^<-"])(
+      "rejects compound operator %s on a bool target",
+      (operator) => {
+        const errors = analyze(inMain(`a ${operator} true;`));
+        expect(errors).toHaveLength(1);
+        expect(errors[0].code).toBe("E0806");
+      },
+    );
+
+    it("rejects a bool on the right-hand side of a compound assignment", () => {
+      const errors = analyze(inMain("n +<- a;"));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+      expect(errors[0].message).toContain("'+<-'");
+    });
+
+    it("matches the binary form it is equivalent to", () => {
+      const compound = analyze(inMain("n +<- a;"));
+      const binary = analyze(inMain("n <- n + a;"));
+      expect(compound).toHaveLength(1);
+      expect(binary).toHaveLength(1);
+      expect(compound[0].code).toBe(binary[0].code);
+    });
+
+    it("accepts plain assignment to a bool", () => {
+      expect(analyze(inMain("a <- true;"))).toHaveLength(0);
+    });
+
+    it("accepts a compound assignment between integers", () => {
+      expect(analyze(inMain("n +<- 1;"))).toHaveLength(0);
+    });
+
+    it("names an array element target as written, so the fix can be pasted back", () => {
+      const errors = analyze(`
+        bool[2] flags;
+        void main() { flags[0] +<- true; }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0806");
+      expect(errors[0].message).toContain("'flags[0]'");
+      expect(errors[0].helpText).toContain("flags[0] <- !flags[0]");
+    });
+  });
+
+  // Issue #1183 review: an operand carrying a postfix op used to be classified
+  // as not-Boolean, leaving the divide-by-zero hazard reachable.
+  describe("postfix operands", () => {
+    it("rejects arithmetic on a bool array element", () => {
+      const errors = analyze(`
+        bool[2] flags;
+        void main() { u8 c <- flags[0] / flags[1]; }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("rejects arithmetic on a scope member reached through this", () => {
+      const errors = analyze(`
+        scope S {
+          bool ready <- true;
+          public u8 go() { return this.ready + 1; }
+        }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("treats this.member and the bare member the same way", () => {
+      const qualified = analyze(`
+        scope S {
+          bool ready <- true;
+          public u8 go() { return this.ready + 1; }
+        }
+      `);
+      const bare = analyze(`
+        scope S {
+          bool ready <- true;
+          public u8 go() { return ready + 1; }
+        }
+      `);
+      expect(qualified).toHaveLength(bare.length);
+    });
+
+    it("does not flag an integer array element", () => {
+      const errors = analyze(`
+        u8[2] values;
+        void main() { u8 c <- values[0] + values[1]; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("rejects a compound assignment through this.member", () => {
+      const errors = analyze(`
+        scope S {
+          bool ready <- true;
+          public void go() { this.ready +<- true; }
+        }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0806");
+    });
+
+    it("rejects arithmetic on a global.member bool", () => {
+      const errors = analyze(`
+        bool ready <- true;
+        scope S {
+          public u8 go() { return global.ready + 1; }
+        }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0807");
+    });
+
+    it("does not flag a subscript into a non-array bool", () => {
+      // `flag[0]` is a bit index, not an element of a declared array type.
+      const errors = analyze(inMain("u8 c <- a[0] + n;"));
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag a member of an unknown struct type", () => {
+      const errors = analyze(`
+        void main() { u8 c <- unknown.field + 1; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not flag a call result, whose type it cannot resolve", () => {
+      const errors = analyze(`
+        u8 get() { return 1; }
+        void main() { u8 c <- get() + 1; }
+      `);
+      expect(errors).toHaveLength(0);
+    });
+  });
+
   describe("scope resolution", () => {
     it("does not flag a same-named integer in another function", () => {
       const errors = analyze(`

@@ -1,0 +1,10 @@
+// test-error
+// Issue #1183 review: a compound assignment applies an operator the expression
+// grammar never materialises, so `n +<- flag` was accepted while the identical
+// `n <- n + flag` was rejected.
+bool flag <- true;
+
+void main() {
+    u8 n <- 1;
+    n +<- flag; // E0807: bool on the right-hand side
+}

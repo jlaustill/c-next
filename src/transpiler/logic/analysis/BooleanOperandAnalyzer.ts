@@ -36,6 +36,7 @@ import IBooleanOperandError from "./types/IBooleanOperandError";
 import IScopeFrame from "./types/IScopeFrame";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import OperandTypeResolver from "./OperandTypeResolver";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import ParserUtils from "../../../utils/ParserUtils";
 
@@ -48,64 +49,75 @@ class BooleanOperandListener extends CNextListener {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly scopes: ScopeFrameResolver;
 
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly types: OperandTypeResolver;
+
   constructor(analyzer: BooleanOperandAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
     this.scopes = scopes;
-  }
-
-  /** True when a declared name resolves to `bool` within its scope. */
-  private isBooleanName(name: string, frame: IScopeFrame): boolean {
-    return this.scopes.typeOfName(name, frame) === "bool";
+    this.types = new OperandTypeResolver(scopes);
   }
 
   /**
-   * Descend through pass-through levels -- an operator level holding a single
-   * operand carries that operand's type unchanged -- to the node that actually
-   * determines the operand's essential type.
+   * Whether an operand is essentially Boolean.
+   *
+   * `!x` is Boolean by construction. Everything else defers to the shared type
+   * resolver, so a bool reads the same whether it is spelled `flag`,
+   * `this.flag`, `sensor.ready`, `outer.inner.ready`, or `flags[0]`
+   * (Issue #1183 review).
+   *
+   * A multi-operand level below this one (e.g. `a + b` inside `(a + b) * c`) is
+   * arithmetic, not Boolean, and reports at its own level.
    */
-  private static descend(ctx: ParserRuleContext): ParseTree {
+  private isBooleanOperand(
+    ctx: ParserRuleContext,
+    frame: IScopeFrame,
+  ): boolean {
     let node: ParseTree = ctx;
     while (node instanceof ParserRuleContext && node.getChildCount() === 1) {
       const child = node.getChild(0);
       if (!child) break;
       node = child;
     }
-    return node;
-  }
 
-  /**
-   * Whether an operand is essentially Boolean.
-   *
-   * A multi-operand level below this one (e.g. `a + b` inside `(a + b) * c`) is
-   * arithmetic, not Boolean, and reports at its own level -- so only single
-   * value leaves, `!x`, and parenthesised expressions are classified here.
-   */
-  private isBooleanOperand(
-    ctx: ParserRuleContext,
-    frame: IScopeFrame,
-  ): boolean {
-    const node = BooleanOperandListener.descend(ctx);
-
-    // `!x` yields an essentially Boolean result.
     if (node instanceof Parser.UnaryExpressionContext) {
       return node.getChild(0)?.getText() === "!";
     }
 
-    // `( expression )` carries the inner expression's type.
-    if (node instanceof Parser.PrimaryExpressionContext) {
-      const inner = node.expression();
-      return inner ? this.isBooleanOperand(inner, frame) : false;
-    }
-
-    if (node instanceof ParserRuleContext) {
-      return false;
-    }
-
-    const text = node.getText();
-    if (text === "true" || text === "false") return true;
-    return this.isBooleanName(text, frame);
+    return this.types.typeOfOperand(ctx, frame) === "bool";
   }
+
+  /**
+   * MISRA C:2012 Rule 10.1 on the assignment side.
+   *
+   * A compound assignment applies an arithmetic or bitwise operator that the
+   * expression grammar never expresses as a level, so neither the operator
+   * levels nor a target-only check sees both halves. Both are checked here:
+   * a bool TARGET (E0806) and a bool right-hand side (E0807). Before this,
+   * `n +<- flag` was accepted while the identical `n <- n + flag` was rejected.
+   */
+  override enterAssignmentStatement = (
+    ctx: Parser.AssignmentStatementContext,
+  ): void => {
+    const operator = ctx.assignmentOperator().getText();
+    if (operator === "<-") return;
+
+    const target = ctx.assignmentTarget();
+    const frame = this.scopes.frameFor(ctx);
+
+    if (this.types.typeOfAssignmentTarget(target, frame) === "bool") {
+      const { line, column } = ParserUtils.getPosition(target);
+      this.analyzer.addCompoundAssignmentError(line, column, target.getText());
+      return;
+    }
+
+    const value = ctx.expression();
+    if (this.isBooleanOperand(value, frame)) {
+      const { line, column } = ParserUtils.getPosition(value);
+      this.analyzer.addError(line, column, operator);
+    }
+  };
 
   /**
    * Report one error per guarded operator whose left or right operand is
@@ -197,6 +209,26 @@ class BooleanOperandAnalyzer {
       helpText:
         "MISRA C:2012 Rule 10.1: a bool is not a number. Use the logical operators " +
         "(&&, ||, !) to combine flags, or '=' / '!=' to compare them.",
+    });
+  }
+
+  /**
+   * Add a compound-assignment-to-bool error, naming the target as written so
+   * the suggested fix is code that can be pasted back (Issue #1183 review:
+   * `flags[0] +<- true` used to suggest `flags <- !flags`, which does not
+   * compile).
+   */
+  public addCompoundAssignmentError(
+    line: number,
+    column: number,
+    target: string,
+  ): void {
+    this.errors.push({
+      code: "E0806",
+      line,
+      column,
+      message: `Compound assignment is not valid on bool '${target}' - only '<-' is`,
+      helpText: `MISRA C:2012 Rule 10.1: a bool is not a number. To flip it, use '${target} <- !${target}'.`,
     });
   }
 

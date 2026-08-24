@@ -1,0 +1,10 @@
+// test-error
+// Issue #1183 review: an operand carrying a postfix op was classified as
+// not-Boolean, so the divide-by-zero this issue was filed for stayed reachable
+// through a struct field.
+struct Flags { bool ready; bool armed; }
+
+void main() {
+    Flags f <- {ready: true, armed: false};
+    u8 c <- f.ready / f.armed; // E0807: f.armed is false -> division by zero
+}

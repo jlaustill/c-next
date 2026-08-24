@@ -300,42 +300,6 @@ class TypeValidator {
     return null;
   }
 
-  // ========================================================================
-  // Boolean Compound Assignment Validation (ADR-044, MISRA C:2012 Rule 10.1)
-  // ========================================================================
-
-  /**
-   * `bool` is an essentially Boolean type, so arithmetic and bitwise compound
-   * assignment is not valid on it -- only plain assignment (`<-`) is. To flip a
-   * flag, write `flag <- !flag`.
-   *
-   * Issue #1145: this was never valid C-Next, but nothing enforced it. The
-   * atomic path made the gap visible by registering a `cnx_clamp_add_bool`
-   * overflow helper that no template can emit, leaving a call with no callee.
-   * The non-atomic paths silently emitted `(bool)(flag + true)` instead --
-   * arithmetic on an essentially Boolean operand, which MISRA C:2012 Rule 10.1
-   * forbids.
-   *
-   * @param identifier - Target name, for the diagnostic
-   * @param isCompound - Whether the operator is a compound assignment
-   * @param baseType - Already-resolved base type of the target
-   * @returns An error message, or null when the assignment is valid
-   */
-  static checkBoolCompoundAssignment(
-    identifier: string,
-    isCompound: boolean,
-    baseType: string,
-  ): string | null {
-    if (!isCompound || baseType !== "bool") {
-      return null;
-    }
-
-    return (
-      `E0806: Compound assignment is not valid on bool '${identifier}' - only '<-' is. ` +
-      `To flip a flag, use '${identifier} <- !${identifier}'.`
-    );
-  }
-
   static isConstValue(identifier: string): boolean {
     const paramInfo = CodeGenState.currentParameters.get(identifier);
     if (paramInfo?.isConst) {

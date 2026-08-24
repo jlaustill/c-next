@@ -88,7 +88,6 @@ class AssignmentValidator {
         identifiers[0],
         subscriptExprs,
         line,
-        isCompound,
         callbacks,
       );
     }
@@ -98,7 +97,6 @@ class AssignmentValidator {
       AssignmentValidator.validateMemberAccess(
         identifiers,
         expression,
-        isCompound,
         callbacks,
       );
     }
@@ -126,16 +124,6 @@ class AssignmentValidator {
     const targetTypeInfo = CodeGenState.getVariableTypeInfo(id);
     if (!targetTypeInfo) {
       return;
-    }
-
-    // ADR-044 / MISRA C:2012 Rule 10.1: only '<-' is valid on a bool (#1145)
-    const boolCompoundError = TypeValidator.checkBoolCompoundAssignment(
-      id,
-      isCompound,
-      targetTypeInfo.baseType,
-    );
-    if (boolCompoundError) {
-      throw new Error(boolCompoundError);
     }
 
     // ADR-017: Validate enum assignment for enum-typed variable
@@ -176,7 +164,6 @@ class AssignmentValidator {
     arrayName: string,
     subscriptExprs: Parser.ExpressionContext[],
     line: number,
-    isCompound: boolean,
     callbacks: IAssignmentValidatorCallbacks,
   ): void {
     // ADR-013: Validate const assignment on array
@@ -187,18 +174,6 @@ class AssignmentValidator {
 
     // ADR-036: Compile-time bounds checking
     const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
-
-    // ADR-044 / MISRA C:2012 Rule 10.1: a bool element is still a bool (#1145)
-    if (typeInfo) {
-      const boolCompoundError = TypeValidator.checkBoolCompoundAssignment(
-        arrayName,
-        isCompound,
-        typeInfo.baseType,
-      );
-      if (boolCompoundError) {
-        throw new Error(boolCompoundError);
-      }
-    }
 
     if (typeInfo?.isArray && typeInfo.arrayDimensions) {
       TypeValidator.checkArrayBounds(
@@ -217,7 +192,6 @@ class AssignmentValidator {
   private static validateMemberAccess(
     identifiers: string[],
     expression: Parser.ExpressionContext,
-    isCompound: boolean,
     callbacks: IAssignmentValidatorCallbacks,
   ): void {
     if (identifiers.length < 2) {
@@ -248,17 +222,6 @@ class AssignmentValidator {
     const rootTypeInfo = CodeGenState.getVariableTypeInfo(rootName);
     if (rootTypeInfo && CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
       const structType = rootTypeInfo.baseType;
-
-      // ADR-044 / MISRA C:2012 Rule 10.1: a bool field is still a bool (#1145)
-      const fieldType = CodeGenState.getStructFieldType(structType, memberName);
-      const boolCompoundError = TypeValidator.checkBoolCompoundAssignment(
-        `${rootName}.${memberName}`,
-        isCompound,
-        fieldType ?? "",
-      );
-      if (boolCompoundError) {
-        throw new Error(boolCompoundError);
-      }
 
       const callbackFieldKey = `${structType}.${memberName}`;
       const expectedCallbackType =
