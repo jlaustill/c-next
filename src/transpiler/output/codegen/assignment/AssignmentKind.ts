@@ -113,9 +113,6 @@ enum AssignmentKind {
    */
   GLOBAL_ARRAY,
 
-  /** global.reg[bit] <- value (global register bit) */
-  GLOBAL_REGISTER_BIT,
-
   /** this.member <- value (scoped member) */
   THIS_MEMBER,
 

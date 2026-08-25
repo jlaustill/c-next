@@ -31,6 +31,9 @@ uint8_t Reg__globalSliceByte(uint32_t index);
 uint8_t Reg__scopedElementBit(void);
 uint8_t Reg__scopedSliceByte(uint32_t index);
 uint8_t Reg__scopedBitRange(void);
+uint8_t Reg__bareScopedElementBit(void);
+uint8_t Reg__bareScopedSliceByte(uint32_t index);
+uint8_t Reg__bareScopedBitRange(void);
 
 #ifdef __cplusplus
 }

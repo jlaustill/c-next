@@ -1,0 +1,44 @@
+// test-execution
+// Issue #1244 review: ADR-057 resolves a bare name local -> scope -> global.
+// The guard that keeps `Name.member[...]` a struct chain looked the name up by
+// its BARE spelling, which answers the local and global tiers only -- a scope
+// member is registered as `Scope__name`. A scope member shadowing a scope name
+// was therefore resolved against that other scope:
+//
+//   Other.member[4, 3] <- 5   ->  classified against Other__member (u8[16]),
+//                                 failing with "Cannot determine buffer size"
+//
+// Both tiers must keep the nearer variable, so `Reg.Other` wins over `Other`.
+struct Holder {
+    u8 member;
+}
+
+scope Other {
+    public u8[16] member;
+}
+
+scope Reg {
+    Holder Other;
+
+    public u8 useShadowed() {
+        Other.member <- 0;
+        Other.member[4, 3] <- 5;
+        return Other.member;
+    }
+}
+
+u32 main() {
+    // The scope's own array is written first, so a mis-resolution would be
+    // visible as a changed element rather than only as a compile failure.
+    Other.member[0] <- 1;
+
+    u8 shadowed <- Reg.useShadowed();
+
+    // 3 bits of value 5 at offset 4 -> 0b01010000
+    if (shadowed != 80) return 1;
+
+    // Scope `Other`'s array must be untouched by the shadowed write.
+    if (Other.member[0] != 1) return 2;
+
+    return 0;
+}

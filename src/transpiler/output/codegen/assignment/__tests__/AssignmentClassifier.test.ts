@@ -910,6 +910,11 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
         {} as IAssignmentContext["subscripts"][0],
         {} as IAssignmentContext["subscripts"][0],
       ],
+      // A bit range is ONE op carrying TWO expressions, so both counts are 2.
+      // This was left at the default 1 — a state no real bit range produces —
+      // which is why the test passed while `PORT.Set[8, 8]` emitted
+      // `PORT__Set.Set` in the actual transpiler (#1244).
+      lastSubscriptExprCount: 2,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -937,6 +942,164 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       AssignmentKind.REGISTER_BIT,
     );
   });
+});
+
+// ========================================================================
+// Bare `Scope.` subscript targets (#1244, #1116)
+//
+// The `global.` prefix is a grammar token, not an identifier, so
+// `global.Scope.member[i]` and the bare `Scope.member[i]` reach the classifier
+// with identical `identifiers` and must classify identically. Before #1244 the
+// bare spelling had no scope-resolution step: the struct-chain branch claimed
+// every bit range before the register or the variable was recognized.
+// ========================================================================
+describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+  });
+
+  const scopedRegisterCases: ReadonlyArray<
+    readonly [string, number, number, AssignmentKind]
+  > = [
+    ["single bit", 1, 1, AssignmentKind.REGISTER_BIT],
+    ["bit range", 2, 2, AssignmentKind.REGISTER_BIT_RANGE],
+  ];
+
+  it.each(scopedRegisterCases)(
+    "classifies Scope.REG.MEMBER[%s] without a global. prefix",
+    (_label, subscriptCount, lastSubscriptExprCount, expected) => {
+      setupSymbols({
+        knownScopes: new Set(["Hw"]),
+        knownRegisters: new Set(["Hw__GPIO"]),
+      });
+
+      const ctx = createMockContext({
+        identifiers: ["Hw", "GPIO", "Mode"],
+        subscripts: Array.from(
+          { length: subscriptCount },
+          () => ({}) as IAssignmentContext["subscripts"][0],
+        ),
+        lastSubscriptExprCount,
+        hasMemberAccess: true,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      });
+
+      expect(AssignmentClassifier.classify(ctx)).toBe(expected);
+    },
+  );
+
+  const scopeVariableCases: ReadonlyArray<
+    readonly [string, TTypeInfo, number, number, AssignmentKind]
+  > = [
+    [
+      "bit range on a scalar",
+      createTypeInfo({ baseType: "u8", bitWidth: 8 }),
+      1,
+      2,
+      AssignmentKind.INTEGER_BIT_RANGE,
+    ],
+    [
+      "bit on an array element",
+      createTypeInfo({
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: true,
+        arrayDimensions: [16],
+      }),
+      2,
+      1,
+      AssignmentKind.ARRAY_ELEMENT_BIT,
+    ],
+    [
+      "slice on an array",
+      createTypeInfo({
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: true,
+        arrayDimensions: [16],
+      }),
+      1,
+      2,
+      AssignmentKind.ARRAY_SLICE,
+    ],
+  ];
+
+  it.each(scopeVariableCases)(
+    "routes Scope.member[...] to the shared subscript decision: %s",
+    (_label, typeInfo, subscriptCount, lastSubscriptExprCount, expected) => {
+      setupSymbols({ knownScopes: new Set(["Other"]) });
+      CodeGenState.setVariableTypeInfo("Other__member", typeInfo);
+
+      const ctx = createMockContext({
+        identifiers: ["Other", "member"],
+        subscripts: Array.from(
+          { length: subscriptCount },
+          () => ({}) as IAssignmentContext["subscripts"][0],
+        ),
+        lastSubscriptExprCount,
+        hasMemberAccess: true,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      });
+
+      expect(AssignmentClassifier.classify(ctx)).toBe(expected);
+    },
+  );
+
+  it("leaves a non-register Scope.a.b chain to the struct-chain branch", () => {
+    setupSymbols({ knownScopes: new Set(["Other"]) });
+
+    const ctx = createMockContext({
+      identifiers: ["Other", "config", "field"],
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      lastSubscriptExprCount: 2,
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.STRUCT_CHAIN_BIT_RANGE,
+    );
+  });
+
+  // ADR-057 resolves a bare name local -> scope -> global. A variable of that
+  // name at ANY tier wins, so the target stays a struct chain rather than being
+  // read as the same-named scope. The tiers are keyed differently — a global
+  // under its bare name, a scope member as `Scope__name` — so covering only one
+  // of them leaves the other free to regress, which is exactly what happened.
+  const adr057ShadowCases: ReadonlyArray<
+    readonly [string, string | null, string]
+  > = [
+    ["a global", null, "Other"],
+    ["a scope member", "Reg", "Reg__Other"],
+  ];
+
+  it.each(adr057ShadowCases)(
+    "keeps %s named like a scope as a struct chain (ADR-057)",
+    (_label, currentScope, typeInfoKey) => {
+      setupSymbols({ knownScopes: new Set(["Other"]) });
+      CodeGenState.currentScope = currentScope;
+      CodeGenState.setVariableTypeInfo(
+        typeInfoKey,
+        createTypeInfo({ baseType: "Point", bitWidth: 0 }),
+      );
+
+      const ctx = createMockContext({
+        identifiers: ["Other", "member"],
+        subscripts: [{} as IAssignmentContext["subscripts"][0]],
+        lastSubscriptExprCount: 2,
+        hasMemberAccess: true,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      });
+
+      expect(AssignmentClassifier.classify(ctx)).toBe(
+        AssignmentKind.STRUCT_CHAIN_BIT_RANGE,
+      );
+    },
+  );
 });
 
 // ========================================================================

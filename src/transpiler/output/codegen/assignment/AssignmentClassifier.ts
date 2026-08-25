@@ -275,6 +275,29 @@ class AssignmentClassifier {
     const firstId = ids[0];
     const typeInfo = CodeGenState.getVariableTypeInfo(firstId);
 
+    // Registers are asked FIRST, before any subscript-shape test. A bit range
+    // is two expressions in ONE op, so the struct-chain branch below claimed
+    // `REG.MEMBER[start, width]` and `Scope.REG.MEMBER[start, width]` before
+    // either could be recognized as a register, emitting `PORT__Set.Set` and
+    // `Hw__GPIO__Mode.GPIO.Mode` — neither of which compiles (#1244, #1052).
+    // The single-bit spellings did reach this check, which is why only bit
+    // ranges were broken.
+    const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
+      ids,
+      ctx.subscripts.length,
+    );
+    if (registerKind !== null) {
+      return registerKind;
+    }
+
+    // Bare `Scope.member[...]`: the fourth ADR-016 spelling (#1116). A bare
+    // name resolves through ADR-057's tiers, so `resolvesBareName` is true.
+    const scopeQualifiedKind =
+      AssignmentClassifier.classifyScopeQualifiedSubscript(ctx, "", true);
+    if (scopeQualifiedKind !== null) {
+      return scopeQualifiedKind;
+    }
+
     // Check for bit range through struct chain: devices[0].control[0, 4]
     // Detected by last subscript having 2 expressions (start, width)
     if (ctx.lastSubscriptExprCount === 2) {
@@ -289,16 +312,8 @@ class AssignmentClassifier {
       );
     }
 
-    // 2+ identifiers with subscripts: register bit or bitmap array
+    // 2+ identifiers with subscripts: bitmap array (registers handled above)
     if (ids.length >= 2) {
-      const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
-        ids,
-        ctx.subscripts.length,
-      );
-      if (registerKind !== null) {
-        return registerKind;
-      }
-
       return AssignmentClassifier.classifyBitmapArrayField(
         ids[1],
         typeInfo,
@@ -417,21 +432,31 @@ class AssignmentClassifier {
     const firstId = ctx.identifiers[0];
 
     if (ctx.hasArrayAccess) {
-      // Direct register: global.REG.MEMBER[bit]
-      if (CodeGenState.symbols!.knownRegisters.has(firstId)) {
-        return AssignmentKind.GLOBAL_REGISTER_BIT;
+      // Registers: `global.REG.MEMBER[bit]` and `global.Scope.REG.MEMBER[bit]`.
+      // The same single decision the bare and `this.` spellings make — the
+      // prefix does not change which register is named, so it must not select
+      // a different handler. `GLOBAL_REGISTER_BIT` used to fork here into a
+      // handler that skips the MMIO byte-aligned-write optimization, so the
+      // two spellings of one write emitted different C for a write-only
+      // register (#1244).
+      const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
+        ctx.identifiers,
+        ctx.subscripts.length,
+      );
+      if (registerKind !== null) {
+        return registerKind;
       }
-      // Scoped register: global.Scope.REG.MEMBER[bit] — mirror
-      // classifyRegisterBitAccess so the bit-range mask/shift is expanded
-      // rather than emitting a literal subscript (Issue #1052).
-      if (
-        CodeGenState.isKnownScope(firstId) &&
-        ctx.identifiers.length >= 3 &&
-        CodeGenState.symbols!.knownRegisters.has(
-          QualifiedCName.join(firstId, ctx.identifiers[1]),
-        )
-      ) {
-        return AssignmentKind.GLOBAL_REGISTER_BIT;
+
+      // Scope-qualified variable: global.Scope.member[...]. Shared with the
+      // bare spelling — see classifyScopeQualifiedSubscript.
+      const scopeQualifiedKind =
+        AssignmentClassifier.classifyScopeQualifiedSubscript(
+          ctx,
+          "global.",
+          false,
+        );
+      if (scopeQualifiedKind !== null) {
+        return scopeQualifiedKind;
       }
 
       // Issue #1115: when the subscript applies to the named VARIABLE,
@@ -445,12 +470,11 @@ class AssignmentClassifier {
       // Cross-scope visibility is still enforced: the check runs during
       // `generateAssignmentTarget` (MemberSeparatorResolver), not in the
       // GLOBAL_ARRAY handler, so it applies to the delegated kinds too.
-      const resolvedName = AssignmentClassifier.resolveGlobalVariableName(ctx);
-      if (resolvedName !== null) {
+      if (ctx.identifiers.length === 1) {
         return AssignmentClassifier.classifySubscriptAccess(
           ctx,
-          resolvedName,
-          `global.${ctx.identifiers.join(".")}`,
+          firstId,
+          `global.${firstId}`,
         );
       }
 
@@ -464,23 +488,91 @@ class AssignmentClassifier {
   }
 
   /**
-   * Name of the variable a `global.` target subscripts, or null when the target
-   * is a member chain and the subscript belongs to a field rather than to the
-   * named variable.
+   * Decide a subscript chain whose base name is scope-qualified:
+   * `Scope.REG.MEMBER[bit]` or `Scope.member[...]`.
    *
-   * `global.x[i]` -> `x`; `global.Scope.member[i]` -> `Scope_member`;
-   * `global.obj.field[i]` -> null (subscript applies to `field`).
+   * Issue #1244: the `global.` prefix is a grammar token, not an identifier, so
+   * `global.Other.buffer[3]` and the bare `Other.buffer[3]` arrive with
+   * identical `ctx.identifiers` and mean the same thing. They are therefore ONE
+   * decision, made here for both spellings.
+   *
+   * The bare spelling used to reach none of this. It landed in
+   * `classifyMemberWithSubscript`, which had no scope-resolution step at all,
+   * so the struct-chain branch claimed every bit range before the register or
+   * the variable was ever recognized — emitting `Hw_GPIO_Mode.GPIO.Mode`
+   * (#1244), `Other_flags.flags` on a scalar (#1116), and a 4-byte slice copy
+   * silently rewritten as a 4-bit mask/shift.
+   *
+   * The ADR-057 precondition lives HERE rather than in each caller. When it sat
+   * in the callers, the bare one gated on a lookup that silently covered only
+   * two of the three tiers, and the `global.` one gated on nothing — the two
+   * spellings shared the mechanism while each derived its own entry condition,
+   * which is the divergence this method exists to remove.
+   *
+   * @param displayPrefix Diagnostic prefix matching the spelling written
+   * @param resolvesBareName Whether the base name goes through ADR-057's
+   *        local -> scope -> global order. False for `global.`, which names the
+   *        global tier outright and must not be shadowed by a nearer variable.
+   * @returns null when the base is not a scope-qualified name, leaving the
+   *          caller's remaining cases (member chains, plain globals) untouched
    */
-  private static resolveGlobalVariableName(
+  /**
+   * Whether a bare name resolves to a variable under ADR-057's
+   * local -> scope -> global order.
+   *
+   * `getVariableTypeInfo` is keyed by the BARE name, which answers the local
+   * and global tiers. A scope member is registered as `Scope__name`, so the
+   * middle tier needs its own lookup — without it, a scope member shadowing a
+   * scope name is read as that scope and resolved against the wrong symbol.
+   */
+  private static bareNameResolvesToVariable(name: string): boolean {
+    if (CodeGenState.getVariableTypeInfo(name) !== undefined) {
+      return true;
+    }
+
+    const scope = CodeGenState.currentScope;
+    if (scope === null) {
+      return false;
+    }
+
+    return (
+      CodeGenState.getVariableTypeInfo(QualifiedCName.join(scope, name)) !==
+      undefined
+    );
+  }
+
+  private static classifyScopeQualifiedSubscript(
     ctx: IAssignmentContext,
-  ): string | null {
-    const firstId = ctx.identifiers[0];
-    if (ctx.identifiers.length === 1) {
-      return firstId;
+    displayPrefix: string,
+    resolvesBareName: boolean,
+  ): AssignmentKind | null {
+    const ids = ctx.identifiers;
+    const scopeName = ids[0];
+    if (!CodeGenState.isKnownScope(scopeName)) {
+      return null;
     }
-    if (ctx.identifiers.length === 2 && CodeGenState.isKnownScope(firstId)) {
-      return QualifiedCName.join(firstId, ctx.identifiers[1]);
+
+    // ADR-057: a variable of that name at any tier wins, so the target is a
+    // struct chain rather than a scope reference.
+    if (
+      resolvesBareName &&
+      AssignmentClassifier.bareNameResolvesToVariable(scopeName)
+    ) {
+      return null;
     }
+
+    // Only the variable case remains: registers are decided by
+    // classifyRegisterBitAccess, which every caller asks before this method.
+    // Once `Scope.member` resolves, this is exactly the decision the bare
+    // `member[...]` spelling makes, so it delegates rather than re-deriving it.
+    if (ids.length === 2) {
+      return AssignmentClassifier.classifySubscriptAccess(
+        ctx,
+        QualifiedCName.join(scopeName, ids[1]),
+        `${displayPrefix}${ids.join(".")}`,
+      );
+    }
+
     return null;
   }
 

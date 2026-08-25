@@ -22,6 +22,12 @@
 //   this.buf[0, 4] <- magic      ->  Reg_buf[0, 4] = magic    (C comma operator)
 //   global.gflags[4, 3] <- 5     ->  gflags[4, 3] = 5         (C comma operator)
 //
+// Issue #1116: the FOURTH spelling -- a bare `Scope.member` with no prefix --
+// never reached that unified decision at all. classifyMemberWithSubscript
+// intercepted it first and had no scope-resolution step, so it emitted:
+//   Other.flags[4, 3] <- 5     ->  Other_flags.flags = ...  (member on a scalar)
+//   Other.buffer[3][1] <- true ->  Other_buffer[3][1] = ... (indexes a uint8_t)
+//
 // Every case below is checked against the bare-path result, so the spellings
 // cannot drift apart again without this test failing.
 uint8_t globalBuffer[16] = {};
@@ -112,6 +118,29 @@ uint8_t Reg__scopedBitRange(void) {
     return Other__flags;
 }
 
+uint8_t Reg__bareScopedElementBit(void) {
+    Other__buffer[3] = 0;
+    Other__buffer[3] = (Other__buffer[3] & ~(1U << 1)) | (1U << 1);
+    return Other__buffer[3U];
+}
+
+uint8_t Reg__bareScopedSliceByte(uint32_t index) {
+    uint32_t magic = 0x04030201U;
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+    const uint32_t cnx_tmp3 = (uint32_t)(magic);
+    Other__slice[0] = (uint8_t)(cnx_tmp3);
+    Other__slice[1] = (uint8_t)(cnx_tmp3 >> 8U);
+    Other__slice[2] = (uint8_t)(cnx_tmp3 >> 16U);
+    Other__slice[3] = (uint8_t)(cnx_tmp3 >> 24U);
+    return Other__slice[index];
+}
+
+uint8_t Reg__bareScopedBitRange(void) {
+    Other__flags = 0;
+    Other__flags = (uint8_t)((Other__flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    return Other__flags;
+}
+
 int main(void) {
     globalBuffer[3] = 0U;
     globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
@@ -121,11 +150,11 @@ int main(void) {
     if (viaThis != globalBuffer[3U]) return 3;
     uint32_t magic = 0x04030201U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t cnx_tmp3 = (uint32_t)(magic);
-    globalSlice[0] = (uint8_t)(cnx_tmp3);
-    globalSlice[1] = (uint8_t)(cnx_tmp3 >> 8U);
-    globalSlice[2] = (uint8_t)(cnx_tmp3 >> 16U);
-    globalSlice[3] = (uint8_t)(cnx_tmp3 >> 24U);
+    const uint32_t cnx_tmp4 = (uint32_t)(magic);
+    globalSlice[0] = (uint8_t)(cnx_tmp4);
+    globalSlice[1] = (uint8_t)(cnx_tmp4 >> 8U);
+    globalSlice[2] = (uint8_t)(cnx_tmp4 >> 16U);
+    globalSlice[3] = (uint8_t)(cnx_tmp4 >> 24U);
     if (globalSlice[0U] != 1) return 4;
     if (globalSlice[3U] != 4) return 5;
     uint8_t byte0 = Reg__sliceByte(0U);
@@ -163,5 +192,18 @@ int main(void) {
     if (scopedByte3 != 4) return 22;
     uint8_t scopedRanged = Reg__scopedBitRange();
     if (scopedRanged != 80) return 23;
+    uint8_t bareScopedBit = Reg__bareScopedElementBit();
+    if (bareScopedBit != 2) return 24;
+    if (bareScopedBit != globalBuffer[3U]) return 25;
+    uint8_t bareByte0 = Reg__bareScopedSliceByte(0U);
+    uint8_t bareByte1 = Reg__bareScopedSliceByte(1U);
+    uint8_t bareByte2 = Reg__bareScopedSliceByte(2U);
+    uint8_t bareByte3 = Reg__bareScopedSliceByte(3U);
+    if (bareByte0 != 1) return 26;
+    if (bareByte1 != 2) return 27;
+    if (bareByte2 != 3) return 28;
+    if (bareByte3 != 4) return 29;
+    uint8_t bareRanged = Reg__bareScopedBitRange();
+    if (bareRanged != 80) return 30;
     return 0;
 }

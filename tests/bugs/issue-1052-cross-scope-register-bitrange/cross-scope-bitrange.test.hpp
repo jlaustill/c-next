@@ -15,6 +15,7 @@ extern "C" {
 
 /* Function prototypes */
 void App__configure(void);
+void App__configureBareScope(void);
 
 #ifdef __cplusplus
 }
