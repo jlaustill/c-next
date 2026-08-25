@@ -32,6 +32,10 @@ typedef struct EnumNestedRes__Config {
     EnumNestedRes__NestedConfig nested;
 } EnumNestedRes__Config;
 
+/* Function prototypes */
+void setNestedStatus(EnumNestedRes__Config* cfg);
+void setNestedColor(EnumNestedRes__Config* cfg);
+
 #ifdef __cplusplus
 }
 #endif

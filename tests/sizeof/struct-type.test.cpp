@@ -3,14 +3,11 @@
  * A safer C for embedded systems
  */
 
+#include "struct-type.test.hpp"
+
 #include <stdint.h>
 
 // ADR-023: sizeof on struct types
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 int main(void) {
     uint32_t pointSize = sizeof(Point);
 }

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "2d-array-variable-index.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -26,12 +28,6 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: 2D struct array access with variable indices
 // Coverage: Runtime index computation, nested loops
-typedef struct Pixel {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-} Pixel;
-
 Pixel image[4][4] = {0};
 
 int main(void) {

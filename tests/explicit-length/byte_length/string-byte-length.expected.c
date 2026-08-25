@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-byte-length.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -11,10 +13,6 @@
 // byte_length = capacity + 1 (buffer size in bytes including null terminator)
 // string<64> = 65 bytes
 char globalStr[65] = "Hello";
-
-typedef struct TestStruct {
-    char name[33];
-} TestStruct;
 
 int main(void) {
     if (65 != 65) {

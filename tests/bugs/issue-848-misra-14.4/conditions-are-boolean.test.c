@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "conditions-are-boolean.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

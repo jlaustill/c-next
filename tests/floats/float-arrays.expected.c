@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-arrays.test.h"
+
 #include <stdint.h>
 
 // Test float arrays

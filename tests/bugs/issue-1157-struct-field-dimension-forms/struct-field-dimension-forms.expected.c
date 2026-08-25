@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "struct-field-dimension-forms.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -38,16 +40,6 @@
 // Do not relax the snapshots on the strength of a compile-time check that is
 // not running.
 const uint8_t SIZE = 6U;
-
-typedef struct Buffer {
-    uint8_t plain[8];
-    uint8_t hex[16];
-    uint8_t binary[4];
-    uint8_t constRef[6];
-    uint8_t addLiteral[9];
-    uint8_t addConst[8];
-    uint8_t sizeofDim[4];
-} Buffer;
 
 int main(void) {
     Buffer b = {0};

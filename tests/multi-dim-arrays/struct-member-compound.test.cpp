@@ -3,15 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "struct-member-compound.test.hpp"
+
 #include <stdint.h>
 
 // Test: Compound assignment on struct member arrays
 // Verifies fix for line 4114 in CodeGenerator.ts
-typedef struct Buffer {
-    uint8_t data[8];
-    int32_t counts[4];
-} Buffer;
-
 Buffer buf = {};
 
 int main(void) {

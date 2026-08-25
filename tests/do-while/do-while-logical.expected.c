@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "do-while-logical.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

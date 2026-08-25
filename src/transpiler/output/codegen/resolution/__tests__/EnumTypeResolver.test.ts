@@ -37,7 +37,6 @@ describe("EnumTypeResolver", () => {
       scopeVariableUsage: new Map(),
       scopePrivateConstValues: new Map(),
       getSingleFunctionForVariable: () => null,
-      hasPublicSymbols: () => false,
       ...overrides,
     }) as ICodeGenSymbols;
 

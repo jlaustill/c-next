@@ -40,6 +40,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: TestScopeUtils.createMockGlobalScope(),
       };
 
@@ -68,6 +69,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: TestScopeUtils.createMockGlobalScope(),
       });
 
@@ -82,6 +84,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: TestScopeUtils.createMockGlobalScope(),
       });
 
@@ -104,6 +107,7 @@ describe("SymbolTable", () => {
           isArray: false,
           isConst: false,
           isAtomic: false,
+          isVolatile: false,
           scope: TestScopeUtils.createMockGlobalScope(),
         },
         {
@@ -117,6 +121,7 @@ describe("SymbolTable", () => {
           isArray: false,
           isConst: false,
           isAtomic: false,
+          isVolatile: false,
           scope: TestScopeUtils.createMockGlobalScope(),
         },
       ];
@@ -199,6 +204,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: TestScopeUtils.createMockGlobalScope(),
       });
 
@@ -342,6 +348,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: fooScope,
       });
 
@@ -357,6 +364,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: barScope,
       });
 
@@ -421,6 +429,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: fooScope,
       });
 
@@ -435,6 +444,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: fooScope,
       });
 
@@ -458,6 +468,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: globalScope,
       });
 
@@ -472,6 +483,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: globalScope,
       });
 
@@ -586,6 +598,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: TestScopeUtils.createMockGlobalScope(),
       });
 
@@ -948,6 +961,7 @@ describe("SymbolTable", () => {
         isArray: false,
         isConst: false,
         isAtomic: false,
+        isVolatile: false,
         scope: TestScopeUtils.createMockGlobalScope(),
       });
 

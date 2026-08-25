@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-832-typedef-pointer-output-params.test.hpp"
+
 // test-execution
 // test-cpp-only
 // Issue #832: Auto-reference (&) not added for typedef pointer output parameters

@@ -16,6 +16,11 @@ extern "C" {
 /* External variables */
 extern char messageBuffer[65];
 
+/* Function prototypes */
+void reset(void);
+void setToHello(void);
+void clear(void);
+
 #ifdef __cplusplus
 }
 #endif

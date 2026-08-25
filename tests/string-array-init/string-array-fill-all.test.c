@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-array-fill-all.test.h"
+
 #include <stdint.h>
 #include <string.h>
 

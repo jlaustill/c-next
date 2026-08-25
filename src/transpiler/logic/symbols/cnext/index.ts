@@ -6,6 +6,7 @@
  */
 
 import * as Parser from "../../parser/grammar/CNextParser";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 import TSymbol from "../../../types/symbols/TSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 import LiteralUtils from "../../../../utils/LiteralUtils";
@@ -372,7 +373,11 @@ class CNextResolver {
         sourceFile,
         undefined, // global scope name (empty string)
         body,
-        "private", // default visibility for global functions
+        // ADR-016: functions are public by default (API surface). Scopes are
+        // how C-Next expresses privacy — neither `public` nor `private` parses
+        // at top level — so this must not be a literal that can drift from the
+        // ADR, which is what issue #1161 was.
+        ScopeUtils.getDefaultVisibility(true),
       );
       symbols.push(symbol);
       return;

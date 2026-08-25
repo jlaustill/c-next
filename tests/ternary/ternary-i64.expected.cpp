@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "ternary-i64.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

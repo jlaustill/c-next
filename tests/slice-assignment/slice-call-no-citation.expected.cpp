@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "slice-call-no-citation.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

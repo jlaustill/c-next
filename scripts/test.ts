@@ -96,7 +96,9 @@ async function runTest(
 function getModeIndicator(result: ITestResult): string {
   const modes: string[] = [];
   if (result.cResult && !result.cSkipped) modes.push("C");
-  if (result.cppResult && !result.cppSkipped) modes.push("C++");
+  // "CPP" rather than "C++": joined with "+" the label reads "[C+C++]",
+  // where the separator and the language name run together.
+  if (result.cppResult && !result.cppSkipped) modes.push("CPP");
   // Only show indicator if running both modes
   if (modes.length === 2) {
     // Show parity status if both modes executed

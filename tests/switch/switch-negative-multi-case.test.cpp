@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-negative-multi-case.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

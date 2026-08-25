@@ -5,17 +5,14 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "multiple-external-enums.test.hpp"
+
 // Issue #465: Test multiple external enums from different files
 // Verifies that enum prefixing works when including multiple files with enums
 #include "types.hpp"
 #include "status.hpp"
 
 #include <stdint.h>
-
-typedef struct DeviceState {
-    EPressureType pressure;
-    EStatus status;
-} DeviceState;
 
 void configure(DeviceState& state) {
     state.pressure = EPressureType__PRESSURE_TYPE_PSIG;

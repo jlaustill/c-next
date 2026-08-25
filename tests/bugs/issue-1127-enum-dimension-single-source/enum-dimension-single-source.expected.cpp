@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "enum-dimension-single-source.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
@@ -21,17 +23,6 @@
 // The rule now lives on QualifiedCName.resolveDimensionName and is applied once,
 // in a second pass over the collected symbols -- after every enum is known, so
 // the answer does not depend on whether the enum is declared above the struct.
-typedef enum {
-    EColor__RED = 0,
-    EColor__GREEN = 1,
-    EColor__BLUE = 2,
-    EColor__COUNT = 3
-} EColor;
-
-typedef struct Palette {
-    uint8_t slots[EColor__COUNT];
-} Palette;
-
 uint8_t globalSlots[EColor__COUNT] = {};
 
 // EColor.COUNT is 3, so both arrays hold 3 elements and index 2 is the last

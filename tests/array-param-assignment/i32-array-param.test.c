@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "i32-array-param.test.h"
+
 #include <stdint.h>
 #include <limits.h>
 

@@ -1,0 +1,26 @@
+// #1200 regression guard: widening the typedef-emission predicate must not
+// widen ADR-029's nominal-typing rule.
+//
+// isCallbackTypeUsedAsFieldType is what separates "a plain function with a
+// compatible signature" from "a function used as a type" when validating a
+// callback assignment. Deriving it from the broader reference set rejected
+// this file, which transpiles on main: `install` makes myHandler a referenced
+// parameter type, which then failed nominal typing at the assignment.
+struct Message {
+    u32 id;
+}
+
+void onReceive(const Message msg) { }
+
+void myHandler(const Message msg) { }
+
+struct Controller {
+    onReceive handler;
+}
+
+void install(myHandler handler) { }
+
+void demo() {
+    Controller controller;
+    controller.handler <- myHandler;
+}

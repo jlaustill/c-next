@@ -18,6 +18,10 @@ extern uint32_t sharedCounter;
 extern uint32_t buffer[10];
 extern uint32_t writeIdx;
 
+/* Function prototypes */
+void nestedCriticalTest(void);
+void deeplyNestedCritical(void);
+
 #ifdef __cplusplus
 }
 #endif

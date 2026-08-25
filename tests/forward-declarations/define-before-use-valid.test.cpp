@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "define-before-use-valid.test.hpp"
+
 // ADR-030: Valid define-before-use
 // Tests: function defined before it's called compiles successfully
 void helper(void) {

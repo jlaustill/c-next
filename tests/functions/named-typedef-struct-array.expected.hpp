@@ -20,6 +20,9 @@ uint32_t Handler__processData(const uint8_t data[16], uint8_t len);
 uint32_t Handler__handleMessage(const CAN_message_t& msg);
 uint32_t Handler__processMultiArray(const MultiArray_t& multi);
 uint32_t Handler__handleMutableMessage(const CAN_message_t& msg);
+uint32_t testNamedTypedefConstArrayMember(void);
+uint32_t testMultipleArrayMembers(void);
+uint32_t testNonConstArrayMember(void);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,9 @@
 // External C++ header defining typedef'd pointer types (handle pattern)
 // Common in ESP-IDF and other embedded frameworks
 
+#ifndef CNX_TEST_ISSUE_832_TYPEDEF_POINTER_OUTPUT_PARAMS_HPP
+#define CNX_TEST_ISSUE_832_TYPEDEF_POINTER_OUTPUT_PARAMS_HPP
+
 struct opaque_t {
     int value;
 };
@@ -25,3 +28,5 @@ void replace_handle(handle_t *out) {
     static struct opaque_t storage2 = { 100 };
     *out = &storage2;
 }
+
+#endif /* CNX_TEST_ISSUE_832_TYPEDEF_POINTER_OUTPUT_PARAMS_HPP */

@@ -21,6 +21,9 @@ typedef enum {
     EPriority__CRITICAL = 3
 } EPriority;
 
+/* Function prototypes */
+uint32_t getPriorityValue(EPriority p);
+
 #ifdef __cplusplus
 }
 #endif

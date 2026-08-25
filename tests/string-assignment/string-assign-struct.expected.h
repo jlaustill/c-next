@@ -22,6 +22,11 @@ typedef struct StrAssign__Config {
 /* External variables */
 extern StrAssign__Config config;
 
+/* Function prototypes */
+void setConfigName(void);
+void updateConfigName(void);
+void clearConfigName(void);
+
 #ifdef __cplusplus
 }
 #endif

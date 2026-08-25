@@ -17,6 +17,9 @@ extern "C" {
 extern int8_t small_signed;
 extern int32_t large_signed;
 
+/* Function prototypes */
+void test_signed_ops(void);
+
 #ifdef __cplusplus
 }
 #endif

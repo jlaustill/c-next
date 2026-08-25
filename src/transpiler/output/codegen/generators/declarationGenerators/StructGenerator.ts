@@ -114,7 +114,7 @@ function getTrackedFieldDimensions(
 const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   node: Parser.StructDeclarationContext,
   input: IGeneratorInput,
-  _state: IGeneratorState,
+  state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
@@ -171,13 +171,19 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
 
   lines.push(`} ${name};`, "");
 
-  // ADR-029: Generate init function if struct has callback fields
-  if (callbackFields.length > 0) {
-    lines.push(generateStructInitFunction(name, callbackFields));
-  }
+  // Issues #369/#1164: when the .c includes its own header, the header owns the
+  // *type*. The ADR-029 init function is a definition, not a type — it has
+  // external linkage and no other home, so it is still emitted here. Suppressing
+  // the whole generator (rather than just the typedef) silently dropped it.
+  const typeDefinition = state.selfIncludeAdded ? [] : lines;
+
+  const initFunction =
+    callbackFields.length > 0
+      ? [generateStructInitFunction(name, callbackFields)]
+      : [];
 
   return {
-    code: lines.join("\n"),
+    code: [...typeDefinition, ...initFunction].join("\n"),
     effects,
   };
 };

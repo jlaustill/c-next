@@ -62,9 +62,9 @@ function setupStructFields(
       scopeVariableUsage: new Map(),
       scopePrivateConstValues: new Map(),
       functionReturnTypes: new Map(),
+      hasPublicInterface: false,
       getSingleFunctionForVariable: () => null,
       opaqueTypes: new Set(),
-      hasPublicSymbols: () => false,
     };
   }
   (CodeGenState.symbols.knownStructs as Set<string>).add(structName);

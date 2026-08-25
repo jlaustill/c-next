@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "callback-assign.test.hpp"
+
 // test-execution
 // Test: Assigning C-Next function to C callback typedef
 // Verifies signature compatibility in both C and C++ modes

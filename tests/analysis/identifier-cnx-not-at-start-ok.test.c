@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "identifier-cnx-not-at-start-ok.test.h"
+
 #include <stdint.h>
 
 // test-execution

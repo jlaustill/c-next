@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "e0908-valid-check.test.hpp"
+
 // E0908: Valid NULL check before use (no error)
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>

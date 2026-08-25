@@ -20,6 +20,11 @@ typedef enum {
     Status__PENDING = 2
 } Status;
 
+/* Function prototypes */
+uint32_t getStatusCode(Status s);
+uint32_t mapValue(uint32_t val);
+uint32_t withDefault(uint32_t val);
+
 #ifdef __cplusplus
 }
 #endif

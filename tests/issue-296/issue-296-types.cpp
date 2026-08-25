@@ -3,11 +3,9 @@
  * A safer C for embedded systems
  */
 
+#include "issue-296-types.hpp"
+
 #include <stdint.h>
 
 // Issue #296: Type definitions for cross-file struct usage
 // This file defines struct types used by other modules
-typedef struct AppData {
-    float humidity;
-    float temperature;
-} AppData;

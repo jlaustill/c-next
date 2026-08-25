@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "external-const-array.test.hpp"
+
 // Tests: Issue #461 - Array dimensions in header should use literal values
 // When a constant from an external .cnx file is used in an array size,
 // the generated .h file should contain the resolved literal value, not the constant name.

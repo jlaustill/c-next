@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-314-global-method-call.test.hpp"
+
 // Issue #314: global.X.method() generates wrong C++ syntax for undeclared classes
 // Tests: C++ scope resolution for both declared and undeclared external classes
 // Bug: global.UndeclaredClass.method() generates "UndeclaredClass.method()" (dot)

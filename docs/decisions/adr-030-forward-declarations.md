@@ -109,7 +109,7 @@ However, these are **C compiler limitations**, not fundamental language requirem
 
 ### Generated Headers Handle C Compatibility
 
-The C-Next transpiler generates `.h` files with prototypes for **public scope members**:
+The C-Next transpiler generates `.h` files with prototypes for **public scope members and top-level functions**:
 
 ```c
 // generated: myfile.h — from `scope Api { void doWork(u32 value) { ... } }`
@@ -140,9 +140,11 @@ void Api__doWork(uint32_t* value);
 
 This provides C compatibility without exposing forward declaration complexity to C-Next developers.
 
-**Top-level (non-scope) functions currently get no prototype**, even though they are emitted with external linkage and no `static`. That is a defect, not a rule — see #1161. Until it is fixed, a `.cnx` file whose only functions are top-level produces no header at all, because nothing in it is exported.
+**Top-level (non-scope) functions get a prototype.** They are emitted with external linkage and no `static`, and ADR-016 makes functions public by default; neither `public` nor `private` parses at top level, so scopes are how C-Next expresses privacy. They were collected as private and so never reached the header, which #1161 fixed by routing the top-level collection site through `ScopeUtils.getDefaultVisibility` instead of a hardcoded literal.
 
-`main` would be excluded on its own merits regardless: it is called by the C runtime, never by another translation unit, so a prototype serves no consumer. MISRA C:2012 Rule 8.4 — which otherwise requires a compatible declaration wherever a function with external linkage is defined — exempts `main` for exactly this reason. Note this is _rationale_, not a description of an implemented exclusion: there is no `main` filter in the header path, and `main` is absent today only because it is top-level.
+**`main` is excluded.** It is called by the C runtime, never by another translation unit, so a prototype serves no consumer. MISRA C:2012 Rule 8.4 — which otherwise requires a compatible declaration wherever a function with external linkage is defined — exempts `main` for exactly this reason. This is now an implemented exclusion rather than rationale: `PublicInterface` filters top-level `main` out of the header symbols. A scoped `main` is not exempt, since `Scope__main` is an ordinary cross-file callee.
+
+**The generated `.c` includes its own header.** One predicate (`PublicInterface`) decides both whether a header is written and whether the implementation includes it, so a declaration is always visible at its definition. Before #1164 those were two predicates that disagreed, and a file could get a header nothing included. Because the header is included, it — not the `.c` — owns each type definition; emitting both is a redefinition error.
 
 Include guards follow ADR-063 (`CNX_`-prefixed and derived from the path relative to the project root), so same-basename files in different directories stay distinguishable.
 
@@ -234,7 +236,7 @@ Generate `.h` file with prototypes for every public scope member:
 - Include guards (ADR-063 naming)
 - Named parameters (matching definition)
 - C++ compatibility (`extern "C"`)
-- Top-level functions are not covered today (#1161); `main` would be excluded regardless — see "Generated Headers Handle C Compatibility" above
+- Top-level functions (#1161) as well as public scope members; `main` is excluded (#1164) — see "Generated Headers Handle C Compatibility" above
 
 ### 4. Parameter Name Enforcement
 

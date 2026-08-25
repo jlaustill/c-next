@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "ternary-logical.test.h"
+
 #include <stdint.h>
 
 // ADR-022: Ternary with logical operators

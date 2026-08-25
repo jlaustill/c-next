@@ -3,17 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "switch-enum-mixed-qualified.test.hpp"
+
 #include <stdint.h>
 
 // Issue #471: Mixed qualified and unqualified enum references
 // Tests that both syntaxes work correctly in the same switch
-typedef enum {
-    EPriority__LOW = 0,
-    EPriority__MEDIUM = 1,
-    EPriority__HIGH = 2,
-    EPriority__CRITICAL = 3
-} EPriority;
-
 uint32_t getPriorityValue(EPriority p) {
     switch (p) {
         case EPriority__LOW: {

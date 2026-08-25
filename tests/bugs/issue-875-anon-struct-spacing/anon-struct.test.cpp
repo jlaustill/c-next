@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "anon-struct.test.hpp"
+
 // test-cpp-only
 // test-transpile-only
 // Issue #875: Anonymous struct compound literal missing spaces between tokens

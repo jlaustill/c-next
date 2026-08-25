@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "ternary-i8.test.h"
+
 #include <stdint.h>
 
 // test-execution

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-basic.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

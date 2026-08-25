@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "compound-via-ref.test.hpp"
+
 #include <stdint.h>
 
 // Test: Compound assignment through reference parameters

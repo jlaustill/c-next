@@ -16,6 +16,12 @@ extern "C" {
 /* External variables */
 extern uint32_t result;
 
+/* Function prototypes */
+void testNestedBasic(uint32_t outer, uint32_t inner);
+void testNestedMixedTypes(uint8_t outer, uint16_t inner);
+void testTripleNested(uint8_t a, uint8_t b, uint8_t c);
+void testNestedSigned(int8_t outer, int8_t inner);
+
 #ifdef __cplusplus
 }
 #endif

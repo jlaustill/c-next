@@ -16,6 +16,12 @@ extern "C" {
 /* External variables */
 extern bool result;
 
+/* Function prototypes */
+void test_f32_comparison(void);
+void test_f64_comparison(void);
+void test_literal_comparison(void);
+void test_in_control_flow(void);
+
 #ifdef __cplusplus
 }
 #endif

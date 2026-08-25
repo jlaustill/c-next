@@ -137,6 +137,7 @@ import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import CodeGenState from "../../state/CodeGenState";
+import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../logic/analysis/PassByValueAnalyzer";
 // Unified parameter generation (Phase 1)
@@ -1553,7 +1554,65 @@ export default class CodeGenerator implements IOrchestrator {
     this._clearParameters();
   }
 
-  /** Check if a callback type is used as a struct field type */
+  /**
+   * Issue #1200: the `_fp` typedef name for a callback type, or null if the
+   * name is not one. Exposed so renderers do not re-derive the `${name}_fp`
+   * convention that registerCallbackType owns.
+   */
+  getCallbackTypedefName(typeName: string): string | null {
+    return CodeGenState.callbackTypes.get(typeName)?.typedefName ?? null;
+  }
+
+  /**
+   * Issues #1200, #1201: does this callback type need its `_fp` typedef emitted?
+   *
+   * True when the type is referenced by any field or parameter, not only by a
+   * field of a top-level struct. Reading callbackFieldTypes alone missed
+   * scope-nested struct fields, scope members and parameters, each of which
+   * produced C that referenced a typedef nothing had emitted.
+   *
+   * Deliberately separate from isCallbackTypeUsedAsFieldType below. The two
+   * answer different questions and only this one is about code generation.
+   * Merging them widened ADR-029's nominal-typing rule as a side effect,
+   * rejecting a callback assignment that transpiles on main.
+   */
+  /**
+   * ADR-029 / Issues #1201, #1212: record that this function needs a callback
+   * `_fp` typedef, if it does.
+   *
+   * The single owner of that decision. It was previously spelled out at each of
+   * the four sites that emit a function -- two here, plus FunctionGenerator and
+   * ScopeGenerator -- so deferring the typedefs meant changing all four, and
+   * missing one left a whole construct still emitting inline. Every caller now
+   * states the intent ("this function was emitted") and nothing re-derives the
+   * consequences.
+   */
+  recordCallbackTypedef(funcName: string): void {
+    if (funcName === "main") {
+      return;
+    }
+    if (!this.isCallbackTypeReferenced(funcName)) {
+      return;
+    }
+    const typedef = this.generateCallbackTypedef(funcName);
+    if (typedef) {
+      CodeGenState.pendingCallbackTypedefs.push(typedef);
+    }
+  }
+
+  private isCallbackTypeReferenced(funcName: string): boolean {
+    return CodeGenState.callbackTypeReferences.has(funcName);
+  }
+
+  /**
+   * ADR-029 nominal typing: is this function used as a STRUCT FIELD type?
+   *
+   * Every top-level function is registered in callbackTypes, so this narrower
+   * predicate is what separates "a plain function with a compatible signature"
+   * from "a function used as a type" when validating a callback assignment.
+   * Widening it changes what C-Next accepts, which needs an ADR, so it stays
+   * derived from callbackFieldTypes.
+   */
   isCallbackTypeUsedAsFieldType(funcName: string): boolean {
     for (const callbackType of CodeGenState.callbackFieldTypes.values()) {
       if (callbackType === funcName) {
@@ -1634,28 +1693,20 @@ export default class CodeGenerator implements IOrchestrator {
       return null;
     }
 
-    const paramList =
-      callbackInfo.parameters.length > 0
-        ? callbackInfo.parameters
-            .map((p) => {
-              const constMod = p.isConst ? "const " : "";
-              if (p.isArray) {
-                // Array parameters: type name[]
-                return `${constMod}${p.type} ${p.name}${p.arrayDims}`;
-              } else if (p.isStruct) {
-                // ADR-006: Struct parameters become pointers (C) or references (C++)
-                // Only struct types get pointer/reference semantics, not primitives
-                const ptrOrRef = this.isCppMode() ? "&" : "*";
-                return `${constMod}${p.type}${ptrOrRef}`;
-              } else {
-                // ADR-029: Callback parameters are already function pointers
-                return `${p.type}`;
-              }
-            })
-            .join(", ")
-        : "void";
+    // Issue #1164: the included header already declares this one.
+    if (
+      CodeGenState.selfIncludeAdded &&
+      CodeGenState.headerOwnsCallbackTypedef(funcName)
+    ) {
+      return null;
+    }
 
-    return `\ntypedef ${callbackInfo.returnType} (*${callbackInfo.typedefName})(${paramList});\n`;
+    return `\n${CallbackTypedefFormatter.format(
+      callbackInfo.returnType,
+      callbackInfo.typedefName,
+      callbackInfo.parameters,
+      this.isCppMode(),
+    )}\n`;
   }
 
   /**
@@ -2384,7 +2435,11 @@ export default class CodeGenerator implements IOrchestrator {
     );
 
     // Self-include for extern "C" linkage
-    if (symbols.hasPublicSymbols() && CodeGenState.sourcePath) {
+    // Issue #1164: this used to ask a second predicate that saw only scope
+    // members, so a file exporting types, consts or top-level functions got a
+    // header nothing included. Same question, same answer source as the header
+    // itself.
+    if (symbols.hasPublicInterface && CodeGenState.sourcePath) {
       const pathToUse =
         options?.sourceRelativePath ||
         CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
@@ -2519,15 +2574,36 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
     const declarations: string[] = [];
+    // Issue #1212: where the callback typedef block belongs -- after the type
+    // declarations it may depend on, before the first function that may use it.
+    let firstFunctionIndex: number | null = null;
 
     for (const decl of tree.declaration()) {
       const leadingComments = this.getLeadingComments(decl);
       declarations.push(...this.formatLeadingComments(leadingComments));
 
+      if (
+        firstFunctionIndex === null &&
+        (decl.functionDeclaration() !== null ||
+          decl.scopeDeclaration() !== null)
+      ) {
+        firstFunctionIndex = declarations.length;
+      }
+
       const code = this.generateDeclaration(decl);
       if (code) {
         declarations.push(code);
       }
+    }
+
+    const typedefs = CodeGenState.pendingCallbackTypedefs;
+    if (typedefs.length > 0) {
+      declarations.splice(
+        firstFunctionIndex ?? declarations.length,
+        0,
+        ...typedefs,
+      );
+      CodeGenState.pendingCallbackTypedefs = [];
     }
 
     return declarations;
@@ -2608,7 +2684,9 @@ export default class CodeGenerator implements IOrchestrator {
       output.push(...this.generateIrqWrappers());
     }
 
-    if (CodeGenState.needsISR) {
+    // Issue #369/#1164: when the .c includes its own header, the header owns
+    // this typedef. Emitting it here too is a redeclaration error.
+    if (CodeGenState.needsISR && !CodeGenState.selfIncludeAdded) {
       output.push(
         "/* ADR-040: ISR function pointer type */",
         "typedef void (*ISR)(void);",
@@ -2739,6 +2817,18 @@ export default class CodeGenerator implements IOrchestrator {
     CodeGenState.currentScope = scopeName;
 
     for (const member of scopeDecl.scopeMember()) {
+      // Issue #1200: a struct nested in a scope has callback fields just like a
+      // top-level one, and a scope member variable can itself be callback-typed.
+      // Neither was walked here, so neither ever registered its type.
+      if (member.structDeclaration()) {
+        this._collectStructCallbackFields(member.structDeclaration()!);
+        continue;
+      }
+      if (member.variableDeclaration()) {
+        const varType = this.getTypeName(member.variableDeclaration()!.type());
+        CodeGenState.callbackTypeReferences.add(varType);
+        continue;
+      }
       if (member.functionDeclaration()) {
         const funcDecl = member.functionDeclaration()!;
         const funcName = funcDecl.IDENTIFIER().getText();
@@ -2782,6 +2872,7 @@ export default class CodeGenerator implements IOrchestrator {
           fieldType,
         );
       }
+      CodeGenState.callbackTypeReferences.add(fieldType);
     }
   }
 
@@ -2894,6 +2985,9 @@ export default class CodeGenerator implements IOrchestrator {
           param.arrayDimension().length > 0 ||
           param.type().arrayType() !== null;
         const baseType = this.getTypeName(param.type());
+        // Issue #1201: a parameter naming a callback type needs that type's
+        // typedef emitted, exactly as a struct field does.
+        CodeGenState.callbackTypeReferences.add(baseType);
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }
@@ -3320,24 +3414,18 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // Issue #369: Skip struct/enum/bitmap definitions when self-include is added
     // These types will be defined in the included header file
+    // Issue #1164: the struct generator decides for itself what a self-include
+    // suppresses. Returning early here also skipped its callback-field effects
+    // and dropped the ADR-029 init function, which the header never carries.
     if (ctx.structDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateStruct(ctx.structDeclaration()!);
     }
     // ADR-017: Handle enum declarations
     if (ctx.enumDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateEnum(ctx.enumDeclaration()!);
     }
     // ADR-034: Handle bitmap declarations
     if (ctx.bitmapDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateBitmap(ctx.bitmapDeclaration()!);
     }
     if (ctx.functionDeclaration()) {
@@ -3518,13 +3606,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
 
-    // ADR-029: Generate callback typedef only if used as a type
-    if (this.isCallbackTypeUsedAsFieldType(fullName)) {
-      const typedef = this.generateCallbackTypedef(fullName);
-      if (typedef) {
-        lines.push(typedef);
-      }
-    }
+    this.recordCallbackTypedef(fullName);
   }
 
   // ========================================================================
@@ -3624,7 +3706,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
-    return result.code;
+    // Issues #369/#1164: the included header owns the definition. The generator
+    // still runs so its effects are registered -- returning early here would
+    // silently drop them, which is how the ADR-029 struct init function was lost.
+    return CodeGenState.selfIncludeAdded ? "" : result.code;
   }
 
   /**
@@ -3640,7 +3725,8 @@ export default class CodeGenerator implements IOrchestrator {
     if (generator) {
       const result = generator(ctx, this.getInput(), this.getState(), this);
       this.applyEffects(result.effects);
-      return result.code;
+      // Issues #369/#1164: the included header owns the definition.
+      return CodeGenState.selfIncludeAdded ? "" : result.code;
     }
 
     // Fallback to inline implementation (will be removed after migration)
@@ -4003,12 +4089,8 @@ export default class CodeGenerator implements IOrchestrator {
       return functionCode;
     }
 
-    if (!this.isCallbackTypeUsedAsFieldType(name)) {
-      return functionCode;
-    }
-
-    const typedef = this.generateCallbackTypedef(name);
-    return typedef ? functionCode + typedef : functionCode;
+    this.recordCallbackTypedef(name);
+    return functionCode;
   }
 
   private generateParameter(

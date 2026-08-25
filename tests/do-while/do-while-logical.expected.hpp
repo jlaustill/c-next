@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern const uint32_t MAX_RETRIES;
 
+/* Function prototypes */
+void retryLoop(void);
+
 #ifdef __cplusplus
 }
 #endif

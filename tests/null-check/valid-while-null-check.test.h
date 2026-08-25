@@ -17,6 +17,9 @@ extern "C" {
 extern char line[257];
 extern bool keepReading;
 
+/* Function prototypes */
+void testWhileNullCheck(void);
+
 #ifdef __cplusplus
 }
 #endif

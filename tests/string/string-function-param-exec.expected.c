@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-function-param-exec.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>

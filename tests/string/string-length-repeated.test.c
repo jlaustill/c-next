@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-length-repeated.test.h"
+
 #include <string.h>
 
 // ADR-045: Test repeated .char_count usage

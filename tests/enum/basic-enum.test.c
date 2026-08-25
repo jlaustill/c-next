@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "basic-enum.test.h"
+
 #include <stdint.h>
 
 // test-coverage: 3.1-enum-enum-same-type
@@ -10,29 +12,8 @@
 // ADR-017: Basic Enum Test
 // Tests basic enum declaration, usage, and code generation
 // Simple enum with auto-incrementing values
-typedef enum {
-    State__IDLE = 0,
-    State__RUNNING = 1,
-    State__PAUSED = 2,
-    State__ERROR = 3
-} State;
-
 // Enum with explicit values
-typedef enum {
-    Command__READ = 1,
-    Command__WRITE = 2,
-    Command__ERASE = 4,
-    Command__RESET = 255
-} Command;
-
 // Enum with bit flag pattern
-typedef enum {
-    Flags__NONE = 0,
-    Flags__READABLE = 1,
-    Flags__WRITABLE = 2,
-    Flags__EXECUTABLE = 4
-} Flags;
-
 State currentState = State__IDLE;
 
 Command lastCmd = Command__READ;

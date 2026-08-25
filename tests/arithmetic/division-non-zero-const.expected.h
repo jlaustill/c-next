@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern const uint32_t TEN;
 
+/* Function prototypes */
+void testNonZeroConst(void);
+
 #ifdef __cplusplus
 }
 #endif

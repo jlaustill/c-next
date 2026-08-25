@@ -3,16 +3,9 @@
  * A safer C for embedded systems
  */
 
+#include "nested-forward-decl-types.hpp"
+
 #include <stdint.h>
 
 // Issue #404: Type definitions for nested forward declaration tests
 // Tests nested structs used across files
-typedef struct Vector2D {
-    float x;
-    float y;
-} Vector2D;
-
-typedef struct BoundingBox {
-    Vector2D min;
-    Vector2D max;
-} BoundingBox;

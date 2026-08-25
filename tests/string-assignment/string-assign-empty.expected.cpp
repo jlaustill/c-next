@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-assign-empty.test.hpp"
+
 #include <stdint.h>
 #include <string.h>
 

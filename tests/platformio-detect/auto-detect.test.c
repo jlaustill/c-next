@@ -5,6 +5,8 @@
  * atomic read-modify-write requires CMSIS + ARMv7-M.
  */
 
+#include "auto-detect.test.h"
+
 // Note: platformio.ini is present for CLI auto-detection testing
 // Test script uses pragma since it calls transpile() directly
 

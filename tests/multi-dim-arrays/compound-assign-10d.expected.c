@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "compound-assign-10d.test.h"
+
 #include <stdint.h>
 
 // Test: Compound assignment on 10D arrays (extreme depth test)

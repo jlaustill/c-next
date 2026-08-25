@@ -19,6 +19,10 @@ typedef struct ExtEnumPrefix__Config {
     EPressureType pType;
 } ExtEnumPrefix__Config;
 
+/* Function prototypes */
+void setDefault(ExtEnumPrefix__Config* config);
+void setExplicit(ExtEnumPrefix__Config* config);
+
 #ifdef __cplusplus
 }
 #endif

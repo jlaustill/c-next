@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "valid-cstring-c-prefix.test.hpp"
+
 // ADR-046: Valid c_ prefix with cstring type
 // cstring IS a nullable type, so c_ prefix is valid
 // cppcheck-suppress misra-c2012-21.6

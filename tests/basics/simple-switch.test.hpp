@@ -20,6 +20,10 @@ typedef enum {
     Color__BLUE = 2
 } Color;
 
+/* Function prototypes */
+uint32_t colorToValue(Color c);
+uint32_t dayType(uint32_t day);
+
 #ifdef __cplusplus
 }
 #endif

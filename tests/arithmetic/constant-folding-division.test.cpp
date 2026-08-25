@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "constant-folding-division.test.hpp"
+
 #include <stdint.h>
 
 // Issue #235: Constant folding for division expressions

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "stdio-suppression.test.hpp"
+
 // test-transpile-only
 // Issue #850: MISRA 21.6 suppression for stdio.h includes
 // Verifies that stdio.h includes generate MISRA suppression comments

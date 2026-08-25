@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "valid-while-null-check.test.h"
+
 // ADR-046: While loop condition provides NULL check
 // Tests that c_ variables checked in while condition are checked inside body
 // cppcheck-suppress misra-c2012-21.6

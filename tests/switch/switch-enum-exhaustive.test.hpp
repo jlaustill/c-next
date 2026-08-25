@@ -20,6 +20,12 @@ typedef enum {
     EState__STOPPED = 2
 } EState;
 
+/* Function prototypes */
+void onIdle(void);
+void onActive(void);
+void onStopped(void);
+void handleState(EState state);
+
 #ifdef __cplusplus
 }
 #endif

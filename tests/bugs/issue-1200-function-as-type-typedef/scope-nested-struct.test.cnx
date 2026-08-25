@@ -1,0 +1,25 @@
+// #1200: a function-as-type field inside a scope-nested struct must emit the
+// same _fp typedef a top-level struct field already emits.
+u32 tickSource() {
+    return 0;
+}
+
+u32 platformClock() {
+    return 12345;
+}
+
+scope Timing {
+    public struct Config {
+        u32 base;
+        tickSource tick;
+    }
+
+    public u32 read(const Config timer) {
+        return timer.tick();
+    }
+}
+
+void demo() {
+    Timing.Config timer <- { base: 0, tick: platformClock };
+    u32 value <- Timing.read(timer);
+}

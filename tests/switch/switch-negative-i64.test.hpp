@@ -16,6 +16,10 @@ extern "C" {
 /* External variables */
 extern int32_t result;
 
+/* Function prototypes */
+void testI64Values(int64_t val);
+void testI64Hex(int64_t val);
+
 #ifdef __cplusplus
 }
 #endif

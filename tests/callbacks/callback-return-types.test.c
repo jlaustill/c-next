@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "callback-return-types.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -14,14 +16,10 @@ uint32_t getU32Value(uint32_t input) {
     return input + 1000;
 }
 
-typedef uint32_t (*getU32Value_fp)(uint32_t);
-
 // Callback returning u8
 uint8_t getU8Value(uint32_t input) {
     return 100;
 }
-
-typedef uint8_t (*getU8Value_fp)(uint32_t);
 
 // Callback returning bool
 bool checkThreshold(uint32_t value) {
@@ -31,29 +29,17 @@ bool checkThreshold(uint32_t value) {
     return false;
 }
 
-typedef bool (*checkThreshold_fp)(uint32_t);
-
 // Callback returning i32 (signed)
 int32_t getSignedValue(uint32_t input) {
     return 0 - input;
 }
 
-typedef int32_t (*getSignedValue_fp)(uint32_t);
-
 // Structs to hold callbacks
-typedef struct U32Returner {
-    getU32Value_fp handler;
-} U32Returner;
-
 U32Returner U32Returner_init(void) {
     return (U32Returner){
         .handler = getU32Value
     };
 }
-
-typedef struct U8Returner {
-    getU8Value_fp handler;
-} U8Returner;
 
 U8Returner U8Returner_init(void) {
     return (U8Returner){
@@ -61,19 +47,11 @@ U8Returner U8Returner_init(void) {
     };
 }
 
-typedef struct BoolReturner {
-    checkThreshold_fp handler;
-} BoolReturner;
-
 BoolReturner BoolReturner_init(void) {
     return (BoolReturner){
         .handler = checkThreshold
     };
 }
-
-typedef struct I32Returner {
-    getSignedValue_fp handler;
-} I32Returner;
 
 I32Returner I32Returner_init(void) {
     return (I32Returner){

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "condition-no-function-call.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

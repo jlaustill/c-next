@@ -3,23 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "zero-init-enum-field.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Issue #1004: C++ struct zero-init must use {} not {0} when the first field is an enum.
 // In C++ a brace-with-zero (= {0}) is an invalid int->enum narrowing conversion;
 // value-initialization (= {}) zero-initializes every field including the enum.
-typedef enum {
-    EValueId__VALUE_A = 0,
-    EValueId__VALUE_B = 1,
-    EValueId__VALUE_UNASSIGNED = 255
-} EValueId;
-
-typedef struct TInput {
-    EValueId assignedValue;
-    uint32_t count;
-} TInput;
-
 // No initializer -> generator emits the zero initializer for the struct.
 TInput input = {};
 

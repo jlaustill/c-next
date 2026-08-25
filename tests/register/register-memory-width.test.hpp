@@ -13,6 +13,15 @@
 extern "C" {
 #endif
 
+/* Function prototypes */
+void write32(uint32_t data);
+void write16_at_0(uint16_t data);
+void write16_at_16(uint16_t data);
+void write8_at_0(uint8_t data);
+void write8_at_8(uint8_t data);
+void write8_at_16(uint8_t data);
+void write8_at_24(uint8_t data);
+
 #ifdef __cplusplus
 }
 #endif

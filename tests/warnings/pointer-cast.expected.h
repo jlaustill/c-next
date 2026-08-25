@@ -23,6 +23,11 @@ typedef struct PtrCast__Container {
     uint32_t count;
 } PtrCast__Container;
 
+/* Function prototypes */
+void modifyData(PtrCast__Data* d);
+PtrCast__Data createData(uint32_t val, uint8_t flg);
+void updateContainer(PtrCast__Container* c, uint32_t newCount);
+
 #ifdef __cplusplus
 }
 #endif

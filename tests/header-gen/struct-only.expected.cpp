@@ -3,17 +3,10 @@
  * A safer C for embedded systems
  */
 
+#include "struct-only.test.hpp"
+
 #include <stdint.h>
 
 // Issue #403: Struct-only file header generation test
 // This file contains only struct definitions - no functions.
 // The generated header should contain the full typedef struct definitions.
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Rectangle {
-    Point topLeft;
-    Point bottomRight;
-} Rectangle;

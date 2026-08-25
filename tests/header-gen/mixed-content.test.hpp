@@ -30,6 +30,11 @@ typedef struct HeaderMixed__Config {
 /* External variables */
 extern HeaderMixed__Config globalConfig;
 
+/* Function prototypes */
+void initConfig(void);
+EStatus getStatus(void);
+void setStatus(EStatus newStatus);
+
 #ifdef __cplusplus
 }
 #endif

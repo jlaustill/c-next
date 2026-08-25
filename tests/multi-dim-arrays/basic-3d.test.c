@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "basic-3d.test.h"
+
 #include <stdint.h>
 
 // ADR-036: 3D array declaration

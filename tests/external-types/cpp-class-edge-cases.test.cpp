@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "cpp-class-edge-cases.test.hpp"
+
 // Issue #517: C++ class edge cases
 // Tests various edge cases for C++ class struct initialization
 #include "CppTestClass.hpp"

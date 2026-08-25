@@ -17,6 +17,9 @@ extern "C" {
 extern uint32_t counter;
 extern uint32_t maxValue;
 
+/* Function prototypes */
+uint32_t increment(uint32_t value);
+
 #ifdef __cplusplus
 }
 #endif

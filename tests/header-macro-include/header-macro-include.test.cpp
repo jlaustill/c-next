@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "header-macro-include.test.hpp"
+
 // Tests: Issue #424 - Generated header includes macro-defining headers
 // When a macro from an included header is used in an array size,
 // the generated .h file must include that header for the extern declaration.

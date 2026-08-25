@@ -26,6 +26,11 @@ typedef enum {
     TrafficLight__GO = 2
 } TrafficLight;
 
+/* Function prototypes */
+Color getColorByIndex(uint32_t index);
+TrafficLight getNextLight(TrafficLight current);
+TrafficLight colorToLight(Color c);
+
 #ifdef __cplusplus
 }
 #endif

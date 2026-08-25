@@ -3,24 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "const-fold-boolean.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // test-execution
 // Tests: Constant-folding of literal boolean values in bitmap assignments
-/* Bitmap: Flags */
-/* Fields:
- *   bit0: bit 0 (1 bit)
- *   bit1: bit 1 (1 bit)
- *   bit2: bit 2 (1 bit)
- *   bit3: bit 3 (1 bit)
- *   bit4: bit 4 (1 bit)
- *   bit5: bit 5 (1 bit)
- *   bit6: bit 6 (1 bit)
- *   bit7: bit 7 (1 bit)
- */
-typedef uint8_t Flags;
-
 int main(void) {
     Flags f = {0};
     f = (f & ~(1U << 0)) | (1U << 0);

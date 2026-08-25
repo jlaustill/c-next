@@ -5,6 +5,8 @@
  * atomic read-modify-write requires one of: CMSIS + ARMv7-M, CMSIS (by target).
  */
 
+#include "atomic-extern-edge-cases.test.h"
+
 // test-c-only
 // test-coverage: atomic-extern-edge-cases
 // Tests: edge cases for atomic volatile qualifier in extern declarations
@@ -54,14 +56,9 @@ volatile int64_t bigSignedCounter = 0;
 volatile uint64_t bigUnsignedCounter = 0ULL;
 
 // Edge case 5: atomic string type
-char statusMessage[17] = "";
+volatile char statusMessage[17] = "";
 
 // Edge case 6: atomic struct (non-array)
-typedef struct TStatus {
-    uint32_t code;
-    bool active;
-} TStatus;
-
 volatile TStatus currentStatus = {0};
 
 // Edge case 7: atomic with wrap + const (multiple modifiers)

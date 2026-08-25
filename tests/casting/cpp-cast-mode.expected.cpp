@@ -3,17 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "cpp-cast-mode.test.hpp"
+
 // test-coverage: 267-cpp-casts
 // test-execution
 // Tests: C++ casts are generated when cppMode is enabled (Issue #267)
 #include "cpp-cast-mode.hpp"
 
 #include <stdint.h>
-
-typedef enum {
-    Priority__LOW = 1,
-    Priority__HIGH = 10
-} Priority;
 
 int main(void) {
     uint32_t val = static_cast<uint32_t>(Priority__LOW);

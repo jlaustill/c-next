@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "valid-fgets-else.test.h"
+
 // ADR-046: Valid NULL check with else branch using c_ prefix
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>

@@ -33,6 +33,12 @@ typedef struct I32Returner {
     getSignedValue_fp handler;
 } I32Returner;
 
+/* Function prototypes */
+uint32_t getU32Value(uint32_t input);
+uint8_t getU8Value(uint32_t input);
+bool checkThreshold(uint32_t value);
+int32_t getSignedValue(uint32_t input);
+
 #ifdef __cplusplus
 }
 #endif

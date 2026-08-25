@@ -18,6 +18,10 @@ extern uint16_t safe_counter;
 extern uint16_t fast_counter;
 extern uint16_t default_counter;
 
+/* Function prototypes */
+void increment_all(void);
+void multiply_test(void);
+
 #ifdef __cplusplus
 }
 #endif

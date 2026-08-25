@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "u8-array-param-assignment.test.h"
+
 #include <stdint.h>
 
 // test-execution

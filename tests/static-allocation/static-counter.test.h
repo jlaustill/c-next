@@ -18,6 +18,11 @@ extern uint32_t eventCount;
 extern uint16_t errorCount;
 extern uint8_t retryCount;
 
+/* Function prototypes */
+void recordEvent(void);
+void recordError(void);
+void recordRetry(void);
+
 #ifdef __cplusplus
 }
 #endif

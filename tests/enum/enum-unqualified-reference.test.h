@@ -24,6 +24,9 @@ typedef struct EnumUnqualRef__Config {
     EPressureType pType;
 } EnumUnqualRef__Config;
 
+/* Function prototypes */
+void setDefault(EnumUnqualRef__Config* config);
+
 #ifdef __cplusplus
 }
 #endif

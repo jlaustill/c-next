@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "enum-bool-member-cpp.test.hpp"
+
 // tests/functions/enum-bool-member-cpp.test.cnx
 // test-execution
 // Tests: Issue #252 - enum and bool types not converted to u8

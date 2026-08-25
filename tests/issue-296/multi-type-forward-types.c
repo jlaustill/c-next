@@ -3,25 +3,10 @@
  * A safer C for embedded systems
  */
 
+#include "multi-type-forward-types.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // Issue #404: Multiple type definitions for forward declaration tests
 // Tests multiple structs and an enum used across files
-typedef enum {
-    EDeviceState__STATE_OFF = 0,
-    EDeviceState__STATE_IDLE = 1,
-    EDeviceState__STATE_ACTIVE = 2,
-    EDeviceState__STATE_ERROR = 3
-} EDeviceState;
-
-typedef struct DeviceConfig {
-    uint32_t baudRate;
-    uint8_t address;
-} DeviceConfig;
-
-typedef struct DeviceStatus {
-    EDeviceState state;
-    uint32_t errorCount;
-    bool connected;
-} DeviceStatus;

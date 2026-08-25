@@ -14,6 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
+void calculate(uint32_t value);
+void process(uint32_t process);
+void update(uint32_t upd_value);
 float Math__add(float x, float y);
 float Math__multiply(float mult_factor, float value);
 

@@ -16,6 +16,11 @@ extern "C" {
 /* External variables */
 extern uint32_t globalCounter;
 
+/* Function prototypes */
+void incrementCounter(void);
+uint32_t getCounter(void);
+void resetCounter(void);
+
 #ifdef __cplusplus
 }
 #endif

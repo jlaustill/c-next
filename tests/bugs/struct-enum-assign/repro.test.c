@@ -3,17 +3,9 @@
  * A safer C for embedded systems
  */
 
+#include "repro.test.h"
+
 // Minimal reproduction: assign struct enum field to local enum variable
-typedef enum {
-    EValueId__VALUE_A = 0,
-    EValueId__VALUE_B = 1,
-    EValueId__VALUE_UNASSIGNED = 255
-} EValueId;
-
-typedef struct TInput {
-    EValueId assignedValue;
-} TInput;
-
 TInput input = {0};
 
 int main(void) {

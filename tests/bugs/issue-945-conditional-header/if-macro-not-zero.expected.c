@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "if-macro-not-zero.test.h"
+
 // test-transpile-only
 // Issue #945: Transpiler preprocessor doesn't evaluate #if MACRO != 0
 //

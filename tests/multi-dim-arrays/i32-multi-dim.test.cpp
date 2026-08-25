@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "i32-multi-dim.test.hpp"
+
 #include <stdint.h>
 #include <limits.h>
 

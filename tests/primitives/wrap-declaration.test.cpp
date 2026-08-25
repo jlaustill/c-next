@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "wrap-declaration.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Test wrap keyword in variable declarations

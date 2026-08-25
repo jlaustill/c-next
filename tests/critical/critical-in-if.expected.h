@@ -17,6 +17,13 @@ extern "C" {
 extern uint32_t sharedValue;
 extern bool flag;
 
+/* Function prototypes */
+void criticalInIfBranch(void);
+void criticalInElseBranch(void);
+void criticalInBothBranches(void);
+void criticalInNestedIf(void);
+void criticalInIfElseChain(void);
+
 #ifdef __cplusplus
 }
 #endif

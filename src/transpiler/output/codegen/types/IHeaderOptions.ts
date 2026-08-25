@@ -29,6 +29,29 @@ interface IHeaderOptions {
    * This allows C-Next callbacks to match C++ function pointer signatures.
    */
   cppMode?: boolean;
+
+  /**
+   * Issue #1164: the source's own C/C++ headers were propagated into this
+   * header because it names something only they define.
+   *
+   * When they are present an external type's real declaration is already in
+   * scope, and the usual `typedef struct X X;` forward declaration becomes a
+   * competing -- and for a pointer typedef, contradictory -- declaration of the
+   * same name. Guessing is only justified when nothing better is available.
+   */
+  readonly cHeadersIncluded?: boolean;
+
+  /**
+   * ADR-040: this translation unit uses the `ISR` function-pointer type.
+   *
+   * The header used to decide this for itself by scanning exported
+   * declarations, which is a strict subset of "the file needs ISR" -- an `ISR`
+   * local inside a function body is invisible to it. Since the .c stops
+   * emitting the typedef once it includes the header, that subset made the
+   * suppression unsound: the type was emitted nowhere. Both sides now read the
+   * same flag.
+   */
+  readonly needsIsrTypedef?: boolean;
 }
 
 export default IHeaderOptions;

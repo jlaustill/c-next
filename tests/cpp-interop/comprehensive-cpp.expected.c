@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "comprehensive-cpp.test.hpp"
+
 // Comprehensive C++ Interop Test
 // Tests: C++ syntax patterns for scope resolution and type handling
 // This is a compilation-only test (no test-execution marker)

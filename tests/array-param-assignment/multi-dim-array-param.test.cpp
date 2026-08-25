@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "multi-dim-array-param.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

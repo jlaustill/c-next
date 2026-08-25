@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-bool-parameter.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

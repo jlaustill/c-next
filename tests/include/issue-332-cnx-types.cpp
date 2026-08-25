@@ -3,12 +3,10 @@
  * A safer C for embedded systems
  */
 
+#include "issue-332-cnx-types.hpp"
+
 #include <stdint.h>
 
 // Issue #332: C-Next struct that will be passed to external C++ function
 // This struct is defined in a C-Next file (not a C header)
 // and must work with external functions expecting pointers
-typedef struct Issue332AppData {
-    float value;
-    uint32_t count;
-} Issue332AppData;

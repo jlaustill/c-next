@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "u8-array-param-sized.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

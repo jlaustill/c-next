@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "hello-world.test.hpp"
+
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 

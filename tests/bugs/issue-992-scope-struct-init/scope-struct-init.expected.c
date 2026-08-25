@@ -5,6 +5,8 @@
 
 #include "scope-struct-init.test.h"
 
+#include <stdint.h>
+
 // test-c-only
 // test-no-warnings
 // Bug #992: Scope variables with struct initializers must use designated initializers

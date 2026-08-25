@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-literals.test.hpp"
+
 #include <stdint.h>
 
 // Test various float literal formats

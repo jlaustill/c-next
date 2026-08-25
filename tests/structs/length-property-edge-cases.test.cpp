@@ -3,24 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "length-property-edge-cases.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Edge case tests for .length property on struct members
 // Tests const parameters, all primitive types, and nested expressions
-typedef struct AllTypes {
-    uint8_t field_u8;
-    uint16_t field_u16;
-    uint32_t field_u32;
-    uint64_t field_u64;
-    int8_t field_i8;
-    int16_t field_i16;
-    int32_t field_i32;
-    int64_t field_i64;
-    float field_f32;
-    double field_f64;
-} AllTypes;
-
 // Test with const parameter
 uint32_t testConst(const AllTypes& data) {
     if (32 != 32) return 1;

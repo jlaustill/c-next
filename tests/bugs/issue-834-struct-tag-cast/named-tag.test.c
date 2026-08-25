@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "named-tag.test.h"
+
 // test-c-only
 // test-transpile-only
 // Issue #834: Compound literal cast missing struct keyword for named struct tags

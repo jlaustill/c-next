@@ -3,17 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "multi-bit-range-chain.test.h"
+
 #include <stdint.h>
 
 // Postfix Chain Test: Multi-Bit Field Ranges
 // Tests: Bit range assignment [start, width] through chains
 // HIGH RISK: Lines 3373-3443 in CodeGenerator.ts - overflow protection needed
-typedef struct Device {
-    uint8_t control;
-    uint16_t status;
-    uint32_t config;
-} Device;
-
 Device devices[4] = {0};
 
 uint8_t flags = 0U;

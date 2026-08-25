@@ -3,17 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "multiple-external-enums.test.h"
+
 // Issue #465: Test multiple external enums from different files
 // Verifies that enum prefixing works when including multiple files with enums
 #include "types.h"
 #include "status.h"
 
 #include <stdint.h>
-
-typedef struct DeviceState {
-    EPressureType pressure;
-    EStatus status;
-} DeviceState;
 
 void configure(DeviceState* state) {
     state->pressure = EPressureType__PRESSURE_TYPE_PSIG;

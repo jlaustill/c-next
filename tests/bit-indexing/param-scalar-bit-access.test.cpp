@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "param-scalar-bit-access.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

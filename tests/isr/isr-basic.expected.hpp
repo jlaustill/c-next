@@ -13,11 +13,19 @@
 extern "C" {
 #endif
 
+/* ADR-040: ISR function pointer type */
+typedef void (*ISR)(void);
+
 /* Struct definitions */
 typedef struct InterruptController {
     ISR timerCallback;
     ISR uartCallback;
 } InterruptController;
+
+/* Function prototypes */
+void timerHandler(void);
+void uartHandler(void);
+void registerHandler(ISR handler);
 
 #ifdef __cplusplus
 }

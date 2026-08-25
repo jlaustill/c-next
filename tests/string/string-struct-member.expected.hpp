@@ -24,6 +24,10 @@ typedef struct Person {
     uint32_t age;
 } Person;
 
+/* Function prototypes */
+uint32_t getNameLength(const Person& p);
+bool compareName(const Person& p, const char* expected);
+
 #ifdef __cplusplus
 }
 #endif

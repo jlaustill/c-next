@@ -34,6 +34,9 @@ interface IHeaderSymbol {
   /** Whether this variable is atomic (volatile in C) */
   readonly isAtomic?: boolean;
 
+  /** Explicit `volatile` modifier, carried from IVariableSymbol (#1164). */
+  readonly isVolatile?: boolean;
+
   /** Whether this is an array */
   readonly isArray?: boolean;
 

@@ -23,6 +23,8 @@ typedef struct Geometry__Point {
 Geometry__Point Geometry__makePoint(int32_t x, int32_t y);
 Geometry__Point Geometry__origin(void);
 Geometry__Point Geometry__midpoint(const Geometry__Point& a, const Geometry__Point& b);
+void movePoint(Geometry__Point& p, int32_t dx, int32_t dy);
+Geometry__Point createPoint(int32_t x, int32_t y);
 
 #ifdef __cplusplus
 }

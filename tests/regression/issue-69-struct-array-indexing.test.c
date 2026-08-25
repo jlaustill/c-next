@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "issue-69-struct-array-indexing.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -14,15 +16,6 @@
 // Expected: config->tempInputs[index].assignedSpn
 //
 // This test ensures the bug does not regress in future changes.
-typedef struct InputData {
-    uint16_t assignedSpn;
-    float coeffA;
-} InputData;
-
-typedef struct Configuration {
-    InputData tempInputs[8];
-} Configuration;
-
 // Function that exposes the bug - passing struct by value with array member access
 uint16_t getSpn(const Configuration* conf, uint32_t idx) {
     return conf->tempInputs[idx].assignedSpn;

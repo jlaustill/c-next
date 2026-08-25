@@ -127,6 +127,13 @@ class StructCollector {
       symbolTable.markNeedsStructKeyword(name);
     }
 
+    // Issue #957/#1164: a pointer typedef is not opaque, but the header still
+    // must not forward-declare it as a struct. Record it rather than only
+    // branching on it below.
+    if (isTypedef && typedefName && isPointerTypedef) {
+      symbolTable.markPointerTypedef(typedefName);
+    }
+
     // Issue #948: Track opaque types (forward-declared typedef structs)
     // Issue #957: Don't mark pointer typedefs as opaque.
     // For "typedef struct X *Y", Y is already a pointer type, not an opaque struct.

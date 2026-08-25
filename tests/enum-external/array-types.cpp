@@ -3,9 +3,4 @@
  * A safer C for embedded systems
  */
 
-typedef enum {
-    EColor__RED = 0,
-    EColor__GREEN = 1,
-    EColor__BLUE = 2,
-    EColor__COUNT = 3
-} EColor;
+#include "array-types.hpp"

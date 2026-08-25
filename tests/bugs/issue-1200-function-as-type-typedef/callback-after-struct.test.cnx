@@ -1,0 +1,17 @@
+// #1212 placement guard: a callback typedef inherits its parameters' type
+// dependencies, so the hoisted block must land AFTER the structs it references
+// and before the first function -- not in the file prelude.
+struct Message {
+    u32 id;
+}
+
+void onReceive(const Message msg) { }
+
+struct Controller {
+    onReceive handler;
+}
+
+void demo() {
+    Controller controller;
+    controller.handler <- onReceive;
+}

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "swap-function.test.h"
+
 #include <stdint.h>
 
 // ADR-006: Classic swap pattern

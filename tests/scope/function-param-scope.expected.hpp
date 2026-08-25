@@ -17,6 +17,7 @@ extern "C" {
 float Math__add(float x, float y);
 float Math__multiply(float x, float y);
 float Math__subtract(float x, float y);
+float divide(float x, float y);
 
 #ifdef __cplusplus
 }

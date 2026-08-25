@@ -26,6 +26,12 @@ typedef struct Rectangle {
 /* External variables */
 extern Rectangle bounds;
 
+/* Function prototypes */
+int32_t getWidth(const Rectangle* rect);
+int32_t getHeight(const Rectangle* rect);
+int32_t getArea(const Rectangle* rect);
+void moveRect(Rectangle* rect, int32_t dx, int32_t dy);
+
 #ifdef __cplusplus
 }
 #endif

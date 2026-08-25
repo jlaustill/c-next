@@ -13,10 +13,18 @@
 extern "C" {
 #endif
 
+/* ADR-040: ISR function pointer type */
+typedef void (*ISR)(void);
+
 /* External variables */
 extern uint32_t invokeCallCount;
 extern uint32_t invokeLastHandler;
 extern ISR globalHandler;
+
+/* Function prototypes */
+void invokeHandler1(void);
+void invokeHandler2(void);
+void invokeHandler3(void);
 
 #ifdef __cplusplus
 }

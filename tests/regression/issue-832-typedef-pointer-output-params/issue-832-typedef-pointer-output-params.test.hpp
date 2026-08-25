@@ -8,13 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "issue-832-typedef-pointer-output-params.hpp"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct handle_t handle_t;
 
 /* External variables */
 extern handle_t my_handle;

@@ -5,15 +5,12 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "struct-array.test.hpp"
+
 #include <stdint.h>
 
 // ADR-035: Struct Array Initialization Test
 // Tests: array of structs with initializers
-typedef struct Command {
-    uint8_t code;
-    uint8_t len;
-} Command;
-
 // Array of structs with explicit size
 extern const Command commands[3] = {{ .code = 0x01U, .len = 4U }, { .code = 0x02U, .len = 8U }, { .code = 0x03U, .len = 2U }};
 

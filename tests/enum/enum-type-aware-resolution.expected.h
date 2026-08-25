@@ -33,6 +33,10 @@ typedef struct StatusConfig {
     Status status;
 } StatusConfig;
 
+/* Function prototypes */
+void setColorRed(ColorConfig* cfg);
+void setStatusRed(StatusConfig* cfg);
+
 #ifdef __cplusplus
 }
 #endif

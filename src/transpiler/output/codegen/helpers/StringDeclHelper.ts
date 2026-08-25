@@ -333,7 +333,12 @@ class StringDeclHelper {
     isConst: boolean,
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
-    const { extern, const: constMod } = modifiers;
+    const {
+      extern,
+      const: constMod,
+      atomic,
+      volatile: volatileMod,
+    } = modifiers;
 
     // String arrays: string<64> arr[4] -> char arr[4][65] = {0};
     if (arrayDims.length > 0) {
@@ -350,8 +355,12 @@ class StringDeclHelper {
 
     // Simple bounded string without initializer
     if (!expression) {
+      // #1164: `atomic`/`volatile` were dropped here while every other string
+      // declaration path carried them, so `atomic string<16> s;` produced a
+      // non-volatile definition against a `volatile` header declaration -- and,
+      // worse, an atomic that is not actually volatile.
       return {
-        code: `${extern}${constMod}char ${name}[${capacity + 1}] = "";`,
+        code: `${extern}${constMod}${atomic}${volatileMod}char ${name}[${capacity + 1}] = "";`,
         handled: true,
       };
     }

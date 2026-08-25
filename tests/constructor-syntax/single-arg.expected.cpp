@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "single-arg.test.hpp"
+
 // Issue #375: Single const argument constructor
 #include "constructor-stubs.h"
 

@@ -70,12 +70,19 @@ abstract class BaseHeaderGenerator {
     const localTypes = HeaderGeneratorUtils.getLocalTypeNames(groups);
 
     // Collect external type dependencies
+    // #1164: typedefs this header emits itself are local. Without this the
+    // header forward-declares its own callback typedef as an unknown struct.
+    const localTypeNamesWithCallbacks = new Set(localTypes.localTypeNames);
+    for (const [, cbInfo] of typeInput?.callbackTypes ?? []) {
+      localTypeNamesWithCallbacks.add(cbInfo.typedefName);
+    }
+
     const externalTypes = HeaderGeneratorUtils.collectExternalTypes(
       groups.functions,
       groups.variables,
       localTypes.localStructNames,
       localTypes.localEnumNames,
-      localTypes.localTypeNames,
+      localTypeNamesWithCallbacks,
       localTypes.localBitmapNames,
       allKnownEnums,
     );
@@ -91,12 +98,18 @@ abstract class BaseHeaderGenerator {
     const symbolTable = typeInput?.symbolTable;
 
     // Filter to C-compatible external types
+    //
+    // Issue #1200: a callback type (ADR-029) is not an external struct. It is
+    // emitted as a function-pointer typedef by generateCallbackTypedefSection
+    // below, so forward-declaring it as `typedef struct X X;` here produces two
+    // conflicting declarations of the same name -- and the name also belongs to
+    // the function the type was defined from.
     const cCompatibleExternalTypes =
       HeaderGeneratorUtils.filterCCompatibleTypes(
         externalTypes,
         typesWithHeaders,
         symbolTable,
-      );
+      ).filter((typeName) => !typeInput?.callbackTypes?.has(typeName));
 
     // Filter to C-compatible variables
     const cCompatibleVariables =
@@ -111,7 +124,17 @@ abstract class BaseHeaderGenerator {
       ...HeaderGeneratorUtils.generateIncludes(options, headersToInclude),
       ...HeaderGeneratorUtils.generateCppWrapperStart(),
       ...HeaderGeneratorUtils.generateForwardDeclarations(
-        cCompatibleExternalTypes,
+        // #1164: `typedef struct opaque_t* handle_t` is a different type from
+        // `struct handle_t`, so the usual forward declaration contradicts the
+        // real definition. Its defining header is included instead.
+        options.cHeadersIncluded
+          ? []
+          : cCompatibleExternalTypes.filter(
+              (typeName) => !(symbolTable?.isPointerTypedef(typeName) ?? false),
+            ),
+      ),
+      ...HeaderGeneratorUtils.generateIsrTypedefSection(
+        options.needsIsrTypedef ?? false,
       ),
       ...HeaderGeneratorUtils.generateEnumSection(groups.enums, typeInput),
       ...HeaderGeneratorUtils.generateBitmapSection(groups.bitmaps, typeInput),

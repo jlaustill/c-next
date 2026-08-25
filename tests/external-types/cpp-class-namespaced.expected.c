@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "cpp-class-namespaced.test.hpp"
+
 // Issue #517: Namespaced C++ class with constructor
 // Test that namespaced classes with constructors also use field assignment pattern
 #include "NamespacedCppClass.hpp"

@@ -39,6 +39,12 @@ typedef struct PointHandler {
     processPoint_fp handler;
 } PointHandler;
 
+/* Function prototypes */
+uint32_t processU8(uint8_t val);
+uint32_t processU32(uint32_t val);
+uint32_t processBool(bool val);
+uint32_t processPoint(const CallbackParamType__Point* p);
+
 #ifdef __cplusplus
 }
 #endif

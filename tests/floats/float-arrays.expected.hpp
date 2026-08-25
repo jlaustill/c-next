@@ -17,6 +17,11 @@ extern "C" {
 extern float samples_f32[10];
 extern double measurements_f64[5];
 
+/* Function prototypes */
+void test_f32_array(void);
+void test_f64_array(void);
+void test_array_init(void);
+
 #ifdef __cplusplus
 }
 #endif

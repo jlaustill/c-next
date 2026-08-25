@@ -18,14 +18,10 @@ uint32_t processU8(uint8_t val) {
     return val + 100;
 }
 
-typedef uint32_t (*processU8_fp)(uint8_t);
-
 // Callback with u32 parameter
 uint32_t processU32(uint32_t val) {
     return val + 1000;
 }
-
-typedef uint32_t (*processU32_fp)(uint32_t);
 
 // Callback with bool parameter
 uint32_t processBool(bool val) {
@@ -35,8 +31,6 @@ uint32_t processBool(bool val) {
     return 0;
 }
 
-typedef uint32_t (*processBool_fp)(bool);
-
 // Struct for struct parameter test
 /* Scope: CallbackParamType */
 
@@ -45,9 +39,31 @@ uint32_t processPoint(const CallbackParamType__Point* p) {
     return p->x + p->y;
 }
 
-typedef uint32_t (*processPoint_fp)(CallbackParamType__Point*);
-
 // Structs to hold callbacks
+U8Handler U8Handler_init(void) {
+    return (U8Handler){
+        .handler = processU8
+    };
+}
+
+U32Handler U32Handler_init(void) {
+    return (U32Handler){
+        .handler = processU32
+    };
+}
+
+BoolHandler BoolHandler_init(void) {
+    return (BoolHandler){
+        .handler = processBool
+    };
+}
+
+PointHandler PointHandler_init(void) {
+    return (PointHandler){
+        .handler = processPoint
+    };
+}
+
 int main(void) {
     U8Handler u8h = {0};
     u8h.handler = processU8;

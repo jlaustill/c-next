@@ -17,6 +17,9 @@ extern "C" {
 extern const uint32_t TEN;
 extern const uint32_t FIVE;
 
+/* Function prototypes */
+void testDivisionByConstNonZero(void);
+
 #ifdef __cplusplus
 }
 #endif

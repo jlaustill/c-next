@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern uint8_t matrix[4][8];
 
+/* Function prototypes */
+void init(void);
+
 #ifdef __cplusplus
 }
 #endif

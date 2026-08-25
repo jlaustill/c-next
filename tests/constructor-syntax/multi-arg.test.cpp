@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "multi-arg.test.hpp"
+
 // Issue #375: Multiple const argument constructor
 #include "constructor-stubs.h"
 

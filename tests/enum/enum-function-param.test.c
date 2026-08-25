@@ -3,18 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "enum-function-param.test.h"
+
 #include <stdint.h>
 
 // test-coverage: 10-enum-function-param
 // test-execution
 // Tests: Enum as function parameter
-typedef enum {
-    Status__OK = 0,
-    Status__WARNING = 1,
-    Status__ERROR = 2,
-    Status__CRITICAL = 3
-} Status;
-
 // Function that takes enum as parameter
 uint32_t getStatusCode(Status s) {
     if (s == Status__OK) {

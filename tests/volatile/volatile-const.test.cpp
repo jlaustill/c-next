@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "volatile-const.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

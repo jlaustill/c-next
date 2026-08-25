@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-fold-computed.test.hpp"
+
 // test-execution
 // Tests: Computed expressions in loops should NOT be constant-folded
 // Issue #200: Only literal true/false should fold to 1/0
@@ -29,19 +31,6 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
     return (uint8_t)(a + (uint8_t)b);
 }
-
-/* Bitmap: Flags */
-/* Fields:
- *   bit0: bit 0 (1 bit)
- *   bit1: bit 1 (1 bit)
- *   bit2: bit 2 (1 bit)
- *   bit3: bit 3 (1 bit)
- *   bit4: bit 4 (1 bit)
- *   bit5: bit 5 (1 bit)
- *   bit6: bit 6 (1 bit)
- *   bit7: bit 7 (1 bit)
- */
-typedef uint8_t Flags;
 
 int main(int argc, char *argv[]) {
     Flags f = 0;

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-offsets.test.h"
+
 #include <stdint.h>
 
 // ADR-004: Register offset calculation test

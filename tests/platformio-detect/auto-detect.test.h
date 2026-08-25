@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern volatile uint32_t counter;
 
+/* Function prototypes */
+void increment(void);
+
 #ifdef __cplusplus
 }
 #endif

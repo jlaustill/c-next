@@ -3,16 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "struct-member-access.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // ADR-014: Struct member access
 // Tests: reading and writing struct members
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 int main(void) {
     Point p = { .x = 10, .y = 20 };
     if (p.x != 10) {

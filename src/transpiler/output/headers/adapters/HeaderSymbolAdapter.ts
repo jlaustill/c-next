@@ -12,6 +12,7 @@ import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import CodeGenState from "../../../state/CodeGenState";
+import type TType from "../../../types/TType";
 
 /**
  * Adapter to convert TSymbol to IHeaderSymbol
@@ -68,9 +69,7 @@ class HeaderSymbolAdapter {
         type: TypeResolver.getTypeName(p.type),
         isConst: p.isConst,
         isArray: p.isArray,
-        arrayDimensions: p.arrayDimensions?.map((d) =>
-          typeof d === "number" ? String(d) : d,
-        ),
+        arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p),
         isAutoConst: p.isAutoConst,
       };
     });
@@ -117,12 +116,67 @@ class HeaderSymbolAdapter {
       isExported: variable.isExported,
       isConst: variable.isConst,
       isAtomic: variable.isAtomic,
+      isVolatile: variable.isVolatile,
       isArray: variable.isArray,
       arrayDimensions,
       parent: isGlobal ? undefined : variable.scope.name,
       sourceFile: variable.sourceFile,
       sourceLine: variable.sourceLine,
     };
+  }
+
+  /**
+   * A parameter's array dimensions as the C declaration needs them.
+   *
+   * A bounded string array carries its capacity as the innermost dimension --
+   * `string<32>[5]` is `char[5][33]`. ParameterSignatureBuilder documents that
+   * "dimensions include capacity" and the .c path supplies it; the header did
+   * not, so it declared `char arr[5]` against a `char arr[5][33]` definition
+   * (#1164).
+   */
+  private static headerArrayDimensions(parameter: {
+    readonly type: TType;
+    readonly arrayDimensions?: ReadonlyArray<number | string>;
+  }): string[] | undefined {
+    const dimensions = parameter.arrayDimensions?.map((d) =>
+      typeof d === "number"
+        ? String(d)
+        : HeaderSymbolAdapter.resolveConstDimension(d),
+    );
+    if (!dimensions) {
+      return undefined;
+    }
+
+    const capacityMatch = /^string<(\d+)>$/.exec(
+      TypeResolver.getTypeName(parameter.type),
+    );
+    if (!capacityMatch) {
+      return dimensions;
+    }
+
+    // Whether the capacity is present is structural, not something to infer
+    // from the trailing value: a guard comparing it to `capacity + 1` misfires
+    // for any `string<N>[N+1]` and silently declares a different type than the
+    // .c defines. IParameterSymbol.arrayDimensions never carries the capacity --
+    // FunctionCollector.collectParameters records only the declared dimensions --
+    // so it is always appended here.
+    return [...dimensions, String(Number.parseInt(capacityMatch[1], 10) + 1)];
+  }
+
+  /**
+   * Resolve a parameter's array dimension that names a `const`.
+   *
+   * C-Next resolves const-sized arrays to their value rather than emitting a C
+   * VLA, so the implementation writes `uint8_t grid[6][4]`. The header kept the
+   * source text and wrote `grid[SIZE][4]`, which is a different declaration --
+   * and in C++ not a constant expression at all, since SIZE is an `extern
+   * const` there (#1164).
+   *
+   * Enum-qualified dimensions keep their own resolution path.
+   */
+  private static resolveConstDimension(dimension: string): string {
+    const constValue = CodeGenState.constValues.get(dimension);
+    return constValue === undefined ? dimension : String(constValue);
   }
 
   private static convertStruct(

@@ -5,6 +5,8 @@
  * atomic read-modify-write requires CMSIS.
  */
 
+#include "primask-fallback.test.h"
+
 
 #include <stdint.h>
 #include <cmsis_gcc.h>

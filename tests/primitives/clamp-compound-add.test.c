@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "clamp-compound-add.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions

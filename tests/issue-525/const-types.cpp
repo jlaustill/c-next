@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-types.hpp"
+
 #include <stdint.h>
 #include <string.h>
 

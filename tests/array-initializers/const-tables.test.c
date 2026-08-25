@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-tables.test.h"
+
 #include <stdint.h>
 
 // ADR-035: Const Lookup Tables Test

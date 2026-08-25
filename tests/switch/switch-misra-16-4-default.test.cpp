@@ -3,18 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "switch-misra-16-4-default.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: MISRA C:2012 Rule 16.4 - Every switch shall have a default
 // Issue: #855
 // Verifies: Switches without explicit default get an auto-generated one
-typedef enum {
-    Status__OK = 0,
-    Status__ERROR = 1,
-    Status__PENDING = 2
-} Status;
-
 // Exhaustive enum switch - no explicit default in source
 // MISRA 16.4 requires a default case anyway
 uint32_t getStatusCode(Status s) {

@@ -17,6 +17,12 @@ extern "C" {
 extern char messageBuffer[65];
 extern char logBuffer[129];
 
+/* Function prototypes */
+uint32_t getMessageLength(void);
+uint32_t getLogLength(void);
+void copyMessage(const char* source);
+void setDefaultMessage(void);
+
 #ifdef __cplusplus
 }
 #endif

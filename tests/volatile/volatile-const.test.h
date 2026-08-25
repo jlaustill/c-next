@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint32_t hardware_status;
+extern volatile const uint32_t hardware_status;
 
 #ifdef __cplusplus
 }

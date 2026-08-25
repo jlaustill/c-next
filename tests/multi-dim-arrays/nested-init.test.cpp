@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "nested-init.test.hpp"
+
 #include <stdint.h>
 
 // ADR-036: Nested initialization syntax
