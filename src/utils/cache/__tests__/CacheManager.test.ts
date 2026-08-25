@@ -212,7 +212,7 @@ describe("CacheManager", () => {
       const configPath = join(testDir, ".cnx", "config.json");
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.structStateShape).toBe(
-        SymbolTable.structStateKeys().sort().join(","),
+        SymbolTable.structStateKeys().join(","),
       );
 
       // Simulate a build whose IStructSymbolState had one fewer field.

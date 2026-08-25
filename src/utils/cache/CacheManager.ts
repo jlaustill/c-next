@@ -49,8 +49,15 @@ const TRANSPILER_VERSION = packageJson.version;
  * be discarded -- that was CACHE_VERSION, bumped by hand, so the compile error
  * told the next person to write the field without mentioning a second step.
  * Deriving it closes the loop for exactly the change that needs it.
+ *
+ * Not sorted. `Object.keys` returns string keys in insertion order, which for
+ * an object literal is the order written in `serializeStructState` -- already
+ * deterministic. Sorting would need a comparator to satisfy SonarCloud S2871,
+ * and the obvious one, `localeCompare`, makes a cache fingerprint depend on the
+ * reader's locale. Reordering that literal changes the fingerprint and
+ * invalidates once, which costs a re-parse and nothing else.
  */
-const STRUCT_STATE_SHAPE = SymbolTable.structStateKeys().sort().join(",");
+const STRUCT_STATE_SHAPE = SymbolTable.structStateKeys().join(",");
 
 /**
  * Manages symbol cache for faster incremental builds

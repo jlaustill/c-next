@@ -132,11 +132,9 @@ describe("CachedSymbolReader", () => {
     it("validates against keys derived from the serializer, not a list", () => {
       // If this ever diverges, the reader is validating a shape the writer no
       // longer produces — the exact drift #1225 was.
-      const produced = Object.keys(
-        new SymbolTable().serializeStructState(),
-      ).sort();
+      const produced = Object.keys(new SymbolTable().serializeStructState());
 
-      expect(SymbolTable.structStateKeys().sort()).toStrictEqual(produced);
+      expect(SymbolTable.structStateKeys()).toStrictEqual(produced);
     });
   });
 });
