@@ -1064,28 +1064,42 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
     );
   });
 
-  it("keeps a real variable named like a scope as a struct chain (ADR-057)", () => {
-    setupSymbols({ knownScopes: new Set(["Other"]) });
-    // ADR-057 resolves a bare name local -> scope -> global, so the variable
-    // wins and this must NOT be read as a scope-qualified reference.
-    CodeGenState.setVariableTypeInfo(
-      "Other",
-      createTypeInfo({ baseType: "Point", bitWidth: 0 }),
-    );
+  // ADR-057 resolves a bare name local -> scope -> global. A variable of that
+  // name at ANY tier wins, so the target stays a struct chain rather than being
+  // read as the same-named scope. The tiers are keyed differently — a global
+  // under its bare name, a scope member as `Scope__name` — so covering only one
+  // of them leaves the other free to regress, which is exactly what happened.
+  const adr057ShadowCases: ReadonlyArray<
+    readonly [string, string | null, string]
+  > = [
+    ["a global", null, "Other"],
+    ["a scope member", "Reg", "Reg__Other"],
+  ];
 
-    const ctx = createMockContext({
-      identifiers: ["Other", "member"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
-      lastSubscriptExprCount: 2,
-      hasMemberAccess: true,
-      hasArrayAccess: true,
-      isSimpleIdentifier: false,
-    });
+  it.each(adr057ShadowCases)(
+    "keeps %s named like a scope as a struct chain (ADR-057)",
+    (_label, currentScope, typeInfoKey) => {
+      setupSymbols({ knownScopes: new Set(["Other"]) });
+      CodeGenState.currentScope = currentScope;
+      CodeGenState.setVariableTypeInfo(
+        typeInfoKey,
+        createTypeInfo({ baseType: "Point", bitWidth: 0 }),
+      );
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.STRUCT_CHAIN_BIT_RANGE,
-    );
-  });
+      const ctx = createMockContext({
+        identifiers: ["Other", "member"],
+        subscripts: [{} as IAssignmentContext["subscripts"][0]],
+        lastSubscriptExprCount: 2,
+        hasMemberAccess: true,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      });
+
+      expect(AssignmentClassifier.classify(ctx)).toBe(
+        AssignmentKind.STRUCT_CHAIN_BIT_RANGE,
+      );
+    },
+  );
 });
 
 // ========================================================================

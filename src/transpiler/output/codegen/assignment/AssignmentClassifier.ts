@@ -290,16 +290,12 @@ class AssignmentClassifier {
       return registerKind;
     }
 
-    // Bare `Scope.member[...]`: the fourth ADR-016 spelling (#1116). ADR-057
-    // resolves a bare name local -> scope -> global, so a real variable of that
-    // name wins and this stays a struct chain; only when the base is not a
-    // variable is it a scope reference.
-    if (typeInfo === undefined) {
-      const scopeQualifiedKind =
-        AssignmentClassifier.classifyScopeQualifiedSubscript(ctx, "");
-      if (scopeQualifiedKind !== null) {
-        return scopeQualifiedKind;
-      }
+    // Bare `Scope.member[...]`: the fourth ADR-016 spelling (#1116). A bare
+    // name resolves through ADR-057's tiers, so `resolvesBareName` is true.
+    const scopeQualifiedKind =
+      AssignmentClassifier.classifyScopeQualifiedSubscript(ctx, "", true);
+    if (scopeQualifiedKind !== null) {
+      return scopeQualifiedKind;
     }
 
     // Check for bit range through struct chain: devices[0].control[0, 4]
@@ -454,7 +450,11 @@ class AssignmentClassifier {
       // Scope-qualified variable: global.Scope.member[...]. Shared with the
       // bare spelling — see classifyScopeQualifiedSubscript.
       const scopeQualifiedKind =
-        AssignmentClassifier.classifyScopeQualifiedSubscript(ctx, "global.");
+        AssignmentClassifier.classifyScopeQualifiedSubscript(
+          ctx,
+          "global.",
+          false,
+        );
       if (scopeQualifiedKind !== null) {
         return scopeQualifiedKind;
       }
@@ -503,17 +503,61 @@ class AssignmentClassifier {
    * (#1244), `Other_flags.flags` on a scalar (#1116), and a 4-byte slice copy
    * silently rewritten as a 4-bit mask/shift.
    *
+   * The ADR-057 precondition lives HERE rather than in each caller. When it sat
+   * in the callers, the bare one gated on a lookup that silently covered only
+   * two of the three tiers, and the `global.` one gated on nothing — the two
+   * spellings shared the mechanism while each derived its own entry condition,
+   * which is the divergence this method exists to remove.
+   *
    * @param displayPrefix Diagnostic prefix matching the spelling written
+   * @param resolvesBareName Whether the base name goes through ADR-057's
+   *        local -> scope -> global order. False for `global.`, which names the
+   *        global tier outright and must not be shadowed by a nearer variable.
    * @returns null when the base is not a scope-qualified name, leaving the
    *          caller's remaining cases (member chains, plain globals) untouched
    */
+  /**
+   * Whether a bare name resolves to a variable under ADR-057's
+   * local -> scope -> global order.
+   *
+   * `getVariableTypeInfo` is keyed by the BARE name, which answers the local
+   * and global tiers. A scope member is registered as `Scope__name`, so the
+   * middle tier needs its own lookup — without it, a scope member shadowing a
+   * scope name is read as that scope and resolved against the wrong symbol.
+   */
+  private static bareNameResolvesToVariable(name: string): boolean {
+    if (CodeGenState.getVariableTypeInfo(name) !== undefined) {
+      return true;
+    }
+
+    const scope = CodeGenState.currentScope;
+    if (scope === null) {
+      return false;
+    }
+
+    return (
+      CodeGenState.getVariableTypeInfo(QualifiedCName.join(scope, name)) !==
+      undefined
+    );
+  }
+
   private static classifyScopeQualifiedSubscript(
     ctx: IAssignmentContext,
     displayPrefix: string,
+    resolvesBareName: boolean,
   ): AssignmentKind | null {
     const ids = ctx.identifiers;
     const scopeName = ids[0];
     if (!CodeGenState.isKnownScope(scopeName)) {
+      return null;
+    }
+
+    // ADR-057: a variable of that name at any tier wins, so the target is a
+    // struct chain rather than a scope reference.
+    if (
+      resolvesBareName &&
+      AssignmentClassifier.bareNameResolvesToVariable(scopeName)
+    ) {
       return null;
     }
 
