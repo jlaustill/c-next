@@ -15,6 +15,40 @@ describe("CppResolver", () => {
     symbolTable = new SymbolTable();
   });
 
+  describe("pointer typedefs (#1164)", () => {
+    it("records a typedef of a pointer to a struct rather than collecting a variable", () => {
+      const source = `struct opaque_t { int value; };
+typedef struct opaque_t* handle_t;`;
+      const tree = TestHelpers.parseCpp(source);
+      expect(tree).not.toBeNull();
+      const result = CppResolver.resolve(tree!, "handles.hpp", symbolTable);
+
+      // A pointer typedef is a type. Collected as a variable it became
+      // "handle_t of type int", and the generated header then forward-declared
+      // `typedef struct handle_t handle_t;` -- a different type entirely.
+      expect(symbolTable.isPointerTypedef("handle_t")).toBe(true);
+      expect(
+        result.symbols.filter(
+          (symbol) => symbol.name === "handle_t" && symbol.kind === "variable",
+        ),
+      ).toHaveLength(0);
+    });
+
+    it("leaves an ordinary variable declaration alone", () => {
+      const source = `int counter;`;
+      const tree = TestHelpers.parseCpp(source);
+      expect(tree).not.toBeNull();
+      const result = CppResolver.resolve(tree!, "vars.hpp", symbolTable);
+
+      expect(symbolTable.isPointerTypedef("counter")).toBe(false);
+      expect(
+        result.symbols.some(
+          (symbol) => symbol.name === "counter" && symbol.kind === "variable",
+        ),
+      ).toBe(true);
+    });
+  });
+
   describe("namespace collection", () => {
     it("collects a simple namespace", () => {
       const source = `namespace MyNamespace { }`;
