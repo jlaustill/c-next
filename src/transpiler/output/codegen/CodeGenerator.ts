@@ -129,7 +129,6 @@ import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
 import ISeparatorContext from "./types/ISeparatorContext";
 // Issue #269: Transitive modification propagation for const inference (used by analyzeModificationsOnly)
-import TransitiveModificationPropagator from "../../logic/analysis/helpers/TransitiveModificationPropagator";
 // Phase 3: Type generation helper for improved testability
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability
@@ -1767,12 +1766,10 @@ export default class CodeGenerator implements IOrchestrator {
     // Run modification analysis on the tree (adds to what was injected)
     PassByValueAnalyzer.collectFunctionParametersAndModifications(tree);
 
-    // Issue #565: Run transitive propagation with full context
-    TransitiveModificationPropagator.propagate(
-      CodeGenState.functionCallGraph,
-      CodeGenState.functionParamLists,
-      CodeGenState.modifiedParameters,
-    );
+    // Issue #565: Run transitive propagation with full context.
+    // Issue #1178: through PassByValueAnalyzer so this pass and the standalone
+    // one resolve an unresolvable callee identically.
+    PassByValueAnalyzer.propagateModifications();
 
     // Capture results - only include functions NOT from cross-file injection
     const modifications = this.extractThisFileModifications(

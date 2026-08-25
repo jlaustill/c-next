@@ -72,14 +72,122 @@ class PassByValueAnalyzer {
     PassByValueAnalyzer.injectCrossFileParamLists();
 
     // Phase 2: Fixed-point iteration for transitive modifications
+    PassByValueAnalyzer.propagateModifications();
+
+    // Phase 3: Determine which parameters can pass by value
+    PassByValueAnalyzer.computePassByValueParams();
+  }
+
+  /**
+   * Phase 2: run transitive modification propagation with the project's
+   * standard callee resolver.
+   *
+   * Both this analyzer and CodeGenerator.analyzeModificationsOnly propagate,
+   * and both must answer "does this callee modify its parameter?" the same way.
+   * They share this one entry rather than each passing their own resolver --
+   * two call sites that merely agree today are a latent divergence.
+   */
+  static propagateModifications(): void {
     TransitiveModificationPropagator.propagate(
       CodeGenState.functionCallGraph,
       CodeGenState.functionParamLists,
       CodeGenState.modifiedParameters,
+      PassByValueAnalyzer.calleeMayMutateParameter,
     );
+  }
 
-    // Phase 3: Determine which parameters can pass by value
-    PassByValueAnalyzer.computePassByValueParams();
+  /**
+   * Issue #1178: answer "may this callee mutate the caller's argument through
+   * this parameter?" for a callee that is not a C-Next function in this build.
+   *
+   * The propagator reaches here only when `functionParamLists` has no entry for
+   * the callee. That used to mean "assume pure", which applied auto-const on the
+   * strength of an absent answer. A C or C++ declaration is a definitive answer,
+   * so consult it; only a callee nothing knows about falls back to the safe
+   * assumption that it mutates.
+   */
+  private static calleeMayMutateParameter(
+    callee: string,
+    paramIndex: number,
+  ): boolean {
+    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(callee) ?? [];
+    for (const symbol of symbols) {
+      if (symbol.kind !== "function") continue;
+      const parameters = (
+        symbol as {
+          parameters?: ReadonlyArray<{
+            type?: string;
+            isArray?: boolean;
+            isConst?: boolean;
+          }>;
+        }
+      ).parameters;
+      const parameter = parameters?.[paramIndex];
+      if (!parameter) continue;
+      return PassByValueAnalyzer.parameterCarriesIndirection(
+        parameter.type ?? "",
+        parameter.isArray ?? false,
+        parameter.isConst ?? false,
+      );
+    }
+    // Nothing declares this callee -- withhold auto-const rather than assume it.
+    return true;
+  }
+
+  /**
+   * Whether a C/C++ parameter lets the callee change something the caller can
+   * observe.
+   *
+   * A by-value parameter is a copy, so it cannot. An array, pointer or
+   * reference can -- unless the declaration says const, in which case the
+   * callee may not write through it and auto-const on the caller's parameter
+   * is still sound.
+   */
+  private static parameterCarriesIndirection(
+    type: string,
+    isArray: boolean,
+    isConst: boolean,
+  ): boolean {
+    if (isConst) return false;
+    if (isArray) return true;
+    return PassByValueAnalyzer.typeIsIndirect(type);
+  }
+
+  /**
+   * Follow typedef aliases looking for pointer or reference indirection.
+   * A typedef can hide it entirely (`typedef struct spi_device_t
+   * *spi_device_handle_t`), so the alias chain is followed rather than the
+   * spelling pattern-matched. Bounded so a self-referential chain cannot spin.
+   */
+  private static typeIsIndirect(type: string): boolean {
+    let current = type;
+    const seen = new Set<string>();
+    for (let hop = 0; hop < 8; hop++) {
+      if (/[*&]/.test(current)) return true;
+      const bare = current
+        .replace(/\b(const|volatile|struct|union|enum)\b/g, "")
+        .trim();
+      if (!bare || seen.has(bare)) return false;
+      seen.add(bare);
+      const alias = PassByValueAnalyzer.resolveTypedefTarget(bare);
+      if (alias === null) return false;
+      current = alias;
+    }
+    return false;
+  }
+
+  /**
+   * The underlying type of a C/C++ typedef, or null when the name is not a
+   * typedef this build has seen.
+   */
+  private static resolveTypedefTarget(name: string): string | null {
+    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(name) ?? [];
+    for (const symbol of symbols) {
+      if (symbol.kind !== "type") continue;
+      const aliased = (symbol as { type?: string }).type;
+      if (typeof aliased === "string" && aliased.length > 0) return aliased;
+    }
+    return null;
   }
 
   /**

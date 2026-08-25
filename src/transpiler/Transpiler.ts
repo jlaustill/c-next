@@ -1588,9 +1588,14 @@ class Transpiler {
           type: symbol.type,
           isExported: symbol.isExported ?? true,
           isDeclaration: symbol.isDeclaration,
+          // isConst must survive the round trip: DeclaratorUtils records it and
+          // #1178 reads it to tell `const T*` (cannot write through) from `T*`
+          // (can). Dropping it here made a warm cache and a cold cache disagree
+          // about the same header.
           parameters: symbol.parameters?.map((p) => ({
             name: p.name,
             type: p.type,
+            isConst: p.isConst,
             isArray: p.isArray,
           })),
           arrayDimensions: symbol.arrayDimensions?.map(String),
