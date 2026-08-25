@@ -1,3 +1,4 @@
+// test-adr: 051
 // test-error
 // E0800/E0802: division and modulo by a const zero -- matrix cell: imported direct (1 hop)
 
