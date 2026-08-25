@@ -643,6 +643,61 @@ void testFloatDivisionByZero() {
 
 ---
 
+### 5. Scope-Context Matrix (#1219)
+
+A division can appear in all four structural contexts, and the check must hold in
+each of them however the zero-valued `const` reaches the division. No cell on the
+derivable axes is `off` for this ADR.
+
+Severity follows the eslint model: `off` records that a cell cannot exist for this
+feature, `warn` that it should be covered and is not, `error` that it must be.
+Undeclared cells are `off`.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+Two limits of the tooling apply to any ADR declaring a matrix, both tracked as
+#1241. First, only a fixture with an `.expected.error` can occupy a cell, because
+context is derived from the diagnostic's position; an ADR covering codegen
+behaviour rather than a diagnostic cannot satisfy an `error` cell yet. Second, the
+relationship axis measures the deepest include chain reachable from the fixture
+rather than the hops to the declaration under test, so a helper that gains an
+unrelated include silently moves the cells its consumers occupy.
+
+All twelve derivable cells are `error`, and all twelve are occupied -- see
+`docs/scope-context-matrix.md`.
+
+The eight cross-file cells were `warn` while they were **known broken** (#1217):
+the constant folding behind E0800 resolved `const` values from the current
+file's symbol table only, so an imported zero was treated as a runtime variable
+and the check was skipped. Declaring them `error` then would have failed the
+gate on a transpiler defect rather than on missing tests.
+
+#1217 is fixed (#1237), which also contributed the fixtures. Three of them --
+`tests/bugs/issue-1220-analyzer-cross-file-symbols/division-by-zero-{same-file,
+imported-direct,imported-transitive}.test.cnx` -- each exercise a const zero in
+all four contexts at one file relationship, so between them they occupy the
+whole grid. The condition this table recorded has been met, so the cells are
+promoted.
+
+The two provider-side relationships carry no declaration: `.expected.error`
+holds no file path, so occupancy for them is not derivable and the report
+renders them `n/a` rather than counting them empty.
+
 ## Implementation Plan
 
 ### Phase 1: Compile-Time Detection

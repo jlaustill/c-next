@@ -1,3 +1,4 @@
+// test-adr: 051
 // ADR-051: Division by literal zero should fail at compile time
 void testLiteralZero() {
     // Literal zero division

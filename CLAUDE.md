@@ -353,6 +353,28 @@ foo.expected.error    # Expected error (if test-error)
 ### Gotchas
 
 - **Cross-file testing**: Always test with symbols in included files, not just same-file
+- **Scope-context matrix (#1219)**: a check that works in one context routinely fails in
+  another, and the corpus does not notice — 35 of 37 error codes have **zero** cross-file
+  fixtures and none has a 2+hop one. An ADR owns its matrix: declare per-cell severity in a
+  `<!-- MATRIX-SEVERITY -->` table (`off` / `warn` / `error`, undeclared → `off`), mark
+  fixtures with `// test-adr: 051`, and run `npm run coverage:matrix`. Occupancy is
+  **derived** — the context from the diagnostic's position through the parse tree, the file
+  relationship from the include graph — so never declare a cell a fixture occupies; declare
+  only the obligation. `off` is the recorded claim that a cell _cannot_ exist (a division
+  cannot appear in a file-scope initializer), which is why exemptions live in the ADR where
+  they get reviewed. `npm run coverage:matrix:check` gates in the `lint` job and fails on an
+  unoccupied `error` cell or a stale `docs/scope-context-matrix.md`
+- **Matrix limits, both tracked as #1241**: (1) only a fixture with an `.expected.error` can
+  occupy a cell — context comes from the diagnostic's position, so a codegen-only fixture
+  (ADR-006, ADR-049) lands in "context not derivable" and **cannot** satisfy an `error` cell
+  yet; declaring one gives a red gate with no path to green. (2) The relationship axis uses
+  the deepest include chain reachable from the fixture, not the hops to the declaration under
+  test — so **a helper feeding a matrix fixture cannot gain an include without silently
+  moving cells**, and the gate will blame the fixture for missing tests
+- **Presence is not proof**: a cell showing `ok` means a fixture reaches it, not that the
+  fixture would **fail** if the feature broke. #1222 is exactly that — regression fixtures
+  that cannot fail if the fix is reverted. Mutation-check anything you add: break the thing
+  it watches and confirm it goes red
 - **String comparison vs indexing**: `a = b` / `a != b` on whole `string<N>` values compiles to `strcmp` (value comparison, ADR-045). Indexing a string (`s[i]`) yields a `char` and compares as a `char` — e.g. `s[0] != 'H'` generates `s[0] != 'H'`, not `strcmp`. (Verified 2026-06-26; the prior note claiming `str[0]` generates `strcmp` was stale.)
 - **Array declarations**: use prefix syntax `u32[N] arr` — C-style `u32 arr[N]` is rejected. `N` may be a literal or a `const`; the transpiler resolves consts to their value (no C VLA), so const-sized arrays are fine
 - **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)

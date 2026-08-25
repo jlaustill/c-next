@@ -1,3 +1,4 @@
+// test-adr: 051
 // test-error
 // Tests: Division by literal zero should be caught at compile time (E0800)
 

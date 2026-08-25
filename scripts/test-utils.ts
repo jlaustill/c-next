@@ -589,6 +589,43 @@ class TestUtils {
     return helperFiles;
   }
 
+  /**
+   * Issue #1219: ADRs a fixture declares it exercises.
+   *
+   * Marker form: `// test-adr: 051, 057` -- consistent with the
+   * `test-execution` / `test-link:` family, and deliberately NOT the prose
+   * `// ADR-051: ...` convention 414 fixtures already use. Prose mentions
+   * include references that are not coverage claims
+   * (`// NOTE (ADR-063 / #1117): these calls used to be written ...`), so
+   * treating them as a contract would over-claim.
+   *
+   * Intent is the one fact in the matrix that is NOT derivable: a fixture's
+   * structure shows that it CONTAINS a division, never that its purpose is
+   * proving the division check fires. The cell it occupies stays derived.
+   *
+   * @returns zero-padded three-digit ADR numbers, deduplicated, in source order
+   */
+  static findAdrReferences(source: string): string[] {
+    const adrRegex: RegExp = /^\s*\/\/\s*test-adr:\s*(.+)$/gim;
+    const found: string[] = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = adrRegex.exec(source)) !== null) {
+      const ids: string[] = match[1]
+        .split(",")
+        .map((id: string) => id.trim())
+        .filter(Boolean);
+      for (const id of ids) {
+        const digits: RegExpExecArray | null = /^(?:ADR-)?(\d{1,3})$/i.exec(id);
+        if (digits === null) continue;
+        const normalized: string = digits[1].padStart(3, "0");
+        if (!found.includes(normalized)) found.push(normalized);
+      }
+    }
+
+    return found;
+  }
+
   static findLinkedSourceFiles(testFile: string, source: string): string[] {
     const testDir: string = dirname(testFile);
     const linkedFiles: string[] = [];
