@@ -15,6 +15,7 @@ import PassByValueAnalyzer from "../PassByValueAnalyzer.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import SymbolTable from "../../symbols/SymbolTable.js";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage.js";
+import ScopeUtils from "../../../../utils/ScopeUtils.js";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol.js";
 
 interface IParameterShape {
@@ -163,7 +164,9 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
       ]),
     );
 
-    expect(callerParameterIsModified("take_loop")).toBe(false);
+    // Terminating on a repeat means the chain is unfinished, not by-value, so
+    // it fails safe like hop exhaustion.
+    expect(callerParameterIsModified("take_loop")).toBe(true);
   });
 
   it("fails safe when nothing declares the callee", () => {
@@ -251,5 +254,82 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
     );
 
     expect(callerParameterIsModified("emit")).toBe(false);
+  });
+
+  describe("indirect (ADR-029 callback) invocation", () => {
+    const declareCVariable = (name: string): TCSymbol =>
+      ({
+        kind: "variable",
+        name,
+        sourceFile: "sink.h",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+        type: "void*",
+      }) as TCSymbol;
+
+    it("keeps auto-const when the callee is one of the caller's parameters", () => {
+      // `void forward(handler cb, u8 value) { cb(value); }` -- `cb` is a value,
+      // so no declaration will ever match it. Failing safe here fired on every
+      // callback by construction.
+      CodeGenState.functionCallGraph.clear();
+      CodeGenState.functionParamLists.clear();
+      CodeGenState.modifiedParameters.clear();
+      CodeGenState.functionParamLists.set("forward", ["cb", "value"]);
+      CodeGenState.modifiedParameters.set("forward", new Set());
+      CodeGenState.functionCallGraph.set("forward", [
+        { callee: "cb", paramIndex: 0, argParamName: "value" },
+      ]);
+
+      PassByValueAnalyzer.propagateModifications();
+
+      expect(CodeGenState.modifiedParameters.get("forward")!.has("value")).toBe(
+        false,
+      );
+    });
+
+    it("keeps auto-const when the callee is a variable rather than a function", () => {
+      CodeGenState.symbolTable.addCSymbol(declareCVariable("listener"));
+
+      expect(callerParameterIsModified("listener")).toBe(false);
+    });
+
+    it("still fails safe for a name that is neither parameter nor variable", () => {
+      // The guard must not swallow the case #1178 exists for.
+      expect(callerParameterIsModified("undeclared_function")).toBe(true);
+    });
+  });
+
+  it("ignores a C-Next symbol, whose parameter types are not strings", () => {
+    // getOverloadsByCName spans all three languages and a C-Next
+    // IFunctionSymbol also has kind "function", but its IParameterInfo.type is
+    // a TType object. Reading it as a string reached .replace() on an object,
+    // turning a clean "Symbol conflict" diagnostic into an internal crash.
+    const cnextFunction = {
+      kind: "function",
+      name: "emit",
+      scope: ScopeUtils.createGlobalScope(),
+      sourceFile: "a.cnx",
+      sourceLine: 1,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: true,
+      visibility: "public",
+      body: undefined,
+      returnType: { kind: "primitive", primitive: "void" },
+      parameters: [
+        {
+          name: "b",
+          type: { kind: "primitive", primitive: "u8" },
+          isConst: false,
+          isArray: false,
+        },
+      ],
+    } as unknown as Parameters<typeof CodeGenState.symbolTable.addTSymbol>[0];
+    CodeGenState.symbolTable.addTSymbol(cnextFunction);
+
+    // Must not throw, and must fall through to the fail-safe rather than
+    // answering from a shape it cannot read.
+    expect(() => callerParameterIsModified("emit")).not.toThrow();
+    expect(callerParameterIsModified("emit")).toBe(true);
   });
 });

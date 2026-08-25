@@ -10,6 +10,7 @@
 import type {
   CompilationUnitContext,
   DeclarationContext,
+  DeclaratorContext,
   DeclarationSpecifiersContext,
   DeclarationSpecifierContext,
 } from "../../parser/c/grammar/CParser";
@@ -418,12 +419,20 @@ class CResolver {
    * struct itself -- and a consumer asking "can the callee write through this
    * parameter?" was told no.
    */
-  static buildTypedefType(baseType: string, declarator: any): string {
+  static buildTypedefType(
+    baseType: string,
+    declarator: DeclaratorContext,
+  ): string {
     if (CResolver.isFunctionPointerDeclarator(declarator)) {
       return `${baseType} (*)(${CResolver.extractParamText(declarator)})`;
     }
-    if (declarator?.pointer?.()) {
-      return `${baseType}*`;
+    // Keep the declarator's pointer depth, not merely its presence: the symbol
+    // model is shared, and a consumer that wants the pointer probably wants the
+    // right number of them (`typedef struct Sample **Grid`).
+    const pointerText = declarator?.pointer?.()?.getText() ?? "";
+    const depth = (pointerText.match(/\*/g) ?? []).length;
+    if (depth > 0) {
+      return `${baseType}${"*".repeat(depth)}`;
     }
     return baseType;
   }

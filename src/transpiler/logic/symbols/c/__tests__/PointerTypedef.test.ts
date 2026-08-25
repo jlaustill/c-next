@@ -74,6 +74,14 @@ describe("Issue #1178 - typedef records declarator indirection", () => {
     ).not.toContain("*");
   });
 
+  it("records the declarator's pointer depth, not merely its presence", () => {
+    // The symbol model is shared; a consumer that wants the pointer wants the
+    // right number of them.
+    expect(
+      recordedTypedefType(`typedef struct Sample **Grid;`, "Grid"),
+    ).toContain("**");
+  });
+
   it("still reconstructs a function-pointer typedef", () => {
     expect(
       recordedTypedefType(`typedef void (*Callback)(int);`, "Callback"),

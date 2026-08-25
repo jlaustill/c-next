@@ -1,0 +1,61 @@
+// test-execution
+// Issue #1178 review: an ADR-029 callback invocation calls a *value* -- a
+// parameter or a scope field -- not a function name. Nothing declares that
+// name, so #1178's "unresolvable callee, assume it mutates" fail-safe fired on
+// every callback by construction, not by accident.
+//
+// In C that produced the discarded compound literal #1203 is about:
+//
+//     void forward(handler_fp cb, uint8_t* value)
+//     forward(handler, &(uint8_t){3U})
+//
+// and in C++ it produced `uint8_t& value`, which g++ rejects outright:
+// "cannot bind non-const lvalue reference of type 'uint8_t&' to a value of
+// type 'unsigned int'".
+//
+// Both forms below must keep pass-by-value and auto-const, matching a direct
+// call. The mutating and non-mutating targets are paired so the guard cannot
+// be satisfied by blanket-disabling the fail-safe for every callback: `record`
+// writes through its parameter and `inspect` does not.
+struct Sample {
+    u8 value;
+}
+
+u8 witness <- 0;
+
+void record(u8 v) {
+    witness <- v;
+}
+
+void inspect(u8 v) {
+}
+
+void viaParameter(record cb, u8 value) {
+    cb(value);
+}
+
+scope Bus {
+    inspect listener <- inspect;
+
+    public u8 publish(u8 value) {
+        listener(value);
+        return value;
+    }
+}
+
+u32 main() {
+    u8 sent <- 7;
+
+    viaParameter(record, sent);
+    if (witness != 7) { return 1; }
+
+    // The argument must survive by value -- a phantom modification would have
+    // routed it through a discarded temporary.
+    if (sent != 7) { return 2; }
+
+    u8 echoed <- Bus.publish(sent);
+    if (echoed != 7) { return 3; }
+    if (sent != 7) { return 4; }
+
+    return 0;
+}

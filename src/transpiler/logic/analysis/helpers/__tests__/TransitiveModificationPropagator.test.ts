@@ -342,8 +342,8 @@ describe("TransitiveModificationPropagator", () => {
       expect(modifiedParameters.get("caller")).toEqual(new Set());
     });
 
-    it("consults the resolver with the callee name and parameter index", () => {
-      const asked: Array<[string, number]> = [];
+    it("consults the resolver with the caller, callee and parameter index", () => {
+      const asked: Array<[string, string, number]> = [];
       const modifiedParameters = new Map([["caller", new Set<string>()]]);
 
       TransitiveModificationPropagator.propagate(
@@ -355,13 +355,15 @@ describe("TransitiveModificationPropagator", () => {
         ]),
         paramListsWithoutCallee(),
         modifiedParameters,
-        (callee, paramIndex) => {
-          asked.push([callee, paramIndex]);
+        (callerName, callee, paramIndex) => {
+          asked.push([callerName, callee, paramIndex]);
           return false;
         },
       );
 
-      expect(asked).toContainEqual(["widget_move", 1]);
+      // The caller is threaded through so the resolver can tell an ADR-029
+      // callback invocation from an undeclared function.
+      expect(asked).toContainEqual(["caller", "widget_move", 1]);
     });
 
     it("treats a parameter index past the callee's arity as unresolvable", () => {

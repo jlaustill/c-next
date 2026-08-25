@@ -36,7 +36,11 @@ class TransitiveModificationPropagator {
     functionCallGraph: ReadonlyMap<string, readonly ICallInfo[]>,
     functionParamLists: ReadonlyMap<string, string[]>,
     modifiedParameters: Map<string, Set<string>>,
-    resolveCalleeMayMutate: (callee: string, paramIndex: number) => boolean,
+    resolveCalleeMayMutate: (
+      callerName: string,
+      callee: string,
+      paramIndex: number,
+    ) => boolean,
   ): void {
     let changed = true;
     while (changed) {
@@ -67,7 +71,11 @@ class TransitiveModificationPropagator {
     call: ICallInfo,
     functionParamLists: ReadonlyMap<string, string[]>,
     modifiedParameters: Map<string, Set<string>>,
-    resolveCalleeMayMutate: (callee: string, paramIndex: number) => boolean,
+    resolveCalleeMayMutate: (
+      callerName: string,
+      callee: string,
+      paramIndex: number,
+    ) => boolean,
   ): boolean {
     const { callee, paramIndex, argParamName } = call;
 
@@ -84,7 +92,7 @@ class TransitiveModificationPropagator {
       // A C/C++ declaration answers definitively; anything still unknown fails
       // safe by withholding auto-const, which costs a missed `const` rather
       // than an incorrect one.
-      if (!resolveCalleeMayMutate(callee, paramIndex)) {
+      if (!resolveCalleeMayMutate(callerName, callee, paramIndex)) {
         return false;
       }
       return TransitiveModificationPropagator.markParamModified(
