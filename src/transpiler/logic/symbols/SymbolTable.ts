@@ -1081,7 +1081,10 @@ class SymbolTable {
           target.set(entryKey, entryValue);
         }
       } else {
-        throw new Error(
+        // TypeError, not Error: the condition above is an instanceof check
+        // (SonarCloud S7786), and what went wrong is genuinely a field whose
+        // type has no merge rule.
+        throw new TypeError(
           `SymbolTable.mergeStructState: no merge rule for struct-state field "${key}". ` +
             `Add one -- a silently skipped field is how #1225 happened.`,
         );
