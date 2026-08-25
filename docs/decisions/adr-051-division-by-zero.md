@@ -670,6 +670,14 @@ Undeclared cells are `off`.
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
 
+Two limits of the tooling apply to any ADR declaring a matrix, both tracked as
+#1241. First, only a fixture with an `.expected.error` can occupy a cell, because
+context is derived from the diagnostic's position; an ADR covering codegen
+behaviour rather than a diagnostic cannot satisfy an `error` cell yet. Second, the
+relationship axis measures the deepest include chain reachable from the fixture
+rather than the hops to the declaration under test, so a helper that gains an
+unrelated include silently moves the cells its consumers occupy.
+
 All twelve derivable cells are `error`, and all twelve are occupied -- see
 `docs/scope-context-matrix.md`.
 

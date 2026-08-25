@@ -81,15 +81,28 @@ function directIncludes(
  *
  * `visited` is copied per branch rather than shared, so a diamond (two paths
  * reaching one file) still measures the longer path instead of whichever
- * branch happened to be walked first. It still terminates: a cycle revisits a
- * file already on the current path.
+ * branch happened to be walked first.
+ *
+ * KNOWN LIMITATION (#1241). This measures the deepest chain reachable from the
+ * fixture, NOT the hop distance to the declaration the diagnostic is about. The
+ * two matrix axes are therefore derived at different levels of granularity: the context
+ * axis resolves an exact diagnostic position through the parse tree, while this
+ * axis asks a whole-file question.
+ *
+ * The consequence is real and will bite someone: a fixture whose tested `const`
+ * sits one hop away is classified `imported-transitive` the moment its provider
+ * gains an include for reasons of its own. **A helper feeding a matrix fixture
+ * cannot gain an include without silently moving cells**, and the gate will
+ * report the fixture's own cells as missing tests.
+ *
+ * Fixing this properly needs to know which file a construct came from, which is
+ * what extending the #1143 provenance recorder provides -- tracked as #1241.
  */
 function maxDepth(
   file: string,
   searchPaths: readonly string[] = [],
   visited: ReadonlySet<string> = new Set(),
 ): number {
-  if (visited.has(file)) return 0;
   const onPath = new Set(visited);
   onPath.add(file);
 

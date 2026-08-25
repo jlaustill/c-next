@@ -11,6 +11,8 @@ import MatrixCell from "./MatrixCell";
 import MatrixReport from "./MatrixReport";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
+import TMatrixContext from "../types/TMatrixContext";
+import TMatrixRelationship from "../types/TMatrixRelationship";
 
 const BANNER = `<!-- GENERATED FILE - DO NOT EDIT.
      Source: the fixture corpus under tests/ plus each ADR's MATRIX-SEVERITY table.
@@ -43,19 +45,20 @@ const ROW_LABELS: Record<string, string> = {
 function renderCell(
   declaration: IMatrixDeclaration | undefined,
   occupancy: IMatrixOccupancy | undefined,
-  context: string,
-  relationship: string,
+  context: TMatrixContext,
+  relationship: TMatrixRelationship,
 ): string {
   const severity =
     declaration === undefined
       ? "off"
-      : AdrMatrixDeclaration.severityOf(
-          declaration,
-          context as never,
-          relationship as never,
-        );
+      : AdrMatrixDeclaration.severityOf(declaration, context, relationship);
   const occupied = MatrixReport.isOccupied(occupancy, context, relationship);
 
+  // The `occupied` arm is unreachable today: FixtureOccupancy only ever writes
+  // keys built from MatrixCell.relationshipForDepth, which returns one of the
+  // three derivable relationships, so no provider-side cell can carry an
+  // occupant until #1241 lands. Kept because it is the correct behavior then,
+  // not because anything currently exercises it.
   if (!MatrixCell.isDerivable(relationship)) return occupied ? "ok" : "n/a";
   if (occupied) return "ok";
   if (severity === "error") return "**MISSING**";

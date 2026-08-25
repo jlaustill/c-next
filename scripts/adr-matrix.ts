@@ -10,14 +10,14 @@
  * declared obligations.
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 import prettier from "prettier";
 
-import AdrMatrixDeclaration from "./matrix/AdrMatrixDeclaration";
+import AdrDeclarationReader from "./matrix/AdrDeclarationReader";
 import FixtureOccupancy from "./matrix/FixtureOccupancy";
 import MatrixRenderer from "./matrix/MatrixRenderer";
 import MatrixReport from "./matrix/MatrixReport";
@@ -29,25 +29,6 @@ const decisionsDir = join(rootDir, "docs", "decisions");
 const testsDir = join(rootDir, "tests");
 const reportPath = join(rootDir, "docs", "scope-context-matrix.md");
 const searchPaths = [join(testsDir, "include")];
-
-/** Every ADR's declared matrix, keyed by zero-padded number. */
-function readDeclarations(): Map<string, IMatrixDeclaration> {
-  const declarations = new Map<string, IMatrixDeclaration>();
-  if (!existsSync(decisionsDir)) return declarations;
-
-  for (const entry of readdirSync(decisionsDir).sort()) {
-    const match = /^adr-(\d{3})-.*\.md$/.exec(entry);
-    if (match === null) continue;
-    const markdown = readFileSync(join(decisionsDir, entry), "utf-8");
-    const declaration = AdrMatrixDeclaration.parse(markdown, match[1]);
-    // Only ADRs that actually declare a matrix take part.
-    if (declaration.severities.size === 0 && declaration.errors.length === 0) {
-      continue;
-    }
-    declarations.set(match[1], declaration);
-  }
-  return declarations;
-}
 
 /**
  * Format through Prettier before writing or comparing.
@@ -71,7 +52,7 @@ async function render(): Promise<{
   occupancy: ReturnType<typeof FixtureOccupancy.build>;
   declarationErrors: string[];
 }> {
-  const declarations = readDeclarations();
+  const declarations = AdrDeclarationReader.read(decisionsDir);
   const fixtures = existsSync(testsDir)
     ? FileScanner.findTestFiles(testsDir)
     : [];
@@ -95,6 +76,35 @@ function printViolations(
       `  ${label}  ADR-${violation.adr}  ${violation.context} / ${violation.relationship}`,
     );
   }
+}
+
+/**
+ * Explain an empty `error` cell when the ADR's fixtures cannot be placed.
+ *
+ * Only a fixture with an `.expected.error` can occupy a cell today, so an ADR
+ * covering codegen behavior (ADR-006, ADR-049) can declare `error` cells and
+ * have real fixtures that still cannot satisfy them. Without this the gate is
+ * red with no path to green and no explanation.
+ */
+function printContextNotDerivableHint(
+  errors: ReturnType<typeof MatrixReport.violations>,
+  occupancy: ReturnType<typeof FixtureOccupancy.build>,
+): void {
+  const affected = [
+    ...new Set(errors.map((violation) => violation.adr)),
+  ].filter(
+    (adr) => (occupancy.get(adr)?.fixturesWithoutContext.length ?? 0) > 0,
+  );
+  if (affected.length === 0) return;
+
+  console.error(
+    chalk.yellow(
+      `\nNote: ADR-${affected.join(", ADR-")} ` +
+        `${affected.length === 1 ? "has" : "have"} linked fixtures whose context could not be derived.\n` +
+        `Only a fixture with an .expected.error can occupy a cell today -- context comes from the\n` +
+        `diagnostic's position. Codegen-only fixtures cannot satisfy a cell until #1241 lands.`,
+    ),
+  );
 }
 
 function printSummary(
@@ -166,7 +176,10 @@ async function main(): Promise<void> {
 
   if (failures.length > 0) {
     console.error(chalk.red(failures.join("\n")));
-    if (errors.length > 0) printViolations(errors);
+    if (errors.length > 0) {
+      printViolations(errors);
+      printContextNotDerivableHint(errors, occupancy);
+    }
     process.exit(1);
   }
 
@@ -179,7 +192,15 @@ async function main(): Promise<void> {
     );
     printViolations(warnings);
   }
-  console.log(chalk.green("Scope-context matrix is satisfied"));
+  // Say what was enforced, not just that nothing failed. An identical
+  // "satisfied" line for twelve obligations and for zero is what would let a
+  // silently-emptied severity table pass unremarked in a CI log.
+  console.log(
+    chalk.green(
+      `Scope-context matrix is satisfied ` +
+        `(${declarations.size} ADR(s), ${MatrixReport.obligationCount(declarations)} obligation(s))`,
+    ),
+  );
 }
 
 main().catch((err) => {

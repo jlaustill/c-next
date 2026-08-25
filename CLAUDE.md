@@ -364,6 +364,13 @@ foo.expected.error    # Expected error (if test-error)
   cannot appear in a file-scope initializer), which is why exemptions live in the ADR where
   they get reviewed. `npm run coverage:matrix:check` gates in the `lint` job and fails on an
   unoccupied `error` cell or a stale `docs/scope-context-matrix.md`
+- **Matrix limits, both tracked as #1241**: (1) only a fixture with an `.expected.error` can
+  occupy a cell — context comes from the diagnostic's position, so a codegen-only fixture
+  (ADR-006, ADR-049) lands in "context not derivable" and **cannot** satisfy an `error` cell
+  yet; declaring one gives a red gate with no path to green. (2) The relationship axis uses
+  the deepest include chain reachable from the fixture, not the hops to the declaration under
+  test — so **a helper feeding a matrix fixture cannot gain an include without silently
+  moving cells**, and the gate will blame the fixture for missing tests
 - **Presence is not proof**: a cell showing `ok` means a fixture reaches it, not that the
   fixture would **fail** if the feature broke. #1222 is exactly that — regression fixtures
   that cannot fail if the fix is reverted. Mutation-check anything you add: break the thing

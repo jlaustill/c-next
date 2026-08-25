@@ -76,24 +76,39 @@ function parse(markdown: string, adr: string): IMatrixDeclaration {
     const isTableRow = /^\s*\|/.test(line);
 
     if (!isTableRow) {
-      // Blank lines between the marker and the table are fine; anything else
-      // after the table has begun ends it.
+      // Anything at all may sit between the marker and the table -- prose,
+      // headings, a list. The first markdown table after the marker is taken
+      // as the severity table. Once it has begun, any non-table line ends it.
       if (started && line.trim() !== "") break;
       continue;
     }
     if (isSeparatorRow(line)) continue;
 
     const cells = splitRow(line);
-    if (cells.length < 3) continue;
 
-    const [rawContext, rawRelationship, rawSeverity] = cells;
+    // Recognize the header by its FIRST cell only, before checking the width.
+    // A header whose Relationship column was deleted still marks where the
+    // table starts; requiring three cells first meant a malformed table never
+    // started the scan, so every short row was skipped in silence and the walk
+    // continued into whatever unrelated table came next.
+    const isHeaderRow = slug(cells[0]) === "context";
+    if (isHeaderRow) started = true;
 
-    // Header row.
-    if (slug(rawContext) === "context" && slug(rawSeverity) === "severity") {
-      started = true;
+    if (cells.length < 3) {
+      // Only report once the table has been located, so a stray one- or
+      // two-column table before it is not mistaken for a malformed severity
+      // table.
+      if (started) {
+        errors.push(
+          `ADR-${adr}: malformed row "${line.trim()}" (expected context | relationship | severity)`,
+        );
+      }
       continue;
     }
+    if (isHeaderRow) continue;
     started = true;
+
+    const [rawContext, rawRelationship, rawSeverity] = cells;
 
     const context = slug(rawContext);
     const relationship = slug(rawRelationship);

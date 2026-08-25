@@ -1,3 +1,5 @@
+import TMatrixContext from "./TMatrixContext";
+import TMatrixRelationship from "./TMatrixRelationship";
 import TMatrixSeverity from "./TMatrixSeverity";
 
 /**
@@ -5,8 +7,8 @@ import TMatrixSeverity from "./TMatrixSeverity";
  */
 interface IMatrixViolation {
   readonly adr: string;
-  readonly context: string;
-  readonly relationship: string;
+  readonly context: TMatrixContext;
+  readonly relationship: TMatrixRelationship;
   /** Always `warn` or `error`; an `off` cell cannot be violated. */
   readonly severity: TMatrixSeverity;
 }

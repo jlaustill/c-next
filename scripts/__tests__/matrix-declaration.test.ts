@@ -135,6 +135,68 @@ describe("AdrMatrixDeclaration.parse", () => {
     ).toBe("warn");
   });
 
+  it("reports a row with a missing column instead of skipping it", () => {
+    // Verified against the real ADR: dropping the Relationship column from all
+    // twelve ADR-051 rows previously produced zero cells AND zero errors, so
+    // `check` printed "satisfied" with every obligation gone. The staleness
+    // diff could not catch it either -- the report renders from occupancy and
+    // came out byte-identical.
+    const markdown = [
+      AdrMatrixDeclaration.SEVERITY_MARKER,
+      "",
+      "| Context | Severity |",
+      "| ------- | -------- |",
+      "| global variable | error |",
+      "| top-level function | error |",
+      "",
+      "Prose after, no further table.",
+    ].join("\n");
+
+    const result = AdrMatrixDeclaration.parse(markdown, "051");
+    expect(result.severities.size).toBe(0);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors.join("\n")).toContain("malformed row");
+  });
+
+  it("reports a single short row while the rest of the table still parses", () => {
+    // Worse than the all-rows case: the other rows parse, so the ADR is not
+    // dropped, and exactly one cell silently becomes `off`.
+    const result = AdrMatrixDeclaration.parse(
+      withTable(
+        [
+          "| top-level function | same file | error |",
+          "| scope method | error |",
+        ].join("\n"),
+      ),
+      "051",
+    );
+    expect(result.severities.size).toBe(1);
+    expect(result.errors.join("\n")).toContain("malformed row");
+  });
+
+  it("does not keep scanning into a later table when the header is malformed", () => {
+    // The short-row skip also left `started` false, so the walk continued past
+    // the severity table and latched onto whatever markdown table came next --
+    // reporting nonsense from an unrelated table instead of the real fault.
+    const markdown = [
+      AdrMatrixDeclaration.SEVERITY_MARKER,
+      "",
+      "| Context | Severity |",
+      "| ------- | -------- |",
+      "| global variable | error |",
+      "",
+      "## Some Later Section",
+      "",
+      "| Phase | Description | Status |",
+      "| ----- | ----------- | ------ |",
+      "| 1     | Detection   | done   |",
+    ].join("\n");
+
+    const result = AdrMatrixDeclaration.parse(markdown, "051");
+    expect(result.errors.join("\n")).toContain("malformed row");
+    expect(result.errors.join("\n")).not.toContain("Phase");
+  });
+
   it("stops at the end of the table and ignores later prose", () => {
     const markdown = [
       AdrMatrixDeclaration.SEVERITY_MARKER,
