@@ -516,7 +516,8 @@ output, so `npm run test:update` is required.
 
 ## Git Workflow
 
-**All changes MUST go through Pull Requests.** See `CONTRIBUTING.md` for full workflow.
+**All changes MUST go through Pull Requests.** See `CONTRIBUTING.md` for full workflow,
+and [`docs/WORKFLOW.md`](docs/WORKFLOW.md) for how work moves on the project board.
 
 - Never work directly on main — create feature branch first
 - Check branch: `git branch --show-current`

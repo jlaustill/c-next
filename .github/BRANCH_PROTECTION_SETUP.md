@@ -1,213 +1,101 @@
 # Branch Protection Setup Guide
 
-This guide shows how to configure GitHub branch protection rules to enforce the PR workflow and require CI checks to pass before merging.
+`main` is governed by a **repository ruleset**, not a classic branch protection
+rule. Rulesets live under **Settings → Rules → Rulesets**; the older
+**Settings → Branches** page does not show them.
+
+This guide records what the ruleset enforces and how to rebuild it.
 
 ---
 
-## Overview
+## What is enforced
 
-Branch protection will:
+| Rule                      | Setting                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| Target                    | Default branch (`main`)                                 |
+| Enforcement               | Active                                                  |
+| Restrict deletions        | On — `main` cannot be deleted                           |
+| Block force pushes        | On — non-fast-forward pushes are rejected               |
+| Require a pull request    | On, with **0 required approving reviews**               |
+| Allowed merge methods     | **Merge commit only** — squash and rebase are disabled  |
+| Required status checks    | `All Checks Passed`, `SonarCloud Code Analysis`         |
+| Require branch up to date | **Off** (`strict_required_status_checks_policy: false`) |
 
-- ✅ Require all tests to pass before merge
-- ✅ Require code review approval
-- ✅ Prevent direct pushes to `main`
-- ✅ Require branches to be up-to-date before merge
+### Why zero required approvals
 
----
+The repository has one maintainer, and GitHub does not allow approving your own
+pull request. Requiring an approval would block every merge outright. The gate
+here is CI, not a second pair of eyes.
 
-## Setup Steps
+This is the same constraint that makes `Changes Needed` and `Ready to Merge`
+manual moves on the project board — see [`docs/WORKFLOW.md`](../docs/WORKFLOW.md).
 
-### 1. Navigate to Branch Protection Settings
+### Why merge commits only
 
-1. Go to your GitHub repository
-2. Click **Settings** (top navigation)
-3. Click **Branches** (left sidebar)
-4. Under "Branch protection rules", click **Add rule**
-
-### 2. Configure Protection Rule
-
-**Branch name pattern:**
-
-```
-main
-```
-
-**Enable these settings:**
-
-#### Require a pull request before merging
-
-- [x] **Require a pull request before merging**
-  - [x] Require approvals: **1** (or more, depending on team size)
-  - [x] Dismiss stale pull request approvals when new commits are pushed
-  - [ ] Require review from Code Owners _(optional - if you have CODEOWNERS file)_
-
-#### Require status checks to pass before merging
-
-- [x] **Require status checks to pass before merging**
-  - [x] Require branches to be up to date before merging
-  - **Search for and select these status checks:**
-    - `Code Quality & Tests` _(from pr-checks.yml workflow)_
-    - `All Checks Passed` _(summary job)_
-
-  > **Note:** These checks will appear in the list after the workflow runs at least once. Push a test PR or push to main first to populate them.
-
-#### Other settings
-
-- [x] **Require conversation resolution before merging** _(optional but recommended)_
-- [ ] **Require signed commits** _(optional - if your team uses GPG signing)_
-- [ ] **Require linear history** _(optional - enforces squash merging)_
-- [x] **Do not allow bypassing the above settings** _(recommended - applies to admins too)_
-- [ ] **Allow force pushes** _(leave unchecked)_
-- [ ] **Allow deletions** _(leave unchecked)_
-
-### 3. Save Protection Rule
-
-Click **Create** or **Save changes** at the bottom.
+`git log --first-parent` stays a readable list of merged changes, and the
+individual commits of a branch survive. See the "Never squash-merge" rule in
+`CLAUDE.md`.
 
 ---
 
-## Testing the Setup
+## Rebuilding the ruleset
 
-### Step 1: Create a test PR
+Read the live configuration at any time:
 
 ```bash
-git checkout -b test/branch-protection
-echo "# Test" >> TEST.md
-git add TEST.md
-git commit -m "Test branch protection"
-git push origin test/branch-protection
+gh api repos/jlaustill/c-next/rulesets
+gh api repos/jlaustill/c-next/rulesets/<id> --jq '{name, enforcement, rules}'
 ```
 
-### Step 2: Open PR on GitHub
+To recreate it through the UI:
 
-1. Go to your repository
-2. Click **Pull requests** → **New pull request**
-3. Select `test/branch-protection` as source
-4. Create the PR
+1. **Settings → Rules → Rulesets → New ruleset → New branch ruleset**
+2. Name it `main`, set **Enforcement status** to **Active**
+3. Under **Target branches**, add **Include default branch**
+4. Enable:
+   - **Restrict deletions**
+   - **Block force pushes**
+   - **Require a pull request before merging** — set **Required approvals** to
+     `0`, leave the dismissal and code-owner options off, and under **Allowed
+     merge methods** select **Merge** only
+   - **Require status checks to pass** — add `All Checks Passed` and
+     `SonarCloud Code Analysis`, and leave **Require branches to be up to date
+     before merging** unchecked
+5. **Create**
 
-### Step 3: Verify Protections
-
-You should see:
-
-- ✅ **Status checks running** (Code Quality & Tests)
-- ⚠️ **Merge button disabled** until checks pass
-- ⚠️ **"Review required"** message (if review requirement enabled)
-
-### Step 4: After checks pass
-
-- ✅ Status checks turn green
-- ✅ Merge button becomes enabled (if reviewed)
-- ✅ You can merge the PR
-
-### Step 5: Clean up test
-
-```bash
-git checkout main
-git pull origin main
-git branch -d test/branch-protection
-git push origin --delete test/branch-protection
-```
+> Status checks only appear in the picker after the workflow producing them has
+> run at least once on the repository.
 
 ---
 
-## Workflow Status Badge (Optional)
+## Verifying it works
 
-Add a status badge to your README.md to show CI status:
+Open any pull request and confirm:
 
-```markdown
-[![CI](https://github.com/YOUR_USERNAME/c-next/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/YOUR_USERNAME/c-next/actions/workflows/pr-checks.yml)
-```
-
-Replace `YOUR_USERNAME` with your GitHub username or organization name.
+- Both required checks appear and must pass before the merge button enables
+- **Squash and merge** and **Rebase and merge** are not offered
+- Pushing directly to `main` is rejected
 
 ---
 
 ## Troubleshooting
 
-### Status checks don't appear in the list
+### A required check never reports
 
-**Problem:** The workflow must run at least once before checks appear.
+`All Checks Passed` is the aggregate job in `.github/workflows/pr-checks.yml`.
+It runs with `if: always()` and fails when any upstream job is not successful —
+including **skipped** jobs, which it deliberately treats as failure. If it never
+reports at all, the workflow did not trigger; check the `pull_request` branch
+filter at the top of that file.
 
-**Solution:**
+### Merge blocked with all checks green
 
-```bash
-# Push directly to main (before protection is enabled)
-git checkout main
-git commit --allow-empty -m "Trigger CI workflow"
-git push origin main
+`SonarCloud Code Analysis` is a separate integration and can lag behind the
+GitHub Actions jobs. Confirm the Sonar check has actually posted, not just that
+the Actions run finished.
 
-# Wait for workflow to complete, then add protection rule
-```
+### Adding or removing a status check
 
-### "This branch is out-of-date"
-
-**Problem:** Someone else merged to main while you were working.
-
-**Solution:**
-
-```bash
-git checkout your-branch
-git fetch origin
-git rebase origin/main
-git push --force-with-lease
-```
-
-### Merge blocked even though checks passed
-
-**Possible causes:**
-
-1. Review approval not received yet
-2. Conversations not resolved
-3. Branch not up-to-date with main
-
-**Solution:** Check PR page for specific blocker and address it.
-
----
-
-## Best Practices
-
-### For Repository Admins
-
-1. **Don't bypass protections** - Follow the same PR process as everyone else
-2. **Review branch protection** - Periodically check settings haven't been changed
-3. **Monitor workflow costs** - GitHub Actions are free for public repos, have limits for private
-
-### For Contributors
-
-1. **Keep PRs small** - Easier to review, faster to merge
-2. **Rebase regularly** - Stay up-to-date with main to avoid conflicts
-3. **Fix CI failures quickly** - Don't let broken tests sit
-4. **Respond to reviews** - Keep the process moving
-
----
-
-## Workflow Maintenance
-
-### Adding New Status Checks
-
-If you add new jobs to `.github/workflows/pr-checks.yml`:
-
-1. Let the workflow run once with new jobs
-2. Go to Settings → Branches → Edit protection rule for `main`
-3. Search for and add the new status check name
-4. Save the rule
-
-### Removing Status Checks
-
-If you remove jobs from the workflow:
-
-1. Go to Settings → Branches → Edit protection rule for `main`
-2. Find the removed check and click the ❌ to remove it
-3. Save the rule
-
----
-
-## Reference Links
-
-- [GitHub Branch Protection Docs](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
-- [Required Status Checks](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging)
-- [GitHub Actions Docs](https://docs.github.com/en/actions)
-
----
-
-**Last Updated:** 2026-01-11
+Changing job names in `pr-checks.yml` does **not** update the ruleset. After
+renaming or removing a job, edit the ruleset's required-checks list to match, or
+merges will block on a check that will never report.

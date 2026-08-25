@@ -1,0 +1,3 @@
+# A template directory makes GitHub show a picker on every new issue. Keeping
+# blank issues enabled means filing a plain bug report is still one click.
+blank_issues_enabled: true
