@@ -1,6 +1,9 @@
 /**
  * Modification Analyzer
- * Issue #593: Dedicated analyzer for C++ mode parameter modification tracking
+ * Issue #593: Dedicated analyzer for cross-file parameter modification
+ * tracking. Issue #1171: used by both C and C++ mode -- the analysis is
+ * language-neutral, and gating it on C++ gave C mode a different answer to
+ * "does this callee modify its parameter?".
  *
  * Accumulates function parameter modifications across multiple files for
  * cross-file const inference in C++ mode. This centralizes the accumulation

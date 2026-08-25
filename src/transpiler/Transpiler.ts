@@ -392,15 +392,17 @@ class Transpiler {
       const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
       this.state.setFileSymbolInfo(file.path, symbolInfo);
 
-      // Issue #593: Collect modification analysis in C++ mode
-      if (this.cppDetected) {
-        const results = this.codeGenerator.analyzeModificationsOnly(
-          tree,
-          this.modificationAnalyzer.getModifications(),
-          this.modificationAnalyzer.getParamLists(),
-        );
-        this.modificationAnalyzer.accumulateResults(results);
-      }
+      // Issue #593: collect modification analysis.
+      // Issue #1171: this ran in C++ mode only, so "does this callee modify
+      // its parameter?" was answered from accumulated cross-file data in C++
+      // and from per-file data alone in C. The analysis itself is
+      // language-neutral, so both modes now share the one answer.
+      const results = this.codeGenerator.analyzeModificationsOnly(
+        tree,
+        this.modificationAnalyzer.getModifications(),
+        this.modificationAnalyzer.getParamLists(),
+      );
+      this.modificationAnalyzer.accumulateResults(results);
     } catch (err) {
       // Symbol collection errors (e.g., BitmapCollector) — format as "Code generation failed"
       const rawMessage = err instanceof Error ? err.message : String(err);
@@ -515,10 +517,8 @@ class Transpiler {
       this.state.setPassByValueParams(sourcePath, passByValueCopy);
       this.state.setUserIncludes(sourcePath, [...userIncludes]);
 
-      // Accumulate C++ modifications directly
-      if (this.cppDetected) {
-        this._accumulateFileModifications();
-      }
+      // Issue #1171: accumulate in both modes -- see the gate removed above.
+      this._accumulateFileModifications();
 
       // Generate header content (reads from state populated above)
       const headerCode = this.generateHeaderForFile(file) ?? undefined;
@@ -541,8 +541,12 @@ class Transpiler {
   }
 
   /**
-   * Accumulate C++ modification data from the code generator into the
+   * Accumulate cross-file modification data from the code generator into the
    * centralized modification analyzer.
+   *
+   * Issue #1171: this runs in both C and C++ mode. The data feeds #268
+   * auto-const, which is wrong in either language if a parameter forwarded to
+   * a cross-file mutating callee is treated as unmodified.
    */
   private _accumulateFileModifications(): void {
     const fileModifications = this.codeGenerator.getModifiedParameters();
@@ -1923,7 +1927,10 @@ class Transpiler {
       this.modificationAnalyzer.getModifications();
     const accumulatedParamLists = this.modificationAnalyzer.getParamLists();
 
-    if (this.cppDetected && accumulatedModifications.size > 0) {
+    // Issue #1171: no cppDetected gate -- C mode needs the same cross-file
+    // modification data, or a parameter forwarded only to a cross-file
+    // mutating callee wrongly receives #268 auto-const.
+    if (accumulatedModifications.size > 0) {
       this.codeGenerator.setCrossFileModifications(
         accumulatedModifications,
         accumulatedParamLists,
