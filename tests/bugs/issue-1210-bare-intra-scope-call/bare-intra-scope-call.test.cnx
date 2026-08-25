@@ -1,0 +1,48 @@
+// test-execution
+// Issue #1210: a bare call inside a scope was recorded twice in the call
+// graph -- once as the transpiled C name (`Counter__readOnly`, resolved through
+// ADR-057 scope rules) and once as the raw bare name (`readOnly`).
+//
+// functionParamLists is keyed by transpiled C name, so the bare entry could
+// never resolve. It was harmless while an unresolved callee meant "assume
+// pure", but #1178 made an unresolved callee mean "assume it mutates" -- and
+// the phantom entry then forced pointer semantics onto the caller's parameter:
+//
+//     uint8_t Counter__viaBare(uint8_t* value)      <- wrong
+//     Counter__viaBare(&(uint8_t){3U})              <- the #1203 shape
+//
+// `this.`-qualified calls were never affected, because their chain is genuinely
+// qualified and resolves. So the defect landed only on the bare form, which
+// ADR-057 makes the idiomatic one.
+//
+// Both forms must now produce identical signatures: neither callee writes its
+// parameter, so both callers keep pass-by-value.
+scope Counter {
+    u8 readOnly(u8 value) {
+        return value + 1;
+    }
+
+    public u8 viaBare(u8 value) {
+        return readOnly(value);
+    }
+
+    public u8 viaThis(u8 value) {
+        return this.readOnly(value);
+    }
+}
+
+u32 main() {
+    u8 start <- 3;
+
+    u8 bare <- Counter.viaBare(start);
+    if (bare != 4) { return 1; }
+
+    u8 qualified <- Counter.viaThis(start);
+    if (qualified != 4) { return 2; }
+
+    // The argument must survive the call unchanged -- a phantom modification
+    // would have routed it through a discarded temporary.
+    if (start != 3) { return 3; }
+
+    return 0;
+}

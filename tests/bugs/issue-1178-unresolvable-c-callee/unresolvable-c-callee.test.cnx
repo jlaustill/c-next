@@ -1,0 +1,33 @@
+/* test-no-warnings */
+// Issue #1178: TransitiveModificationPropagator treated a callee it could not
+// resolve as pure.
+//
+// c_bump is declared in C, so it is absent from functionParamLists. The
+// propagator's "cannot resolve" branch returned false -- the same answer as
+// "this callee does not modify its argument" -- so `s`, never written locally,
+// received #268 auto-const:
+//
+//     void Use__forward(const Sample* s) { c_bump(&(*s)); }
+//     error: passing argument 1 of 'c_bump' discards 'const' qualifier
+//            from pointer target type [-Werror=discarded-qualifiers]
+//
+// The fix asks what the callee actually is before assuming. c_bump has a C
+// declaration taking `Sample*`, which answers the question definitively: a
+// pointer parameter can reach the caller's object, so auto-const is withheld.
+//
+// forwardToReader proves the answer is read from the declaration rather than
+// blanket-disabling auto-const for every C callee: c_read takes a `const
+// Sample*`, cannot mutate, and keeps its auto-const.
+#include "c_sink.h"
+
+struct Sample { u8 value; }
+
+scope Use {
+    public void forward(Sample s) {
+        global.c_bump(s);
+    }
+
+    public u8 forwardToReader(Sample s) {
+        return global.c_read(s);
+    }
+}

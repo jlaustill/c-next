@@ -36,6 +36,11 @@ class TransitiveModificationPropagator {
     functionCallGraph: ReadonlyMap<string, readonly ICallInfo[]>,
     functionParamLists: ReadonlyMap<string, string[]>,
     modifiedParameters: Map<string, Set<string>>,
+    resolveCalleeMayMutate: (
+      callerName: string,
+      callee: string,
+      paramIndex: number,
+    ) => boolean,
   ): void {
     let changed = true;
     while (changed) {
@@ -47,6 +52,7 @@ class TransitiveModificationPropagator {
             call,
             functionParamLists,
             modifiedParameters,
+            resolveCalleeMayMutate,
           );
           if (didPropagate) {
             changed = true;
@@ -65,13 +71,35 @@ class TransitiveModificationPropagator {
     call: ICallInfo,
     functionParamLists: ReadonlyMap<string, string[]>,
     modifiedParameters: Map<string, Set<string>>,
+    resolveCalleeMayMutate: (
+      callerName: string,
+      callee: string,
+      paramIndex: number,
+    ) => boolean,
   ): boolean {
     const { callee, paramIndex, argParamName } = call;
 
     // Get the callee's parameter list
     const calleeParams = functionParamLists.get(callee);
     if (!calleeParams || paramIndex >= calleeParams.length) {
-      return false;
+      // Issue #1178: this branch used to `return false`, which is the same
+      // answer as "the callee does not modify its argument". "I cannot resolve
+      // this callee" and "this callee is pure" are different facts, and
+      // collapsing them made the unsafe one the default: auto-const was applied
+      // on the strength of an absent answer.
+      //
+      // The callee is not a C-Next function in this build, so ask what it is.
+      // A C/C++ declaration answers definitively; anything still unknown fails
+      // safe by withholding auto-const, which costs a missed `const` rather
+      // than an incorrect one.
+      if (!resolveCalleeMayMutate(callerName, callee, paramIndex)) {
+        return false;
+      }
+      return TransitiveModificationPropagator.markParamModified(
+        callerName,
+        argParamName,
+        modifiedParameters,
+      );
     }
 
     const calleeParamName = calleeParams[paramIndex];

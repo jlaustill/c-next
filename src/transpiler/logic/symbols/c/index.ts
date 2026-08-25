@@ -10,6 +10,7 @@
 import type {
   CompilationUnitContext,
   DeclarationContext,
+  DeclaratorContext,
   DeclarationSpecifiersContext,
   DeclarationSpecifierContext,
 } from "../../parser/c/grammar/CParser";
@@ -269,11 +270,7 @@ class CResolver {
       const isFunction = DeclaratorUtils.declaratorIsFunction(declarator);
 
       if (ctx.isTypedef) {
-        // For function pointer typedefs like `typedef void (*Callback)(int)`,
-        // reconstruct the full type including (*) so consumers can detect it
-        const typedefType = CResolver.isFunctionPointerDeclarator(declarator)
-          ? `${baseType} (*)(${CResolver.extractParamText(declarator)})`
-          : baseType;
+        const typedefType = CResolver.buildTypedefType(baseType, declarator);
         ctx.symbols.push(
           TypedefCollector.collect(name, typedefType, ctx.sourceFile, ctx.line),
         );
@@ -409,6 +406,35 @@ class CResolver {
       }
     }
     return typeParts.join(" ") || "int";
+  }
+
+  /**
+   * Build the recorded type for a typedef, keeping any indirection the
+   * declarator carries.
+   *
+   * Declaration specifiers give the base type; the `*` of a pointer typedef
+   * lives in the *declarator* (`typedef struct Sample *SampleHandle`). Issue
+   * #1178: only function-pointer typedefs used to reconstruct their
+   * indirection, so a plain pointer typedef was recorded as though it were the
+   * struct itself -- and a consumer asking "can the callee write through this
+   * parameter?" was told no.
+   */
+  static buildTypedefType(
+    baseType: string,
+    declarator: DeclaratorContext,
+  ): string {
+    if (CResolver.isFunctionPointerDeclarator(declarator)) {
+      return `${baseType} (*)(${CResolver.extractParamText(declarator)})`;
+    }
+    // Keep the declarator's pointer depth, not merely its presence: the symbol
+    // model is shared, and a consumer that wants the pointer probably wants the
+    // right number of them (`typedef struct Sample **Grid`).
+    const pointerText = declarator?.pointer?.()?.getText() ?? "";
+    const depth = (pointerText.match(/\*/g) ?? []).length;
+    if (depth > 0) {
+      return `${baseType}${"*".repeat(depth)}`;
+    }
+    return baseType;
   }
 
   /**

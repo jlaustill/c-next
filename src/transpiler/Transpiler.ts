@@ -394,15 +394,17 @@ class Transpiler {
       const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
       this.state.setFileSymbolInfo(file.path, symbolInfo);
 
-      // Issue #593: Collect modification analysis in C++ mode
-      if (this.cppDetected) {
-        const results = this.codeGenerator.analyzeModificationsOnly(
-          tree,
-          this.modificationAnalyzer.getModifications(),
-          this.modificationAnalyzer.getParamLists(),
-        );
-        this.modificationAnalyzer.accumulateResults(results);
-      }
+      // Issue #593: collect modification analysis.
+      // Issue #1171: this ran in C++ mode only, so "does this callee modify
+      // its parameter?" was answered from accumulated cross-file data in C++
+      // and from per-file data alone in C. The analysis itself is
+      // language-neutral, so both modes now share the one answer.
+      const results = this.codeGenerator.analyzeModificationsOnly(
+        tree,
+        this.modificationAnalyzer.getModifications(),
+        this.modificationAnalyzer.getParamLists(),
+      );
+      this.modificationAnalyzer.accumulateResults(results);
     } catch (err) {
       // Symbol collection errors (e.g., BitmapCollector) — format as "Code generation failed"
       const rawMessage = err instanceof Error ? err.message : String(err);
@@ -523,10 +525,8 @@ class Transpiler {
       this.state.setPassByValueParams(sourcePath, passByValueCopy);
       this.state.setUserIncludes(sourcePath, [...userIncludes]);
 
-      // Accumulate C++ modifications directly
-      if (this.cppDetected) {
-        this._accumulateFileModifications();
-      }
+      // Issue #1171: accumulate in both modes -- see the gate removed above.
+      this._accumulateFileModifications();
 
       // Generate header content (reads from state populated above)
       const headerCode = this.generateHeaderForFile(file) ?? undefined;
@@ -549,8 +549,12 @@ class Transpiler {
   }
 
   /**
-   * Accumulate C++ modification data from the code generator into the
+   * Accumulate cross-file modification data from the code generator into the
    * centralized modification analyzer.
+   *
+   * Issue #1171: this runs in both C and C++ mode. The data feeds #268
+   * auto-const, which is wrong in either language if a parameter forwarded to
+   * a cross-file mutating callee is treated as unmodified.
    */
   private _accumulateFileModifications(): void {
     const fileModifications = this.codeGenerator.getModifiedParameters();
@@ -1578,28 +1582,46 @@ class Transpiler {
       } else if (symbol.sourceLanguage === ESourceLanguage.C) {
         // Convert ISymbol to TCSymbol (simplified conversion)
         CodeGenState.symbolTable.addCSymbol({
+          // "type", not "typedef": ICTypedefSymbol.kind is "type", and the
+          // previous `as TCSymbol` cast asserted a kind the union does not
+          // have. That cast is also what let the missing isConst below compile.
           kind: symbol.kind as
             | "struct"
             | "enum"
             | "function"
             | "variable"
             | "enum_member"
-            | "typedef",
+            | "type",
           name: symbol.name,
           sourceFile: symbol.sourceFile,
           sourceLine: symbol.sourceLine,
           sourceLanguage: ESourceLanguage.C,
-          type: symbol.type,
+          // ISerializedSymbol.type is optional; TCSymbol.type is not.
+          // The removed cast let `undefined` through under a `string`
+          // annotation, so a consumer reading .length would have thrown.
+          // Empty string is falsy like undefined, so truthiness checks
+          // are unchanged.
+          type: symbol.type ?? "",
           isExported: symbol.isExported ?? true,
           isDeclaration: symbol.isDeclaration,
+          // isConst must survive the round trip: DeclaratorUtils records it and
+          // #1178 reads it to tell `const T*` (cannot write through) from `T*`
+          // (can). Dropping it here made a warm cache and a cold cache disagree
+          // about the same header.
           parameters: symbol.parameters?.map((p) => ({
             name: p.name,
             type: p.type,
+            isConst: p.isConst,
             isArray: p.isArray,
           })),
           arrayDimensions: symbol.arrayDimensions?.map(String),
           members: undefined,
           isUnion: false,
+          // The cast is unavoidable here and is NOT a license to omit fields:
+          // TCSymbol is a discriminated union whose variants need different
+          // required fields, while `kind` only becomes known at runtime from
+          // the cache. Restoring each kind into its own shape is tracked
+          // separately -- see the enum/enum_member gap noted in that issue.
         } as import("./types/symbols/c/TCSymbol").default);
       } else if (symbol.sourceLanguage === ESourceLanguage.Cpp) {
         // Convert ISymbol to TCppSymbol (simplified conversion)
@@ -1612,21 +1634,31 @@ class Transpiler {
             | "function"
             | "variable"
             | "enum_member"
-            | "type_alias",
+            // "type", not "type_alias": TSymbolKindCpp has no
+            // "type_alias". The removed `as TCppSymbol` cast was
+            // asserting a kind the union does not contain.
+            | "type",
           name: symbol.name,
           sourceFile: symbol.sourceFile,
           sourceLine: symbol.sourceLine,
           sourceLanguage: ESourceLanguage.Cpp,
-          type: symbol.type,
+          // Same as the C branch above.
+          type: symbol.type ?? "",
           isExported: symbol.isExported ?? true,
           isDeclaration: symbol.isDeclaration,
           parent: symbol.parent,
+          // Issue #1178: same round trip as the C branch above.
+          // ICppParameterInfo.isConst is required for the same reason and was
+          // dropped the same way, so cold and warm cache emitted different C++
+          // for one header (`const Sample&` vs `Sample&`).
           parameters: symbol.parameters?.map((p) => ({
             name: p.name,
             type: p.type,
+            isConst: p.isConst,
             isArray: p.isArray,
           })),
           arrayDimensions: symbol.arrayDimensions?.map(String),
+          // Same discriminated-union constraint as the C branch above.
         } as import("./types/symbols/cpp/TCppSymbol").default);
       }
     }
@@ -2025,7 +2057,10 @@ class Transpiler {
       this.modificationAnalyzer.getModifications();
     const accumulatedParamLists = this.modificationAnalyzer.getParamLists();
 
-    if (this.cppDetected && accumulatedModifications.size > 0) {
+    // Issue #1171: no cppDetected gate -- C mode needs the same cross-file
+    // modification data, or a parameter forwarded only to a cross-file
+    // mutating callee wrongly receives #268 auto-const.
+    if (accumulatedModifications.size > 0) {
       this.codeGenerator.setCrossFileModifications(
         accumulatedModifications,
         accumulatedParamLists,

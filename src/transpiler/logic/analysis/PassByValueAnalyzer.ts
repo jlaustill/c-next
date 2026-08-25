@@ -32,6 +32,7 @@ import ChildStatementCollector from "./helpers/ChildStatementCollector";
 import AssignmentTargetExtractor from "./helpers/AssignmentTargetExtractor";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 import QualifiedCName from "../../../utils/QualifiedCName";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 /**
  * Small primitive types that are eligible for pass-by-value optimization.
@@ -72,14 +73,211 @@ class PassByValueAnalyzer {
     PassByValueAnalyzer.injectCrossFileParamLists();
 
     // Phase 2: Fixed-point iteration for transitive modifications
+    PassByValueAnalyzer.propagateModifications();
+
+    // Phase 3: Determine which parameters can pass by value
+    PassByValueAnalyzer.computePassByValueParams();
+  }
+
+  /**
+   * Phase 2: run transitive modification propagation with the project's
+   * standard callee resolver.
+   *
+   * Both this analyzer and CodeGenerator.analyzeModificationsOnly propagate,
+   * and both must answer "does this callee modify its parameter?" the same way.
+   * They share this one entry rather than each passing their own resolver --
+   * two call sites that merely agree today are a latent divergence.
+   */
+  static propagateModifications(): void {
     TransitiveModificationPropagator.propagate(
       CodeGenState.functionCallGraph,
       CodeGenState.functionParamLists,
       CodeGenState.modifiedParameters,
+      PassByValueAnalyzer.calleeMayMutateParameter,
     );
+  }
 
-    // Phase 3: Determine which parameters can pass by value
-    PassByValueAnalyzer.computePassByValueParams();
+  /**
+   * Whether this call invokes a value rather than a named function.
+   *
+   * An ADR-029 callback is called through a parameter (`cb(value)`), a scope
+   * field (`listener(s)`) or a struct field (`config.listener(s)`). The name
+   * recorded in the call graph is that value's, so no declaration will ever
+   * match it -- which is a different fact from "this function is declared
+   * somewhere this build cannot see".
+   */
+  private static calleeIsIndirectCall(
+    callerName: string,
+    callee: string,
+  ): boolean {
+    const root = QualifiedCName.split(callee)[0];
+    const callerParameters =
+      CodeGenState.functionParamLists.get(callerName) ?? [];
+    if (callerParameters.includes(callee) || callerParameters.includes(root)) {
+      return true;
+    }
+    if (
+      PassByValueAnalyzer.nameIsValueSymbol(callee) ||
+      PassByValueAnalyzer.nameIsValueSymbol(root)
+    ) {
+      return true;
+    }
+
+    // A scope field is indexed under its transpiled name (`Bus__listener`),
+    // while the call graph records the bare name the source used, so qualify
+    // with the caller's own scope before giving up.
+    const callerScope = QualifiedCName.split(callerName)[0];
+    if (!callerScope || callerScope === callerName) return false;
+    return PassByValueAnalyzer.nameIsValueSymbol(
+      QualifiedCName.join(callerScope, root),
+    );
+  }
+
+  /**
+   * Whether a name resolves to a variable rather than a function -- a scope
+   * field or global holding a callback.
+   */
+  private static nameIsValueSymbol(name: string): boolean {
+    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(name) ?? [];
+    return symbols.some((symbol) => symbol.kind === "variable");
+  }
+
+  /**
+   * Issue #1178: answer "may this callee mutate the caller's argument through
+   * this parameter?" for a callee that is not a C-Next function in this build.
+   *
+   * The propagator reaches here only when `functionParamLists` has no entry for
+   * the callee. That used to mean "assume pure", which applied auto-const on the
+   * strength of an absent answer. A C or C++ declaration is a definitive answer,
+   * so consult it; only a callee nothing knows about falls back to the safe
+   * assumption that it mutates.
+   */
+  private static calleeMayMutateParameter(
+    callerName: string,
+    callee: string,
+    paramIndex: number,
+  ): boolean {
+    // ADR-029: an indirect call invokes a *value* -- a callback parameter, a
+    // scope field, a struct field -- not a function name. Nothing will ever
+    // declare it, so failing safe would fire on every callback that forwards
+    // one of its caller's parameters, by construction rather than by accident.
+    // Keep the pre-#1178 answer there; resolving the callback's declared
+    // target is tracked separately.
+    if (PassByValueAnalyzer.calleeIsIndirectCall(callerName, callee)) {
+      return false;
+    }
+
+    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(callee) ?? [];
+    let sawCandidate = false;
+
+    // Fold across every overload rather than answering from the first one.
+    // Returning on the first match made the answer depend on declaration order
+    // in the header: `store(const Sample&)` declared before
+    // `store(Sample&, bool)` claimed the call could not mutate, for a call that
+    // can only resolve to the second. Any candidate that may mutate wins.
+    for (const symbol of symbols) {
+      if (symbol.kind !== "function") continue;
+      // getOverloadsByCName spans all three languages. A C-Next IFunctionSymbol
+      // also has kind "function", but its IParameterInfo.type is a TType
+      // object rather than a string, so the structural read below would be a
+      // lie for it -- and typeIsIndirect would call .replace() on an object.
+      // This method's premise is "not a C-Next function in this build", so say
+      // so rather than letting the cast paper over it.
+      if (symbol.sourceLanguage === ESourceLanguage.CNext) continue;
+      const parameters = (
+        symbol as {
+          parameters?: ReadonlyArray<{
+            type?: string;
+            isArray?: boolean;
+            isConst?: boolean;
+          }>;
+        }
+      ).parameters;
+      const parameter = parameters?.[paramIndex];
+      if (!parameter) continue;
+      sawCandidate = true;
+      if (
+        PassByValueAnalyzer.parameterCarriesIndirection(
+          parameter.type ?? "",
+          parameter.isArray ?? false,
+          parameter.isConst ?? false,
+        )
+      ) {
+        return true;
+      }
+    }
+
+    // Nothing declares this callee at this position -- withhold auto-const
+    // rather than assume purity. Explicit rather than a fallthrough.
+    return !sawCandidate;
+  }
+
+  /**
+   * Whether a C/C++ parameter lets the callee change something the caller can
+   * observe.
+   *
+   * A by-value parameter is a copy, so it cannot. An array, pointer or
+   * reference can -- unless the declaration says const, in which case the
+   * callee may not write through it and auto-const on the caller's parameter
+   * is still sound.
+   */
+  private static parameterCarriesIndirection(
+    type: string,
+    isArray: boolean,
+    isConst: boolean,
+  ): boolean {
+    if (isConst) return false;
+    if (isArray) return true;
+    return PassByValueAnalyzer.typeIsIndirect(type);
+  }
+
+  /**
+   * Follow typedef aliases looking for pointer or reference indirection.
+   * A typedef can hide it entirely (`typedef struct spi_device_t
+   * *spi_device_handle_t`), so the alias chain is followed rather than the
+   * spelling pattern-matched. Bounded so a self-referential chain cannot spin.
+   */
+  private static typeIsIndirect(type: string): boolean {
+    let current = type;
+    const seen = new Set<string>();
+    for (let hop = 0; hop < 8; hop++) {
+      if (/[*&]/.test(current)) return true;
+      const bare = current
+        .replace(/\b(const|volatile|struct|union|enum)\b/g, "")
+        .trim();
+      // Both exits mean the chain is known and unfinished, exactly as running
+      // out of hops does below -- so they answer the same way. An empty type is
+      // unknown rather than by-value for the same reason. Neither is reachable
+      // from valid C (a self-referential typedef is ill-formed and
+      // ICParameterInfo.type is a required string), so nothing observable turns
+      // on it; they are aligned so the three exits do not read as disagreeing.
+      if (!bare || seen.has(bare)) return true;
+      seen.add(bare);
+      const alias = PassByValueAnalyzer.resolveTypedefTarget(bare);
+      // Deliberate exception: an alias this build never parsed (uint8_t,
+      // size_t) is treated as a plain value. Calling it indirection would
+      // reintroduce exactly the #957/#995 false positives measured for #1178.
+      if (alias === null) return false;
+      current = alias;
+    }
+    // Out of hops means the chain is known and unfinished, not unknown --
+    // answering "by value" here would be the same collapse of "I cannot tell"
+    // into "it is pure" that #1178 removes one level up.
+    return true;
+  }
+
+  /**
+   * The underlying type of a C/C++ typedef, or null when the name is not a
+   * typedef this build has seen.
+   */
+  private static resolveTypedefTarget(name: string): string | null {
+    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(name) ?? [];
+    for (const symbol of symbols) {
+      if (symbol.kind !== "type") continue;
+      const aliased = (symbol as { type?: string }).type;
+      if (typeof aliased === "string" && aliased.length > 0) return aliased;
+    }
+    return null;
   }
 
   /**
@@ -491,17 +689,28 @@ class PassByValueAnalyzer {
       primary,
     );
 
-    for (const op of postfixOps) {
+    for (const [opIndex, op] of postfixOps.entries()) {
       if (op.IDENTIFIER()) {
         memberNames.push(op.IDENTIFIER()!.getText());
-      } else if (op.LPAREN() && memberNames.length >= 1) {
-        const calleeName = QualifiedCName.join(...memberNames);
-        PassByValueAnalyzer.recordCallsFromArgList(
-          funcName,
-          paramSet,
-          calleeName,
-          op,
-        );
+      } else if (op.LPAREN()) {
+        // Issue #1210: a bare call is `IDENTIFIER (args)`, so its parenthesis
+        // is the *first* postfix op. handleSimpleFunctionCall has already
+        // recorded that call, resolved through ADR-057 scope rules; recording
+        // it again here under the raw bare name produced a second entry that
+        // functionParamLists -- keyed by transpiled C name -- can never match.
+        //
+        // `global.f(x)` and `Scope.f(x)` are unaffected: there an identifier op
+        // precedes the parenthesis, so opIndex > 0 and the chain is genuinely
+        // qualified.
+        if (opIndex > 0 && memberNames.length >= 1) {
+          const calleeName = QualifiedCName.join(...memberNames);
+          PassByValueAnalyzer.recordCallsFromArgList(
+            funcName,
+            paramSet,
+            calleeName,
+            op,
+          );
+        }
         memberNames.length = 0; // Reset for potential chained calls
       } else if (op.expression().length > 0) {
         memberNames.length = 0; // Array subscript breaks scope chain

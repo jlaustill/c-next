@@ -6,6 +6,13 @@
 import { describe, it, expect } from "vitest";
 import TransitiveModificationPropagator from "../TransitiveModificationPropagator.js";
 
+/**
+ * Reproduces the pre-#1178 answer for an unresolvable callee ("assume pure").
+ * Every fixture below uses a callee that resolves, so this is never consulted;
+ * it keeps each existing case testing exactly what it tested before.
+ */
+const assumeUnresolvableIsPure = (): boolean => false;
+
 describe("TransitiveModificationPropagator", () => {
   describe("propagate", () => {
     it("does nothing when call graph is empty", () => {
@@ -20,6 +27,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.size).toBe(0);
@@ -42,6 +50,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.get("caller")!.size).toBe(0);
@@ -66,6 +75,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.get("caller")!.has("x")).toBe(true);
@@ -92,6 +102,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.get("c")!.has("z")).toBe(true);
@@ -123,6 +134,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.get("caller")!.has("a")).toBe(false);
@@ -148,6 +160,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.get("caller")!.has("x")).toBe(false);
@@ -165,6 +178,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.get("caller")!.has("x")).toBe(false);
@@ -188,6 +202,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       // Caller should not be added to modifiedParameters since it wasn't tracked
@@ -214,6 +229,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       // b's y should now be marked as modified (since a modifies x)
@@ -237,6 +253,7 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       // Should still have x, but no infinite loop
@@ -278,12 +295,123 @@ describe("TransitiveModificationPropagator", () => {
         functionCallGraph,
         functionParamLists,
         modifiedParameters,
+        assumeUnresolvableIsPure,
       );
 
       expect(modifiedParameters.get("d")!.has("z")).toBe(true);
       expect(modifiedParameters.get("b")!.has("p")).toBe(true);
       expect(modifiedParameters.get("c")!.has("q")).toBe(true);
       expect(modifiedParameters.get("a")!.has("x")).toBe(true);
+    });
+  });
+
+  describe("unresolvable callee (#1178)", () => {
+    // The propagator cannot see the callee's parameter list -- it is a C/C++
+    // function, or nothing declares it. Before #1178 this returned false, the
+    // same answer as "the callee is pure", so auto-const was applied on the
+    // strength of an absent answer.
+    const graphCallingUnknown = () =>
+      new Map([
+        ["caller", [{ callee: "unknown", paramIndex: 0, argParamName: "x" }]],
+      ]);
+    const paramListsWithoutCallee = () => new Map([["caller", ["x"]]]);
+
+    it("withholds auto-const when the resolver says the callee may mutate", () => {
+      const modifiedParameters = new Map([["caller", new Set<string>()]]);
+
+      TransitiveModificationPropagator.propagate(
+        graphCallingUnknown(),
+        paramListsWithoutCallee(),
+        modifiedParameters,
+        () => true,
+      );
+
+      expect(modifiedParameters.get("caller")).toEqual(new Set(["x"]));
+    });
+
+    it("leaves auto-const in place when the resolver proves pass-by-value", () => {
+      const modifiedParameters = new Map([["caller", new Set<string>()]]);
+
+      TransitiveModificationPropagator.propagate(
+        graphCallingUnknown(),
+        paramListsWithoutCallee(),
+        modifiedParameters,
+        () => false,
+      );
+
+      expect(modifiedParameters.get("caller")).toEqual(new Set());
+    });
+
+    it("consults the resolver with the caller, callee and parameter index", () => {
+      const asked: Array<[string, string, number]> = [];
+      const modifiedParameters = new Map([["caller", new Set<string>()]]);
+
+      TransitiveModificationPropagator.propagate(
+        new Map([
+          [
+            "caller",
+            [{ callee: "widget_move", paramIndex: 1, argParamName: "x" }],
+          ],
+        ]),
+        paramListsWithoutCallee(),
+        modifiedParameters,
+        (callerName, callee, paramIndex) => {
+          asked.push([callerName, callee, paramIndex]);
+          return false;
+        },
+      );
+
+      // The caller is threaded through so the resolver can tell an ADR-029
+      // callback invocation from an undeclared function.
+      expect(asked).toContainEqual(["caller", "widget_move", 1]);
+    });
+
+    it("treats a parameter index past the callee's arity as unresolvable", () => {
+      // The callee resolves, but not at this position -- still an absent answer.
+      const modifiedParameters = new Map([
+        ["caller", new Set<string>()],
+        ["callee", new Set<string>()],
+      ]);
+
+      TransitiveModificationPropagator.propagate(
+        new Map([
+          ["caller", [{ callee: "callee", paramIndex: 3, argParamName: "x" }]],
+        ]),
+        new Map([
+          ["caller", ["x"]],
+          ["callee", ["only"]],
+        ]),
+        modifiedParameters,
+        () => true,
+      );
+
+      expect(modifiedParameters.get("caller")).toEqual(new Set(["x"]));
+    });
+
+    it("does not consult the resolver when the callee resolves", () => {
+      let consulted = false;
+      const modifiedParameters = new Map([
+        ["caller", new Set<string>()],
+        ["callee", new Set(["param"])],
+      ]);
+
+      TransitiveModificationPropagator.propagate(
+        new Map([
+          ["caller", [{ callee: "callee", paramIndex: 0, argParamName: "x" }]],
+        ]),
+        new Map([
+          ["caller", ["x"]],
+          ["callee", ["param"]],
+        ]),
+        modifiedParameters,
+        () => {
+          consulted = true;
+          return false;
+        },
+      );
+
+      expect(consulted).toBe(false);
+      expect(modifiedParameters.get("caller")).toEqual(new Set(["x"]));
     });
   });
 });

@@ -1,0 +1,41 @@
+/* test-no-warnings */
+// Issue #1171: cross-file modification tracking was gated on cppDetected, so
+// in C mode a parameter that is only ever forwarded to a cross-file *mutating*
+// callee still received #268 auto-const.
+//
+// `s` is never written locally, so PassByValueAnalyzer saw no local write and
+// applied auto-const, emitting `const Sample*`. Sensors.bump does mutate its
+// parameter, so lib/sensors.h declares `Sample*` — and the call discarded the
+// const qualifier:
+//
+//     warning: passing argument 1 of 'Sensors__bump' discards 'const'
+//              qualifier from pointer target type [-Wdiscarded-qualifiers]
+//
+// The transpiler still exited 0. C++ mode was already correct (`Sample&` on
+// both sides), so the divergence was C-mode-only: one decision — "does this
+// callee modify its parameter?" — was answered from accumulated cross-file
+// data in C++ and from per-file data only in C.
+//
+// This fixture is test-no-warnings rather than test-execution because
+// execution fixtures compile without warning flags; only validateNoWarnings
+// uses -Wall -Wextra -Werror, which is what turns the discarded qualifier
+// into a failure.
+#include "lib/sensors.cnx"
+
+scope Consumer {
+    // Forwards `s` to a mutating cross-file callee and never writes it
+    // locally. Must NOT get auto-const.
+    public void bumpTwice(Sample s) {
+        Sensors.bump(s);
+        Sensors.bump(s);
+    }
+
+    // Forwards `s` to a non-mutating cross-file callee. Auto-const must still
+    // apply, so the fix cannot be "withhold const whenever the callee is in
+    // another file".
+    public u8 readTwice(Sample s) {
+        u8 first <- Sensors.readValue(s);
+        u8 second <- Sensors.readValue(s);
+        return first + second;
+    }
+}

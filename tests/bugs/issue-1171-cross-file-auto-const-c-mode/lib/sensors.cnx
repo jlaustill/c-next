@@ -1,0 +1,18 @@
+// Helper for issue #1171 — the mutating callee lives in a file the consumer
+// #includes, so its modification data is only available cross-file.
+//
+// bump writes its parameter, so ADR-006 keeps it non-const: `Sample*` in C,
+// `Sample&` in C++. readValue never writes, so auto-const applies to it. The
+// pair proves the fix propagates a real modification rather than blanket-
+// disabling auto-const for every cross-file callee.
+struct Sample { u8 value; }
+
+scope Sensors {
+    public void bump(Sample sample) {
+        sample.value <- sample.value + 1;
+    }
+
+    public u8 readValue(Sample sample) {
+        return sample.value;
+    }
+}

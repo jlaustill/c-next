@@ -45,3 +45,46 @@ describe("Issue #957 - Pointer Typedef Detection", () => {
     expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
   });
 });
+
+describe("Issue #1178 - typedef records declarator indirection", () => {
+  /** The `type` a resolver recorded for the named typedef. */
+  const recordedTypedefType = (source: string, name: string): string => {
+    const tree = TestHelpers.parseC(source);
+    const { symbols } = CResolver.resolve(tree!, "test.h", new SymbolTable());
+    const typedef = symbols.find((s) => s.kind === "type" && s.name === name);
+    expect(typedef).toBeDefined();
+    return (typedef as { type: string }).type;
+  };
+
+  it("keeps the pointer of a pointer typedef", () => {
+    // The `*` lives in the declarator, not the declaration specifiers. Dropping
+    // it told consumers a handle was the struct itself, so "can the callee
+    // write through this parameter?" was answered no.
+    expect(
+      recordedTypedefType(
+        `typedef struct Sample *SampleHandle;`,
+        "SampleHandle",
+      ),
+    ).toContain("*");
+  });
+
+  it("records a plain typedef without inventing indirection", () => {
+    expect(
+      recordedTypedefType(`typedef unsigned char byte_t;`, "byte_t"),
+    ).not.toContain("*");
+  });
+
+  it("records the declarator's pointer depth, not merely its presence", () => {
+    // The symbol model is shared; a consumer that wants the pointer wants the
+    // right number of them.
+    expect(
+      recordedTypedefType(`typedef struct Sample **Grid;`, "Grid"),
+    ).toContain("**");
+  });
+
+  it("still reconstructs a function-pointer typedef", () => {
+    expect(
+      recordedTypedefType(`typedef void (*Callback)(int);`, "Callback"),
+    ).toContain("(*)");
+  });
+});
