@@ -1,0 +1,16 @@
+// #1201: a function-as-type used as a parameter must emit the _fp typedef.
+u32 tickSource() {
+    return 0;
+}
+
+u32 platformClock() {
+    return 12345;
+}
+
+u32 callIt(tickSource source) {
+    return source();
+}
+
+void demo() {
+    u32 value <- callIt(platformClock);
+}

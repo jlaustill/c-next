@@ -10,18 +10,26 @@
 // Tests: Callbacks with different return types
 // Validates: u32, u8, bool, and i32 return types work correctly
 // Callback returning u32
+
+typedef uint32_t (*getU32Value_fp)(uint32_t);
+
+
+typedef uint8_t (*getU8Value_fp)(uint32_t);
+
+
+typedef bool (*checkThreshold_fp)(uint32_t);
+
+
+typedef int32_t (*getSignedValue_fp)(uint32_t);
+
 uint32_t getU32Value(uint32_t input) {
     return input + 1000;
 }
-
-typedef uint32_t (*getU32Value_fp)(uint32_t);
 
 // Callback returning u8
 uint8_t getU8Value(uint32_t input) {
     return 100;
 }
-
-typedef uint8_t (*getU8Value_fp)(uint32_t);
 
 // Callback returning bool
 bool checkThreshold(uint32_t value) {
@@ -31,14 +39,10 @@ bool checkThreshold(uint32_t value) {
     return false;
 }
 
-typedef bool (*checkThreshold_fp)(uint32_t);
-
 // Callback returning i32 (signed)
 int32_t getSignedValue(uint32_t input) {
     return 0 - input;
 }
-
-typedef int32_t (*getSignedValue_fp)(uint32_t);
 
 // Structs to hold callbacks
 typedef struct U32Returner {
