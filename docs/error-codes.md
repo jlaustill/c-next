@@ -85,12 +85,13 @@ second header and the program ran with a wrong value.
 
 ## E05xx — Include/Preprocessor
 
-| Code  | Message                                       | Help                                             | Source                                                  |
-| ----- | --------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------- |
-| E0501 | Function-like macro not allowed               | Use inline functions instead                     | `output/codegen/generators/support/IncludeGenerator.ts` |
-| E0502 | `#define` with value not allowed              | Use `const u32 NAME <- value;` instead           | `output/codegen/generators/support/IncludeGenerator.ts` |
-| E0503 | Cannot `#include` implementation file         | Only `.h` and `.hpp` files are allowed           | `output/codegen/TypeValidator.ts`                       |
-| E0504 | `.cnx` alternative exists for included header | Use `#include "file.cnx"` for the C-Next version | `output/codegen/TypeValidator.ts`                       |
+| Code  | Message                                          | Help                                                                                             | Source                                                  |
+| ----- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| E0501 | Function-like macro not allowed                  | Use inline functions instead                                                                     | `output/codegen/generators/support/IncludeGenerator.ts` |
+| E0502 | `#define` with value not allowed                 | Use `const u32 NAME <- value;` instead                                                           | `output/codegen/generators/support/IncludeGenerator.ts` |
+| E0503 | Cannot `#include` implementation file            | Only `.h` and `.hpp` files are allowed                                                           | `output/codegen/TypeValidator.ts`                       |
+| E0504 | `.cnx` alternative exists for included header    | Use `#include "file.cnx"` for the C-Next version                                                 | `output/codegen/TypeValidator.ts`                       |
+| E0505 | Header names a pointer typedef it cannot declare | Include the header that defines the type; a forward declaration cannot express a pointer typedef | `output/headers/BaseHeaderGenerator.ts`                 |
 
 ---
 

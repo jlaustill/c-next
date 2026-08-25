@@ -12,6 +12,7 @@ import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import typeUtils from "./generators/mapType";
 import HeaderGeneratorUtils from "./HeaderGeneratorUtils";
+import SymbolTable from "../../logic/symbols/SymbolTable";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
@@ -30,6 +31,46 @@ type TPassByValueParams = ReadonlyMap<string, ReadonlySet<string>>;
  * - CppHeaderGenerator returns "&" for reference-based C++ semantics
  */
 abstract class BaseHeaderGenerator {
+  /**
+   * The external types this header may forward-declare.
+   *
+   * Issue #1225/#1238: `typedef struct X X;` is a guess that only holds when X
+   * really is an opaque struct. For a pointer typedef it declares a different
+   * type -- and an object of it cannot be declared at all, so a header carrying
+   * `extern handle_t h;` against it is not valid C or C++.
+   *
+   * The previous code filtered pointer typedefs out of this list silently,
+   * which swapped a contradictory declaration for a missing one. Neither is a
+   * safe degradation, so report it: reaching here means the type's defining
+   * header was not propagated into this header, and that is a transpiler
+   * defect the generated code should not paper over.
+   *
+   * Normally unreachable -- `Transpiler._needsDefiningHeader` sets
+   * `cHeadersIncluded` for exactly these types, and this branch only runs when
+   * it is false.
+   */
+  private static forwardDeclarable(
+    externalTypes: string[],
+    symbolTable: SymbolTable | undefined,
+    headerName: string,
+  ): string[] {
+    const pointerTypedef = externalTypes.find((typeName) =>
+      symbolTable?.isPointerTypedef(typeName),
+    );
+
+    if (pointerTypedef !== undefined) {
+      throw new Error(
+        `E0505: header '${headerName}' names '${pointerTypedef}', a typedef of a ` +
+          `pointer declared in another header, but that header is not included here. ` +
+          `A forward declaration cannot express a pointer typedef -- ` +
+          `'typedef struct ${pointerTypedef} ${pointerTypedef};' would declare a ` +
+          `different, incomplete type. The header that defines it must be included.`,
+      );
+    }
+
+    return externalTypes;
+  }
+
   /**
    * Get the suffix for pass-by-reference parameters
    * @returns "*" for C pointer semantics, "&" for C++ reference semantics
@@ -129,8 +170,10 @@ abstract class BaseHeaderGenerator {
         // real definition. Its defining header is included instead.
         options.cHeadersIncluded
           ? []
-          : cCompatibleExternalTypes.filter(
-              (typeName) => !(symbolTable?.isPointerTypedef(typeName) ?? false),
+          : BaseHeaderGenerator.forwardDeclarable(
+              cCompatibleExternalTypes,
+              symbolTable,
+              filename,
             ),
       ),
       ...HeaderGeneratorUtils.generateIsrTypedefSection(

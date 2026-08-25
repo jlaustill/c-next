@@ -20,6 +20,8 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
+import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
+import TJsonValue from "../utils/types/TJsonValue";
 import TypeResolver from "../utils/TypeResolver";
 import PublicInterface from "./logic/symbols/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
@@ -28,7 +30,6 @@ import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
-import ISerializedSymbol from "./types/ISerializedSymbol";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "./logic/symbols/cnext";
 import SymbolRegistry from "./state/SymbolRegistry";
@@ -1430,28 +1431,22 @@ class Transpiler {
       return null;
     }
 
-    // Restore symbols, struct fields, needsStructKeyword, and enumBitWidth from cache
-    // ADR-055 Phase 7: Cache returns ISerializedSymbol[], converted to typed symbols
-    this.restoreCachedSymbols(cached.symbols, file);
+    // Issue #1225: a cache entry that does not validate is a miss, not a
+    // degraded hit. Returning null re-parses the header instead of continuing
+    // with symbols we could not verify.
+    if (!this.restoreCachedSymbols(cached.symbols)) {
+      return null;
+    }
+
     CodeGenState.symbolTable.restoreStructFields(cached.structFields);
     CodeGenState.symbolTable.restoreNeedsStructKeyword(
       cached.needsStructKeyword,
     );
     CodeGenState.symbolTable.restoreEnumBitWidths(cached.enumBitWidth);
 
-    // Issue #948: Restore opaque types (forward-declared structs)
-    CodeGenState.symbolTable.restoreOpaqueTypes(cached.opaqueTypes);
-
-    // Issue #958: Restore typedef struct types (all typedef'd structs)
-    CodeGenState.symbolTable.restoreTypedefStructTypes(
-      cached.typedefStructTypes,
-    );
-
-    // Issue #958: Restore struct tag aliases and body tracking
-    CodeGenState.symbolTable.restoreStructTagAliases(cached.structTagAliases);
-    CodeGenState.symbolTable.restoreStructTagsWithBodies(
-      cached.structTagsWithBodies,
-    );
+    // Issue #1225: the whole struct state at once. It used to be four separate
+    // restore calls, which is how #1164's pointerTypedefs was missed.
+    CodeGenState.symbolTable.restoreStructState(cached.structState);
 
     // Issue #211: Still check for C++ syntax even on cache hit
     this.detectCppFromFileType(file);
@@ -1565,103 +1560,35 @@ class Transpiler {
   }
 
   /**
-   * Restore cached symbols to the symbol table.
-   * ADR-055 Phase 7: Converts ISerializedSymbol[] from cache to typed symbols.
+   * Issue #1225: revive cached symbols into the symbol table.
+   *
+   * This used to rebuild each symbol field by field from a flat
+   * `ISerializedSymbol` -- the legacy model ADR-055 Phase 7 removed everywhere
+   * else -- behind an `as TCSymbol` cast the union could not check. That cast
+   * is what let #1214's dropped `isConst` compile, and the same shape dropped
+   * `pointerTypedefs` here. The symbols now come back as themselves, so there
+   * is nothing to convert and nothing to forget.
+   *
+   * @returns false if the entry failed validation, so the caller re-parses
+   *   rather than continuing with symbols it could not verify.
    */
-  private restoreCachedSymbols(
-    symbols: ISerializedSymbol[],
-    _file: IDiscoveredFile,
-  ): void {
+  private restoreCachedSymbols(encoded: TJsonValue[]): boolean {
+    // Validation happens for every symbol before any is added, so a rejected
+    // entry cannot leave half its symbols in the table.
+    const symbols = CachedSymbolReader.read(encoded);
+    if (symbols === null) {
+      return false;
+    }
+
     for (const symbol of symbols) {
-      // Determine which storage to use based on source language
-      if (symbol.sourceLanguage === ESourceLanguage.CNext) {
-        // C-Next symbols are never cached (they use TSymbol format).
-        // If we see one here, it indicates a cache format issue - skip silently
-        // since C-Next symbols are always re-parsed from source anyway.
-        continue;
-      } else if (symbol.sourceLanguage === ESourceLanguage.C) {
-        // Convert ISymbol to TCSymbol (simplified conversion)
-        CodeGenState.symbolTable.addCSymbol({
-          // "type", not "typedef": ICTypedefSymbol.kind is "type", and the
-          // previous `as TCSymbol` cast asserted a kind the union does not
-          // have. That cast is also what let the missing isConst below compile.
-          kind: symbol.kind as
-            | "struct"
-            | "enum"
-            | "function"
-            | "variable"
-            | "enum_member"
-            | "type",
-          name: symbol.name,
-          sourceFile: symbol.sourceFile,
-          sourceLine: symbol.sourceLine,
-          sourceLanguage: ESourceLanguage.C,
-          // ISerializedSymbol.type is optional; TCSymbol.type is not.
-          // The removed cast let `undefined` through under a `string`
-          // annotation, so a consumer reading .length would have thrown.
-          // Empty string is falsy like undefined, so truthiness checks
-          // are unchanged.
-          type: symbol.type ?? "",
-          isExported: symbol.isExported ?? true,
-          isDeclaration: symbol.isDeclaration,
-          // isConst must survive the round trip: DeclaratorUtils records it and
-          // #1178 reads it to tell `const T*` (cannot write through) from `T*`
-          // (can). Dropping it here made a warm cache and a cold cache disagree
-          // about the same header.
-          parameters: symbol.parameters?.map((p) => ({
-            name: p.name,
-            type: p.type,
-            isConst: p.isConst,
-            isArray: p.isArray,
-          })),
-          arrayDimensions: symbol.arrayDimensions?.map(String),
-          members: undefined,
-          isUnion: false,
-          // The cast is unavoidable here and is NOT a license to omit fields:
-          // TCSymbol is a discriminated union whose variants need different
-          // required fields, while `kind` only becomes known at runtime from
-          // the cache. Restoring each kind into its own shape is tracked
-          // separately -- see the enum/enum_member gap noted in that issue.
-        } as import("./types/symbols/c/TCSymbol").default);
-      } else if (symbol.sourceLanguage === ESourceLanguage.Cpp) {
-        // Convert ISymbol to TCppSymbol (simplified conversion)
-        CodeGenState.symbolTable.addCppSymbol({
-          kind: symbol.kind as
-            | "class"
-            | "struct"
-            | "namespace"
-            | "enum"
-            | "function"
-            | "variable"
-            | "enum_member"
-            // "type", not "type_alias": TSymbolKindCpp has no
-            // "type_alias". The removed `as TCppSymbol` cast was
-            // asserting a kind the union does not contain.
-            | "type",
-          name: symbol.name,
-          sourceFile: symbol.sourceFile,
-          sourceLine: symbol.sourceLine,
-          sourceLanguage: ESourceLanguage.Cpp,
-          // Same as the C branch above.
-          type: symbol.type ?? "",
-          isExported: symbol.isExported ?? true,
-          isDeclaration: symbol.isDeclaration,
-          parent: symbol.parent,
-          // Issue #1178: same round trip as the C branch above.
-          // ICppParameterInfo.isConst is required for the same reason and was
-          // dropped the same way, so cold and warm cache emitted different C++
-          // for one header (`const Sample&` vs `Sample&`).
-          parameters: symbol.parameters?.map((p) => ({
-            name: p.name,
-            type: p.type,
-            isConst: p.isConst,
-            isArray: p.isArray,
-          })),
-          arrayDimensions: symbol.arrayDimensions?.map(String),
-          // Same discriminated-union constraint as the C branch above.
-        } as import("./types/symbols/cpp/TCppSymbol").default);
+      if (symbol.sourceLanguage === ESourceLanguage.C) {
+        CodeGenState.symbolTable.addCSymbol(symbol);
+      } else {
+        CodeGenState.symbolTable.addCppSymbol(symbol);
       }
     }
+
+    return true;
   }
 
   /**

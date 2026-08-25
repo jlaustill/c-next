@@ -780,7 +780,15 @@ describe("SymbolTable", () => {
     });
 
     it("should restore opaque types from cache", () => {
-      symbolTable.restoreOpaqueTypes(["widget_t", "handle_t"]);
+      // Issue #1225: round-trip through the real serializer rather than a
+      // hand-built payload -- a payload the production path never writes can
+      // pass while the production path is broken.
+      const source = new SymbolTable();
+      source.markOpaqueType("widget_t");
+      source.markOpaqueType("handle_t");
+
+      symbolTable.restoreStructState(source.serializeStructState());
+
       expect(symbolTable.isOpaqueType("widget_t")).toBe(true);
       expect(symbolTable.isOpaqueType("handle_t")).toBe(true);
       expect(symbolTable.getAllOpaqueTypes()).toHaveLength(2);
@@ -875,10 +883,12 @@ describe("SymbolTable", () => {
     });
 
     it("should restore typedef struct types from cache", () => {
-      symbolTable.restoreTypedefStructTypes([
-        ["widget_t", "widget_types.h"],
-        ["handle_t", "handle.h"],
-      ]);
+      const source = new SymbolTable();
+      source.markTypedefStructType("widget_t", "widget_types.h");
+      source.markTypedefStructType("handle_t", "handle.h");
+
+      symbolTable.restoreStructState(source.serializeStructState());
+
       expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
       expect(symbolTable.isTypedefStructType("handle_t")).toBe(true);
       expect(symbolTable.getAllTypedefStructTypes()).toHaveLength(2);
@@ -909,30 +919,58 @@ describe("SymbolTable", () => {
     });
 
     it("should restore struct tag aliases from cache", () => {
-      symbolTable.restoreStructTagAliases([
-        ["_foo", "foo_t"],
-        ["_bar", "bar_t"],
-      ]);
+      const source = new SymbolTable();
+      source.registerStructTagAlias("_foo", "foo_t");
+      source.registerStructTagAlias("_bar", "bar_t");
+
+      symbolTable.restoreStructState(source.serializeStructState());
+
       expect(symbolTable.getStructTagAlias("_foo")).toBe("foo_t");
       expect(symbolTable.getStructTagAlias("_bar")).toBe("bar_t");
     });
 
     it("should restore reverse map (typedefToTag) so isOpaqueType resolves after cache restore", () => {
-      // Simulate cache restore: aliases + opaque types + bodies
-      symbolTable.restoreStructTagAliases([["_widget", "widget_t"]]);
-      symbolTable.restoreOpaqueTypes(["widget_t"]);
+      const opaque = new SymbolTable();
+      opaque.registerStructTagAlias("_widget", "widget_t");
+      opaque.markOpaqueType("widget_t");
+
+      symbolTable.restoreStructState(opaque.serializeStructState());
+
       // widget_t is opaque (no body for _widget)
       expect(symbolTable.isOpaqueType("widget_t")).toBe(true);
-      // Now restore body — isOpaqueType should resolve via typedefToTag
-      symbolTable.restoreStructTagsWithBodies(["_widget"]);
+
+      // Now restore a body — isOpaqueType resolves via typedefToTag, which
+      // only works because serializeStructState captures that map too.
+      const withBody = new SymbolTable();
+      withBody.markStructTagHasBody("_widget");
+      symbolTable.restoreStructState(withBody.serializeStructState());
+
       expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
     });
 
     it("should restore struct tags with bodies from cache", () => {
-      symbolTable.restoreStructTagsWithBodies(["_foo", "_bar"]);
+      const source = new SymbolTable();
+      source.markStructTagHasBody("_foo");
+      source.markStructTagHasBody("_bar");
+
+      symbolTable.restoreStructState(source.serializeStructState());
+
       const bodies = symbolTable.getAllStructTagsWithBodies();
       expect(bodies).toContain("_foo");
       expect(bodies).toContain("_bar");
+    });
+
+    it("carries pointer typedefs across the cache round trip (#1225)", () => {
+      // #1164 recorded `typedef struct opaque_t* handle_t` in structState and
+      // nothing captured it, so a warm-cache build forgot that handle_t is a
+      // pointer and forward-declared it as an incomplete struct -- a different
+      // type, in a header that cannot compile.
+      const source = new SymbolTable();
+      source.markPointerTypedef("handle_t");
+
+      symbolTable.restoreStructState(source.serializeStructState());
+
+      expect(symbolTable.isPointerTypedef("handle_t")).toBe(true);
     });
 
     it("should clear all struct state on clear()", () => {

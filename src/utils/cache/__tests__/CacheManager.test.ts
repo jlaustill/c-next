@@ -14,7 +14,12 @@ import {
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import CacheManager from "../CacheManager";
-import ISerializedSymbol from "../../../transpiler/types/ISerializedSymbol";
+import JsonCodec from "../JsonCodec";
+import CachedSymbolReader from "../CachedSymbolReader";
+import TJsonValue from "../../types/TJsonValue";
+import TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
+import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
+import ICFunctionSymbol from "../../../transpiler/types/symbols/c/ICFunctionSymbol";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
@@ -22,26 +27,68 @@ import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import TestScopeUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
-import type IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
-import type IEnumSymbol from "../../../transpiler/types/symbols/IEnumSymbol";
 
 describe("CacheManager", () => {
   let testDir: string;
   let cacheManager: CacheManager;
 
-  // Helper to create a test symbol
+  // Helper to create a test symbol.
+  // Issue #1225: this is a real TCSymbol now, not the flat legacy shape. A
+  // test that can express a symbol the model cannot hold proves nothing about
+  // the production path.
   function createTestSymbol(
-    overrides: Partial<ISerializedSymbol> = {},
-  ): ISerializedSymbol {
+    overrides: Partial<ICFunctionSymbol> = {},
+  ): ICFunctionSymbol {
     return {
       name: "testFunc",
       kind: "function",
+      type: "void",
       sourceFile: "/test/file.h",
       sourceLine: 10,
       sourceLanguage: ESourceLanguage.C,
       isExported: true,
       ...overrides,
     };
+  }
+
+  /** An empty struct state, derived rather than hand-written. */
+  function emptyStructState(): ReturnType<SymbolTable["serializeStructState"]> {
+    return new SymbolTable().serializeStructState();
+  }
+
+  /**
+   * Store symbols the way production does: encoded, carrying struct state.
+   * Keeps these tests on the same path `setSymbolsFromTable` uses, so they
+   * cannot pass on a shape the transpiler never writes.
+   */
+  function storeSymbols(
+    filePath: string,
+    symbols: Array<TCSymbol | TCppSymbol>,
+    structFields: Map<string, Map<string, IStructFieldInfo>> = new Map(),
+    options: {
+      needsStructKeyword?: string[];
+      enumBitWidth?: Map<string, number>;
+      preprocessFailed?: boolean;
+    } = {},
+  ): void {
+    cacheManager.setSymbols(
+      filePath,
+      symbols.map((symbol) => JsonCodec.encode(symbol)),
+      structFields,
+      {
+        structState: emptyStructState(),
+        needsStructKeyword: options.needsStructKeyword,
+        enumBitWidth: options.enumBitWidth,
+        preprocessFailed: options.preprocessFailed,
+      },
+    );
+  }
+
+  /** Decode cached symbols the way the transpiler does. */
+  function readSymbols(encoded: TJsonValue[]): Array<TCSymbol | TCppSymbol> {
+    const symbols = CachedSymbolReader.read(encoded);
+    expect(symbols).not.toBeNull();
+    return symbols!;
   }
 
   // Helper to create test struct fields
@@ -108,7 +155,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       const symbol = createTestSymbol({ sourceFile: testFile });
-      cacheManager.setSymbols(testFile, [symbol], new Map());
+      storeSymbols(testFile, [symbol], new Map());
       await cacheManager.flush();
 
       // Create new manager and reinitialize
@@ -118,8 +165,8 @@ describe("CacheManager", () => {
       // Data should still be there
       const cached = newManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(1);
-      expect(cached!.symbols[0].name).toBe("testFunc");
+      expect(readSymbols(cached!.symbols)).toHaveLength(1);
+      expect(readSymbols(cached!.symbols)[0].name).toBe("testFunc");
     });
   });
 
@@ -131,7 +178,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       const symbol = createTestSymbol({ sourceFile: testFile });
-      cacheManager.setSymbols(testFile, [symbol], new Map());
+      storeSymbols(testFile, [symbol], new Map());
       await cacheManager.flush();
 
       // Modify config to have old version
@@ -156,7 +203,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       const symbol = createTestSymbol({ sourceFile: testFile });
-      cacheManager.setSymbols(testFile, [symbol], new Map());
+      storeSymbols(testFile, [symbol], new Map());
       await cacheManager.flush();
 
       // Modify config to have old transpiler version
@@ -185,11 +232,11 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       const symbol = createTestSymbol({ sourceFile: testFile });
-      cacheManager.setSymbols(testFile, [symbol], new Map());
+      storeSymbols(testFile, [symbol], new Map());
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(1);
+      expect(readSymbols(cached!.symbols)).toHaveLength(1);
       expect(cached!.symbols[0]).toMatchObject({
         name: "testFunc",
         kind: "function",
@@ -208,8 +255,8 @@ describe("CacheManager", () => {
 
       // Issue #985: a header that fell back to raw content records that fact so
       // a warm-cache build re-runs external-declaration recovery.
-      cacheManager.setSymbols(cleanFile, [], new Map());
-      cacheManager.setSymbols(failedFile, [], new Map(), {
+      storeSymbols(cleanFile, [], new Map());
+      storeSymbols(failedFile, [], new Map(), {
         preprocessFailed: true,
       });
 
@@ -217,39 +264,53 @@ describe("CacheManager", () => {
       expect(cacheManager.getSymbols(failedFile)!.preprocessFailed).toBe(true);
     });
 
-    it("should preserve optional symbol fields", async () => {
+    it("preserves optional symbol fields through the production path", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      const symbol = createTestSymbol({
-        sourceFile: testFile,
+      // Issue #1225: this test used to hand-build a flat entry and call
+      // setSymbols directly, bypassing serializeTypedSymbol entirely. It
+      // asserted that signature/parent/accessModifier/size round-trip --
+      // fields the production serializer never wrote, and that the C symbol
+      // model does not even have. It proved the storage layer was lossless,
+      // never that the cache was. It now goes through setSymbolsFromTable,
+      // which is the path the transpiler actually takes.
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "testFunc",
+        kind: "function",
         type: "int",
+        sourceFile: testFile,
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
         isDeclaration: true,
-        signature: "int testFunc(int a, float b)",
-        parent: "MyClass",
-        accessModifier: "rw",
-        size: 32,
         parameters: [
           { name: "a", type: "int", isConst: false, isArray: false },
           { name: "b", type: "float", isConst: true, isArray: false },
         ],
       });
-      cacheManager.setSymbols(testFile, [symbol], new Map());
 
-      const cached = cacheManager.getSymbols(testFile);
-      expect(cached!.symbols[0]).toMatchObject({
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      const restored = readSymbols(cacheManager.getSymbols(testFile)!.symbols);
+      const restoredFunction = restored[0] as Extract<
+        TCSymbol,
+        { kind: "function" }
+      >;
+      expect(restoredFunction).toMatchObject({
         type: "int",
+        // #1214 and #1225 both hid here: isDeclaration was serialized by
+        // nobody and restored from nothing.
         isDeclaration: true,
-        signature: "int testFunc(int a, float b)",
-        parent: "MyClass",
-        accessModifier: "rw",
-        size: 32,
       });
-      expect(cached!.symbols[0].parameters).toHaveLength(2);
-      expect(cached!.symbols[0].parameters![0]).toMatchObject({
-        name: "a",
-        type: "int",
-        isConst: false,
+      expect(restoredFunction.parameters).toHaveLength(2);
+      // #1214: a parameter's isConst was dropped by the old adapter, so warm
+      // and cold caches disagreed about `const T*` versus `T*`.
+      expect(restoredFunction.parameters![1]).toMatchObject({
+        name: "b",
+        type: "float",
+        isConst: true,
         isArray: false,
       });
     });
@@ -258,28 +319,22 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      const symbols = [
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "func1",
-          kind: "function",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "var1",
-          kind: "variable",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "MyStruct",
-          kind: "struct",
-        }),
+      const base = {
+        sourceFile: testFile,
+        sourceLine: 10,
+        sourceLanguage: ESourceLanguage.C as const,
+        isExported: true,
+      };
+      const symbols: TCSymbol[] = [
+        { ...base, kind: "function", name: "func1", type: "void" },
+        { ...base, kind: "variable", name: "var1", type: "int" },
+        { ...base, kind: "struct", name: "MyStruct", isUnion: false },
       ];
-      cacheManager.setSymbols(testFile, symbols, new Map());
+      storeSymbols(testFile, symbols, new Map());
 
       const cached = cacheManager.getSymbols(testFile);
-      expect(cached!.symbols).toHaveLength(3);
-      expect(cached!.symbols.map((s) => s.name)).toEqual([
+      expect(readSymbols(cached!.symbols)).toHaveLength(3);
+      expect(readSymbols(cached!.symbols).map((s) => s.name)).toEqual([
         "func1",
         "var1",
         "MyStruct",
@@ -291,7 +346,7 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       const symbol = createTestSymbol({ sourceFile: testFile });
-      cacheManager.setSymbols(testFile, [symbol], new Map());
+      storeSymbols(testFile, [symbol], new Map());
       await cacheManager.flush();
 
       // Create new manager and reload
@@ -300,7 +355,7 @@ describe("CacheManager", () => {
 
       const cached = newManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols[0].name).toBe("testFunc");
+      expect(readSymbols(cached!.symbols)[0].name).toBe("testFunc");
     });
   });
 
@@ -314,7 +369,7 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       const structFields = createTestStructFields();
-      cacheManager.setSymbols(testFile, [], structFields);
+      storeSymbols(testFile, [], structFields);
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached!.structFields.has("Point")).toBe(true);
@@ -336,7 +391,7 @@ describe("CacheManager", () => {
       bufferFields.set("matrix", { type: "int32_t", arrayDimensions: [4, 4] });
       structFields.set("Buffer", bufferFields);
 
-      cacheManager.setSymbols(testFile, [], structFields);
+      storeSymbols(testFile, [], structFields);
 
       const cached = cacheManager.getSymbols(testFile);
       const cachedBufferFields = cached!.structFields.get("Buffer")!;
@@ -355,7 +410,7 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       const structFields = createTestStructFields();
-      cacheManager.setSymbols(testFile, [], structFields);
+      storeSymbols(testFile, [], structFields);
       await cacheManager.flush();
 
       // Reload
@@ -378,7 +433,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(testFile, [], new Map(), {
+      storeSymbols(testFile, [], new Map(), {
         needsStructKeyword: ["Point", "Rectangle"],
       });
 
@@ -390,7 +445,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(testFile, [], new Map());
+      storeSymbols(testFile, [], new Map());
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached!.needsStructKeyword).toEqual([]);
@@ -410,7 +465,7 @@ describe("CacheManager", () => {
       enumBitWidth.set("Status", 8);
       enumBitWidth.set("Mode", 16);
 
-      cacheManager.setSymbols(testFile, [], new Map(), { enumBitWidth });
+      storeSymbols(testFile, [], new Map(), { enumBitWidth });
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached!.enumBitWidth.get("Status")).toBe(8);
@@ -424,7 +479,7 @@ describe("CacheManager", () => {
       const enumBitWidth = new Map<string, number>();
       enumBitWidth.set("Priority", 32);
 
-      cacheManager.setSymbols(testFile, [], new Map(), { enumBitWidth });
+      storeSymbols(testFile, [], new Map(), { enumBitWidth });
       await cacheManager.flush();
 
       // Reload
@@ -439,7 +494,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(testFile, [], new Map());
+      storeSymbols(testFile, [], new Map());
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached!.enumBitWidth).toBeInstanceOf(Map);
@@ -460,7 +515,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(testFile, [], new Map());
+      storeSymbols(testFile, [], new Map());
 
       expect(cacheManager.isValid(testFile)).toBe(true);
     });
@@ -469,7 +524,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(testFile, [], new Map());
+      storeSymbols(testFile, [], new Map());
 
       // Wait and modify file to ensure mtime changes
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -488,7 +543,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(
+      storeSymbols(
         testFile,
         [createTestSymbol({ sourceFile: testFile })],
         new Map(),
@@ -505,12 +560,12 @@ describe("CacheManager", () => {
       writeFileSync(file1, "// test1");
       writeFileSync(file2, "// test2");
 
-      cacheManager.setSymbols(
+      storeSymbols(
         file1,
         [createTestSymbol({ sourceFile: file1, name: "func1" })],
         new Map(),
       );
-      cacheManager.setSymbols(
+      storeSymbols(
         file2,
         [createTestSymbol({ sourceFile: file2, name: "func2" })],
         new Map(),
@@ -520,7 +575,9 @@ describe("CacheManager", () => {
 
       expect(cacheManager.getSymbols(file1)).toBeNull();
       expect(cacheManager.getSymbols(file2)).not.toBeNull();
-      expect(cacheManager.getSymbols(file2)!.symbols[0].name).toBe("func2");
+      expect(readSymbols(cacheManager.getSymbols(file2)!.symbols)[0].name).toBe(
+        "func2",
+      );
     });
   });
 
@@ -535,16 +592,8 @@ describe("CacheManager", () => {
       writeFileSync(file1, "// test1");
       writeFileSync(file2, "// test2");
 
-      cacheManager.setSymbols(
-        file1,
-        [createTestSymbol({ sourceFile: file1 })],
-        new Map(),
-      );
-      cacheManager.setSymbols(
-        file2,
-        [createTestSymbol({ sourceFile: file2 })],
-        new Map(),
-      );
+      storeSymbols(file1, [createTestSymbol({ sourceFile: file1 })], new Map());
+      storeSymbols(file2, [createTestSymbol({ sourceFile: file2 })], new Map());
 
       cacheManager.invalidateAll();
 
@@ -573,7 +622,7 @@ describe("CacheManager", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      cacheManager.setSymbols(
+      storeSymbols(
         testFile,
         [createTestSymbol({ sourceFile: testFile })],
         new Map(),
@@ -591,7 +640,7 @@ describe("CacheManager", () => {
       // flat-cache v6 uses filename without extension
       const symbolsPath = join(testDir, ".cnx", "cache", "symbols");
 
-      cacheManager.setSymbols(testFile, [], new Map());
+      storeSymbols(testFile, [], new Map());
       await cacheManager.flush();
 
       const mtime1 = readFileSync(symbolsPath, "utf-8");
@@ -655,7 +704,7 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test content");
 
       // Set an entry
-      cacheManager.setSymbols(
+      storeSymbols(
         testFile,
         [createTestSymbol({ sourceFile: testFile, name: "persistedFunc" })],
         new Map(),
@@ -669,7 +718,7 @@ describe("CacheManager", () => {
       // Entry should be accessible
       const cached = newManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols[0].name).toBe("persistedFunc");
+      expect(readSymbols(cached!.symbols)[0].name).toBe("persistedFunc");
     });
 
     it("should return null for non-existent entries", async () => {
@@ -689,7 +738,7 @@ describe("CacheManager", () => {
       const nonExistentFile = join(testDir, "does-not-exist.h");
 
       // Should not throw, but also should not cache
-      cacheManager.setSymbols(nonExistentFile, [createTestSymbol()], new Map());
+      storeSymbols(nonExistentFile, [createTestSymbol()], new Map());
 
       expect(cacheManager.getSymbols(nonExistentFile)).toBeNull();
     });
@@ -706,96 +755,103 @@ describe("CacheManager", () => {
       await cacheManager.initialize();
     });
 
-    it("should handle all TSymbolKind values", async () => {
+    // Issue #1225: these are the kinds TSymbolKindC and TSymbolKindCpp
+    // actually define. The previous version of this test also listed C-Next
+    // kinds (bitmap, register_member, ...) because the flat legacy shape could
+    // hold any string -- but no C-Next symbol is ever cached, so it asserted a
+    // capability of the serializer rather than of the transpiler.
+    it("round-trips every C symbol kind", async () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      const symbols: ISerializedSymbol[] = [
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "func",
-          kind: "function",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "var",
-          kind: "variable",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "MyType",
-          kind: "type",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "ns",
-          kind: "namespace",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "MyClass",
-          kind: "class",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "MyStruct",
-          kind: "struct",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "MyEnum",
+      const base = {
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C as const,
+        isExported: true,
+      };
+      const fields = new Map([["x", { name: "x", type: "int" }]]);
+      const symbols: TCSymbol[] = [
+        { ...base, kind: "function", name: "func", type: "void" },
+        { ...base, kind: "variable", name: "var", type: "int" },
+        { ...base, kind: "struct", name: "MyStruct", isUnion: false, fields },
+        {
+          ...base,
           kind: "enum",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "VALUE",
-          kind: "enum_member",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "Flags",
-          kind: "bitmap",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "FLAG_A",
-          kind: "bitmap_field",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "REG",
-          kind: "register",
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "FIELD",
-          kind: "register_member",
-        }),
+          name: "MyEnum",
+          members: [{ name: "A", value: 0 }],
+        },
+        { ...base, kind: "enum_member", name: "A", parent: "MyEnum", value: 0 },
+        { ...base, kind: "type", name: "MyType", type: "int" },
       ];
 
-      cacheManager.setSymbols(testFile, symbols, new Map());
+      storeSymbols(testFile, symbols, new Map());
       await cacheManager.flush();
 
-      // Reload and verify
       const newManager = new CacheManager(testDir);
       await newManager.initialize();
+      const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
-      const cached = newManager.getSymbols(testFile);
-      expect(cached!.symbols).toHaveLength(12);
-      expect(cached!.symbols.map((s) => s.kind)).toEqual([
+      expect(restored.map((symbol) => symbol.kind)).toEqual([
         "function",
         "variable",
-        "type",
-        "namespace",
-        "class",
         "struct",
         "enum",
         "enum_member",
-        "bitmap",
-        "bitmap_field",
-        "register",
-        "register_member",
+        "type",
       ]);
+      // The struct's field Map is the one non-JSON construct in the model;
+      // it must come back as a Map, not as an object or an empty stand-in.
+      const struct = restored[2] as Extract<TCSymbol, { kind: "struct" }>;
+      expect(struct.fields).toBeInstanceOf(Map);
+      expect(struct.fields!.get("x")).toEqual({ name: "x", type: "int" });
+      const cEnum = restored[3] as Extract<TCSymbol, { kind: "enum" }>;
+      expect(cEnum.members).toEqual([{ name: "A", value: 0 }]);
+    });
+
+    it("round-trips every C++ symbol kind", async () => {
+      const testFile = join(testDir, "test.hpp");
+      writeFileSync(testFile, "// test");
+
+      const base = {
+        sourceFile: testFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.Cpp as const,
+        isExported: true,
+      };
+      const symbols: TCppSymbol[] = [
+        { ...base, kind: "function", name: "func", type: "void" },
+        { ...base, kind: "variable", name: "var", type: "int" },
+        { ...base, kind: "struct", name: "MyStruct" },
+        { ...base, kind: "class", name: "MyClass", parent: "Outer" },
+        { ...base, kind: "namespace", name: "ns" },
+        { ...base, kind: "enum", name: "MyEnum", bitWidth: 8 },
+        { ...base, kind: "enum_member", name: "A", value: 0 },
+        { ...base, kind: "type", name: "MyAlias", type: "int" },
+      ];
+
+      storeSymbols(testFile, symbols, new Map());
+      await cacheManager.flush();
+
+      const newManager = new CacheManager(testDir);
+      await newManager.initialize();
+      const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
+
+      expect(restored.map((symbol) => symbol.kind)).toEqual([
+        "function",
+        "variable",
+        "struct",
+        "class",
+        "namespace",
+        "enum",
+        "enum_member",
+        "type",
+      ]);
+      // #1214: parent and bitWidth were both dropped by the old adapter.
+      const cppClass = restored[3] as Extract<TCppSymbol, { kind: "class" }>;
+      expect(cppClass.parent).toBe("Outer");
+      const cppEnum = restored[5] as Extract<TCppSymbol, { kind: "enum" }>;
+      expect(cppEnum.bitWidth).toBe(8);
     });
   });
 
@@ -804,41 +860,53 @@ describe("CacheManager", () => {
       await cacheManager.initialize();
     });
 
-    it("should handle all ESourceLanguage values", async () => {
+    it("round-trips C and C++ symbols", async () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      const symbols: ISerializedSymbol[] = [
-        createTestSymbol({
-          sourceFile: testFile,
-          name: "cFunc",
-          sourceLanguage: ESourceLanguage.C,
-        }),
-        createTestSymbol({
-          sourceFile: testFile,
+      const symbols: Array<TCSymbol | TCppSymbol> = [
+        createTestSymbol({ sourceFile: testFile, name: "cFunc" }),
+        {
           name: "cppFunc",
-          sourceLanguage: ESourceLanguage.Cpp,
-        }),
-        createTestSymbol({
+          kind: "function",
+          type: "void",
           sourceFile: testFile,
+          sourceLine: 10,
+          sourceLanguage: ESourceLanguage.Cpp,
+          isExported: true,
+        },
+      ];
+
+      storeSymbols(testFile, symbols, new Map());
+      await cacheManager.flush();
+
+      const newManager = new CacheManager(testDir);
+      await newManager.initialize();
+      const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
+
+      expect(restored.map((symbol) => symbol.sourceLanguage)).toEqual([
+        ESourceLanguage.C,
+        ESourceLanguage.Cpp,
+      ]);
+    });
+
+    it("rejects a C-Next symbol rather than reviving one", () => {
+      // Issue #1225: C-Next symbols are re-parsed from source every run and
+      // are never cached. One appearing in an entry means the entry is not
+      // what it claims to be, so the whole entry is discarded -- which reads
+      // as a cache miss and costs a re-parse, not a wrong header.
+      const encoded = [
+        JsonCodec.encode({
           name: "cnextFunc",
+          kind: "function",
+          sourceFile: "/test/file.cnx",
+          sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
         }),
       ];
 
-      cacheManager.setSymbols(testFile, symbols, new Map());
-      await cacheManager.flush();
-
-      // Reload and verify
-      const newManager = new CacheManager(testDir);
-      await newManager.initialize();
-
-      const cached = newManager.getSymbols(testFile);
-      expect(cached!.symbols.map((s) => s.sourceLanguage)).toEqual([
-        ESourceLanguage.C,
-        ESourceLanguage.Cpp,
-        ESourceLanguage.CNext,
-      ]);
+      expect(CachedSymbolReader.read(encoded)).toBeNull();
     });
   });
 
@@ -850,16 +918,58 @@ describe("CacheManager", () => {
       symbolTable = new SymbolTable();
     });
 
-    it("should extract and cache symbols from SymbolTable", async () => {
-      const testFile = join(testDir, "test.cnx");
+    it("should extract and cache symbols from SymbolTable", () => {
+      const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
-      // Add symbols to SymbolTable
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
+        name: "myFunction",
+        kind: "function",
+        type: "void",
+        sourceFile: testFile,
+        sourceLine: 5,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+      });
+
+      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+
+      const cached = cacheManager.getSymbols(testFile);
+      expect(cached).not.toBeNull();
+      expect(readSymbols(cached!.symbols)).toHaveLength(1);
+      expect(readSymbols(cached!.symbols)[0]).toMatchObject({
         name: "myFunction",
         kind: "function",
         sourceFile: testFile,
         sourceLine: 5,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+        type: "void",
+      });
+    });
+
+    it("does not cache C-Next symbols (#1225)", () => {
+      // setSymbolsFromTable only ever runs on a .h/.hpp, and the restore path
+      // always skipped C-Next symbols anyway -- so writing them was work whose
+      // result was guaranteed to be discarded. The filter makes that invariant
+      // explicit, and CachedSymbolReader now rejects an entry containing one.
+      const headerFile = join(testDir, "mixed.h");
+      writeFileSync(headerFile, "// test");
+
+      symbolTable.addCSymbol({
+        name: "cFunction",
+        kind: "function",
+        type: "void",
+        sourceFile: headerFile,
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+      });
+      symbolTable.addTSymbol({
+        name: "cnextFunction",
+        kind: "function",
+        sourceFile: headerFile,
+        sourceLine: 2,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
         returnType: TTypeUtils.createPrimitive("void"),
@@ -869,39 +979,28 @@ describe("CacheManager", () => {
         body: null,
       } as IFunctionSymbol);
 
-      // Cache via setSymbolsFromTable
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setSymbolsFromTable(headerFile, symbolTable);
 
-      // Verify cached data
-      const cached = cacheManager.getSymbols(testFile);
-      expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(1);
-      expect(cached!.symbols[0]).toMatchObject({
-        name: "myFunction",
-        kind: "function",
-        sourceFile: testFile,
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
-        type: "void",
-      });
+      const restored = readSymbols(
+        cacheManager.getSymbols(headerFile)!.symbols,
+      );
+      expect(restored.map((symbol) => symbol.name)).toEqual(["cFunction"]);
     });
 
     it("should extract struct fields for structs defined in the file", async () => {
-      const testFile = join(testDir, "structs.cnx");
+      const testFile = join(testDir, "structs.h");
       writeFileSync(testFile, "// test");
 
       // Add struct symbol to SymbolTable
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "Point",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
 
       // Add struct fields
       symbolTable.addStructField("Point", "x", "int32_t");
@@ -932,29 +1031,27 @@ describe("CacheManager", () => {
       writeFileSync(file2, "// file2");
 
       // Add struct in file1
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "PointA",
         kind: "struct",
         sourceFile: file1,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
       symbolTable.addStructField("PointA", "x", "int32_t");
 
       // Add struct in file2
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "PointB",
         kind: "struct",
         sourceFile: file2,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
       symbolTable.addStructField("PointB", "y", "int32_t");
 
       // Cache file1 only
@@ -972,26 +1069,24 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// test");
 
       // Add struct symbols
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "TypedefStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
-      symbolTable.addTSymbol({
+        isUnion: false,
+      });
+      symbolTable.addCSymbol({
         name: "NamedStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
 
       // Add struct fields (required for getStructNamesByFile)
       symbolTable.addStructField("TypedefStruct", "a", "int32_t");
@@ -1016,26 +1111,24 @@ describe("CacheManager", () => {
       writeFileSync(file2, "// file2");
 
       // Add structs in different files
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "StructA",
         kind: "struct",
         sourceFile: file1,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
-      symbolTable.addTSymbol({
+        isUnion: false,
+      });
+      symbolTable.addCSymbol({
         name: "StructB",
         kind: "struct",
         sourceFile: file2,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
 
       // Add struct fields
       symbolTable.addStructField("StructA", "a", "int32_t");
@@ -1056,30 +1149,28 @@ describe("CacheManager", () => {
     });
 
     it("should extract enum bit widths for enums in the file", async () => {
-      const testFile = join(testDir, "enums.cnx");
+      const testFile = join(testDir, "enums.h");
       writeFileSync(testFile, "// test");
 
       // Add enum symbols
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "Status",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        members: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IEnumSymbol);
-      symbolTable.addTSymbol({
+        members: [],
+      });
+      symbolTable.addCSymbol({
         name: "Priority",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        members: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IEnumSymbol);
+        members: [],
+      });
 
       // Add enum bit widths
       symbolTable.addEnumBitWidth("Status", 8);
@@ -1102,26 +1193,24 @@ describe("CacheManager", () => {
       writeFileSync(file2, "// file2");
 
       // Add enums in different files
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "EnumA",
         kind: "enum",
         sourceFile: file1,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        members: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IEnumSymbol);
-      symbolTable.addTSymbol({
+        members: [],
+      });
+      symbolTable.addCSymbol({
         name: "EnumB",
         kind: "enum",
         sourceFile: file2,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        members: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IEnumSymbol);
+        members: [],
+      });
 
       // Add bit widths for both
       symbolTable.addEnumBitWidth("EnumA", 8);
@@ -1138,50 +1227,44 @@ describe("CacheManager", () => {
     });
 
     it("should handle file with all data types (symbols, structs, enums)", async () => {
-      const testFile = join(testDir, "complete.cnx");
+      const testFile = join(testDir, "complete.h");
       writeFileSync(testFile, "// test");
 
       // Add function symbol
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "processData",
         kind: "function",
+        type: "void",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
-        visibility: "public",
-        body: null,
-      } as IFunctionSymbol);
+      });
 
       // Add struct symbol and fields
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "DataPacket",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 10,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
       symbolTable.addStructField("DataPacket", "id", "uint32_t");
       symbolTable.addStructField("DataPacket", "buffer", "uint8_t", [256]);
       symbolTable.markNeedsStructKeyword("DataPacket");
 
       // Add enum symbol and bit width
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "DataType",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 20,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        members: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IEnumSymbol);
+        members: [],
+      });
       symbolTable.addEnumBitWidth("DataType", 8);
 
       // Cache via setSymbolsFromTable
@@ -1192,12 +1275,12 @@ describe("CacheManager", () => {
       expect(cached).not.toBeNull();
 
       // Verify symbols
-      expect(cached!.symbols).toHaveLength(3);
-      expect(cached!.symbols.map((s) => s.name).sort()).toEqual([
-        "DataPacket",
-        "DataType",
-        "processData",
-      ]);
+      expect(readSymbols(cached!.symbols)).toHaveLength(3);
+      expect(
+        readSymbols(cached!.symbols)
+          .map((s) => s.name)
+          .sort(),
+      ).toEqual(["DataPacket", "DataType", "processData"]);
 
       // Verify struct fields
       expect(cached!.structFields.has("DataPacket")).toBe(true);
@@ -1216,33 +1299,31 @@ describe("CacheManager", () => {
     });
 
     it("should persist data from setSymbolsFromTable across flush and reload", async () => {
-      const testFile = join(testDir, "persist.cnx");
+      const testFile = join(testDir, "persist.h");
       writeFileSync(testFile, "// test");
 
       // Add data to SymbolTable
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "MyStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
       symbolTable.addStructField("MyStruct", "value", "int32_t");
       symbolTable.markNeedsStructKeyword("MyStruct");
 
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "MyEnum",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        members: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IEnumSymbol);
+        members: [],
+      });
       symbolTable.addEnumBitWidth("MyEnum", 16);
 
       // Cache and flush
@@ -1256,7 +1337,7 @@ describe("CacheManager", () => {
       // Verify all data persisted
       const cached = newManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(2);
+      expect(readSymbols(cached!.symbols)).toHaveLength(2);
       expect(cached!.structFields.get("MyStruct")!.get("value")).toEqual({
         type: "int32_t",
       });
@@ -1268,19 +1349,15 @@ describe("CacheManager", () => {
       const nonExistent = join(testDir, "does-not-exist.cnx");
 
       // Add symbol for non-existent file
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "orphanFunc",
         kind: "function",
+        type: "void",
         sourceFile: nonExistent,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
-        visibility: "public",
-        body: null,
-      } as IFunctionSymbol);
+      });
 
       // Should not throw, but should not cache
       cacheManager.setSymbolsFromTable(nonExistent, symbolTable);
@@ -1298,27 +1375,26 @@ describe("CacheManager", () => {
       // Should cache with empty data
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(0);
+      expect(readSymbols(cached!.symbols)).toHaveLength(0);
       expect(cached!.structFields.size).toBe(0);
       expect(cached!.needsStructKeyword).toEqual([]);
       expect(cached!.enumBitWidth.size).toBe(0);
     });
 
     it("should handle structs without fields", async () => {
-      const testFile = join(testDir, "emptystructs.cnx");
+      const testFile = join(testDir, "emptystructs.h");
       writeFileSync(testFile, "// test");
 
       // Add struct symbol without adding any fields
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "EmptyStruct",
         kind: "struct",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IStructSymbol);
+        isUnion: false,
+      });
       // Note: not adding fields, so getStructNamesByFile won't include it
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
@@ -1326,91 +1402,78 @@ describe("CacheManager", () => {
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
       // Symbol should be there
-      expect(cached!.symbols).toHaveLength(1);
+      expect(readSymbols(cached!.symbols)).toHaveLength(1);
       // But no struct fields (struct wasn't in getStructNamesByFile)
       expect(cached!.structFields.has("EmptyStruct")).toBe(false);
     });
 
     it("should handle enums without bit width", async () => {
-      const testFile = join(testDir, "simpleenums.cnx");
+      const testFile = join(testDir, "simpleenums.h");
       writeFileSync(testFile, "// test");
 
       // Add enum symbol without adding bit width
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "SimpleEnum",
         kind: "enum",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        members: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
-      } as IEnumSymbol);
+        members: [],
+      });
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(1);
+      expect(readSymbols(cached!.symbols)).toHaveLength(1);
       // Enum bit width should not be present
       expect(cached!.enumBitWidth.has("SimpleEnum")).toBe(false);
     });
 
     it("should handle multiple symbols of same kind", async () => {
-      const testFile = join(testDir, "multifuncs.cnx");
+      const testFile = join(testDir, "multifuncs.h");
       writeFileSync(testFile, "// test");
 
       // Add multiple functions
-      symbolTable.addTSymbol({
+      symbolTable.addCSymbol({
         name: "func1",
         kind: "function",
+        type: "void",
         sourceFile: testFile,
         sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
-        visibility: "public",
-        body: null,
-      } as IFunctionSymbol);
-      symbolTable.addTSymbol({
+      });
+      symbolTable.addCSymbol({
         name: "func2",
         kind: "function",
+        type: "void",
         sourceFile: testFile,
         sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: true,
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
-        visibility: "public",
-        body: null,
-      } as IFunctionSymbol);
-      symbolTable.addTSymbol({
+      });
+      symbolTable.addCSymbol({
         name: "func3",
         kind: "function",
+        type: "void",
         sourceFile: testFile,
         sourceLine: 10,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.C,
         isExported: false,
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
-        visibility: "private",
-        body: null,
-      } as IFunctionSymbol);
+      });
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(3);
-      expect(cached!.symbols.map((s) => s.name).sort()).toEqual([
-        "func1",
-        "func2",
-        "func3",
-      ]);
+      expect(readSymbols(cached!.symbols)).toHaveLength(3);
+      expect(
+        readSymbols(cached!.symbols)
+          .map((s) => s.name)
+          .sort(),
+      ).toEqual(["func1", "func2", "func3"]);
     });
   });
 
@@ -1426,6 +1489,22 @@ describe("CacheManager", () => {
 
     let mockFs: MockFileSystem;
     let cacheManager: CacheManager;
+
+    /**
+     * Store symbols against THIS block's cacheManager.
+     *
+     * The outer storeSymbols closes over the outer manager, which this block
+     * shadows -- calling it here writes to a different cache than the one
+     * under test.
+     */
+    function storeMockSymbols(filePath: string, symbols: TCSymbol[]): void {
+      cacheManager.setSymbols(
+        filePath,
+        symbols.map((symbol) => JsonCodec.encode(symbol)),
+        new Map(),
+        { structState: emptyStructState() },
+      );
+    }
 
     beforeEach(() => {
       mockFs = new MockFileSystem();
@@ -1461,22 +1540,23 @@ describe("CacheManager", () => {
       // Add a virtual test file
       mockFs.addFile("/project/test.h", "// test header");
 
-      const symbol: ISerializedSymbol = {
+      const symbol: TCSymbol = {
         name: "testFunc",
         kind: "function",
+        type: "void",
         sourceFile: "/project/test.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
         isExported: true,
       };
 
-      cacheManager.setSymbols("/project/test.h", [symbol], new Map());
+      storeMockSymbols("/project/test.h", [symbol]);
 
       // Symbols are stored in flat-cache memory before flush
       const cached = cacheManager.getSymbols("/project/test.h");
       expect(cached).not.toBeNull();
-      expect(cached!.symbols).toHaveLength(1);
-      expect(cached!.symbols[0].name).toBe("testFunc");
+      expect(readSymbols(cached!.symbols)).toHaveLength(1);
+      expect(readSymbols(cached!.symbols)[0].name).toBe("testFunc");
     });
 
     it("should validate cache using mtime from IFileSystem", async () => {
@@ -1485,7 +1565,7 @@ describe("CacheManager", () => {
       // Add file with specific mtime
       mockFs.addFile("/project/test.h", "// test header", 1000);
 
-      cacheManager.setSymbols("/project/test.h", [], new Map());
+      storeMockSymbols("/project/test.h", []);
       expect(cacheManager.isValid("/project/test.h")).toBe(true);
 
       // Change mtime to simulate file modification
@@ -1511,27 +1591,24 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(8); // Current CACHE_VERSION (Issue #985 preprocessFailed marker)
+      expect(newConfig.version).toBe(9); // Current CACHE_VERSION (Issue #1225)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {
       await cacheManager.initialize();
 
       // Try to cache non-existent file
-      cacheManager.setSymbols(
-        "/project/nonexistent.h",
-        [
-          {
-            name: "func",
-            kind: "function",
-            sourceFile: "/project/nonexistent.h",
-            sourceLine: 1,
-            sourceLanguage: ESourceLanguage.C,
-            isExported: true,
-          },
-        ],
-        new Map(),
-      );
+      storeMockSymbols("/project/nonexistent.h", [
+        {
+          name: "func",
+          kind: "function",
+          type: "void",
+          sourceFile: "/project/nonexistent.h",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.C,
+          isExported: true,
+        },
+      ]);
 
       // Should not be cached (stat() will fail)
       const cached = cacheManager.getSymbols("/project/nonexistent.h");
