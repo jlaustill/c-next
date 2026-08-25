@@ -228,22 +228,22 @@ class CppResolver {
         continue;
       }
 
-      if (isTypedef) {
-        // A typedef declares a type, not a variable. Collecting it as one made
-        // `typedef struct opaque_t* handle_t;` a variable of type int and
-        // `typedef unsigned char byte_t;` a variable of type unsigned char.
-        // Every typedef declarator is skipped, not just the pointer ones.
-        if (DeclaratorUtils.declaratorHasPointer(declarator)) {
-          const typedefName = DeclaratorUtils.extractDeclaratorName(declarator);
-          if (typedefName) {
-            // Recorded so the header includes the defining file rather than
-            // forward-declaring a struct of the same name, which is a
-            // different type entirely.
-            ctx.symbolTable?.markPointerTypedef(typedefName);
-          }
+      if (isTypedef && DeclaratorUtils.declaratorHasPointer(declarator)) {
+        const typedefName = DeclaratorUtils.extractDeclaratorName(declarator);
+        if (typedefName) {
+          // Recorded so the header includes the defining file rather than
+          // forward-declaring a struct of the same name, which is a different
+          // type entirely.
+          ctx.symbolTable?.markPointerTypedef(typedefName);
         }
         continue;
       }
+
+      // A NON-pointer typedef (`typedef unsigned char byte_t;`) is still
+      // collected as a variable, which is wrong -- but downstream code depends
+      // on the symbol existing, and simply skipping it changes generated C for
+      // any file including such a header. Registering it as a type instead is
+      // tracked as #1213.
 
       CppResolver._collectDeclarator(
         declarator,
