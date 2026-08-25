@@ -1,0 +1,20 @@
+// test-error
+// E0804: modulo on a floating-point operand -- matrix cell: imported direct (1 hop)
+
+#include "declarations.cnx"
+
+f32 globalRemainder <- floatValue % 2;
+
+f32 topLevelFunction() {
+    f32 remainder <- floatValue % 2;
+    return remainder;
+}
+
+scope Widget {
+    f32 memberRemainder <- floatValue % 2;
+
+    f32 methodValue() {
+        f32 remainder <- floatValue % 2;
+        return remainder;
+    }
+}

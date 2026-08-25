@@ -10,11 +10,18 @@
  * compile time to ensure defined, portable behavior.
  *
  * Two-pass analysis:
- * 1. Collect variable declarations with their types
+ * 1. Build lexical scope frames (DeclarationScopeCollector)
  * 2. Detect shift operations with signed operands
+ *
+ * Issue #1220: pass 1 used to be private Set/Map caches built from this file's
+ * parse tree alone, so an `i32` arriving through an #include was invisible and
+ * `signedValue >> 1` shipped silently -- gcc accepts it even under
+ * -Wall -Wextra -Wconversion, and right-shifting a negative value is
+ * implementation-defined. Resolution now goes through ScopeFrameResolver,
+ * which searches the lexical frames and falls back to the symbol table.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
+import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import ISignedShiftError from "./types/ISignedShiftError";
@@ -22,68 +29,8 @@ import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 import CodeGenState from "../../state/CodeGenState";
-
-/**
- * First pass: Collect variable declarations with their types
- */
-class SignedVariableCollector extends CNextListener {
-  private readonly signedVars: Set<string> = new Set();
-
-  // Track all variable types (for resolving struct member chains)
-  private readonly varTypes: Map<string, string> = new Map();
-
-  public getSignedVars(): Set<string> {
-    return this.signedVars;
-  }
-
-  public getVarTypes(): Map<string, string> {
-    return this.varTypes;
-  }
-
-  /**
-   * Track a typed identifier - add to signedVars if signed, always track type
-   */
-  private trackType(
-    typeCtx: Parser.TypeContext | null,
-    identifier: { getText(): string } | null,
-  ): void {
-    if (!typeCtx || !identifier) return;
-
-    const typeName = typeCtx.getText();
-    const varName = identifier.getText();
-
-    // Always track the variable's type for member chain resolution
-    this.varTypes.set(varName, typeName);
-
-    // Also track in signedVars if it's a signed type
-    if (TypeConstants.SIGNED_TYPES.includes(typeName)) {
-      this.signedVars.add(varName);
-    }
-  }
-
-  /**
-   * Track variable declarations with signed types
-   */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    this.trackType(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  /**
-   * Track function parameters with signed types
-   */
-  override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.trackType(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  /**
-   * Track for-loop variable declarations with signed types
-   */
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.trackType(ctx.type(), ctx.IDENTIFIER());
-  };
-}
+import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ScopeFrameResolver from "./ScopeFrameResolver";
 
 /**
  * Second pass: Detect shift operations with signed operands
@@ -92,20 +39,29 @@ class SignedShiftListener extends CNextListener {
   private readonly analyzer: SignedShiftAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly signedVars: Set<string>;
+  private readonly scopes: ScopeFrameResolver;
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly varTypes: Map<string, string>;
-
-  constructor(
-    analyzer: SignedShiftAnalyzer,
-    signedVars: Set<string>,
-    varTypes: Map<string, string>,
-  ) {
+  constructor(analyzer: SignedShiftAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
-    this.signedVars = signedVars;
-    this.varTypes = varTypes;
+    this.scopes = scopes;
+  }
+
+  /**
+   * Declared type of a name as seen from the frame enclosing `at`. One place
+   * decides how this analyzer resolves a name, so the lexical-then-symbol-table
+   * order cannot drift between the operand and assignment-target paths (#1220).
+   */
+  private declaredTypeAt(name: string, at: ParserRuleContext): string | null {
+    return this.scopes.typeOfName(name, this.scopes.frameFor(at));
+  }
+
+  /**
+   * Whether a name resolves to one of the signed integer types.
+   */
+  private isSignedName(name: string, at: ParserRuleContext): boolean {
+    const typeName = this.declaredTypeAt(name, at);
+    return typeName !== null && TypeConstants.SIGNED_TYPES.includes(typeName);
   }
 
   /**
@@ -160,11 +116,8 @@ class SignedShiftListener extends CNextListener {
     const identifier = target.IDENTIFIER();
     if (!identifier) return;
 
-    const baseName = identifier.getText();
-    const postfixOps = target.postfixTargetOp();
-
     // Check if the final target type is signed
-    if (this.isSignedTarget(baseName, postfixOps)) {
+    if (this.isSignedTarget(target)) {
       const operator = isLeftShiftAssign ? "<<<-" : ">><-";
       const { line, column } = ParserUtils.getPosition(target);
       this.analyzer.addError(line, column, operator);
@@ -180,17 +133,19 @@ class SignedShiftListener extends CNextListener {
    *   - "s" with postfixOps [".x"] → check if s.x field is signed
    *   - "arr" with postfixOps ["[0]", ".field"] → check if field is signed
    */
-  private isSignedTarget(
-    baseName: string,
-    postfixOps: Parser.PostfixTargetOpContext[],
-  ): boolean {
+  private isSignedTarget(target: Parser.AssignmentTargetContext): boolean {
+    const baseName = target.IDENTIFIER()?.getText();
+    if (!baseName) return false;
+
+    const postfixOps = target.postfixTargetOp();
+
     // Simple case: no member access, just a variable
     if (postfixOps.length === 0) {
-      return this.signedVars.has(baseName);
+      return this.isSignedName(baseName, target);
     }
 
     // Member chain case: resolve through the chain
-    let currentType = this.varTypes.get(baseName);
+    let currentType: string | null = this.declaredTypeAt(baseName, target);
     if (!currentType) {
       // Unknown base type - can't resolve, skip
       return false;
@@ -282,7 +237,7 @@ class SignedShiftListener extends CNextListener {
     // Check for identifier that's a signed variable
     const identifier = primaryExpr.IDENTIFIER();
     if (identifier) {
-      return this.signedVars.has(identifier.getText());
+      return this.isSignedName(identifier.getText(), ctx);
     }
 
     // Positive integer literals are treated as unsigned
@@ -313,14 +268,15 @@ class SignedShiftAnalyzer {
   public analyze(tree: Parser.ProgramContext): ISignedShiftError[] {
     this.errors = [];
 
-    // First pass: collect signed variables and all variable types
-    const collector = new SignedVariableCollector();
-    ParseTreeWalker.DEFAULT.walk(collector, tree);
-    const signedVars = collector.getSignedVars();
-    const varTypes = collector.getVarTypes();
+    // First pass: build the lexical scope frames
+    const declarations = new DeclarationScopeCollector();
+    ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     // Second pass: detect shift with signed operands
-    const listener = new SignedShiftListener(this, signedVars, varTypes);
+    const listener = new SignedShiftListener(
+      this,
+      new ScopeFrameResolver(declarations),
+    );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;

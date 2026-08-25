@@ -1,0 +1,40 @@
+// Tests: the cross-file resolution added for #1220 must not FALSELY reject.
+//
+// Every operand below crosses a file boundary exactly like the ones the
+// test-error fixtures reject, but each one is legal. Without this fixture the
+// fix could have been "report E08xx whenever an operand is imported" and every
+// one of those error fixtures would still have passed.
+//
+// Not an execution test: the definitions live in the helper .c files, which the
+// execution harness does not link, and what is under test happens at transpile
+// time anyway.
+
+#include "relay.cnx"
+
+u32 checkedDivision() {
+    // Cross-file const divisor that is not zero: E0800 must stay quiet.
+    return 100 / NONZERO;
+}
+
+u32 unsignedShift() {
+    // Cross-file UNSIGNED shift: E0805 rejects signed operands only.
+    return importedUnsignedValue >> 1;
+}
+
+f32 floatDivision() {
+    // Cross-file float DIVISION is fine; only modulo is rejected (E0804).
+    return floatValue / 2.0;
+}
+
+i32 sameCategoryAddition() {
+    // Two cross-file SIGNED operands share an essential type category, so
+    // there is no E0810 mismatch to report.
+    return signedValue + otherSignedValue;
+}
+
+u32 booleanCondition() {
+    // A cross-file bool used as a condition is not an arithmetic operand,
+    // so E0807 must not fire on it.
+    if (flagValue = true) { return RELAY_MARKER; }
+    return 0;
+}

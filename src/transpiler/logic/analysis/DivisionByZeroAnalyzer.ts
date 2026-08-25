@@ -8,6 +8,11 @@
  *
  * Future Enhancement (Phase 3+):
  * - Const expression evaluation (const u32 VALUE <- 5 - 5; x / VALUE)
+ *
+ * Issue #1220: the const-zero pass walks only THIS file's parse tree, so a
+ * const arriving through an #include was invisible and the check silently
+ * passed. Cross-file consts are resolved through CodeGenState, which reads the
+ * one const-value derivation on SymbolTable.
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -17,6 +22,7 @@ import IDivisionByZeroError from "./types/IDivisionByZeroError";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 import ParserUtils from "../../../utils/ParserUtils";
+import CodeGenState from "../../state/CodeGenState";
 
 /**
  * First pass: Collect const declarations that are zero
@@ -128,11 +134,18 @@ class DivisionByZeroListener extends CNextListener {
       return LiteralUtils.isZero(literal);
     }
 
-    // Check if it's a const identifier that evaluates to zero
+    // Check if it's a const identifier that evaluates to zero. The local pass
+    // covers consts declared in this file (including function-local ones, which
+    // never reach the symbol table); CodeGenState covers the rest.
+    //
+    // Issue #1220: without the second half, `10 / ZERO` with an imported ZERO
+    // passed silently and emitted a real runtime division by zero.
     const identifier = primaryExpr.IDENTIFIER();
     if (identifier) {
       const name = identifier.getText();
-      return this.constZeros.has(name);
+      return (
+        this.constZeros.has(name) || CodeGenState.getCNextConstValue(name) === 0
+      );
     }
 
     return false;

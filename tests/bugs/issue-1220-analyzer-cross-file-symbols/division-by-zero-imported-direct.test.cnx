@@ -1,0 +1,24 @@
+// test-error
+// E0800/E0802: division and modulo by a const zero -- matrix cell: imported direct (1 hop)
+
+#include "declarations.cnx"
+
+u32 globalDivide <- 10 / ZERO;
+u32 globalModulo <- 10 % ZERO;
+
+u32 topLevelFunction() {
+    u32 divided <- 10 / ZERO;
+    u32 remainder <- 10 % ZERO;
+    return divided + remainder;
+}
+
+scope Widget {
+    u32 memberDivide <- 10 / ZERO;
+    u32 memberModulo <- 10 % ZERO;
+
+    u32 methodValue() {
+        u32 divided <- 10 / ZERO;
+        u32 remainder <- 10 % ZERO;
+        return divided + remainder;
+    }
+}

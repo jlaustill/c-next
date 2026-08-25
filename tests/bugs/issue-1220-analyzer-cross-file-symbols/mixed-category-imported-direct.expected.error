@@ -1,0 +1,4 @@
+8:33 error[E0810]: Binary operator combines operands of different essential type categories (signed and unsigned)
+11:31 error[E0810]: Binary operator combines operands of different essential type categories (signed and unsigned)
+16:37 error[E0810]: Binary operator combines operands of different essential type categories (signed and unsigned)
+19:35 error[E0810]: Binary operator combines operands of different essential type categories (signed and unsigned)
