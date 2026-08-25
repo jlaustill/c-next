@@ -9,40 +9,16 @@
 import AdrMatrixDeclaration from "../matrix/AdrMatrixDeclaration";
 import MatrixCell from "../matrix/MatrixCell";
 import MatrixReport from "../matrix/MatrixReport";
-import IMatrixDeclaration from "../types/IMatrixDeclaration";
-import IMatrixOccupancy from "../types/IMatrixOccupancy";
-
-const declare = (
-  adr: string,
-  rows: [string, string, string][],
-): IMatrixDeclaration => ({
-  adr,
-  severities: new Map(
-    rows.map(([context, relationship, severity]) => [
-      MatrixCell.key(context as never, relationship as never),
-      severity as never,
-    ]),
-  ),
-  errors: [],
-});
-
-const occupy = (adr: string, cells: [string, string][]): IMatrixOccupancy => ({
-  adr,
-  cells: new Map(
-    cells.map(([context, relationship]) => [
-      MatrixCell.key(context as never, relationship as never),
-      ["some/fixture.test.cnx"],
-    ]),
-  ),
-  fixturesWithoutContext: [],
-});
+import MatrixTestHelpers from "./matrixTestHelpers";
 
 describe("MatrixReport.violations", () => {
   it("reports a declared error cell that no fixture occupies", () => {
     const declarations = new Map([
       [
         "051",
-        declare("051", [["top-level-function", "imported-direct", "error"]]),
+        MatrixTestHelpers.declare("051", [
+          ["top-level-function", "imported-direct", "error"],
+        ]),
       ],
     ]);
     const found = MatrixReport.violations(declarations, new Map());
@@ -57,23 +33,38 @@ describe("MatrixReport.violations", () => {
 
   it("reports nothing when the declared cell is occupied", () => {
     const declarations = new Map([
-      ["051", declare("051", [["top-level-function", "same-file", "error"]])],
+      [
+        "051",
+        MatrixTestHelpers.declare("051", [
+          ["top-level-function", "same-file", "error"],
+        ]),
+      ],
     ]);
     const occupancy = new Map([
-      ["051", occupy("051", [["top-level-function", "same-file"]])],
+      [
+        "051",
+        MatrixTestHelpers.occupy("051", [["top-level-function", "same-file"]]),
+      ],
     ]);
     expect(MatrixReport.violations(declarations, occupancy)).toEqual([]);
   });
 
   it("never reports an off cell, however empty", () => {
     const declarations = new Map([
-      ["051", declare("051", [["scope-member", "imported-transitive", "off"]])],
+      [
+        "051",
+        MatrixTestHelpers.declare("051", [
+          ["scope-member", "imported-transitive", "off"],
+        ]),
+      ],
     ]);
     expect(MatrixReport.violations(declarations, new Map())).toEqual([]);
   });
 
   it("reports an undeclared cell as nothing, since undeclared means off", () => {
-    const declarations = new Map([["051", declare("051", [])]]);
+    const declarations = new Map([
+      ["051", MatrixTestHelpers.declare("051", [])],
+    ]);
     expect(MatrixReport.violations(declarations, new Map())).toEqual([]);
   });
 
@@ -84,7 +75,7 @@ describe("MatrixReport.violations", () => {
     const declarations = new Map([
       [
         "051",
-        declare("051", [
+        MatrixTestHelpers.declare("051", [
           ["top-level-function", "exercised-from-one-away", "error"],
         ]),
       ],
@@ -96,7 +87,7 @@ describe("MatrixReport.violations", () => {
     const declarations = new Map([
       [
         "051",
-        declare("051", [
+        MatrixTestHelpers.declare("051", [
           ["top-level-function", "exercised-from-one-away", "error"],
         ]),
       ],
@@ -110,7 +101,7 @@ describe("MatrixReport.violations", () => {
     const declarations = new Map([
       [
         "051",
-        declare("051", [
+        MatrixTestHelpers.declare("051", [
           ["top-level-function", "same-file", "warn"],
           ["scope-method", "same-file", "error"],
         ]),
@@ -126,7 +117,7 @@ describe("MatrixReport.violations", () => {
 
 describe("AdrMatrixDeclaration.severityOf", () => {
   it("defaults an undeclared cell to off so the tool blocks nothing on arrival", () => {
-    const declaration = declare("999", []);
+    const declaration = MatrixTestHelpers.declare("999", []);
     for (const { context, relationship } of MatrixCell.all()) {
       expect(
         AdrMatrixDeclaration.severityOf(declaration, context, relationship),
