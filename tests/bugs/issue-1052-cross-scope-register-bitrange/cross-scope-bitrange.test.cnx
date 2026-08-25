@@ -6,9 +6,19 @@ scope Hw {
         Mode: u32 rw @ 0x00,
     }
 }
+// Issue #1244: #1052 names BOTH the `global.Scope.REG.FIELD` and the bare
+// `OtherScope.REG.FIELD` spellings, but only the first was covered here -- so
+// this fixture passed while the second still emitted `Hw__GPIO__Mode.GPIO.Mode`
+// (the scope-qualified name resolved, then the member chain applied a second
+// time). Both spellings are exercised below; they must generate identical C.
 scope App {
     public void configure() {
         global.Hw.GPIO.Mode[10, 2] <- 3;   // bit range
         global.Hw.GPIO.Mode[5] <- true;     // single bit
+    }
+
+    public void configureBareScope() {
+        Hw.GPIO.Mode[10, 2] <- 3;   // bit range
+        Hw.GPIO.Mode[5] <- true;     // single bit
     }
 }

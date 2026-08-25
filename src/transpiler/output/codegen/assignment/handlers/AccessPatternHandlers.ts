@@ -4,7 +4,6 @@
  * Handles assignments with global/this prefix and member chains:
  * - GLOBAL_ARRAY: global.obj.field[i] <- value (member chain)
  * - GLOBAL_MEMBER: global.Counter.value <- 5
- * - GLOBAL_REGISTER_BIT: global.GPIO7.DR_SET[bit] <- true
  * - THIS_MEMBER: this.count <- 5
  * - MEMBER_CHAIN: struct.field.subfield <- value
  */
@@ -12,9 +11,7 @@ import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-import RegisterUtils from "./RegisterUtils";
 import CodeGenState from "../../../../state/CodeGenState";
-import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
  * Common handler for global access patterns (GLOBAL_MEMBER and GLOBAL_ARRAY).
@@ -52,70 +49,6 @@ function handleThisAccess(ctx: IAssignmentContext): string {
     ctx.targetCtx,
   );
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
-}
-
-/**
- * Handle global.reg[bit]: global.GPIO7.DR_SET[bit] <- true
- */
-function handleGlobalRegisterBit(ctx: IAssignmentContext): string {
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-    );
-  }
-
-  const parts = ctx.identifiers;
-  const regName = QualifiedCName.join(...parts);
-
-  // Check for write-only register
-  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
-  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
-
-  // Handle bit range vs single bit
-  if (ctx.subscripts.length === 2) {
-    // Bit range - use shared utility
-    const { start, width, mask } = RegisterUtils.extractBitRangeParams(
-      ctx.subscripts,
-    );
-
-    if (isWriteOnly) {
-      if (ctx.generatedValue === "0") {
-        throw new Error(
-          `Cannot assign 0 to write-only register bits ${regName}[${start}, ${width}]. ` +
-            `Use the corresponding CLEAR register to clear bits.`,
-        );
-      }
-      return RegisterUtils.generateWriteOnlyBitRange(
-        regName,
-        ctx.generatedValue,
-        mask,
-        start,
-      );
-    }
-    return RegisterUtils.generateRmwBitRange(
-      regName,
-      ctx.generatedValue,
-      mask,
-      start,
-    );
-  }
-
-  // Single bit
-  const bitIndex = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
-
-  if (isWriteOnly) {
-    if (ctx.generatedValue === "false" || ctx.generatedValue === "0") {
-      throw new Error(
-        `Cannot assign false to write-only register bit ${regName}[${bitIndex}]. ` +
-          `Use the corresponding CLEAR register to clear bits.`,
-      );
-    }
-    return `${regName} = (1U << ${bitIndex});`;
-  }
-
-  return `${regName} = (${regName} & ~(1U << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
 }
 
 /**
@@ -164,7 +97,6 @@ const accessPatternHandlers: ReadonlyArray<
 > = [
   [AssignmentKind.GLOBAL_MEMBER, handleGlobalAccess],
   [AssignmentKind.GLOBAL_ARRAY, handleGlobalAccess],
-  [AssignmentKind.GLOBAL_REGISTER_BIT, handleGlobalRegisterBit],
   [AssignmentKind.THIS_MEMBER, handleThisAccess],
   [AssignmentKind.MEMBER_CHAIN, handleMemberChain],
 ];

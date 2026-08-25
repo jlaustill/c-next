@@ -60,13 +60,12 @@ describe("AccessPatternHandlers", () => {
 
       expect(kinds).toContain(AssignmentKind.GLOBAL_MEMBER);
       expect(kinds).toContain(AssignmentKind.GLOBAL_ARRAY);
-      expect(kinds).toContain(AssignmentKind.GLOBAL_REGISTER_BIT);
       expect(kinds).toContain(AssignmentKind.THIS_MEMBER);
       expect(kinds).toContain(AssignmentKind.MEMBER_CHAIN);
     });
 
-    it("exports exactly 5 handlers", () => {
-      expect(accessPatternHandlers).toHaveLength(5);
+    it("exports exactly 4 handlers", () => {
+      expect(accessPatternHandlers).toHaveLength(4);
     });
 
     it("uses same handler for GLOBAL_MEMBER and GLOBAL_ARRAY", () => {
@@ -257,141 +256,6 @@ describe("AccessPatternHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toBe("Motor_items[0] = 5;");
-    });
-  });
-
-  describe("handleGlobalRegisterBit (GLOBAL_REGISTER_BIT)", () => {
-    const getHandler = () =>
-      accessPatternHandlers.find(
-        ([kind]) => kind === AssignmentKind.GLOBAL_REGISTER_BIT,
-      )?.[1];
-
-    it("generates read-modify-write for single bit", () => {
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "DR_SET"],
-        subscripts: [{ mockValue: "LED_BIT" } as never],
-        generatedValue: "true",
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("GPIO7__DR_SET =");
-      expect(result).toContain("& ~(1U <<");
-      expect(result).toContain("LED_BIT");
-    });
-
-    it("generates simple write for write-only register single bit", () => {
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-      });
-      HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "DR_SET"],
-        subscripts: [{ mockValue: "LED_BIT" } as never],
-        generatedValue: "true",
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toBe("GPIO7__DR_SET = (1U << LED_BIT);");
-    });
-
-    it("throws on write-only register with false value", () => {
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi.fn().mockReturnValue("LED_BIT"),
-      });
-      HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "DR_SET"],
-        subscripts: [{ mockValue: "LED_BIT" } as never],
-        generatedValue: "false",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign false to write-only register bit",
-      );
-    });
-
-    it("generates read-modify-write for bit range", () => {
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi
-          .fn()
-          .mockReturnValueOnce("0")
-          .mockReturnValueOnce("8"),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "DR_SET"],
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
-        generatedValue: "value",
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("GPIO7__DR_SET =");
-      expect(result).toContain("& ~(");
-      expect(result).toContain("<< 0");
-    });
-
-    it("generates simple write for write-only bit range", () => {
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi
-          .fn()
-          .mockReturnValueOnce("0")
-          .mockReturnValueOnce("8"),
-      });
-      HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7__DR_SET", "w1s"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "DR_SET"],
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
-        generatedValue: "value",
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).not.toContain("& ~");
-    });
-
-    it("throws on write-only bit range with 0 value", () => {
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi
-          .fn()
-          .mockReturnValueOnce("0")
-          .mockReturnValueOnce("8"),
-      });
-      HandlerTestUtils.setupMockSymbols({
-        registerMemberAccess: new Map([["GPIO7__DR_SET", "w1c"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "DR_SET"],
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
-        generatedValue: "0",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign 0 to write-only register bits",
-      );
-    });
-
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "DR_SET"],
-        subscripts: [{ mockValue: "LED_BIT" } as never],
-        isCompound: true,
-        cnextOp: "+<-",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
     });
   });
 

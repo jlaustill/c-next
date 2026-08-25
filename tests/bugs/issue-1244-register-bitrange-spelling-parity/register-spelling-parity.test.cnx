@@ -1,0 +1,42 @@
+// Issue #1244: a register bit-range write must mean the same thing through
+// every ADR-016 spelling. The classifier tested the subscript SHAPE before it
+// asked whether the target was a register, and a bit range is two expressions
+// in one op -- so `REG.MEMBER[start, width]` was claimed by the struct-chain
+// branch and emitted `PORT__Set.Set`, a member invented on a macro:
+//
+//   PORT.Set[8, 8] <- 255   ->  PORT__Set.Set = ...    (does not compile)
+//   PORT.Set[5] <- true     ->  PORT__Set = ...        (correct: 1 expression)
+//
+// Only bit ranges were affected, which is why the single-bit forms hid it.
+//
+// The `global.` prefix names the same register, so it must not select a
+// different handler either: `GLOBAL_REGISTER_BIT` routed to a handler that
+// skips the MMIO byte-aligned-write optimization, so the two spellings of one
+// write to a write-only register emitted different C.
+register PORT @ 0x40020000 {
+    Set: u32 wo @ 0x08,
+    Mode: u32 rw @ 0x00,
+}
+
+scope Driver {
+    // Byte-aligned write-only bit range: the MMIO form. Both spellings must
+    // produce the identical volatile store.
+    public void bareByteAligned() {
+        PORT.Set[8, 8] <- 255;
+    }
+
+    public void globalByteAligned() {
+        global.PORT.Set[8, 8] <- 255;
+    }
+
+    // Read-modify-write bit range on a read-write register, both spellings.
+    public void bareReadModifyWrite() {
+        PORT.Mode[10, 2] <- 3;
+        PORT.Mode[5] <- true;
+    }
+
+    public void globalReadModifyWrite() {
+        global.PORT.Mode[10, 2] <- 3;
+        global.PORT.Mode[5] <- true;
+    }
+}

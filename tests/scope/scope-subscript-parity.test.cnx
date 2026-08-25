@@ -12,6 +12,12 @@
 //   this.buf[0, 4] <- magic      ->  Reg_buf[0, 4] = magic    (C comma operator)
 //   global.gflags[4, 3] <- 5     ->  gflags[4, 3] = 5         (C comma operator)
 //
+// Issue #1116: the FOURTH spelling -- a bare `Scope.member` with no prefix --
+// never reached that unified decision at all. classifyMemberWithSubscript
+// intercepted it first and had no scope-resolution step, so it emitted:
+//   Other.flags[4, 3] <- 5     ->  Other_flags.flags = ...  (member on a scalar)
+//   Other.buffer[3][1] <- true ->  Other_buffer[3][1] = ... (indexes a uint8_t)
+//
 // Every case below is checked against the bare-path result, so the spellings
 // cannot drift apart again without this test failing.
 
@@ -91,6 +97,27 @@ scope Reg {
         global.Other.flags[4, 3] <- 5;
         return global.Other.flags;
     }
+
+    // Bare `Scope.member`: the fourth spelling (#1116). Identical to the
+    // `global.Other.member` block above with the prefix dropped, so any
+    // divergence between the two is this classifier re-deriving the decision.
+    u8 bareScopedElementBit() {
+        Other.buffer[3] <- 0;
+        Other.buffer[3][1] <- true;
+        return Other.buffer[3];
+    }
+
+    u8 bareScopedSliceByte(u32 index) {
+        u32 magic <- 0x04030201;
+        Other.slice[0, 4] <- magic;
+        return Other.slice[index];
+    }
+
+    u8 bareScopedBitRange() {
+        Other.flags <- 0;
+        Other.flags[4, 3] <- 5;
+        return Other.flags;
+    }
 }
 
 u32 main() {
@@ -163,6 +190,25 @@ u32 main() {
 
     u8 scopedRanged <- Reg.scopedBitRange();
     if (scopedRanged != 80) return 23;
+
+    // Bare `Scope.member` (#1116): the fourth spelling must produce the same
+    // values as the other three. Before the fix, the array-element bit indexed
+    // a uint8_t and the bit range invented `Other_flags.flags` on a scalar.
+    u8 bareScopedBit <- Reg.bareScopedElementBit();
+    if (bareScopedBit != 2) return 24;
+    if (bareScopedBit != globalBuffer[3]) return 25;
+
+    u8 bareByte0 <- Reg.bareScopedSliceByte(0);
+    u8 bareByte1 <- Reg.bareScopedSliceByte(1);
+    u8 bareByte2 <- Reg.bareScopedSliceByte(2);
+    u8 bareByte3 <- Reg.bareScopedSliceByte(3);
+    if (bareByte0 != 1) return 26;
+    if (bareByte1 != 2) return 27;
+    if (bareByte2 != 3) return 28;
+    if (bareByte3 != 4) return 29;
+
+    u8 bareRanged <- Reg.bareScopedBitRange();
+    if (bareRanged != 80) return 30;
 
     return 0;
 }

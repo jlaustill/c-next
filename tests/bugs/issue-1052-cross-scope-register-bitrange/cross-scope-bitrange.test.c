@@ -17,9 +17,19 @@
 #define Hw__GPIO__Mode (*(volatile uint32_t*)(0x40020000 + 0x00))
 
 
+// Issue #1244: #1052 names BOTH the `global.Scope.REG.FIELD` and the bare
+// `OtherScope.REG.FIELD` spellings, but only the first was covered here -- so
+// this fixture passed while the second still emitted `Hw__GPIO__Mode.GPIO.Mode`
+// (the scope-qualified name resolved, then the member chain applied a second
+// time). Both spellings are exercised below; they must generate identical C.
 /* Scope: App */
 
 void App__configure(void) {
+    Hw__GPIO__Mode = (Hw__GPIO__Mode & ~(((1U << 2) - 1) << 10)) | ((3 & ((1U << 2) - 1)) << 10);
+    Hw__GPIO__Mode = (Hw__GPIO__Mode & ~(1U << 5)) | (1U << 5);
+}
+
+void App__configureBareScope(void) {
     Hw__GPIO__Mode = (Hw__GPIO__Mode & ~(((1U << 2) - 1) << 10)) | ((3 & ((1U << 2) - 1)) << 10);
     Hw__GPIO__Mode = (Hw__GPIO__Mode & ~(1U << 5)) | (1U << 5);
 }
