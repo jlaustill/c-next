@@ -1,3 +1,4 @@
+// test-adr: 051
 // ADR-051 Phase 3: Division by const zero
 // Should fail at compile time
 const u32 ZERO <- 0;

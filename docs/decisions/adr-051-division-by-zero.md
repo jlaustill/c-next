@@ -643,6 +643,45 @@ void testFloatDivisionByZero() {
 
 ---
 
+### 5. Scope-Context Matrix (#1219)
+
+A division can appear in all four structural contexts, and the check must hold in
+each of them however the zero-valued `const` reaches the division. No cell on the
+derivable axes is `off` for this ADR.
+
+Severity follows the eslint model: `off` records that a cell cannot exist for this
+feature, `warn` that it should be covered and is not, `error` that it must be.
+Undeclared cells are `off`.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| global variable    | same file           | warn     |
+| scope member       | same file           | warn     |
+| scope method       | same file           | warn     |
+| global variable    | imported direct     | warn     |
+| top-level function | imported direct     | warn     |
+| scope member       | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported transitive | warn     |
+| top-level function | imported transitive | warn     |
+| scope member       | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
+
+Only `top-level function / same file` is `error` today, because it is the only cell
+the fixture corpus actually occupies -- see `docs/scope-context-matrix.md`. The
+other eleven are `warn` rather than `error` deliberately:
+
+- The four same-file cells are believed to work but have no fixture, so promoting
+  them to `error` would fail the gate on missing tests rather than missing
+  behaviour.
+- The eight cross-file cells are **known broken** (#1217): the constant folding
+  behind E0800 resolves `const` values from the current file's symbol table only,
+  so an imported zero is treated as a runtime variable and the check is skipped.
+  They are promoted to `error` when #1217 lands and the fixtures exist.
+
 ## Implementation Plan
 
 ### Phase 1: Compile-Time Detection

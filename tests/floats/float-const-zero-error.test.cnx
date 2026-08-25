@@ -1,3 +1,4 @@
+// test-adr: 051
 // test-error
 // Test: Const float zero division should be rejected (E0800)
 // Issue #1010: Float division by zero should error like integer division

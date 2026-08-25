@@ -91,6 +91,16 @@ jobs:
         run: npm run docs:toolchain:check
         continue-on-error: true
 
+      # Issue #1219: the scope-context matrix. Occupancy is derived from the
+      # fixture corpus and the obligation for each cell is declared by the ADR
+      # that owns it, so docs/scope-context-matrix.md is generated and must be
+      # checked for staleness here -- Verify Clean runs no generators. The same
+      # command also fails when a cell an ADR declared `error` has no fixture.
+      - name: Check scope-context test matrix
+        id: scopematrix
+        run: npm run coverage:matrix:check
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -103,6 +113,7 @@ jobs:
           [ "${{ steps.testlocation.outcome }}" != "success" ] && echo "❌ Test file locations" && FAILED=1 || echo "✅ Test file locations"
           [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
           [ "${{ steps.toolchaindocs.outcome }}" != "success" ] && echo "❌ Toolchain docs" && FAILED=1 || echo "✅ Toolchain docs"
+          [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   build:
