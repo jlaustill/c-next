@@ -5,20 +5,12 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "assignment.test.hpp"
+
 #include <stdint.h>
 
 // ADR-032: Nested Struct Assignment Test
 // Tests: assignment to nested struct members
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Line {
-    Point start;
-    Point end;
-} Line;
-
 // Initialize
 Line segment = { .start = { .x = 0, .y = 0 }, .end = { .x = 100, .y = 100 } };
 

@@ -24,6 +24,11 @@ typedef struct Point {
     int32_t y;
 } Point;
 
+/* Function prototypes */
+int32_t getPointX(const Point& p);
+void setPointOrigin(Point& p);
+int32_t manhattanDistance(const Point& p);
+
 #ifdef __cplusplus
 }
 #endif

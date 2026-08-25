@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "short-circuit-safety.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -50,11 +52,6 @@ void testOrSafetyPattern(void) {
     uint32_t invalidIndex = 100U;
     bool shouldUseDefault = (invalidIndex >= 5) || (performDangerousOperation(invalidIndex) == 0);
 }
-
-typedef struct TStatusRegister {
-    uint32_t enabled;
-    uint32_t value;
-} TStatusRegister;
 
 TStatusRegister status = {0};
 

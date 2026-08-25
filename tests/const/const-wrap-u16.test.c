@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-wrap-u16.test.h"
+
 #include <stdint.h>
 
 // test-execution

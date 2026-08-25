@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "valid-fputs-check.test.hpp"
+
 // ADR-046: Valid EOF check pattern for fputs using c_ prefix
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-escape-sequences.test.h"
+
 #include <string.h>
 
 // ADR-045: Test escape sequences in string literals

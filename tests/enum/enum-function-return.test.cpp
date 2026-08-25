@@ -3,24 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "enum-function-return.test.hpp"
+
 #include <stdint.h>
 
 // test-coverage: 10-enum-function-return
 // test-execution
 // Tests: Enum as function return type
-typedef enum {
-    Color__RED = 0,
-    Color__GREEN = 1,
-    Color__BLUE = 2,
-    Color__YELLOW = 3
-} Color;
-
-typedef enum {
-    TrafficLight__STOP = 0,
-    TrafficLight__CAUTION = 1,
-    TrafficLight__GO = 2
-} TrafficLight;
-
 // Function that returns enum based on input
 Color getColorByIndex(uint32_t index) {
     if (index == 0) {

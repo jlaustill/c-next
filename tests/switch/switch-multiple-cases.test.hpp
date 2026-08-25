@@ -22,6 +22,12 @@ typedef enum {
     ECommand__ERASE = 4
 } ECommand;
 
+/* Function prototypes */
+void doRead(void);
+void doWrite(void);
+void doOther(void);
+void handleCommand(ECommand cmd);
+
 #ifdef __cplusplus
 }
 #endif

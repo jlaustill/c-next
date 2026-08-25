@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-arithmetic.test.h"
+
 #include <stdint.h>
 
 // Test all float arithmetic operations

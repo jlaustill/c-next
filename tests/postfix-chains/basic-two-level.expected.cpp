@@ -3,21 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "basic-two-level.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // Postfix Chain Test: Basic 2-level chains
 // Tests: struct.member, array[index], register.field combinations
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
-typedef struct Line {
-    Point start;
-    Point end;
-} Line;
-
 /* Register: GPIO @ 0x40000000 */
 #define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 #define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))

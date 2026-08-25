@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "callback-return-types.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,18 +12,6 @@
 // Tests: Callbacks with different return types
 // Validates: u32, u8, bool, and i32 return types work correctly
 // Callback returning u32
-
-typedef uint32_t (*getU32Value_fp)(uint32_t);
-
-
-typedef uint8_t (*getU8Value_fp)(uint32_t);
-
-
-typedef bool (*checkThreshold_fp)(uint32_t);
-
-
-typedef int32_t (*getSignedValue_fp)(uint32_t);
-
 uint32_t getU32Value(uint32_t input) {
     return input + 1000;
 }
@@ -45,19 +35,11 @@ int32_t getSignedValue(uint32_t input) {
 }
 
 // Structs to hold callbacks
-typedef struct U32Returner {
-    getU32Value_fp handler;
-} U32Returner;
-
 U32Returner U32Returner_init(void) {
     return (U32Returner){
         .handler = getU32Value
     };
 }
-
-typedef struct U8Returner {
-    getU8Value_fp handler;
-} U8Returner;
 
 U8Returner U8Returner_init(void) {
     return (U8Returner){
@@ -65,19 +47,11 @@ U8Returner U8Returner_init(void) {
     };
 }
 
-typedef struct BoolReturner {
-    checkThreshold_fp handler;
-} BoolReturner;
-
 BoolReturner BoolReturner_init(void) {
     return (BoolReturner){
         .handler = checkThreshold
     };
 }
-
-typedef struct I32Returner {
-    getSignedValue_fp handler;
-} I32Returner;
 
 I32Returner I32Returner_init(void) {
     return (I32Returner){

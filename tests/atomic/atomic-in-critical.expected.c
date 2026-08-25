@@ -6,6 +6,8 @@
  * critical section requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
  */
 
+#include "atomic-in-critical.test.h"
+
 // test-coverage: 20-atomic-in-critical
 // Tests: atomic operations inside critical sections
 // Note: Compilation test only - ARM-specific code

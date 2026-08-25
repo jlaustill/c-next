@@ -24,6 +24,14 @@ extern uint32_t accessCount;
 extern uint32_t dangerousValue;
 extern TStatusRegister status;
 
+/* Function prototypes */
+bool isIndexSafe(uint32_t index);
+uint32_t performDangerousOperation(uint32_t index);
+void testSafeGuardPattern(void);
+void testSafeGuardPatternValid(void);
+void testOrSafetyPattern(void);
+void testNullLikeCheck(void);
+
 #ifdef __cplusplus
 }
 #endif

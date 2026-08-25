@@ -8,13 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "fake_lib.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct widget_t widget_t;
 
 /* Function prototypes */
 void App__on_change(widget_t* w);

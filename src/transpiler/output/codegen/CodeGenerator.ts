@@ -139,6 +139,7 @@ import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import CodeGenState from "../../state/CodeGenState";
+import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../logic/analysis/PassByValueAnalyzer";
 // Unified parameter generation (Phase 1)
@@ -1694,28 +1695,20 @@ export default class CodeGenerator implements IOrchestrator {
       return null;
     }
 
-    const paramList =
-      callbackInfo.parameters.length > 0
-        ? callbackInfo.parameters
-            .map((p) => {
-              const constMod = p.isConst ? "const " : "";
-              if (p.isArray) {
-                // Array parameters: type name[]
-                return `${constMod}${p.type} ${p.name}${p.arrayDims}`;
-              } else if (p.isStruct) {
-                // ADR-006: Struct parameters become pointers (C) or references (C++)
-                // Only struct types get pointer/reference semantics, not primitives
-                const ptrOrRef = this.isCppMode() ? "&" : "*";
-                return `${constMod}${p.type}${ptrOrRef}`;
-              } else {
-                // ADR-029: Callback parameters are already function pointers
-                return `${p.type}`;
-              }
-            })
-            .join(", ")
-        : "void";
+    // Issue #1164: the included header already declares this one.
+    if (
+      CodeGenState.selfIncludeAdded &&
+      CodeGenState.headerOwnsCallbackTypedef(funcName)
+    ) {
+      return null;
+    }
 
-    return `\ntypedef ${callbackInfo.returnType} (*${callbackInfo.typedefName})(${paramList});\n`;
+    return `\n${CallbackTypedefFormatter.format(
+      callbackInfo.returnType,
+      callbackInfo.typedefName,
+      callbackInfo.parameters,
+      this.isCppMode(),
+    )}\n`;
   }
 
   /**
@@ -2446,7 +2439,11 @@ export default class CodeGenerator implements IOrchestrator {
     );
 
     // Self-include for extern "C" linkage
-    if (symbols.hasPublicSymbols() && CodeGenState.sourcePath) {
+    // Issue #1164: this used to ask a second predicate that saw only scope
+    // members, so a file exporting types, consts or top-level functions got a
+    // header nothing included. Same question, same answer source as the header
+    // itself.
+    if (symbols.hasPublicInterface && CodeGenState.sourcePath) {
       const pathToUse =
         options?.sourceRelativePath ||
         CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
@@ -2691,7 +2688,9 @@ export default class CodeGenerator implements IOrchestrator {
       output.push(...this.generateIrqWrappers());
     }
 
-    if (CodeGenState.needsISR) {
+    // Issue #369/#1164: when the .c includes its own header, the header owns
+    // this typedef. Emitting it here too is a redeclaration error.
+    if (CodeGenState.needsISR && !CodeGenState.selfIncludeAdded) {
       output.push(
         "/* ADR-040: ISR function pointer type */",
         "typedef void (*ISR)(void);",
@@ -3419,24 +3418,18 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // Issue #369: Skip struct/enum/bitmap definitions when self-include is added
     // These types will be defined in the included header file
+    // Issue #1164: the struct generator decides for itself what a self-include
+    // suppresses. Returning early here also skipped its callback-field effects
+    // and dropped the ADR-029 init function, which the header never carries.
     if (ctx.structDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateStruct(ctx.structDeclaration()!);
     }
     // ADR-017: Handle enum declarations
     if (ctx.enumDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateEnum(ctx.enumDeclaration()!);
     }
     // ADR-034: Handle bitmap declarations
     if (ctx.bitmapDeclaration()) {
-      if (CodeGenState.selfIncludeAdded) {
-        return ""; // Definition will come from header
-      }
       return this.generateBitmap(ctx.bitmapDeclaration()!);
     }
     if (ctx.functionDeclaration()) {
@@ -3717,7 +3710,10 @@ export default class CodeGenerator implements IOrchestrator {
     }
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
-    return result.code;
+    // Issues #369/#1164: the included header owns the definition. The generator
+    // still runs so its effects are registered -- returning early here would
+    // silently drop them, which is how the ADR-029 struct init function was lost.
+    return CodeGenState.selfIncludeAdded ? "" : result.code;
   }
 
   /**
@@ -3733,7 +3729,8 @@ export default class CodeGenerator implements IOrchestrator {
     if (generator) {
       const result = generator(ctx, this.getInput(), this.getState(), this);
       this.applyEffects(result.effects);
-      return result.code;
+      // Issues #369/#1164: the included header owns the definition.
+      return CodeGenState.selfIncludeAdded ? "" : result.code;
     }
 
     // Fallback to inline implementation (will be removed after migration)

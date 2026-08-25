@@ -14,18 +14,6 @@
 // NOTE: Changed to transpile-only due to Issue #1033 - callback calls with struct params
 // don't pass by pointer (ph.handler(pt) should be ph.handler(&pt))
 // Callback with u8 parameter
-
-typedef uint32_t (*processU8_fp)(uint8_t);
-
-
-typedef uint32_t (*processU32_fp)(uint32_t);
-
-
-typedef uint32_t (*processBool_fp)(bool);
-
-
-typedef uint32_t (*processPoint_fp)(CallbackParamType__Point&);
-
 uint32_t processU8(uint8_t val) {
     return val + 100;
 }
@@ -52,6 +40,30 @@ uint32_t processPoint(const CallbackParamType__Point& p) {
 }
 
 // Structs to hold callbacks
+U8Handler U8Handler_init(void) {
+    return (U8Handler){
+        .handler = processU8
+    };
+}
+
+U32Handler U32Handler_init(void) {
+    return (U32Handler){
+        .handler = processU32
+    };
+}
+
+BoolHandler BoolHandler_init(void) {
+    return (BoolHandler){
+        .handler = processBool
+    };
+}
+
+PointHandler PointHandler_init(void) {
+    return (PointHandler){
+        .handler = processPoint
+    };
+}
+
 int main(void) {
     U8Handler u8h = {};
     u8h.handler = processU8;

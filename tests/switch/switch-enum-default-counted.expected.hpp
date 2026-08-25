@@ -22,6 +22,12 @@ typedef enum {
     EHttpStatus__NOT_FOUND = 4
 } EHttpStatus;
 
+/* Function prototypes */
+void handleSuccess(void);
+void handleCreated(void);
+void handleOther(void);
+void handleStatus(EHttpStatus status);
+
 #ifdef __cplusplus
 }
 #endif

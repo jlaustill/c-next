@@ -18,6 +18,7 @@ import generateBitmapHeader from "./generators/generateBitmapHeader";
 import VariableDeclarationFormatter from "../codegen/helpers/VariableDeclarationFormatter";
 import type IVariableFormatInput from "../codegen/types/IVariableFormatInput";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
+import CallbackTypedefFormatter from "../codegen/helpers/CallbackTypedefFormatter";
 
 const { mapType, isBuiltInType } = typeUtils;
 
@@ -536,21 +537,15 @@ class HeaderGeneratorUtils {
 
     const lines: string[] = ["/* Callback typedefs */"];
     for (const [, cbInfo] of typeInput.callbackTypes) {
-      const params =
-        cbInfo.parameters.length > 0
-          ? cbInfo.parameters
-              .map((p) => {
-                // ADR-006: Struct parameters become pointers (C) or references (C++)
-                if (p.isStruct) {
-                  const ptrOrRef = isCppMode ? "&" : "*";
-                  return `${p.type}${ptrOrRef}`;
-                }
-                return p.type;
-              })
-              .join(", ")
-          : "void";
+      // #1164: formatted by the same code as the .c, so the two declarations of
+      // one typedef cannot drift apart.
       lines.push(
-        `typedef ${cbInfo.returnType} (*${cbInfo.typedefName})(${params});`,
+        CallbackTypedefFormatter.format(
+          cbInfo.returnType,
+          cbInfo.typedefName,
+          cbInfo.parameters,
+          isCppMode ?? false,
+        ),
       );
     }
     lines.push("");
@@ -593,6 +588,25 @@ class HeaderGeneratorUtils {
   }
 
   /**
+   * ADR-040: emit the ISR function-pointer typedef when this translation unit
+   * uses the type.
+   *
+   * Keyed on the same fact the .c uses to decide it must NOT emit a second
+   * copy. Scanning only the header's own declarations missed an `ISR` used
+   * inside a function body, and the type was then emitted nowhere.
+   */
+  static generateIsrTypedefSection(needsIsrTypedef: boolean): string[] {
+    if (!needsIsrTypedef) {
+      return [];
+    }
+    return [
+      "/* ADR-040: ISR function pointer type */",
+      "typedef void (*ISR)(void);",
+      "",
+    ];
+  }
+
+  /**
    * Generate extern variable declarations section
    *
    * Uses VariableDeclarationFormatter for consistent formatting with CodeGenerator.
@@ -612,7 +626,7 @@ class HeaderGeneratorUtils {
         modifiers: {
           isConst: sym.isConst ?? false,
           isAtomic: sym.isAtomic ?? false,
-          isVolatile: false, // C-Next uses atomic, not volatile directly
+          isVolatile: sym.isVolatile ?? false,
           isExtern: true, // Headers always use extern
         },
         arrayDimensions:

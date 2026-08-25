@@ -139,10 +139,13 @@ interface ICodeGenSymbols {
   ): string | null;
 
   /**
-   * Check if any scope members are public (exported).
-   * Used to determine if a self-include header is needed for extern "C" linkage.
+   * Issues #1161/#1164: does this file have a public C interface — i.e. will a
+   * header be generated, and must the generated `.c` include it?
+   *
+   * Computed by PublicInterface from this file's symbols, the same rule that
+   * decides the header's contents. Do not re-derive it.
    */
-  hasPublicSymbols(): boolean;
+  hasPublicInterface: boolean;
 }
 
 export default ICodeGenSymbols;

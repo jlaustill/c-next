@@ -5,15 +5,12 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "struct-const.test.hpp"
+
 #include <stdint.h>
 
 // ADR-014: Const struct
 // Tests: constant struct declaration
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 extern const Point ORIGIN = { .x = 0, .y = 0 };
 
 extern const Point UNIT = { .x = 1, .y = 1 };

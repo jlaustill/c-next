@@ -3,17 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "simple-switch.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Basic switch statement
 // Demonstrates: switch cases, default, enum with switch
-typedef enum {
-    Color__RED = 0,
-    Color__GREEN = 1,
-    Color__BLUE = 2
-} Color;
-
 uint32_t colorToValue(Color c) {
     uint32_t result = 0U;
     switch (c) {

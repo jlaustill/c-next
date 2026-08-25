@@ -5,6 +5,8 @@
  * critical section requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
  */
 
+#include "nested-critical.test.h"
+
 #include <stdint.h>
 
 // ADR-050: Platform-portable IRQ wrappers for critical sections

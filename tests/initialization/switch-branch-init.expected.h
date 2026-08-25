@@ -21,6 +21,9 @@ typedef enum {
     Mode__HIGH = 3
 } Mode;
 
+/* Function prototypes */
+uint32_t calculatePower(Mode mode);
+
 #ifdef __cplusplus
 }
 #endif

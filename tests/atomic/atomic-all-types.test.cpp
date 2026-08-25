@@ -5,6 +5,8 @@
  * atomic read-modify-write requires CMSIS + ARMv7-M.
  */
 
+#include "atomic-all-types.test.hpp"
+
 // test-coverage: 1.1-u8-with-atomic-modifier, 1.1-u16-with-atomic-modifier
 // test-coverage: 1.1-u32-with-atomic-modifier
 // ADR-049: Atomic variables with all integer types

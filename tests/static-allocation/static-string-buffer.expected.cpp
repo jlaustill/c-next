@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "static-string-buffer.test.hpp"
+
 #include <stdint.h>
 #include <string.h>
 

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-nested.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

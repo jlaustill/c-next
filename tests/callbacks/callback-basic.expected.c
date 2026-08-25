@@ -3,22 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "callback-basic.test.h"
+
 #include <stdint.h>
 
 // ADR-029: Basic callback type test
-typedef struct Message {
-    uint32_t id;
-} Message;
-
-
-typedef void (*onReceive_fp)(const Message*);
-
 void onReceive(const Message* msg) {
 }
-
-typedef struct Controller {
-    onReceive_fp _handler;
-} Controller;
 
 Controller Controller_init(void) {
     return (Controller){

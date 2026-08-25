@@ -18,6 +18,9 @@ extern uint32_t counter;
 extern int32_t offset;
 extern bool flag;
 
+/* Function prototypes */
+void updateValues(void);
+
 #ifdef __cplusplus
 }
 #endif

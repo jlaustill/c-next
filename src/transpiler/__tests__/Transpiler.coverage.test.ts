@@ -509,7 +509,12 @@ describe("Transpiler coverage tests", () => {
 
   describe("Header generation", () => {
     it("skips header generation when no exported symbols", async () => {
-      mockFs.addFile("/project/src/internal.cnx", "void privateFunc() { }");
+      // #1161: a top-level function is public (ADR-016), so it would export.
+      // Privacy is what `scope` is for — this is a file that truly exports nothing.
+      mockFs.addFile(
+        "/project/src/internal.cnx",
+        "scope Internal { private void helper() { } }",
+      );
 
       const transpiler = new Transpiler(
         {
@@ -1222,6 +1227,8 @@ describe("Transpiler coverage integration tests", () => {
     const transpiler = new Transpiler({
       input: join(srcDir, "main.cnx"),
       outDir: testDir,
+      // Without this the generated header lands in process.cwd().
+      headerOutDir: testDir,
       noCache: true,
     });
 
@@ -1261,6 +1268,8 @@ describe("Transpiler coverage integration tests", () => {
       input: join(testDir, "main.cnx"),
       includeDirs: [includeDir],
       outDir: testDir,
+      // Without this the generated header lands in process.cwd().
+      headerOutDir: testDir,
       noCache: false, // Enable caching
     };
 
@@ -1301,6 +1310,8 @@ describe("Transpiler coverage integration tests", () => {
       input: join(testDir, "main.cnx"),
       includeDirs: [includeDir],
       outDir: testDir,
+      // Without this the generated header lands in process.cwd().
+      headerOutDir: testDir,
       noCache: false, // Enable caching
     };
 
@@ -1340,6 +1351,8 @@ describe("Transpiler coverage integration tests", () => {
       input: join(testDir, "main.cnx"),
       includeDirs: [testDir],
       outDir: testDir,
+      // Without this the generated header lands in process.cwd().
+      headerOutDir: testDir,
       noCache: true,
     });
 
@@ -1365,6 +1378,8 @@ describe("Transpiler coverage integration tests", () => {
       input: join(testDir, "main.cnx"),
       includeDirs: [testDir],
       outDir: testDir,
+      // Without this the generated header lands in process.cwd().
+      headerOutDir: testDir,
       noCache: false, // Enable cache
     };
 
@@ -1445,6 +1460,9 @@ describe("Transpiler coverage integration tests", () => {
       input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
       preprocess: false, // Explicitly disable preprocessing
+      // Without these the generated .c/.h land in process.cwd().
+      outDir: testDir,
+      headerOutDir: testDir,
       noCache: true,
     });
 
@@ -1480,6 +1498,9 @@ describe("Transpiler coverage integration tests", () => {
     const transpiler = new Transpiler({
       input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
+      // Without these the generated .c/.h land in process.cwd().
+      outDir: testDir,
+      headerOutDir: testDir,
       noCache: true,
     });
 
@@ -1532,6 +1553,9 @@ describe("Transpiler coverage integration tests", () => {
     const transpiler = new Transpiler({
       input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
+      // Without these the generated .c/.h land in process.cwd().
+      outDir: testDir,
+      headerOutDir: testDir,
       noCache: true,
     });
 
@@ -1573,6 +1597,9 @@ describe("Transpiler coverage integration tests", () => {
     const transpiler = new Transpiler({
       input: join(srcDir, "main.cnx"),
       includeDirs: [includeDir],
+      // Without these the generated .c/.h land in process.cwd().
+      outDir: testDir,
+      headerOutDir: testDir,
       noCache: true,
     });
 

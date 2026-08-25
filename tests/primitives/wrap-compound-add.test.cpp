@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "wrap-compound-add.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Wrap with compound assignment

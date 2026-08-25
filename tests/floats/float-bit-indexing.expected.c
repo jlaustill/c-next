@@ -4,6 +4,8 @@
  * Requires: C11.
  */
 
+#include "float-bit-indexing.test.h"
+
 #include <stdint.h>
 
 _Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");

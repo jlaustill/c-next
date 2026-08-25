@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-struct-member-cpp.test.hpp"
+
 // tests/functions/const-struct-member-cpp.test.cnx
 // test-execution
 // Tests: Issue #251 - const struct members passed to non-const parameters

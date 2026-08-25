@@ -25,6 +25,13 @@ extern double global_d;
 extern double global_uninit;
 extern double measurements[8];
 
+/* Function prototypes */
+double multiply(double a, double b);
+void calculate(void);
+void arithmetic(void);
+void compare(void);
+double min(double a, double b);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "length-property-control-flow.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -22,13 +24,6 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Regression test: .length in control flow expressions
 // Tests if, while, for, and switch with .length property
-typedef struct Packet {
-    uint32_t header;
-    uint16_t pktLength;
-    uint8_t type;
-    uint64_t payload;
-} Packet;
-
 int main(void) {
     Packet pkt = {0};
     pkt.header = 0xDEADBEEFU;

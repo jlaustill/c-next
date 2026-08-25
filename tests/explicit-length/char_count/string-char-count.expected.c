@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-char-count.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -10,10 +12,6 @@
 // Tests .char_count property for strings (ADR-058)
 // char_count returns the current character count (strlen)
 char globalStr[65] = "Hello";
-
-typedef struct TestStruct {
-    char name[33];
-} TestStruct;
 
 int main(void) {
     if (strlen(globalStr) != 5) {

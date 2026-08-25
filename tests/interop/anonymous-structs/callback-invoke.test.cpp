@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "callback-invoke.test.hpp"
+
 // test-cpp-only
 // test-execution
 // Test: Callback invocation with struct containing anonymous member

@@ -28,6 +28,7 @@ function createCNextVariableSymbol(
     scope: overrides.scope ?? TestScopeUtils.createMockGlobalScope(),
     type: overrides.type ?? TTypeUtils.createPrimitive("u32"),
     isConst: overrides.isConst ?? false,
+    isVolatile: overrides.isVolatile ?? false,
     isAtomic: overrides.isAtomic ?? false,
     isArray: overrides.isArray ?? false,
     arrayDimensions: overrides.arrayDimensions,
@@ -97,8 +98,8 @@ function createMockSymbols(
     scopePrivateConstValues: new Map(),
     functionReturnTypes: overrides.functionReturnTypes ?? new Map(),
     opaqueTypes: overrides.opaqueTypes ?? new Set(),
+    hasPublicInterface: false,
     getSingleFunctionForVariable: () => null,
-    hasPublicSymbols: () => false,
   };
 }
 
@@ -743,6 +744,7 @@ describe("CodeGenState", () => {
           type: TTypeUtils.createPrimitive("u32"),
           isConst: true,
           isAtomic: true,
+          isVolatile: false,
         }),
       );
 

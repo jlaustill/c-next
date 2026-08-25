@@ -32,7 +32,6 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       scopePrivateConstValues: new Map(),
       functionReturnTypes: new Map(),
       getSingleFunctionForVariable: () => null,
-      hasPublicSymbols: () => false,
       ...overrides,
     }) as ICodeGenSymbols;
 

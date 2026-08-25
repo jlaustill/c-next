@@ -22,6 +22,9 @@ typedef enum {
 /* External variables */
 extern EState globalState;
 
+/* Function prototypes */
+EState getState(void);
+
 #ifdef __cplusplus
 }
 #endif

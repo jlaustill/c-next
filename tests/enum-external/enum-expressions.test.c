@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "enum-expressions.test.h"
+
 // test-execution
 // Issue #465: Test external enum values in various expression contexts
 // Ternary, function args, return values, arithmetic comparisons

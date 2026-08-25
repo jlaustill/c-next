@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern char buffer[257];
 
+/* Function prototypes */
+void testNested(void);
+
 #ifdef __cplusplus
 }
 #endif

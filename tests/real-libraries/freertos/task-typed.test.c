@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "task-typed.test.h"
+
 // test-transpile-only
 // test-c-only
 // Tests: FreeRTOS integration using C boundary layer (ADR-061)

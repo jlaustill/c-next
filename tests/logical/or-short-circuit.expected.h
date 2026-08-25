@@ -16,6 +16,13 @@ extern "C" {
 /* External variables */
 extern uint32_t sideEffectCounter;
 
+/* Function prototypes */
+bool causeSideEffect(void);
+void testOrShortCircuit(void);
+void testOrShortCircuitWithComparison(void);
+void testOrShortCircuitChained(void);
+void testOrShortCircuitMixed(void);
+
 #ifdef __cplusplus
 }
 #endif

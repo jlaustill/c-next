@@ -18,6 +18,9 @@ extern volatile uint32_t counter;
 extern volatile uint8_t brightness;
 extern volatile uint32_t ticks;
 
+/* Function prototypes */
+void increment(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "counter-from-zero.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions

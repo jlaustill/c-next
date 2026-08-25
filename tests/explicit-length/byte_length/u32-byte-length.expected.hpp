@@ -25,6 +25,7 @@ extern uint32_t TestScope__publicMember;
 /* Function prototypes */
 uint32_t TestScope__getGlobalByteLength(void);
 uint32_t TestScope__getMemberByteLength(void);
+uint32_t checkParamByteLength(uint32_t param);
 
 #ifdef __cplusplus
 }

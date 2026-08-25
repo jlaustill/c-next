@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-literal-types.test.h"
+
 #include <stdint.h>
 
 // test-execution

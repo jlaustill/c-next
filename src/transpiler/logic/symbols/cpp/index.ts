@@ -8,6 +8,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { CPP14Parser } from "../../parser/cpp/grammar/CPP14Parser";
+import type { DeclSpecifierSeqContext } from "../../parser/cpp/grammar/CPP14Parser";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import SymbolTable from "../SymbolTable";
 import NamespaceCollector from "./collectors/NamespaceCollector";
@@ -214,18 +215,58 @@ class CppResolver {
     const initDeclList = simpleDecl.initDeclaratorList?.();
     if (!initDeclList) return;
 
+    // Issue #1164: `typedef struct opaque_t* handle_t;` is a type, not a
+    // variable. Nothing here checked for `typedef`, so it was collected as a
+    // variable named handle_t of type int -- and the generated header then
+    // emitted both a bogus `typedef struct handle_t handle_t;` forward
+    // declaration and a conflicting `typedef int handle_t`.
+    const isTypedef = CppResolver._hasTypedefSpecifier(declSpecSeq);
+
     for (const initDecl of initDeclList.initDeclarator()) {
       const declarator = initDecl.declarator?.();
-      if (declarator) {
-        CppResolver._collectDeclarator(
-          declarator,
-          baseType,
-          line,
-          ctx,
-          anonymousClassSpec,
-        );
+      if (!declarator) {
+        continue;
+      }
+
+      if (isTypedef && DeclaratorUtils.declaratorHasPointer(declarator)) {
+        const typedefName = DeclaratorUtils.extractDeclaratorName(declarator);
+        if (typedefName) {
+          // Recorded so the header includes the defining file rather than
+          // forward-declaring a struct of the same name, which is a different
+          // type entirely.
+          ctx.symbolTable?.markPointerTypedef(typedefName);
+        }
+        continue;
+      }
+
+      // A NON-pointer typedef (`typedef unsigned char byte_t;`) is still
+      // collected as a variable, which is wrong -- but downstream code depends
+      // on the symbol existing, and simply skipping it changes generated C for
+      // any file including such a header. Registering it as a type instead is
+      // tracked as #1213.
+
+      CppResolver._collectDeclarator(
+        declarator,
+        baseType,
+        line,
+        ctx,
+        anonymousClassSpec,
+      );
+    }
+  }
+
+  /**
+   * Whether a declaration specifier sequence carries the `typedef` keyword.
+   */
+  private static _hasTypedefSpecifier(
+    declSpecSeq: DeclSpecifierSeqContext,
+  ): boolean {
+    for (const spec of declSpecSeq.declSpecifier?.() ?? []) {
+      if (spec.getText?.() === "typedef") {
+        return true;
       }
     }
+    return false;
   }
 
   /**

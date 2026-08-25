@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "callback-assign.test.h"
+
 // test-execution
 // Test: Assigning C-Next function to C callback typedef
 // Verifies signature compatibility in both C and C++ modes

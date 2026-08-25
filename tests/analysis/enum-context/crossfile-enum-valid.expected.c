@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "crossfile-enum-valid.test.h"
+
 // test-execution
 // Tests: Cross-file unqualified enum SHOULD work when return type is the enum
 #include "cross-file-types.h"

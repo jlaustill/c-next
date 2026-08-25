@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-bit-length.test.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -11,10 +13,6 @@
 // bit_length = (capacity + 1) x 8 (buffer size in bits including null terminator)
 // string<64> = 65 x 8 = 520 bits
 char globalStr[65] = "Hello";
-
-typedef struct TestStruct {
-    char name[33];
-} TestStruct;
 
 int main(void) {
     if (520 != 520) {

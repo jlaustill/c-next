@@ -3,10 +3,9 @@
  * A safer C for embedded systems
  */
 
-#include <stdint.h>
+#include "isr-as-parameter.test.hpp"
 
-/* ADR-040: ISR function pointer type */
-typedef void (*ISR)(void);
+#include <stdint.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>

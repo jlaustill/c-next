@@ -3,12 +3,11 @@
  * A safer C for embedded systems
  */
 
+#include "callback-parameter.test.h"
+
 #include <stdint.h>
 
 // #1201: a function-as-type used as a parameter must emit the _fp typedef.
-
-typedef uint32_t (*tickSource_fp)(void);
-
 uint32_t tickSource(void) {
     return 0;
 }

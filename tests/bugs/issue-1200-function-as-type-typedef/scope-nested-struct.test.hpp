@@ -23,7 +23,10 @@ typedef struct Timing__Config {
 } Timing__Config;
 
 /* Function prototypes */
+uint32_t tickSource(void);
+uint32_t platformClock(void);
 uint32_t Timing__read(const Timing__Config& timer);
+void demo(void);
 
 #ifdef __cplusplus
 }

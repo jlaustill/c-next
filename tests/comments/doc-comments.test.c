@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "doc-comments.test.h"
+
 // Doc Comments Test (ADR-043)
 // Tests that triple-slash converts to Doxygen format
 #include <stdint.h>

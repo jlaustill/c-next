@@ -3,18 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "switch-branch-init.test.hpp"
+
 #include <stdint.h>
 
 // test-coverage: 26-switch-branch-init
 // test-execution
 // Tests: Variable initialization in switch case branches
-typedef enum {
-    Mode__OFF = 0,
-    Mode__LOW = 1,
-    Mode__MEDIUM = 2,
-    Mode__HIGH = 3
-} Mode;
-
 uint32_t calculatePower(Mode mode) {
     uint32_t power = 0U;
     switch (mode) {

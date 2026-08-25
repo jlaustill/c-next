@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "global-zero-init.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

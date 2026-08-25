@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-bitfield.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,44 +12,8 @@
 // Tests: Register using bitmap types as bitfield members
 // This tests the pattern of defining structured bitfields via bitmap types
 // 8-bit control bitmap
-/* Bitmap: UARTControl */
-/* Fields:
- *   Enable: bit 0 (1 bit)
- *   TxEnable: bit 1 (1 bit)
- *   RxEnable: bit 2 (1 bit)
- *   Parity: bit 3 (1 bit)
- *   StopBits: bit 4 (1 bit)
- *   DataBits: bits 5-6 (2 bits)
- *   Reserved: bit 7 (1 bit)
- */
-typedef uint8_t UARTControl;
-
 // 8-bit status bitmap
-/* Bitmap: UARTStatus */
-/* Fields:
- *   TxReady: bit 0 (1 bit)
- *   RxReady: bit 1 (1 bit)
- *   TxEmpty: bit 2 (1 bit)
- *   RxFull: bit 3 (1 bit)
- *   OverrunErr: bit 4 (1 bit)
- *   FrameErr: bit 5 (1 bit)
- *   ParityErr: bit 6 (1 bit)
- *   Busy: bit 7 (1 bit)
- */
-typedef uint8_t UARTStatus;
-
 // 16-bit configuration bitmap
-/* Bitmap: TimerConfig */
-/* Fields:
- *   Enable: bit 0 (1 bit)
- *   OneShot: bit 1 (1 bit)
- *   AutoReload: bit 2 (1 bit)
- *   Interrupt: bit 3 (1 bit)
- *   Prescaler: bits 4-11 (8 bits)
- *   Reserved: bits 12-15 (4 bits)
- */
-typedef uint16_t TimerConfig;
-
 // Register using multiple bitmap types as members
 /* Register: UART @ 0x40010000 */
 #define UART__CTRL (*(volatile UARTControl*)(0x40010000 + 0x00))

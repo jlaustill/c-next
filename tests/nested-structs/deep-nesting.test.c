@@ -3,28 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "deep-nesting.test.h"
+
 #include <stdint.h>
 
 // ADR-032: Deep Nested Struct Test
 // Tests: 3+ levels of nesting
-typedef struct Color {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-} Color;
-
-typedef struct Material {
-    Color ambient;
-    Color diffuse;
-    Color specular;
-    float shininess;
-} Material;
-
-typedef struct Mesh {
-    Material material;
-    uint32_t vertexCount;
-} Mesh;
-
 // 3-level deep initialization
 Mesh cube = { .material = { .ambient = { .r = 50U, .g = 50U, .b = 50U }, .diffuse = { .r = 200U, .g = 100U, .b = 50U }, .specular = { .r = 255U, .g = 255U, .b = 255U }, .shininess = 32.0 }, .vertexCount = 36U };
 

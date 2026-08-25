@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "nominal-typing-unchanged.test.h"
+
 #include <stdint.h>
 
 // #1200 regression guard: widening the typedef-emission predicate must not
@@ -13,25 +15,11 @@
 // callback assignment. Deriving it from the broader reference set rejected
 // this file, which transpiles on main: `install` makes myHandler a referenced
 // parameter type, which then failed nominal typing at the assignment.
-typedef struct Message {
-    uint32_t id;
-} Message;
-
-
-typedef void (*onReceive_fp)(const Message*);
-
-
-typedef void (*myHandler_fp)(const Message*);
-
 void onReceive(const Message* msg) {
 }
 
 void myHandler(const Message* msg) {
 }
-
-typedef struct Controller {
-    onReceive_fp handler;
-} Controller;
 
 Controller Controller_init(void) {
     return (Controller){

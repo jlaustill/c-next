@@ -3,9 +3,6 @@
  * A safer C for embedded systems
  */
 
+#include "cross-file-types.h"
+
 // Helper file defining enum for cross-file test
-typedef enum {
-    ESpnCategory__SPN_CAT_TEMPERATURE = 0,
-    ESpnCategory__SPN_CAT_PRESSURE = 1,
-    ESpnCategory__SPN_CAT_UNKNOWN = 2
-} ESpnCategory;

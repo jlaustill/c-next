@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-negative-i32.test.h"
+
 #include <stdint.h>
 #include <limits.h>
 

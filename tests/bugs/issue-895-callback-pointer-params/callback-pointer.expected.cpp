@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "callback-pointer.test.hpp"
+
 // test-transpile-only
 // Issue #895: Callback functions with pointer parameters
 // Tests that C-Next functions assigned to C callback typedefs

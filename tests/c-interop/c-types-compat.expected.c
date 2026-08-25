@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "c-types-compat.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>

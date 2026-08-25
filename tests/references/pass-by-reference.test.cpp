@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "pass-by-reference.test.hpp"
+
 #include <stdint.h>
 
 // ADR-006: Pass-by-reference

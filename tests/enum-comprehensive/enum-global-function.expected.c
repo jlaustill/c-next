@@ -3,15 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "enum-global-function.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Global function returning enum
-typedef enum {
-    EState__OFF = 0,
-    EState__ON = 1
-} EState;
-
 EState globalState = EState__OFF;
 
 EState getState(void) {

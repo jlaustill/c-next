@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "division-non-zero-const.test.hpp"
+
 #include <stdint.h>
 
 // ADR-051: Division by non-zero constant should compile

@@ -5,15 +5,13 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "nested-struct-init.test.hpp"
+
 // test-transpile-only
 // Tests: Issue #502 - Nested struct initialization with C++ namespaced types
 #include "SeaDash.hpp"
 
 #include <stdbool.h>
-
-typedef struct Wrapper {
-    SeaDash::Parse::ParseResult result;
-} Wrapper;
 
 // This should trigger nested struct field lookup
 Wrapper w = { .result = { .data = {0}, .count = 0, .success = false } };

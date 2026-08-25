@@ -70,12 +70,19 @@ abstract class BaseHeaderGenerator {
     const localTypes = HeaderGeneratorUtils.getLocalTypeNames(groups);
 
     // Collect external type dependencies
+    // #1164: typedefs this header emits itself are local. Without this the
+    // header forward-declares its own callback typedef as an unknown struct.
+    const localTypeNamesWithCallbacks = new Set(localTypes.localTypeNames);
+    for (const [, cbInfo] of typeInput?.callbackTypes ?? []) {
+      localTypeNamesWithCallbacks.add(cbInfo.typedefName);
+    }
+
     const externalTypes = HeaderGeneratorUtils.collectExternalTypes(
       groups.functions,
       groups.variables,
       localTypes.localStructNames,
       localTypes.localEnumNames,
-      localTypes.localTypeNames,
+      localTypeNamesWithCallbacks,
       localTypes.localBitmapNames,
       allKnownEnums,
     );
@@ -117,7 +124,17 @@ abstract class BaseHeaderGenerator {
       ...HeaderGeneratorUtils.generateIncludes(options, headersToInclude),
       ...HeaderGeneratorUtils.generateCppWrapperStart(),
       ...HeaderGeneratorUtils.generateForwardDeclarations(
-        cCompatibleExternalTypes,
+        // #1164: `typedef struct opaque_t* handle_t` is a different type from
+        // `struct handle_t`, so the usual forward declaration contradicts the
+        // real definition. Its defining header is included instead.
+        options.cHeadersIncluded
+          ? []
+          : cCompatibleExternalTypes.filter(
+              (typeName) => !(symbolTable?.isPointerTypedef(typeName) ?? false),
+            ),
+      ),
+      ...HeaderGeneratorUtils.generateIsrTypedefSection(
+        options.needsIsrTypedef ?? false,
       ),
       ...HeaderGeneratorUtils.generateEnumSection(groups.enums, typeInput),
       ...HeaderGeneratorUtils.generateBitmapSection(groups.bitmaps, typeInput),

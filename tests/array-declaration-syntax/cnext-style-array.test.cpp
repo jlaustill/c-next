@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "cnext-style-array.test.hpp"
+
 #include <stdint.h>
 
 // Test: C-Next style array declaration should generate correct C

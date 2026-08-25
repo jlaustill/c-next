@@ -5,19 +5,13 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "deep-nested-init.test.hpp"
+
 // test-transpile-only
 // Tests: Issue #502 - Deeply nested struct initialization with C++ namespaced types
 #include "SeaDash.hpp"
 
 #include <stdbool.h>
-
-typedef struct Inner {
-    SeaDash::Parse::ParseResult result;
-} Inner;
-
-typedef struct Outer {
-    Inner inner;
-} Outer;
 
 // Deep nesting: Outer -> Inner -> ParseResult
 Outer o = { .inner = { .result = { .data = {0}, .count = 0, .success = false } } };

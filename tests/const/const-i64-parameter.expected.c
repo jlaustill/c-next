@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-i64-parameter.test.h"
+
 #include <stdint.h>
 #include <limits.h>
 

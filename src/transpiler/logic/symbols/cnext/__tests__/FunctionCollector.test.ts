@@ -27,6 +27,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(symbol.kind).toBe("function");
@@ -55,6 +56,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(TypeResolver.getTypeName(symbol.returnType)).toBe("u32");
@@ -75,6 +77,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(symbol.parameters).toHaveLength(2);
@@ -102,6 +105,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(symbol.parameters[0].isConst).toBe(true);
@@ -121,6 +125,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(symbol.parameters[0].isArray).toBe(true);
@@ -141,6 +146,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(symbol.parameters[0].isArray).toBe(true);
@@ -161,6 +167,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(symbol.parameters[0].isArray).toBe(true);
@@ -183,6 +190,7 @@ describe("FunctionCollector", () => {
         "motor.cnx",
         motorScope,
         body,
+        "private",
       );
 
       expect(symbol.name).toBe("update");
@@ -250,6 +258,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(TypeResolver.getTypeName(symbol.returnType)).toBe("Point");
@@ -270,6 +279,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(TypeResolver.getTypeName(symbol.parameters[0].type)).toBe("Point");
@@ -293,6 +303,7 @@ describe("FunctionCollector", () => {
         "test.cnx",
         globalScope,
         body,
+        "private",
       );
 
       expect(symbol.sourceLine).toBe(3);

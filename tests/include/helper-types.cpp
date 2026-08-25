@@ -5,6 +5,8 @@
 
 #include "helper-types.hpp"
 
+#include <stdint.h>
+
 // Helper file with type definitions
 // This file will be included by other tests
 /* Scope: HelperTypes */

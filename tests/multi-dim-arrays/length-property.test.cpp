@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "length-property.test.hpp"
+
 #include <stdint.h>
 
 // ADR-036: .length on first dimension

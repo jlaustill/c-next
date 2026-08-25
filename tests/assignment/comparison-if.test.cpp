@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "comparison-if.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "callback-multi-param.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,15 +12,6 @@
 // Tests: Callbacks with multiple parameters
 // Validates: two-param and three-param callbacks work correctly
 // Two-parameter callback
-
-typedef uint32_t (*addTwo_fp)(uint32_t, uint32_t);
-
-
-typedef uint32_t (*addThree_fp)(uint32_t, uint32_t, uint32_t);
-
-
-typedef uint32_t (*mixedParams_fp)(uint32_t, bool);
-
 uint32_t addTwo(uint32_t a, uint32_t b) {
     return a + b;
 }
@@ -42,29 +35,17 @@ uint32_t mixedParams(uint32_t val, bool flag) {
 }
 
 // Structs to hold callbacks
-typedef struct TwoParamHandler {
-    addTwo_fp handler;
-} TwoParamHandler;
-
 TwoParamHandler TwoParamHandler_init(void) {
     return (TwoParamHandler){
         .handler = addTwo
     };
 }
 
-typedef struct ThreeParamHandler {
-    addThree_fp handler;
-} ThreeParamHandler;
-
 ThreeParamHandler ThreeParamHandler_init(void) {
     return (ThreeParamHandler){
         .handler = addThree
     };
 }
-
-typedef struct MixedHandler {
-    mixedParams_fp handler;
-} MixedHandler;
 
 MixedHandler MixedHandler_init(void) {
     return (MixedHandler){

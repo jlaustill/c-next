@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-compare-neq.test.h"
+
 #include <string.h>
 
 // ADR-045: Test string inequality comparison

@@ -13,6 +13,14 @@
 extern "C" {
 #endif
 
+/* Function prototypes */
+void setTimerPrescaler(uint8_t prescaler);
+void setTimerMode(uint8_t mode);
+void setTimerFlags(uint8_t flags);
+void configureOptions(uint16_t opts);
+uint8_t readTimerMode(void);
+uint8_t readTimerFlags(void);
+
 #ifdef __cplusplus
 }
 #endif

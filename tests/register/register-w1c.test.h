@@ -13,6 +13,12 @@
 extern "C" {
 #endif
 
+/* Function prototypes */
+void clearInterrupt(uint32_t mask);
+void clearPendingIRQ(uint8_t irqNum);
+void clearGpioInterrupt(uint32_t bitMask);
+void clearSingleBit(uint8_t bit);
+
 #ifdef __cplusplus
 }
 #endif

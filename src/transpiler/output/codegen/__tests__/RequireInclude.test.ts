@@ -8,12 +8,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Transpiler from "../../../Transpiler";
 import MockFileSystem from "../../../__tests__/MockFileSystem";
+import SymbolRegistry from "../../../state/SymbolRegistry";
+import CodeGenState from "../../../state/CodeGenState";
 
 describe("CodeGenerator requireInclude", () => {
   let mockFs: MockFileSystem;
 
   beforeEach(() => {
     mockFs = new MockFileSystem();
+    // Every transpile here omits sourcePath, so all symbols land under the
+    // "<string>" placeholder. Without a reset they accumulate across tests and
+    // one test reads another's output.
+    SymbolRegistry.reset();
+    CodeGenState.reset();
   });
 
   describe("stdint includes", () => {
@@ -25,7 +32,13 @@ describe("CodeGenerator requireInclude", () => {
       ).files[0];
 
       expect(result.success).toBe(true);
-      expect(result.code).toContain("#include <stdint.h>");
+      // #1164: the bitmap typedef is emitted once, in the header, so it is the
+      // header that requires stdint; the .c receives both by including it.
+      // Asserted across the pair because the requirement is satisfied by the
+      // translation unit, not by either file alone.
+      expect(`${result.code}${result.headerCode ?? ""}`).toContain(
+        "#include <stdint.h>",
+      );
     });
 
     it.each([
@@ -64,7 +77,13 @@ describe("CodeGenerator requireInclude", () => {
       ).files[0];
 
       expect(result.success).toBe(true);
-      expect(result.code).toContain("#include <stdint.h>");
+      // #1164: the bitmap typedef is emitted once, in the header, so it is the
+      // header that requires stdint; the .c receives it by including the header.
+      // Asserted across the pair -- the requirement belongs to the translation
+      // unit, not to either file alone.
+      expect(`${result.code}${result.headerCode ?? ""}`).toContain(
+        "#include <stdint.h>",
+      );
     });
   });
 
@@ -126,7 +145,11 @@ describe("CodeGenerator requireInclude", () => {
       ).files[0];
 
       expect(result.success).toBe(true);
-      expect(result.code).toContain("typedef void (*ISR)(void)");
+      // #1164: whichever file carries it, exactly one must -- two definitions
+      // of one typedef name is a redeclaration error in C99.
+      const isrTypedef = /typedef void \(\*ISR\)\(void\)/g;
+      const emitted = `${result.code}${result.headerCode ?? ""}`;
+      expect(emitted.match(isrTypedef)).toHaveLength(1);
     });
   });
 

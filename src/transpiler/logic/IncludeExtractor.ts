@@ -42,6 +42,30 @@ class IncludeExtractor {
     }
     return userIncludes;
   }
+
+  /**
+   * Collect plain C/C++ header includes (everything that is not a `.cnx`).
+   *
+   * Issue #424: a macro from one of these can appear inside a generated
+   * declaration -- `u32[DEVICE_COUNT] devices` becomes
+   * `extern uint32_t devices[DEVICE_COUNT]`. Such a header only compiles for a
+   * translation unit that already included the macro's source, so when the
+   * generated header names a macro it must carry the include itself.
+   *
+   * Collected separately from `.cnx` includes because it is added conditionally:
+   * propagating every C include into every header would put implementation-only
+   * dependencies into the public interface.
+   */
+  static collectCHeaderIncludes(tree: Parser.ProgramContext): string[] {
+    const includes: string[] = [];
+    for (const includeDir of tree.includeDirective()) {
+      const includeText = includeDir.getText();
+      if (!includeText.includes(".cnx")) {
+        includes.push(includeText);
+      }
+    }
+    return includes;
+  }
 }
 
 export default IncludeExtractor;

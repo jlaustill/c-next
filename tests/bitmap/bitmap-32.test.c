@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap-32.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,38 +12,8 @@
 // test-execution
 // Tests: 32-bit bitmap type
 // 32-bit bitmap for IP address representation
-/* Bitmap: IPv4Address */
-/* Fields:
- *   Octet1: bits 0-7 (8 bits)
- *   Octet2: bits 8-15 (8 bits)
- *   Octet3: bits 16-23 (8 bits)
- *   Octet4: bits 24-31 (8 bits)
- */
-typedef uint32_t IPv4Address;
-
 // 32-bit bitmap for status register
-/* Bitmap: DeviceStatus */
-/* Fields:
- *   Power: bit 0 (1 bit)
- *   Ready: bit 1 (1 bit)
- *   Error: bit 2 (1 bit)
- *   Warning: bit 3 (1 bit)
- *   Mode: bits 4-7 (4 bits)
- *   ErrorCode: bits 8-15 (8 bits)
- *   Version: bits 16-23 (8 bits)
- *   Reserved: bits 24-31 (8 bits)
- */
-typedef uint32_t DeviceStatus;
-
 // 32-bit bitmap with larger fields
-/* Bitmap: Configuration */
-/* Fields:
- *   Flags: bits 0-7 (8 bits)
- *   Address: bits 8-23 (16 bits)
- *   Checksum: bits 24-31 (8 bits)
- */
-typedef uint32_t Configuration;
-
 IPv4Address ip = 0;
 
 DeviceStatus status = 0;

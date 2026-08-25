@@ -3,9 +3,6 @@
  * A safer C for embedded systems
  */
 
+#include "switch-enum-cross-file-types.h"
+
 // Helper file: Enum definition for cross-file test
-typedef enum {
-    EStatus__PENDING = 0,
-    EStatus__ACTIVE = 1,
-    EStatus__COMPLETED = 2
-} EStatus;

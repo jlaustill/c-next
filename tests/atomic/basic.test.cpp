@@ -5,6 +5,8 @@
  * atomic read-modify-write requires CMSIS + ARMv7-M.
  */
 
+#include "basic.test.hpp"
+
 
 #include <stdint.h>
 #include <cmsis_gcc.h>

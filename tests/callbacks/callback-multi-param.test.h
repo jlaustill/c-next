@@ -29,6 +29,12 @@ typedef struct MixedHandler {
     mixedParams_fp handler;
 } MixedHandler;
 
+/* Function prototypes */
+uint32_t addTwo(uint32_t a, uint32_t b);
+uint32_t multiplyTwo(uint32_t a, uint32_t b);
+uint32_t addThree(uint32_t a, uint32_t b, uint32_t c);
+uint32_t mixedParams(uint32_t val, bool flag);
+
 #ifdef __cplusplus
 }
 #endif

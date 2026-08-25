@@ -17,6 +17,12 @@ extern "C" {
 extern uint32_t sharedData[10];
 extern uint32_t counter;
 
+/* Function prototypes */
+void criticalInFor(void);
+void criticalInWhile(void);
+void criticalInDoWhile(void);
+void criticalInNestedLoop(void);
+
 #ifdef __cplusplus
 }
 #endif

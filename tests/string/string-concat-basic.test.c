@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-concat-basic.test.h"
+
 #include <string.h>
 
 // ADR-045: Test basic string concatenation

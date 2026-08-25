@@ -3,15 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "struct-const.test.h"
+
 #include <stdint.h>
 
 // ADR-014: Const struct
 // Tests: constant struct declaration
-typedef struct Point {
-    int32_t x;
-    int32_t y;
-} Point;
-
 const Point ORIGIN = { .x = 0, .y = 0 };
 
 const Point UNIT = { .x = 1, .y = 1 };

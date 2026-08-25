@@ -3,24 +3,15 @@
  * A safer C for embedded systems
  */
 
+#include "callback-after-struct.test.hpp"
+
 #include <stdint.h>
 
 // #1212 placement guard: a callback typedef inherits its parameters' type
 // dependencies, so the hoisted block must land AFTER the structs it references
 // and before the first function -- not in the file prelude.
-typedef struct Message {
-    uint32_t id;
-} Message;
-
-
-typedef void (*onReceive_fp)(const Message&);
-
 void onReceive(const Message& msg) {
 }
-
-typedef struct Controller {
-    onReceive_fp handler;
-} Controller;
 
 Controller Controller_init(void) {
     return (Controller){

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "f64-multi-dim.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

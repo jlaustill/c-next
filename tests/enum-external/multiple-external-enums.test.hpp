@@ -21,6 +21,9 @@ typedef struct DeviceState {
     EStatus status;
 } DeviceState;
 
+/* Function prototypes */
+void configure(DeviceState& state);
+
 #ifdef __cplusplus
 }
 #endif

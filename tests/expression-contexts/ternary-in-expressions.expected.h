@@ -16,6 +16,11 @@ extern "C" {
 /* External variables */
 extern uint32_t result;
 
+/* Function prototypes */
+uint32_t identity(uint32_t value);
+uint32_t add(uint32_t a, uint32_t b);
+uint32_t max(uint32_t a, uint32_t b);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-comparison.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "e0908-loop.test.hpp"
+
 // E0908: Loop with reassignment pattern (no error expected)
 // This is the idiomatic fgets-in-while pattern from ADR-046
 // cppcheck-suppress misra-c2012-21.6

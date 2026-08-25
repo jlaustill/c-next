@@ -3,15 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "callback-struct-member.test.h"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Callbacks as struct members with invocation and validation
 // Validates: default callback, assignment, invocation via struct field
 // Callback that returns a computed value (used as a type)
-
-typedef uint32_t (*computeValue_fp)(uint32_t);
-
 uint32_t computeValue(uint32_t input) {
     return input * 2;
 }
@@ -22,11 +21,6 @@ uint32_t tripleValue(uint32_t input) {
 }
 
 // Struct with callback member
-typedef struct Processor {
-    computeValue_fp handler;
-    uint32_t baseValue;
-} Processor;
-
 Processor Processor_init(void) {
     return (Processor){
         .handler = computeValue

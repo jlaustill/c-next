@@ -17,6 +17,9 @@ extern "C" {
 extern char name[65];
 extern char other[65];
 
+/* Function prototypes */
+void test(void);
+
 #ifdef __cplusplus
 }
 #endif

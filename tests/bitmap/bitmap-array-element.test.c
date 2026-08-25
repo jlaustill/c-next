@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap-array-element.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,16 +12,6 @@
 // Tests: Bitmap field access on array elements
 // Validates that arr[i].field generates correct RMW bit manipulation
 // Issue #201: Bitmap array element field access generates invalid C
-/* Bitmap: StatusFlags */
-/* Fields:
- *   active: bit 0 (1 bit)
- *   ready: bit 1 (1 bit)
- *   error: bit 2 (1 bit)
- *   mode: bits 3-5 (3 bits)
- *   priority: bits 6-7 (2 bits)
- */
-typedef uint8_t StatusFlags;
-
 int main(void) {
     StatusFlags arr[4] = {0};
     arr[0] = (arr[0] & ~(1U << 0)) | (1U << 0);

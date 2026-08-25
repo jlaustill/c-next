@@ -233,8 +233,35 @@ class ParameterInputAdapter {
       };
     }
 
-    // Issue #914: Callback typedef overrides — param carries resolved pointer/const info
-    const isCallbackPointer = param.isCallbackPointer ?? false;
+    // ADR-029 / #1164: a parameter whose type IS a callback function is written
+    // as its typedef, with no added pointer — the typedef is already a function
+    // pointer. Hardcoding isCallback false here made the header emit
+    // "onReceive_fp* handler" where the .c emits "onReceive_fp handler".
+    if (param.isCallback && param.callbackTypedefName) {
+      return {
+        name: param.name,
+        baseType: param.type,
+        mappedType,
+        isConst: param.isConst,
+        isAutoConst: false,
+        isArray: false,
+        isCallback: true,
+        callbackTypedefName: param.callbackTypedefName,
+        isString: false,
+        isPassByValue: true,
+        isPassByReference: false,
+      };
+    }
+
+    // Issue #914: Callback typedef overrides — param carries resolved pointer/const
+    // info. This is deliberately tri-state (TypedefParamParser.shouldBePointer
+    // returns boolean | null): true means the typedef takes a pointer, FALSE
+    // means it takes the value, and undefined means there is no typedef to
+    // follow. Collapsing false into undefined with `?? false` sent a by-value
+    // typedef back through ADR-006 reference semantics, so `void (*)(Point)`
+    // got a `Point*` prototype against a `Point` definition (#1164).
+    const callbackWantsPointer = param.isCallbackPointer;
+    const callbackWantsValue = callbackWantsPointer === false;
 
     return {
       name: param.name,
@@ -245,9 +272,13 @@ class ParameterInputAdapter {
       isArray: false,
       isCallback: false,
       isString: false,
-      isPassByValue: isCallbackPointer ? false : deps.isPassByValue,
-      isPassByReference: isCallbackPointer ? true : !deps.isPassByValue,
-      forcePointerSyntax: isCallbackPointer || undefined,
+      isPassByValue: callbackWantsPointer
+        ? false
+        : callbackWantsValue || deps.isPassByValue,
+      isPassByReference: callbackWantsPointer
+        ? true
+        : !callbackWantsValue && !deps.isPassByValue,
+      forcePointerSyntax: callbackWantsPointer || undefined,
       forceConst: param.isCallbackConst || undefined,
       // Issue #995: Pass through opaque handle detection — rule applied in builder
       isOpaqueHandle: param.isOpaqueHandle || undefined,

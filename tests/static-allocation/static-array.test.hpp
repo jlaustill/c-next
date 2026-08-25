@@ -17,6 +17,9 @@ extern "C" {
 extern uint8_t rxBuffer[256];
 extern uint8_t txBuffer[128];
 
+/* Function prototypes */
+void fillBuffer(void);
+
 #ifdef __cplusplus
 }
 #endif

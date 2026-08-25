@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-length.test.hpp"
+
 #include <stdint.h>
 #include <string.h>
 

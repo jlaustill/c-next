@@ -3,22 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "enum-struct-field-assign.test.h"
+
 #include <stdint.h>
 
 // test-c-only
 // test-execution
 // Tests: assign struct enum field to local enum variable (bug fix)
 // Validates that enum-typed fields in structs can be read via global prefix
-typedef enum {
-    EValueId__VALUE_A = 0,
-    EValueId__VALUE_B = 1,
-    EValueId__VALUE_UNASSIGNED = 255
-} EValueId;
-
-typedef struct TInput {
-    EValueId assignedValue;
-} TInput;
-
 TInput input = {0};
 
 int main(void) {

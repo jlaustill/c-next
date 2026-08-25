@@ -13,8 +13,16 @@
 extern "C" {
 #endif
 
+/* ADR-040: ISR function pointer type */
+typedef void (*ISR)(void);
+
 /* External variables */
 extern ISR currentHandler;
+
+/* Function prototypes */
+void handler1(void);
+void handler2(void);
+void switchHandler(void);
 
 #ifdef __cplusplus
 }

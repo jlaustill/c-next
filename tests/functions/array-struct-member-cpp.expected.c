@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "array-struct-member-cpp.test.hpp"
+
 // tests/functions/array-struct-member-cpp.test.cnx
 // test-execution
 // Tests: Issue #256 - array-of-structs member passing in C++ mode

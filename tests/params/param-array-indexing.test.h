@@ -16,6 +16,18 @@ extern "C" {
 /* External variables */
 extern uint32_t result;
 
+/* Function prototypes */
+void writeToParam(uint8_t buf[8], uint32_t idx);
+uint8_t readFromParam(uint8_t buf[4], uint32_t idx);
+void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t idx);
+uint8_t readFirst(uint8_t buf[4]);
+void swapElements(uint8_t buf[8], uint32_t i, uint32_t j);
+void writeExplicit(uint8_t buf[8], uint32_t idx);
+uint8_t getLowByte(uint16_t value);
+uint8_t getHighByte(uint16_t value);
+uint8_t getArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit);
+void setArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit, bool val);
+
 #ifdef __cplusplus
 }
 #endif

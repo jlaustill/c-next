@@ -3,22 +3,14 @@
  * A safer C for embedded systems
  */
 
+#include "basic-bitmap.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
 // ADR-034: Basic Bitmap Test
 // Tests bitmap declaration, field access, and code generation
 // 8-bit bitmap with various field widths
-/* Bitmap: MotorFlags */
-/* Fields:
- *   Running: bit 0 (1 bit)
- *   Direction: bit 1 (1 bit)
- *   Fault: bit 2 (1 bit)
- *   Mode: bits 3-5 (3 bits)
- *   Reserved: bits 6-7 (2 bits)
- */
-typedef uint8_t MotorFlags;
-
 // Variable declaration
 MotorFlags flags = 0;
 

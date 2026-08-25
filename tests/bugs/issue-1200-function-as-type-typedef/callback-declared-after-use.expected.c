@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "callback-declared-after-use.test.h"
+
 #include <stdint.h>
 
 // #1212: a parameter naming a callback declared LATER in the file. The typedef
@@ -11,9 +13,6 @@
 //
 // Identical to callback-parameter.test.cnx with the first two declarations
 // swapped -- that fixture cannot see this, which is why it needs its own.
-
-typedef uint32_t (*tickSource_fp)(void);
-
 uint32_t callIt(tickSource_fp source) {
     return source();
 }

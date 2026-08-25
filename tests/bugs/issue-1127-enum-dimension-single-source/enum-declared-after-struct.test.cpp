@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "enum-declared-after-struct.test.hpp"
+
 #include <stdint.h>
 
 // test-transpile-only
@@ -25,18 +27,7 @@
 // defined is a forward reference (#1176). The qualification itself is correct
 // either way -- both files say EColor__COUNT -- which is what this asserts.
 // Should become a compiling test once #1176 is fixed.
-typedef struct Palette {
-    uint8_t slots[EColor__COUNT];
-} Palette;
-
 uint8_t globalSlots[EColor__COUNT] = {};
-
-typedef enum {
-    EColor__RED = 0,
-    EColor__GREEN = 1,
-    EColor__BLUE = 2,
-    EColor__COUNT = 3
-} EColor;
 
 int main(void) {
     return 0;

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "multi-dim-array-explicit-length.test.h"
+
 #include <stdint.h>
 
 // test-execution

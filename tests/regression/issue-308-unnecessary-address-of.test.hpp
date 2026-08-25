@@ -20,6 +20,10 @@ typedef struct DataResult {
     uint8_t dataLen;
 } DataResult;
 
+/* Function prototypes */
+uint32_t sumFourBytes(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3);
+uint8_t sumArray(uint8_t arr[6], uint8_t len);
+
 #ifdef __cplusplus
 }
 #endif

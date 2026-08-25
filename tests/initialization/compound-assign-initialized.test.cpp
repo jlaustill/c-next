@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "compound-assign-initialized.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -33,11 +35,6 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Test: Compound assignment on initialized variables should work
 // Issue #1012: Ensure we didn't break the happy path
-typedef struct Point {
-    uint32_t x;
-    uint32_t y;
-} Point;
-
 int main(void) {
     uint32_t sum = 0U;
     sum = cnx_clamp_add_u32(sum, 5U);

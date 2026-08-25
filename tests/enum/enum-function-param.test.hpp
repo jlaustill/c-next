@@ -21,6 +21,10 @@ typedef enum {
     Status__CRITICAL = 3
 } Status;
 
+/* Function prototypes */
+uint32_t getStatusCode(Status s);
+uint32_t getStatusPriority(Status s);
+
 #ifdef __cplusplus
 }
 #endif

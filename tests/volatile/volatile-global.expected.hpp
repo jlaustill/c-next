@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t status_flag;
-extern uint8_t byte_flag;
-extern bool ready_flag;
+extern volatile uint32_t status_flag;
+extern volatile uint8_t byte_flag;
+extern volatile bool ready_flag;
 
 #ifdef __cplusplus
 }

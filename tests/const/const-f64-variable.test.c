@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-f64-variable.test.h"
+
 #include <stdint.h>
 
 // test-execution

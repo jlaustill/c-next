@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "operator-precedence.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

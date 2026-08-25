@@ -3,9 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "Config.hpp"
+
 #include <stdint.h>
 
 // test-cpp-only
-typedef struct Config {
-    uint32_t value;
-} Config;

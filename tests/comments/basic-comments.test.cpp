@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "basic-comments.test.hpp"
+
 // Basic Comments Test (ADR-043)
 // Tests that line comments are preserved in output
 #include <stdint.h>

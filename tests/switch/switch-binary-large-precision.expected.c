@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-binary-large-precision.test.h"
+
 #include <stdint.h>
 
 // test-execution

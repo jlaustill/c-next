@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "and-short-circuit.test.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "enum-array-dimension.test.h"
+
 // test-execution
 // Tests: Cross-file enum value used as array dimension gets correct prefix
 #include "array-types.h"

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "string-concat-literal.test.hpp"
+
 #include <string.h>
 
 // ADR-045: Test string concatenation with literal

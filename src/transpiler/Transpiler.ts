@@ -20,6 +20,8 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
+import TypeResolver from "../utils/TypeResolver";
+import PublicInterface from "./logic/symbols/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
@@ -504,6 +506,12 @@ class Transpiler {
       const userIncludes = IncludeExtractor.collectUserIncludes(
         tree,
         this.cppDetected,
+      );
+      // Issue #424: kept separate — added to the header only when it names a
+      // macro that one of these supplies (see _headerNeedsMacroIncludes).
+      this.state.setUserIncludes(
+        `${sourcePath}\u0000c-headers`,
+        IncludeExtractor.collectCHeaderIncludes(tree),
       );
 
       // Get pass-by-value params (snapshot before next file clears it)
@@ -1778,10 +1786,84 @@ class Transpiler {
    * `_sortFilesByDependency` currently drains `depGraph.getWarnings()` into
    * warnings rather than failing, so cycle order is arbitrary (#1167).
    */
+  /**
+   * Issue #424/#1164: does this header name something only the source's own C
+   * headers define, so that it cannot compile standalone?
+   *
+   * Two cases. A non-numeric array dimension is a macro the header uses but does
+   * not define. An opaque typedef (`typedef struct opaque_t* handle_t`) cannot be
+   * forward-declared as a struct, so it too has to come from its real header.
+   *
+   * Deliberately narrow: propagating every C include into every generated header
+   * would put implementation-only dependencies into the public interface, and
+   * would double-include any hand-written header lacking an include guard.
+   */
+  /**
+   * A type the header names but cannot correctly declare for itself.
+   *
+   * The forward declaration the header would otherwise emit,
+   * `typedef struct X X;`, is a guess: it is right only when X really is an
+   * opaque struct. For `typedef struct opaque_t* handle_t` it declares a
+   * different type and contradicts the real definition. When we know a C/C++
+   * header declares the type, including that header beats guessing.
+   */
+  private static _needsDefiningHeader(typeName: string): boolean {
+    if (CodeGenState.symbolTable.isPointerTypedef(typeName)) {
+      return true;
+    }
+
+    // Known to a C/C++ header, but not as something forward-declarable.
+    const declared =
+      CodeGenState.symbolTable.getCppSymbol(typeName) ??
+      CodeGenState.symbolTable.getCSymbol(typeName);
+    if (!declared) {
+      return false;
+    }
+
+    return (
+      !CodeGenState.symbolTable.isOpaqueType(typeName) &&
+      !declared.sourceFile.endsWith(".cnx")
+    );
+  }
+
+  private static _headerNeedsUserCHeaders(symbols: TSymbol[]): boolean {
+    return symbols.some((symbol) => {
+      if (symbol.kind === "variable") {
+        const namesMacroDimension =
+          symbol.arrayDimensions?.some(
+            (dimension) => typeof dimension === "string",
+          ) ?? false;
+        return (
+          namesMacroDimension ||
+          Transpiler._needsDefiningHeader(TypeResolver.getTypeName(symbol.type))
+        );
+      }
+
+      if (symbol.kind === "function") {
+        return (
+          Transpiler._needsDefiningHeader(
+            TypeResolver.getTypeName(symbol.returnType),
+          ) ||
+          symbol.parameters.some((parameter) =>
+            Transpiler._needsDefiningHeader(
+              TypeResolver.getTypeName(parameter.type),
+            ),
+          )
+        );
+      }
+
+      return false;
+    });
+  }
+
   private generateHeaderForFile(file: IPipelineFile): string | null {
     const sourcePath = file.path;
-    const tSymbols = CodeGenState.symbolTable.getTSymbolsByFile(sourcePath);
-    const exportedSymbols = tSymbols.filter((s) => s.isExported);
+    // Issues #1161/#1164: the same predicate decides whether this header is
+    // written and whether the generated .c includes it. Do not re-derive it.
+    const exportedSymbols = PublicInterface.forFile(
+      CodeGenState.symbolTable,
+      sourcePath,
+    );
 
     if (exportedSymbols.length === 0) {
       return null;
@@ -1798,7 +1880,17 @@ class Transpiler {
     const passByValueParams =
       this.state.getPassByValueParams(sourcePath) ??
       new Map<string, Set<string>>();
-    const userIncludes = this.state.getUserIncludes(sourcePath);
+    const cnxIncludes = this.state.getUserIncludes(sourcePath) ?? [];
+    // Issue #424: a dimension that is not a number is a macro the header names
+    // but does not define, so the header must carry its source include.
+    const cHeadersIncluded =
+      Transpiler._headerNeedsUserCHeaders(exportedSymbols);
+    const userIncludes = cHeadersIncluded
+      ? [
+          ...cnxIncludes,
+          ...(this.state.getUserIncludes(`${sourcePath}\u0000c-headers`) ?? []),
+        ]
+      : cnxIncludes;
 
     const allKnownEnums = TransitiveEnumCollector.aggregateKnownEnums(
       this.state.getAllSymbolInfo(),
@@ -1833,6 +1925,9 @@ class Transpiler {
       {
         exportedOnly: true,
         userIncludes,
+        cHeadersIncluded,
+        // ADR-040: same flag the .c consults, so exactly one file emits it.
+        needsIsrTypedef: CodeGenState.needsISR,
         externalTypeHeaders,
         cppMode: this.cppDetected,
       },
@@ -1865,22 +1960,29 @@ class Transpiler {
       }
     >();
 
-    // Collect callback function names that are actually used as struct field types
+    // Issue #1164: same predicate the .c uses to decide it must NOT emit these.
     const usedCallbackTypes = new Set<string>();
-    for (const [, funcName] of CodeGenState.callbackFieldTypes) {
-      usedCallbackTypes.add(funcName);
+    for (const funcName of CodeGenState.callbackTypes.keys()) {
+      if (CodeGenState.headerOwnsCallbackTypedef(funcName)) {
+        usedCallbackTypes.add(funcName);
+      }
     }
 
-    // Only include callbacks that are used as struct field types
     for (const funcName of usedCallbackTypes) {
       const cbInfo = CodeGenState.callbackTypes.get(funcName);
       if (cbInfo) {
         result.set(funcName, {
           typedefName: cbInfo.typedefName,
           returnType: cbInfo.returnType,
+          // #1164: pass the parameter through whole. Dropping isConst/isArray
+          // here is what made the header's typedef disagree with the .c's.
           parameters: cbInfo.parameters.map((p) => ({
             type: p.type,
             isStruct: p.isStruct,
+            isConst: p.isConst,
+            isArray: p.isArray,
+            arrayDims: p.arrayDims,
+            name: p.name,
           })),
         });
       }
@@ -1975,6 +2077,23 @@ class Transpiler {
       // Apply auto-const and resolve opaque type info for non-callback function parameters
       const unmodified = unmodifiedParams.get(headerSymbol.name);
       const updatedParams = headerSymbol.parameters.map((param) => {
+        // ADR-029 / #1164: a parameter whose declared type IS a callback
+        // function takes that function's typedef, exactly as the .c does via
+        // CodeGenState.callbackTypes. Without this the header emitted the bare
+        // function name as a type ("const onReceive*"), which both contradicts
+        // the .c's "onReceive_fp" and collides with the function's own
+        // prototype ("redeclared as different kind of symbol").
+        const callbackType = CodeGenState.callbackTypes.get(param.type ?? "");
+        if (callbackType) {
+          return {
+            ...param,
+            type: callbackType.typedefName,
+            isCallback: true,
+            callbackTypedefName: callbackType.typedefName,
+            isStruct: false,
+          };
+        }
+
         // Issue #995: Resolve opaque type info ONCE onto the symbol.
         // This is the single source of truth for both body (.c/.cpp) and header (.h/.hpp).
         const isOpaque = CodeGenState.isOpaqueType(param.type ?? "");

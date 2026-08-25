@@ -45,6 +45,11 @@ typedef uint8_t UARTStatus;
  */
 typedef uint16_t TimerConfig;
 
+/* Function prototypes */
+void configureUART(void);
+bool isUARTReady(void);
+void configureTimer(uint8_t prescale);
+
 #ifdef __cplusplus
 }
 #endif

@@ -5,6 +5,8 @@
  * atomic read-modify-write requires CMSIS + ARMv7-M.
  */
 
+#include "atomic-compound-ops.test.h"
+
 // ADR-049: Atomic compound operations
 // Tests: various compound assignment operators with atomic
 

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "valid-c-prefix-fopen.test.h"
+
 // ADR-046: Valid c_ prefix with fopen and fgets while loop
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "enum-type-aware-resolution.test.h"
+
 #include <stdint.h>
 
 // test-execution
@@ -10,26 +12,6 @@
 // Tests: Type-aware enum member resolution with overlapping names
 // When multiple enums have the same member name, the assignment target's type
 // determines which enum to use.
-typedef enum {
-    Color__RED = 0,
-    Color__GREEN = 1,
-    Color__BLUE = 2
-} Color;
-
-typedef enum {
-    Status__RED = 10,
-    Status__YELLOW = 20,
-    Status__GREEN = 30
-} Status;
-
-typedef struct ColorConfig {
-    Color color;
-} ColorConfig;
-
-typedef struct StatusConfig {
-    Status status;
-} StatusConfig;
-
 void setColorRed(ColorConfig* cfg) {
     cfg->color = Color__RED;
 }

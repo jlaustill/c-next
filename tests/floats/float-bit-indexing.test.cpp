@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "float-bit-indexing.test.hpp"
+
 #include <stdint.h>
 
 static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");

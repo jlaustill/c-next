@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "2d-array-direct.test.h"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -26,12 +28,6 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: 2D struct array direct access (no scope/global prefix)
 // Coverage: Basic 2D array indexing, row/column patterns
-typedef struct Cell {
-    uint8_t row;
-    uint8_t col;
-    uint32_t data;
-} Cell;
-
 Cell grid[3][4] = {0};
 
 int main(void) {

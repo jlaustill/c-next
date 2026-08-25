@@ -23,6 +23,11 @@ typedef enum {
 /* External variables */
 extern Priority globalPriority;
 
+/* Function prototypes */
+Priority getPriority(void);
+uint32_t priorityToValue(Priority p);
+uint32_t switchPriority(Priority p);
+
 #ifdef __cplusplus
 }
 #endif

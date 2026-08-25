@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "param-dimension-alignment.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

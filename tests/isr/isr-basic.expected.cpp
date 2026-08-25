@@ -3,8 +3,7 @@
  * A safer C for embedded systems
  */
 
-/* ADR-040: ISR function pointer type */
-typedef void (*ISR)(void);
+#include "isr-basic.test.hpp"
 
 // ADR-040: Basic ISR type test
 // ISR is a built-in type for void(void) function pointers
@@ -19,7 +18,3 @@ void registerHandler(ISR handler) {
 }
 
 // Use ISR as struct field
-typedef struct InterruptController {
-    ISR timerCallback;
-    ISR uartCallback;
-} InterruptController;

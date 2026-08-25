@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "compound-assign-1d.test.hpp"
+
 #include <stdint.h>
 
 // Test: Compound assignment on 1D arrays

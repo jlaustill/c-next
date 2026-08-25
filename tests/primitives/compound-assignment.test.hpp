@@ -18,6 +18,9 @@ extern uint8_t brightness;
 extern uint16_t sensorValue;
 extern uint32_t counter;
 
+/* Function prototypes */
+void update(void);
+
 #ifdef __cplusplus
 }
 #endif

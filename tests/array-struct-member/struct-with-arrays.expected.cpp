@@ -3,31 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "struct-with-arrays.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
 // Tests: Structs containing array members of various types
 // Coverage: u8, u16, u32, u64 arrays inside structs
-typedef struct ByteBuffer {
-    uint8_t data[8];
-    uint32_t len;
-} ByteBuffer;
-
-typedef struct WordBuffer {
-    uint16_t values[4];
-    uint32_t count;
-} WordBuffer;
-
-typedef struct LongBuffer {
-    uint32_t items[4];
-    uint32_t cap;
-} LongBuffer;
-
-typedef struct WideBuffer {
-    uint64_t entries[2];
-    uint32_t used;
-} WideBuffer;
-
 int main(void) {
     ByteBuffer bytes = {};
     bytes.len = 4U;

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "const-i16-parameter.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "f32-multi-dim.test.h"
+
 #include <stdint.h>
 
 // test-execution

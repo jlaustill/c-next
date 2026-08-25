@@ -19,6 +19,9 @@ typedef struct Point {
     int32_t y;
 } Point;
 
+/* Function prototypes */
+void moveRight(Point& p);
+
 #ifdef __cplusplus
 }
 #endif

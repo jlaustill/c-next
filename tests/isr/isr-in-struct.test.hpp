@@ -13,6 +13,9 @@
 extern "C" {
 #endif
 
+/* ADR-040: ISR function pointer type */
+typedef void (*ISR)(void);
+
 /* Struct definitions */
 typedef struct IsrHolder {
     ISR primary;
@@ -22,6 +25,13 @@ typedef struct IsrHolder {
 /* External variables */
 extern uint32_t structCallCount;
 extern uint32_t structLastHandler;
+
+/* Function prototypes */
+void structHandler1(void);
+void structHandler2(void);
+void structHandler3(void);
+void initStructHolder(IsrHolder& hld, ISR prim, ISR sec);
+void invokeStructHolder(const IsrHolder& hld);
 
 #ifdef __cplusplus
 }

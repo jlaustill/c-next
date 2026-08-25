@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-memory-width.test.h"
+
 #include <stdint.h>
 
 // Tests: Memory access width must match bit-range width (Issue #187)

@@ -13,6 +13,12 @@
 extern "C" {
 #endif
 
+/* Function prototypes */
+void setGpioBit(uint8_t pin);
+void setGpioMask(uint32_t mask);
+void enableFeature(uint8_t feature);
+void setFlags(uint32_t flagMask);
+
 #ifdef __cplusplus
 }
 #endif

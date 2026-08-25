@@ -3,16 +3,10 @@
  * A safer C for embedded systems
  */
 
+#include "switch-multiple-cases.test.h"
+
 // ADR-025: Multiple Cases Test
 // Tests case A || B syntax
-typedef enum {
-    ECommand__READ = 0,
-    ECommand__WRITE = 1,
-    ECommand__PEEK = 2,
-    ECommand__POKE = 3,
-    ECommand__ERASE = 4
-} ECommand;
-
 void doRead(void) {
 }
 

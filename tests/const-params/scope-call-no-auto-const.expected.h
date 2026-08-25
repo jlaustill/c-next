@@ -22,6 +22,9 @@ typedef struct AppConfig {
 /* Function prototypes */
 void Storage__load(AppConfig* config);
 void Storage__save(const AppConfig* config);
+void loadConfig(AppConfig* config);
+void saveConfig(const AppConfig* config);
+void directLoad(AppConfig* config);
 
 #ifdef __cplusplus
 }

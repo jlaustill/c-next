@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bitmap-24.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,26 +12,7 @@
 // test-execution
 // Tests: 24-bit bitmap type
 // 24-bit bitmap for RGB color
-/* Bitmap: RGBColor */
-/* Fields:
- *   Red: bits 0-7 (8 bits)
- *   Green: bits 8-15 (8 bits)
- *   Blue: bits 16-23 (8 bits)
- */
-typedef uint32_t RGBColor;
-
 // 24-bit bitmap for sensor status
-/* Bitmap: SensorConfig */
-/* Fields:
- *   Enabled: bit 0 (1 bit)
- *   AutoCalibrate: bit 1 (1 bit)
- *   HighPrecision: bit 2 (1 bit)
- *   Reserved1: bits 3-7 (5 bits)
- *   SampleRate: bits 8-15 (8 bits)
- *   Threshold: bits 16-23 (8 bits)
- */
-typedef uint32_t SensorConfig;
-
 RGBColor color = 0;
 
 SensorConfig sensor = 0;

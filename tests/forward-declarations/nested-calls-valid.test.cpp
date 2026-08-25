@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "nested-calls-valid.test.hpp"
+
 // ADR-030: Valid nested call chain
 // Tests: chain of calls where each is defined before caller
 void level3(void) {

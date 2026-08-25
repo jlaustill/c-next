@@ -20,6 +20,8 @@ extern const uint32_t BLINK_DELAY;
 /* Function prototypes */
 void LED__on(void);
 void LED__off(void);
+void setup(void);
+void loop(void);
 
 #ifdef __cplusplus
 }

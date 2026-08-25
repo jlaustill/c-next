@@ -56,9 +56,9 @@ function createDefaultMockSymbols(): ICodeGenSymbols {
     functionReturnTypes: new Map(),
 
     // Methods
+    hasPublicInterface: false,
     getSingleFunctionForVariable: () => null,
     opaqueTypes: new Set(),
-    hasPublicSymbols: () => false,
   };
 }
 

@@ -18,6 +18,9 @@ extern uint16_t myArray[8];
 extern uint8_t initialized[4];
 extern int32_t signedArray[3];
 
+/* Function prototypes */
+void useArrays(void);
+
 #ifdef __cplusplus
 }
 #endif

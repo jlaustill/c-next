@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "auto-const-pointer.test.h"
+
 #include <stdint.h>
 
 // test-execution

@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "bool-all-contexts.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -15,11 +17,6 @@ bool globalTrue = true;
 bool globalFalse = false;
 
 // 2. Struct with bool members
-typedef struct Flags {
-    bool enabled;
-    bool active;
-} Flags;
-
 // 3. Bool arrays
 bool flagArray[4] = {};
 

@@ -23,6 +23,15 @@ typedef struct Counter {
     uint32_t maxValue;
 } Counter;
 
+/* Function prototypes */
+void movePoint(Point* p, int32_t dx, int32_t dy);
+void resetPoint(Point* p);
+void incrementCounter(Counter* c);
+void setCounterMax(Counter* c, uint32_t newMax);
+int32_t getPointSum(const Point* p);
+uint32_t getCounterValue(const Counter* c);
+bool isCounterAtMax(const Counter* c);
+
 #ifdef __cplusplus
 }
 #endif

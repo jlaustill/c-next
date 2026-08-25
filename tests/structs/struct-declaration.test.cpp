@@ -5,6 +5,8 @@
 
 #include "struct-declaration.test.hpp"
 
+#include <stdint.h>
+
 // ADR-014: Basic struct declaration
 // Tests: struct definition and declaration
 /* Scope: StructDecl */

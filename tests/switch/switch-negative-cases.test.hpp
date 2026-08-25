@@ -16,6 +16,10 @@ extern "C" {
 /* External variables */
 extern int32_t result;
 
+/* Function prototypes */
+void handleValue(int8_t val);
+void handleHex(int16_t val);
+
 #ifdef __cplusplus
 }
 #endif

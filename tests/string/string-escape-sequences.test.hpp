@@ -13,9 +13,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct string string;
-
 /* External variables */
 extern char withNewline[65];
 extern char withTab[65];
@@ -27,7 +24,7 @@ extern char justNewline[9];
 extern char justTab[9];
 extern char escapeAtStart[33];
 extern char escapeAtEnd[33];
-extern const string VERSION_INFO;
+extern const char VERSION_INFO[25];
 
 #ifdef __cplusplus
 }

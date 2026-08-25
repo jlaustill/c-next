@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "switch-multiple-cases-execution.test.hpp"
+
 #include <stdint.h>
 
 // test-execution

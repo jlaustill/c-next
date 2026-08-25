@@ -5,6 +5,8 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
+#include "array-member-read.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -23,15 +25,6 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Regression test: reading array members within structs in loops
 // Verifies postfix chain ordering: cfg.items[i].value
-typedef struct Item {
-    uint32_t value;
-    uint8_t flags;
-} Item;
-
-typedef struct Container {
-    Item items[3];
-} Container;
-
 int main(void) {
     Container cfg = {};
     Item item0 = { .value = 100U, .flags = 0U };

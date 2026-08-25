@@ -16,6 +16,9 @@ extern "C" {
 /* External variables */
 extern const uint8_t END_MARKER;
 
+/* Function prototypes */
+void readUntilEnd(void);
+
 #ifdef __cplusplus
 }
 #endif

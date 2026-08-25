@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "volatile-global.test.hpp"
+
 #include <stdint.h>
 #include <stdbool.h>
 

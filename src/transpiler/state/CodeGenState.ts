@@ -169,6 +169,22 @@ export default class CodeGenState {
   static callbackTypeReferences: Set<string> = new Set();
 
   /**
+   * Issue #1164: does the generated header own this callback's typedef?
+   *
+   * When the `.c` includes its own header, whichever typedefs the header emits
+   * must not be emitted a second time -- C99 rejects even an identical typedef
+   * redefinition. Both sides ask this one question so they cannot disagree
+   * about who owns a given typedef.
+   *
+   * Keyed on callbackTypeReferences (#1200/#1201) rather than a set of its own:
+   * that already records every site naming a callback type, so ownership and
+   * emission cannot drift apart.
+   */
+  static headerOwnsCallbackTypedef(functionName: string): boolean {
+    return this.callbackTypeReferences.has(functionName);
+  }
+
+  /**
    * Issue #1212: callback `_fp` typedefs awaiting placement.
    *
    * They used to be appended after the function each was derived from, which

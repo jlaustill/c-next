@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "template-type.test.hpp"
+
 // Issue #375: Template type with constructor
 #include "constructor-stubs.h"
 

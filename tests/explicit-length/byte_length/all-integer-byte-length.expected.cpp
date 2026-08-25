@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "all-integer-byte-length.test.hpp"
+
 #include <stdint.h>
 
 // test-execution
