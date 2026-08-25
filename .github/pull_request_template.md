@@ -13,7 +13,7 @@
 **Code Quality** (Auto-checked by pre-commit hooks if you ran `npm install`)
 
 - [ ] Code is properly formatted (`npm run prettier:fix` or rely on pre-commit hook)
-- [ ] No ESLint errors in modified files (`npm run eslint:check`)
+- [ ] No oxlint errors in modified files (`npm run oxlint:check`)
 - [ ] TypeScript compiles without errors (`npm run typecheck`)
 - [ ] All tests pass (`npm test`)
 
@@ -42,8 +42,8 @@
 
 ---
 
-**Note:** If CI fails with prettier/eslint errors:
+**Note:** If CI fails with prettier/oxlint errors:
 
-1. Run `npm run prettier:fix && npm run eslint:fix`
+1. Run `npm run prettier:fix && npm run oxlint:fix`
 2. Commit and push the fixes
 3. Ensure you ran `npm install` to set up pre-commit hooks for future commits
