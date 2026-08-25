@@ -288,6 +288,20 @@ interface IOrchestrator {
   /** Clear current function parameters */
   clearParameters(): void;
 
+  /**
+   * Issue #1200: the `_fp` typedef name for a callback type, or null if the
+   * name is not one. Exposed so renderers do not re-derive the `${name}_fp`
+   * convention that registerCallbackType owns.
+   */
+  getCallbackTypedefName(typeName: string): string | null;
+
+  /**
+   * ADR-029 / Issues #1201, #1212: record that this function needs a callback
+   * `_fp` typedef, if it does. Callers state that a function was emitted; where
+   * the typedef goes and whether it is needed belong to the implementation.
+   */
+  recordCallbackTypedef(funcName: string): void;
+
   /** Check if a callback type is used as a struct field type */
   isCallbackTypeUsedAsFieldType(funcName: string): boolean;
 
@@ -323,7 +337,6 @@ interface IOrchestrator {
   ): boolean;
 
   /** Generate callback typedef for a function */
-  generateCallbackTypedef(funcName: string): string | null;
 
   /**
    * Issue #268: Update symbol parameters with auto-const info based on modification tracking.

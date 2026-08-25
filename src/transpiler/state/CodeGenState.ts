@@ -152,43 +152,53 @@ export default class CodeGenState {
   static callbackFieldTypes: Map<string, string> = new Map();
 
   /**
-   * Callback types named as a parameter type by a function in this file.
+   * ADR-029 / Issues #1200, #1201: every type name referenced by a field or a
+   * parameter, wherever it appears -- top-level struct, scope-nested struct,
+   * scope member, or function parameter.
    *
-   * Issue #1164: the header emits a typedef only for callbacks it owns. A
-   * callback used solely as a parameter was not owned by anything, so the
-   * header declared `void setHandler(onReceive_fp)` and then forward-declared
-   * `onReceive_fp` as a struct -- a function pointer described as an
-   * incomplete struct type.
+   * Emitting a callback's `_fp` typedef is one decision, and it used to be
+   * derived from callbackFieldTypes alone. That map is populated only while
+   * walking TOP-LEVEL struct declarations, so a callback used anywhere else was
+   * registered as known, referenced in the output, and never given a typedef --
+   * generated C that does not compile.
+   *
+   * Names go in unfiltered: a parameter may name a callback declared later in
+   * the file, so membership is intersected with callbackTypes at query time
+   * rather than at collection time.
    */
-  static callbackParameterTypes: Set<string> = new Set();
-
-  /**
-   * Record that a parameter is declared with a callback type.
-   */
-  static recordCallbackParameterType(functionName: string): void {
-    this.callbackParameterTypes.add(functionName);
-  }
+  static callbackTypeReferences: Set<string> = new Set();
 
   /**
    * Issue #1164: does the generated header own this callback's typedef?
    *
-   * The header emits typedefs only for callbacks used as struct field types.
    * When the `.c` includes its own header, whichever typedefs the header emits
-   * must not be emitted a second time in the `.c` — C99 rejects even an
-   * identical typedef redefinition. Both sides ask this one question so they
-   * cannot disagree about who owns a given typedef.
+   * must not be emitted a second time -- C99 rejects even an identical typedef
+   * redefinition. Both sides ask this one question so they cannot disagree
+   * about who owns a given typedef.
+   *
+   * Keyed on callbackTypeReferences (#1200/#1201) rather than a set of its own:
+   * that already records every site naming a callback type, so ownership and
+   * emission cannot drift apart.
    */
   static headerOwnsCallbackTypedef(functionName: string): boolean {
-    if (this.callbackParameterTypes.has(functionName)) {
-      return true;
-    }
-    for (const [, callbackTypeName] of this.callbackFieldTypes) {
-      if (callbackTypeName === functionName) {
-        return true;
-      }
-    }
-    return false;
+    return this.callbackTypeReferences.has(functionName);
   }
+
+  /**
+   * Issue #1212: callback `_fp` typedefs awaiting placement.
+   *
+   * They used to be appended after the function each was derived from, which
+   * only works when every use appears later in the file. A parameter naming a
+   * callback declared further down got a typedef after its first use, and the
+   * generated C did not compile.
+   *
+   * They cannot simply be hoisted into the prelude either: a callback typedef
+   * inherits its parameters' dependencies, so `typedef void (*onReceive_fp)(const
+   * Message*)` must follow `Message`'s definition. Collecting them here lets
+   * generateAllDeclarations place the whole block after the type declarations
+   * and before the first function.
+   */
+  static pendingCallbackTypedefs: string[] = [];
 
   /**
    * Functions that are assigned to C callback typedefs.
@@ -443,7 +453,8 @@ export default class CodeGenState {
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
-    this.callbackParameterTypes = new Set();
+    this.callbackTypeReferences = new Set();
+    this.pendingCallbackTypedefs = [];
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
     // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must
     // persist into code generation. It is cleared at the start of each Transpiler run.

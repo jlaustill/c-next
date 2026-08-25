@@ -91,16 +91,7 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
 
   const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
 
-  // ADR-029: Generate callback typedef only if this function is used as a type
-  if (name !== "main" && orchestrator.isCallbackTypeUsedAsFieldType(name)) {
-    const typedef = orchestrator.generateCallbackTypedef(name);
-    if (typedef) {
-      return {
-        code: functionCode + typedef,
-        effects: [],
-      };
-    }
-  }
+  orchestrator.recordCallbackTypedef(name);
 
   return {
     code: functionCode,

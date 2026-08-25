@@ -44,22 +44,6 @@ interface IReturnTypeAndParams {
  */
 class FunctionContextManager {
   /**
-   * Whether this parameter's declared type is a callback, recording the use.
-   *
-   * Issue #1164: the header emits a callback typedef only for callbacks it
-   * owns, and ownership used to mean "used as a struct field". A callback used
-   * only as a parameter fell outside that, so the header named the typedef in a
-   * prototype while forward-declaring it as a struct.
-   */
-  private static noteCallbackParameter(typeName: string): boolean {
-    if (!CodeGenState.callbackTypes.has(typeName)) {
-      return false;
-    }
-    CodeGenState.recordCallbackParameterType(typeName);
-    return true;
-  }
-
-  /**
    * Set up context for function generation.
    * - Sets current function name (with scope prefix if in a scope)
    * - Sets return type for enum inference
@@ -250,7 +234,7 @@ class FunctionContextManager {
       return {
         typeName: qualified,
         isStruct: callbacks.isStructType(qualified),
-        isCallback: FunctionContextManager.noteCallbackParameter(qualified),
+        isCallback: CodeGenState.callbackTypes.has(qualified),
         isString: false,
       };
     }
@@ -317,7 +301,7 @@ class FunctionContextManager {
         return {
           typeName,
           isStruct: callbacks.isStructType(typeName),
-          isCallback: FunctionContextManager.noteCallbackParameter(typeName),
+          isCallback: CodeGenState.callbackTypes.has(typeName),
           isString: false,
         };
       }

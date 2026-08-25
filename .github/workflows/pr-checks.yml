@@ -5,6 +5,17 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # Explicit types because the default set is opened/synchronize/reopened,
+    # which omits `edited`. Retargeting a PR (changing its base branch) fires
+    # `edited` and nothing else, so a stacked PR moved onto main used to sit
+    # with no checks at all until it was closed and reopened.
+    #
+    # `edited` also fires on a title or body edit, so those re-run the suite
+    # too. Gating on github.event.changes.base is not an option here:
+    # all-checks-passed runs with if: always() and treats any non-success
+    # result -- including `skipped` -- as a failure, so skipping the jobs would
+    # report the PR red rather than leaving it untouched.
+    types: [opened, synchronize, reopened, edited]
 
 # Self-hosted runner for trusted code (your branches, pushes to main)
 # GitHub runners for untrusted code (fork PRs)
