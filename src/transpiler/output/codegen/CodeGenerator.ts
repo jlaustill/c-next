@@ -1555,14 +1555,20 @@ export default class CodeGenerator implements IOrchestrator {
     this._clearParameters();
   }
 
-  /** Check if a callback type is used as a struct field type */
+  /**
+   * Issues #1200, #1201: does this callback type need its `_fp` typedef emitted?
+   *
+   * True when the type is referenced by any field or parameter, not only by a
+   * field of a top-level struct. Reading callbackFieldTypes alone missed
+   * scope-nested struct fields, scope members and parameters, each of which
+   * produced C that referenced a typedef nothing had emitted.
+   */
+  getCallbackTypedefName(typeName: string): string | null {
+    return CodeGenState.callbackTypes.get(typeName)?.typedefName ?? null;
+  }
+
   isCallbackTypeUsedAsFieldType(funcName: string): boolean {
-    for (const callbackType of CodeGenState.callbackFieldTypes.values()) {
-      if (callbackType === funcName) {
-        return true;
-      }
-    }
-    return false;
+    return CodeGenState.callbackTypeReferences.has(funcName);
   }
 
   // === Scope Management (A4) ===
@@ -2743,6 +2749,18 @@ export default class CodeGenerator implements IOrchestrator {
     CodeGenState.currentScope = scopeName;
 
     for (const member of scopeDecl.scopeMember()) {
+      // Issue #1200: a struct nested in a scope has callback fields just like a
+      // top-level one, and a scope member variable can itself be callback-typed.
+      // Neither was walked here, so neither ever registered its type.
+      if (member.structDeclaration()) {
+        this._collectStructCallbackFields(member.structDeclaration()!);
+        continue;
+      }
+      if (member.variableDeclaration()) {
+        const varType = this.getTypeName(member.variableDeclaration()!.type());
+        CodeGenState.callbackTypeReferences.add(varType);
+        continue;
+      }
       if (member.functionDeclaration()) {
         const funcDecl = member.functionDeclaration()!;
         const funcName = funcDecl.IDENTIFIER().getText();
@@ -2786,6 +2804,7 @@ export default class CodeGenerator implements IOrchestrator {
           fieldType,
         );
       }
+      CodeGenState.callbackTypeReferences.add(fieldType);
     }
   }
 
@@ -2898,6 +2917,9 @@ export default class CodeGenerator implements IOrchestrator {
           param.arrayDimension().length > 0 ||
           param.type().arrayType() !== null;
         const baseType = this.getTypeName(param.type());
+        // Issue #1201: a parameter naming a callback type needs that type's
+        // typedef emitted, exactly as a struct field does.
+        CodeGenState.callbackTypeReferences.add(baseType);
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }

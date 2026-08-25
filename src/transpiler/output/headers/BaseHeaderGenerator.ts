@@ -91,12 +91,18 @@ abstract class BaseHeaderGenerator {
     const symbolTable = typeInput?.symbolTable;
 
     // Filter to C-compatible external types
+    //
+    // Issue #1200: a callback type (ADR-029) is not an external struct. It is
+    // emitted as a function-pointer typedef by generateCallbackTypedefSection
+    // below, so forward-declaring it as `typedef struct X X;` here produces two
+    // conflicting declarations of the same name -- and the name also belongs to
+    // the function the type was defined from.
     const cCompatibleExternalTypes =
       HeaderGeneratorUtils.filterCCompatibleTypes(
         externalTypes,
         typesWithHeaders,
         symbolTable,
-      );
+      ).filter((typeName) => !typeInput?.callbackTypes?.has(typeName));
 
     // Filter to C-compatible variables
     const cCompatibleVariables =

@@ -152,6 +152,23 @@ export default class CodeGenState {
   static callbackFieldTypes: Map<string, string> = new Map();
 
   /**
+   * ADR-029 / Issues #1200, #1201: every type name referenced by a field or a
+   * parameter, wherever it appears -- top-level struct, scope-nested struct,
+   * scope member, or function parameter.
+   *
+   * Emitting a callback's `_fp` typedef is one decision, and it used to be
+   * derived from callbackFieldTypes alone. That map is populated only while
+   * walking TOP-LEVEL struct declarations, so a callback used anywhere else was
+   * registered as known, referenced in the output, and never given a typedef --
+   * generated C that does not compile.
+   *
+   * Names go in unfiltered: a parameter may name a callback declared later in
+   * the file, so membership is intersected with callbackTypes at query time
+   * rather than at collection time.
+   */
+  static callbackTypeReferences: Set<string> = new Set();
+
+  /**
    * Functions that are assigned to C callback typedefs.
    * Maps function name -> typedef name (e.g., "my_flush" -> "flush_cb_t")
    * Issue #895: We need the typedef name to look up parameter types.
@@ -404,6 +421,7 @@ export default class CodeGenState {
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
+    this.callbackTypeReferences = new Set();
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
     // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must
     // persist into code generation. It is cleared at the start of each Transpiler run.

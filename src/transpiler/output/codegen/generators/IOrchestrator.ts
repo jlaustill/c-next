@@ -288,6 +288,13 @@ interface IOrchestrator {
   /** Clear current function parameters */
   clearParameters(): void;
 
+  /**
+   * Issue #1200: the `_fp` typedef name for a callback type, or null if the
+   * name is not one. Exposed so renderers do not re-derive the `${name}_fp`
+   * convention that registerCallbackType owns.
+   */
+  getCallbackTypedefName(typeName: string): string | null;
+
   /** Check if a callback type is used as a struct field type */
   isCallbackTypeUsedAsFieldType(funcName: string): boolean;
 

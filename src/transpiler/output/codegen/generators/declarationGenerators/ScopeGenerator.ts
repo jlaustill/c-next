@@ -192,6 +192,13 @@ function generateRegularVariable(
 
   // ADR-016: All scope variables are emitted at file scope (static-like persistence)
   let type = orchestrator.generateType(varDecl.type());
+  // Issue #1200: a callback-typed scope member renders as its function-pointer
+  // typedef. Without this the raw function name was emitted as the type, which
+  // collides with the function of the same name.
+  const callbackTypedef = orchestrator.getCallbackTypedefName(type);
+  if (callbackTypedef !== null) {
+    type = callbackTypedef;
+  }
   const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
 
   // Issue #948: Check if this is an opaque (forward-declared) struct type
