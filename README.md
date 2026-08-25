@@ -361,7 +361,8 @@ npm run coverage:grammar:check   # Grammar coverage with threshold check (CI)
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete development workflow, testing requirements, and PR process.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete development workflow, testing requirements, and PR process,
+and [docs/WORKFLOW.md](docs/WORKFLOW.md) for how issues, pull requests and releases move on the project board.
 
 **Quick start:** Ideas and feedback welcome via issues.
 

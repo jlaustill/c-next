@@ -1,0 +1,156 @@
+# Keeps the C-Next project board in step with issue and PR events (Issue #1247).
+#
+# GitHub has no built-in workflow for "pull request opened", and none for
+# "issue assigned", so those two transitions live here. What the built-ins do
+# well -- item closed, pull request merged -- is left to them and is absent from
+# this file.
+#
+# Reopening is handled here rather than by the built-in "Item reopened", which
+# fires on issues and pull requests alike: it would send a reopened PR to Backlog
+# while this workflow sends it to PR Review, and which one lands is a race. One
+# owner per transition. See docs/WORKFLOW.md.
+#
+# GITHUB_TOKEN is scoped to the repository and cannot write Projects v2, so this
+# uses PROJECT_TOKEN: a classic PAT with the `project` scope.
+#
+# `workflow_call` lets jlaustill/vscode-c-next reuse this file rather than copy
+# it -- a reusable workflow sees the caller's event context, so the same logic
+# serves both repositories from one source.
+name: Project sync
+
+on:
+  issues:
+    types: [opened, assigned, reopened]
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  workflow_call:
+    secrets:
+      PROJECT_TOKEN:
+        description: Classic PAT with the `project` scope
+        required: true
+
+permissions: {}
+
+concurrency:
+  # Serialize writes per item; never cancel one, a half-written status is worse
+  # than a slow one.
+  group: project-sync-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync board
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      PROJECT_OWNER: jlaustill
+      PROJECT_TITLE: C-Next
+    steps:
+      - name: Sync item status
+        # Pull requests from forks receive no secrets. Skip cleanly rather than
+        # failing the run -- a fork PR is added to the board by hand.
+        if: env.GH_TOKEN != ''
+        run: |
+          set -euo pipefail
+
+          case "${{ github.event_name }}.${{ github.event.action }}" in
+            issues.opened)                  TARGET="Backlog";    OVERWRITE="unset" ;;
+            issues.reopened)                TARGET="Backlog";    OVERWRITE="unset|Done" ;;
+            issues.assigned)                TARGET="WIP";        OVERWRITE="unset|Backlog" ;;
+            pull_request.opened)            TARGET="PR Review";  OVERWRITE="unset" ;;
+            pull_request.reopened)          TARGET="PR Review";  OVERWRITE="any" ;;
+            pull_request.ready_for_review)  TARGET="PR Review";  OVERWRITE="unset|Backlog" ;;
+            *) echo "No mapping for ${{ github.event_name }}.${{ github.event.action }}"; exit 0 ;;
+          esac
+
+          CONTENT_ID="${{ github.event.issue.node_id || github.event.pull_request.node_id }}"
+
+          # One query for the project, its Status field, and every option id.
+          if ! PROJECT_JSON=$(gh api graphql -f owner="$PROJECT_OWNER" -f query='
+            query($owner: String!) {
+              user(login: $owner) {
+                projectsV2(first: 100) {
+                  nodes {
+                    id
+                    title
+                    fields(first: 50) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options { id name }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' 2>&1); then
+            echo "::error::Could not read Projects. Is the PROJECT_TOKEN secret a"
+            echo "::error::classic PAT with the 'project' scope, and has it expired?"
+            echo "$PROJECT_JSON"
+            exit 1
+          fi
+
+          PROJECT=$(jq --arg t "$PROJECT_TITLE" \
+            '.data.user.projectsV2.nodes[] | select(.title == $t)' <<<"$PROJECT_JSON")
+          if [ -z "$PROJECT" ]; then
+            echo "::error::No project titled '$PROJECT_TITLE'. Run: npm run project:setup"
+            exit 1
+          fi
+
+          PROJECT_ID=$(jq -r '.id' <<<"$PROJECT")
+          STATUS=$(jq '.fields.nodes[] | select(.name == "Status")' <<<"$PROJECT")
+          FIELD_ID=$(jq -r '.id' <<<"$STATUS")
+          OPTION_ID=$(jq -r --arg n "$TARGET" \
+            '.options[] | select(.name == $n) | .id' <<<"$STATUS")
+          if [ -z "$OPTION_ID" ] || [ "$OPTION_ID" = "null" ]; then
+            echo "::error::Status has no '$TARGET' option. See docs/WORKFLOW.md."
+            exit 1
+          fi
+
+          # Adding an item that is already on the board returns the existing one.
+          ITEM_ID=$(gh api graphql -f projectId="$PROJECT_ID" -f contentId="$CONTENT_ID" -f query='
+            mutation($projectId: ID!, $contentId: ID!) {
+              addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+                item { id }
+              }
+            }' --jq '.data.addProjectV2ItemById.item.id')
+
+          CURRENT=$(gh api graphql -f itemId="$ITEM_ID" -f query='
+            query($itemId: ID!) {
+              node(id: $itemId) {
+                ... on ProjectV2Item {
+                  fieldValueByName(name: "Status") {
+                    ... on ProjectV2ItemFieldSingleSelectValue { name }
+                  }
+                }
+              }
+            }' --jq '.data.node.fieldValueByName.name // "unset"')
+
+          # Never drag a card backwards. A status someone has already advanced is
+          # theirs, not ours -- "Changes Needed" and "Ready to Merge" are moved by
+          # hand and must survive a reopen or a ready-for-review.
+          if [ "$OVERWRITE" != "any" ] && [[ ! "$CURRENT" =~ ^(${OVERWRITE})$ ]]; then
+            echo "Leaving ${CONTENT_ID} at '${CURRENT}' (would have set '${TARGET}')."
+            exit 0
+          fi
+          if [ "$CURRENT" = "$TARGET" ]; then
+            echo "Already '${TARGET}'."
+            exit 0
+          fi
+
+          gh api graphql -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" \
+            -f fieldId="$FIELD_ID" -f optionId="$OPTION_ID" -f query='
+            mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+              updateProjectV2ItemFieldValue(
+                input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: { singleSelectOptionId: $optionId }
+                }
+              ) { projectV2Item { id } }
+            }' --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.id' >/dev/null
+
+          echo "Set ${CONTENT_ID}: '${CURRENT}' -> '${TARGET}'."

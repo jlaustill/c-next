@@ -2,6 +2,12 @@
 
 This document describes the release process for C-Next.
 
+**A release is work, so it gets managed as work.** Open a release issue from the
+**Release** issue template, set its milestone to the version being released, and
+work it on the board like anything else. The template carries the operational
+checklist; this document carries the reasoning behind each step. See
+[`docs/WORKFLOW.md`](./docs/WORKFLOW.md).
+
 ## Pre-Release Checklist
 
 ### 1. Documentation Sync

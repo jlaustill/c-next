@@ -88,6 +88,11 @@ npm run typecheck
 
 **C-Next has transitioned from direct commits to main to a PR-based workflow.**
 
+**How work travels:** [`docs/WORKFLOW.md`](./docs/WORKFLOW.md) is the single
+source of truth for the project board — the six statuses, what moves a card
+automatically, and what you move by hand. This guide covers how to write the
+change; that one covers how the change travels.
+
 **Picking what to work on:** Run `/issue-check` in Claude Code to triage open issues — it detects in-flight work (open PRs, assigned issues, recent pushes) and recommends the highest-value issue using c-next's label taxonomy and conventions.
 
 ### When to Create a Branch
@@ -110,6 +115,10 @@ npm run typecheck
 5. **Create a Pull Request** with complete description
 6. **Address review feedback** until approved
 7. **Merge** into main with a merge commit (never squash)
+
+Assigning yourself the issue moves its card to **WIP**; opening the pull request
+puts a **PR Review** card on the board. Both happen automatically — see
+[`docs/WORKFLOW.md`](./docs/WORKFLOW.md).
 
 ---
 
@@ -603,11 +612,18 @@ git push
 
 ### Branch Protection
 
-The `main` branch is protected and requires:
+The `main` branch is governed by a repository ruleset that requires:
 
-- ✅ All CI checks must pass
-- ✅ At least 1 approving review
-- ✅ Branch must be up-to-date with main
+- ✅ Changes arrive by pull request — no direct pushes, no force-pushes, no deletion
+- ✅ Two status checks pass: **All Checks Passed** and **SonarCloud Code Analysis**
+- ✅ Merge commits only (squash and rebase are not permitted)
+
+**No approving review is required** (`required_approving_review_count: 0`), and
+branches are **not** required to be up to date with `main` before merging. That
+is deliberate: the repository has one maintainer, and GitHub does not allow
+approving your own pull request, so requiring an approval would block every
+merge. This is also why `Changes Needed` and `Ready to Merge` are manual moves
+on the board — see [`docs/WORKFLOW.md`](./docs/WORKFLOW.md).
 
 **Setup:** See `.github/BRANCH_PROTECTION_SETUP.md` for configuration guide.
 

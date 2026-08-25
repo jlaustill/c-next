@@ -242,6 +242,7 @@
     "pathlib",
     "pathnorm",
     "perror",
+    "pipefail",
     "platformio",
     "PORTA",
     "PORTB",

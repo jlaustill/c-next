@@ -340,6 +340,10 @@ If implementing a feature, all documents must be current and memory must be upda
 
 **All changes to main MUST go through Pull Requests. NEVER push directly to the main branch.**
 
+How work moves on the project board — the six statuses, what is automatic and
+what you move by hand — is documented once in
+[`docs/WORKFLOW.md`](docs/WORKFLOW.md). Do not restate it here.
+
 - **NEVER work directly on the main branch** - always create/checkout a feature branch before starting work
 - Check current branch with `git branch --show-current` before making changes
 - Create feature branches with descriptive names (e.g., `feature/add-loop-tests`, `fix/parser-bug`)

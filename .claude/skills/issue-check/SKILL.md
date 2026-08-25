@@ -109,6 +109,12 @@ PARTITION issues into:
 Score each AVAILABLE_ISSUE using a weighted heuristic tuned to c-next's label taxonomy.
 Higher score = recommend first.
 
+**Note:** there are no `status:` labels. Where an issue sits, and what is blocking
+it, live on the project board as its `Status` and `Blocked by` fields — see
+[`docs/WORKFLOW.md`](../../../docs/WORKFLOW.md). This rubric scores labels only,
+so it does not read the board and will happily recommend blocked work; check the
+board before starting.
+
 #### Scoring Rubric
 
 ```
@@ -126,14 +132,7 @@ FOR each available issue, compute SCORE:
     "documentation"                       → +5
     "priority: low"                       → +3
     "question"                            → +2
-    "wontfix" / "status: blocked"
-       / "test-blocked"                   → -100 (skip — see Anti-Patterns)
-
-  STATUS SIGNAL (0-15 points):
-    "status: ready"                       → +15   (explicitly triaged, ready to work)
-    "status: investigating"               → +5    (root cause in progress)
-    (no status label)                     → +0
-    ("status: blocked" already skipped above)
+    "wontfix" / "test-blocked"            → -100 (skip — see Anti-Patterns)
 
   MILESTONE PROXIMITY (0-20 points):
     Has milestone with due date:
@@ -201,7 +200,7 @@ These issues are excluded from recommendations to avoid conflicts.
 **Type**: <bug|validation-bug|enhancement|feature|docs|test-coverage>
 **Domain**: <parser|code-generator|types|scope|safety|MISRA|... if labeled>
 **Why this one**:
-  - <reason 1: e.g., "priority: high + status: ready">
+  - <reason 1: e.g., "priority: high + bug — correctness over convenience">
   - <reason 2: e.g., "bug label — correctness over convenience">
   - <reason 3: e.g., "8 comments indicate active discussion">
   - <reason 4: e.g., "Well-scoped description suggests medium effort">
@@ -382,7 +381,7 @@ IF no open issues exist:
 - **DO NOT** work around a c-next bug downstream — fix it upstream in the transpiler
 - **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit ADR approval
 - **DO NOT** forget to update the GitHub issue as work progresses
-- **DO NOT** pick issues labeled "status: blocked", "test-blocked", or "wontfix"
+- **DO NOT** pick issues labeled "test-blocked" or "wontfix"
 - **DO NOT** assume issue type from title alone — check labels and body content
 - **DO NOT** propose massive refactors as "quick fixes" — scope work to the issue
 - **DO NOT** squash-merge — always use a merge commit
