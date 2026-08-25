@@ -55,7 +55,7 @@ why it cannot leave. This replaced the old `status: blocked` label.
 | _any PR status_ → **Ready to Merge** | Review satisfied, checks green | **Manual**                     |
 | _any_ → **Done**                     | Issue or PR closed             | Built-in `Item closed`         |
 | _any_ → **Done**                     | PR merged                      | Built-in `Pull request merged` |
-| **Done** → **Backlog**               | Issue reopened                 | Built-in `Item reopened`       |
+| **Done** → **Backlog**               | Issue reopened                 | `project-sync.yml`             |
 
 Automation never drags a card backwards. `project-sync.yml` writes a status only
 when the current one is unset or is the status it expects to advance from, so a
@@ -142,16 +142,16 @@ Turn **on**:
 
 - `Item closed` → Done
 - `Pull request merged` → Done
-- `Item reopened` → Backlog
 
 Leave **off**, and here is why each one:
 
-| Workflow                       | Why off                                                                                                                                                              |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Pull request linked to issue` | Forces a linked issue to WIP. WIP here means _you picked it up_, which is self-assignment, not "a PR exists".                                                        |
-| `Code changes requested`       | Cannot fire — see "Why two transitions are manual".                                                                                                                  |
-| `Code review approved`         | Cannot fire — same reason.                                                                                                                                           |
-| `Auto-add to project`          | `project-sync.yml` owns adding, so both repositories behave identically regardless of GitHub plan (Free allows only one auto-add workflow, watching one repository). |
+| Workflow                       | Why off                                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Item reopened`                | Fires on issues _and_ pull requests. It would send a reopened PR to Backlog while `project-sync.yml` sends it to PR Review — a race with no defined winner. Reopening is owned by the workflow instead. |
+| `Pull request linked to issue` | Forces a linked issue to WIP. WIP here means _you picked it up_, which is self-assignment, not "a PR exists".                                                                                           |
+| `Code changes requested`       | Cannot fire — see "Why two transitions are manual".                                                                                                                                                     |
+| `Code review approved`         | Cannot fire — same reason.                                                                                                                                                                              |
+| `Auto-add to project`          | `project-sync.yml` owns adding, so both repositories behave identically regardless of GitHub plan (Free allows only one auto-add workflow, watching one repository).                                    |
 
 ### 5. The `PROJECT_TOKEN` secret
 

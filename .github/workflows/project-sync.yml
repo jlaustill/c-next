@@ -1,9 +1,14 @@
 # Keeps the C-Next project board in step with issue and PR events (Issue #1247).
 #
 # GitHub has no built-in workflow for "pull request opened", and none for
-# "issue assigned", so those two transitions live here. Everything the built-in
-# workflows *can* do -- item closed, pull request merged, item reopened -- is
-# left to them and is deliberately absent from this file. See docs/WORKFLOW.md.
+# "issue assigned", so those two transitions live here. What the built-ins do
+# well -- item closed, pull request merged -- is left to them and is absent from
+# this file.
+#
+# Reopening is handled here rather than by the built-in "Item reopened", which
+# fires on issues and pull requests alike: it would send a reopened PR to Backlog
+# while this workflow sends it to PR Review, and which one lands is a race. One
+# owner per transition. See docs/WORKFLOW.md.
 #
 # GITHUB_TOKEN is scoped to the repository and cannot write Projects v2, so this
 # uses PROJECT_TOKEN: a classic PAT with the `project` scope.
@@ -15,7 +20,7 @@ name: Project sync
 
 on:
   issues:
-    types: [opened, assigned]
+    types: [opened, assigned, reopened]
   pull_request:
     types: [opened, reopened, ready_for_review]
   workflow_call:
@@ -50,6 +55,7 @@ jobs:
 
           case "${{ github.event_name }}.${{ github.event.action }}" in
             issues.opened)                  TARGET="Backlog";    OVERWRITE="unset" ;;
+            issues.reopened)                TARGET="Backlog";    OVERWRITE="unset|Done" ;;
             issues.assigned)                TARGET="WIP";        OVERWRITE="unset|Backlog" ;;
             pull_request.opened)            TARGET="PR Review";  OVERWRITE="unset" ;;
             pull_request.reopened)          TARGET="PR Review";  OVERWRITE="any" ;;
