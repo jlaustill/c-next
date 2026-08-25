@@ -25,7 +25,16 @@ Phase 7 implemented typed symbol storage with backwards compatibility:
 - **SymbolTable**: Separate typed storage per language (`tSymbols`, `cSymbols`, `cppSymbols`)
 - **Auto-registration**: Struct fields automatically registered when adding struct symbols
 - **IHeaderSymbol**: Narrow interface for header generation (decoupled from full symbols)
-- **Cache bridge**: Cache still stores ISymbol format with conversion layer for typed symbols
+- **Cache bridge**: ~~Cache still stores ISymbol format with conversion layer for typed
+  symbols~~ — **removed by #1225.** The cache was the last consumer of the legacy flat model,
+  which survived here as `ISerializedSymbol` plus an adapter in each direction. Because those
+  adapters named fields one at a time, every fact the symbol model gained had to be re-taught to
+  them by hand, and because the flat shape could not express the discriminated union they cast —
+  which is what let the omissions compile. Four bugs came from it (#985 `preprocessFailed`,
+  #1104 the recovery gate, #1214 `isConst` on parameters, #1225 `pointerTypedefs`). The cache now
+  stores `TCSymbol`/`TCppSymbol` through a generic encoder that never enumerates fields, and
+  struct state as `TJsonSafe<IStructSymbolState>`, where a new field is a compile error until it
+  is persisted.
 - **Public API**: `TSymbolAdapter` and `CTSymbolAdapter` retained for `parseWithSymbols` and `parseCHeader`
 
 ## Context

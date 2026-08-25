@@ -42,8 +42,14 @@ Having to update something in 2 places instead of 1 is the WORST anti-pattern in
 - C-Next syntax MUST always follow the ADRs exactly
 - If there is any ambiguity about syntax behavior, **ASK the user for direction**
 - NEVER assume a syntax change is acceptable, even as a "beneficial side effect"
-- NEVER introduce behavioral changes that affect what C-Next code compiles or how it compiles
 - Test files marked `// test-error` define expected behavior — changing them to pass is a syntax change
+
+**What an ADR governs is the C-Next language spec** — the syntax, and the semantics the
+language promises. It does NOT gate the generated C/C++ or compile behavior generally: fixing
+codegen so it emits correct C, or turning a wrong guess into a diagnostic, is ordinary bug
+fixing and needs no ADR. A previous version of this list said behavioral changes affecting
+"what C-Next code compiles" always require an ADR; that read every codegen fix as a spec
+change and was wrong.
 
 **Example (Issue #872):** Setting `expectedType` for MISRA compliance accidentally enabled bare enum resolution in function arguments. This was reverted because it changed C-Next behavior without ADR approval. The fix added `suppressBareEnumResolution` to get MISRA compliance without changing syntax behavior.
 

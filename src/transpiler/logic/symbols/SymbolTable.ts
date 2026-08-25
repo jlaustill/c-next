@@ -13,6 +13,8 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "../../types/IConflict";
 import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
+import IStructSymbolState from "../../types/symbols/IStructSymbolState";
+import TJsonSafe from "../../../utils/types/TJsonSafe";
 import TSymbol from "../../types/symbols/TSymbol";
 import TCSymbol from "../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
@@ -26,35 +28,6 @@ import ScopeUtils from "../../../utils/ScopeUtils";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
-
-/**
- * Issue #958: Immutable struct symbol state managed via immer produce().
- * All mutations are additive-only — no unmark/delete operations.
- * Resolution (e.g., "is this type truly opaque?") happens at query time.
- */
-interface IStructSymbolState {
-  /** Typedef names declared with forward-declared structs (additive only) */
-  opaqueTypes: Set<string>;
-  /** ALL typedef struct types from C headers: name → sourceFile (additive only) */
-  typedefStructTypes: Map<string, string>;
-  /** Struct tag → typedef name (e.g., "_widget_t" → "widget_t") */
-  structTagAliases: Map<string, string>;
-  /** Typedef name → struct tag (reverse of structTagAliases) */
-  typedefToTag: Map<string, string>;
-  /** Struct tags that have full definitions (bodies) */
-  structTagsWithBodies: Set<string>;
-  /**
-   * Typedefs of a pointer to a struct, e.g. `typedef struct opaque_t* handle_t`.
-   *
-   * Issue #957 rightly keeps these out of opaqueTypes -- they are already
-   * pointers, not incomplete structs. But the fact was then discarded, and a
-   * generated header cannot tell one from a plain external struct: it emitted
-   * `typedef struct handle_t handle_t;`, declaring a different type than the
-   * real definition (#1164). Recorded here so both the forward-declaration
-   * filter and the include-propagation check can ask.
-   */
-  pointerTypedefs: Set<string>;
-}
 
 /** Create a fresh initial struct symbol state */
 function createInitialStructState(): IStructSymbolState {
@@ -1031,6 +1004,107 @@ class SymbolTable {
   // ========================================================================
 
   /**
+   * Issue #1225: capture the whole struct state for the cache.
+   *
+   * The return type is derived from `IStructSymbolState`, so a field added
+   * there makes this method fail to compile until it is written here. That
+   * replaces a hand-maintained capture list which silently omitted
+   * `pointerTypedefs` when #1164 added it — a warm-cache build then emitted a
+   * header that contradicted the real typedef.
+   *
+   * `typedefToTag` is captured even though `restoreStructTagAliases` derives
+   * it: covering every key removes "is this one derived?" as something anyone
+   * has to remember.
+   */
+  serializeStructState(): TJsonSafe<Required<IStructSymbolState>> {
+    return {
+      opaqueTypes: Array.from(this.structState.opaqueTypes),
+      typedefStructTypes: Array.from(this.structState.typedefStructTypes),
+      structTagAliases: Array.from(this.structState.structTagAliases),
+      typedefToTag: Array.from(this.structState.typedefToTag),
+      structTagsWithBodies: Array.from(this.structState.structTagsWithBodies),
+      pointerTypedefs: Array.from(this.structState.pointerTypedefs),
+    };
+  }
+
+  /**
+   * Issue #1225: the keys `serializeStructState` produces.
+   *
+   * Derived by running the serializer rather than listing them, so it cannot
+   * fall behind the interface. Two callers need it and must agree: the reader
+   * that validates an entry's struct state, and the cache-config fingerprint
+   * that invalidates entries written under an older shape.
+   */
+  static structStateKeys(): string[] {
+    return Object.keys(new SymbolTable().serializeStructState());
+  }
+
+  /**
+   * Issue #1225: restore struct state from the cache.
+   *
+   * Additive, like every other mutation of this state: a warm build merges
+   * cached facts into whatever the current run has already learned.
+   *
+   * Coverage is enforced twice. The `IStructSymbolState` annotation below
+   * fails to compile if a field is not revived, and `mergeStructState` walks
+   * the object rather than naming fields, so it cannot skip one.
+   */
+  restoreStructState(state: TJsonSafe<Required<IStructSymbolState>>): void {
+    const revived: Required<IStructSymbolState> = {
+      opaqueTypes: new Set(state.opaqueTypes),
+      typedefStructTypes: new Map(state.typedefStructTypes),
+      structTagAliases: new Map(state.structTagAliases),
+      typedefToTag: new Map(state.typedefToTag),
+      structTagsWithBodies: new Set(state.structTagsWithBodies),
+      pointerTypedefs: new Set(state.pointerTypedefs),
+    };
+
+    this.structState = produce(this.structState, (draft) => {
+      SymbolTable.mergeStructState(draft, revived);
+    });
+  }
+
+  /**
+   * Merge every field of `incoming` into `draft`.
+   *
+   * Deliberately generic: it reads the keys off the object instead of listing
+   * them, so a new field is merged without anyone editing this method. The
+   * throw is the counterpart — a field that is neither a Set nor a Map has no
+   * merge rule, and failing loudly beats the silent skip that produced #1225.
+   */
+  private static mergeStructState(
+    draft: IStructSymbolState,
+    incoming: IStructSymbolState,
+  ): void {
+    // Safe: `incoming` is built from an IStructSymbolState-annotated literal
+    // directly above, so its own keys are exactly the interface's keys.
+    const keys = Object.keys(incoming) as Array<keyof IStructSymbolState>;
+
+    for (const key of keys) {
+      const target = draft[key];
+      const source = incoming[key];
+
+      if (target instanceof Set && source instanceof Set) {
+        for (const member of source) {
+          target.add(member);
+        }
+      } else if (target instanceof Map && source instanceof Map) {
+        for (const [entryKey, entryValue] of source) {
+          target.set(entryKey, entryValue);
+        }
+      } else {
+        // TypeError, not Error: the condition above is an instanceof check
+        // (SonarCloud S7786), and what went wrong is genuinely a field whose
+        // type has no merge rule.
+        throw new TypeError(
+          `SymbolTable.mergeStructState: no merge rule for struct-state field "${key}". ` +
+            `Add one -- a silently skipped field is how #1225 happened.`,
+        );
+      }
+    }
+  }
+
+  /**
    * Issue #948: Mark a typedef as aliasing an opaque (forward-declared) struct type.
    * @param typeName Typedef name (e.g., "widget_t")
    */
@@ -1080,18 +1154,6 @@ class SymbolTable {
    */
   getAllOpaqueTypes(): string[] {
     return Array.from(this.structState.opaqueTypes);
-  }
-
-  /**
-   * Issue #948: Restore opaque types from cache.
-   * @param typeNames Array of opaque typedef names
-   */
-  restoreOpaqueTypes(typeNames: string[]): void {
-    this.structState = produce(this.structState, (draft) => {
-      for (const name of typeNames) {
-        draft.opaqueTypes.add(name);
-      }
-    });
   }
 
   /**
@@ -1157,36 +1219,11 @@ class SymbolTable {
   }
 
   /**
-   * Issue #958: Restore struct tags with bodies from cache.
-   * @param tags Array of struct tag names
-   */
-  restoreStructTagsWithBodies(tags: string[]): void {
-    this.structState = produce(this.structState, (draft) => {
-      for (const tag of tags) {
-        draft.structTagsWithBodies.add(tag);
-      }
-    });
-  }
-
-  /**
    * Issue #958: Get all struct tag aliases for cache serialization.
    * @returns Array of [structTag, typedefName] pairs
    */
   getAllStructTagAliases(): Array<[string, string]> {
     return Array.from(this.structState.structTagAliases.entries());
-  }
-
-  /**
-   * Issue #958: Restore struct tag aliases from cache.
-   * @param entries Array of [structTag, typedefName] pairs
-   */
-  restoreStructTagAliases(entries: Array<[string, string]>): void {
-    this.structState = produce(this.structState, (draft) => {
-      for (const [tag, typedefName] of entries) {
-        draft.structTagAliases.set(tag, typedefName);
-        draft.typedefToTag.set(typedefName, tag);
-      }
-    });
   }
 
   // ========================================================================
@@ -1238,18 +1275,6 @@ class SymbolTable {
    */
   getAllTypedefStructTypes(): Array<[string, string]> {
     return Array.from(this.structState.typedefStructTypes.entries());
-  }
-
-  /**
-   * Issue #958: Restore typedef struct types from cache.
-   * @param entries Array of [typeName, sourceFile] pairs
-   */
-  restoreTypedefStructTypes(entries: Array<[string, string]>): void {
-    this.structState = produce(this.structState, (draft) => {
-      for (const [name, sourceFile] of entries) {
-        draft.typedefStructTypes.set(name, sourceFile);
-      }
-    });
   }
 
   // ========================================================================

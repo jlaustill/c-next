@@ -197,6 +197,18 @@ jobs:
         # Covers tests/bugs/ regression fixtures — same command a developer runs.
         run: npm test
 
+      - name: Re-run warm — a warm .cnx cache must produce identical output
+        # Issue #1225: the run above populates .cnx/, so this one reads it. CI
+        # otherwise only ever sees a cold cache (fresh checkout, .cnx gitignored),
+        # which is why four cache-fidelity bugs reached main green.
+        #
+        # --transpile-only skips compile/execute: the divergence this guards is
+        # in generated text, so transpile + snapshot comparison catches it in
+        # full, at a fraction of the wall clock.
+        run: |
+          npm test -- --transpile-only
+          git diff --exit-code tests/
+
       - name: Upload generated test files
         uses: actions/upload-artifact@v4
         with:

@@ -14,11 +14,19 @@ run_check() {
     local name="$1"
     shift
 
-    if "$@" > /dev/null 2>&1; then
+    local output
+    if output=$("$@" 2>&1); then
         echo "✅ $name passed"
         return 0
     else
         echo "❌ $name failed"
+        # Show what actually failed. Discarding it turned a one-line diagnosis
+        # into a multi-session bisect more than once -- see #1225, where the
+        # entire signal a developer got was "❌ Tests failed".
+        # printf, not echo: husky runs this under sh, and dash's echo
+        # interprets backslash escapes -- which would mangle a Windows path or
+        # a literal \n in the very output whose point is being readable.
+        printf '%s\n' "$output" | tail -20 | sed 's/^/    /'
         all_passed=false
         return 1
     fi

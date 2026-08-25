@@ -15,26 +15,49 @@ import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
-// ADR-055 Phase 7: ISymbol removed - using ISerializedSymbol directly
+import JsonCodec from "./JsonCodec";
+import CachedSymbolReader from "./CachedSymbolReader";
 import IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
 import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
-import ISerializedSymbol from "../../transpiler/types/ISerializedSymbol";
+import IStructSymbolState from "../../transpiler/types/symbols/IStructSymbolState";
+import TJsonSafe from "../types/TJsonSafe";
+import TJsonValue from "../types/TJsonValue";
 import IFileSystem from "../../transpiler/types/IFileSystem";
 import NodeFileSystem from "../../transpiler/NodeFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
-import TAnySymbol from "../../transpiler/types/symbols/TAnySymbol";
-import TypeResolver from "../TypeResolver";
 import ESourceLanguage from "../types/ESourceLanguage";
 
 /** Default file system instance (singleton for performance) */
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 8; // Issue #985: Add preprocessFailed marker to cache
+// Bump when the ENTRY shape changes in a way no fingerprint can see -- the
+// TCSymbol/TCppSymbol unions are types, so their keys cannot be enumerated at
+// runtime. Struct-state drift no longer needs a bump: STRUCT_STATE_SHAPE below
+// is derived and invalidates on its own.
+const CACHE_VERSION = 9; // Issue #1225: real typed symbols; struct state captured whole
 
 const TRANSPILER_VERSION = packageJson.version;
+
+/**
+ * Fingerprint of the struct-state shape, derived from the serializer itself.
+ *
+ * Issue #1225 review: `TJsonSafe<Required<IStructSymbolState>>` forces the
+ * writer to persist a new field, but nothing forced already-written entries to
+ * be discarded -- that was CACHE_VERSION, bumped by hand, so the compile error
+ * told the next person to write the field without mentioning a second step.
+ * Deriving it closes the loop for exactly the change that needs it.
+ *
+ * Not sorted. `Object.keys` returns string keys in insertion order, which for
+ * an object literal is the order written in `serializeStructState` -- already
+ * deterministic. Sorting would need a comparator to satisfy SonarCloud S2871,
+ * and the obvious one, `localeCompare`, makes a cache fingerprint depend on the
+ * reader's locale. Reordering that literal changes the fingerprint and
+ * invalidates once, which costs a re-parse and nothing else.
+ */
+const STRUCT_STATE_SHAPE = SymbolTable.structStateKeys().join(",");
 
 /**
  * Manages symbol cache for faster incremental builds
@@ -103,8 +126,8 @@ class CacheManager {
       cacheDir: this.cacheSubdir,
     });
 
-    // Migrate old entries if needed
-    this.migrateOldEntries();
+    // Issue #1225: drop anything written in an older entry shape
+    this.discardOutdatedEntries();
   }
 
   /**
@@ -126,18 +149,17 @@ class CacheManager {
   }
 
   /**
-   * Get cached symbols and struct fields for a file
-   * ADR-055 Phase 7: Returns ISerializedSymbol[] directly (no ISymbol intermediate)
+   * Get cached symbols and struct fields for a file.
+   *
+   * Issue #1225: `symbols` comes back as the JSON the file holds; callers run
+   * it through `CachedSymbolReader` to validate and revive it.
    */
   getSymbols(filePath: string): {
-    symbols: ISerializedSymbol[];
+    symbols: TJsonValue[];
     structFields: Map<string, Map<string, IStructFieldInfo>>;
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
-    opaqueTypes: string[];
-    typedefStructTypes: Array<[string, string]>;
-    structTagAliases: Array<[string, string]>;
-    structTagsWithBodies: string[];
+    structState: TJsonSafe<Required<IStructSymbolState>>;
     preprocessFailed: boolean;
   } | null {
     if (!this.cache) return null;
@@ -148,7 +170,18 @@ class CacheManager {
     }
     const cachedEntry = entry as ICachedFileEntry;
 
-    // ADR-055 Phase 7: Return serialized symbols directly
+    // Issue #1225: entries come off disk, so the type annotation above is a
+    // claim rather than a guarantee. Struct state is validated the same way
+    // symbols are -- an entry whose struct state is the wrong shape, or is
+    // merely missing a key, reads as a miss rather than throwing out of the
+    // transpile or restoring a silently empty Set.
+    const structState = CachedSymbolReader.readStructState(
+      cachedEntry.structState,
+    );
+    if (structState === null) {
+      return null;
+    }
+
     const symbols = cachedEntry.symbols;
 
     // Convert struct fields from plain objects to Maps
@@ -178,29 +211,26 @@ class CacheManager {
       structFields,
       needsStructKeyword: cachedEntry.needsStructKeyword ?? [],
       enumBitWidth,
-      opaqueTypes: cachedEntry.opaqueTypes ?? [],
-      typedefStructTypes: cachedEntry.typedefStructTypes ?? [],
-      structTagAliases: cachedEntry.structTagAliases ?? [],
-      structTagsWithBodies: cachedEntry.structTagsWithBodies ?? [],
+      structState,
       preprocessFailed: cachedEntry.preprocessFailed ?? false,
     };
   }
 
   /**
-   * Store symbols and struct fields for a file
-   * ADR-055 Phase 7: Takes ISerializedSymbol[] directly
+   * Store symbols and struct fields for a file.
+   *
+   * Issue #1225: `structState` is required rather than optional. An entry that
+   * cannot carry the struct state is exactly the half-written entry this bug
+   * was made of, so the type refuses to express one.
    */
   setSymbols(
     filePath: string,
-    symbols: ISerializedSymbol[],
+    symbols: TJsonValue[],
     structFields: Map<string, Map<string, IStructFieldInfo>>,
-    options?: {
+    options: {
+      structState: TJsonSafe<Required<IStructSymbolState>>;
       needsStructKeyword?: string[];
       enumBitWidth?: Map<string, number>;
-      opaqueTypes?: string[];
-      typedefStructTypes?: Array<[string, string]>;
-      structTagAliases?: Array<[string, string]>;
-      structTagsWithBodies?: string[];
       preprocessFailed?: boolean;
     },
   ): void {
@@ -214,9 +244,6 @@ class CacheManager {
       // If we can't stat the file, don't cache it
       return;
     }
-
-    // ADR-055 Phase 7: symbols are already serialized
-    const serializedSymbols = symbols;
 
     // Convert struct fields from Maps to plain objects
     const serializedFields: Record<
@@ -232,7 +259,7 @@ class CacheManager {
 
     // Issue #208: Convert enum bit widths from Map to plain object
     const serializedEnumBitWidth: Record<string, number> = {};
-    if (options?.enumBitWidth) {
+    if (options.enumBitWidth) {
       for (const [enumName, width] of options.enumBitWidth) {
         serializedEnumBitWidth[enumName] = width;
       }
@@ -242,15 +269,12 @@ class CacheManager {
     const entry: ICachedFileEntry = {
       filePath,
       cacheKey,
-      symbols: serializedSymbols,
+      symbols,
       structFields: serializedFields,
-      needsStructKeyword: options?.needsStructKeyword,
+      needsStructKeyword: options.needsStructKeyword,
       enumBitWidth: serializedEnumBitWidth,
-      opaqueTypes: options?.opaqueTypes,
-      typedefStructTypes: options?.typedefStructTypes,
-      structTagAliases: options?.structTagAliases,
-      structTagsWithBodies: options?.structTagsWithBodies,
-      preprocessFailed: options?.preprocessFailed,
+      structState: options.structState,
+      preprocessFailed: options.preprocessFailed,
     };
 
     this.cache.setKey(filePath, entry);
@@ -275,9 +299,18 @@ class CacheManager {
     symbolTable: SymbolTable,
     preprocessFailed = false,
   ): void {
-    // ADR-055 Phase 7: Serialize TAnySymbol directly to ISerializedSymbol
-    const typedSymbols = symbolTable.getSymbolsByFile(filePath);
-    const symbols = typedSymbols.map((s) => this.serializeTypedSymbol(s));
+    // Issue #1225: encode the real typed symbols. JsonCodec copies every
+    // field rather than naming any, so a field added to the symbol model is
+    // cached without anyone editing this method -- which is what the old
+    // field-by-field serializer could not do.
+    //
+    // C-Next symbols are re-parsed from source every run and are never cached;
+    // filtering them states that invariant instead of relying on no .cnx file
+    // ever reaching this call site.
+    const symbols = symbolTable
+      .getSymbolsByFile(filePath)
+      .filter((symbol) => symbol.sourceLanguage !== ESourceLanguage.CNext)
+      .map((symbol) => JsonCodec.encode(symbol));
 
     // Extract struct fields for structs defined in this file
     const structFields = this.extractStructFieldsForFile(filePath, symbolTable);
@@ -294,24 +327,10 @@ class CacheManager {
       symbolTable,
     );
 
-    // Issue #948: Extract opaque types (forward-declared structs)
-    const opaqueTypes = symbolTable.getAllOpaqueTypes();
-
-    // Issue #958: Extract typedef struct types (all typedef'd structs)
-    const typedefStructTypes = symbolTable.getAllTypedefStructTypes();
-
-    // Issue #958: Extract struct tag aliases and body tracking
-    const structTagAliases = symbolTable.getAllStructTagAliases();
-    const structTagsWithBodies = symbolTable.getAllStructTagsWithBodies();
-
-    // Delegate to existing setSymbols method
     this.setSymbols(filePath, symbols, structFields, {
+      structState: symbolTable.serializeStructState(),
       needsStructKeyword,
       enumBitWidth,
-      opaqueTypes,
-      typedefStructTypes,
-      structTagAliases,
-      structTagsWithBodies,
       preprocessFailed,
     });
   }
@@ -446,6 +465,7 @@ class CacheManager {
       version: CACHE_VERSION,
       created: Date.now(),
       transpilerVersion: TRANSPILER_VERSION,
+      structStateShape: STRUCT_STATE_SHAPE,
     };
 
     this.saveConfig(config);
@@ -460,6 +480,7 @@ class CacheManager {
       version: CACHE_VERSION,
       created: Date.now(),
       transpilerVersion: TRANSPILER_VERSION,
+      structStateShape: STRUCT_STATE_SHAPE,
     };
 
     this.fs.writeFile(this.configPath, JSON.stringify(configToSave, null, 2));
@@ -479,136 +500,37 @@ class CacheManager {
       return true;
     }
 
+    // Issue #1225: struct state gained or lost a field, so every stored entry
+    // describes a shape this build does not have.
+    if (config.structStateShape !== STRUCT_STATE_SHAPE) {
+      return true;
+    }
+
     return false;
   }
 
   /**
-   * Migrate old cache entries from mtime-based to cacheKey-based format
+   * Drop cache entries written in an older entry shape.
+   *
+   * Issue #1225: this used to rebuild a pre-`cacheKey` entry from whatever
+   * fields it happened to have, which produced an entry missing struct state
+   * and typed symbols -- a half-written cache of exactly the kind this issue
+   * is about. Re-parsing the file costs milliseconds; trusting a partial entry
+   * costs a wrong header.
    */
-  private migrateOldEntries(): void {
+  private discardOutdatedEntries(): void {
     if (!this.cache) return;
 
     const allEntries = this.cache.all();
     for (const [key, value] of Object.entries(allEntries)) {
       const data = value as Record<string, unknown>;
 
-      // Already has cacheKey - no migration needed
       if (typeof data.cacheKey === "string") {
         continue;
       }
 
-      // Migration: convert old mtime to cacheKey format
-      if (typeof data.mtime === "number") {
-        const migratedEntry: ICachedFileEntry = {
-          filePath: data.filePath as string,
-          cacheKey: `mtime:${data.mtime}`,
-          symbols: data.symbols as ISerializedSymbol[],
-          structFields: data.structFields as Record<
-            string,
-            Record<string, IStructFieldInfo>
-          >,
-          needsStructKeyword: data.needsStructKeyword as string[] | undefined,
-          enumBitWidth: data.enumBitWidth as Record<string, number> | undefined,
-        };
-        this.cache.setKey(key, migratedEntry);
-        this.dirty = true;
-      } else {
-        // Invalid entry - remove it
-        this.cache.removeKey(key);
-        this.dirty = true;
-      }
-    }
-  }
-
-  /**
-   * ADR-055 Phase 7: Serialize TAnySymbol directly to ISerializedSymbol.
-   * No intermediate ISymbol format.
-   */
-  private serializeTypedSymbol(symbol: TAnySymbol): ISerializedSymbol {
-    const serialized: ISerializedSymbol = {
-      name: symbol.name,
-      kind: symbol.kind,
-      sourceFile: symbol.sourceFile,
-      sourceLine: symbol.sourceLine,
-      sourceLanguage: symbol.sourceLanguage,
-      isExported: symbol.isExported,
-    };
-
-    this.addTypeFieldToSerialized(symbol, serialized);
-    this.addVariableFieldsToSerialized(symbol, serialized);
-    this.addFunctionFieldsToSerialized(symbol, serialized);
-
-    return serialized;
-  }
-
-  /**
-   * Add type field to ISerializedSymbol, converting TType to string for C-Next symbols.
-   */
-  private addTypeFieldToSerialized(
-    symbol: TAnySymbol,
-    serialized: ISerializedSymbol,
-  ): void {
-    if (!("type" in symbol) || symbol.type === undefined) {
-      return;
-    }
-    const isCNextWithTType =
-      symbol.sourceLanguage === ESourceLanguage.CNext &&
-      typeof symbol.type !== "string";
-    serialized.type = isCNextWithTType
-      ? TypeResolver.getTypeName(symbol.type)
-      : (symbol.type as string);
-  }
-
-  /**
-   * Add variable-specific fields to ISerializedSymbol.
-   */
-  private addVariableFieldsToSerialized(
-    symbol: TAnySymbol,
-    serialized: ISerializedSymbol,
-  ): void {
-    if (symbol.kind !== "variable") {
-      return;
-    }
-    if ("isConst" in symbol && symbol.isConst !== undefined) {
-      serialized.isConst = symbol.isConst;
-    }
-    if ("isAtomic" in symbol && symbol.isAtomic !== undefined) {
-      serialized.isAtomic = symbol.isAtomic;
-    }
-    if ("isArray" in symbol && symbol.isArray !== undefined) {
-      serialized.isArray = symbol.isArray;
-    }
-    if ("arrayDimensions" in symbol && symbol.arrayDimensions) {
-      serialized.arrayDimensions = symbol.arrayDimensions.map(String);
-    }
-    if ("initialValue" in symbol && symbol.initialValue !== undefined) {
-      serialized.initialValue = symbol.initialValue;
-    }
-  }
-
-  /**
-   * Add function-specific fields to ISerializedSymbol.
-   */
-  private addFunctionFieldsToSerialized(
-    symbol: TAnySymbol,
-    serialized: ISerializedSymbol,
-  ): void {
-    if (symbol.kind !== "function") {
-      return;
-    }
-    if ("returnType" in symbol && symbol.returnType !== undefined) {
-      serialized.type = TypeResolver.getTypeName(symbol.returnType);
-    }
-    if ("parameters" in symbol && symbol.parameters) {
-      serialized.parameters = symbol.parameters.map((p) => ({
-        name: p.name,
-        type:
-          typeof p.type === "string"
-            ? p.type
-            : TypeResolver.getTypeName(p.type),
-        isConst: p.isConst,
-        isArray: p.isArray,
-      }));
+      this.cache.removeKey(key);
+      this.dirty = true;
     }
   }
 }

@@ -16,6 +16,18 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 // Test Helpers
 // ============================================================================
 
+/** Minimal IHeaderTypeInput carrying just a symbol table. */
+function typeInputWith(symbolTable: SymbolTable) {
+  return {
+    symbolTable,
+    enumMembers: new Map(),
+    structFields: new Map(),
+    structFieldDimensions: new Map(),
+    bitmapBackingType: new Map(),
+    bitmapFields: new Map(),
+  };
+}
+
 function createFunctionSymbol(
   name: string,
   returnType: string,
@@ -513,6 +525,78 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(symbols, "test.h");
 
       expect(result).toContain("typedef struct ExternalConfig ExternalConfig;");
+    });
+
+    it("reports E0505 rather than guessing at a pointer typedef (#1225/#1238)", () => {
+      // `typedef struct opaque_t* handle_t` cannot be forward-declared:
+      // `typedef struct handle_t handle_t;` is a different, incomplete type,
+      // and an object of it cannot be declared at all. Silently omitting the
+      // declaration is no safer -- it leaves the type undeclared.
+      const symbolTable = new SymbolTable();
+      symbolTable.markPointerTypedef("handle_t");
+
+      const generator = new CHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("useHandle", "void", [
+          createParam("handle", "handle_t"),
+        ]),
+      ];
+
+      expect(() =>
+        generator.generate(symbols, "test.h", {}, typeInputWith(symbolTable)),
+      ).toThrow(/E0505.*handle_t/s);
+    });
+
+    it("names the declaration that pulled the type in, and its line (#1225 review)", () => {
+      // The error is reported against a generated file the user did not write,
+      // so without this the message is a puzzle: which declaration do I look at?
+      const symbolTable = new SymbolTable();
+      symbolTable.markPointerTypedef("handle_t");
+
+      const generator = new CHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        {
+          ...createFunctionSymbol("useHandle", "void", [
+            createParam("handle", "handle_t"),
+          ]),
+          sourceFile: "src/driver.cnx",
+          sourceLine: 31,
+        },
+      ];
+
+      let message = "";
+      try {
+        generator.generate(symbols, "test.h", {}, typeInputWith(symbolTable));
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toContain("useHandle");
+      expect(message).toContain("Line 31");
+    });
+
+    it("forward-declares a pointer typedef's defining header instead, when it is in scope", () => {
+      // cHeadersIncluded means Transpiler._needsDefiningHeader propagated the
+      // header that really declares handle_t, so nothing needs declaring here.
+      const symbolTable = new SymbolTable();
+      symbolTable.markPointerTypedef("handle_t");
+
+      const generator = new CHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("useHandle", "void", [
+          createParam("handle", "handle_t"),
+        ]),
+      ];
+
+      const result = generator.generate(
+        symbols,
+        "test.h",
+        { cHeadersIncluded: true, userIncludes: ['#include "handles.h"'] },
+        typeInputWith(symbolTable),
+      );
+
+      expect(result).toContain('#include "handles.h"');
+      expect(result).not.toContain("typedef struct handle_t handle_t;");
     });
 
     it("does not forward-declare locally defined structs", () => {
