@@ -1574,18 +1574,26 @@ class Transpiler {
       } else if (symbol.sourceLanguage === ESourceLanguage.C) {
         // Convert ISymbol to TCSymbol (simplified conversion)
         CodeGenState.symbolTable.addCSymbol({
+          // "type", not "typedef": ICTypedefSymbol.kind is "type", and the
+          // previous `as TCSymbol` cast asserted a kind the union does not
+          // have. That cast is also what let the missing isConst below compile.
           kind: symbol.kind as
             | "struct"
             | "enum"
             | "function"
             | "variable"
             | "enum_member"
-            | "typedef",
+            | "type",
           name: symbol.name,
           sourceFile: symbol.sourceFile,
           sourceLine: symbol.sourceLine,
           sourceLanguage: ESourceLanguage.C,
-          type: symbol.type,
+          // ISerializedSymbol.type is optional; TCSymbol.type is not.
+          // The removed cast let `undefined` through under a `string`
+          // annotation, so a consumer reading .length would have thrown.
+          // Empty string is falsy like undefined, so truthiness checks
+          // are unchanged.
+          type: symbol.type ?? "",
           isExported: symbol.isExported ?? true,
           isDeclaration: symbol.isDeclaration,
           // isConst must survive the round trip: DeclaratorUtils records it and
@@ -1601,6 +1609,11 @@ class Transpiler {
           arrayDimensions: symbol.arrayDimensions?.map(String),
           members: undefined,
           isUnion: false,
+          // The cast is unavoidable here and is NOT a license to omit fields:
+          // TCSymbol is a discriminated union whose variants need different
+          // required fields, while `kind` only becomes known at runtime from
+          // the cache. Restoring each kind into its own shape is tracked
+          // separately -- see the enum/enum_member gap noted in that issue.
         } as import("./types/symbols/c/TCSymbol").default);
       } else if (symbol.sourceLanguage === ESourceLanguage.Cpp) {
         // Convert ISymbol to TCppSymbol (simplified conversion)
@@ -1613,21 +1626,31 @@ class Transpiler {
             | "function"
             | "variable"
             | "enum_member"
-            | "type_alias",
+            // "type", not "type_alias": TSymbolKindCpp has no
+            // "type_alias". The removed `as TCppSymbol` cast was
+            // asserting a kind the union does not contain.
+            | "type",
           name: symbol.name,
           sourceFile: symbol.sourceFile,
           sourceLine: symbol.sourceLine,
           sourceLanguage: ESourceLanguage.Cpp,
-          type: symbol.type,
+          // Same as the C branch above.
+          type: symbol.type ?? "",
           isExported: symbol.isExported ?? true,
           isDeclaration: symbol.isDeclaration,
           parent: symbol.parent,
+          // Issue #1178: same round trip as the C branch above.
+          // ICppParameterInfo.isConst is required for the same reason and was
+          // dropped the same way, so cold and warm cache emitted different C++
+          // for one header (`const Sample&` vs `Sample&`).
           parameters: symbol.parameters?.map((p) => ({
             name: p.name,
             type: p.type,
+            isConst: p.isConst,
             isArray: p.isArray,
           })),
           arrayDimensions: symbol.arrayDimensions?.map(String),
+          // Same discriminated-union constraint as the C branch above.
         } as import("./types/symbols/cpp/TCppSymbol").default);
       }
     }

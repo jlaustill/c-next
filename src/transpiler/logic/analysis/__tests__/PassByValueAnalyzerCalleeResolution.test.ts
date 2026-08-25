@@ -201,8 +201,55 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
       ]),
     );
 
-    // The pointer is real but sits past the bound, so it is not found and the
-    // parameter is treated as a value rather than reported as indirection.
-    expect(callerParameterIsModified("take_deep_alias")).toBe(false);
+    // Out of hops means the chain is known and unfinished, not unknown, so the
+    // bound fails safe rather than asserting "by value".
+    expect(callerParameterIsModified("take_deep_alias")).toBe(true);
+  });
+
+  it("folds across overloads instead of answering from the first", () => {
+    // Declaration order must not decide the answer. The const overload is
+    // declared first; the mutating one still wins.
+    CodeGenState.symbolTable.addCSymbol(
+      declareCFunction("store", [
+        { name: "s", type: "Sample*", isConst: true, isArray: false },
+      ]),
+    );
+    CodeGenState.symbolTable.addCSymbol(
+      declareCFunction("store", [
+        { name: "s", type: "Sample*", isConst: false, isArray: false },
+      ]),
+    );
+
+    expect(callerParameterIsModified("store")).toBe(true);
+  });
+
+  it("gives the same answer when the overloads are declared in the other order", () => {
+    CodeGenState.symbolTable.addCSymbol(
+      declareCFunction("store", [
+        { name: "s", type: "Sample*", isConst: false, isArray: false },
+      ]),
+    );
+    CodeGenState.symbolTable.addCSymbol(
+      declareCFunction("store", [
+        { name: "s", type: "Sample*", isConst: true, isArray: false },
+      ]),
+    );
+
+    expect(callerParameterIsModified("store")).toBe(true);
+  });
+
+  it("keeps auto-const when every overload takes the parameter by value", () => {
+    CodeGenState.symbolTable.addCSymbol(
+      declareCFunction("emit", [
+        { name: "v", type: "uint8_t", isConst: false, isArray: false },
+      ]),
+    );
+    CodeGenState.symbolTable.addCSymbol(
+      declareCFunction("emit", [
+        { name: "v", type: "uint16_t", isConst: false, isArray: false },
+      ]),
+    );
+
+    expect(callerParameterIsModified("emit")).toBe(false);
   });
 });

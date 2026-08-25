@@ -111,6 +111,13 @@ class PassByValueAnalyzer {
     paramIndex: number,
   ): boolean {
     const symbols = CodeGenState.symbolTable?.getOverloadsByCName(callee) ?? [];
+    let sawCandidate = false;
+
+    // Fold across every overload rather than answering from the first one.
+    // Returning on the first match made the answer depend on declaration order
+    // in the header: `store(const Sample&)` declared before
+    // `store(Sample&, bool)` claimed the call could not mutate, for a call that
+    // can only resolve to the second. Any candidate that may mutate wins.
     for (const symbol of symbols) {
       if (symbol.kind !== "function") continue;
       const parameters = (
@@ -124,14 +131,21 @@ class PassByValueAnalyzer {
       ).parameters;
       const parameter = parameters?.[paramIndex];
       if (!parameter) continue;
-      return PassByValueAnalyzer.parameterCarriesIndirection(
-        parameter.type ?? "",
-        parameter.isArray ?? false,
-        parameter.isConst ?? false,
-      );
+      sawCandidate = true;
+      if (
+        PassByValueAnalyzer.parameterCarriesIndirection(
+          parameter.type ?? "",
+          parameter.isArray ?? false,
+          parameter.isConst ?? false,
+        )
+      ) {
+        return true;
+      }
     }
-    // Nothing declares this callee -- withhold auto-const rather than assume it.
-    return true;
+
+    // Nothing declares this callee at this position -- withhold auto-const
+    // rather than assume purity. Explicit rather than a fallthrough.
+    return !sawCandidate;
   }
 
   /**
@@ -170,10 +184,16 @@ class PassByValueAnalyzer {
       if (!bare || seen.has(bare)) return false;
       seen.add(bare);
       const alias = PassByValueAnalyzer.resolveTypedefTarget(bare);
+      // Deliberate exception: an alias this build never parsed (uint8_t,
+      // size_t) is treated as a plain value. Calling it indirection would
+      // reintroduce exactly the #957/#995 false positives measured for #1178.
       if (alias === null) return false;
       current = alias;
     }
-    return false;
+    // Out of hops means the chain is known and unfinished, not unknown --
+    // answering "by value" here would be the same collapse of "I cannot tell"
+    // into "it is pure" that #1178 removes one level up.
+    return true;
   }
 
   /**
@@ -599,17 +619,28 @@ class PassByValueAnalyzer {
       primary,
     );
 
-    for (const op of postfixOps) {
+    for (const [opIndex, op] of postfixOps.entries()) {
       if (op.IDENTIFIER()) {
         memberNames.push(op.IDENTIFIER()!.getText());
-      } else if (op.LPAREN() && memberNames.length >= 1) {
-        const calleeName = QualifiedCName.join(...memberNames);
-        PassByValueAnalyzer.recordCallsFromArgList(
-          funcName,
-          paramSet,
-          calleeName,
-          op,
-        );
+      } else if (op.LPAREN()) {
+        // Issue #1210: a bare call is `IDENTIFIER (args)`, so its parenthesis
+        // is the *first* postfix op. handleSimpleFunctionCall has already
+        // recorded that call, resolved through ADR-057 scope rules; recording
+        // it again here under the raw bare name produced a second entry that
+        // functionParamLists -- keyed by transpiled C name -- can never match.
+        //
+        // `global.f(x)` and `Scope.f(x)` are unaffected: there an identifier op
+        // precedes the parenthesis, so opIndex > 0 and the chain is genuinely
+        // qualified.
+        if (opIndex > 0 && memberNames.length >= 1) {
+          const calleeName = QualifiedCName.join(...memberNames);
+          PassByValueAnalyzer.recordCallsFromArgList(
+            funcName,
+            paramSet,
+            calleeName,
+            op,
+          );
+        }
         memberNames.length = 0; // Reset for potential chained calls
       } else if (op.expression().length > 0) {
         memberNames.length = 0; // Array subscript breaks scope chain
