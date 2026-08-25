@@ -1,0 +1,11 @@
+// Helper (not a test): declarations the cross-file fixtures resolve against.
+// Issue #1220 - analyzers built local parse-tree caches and never consulted the
+// symbol table, so every one of these was invisible across an include boundary.
+
+const u32 ZERO <- 0;
+const u32 NONZERO <- 4;
+f32 floatValue <- 5.0;
+i32 signedValue <- -8;
+i32 otherSignedValue <- -2;
+u32 importedUnsignedValue <- 8;
+bool flagValue <- true;

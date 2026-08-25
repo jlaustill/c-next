@@ -1,0 +1,20 @@
+// test-error
+// E0805: shift on a signed operand -- matrix cell: imported transitive (2 hops)
+
+#include "relay.cnx"
+
+i32 globalShifted <- signedValue >> 1;
+
+i32 topLevelFunction() {
+    i32 shifted <- signedValue >> 1;
+    return shifted;
+}
+
+scope Widget {
+    i32 memberShifted <- signedValue >> 1;
+
+    i32 methodValue() {
+        i32 shifted <- signedValue >> 1;
+        return shifted;
+    }
+}

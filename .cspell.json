@@ -387,6 +387,7 @@
     "Noreturn",
     "Warray",
     "Wbool",
+    "Wconversion",
     "Wdouble",
     "Werror",
     "Wextra",

@@ -69,8 +69,6 @@ import AssignmentHandlerRegistry from "./assignment/index";
 import AssignmentClassifier from "./assignment/AssignmentClassifier";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 // IHandlerDeps removed - handlers now use CodeGenState.generator directly
-// Issue #461: LiteralUtils for parsing const values from symbol table
-import LiteralUtils from "../../../utils/LiteralUtils";
 // Issue #644: Extracted string length counter for strlen caching optimization
 import StringLengthCounter from "./analysis/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
@@ -2389,23 +2387,12 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.setScopeMembers(scopeName, new Set(members));
     }
 
-    // Issue #461: Initialize constValues from symbol table
-    // Only C-Next TSymbols have initialValue property
-    CodeGenState.constValues = new Map();
-    if (CodeGenState.symbolTable) {
-      for (const symbol of CodeGenState.symbolTable.getAllTSymbols()) {
-        if (
-          symbol.kind === "variable" &&
-          symbol.isConst &&
-          symbol.initialValue !== undefined
-        ) {
-          const value = LiteralUtils.parseIntegerLiteral(symbol.initialValue);
-          if (value !== undefined) {
-            CodeGenState.constValues.set(symbol.name, value);
-          }
-        }
-      }
-    }
+    // Issue #461: Initialize constValues from symbol table.
+    // Issue #1220: derived by SymbolTable.getConstValues() rather than walked
+    // again here -- this loop and SymbolTable's were two implementations of one
+    // rule, and only one of them was reachable from the analyzers.
+    CodeGenState.constValues =
+      CodeGenState.symbolTable?.getConstValues() ?? new Map();
   }
 
   /**

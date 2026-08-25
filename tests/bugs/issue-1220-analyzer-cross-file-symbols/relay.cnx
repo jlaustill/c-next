@@ -1,0 +1,11 @@
+// Helper (not a test): puts declarations.cnx two hops from a consumer, covering
+// the "imported transitive" column.
+//
+// It carries a declaration of its own deliberately. A .cnx that ONLY re-exports
+// has no public interface, so no relay.h is written while consumers still emit
+// #include "relay.h" -- issue #1234. Declaring something here keeps these
+// fixtures off that bug.
+
+#include "declarations.cnx"
+
+const u32 RELAY_MARKER <- 7;

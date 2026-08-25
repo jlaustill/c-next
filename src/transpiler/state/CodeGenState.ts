@@ -37,6 +37,7 @@ import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
+import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
 
 /**
@@ -726,6 +727,60 @@ export default class CodeGenState {
   }
 
   /**
+   * The C-Next variable symbol a bare name resolves to in the SymbolTable, or
+   * undefined when the name is not a typed C-Next variable.
+   *
+   * Extracted so "which symbol is this name?" is decided once: both the
+   * TTypeInfo lookup below and the type-text lookup the analyzers use
+   * (getCNextVariableTypeName) go through it, instead of each repeating the
+   * kind/type narrowing and drifting apart.
+   */
+  private static getCNextVariableSymbol(
+    name: string,
+  ): IVariableSymbol | undefined {
+    const symbol = this.symbolTable.getTSymbol(name);
+    return symbol?.kind === "variable" && symbol.type ? symbol : undefined;
+  }
+
+  /**
+   * Declared type text of a C-Next variable as the SymbolTable records it --
+   * the same spelling a declaration in THIS file puts in a scope frame
+   * ("u32", "f32", "u8[4]").
+   *
+   * Issue #1220: the essential-type analyzers resolve a name against the
+   * lexical scope frames first and fall back to here, so a declaration that
+   * arrives through an #include is as visible to them as a local one. Without
+   * it, E0800/E0802/E0804/E0805/E0807/E0810 all passed silently the moment
+   * their operand crossed a file boundary.
+   *
+   * Deliberately does NOT consult the per-file typeRegistry. That map is
+   * cleared by CodeGenerator.generate(), which runs AFTER the analyzers, so
+   * during analysis it still holds the PREVIOUS file's variables and would
+   * answer for a name the current file never imported.
+   */
+  static getCNextVariableTypeName(name: string): string | null {
+    const symbol = this.getCNextVariableSymbol(name);
+    return symbol ? TypeResolver.getTypeName(symbol.type) : null;
+  }
+
+  /**
+   * Integer value of a const C-Next variable as the SymbolTable records it,
+   * wherever it was declared.
+   *
+   * Issue #1220: the analyzer-facing companion to getCNextVariableTypeName,
+   * and deliberately symbol-table-ONLY. The obvious alternative -- reading
+   * CodeGenState.constValues first -- looks like it works, because that map is
+   * cleared by CodeGenerator.generate() and so still holds the consts of the
+   * file generated just before this one. Dependencies happen to be generated
+   * before their dependents today, which makes the stale map agree with the
+   * symbol table by coincidence rather than by rule. Asking the symbol table
+   * makes the answer independent of file order.
+   */
+  static getCNextConstValue(name: string): number | undefined {
+    return this.symbolTable.getConstValue(name);
+  }
+
+  /**
    * Get type info for a variable.
    * Checks local typeRegistry first, then falls back to SymbolTable
    * for cross-file variables from included .cnx files.
@@ -742,8 +797,8 @@ export default class CodeGenState {
     }
 
     // ADR-055 Phase 7: Fall back to SymbolTable for cross-file C-Next variables only.
-    const symbol = this.symbolTable.getTSymbol(name);
-    if (symbol?.kind === "variable" && symbol.type) {
+    const symbol = this.getCNextVariableSymbol(name);
+    if (symbol) {
       return this.convertTSymbolToTypeInfo(symbol);
     }
 
@@ -841,9 +896,7 @@ export default class CodeGenState {
     return type.slice(0, end).trim();
   }
 
-  private static convertTSymbolToTypeInfo(
-    symbol: import("../types/symbols/IVariableSymbol").default,
-  ): TTypeInfo {
+  private static convertTSymbolToTypeInfo(symbol: IVariableSymbol): TTypeInfo {
     const typeName = TypeResolver.getTypeName(symbol.type);
 
     // Parse string capacity using regex

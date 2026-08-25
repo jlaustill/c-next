@@ -1,0 +1,4 @@
+6:23 error[E0804]: Modulo operator not supported for floating-point types
+9:21 error[E0804]: Modulo operator not supported for floating-point types
+14:27 error[E0804]: Modulo operator not supported for floating-point types
+17:25 error[E0804]: Modulo operator not supported for floating-point types

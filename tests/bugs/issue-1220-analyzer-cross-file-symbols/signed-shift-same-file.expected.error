@@ -1,0 +1,4 @@
+6:21 error[E0805]: Shift operator '>>' not allowed on signed integer types
+9:19 error[E0805]: Shift operator '>>' not allowed on signed integer types
+14:25 error[E0805]: Shift operator '>>' not allowed on signed integer types
+17:23 error[E0805]: Shift operator '>>' not allowed on signed integer types
