@@ -1,0 +1,14 @@
+// test-c-only
+// #847 / ADR-070 Case 1: calls the TRANSPILER emits for string lowering must be
+// explicitly (void)-cast to satisfy MISRA C:2012 Rule 17.7. The author never
+// wrote these calls, so the cast is codegen -- not a language change (Case 2).
+string<16> greeting;
+string<16>[2] names;
+
+void assignSimple() {
+    greeting <- "hello";
+}
+
+void assignArrayElement() {
+    names[0] <- "world";
+}

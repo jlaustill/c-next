@@ -175,46 +175,46 @@ scope ModifierCombos {
 void main() {
    
 // Test reading const clamp values
-    ModifierCombos.getMaxBrightness();
-    ModifierCombos.getMaxSensor();
-    ModifierCombos.getMinTemp();
+    (void) ModifierCombos.getMaxBrightness();
+    (void) ModifierCombos.getMaxSensor();
+    (void) ModifierCombos.getMinTemp();
 
    
 // Test reading const wrap values
-    ModifierCombos.getCounterStart();
-    ModifierCombos.getTickStart();
+    (void) ModifierCombos.getCounterStart();
+    (void) ModifierCombos.getTickStart();
 
    
 // Test reading public clamp values
-    ModifierCombos.getPublicClampByte();
-    ModifierCombos.getPublicClampWord();
-    ModifierCombos.getPublicClampSigned();
+    (void) ModifierCombos.getPublicClampByte();
+    (void) ModifierCombos.getPublicClampWord();
+    (void) ModifierCombos.getPublicClampSigned();
 
    
 // Test reading private clamp values via public methods
-    ModifierCombos.getPrivateClampByte();
-    ModifierCombos.getPrivateClampWord();
-    ModifierCombos.getPrivateClampSigned();
+    (void) ModifierCombos.getPrivateClampByte();
+    (void) ModifierCombos.getPrivateClampWord();
+    (void) ModifierCombos.getPrivateClampSigned();
 
    
 // Test reading public wrap values
-    ModifierCombos.getPublicWrapByte();
-    ModifierCombos.getPublicWrapWord();
+    (void) ModifierCombos.getPublicWrapByte();
+    (void) ModifierCombos.getPublicWrapWord();
 
    
 // Test reading private wrap values via public methods
-    ModifierCombos.getPrivateWrapByte();
-    ModifierCombos.getPrivateWrapWord();
+    (void) ModifierCombos.getPrivateWrapByte();
+    (void) ModifierCombos.getPrivateWrapWord();
 
    
 // Test reading public const values
-    ModifierCombos.getPublicConst();
-    ModifierCombos.getPublicFlag();
+    (void) ModifierCombos.getPublicConst();
+    (void) ModifierCombos.getPublicFlag();
 
    
 // Test reading private const values via public methods
-    ModifierCombos.getPrivateConst();
-    ModifierCombos.getPrivateFlag();
+    (void) ModifierCombos.getPrivateConst();
+    (void) ModifierCombos.getPrivateFlag();
 
    
 // Test modifying public clamp variables (overflow clamping)

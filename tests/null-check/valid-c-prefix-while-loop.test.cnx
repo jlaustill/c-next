@@ -12,7 +12,7 @@ void testWhileLoop() {
 
     // While loop condition provides NULL check
     while (c_pos != NULL) {
-        printf("Found at: %s\n", c_pos);  // OK - checked by while condition
+        (void) printf("Found at: %s\n", c_pos);  // OK - checked by while condition
         c_pos <- strstr(c_pos + 1, "hello");  // Reassignment allowed
     }
 }

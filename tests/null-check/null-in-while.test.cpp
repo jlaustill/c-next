@@ -18,7 +18,7 @@ char buffer[65] = "";
 void readAllLines(void) {
     char* c_result = fgets(buffer, 65, stdin);
     while (c_result != nullptr) {
-        printf("Line: %s", buffer);
+        static_cast<void>(printf("Line: %s", buffer));
         c_result = fgets(buffer, 65, stdin);
     }
 }
@@ -27,7 +27,7 @@ void readAllLines(void) {
 void readUntilEmpty(void) {
     char* c_result = fgets(buffer, 65, stdin);
     while (c_result == nullptr) {
-        printf("Got NULL\n");
+        static_cast<void>(printf("Got NULL\n"));
         c_result = fgets(buffer, 65, stdin);
     }
 }

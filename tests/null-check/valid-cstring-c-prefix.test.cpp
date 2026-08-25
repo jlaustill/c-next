@@ -17,6 +17,6 @@ char buffer[65] = "";
 void test(void) {
     char* c_result = fgets(buffer, 65, stdin);
     if (c_result != nullptr) {
-        printf("Got: %s", buffer);
+        static_cast<void>(printf("Got: %s", buffer));
     }
 }

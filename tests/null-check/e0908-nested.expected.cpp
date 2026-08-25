@@ -18,8 +18,8 @@ void testNested(void) {
     if (c_file != nullptr) {
         char* c_line = fgets(buffer, 257, c_file);
         if (c_line != nullptr) {
-            printf("%s", c_line);
+            static_cast<void>(printf("%s", c_line));
         }
-        fclose(c_file);
+        static_cast<void>(fclose(c_file));
     }
 }

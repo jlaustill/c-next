@@ -143,12 +143,12 @@ void handleCompoundModify(ConstEdge.Config config) {
 
 // Edge case 12: Bare function call (expression statement, no assignment)
 void handleBareCall(ConstEdge.Config config) {
-    global.Handler.setValue(config, 90);  // No assignment, just call
+    (void) global.Handler.setValue(config, 90);  // No assignment, just call
 }
 
 // Edge case 13: Bare function call that only reads (should be const)
 void handleBareReadOnly(ConstEdge.Config config) {
-    global.Handler.getValue(config);  // No assignment, read-only call
+    (void) global.Handler.getValue(config);  // No assignment, read-only call
 }
 
 u32 main() {

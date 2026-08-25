@@ -15,15 +15,15 @@ char globalBuffer[65] = "";
 /* Scope: Handler */
 
 void Handler__updateGlobal(void) {
-    strncpy(globalBuffer, "FromScope", 64); globalBuffer[64] = '\0';
+    (void) strncpy(globalBuffer, "FromScope", 64); globalBuffer[64] = '\0';
 }
 
 void Handler__clearGlobal(void) {
-    strncpy(globalBuffer, "", 64); globalBuffer[64] = '\0';
+    (void) strncpy(globalBuffer, "", 64); globalBuffer[64] = '\0';
 }
 
 void Handler__setLongMessage(void) {
-    strncpy(globalBuffer, "This is a longer message from scope", 64); globalBuffer[64] = '\0';
+    (void) strncpy(globalBuffer, "This is a longer message from scope", 64); globalBuffer[64] = '\0';
 }
 
 int main(void) {

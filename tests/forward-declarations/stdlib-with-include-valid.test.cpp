@@ -9,5 +9,5 @@
 #include <stdio.h>
 
 int main(void) {
-    printf("Hello, World!\n");
+    static_cast<void>(printf("Hello, World!\n"));
 }

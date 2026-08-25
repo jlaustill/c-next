@@ -27,7 +27,7 @@ bool Motor__isRunning(void) {
 }
 
 int main(void) {
-    Motor__start();
+    (void)Motor__start();
     if (Motor__current != Motor__State__RUNNING) return 1;
     bool running = Motor__isRunning();
     if (running != true) return 2;

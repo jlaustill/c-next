@@ -19,9 +19,6 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import StringUtils from "../../../../utils/StringUtils.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 
-/** C null terminator character literal for generated code */
-const C_NULL_CHAR = String.raw`'\0'`;
-
 /**
  * String concatenation operands extracted from expression.
  */
@@ -653,12 +650,13 @@ class StringDeclHelper {
 
     // Generate safe concatenation code. Issue #1037: continuation lines carry
     // no indent of their own — the block emitter prefixes every line.
+    // The copy sequence itself is owned by StringUtils.concat -- including the
+    // MISRA 17.7 `(void)` casts (ADR-070 Case 1). Rebuilding it here would be a
+    // second path that has to be kept in step by hand.
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `strncpy(${name}, ${concatOps.left}, ${capacity});`,
-      `strncat(${name}, ${concatOps.right}, ${capacity} - strlen(${name}));`,
-      `${name}[${capacity}] = ${C_NULL_CHAR};`,
+      ...StringUtils.concat(name, concatOps.left, concatOps.right, capacity),
     );
     return { code: lines.join("\n"), handled: true };
   }
@@ -704,11 +702,16 @@ class StringDeclHelper {
 
     // Generate safe substring extraction code. Issue #1037: continuation lines
     // carry no indent of their own — the block emitter prefixes every line.
+    // Extraction sequence owned by StringUtils.substring (see _generateConcatDecl).
     const lines: string[] = [];
     lines.push(
       `${constMod}char ${name}[${capacity + 1}] = "";`,
-      `strncpy(${name}, ${substringOps.source} + ${substringOps.start}, ${substringOps.lengthExpression});`,
-      `${name}[${substringOps.lengthExpression}] = ${C_NULL_CHAR};`,
+      ...StringUtils.substring(
+        name,
+        substringOps.source,
+        substringOps.start,
+        substringOps.lengthExpression,
+      ),
     );
     return { code: lines.join("\n"), handled: true };
   }

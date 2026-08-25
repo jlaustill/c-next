@@ -112,12 +112,12 @@ void AtomicTest__incrementAll(void) {
 }
 
 int main(void) {
-    AtomicTest__getCounterU8();
-    AtomicTest__getCounterU16();
-    AtomicTest__getCounterU32();
-    AtomicTest__getBrightness();
-    AtomicTest__getPosition();
-    AtomicTest__getTicks();
+    static_cast<void>(AtomicTest__getCounterU8());
+    static_cast<void>(AtomicTest__getCounterU16());
+    static_cast<void>(AtomicTest__getCounterU32());
+    static_cast<void>(AtomicTest__getBrightness());
+    static_cast<void>(AtomicTest__getPosition());
+    static_cast<void>(AtomicTest__getTicks());
     AtomicTest__incrementU8();
     AtomicTest__incrementU16();
     AtomicTest__incrementU32();

@@ -11,8 +11,8 @@ void testWhileNullCheck() {
     // While condition checks for NULL - c_file is checked inside body
     while (c_file != NULL) {
         // OK: c_file is NULL-checked by while condition
-        fclose(c_file);  // OK - checked by while condition
-        printf("File was open\n");
+        (void) fclose(c_file);  // OK - checked by while condition
+        (void) printf("File was open\n");
         // Re-assign to exit loop (when file doesn't exist, fopen returns NULL)
         c_file <- fopen("nonexistent.txt", "r");
     }

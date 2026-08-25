@@ -25,5 +25,5 @@ uint8_t Handler__reset(Config& cfg) {
 
 int main(void) {
     Config c = { .value = 0U };
-    Handler__reset(c);
+    static_cast<void>(Handler__reset(c));
 }

@@ -11,6 +11,6 @@
 void test(void) {
     char source[65] = "Hello, World!";
     char world[7] = "";
-    strncpy(world, source + 7, 6);
+    (void) strncpy(world, source + 7, 6);
     world[6] = '\0';
 }

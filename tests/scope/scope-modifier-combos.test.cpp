@@ -171,25 +171,25 @@ void ModifierCombos__adjustAllWrap(void) {
 }
 
 int main(void) {
-    ModifierCombos__getMaxBrightness();
-    ModifierCombos__getMaxSensor();
-    ModifierCombos__getMinTemp();
-    ModifierCombos__getCounterStart();
-    ModifierCombos__getTickStart();
-    ModifierCombos__getPublicClampByte();
-    ModifierCombos__getPublicClampWord();
-    ModifierCombos__getPublicClampSigned();
-    ModifierCombos__getPrivateClampByte();
-    ModifierCombos__getPrivateClampWord();
-    ModifierCombos__getPrivateClampSigned();
-    ModifierCombos__getPublicWrapByte();
-    ModifierCombos__getPublicWrapWord();
-    ModifierCombos__getPrivateWrapByte();
-    ModifierCombos__getPrivateWrapWord();
-    ModifierCombos__getPublicConst();
-    ModifierCombos__getPublicFlag();
-    ModifierCombos__getPrivateConst();
-    ModifierCombos__getPrivateFlag();
+    static_cast<void>(ModifierCombos__getMaxBrightness());
+    static_cast<void>(ModifierCombos__getMaxSensor());
+    static_cast<void>(ModifierCombos__getMinTemp());
+    static_cast<void>(ModifierCombos__getCounterStart());
+    static_cast<void>(ModifierCombos__getTickStart());
+    static_cast<void>(ModifierCombos__getPublicClampByte());
+    static_cast<void>(ModifierCombos__getPublicClampWord());
+    static_cast<void>(ModifierCombos__getPublicClampSigned());
+    static_cast<void>(ModifierCombos__getPrivateClampByte());
+    static_cast<void>(ModifierCombos__getPrivateClampWord());
+    static_cast<void>(ModifierCombos__getPrivateClampSigned());
+    static_cast<void>(ModifierCombos__getPublicWrapByte());
+    static_cast<void>(ModifierCombos__getPublicWrapWord());
+    static_cast<void>(ModifierCombos__getPrivateWrapByte());
+    static_cast<void>(ModifierCombos__getPrivateWrapWord());
+    static_cast<void>(ModifierCombos__getPublicConst());
+    static_cast<void>(ModifierCombos__getPublicFlag());
+    static_cast<void>(ModifierCombos__getPrivateConst());
+    static_cast<void>(ModifierCombos__getPrivateFlag());
     ModifierCombos__increasePublicClampByte();
     ModifierCombos__decreasePublicClampSigned();
     ModifierCombos__incrementPublicWrapByte();

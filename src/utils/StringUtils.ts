@@ -4,6 +4,15 @@
  *
  * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
  */
+/**
+ * MISRA C:2012 Rule 17.7 (ADR-070 Case 1): every `strncpy`/`strncat` below is a
+ * call the TRANSPILER emits to lower a C-Next string operation -- the author
+ * never wrote it, so its discarded return is cast to `(void)` here rather than
+ * being reported to the author. Author-written discards are Case 2 (E0708).
+ *
+ * This class is the single source of truth for that lowering; callers must not
+ * build these calls themselves, or the cast would have to be repeated.
+ */
 /** C null terminator character literal for generated code */
 const C_NULL_CHAR = String.raw`'\0'`;
 
@@ -12,7 +21,7 @@ class StringUtils {
    * Generate strncpy with explicit null termination.
    * Used for simple string assignments: str <- "hello"
    *
-   * Pattern: strncpy(target, value, capacity); target[capacity] = '\0';
+   * Pattern: (void) strncpy(target, value, capacity); target[capacity] = '\0';
    *
    * @param target - The destination variable/expression
    * @param value - The source string expression
@@ -20,14 +29,14 @@ class StringUtils {
    * @returns C code string for the copy operation
    */
   static copyWithNull(target: string, value: string, capacity: number): string {
-    return `strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = ${C_NULL_CHAR};`;
+    return `(void) strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = ${C_NULL_CHAR};`;
   }
 
   /**
    * Generate strncpy without explicit null termination.
    * Used for string array elements where the buffer is pre-zeroed.
    *
-   * Pattern: strncpy(target, value, capacity);
+   * Pattern: (void) strncpy(target, value, capacity);
    *
    * @param target - The destination expression (may include subscripts)
    * @param value - The source string expression
@@ -35,7 +44,7 @@ class StringUtils {
    * @returns C code string for the copy operation
    */
   static copy(target: string, value: string, capacity: number): string {
-    return `strncpy(${target}, ${value}, ${capacity});`;
+    return `(void) strncpy(${target}, ${value}, ${capacity});`;
   }
 
   /**
@@ -43,8 +52,8 @@ class StringUtils {
    * Used for: result <- left + right
    *
    * Pattern:
-   *   strncpy(target, left, capacity);
-   *   strncat(target, right, capacity - strlen(target));
+   *   (void) strncpy(target, left, capacity);
+   *   (void) strncat(target, right, capacity - strlen(target));
    *   target[capacity] = '\0';
    *
    * @param target - The destination variable
@@ -62,8 +71,8 @@ class StringUtils {
     indent: string = "",
   ): string[] {
     return [
-      `${indent}strncpy(${target}, ${left}, ${capacity});`,
-      `${indent}strncat(${target}, ${right}, ${capacity} - strlen(${target}));`,
+      `${indent}(void) strncpy(${target}, ${left}, ${capacity});`,
+      `${indent}(void) strncat(${target}, ${right}, ${capacity} - strlen(${target}));`,
       `${indent}${target}[${capacity}] = ${C_NULL_CHAR};`,
     ];
   }
@@ -73,7 +82,7 @@ class StringUtils {
    * Used for: result <- source[start, length]
    *
    * Pattern:
-   *   strncpy(target, source + start, length);
+   *   (void) strncpy(target, source + start, length);
    *   target[length] = '\0';
    *
    * @param target - The destination variable
@@ -87,11 +96,11 @@ class StringUtils {
     target: string,
     source: string,
     start: string,
-    length: number,
+    length: number | string,
     indent: string = "",
   ): string[] {
     return [
-      `${indent}strncpy(${target}, ${source} + ${start}, ${length});`,
+      `${indent}(void) strncpy(${target}, ${source} + ${start}, ${length});`,
       `${indent}${target}[${length}] = ${C_NULL_CHAR};`,
     ];
   }

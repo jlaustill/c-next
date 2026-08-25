@@ -47,7 +47,6 @@ const BASELINE = new Map([
   ["misra-c2012-11.4", "#867"],
   ["misra-c2012-12.1", "#865"],
   ["misra-c2012-15.5", "#861"],
-  ["misra-c2012-17.7", "#847"],
   ["misra-c2012-18.4", "#859"],
   // --- rules surfaced by #1057, newly tracked (#1059–#1072) ---
   ["misra-c2012-8.6", "#1059"],

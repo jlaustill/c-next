@@ -33,7 +33,7 @@ scope Motor {
 Motor.State externalState <- Motor.State.IDLE;
 
 void main() {
-    Motor.start();
+    (void) Motor.start();
 
     if (Motor.current = Motor.State.RUNNING) {
         externalState <- Motor.State.STALLED;

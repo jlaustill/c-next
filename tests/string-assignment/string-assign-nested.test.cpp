@@ -29,7 +29,7 @@ void deepNest(uint32_t depth) {
     if (depth > 0) {
         if (depth > 1) {
             if (depth > 2) {
-                strncpy(nested, "DeepNest", 32); nested[32] = '\0';
+                (void) strncpy(nested, "DeepNest", 32); nested[32] = '\0';
             }
         }
     }
@@ -40,7 +40,7 @@ void mixedNest(uint32_t count) {
         uint32_t i = 0U;
         while (i < count) {
             if (i == 0) {
-                strncpy(nested, "Mixed", 32); nested[32] = '\0';
+                (void) strncpy(nested, "Mixed", 32); nested[32] = '\0';
             }
             i = cnx_clamp_add_u32(i, 1U);
         }
@@ -55,7 +55,7 @@ int main(void) {
     {
         {
             {
-                strncpy(nested, "Blocks", 32); nested[32] = '\0';
+                (void) strncpy(nested, "Blocks", 32); nested[32] = '\0';
             }
         }
     }

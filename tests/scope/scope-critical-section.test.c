@@ -283,7 +283,7 @@ uint8_t CriticalTest__safeDequeue(void) {
 }
 
 void CriticalTest__lockedEnqueue(uint8_t data) {
-    CriticalTest__internalTryLock();
+    (void)CriticalTest__internalTryLock();
     CriticalTest__internalEnqueue(data);
     CriticalTest__internalUnlock();
 }
@@ -291,16 +291,16 @@ void CriticalTest__lockedEnqueue(uint8_t data) {
 int main(void) {
     CriticalTest__enqueue(42U);
     CriticalTest__enqueue(84U);
-    CriticalTest__dequeue();
+    (void)CriticalTest__dequeue();
     CriticalTest__updateGlobalIndex();
     CriticalTest__transferToGlobal();
-    CriticalTest__getCount();
-    CriticalTest__isLocked();
-    CriticalTest__tryLock();
+    (void)CriticalTest__getCount();
+    (void)CriticalTest__isLocked();
+    (void)CriticalTest__tryLock();
     CriticalTest__unlock();
     CriticalTest__resetAll();
-    CriticalTest__isInSync();
+    (void)CriticalTest__isInSync();
     CriticalTest__safeEnqueue(10U);
-    CriticalTest__safeDequeue();
+    (void)CriticalTest__safeDequeue();
     CriticalTest__lockedEnqueue(20U);
 }
