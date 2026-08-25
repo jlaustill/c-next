@@ -1926,6 +1926,8 @@ class Transpiler {
         exportedOnly: true,
         userIncludes,
         cHeadersIncluded,
+        // ADR-040: same flag the .c consults, so exactly one file emits it.
+        needsIsrTypedef: CodeGenState.needsISR,
         externalTypeHeaders,
         cppMode: this.cppDetected,
       },

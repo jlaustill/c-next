@@ -75,6 +75,84 @@ u8 firstChar() { return VERSION[0]; }
     expect(headerCode).toContain("char VERSION");
   });
 
+  // Review of #1206: the .c stops emitting the ISR typedef once it includes the
+  // header, so the header must carry it whenever the FILE needs the type --
+  // not merely when the public interface names it.
+  it.each([
+    {
+      name: "an ISR local to a function body",
+      source: `
+void handlerA() { }
+u32 doWork() {
+    ISR handler <- handlerA;
+    handler();
+    return 1;
+}
+`,
+    },
+    {
+      name: "an ISR used by a private scope member",
+      source: `
+scope Timer {
+    private void tick() { }
+    public void arm() { ISR handler <- this.tick; handler(); }
+}
+`,
+    },
+  ])("emits the ISR typedef exactly once for $name", async ({ source }) => {
+    const { code, headerCode } = await transpileSource(source);
+    const isrTypedef = /typedef void \(\*ISR\)\(void\);/g;
+    expect(`${code}${headerCode}`.match(isrTypedef)).toHaveLength(1);
+    // The body that uses the type is in the .c, so the .c must see it.
+    expect(code).toContain('#include "sample.h"');
+    expect(headerCode).toContain("typedef void (*ISR)(void);");
+  });
+
+  // Review of #1206: whether the capacity dimension is present is structural.
+  // A guard comparing the trailing dimension to capacity + 1 misfires for any
+  // string<N>[N+1] and declares a different type than the .c defines.
+  it.each([
+    {
+      name: "string<32>[5] (capacity differs from the outer dimension)",
+      declaration: "string<32>[5]",
+      expected: "char names[5][33]",
+    },
+    {
+      name: "string<4>[5] (capacity equals the outer dimension)",
+      declaration: "string<4>[5]",
+      expected: "char names[5][5]",
+    },
+    {
+      name: "string<9>[10] (capacity equals the outer dimension)",
+      declaration: "string<9>[10]",
+      expected: "char names[10][10]",
+    },
+  ])(
+    "declares $name identically in both files",
+    async ({ declaration, expected }) => {
+      const { code, headerCode } = await transpileSource(`
+u32 count(${declaration} names) { return 1; }
+`);
+      expect(code).toContain(expected);
+      expect(headerCode).toContain(expected);
+    },
+  );
+
+  it("emits the typedef for a callback used only as a parameter", async () => {
+    const { headerCode } = await transpileSource(`
+struct Message { u32 id; }
+void onReceive(const Message message) { }
+void setHandler(onReceive handler) { handler; }
+`);
+    expect(headerCode).toContain(
+      "typedef void (*onReceive_fp)(const Message*);",
+    );
+    // Forward-declaring a function pointer as a struct describes it as an
+    // incomplete type, and the prototype using it then does not compile.
+    expect(headerCode).not.toContain("typedef struct onReceive_fp");
+    expect(headerCode).toContain("void setHandler(onReceive_fp handler);");
+  });
+
   it("declares the ISR typedef it uses (ADR-040)", async () => {
     const { headerCode } = await transpileSource(`
 ISR globalHandler;

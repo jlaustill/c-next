@@ -154,10 +154,13 @@ class HeaderSymbolAdapter {
       return dimensions;
     }
 
-    const capacity = String(Number.parseInt(capacityMatch[1], 10) + 1);
-    return dimensions.at(-1) === capacity
-      ? dimensions
-      : [...dimensions, capacity];
+    // Whether the capacity is present is structural, not something to infer
+    // from the trailing value: a guard comparing it to `capacity + 1` misfires
+    // for any `string<N>[N+1]` and silently declares a different type than the
+    // .c defines. IParameterSymbol.arrayDimensions never carries the capacity --
+    // FunctionCollector.collectParameters records only the declared dimensions --
+    // so it is always appended here.
+    return [...dimensions, String(Number.parseInt(capacityMatch[1], 10) + 1)];
   }
 
   /**

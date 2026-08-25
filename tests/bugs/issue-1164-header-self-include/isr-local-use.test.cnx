@@ -1,0 +1,26 @@
+// test-execution
+// Review of #1206: the .c stops emitting the ADR-040 ISR typedef once it
+// includes its header, so the header has to carry it whenever the file needs
+// the type.
+//
+// The header decided that by scanning its own exported declarations, which is a
+// strict subset of "this translation unit needs ISR" -- an ISR local to a
+// function body is invisible to it. The typedef was then emitted nowhere and
+// the .c did not compile: "unknown type name 'ISR'".
+u32 callCount <- 0;
+
+void handlerA() {
+    callCount <- callCount + 1;
+}
+
+u32 invokeLocally() {
+    ISR handler <- handlerA;
+    handler();
+    return callCount;
+}
+
+u32 main() {
+    u32 result <- invokeLocally();
+    if (result != 1) return 1;
+    return 0;
+}

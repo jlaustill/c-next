@@ -8,6 +8,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { CPP14Parser } from "../../parser/cpp/grammar/CPP14Parser";
+import type { DeclSpecifierSeqContext } from "../../parser/cpp/grammar/CPP14Parser";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import SymbolTable from "../SymbolTable";
 import NamespaceCollector from "./collectors/NamespaceCollector";
@@ -227,13 +228,19 @@ class CppResolver {
         continue;
       }
 
-      if (isTypedef && DeclaratorUtils.declaratorHasPointer(declarator)) {
-        const typedefName = DeclaratorUtils.extractDeclaratorName(declarator);
-        if (typedefName) {
-          // Record it so the header includes the defining file rather than
-          // forward-declaring a struct of the same name, which is a different
-          // type entirely.
-          ctx.symbolTable?.markPointerTypedef(typedefName);
+      if (isTypedef) {
+        // A typedef declares a type, not a variable. Collecting it as one made
+        // `typedef struct opaque_t* handle_t;` a variable of type int and
+        // `typedef unsigned char byte_t;` a variable of type unsigned char.
+        // Every typedef declarator is skipped, not just the pointer ones.
+        if (DeclaratorUtils.declaratorHasPointer(declarator)) {
+          const typedefName = DeclaratorUtils.extractDeclaratorName(declarator);
+          if (typedefName) {
+            // Recorded so the header includes the defining file rather than
+            // forward-declaring a struct of the same name, which is a
+            // different type entirely.
+            ctx.symbolTable?.markPointerTypedef(typedefName);
+          }
         }
         continue;
       }
@@ -251,7 +258,9 @@ class CppResolver {
   /**
    * Whether a declaration specifier sequence carries the `typedef` keyword.
    */
-  private static _hasTypedefSpecifier(declSpecSeq: any): boolean {
+  private static _hasTypedefSpecifier(
+    declSpecSeq: DeclSpecifierSeqContext,
+  ): boolean {
     for (const spec of declSpecSeq.declSpecifier?.() ?? []) {
       if (spec.getText?.() === "typedef") {
         return true;

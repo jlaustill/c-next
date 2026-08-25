@@ -274,7 +274,7 @@ class ParameterInputAdapter {
       isString: false,
       isPassByValue: callbackWantsPointer
         ? false
-        : (callbackWantsValue ?? false) || deps.isPassByValue,
+        : callbackWantsValue || deps.isPassByValue,
       isPassByReference: callbackWantsPointer
         ? true
         : !callbackWantsValue && !deps.isPassByValue,

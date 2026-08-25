@@ -152,6 +152,24 @@ export default class CodeGenState {
   static callbackFieldTypes: Map<string, string> = new Map();
 
   /**
+   * Callback types named as a parameter type by a function in this file.
+   *
+   * Issue #1164: the header emits a typedef only for callbacks it owns. A
+   * callback used solely as a parameter was not owned by anything, so the
+   * header declared `void setHandler(onReceive_fp)` and then forward-declared
+   * `onReceive_fp` as a struct -- a function pointer described as an
+   * incomplete struct type.
+   */
+  static callbackParameterTypes: Set<string> = new Set();
+
+  /**
+   * Record that a parameter is declared with a callback type.
+   */
+  static recordCallbackParameterType(functionName: string): void {
+    this.callbackParameterTypes.add(functionName);
+  }
+
+  /**
    * Issue #1164: does the generated header own this callback's typedef?
    *
    * The header emits typedefs only for callbacks used as struct field types.
@@ -161,6 +179,9 @@ export default class CodeGenState {
    * cannot disagree about who owns a given typedef.
    */
   static headerOwnsCallbackTypedef(functionName: string): boolean {
+    if (this.callbackParameterTypes.has(functionName)) {
+      return true;
+    }
     for (const [, callbackTypeName] of this.callbackFieldTypes) {
       if (callbackTypeName === functionName) {
         return true;
@@ -422,6 +443,7 @@ export default class CodeGenState {
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
+    this.callbackParameterTypes = new Set();
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
     // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must
     // persist into code generation. It is cleared at the start of each Transpiler run.

@@ -128,8 +128,7 @@ abstract class BaseHeaderGenerator {
             ),
       ),
       ...HeaderGeneratorUtils.generateIsrTypedefSection(
-        exportedSymbols,
-        typeInput,
+        options.needsIsrTypedef ?? false,
       ),
       ...HeaderGeneratorUtils.generateEnumSection(groups.enums, typeInput),
       ...HeaderGeneratorUtils.generateBitmapSection(groups.bitmaps, typeInput),

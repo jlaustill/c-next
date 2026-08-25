@@ -19,7 +19,6 @@ import VariableDeclarationFormatter from "../codegen/helpers/VariableDeclaration
 import type IVariableFormatInput from "../codegen/types/IVariableFormatInput";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
 import CallbackTypedefFormatter from "../codegen/helpers/CallbackTypedefFormatter";
-const ISR_TYPE_NAME = "ISR";
 
 const { mapType, isBuiltInType } = typeUtils;
 
@@ -589,20 +588,15 @@ class HeaderGeneratorUtils {
   }
 
   /**
-   * ADR-040: emit the ISR function-pointer typedef when the header declares
-   * anything of that type.
+   * ADR-040: emit the ISR function-pointer typedef when this translation unit
+   * uses the type.
    *
-   * The `.c` emits this typedef for itself. While nothing included the header,
-   * a header that named `ISR` without defining it still "worked" because no
-   * translation unit ever compiled it. Once the `.c` includes its own header
-   * (#1164) the header must stand on its own, and the `.c` must stop emitting a
-   * second copy — two typedefs of the same name are a redeclaration error.
+   * Keyed on the same fact the .c uses to decide it must NOT emit a second
+   * copy. Scanning only the header's own declarations missed an `ISR` used
+   * inside a function body, and the type was then emitted nowhere.
    */
-  static generateIsrTypedefSection(
-    symbols: IHeaderSymbol[],
-    typeInput?: IHeaderTypeInput,
-  ): string[] {
-    if (!HeaderGeneratorUtils.usesIsrType(symbols, typeInput)) {
+  static generateIsrTypedefSection(needsIsrTypedef: boolean): string[] {
+    if (!needsIsrTypedef) {
       return [];
     }
     return [
@@ -610,37 +604,6 @@ class HeaderGeneratorUtils {
       "typedef void (*ISR)(void);",
       "",
     ];
-  }
-
-  /**
-   * Whether any declaration in this header names the ISR type -- as a variable,
-   * a function return type, a parameter, or a struct field.
-   */
-  private static usesIsrType(
-    symbols: IHeaderSymbol[],
-    typeInput?: IHeaderTypeInput,
-  ): boolean {
-    const isIsr = (type: string | undefined): boolean =>
-      type === ISR_TYPE_NAME || type === `${ISR_TYPE_NAME}*`;
-
-    const inDeclarations = symbols.some(
-      (sym) =>
-        isIsr(sym.type) ||
-        (sym.parameters?.some((param) => isIsr(param.type)) ?? false),
-    );
-    if (inDeclarations) {
-      return true;
-    }
-
-    // A struct field of type ISR names it just as a variable does.
-    for (const [, fields] of typeInput?.structFields ?? []) {
-      for (const [, fieldType] of fields) {
-        if (isIsr(fieldType)) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**

@@ -40,6 +40,18 @@ interface IHeaderOptions {
    * same name. Guessing is only justified when nothing better is available.
    */
   readonly cHeadersIncluded?: boolean;
+
+  /**
+   * ADR-040: this translation unit uses the `ISR` function-pointer type.
+   *
+   * The header used to decide this for itself by scanning exported
+   * declarations, which is a strict subset of "the file needs ISR" -- an `ISR`
+   * local inside a function body is invisible to it. Since the .c stops
+   * emitting the typedef once it includes the header, that subset made the
+   * suppression unsound: the type was emitted nowhere. Both sides now read the
+   * same flag.
+   */
+  readonly needsIsrTypedef?: boolean;
 }
 
 export default IHeaderOptions;
