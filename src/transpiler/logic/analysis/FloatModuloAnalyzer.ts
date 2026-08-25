@@ -6,8 +6,16 @@
  * C-Next catches this early with a clear error message.
  *
  * Two-pass analysis:
- * 1. Collect variable declarations with f32/f64 types
+ * 1. Build lexical scope frames (DeclarationScopeCollector)
  * 2. Detect modulo operations using float variables or literals
+ *
+ * Issue #1220: pass 1 used to be a private Set of float variable names built
+ * from this file's parse tree alone, so an `f32` arriving through an #include
+ * was invisible and `floatValue % 2` compiled to C that gcc then rejects with
+ * "invalid operands to binary %". Resolution now goes through
+ * ScopeFrameResolver, which searches the lexical frames and falls back to the
+ * symbol table -- one cross-file-aware answer shared with the other
+ * essential-type analyzers instead of a per-analyzer cache.
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -17,50 +25,8 @@ import IFloatModuloError from "./types/IFloatModuloError";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 import TypeConstants from "../../../utils/constants/TypeConstants";
-
-/**
- * First pass: Collect variable declarations with float types
- */
-class FloatVariableCollector extends CNextListener {
-  private readonly floatVars: Set<string> = new Set();
-
-  public getFloatVars(): Set<string> {
-    return this.floatVars;
-  }
-
-  /**
-   * Track a typed identifier if it has a float type
-   */
-  private trackIfFloat(
-    typeCtx: Parser.TypeContext | null,
-    identifier: { getText(): string } | null,
-  ): void {
-    if (!typeCtx) return;
-
-    const typeName = typeCtx.getText();
-    if (!TypeConstants.FLOAT_TYPES.includes(typeName)) return;
-
-    if (!identifier) return;
-
-    this.floatVars.add(identifier.getText());
-  }
-
-  /**
-   * Track variable declarations with f32/f64 types
-   */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    this.trackIfFloat(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  /**
-   * Track function parameters with f32/f64 types
-   */
-  override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.trackIfFloat(ctx.type(), ctx.IDENTIFIER());
-  };
-}
+import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ScopeFrameResolver from "./ScopeFrameResolver";
 
 /**
  * Second pass: Detect modulo operations with float operands
@@ -69,12 +35,12 @@ class FloatModuloListener extends CNextListener {
   private readonly analyzer: FloatModuloAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly floatVars: Set<string>;
+  private readonly scopes: ScopeFrameResolver;
 
-  constructor(analyzer: FloatModuloAnalyzer, floatVars: Set<string>) {
+  constructor(analyzer: FloatModuloAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
-    this.floatVars = floatVars;
+    this.scopes = scopes;
   }
 
   /**
@@ -124,10 +90,16 @@ class FloatModuloListener extends CNextListener {
       return LiteralUtils.isFloat(literal);
     }
 
-    // Check for identifier that's a float variable
+    // Check for identifier that's a float variable. Resolved against the
+    // lexical frames first, then the symbol table, so an included declaration
+    // counts and a same-named local in another function does not (#1220).
     const identifier = primaryExpr.IDENTIFIER();
     if (identifier) {
-      return this.floatVars.has(identifier.getText());
+      const typeName = this.scopes.typeOfName(
+        identifier.getText(),
+        this.scopes.frameFor(ctx),
+      );
+      return typeName !== null && TypeConstants.FLOAT_TYPES.includes(typeName);
     }
 
     return false;
@@ -146,13 +118,15 @@ class FloatModuloAnalyzer {
   public analyze(tree: Parser.ProgramContext): IFloatModuloError[] {
     this.errors = [];
 
-    // First pass: collect float variables
-    const collector = new FloatVariableCollector();
-    ParseTreeWalker.DEFAULT.walk(collector, tree);
-    const floatVars = collector.getFloatVars();
+    // First pass: build the lexical scope frames
+    const declarations = new DeclarationScopeCollector();
+    ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     // Second pass: detect modulo with floats
-    const listener = new FloatModuloListener(this, floatVars);
+    const listener = new FloatModuloListener(
+      this,
+      new ScopeFrameResolver(declarations),
+    );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;

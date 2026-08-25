@@ -1,0 +1,20 @@
+// test-error
+// E0807: arithmetic on a bool operand -- matrix cell: imported direct (1 hop)
+
+#include "declarations.cnx"
+
+u32 globalSum <- flagValue + 1;
+
+u32 topLevelFunction() {
+    u32 sum <- flagValue + 1;
+    return sum;
+}
+
+scope Widget {
+    u32 memberSum <- flagValue + 1;
+
+    u32 methodValue() {
+        u32 sum <- flagValue + 1;
+        return sum;
+    }
+}

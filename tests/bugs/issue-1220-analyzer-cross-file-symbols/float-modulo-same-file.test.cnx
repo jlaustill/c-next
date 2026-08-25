@@ -1,0 +1,20 @@
+// test-error
+// E0804: modulo on a floating-point operand -- matrix cell: same file
+
+f32 floatValue <- 5.0;
+
+f32 globalRemainder <- floatValue % 2;
+
+f32 topLevelFunction() {
+    f32 remainder <- floatValue % 2;
+    return remainder;
+}
+
+scope Widget {
+    f32 memberRemainder <- floatValue % 2;
+
+    f32 methodValue() {
+        f32 remainder <- floatValue % 2;
+        return remainder;
+    }
+}

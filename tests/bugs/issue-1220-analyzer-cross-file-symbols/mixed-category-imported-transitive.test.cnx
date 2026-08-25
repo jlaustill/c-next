@@ -1,0 +1,22 @@
+// test-error
+// E0810: operands of different essential type categories -- matrix cell: imported transitive (2 hops)
+
+#include "relay.cnx"
+
+u32 unsignedValue <- 1;
+
+i32 globalMixed <- signedValue + unsignedValue;
+
+i32 topLevelFunction() {
+    i32 mixed <- signedValue + unsignedValue;
+    return mixed;
+}
+
+scope Widget {
+    i32 memberMixed <- signedValue + unsignedValue;
+
+    i32 methodValue() {
+        i32 mixed <- signedValue + unsignedValue;
+        return mixed;
+    }
+}

@@ -17,6 +17,7 @@
 import { ParserRuleContext } from "antlr4ng";
 import IScopeFrame from "./types/IScopeFrame";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import CodeGenState from "../../state/CodeGenState";
 
 class ScopeFrameResolver {
   private readonly globalFrame: IScopeFrame;
@@ -46,8 +47,19 @@ class ScopeFrameResolver {
 
   /**
    * Declared type text of a name as seen from a frame, searching outward so an
-   * inner declaration shadows an outer one. Null when the name is not declared
-   * on that path -- an external symbol, a struct field, or a call result.
+   * inner declaration shadows an outer one, then falling back to the symbol
+   * table for a declaration that arrived through an #include. Null when the
+   * name is declared nowhere reachable -- a struct field or a call result.
+   *
+   * Issue #1220: the fallback is the whole cross-file story for the
+   * essential-type analyzers. Frames are built by walking THIS file's parse
+   * tree, so before it every imported declaration resolved to null, every
+   * check that depended on the operand's type quietly concluded "nothing to
+   * report", and E0804/E0805/E0807/E0810 all stopped firing the moment their
+   * operand crossed a file boundary.
+   *
+   * Lexical frames are searched FIRST and still win: a local declaration
+   * shadows an imported one of the same name, exactly as it did before.
    */
   public typeOfName(name: string, frame: IScopeFrame): string | null {
     let current: IScopeFrame | null = frame;
@@ -56,7 +68,7 @@ class ScopeFrameResolver {
       if (typeName) return typeName;
       current = current.parent;
     }
-    return null;
+    return CodeGenState.getCNextVariableTypeName(name);
   }
 }
 

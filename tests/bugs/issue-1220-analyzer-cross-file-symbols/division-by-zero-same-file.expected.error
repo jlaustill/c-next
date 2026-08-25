@@ -1,0 +1,8 @@
+6:25 error[E0800]: Division by zero
+7:25 error[E0802]: Modulo by zero
+10:24 error[E0800]: Division by zero
+11:26 error[E0802]: Modulo by zero
+16:29 error[E0800]: Division by zero
+17:29 error[E0802]: Modulo by zero
+20:28 error[E0800]: Division by zero
+21:30 error[E0802]: Modulo by zero

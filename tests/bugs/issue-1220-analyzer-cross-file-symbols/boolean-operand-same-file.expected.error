@@ -1,0 +1,4 @@
+6:17 error[E0807]: Operator '+' is not valid on a bool operand
+9:15 error[E0807]: Operator '+' is not valid on a bool operand
+14:21 error[E0807]: Operator '+' is not valid on a bool operand
+17:19 error[E0807]: Operator '+' is not valid on a bool operand
