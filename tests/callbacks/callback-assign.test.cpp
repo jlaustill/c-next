@@ -10,10 +10,11 @@ typedef struct Message {
     uint32_t id;
 } Message;
 
-void onReceive(const Message& msg) {
-}
 
 typedef void (*onReceive_fp)(const Message&);
+
+void onReceive(const Message& msg) {
+}
 
 // User's custom handler (same signature, not used as a type)
 void myHandler(const Message& msg) {

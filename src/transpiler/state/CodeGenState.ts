@@ -169,6 +169,22 @@ export default class CodeGenState {
   static callbackTypeReferences: Set<string> = new Set();
 
   /**
+   * Issue #1212: callback `_fp` typedefs awaiting placement.
+   *
+   * They used to be appended after the function each was derived from, which
+   * only works when every use appears later in the file. A parameter naming a
+   * callback declared further down got a typedef after its first use, and the
+   * generated C did not compile.
+   *
+   * They cannot simply be hoisted into the prelude either: a callback typedef
+   * inherits its parameters' dependencies, so `typedef void (*onReceive_fp)(const
+   * Message*)` must follow `Message`'s definition. Collecting them here lets
+   * generateAllDeclarations place the whole block after the type declarations
+   * and before the first function.
+   */
+  static pendingCallbackTypedefs: string[] = [];
+
+  /**
    * Functions that are assigned to C callback typedefs.
    * Maps function name -> typedef name (e.g., "my_flush" -> "flush_cb_t")
    * Issue #895: We need the typedef name to look up parameter types.
@@ -422,6 +438,7 @@ export default class CodeGenState {
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
     this.callbackTypeReferences = new Set();
+    this.pendingCallbackTypedefs = [];
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
     // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must
     // persist into code generation. It is cleared at the start of each Transpiler run.

@@ -10,11 +10,18 @@
 // Tests: Callbacks with multiple parameters
 // Validates: two-param and three-param callbacks work correctly
 // Two-parameter callback
+
+typedef uint32_t (*addTwo_fp)(uint32_t, uint32_t);
+
+
+typedef uint32_t (*addThree_fp)(uint32_t, uint32_t, uint32_t);
+
+
+typedef uint32_t (*mixedParams_fp)(uint32_t, bool);
+
 uint32_t addTwo(uint32_t a, uint32_t b) {
     return a + b;
 }
-
-typedef uint32_t (*addTwo_fp)(uint32_t, uint32_t);
 
 // Alternative two-param callback
 uint32_t multiplyTwo(uint32_t a, uint32_t b) {
@@ -26,8 +33,6 @@ uint32_t addThree(uint32_t a, uint32_t b, uint32_t c) {
     return a + b + c;
 }
 
-typedef uint32_t (*addThree_fp)(uint32_t, uint32_t, uint32_t);
-
 // Mixed type two-parameter callback
 uint32_t mixedParams(uint32_t val, bool flag) {
     if (flag == true) {
@@ -35,8 +40,6 @@ uint32_t mixedParams(uint32_t val, bool flag) {
     }
     return val;
 }
-
-typedef uint32_t (*mixedParams_fp)(uint32_t, bool);
 
 // Structs to hold callbacks
 typedef struct TwoParamHandler {

@@ -309,12 +309,7 @@ function generateScopeFunction(
   lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
 
   // ADR-029: Generate callback typedef only if used as a type
-  if (orchestrator.isCallbackTypeUsedAsFieldType(fullName)) {
-    const typedef = orchestrator.generateCallbackTypedef(fullName);
-    if (typedef) {
-      lines.push(typedef);
-    }
-  }
+  orchestrator.recordCallbackTypedef(fullName);
 
   return lines;
 }

@@ -9,11 +9,12 @@
 
 // #1200: a function-as-type field inside a scope-nested struct must emit the
 // same _fp typedef a top-level struct field already emits.
+
+typedef uint32_t (*tickSource_fp)(void);
+
 uint32_t tickSource(void) {
     return 0;
 }
-
-typedef uint32_t (*tickSource_fp)(void);
 
 uint32_t platformClock(void) {
     return 12345;

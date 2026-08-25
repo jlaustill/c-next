@@ -1,0 +1,21 @@
+// #1212: a parameter naming a callback declared LATER in the file. The typedef
+// used to be appended after the function it derives from, so it landed after
+// its own first use and the generated C did not compile.
+//
+// Identical to callback-parameter.test.cnx with the first two declarations
+// swapped -- that fixture cannot see this, which is why it needs its own.
+u32 callIt(tickSource source) {
+    return source();
+}
+
+u32 tickSource() {
+    return 0;
+}
+
+u32 platformClock() {
+    return 12345;
+}
+
+void demo() {
+    u32 value <- callIt(platformClock);
+}

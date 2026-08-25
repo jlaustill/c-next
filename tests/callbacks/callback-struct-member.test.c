@@ -9,11 +9,12 @@
 // Tests: Callbacks as struct members with invocation and validation
 // Validates: default callback, assignment, invocation via struct field
 // Callback that returns a computed value (used as a type)
+
+typedef uint32_t (*computeValue_fp)(uint32_t);
+
 uint32_t computeValue(uint32_t input) {
     return input * 2;
 }
-
-typedef uint32_t (*computeValue_fp)(uint32_t);
 
 // Alternative implementation with same signature
 uint32_t tripleValue(uint32_t input) {

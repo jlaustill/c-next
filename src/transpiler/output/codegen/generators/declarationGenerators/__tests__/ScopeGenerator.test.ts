@@ -469,6 +469,7 @@ function createMockOrchestrator(
     exitFunctionBody: vi.fn(),
     clearParameters: vi.fn(),
     isCallbackTypeUsedAsFieldType: vi.fn(() => false),
+    recordCallbackTypedef: vi.fn(),
     getCallbackTypedefName: vi.fn(() => null),
     generateCallbackTypedef: vi.fn(() => null),
     isConstValue: vi.fn(() => true),
@@ -522,6 +523,50 @@ describe("ScopeGenerator", () => {
   // ========================================================================
 
   describe("variable declarations", () => {
+    // Issue #1200: a callback-typed scope member renders as its function-pointer
+    // typedef. Without this the raw function name was emitted as the type, which
+    // collides with the function of the same name.
+    it("renders a callback-typed scope member as its _fp typedef", () => {
+      const varDecl = createMockVariableDecl({
+        name: "tick",
+        type: "tickSource",
+        initialValue: "tickSource",
+      });
+      const member = createMockScopeMember({
+        visibility: "public",
+        variableDecl: varDecl,
+      });
+      const ctx = createMockScopeContext("Clock", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        ...createMockOrchestrator(),
+        getCallbackTypedefName: vi.fn(() => "tickSource_fp"),
+      });
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("tickSource_fp Clock__tick");
+      expect(result.code).not.toContain("tickSource Clock__tick");
+    });
+
+    it("leaves a non-callback scope member type untouched", () => {
+      const varDecl = createMockVariableDecl({
+        name: "counter",
+        type: "u32",
+        initialValue: "0",
+      });
+      const member = createMockScopeMember({ variableDecl: varDecl });
+      const ctx = createMockScopeContext("Stats", [member]);
+      const input = createMockInput();
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator();
+
+      const result = generateScope(ctx, input, state, orchestrator);
+
+      expect(result.code).toContain("static uint32_t Stats__counter = 0;");
+    });
+
     it("generates private variable with static modifier", () => {
       const varDecl = createMockVariableDecl({
         name: "counter",
@@ -1048,18 +1093,23 @@ describe("ScopeGenerator", () => {
       const ctx = createMockScopeContext("Events", [member]);
       const input = createMockInput();
       const state = createMockState();
+      // Issue #1212: the typedef is no longer appended after the function.
+      // ScopeGenerator's contract is now to report that a function was emitted;
+      // whether a typedef is needed and where it lands belong to the orchestrator.
+      const recordCallbackTypedef = vi.fn();
       const orchestrator = createMockOrchestrator({
         ...createMockOrchestrator(),
         isCallbackTypeUsedAsFieldType: vi.fn(() => true),
+        recordCallbackTypedef,
         getCallbackTypedefName: vi.fn(() => null),
-        generateCallbackTypedef: vi.fn(
-          () => "typedef void (*Events_callback_t)(void);",
-        ),
       });
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("typedef void (*Events_callback_t)(void);");
+      expect(recordCallbackTypedef).toHaveBeenCalledWith(
+        expect.stringContaining("callback"),
+      );
+      expect(result.code).not.toContain("typedef void (*");
     });
   });
 
