@@ -32,43 +32,76 @@ type TPassByValueParams = ReadonlyMap<string, ReadonlySet<string>>;
  */
 abstract class BaseHeaderGenerator {
   /**
-   * The external types this header may forward-declare.
+   * Reject an external type this header cannot correctly declare.
    *
    * Issue #1225/#1238: `typedef struct X X;` is a guess that only holds when X
    * really is an opaque struct. For a pointer typedef it declares a different
    * type -- and an object of it cannot be declared at all, so a header carrying
    * `extern handle_t h;` against it is not valid C or C++.
    *
-   * The previous code filtered pointer typedefs out of this list silently,
-   * which swapped a contradictory declaration for a missing one. Neither is a
-   * safe degradation, so report it: reaching here means the type's defining
-   * header was not propagated into this header, and that is a transpiler
-   * defect the generated code should not paper over.
+   * The previous code filtered pointer typedefs out of the list silently, which
+   * swapped a contradictory declaration for a missing one. Neither is a safe
+   * degradation, so report it: reaching here means the type's defining header
+   * was not propagated into this header, and that is a transpiler defect the
+   * generated code should not paper over.
    *
-   * Normally unreachable -- `Transpiler._needsDefiningHeader` sets
-   * `cHeadersIncluded` for exactly these types, and this branch only runs when
-   * it is false.
+   * Returns void rather than a filtered list on purpose -- an earlier version
+   * looked like a filter and was not one, which invites the next reader to
+   * preserve filtering that never existed.
+   *
+   * Normally unreachable: `Transpiler._needsDefiningHeader` sets
+   * `cHeadersIncluded` for exactly these types, and the caller only invokes
+   * this when it is false.
    */
-  private static forwardDeclarable(
+  private static assertNoPointerTypedefs(
     externalTypes: string[],
     symbolTable: SymbolTable | undefined,
     headerName: string,
-  ): string[] {
+    symbols: IHeaderSymbol[],
+  ): void {
     const pointerTypedef = externalTypes.find((typeName) =>
       symbolTable?.isPointerTypedef(typeName),
     );
 
-    if (pointerTypedef !== undefined) {
-      throw new Error(
-        `E0505: header '${headerName}' names '${pointerTypedef}', a typedef of a ` +
-          `pointer declared in another header, but that header is not included here. ` +
-          `A forward declaration cannot express a pointer typedef -- ` +
-          `'typedef struct ${pointerTypedef} ${pointerTypedef};' would declare a ` +
-          `different, incomplete type. The header that defines it must be included.`,
-      );
+    if (pointerTypedef === undefined) {
+      return;
     }
 
-    return externalTypes;
+    // The declaration that pulled the type in. This fires on a file the user
+    // did not write, so naming the C-Next declaration is the difference
+    // between an actionable error and a puzzle.
+    const origin = BaseHeaderGenerator.findDeclaringSymbol(
+      symbols,
+      pointerTypedef,
+    );
+    const declaredBy =
+      origin === undefined ? "" : ` It is named by '${origin.name}'.`;
+    const location =
+      origin?.sourceLine === undefined ? "" : ` Line ${origin.sourceLine}`;
+
+    throw new Error(
+      `E0505: '${pointerTypedef}' is a typedef of a pointer declared in another ` +
+        `header, and generated header '${headerName}' does not include that ` +
+        `header.${declaredBy} A forward declaration cannot express a pointer ` +
+        `typedef -- 'typedef struct ${pointerTypedef} ${pointerTypedef};' would ` +
+        `declare a different, incomplete type. The header that defines it must ` +
+        `be included.${location}`,
+    );
+  }
+
+  /** The exported symbol whose type pulled `typeName` into this header. */
+  private static findDeclaringSymbol(
+    symbols: IHeaderSymbol[],
+    typeName: string,
+  ): IHeaderSymbol | undefined {
+    return symbols.find(
+      (symbol) =>
+        HeaderGeneratorUtils.extractBaseType(symbol.type ?? "") === typeName ||
+        (symbol.parameters ?? []).some(
+          (parameter) =>
+            HeaderGeneratorUtils.extractBaseType(parameter.type) === typeName,
+        ),
+    );
   }
 
   /**
@@ -159,6 +192,15 @@ abstract class BaseHeaderGenerator {
         symbolTable,
       );
 
+    if (!options.cHeadersIncluded) {
+      BaseHeaderGenerator.assertNoPointerTypedefs(
+        cCompatibleExternalTypes,
+        symbolTable,
+        filename,
+        symbols,
+      );
+    }
+
     // Build header sections using utility methods
     const lines: string[] = [
       ...HeaderGeneratorUtils.generateHeaderStart(guard, sourcePath),
@@ -167,14 +209,10 @@ abstract class BaseHeaderGenerator {
       ...HeaderGeneratorUtils.generateForwardDeclarations(
         // #1164: `typedef struct opaque_t* handle_t` is a different type from
         // `struct handle_t`, so the usual forward declaration contradicts the
-        // real definition. Its defining header is included instead.
-        options.cHeadersIncluded
-          ? []
-          : BaseHeaderGenerator.forwardDeclarable(
-              cCompatibleExternalTypes,
-              symbolTable,
-              filename,
-            ),
+        // real definition. Its defining header is included instead, which is
+        // what cHeadersIncluded means; assertNoPointerTypedefs above has
+        // already rejected the case where it was not.
+        options.cHeadersIncluded ? [] : cCompatibleExternalTypes,
       ),
       ...HeaderGeneratorUtils.generateIsrTypedefSection(
         options.needsIsrTypedef ?? false,

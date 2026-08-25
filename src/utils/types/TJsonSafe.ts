@@ -8,6 +8,12 @@
  *
  * That is the point. Issue #1225: `IStructSymbolState` gained `pointerTypedefs`
  * and the cache's hand-written capture list did not, which nothing detected.
+ *
+ * **The guarantee covers required fields only.** A homomorphic mapped type
+ * preserves `?`, so an optional field on `T` stays optional here and a
+ * serializer may silently omit it — the same defect one `?` away. Wrap the
+ * argument in `Required<...>` wherever the compile error is the defense, as
+ * `SymbolTable.serializeStructState` does.
  */
 type TJsonSafe<T> = T extends string | number | boolean | null | undefined
   ? T

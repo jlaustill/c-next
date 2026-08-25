@@ -23,7 +23,10 @@ run_check() {
         # Show what actually failed. Discarding it turned a one-line diagnosis
         # into a multi-session bisect more than once -- see #1225, where the
         # entire signal a developer got was "❌ Tests failed".
-        echo "$output" | tail -20 | sed 's/^/    /'
+        # printf, not echo: husky runs this under sh, and dash's echo
+        # interprets backslash escapes -- which would mangle a Windows path or
+        # a literal \n in the very output whose point is being readable.
+        printf '%s\n' "$output" | tail -20 | sed 's/^/    /'
         all_passed=false
         return 1
     fi

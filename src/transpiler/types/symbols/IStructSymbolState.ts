@@ -1,4 +1,13 @@
 /**
+ * **Every field here must be required — never optional.** The cache's defense
+ * against silently dropping one is a compile error from
+ * `TJsonSafe<Required<IStructSymbolState>>`, and an optional field would be
+ * satisfied by omitting it: `new Set(undefined)` is an empty Set, which is
+ * exactly #1225's failure mode (a warm build that never heard of a fact the
+ * cold build knows). `Required<...>` at the use sites makes that a compile
+ * error rather than a convention, but keeping fields required keeps the
+ * intent legible here too.
+ *
  * Issue #958: Immutable struct symbol state managed via immer produce().
  * All mutations are additive-only — no unmark/delete operations.
  * Resolution (e.g., "is this type truly opaque?") happens at query time.

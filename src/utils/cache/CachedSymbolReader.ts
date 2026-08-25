@@ -3,6 +3,9 @@ import ESourceLanguage from "../types/ESourceLanguage";
 import TJsonValue from "../types/TJsonValue";
 import TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
 import TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
+import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import IStructSymbolState from "../../transpiler/types/symbols/IStructSymbolState";
+import TJsonSafe from "../types/TJsonSafe";
 
 /** Kinds a cached C symbol may declare (mirrors TSymbolKindC). */
 const C_KINDS: ReadonlySet<string> = new Set([
@@ -64,6 +67,69 @@ class CachedSymbolReader {
       symbols.push(decoded);
     }
     return symbols;
+  }
+
+  /**
+   * Decode a cache entry's struct state.
+   *
+   * Issue #1225 review: the two halves of an entry used to get very different
+   * trust — symbols went through the validation below, struct state got a
+   * truthiness check and was handed straight to `new Set(...)` / `new Map(...)`.
+   * Both failure modes that follow are real:
+   *
+   * - `{ opaqueTypes: 5 }` makes `new Map(5)` throw out of `tryRestoreFromCache`,
+   *   aborting the transpile instead of reading as a miss.
+   * - a *missing key* makes `new Set(undefined)` an empty Set, silently — which
+   *   is #1225's own failure mode (a warm build that never heard of a fact the
+   *   cold build knows) arriving through the unchecked half. Every entry on
+   *   disk looks like that the moment `IStructSymbolState` gains a field.
+   *
+   * So both halves now fail the same way: as a cache miss, costing a re-parse.
+   *
+   * The expected keys come from `SymbolTable.structStateKeys()` rather than a
+   * list here — a list would be the hand-maintained parallel model this issue
+   * exists to remove.
+   *
+   * @returns the struct state, or `null` if the entry is not trustworthy.
+   */
+  static readStructState(
+    value: TJsonValue | undefined,
+  ): TJsonSafe<Required<IStructSymbolState>> | null {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return null;
+    }
+
+    const candidate = value as Record<string, TJsonValue>;
+    for (const key of SymbolTable.structStateKeys()) {
+      const entry = candidate[key];
+      if (!Array.isArray(entry)) {
+        return null;
+      }
+      if (!entry.every(CachedSymbolReader.isStructStateEntry)) {
+        return null;
+      }
+    }
+
+    // Validated structurally above: every expected key is present and holds
+    // either Set members (strings) or Map entries (string pairs).
+    return value as unknown as TJsonSafe<Required<IStructSymbolState>>;
+  }
+
+  /**
+   * A serialized struct-state element: a Set member, or a Map entry pair.
+   *
+   * Shape-based rather than key-based, so a new field of either kind validates
+   * without this method being edited.
+   */
+  private static isStructStateEntry(entry: TJsonValue): boolean {
+    if (typeof entry === "string") {
+      return true;
+    }
+    return (
+      Array.isArray(entry) &&
+      entry.length === 2 &&
+      entry.every((part) => typeof part === "string")
+    );
   }
 
   /**

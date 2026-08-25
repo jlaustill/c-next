@@ -196,6 +196,54 @@ describe("CacheManager", () => {
       expect(cached).toBeNull();
     });
 
+    it("invalidates the cache when the struct-state shape changes (#1225 review)", async () => {
+      // TJsonSafe<Required<...>> forces the WRITER to persist a new field, but
+      // nothing forced already-written entries to be discarded -- that was
+      // CACHE_VERSION, bumped by hand, so the compile error told the next person
+      // to write the field without mentioning a second step. The fingerprint is
+      // derived from the serializer, so it closes that loop on its own.
+      await cacheManager.initialize();
+
+      const testFile = join(testDir, "test.h");
+      writeFileSync(testFile, "// test");
+      storeSymbols(testFile, [createTestSymbol({ sourceFile: testFile })]);
+      await cacheManager.flush();
+
+      const configPath = join(testDir, ".cnx", "config.json");
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.structStateShape).toBe(
+        SymbolTable.structStateKeys().sort().join(","),
+      );
+
+      // Simulate a build whose IStructSymbolState had one fewer field.
+      config.structStateShape = "opaqueTypes";
+      writeFileSync(configPath, JSON.stringify(config));
+
+      const newManager = new CacheManager(testDir);
+      await newManager.initialize();
+
+      expect(newManager.getSymbols(testFile)).toBeNull();
+    });
+
+    it("treats an entry with unreadable struct state as a miss (#1225 review)", async () => {
+      // Not a throw, and not a silently-empty restore: both of those are the
+      // defect. A miss costs a re-parse.
+      await cacheManager.initialize();
+
+      const testFile = join(testDir, "test.h");
+      writeFileSync(testFile, "// test");
+      storeSymbols(testFile, [createTestSymbol({ sourceFile: testFile })]);
+      expect(cacheManager.getSymbols(testFile)).not.toBeNull();
+
+      // Corrupt the struct state the way a truncated write or another tool would.
+      cacheManager.setSymbols(testFile, [], new Map(), {
+        structState: { opaqueTypes: 5 } as never,
+      });
+
+      expect(() => cacheManager.getSymbols(testFile)).not.toThrow();
+      expect(cacheManager.getSymbols(testFile)).toBeNull();
+    });
+
     it("should invalidate cache when transpiler version changes", async () => {
       // Create initial cache
       await cacheManager.initialize();

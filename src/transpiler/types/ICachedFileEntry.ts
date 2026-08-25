@@ -41,7 +41,7 @@ interface ICachedFileEntry {
    * The type is derived from `IStructSymbolState`, so a new field there is a
    * compile error until it is captured.
    */
-  structState: TJsonSafe<IStructSymbolState>;
+  structState: TJsonSafe<Required<IStructSymbolState>>;
   /**
    * Issue #985: This header could not be preprocessed standalone and fell back
    * to raw content, so its cached symbols are degraded (phantom struct bodies,

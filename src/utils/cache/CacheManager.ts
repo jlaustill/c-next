@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import JsonCodec from "./JsonCodec";
+import CachedSymbolReader from "./CachedSymbolReader";
 import IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
@@ -32,9 +33,24 @@ import ESourceLanguage from "../types/ESourceLanguage";
 const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
-const CACHE_VERSION = 9; // Issue #1225: symbols stored as real typed symbols; struct state captured whole
+// Bump when the ENTRY shape changes in a way no fingerprint can see -- the
+// TCSymbol/TCppSymbol unions are types, so their keys cannot be enumerated at
+// runtime. Struct-state drift no longer needs a bump: STRUCT_STATE_SHAPE below
+// is derived and invalidates on its own.
+const CACHE_VERSION = 9; // Issue #1225: real typed symbols; struct state captured whole
 
 const TRANSPILER_VERSION = packageJson.version;
+
+/**
+ * Fingerprint of the struct-state shape, derived from the serializer itself.
+ *
+ * Issue #1225 review: `TJsonSafe<Required<IStructSymbolState>>` forces the
+ * writer to persist a new field, but nothing forced already-written entries to
+ * be discarded -- that was CACHE_VERSION, bumped by hand, so the compile error
+ * told the next person to write the field without mentioning a second step.
+ * Deriving it closes the loop for exactly the change that needs it.
+ */
+const STRUCT_STATE_SHAPE = SymbolTable.structStateKeys().sort().join(",");
 
 /**
  * Manages symbol cache for faster incremental builds
@@ -136,7 +152,7 @@ class CacheManager {
     structFields: Map<string, Map<string, IStructFieldInfo>>;
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
-    structState: TJsonSafe<IStructSymbolState>;
+    structState: TJsonSafe<Required<IStructSymbolState>>;
     preprocessFailed: boolean;
   } | null {
     if (!this.cache) return null;
@@ -148,10 +164,14 @@ class CacheManager {
     const cachedEntry = entry as ICachedFileEntry;
 
     // Issue #1225: entries come off disk, so the type annotation above is a
-    // claim rather than a guarantee. One without struct state was written in an
-    // older shape or written partially; treating it as a miss costs a re-parse,
-    // trusting it costs a wrong header.
-    if (!cachedEntry.structState) {
+    // claim rather than a guarantee. Struct state is validated the same way
+    // symbols are -- an entry whose struct state is the wrong shape, or is
+    // merely missing a key, reads as a miss rather than throwing out of the
+    // transpile or restoring a silently empty Set.
+    const structState = CachedSymbolReader.readStructState(
+      cachedEntry.structState,
+    );
+    if (structState === null) {
       return null;
     }
 
@@ -184,7 +204,7 @@ class CacheManager {
       structFields,
       needsStructKeyword: cachedEntry.needsStructKeyword ?? [],
       enumBitWidth,
-      structState: cachedEntry.structState,
+      structState,
       preprocessFailed: cachedEntry.preprocessFailed ?? false,
     };
   }
@@ -201,7 +221,7 @@ class CacheManager {
     symbols: TJsonValue[],
     structFields: Map<string, Map<string, IStructFieldInfo>>,
     options: {
-      structState: TJsonSafe<IStructSymbolState>;
+      structState: TJsonSafe<Required<IStructSymbolState>>;
       needsStructKeyword?: string[];
       enumBitWidth?: Map<string, number>;
       preprocessFailed?: boolean;
@@ -438,6 +458,7 @@ class CacheManager {
       version: CACHE_VERSION,
       created: Date.now(),
       transpilerVersion: TRANSPILER_VERSION,
+      structStateShape: STRUCT_STATE_SHAPE,
     };
 
     this.saveConfig(config);
@@ -452,6 +473,7 @@ class CacheManager {
       version: CACHE_VERSION,
       created: Date.now(),
       transpilerVersion: TRANSPILER_VERSION,
+      structStateShape: STRUCT_STATE_SHAPE,
     };
 
     this.fs.writeFile(this.configPath, JSON.stringify(configToSave, null, 2));
@@ -468,6 +490,12 @@ class CacheManager {
 
     // Invalidate if transpiler version changed
     if (config.transpilerVersion !== TRANSPILER_VERSION) {
+      return true;
+    }
+
+    // Issue #1225: struct state gained or lost a field, so every stored entry
+    // describes a shape this build does not have.
+    if (config.structStateShape !== STRUCT_STATE_SHAPE) {
       return true;
     }
 

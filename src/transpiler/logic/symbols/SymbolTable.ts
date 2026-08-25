@@ -1016,7 +1016,7 @@ class SymbolTable {
    * it: covering every key removes "is this one derived?" as something anyone
    * has to remember.
    */
-  serializeStructState(): TJsonSafe<IStructSymbolState> {
+  serializeStructState(): TJsonSafe<Required<IStructSymbolState>> {
     return {
       opaqueTypes: Array.from(this.structState.opaqueTypes),
       typedefStructTypes: Array.from(this.structState.typedefStructTypes),
@@ -1025,6 +1025,18 @@ class SymbolTable {
       structTagsWithBodies: Array.from(this.structState.structTagsWithBodies),
       pointerTypedefs: Array.from(this.structState.pointerTypedefs),
     };
+  }
+
+  /**
+   * Issue #1225: the keys `serializeStructState` produces.
+   *
+   * Derived by running the serializer rather than listing them, so it cannot
+   * fall behind the interface. Two callers need it and must agree: the reader
+   * that validates an entry's struct state, and the cache-config fingerprint
+   * that invalidates entries written under an older shape.
+   */
+  static structStateKeys(): string[] {
+    return Object.keys(new SymbolTable().serializeStructState());
   }
 
   /**
@@ -1037,8 +1049,8 @@ class SymbolTable {
    * fails to compile if a field is not revived, and `mergeStructState` walks
    * the object rather than naming fields, so it cannot skip one.
    */
-  restoreStructState(state: TJsonSafe<IStructSymbolState>): void {
-    const revived: IStructSymbolState = {
+  restoreStructState(state: TJsonSafe<Required<IStructSymbolState>>): void {
+    const revived: Required<IStructSymbolState> = {
       opaqueTypes: new Set(state.opaqueTypes),
       typedefStructTypes: new Map(state.typedefStructTypes),
       structTagAliases: new Map(state.structTagAliases),
