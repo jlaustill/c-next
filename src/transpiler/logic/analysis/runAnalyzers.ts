@@ -2,7 +2,7 @@
  * Run all semantic analyzers on a parsed C-Next program
  *
  * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 13 analyzers (plus comment validation) run in sequence, each returning
+ * All 14 analyzers (plus comment validation) run in sequence, each returning
  * errors that block compilation.
  */
 
@@ -21,6 +21,7 @@ import SignedShiftAnalyzer from "./SignedShiftAnalyzer";
 import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
+import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../../lib/types/ITranspileError";
 import SymbolTable from "../symbols/SymbolTable";
@@ -201,7 +202,15 @@ function runAnalyzers(
     return errors;
   }
 
-  // 14. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
+  // 14. Return-value use (ADR-070: a non-void return must be used or explicitly
+  //     discarded with `(void)`). MISRA C:2012 Rule 17.7 at the source level.
+  if (
+    collectErrors(ReturnValueUseAnalyzer.analyze(tree), errors, formatWithCode)
+  ) {
+    return errors;
+  }
+
+  // 15. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
   const commentExtractor = new CommentExtractor(tokenStream);
   collectErrors(
     commentExtractor.validate(),

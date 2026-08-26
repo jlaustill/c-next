@@ -589,6 +589,19 @@ class PassByValueAnalyzer {
       );
     }
 
+    // ADR-070: `(void) f(cfg);` is a castExpression wrapping the call, so the
+    // call is a level deeper than a bare `f(cfg);`. Without this the explicit
+    // discard would hide the callee from modification tracking and the caller's
+    // parameter would be inferred const even though the callee mutates it.
+    const cast = primary.castExpression();
+    if (cast?.unaryExpression()) {
+      PassByValueAnalyzer.walkUnaryExpressionForCalls(
+        funcName,
+        paramSet,
+        cast.unaryExpression()!,
+      );
+    }
+
     // Walk arguments in any postfix function call ops (for nested calls)
     PassByValueAnalyzer.walkPostfixOpsRecursively(
       funcName,

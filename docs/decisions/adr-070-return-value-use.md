@@ -72,7 +72,13 @@ that _exceptions to rules are where bugs come from._
 1. **Default — every non-void return must be used or explicitly discarded** (safe-by-default).
    Strongest guarantee, fits C-Next's explicit-flow ethos. There is no opt-in/opt-out; the rule
    holds uniformly for every non-void call whose return type C-Next can resolve.
-2. **Explicit discard syntax — `(void) expr;`** — the standard C cast-to-`void`. This is the
+2. **Explicit discard syntax — `(void) expr;`, and only `void`.** A cast to any _other_ type
+   does not silence the rule: `(u32) next();` throws the value away exactly as completely, so it
+   is the silent-discard hole wearing a cast rather than an explicit discard. (Confirmed during
+   #1260 review; note cppcheck does not flag it under Rule 17.7, treating any cast as a use —
+   C-Next is deliberately stricter than the tool here.)
+
+   The form itself is the standard C cast-to-`void`. This is the
    established C idiom for "I am intentionally not using this return value," e.g.
    `(void) printf("not using the return value intentionally!");`. It **parses today**: it is the
    existing ADR-017 cast expression (`'(' type ')' unaryExpression`, with `void` a valid
@@ -173,10 +179,23 @@ To be settled in the ADR, proposed for v1:
 - **#1081 (Rule 21.15):** adding the slice-`memcpy` `(void)` cast unmasks a pre-existing 21.15
   (incompatible `uint8_t*` vs `uintN_t*`). cppcheck reports one rule per line, so 21.15 is
   latent on `main` until the cast lands. Implementing Case 1 here will surface it.
-- **safe_div / safe_mod (ADR-051):** at the C-Next source level these are out-parameter
-  builtins with no bound return, so the must-use rule does **not** apply to them. (Their
-  _generated_ helper returns `bool`; that is a Case-1 codegen detail, not a Case-2 author
-  concern.)
+- **safe_div / safe_mod (ADR-051):** these are **not** exempt — the must-use rule applies to
+  them like any other non-void function.
+
+  > **Corrected during implementation (#847).** An earlier revision of this ADR exempted them,
+  > on the premise that "at the C-Next source level these are out-parameter builtins with no
+  > bound return". **That premise was factually wrong.** Authors bind the return constantly —
+  > `err <- safe_div(result, 10, 2, 0);` appears six times in
+  > `tests/arithmetic/safe-div-basic.test.cnx` alone. The exemption appears to have been
+  > reasoned from the _generated_ helper without checking the C-Next surface.
+  >
+  > It also contradicted this ADR's own opening argument, which names "a discarded `safe_div`
+  > outcome" as a motivating example of the very bug the rule exists to prevent. Exempting the
+  > example is not a defensible carve-out, and the ADR's own principle — _exceptions to rules
+  > are where bugs come from_ — points the other way.
+
+  `safe_div`/`safe_mod` return `bool` (true on error). A discarded outcome is an **E0708**, and
+  an intentional discard is written `(void) safe_div(result, 100, 0, 999);`.
 
 ## Breaking-Change Note
 
@@ -203,14 +222,133 @@ The owner has set these (they are no longer open):
 - **stdlib handling:** no curated carve-out — `(void)` is required at every dropped stdlib
   return whose type is resolvable, identical to C-Next calls.
 
-## Open Questions
+## Settled During Implementation (#847)
 
-- **Unknown external C:** error or exempt when the return type cannot be resolved? (Recommend
-  exempt — you cannot check a return type you cannot see; this is the rule's domain boundary,
-  not a carve-out.)
-- **Rollout:** behind a flag first, or straight to an error once the suite/examples are
-  migrated?
-- **Error code:** confirm **E0708**.
+The questions left open above were implementation details, and the build settled them:
+
+- **Unknown external C — resolve it where visible, exempt only where it is not.** Functions
+  declared in included C **and** C++ headers are resolvable: they reach the analyzer through
+  `SymbolTable.getCSymbol()` / `getCppSymbol()` rather than `CodeGenState.symbols`, which merges
+  only `.cnx` includes. `ReturnValueUseAnalyzer.externalReturnType()` consults both, so
+  `global.spi_device_init(...)` is enforced. A name that resolves through neither route is
+  outside the rule's domain — not exempted from it.
+
+  > `.h` and `.hpp` symbols live in **separate indexes**. An earlier revision of this section
+  > claimed C/C++ headers were resolvable when only the C half was wired, so a non-void function
+  > from an included `.hpp` was silently exempt while its `.h` twin was an error. Corrected in
+  > review of #1260; both halves are now consulted, with a fixture each.
+
+- **Rollout — straight to an error, no flag.** The suite and examples were migrated in the same
+  change (61 author-written discards), so there is no window in which a flag would have had
+  anything to guard. A flag would also have been a second code path deciding the same question.
+- **Error code — E0708 confirmed**, and allocated in `docs/error-codes.md`.
+
+### Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist** for
+this feature, `warn` that it should be covered and is not, `error` that it must
+be. Undeclared cells are `off`.
+
+E0708 fires on an **expression statement** whose entire value is a discarded
+call. That single fact decides the context axis, because C-Next only admits an
+expression statement inside a function body:
+
+- **top-level function** and **scope method** are where the construct lives, so
+  every file relationship in those rows is `error`.
+- **global variable** and **scope member** are `off`, and this is a claim about
+  the grammar rather than about coverage. Writing `next();` at file scope or in
+  a scope-member position is not an unenforced case — it is a parse error
+  (`no viable alternative at input 'next('`), verified both ways. There is no
+  program in which E0708 could fire in those contexts, so a fixture cannot be
+  written for them.
+
+The relationship axis carries no such argument. The callee's return type is what
+the rule needs, and it may be declared in the same file, one `.cnx` include away,
+or reached through an intermediate — and #847 shipped with the cross-file case
+silently unenforced precisely because nothing exercised it. All three
+relationships are `error` in both live rows.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+
+Six cells are `error` and all six are occupied — see
+`docs/scope-context-matrix.md`. Three of the six were reached only by fixtures
+written for this declaration (`scope-method-imported-discard`,
+`transitive-function-discard`, `transitive-scope-method-discard`); the
+declaration is what showed they were missing.
+
+The two provider-side relationships carry no declaration: `.expected.error`
+holds no file path, so occupancy for them is not derivable and the report
+renders them `n/a` rather than counting them empty.
+
+#### What this matrix cannot see
+
+Recorded because #847's review found three enforcement gaps and this matrix
+would have caught only one of them — the cross-file case above.
+
+- **Syntactic form.** A bare `read()` and a qualified `this.read()` inside the
+  same scope method derive the _same_ cell, so a fixture using one leaves the
+  cell green while the other is unenforced. That is exactly what happened: the
+  qualified spelling was checked, the bare one — which CLAUDE.md makes house
+  style — was not. #1210 records the same shape for a different rule.
+- **External-header provenance.** The relationship axis counts `.cnx` include
+  hops only, so a callee declared in a `.h` or a `.hpp` is indistinguishable
+  from a same-file one. `.h` and `.hpp` symbols live in separate indexes, and
+  the `.hpp` half was silently exempt while the `.h` half errored.
+
+Neither is a defect in this declaration; both are limits of the axes. The
+fixtures for those two dimensions exist (`bare-intra-scope-discard`,
+`external-c-discard`, `external-cpp-discard`) and are marked `// test-adr: 070`,
+but they occupy cells that other fixtures already occupy, so the gate cannot
+require them.
+
+## Implementation Notes (#847)
+
+- **Case 1** lives at one emit site: `StringUtils` (`copyWithNull`, `copy`, `concat`,
+  `substring`) is the sole producer of the lowered `strncpy`/`strncat` calls, and the `(void)`
+  cast is part of what it produces. `StringDeclHelper` previously rebuilt two of those
+  sequences inline; it now delegates, so the cast cannot drift between them.
+- **Case 2** is `ReturnValueUseAnalyzer`, registered in `runAnalyzers.ts` alongside the other
+  analysis passes. It reports E0708 when a resolvable non-void call is the entire expression
+  statement.
+- **ADR-016 qualifiers are separate tokens.** `this.member()` and `global.Scope.member()` do
+  not present as `IDENTIFIER` primaries. An implementation that only handled identifiers would
+  silently pass exactly the scope getters this rule is meant to catch — the analyzer resolves
+  all three forms.
+- **ADR-057's bare intra-scope call needs a scope fallback.** `functionReturnTypes` is keyed by
+  transpiled C name, so a bare `read()` inside `scope Timer` misses the lookup that
+  `this.read()` hits. Without the fallback the rule would be enforced on the qualified spelling
+  and silently skipped on the one CLAUDE.md makes house style — the same key-by-layer defect
+  `tests/bugs/issue-1210-bare-intra-scope-call/` records. The "when does an unqualified name
+  mean a scope member" decision is shared with `FunctionCallAnalyzer` through
+  `CalleeNameResolver.scopeQualifiedCandidate()` rather than re-derived.
+- **Scope names must come from the include-merged set.** `CodeGenState.isKnownScope()` reads
+  scopes merged across `.cnx` includes; a per-file collection alone leaves every cross-file
+  `Helper.compute()` unrecognised as a call at all, which is a _name_-resolution gap rather
+  than the documented "return type you cannot see" boundary.
+- **Stdlib metadata** moved to `StdlibFunctions`, shared with `FunctionCallAnalyzer`, so
+  "which header declares this name" and "does it return void" are answered from one list.
+- **MISRA Rules 17.7 and 11.8 are both enforced, neither baselined.** Removing 17.7 unmasked a
+  pre-existing Rule 11.8 const-discard (cppcheck reports one rule per line), filed as **#1259**.
+  It turned out to be the same defect from the other side: `PassByValueAnalyzer` walks
+  statements manually for modifications and did not descend through a cast, so making `(void)`
+  the sanctioned discard idiom would have hidden every discarded call from const inference —
+  silently flipping a mutating callee's argument to `const`. Teaching that walk to see through
+  a cast fixes #1259 and is what makes the `(void)` idiom safe to recommend at all.
 
 ## Prior Art
 

@@ -15,7 +15,7 @@
 static char S__buf[17] = "";
 
 void S__init(void) {
-    strncpy(S__buf, "", 16); S__buf[16] = '\0';
+    (void) strncpy(S__buf, "", 16); S__buf[16] = '\0';
 }
 
 uint8_t S__len(void) {

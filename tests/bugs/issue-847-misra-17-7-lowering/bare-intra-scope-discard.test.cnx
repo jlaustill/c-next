@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 070
+// #847 / ADR-070 + ADR-057: a BARE intra-scope call is the idiomatic form
+// (CLAUDE.md house style), and return types are keyed by transpiled C name --
+// so the bare name misses the lookup unless the scope fallback is applied.
+// The this.-qualified twin was already covered; this is the form that shipped
+// unguarded. Same key-by-layer defect as tests/bugs/issue-1210-*.
+scope Timer {
+    u32 read() {
+        return 1;
+    }
+
+    void poll() {
+        read();
+    }
+}

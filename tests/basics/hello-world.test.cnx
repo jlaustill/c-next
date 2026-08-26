@@ -3,7 +3,7 @@
 string<50> userName;
 
 u32 main(string args[]) {
-    printf("What is your name in 50 characters or less? ");
+    (void) printf("What is your name in 50 characters or less? ");
 
 
 // ADR-046: c_ prefix required for nullable C pointers
@@ -16,7 +16,7 @@ u32 main(string args[]) {
 
     u8 whoAmIByte <- args[0][0];
 
-    printf("Hello from %s %s! Your special character is %c\n", args[0], userName, whoAmIByte);
+    (void) printf("Hello from %s %s! Your special character is %c\n", args[0], userName, whoAmIByte);
 
     return 0;
 }

@@ -193,12 +193,12 @@ void handleCompoundModify(ConstEdge__Config* config) {
 
 // Edge case 12: Bare function call (expression statement, no assignment)
 void handleBareCall(ConstEdge__Config* config) {
-    Handler__setValue(config, 90U);
+    (void)Handler__setValue(config, 90U);
 }
 
 // Edge case 13: Bare function call that only reads (should be const)
 void handleBareReadOnly(const ConstEdge__Config* config) {
-    Handler__getValue(config);
+    (void)Handler__getValue(config);
 }
 
 int main(void) {

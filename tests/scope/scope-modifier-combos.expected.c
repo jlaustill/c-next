@@ -171,25 +171,25 @@ void ModifierCombos__adjustAllWrap(void) {
 }
 
 int main(void) {
-    ModifierCombos__getMaxBrightness();
-    ModifierCombos__getMaxSensor();
-    ModifierCombos__getMinTemp();
-    ModifierCombos__getCounterStart();
-    ModifierCombos__getTickStart();
-    ModifierCombos__getPublicClampByte();
-    ModifierCombos__getPublicClampWord();
-    ModifierCombos__getPublicClampSigned();
-    ModifierCombos__getPrivateClampByte();
-    ModifierCombos__getPrivateClampWord();
-    ModifierCombos__getPrivateClampSigned();
-    ModifierCombos__getPublicWrapByte();
-    ModifierCombos__getPublicWrapWord();
-    ModifierCombos__getPrivateWrapByte();
-    ModifierCombos__getPrivateWrapWord();
-    ModifierCombos__getPublicConst();
-    ModifierCombos__getPublicFlag();
-    ModifierCombos__getPrivateConst();
-    ModifierCombos__getPrivateFlag();
+    (void)ModifierCombos__getMaxBrightness();
+    (void)ModifierCombos__getMaxSensor();
+    (void)ModifierCombos__getMinTemp();
+    (void)ModifierCombos__getCounterStart();
+    (void)ModifierCombos__getTickStart();
+    (void)ModifierCombos__getPublicClampByte();
+    (void)ModifierCombos__getPublicClampWord();
+    (void)ModifierCombos__getPublicClampSigned();
+    (void)ModifierCombos__getPrivateClampByte();
+    (void)ModifierCombos__getPrivateClampWord();
+    (void)ModifierCombos__getPrivateClampSigned();
+    (void)ModifierCombos__getPublicWrapByte();
+    (void)ModifierCombos__getPublicWrapWord();
+    (void)ModifierCombos__getPrivateWrapByte();
+    (void)ModifierCombos__getPrivateWrapWord();
+    (void)ModifierCombos__getPublicConst();
+    (void)ModifierCombos__getPublicFlag();
+    (void)ModifierCombos__getPrivateConst();
+    (void)ModifierCombos__getPrivateFlag();
     ModifierCombos__increasePublicClampByte();
     ModifierCombos__decreasePublicClampSigned();
     ModifierCombos__incrementPublicWrapByte();

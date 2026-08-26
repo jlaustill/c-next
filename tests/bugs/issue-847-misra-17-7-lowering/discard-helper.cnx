@@ -1,0 +1,11 @@
+// Helper for cross-file-scope-discard: the scope lives in a DIFFERENT file, so
+// the analyzer must see scopes merged across includes, not just this file's.
+scope Helper {
+    public u32 compute() {
+        return 5;
+    }
+
+    public u32 other() {
+        return 6;
+    }
+}

@@ -19,9 +19,9 @@ void testLoopPattern(void) {
     if (c_file != nullptr) {
         char* c_line = fgets(buffer, 257, c_file);
         while (c_line != nullptr) {
-            printf("%s", buffer);
+            static_cast<void>(printf("%s", buffer));
             c_line = fgets(buffer, 257, c_file);
         }
-        fclose(c_file);
+        static_cast<void>(fclose(c_file));
     }
 }

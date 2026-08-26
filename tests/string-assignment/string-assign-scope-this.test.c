@@ -14,15 +14,15 @@
 char Logger__message[65] = "";
 
 void Logger__setMessage(void) {
-    strncpy(Logger__message, "Hello from scope", 64); Logger__message[64] = '\0';
+    (void) strncpy(Logger__message, "Hello from scope", 64); Logger__message[64] = '\0';
 }
 
 void Logger__clear(void) {
-    strncpy(Logger__message, "", 64); Logger__message[64] = '\0';
+    (void) strncpy(Logger__message, "", 64); Logger__message[64] = '\0';
 }
 
 void Logger__setCustom(void) {
-    strncpy(Logger__message, "Custom", 64); Logger__message[64] = '\0';
+    (void) strncpy(Logger__message, "Custom", 64); Logger__message[64] = '\0';
 }
 
 int main(void) {

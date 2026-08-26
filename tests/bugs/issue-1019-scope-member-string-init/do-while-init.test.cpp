@@ -30,7 +30,7 @@ static char S__buf[17] = "";
 void S__init(void) {
     uint8_t i = 0U;
     do {
-        strncpy(S__buf, "initialized", 16); S__buf[16] = '\0';
+        (void) strncpy(S__buf, "initialized", 16); S__buf[16] = '\0';
         i = cnx_clamp_add_u8(i, 1U);
     } while (i < 1);
 }

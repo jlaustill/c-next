@@ -25,7 +25,7 @@ scope Motor {
 }
 
 u32 main() {
-    Motor.start();
+    (void) Motor.start();
     if (Motor.current != Motor.State.RUNNING) return 1;
 
     bool running <- Motor.isRunning();

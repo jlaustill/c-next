@@ -47,8 +47,10 @@ const BASELINE = new Map([
   ["misra-c2012-11.4", "#867"],
   ["misra-c2012-12.1", "#865"],
   ["misra-c2012-15.5", "#861"],
-  ["misra-c2012-17.7", "#847"],
   ["misra-c2012-18.4", "#859"],
+  // Rule 17.7 is deliberately absent: #847 / ADR-070 casts transpiler-emitted
+  // lowering calls to (void) at their single emit site and makes author-written
+  // discards a compile error (E0708), so the rule is enforced, not baselined.
   // --- rules surfaced by #1057, newly tracked (#1059–#1072) ---
   ["misra-c2012-8.6", "#1059"],
   ["misra-c2012-5.9", "#1060"],

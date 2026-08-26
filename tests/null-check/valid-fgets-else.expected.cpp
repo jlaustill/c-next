@@ -16,8 +16,8 @@ char line[129] = "";
 void processLine(void) {
     char* c_result = fgets(line, 129, stdin);
     if (c_result != nullptr) {
-        printf("Read: %s", line);
+        static_cast<void>(printf("Read: %s", line));
     } else {
-        printf("No more input\n");
+        static_cast<void>(printf("No more input\n"));
     }
 }

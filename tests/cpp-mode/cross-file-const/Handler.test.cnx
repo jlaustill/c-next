@@ -15,5 +15,5 @@ scope Handler {
 
 void main() {
     Config c <- {value: 0};
-    global.Handler.reset(c);
+    (void) global.Handler.reset(c);
 }

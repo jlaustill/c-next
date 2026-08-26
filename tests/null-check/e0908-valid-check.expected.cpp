@@ -12,6 +12,6 @@
 void testValidCheck(void) {
     FILE* c_file = fopen("test.txt", "r");
     if (c_file != nullptr) {
-        fclose(c_file);
+        static_cast<void>(fclose(c_file));
     }
 }

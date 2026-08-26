@@ -1,0 +1,12 @@
+// test-error
+// test-cpp-only
+// test-adr: 070
+// #847 / ADR-070: .hpp symbols are stored in a separate index from .h ones, so
+// the C++ half needed its own lookup -- it was silently exempt while the
+// identical .h declaration was an error.
+#include "discard-cpp-lib.hpp"
+
+i32 main() {
+    cppLibGetValue();
+    return 0;
+}

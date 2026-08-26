@@ -504,17 +504,45 @@ void loop() {
 }
 ```
 
+## Return Values Must Be Used
+
+A function that hands something back must have it used, or explicitly thrown away.
+
+```cnx
+u32 readSensor() {
+    return 42;
+}
+
+void poll() {
+    u32 v <- readSensor();   // used -- fine
+    (void) readSensor();     // deliberately discarded -- fine, and it says so
+    readSensor();            // error[E0708]: return value discarded
+}
+```
+
+`(void)` is C's own cast, not a new keyword, and it is exactly what appears in the generated C.
+
+This applies to anything C-Next can see the return type of, including the standard library:
+
+```cnx
+(void) printf("ready\n");   // printf returns int
+```
+
+If the return type cannot be resolved at all -- an external C function C-Next never parsed --
+the rule cannot apply, because there is nothing to check against.
+
 ## Key Differences from C
 
-| C                | C-Next         | Why                    |
-| ---------------- | -------------- | ---------------------- |
-| `x = 5`          | `x <- 5`       | Assignment is explicit |
-| `x == 5`         | `x = 5`        | Equality uses math =   |
-| `int`            | `i32`          | Fixed widths           |
-| `(u8)big`        | `big[0, 8]`    | Explicit bit extract   |
-| `case X: break;` | `case X { }`   | No fallthrough         |
-| Silent overflow  | `clamp`/`wrap` | Explicit behavior      |
-| `{1, 2, 3}`      | `[1, 2, 3]`    | Arrays use []          |
+| C                | C-Next         | Why                       |
+| ---------------- | -------------- | ------------------------- |
+| `x = 5`          | `x <- 5`       | Assignment is explicit    |
+| `x == 5`         | `x = 5`        | Equality uses math =      |
+| `int`            | `i32`          | Fixed widths              |
+| `(u8)big`        | `big[0, 8]`    | Explicit bit extract      |
+| `case X: break;` | `case X { }`   | No fallthrough            |
+| Silent overflow  | `clamp`/`wrap` | Explicit behavior         |
+| `f();` ignored   | `(void) f();`  | Discards are written down |
+| `{1, 2, 3}`      | `[1, 2, 3]`    | Arrays use []             |
 
 ## Further Reading
 

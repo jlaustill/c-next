@@ -16,189 +16,14 @@ import ParserUtils from "../../../utils/ParserUtils";
 import CodeGenState from "../../state/CodeGenState";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
+import StdlibFunctions from "./StdlibFunctions";
+import CalleeNameResolver from "./helpers/CalleeNameResolver";
 
 /**
  * C-Next built-in functions
  * These are compiler intrinsics that don't need to be defined by the user
  */
-const CNEXT_BUILTINS: Set<string> = new Set([
-  "safe_div", // ADR-051: Safe division with default value
-  "safe_mod", // ADR-051: Safe modulo with default value
-]);
-
-/**
- * Standard library functions mapped to their header files.
- * Flat structure: function name → header file.
- * These are considered "external" and don't need to be defined in C-Next.
- */
-const STDLIB_FUNCTION_HEADERS: Record<string, string> = {
-  // stdio.h
-  printf: "stdio.h",
-  fprintf: "stdio.h",
-  sprintf: "stdio.h",
-  snprintf: "stdio.h",
-  scanf: "stdio.h",
-  fscanf: "stdio.h",
-  sscanf: "stdio.h",
-  fopen: "stdio.h",
-  fclose: "stdio.h",
-  fread: "stdio.h",
-  fwrite: "stdio.h",
-  fgets: "stdio.h",
-  fputs: "stdio.h",
-  fgetc: "stdio.h",
-  fputc: "stdio.h",
-  puts: "stdio.h",
-  putchar: "stdio.h",
-  getchar: "stdio.h",
-  gets: "stdio.h",
-  perror: "stdio.h",
-  fflush: "stdio.h",
-  fseek: "stdio.h",
-  ftell: "stdio.h",
-  rewind: "stdio.h",
-  feof: "stdio.h",
-  ferror: "stdio.h",
-  clearerr: "stdio.h",
-  remove: "stdio.h",
-  rename: "stdio.h",
-  tmpfile: "stdio.h",
-  tmpnam: "stdio.h",
-  setbuf: "stdio.h",
-  setvbuf: "stdio.h",
-  // stdlib.h
-  malloc: "stdlib.h",
-  calloc: "stdlib.h",
-  realloc: "stdlib.h",
-  free: "stdlib.h",
-  atoi: "stdlib.h",
-  atof: "stdlib.h",
-  atol: "stdlib.h",
-  atoll: "stdlib.h",
-  strtol: "stdlib.h",
-  strtoul: "stdlib.h",
-  strtoll: "stdlib.h",
-  strtoull: "stdlib.h",
-  strtof: "stdlib.h",
-  strtod: "stdlib.h",
-  strtold: "stdlib.h",
-  rand: "stdlib.h",
-  srand: "stdlib.h",
-  exit: "stdlib.h",
-  abort: "stdlib.h",
-  atexit: "stdlib.h",
-  system: "stdlib.h",
-  getenv: "stdlib.h",
-  abs: "stdlib.h",
-  labs: "stdlib.h",
-  llabs: "stdlib.h",
-  div: "stdlib.h",
-  ldiv: "stdlib.h",
-  lldiv: "stdlib.h",
-  qsort: "stdlib.h",
-  bsearch: "stdlib.h",
-  // string.h
-  strlen: "string.h",
-  strcpy: "string.h",
-  strncpy: "string.h",
-  strcat: "string.h",
-  strncat: "string.h",
-  strcmp: "string.h",
-  strncmp: "string.h",
-  strchr: "string.h",
-  strrchr: "string.h",
-  strstr: "string.h",
-  strtok: "string.h",
-  memcpy: "string.h",
-  memmove: "string.h",
-  memset: "string.h",
-  memcmp: "string.h",
-  memchr: "string.h",
-  // math.h
-  sin: "math.h",
-  cos: "math.h",
-  tan: "math.h",
-  asin: "math.h",
-  acos: "math.h",
-  atan: "math.h",
-  atan2: "math.h",
-  sinh: "math.h",
-  cosh: "math.h",
-  tanh: "math.h",
-  exp: "math.h",
-  log: "math.h",
-  log10: "math.h",
-  log2: "math.h",
-  pow: "math.h",
-  sqrt: "math.h",
-  cbrt: "math.h",
-  ceil: "math.h",
-  floor: "math.h",
-  round: "math.h",
-  trunc: "math.h",
-  fabs: "math.h",
-  fmod: "math.h",
-  remainder: "math.h",
-  fmax: "math.h",
-  fmin: "math.h",
-  hypot: "math.h",
-  ldexp: "math.h",
-  frexp: "math.h",
-  modf: "math.h",
-  // C99 classification macros (also functions in C++)
-  isnan: "math.h",
-  isinf: "math.h",
-  isfinite: "math.h",
-  isnormal: "math.h",
-  signbit: "math.h",
-  fpclassify: "math.h",
-  nan: "math.h",
-  nanf: "math.h",
-  nanl: "math.h",
-  // ctype.h
-  isalnum: "ctype.h",
-  isalpha: "ctype.h",
-  isdigit: "ctype.h",
-  isxdigit: "ctype.h",
-  islower: "ctype.h",
-  isupper: "ctype.h",
-  isspace: "ctype.h",
-  ispunct: "ctype.h",
-  isprint: "ctype.h",
-  isgraph: "ctype.h",
-  iscntrl: "ctype.h",
-  tolower: "ctype.h",
-  toupper: "ctype.h",
-  // time.h
-  time: "time.h",
-  clock: "time.h",
-  difftime: "time.h",
-  mktime: "time.h",
-  strftime: "time.h",
-  localtime: "time.h",
-  gmtime: "time.h",
-  asctime: "time.h",
-  ctime: "time.h",
-  // assert.h
-  assert: "assert.h",
-  // Arduino framework
-  pinMode: "Arduino.h",
-  digitalWrite: "Arduino.h",
-  digitalRead: "Arduino.h",
-  analogRead: "Arduino.h",
-  analogWrite: "Arduino.h",
-  delay: "Arduino.h",
-  delayMicroseconds: "Arduino.h",
-  millis: "Arduino.h",
-  micros: "Arduino.h",
-  attachInterrupt: "Arduino.h",
-  detachInterrupt: "Arduino.h",
-  noInterrupts: "Arduino.h",
-  interrupts: "Arduino.h",
-  Serial: "Arduino.h",
-  Wire: "Arduino.h",
-  SPI: "Arduino.h",
-};
+const CNEXT_BUILTINS: Set<string> = new Set(StdlibFunctions.builtinNames());
 
 /**
  * Listener that walks the parse tree and checks function calls
@@ -339,16 +164,7 @@ class FunctionCallListener extends CNextListener {
   private extractBaseName(
     primary: Parser.PrimaryExpressionContext,
   ): string | null {
-    if (primary.IDENTIFIER()) {
-      return primary.IDENTIFIER()!.getText();
-    }
-    if (primary.THIS()) {
-      return "this";
-    }
-    if (primary.GLOBAL()) {
-      return "global";
-    }
-    return null;
+    return CalleeNameResolver.baseName(primary);
   }
 
   /**
@@ -360,35 +176,12 @@ class FunctionCallListener extends CNextListener {
     ops: Parser.PostfixOpContext[],
     baseName: string,
   ): { resolvedName: string; foundCall: boolean; isGlobalCall: boolean } {
-    let resolvedName = baseName;
-    let isGlobalCall = baseName === "global";
-
-    for (const op of ops) {
-      // Member access: check if it's Scope.member or this.member pattern
-      if (op.IDENTIFIER()) {
-        const resolved = this.resolveMemberAccess(resolvedName, op);
-        if (resolved === null) {
-          return { resolvedName, foundCall: false, isGlobalCall };
-        }
-        // If resolution went through a known scope, this is a scope
-        // method call, not a global function lookup
-        if (isGlobalCall && this.analyzer.isScope(resolvedName)) {
-          isGlobalCall = false;
-        }
-        resolvedName = resolved;
-        continue;
-      }
-
-      // Function call: () or (args)
-      if (op.argumentList() || op.getChildCount() === 2) {
-        const text = op.getText();
-        if (text.startsWith("(")) {
-          return { resolvedName, foundCall: true, isGlobalCall };
-        }
-      }
-    }
-
-    return { resolvedName, foundCall: false, isGlobalCall };
+    return CalleeNameResolver.resolveCallTarget(
+      ops,
+      baseName,
+      this.currentScope,
+      (name) => this.analyzer.isScope(name),
+    );
   }
 
   /**
@@ -398,25 +191,12 @@ class FunctionCallListener extends CNextListener {
     resolvedName: string,
     op: Parser.PostfixOpContext,
   ): string | null {
-    const memberName = op.IDENTIFIER()!.getText();
-
-    // Handle this.member -> CurrentScope_member (when inside a scope)
-    if (resolvedName === "this" && this.currentScope) {
-      return QualifiedCName.join(this.currentScope, memberName);
-    }
-
-    // Issue #985: Handle global.member -> member (strip global prefix)
-    if (resolvedName === "global") {
-      return memberName;
-    }
-
-    // Check if base is a known scope
-    if (this.analyzer.isScope(resolvedName)) {
-      return QualifiedCName.join(resolvedName, memberName);
-    }
-
-    // Object.method or chained access - not a C-Next function call
-    return null;
+    return CalleeNameResolver.resolveMemberAccess(
+      resolvedName,
+      op,
+      this.currentScope,
+      (name) => this.analyzer.isScope(name),
+    );
   }
 }
 
@@ -514,8 +294,8 @@ class FunctionCallAnalyzer {
    * Check if a function is from an included standard library header
    */
   private isStdlibFunction(name: string): boolean {
-    const header = STDLIB_FUNCTION_HEADERS[name];
-    return header !== undefined && this.includedHeaders.has(header);
+    const header = StdlibFunctions.header(name);
+    return header !== null && this.includedHeaders.has(header);
   }
 
   /**
@@ -524,7 +304,7 @@ class FunctionCallAnalyzer {
    * Checks ALL stdlib functions, not just from included headers.
    */
   private findStdlibHeader(name: string): string | null {
-    return STDLIB_FUNCTION_HEADERS[name] ?? null;
+    return StdlibFunctions.header(name);
   }
 
   /**
