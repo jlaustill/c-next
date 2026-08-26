@@ -21,6 +21,20 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 There are NO exceptions. Do not ignore, dismiss, or defer bugs without creating an issue. Pre-existing bugs found during other work still require tracking.
 
+### Reported State — Re-query, Never Restate
+
+**State you report is only as fresh as the query that produced it.** PR status, CI
+conclusions, merge state, issue labels, file contents on another branch — re-query at
+report time rather than repeating an earlier observation. A status read once and then
+narrated carries no timestamp, so a true sentence becomes a false one with nothing
+failing in between; six status claims went stale this way in a single session.
+
+`mergeStateStatus` is the sharpest case: it reads `CLEAN` on a PR stacked on a
+non-default base because **no checks are required there**, and `CLEAN` again once the
+same PR is genuinely gated and fifteen have passed. Same string, opposite meaning —
+merging on the first would have landed ADR-070's definition-of-done evidence on zero
+CI (#1269). Query the check-run rollup by head SHA, not the mergeable state.
+
 ### No Duplicate Code Paths — ZERO EXCEPTIONS
 
 **NEVER create or perpetuate duplicate code paths.** If changing something in one place requires a corresponding change in another place, that is a bug in the architecture. Fix it immediately.
