@@ -154,6 +154,14 @@ is restored. It was caught only because the cascade was mechanically impossible
 — a C-header lookup cannot affect an intra-scope call. In a different order it
 would have read as a stronger result than the truth.
 
+The same table has a second way to lie, in the same flattering direction: a
+mutation that never applied. Scripted mutations match on source text, and source
+text moves — a reformat joined two lines and the edit silently matched nothing,
+so the "mutation" ran against unmodified code and reported green. That is
+indistinguishable from a guard that cannot fail. **Assert that the mutation
+changed the file**, and treat an unexpected green as a broken experiment before
+a coverage gap.
+
 So: **a mutation must redden exactly the guard it targets**, one to one; a table
 where one change reddens several is reporting contamination, not sensitivity.
 And a fixture wants a **negative control** for the opposite failure.
