@@ -7,6 +7,7 @@
  */
 
 import IHeaderSymbol from "./types/IHeaderSymbol";
+import CodeGenState from "../../state/CodeGenState";
 import IParameterSymbol from "../../../utils/types/IParameterSymbol";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
@@ -253,11 +254,22 @@ abstract class BaseHeaderGenerator {
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
   ): string[] {
-    if (functions.length === 0) {
+    if (
+      functions.length === 0 &&
+      CodeGenState.getStructsWithInitFunction().size === 0
+    ) {
       return [];
     }
 
     const lines: string[] = ["/* Function prototypes */"];
+
+    // #1205 / MISRA 8.4: ADR-029 emits `<Struct>_init()` with external linkage.
+    // It is generated rather than written, so it never reaches `functions` --
+    // without this its definition has no visible declaration.
+    for (const structName of CodeGenState.getStructsWithInitFunction()) {
+      lines.push(`${structName} ${structName}_init(void);`);
+    }
+
     for (const sym of functions) {
       const proto = this.generateFunctionPrototype(
         sym,

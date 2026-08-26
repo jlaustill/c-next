@@ -34,6 +34,10 @@ typedef struct I32Returner {
 } I32Returner;
 
 /* Function prototypes */
+U32Returner U32Returner_init(void);
+U8Returner U8Returner_init(void);
+BoolReturner BoolReturner_init(void);
+I32Returner I32Returner_init(void);
 uint32_t getU32Value(uint32_t input);
 uint8_t getU8Value(uint32_t input);
 bool checkThreshold(uint32_t value);

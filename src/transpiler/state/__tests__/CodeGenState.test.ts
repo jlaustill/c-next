@@ -1347,4 +1347,32 @@ describe("CodeGenState", () => {
       expect(CodeGenState.suppressBareEnumResolution).toBe(false);
     });
   });
+
+  describe("struct init functions (#1205)", () => {
+    it("records a struct whose ADR-029 init function was generated", () => {
+      CodeGenState.registerStructInitFunction("Controller");
+      expect(CodeGenState.getStructsWithInitFunction().has("Controller")).toBe(
+        true,
+      );
+    });
+
+    it("does not report a struct that was never registered", () => {
+      CodeGenState.registerStructInitFunction("Controller");
+      expect(CodeGenState.getStructsWithInitFunction().has("Message")).toBe(
+        false,
+      );
+    });
+
+    it("is idempotent -- one prototype per struct, not one per callback field", () => {
+      CodeGenState.registerStructInitFunction("Handler");
+      CodeGenState.registerStructInitFunction("Handler");
+      expect(CodeGenState.getStructsWithInitFunction().size).toBe(1);
+    });
+
+    it("clears on reset, so one file's structs cannot leak into the next", () => {
+      CodeGenState.registerStructInitFunction("Controller");
+      CodeGenState.reset();
+      expect(CodeGenState.getStructsWithInitFunction().size).toBe(0);
+    });
+  });
 });

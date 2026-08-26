@@ -23,6 +23,7 @@ typedef struct Processor {
 } Processor;
 
 /* Function prototypes */
+Processor Processor_init(void);
 uint32_t computeValue(uint32_t input);
 uint32_t tripleValue(uint32_t input);
 

@@ -30,6 +30,9 @@ typedef struct MixedHandler {
 } MixedHandler;
 
 /* Function prototypes */
+TwoParamHandler TwoParamHandler_init(void);
+ThreeParamHandler ThreeParamHandler_init(void);
+MixedHandler MixedHandler_init(void);
 uint32_t addTwo(uint32_t a, uint32_t b);
 uint32_t multiplyTwo(uint32_t a, uint32_t b);
 uint32_t addThree(uint32_t a, uint32_t b, uint32_t c);

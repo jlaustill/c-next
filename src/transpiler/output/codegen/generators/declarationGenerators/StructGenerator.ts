@@ -182,6 +182,13 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
       ? [generateStructInitFunction(name, callbackFields)]
       : [];
 
+  // #1205: the header needs a prototype for the init function this just wrote.
+  // Recorded from the same predicate that decides to emit it, so the two can
+  // never disagree about whether the function exists.
+  if (callbackFields.length > 0) {
+    effects.push({ type: "register-struct-init", structName: name });
+  }
+
   return {
     code: [...typeDefinition, ...initFunction].join("\n"),
     effects,

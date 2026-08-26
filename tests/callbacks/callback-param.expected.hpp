@@ -27,6 +27,7 @@ typedef struct Controller {
 } Controller;
 
 /* Function prototypes */
+Controller Controller_init(void);
 void onReceive(const Message& msg);
 void setHandler(Controller& c, onReceive_fp handler);
 

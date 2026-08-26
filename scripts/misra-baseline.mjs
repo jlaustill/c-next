@@ -38,7 +38,11 @@ const BASELINE = new Map([
   ["misra-c2012-2.5", "#863"],
   ["misra-c2012-2.7", "#862"],
   ["misra-c2012-7.4", "#844"],
-  ["misra-c2012-8.4", "#841"],
+  // #1205 cleared 17 of this rule's 18 violations (ADR-029 struct-init
+  // prototypes). The one that remains is a C++ test MISRA-checked as C because
+  // requiresCpp() cannot find its header -- #1266, not a codegen defect. The
+  // rule stays baselined until that is fixed, then it goes to zero.
+  ["misra-c2012-8.4", "#1266"],
   ["misra-c2012-8.7", "#864"],
   ["misra-c2012-8.9", "#866"],
   ["misra-c2012-10.4", "#858"],

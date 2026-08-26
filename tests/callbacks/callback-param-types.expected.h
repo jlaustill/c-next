@@ -40,6 +40,10 @@ typedef struct PointHandler {
 } PointHandler;
 
 /* Function prototypes */
+U8Handler U8Handler_init(void);
+U32Handler U32Handler_init(void);
+BoolHandler BoolHandler_init(void);
+PointHandler PointHandler_init(void);
 uint32_t processU8(uint8_t val);
 uint32_t processU32(uint32_t val);
 uint32_t processBool(bool val);

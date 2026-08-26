@@ -153,6 +153,19 @@ export default class CodeGenState {
   static callbackFieldTypes: Map<string, string> = new Map();
 
   /**
+   * Issue #1205 / MISRA C:2012 Rule 8.4: structs for which ADR-029 emitted a
+   * generated `<Struct>_init()`.
+   *
+   * "Does this struct get an init function?" is one decision, made while
+   * walking the struct's members. The header path cannot re-derive it -- the
+   * init function is generated rather than written, so it is not a symbol in
+   * the table headers filter, and a header that guessed from callback fields
+   * would be a second copy of the same rule. It is recorded here instead, and
+   * the header emits a prototype for whatever is in this set.
+   */
+  static structsWithInitFunction: Set<string> = new Set();
+
+  /**
    * ADR-029 / Issues #1200, #1201: every type name referenced by a field or a
    * parameter, wherever it appears -- top-level struct, scope-nested struct,
    * scope member, or function parameter.
@@ -454,6 +467,7 @@ export default class CodeGenState {
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
+    this.structsWithInitFunction = new Set();
     this.callbackTypeReferences = new Set();
     this.pendingCallbackTypedefs = [];
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
@@ -1311,6 +1325,16 @@ export default class CodeGenState {
   /**
    * Register a callback field type.
    */
+  /** ADR-029: record that this struct's `_init()` was generated (#1205). */
+  static registerStructInitFunction(structName: string): void {
+    this.structsWithInitFunction.add(structName);
+  }
+
+  /** Structs whose generated `_init()` needs a header prototype (#1205). */
+  static getStructsWithInitFunction(): ReadonlySet<string> {
+    return this.structsWithInitFunction;
+  }
+
   static registerCallbackFieldType(key: string, typeName: string): void {
     this.callbackFieldTypes.set(key, typeName);
   }

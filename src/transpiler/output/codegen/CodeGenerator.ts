@@ -539,6 +539,9 @@ export default class CodeGenerator implements IOrchestrator {
           break;
 
         // Array initializer effects
+        case "register-struct-init":
+          CodeGenState.registerStructInitFunction(effect.structName);
+          break;
         case "set-array-init-count":
           CodeGenState.lastArrayInitCount = effect.count;
           break;
