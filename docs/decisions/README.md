@@ -52,6 +52,31 @@ When an ADR's target release changes, its number changes with it:
 
 Precedent: commit `a2277b87` (2026-01-07) moved ADR-051 → ADR-104 and ADR-046 → ADR-105 this way.
 
+## Writing a new ADR
+
+Start from [`TEMPLATE.md`](TEMPLATE.md). Copy it to `adr-NNN-short-stem.md`,
+pick the band per the rule above, and fill in the sections — the guidance
+comments explain what each one is for and delete as you go.
+
+`Context`, `Decision`, and `References` appear in nearly every existing ADR and
+the template treats them as required. Two sections are easy to skip and
+expensive to skip:
+
+- **Diagnostics** — every error code the ADR introduces, allocated in
+  `docs/error-codes.md` in the same change. A code reserved and never allocated
+  reads as implemented when it is not.
+- **Scope-Context Matrix (#1219)** — required for any ADR whose behaviour a
+  fixture can observe. Undeclared cells default to `off`, so an ADR without a
+  matrix is indistinguishable from one claiming its feature cannot occur
+  anywhere, and nothing in the gate will tell you. `off` is a claim that a cell
+  **cannot exist**, and it is reviewed as one.
+
+The template carries the tooling limits and the two dimensions the axes cannot
+see. [ADR-051](adr-051-division-by-zero.md) section 5 is the worked example,
+including how it staged `warn` → `error` while a cell was known broken;
+[ADR-070](adr-070-return-value-use.md) is the example of arguing rows to `off`
+from the grammar.
+
 ## Renumbering history
 
 GitHub issues and merged pull requests permanently reference the numbers that were current when
