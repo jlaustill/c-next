@@ -36,7 +36,7 @@ edit?* If more than one, that is the bug.
 > Paths that agree only "by coincidence" — because some unrelated predicate
 > currently happens to hold — are a latent divergence, not a unified path.
 
-Real example (#1143): a report inferred output mode from a requirement's own
+Real example: a report inferred output mode from a requirement's own
 `modes` field instead of the report's mode. Correct *only* while every entry
 reaching that line happened to be single-mode. One dual-mode entry would have
 judged a C transpile against the C++ baseline.
@@ -88,7 +88,7 @@ Check the issues themselves, not the badge:
 curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&pullRequest=<n>&statuses=OPEN,CONFIRMED&ps=100"
 ```
 
-Real example (#1153): the gate reported **OK** while one CRITICAL cognitive-
+Real example: the gate reported **OK** while one CRITICAL cognitive-
 complexity issue sat on new code. Nothing would have failed; the PR would have
 merged carrying it.
 
@@ -111,9 +111,9 @@ decoration.
 Three real instances, all in one week:
 
 - `/* test-no-warnings */` compiled `-fsyntax-only` with no `-O`. It was added
-  by #238 specifically to guard #231's `-Wstringop-overflow` — a middle-end
-  diagnostic that **cannot fire** without optimization. A guaranteed 32-byte
-  overflow into an 8-byte buffer passed it silently, for its entire life.
+  specifically to guard a `-Wstringop-overflow` — a middle-end diagnostic that
+  **cannot fire** without optimization. A guaranteed 32-byte overflow into an
+  8-byte buffer passed it silently, for its entire life.
 - A probe written to reject implicit widening accepted the exact case it
   existed to reject, so "zero failures across 1041 fixtures" measured nothing.
 - A fix that skipped a ternary's condition used `getChild(0)`. The condition is
@@ -121,7 +121,7 @@ Three real instances, all in one week:
 
 ### Verify claims before you repeat them — including your own
 
-- A prior review asserted #231 came from a post-hoc overflow form.
+- A review asserted a defect came from a post-hoc overflow form.
   `git show` proved the code at the time was the *pre-check* form, which
   inverted the conclusion.
 - ADR-024 justified implicit widening with "widening never loses data" — true
@@ -152,8 +152,8 @@ more dangerous than no rule, because people trust it.
 - **Never hand-edit them.** Change the generator and regenerate.
 - **Never trust a textual merge of them.** A conflict-free `git merge` of
   generated files can produce output no generator would emit. After merging,
-  regenerate and run the suite. (#1143: a clean merge silently resolved 53
-  snapshots to a version describing a transpiler that no longer existed.)
+  regenerate and run the suite. (A clean merge silently resolved 53 snapshots
+  to a version describing a transpiler that no longer existed.)
 - **A snapshot mismatch masks execution.** A fixture failing `C output mismatch`
   never runs, so behavioral regressions are invisible until after
   `npm run test:update`. Re-run afterwards before calling a change
@@ -203,7 +203,7 @@ You are about to take a shortcut when you catch yourself thinking:
 |---|---|
 | "It's just a comment / a test / generated" | Those are the artifacts people trust most |
 | "The existing code does it this way" | Pre-existing is not a defence — touching it means owning it |
-| "This is a false positive" | Prove it. #231 was a *true* positive read as false for years |
+| "This is a false positive" | Prove it. A *true* positive was read as false here for years |
 | "I'll note it and move on" | Fix it or file it, with a reproduction |
 | "Close enough to regenerate later" | Regenerate now; later never has the context |
 | "The estimate is probably right" | Measure it |
