@@ -58,6 +58,11 @@ not yours to make.
 Touching code containing a defect means owning it. "It pre-dates this change"
 and "it follows an existing pattern" are not defences.
 
+The same applies to the decision record governing what you touched. You own it,
+including obligations it never declared. An absent obligation is neither a defect
+nor a duplication, so nothing else here reaches it — and a requirement that was
+never written down is indistinguishable from one that was met.
+
 ### 4. Syntax and behavior changes need an ADR and the user's word
 
 But first decide which you have:

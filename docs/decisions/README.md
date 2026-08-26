@@ -11,8 +11,21 @@ index that lists them **by status**.
 
 **An ADR's number band is the release it must ship in.**
 
-Band `N` holds the work performed during `vN.x`. Cutting `v(N+1)` requires that **every** ADR
-in band `N` is fully implemented. A band is therefore a commitment, not a label.
+Band `N` holds the work performed during `vN.x`. Cutting `v(N+1)` requires that **every** ADR in
+band `N` is fully implemented **and properly tested** — which means it has declared a
+scope-context matrix, and every cell it declared `error` is occupied. A band is therefore a
+commitment about testing as much as about features, not a label.
+
+**Declared** is the load-bearing word. Undeclared cells default to `off`, so an ADR with no
+matrix at all is indistinguishable from one claiming its feature cannot occur anywhere. That
+satisfies a gate asking only about implementation, and satisfies nothing else.
+
+Declaring `warn` on a cell that is not yet covered is a **met** obligation, not an unmet one,
+provided the ADR says why and the follow-up is filed. Some ADRs cannot occupy an `error` cell at
+all: the matrix derives a cell from a diagnostic's position, so an ADR governing generated-code
+shape rather than a diagnostic has no way to occupy one until that tooling gap closes. Those
+declare `warn` and reference the gap. Requiring `error` of them would be a gate nothing could
+pass — which is why the obligation is to _declare honestly_, not to be green.
 
 | Band  | Work performed during | Release gate                          | Allocated so far |
 | ----- | --------------------- | ------------------------------------- | ---------------- |
