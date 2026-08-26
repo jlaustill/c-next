@@ -1,0 +1,12 @@
+// Intermediate link. A fixture including THIS file reaches Deep at depth 2,
+// which is what the matrix calls "imported transitive".
+//
+// Deliberately a separate chain from discard-helper.cnx: giving that file an
+// include would silently move the cells its existing consumers occupy (#1241).
+#include "discard-deep-inner.cnx"
+
+scope Mid {
+    public u32 passthrough() {
+        return global.Deep.value();
+    }
+}

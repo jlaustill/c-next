@@ -1,0 +1,10 @@
+// test-error
+// test-adr: 070
+// top-level function x imported transitive: the callee is reached through an
+// intermediate .cnx, the two-hop case #1178 showed is its own failure class.
+#include "discard-deep-mid.cnx"
+
+i32 main() {
+    Deep.value();
+    return 0;
+}

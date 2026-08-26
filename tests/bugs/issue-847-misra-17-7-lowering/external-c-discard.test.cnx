@@ -1,5 +1,6 @@
 // test-error
 // test-c-only
+// test-adr: 070
 // #847 / ADR-070: a non-void function declared in an included C header is
 // resolvable via the symbol table, so discarding it is E0708. The void twin
 // on the next line must stay silent -- there is nothing to discard.

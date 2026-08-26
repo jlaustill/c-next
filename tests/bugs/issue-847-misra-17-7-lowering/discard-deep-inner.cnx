@@ -1,0 +1,7 @@
+// Innermost link of the transitive include chain: the callee whose discarded
+// return must still be caught two hops away.
+scope Deep {
+    public u32 value() {
+        return 9;
+    }
+}

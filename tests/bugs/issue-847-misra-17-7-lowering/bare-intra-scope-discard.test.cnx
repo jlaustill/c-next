@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 070
 // #847 / ADR-070 + ADR-057: a BARE intra-scope call is the idiomatic form
 // (CLAUDE.md house style), and return types are keyed by transpiled C name --
 // so the bare name misses the lookup unless the scope fallback is applied.
