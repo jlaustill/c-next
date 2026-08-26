@@ -697,7 +697,7 @@ const multiFileConstSerial = `#include "Config.cnx"
 
 scope Serial {
     void handleReset(Config config) {
-        global.Handler.reset(config);
+        (void) global.Handler.reset(config);
     }
 
     public void process(Config config) {

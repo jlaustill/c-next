@@ -46,7 +46,7 @@ assessment claimed N/A.
 | Directives (1-4) | 1        | 9         | 1       | 0       | 1   | 0            | 1         |
 | Rules 1-5        | 2        | 8         | 2       | 0       | 3   | 7            | 1         |
 | Rules 6-10       | 2        | 15        | 7       | 0       | 0   | 9            | 0         |
-| Rules 11-15      | 2        | 16        | 6       | 0       | 1   | 6            | 0         |
+| Rules 11-15      | 3        | 15        | 6       | 0       | 1   | 6            | 0         |
 | Rules 16-22      | 5        | 29        | 4       | 0       | 11  | 7            | 1         |
 
 Counted from the guideline tables below by `npm run docs:toolchain` (157 guidelines).
@@ -240,17 +240,17 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 11 - Pointer Type Conversions
 
-| Rule | Description                            | Status        | Reference                   |
-| ---- | -------------------------------------- | ------------- | --------------------------- |
-| 11.1 | No function pointer conversion         | **By Design** | No raw pointers             |
-| 11.2 | No incomplete type pointer conversion  | **By Design** | No raw pointers             |
-| 11.3 | No pointer/integer conversion          | **By Design** | No raw pointers             |
-| 11.4 | No conversion to pointer to object     | **By Design** | No raw pointers             |
-| 11.5 | No void\* to object pointer            | **By Design** | No void pointers            |
-| 11.6 | No pointer to void to arithmetic       | **By Design** | No void pointers            |
-| 11.7 | No cast between pointer and arithmetic | **By Design** | No raw pointers             |
-| 11.8 | No cast removing const/volatile        | **By Design** | ADR-013: const enforced     |
-| 11.9 | NULL for null pointer constant         | **By Design** | NULL handling in transpiler |
+| Rule | Description                            | Status        | Reference                                                                                                                   |
+| ---- | -------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 11.1 | No function pointer conversion         | **By Design** | No raw pointers                                                                                                             |
+| 11.2 | No incomplete type pointer conversion  | **By Design** | No raw pointers                                                                                                             |
+| 11.3 | No pointer/integer conversion          | **By Design** | No raw pointers                                                                                                             |
+| 11.4 | No conversion to pointer to object     | **By Design** | No raw pointers                                                                                                             |
+| 11.5 | No void\* to object pointer            | **By Design** | No void pointers                                                                                                            |
+| 11.6 | No pointer to void to arithmetic       | **By Design** | No void pointers                                                                                                            |
+| 11.7 | No cast between pointer and arithmetic | **By Design** | No raw pointers                                                                                                             |
+| 11.8 | No cast removing const/volatile        | **Enforced**  | Const-discard fixed with ADR-070 (#1259): the explicit `(void)` discard no longer hides a callee from modification tracking |
+| 11.9 | NULL for null pointer constant         | **By Design** | NULL handling in transpiler                                                                                                 |
 
 ---
 

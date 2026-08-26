@@ -36,7 +36,7 @@ void handleTransitive(ConstEdge__Config* config);
 void handleMultipleReassign(ConstEdge__Config* config);
 void handleCompoundAssign(const ConstEdge__Config* config);
 void handleCompoundModify(ConstEdge__Config* config);
-void handleBareCall(const ConstEdge__Config* config);
+void handleBareCall(ConstEdge__Config* config);
 void handleBareReadOnly(const ConstEdge__Config* config);
 
 #ifdef __cplusplus

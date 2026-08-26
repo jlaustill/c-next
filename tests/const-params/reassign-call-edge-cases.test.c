@@ -192,7 +192,7 @@ void handleCompoundModify(ConstEdge__Config* config) {
 }
 
 // Edge case 12: Bare function call (expression statement, no assignment)
-void handleBareCall(const ConstEdge__Config* config) {
+void handleBareCall(ConstEdge__Config* config) {
     (void)Handler__setValue(config, 90U);
 }
 

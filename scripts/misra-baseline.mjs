@@ -45,11 +45,6 @@ const BASELINE = new Map([
   ["misra-c2012-10.6", "#860"],
   ["misra-c2012-10.8", "#846"],
   ["misra-c2012-11.4", "#867"],
-  // Unmasked by #847 / ADR-070. Line 196 of reassign-call-edge-cases reported
-  // 17.7 until the (void) cast landed; cppcheck reports one rule per line, so
-  // this pre-existing const-discard was latent behind it -- the same dynamic
-  // ADR-070 records for #1081 / Rule 21.15.
-  ["misra-c2012-11.8", "#1259"],
   ["misra-c2012-12.1", "#865"],
   ["misra-c2012-15.5", "#861"],
   ["misra-c2012-18.4", "#859"],

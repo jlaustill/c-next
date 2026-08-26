@@ -246,9 +246,13 @@ The questions left open above were implementation details, and the build settled
   all three forms.
 - **Stdlib metadata** moved to `StdlibFunctions`, shared with `FunctionCallAnalyzer`, so
   "which header declares this name" and "does it return void" are answered from one list.
-- **MISRA Rule 17.7 is no longer baselined.** Removing it unmasked a pre-existing Rule 11.8
-  const-discard (cppcheck reports one rule per line) — tracked as **#1259** and baselined
-  against it, the same way #1081/Rule 21.15 was handled.
+- **MISRA Rules 17.7 and 11.8 are both enforced, neither baselined.** Removing 17.7 unmasked a
+  pre-existing Rule 11.8 const-discard (cppcheck reports one rule per line), filed as **#1259**.
+  It turned out to be the same defect from the other side: `PassByValueAnalyzer` walks
+  statements manually for modifications and did not descend through a cast, so making `(void)`
+  the sanctioned discard idiom would have hidden every discarded call from const inference —
+  silently flipping a mutating callee's argument to `const`. Teaching that walk to see through
+  a cast fixes #1259 and is what makes the `(void)` idiom safe to recommend at all.
 
 ## Prior Art
 
