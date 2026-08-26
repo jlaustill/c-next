@@ -79,19 +79,10 @@ class ReturnValueUseListener extends CNextListener {
     );
     if (!resolved) return;
 
-    // ADR-057: a bare `read()` inside a scope means `this.read()`. Return types
-    // are keyed by transpiled C name, so the bare name misses and the discard
-    // would be accepted -- on the form CLAUDE.md makes house style.
-    const fallback = CalleeNameResolver.scopeQualifiedCandidate(
-      resolved.name,
+    const funcName = ReturnValueUseAnalyzer.nonVoidCallee(
+      resolved,
       this.currentScope,
-      resolved.isGlobalCall,
     );
-    const funcName = ReturnValueUseAnalyzer.returnsAValue(resolved.name)
-      ? resolved.name
-      : fallback && ReturnValueUseAnalyzer.returnsAValue(fallback)
-        ? fallback
-        : null;
     if (!funcName) return;
 
     this.errors.push({
@@ -183,6 +174,35 @@ class ReturnValueUseAnalyzer {
 
   private static isCallOp(op: Parser.PostfixOpContext): boolean {
     return op.argumentList() !== null || op.getText().startsWith("(");
+  }
+
+  /**
+   * The name to report, or null when this call has no value to discard.
+   *
+   * ADR-057: a bare `read()` inside a scope means `this.read()`, but return
+   * types are keyed by transpiled C name -- so the bare spelling misses the
+   * lookup the qualified one hits, and the discard would be accepted on the
+   * form CLAUDE.md makes house style. Retry against the scope-qualified
+   * candidate before concluding there is nothing to check.
+   */
+  static nonVoidCallee(
+    resolved: { name: string; isGlobalCall: boolean },
+    currentScope: string | null,
+  ): string | null {
+    if (ReturnValueUseAnalyzer.returnsAValue(resolved.name)) {
+      return resolved.name;
+    }
+
+    const fallback = CalleeNameResolver.scopeQualifiedCandidate(
+      resolved.name,
+      currentScope,
+      resolved.isGlobalCall,
+    );
+    if (fallback && ReturnValueUseAnalyzer.returnsAValue(fallback)) {
+      return fallback;
+    }
+
+    return null;
   }
 
   /**
