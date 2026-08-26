@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 070
+// scope method x imported transitive: both axes at once -- the discard is
+// inside a scope method and the callee is two .cnx hops away.
+#include "discard-deep-mid.cnx"
+
+scope DeepCaller {
+    public void poll() {
+        Deep.value();
+    }
+}

@@ -243,6 +243,79 @@ The questions left open above were implementation details, and the build settled
   anything to guard. A flag would also have been a second code path deciding the same question.
 - **Error code — E0708 confirmed**, and allocated in `docs/error-codes.md`.
 
+### Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist** for
+this feature, `warn` that it should be covered and is not, `error` that it must
+be. Undeclared cells are `off`.
+
+E0708 fires on an **expression statement** whose entire value is a discarded
+call. That single fact decides the context axis, because C-Next only admits an
+expression statement inside a function body:
+
+- **top-level function** and **scope method** are where the construct lives, so
+  every file relationship in those rows is `error`.
+- **global variable** and **scope member** are `off`, and this is a claim about
+  the grammar rather than about coverage. Writing `next();` at file scope or in
+  a scope-member position is not an unenforced case — it is a parse error
+  (`no viable alternative at input 'next('`), verified both ways. There is no
+  program in which E0708 could fire in those contexts, so a fixture cannot be
+  written for them.
+
+The relationship axis carries no such argument. The callee's return type is what
+the rule needs, and it may be declared in the same file, one `.cnx` include away,
+or reached through an intermediate — and #847 shipped with the cross-file case
+silently unenforced precisely because nothing exercised it. All three
+relationships are `error` in both live rows.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+
+Six cells are `error` and all six are occupied — see
+`docs/scope-context-matrix.md`. Three of the six were reached only by fixtures
+written for this declaration (`scope-method-imported-discard`,
+`transitive-function-discard`, `transitive-scope-method-discard`); the
+declaration is what showed they were missing.
+
+The two provider-side relationships carry no declaration: `.expected.error`
+holds no file path, so occupancy for them is not derivable and the report
+renders them `n/a` rather than counting them empty.
+
+#### What this matrix cannot see
+
+Recorded because #847's review found three enforcement gaps and this matrix
+would have caught only one of them — the cross-file case above.
+
+- **Syntactic form.** A bare `read()` and a qualified `this.read()` inside the
+  same scope method derive the _same_ cell, so a fixture using one leaves the
+  cell green while the other is unenforced. That is exactly what happened: the
+  qualified spelling was checked, the bare one — which CLAUDE.md makes house
+  style — was not. #1210 records the same shape for a different rule.
+- **External-header provenance.** The relationship axis counts `.cnx` include
+  hops only, so a callee declared in a `.h` or a `.hpp` is indistinguishable
+  from a same-file one. `.h` and `.hpp` symbols live in separate indexes, and
+  the `.hpp` half was silently exempt while the `.h` half errored.
+
+Neither is a defect in this declaration; both are limits of the axes. The
+fixtures for those two dimensions exist (`bare-intra-scope-discard`,
+`external-c-discard`, `external-cpp-discard`) and are marked `// test-adr: 070`,
+but they occupy cells that other fixtures already occupy, so the gate cannot
+require them.
+
 ## Implementation Notes (#847)
 
 - **Case 1** lives at one emit site: `StringUtils` (`copyWithNull`, `copy`, `concat`,

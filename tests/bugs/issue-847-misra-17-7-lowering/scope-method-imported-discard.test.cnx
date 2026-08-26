@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 070
+// scope method x imported direct: the discard sits inside a scope's method and
+// the callee is one .cnx include away.
+#include "discard-helper.cnx"
+
+scope Caller {
+    public void poll() {
+        Helper.compute();
+    }
+}

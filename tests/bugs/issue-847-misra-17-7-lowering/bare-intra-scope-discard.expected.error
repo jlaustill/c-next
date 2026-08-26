@@ -1,1 +1,1 @@
-13:8 error[E0708]: Return value of non-void function 'Timer__read' is discarded
+14:8 error[E0708]: Return value of non-void function 'Timer__read' is discarded
