@@ -70,14 +70,29 @@ class ReturnValueUseListener extends CNextListener {
     const postfix = ReturnValueUseAnalyzer.asBareCall(expr);
     if (!postfix) return;
 
-    const funcName = CalleeNameResolver.resolve(
+    const resolved = CalleeNameResolver.resolveDetailed(
       postfix,
       this.currentScope,
-      (name) => this.knownScopes.has(name),
+      // Scopes reached through an included .cnx are not in this file's
+      // declarations; CodeGenState.knownScopes is merged across includes.
+      (name) => this.knownScopes.has(name) || CodeGenState.isKnownScope(name),
     );
-    if (!funcName) return;
+    if (!resolved) return;
 
-    if (!ReturnValueUseAnalyzer.returnsAValue(funcName)) return;
+    // ADR-057: a bare `read()` inside a scope means `this.read()`. Return types
+    // are keyed by transpiled C name, so the bare name misses and the discard
+    // would be accepted -- on the form CLAUDE.md makes house style.
+    const fallback = CalleeNameResolver.scopeQualifiedCandidate(
+      resolved.name,
+      this.currentScope,
+      resolved.isGlobalCall,
+    );
+    const funcName = ReturnValueUseAnalyzer.returnsAValue(resolved.name)
+      ? resolved.name
+      : fallback && ReturnValueUseAnalyzer.returnsAValue(fallback)
+        ? fallback
+        : null;
+    if (!funcName) return;
 
     this.errors.push({
       line: ctx.start?.line ?? 0,
@@ -212,7 +227,11 @@ class ReturnValueUseAnalyzer {
    * includes.
    */
   static externalReturnType(name: string): string | null {
-    const sym = CodeGenState.symbolTable?.getCSymbol?.(name);
+    // .hpp symbols land in a separate index from .h ones; ICppFunctionSymbol
+    // is structurally identical, so one lookup covers both.
+    const sym =
+      CodeGenState.symbolTable?.getCSymbol?.(name) ??
+      CodeGenState.symbolTable?.getCppSymbol?.(name);
     if (sym?.kind !== "function") return null;
     return sym.type ?? null;
   }

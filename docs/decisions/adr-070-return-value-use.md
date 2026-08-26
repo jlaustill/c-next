@@ -72,7 +72,13 @@ that _exceptions to rules are where bugs come from._
 1. **Default — every non-void return must be used or explicitly discarded** (safe-by-default).
    Strongest guarantee, fits C-Next's explicit-flow ethos. There is no opt-in/opt-out; the rule
    holds uniformly for every non-void call whose return type C-Next can resolve.
-2. **Explicit discard syntax — `(void) expr;`** — the standard C cast-to-`void`. This is the
+2. **Explicit discard syntax — `(void) expr;`, and only `void`.** A cast to any _other_ type
+   does not silence the rule: `(u32) next();` throws the value away exactly as completely, so it
+   is the silent-discard hole wearing a cast rather than an explicit discard. (Confirmed during
+   #1260 review; note cppcheck does not flag it under Rule 17.7, treating any cast as a use —
+   C-Next is deliberately stricter than the tool here.)
+
+   The form itself is the standard C cast-to-`void`. This is the
    established C idiom for "I am intentionally not using this return value," e.g.
    `(void) printf("not using the return value intentionally!");`. It **parses today**: it is the
    existing ADR-017 cast expression (`'(' type ')' unaryExpression`, with `void` a valid
@@ -221,11 +227,17 @@ The owner has set these (they are no longer open):
 The questions left open above were implementation details, and the build settled them:
 
 - **Unknown external C — resolve it where visible, exempt only where it is not.** Functions
-  declared in included C/C++ headers _are_ resolvable: they reach the analyzer through
-  `SymbolTable.getCSymbol()` rather than `CodeGenState.symbols`, which merges only `.cnx`
-  includes. `ReturnValueUseAnalyzer.externalReturnType()` consults that route, so
+  declared in included C **and** C++ headers are resolvable: they reach the analyzer through
+  `SymbolTable.getCSymbol()` / `getCppSymbol()` rather than `CodeGenState.symbols`, which merges
+  only `.cnx` includes. `ReturnValueUseAnalyzer.externalReturnType()` consults both, so
   `global.spi_device_init(...)` is enforced. A name that resolves through neither route is
   outside the rule's domain — not exempted from it.
+
+  > `.h` and `.hpp` symbols live in **separate indexes**. An earlier revision of this section
+  > claimed C/C++ headers were resolvable when only the C half was wired, so a non-void function
+  > from an included `.hpp` was silently exempt while its `.h` twin was an error. Corrected in
+  > review of #1260; both halves are now consulted, with a fixture each.
+
 - **Rollout — straight to an error, no flag.** The suite and examples were migrated in the same
   change (61 author-written discards), so there is no window in which a flag would have had
   anything to guard. A flag would also have been a second code path deciding the same question.
@@ -244,6 +256,17 @@ The questions left open above were implementation details, and the build settled
   not present as `IDENTIFIER` primaries. An implementation that only handled identifiers would
   silently pass exactly the scope getters this rule is meant to catch — the analyzer resolves
   all three forms.
+- **ADR-057's bare intra-scope call needs a scope fallback.** `functionReturnTypes` is keyed by
+  transpiled C name, so a bare `read()` inside `scope Timer` misses the lookup that
+  `this.read()` hits. Without the fallback the rule would be enforced on the qualified spelling
+  and silently skipped on the one CLAUDE.md makes house style — the same key-by-layer defect
+  `tests/bugs/issue-1210-bare-intra-scope-call/` records. The "when does an unqualified name
+  mean a scope member" decision is shared with `FunctionCallAnalyzer` through
+  `CalleeNameResolver.scopeQualifiedCandidate()` rather than re-derived.
+- **Scope names must come from the include-merged set.** `CodeGenState.isKnownScope()` reads
+  scopes merged across `.cnx` includes; a per-file collection alone leaves every cross-file
+  `Helper.compute()` unrecognised as a call at all, which is a _name_-resolution gap rather
+  than the documented "return type you cannot see" boundary.
 - **Stdlib metadata** moved to `StdlibFunctions`, shared with `FunctionCallAnalyzer`, so
   "which header declares this name" and "does it return void" are answered from one list.
 - **MISRA Rules 17.7 and 11.8 are both enforced, neither baselined.** Removing 17.7 unmasked a

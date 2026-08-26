@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `StdlibFunctions.header()` no longer resolves inherited `Object` members, so a callee named `constructor` or `toString` is no longer treated as a known stdlib function.
+- E0708 now covers a bare intra-scope call (ADR-057 house style), scope methods reached through a `.cnx` include, and non-void functions declared in an included `.hpp` — each was silently exempt through a name-resolution gap.
+- A cast to a type other than `void` no longer silences E0708; only `(void)` is an explicit discard.
 - Transitive const inference now sees through a cast, so an explicit `(void)` discard no longer hides a mutating callee and infers the caller's parameter as `const` (Issue #1259). MISRA C:2012 Rule 11.8 is enforced as a result.
 
 ## [0.3.0] - 2026-08-24

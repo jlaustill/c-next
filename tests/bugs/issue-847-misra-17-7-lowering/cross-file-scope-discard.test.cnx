@@ -1,0 +1,10 @@
+// test-error
+// #847 / ADR-070: a scope method reached through an included .cnx must be
+// checked exactly as the same-file form is. Covers both qualified spellings.
+#include "discard-helper.cnx"
+
+i32 main() {
+    Helper.compute();
+    (void) global.Helper.other();
+    return 0;
+}

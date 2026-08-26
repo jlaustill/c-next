@@ -1,0 +1,1 @@
+9:4 error[E0708]: Return value of non-void function 'cppLibGetValue' is discarded

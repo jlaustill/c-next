@@ -117,14 +117,18 @@ class CalleeNameResolver {
   }
 
   /**
-   * Full resolution for a postfix expression: the callee's qualified name, or
-   * null when this expression is not a named function call.
+   * Full resolution for a postfix expression, keeping `isGlobalCall`.
+   *
+   * Callers that look a name up need that flag: an unqualified name inside a
+   * scope may mean the scope's member (ADR-057), but an explicitly
+   * `global.`-qualified one never does. Dropping it would make the two
+   * indistinguishable at the lookup.
    */
-  static resolve(
+  static resolveDetailed(
     postfix: Parser.PostfixExpressionContext,
     currentScope: string | null,
     isScope: (name: string) => boolean,
-  ): string | null {
+  ): { name: string; isGlobalCall: boolean } | null {
     const base = CalleeNameResolver.baseName(postfix.primaryExpression());
     if (base === null) return null;
 
@@ -138,7 +142,43 @@ class CalleeNameResolver {
     if (result.resolvedName === "this" || result.resolvedName === "global") {
       return null;
     }
-    return result.resolvedName;
+    return { name: result.resolvedName, isGlobalCall: result.isGlobalCall };
+  }
+
+  /**
+   * The callee's qualified name, or null when this is not a named call.
+   */
+  static resolve(
+    postfix: Parser.PostfixExpressionContext,
+    currentScope: string | null,
+    isScope: (name: string) => boolean,
+  ): string | null {
+    return (
+      CalleeNameResolver.resolveDetailed(postfix, currentScope, isScope)
+        ?.name ?? null
+    );
+  }
+
+  /**
+   * ADR-057: inside a scope, a bare `read()` may mean `this.read()`. The name
+   * a caller should retry its lookup against, or null when the fallback does
+   * not apply.
+   *
+   * This is the *decision* -- "when does an unqualified name mean a scope
+   * member" -- and it is shared deliberately. Each caller then applies it to
+   * its own index (defined functions, return types), but none of them re-derives
+   * when the fallback is allowed. `global.`-qualified calls are excluded because
+   * `global.` explicitly means the global scope.
+   */
+  static scopeQualifiedCandidate(
+    name: string,
+    currentScope: string | null,
+    isGlobalCall: boolean,
+  ): string | null {
+    if (!currentScope || isGlobalCall) return null;
+    // Already qualified -- there is nothing to fall back from.
+    if (QualifiedCName.isQualified(name)) return null;
+    return QualifiedCName.join(currentScope, name);
   }
 }
 
