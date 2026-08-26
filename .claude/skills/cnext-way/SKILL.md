@@ -119,6 +119,36 @@ Three real instances, all in one week:
 - A fix that skipped a ternary's condition used `getChild(0)`. The condition is
   parenthesized, so child 0 is `(`. The skip did nothing and the test passed.
 
+### A guard you cannot reach is not a guard
+
+Mutation-checking proves a guard *can* fail. It says nothing about the cases the
+harness never constructs. **Coverage of contexts is a separate axis from coverage
+of behaviour**, and a suite green on one looks exactly like a suite green on both.
+
+A rule can survive every mutation and still be unenforced everywhere the harness
+cannot reach — across a file boundary, through an included header, inside a
+scope. The tell is structural, not statistical: a resolution path with no
+reference outside its own definition and its one call site. Ask which contexts
+the code is reached through, then which of them a fixture actually builds.
+Reaching them takes real support files, not a larger unit test.
+
+### A measurement needs a control
+
+A mutation table is evidence, and evidence collection can itself be wrong. **This
+kind fails toward thoroughness**, which is why it survives: a contaminated run
+shows *more* red, and red is the answer you were hoping for.
+
+It lies in two flattering ways. Artifacts left by a run that was supposed to fail
+can poison later runs, so one mutation appears to redden guards it never touched.
+And a scripted mutation matches on source text, which moves — an edit that
+silently matches nothing runs against unmodified code and reports the same green
+as a guard that cannot fail.
+
+So **assert the mutation changed the file**, expect it to redden exactly the guard
+it targets, and give each fixture a **negative control**: a neighbouring case that
+must stay silent, so the fixture cannot pass by over-enforcing. Treat an
+unexpected green as a broken experiment before a coverage gap.
+
 ### Verify claims before you repeat them — including your own
 
 - A review asserted a defect came from a post-hoc overflow form.
@@ -181,7 +211,10 @@ npm run cspell:check && npm run oxlint:check
 
 Then ask yourself:
 
-- [ ] Did I **mutation-check** every test and guard I added?
+- [ ] Did I **mutation-check** every test and guard I added — one mutation
+      reddening exactly one guard?
+- [ ] Can my harness even **construct** the contexts this code runs in, or is it
+      green only where it can reach?
 - [ ] Would changing one fact require editing **more than one place**?
 - [ ] Is **everything** I noticed fixed or filed — not just the bugs?
 - [ ] Are there **zero** open Sonar issues on my code, regardless of the gate?
