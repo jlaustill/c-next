@@ -51,6 +51,11 @@ Gaps are intentional and permanent. `059` and `107` were never allocated; neithe
 A retired number stays retired, so that an old issue or commit referencing it can never resolve
 to a different decision than the one its author meant.
 
+The rule binds from 2026-08-23, when it was first written down, so `046` and `051` are its two
+exceptions — both were vacated on 2026-01-07 and refilled before it existed (`051` on
+2026-01-10, `046` on 2026-01-19), which means a reference to either from before its refill date
+means the decision the renumbering history maps it to, not the one holding the number today.
+
 ### Moving an ADR to a different band
 
 When an ADR's target release changes, its number changes with it:
