@@ -307,6 +307,80 @@ Following MISRA C Rule 11.1:
 
 ---
 
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist** for this
+feature, `warn` that it should be covered and is not, `error` that it must be. Undeclared
+cells are `off`.
+
+**Every cell here is `warn`, and none of them is `off`.** Those are two separate claims and
+both are argued below.
+
+### Why no cell is `off`
+
+`off` would assert the Function-as-Type pattern cannot appear in that structural context.
+Checked rather than assumed — each of the four contexts admits it:
+
+| Context            | Verified                                                            |
+| ------------------ | ------------------------------------------------------------------- |
+| global variable    | `tickSource handler <- millis;` at file scope transpiles            |
+| top-level function | a callback invoked inside an ordinary function transpiles           |
+| scope member       | `scope S { public tickSource tick <- millis; }` parses and declares |
+| scope method       | a callback invoked inside a scope method transpiles                 |
+
+The scope-member row deserves a note: the declaration is accepted, but _invoking_ it is
+rejected (#1275), it is emitted with the wrong type in the header (#1200), and omitting its
+initializer is rejected as uninitialized (#1215). That makes the cell **broken**, not
+absent — which is precisely the distinction `off` must not blur. A defect is a reason to
+cover a cell, not to declare it impossible.
+
+All three file relationships are equally real: a callback type declared in one `.cnx` and
+used in another is the ordinary case, not an exotic one.
+
+### Why every cell is `warn` rather than `error`
+
+**ADR-029 defines no error code.** Verified: no `E[0-9]{4}` appears anywhere in this
+document, and `docs/error-codes.md` contains no reference to ADR-029. It governs the shape
+of generated code, not a diagnostic.
+
+Per #1241 a cell is occupied only by a fixture carrying an `.expected.error`, because the
+context is derived from the diagnostic's position in the source. An ADR with no diagnostic
+therefore **cannot occupy any cell at all**, in any context, at any file relationship.
+
+Declaring twelve `error` cells would produce a permanently red gate with no path to green —
+a rule that cannot be met rather than one that has not been met yet. Declaring them `off`
+to keep the gate green would assert the feature cannot occur, which the table above
+disproves.
+
+`warn` is the honest answer: the obligation is real, it is currently unreachable, the reason
+is recorded, and the follow-up is #1241. The gate counts that as met, because the
+requirement is to declare honestly, not to be green.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | warn     |
+| top-level function | same file           | warn     |
+| scope member       | same file           | warn     |
+| scope method       | same file           | warn     |
+| global variable    | imported direct     | warn     |
+| top-level function | imported direct     | warn     |
+| scope member       | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported transitive | warn     |
+| top-level function | imported transitive | warn     |
+| scope member       | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
+
+These twelve cells are promoted to `error` when #1241's first limit closes — when a fixture
+without an `.expected.error` can occupy a cell. That is the same staged path ADR-051 used
+while the defect behind its cross-file cells was open, and the condition is recorded here so
+the promotion is a change someone can check rather than remember.
+
+The two provider-side relationships carry no declaration: `.expected.error` holds no file
+path, so occupancy for them is not derivable and the report renders them `n/a`.
+
 ## Research: MISRA C Guidelines
 
 ### Rule 11.1 - Function Pointer Conversions
