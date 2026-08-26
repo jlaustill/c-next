@@ -125,50 +125,29 @@ Mutation-checking proves a guard *can* fail. It says nothing about the cases the
 harness never constructs. **Coverage of contexts is a separate axis from coverage
 of behaviour**, and a suite green on one looks exactly like a suite green on both.
 
-#1260 shipped E0708 with a mutation table where every guard reddened on demand —
-and three resolution paths unenforced. Its unit harness resolved a single
-in-memory source, so same-file was the only context it could build. A bare
-intra-scope `read()`, a `Helper.compute()` across a `.cnx` include, and a
-non-void function from an included `.hpp` were each accepted in silence, each
-emitting the exact Rule 17.7 violation that PR removed from the baseline. The
-suite was 1098/1098 with the fixes applied *or* reverted.
+A rule can survive every mutation and still be unenforced everywhere the harness
+cannot reach — across a file boundary, through an included header, inside a
+scope. The tell is structural, not statistical: a resolution path with no
+reference outside its own definition and its one call site. Ask which contexts
+the code is reached through, then which of them a fixture actually builds.
+Reaching them takes real support files, not a larger unit test.
 
-The tell was structural, not statistical: `externalReturnType()` had two
-references in the whole repository — its definition and its one call site. Ask
-which contexts the code can be reached through — inside a scope, across a `.cnx`
-include, from a `.h`, from a `.hpp` — and which of them a fixture actually
-builds. Reaching them takes real support files, not a bigger unit test;
-`tests/bugs/issue-847-misra-17-7-lowering/` carries one fixture per context.
+### A measurement needs a control
 
-### A measurement needs a control too
+A mutation table is evidence, and evidence collection can itself be wrong. **This
+kind fails toward thoroughness**, which is why it survives: a contaminated run
+shows *more* red, and red is the answer you were hoping for.
 
-A mutation table is evidence, and evidence collection can itself be wrong. This
-one **fails in the direction of thoroughness**, which is why it survives: a
-contaminated run shows *more* red, and red is the answer you are hoping for.
+It lies in two flattering ways. Artifacts left by a run that was supposed to fail
+can poison later runs, so one mutation appears to redden guards it never touched.
+And a scripted mutation matches on source text, which moves — an edit that
+silently matches nothing runs against unmodified code and reports the same green
+as a guard that cannot fail.
 
-The first mutation pass over #1260's four new fixtures showed each mutation
-reddening every *earlier* fixture as well. Nothing had actually failed. A
-mutation that lets a `test-error` fixture compile leaves `.test.c`/`.test.h`
-behind, and those stale artifacts fail the guard afterwards even once the source
-is restored. It was caught only because the cascade was mechanically impossible
-— a C-header lookup cannot affect an intra-scope call. In a different order it
-would have read as a stronger result than the truth.
-
-The same table has a second way to lie, in the same flattering direction: a
-mutation that never applied. Scripted mutations match on source text, and source
-text moves — a reformat joined two lines and the edit silently matched nothing,
-so the "mutation" ran against unmodified code and reported green. That is
-indistinguishable from a guard that cannot fail. **Assert that the mutation
-changed the file**, and treat an unexpected green as a broken experiment before
-a coverage gap.
-
-So: **a mutation must redden exactly the guard it targets**, one to one; a table
-where one change reddens several is reporting contamination, not sensitivity.
-And a fixture wants a **negative control** for the opposite failure.
-`external-c-discard.test.cnx` calls a `void` C function on the line above the
-flagged one, and its `.expected.error` names only the non-void call — so an
-analyzer that flagged every call regardless of return type would fail it. The
-positive assertion catches under-enforcement; the control catches the opposite.
+So **assert the mutation changed the file**, expect it to redden exactly the guard
+it targets, and give each fixture a **negative control**: a neighbouring case that
+must stay silent, so the fixture cannot pass by over-enforcing. Treat an
+unexpected green as a broken experiment before a coverage gap.
 
 ### Verify claims before you repeat them — including your own
 
