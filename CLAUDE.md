@@ -29,6 +29,20 @@ report time rather than repeating an earlier observation. A status read once and
 narrated carries no timestamp, so a true sentence becomes a false one with nothing
 failing in between; six status claims went stale this way in a single session.
 
+**Show the query, do not assert it.** The instruction above is to perform an action, and
+the failure mode is being sincerely wrong about whether you performed it — "queried just
+now" costs nothing to write and reads as true, and nothing inside distinguishes a fresh
+read from a recalled one. So a status claim carries the command or the returned value, and
+a table of PR states carries the SHA or timestamp it came from. That turns an unfalsifiable
+claim into an artifact a reader can check, which is the same move as a negative control in a
+fixture, or running a mutation instead of reasoning about it.
+
+The author of this rule wrote a six-row status table labelled "queried just now, not
+carried" in the pull request that added it. Five rows were wrong; four of those PRs had
+merged two hours earlier. The turn carried an injected timestamp and the rule text itself,
+so both halves of the guard were present and neither fired — **time context makes
+staleness detectable, it does not make anyone look.**
+
 `mergeStateStatus` is the sharpest case: it reads `CLEAN` on a PR stacked on a
 non-default base because **no checks are required there**, and `CLEAN` again once the
 same PR is genuinely gated and fifteen have passed. Same string, opposite meaning —
