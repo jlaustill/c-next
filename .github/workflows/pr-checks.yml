@@ -4,7 +4,20 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    # No `branches:` filter on purpose. A PR stacked on another branch is still
+    # code heading for main, one hop later, and base-filtering left it ungated
+    # for its whole review -- found when a stacked PR under review could not
+    # earn a single check. The retarget half of that same gap was already closed
+    # by the `edited` type below; this is the other half.
+    #
+    # An allow-list of base patterns was considered and rejected: it needs
+    # extending every time someone stacks, and forgetting to extend it fails
+    # silently in the direction of no gate.
+    #
+    # Note the `on:` filters are read from the workflow file in the PR's OWN
+    # branch, not from main, so this only gates a stacked PR once the branch has
+    # picked the change up.
+    #
     # Explicit types because the default set is opened/synchronize/reopened,
     # which omits `edited`. Retargeting a PR (changing its base branch) fires
     # `edited` and nothing else, so a stacked PR moved onto main used to sit
