@@ -21,6 +21,34 @@ Violations include: deleting/skipping failing tests, `--no-verify`/`--force` fla
 
 There are NO exceptions. Do not ignore, dismiss, or defer bugs without creating an issue. Pre-existing bugs found during other work still require tracking.
 
+### Reported State — Re-query, Never Restate
+
+**State you report is only as fresh as the query that produced it.** PR status, CI
+conclusions, merge state, issue labels, file contents on another branch — re-query at
+report time rather than repeating an earlier observation. A status read once and then
+narrated carries no timestamp, so a true sentence becomes a false one with nothing
+failing in between; six status claims went stale this way in a single session.
+
+**Show the query, do not assert it.** The instruction above is to perform an action, and
+the failure mode is being sincerely wrong about whether you performed it — "queried just
+now" costs nothing to write and reads as true, and nothing inside distinguishes a fresh
+read from a recalled one. So a status claim carries the command or the returned value, and
+a table of PR states carries the SHA or timestamp it came from. That turns an unfalsifiable
+claim into an artifact a reader can check, which is the same move as a negative control in a
+fixture, or running a mutation instead of reasoning about it.
+
+The author of this rule wrote a six-row status table labelled "queried just now, not
+carried" in the pull request that added it. Five rows were wrong; four of those PRs had
+merged two hours earlier. The turn carried an injected timestamp and the rule text itself,
+so both halves of the guard were present and neither fired — **time context makes
+staleness detectable, it does not make anyone look.**
+
+`mergeStateStatus` is the sharpest case: it reads `CLEAN` on a PR stacked on a
+non-default base because **no checks are required there**, and `CLEAN` again once the
+same PR is genuinely gated and fifteen have passed. Same string, opposite meaning —
+merging on the first would have landed ADR-070's definition-of-done evidence on zero
+CI (#1269). Query the check-run rollup by head SHA, not the mergeable state.
+
 ### No Duplicate Code Paths — ZERO EXCEPTIONS
 
 **NEVER create or perpetuate duplicate code paths.** If changing something in one place requires a corresponding change in another place, that is a bug in the architecture. Fix it immediately.
