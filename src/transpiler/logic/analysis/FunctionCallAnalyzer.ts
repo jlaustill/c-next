@@ -22,10 +22,7 @@ import StdlibFunctions from "./StdlibFunctions";
  * C-Next built-in functions
  * These are compiler intrinsics that don't need to be defined by the user
  */
-const CNEXT_BUILTINS: Set<string> = new Set([
-  "safe_div", // ADR-051: Safe division with default value
-  "safe_mod", // ADR-051: Safe modulo with default value
-]);
+const CNEXT_BUILTINS: Set<string> = new Set(StdlibFunctions.builtinNames());
 
 /**
  * Listener that walks the parse tree and checks function calls

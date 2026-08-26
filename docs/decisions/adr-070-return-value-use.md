@@ -173,10 +173,23 @@ To be settled in the ADR, proposed for v1:
 - **#1081 (Rule 21.15):** adding the slice-`memcpy` `(void)` cast unmasks a pre-existing 21.15
   (incompatible `uint8_t*` vs `uintN_t*`). cppcheck reports one rule per line, so 21.15 is
   latent on `main` until the cast lands. Implementing Case 1 here will surface it.
-- **safe_div / safe_mod (ADR-051):** at the C-Next source level these are out-parameter
-  builtins with no bound return, so the must-use rule does **not** apply to them. (Their
-  _generated_ helper returns `bool`; that is a Case-1 codegen detail, not a Case-2 author
-  concern.)
+- **safe_div / safe_mod (ADR-051):** these are **not** exempt — the must-use rule applies to
+  them like any other non-void function.
+
+  > **Corrected during implementation (#847).** An earlier revision of this ADR exempted them,
+  > on the premise that "at the C-Next source level these are out-parameter builtins with no
+  > bound return". **That premise was factually wrong.** Authors bind the return constantly —
+  > `err <- safe_div(result, 10, 2, 0);` appears six times in
+  > `tests/arithmetic/safe-div-basic.test.cnx` alone. The exemption appears to have been
+  > reasoned from the _generated_ helper without checking the C-Next surface.
+  >
+  > It also contradicted this ADR's own opening argument, which names "a discarded `safe_div`
+  > outcome" as a motivating example of the very bug the rule exists to prevent. Exempting the
+  > example is not a defensible carve-out, and the ADR's own principle — _exceptions to rules
+  > are where bugs come from_ — points the other way.
+
+  `safe_div`/`safe_mod` return `bool` (true on error). A discarded outcome is an **E0708**, and
+  an intentional discard is written `(void) safe_div(result, 100, 0, 999);`.
 
 ## Breaking-Change Note
 
@@ -203,14 +216,39 @@ The owner has set these (they are no longer open):
 - **stdlib handling:** no curated carve-out — `(void)` is required at every dropped stdlib
   return whose type is resolvable, identical to C-Next calls.
 
-## Open Questions
+## Settled During Implementation (#847)
 
-- **Unknown external C:** error or exempt when the return type cannot be resolved? (Recommend
-  exempt — you cannot check a return type you cannot see; this is the rule's domain boundary,
-  not a carve-out.)
-- **Rollout:** behind a flag first, or straight to an error once the suite/examples are
-  migrated?
-- **Error code:** confirm **E0708**.
+The questions left open above were implementation details, and the build settled them:
+
+- **Unknown external C — resolve it where visible, exempt only where it is not.** Functions
+  declared in included C/C++ headers _are_ resolvable: they reach the analyzer through
+  `SymbolTable.getCSymbol()` rather than `CodeGenState.symbols`, which merges only `.cnx`
+  includes. `ReturnValueUseAnalyzer.externalReturnType()` consults that route, so
+  `global.spi_device_init(...)` is enforced. A name that resolves through neither route is
+  outside the rule's domain — not exempted from it.
+- **Rollout — straight to an error, no flag.** The suite and examples were migrated in the same
+  change (61 author-written discards), so there is no window in which a flag would have had
+  anything to guard. A flag would also have been a second code path deciding the same question.
+- **Error code — E0708 confirmed**, and allocated in `docs/error-codes.md`.
+
+## Implementation Notes (#847)
+
+- **Case 1** lives at one emit site: `StringUtils` (`copyWithNull`, `copy`, `concat`,
+  `substring`) is the sole producer of the lowered `strncpy`/`strncat` calls, and the `(void)`
+  cast is part of what it produces. `StringDeclHelper` previously rebuilt two of those
+  sequences inline; it now delegates, so the cast cannot drift between them.
+- **Case 2** is `ReturnValueUseAnalyzer`, registered in `runAnalyzers.ts` alongside the other
+  analysis passes. It reports E0708 when a resolvable non-void call is the entire expression
+  statement.
+- **ADR-016 qualifiers are separate tokens.** `this.member()` and `global.Scope.member()` do
+  not present as `IDENTIFIER` primaries. An implementation that only handled identifiers would
+  silently pass exactly the scope getters this rule is meant to catch — the analyzer resolves
+  all three forms.
+- **Stdlib metadata** moved to `StdlibFunctions`, shared with `FunctionCallAnalyzer`, so
+  "which header declares this name" and "does it return void" are answered from one list.
+- **MISRA Rule 17.7 is no longer baselined.** Removing it unmasked a pre-existing Rule 11.8
+  const-discard (cppcheck reports one rule per line) — tracked as **#1259** and baselined
+  against it, the same way #1081/Rule 21.15 was handled.
 
 ## Prior Art
 

@@ -76,6 +76,17 @@ Configuration belongs in one place. No magic numbers scattered through code. Nam
 **Pragmatic, Not Dogmatic**
 C-Next makes the right thing easy and the wrong thing hard, but doesn't prevent escape hatches. Generated C is always readable and maintainable.
 
+**Explicit Data Flow**
+Values do not go missing quietly. `<-` marks assignment, there are no implicit conversions, no `switch` fallthrough — and a function's return value must be used or explicitly thrown away (ADR-070):
+
+```cnx
+u32 v <- readSensor();       // used
+(void) readSensor();         // deliberately discarded -- says so
+readSensor();                // error[E0708]: return value discarded
+```
+
+A dropped status code is one of the classic embedded bugs, so ignoring one is a decision you have to write down rather than one you can make by accident.
+
 ### C Preprocessor Compatibility
 
 C-Next uses the standard C preprocessor — no custom module system. This means:

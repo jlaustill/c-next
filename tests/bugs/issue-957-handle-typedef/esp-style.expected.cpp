@@ -18,7 +18,7 @@
 static spi_device_handle_t SPI__device = {};
 
 void SPI__init(void) {
-    spi_device_init(&SPI__device);
+    static_cast<void>(spi_device_init(&SPI__device));
 }
 
 void SPI__write(uint8_t data) {

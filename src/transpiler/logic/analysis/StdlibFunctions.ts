@@ -211,10 +211,47 @@ const VOID_RETURNING: ReadonlySet<string> = new Set([
   "srand",
 ]);
 
+/**
+ * C-Next compiler intrinsics (ADR-051) and the type they hand back.
+ *
+ * These are not stdlib functions, but they raise the same two questions this
+ * module already answers -- does C-Next know the name, and what does it return
+ * -- so they live beside the stdlib table rather than in a second list that
+ * could drift from it.
+ *
+ * `safe_div`/`safe_mod` return `bool` (true on error). ADR-070 originally
+ * exempted them from the must-use rule on the premise that they had "no bound
+ * return"; authors bind it constantly (`err <- safe_div(...)`), so they are
+ * ordinary non-void functions and a discarded outcome is an E0708 -- which is
+ * exactly the example ADR-070 opens with.
+ */
+const BUILTIN_RETURN_TYPES: Record<string, string> = {
+  safe_div: "bool", // ADR-051: Safe division with default value
+  safe_mod: "bool", // ADR-051: Safe modulo with default value
+};
+
 class StdlibFunctions {
-  /** The header declaring `name`, or null if C-Next does not know the name. */
+  /** Names of all C-Next compiler intrinsics. */
+  static builtinNames(): string[] {
+    return Object.keys(BUILTIN_RETURN_TYPES);
+  }
+
+  /** Return type of a C-Next intrinsic, or null when `name` is not one. */
+  static builtinReturnType(name: string): string | null {
+    return Object.hasOwn(BUILTIN_RETURN_TYPES, name)
+      ? BUILTIN_RETURN_TYPES[name]
+      : null;
+  }
+
+  /**
+   * The header declaring `name`, or null if C-Next does not know the name.
+   *
+   * Guarded with Object.hasOwn: a bare `HEADERS[name]` also resolves inherited
+   * Object members, so a callee named `constructor` or `toString` would come
+   * back as a "known stdlib function" declared in an object-shaped header.
+   */
   static header(name: string): string | null {
-    return HEADERS[name] ?? null;
+    return Object.hasOwn(HEADERS, name) ? HEADERS[name] : null;
   }
 
   /** True when `name` is a known stdlib/framework function. */

@@ -114,8 +114,9 @@ second header and the program ran with a wrong value.
 | E0704 | Non-void function must return on all paths                          | Add an explicit `return <value>;` so every path returns a value               | `logic/analysis/ReturnPathAnalyzer.ts`                         |
 | E0705 | `forever` loop in non-void function                                 | Make the function return `void`, or use a `while` loop with an exit condition | `output/codegen/generators/statements/ControlFlowGenerator.ts` |
 | E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition) | Write `forever { ... }` for an intentional infinite loop                      | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts`   |
+| E0708 | Return value of non-void function discarded                         | Use the value, or discard it explicitly: `(void) f(...);`                     | `logic/analysis/ReturnValueUseAnalyzer.ts`                     |
 
-**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; E0708 reserved for ADR-070 discarded non-void return value / Issue #1080; E0709 reserved for ADR-069 unused variable / Issue #1107)
+**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; ADR-070 / Issue #847 (E0708); E0709 reserved for ADR-069 unused variable / Issue #1107)
 
 ---
 

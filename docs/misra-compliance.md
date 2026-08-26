@@ -47,7 +47,7 @@ assessment claimed N/A.
 | Rules 1-5        | 2        | 8         | 2       | 0       | 3   | 7            | 1         |
 | Rules 6-10       | 2        | 15        | 7       | 0       | 0   | 9            | 0         |
 | Rules 11-15      | 2        | 16        | 6       | 0       | 1   | 6            | 0         |
-| Rules 16-22      | 4        | 29        | 5       | 0       | 11  | 7            | 1         |
+| Rules 16-22      | 5        | 29        | 4       | 0       | 11  | 7            | 1         |
 
 Counted from the guideline tables below by `npm run docs:toolchain` (157 guidelines).
 
@@ -320,16 +320,16 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 17 - Functions
 
-| Rule | Description                        | Status        | Reference              |
-| ---- | ---------------------------------- | ------------- | ---------------------- |
-| 17.1 | No stdarg.h                        | **By Design** | No variadic functions  |
-| 17.2 | No recursion                       | Not Enforced  | Could add detection    |
-| 17.3 | Function declared before use       | **By Design** | Module system          |
-| 17.4 | All exit paths return value        | Partial       | Some detection         |
-| 17.5 | Array parameter size               | **By Design** | Arrays have size info  |
-| 17.6 | Array not modified via parameter   | **By Design** | ADR-006: pass-by-value |
-| 17.7 | Return value used or explicit void | Partial       | Some checking          |
-| 17.8 | Parameter not modified             | **By Design** | ADR-006: pass-by-value |
+| Rule | Description                        | Status        | Reference                                                                                        |
+| ---- | ---------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| 17.1 | No stdarg.h                        | **By Design** | No variadic functions                                                                            |
+| 17.2 | No recursion                       | Not Enforced  | Could add detection                                                                              |
+| 17.3 | Function declared before use       | **By Design** | Module system                                                                                    |
+| 17.4 | All exit paths return value        | Partial       | Some detection                                                                                   |
+| 17.5 | Array parameter size               | **By Design** | Arrays have size info                                                                            |
+| 17.6 | Array not modified via parameter   | **By Design** | ADR-006: pass-by-value                                                                           |
+| 17.7 | Return value used or explicit void | **Enforced**  | E0708 for author-written discards; transpiler-emitted lowering calls are `(void)`-cast (ADR-070) |
+| 17.8 | Parameter not modified             | **By Design** | ADR-006: pass-by-value                                                                           |
 
 ---
 

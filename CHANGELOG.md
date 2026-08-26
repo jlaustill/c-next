@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Return values of non-void functions must now be used or explicitly discarded with `(void) f(...)` — new error **E0708** (ADR-070, Issue #847). This is a **breaking change**: 61 call sites across the test suite and examples were migrated.
+
+### Changed
+
+- MISRA C:2012 Rule 17.7 is now **enforced** rather than baselined. Calls the transpiler emits while lowering string operations carry an automatic `(void)` cast; author-written discards are a compile error.
+- Stdlib function metadata moved to `StdlibFunctions`, shared by `FunctionCallAnalyzer` and `ReturnValueUseAnalyzer`.
+
+### Fixed
+
+- `StdlibFunctions.header()` no longer resolves inherited `Object` members, so a callee named `constructor` or `toString` is no longer treated as a known stdlib function.
+
 ## [0.3.0] - 2026-08-24
 
 > Minor rather than patch because generated C symbol names changed: scope members now

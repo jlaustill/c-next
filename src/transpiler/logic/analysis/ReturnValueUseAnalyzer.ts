@@ -18,6 +18,12 @@
  * Domain boundary: a callee whose return type C-Next cannot resolve is outside
  * the rule, not an exception to it -- you cannot check a return type you cannot
  * see. This is ADR-070's "enforce where resolvable" boundary.
+ *
+ * `safe_div`/`safe_mod` (ADR-051) are deliberately NOT exempt. An earlier draft
+ * of ADR-070 carved them out on the premise that they have "no bound return" at
+ * the C-Next level; authors bind it constantly (`err <- safe_div(...)`), and the
+ * same ADR names "a discarded `safe_div` outcome" as a motivating example of the
+ * bug this rule prevents. They are ordinary non-void functions here.
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -27,12 +33,6 @@ import CodeGenState from "../../state/CodeGenState";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import StdlibFunctions from "./StdlibFunctions";
 import IReturnValueUseError from "./types/IReturnValueUseError";
-
-/** ADR-051 out-parameter builtins: no bound return at the C-Next level. */
-const CNEXT_VOID_BUILTINS: ReadonlySet<string> = new Set([
-  "safe_div",
-  "safe_mod",
-]);
 
 class ReturnValueUseListener extends CNextListener {
   public readonly errors: IReturnValueUseError[] = [];
@@ -193,11 +193,23 @@ class ReturnValueUseAnalyzer {
    * Unresolvable names answer false: outside the rule's domain, not exempt.
    */
   static returnsAValue(name: string): boolean {
-    if (CNEXT_VOID_BUILTINS.has(name)) return false;
+    const builtin = StdlibFunctions.builtinReturnType(name);
+    if (builtin !== null) {
+      return builtin !== "void";
+    }
 
     const declared = CodeGenState.getFunctionReturnType(name);
     if (declared !== undefined) {
       return declared !== "void";
+    }
+
+    // Functions declared in included C/C++ headers reach the analyzer through
+    // the symbol table rather than through CodeGenState.symbols, which only
+    // merges .cnx includes. ADR-070 rejects blanket-exempting external C
+    // precisely because these returns ARE visible -- just by a different route.
+    const external = ReturnValueUseAnalyzer.externalReturnType(name);
+    if (external !== null) {
+      return external !== "void";
     }
 
     if (StdlibFunctions.isKnown(name)) {
@@ -205,6 +217,22 @@ class ReturnValueUseAnalyzer {
     }
 
     return false;
+  }
+
+  /**
+   * Return type of a function declared in an included C/C++ header.
+   *
+   * C symbols carry their types as plain strings and live in a different part
+   * of the symbol table from C-Next symbols (`getCSymbol`, not the TSymbol
+   * index), so they need their own lookup. ADR-070 rejects blanket-exempting
+   * external C precisely because these returns are visible -- they just arrive
+   * by a different route than CodeGenState.symbols, which merges only .cnx
+   * includes.
+   */
+  static externalReturnType(name: string): string | null {
+    const sym = CodeGenState.symbolTable?.getCSymbol?.(name);
+    if (sym?.kind !== "function") return null;
+    return sym.type ?? null;
   }
 
   /** Run the analysis over a parsed program. */
