@@ -108,6 +108,20 @@ describe("ReturnValueUseAnalyzer", () => {
       expect(errors).toEqual([]);
     });
 
+    it("flags a discard cast to something other than void", () => {
+      // ADR-070 makes `(void)` THE discard form and allows no opt-out. A cast
+      // to any other type throws the value away just as completely, so it is
+      // not an explicit discard -- it is the silent-discard hole wearing a
+      // cast. Guards against accepting `(void)` merely because the traversal
+      // cannot see through a cast at all.
+      const errors = analyze(`
+        u32 next() { return 7; }
+        void run() { (u32) next(); }
+      `);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0708");
+    });
+
     it("accepts a bound return", () => {
       const errors = analyze(`
         u32 next() { return 7; }

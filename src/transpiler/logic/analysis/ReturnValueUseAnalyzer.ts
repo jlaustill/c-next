@@ -30,8 +30,8 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
-import QualifiedCName from "../../../utils/QualifiedCName";
 import StdlibFunctions from "./StdlibFunctions";
+import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import IReturnValueUseError from "./types/IReturnValueUseError";
 
 class ReturnValueUseListener extends CNextListener {
@@ -39,6 +39,14 @@ class ReturnValueUseListener extends CNextListener {
 
   /** Enclosing `scope` name, so `this.member()` resolves to Scope__member. */
   private currentScope: string | null = null;
+
+  /** Scope names in this file, for resolving `global.Scope.member()`. */
+  private readonly knownScopes: ReadonlySet<string>;
+
+  constructor(knownScopes: ReadonlySet<string>) {
+    super();
+    this.knownScopes = knownScopes;
+  }
 
   override enterScopeDeclaration = (
     ctx: Parser.ScopeDeclarationContext,
@@ -62,9 +70,10 @@ class ReturnValueUseListener extends CNextListener {
     const postfix = ReturnValueUseAnalyzer.asBareCall(expr);
     if (!postfix) return;
 
-    const funcName = ReturnValueUseAnalyzer.calleeName(
+    const funcName = CalleeNameResolver.resolve(
       postfix,
       this.currentScope,
+      (name) => this.knownScopes.has(name),
     );
     if (!funcName) return;
 
@@ -124,6 +133,18 @@ class ReturnValueUseAnalyzer {
     while (current && typeof current === "object") {
       if (current instanceof Parser.PostfixExpressionContext) {
         const ops = current.postfixOp();
+
+        // A cast wraps the call one level deeper: `(void) f()` and `(u32) f()`
+        // both parse as a postfix whose primary IS the cast. Descend rather
+        // than stop -- stopping here would accept every cast-shaped discard
+        // without ever consulting the cast's type, which is what makes the
+        // `(void)` form special.
+        const cast = current.primaryExpression().castExpression();
+        if (ops.length === 0 && cast) {
+          current = cast.unaryExpression();
+          continue;
+        }
+
         const last = ops.at(-1);
         // The final op must be the call itself, or the statement's value is a
         // member/subscript of a call result rather than the call.
@@ -147,45 +168,6 @@ class ReturnValueUseAnalyzer {
 
   private static isCallOp(op: Parser.PostfixOpContext): boolean {
     return op.argumentList() !== null || op.getText().startsWith("(");
-  }
-
-  /**
-   * Build the callee's qualified name, mirroring FunctionCallAnalyzer so the
-   * two agree on what a call is named.
-   */
-  static calleeName(
-    postfix: Parser.PostfixExpressionContext,
-    currentScope: string | null = null,
-  ): string | null {
-    const primary = postfix.primaryExpression();
-    const ident = primary.IDENTIFIER();
-
-    // ADR-016 qualifiers are their own tokens, not identifiers:
-    //   this.member()        -> the enclosing scope's member
-    //   global.Scope.member() -> drop the qualifier, keep the rest
-    // Missing either form would silently under-enforce the rule.
-    let name: string;
-    if (ident) {
-      name = ident.getText();
-    } else if (primary.THIS()) {
-      if (!currentScope) return null;
-      name = currentScope;
-    } else if (primary.GLOBAL()) {
-      name = "";
-    } else {
-      return null;
-    }
-    for (const op of postfix.postfixOp()) {
-      if (op.IDENTIFIER()) {
-        name = QualifiedCName.join(name, op.IDENTIFIER()!.getText());
-      } else if (ReturnValueUseAnalyzer.isCallOp(op)) {
-        break;
-      } else {
-        // A subscript before the call -- not a plain named callee.
-        return null;
-      }
-    }
-    return name || null;
   }
 
   /**
@@ -235,9 +217,25 @@ class ReturnValueUseAnalyzer {
     return sym.type ?? null;
   }
 
+  /** Scope names declared in this file. */
+  private static collectScopes(
+    tree: Parser.ProgramContext,
+  ): ReadonlySet<string> {
+    const scopes = new Set<string>();
+    for (const decl of tree.declaration()) {
+      const scopeDecl = decl.scopeDeclaration();
+      if (scopeDecl) {
+        scopes.add(scopeDecl.IDENTIFIER().getText());
+      }
+    }
+    return scopes;
+  }
+
   /** Run the analysis over a parsed program. */
   static analyze(tree: Parser.ProgramContext): IReturnValueUseError[] {
-    const listener = new ReturnValueUseListener();
+    const listener = new ReturnValueUseListener(
+      ReturnValueUseAnalyzer.collectScopes(tree),
+    );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors;
   }

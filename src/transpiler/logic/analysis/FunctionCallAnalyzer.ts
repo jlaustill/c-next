@@ -17,6 +17,7 @@ import CodeGenState from "../../state/CodeGenState";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import StdlibFunctions from "./StdlibFunctions";
+import CalleeNameResolver from "./helpers/CalleeNameResolver";
 
 /**
  * C-Next built-in functions
@@ -163,16 +164,7 @@ class FunctionCallListener extends CNextListener {
   private extractBaseName(
     primary: Parser.PrimaryExpressionContext,
   ): string | null {
-    if (primary.IDENTIFIER()) {
-      return primary.IDENTIFIER()!.getText();
-    }
-    if (primary.THIS()) {
-      return "this";
-    }
-    if (primary.GLOBAL()) {
-      return "global";
-    }
-    return null;
+    return CalleeNameResolver.baseName(primary);
   }
 
   /**
@@ -184,35 +176,12 @@ class FunctionCallListener extends CNextListener {
     ops: Parser.PostfixOpContext[],
     baseName: string,
   ): { resolvedName: string; foundCall: boolean; isGlobalCall: boolean } {
-    let resolvedName = baseName;
-    let isGlobalCall = baseName === "global";
-
-    for (const op of ops) {
-      // Member access: check if it's Scope.member or this.member pattern
-      if (op.IDENTIFIER()) {
-        const resolved = this.resolveMemberAccess(resolvedName, op);
-        if (resolved === null) {
-          return { resolvedName, foundCall: false, isGlobalCall };
-        }
-        // If resolution went through a known scope, this is a scope
-        // method call, not a global function lookup
-        if (isGlobalCall && this.analyzer.isScope(resolvedName)) {
-          isGlobalCall = false;
-        }
-        resolvedName = resolved;
-        continue;
-      }
-
-      // Function call: () or (args)
-      if (op.argumentList() || op.getChildCount() === 2) {
-        const text = op.getText();
-        if (text.startsWith("(")) {
-          return { resolvedName, foundCall: true, isGlobalCall };
-        }
-      }
-    }
-
-    return { resolvedName, foundCall: false, isGlobalCall };
+    return CalleeNameResolver.resolveCallTarget(
+      ops,
+      baseName,
+      this.currentScope,
+      (name) => this.analyzer.isScope(name),
+    );
   }
 
   /**
@@ -222,25 +191,12 @@ class FunctionCallListener extends CNextListener {
     resolvedName: string,
     op: Parser.PostfixOpContext,
   ): string | null {
-    const memberName = op.IDENTIFIER()!.getText();
-
-    // Handle this.member -> CurrentScope_member (when inside a scope)
-    if (resolvedName === "this" && this.currentScope) {
-      return QualifiedCName.join(this.currentScope, memberName);
-    }
-
-    // Issue #985: Handle global.member -> member (strip global prefix)
-    if (resolvedName === "global") {
-      return memberName;
-    }
-
-    // Check if base is a known scope
-    if (this.analyzer.isScope(resolvedName)) {
-      return QualifiedCName.join(resolvedName, memberName);
-    }
-
-    // Object.method or chained access - not a C-Next function call
-    return null;
+    return CalleeNameResolver.resolveMemberAccess(
+      resolvedName,
+      op,
+      this.currentScope,
+      (name) => this.analyzer.isScope(name),
+    );
   }
 }
 

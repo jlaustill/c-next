@@ -64,6 +64,40 @@ describe("StdlibFunctions", () => {
     });
   });
 
+  describe("internal consistency", () => {
+    it("every void-returning name is also a known function", () => {
+      // The two tables answer different halves of one question. A name in the
+      // void set but absent from the headers table would report returnsVoid()
+      // true while isKnown() said false -- so callers checking isKnown() first
+      // would treat it as unresolvable and skip it.
+      const voidNames = [
+        "free",
+        "perror",
+        "clearerr",
+        "rewind",
+        "setbuf",
+        "exit",
+        "abort",
+        "srand",
+        "qsort",
+        "assert",
+        "pinMode",
+        "digitalWrite",
+        "analogWrite",
+        "delay",
+        "delayMicroseconds",
+        "attachInterrupt",
+        "detachInterrupt",
+        "noInterrupts",
+        "interrupts",
+      ];
+      for (const name of voidNames) {
+        expect(StdlibFunctions.returnsVoid(name)).toBe(true);
+        expect(StdlibFunctions.isKnown(name)).toBe(true);
+      }
+    });
+  });
+
   describe("C-Next intrinsics (ADR-051)", () => {
     it("lists the builtins", () => {
       expect(StdlibFunctions.builtinNames().sort()).toEqual([
