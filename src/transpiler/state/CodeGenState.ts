@@ -1325,6 +1325,10 @@ export default class CodeGenState {
   /**
    * Register a callback field type.
    */
+  static registerCallbackFieldType(key: string, typeName: string): void {
+    this.callbackFieldTypes.set(key, typeName);
+  }
+
   /** ADR-029: record that this struct's `_init()` was generated (#1205). */
   static registerStructInitFunction(structName: string): void {
     this.structsWithInitFunction.add(structName);
@@ -1333,10 +1337,6 @@ export default class CodeGenState {
   /** Structs whose generated `_init()` needs a header prototype (#1205). */
   static getStructsWithInitFunction(): ReadonlySet<string> {
     return this.structsWithInitFunction;
-  }
-
-  static registerCallbackFieldType(key: string, typeName: string): void {
-    this.callbackFieldTypes.set(key, typeName);
   }
 
   /**

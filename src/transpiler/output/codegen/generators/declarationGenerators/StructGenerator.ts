@@ -15,6 +15,7 @@
  * ADR-036: Multi-dimensional array support in struct fields.
  */
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
+import StructInitSignature from "../../helpers/StructInitSignature";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
@@ -183,8 +184,14 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
       : [];
 
   // #1205: the header needs a prototype for the init function this just wrote.
-  // Recorded from the same predicate that decides to emit it, so the two can
-  // never disagree about whether the function exists.
+  // Recorded from the same predicate that decides to emit it, so THIS generator
+  // and the header cannot disagree about whether the function exists.
+  //
+  // That invariant is deliberately narrow. ScopeGenerator emits scope-nested
+  // structs through a separate path with no ADR-029 branch at all -- it never
+  // reaches this code, so it registers nothing and emits no init function
+  // (#1283). Nothing here makes that path agree; it is simply absent from the
+  // conversation.
   if (callbackFields.length > 0) {
     effects.push({ type: "register-struct-init", structName: name });
   }
@@ -214,7 +221,7 @@ function generateStructInitFunction(
 ): string {
   const lines: string[] = [];
   lines.push(
-    `${structName} ${structName}_init(void) {`,
+    `${StructInitSignature.of(structName)} {`,
     `    return (${structName}){`,
   );
 

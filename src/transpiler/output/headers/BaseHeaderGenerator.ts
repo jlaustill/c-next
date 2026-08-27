@@ -7,7 +7,6 @@
  */
 
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import CodeGenState from "../../state/CodeGenState";
 import IParameterSymbol from "../../../utils/types/IParameterSymbol";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
@@ -16,6 +15,7 @@ import HeaderGeneratorUtils from "./HeaderGeneratorUtils";
 import SymbolTable from "../../logic/symbols/SymbolTable";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
+import StructInitSignature from "../codegen/helpers/StructInitSignature";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
 
 const { mapType } = typeUtils;
@@ -130,6 +130,7 @@ abstract class BaseHeaderGenerator {
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
+    structsWithInit?: ReadonlySet<string>,
   ): string {
     const guard = HeaderGeneratorUtils.makeGuard(filename);
 
@@ -239,6 +240,7 @@ abstract class BaseHeaderGenerator {
         groups.functions,
         passByValueParams,
         allKnownEnums,
+        structsWithInit,
       ),
       ...HeaderGeneratorUtils.generateHeaderEnd(guard),
     ];
@@ -253,11 +255,9 @@ abstract class BaseHeaderGenerator {
     functions: IHeaderSymbol[],
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
+    structsWithInit?: ReadonlySet<string>,
   ): string[] {
-    if (
-      functions.length === 0 &&
-      CodeGenState.getStructsWithInitFunction().size === 0
-    ) {
+    if (functions.length === 0) {
       return [];
     }
 
@@ -266,8 +266,14 @@ abstract class BaseHeaderGenerator {
     // #1205 / MISRA 8.4: ADR-029 emits `<Struct>_init()` with external linkage.
     // It is generated rather than written, so it never reaches `functions` --
     // without this its definition has no visible declaration.
-    for (const structName of CodeGenState.getStructsWithInitFunction()) {
-      lines.push(`${structName} ${structName}_init(void);`);
+    //
+    // No early-return guard for this set alone: a struct only registers when a
+    // callback field's type resolves, which requires that function-as-type to be
+    // declared in the same file -- and that declaration always emits a prototype
+    // of its own. So `functions` is non-empty whenever this set is, and a guard
+    // for the other case could never be reached, let alone tested.
+    for (const structName of structsWithInit ?? []) {
+      lines.push(`${StructInitSignature.of(structName)};`);
     }
 
     for (const sym of functions) {
