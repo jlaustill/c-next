@@ -65,6 +65,7 @@ function createMockSymbols(
     knownBitmaps: Set<string>;
     knownStructs: Set<string>;
     knownRegisters: Set<string>;
+    knownCallbackTypes: Set<string>;
     enumMembers: Map<string, Map<string, number>>;
     structFields: Map<string, Map<string, string>>;
     structFieldArrays: Map<string, Set<string>>;
@@ -74,7 +75,7 @@ function createMockSymbols(
   }> = {},
 ): ICodeGenSymbols {
   return {
-    knownCallbackTypes: new Set(),
+    knownCallbackTypes: overrides.knownCallbackTypes ?? new Set(),
     knownScopes: overrides.knownScopes ?? new Set(),
     knownEnums: overrides.knownEnums ?? new Set(),
     knownBitmaps: overrides.knownBitmaps ?? new Set(),
@@ -882,17 +883,35 @@ describe("CodeGenState", () => {
   });
 
   describe("Scope Type Qualification (ADR-057)", () => {
-    it("isScopeType matches enums, structs and bitmaps by qualified name", () => {
+    it("isScopeType matches every type kind by qualified name", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["A__B"]),
         knownStructs: new Set(["A__S"]),
         knownBitmaps: new Set(["A__Flags"]),
+        // ADR-029: a function definition is also a type (#1200).
+        knownCallbackTypes: new Set(["A__tickSource"]),
       });
 
       expect(CodeGenState.isScopeType("A__B")).toBe(true);
       expect(CodeGenState.isScopeType("A__S")).toBe(true);
       expect(CodeGenState.isScopeType("A__Flags")).toBe(true);
+      expect(CodeGenState.isScopeType("A__tickSource")).toBe(true);
       expect(CodeGenState.isScopeType("A__Nope")).toBe(false);
+    });
+
+    // The other half of ADR-057's kind-awareness rule. A scope VARIABLE is not
+    // a type and must not capture a global type's name at a type position, so
+    // it belongs to no known-type set and isScopeType must not match it. This
+    // is the unit-level counterpart of
+    // scope-variable-does-not-shadow-global-type.test.cnx.
+    it("isScopeType does not match a scope variable sharing a global type name", () => {
+      CodeGenState.symbols = createMockSymbols({
+        knownStructs: new Set(["Config"]),
+        knownCallbackTypes: new Set(["A__tickSource"]),
+      });
+
+      expect(CodeGenState.isScopeType("A__Config")).toBe(false);
+      expect(CodeGenState.isScopeType("Config")).toBe(true);
     });
 
     it("isScopeType returns false without symbols", () => {
