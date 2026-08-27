@@ -80,6 +80,21 @@ anything that qualifies after that point silently rewrites `global.` references 
 the scope-local type. A bare name is the only form that resolves; `this.T`,
 `global.T` and `Scope.T` each state their answer in the syntax and keep it.
 
+**A scope-declared type is named `Scope__Type`.** A type declared inside a scope
+carries the scope in its generated C name, and so do its members:
+
+```cnx
+enum Config { OFF, ON }          // global -> Config, Config__OFF
+
+scope Timing {
+    public enum Config { IDLE }  // -> Timing__Config, Timing__Config__IDLE
+}
+```
+
+The two never collide, at any nesting depth, because ADR-063 makes the join
+injective. Inside `scope Timing` a bare `Config` therefore means `Timing__Config`;
+`global.Config` still names the global one.
+
 **Resolution is kind-aware.** A scope member captures a bare name at a type
 position only if that member is itself a type. A scope function _is_ a type
 (ADR-029), so it captures; a scope **variable** is not, so it does not — a scope
@@ -90,44 +105,53 @@ name.
 same way whether its declaration appears above or below the use, and whether the
 declaration is in the same file or an included one.
 
-### Limitations
+### Shadowing does not hide the outer name
 
-**Global shadowing.** When `global.X` is used and a local variable `X` exists in
-the same function, the program is rejected. C cannot access a shadowed global
-from within the shadowing scope, so there is no correct code to generate.
+`this.` and `global.` see **past** a shadow. All three levels are reachable from
+the same function:
 
 ```cnx
-scope Test {
-    void broken() {
-        u32 count <- 10;       // Local
-        u32 x <- global.count; // E0425: local 'count' shadows the global
+u32 count <- 1000;
+
+scope Counter {
+    u32 count <- 100;
+
+    public u32 test() {
+        u32 count <- 10;
+        return count + this.count + global.count;   // 10 + 100 + 1000
     }
 }
 ```
 
-## Diagnostics
+**Output definition.** C has no `::`, so this guarantee has a consequence for the
+generated C: a local emitted as plain `count` would make the file-scope `count`
+unreachable for the rest of the function, and `global.count` would silently bind
+to the local. The **local** therefore moves, not the global — it is emitted as
+`Scope__function__local`:
 
-| Code  | Meaning                                               | Raised by                                 |
-| ----- | ----------------------------------------------------- | ----------------------------------------- |
-| E0425 | `global.X` used where a local variable `X` shadows it | `output/codegen/helpers/CodeGenErrors.ts` |
+```c
+uint32_t count = 1000U;
+static uint32_t Counter__count = 100U;
 
-Actual output, as asserted by
-`tests/scope-resolution/global-shadowed-by-local.expected.error`:
-
+uint32_t Counter__test(void) {
+    uint32_t Counter__test__count = 10U;
+    return Counter__test__count + Counter__count + count;
+}
 ```
-19:17 Code generation failed: E0425: Cannot use 'global.count' when local
-variable 'count' shadows it. Rename the local variable to avoid shadowing.
-```
 
-Reported where a `global.` member access names a symbol that a local declaration
-in the same function already binds. The generated C has no syntax for reaching
-the shadowed global, so this is rejected rather than mis-compiled.
+This applies to any local that would shadow a **file-scope** name — plain
+variables, arrays, and `for` init variables alike. A local that shadows nothing,
+or that shadows only an enclosing _local_, keeps its own name: C block scoping
+already gives the right answer there, and neither `this.` nor `global.` can name
+an enclosing local. The generated file is a certification artifact, so names stay
+plain wherever the language does not require otherwise.
 
-The `line:column` prefix is load-bearing. Codegen diagnostics reach the user
-through `ParserUtils.parseErrorLocation`, which recovers a position only from a
-literal prefix; without one the error reports at `1:0` and the scope-context
-matrix cannot derive which context it fired in, so the cell stays unoccupied no
-matter how many fixtures assert it.
+Two gaps are tracked rather than hidden: a **parameter** that shadows a
+file-scope name is not yet covered (#1290), and the "is this name taken at file
+scope" test is currently answered run-wide rather than per translation unit, so
+an unrelated file in the same build can qualify a local that did not need it
+(#1291). The second errs toward renaming on purpose — a missed rename is silently
+wrong code, an unnecessary one is only a longer name.
 
 ## Scope-Context Matrix (#1219)
 
@@ -167,9 +191,11 @@ reason and a filed follow-up.
 | scope method       | imported transitive | warn     |
 
 Two limits apply and are tracked as #1241. Only a fixture with an
-`.expected.error` can occupy a cell, so the type-position rules above — which
-govern codegen shape rather than a diagnostic — cannot occupy one until they
-raise a diagnostic. And the axes cannot see syntactic form: a bare `read()` and a
+`.expected.error` can occupy a cell, and **ADR-057 raises no diagnostic of its
+own** — it is a resolution and codegen-shape rule throughout. So every cell is
+currently unoccupiable, and the twelve `warn` rows record a real obligation that
+#1241 must be resolved before any of them can be met. That is the honest reading;
+declaring them `off` to get a quiet report would be the dishonest one. And the axes cannot see syntactic form: a bare `read()` and a
 qualified `this.read()` inside the same scope method derive the same cell, which
 is exactly how #1210 and #1244 reached `main`. Both spellings need fixtures even
 though they share a cell.
@@ -187,7 +213,8 @@ though they share a cell.
 
 - Silent shadowing may cause subtle bugs (mitigated by explicit access when needed)
 - Resolution logic in the transpiler is correspondingly more complex
-- `global.X` is unusable where a local shadows the global (E0425)
+- A local that shadows a file-scope name is emitted under a qualified C name,
+  so the generated identifier does not always match the source one
 - The rule is spelled more than one way. A bare name and its qualified equivalent
   compile to the same thing, so a defect in one spelling is invisible to a fixture
   written in the other
@@ -207,6 +234,8 @@ None.
   is why that description is no longer carried here
 - ADR-063 — makes the qualified-name join injective, so a resolved name identifies
   its symbol without needing a scope to interpret it
-- Fixtures: `tests/scope-resolution/`, `tests/scope/issue-1130-scope-type-qualification.test.cnx`,
+- Fixtures: `tests/adr-057/` (including `shadow-global-from-scope-method.test.cnx`,
+  the execution test pinning all three levels at once),
   `tests/bugs/issue-1210-bare-intra-scope-call/`,
   `tests/bugs/issue-1244-adr057-scope-member-shadow/`
+- Issue #1290 — a parameter shadowing a file-scope name is not yet covered

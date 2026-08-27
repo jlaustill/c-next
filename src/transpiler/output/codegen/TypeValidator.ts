@@ -381,7 +381,11 @@ class TypeValidator {
     isKnownStruct: (name: string) => boolean,
   ): string | null {
     if (isLocalVariable) {
-      return null;
+      // ADR-057: a local normally emits under its own name (null = "leave it
+      // alone"). One that shadows a file-scope symbol was given a distinct C
+      // identifier at its declaration, and every reference must follow it.
+      const emitted = CodeGenState.emittedLocalName(identifier);
+      return emitted === identifier ? null : emitted;
     }
 
     const currentScope = CodeGenState.currentScope;

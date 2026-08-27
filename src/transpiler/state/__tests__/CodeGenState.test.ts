@@ -352,6 +352,66 @@ describe("CodeGenState", () => {
       expect(CodeGenState.localArrays.has("localArr")).toBe(true);
     });
 
+    it("registerLocalVariable leaves a non-shadowing local under its own name", () => {
+      CodeGenState.currentFunctionName = "Counter__test";
+
+      CodeGenState.registerLocalVariable("fresh");
+
+      expect(CodeGenState.emittedLocalName("fresh")).toBe("fresh");
+    });
+
+    it("registerLocalVariable qualifies a local that shadows a global function", () => {
+      CodeGenState.currentFunctionName = "Counter__test";
+      CodeGenState.knownFunctions.add("count");
+
+      CodeGenState.registerLocalVariable("count");
+
+      expect(CodeGenState.emittedLocalName("count")).toBe(
+        "Counter__test__count",
+      );
+    });
+
+    it("registerLocalVariable does not qualify when there is no function context", () => {
+      CodeGenState.currentFunctionName = null;
+      CodeGenState.knownFunctions.add("count");
+
+      CodeGenState.registerLocalVariable("count");
+
+      expect(CodeGenState.emittedLocalName("count")).toBe("count");
+    });
+
+    it("shadowsFileScopeSymbol ignores an enclosing local", () => {
+      CodeGenState.localVariables.add("outer");
+      CodeGenState.knownFunctions.add("outer");
+
+      // Already local, so C block scoping already gives the right answer and
+      // neither `this.` nor `global.` can name an enclosing local.
+      expect(CodeGenState.shadowsFileScopeSymbol("outer")).toBe(false);
+    });
+
+    it("shadowsFileScopeSymbol is false for an unknown name", () => {
+      expect(CodeGenState.shadowsFileScopeSymbol("nothingNamedThis")).toBe(
+        false,
+      );
+    });
+
+    it("exitFunctionBody drops the rename map with the other locals", () => {
+      CodeGenState.currentFunctionName = "Counter__test";
+      CodeGenState.knownFunctions.add("count");
+      CodeGenState.registerLocalVariable("count");
+      expect(CodeGenState.emittedLocalName("count")).toBe(
+        "Counter__test__count",
+      );
+
+      CodeGenState.exitFunctionBody();
+
+      // A rename surviving into the next function would rewrite an unrelated
+      // local of the same name.
+      expect(CodeGenState.emittedLocalName("count")).toBe("count");
+      expect(CodeGenState.localVariables.size).toBe(0);
+      expect(CodeGenState.localArrays.size).toBe(0);
+    });
+
     it("registerFunctionSignature adds to functionSignatures and knownFunctions", () => {
       const sig = {
         name: "myFunc",

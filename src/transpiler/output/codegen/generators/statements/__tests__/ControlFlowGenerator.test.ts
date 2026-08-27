@@ -361,7 +361,9 @@ function createMockOrchestrator(options?: {
     generateType: vi.fn(() => options?.typeCode ?? "int"),
     generateAssignmentTarget: vi.fn((ctx) => ctx.getText?.() ?? "target"),
     generateArrayDimensions: vi.fn(() => "[10]"),
-    registerLocalVariable: vi.fn(),
+    // ADR-057: registration hands back the emitted name; identity here means
+    // "nothing shadowed, keep the source name".
+    registerLocalVariable: vi.fn((name: string) => name),
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
     validateConditionNoFunctionCall: vi.fn(),
     validateConditionIsBoolean: vi.fn(),
@@ -803,7 +805,7 @@ describe("ControlFlowGenerator", () => {
       const ctx = createMockForVarDecl({ identifier: "index" });
       const input = createMockInput();
       const state = createMockState();
-      const registerLocalVariable = vi.fn();
+      const registerLocalVariable = vi.fn((name: string) => name);
       const orchestrator = {
         ...createMockOrchestrator(),
         registerLocalVariable,

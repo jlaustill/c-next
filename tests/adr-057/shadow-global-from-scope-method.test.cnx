@@ -1,0 +1,58 @@
+// test-execution
+// test-adr: 057
+// ADR-057: bare names resolve local -> scope -> global, AND `global.` must see
+// PAST a shadow. C has no `::`, so a local that shadows a file-scope name is
+// emitted under a distinct C identifier; were it not, `global.count` would
+// silently bind to the local and compile clean (#1289).
+//
+// Every value below is distinct so a wrong binding cannot pass by coincidence.
+
+u32 count <- 1000;
+u32[2] buf <- [7, 8];
+u32 tick <- 99;
+
+scope Counter {
+    u32 count <- 100;
+
+    // Negative control: nothing here shadows a file-scope name, so `fresh` must
+    // keep its plain C name. If the rename ever fired unconditionally, the
+    // committed snapshot for this function would change.
+    public u32 plain() {
+        u32 fresh <- 5;
+        return fresh;
+    }
+
+    public u32 allThreeLevels() {
+        u32 count <- 10;
+        return count + this.count + global.count;
+    }
+
+    public u32 arrayShadow() {
+        u32[2] buf <- [1, 2];
+        return buf[0] + global.buf[0];
+    }
+
+    public u32 loopShadow() {
+        u32 sum <- 0;
+        for (u32 tick <- 0; tick < 2; tick +<- 1) {
+            sum +<- global.tick;
+        }
+        return sum;
+    }
+}
+
+u32 main() {
+    u32 a <- Counter.allThreeLevels();
+    if (a != 1110) return 1;
+
+    u32 b <- Counter.arrayShadow();
+    if (b != 8) return 2;
+
+    u32 c <- Counter.loopShadow();
+    if (c != 198) return 3;
+
+    u32 d <- Counter.plain();
+    if (d != 5) return 4;
+
+    return 0;
+}

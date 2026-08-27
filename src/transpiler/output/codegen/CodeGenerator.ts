@@ -497,10 +497,7 @@ export default class CodeGenerator implements IOrchestrator {
           CodeGenState.setVariableTypeInfo(effect.name, effect.info);
           break;
         case "register-local":
-          CodeGenState.localVariables.add(effect.name);
-          if (effect.isArray) {
-            CodeGenState.localArrays.add(effect.name);
-          }
+          CodeGenState.registerLocalVariable(effect.name, effect.isArray);
           break;
         case "register-const-value":
           CodeGenState.constValues.set(effect.name, effect.value);
@@ -513,18 +510,10 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Function body effects
         case "enter-function-body":
-          CodeGenState.inFunctionBody = true;
-          CodeGenState.localVariables.clear();
-          CodeGenState.localArrays.clear();
-          CodeGenState.floatBitShadows.clear();
-          CodeGenState.floatShadowCurrent.clear();
+          CodeGenState.enterFunctionBody();
           break;
         case "exit-function-body":
-          CodeGenState.inFunctionBody = false;
-          CodeGenState.localVariables.clear();
-          CodeGenState.localArrays.clear();
-          CodeGenState.floatBitShadows.clear();
-          CodeGenState.floatShadowCurrent.clear();
+          CodeGenState.exitFunctionBody();
           break;
         case "set-parameters":
           CodeGenState.currentParameters = new Map(effect.params);
@@ -1372,8 +1361,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Register a local variable.
    * Part of IOrchestrator interface (ADR-053 A3).
    */
-  registerLocalVariable(name: string): void {
-    CodeGenState.localVariables.add(name);
+  registerLocalVariable(name: string): string {
+    CodeGenState.registerLocalVariable(name);
+    return CodeGenState.emittedLocalName(name);
   }
 
   // === Declaration Generation (ADR-053 A4) ===
@@ -4431,7 +4421,7 @@ export default class CodeGenerator implements IOrchestrator {
       requireInclude: (header) => this.requireInclude(header),
       resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
     });
-    CodeGenState.localVariables.add(name);
+    CodeGenState.registerLocalVariable(name);
 
     // Bug #8: Track local const values for array size and bit index resolution
     if (ctx.constModifier() && ctx.expression()) {

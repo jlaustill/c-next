@@ -21,7 +21,6 @@ import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
 import MemberAccessValidator from "../../helpers/MemberAccessValidator";
-import CodeGenErrors from "../../helpers/CodeGenErrors";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
@@ -120,16 +119,6 @@ interface IPostfixContext {
   state: IGeneratorState;
   orchestrator: IOrchestrator;
   effects: TGeneratorEffect[];
-  /**
-   * Source position of this postfix expression, for diagnostics raised from
-   * here. Codegen errors reach the user through
-   * `ParserUtils.parseErrorLocation`, which recovers a position only from a
-   * literal `line:col ` prefix on the message — without one every codegen
-   * diagnostic reports at 1:0, which is also why it can never occupy a
-   * scope-context matrix cell (#1219).
-   */
-  line: number;
-  column: number;
 }
 
 /**
@@ -277,8 +266,6 @@ const generatePostfixExpression = (
     state,
     orchestrator,
     effects,
-    line: ctx.start?.line ?? 1,
-    column: ctx.start?.column ?? 0,
   };
 
   for (const op of ops) {
@@ -441,10 +428,9 @@ const handleGlobalPrefix = (
   tracking.resolvedIdentifier = memberName;
   tracking.isGlobalAccess = true;
 
-  // ADR-057: Check if global variable would be shadowed by a local
-  if (ctx.state.localVariables.has(memberName)) {
-    throw CodeGenErrors.globalShadowedByLocal(memberName, ctx.line, ctx.column);
-  }
+  // ADR-057: a local shadowing this global does NOT make it unreachable. The
+  // shadowing local is emitted under a distinct C name, so plain `memberName`
+  // still denotes the global here.
 
   if (ctx.orchestrator.isCppScopeSymbol(memberName)) {
     tracking.isCppAccessChain = true;

@@ -57,6 +57,11 @@ describe("CodeGenerator", () => {
   // Reset SymbolRegistry before each test to prevent state pollution
   beforeEach(() => {
     SymbolRegistry.reset();
+    // CodeGenState.symbolTable is a run-wide singleton. ADR-057's shadow
+    // predicate asks it whether a bare name is already taken at file scope, so
+    // symbols left by an earlier test in this file make an unrelated local look
+    // like it shadows something and change the generated name.
+    CodeGenState.symbolTable.clear();
   });
 
   describe("generate()", () => {
@@ -660,9 +665,12 @@ describe("CodeGenerator", () => {
       it("should add variable to local variables", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
-        generator.registerLocalVariable("localVar");
+        const emitted = generator.registerLocalVariable("localVar");
 
         expect(generator.getState().localVariables.has("localVar")).toBe(true);
+        // ADR-057: nothing at file scope is called `localVar`, so it keeps its
+        // own name. The emitted name is the return value, not the argument.
+        expect(emitted).toBe("localVar");
       });
     });
 

@@ -660,9 +660,14 @@ class VariableDeclHelper {
       return stringResult.code;
     }
 
-    // Build base declaration
+    // Build base declaration.
+    // ADR-057: the DECLARED identifier is the emitted one -- a local shadowing a
+    // file-scope name carries a distinct C name so `global.x` still reaches
+    // past it. Every registry above stays keyed on the bare source name, which
+    // is what references in the source actually say; only the text moves.
     const modifierPrefix = VariableModifierBuilder.toPrefix(modifiers);
-    let decl = `${modifierPrefix}${type} ${name}`;
+    const emittedName = CodeGenState.emittedLocalName(name);
+    let decl = `${modifierPrefix}${type} ${emittedName}`;
 
     // Handle array declarations - early return if array init handled
     const arrayResult = VariableDeclHelper.handleArrayDeclaration(
@@ -773,7 +778,7 @@ class VariableDeclHelper {
 
     // Track as local variable if inside function body
     if (CodeGenState.inFunctionBody) {
-      CodeGenState.localVariables.add(name);
+      CodeGenState.registerLocalVariable(name);
     }
 
     return `${type} ${name}(${resolvedArgs.join(", ")});`;

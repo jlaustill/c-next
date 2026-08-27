@@ -405,7 +405,8 @@ bare `value` compiles to `Counter__value`.
 
 What ADR-057 kept from this decision: explicitness still wins where the two
 levels genuinely collide, and where C itself cannot express the result the
-program is rejected rather than mis-compiled (E0425).
+shadowing local is emitted under a qualified C name so the outer one stays
+reachable.
 
 #### Why the original design chose explicitness
 

@@ -237,10 +237,13 @@ const generateForVarDecl = (
   // Issue #696: Use shared modifier builder
   const modifiers = VariableModifierBuilder.buildSimple(node);
   const typeName = orchestrator.generateType(node.type());
-  const name = node.IDENTIFIER().getText();
+  const declaredName = node.IDENTIFIER().getText();
 
-  // ADR-016: Track local variables (allowed as bare identifiers inside scopes)
-  orchestrator.registerLocalVariable(name);
+  // ADR-016: Track local variables (allowed as bare identifiers inside scopes).
+  // ADR-057: registration hands back the emitted name -- a `for` variable that
+  // shadows a file-scope name moves, so `global.x` inside the loop body still
+  // reaches the global rather than the counter.
+  const name = orchestrator.registerLocalVariable(declaredName);
 
   let result = `${modifiers.atomic}${modifiers.volatile}${typeName} ${name}`;
 
