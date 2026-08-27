@@ -17,6 +17,12 @@ extern "C" {
 typedef struct Holder {
     uint32_t x;
 } Holder;
+typedef struct Wide {
+    uint32_t x;
+} Wide;
+typedef struct Narrow {
+    uint8_t x;
+} Narrow;
 
 /* External variables */
 extern uint32_t count;
@@ -26,6 +32,8 @@ extern uint32_t wbuf[2];
 extern Holder wcfg;
 extern uint8_t wflags;
 extern char wmsg[17];
+extern uint32_t sarr[4];
+extern Wide scfg;
 
 /* Function prototypes */
 uint32_t Counter__plain(void);
@@ -36,6 +44,9 @@ uint32_t Counter__writeSubscript(void);
 uint32_t Counter__writeStructField(void);
 uint32_t Counter__writeBitRange(void);
 uint32_t Counter__shadowingString(void);
+uint32_t Counter__sizeofArray(void);
+uint32_t Counter__sizeofMember(void);
+uint32_t Counter__elementCount(void);
 uint32_t Counter__globalSubscript(void);
 uint32_t Counter__globalStructField(void);
 uint32_t Counter__globalBits(void);

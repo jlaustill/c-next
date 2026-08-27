@@ -1,0 +1,99 @@
+// test-adr: 057
+// ADR-057: coverage sweep, derived from the EMISSION SITES rather than from the
+// defect history.
+//
+// A local's identifier reaches the generated C through several independent
+// emitters -- declarations, expression references, assignment targets, and the
+// resolvers for `sizeof` and the length properties. Each applies the shadow
+// rename separately, so each is a place the rename can be missed. Three
+// successive reviews of #1289 each found one more (declarations, then writes,
+// then `sizeof`), because coverage was written from bugs already found.
+//
+// This fixture uses a shadowing local in every syntactic position the grammar
+// admits and writes `global.` NOWHERE. The bare names below must therefore
+// never appear inside the generated function body -- only in the file-scope
+// declarations they shadow. A missed emission site shows up as a snapshot diff
+// containing a bare name, and, where the shapes differ, as a compile failure.
+
+struct Holder {
+    u32 x;
+}
+
+u32 probe <- 1000;
+u32[4] parr <- [1, 2, 3, 4];
+u8 pbits <- 0;
+u32 pidx <- 3;
+u32 pdown <- 50;
+Holder pcfg <- {x: 9};
+string<16> pstr <- "global";
+
+u32 takes(u32 v) {
+    return v;
+}
+
+scope S {
+    public u32 positions(u32 flag) {
+        u32 probe <- 1;
+        u32[4] parr <- [5, 6, 7, 8];
+        u8 pbits <- 0;
+        u32 pidx <- 1;
+        u32 pdown <- 2;
+        Holder pcfg <- {x: 1};
+        string<8> pstr <- "ab";
+
+        u32 acc <- 0;
+
+        // assignment target, compound assignment
+        probe <- 2;
+        probe +<- 1;
+
+        // binary operand, call argument, ternary arms, conditions
+        acc +<- probe;
+        acc +<- probe + 1;
+        acc +<- takes(probe);
+        acc +<- (flag = 1) ? probe : 0;
+        if (probe > 0) {
+            acc +<- 1;
+        }
+        while (pdown > 0) {
+            pdown -<- 1;
+        }
+
+        // bit read on a scalar
+        acc +<- probe[0, 4];
+
+        // subscript write, subscript read, and a shadowing local AS an index.
+        // `pidx` is a separate local on purpose: reusing a loop counter here
+        // let cppcheck infer the index could exceed the array bounds, which is
+        // a true finding about the fixture rather than about the transpiler.
+        parr[0] <- 5;
+        acc +<- parr[1];
+        acc +<- parr[pidx];
+
+        // array length property and sizeof
+        acc +<- parr.element_count;
+        acc +<- sizeof(parr);
+
+        // bit write, whole-value read
+        pbits[0, 4] <- 3;
+        acc +<- pbits;
+
+        // struct member write, read, and sizeof of a member
+        pcfg.x <- 7;
+        acc +<- pcfg.x;
+        acc +<- sizeof(pcfg.x);
+
+        // string assignment and length property
+        pstr <- "cd";
+        acc +<- pstr.char_count;
+
+        // struct initializer value and array initializer element
+        Holder made <- {x: probe};
+        acc +<- made.x;
+
+        u32[2] init <- [probe, 2];
+        acc +<- init[0];
+
+        return acc;
+    }
+}

@@ -34,7 +34,7 @@ cell is declared by the ADR that owns it.
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
 | scope method       | warn      | warn   | warn       | n/a         | n/a        |
 
-11 linked fixtures with no derivable context:
+12 linked fixtures with no derivable context:
 
 - `adr-057/bare-array-member.test.cnx`
 - `adr-057/bare-function-call.test.cnx`
@@ -44,6 +44,7 @@ cell is declared by the ADR that owns it.
 - `adr-057/issue-1130-scope-type-qualification.test.cnx`
 - `adr-057/local-shadows-scope.test.cnx`
 - `adr-057/shadow-global-from-scope-method.test.cnx`
+- `adr-057/shadow-local-every-position.test.cnx`
 - `adr-057/shadowing-all-levels.test.cnx`
 - `bugs/issue-1210-bare-intra-scope-call/bare-intra-scope-call.test.cnx`
 - `bugs/issue-1244-adr057-scope-member-shadow/scope-member-shadow.test.cnx`

@@ -81,7 +81,10 @@ export default class SizeofResolver {
 
     // Check if first identifier is a local variable (struct instance)
     if (CodeGenState.localVariables.has(firstName)) {
-      return `sizeof(${firstName}.${memberName})`;
+      // ADR-057: a local that shadows a file-scope name is emitted under a
+      // distinct C identifier. Without this, `sizeof(cfg.x)` measured the
+      // GLOBAL `cfg` -- a wrong number, compiling clean.
+      return `sizeof(${CodeGenState.emittedLocalName(firstName)}.${memberName})`;
     }
 
     // Check if first identifier is a parameter (struct parameter)
@@ -117,7 +120,12 @@ export default class SizeofResolver {
     // Check if it's a known local variable, struct type, or enum type
     // For all these cases, generate sizeof(name) directly
     // Unknown identifiers are also treated as variables for safety
-    return `sizeof(${varName})`;
+    //
+    // ADR-057: emittedLocalName is a no-op for type names and for locals that
+    // shadow nothing -- a rename exists only for a local of this exact name in
+    // this function. Without it `sizeof(arr)` measured the GLOBAL array: 16
+    // bytes where 8 was correct, with no diagnostic and a clean compile.
+    return `sizeof(${CodeGenState.emittedLocalName(varName)})`;
   }
 
   /**

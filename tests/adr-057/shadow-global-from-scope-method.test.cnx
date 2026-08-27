@@ -17,6 +17,16 @@ struct Holder {
     u32 x;
 }
 
+// `sizeof` cases need the local and the global to differ in SIZE, or the
+// assertion cannot fail. Same field name, different field width.
+struct Wide {
+    u32 x;
+}
+
+struct Narrow {
+    u8 x;
+}
+
 u32 count <- 1000;
 u32[2] buf <- [7, 8];
 u32 tick <- 99;
@@ -24,6 +34,8 @@ u32[2] wbuf <- [70, 80];
 Holder wcfg <- {x: 90};
 u8 wflags <- 0;
 string<16> wmsg <- "global";
+u32[4] sarr <- [1, 2, 3, 4];
+Wide scfg <- {x: 1};
 
 scope Counter {
     u32 count <- 100;
@@ -79,6 +91,24 @@ scope Counter {
         return wmsg.char_count;
     }
 
+    // --- sizeof and element_count resolve their own identifiers, so they are
+    // --- separate emission sites from every read and write above ---
+
+    public u32 sizeofArray() {
+        u32[2] sarr <- [1, 2];
+        return sizeof(sarr);
+    }
+
+    public u32 sizeofMember() {
+        Narrow scfg <- {x: 1};
+        return sizeof(scfg.x);
+    }
+
+    public u32 elementCount() {
+        u32[2] sarr <- [1, 2];
+        return sarr.element_count;
+    }
+
     // --- the globals the writes above must NOT have touched ---
 
     public u32 globalSubscript() {
@@ -130,6 +160,17 @@ u32 main() {
     if (h != 2) return 11;
     u32 h2 <- Counter.globalStringLength();
     if (h2 != 6) return 12;
+
+    // sizeof the LOCAL u32[2] is 8; the shadowed global u32[4] would be 16
+    u32 i <- Counter.sizeofArray();
+    if (i != 8) return 13;
+
+    // sizeof the LOCAL Narrow.x is 1; the shadowed global Wide.x would be 4
+    u32 j <- Counter.sizeofMember();
+    if (j != 1) return 14;
+
+    u32 k <- Counter.elementCount();
+    if (k != 2) return 15;
 
     return 0;
 }

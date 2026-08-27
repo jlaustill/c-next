@@ -35,6 +35,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // unchanged -- reading the local back cannot tell the two apart.
 //
 // Every value is distinct so a wrong binding cannot pass by coincidence.
+// `sizeof` cases need the local and the global to differ in SIZE, or the
+// assertion cannot fail. Same field name, different field width.
 uint32_t count = 1000U;
 
 uint32_t buf[2] = {7U, 8U};
@@ -48,6 +50,10 @@ Holder wcfg = { .x = 90U };
 uint8_t wflags = 0U;
 
 char wmsg[17] = "global";
+
+uint32_t sarr[4] = {1U, 2U, 3U, 4U};
+
+Wide scfg = { .x = 1U };
 
 /* Scope: Counter */
 static uint32_t Counter__count = 100U;
@@ -98,6 +104,21 @@ uint32_t Counter__shadowingString(void) {
     return strlen(Counter__shadowingString__wmsg);
 }
 
+uint32_t Counter__sizeofArray(void) {
+    uint32_t Counter__sizeofArray__sarr[2] = {1U, 2U};
+    return sizeof(Counter__sizeofArray__sarr);
+}
+
+uint32_t Counter__sizeofMember(void) {
+    Narrow Counter__sizeofMember__scfg = { .x = 1U };
+    return sizeof(Counter__sizeofMember__scfg.x);
+}
+
+uint32_t Counter__elementCount(void) {
+    uint32_t Counter__elementCount__sarr[2] = {1U, 2U};
+    return 2;
+}
+
 uint32_t Counter__globalSubscript(void) {
     return wbuf[0U];
 }
@@ -139,5 +160,11 @@ int main(void) {
     if (h != 2) return 11;
     uint32_t h2 = Counter__globalStringLength();
     if (h2 != 6) return 12;
+    uint32_t i = Counter__sizeofArray();
+    if (i != 8) return 13;
+    uint32_t j = Counter__sizeofMember();
+    if (j != 1) return 14;
+    uint32_t k = Counter__elementCount();
+    if (k != 2) return 15;
     return 0;
 }
