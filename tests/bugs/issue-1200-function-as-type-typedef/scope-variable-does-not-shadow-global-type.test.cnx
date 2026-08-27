@@ -1,0 +1,19 @@
+// test-adr: 029, 057
+// Negative control for scope-callback-shadows-global-type.test.cnx.
+//
+// Same collision, but `Config` is a scope VARIABLE rather than a function. A
+// variable is not a type, so the bare `Config` at a type position must still
+// reach the global struct. This is the half of #1130's kind-awareness rule that
+// stays exactly as it was -- if adding callbacks had been done by keying on
+// scope membership instead of kind, this fixture would break.
+struct Config {
+    u32 marker;
+}
+
+scope Timing {
+    u32 Config <- 3;
+
+    public u32 read(const Config settings) {
+        return settings.marker;
+    }
+}

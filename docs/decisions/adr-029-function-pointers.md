@@ -508,6 +508,67 @@ if (config.on_complete)  // Check exists
 | **Go**    | Interfaces instead               | Structural  | Avoids raw function pointers         |
 | **Cnx**   | Never null (default function)    | **Nominal** | Function-as-type pattern             |
 
+## Implementation Notes
+
+### A function-as-type is a type reference, never storage
+
+The pattern exists so a caller can _pass_ something of a function's type without
+declaring an interface. It never creates storage. That makes two positions valid
+and two invalid:
+
+| Position            | Example                               | Valid |
+| ------------------- | ------------------------------------- | ----- |
+| parameter           | `u32 call(tickSource src)`            | yes   |
+| struct field        | `struct Config { tickSource tick; }`  | yes   |
+| standalone variable | `tickSource clock <- platformClock;`  | no    |
+| scope member        | `scope E { public tickSource tick; }` | no    |
+
+A struct field passes something of that type _into_ the struct, which is why it
+is valid and why "Never Null" above is written about fields. A variable or scope
+member would be creating storage of a type that is really a function, which the
+language does not have.
+
+Both invalid forms currently transpile without a diagnostic and emit an opaque
+`typedef struct tickSource tickSource;` that collides with the function of the
+same name, so the generated C does not compile. The defect is the missing
+rejection, not the missing typedef.
+
+### Scope-local function-as-types (#1200, #1207 item 2)
+
+A function declared inside a scope is a scope-declared type, so a bare reference
+to it from that scope resolves through ADR-057's type-side rule and its typedef
+is `Scope__name_fp`. Both of ADR-057's resolution points had to learn this, or
+they would agree only by coincidence.
+
+## Scope-Context Matrix
+
+Every cell is `warn`, for two different reasons that will diverge:
+
+- **Parameter positions** (`top-level function`, `scope method`) are valid and
+  govern **codegen shape**. Only an `.expected.error` fixture can occupy a cell
+  (#1241), so these cannot reach `error` until that lands.
+- **Storage positions** (`global variable`, `scope member`) are invalid and
+  _should_ raise a diagnostic. Once it exists they become occupiable by
+  `.expected.error` fixtures and can be promoted to `error` — the staging
+  ADR-051 used while the defect behind its cells was open.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | warn     |
+| top-level function | same file           | warn     |
+| scope member       | same file           | warn     |
+| scope method       | same file           | warn     |
+| global variable    | imported direct     | warn     |
+| top-level function | imported direct     | warn     |
+| scope member       | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported transitive | warn     |
+| top-level function | imported transitive | warn     |
+| scope member       | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
+
 ## References
 
 - ADR-040: ISR Declaration (for interrupt vector tables)

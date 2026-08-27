@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+// test-adr: 029, 057
 // #1200 / #1207 "what is not fixed" item 2: a function-as-type declared INSIDE
 // the scope, referenced bare from a struct in that same scope.
 //

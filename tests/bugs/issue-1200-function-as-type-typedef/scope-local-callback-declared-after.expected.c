@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+// test-adr: 029, 057
 // #1200: the same scope-local function-as-type, declared AFTER the struct that
 // names it. Pass 0b exists so a bare type name resolves the same way whether
 // its declaration appears above or below the use; this pins that for callbacks.

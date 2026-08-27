@@ -123,8 +123,19 @@ the `userType()` branch only; `this.T`, `globalType()` and `qualifiedType()`
 carry their answer in the syntax and keep their own branches.
 
 **Kind-awareness.** The predicate keys on the _qualified_ name against the known
-enum/struct/bitmap sets, not on scope membership. A scope function or variable
-named `Config` must not capture a global `struct Config` at a type position.
+type sets — enums, structs, bitmaps and **functions** — not on scope membership.
+ADR-029 makes a function definition create both a function and a type, so a
+scope function named `Config` _is_ a scope-declared type, and a bare `Config`
+inside that scope resolves to it exactly as it would to a scope struct. A scope
+**variable** named `Config` must not capture a global `struct Config`: a
+variable is not a type, and that is the distinction this rule exists to protect.
+Keying on scope membership would lose it.
+
+Functions were omitted when the type side was written (#1130). That left a bare
+reference to a scope-local function-as-type unresolvable — the qualified
+registration key never matched the bare reference key, so no `_fp` typedef was
+emitted and the header carried a raw name that is not a type (#1200; #1207's
+"what is not fixed" item 2).
 
 **Two resolution points.** Type names are resolved in two layers, and both
 qualify through `QualifiedCName.qualifyScopeType()`:
@@ -140,8 +151,8 @@ qualify through `QualifiedCName.qualifyScopeType()`:
   `CodeGenState.qualifyScopeType()`.
 
 **Declaration-order independence.** `CNextResolver` Pass 0b collects the
-qualified names of every scope-declared enum, struct and bitmap before any type
-is resolved. Using `scope.members` instead would be wrong twice over: it is
+qualified names of every scope-declared enum, struct, bitmap and function before
+any type is resolved. Using `scope.members` instead would be wrong twice over: it is
 kind-agnostic, and it is still being populated while collectors read it, so a
 type declared below its use would resolve differently from one declared above.
 
@@ -149,7 +160,11 @@ type declared below its use would resolve differently from one declared above.
 
 - `src/utils/QualifiedCName.ts` — `qualifyScopeType()`
 - `src/transpiler/state/CodeGenState.ts` — `isScopeType()`, `qualifyScopeType()`
-- `src/transpiler/logic/symbols/cnext/index.ts` — Pass 0b
+- `src/transpiler/logic/symbols/cnext/index.ts` — Pass 0b (functions added, #1200)
+- `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts` — builds
+  `knownCallbackTypes` from the same `getTranspiledCName` encoder used for
+  function lookup, so the two cannot disagree about a symbol's name
+- `src/transpiler/types/ICodeGenSymbols.ts` — `knownCallbackTypes`
 - `src/transpiler/logic/symbols/cnext/utils/TypeUtils.ts` — `userType()` branch
 - `src/transpiler/output/codegen/CodeGenerator.ts` — `getTypeName()`
 - `src/transpiler/output/codegen/helpers/EnumAssignmentValidator.ts` — compare like-for-like
@@ -164,3 +179,33 @@ type declared below its use would resolve differently from one declared above.
 - `src/utils/__tests__/QualifiedCName.test.ts`,
   `src/transpiler/state/__tests__/CodeGenState.test.ts`,
   `src/transpiler/logic/symbols/cnext/__tests__/CNextResolver.integration.test.ts`
+
+## Scope-Context Matrix
+
+The type side resolves a bare name only _inside_ a scope. With no enclosing
+scope there is nothing to qualify against, so the `global variable` and
+`top-level function` contexts are `off` — a recorded claim that the cell cannot
+exist, not a claim that it is inconvenient.
+
+The two scope contexts are `warn` rather than `error` because this rule governs
+**codegen shape**, not a diagnostic: it decides which name a type resolves to,
+and a wrong answer surfaces as output that does not compile. Only a fixture with
+an `.expected.error` can occupy a cell (#1241), so `error` here would be
+permanently red with no path to green. Promote when #1241 lands.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | warn     |
+| scope method       | same file           | warn     |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
