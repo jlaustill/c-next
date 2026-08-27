@@ -195,7 +195,9 @@ class StringDeclHelper {
     let decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}${arrayDimStr}`;
 
     // Track as local array
-    CodeGenState.localArrays.add(name);
+    // ADR-057: `name` is the EMITTED identifier; every registry keys on the
+    // source spelling, which is what references in the source say.
+    CodeGenState.localArrays.add(CodeGenState.sourceLocalName(name));
 
     // No initializer - zero-initialize
     if (!expression) {
@@ -516,7 +518,9 @@ class StringDeclHelper {
     }
 
     // Track as local array
-    CodeGenState.localArrays.add(name);
+    // ADR-057: `name` is the EMITTED identifier; every registry keys on the
+    // source spelling, which is what references in the source say.
+    CodeGenState.localArrays.add(CodeGenState.sourceLocalName(name));
 
     const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
     if (hasEmptyArrayDim) {
@@ -560,7 +564,7 @@ class StringDeclHelper {
     const arraySize = CodeGenState.lastArrayInitCount;
 
     // Update type registry with inferred size
-    CodeGenState.setVariableTypeInfo(name, {
+    CodeGenState.setVariableTypeInfo(CodeGenState.sourceLocalName(name), {
       baseType: "char",
       bitWidth: 8,
       isArray: true,
@@ -750,7 +754,7 @@ class StringDeclHelper {
     callbacks.requireStringInclude();
 
     // Register in type registry with inferred capacity
-    CodeGenState.setVariableTypeInfo(name, {
+    CodeGenState.setVariableTypeInfo(CodeGenState.sourceLocalName(name), {
       baseType: "char",
       bitWidth: 8,
       isArray: true,

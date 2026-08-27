@@ -1250,10 +1250,16 @@ export default class CodeGenerator implements IOrchestrator {
           paramInfo,
           this._buildParameterDereferenceDeps(),
         );
-      } else if (!isLocalVariable && !isKnownRegister) {
+      } else if (!isKnownRegister) {
+        // ADR-057: pass the REAL locality. Hardcoding `false` and skipping
+        // locals entirely made this the write-side twin of
+        // TypeValidator.resolveBareIdentifier rather than a caller of it, so a
+        // shadowing local kept its bare name here while every read was
+        // renamed -- `data[1] <- 5` wrote the global and `return data[1]` read
+        // the local, in the same function, compiling clean.
         const resolved = TypeValidator.resolveBareIdentifier(
           identifier,
-          false, // not local
+          isLocalVariable,
           (name: string) => this.isKnownStruct(name),
         );
         if (resolved !== null) {

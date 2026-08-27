@@ -13,16 +13,33 @@
 extern "C" {
 #endif
 
+/* Struct definitions */
+typedef struct Holder {
+    uint32_t x;
+} Holder;
+
 /* External variables */
 extern uint32_t count;
 extern uint32_t buf[2];
 extern uint32_t tick;
+extern uint32_t wbuf[2];
+extern Holder wcfg;
+extern uint8_t wflags;
+extern char wmsg[17];
 
 /* Function prototypes */
 uint32_t Counter__plain(void);
 uint32_t Counter__allThreeLevels(void);
 uint32_t Counter__arrayShadow(void);
 uint32_t Counter__loopShadow(void);
+uint32_t Counter__writeSubscript(void);
+uint32_t Counter__writeStructField(void);
+uint32_t Counter__writeBitRange(void);
+uint32_t Counter__shadowingString(void);
+uint32_t Counter__globalSubscript(void);
+uint32_t Counter__globalStructField(void);
+uint32_t Counter__globalBits(void);
+uint32_t Counter__globalStringLength(void);
 
 #ifdef __cplusplus
 }

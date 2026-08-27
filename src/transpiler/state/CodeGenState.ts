@@ -824,6 +824,20 @@ export default class CodeGenState {
       return localInfo;
     }
 
+    // ADR-057: callers reach here with a RESOLVED identifier -- for a scope
+    // member that is already the registry key (`Scope__member`), but for a
+    // shadowing local it is the emitted name while the registry is keyed on
+    // the source spelling. Resolving both here rather than in each of the
+    // ~65 call sites keeps one answer to "what type is this?"; without it a
+    // bit-range write on a shadowing local silently lost its narrowing cast.
+    const sourceName = this.sourceLocalName(name);
+    if (sourceName !== name) {
+      const renamedInfo = this.typeRegistry.get(sourceName);
+      if (renamedInfo) {
+        return renamedInfo;
+      }
+    }
+
     // ADR-055 Phase 7: Fall back to SymbolTable for cross-file C-Next variables only.
     const symbol = this.getCNextVariableSymbol(name);
     if (symbol) {
@@ -1349,6 +1363,28 @@ export default class CodeGenState {
    */
   static emittedLocalName(name: string): string {
     return this.localRenames.get(name) ?? name;
+  }
+
+  /**
+   * The source name behind an emitted local identifier -- the inverse of
+   * `emittedLocalName`.
+   *
+   * Derived by scanning the one rename map rather than kept as a second map,
+   * so the two directions cannot drift apart. The map holds only shadowing
+   * locals, so it is empty in almost every function.
+   *
+   * Needed where a helper is handed the emitted name for code generation but
+   * must still register under the name the source used: every registry
+   * (`localVariables`, `localArrays`, `typeRegistry`) is keyed by the source
+   * spelling, because that is what references in the source say.
+   */
+  static sourceLocalName(emittedName: string): string {
+    for (const [source, emitted] of this.localRenames) {
+      if (emitted === emittedName) {
+        return source;
+      }
+    }
+    return emittedName;
   }
 
   /**

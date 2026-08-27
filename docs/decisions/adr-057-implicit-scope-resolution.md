@@ -140,7 +140,10 @@ uint32_t Counter__test(void) {
 ```
 
 This applies to any local that would shadow a **file-scope** name — plain
-variables, arrays, and `for` init variables alike. A local that shadows nothing,
+variables, arrays, `string<N>` values and `for` init variables alike — and to
+**writes** as well as reads. A write is the case that matters: `buf[0] <- 5` on a
+shadowing local that kept its bare name lands on the global, compiles under
+`-Wall -Wextra`, and is invisible until runtime. A local that shadows nothing,
 or that shadows only an enclosing _local_, keeps its own name: C block scoping
 already gives the right answer there, and neither `this.` nor `global.` can name
 an enclosing local. The generated file is a certification artifact, so names stay

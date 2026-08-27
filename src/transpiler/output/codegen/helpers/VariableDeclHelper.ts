@@ -630,6 +630,13 @@ class VariableDeclHelper {
     // Track local variable metadata
     callbacks.trackLocalVariable(ctx, name);
 
+    // ADR-057: the identifier this declaration is EMITTED under. Computed once,
+    // here, because the string and array paths below return before the plain
+    // declaration is assembled -- a second call further down would be a second
+    // place deciding the same thing. Registries keep the source name; only the
+    // generated text moves.
+    const emittedName = CodeGenState.emittedLocalName(name);
+
     // Issue #895 Bug B: If type was inferred as pointer, mark it in the registry
     if (type.endsWith("*")) {
       callbacks.markVariableAsPointer(name);
@@ -638,7 +645,7 @@ class VariableDeclHelper {
     // ADR-045: Handle bounded string type specially - early return
     const stringResult = StringDeclHelper.generateStringDecl(
       typeCtx,
-      name,
+      emittedName,
       ctx.expression() ?? null,
       ctx.arrayDimension(),
       modifiers,
@@ -666,7 +673,6 @@ class VariableDeclHelper {
     // past it. Every registry above stays keyed on the bare source name, which
     // is what references in the source actually say; only the text moves.
     const modifierPrefix = VariableModifierBuilder.toPrefix(modifiers);
-    const emittedName = CodeGenState.emittedLocalName(name);
     let decl = `${modifierPrefix}${type} ${emittedName}`;
 
     // Handle array declarations - early return if array init handled
@@ -781,7 +787,8 @@ class VariableDeclHelper {
       CodeGenState.registerLocalVariable(name);
     }
 
-    return `${type} ${name}(${resolvedArgs.join(", ")});`;
+    // ADR-057: emit under the name registration decided on, not the source one.
+    return `${type} ${CodeGenState.emittedLocalName(name)}(${resolvedArgs.join(", ")});`;
   }
 }
 

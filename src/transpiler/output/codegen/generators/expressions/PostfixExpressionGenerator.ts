@@ -620,7 +620,10 @@ const tryPropertyAccess = (
   // ADR-058: .length is deprecated - use explicit properties instead
   if (memberName === "length") {
     throw new Error(
-      `Error: '.length' on '${tracking.result}' is deprecated. Use explicit properties: ` +
+      // ADR-057: report the name the author wrote. `tracking.result` is the
+      // generated identifier, and for a shadowing local that is a name they
+      // never typed (`S__f__msg`).
+      `Error: '.length' on '${CodeGenState.sourceLocalName(tracking.result)}' is deprecated. Use explicit properties: ` +
         `.bit_length (bit width), .byte_length (byte size), ` +
         `.element_count (array size), or .char_count (string length)`,
     );

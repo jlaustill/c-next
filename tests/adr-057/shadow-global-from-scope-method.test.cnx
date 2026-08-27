@@ -5,11 +5,25 @@
 // emitted under a distinct C identifier; were it not, `global.count` would
 // silently bind to the local and compile clean (#1289).
 //
-// Every value below is distinct so a wrong binding cannot pass by coincidence.
+// Reads AND writes are covered. Writes matter more: a write that lands on the
+// wrong storage compiles under -Wall -Wextra and is invisible until runtime,
+// which is how the subscript, struct-field and bit-range paths were found
+// broken in review. Every write case therefore also asserts the GLOBAL is
+// unchanged -- reading the local back cannot tell the two apart.
+//
+// Every value is distinct so a wrong binding cannot pass by coincidence.
+
+struct Holder {
+    u32 x;
+}
 
 u32 count <- 1000;
 u32[2] buf <- [7, 8];
 u32 tick <- 99;
+u32[2] wbuf <- [70, 80];
+Holder wcfg <- {x: 90};
+u8 wflags <- 0;
+string<16> wmsg <- "global";
 
 scope Counter {
     u32 count <- 100;
@@ -39,6 +53,49 @@ scope Counter {
         }
         return sum;
     }
+
+    // --- writes through a shadowing local ---
+
+    public u32 writeSubscript() {
+        u32[2] wbuf <- [1, 2];
+        wbuf[0] <- 5;
+        return wbuf[0];
+    }
+
+    public u32 writeStructField() {
+        Holder wcfg <- {x: 1};
+        wcfg.x <- 7;
+        return wcfg.x;
+    }
+
+    public u32 writeBitRange() {
+        u8 wflags <- 0;
+        wflags[0, 4] <- 3;
+        return wflags;
+    }
+
+    public u32 shadowingString() {
+        string<8> wmsg <- "ab";
+        return wmsg.char_count;
+    }
+
+    // --- the globals the writes above must NOT have touched ---
+
+    public u32 globalSubscript() {
+        return global.wbuf[0];
+    }
+
+    public u32 globalStructField() {
+        return global.wcfg.x;
+    }
+
+    public u32 globalBits() {
+        return global.wflags;
+    }
+
+    public u32 globalStringLength() {
+        return global.wmsg.char_count;
+    }
 }
 
 u32 main() {
@@ -53,6 +110,26 @@ u32 main() {
 
     u32 d <- Counter.plain();
     if (d != 5) return 4;
+
+    u32 e <- Counter.writeSubscript();
+    if (e != 5) return 5;
+    u32 e2 <- Counter.globalSubscript();
+    if (e2 != 70) return 6;
+
+    u32 f <- Counter.writeStructField();
+    if (f != 7) return 7;
+    u32 f2 <- Counter.globalStructField();
+    if (f2 != 90) return 8;
+
+    u32 g <- Counter.writeBitRange();
+    if (g != 3) return 9;
+    u32 g2 <- Counter.globalBits();
+    if (g2 != 0) return 10;
+
+    u32 h <- Counter.shadowingString();
+    if (h != 2) return 11;
+    u32 h2 <- Counter.globalStringLength();
+    if (h2 != 6) return 12;
 
     return 0;
 }

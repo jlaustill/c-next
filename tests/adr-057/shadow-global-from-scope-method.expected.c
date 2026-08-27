@@ -6,6 +6,7 @@
 #include "shadow-global-from-scope-method.test.h"
 
 #include <stdint.h>
+#include <string.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -27,12 +28,26 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // emitted under a distinct C identifier; were it not, `global.count` would
 // silently bind to the local and compile clean (#1289).
 //
-// Every value below is distinct so a wrong binding cannot pass by coincidence.
+// Reads AND writes are covered. Writes matter more: a write that lands on the
+// wrong storage compiles under -Wall -Wextra and is invisible until runtime,
+// which is how the subscript, struct-field and bit-range paths were found
+// broken in review. Every write case therefore also asserts the GLOBAL is
+// unchanged -- reading the local back cannot tell the two apart.
+//
+// Every value is distinct so a wrong binding cannot pass by coincidence.
 uint32_t count = 1000U;
 
 uint32_t buf[2] = {7U, 8U};
 
 uint32_t tick = 99U;
+
+uint32_t wbuf[2] = {70U, 80U};
+
+Holder wcfg = { .x = 90U };
+
+uint8_t wflags = 0U;
+
+char wmsg[17] = "global";
 
 /* Scope: Counter */
 static uint32_t Counter__count = 100U;
@@ -60,6 +75,45 @@ uint32_t Counter__loopShadow(void) {
     return sum;
 }
 
+uint32_t Counter__writeSubscript(void) {
+    uint32_t Counter__writeSubscript__wbuf[2] = {1U, 2U};
+    Counter__writeSubscript__wbuf[0] = 5U;
+    return Counter__writeSubscript__wbuf[0U];
+}
+
+uint32_t Counter__writeStructField(void) {
+    Holder Counter__writeStructField__wcfg = { .x = 1U };
+    Counter__writeStructField__wcfg.x = 7U;
+    return Counter__writeStructField__wcfg.x;
+}
+
+uint32_t Counter__writeBitRange(void) {
+    uint8_t Counter__writeBitRange__wflags = 0U;
+    Counter__writeBitRange__wflags = (uint8_t)((Counter__writeBitRange__wflags & ~(((1U << 4) - 1) << 0)) | ((3 & ((1U << 4) - 1)) << 0));
+    return Counter__writeBitRange__wflags;
+}
+
+uint32_t Counter__shadowingString(void) {
+    char Counter__shadowingString__wmsg[9] = "ab";
+    return strlen(Counter__shadowingString__wmsg);
+}
+
+uint32_t Counter__globalSubscript(void) {
+    return wbuf[0U];
+}
+
+uint32_t Counter__globalStructField(void) {
+    return wcfg.x;
+}
+
+uint32_t Counter__globalBits(void) {
+    return wflags;
+}
+
+uint32_t Counter__globalStringLength(void) {
+    return strlen(wmsg);
+}
+
 int main(void) {
     uint32_t a = Counter__allThreeLevels();
     if (a != 1110) return 1;
@@ -69,5 +123,21 @@ int main(void) {
     if (c != 198) return 3;
     uint32_t d = Counter__plain();
     if (d != 5) return 4;
+    uint32_t e = Counter__writeSubscript();
+    if (e != 5) return 5;
+    uint32_t e2 = Counter__globalSubscript();
+    if (e2 != 70) return 6;
+    uint32_t f = Counter__writeStructField();
+    if (f != 7) return 7;
+    uint32_t f2 = Counter__globalStructField();
+    if (f2 != 90) return 8;
+    uint32_t g = Counter__writeBitRange();
+    if (g != 3) return 9;
+    uint32_t g2 = Counter__globalBits();
+    if (g2 != 0) return 10;
+    uint32_t h = Counter__shadowingString();
+    if (h != 2) return 11;
+    uint32_t h2 = Counter__globalStringLength();
+    if (h2 != 6) return 12;
     return 0;
 }
