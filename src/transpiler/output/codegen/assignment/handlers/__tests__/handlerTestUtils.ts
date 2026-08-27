@@ -16,6 +16,7 @@ import type TTypeInfo from "../../../types/TTypeInfo";
  */
 function createDefaultMockSymbols(): ICodeGenSymbols {
   return {
+    knownCallbackTypes: new Set(),
     // Known type names
     knownScopes: new Set(),
     knownStructs: new Set(),

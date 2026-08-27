@@ -23,6 +23,18 @@ interface ICodeGenSymbols {
   /** Set of known bitmap type names (ADR-034) */
   readonly knownBitmaps: ReadonlySet<string>;
 
+  /**
+   * ADR-029 / ADR-057: transpiled C names of functions, which are also types.
+   *
+   * A function definition creates both a function and a type, so a scope
+   * function is a scope-declared type exactly as an enum, struct or bitmap is.
+   * Keyed on the transpiled C name (`Timing__tickSource`) because that is the
+   * form `isScopeType` is asked about. Without it a bare `tickSource` inside
+   * `scope Timing` never qualified, so no `_fp` typedef was emitted and the
+   * header carried a raw name that is not a type (#1200).
+   */
+  readonly knownCallbackTypes: ReadonlySet<string>;
+
   // === Scope Information ===
 
   /** Members of each scope: scopeName -> Set of member names */

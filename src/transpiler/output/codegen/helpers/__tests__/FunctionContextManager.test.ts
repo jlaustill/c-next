@@ -21,6 +21,7 @@ function setupSymbols(
   } = {},
 ): void {
   CodeGenState.symbols = {
+    knownCallbackTypes: new Set(),
     knownScopes: new Set(),
     knownStructs: new Set(),
     knownRegisters: new Set(),

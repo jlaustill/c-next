@@ -15,6 +15,7 @@ import * as Parser from "../../../../logic/parser/grammar/CNextParser";
  */
 function createMockSymbols(): ICodeGenSymbols {
   return {
+    knownCallbackTypes: new Set(),
     knownScopes: new Set(),
     knownEnums: new Set(),
     knownBitmaps: new Set(),

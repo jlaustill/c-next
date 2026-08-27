@@ -679,6 +679,10 @@ export default class CodeGenState {
       this.symbols?.knownEnums.has(qualifiedName) ||
       this.symbols?.knownStructs.has(qualifiedName) ||
       this.symbols?.knownBitmaps.has(qualifiedName) ||
+      // ADR-029: a function definition is also a type, so a scope function is
+      // a scope-declared type. Scope *variables* stay out: a variable is not a
+      // type, which is the distinction ADR-057's kind-awareness rule protects.
+      this.symbols?.knownCallbackTypes.has(qualifiedName) ||
       false
     );
   }

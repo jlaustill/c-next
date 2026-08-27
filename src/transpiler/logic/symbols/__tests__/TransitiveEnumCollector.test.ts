@@ -19,6 +19,7 @@ describe("TransitiveEnumCollector", () => {
     knownStructs: string[] = [],
   ): ICodeGenSymbols {
     return {
+      knownCallbackTypes: new Set(),
       knownScopes: new Set<string>(),
       knownStructs: new Set(knownStructs),
       knownRegisters: new Set<string>(),

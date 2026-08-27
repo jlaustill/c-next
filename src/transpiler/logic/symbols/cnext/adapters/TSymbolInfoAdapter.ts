@@ -55,6 +55,7 @@ class TSymbolInfoAdapter {
     const knownEnums = new Set<string>();
     const knownBitmaps = new Set<string>();
     const knownRegisters = new Set<string>();
+    const knownCallbackTypes = new Set<string>();
 
     // === Scope Information ===
     const scopeMembers = new Map<string, Set<string>>();
@@ -161,7 +162,11 @@ class TSymbolInfoAdapter {
 
         // Track function return types for enum validation
         case "function":
-          TSymbolInfoAdapter.processFunction(symbol, functionReturnTypes);
+          TSymbolInfoAdapter.processFunction(
+            symbol,
+            functionReturnTypes,
+            knownCallbackTypes,
+          );
           break;
       }
     }
@@ -186,6 +191,7 @@ class TSymbolInfoAdapter {
       knownEnums,
       knownBitmaps,
       knownRegisters,
+      knownCallbackTypes,
 
       // Scope info
       scopeMembers,
@@ -441,6 +447,7 @@ class TSymbolInfoAdapter {
   private static processFunction(
     func: IFunctionSymbol,
     functionReturnTypes: Map<string, string>,
+    knownCallbackTypes: Set<string>,
   ): void {
     // Track function return types for enum validation in assignments
     // This enables recognizing that Motor.getMode() returns Motor_EMode
@@ -448,6 +455,10 @@ class TSymbolInfoAdapter {
     const cName = TSymbolInfoAdapter.getTranspiledCName(func);
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
     functionReturnTypes.set(cName, returnTypeStr);
+    // ADR-029: the same definition is also a type. Recorded under the same
+    // transpiled C name so type qualification and function lookup cannot
+    // disagree about what this symbol is called.
+    knownCallbackTypes.add(cName);
   }
 
   private static cnextTypeToCType(typeName: string): string {

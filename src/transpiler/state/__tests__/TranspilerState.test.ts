@@ -11,6 +11,7 @@ import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 function createMockSymbolInfo(enumName?: string): ICodeGenSymbols {
   const knownEnums = new Set<string>(enumName ? [enumName] : []);
   return {
+    knownCallbackTypes: new Set(),
     knownScopes: new Set(),
     knownStructs: new Set(),
     knownRegisters: new Set(),

@@ -74,6 +74,7 @@ function createMockSymbols(
   }> = {},
 ): ICodeGenSymbols {
   return {
+    knownCallbackTypes: new Set(),
     knownScopes: overrides.knownScopes ?? new Set(),
     knownEnums: overrides.knownEnums ?? new Set(),
     knownBitmaps: overrides.knownBitmaps ?? new Set(),

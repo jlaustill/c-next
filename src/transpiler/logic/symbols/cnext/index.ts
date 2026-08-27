@@ -155,11 +155,14 @@ class CNextResolver {
 
   /**
    * Pass 0b: Collect the qualified name of every *type* declared inside a
-   * scope — enums, structs and bitmaps (ADR-057).
+   * scope — enums, structs, bitmaps and functions (ADR-057, ADR-029).
    *
-   * Only type declarations are collected. A scope function or variable sharing
-   * a leaf name with a global type must not capture that name at a type
-   * position, which is why this cannot key on scope membership generally.
+   * Functions are types: ADR-029 makes a function definition create both a
+   * function and a type, so a scope function is a scope-declared type in the
+   * same way a struct is. Scope *variables* remain excluded — a variable is
+   * not a type, and must not capture a global type's name at a type position.
+   * That kind-awareness is the point: this cannot key on scope membership,
+   * which would let a variable named `Config` shadow a global `struct Config`.
    *
    * Runs before any collector resolves a type so the answer does not depend on
    * whether the declaration appears above or below its use.
@@ -177,7 +180,9 @@ class CNextResolver {
         const typeDecl =
           member.enumDeclaration() ??
           member.structDeclaration() ??
-          member.bitmapDeclaration();
+          member.bitmapDeclaration() ??
+          // ADR-029: a function definition creates both a function and a type.
+          member.functionDeclaration();
         if (typeDecl) {
           scopeTypes.add(
             QualifiedCName.join(scopeName, typeDecl.IDENTIFIER().getText()),

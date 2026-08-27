@@ -96,6 +96,7 @@ function setupSymbols(
   }
 
   CodeGenState.symbols = {
+    knownCallbackTypes: new Set(),
     knownScopes: overrides.knownScopes ?? new Set(),
     knownStructs: overrides.knownStructs ?? new Set(),
     knownRegisters: overrides.knownRegisters ?? new Set(),

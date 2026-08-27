@@ -98,6 +98,7 @@ describe("MemberChainAnalyzer", () => {
     // Also mark struct as known (for isKnownStruct checks)
     if (!CodeGenState.symbols) {
       CodeGenState.symbols = {
+        knownCallbackTypes: new Set(),
         knownStructs: new Set(),
         knownScopes: new Set(),
         knownEnums: new Set(),
