@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 // test-execution
+// test-adr: 057
 // Issue #1130: Bare reference to a scope's own type is not qualified
 // ADR-057: bare names inside a scope resolve local -> scope -> global.
 //

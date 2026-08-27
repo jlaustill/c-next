@@ -1,5 +1,6 @@
 // Test local variable shadows scope member, this. accesses scope
 // test-execution
+// test-adr: 057
 
 scope State {
     u32 value <- 100;

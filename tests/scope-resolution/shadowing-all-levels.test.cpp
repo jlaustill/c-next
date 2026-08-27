@@ -22,6 +22,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // Test accessing local, scope, and global when all have same name
 // test-execution
+// test-adr: 057
 uint32_t globalCount = 1000U;
 
 // Global (renamed to avoid shadowing)

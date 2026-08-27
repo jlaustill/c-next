@@ -1,5 +1,6 @@
 // Test accessing local, scope, and global when all have same name
 // test-execution
+// test-adr: 057
 
 u32 globalCount <- 1000;  // Global (renamed to avoid shadowing)
 

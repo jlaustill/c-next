@@ -9,6 +9,7 @@
 
 // Test cross-scope access without global. prefix
 // test-execution
+// test-adr: 057
 /* Scope: LED */
 static uint8_t LED__brightness = 100U;
 

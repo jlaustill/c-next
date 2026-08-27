@@ -8,14 +8,14 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | --------- | ----------------------- | ------ |
 | E00xx     | Reserved/Test           | 1      |
 | E02xx     | Identifier/Param Naming | 4      |
-| E03xx     | Struct Fields           | 2      |
-| E04xx     | Symbol Resolution       | 3      |
-| E05xx     | Include/Preprocessor    | 4      |
+| E03xx     | Struct Fields           | 1      |
+| E04xx     | Symbol Resolution       | 5      |
+| E05xx     | Include/Preprocessor    | 5      |
 | E06xx     | Sizeof Expressions      | 2      |
-| E07xx     | Control Flow            | 6      |
+| E07xx     | Control Flow            | 7      |
 | E08xx     | Arithmetic/Array Safety | 16     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **46** |
+| **Total** |                         | **49** |
 
 ---
 
@@ -78,8 +78,15 @@ second header and the program ran with a wrong value.
 | E0422 | Function called before definition                     | Define function before calling it       | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
 | E0423 | Recursive function call (MISRA C:2012 Rule 17.2)      | Remove recursive call                   | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
 | E0424 | Unqualified enum member — did you mean `Enum.member`? | Use qualified enum member syntax        | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
+| E0425 | `global.X` used where a local variable `X` shadows it | Rename the local variable               | `output/codegen/helpers/CodeGenErrors.ts`                                          |
 
-**Related:** ADR-030 (E0422)
+**Related:** ADR-030 (E0422); ADR-057 and Issue #1285 (E0425)
+
+E0425 rejects `global.count` where a local `count` shadows the global. C has no
+syntax for reaching a shadowed global from inside the shadowing scope, so there is
+no correct code to generate. Raised from the codegen layer (E0853/E0856 are the
+precedent) and carries a `line:column` prefix, without which every codegen
+diagnostic reports at 1:0 and can never occupy a scope-context matrix cell.
 
 ---
 

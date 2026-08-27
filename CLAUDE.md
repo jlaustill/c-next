@@ -591,7 +591,7 @@ and [`docs/WORKFLOW.md`](docs/WORKFLOW.md) for how work moves on the project boa
 A task is NOT complete until:
 
 - [ ] `README.md` updated (if feature-visible)
-- [ ] ADR updated with implementation details
+- [ ] ADR updated: decision, diagnostics, matrix; implementing modules cited as `file:line` in `## References` — **implementation detail does not go in an ADR**
 - [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
 - [ ] Memory bank updated
 

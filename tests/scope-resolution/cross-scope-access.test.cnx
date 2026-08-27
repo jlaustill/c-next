@@ -1,5 +1,6 @@
 // Test cross-scope access without global. prefix
 // test-execution
+// test-adr: 057
 
 scope LED {
     u8 brightness <- 100;

@@ -108,3 +108,7 @@ fabric.properties
 # Temporary C-Next test files
 temp.cnx
 *.ctu-info
+
+# cppcheck MISRA addon writes <file>.dump beside each analysed C file and
+# never cleans it up, so `npm run validate:c` leaves the tree dirty (#1285).
+*.dump

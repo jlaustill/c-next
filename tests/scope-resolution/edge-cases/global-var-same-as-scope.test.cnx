@@ -1,6 +1,7 @@
 // Test global variable with same name as scope
 // Both can coexist - scope becomes prefix, variable stays as-is
 // test-execution
+// test-adr: 057
 
 u8 LED <- 5;  // Global variable named same as scope
 

@@ -1,5 +1,6 @@
 // Test bare identifier resolves to scope member
 // test-execution
+// test-adr: 057
 
 scope Counter {
     u32 value <- 0;

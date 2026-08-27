@@ -57,6 +57,27 @@ class CodeGenErrors {
   }
 
   /**
+   * E0425 (ADR-057): `global.X` used where a local variable `X` shadows the
+   * global. C has no syntax for reaching a shadowed global from inside the
+   * shadowing scope, so there is no correct code to generate and the program is
+   * rejected rather than mis-compiled.
+   *
+   * Carries an error code so it appears in `docs/error-codes.md` alongside the
+   * other symbol-resolution diagnostics. E0853/E0856 are the precedent for a
+   * coded error raised from the codegen layer rather than an analyzer.
+   */
+  static globalShadowedByLocal(
+    memberName: string,
+    line: number,
+    column: number,
+  ): Error {
+    return new Error(
+      `${line}:${column} E0425: Cannot use 'global.${memberName}' when local variable ` +
+        `'${memberName}' shadows it. Rename the local variable to avoid shadowing.`,
+    );
+  }
+
+  /**
    * Error when a required type context is missing.
    */
   static missingTypeContext(context: string): Error {

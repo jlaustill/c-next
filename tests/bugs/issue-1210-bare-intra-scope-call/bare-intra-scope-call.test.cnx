@@ -1,4 +1,5 @@
 // test-execution
+// test-adr: 057
 // Issue #1210: a bare call inside a scope was recorded twice in the call
 // graph -- once as the transpiled C name (`Counter__readOnly`, resolved through
 // ADR-057 scope rules) and once as the raw bare name (`readOnly`).

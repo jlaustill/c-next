@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 // test-execution
+// test-adr: 057
 // Test bare array identifier resolves to scope member
 // Issue #779: Array member access without this. should still get scope prefix
 /* Scope: ArrayBug */

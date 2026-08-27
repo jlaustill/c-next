@@ -5,6 +5,7 @@
 **Decision Makers:** C-Next Language Design Team
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)
 **Related:** ADR-014 (Structs), ADR-063 (Identifier Syntax — amends the qualified-name separator, see below)
+**Amended by:** ADR-057 (Implicit Scope Resolution — withdraws this ADR's requirement that `this.` and `global.` be explicit)
 
 > **Amended by ADR-063 (Issue #1117).** Members are named `Scope__member` in
 > generated C. The separator is two underscores, and ADR-063 forbids a C-Next
@@ -378,23 +379,35 @@ scope Motor {
 }
 ```
 
-#### Compile-Time Errors
+#### Bare identifiers — withdrawn, see ADR-057
 
-Bare identifiers referencing scope members or globals inside a scope produce compile errors:
+> **Superseded by [ADR-057](adr-057-implicit-scope-resolution.md) (Implemented).**
+> This ADR originally required `this.` and `global.` and rejected bare identifiers
+> inside a scope. That requirement was withdrawn: bare names resolve
+> **local → scope → global**, and `this.` / `global.` remain available to force a
+> level. The paragraphs below are kept because the trade-off they weigh is still
+> the right one to have weighed — they are **not** a description of the language.
+
+What ADR-016 rejected, and ADR-057 now accepts:
 
 ```cnx
 scope Motor {
     const u8 value <- 1;
 
-    void bad() {
-        value;           // ERROR: use 'this.value' for scope member
-        GPIO7.DR;        // ERROR: use 'global.GPIO7.DR' for global register
-        defaultValue;    // ERROR: ambiguous - use 'this.' or 'global.'
+    void ok() {
+        value;           // resolves to Motor.value  (was: ERROR)
     }
 }
 ```
 
-#### Why This Design?
+`tests/scope-resolution/bare-scope-member.expected.c` is the committed proof —
+bare `value` compiles to `Counter__value`.
+
+What ADR-057 kept from this decision: explicitness still wins where the two
+levels genuinely collide, and where C itself cannot express the result the
+program is rejected rather than mis-compiled (E0425).
+
+#### Why the original design chose explicitness
 
 | Aspect      | `this.`/`global.` Required     | Implicit Resolution           |
 | ----------- | ------------------------------ | ----------------------------- |
@@ -404,7 +417,9 @@ scope Motor {
 | Refactoring | **Safe** — rename scope once   | Must update all references    |
 | Compiler    | **Simple** — just parse prefix | Complex resolution rules      |
 
-This approach embodies C-Next's philosophy: **safety through explicitness, not clever inference**.
+ADR-057 accepted the right-hand column's costs in exchange for a syntax C
+developers already know, and mitigated the first two rows by keeping `this.` and
+`global.` available and by rejecting the one case C cannot express.
 
 ---
 
@@ -469,7 +484,7 @@ struct RingBuffer<T, N> {
 
 ## What This ADR Decides
 
-- **Name resolution:** `this.` and `global.` are REQUIRED inside scopes (no implicit resolution)
+- **Name resolution:** ~~`this.` and `global.` are REQUIRED inside scopes (no implicit resolution)~~ — **withdrawn by [ADR-057](adr-057-implicit-scope-resolution.md)**, which resolves bare names local → scope → global. `this.` and `global.` remain available to force a level.
 - **Nested scopes:** Not supported in v1
 - **`this.` in type position:** Supported for scoped types (e.g., `this.State`)
 

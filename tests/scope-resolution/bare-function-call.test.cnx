@@ -1,5 +1,6 @@
 // Test bare function names call scope functions
 // test-execution
+// test-adr: 057
 
 scope Calculator {
     u32 result <- 0;

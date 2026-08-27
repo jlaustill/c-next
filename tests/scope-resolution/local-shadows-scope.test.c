@@ -9,6 +9,7 @@
 
 // Test local variable shadows scope member, this. accesses scope
 // test-execution
+// test-adr: 057
 /* Scope: State */
 static uint32_t State__value = 100U;
 

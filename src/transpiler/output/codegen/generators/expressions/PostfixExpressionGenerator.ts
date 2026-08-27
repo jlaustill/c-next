@@ -21,6 +21,7 @@ import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
 import MemberAccessValidator from "../../helpers/MemberAccessValidator";
+import CodeGenErrors from "../../helpers/CodeGenErrors";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
@@ -119,6 +120,16 @@ interface IPostfixContext {
   state: IGeneratorState;
   orchestrator: IOrchestrator;
   effects: TGeneratorEffect[];
+  /**
+   * Source position of this postfix expression, for diagnostics raised from
+   * here. Codegen errors reach the user through
+   * `ParserUtils.parseErrorLocation`, which recovers a position only from a
+   * literal `line:col ` prefix on the message — without one every codegen
+   * diagnostic reports at 1:0, which is also why it can never occupy a
+   * scope-context matrix cell (#1219).
+   */
+  line: number;
+  column: number;
 }
 
 /**
@@ -266,6 +277,8 @@ const generatePostfixExpression = (
     state,
     orchestrator,
     effects,
+    line: ctx.start?.line ?? 1,
+    column: ctx.start?.column ?? 0,
   };
 
   for (const op of ops) {
@@ -344,15 +357,7 @@ const handleMemberOp = (
   ctx: IPostfixContext,
 ): void => {
   // ADR-016: Handle global. prefix
-  if (
-    handleGlobalPrefix(
-      memberName,
-      tracking,
-      ctx.input,
-      ctx.state,
-      ctx.orchestrator,
-    )
-  ) {
+  if (handleGlobalPrefix(memberName, tracking, ctx)) {
     return;
   }
 
@@ -426,9 +431,7 @@ const handleMemberOp = (
 const handleGlobalPrefix = (
   memberName: string,
   tracking: ITrackingState,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  ctx: IPostfixContext,
 ): boolean => {
   if (tracking.result !== "__GLOBAL_PREFIX__") {
     return false;
@@ -439,23 +442,23 @@ const handleGlobalPrefix = (
   tracking.isGlobalAccess = true;
 
   // ADR-057: Check if global variable would be shadowed by a local
-  if (state.localVariables.has(memberName)) {
-    throw new Error(
-      `Error: Cannot use 'global.${memberName}' when local variable '${memberName}' shadows it. ` +
-        `Rename the local variable to avoid shadowing.`,
-    );
+  if (ctx.state.localVariables.has(memberName)) {
+    throw CodeGenErrors.globalShadowedByLocal(memberName, ctx.line, ctx.column);
   }
 
-  if (orchestrator.isCppScopeSymbol(memberName)) {
+  if (ctx.orchestrator.isCppScopeSymbol(memberName)) {
     tracking.isCppAccessChain = true;
   }
-  if (input.symbols!.knownRegisters.has(memberName)) {
+  if (ctx.input.symbols!.knownRegisters.has(memberName)) {
     tracking.isRegisterChain = true;
   }
 
   // Issue #612: Set currentStructType for global struct variables
   const globalTypeInfo = CodeGenState.getVariableTypeInfo(memberName);
-  if (globalTypeInfo && orchestrator.isKnownStruct(globalTypeInfo.baseType)) {
+  if (
+    globalTypeInfo &&
+    ctx.orchestrator.isKnownStruct(globalTypeInfo.baseType)
+  ) {
     tracking.currentStructType = globalTypeInfo.baseType;
   }
 

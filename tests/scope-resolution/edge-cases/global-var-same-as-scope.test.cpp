@@ -23,6 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Test global variable with same name as scope
 // Both can coexist - scope becomes prefix, variable stays as-is
 // test-execution
+// test-adr: 057
 uint8_t LED = 5U;
 
 // Global variable named same as scope

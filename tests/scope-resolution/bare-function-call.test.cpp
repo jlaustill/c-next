@@ -9,6 +9,7 @@
 
 // Test bare function names call scope functions
 // test-execution
+// test-adr: 057
 /* Scope: Calculator */
 static uint32_t Calculator__result = 0U;
 
