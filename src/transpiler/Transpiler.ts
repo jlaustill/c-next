@@ -1894,6 +1894,9 @@ class Transpiler {
       passByValueParams,
       allKnownEnums,
       basename(sourcePath),
+      // #1205: read here, like allKnownEnums, so the header stays a pure
+      // function of its arguments rather than of global state.
+      CodeGenState.getStructsWithInitFunction(),
     );
   }
 

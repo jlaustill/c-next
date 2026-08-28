@@ -47,6 +47,7 @@ class HeaderGenerator {
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
+    structsWithInit?: ReadonlySet<string>,
   ): string {
     const generator = options.cppMode ? this.cppGenerator : this.cGenerator;
 
@@ -58,6 +59,7 @@ class HeaderGenerator {
       passByValueParams,
       allKnownEnums,
       sourcePath,
+      structsWithInit,
     );
   }
 

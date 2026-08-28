@@ -288,6 +288,27 @@ struct Controller Controller_init(void) {
 }
 ```
 
+The generated header carries a prototype for it (#1205). `Controller_init` has
+external linkage and is generated rather than written, so without a visible
+declaration its definition violates MISRA C:2012 Rule 8.4:
+
+```c
+// Generated header:
+typedef void (*defaultHandler_fp)(const CAN_Message_T);
+
+typedef struct Controller {
+    defaultHandler_fp _handler;
+} Controller;
+
+/* Function prototypes */
+Controller Controller_init(void);
+void defaultHandler(const CAN_Message_T* msg);
+```
+
+The definition and this prototype are built from one signature
+(`StructInitSignature`), because a definition whose declaration disagrees is a C
+compile error rather than a style problem.
+
 ### Type Checking
 
 The compiler:
