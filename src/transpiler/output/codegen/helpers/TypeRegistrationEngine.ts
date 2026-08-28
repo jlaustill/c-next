@@ -156,13 +156,15 @@ class TypeRegistrationEngine {
     currentScope: IScopeSymbol | null,
     callbacks?: ITypeRegistrationCallbacks,
   ): string | null {
-    // #1285: one ladder. String and array types are still handled by the
-    // callers, which want a bit width alongside the name, so this asks only for
-    // the branches it previously spelled out.
-    if (typeCtx.stringType() || typeCtx.arrayType()) {
-      return null;
-    }
-    return TypeBinding.resolveName(typeCtx, currentScope, {
+    // #1285: ask for the two alternatives this path accepts -- a named type or
+    // a primitive -- by name. String and array types WRAP another type and are
+    // handled by the callers, which want a capacity or a bit width alongside
+    // the name. Asking by name rather than listing the alternatives to skip
+    // keeps an unrecognized future alternative null instead of letting it
+    // through; the caller at _registerVariableType treats a falsy base type as
+    // "not registerable", so anything wrong here silently unregisters types
+    // rather than failing.
+    return TypeBinding.resolveNamedOrPrimitiveType(typeCtx, currentScope, {
       isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
       resolveQualifiedType: callbacks?.resolveQualifiedType,
     });
@@ -421,8 +423,10 @@ class TypeRegistrationEngine {
     }
 
     // Extract base type and bit width from array type
-    const typeInfo =
-      TypeRegistrationEngine._extractArrayBaseTypeInfo(arrayTypeCtx);
+    const typeInfo = TypeRegistrationEngine._extractArrayBaseTypeInfo(
+      arrayTypeCtx,
+      callbacks,
+    );
     if (!typeInfo.baseType) {
       return;
     }
@@ -448,8 +452,23 @@ class TypeRegistrationEngine {
    * Extract base type and bit width from an array type context.
    * Handles primitive, qualified, scoped, and user types.
    */
+  /**
+   * The bit width of a type name, or 0 when it is not a primitive.
+   *
+   * TYPE_WIDTH is a plain object literal, so a bare index also resolves
+   * inherited keys: a C-Next type named `constructor`, `toString`, `valueOf` or
+   * `hasOwnProperty` is a valid IDENTIFIER and would come back as a Function,
+   * which neither `|| 0` nor `?? 0` catches. Both call sites now ask the same
+   * question the same way -- previously one spelled it `|| 0` and the other
+   * `?? 0`, which read as a deliberate difference and was not one.
+   */
+  private static _bitWidthOf(baseType: string): number {
+    return Object.hasOwn(TYPE_WIDTH, baseType) ? TYPE_WIDTH[baseType] : 0;
+  }
+
   private static _extractArrayBaseTypeInfo(
     arrayTypeCtx: Parser.ArrayTypeContext,
+    callbacks?: ITypeRegistrationCallbacks,
   ): { baseType: string; bitWidth: number } {
     // A string element is registered by _registerStringArrayType before this is
     // reached; an empty baseType tells the caller to skip registration, so the
@@ -458,15 +477,34 @@ class TypeRegistrationEngine {
       return { baseType: "", bitWidth: 0 };
     }
 
-    // #1285: one ladder. bitWidth is meaningful only for primitives -- a named
-    // type is absent from TYPE_WIDTH and yields 0, exactly as each named branch
-    // used to hardcode.
+    // #1285: one ladder. resolveQualifiedType is threaded exactly as the
+    // non-array path threads it (_resolveBaseTypeWithCallbacks), so
+    // `MockLib.Parse.Result r` and `MockLib.Parse.Result[4] rs` cannot register
+    // base types that disagree -- the array form used to hardcode a `__` join
+    // and lose C++ namespace resolution (Issue #388).
+    //
+    // No generated output moves either way today, and that is worth stating so
+    // the threading does not look like dead ceremony: what this feeds is
+    // CodeGenState.setVariableTypeInfo, whose baseType drives bit widths,
+    // array dimensions and overflow behavior. The type NAME that reaches the
+    // emitted declaration comes from getTypeName/TypeGenerationHelper instead.
+    // Verified by removing the threading and re-transpiling a `MockLib.Config[4]`
+    // declaration in C++ mode: byte-identical. It is threaded because the two
+    // adjacent calls must not differ by accident, not because a fixture moves.
     const baseType =
       TypeBinding.resolveName(arrayTypeCtx, CodeGenState.currentScope, {
         isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+        resolveQualifiedType: callbacks?.resolveQualifiedType,
       }) ?? "";
 
-    return { baseType, bitWidth: TYPE_WIDTH[baseType] ?? 0 };
+    // TYPE_WIDTH is a plain object literal, and this lookup now sees every
+    // named type rather than only primitives. A C-Next type named `constructor`
+    // or `toString` is a valid IDENTIFIER and would otherwise resolve to an
+    // inherited Function, which `?? 0` does not catch.
+    return {
+      baseType,
+      bitWidth: TypeRegistrationEngine._bitWidthOf(baseType),
+    };
   }
 
   /**
@@ -570,7 +608,7 @@ class TypeRegistrationEngine {
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
   ): void {
-    const bitWidth = TYPE_WIDTH[baseType] || 0;
+    const bitWidth = TypeRegistrationEngine._bitWidthOf(baseType);
     const isArray = arrayDim !== null && arrayDim.length > 0;
     const arrayDimensions = isArray
       ? TypeRegistrationEngine._evaluateArrayDimensions(arrayDim, callbacks)

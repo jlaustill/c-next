@@ -465,20 +465,29 @@ class VariableDeclHelper {
 
     // ADR-035: Handle array initializers with size inference
     if (ctx.expression()) {
-      const arrayInitResult = ArrayInitHelper.processArrayInit(
-        name,
-        typeCtx,
-        ctx.expression()!,
-        arrayDims,
-        hasEmptyArrayDim,
-        declaredSize,
-        {
-          generateExpression: (exprCtx) =>
-            callbacks.generateExpression(exprCtx),
-          getTypeName: (typeCtxParam) => callbacks.getTypeName(typeCtxParam),
-          generateArrayDimensions: (dims) =>
-            callbacks.generateArrayDimensions(dims),
-        },
+      // MISRA C:2012 Rule 9.3: an array declaration initializer is a declaration
+      // initializer for its ELEMENTS too, so it takes withDeclarationInit exactly
+      // as the scalar path below does. Without it a struct element formatted as a
+      // compound literal -- `Point pair[2] = {(Point){ .x = 1 }, ...}` -- which
+      // cppcheck reads as a partially initialized array, while the scalar
+      // `Point single = { .x = 1 }` on the next line was already plain. One
+      // declaration-initializer decision, previously made in two places.
+      const arrayInitResult = CodeGenState.withDeclarationInit(() =>
+        ArrayInitHelper.processArrayInit(
+          name,
+          typeCtx,
+          ctx.expression()!,
+          arrayDims,
+          hasEmptyArrayDim,
+          declaredSize,
+          {
+            generateExpression: (exprCtx) =>
+              callbacks.generateExpression(exprCtx),
+            getTypeName: (typeCtxParam) => callbacks.getTypeName(typeCtxParam),
+            generateArrayDimensions: (dims) =>
+              callbacks.generateArrayDimensions(dims),
+          },
+        ),
       );
       if (arrayInitResult) {
         // Track as local array for type resolution
