@@ -7,6 +7,7 @@
 
 #include "array-of-namespace-structs.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #502 - Array of C++ namespaced structs
 #include "SeaDash.hpp"

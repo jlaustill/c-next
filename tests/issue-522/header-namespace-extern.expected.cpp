@@ -7,6 +7,7 @@
 
 #include "header-namespace-extern.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #522 - C++ namespace types should NOT appear in extern "C" headers
 // The header should filter out Lib_Sub_Data because it's a C++ namespaced type

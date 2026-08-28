@@ -7,6 +7,7 @@
 
 #include "assignment-after-decl.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #502 - Assignment after declaration (not just initialization)
 #include "SeaDash.hpp"

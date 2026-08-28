@@ -5,6 +5,7 @@
 
 #include "cpp-class-edge-cases.test.hpp"
 
+// test-cpp-only
 // Issue #517: C++ class edge cases
 // Tests various edge cases for C++ class struct initialization
 #include "CppTestClass.hpp"

@@ -5,6 +5,7 @@
 
 #include "multi-arg.test.hpp"
 
+// test-cpp-only
 // Issue #375: Multiple const argument constructor
 #include "constructor-stubs.h"
 

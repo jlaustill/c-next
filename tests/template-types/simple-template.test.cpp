@@ -5,6 +5,7 @@
 
 #include "simple-template.test.hpp"
 
+// test-cpp-only
 // Issue #291: Test C++ template type syntax parsing
 // Tests that C-Next can parse C++ template instantiation syntax
 #include "template-stubs.h"

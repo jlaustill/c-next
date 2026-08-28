@@ -7,6 +7,7 @@
 
 #include "mixed-scopes.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #522 - Mixed C-Next scopes and C++ namespaces
 // C-Next scope types should appear in header, C++ namespace types should not

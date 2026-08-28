@@ -5,6 +5,7 @@
 
 #include "issue-322-auto-address-of.test.hpp"
 
+// test-cpp-only
 // test-execution
 // Issue #322: Auto address-of for external C++ functions expecting pointers
 // The transpiler should automatically add & when passing structs to external

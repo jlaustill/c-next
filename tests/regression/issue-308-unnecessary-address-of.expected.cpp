@@ -5,6 +5,7 @@
 
 #include "issue-308-unnecessary-address-of.test.hpp"
 
+// test-cpp-only
 // test-execution
 // Tests: Issue #308 - Unnecessary & added to struct member arrays
 // NOTE: Uses cpp mode because C++ has stricter type checking that catches this error

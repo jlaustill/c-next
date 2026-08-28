@@ -7,6 +7,7 @@
 
 #include "mixed-scope-init.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #502 - Mixed C-Next scopes and C++ namespaces in struct initialization
 #include "SeaDash.hpp"

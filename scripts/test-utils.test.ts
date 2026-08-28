@@ -628,3 +628,60 @@ describe("checkForStaleErrorTestArtifacts", () => {
     expect(result?.actual).toContain("git rm");
   });
 });
+
+describe("TestUtils.parseGeneratedImplPaths", () => {
+  // Issue #1314: the harness must learn the output path from the CLI rather than
+  // guessing it from the mode it asked for. A stale file on disk answers an
+  // existence check just as convincingly as a fresh one, which is how seven dead
+  // snapshots stayed green.
+  const cppOnlyBlock = [
+    "Compiled 2 files",
+    "Generated 2 output files:",
+    "  /repo/tests/x.test.cpp",
+    "  /repo/tests/x.test.hpp",
+    "",
+  ].join("\n");
+
+  it.each([
+    {
+      name: "returns the .cpp when C mode auto-detected C++",
+      stdout: cppOnlyBlock,
+      expected: ["/repo/tests/x.test.cpp"],
+    },
+    {
+      name: "returns the .c for an ordinary C-mode run",
+      stdout:
+        "Generated 2 output files:\n  /repo/tests/y.test.c\n  /repo/tests/y.test.h\n",
+      expected: ["/repo/tests/y.test.c"],
+    },
+    {
+      name: "returns every implementation file for a multi-file run",
+      stdout:
+        "Generated 3 output files:\n  /repo/a.c\n  /repo/a.h\n  /repo/b.c\n",
+      expected: ["/repo/a.c", "/repo/b.c"],
+    },
+    {
+      name: "handles the singular 'output file' wording",
+      stdout: "Generated 1 output file:\n  /repo/solo.c\n",
+      expected: ["/repo/solo.c"],
+    },
+    {
+      name: "returns nothing when the CLI printed no block",
+      stdout: "Compiled 1 files\nCollected 3 symbols\n",
+      expected: [],
+    },
+    {
+      name: "ignores paths appearing before the block",
+      stdout: "  /repo/decoy.c\nGenerated 1 output file:\n  /repo/real.c\n",
+      expected: ["/repo/real.c"],
+    },
+    {
+      name: "stops at the first non-output line after the block",
+      stdout:
+        "Generated 1 output file:\n  /repo/real.c\n\nToolchain requirements:\n  /repo/not-output.c\n",
+      expected: ["/repo/real.c"],
+    },
+  ])("$name", ({ stdout, expected }) => {
+    expect(TestUtils.parseGeneratedImplPaths(stdout)).toEqual(expected);
+  });
+});

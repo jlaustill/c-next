@@ -5,6 +5,7 @@
 
 #include "cpp-reinterpret-cast.test.hpp"
 
+// test-cpp-only
 // test-execution
 /* test-no-warnings */
 // Tests: Issue #267 - reinterpret_cast for string-to-pointer in C++ mode

@@ -5,6 +5,7 @@
 
 #include "nested-template.test.hpp"
 
+// test-cpp-only
 // Issue #291: Test nested C++ template types
 // Verifies grammar correctly parses templates within templates
 // Note: Requires space before >> to avoid lexer ambiguity (pre-C++11 style)
