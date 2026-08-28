@@ -114,7 +114,7 @@ describe("EnumAssignmentValidator", () => {
     });
 
     it("allows this.Enum.MEMBER pattern", () => {
-      CodeGenState.currentScope = "MyScope";
+      CodeGenState.setCurrentScopeByPath("MyScope");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["MyScope__State"]),
       });
@@ -205,7 +205,7 @@ describe("EnumAssignmentValidator", () => {
     });
 
     it("throws for this.WrongEnum.MEMBER with wrong scoped name", () => {
-      CodeGenState.currentScope = "MyScope";
+      CodeGenState.setCurrentScopeByPath("MyScope");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["MyScope__State"]),
       });

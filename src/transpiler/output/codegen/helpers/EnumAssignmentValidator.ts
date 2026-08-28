@@ -155,7 +155,7 @@ class EnumAssignmentValidator {
       );
     }
     const scopedEnumName = QualifiedCName.join(
-      CodeGenState.currentScope,
+      CodeGenState.currentScope.name,
       parts[1],
     );
     if (scopedEnumName !== typeName) {

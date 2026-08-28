@@ -536,8 +536,10 @@ class AssignmentClassifier {
     }
 
     return (
-      CodeGenState.getVariableTypeInfo(QualifiedCName.join(scope, name)) !==
-      undefined
+      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
+      CodeGenState.getVariableTypeInfo(
+        QualifiedCName.join(scope.name, name),
+      ) !== undefined
     );
   }
 
@@ -586,7 +588,7 @@ class AssignmentClassifier {
 
     const firstId = ctx.identifiers[0];
     const scopedRegName = QualifiedCName.join(
-      CodeGenState.currentScope,
+      CodeGenState.currentScope.name,
       firstId,
     );
 
@@ -778,8 +780,9 @@ class AssignmentClassifier {
     } else if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
       // this.member pattern: lookup using scoped name
       const memberName = ctx.identifiers[0];
+      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
       const scopedName = QualifiedCName.join(
-        CodeGenState.currentScope,
+        CodeGenState.currentScope.name,
         memberName,
       );
       typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
@@ -840,8 +843,9 @@ class AssignmentClassifier {
   ): AssignmentKind | null {
     if (!ctx.isSimpleThisAccess || !CodeGenState.currentScope) return null;
     const memberName = ctx.identifiers[0];
+    // #1295: leaf key, matching QualifiedNameGenerator.forMember.
     const scopedName = QualifiedCName.join(
-      CodeGenState.currentScope,
+      CodeGenState.currentScope.name,
       memberName,
     );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);

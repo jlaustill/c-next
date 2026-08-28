@@ -9,6 +9,7 @@ import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
 import CodeGenState from "../../../../state/CodeGenState";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
+import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
 
 /**
  * Create a minimal mock ICodeGenSymbols with default empty collections.
@@ -92,7 +93,7 @@ describe("TypeRegistrationEngine", () => {
       [
         "resolves scoped types with currentScope",
         "this.State value;",
-        "Motor",
+        TestScopeUtils.createMockScope("Motor"),
         "Motor__State",
       ],
       [
@@ -102,7 +103,12 @@ describe("TypeRegistrationEngine", () => {
         "State",
       ],
       ["resolves user types", "Point origin;", null, "Point"],
-      ["resolves global types", "global.Config cfg;", "Motor", "Config"],
+      [
+        "resolves global types",
+        "global.Config cfg;",
+        TestScopeUtils.createMockScope("Motor"),
+        "Config",
+      ],
       ["resolves qualified types", "Motor.State state;", null, "Motor__State"],
     ])("%s", (_label, source, argument2, expected) => {
       const ctx = parseTypeContext(source);
@@ -209,7 +215,7 @@ describe("TypeRegistrationEngine", () => {
 
     it("registers global type arrays", () => {
       // Set up a scope context to test global.Type[N] pattern
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
 
       const source = `
         scope Motor {
@@ -226,7 +232,7 @@ describe("TypeRegistrationEngine", () => {
       expect(info?.baseType).toBe("State");
       expect(info?.isArray).toBe(true);
 
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByPath(null);
     });
 
     it("registers qualified type arrays (Scope.Type[N])", () => {
@@ -247,7 +253,7 @@ describe("TypeRegistrationEngine", () => {
     });
 
     it("registers scoped type arrays (this.Type[N])", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
 
       const source = `
         scope Motor {
@@ -264,7 +270,7 @@ describe("TypeRegistrationEngine", () => {
       expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);
 
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByPath(null);
     });
   });
 });

@@ -103,7 +103,7 @@ describe("StringHandlers", () => {
 
   describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
     it("generates strncpy for scoped member", () => {
-      CodeGenState.currentScope = "TestScope";
+      CodeGenState.setCurrentScopeByPath("TestScope");
       HandlerTestUtils.setupMockTypeRegistry([
         ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
       ]);
@@ -120,7 +120,7 @@ describe("StringHandlers", () => {
     });
 
     it("throws when used outside scope", () => {
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByPath(null);
       const ctx = createMockContext();
 
       const handler = stringHandlers.find(

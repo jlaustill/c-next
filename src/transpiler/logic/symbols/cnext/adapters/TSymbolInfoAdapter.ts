@@ -459,6 +459,8 @@ class TSymbolInfoAdapter {
     scopeName: string,
     varName: string,
   ): string | null {
+    // #1295: scopeVariableUsage is populated with leaf-built keys, so this
+    // lookup matches it. Both move together or neither does.
     const fullVarName = QualifiedCName.join(scopeName, varName);
     const usedIn = scopeVariableUsage.get(fullVarName);
 

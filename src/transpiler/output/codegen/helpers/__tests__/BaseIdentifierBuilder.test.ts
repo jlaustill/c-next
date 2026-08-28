@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import BaseIdentifierBuilder from "../BaseIdentifierBuilder";
+import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
 
 describe("BaseIdentifierBuilder", () => {
   describe("build", () => {
@@ -13,7 +14,12 @@ describe("BaseIdentifierBuilder", () => {
     });
 
     it("should prefix with scope for this prefix", () => {
-      const result = BaseIdentifierBuilder.build("speed", false, true, "Motor");
+      const result = BaseIdentifierBuilder.build(
+        "speed",
+        false,
+        true,
+        TestScopeUtils.createMockScope("Motor"),
+      );
 
       expect(result).toEqual({
         result: "Motor__speed",
@@ -42,7 +48,7 @@ describe("BaseIdentifierBuilder", () => {
         "localVar",
         false,
         false,
-        "Motor",
+        TestScopeUtils.createMockScope("Motor"),
       );
 
       expect(result).toEqual({
@@ -56,7 +62,7 @@ describe("BaseIdentifierBuilder", () => {
         "value",
         false,
         true,
-        "GPIO_Controller",
+        TestScopeUtils.createMockScope("GPIO_Controller"),
       );
 
       expect(result).toEqual({

@@ -8,6 +8,7 @@
  */
 
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 
 class MemberAccessValidator {
   /**
@@ -46,9 +47,9 @@ class MemberAccessValidator {
   static validateNotSelfScopeReference(
     scopeName: string,
     memberName: string,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
   ): void {
-    if (currentScope && scopeName === currentScope) {
+    if (scopeName === currentScope?.name) {
       throw new Error(
         `Error: Cannot reference own scope '${scopeName}' by name. Use 'this.${memberName}' instead of '${scopeName}.${memberName}'`,
       );
@@ -78,7 +79,7 @@ class MemberAccessValidator {
     entityName: string,
     memberName: string,
     entityType: string,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isGlobalAccess: boolean,
     options?: {
       scopeMembers?: ReadonlyMap<string, ReadonlySet<string>>;
@@ -105,7 +106,7 @@ class MemberAccessValidator {
       const resolvedIsNotEnum = !knownEnums.has(entityName);
       if (wasResolved && rootIsEnum && resolvedIsNotEnum) {
         throw new Error(
-          `Error: Use 'global.${rootIdentifier}.${memberName}' to access enum '${rootIdentifier}' from inside scope '${currentScope}' (scope member '${rootIdentifier}' shadows the global enum)`,
+          `Error: Use 'global.${rootIdentifier}.${memberName}' to access enum '${rootIdentifier}' from inside scope '${currentScope.cnxScopedName}' (scope member '${rootIdentifier}' shadows the global enum)`,
         );
       }
     }
@@ -113,18 +114,18 @@ class MemberAccessValidator {
     // Skip check if entity belongs to current scope (e.g., Motor_State in scope Motor)
     const belongsToCurrentScope = QualifiedCName.isInScope(
       entityName,
-      currentScope,
+      currentScope.name,
     );
     if (belongsToCurrentScope) {
       return;
     }
 
     // Check 2: Direct conflict - scope has a member with the same name as the entity
-    const scopeMemberNames = scopeMembers?.get(currentScope);
+    const scopeMemberNames = scopeMembers?.get(currentScope.name);
     const hasConflict = scopeMemberNames?.has(entityName) ?? false;
     if (hasConflict) {
       throw new Error(
-        `Error: Use 'global.${entityName}.${memberName}' to access ${entityType} '${entityName}' from inside scope '${currentScope}'`,
+        `Error: Use 'global.${entityName}.${memberName}' to access ${entityType} '${entityName}' from inside scope '${currentScope.cnxScopedName}'`,
       );
     }
   }

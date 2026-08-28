@@ -85,7 +85,7 @@ function setupState(options: SetupStateOptions = {}): void {
     CodeGenState.knownFunctions = options.knownFunctions;
   }
   if (options.currentScope !== undefined) {
-    CodeGenState.currentScope = options.currentScope;
+    CodeGenState.setCurrentScopeByPath(options.currentScope);
   }
   if (options.scopeMembers) {
     for (const [scope, members] of options.scopeMembers) {

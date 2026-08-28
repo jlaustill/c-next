@@ -5,6 +5,8 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import IScopeSymbol from "../../../../../types/symbols/IScopeSymbol";
+import TestScopeUtils from "../../../../../logic/symbols/cnext/__tests__/testUtils";
 
 // ========================================================================
 // Test Helpers
@@ -67,7 +69,9 @@ function createMockInput(
 /**
  * Create minimal mock state.
  */
-function createMockState(currentScope: string | null = null): IGeneratorState {
+function createMockState(
+  currentScope: IScopeSymbol | null = null,
+): IGeneratorState {
   return TestGeneratorState.create({ currentScope });
 }
 
@@ -159,7 +163,7 @@ describe("EnumGenerator", () => {
       // Note: The enum name in symbols already includes scope prefix
       const ctx = createMockEnumContext("Level");
       const input = createMockInput("Motor__Level", members);
-      const state = createMockState("Motor");
+      const state = createMockState(TestScopeUtils.createMockScope("Motor"));
       const orchestrator = createMockOrchestrator();
 
       const result = generateEnum(ctx, input, state, orchestrator);

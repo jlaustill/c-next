@@ -19,6 +19,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /**
  * Generate a C typedef enum from a C-Next enum declaration.
@@ -35,7 +36,7 @@ const generateEnum: TGeneratorFn<Parser.EnumDeclarationContext> = (
   const name = node.IDENTIFIER().getText();
 
   // ADR-016: Apply scope prefix if inside a scope
-  const fullName = QualifiedCName.join(state.currentScope, name);
+  const fullName = ScopeUtils.qualifyInScope(name, state.currentScope);
 
   const lines: string[] = [];
   lines.push(`typedef enum {`);

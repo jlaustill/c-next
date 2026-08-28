@@ -198,6 +198,68 @@ describe("IScopeSymbol", () => {
       expect(global.cnxScopedName).toBe("");
     });
 
+    it("qualifyInScope walks the whole chain at depth 2", () => {
+      // The drop-in for `QualifiedCName.join(currentScopeName, name)`. The
+      // string version produced "Inner__tick" here, dropping `Outer`.
+      const global = ScopeUtils.createGlobalScope();
+      const outer = ScopeUtils.createScope("Outer", global);
+      const inner = ScopeUtils.createScope("Inner", outer);
+
+      expect(ScopeUtils.qualifyInScope("tick", inner)).toBe(
+        "Outer__Inner__tick",
+      );
+    });
+
+    it("qualifyInScope leaves a name alone at file scope", () => {
+      const global = ScopeUtils.createGlobalScope();
+
+      // Both spellings of "no scope" -- a global symbol keeps its bare name,
+      // which is what makes `global.x` reachable at all.
+      expect(ScopeUtils.qualifyInScope("tick", null)).toBe("tick");
+      expect(ScopeUtils.qualifyInScope("tick", global)).toBe("tick");
+    });
+
+    it("qualifyScopeType asks about the CHAIN-qualified name", () => {
+      const global = ScopeUtils.createGlobalScope();
+      const outer = ScopeUtils.createScope("Outer", global);
+      const inner = ScopeUtils.createScope("Inner", outer);
+      const asked: string[] = [];
+      const known = new Set(["Outer__Inner__Config"]);
+
+      const result = ScopeUtils.qualifyScopeType("Config", inner, (q) => {
+        asked.push(q);
+        return known.has(q);
+      });
+
+      // The leaf-only version asked about "Inner__Config", got no, and fell
+      // through to the bare name -- the #1200 failure shape.
+      expect(asked).toEqual(["Outer__Inner__Config"]);
+      expect(result).toBe("Outer__Inner__Config");
+    });
+
+    it("qualifyScopeType falls through to the bare name when unknown", () => {
+      const global = ScopeUtils.createGlobalScope();
+      const motor = ScopeUtils.createScope("Motor", global);
+
+      // Negative control: a scope member that is NOT a type must not capture
+      // the name, so a global type of the same name stays reachable.
+      expect(ScopeUtils.qualifyScopeType("Config", motor, () => false)).toBe(
+        "Config",
+      );
+    });
+
+    it("qualifyScopeType does not qualify when a DIFFERENT scope declares the type", () => {
+      // Ported from the deleted QualifiedCName.qualifyScopeType suite. Being
+      // inside scope Z does not let you reach A's type by its bare name.
+      const global = ScopeUtils.createGlobalScope();
+      const other = ScopeUtils.createScope("Z", global);
+      const known = new Set(["A__B"]);
+
+      expect(ScopeUtils.qualifyScopeType("B", other, (q) => known.has(q))).toBe(
+        "B",
+      );
+    });
+
     it("keeps the two namespaces distinct but describing the same path", () => {
       // `Outer.Inner.tick` is not derivable from `Outer__Inner__tick` at a call
       // site without knowing which one it already holds, which is why both are

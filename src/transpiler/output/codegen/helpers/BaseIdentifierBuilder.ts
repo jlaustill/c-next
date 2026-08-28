@@ -9,7 +9,8 @@
  */
 
 import IBaseIdentifierResult from "../types/IBaseIdentifierResult";
-import QualifiedCName from "../../../../utils/QualifiedCName";
+import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
  * Static utility for building base identifiers
@@ -29,7 +30,7 @@ class BaseIdentifierBuilder {
     identifier: string,
     hasGlobal: boolean,
     hasThis: boolean,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
   ): IBaseIdentifierResult {
     const firstId = identifier;
 
@@ -43,7 +44,10 @@ class BaseIdentifierBuilder {
         throw new Error("Error: 'this' can only be used inside a scope");
       }
       // this.x - prefix with current scope
-      return { result: QualifiedCName.join(currentScope, firstId), firstId };
+      return {
+        result: ScopeUtils.qualifyInScope(firstId, currentScope),
+        firstId,
+      };
     }
 
     // Bare identifier with postfix ops

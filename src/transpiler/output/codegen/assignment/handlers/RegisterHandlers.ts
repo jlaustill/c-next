@@ -124,7 +124,7 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
 
   // Build scoped name: Scope_Register_Member
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    CodeGenState.currentScope!,
+    CodeGenState.currentScope!.name,
     ctx.identifiers,
   );
 
@@ -162,10 +162,13 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   const scopeName = CodeGenState.currentScope!;
   const parts = ctx.identifiers;
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    scopeName,
+    scopeName.name,
     parts,
   );
-  const scopedRegName = QualifiedNameGenerator.forMember(scopeName, parts[0]);
+  const scopedRegName = QualifiedNameGenerator.forMember(
+    scopeName.name,
+    parts[0],
+  );
 
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);

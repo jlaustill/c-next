@@ -320,7 +320,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates this-prefixed scoped register bitmap field", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
@@ -366,7 +366,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("throws when 'this' used outside scope", () => {
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByPath(null);
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1", "LED"],
         hasThis: true,
@@ -378,7 +378,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for wo register", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
@@ -399,7 +399,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for w1s register", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
@@ -419,7 +419,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for w1c register", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],

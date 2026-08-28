@@ -19,6 +19,8 @@ import QualifiedCName from "../../../../utils/QualifiedCName";
 import LiteralUtils from "../../../../utils/LiteralUtils";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
+import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
  * Callbacks required for type registration.
@@ -91,7 +93,7 @@ class TypeRegistrationEngine {
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
     const savedScope = CodeGenState.currentScope;
-    CodeGenState.currentScope = scopeName;
+    CodeGenState.setCurrentScopeByPath(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
       if (member.variableDeclaration()) {
@@ -138,7 +140,7 @@ class TypeRegistrationEngine {
    */
   static resolveBaseType(
     typeCtx: Parser.TypeContext,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
   ): string | null {
     return TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
@@ -152,7 +154,7 @@ class TypeRegistrationEngine {
    */
   private static _resolveBaseTypeWithCallbacks(
     typeCtx: Parser.TypeContext,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     callbacks?: ITypeRegistrationCallbacks,
   ): string | null {
     if (typeCtx.primitiveType()) {
@@ -163,7 +165,7 @@ class TypeRegistrationEngine {
       // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
       const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
       return currentScope
-        ? QualifiedCName.join(currentScope, typeName)
+        ? ScopeUtils.qualifyInScope(typeName, currentScope)
         : typeName;
     }
 
@@ -188,7 +190,7 @@ class TypeRegistrationEngine {
     if (typeCtx.userType()) {
       const typeName = typeCtx.userType()!.getText();
       // ADR-057: bare type name inside a scope — qualify if it's a scope type
-      return QualifiedCName.qualifyScopeType(typeName, currentScope, (qn) =>
+      return ScopeUtils.qualifyScopeType(typeName, currentScope, (qn) =>
         CodeGenState.isScopeType(qn),
       );
     }
@@ -496,7 +498,7 @@ class TypeRegistrationEngine {
     if (arrayTypeCtx.scopedType()) {
       const typeName = arrayTypeCtx.scopedType()!.IDENTIFIER().getText();
       const baseType = CodeGenState.currentScope
-        ? QualifiedCName.join(CodeGenState.currentScope, typeName)
+        ? ScopeUtils.qualifyInScope(typeName, CodeGenState.currentScope)
         : typeName;
       return { baseType, bitWidth: 0 };
     }

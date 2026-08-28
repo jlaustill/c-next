@@ -8,6 +8,7 @@
 import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
 /**
  * Validate that 'this' is being used within a scope context.
@@ -16,7 +17,7 @@ import QualifiedCName from "../../../../../utils/QualifiedCName";
  * @param currentScope - The current scope name or null
  * @throws Error if 'this' is used outside a scope
  */
-function validateScopeContext(currentScope: string | null): void {
+function validateScopeContext(currentScope: IScopeSymbol | null): void {
   if (!currentScope) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }

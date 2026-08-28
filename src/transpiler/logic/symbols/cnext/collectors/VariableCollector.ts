@@ -165,8 +165,10 @@ class VariableCollector {
 
     // Get type string and convert to TType
     const typeCtx = ctx.type();
-    const scopeName = scope.name === "" ? undefined : scope.name;
-    const typeStr = TypeUtils.getTypeName(typeCtx, scopeName, isScopeType);
+    // #1285: the scope REFERENCE flows on from here. Flattening it to its
+    // leaf name was the choke point that made every downstream qualification
+    // one level deep, whatever the chain actually was.
+    const typeStr = TypeUtils.getTypeName(typeCtx, scope, isScopeType);
     const type = VariableCollector.resolveDeclaredType(typeStr, ctx);
 
     // Check for const modifier

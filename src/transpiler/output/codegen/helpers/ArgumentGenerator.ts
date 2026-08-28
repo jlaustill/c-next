@@ -19,7 +19,7 @@ import CodeGenState from "../../../state/CodeGenState.js";
 import CppModeHelper from "./CppModeHelper.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks.js";
-import QualifiedCName from "../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -54,9 +54,14 @@ class ArgumentGenerator {
 
     // Scope member - may need prefixing
     if (CodeGenState.currentScope) {
-      const members = CodeGenState.getScopeMembers(CodeGenState.currentScope);
+      const members = CodeGenState.getScopeMembers(
+        CodeGenState.currentScope.name,
+      );
       if (members?.has(id)) {
-        const scopedName = QualifiedCName.join(CodeGenState.currentScope, id);
+        const scopedName = ScopeUtils.qualifyInScope(
+          id,
+          CodeGenState.currentScope,
+        );
         return CppModeHelper.maybeAddressOf(scopedName);
       }
     }

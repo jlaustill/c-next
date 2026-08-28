@@ -4,12 +4,15 @@
 
 import { describe, it, expect } from "vitest";
 import AssignmentHandlerUtils from "../AssignmentHandlerUtils";
+import TestScopeUtils from "../../../../../logic/symbols/cnext/__tests__/testUtils";
 
 describe("AssignmentHandlerUtils", () => {
   describe("validateScopeContext", () => {
     it("should not throw for valid scope", () => {
       expect(() =>
-        AssignmentHandlerUtils.validateScopeContext("MyScope"),
+        AssignmentHandlerUtils.validateScopeContext(
+          TestScopeUtils.createMockScope("MyScope"),
+        ),
       ).not.toThrow();
     });
 

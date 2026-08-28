@@ -153,6 +153,7 @@ import QualifiedCName from "../../../utils/QualifiedCName";
 import type TRequirementKey from "../../types/TRequirementKey";
 import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -505,7 +506,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Scope effects (ADR-016)
         case "set-scope":
-          CodeGenState.currentScope = effect.name;
+          CodeGenState.setCurrentScopeByPath(effect.name);
           break;
 
         // Function body effects
@@ -1404,7 +1405,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (ctx.scopedType()) {
       const typeName = ctx.scopedType()!.IDENTIFIER().getText();
       if (CodeGenState.currentScope) {
-        return QualifiedCName.join(CodeGenState.currentScope, typeName);
+        return ScopeUtils.qualifyInScope(typeName, CodeGenState.currentScope);
       }
       return typeName;
     }
@@ -1619,8 +1620,8 @@ export default class CodeGenerator implements IOrchestrator {
   // === Scope Management (A4) ===
 
   setCurrentScope(name: string | null): void {
-    CodeGenState.currentScope = name;
-    CodeGenState.currentScope = name;
+    // The assignment was written twice on main; the second was dead.
+    CodeGenState.setCurrentScopeByPath(name);
   }
 
   /**
@@ -2223,7 +2224,9 @@ export default class CodeGenerator implements IOrchestrator {
       // Check if this is a scoped register (defined within the current scope)
       // The registerName may already be the fully qualified name (e.g., "GPIO_PORTA")
       // if accessed as PORTA from inside scope GPIO
-      if (QualifiedCName.isInScope(registerName, CodeGenState.currentScope)) {
+      if (
+        QualifiedCName.isInScope(registerName, CodeGenState.currentScope.name)
+      ) {
         // This is a scoped register - allow bare access
         return;
       }
@@ -2242,7 +2245,7 @@ export default class CodeGenerator implements IOrchestrator {
 
       throw new Error(
         `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
-          `from inside scope '${CodeGenState.currentScope}'`,
+          `from inside scope '${CodeGenState.currentScope!.cnxScopedName}'`,
       );
     }
   }
@@ -2797,7 +2800,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Set scope context for scoped type resolution (this.Type)
     const savedScope = CodeGenState.currentScope;
-    CodeGenState.currentScope = scopeName;
+    CodeGenState.setCurrentScopeByPath(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
       // Issue #1200: a struct nested in a scope has callback fields just like a
@@ -3435,7 +3438,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Fallback to inline implementation (will be removed after migration)
     const name = ctx.IDENTIFIER().getText();
-    CodeGenState.currentScope = name;
+    CodeGenState.setCurrentScopeByPath(name);
 
     const lines: string[] = [];
     lines.push(`/* Scope: ${name} */`);
@@ -3714,10 +3717,16 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Fallback to inline implementation (will be removed after migration)
     const name = ctx.IDENTIFIER().getText();
-    const prefix = CodeGenState.currentScope
-      ? `${CodeGenState.currentScope}_`
-      : "";
-    const fullName = `${prefix}${name}`;
+    // #1285: built through the one encoder, like every other qualification.
+    //
+    // This branch is UNREACHABLE: `initializeGenerators()` runs at the top of
+    // `generate()` and registers "bitmap" unconditionally, and nothing outside
+    // the registry's own tests unregisters it. So the single-underscore form
+    // this replaces was a latent defect in dead code -- it could never have
+    // matched `bitmapBackingType`, and could never have thrown either. Corrected
+    // for consistency, not because it fixed anything a program could reach.
+    // The four inline fallbacks in this file are tracked for deletion as #1305.
+    const fullName = ScopeUtils.qualifyInScope(name, CodeGenState.currentScope);
 
     const backingType = CodeGenState.symbols!.bitmapBackingType.get(fullName);
     if (!backingType) {
@@ -4116,7 +4125,7 @@ export default class CodeGenerator implements IOrchestrator {
         if (this.isKnownStruct(t)) return true;
         // ADR-057: check qualified name for scope-local struct types only
         const qualified = CodeGenState.currentScope
-          ? QualifiedCName.join(CodeGenState.currentScope, t)
+          ? ScopeUtils.qualifyInScope(t, CodeGenState.currentScope)
           : t;
         return CodeGenState.symbols?.knownStructs.has(qualified) ?? false;
       },
@@ -4510,7 +4519,7 @@ export default class CodeGenerator implements IOrchestrator {
     if (typeCtx.scopedType()) {
       const localName = typeCtx.scopedType()!.IDENTIFIER().getText();
       const name = CodeGenState.currentScope
-        ? QualifiedCName.join(CodeGenState.currentScope, localName)
+        ? ScopeUtils.qualifyInScope(localName, CodeGenState.currentScope)
         : localName;
       return { name, separator: QualifiedCName.SEPARATOR };
     }

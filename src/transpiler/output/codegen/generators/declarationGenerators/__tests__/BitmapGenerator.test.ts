@@ -5,6 +5,8 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import IScopeSymbol from "../../../../../types/symbols/IScopeSymbol";
+import TestScopeUtils from "../../../../../logic/symbols/cnext/__tests__/testUtils";
 
 // ========================================================================
 // Test Helpers
@@ -78,7 +80,9 @@ function createMockInput(
 /**
  * Create minimal mock state.
  */
-function createMockState(currentScope: string | null = null): IGeneratorState {
+function createMockState(
+  currentScope: IScopeSymbol | null = null,
+): IGeneratorState {
   return TestGeneratorState.create({ currentScope });
 }
 
@@ -188,7 +192,7 @@ describe("BitmapGenerator", () => {
       const ctx = createMockBitmapContext("Status");
       // Note: The bitmap name in symbols already includes scope prefix
       const input = createMockInput("Driver__Status", "uint8_t", fields);
-      const state = createMockState("Driver");
+      const state = createMockState(TestScopeUtils.createMockScope("Driver"));
       const orchestrator = createMockOrchestrator();
 
       const result = generateBitmap(ctx, input, state, orchestrator);

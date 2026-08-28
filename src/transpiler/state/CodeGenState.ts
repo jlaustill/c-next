@@ -39,6 +39,9 @@ import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
+import IScopeSymbol from "../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../utils/ScopeUtils";
+import SymbolRegistry from "./SymbolRegistry";
 
 /**
  * Default target capabilities (safe fallback)
@@ -278,7 +281,7 @@ export default class CodeGenState {
   // ===========================================================================
 
   /** ADR-016: Current scope for name resolution */
-  static currentScope: string | null = null;
+  static currentScope: IScopeSymbol | null = null;
 
   /** Issue #269: Current function for modification tracking */
   static currentFunctionName: string | null = null;
@@ -722,7 +725,7 @@ export default class CodeGenState {
    * explicit answer in the syntax and must keep their own branches.
    */
   static qualifyScopeType(typeName: string): string {
-    return QualifiedCName.qualifyScopeType(
+    return ScopeUtils.qualifyScopeType(
       typeName,
       this.currentScope,
       (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
@@ -1100,7 +1103,13 @@ export default class CodeGenState {
    */
   static isCurrentScopeMember(identifier: string): boolean {
     if (!this.currentScope) return false;
-    return this.scopeMembers.get(this.currentScope)?.has(identifier) ?? false;
+    // `scopeMembers` is keyed by the scope's LEAF name, so this passes `.name`
+    // deliberately rather than the scope's identity. That key is itself a
+    // leaf-only encoder and collides at depth two -- tracked as #1295, not
+    // changed here, because its producer and every other reader move with it.
+    return (
+      this.scopeMembers.get(this.currentScope.name)?.has(identifier) ?? false
+    );
   }
 
   /**
@@ -1109,9 +1118,14 @@ export default class CodeGenState {
    */
   static resolveIdentifier(identifier: string): string {
     if (this.currentScope) {
-      const members = this.scopeMembers.get(this.currentScope);
+      const members = this.scopeMembers.get(this.currentScope.name);
       if (members?.has(identifier)) {
-        return QualifiedCName.join(this.currentScope, identifier);
+        // Built from the scope CHAIN, so a member of a nested scope gets every
+        // component rather than just the innermost one.
+        return ScopeUtils.getTranspiledCName({
+          name: identifier,
+          scope: this.currentScope,
+        });
       }
     }
     return identifier;
@@ -1320,6 +1334,27 @@ export default class CodeGenState {
    */
   static registerConstValue(name: string, value: number): void {
     this.constValues.set(name, value);
+  }
+
+  /**
+   * Enter a scope by its DOTTED PATH, resolving it to the scope symbol that
+   * carries the parent chain.
+   *
+   * The parameter is a path (`Outer.Inner`), not a leaf, because that is what
+   * `SymbolRegistry.getOrCreateScope` takes. Pass a leaf for a nested scope and
+   * it does not fail -- it CREATES a fresh scope parented to global and
+   * registers it under the leaf, after which every qualification through
+   * `currentScope` silently returns a one-level name.
+   *
+   * Every codegen caller currently passes a leaf, and that is correct for every
+   * program C-Next can express: `scopeMember` admits no `scopeDeclaration`
+   * (grammar/CNext.g4:81-89), so a scope's leaf IS its whole path. It stops
+   * being correct the moment scopes can nest, which is why the gap is tracked
+   * as #1304 rather than left to be rediscovered.
+   */
+  static setCurrentScopeByPath(name: string | null): void {
+    this.currentScope =
+      name === null ? null : SymbolRegistry.getOrCreateScope(name);
   }
 
   /**

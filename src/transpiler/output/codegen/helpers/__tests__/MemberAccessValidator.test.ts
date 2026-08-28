@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import MemberAccessValidator from "../MemberAccessValidator.js";
+import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
 
 describe("MemberAccessValidator", () => {
   describe("validateRegisterReadAccess", () => {
@@ -89,7 +90,7 @@ describe("MemberAccessValidator", () => {
         MemberAccessValidator.validateNotSelfScopeReference(
           "Motor",
           "speed",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
         ),
       ).toThrow(
         "Error: Cannot reference own scope 'Motor' by name. Use 'this.speed' instead of 'Motor.speed'",
@@ -111,7 +112,7 @@ describe("MemberAccessValidator", () => {
         MemberAccessValidator.validateNotSelfScopeReference(
           "Motor",
           "speed",
-          "Sensor",
+          TestScopeUtils.createMockScope("Sensor"),
         ),
       ).not.toThrow();
     });
@@ -125,7 +126,7 @@ describe("MemberAccessValidator", () => {
           "Color",
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           { scopeMembers },
         ),
@@ -141,7 +142,7 @@ describe("MemberAccessValidator", () => {
           "Color",
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           { scopeMembers },
         ),
@@ -155,7 +156,7 @@ describe("MemberAccessValidator", () => {
           "Color",
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           true,
           { scopeMembers },
         ),
@@ -168,7 +169,7 @@ describe("MemberAccessValidator", () => {
           "Motor_State",
           "Running",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
         ),
       ).not.toThrow();
@@ -193,7 +194,7 @@ describe("MemberAccessValidator", () => {
           "GPIO",
           "PIN0",
           "register",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           { scopeMembers },
         ),
@@ -209,7 +210,7 @@ describe("MemberAccessValidator", () => {
           "GPIO",
           "PIN0",
           "register",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           { scopeMembers },
         ),
@@ -222,7 +223,7 @@ describe("MemberAccessValidator", () => {
           "Color",
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           undefined,
         ),
@@ -237,7 +238,7 @@ describe("MemberAccessValidator", () => {
           "Motor_Color", // resolved to scope member
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           { rootIdentifier: "Color", knownEnums },
         ),
@@ -253,7 +254,7 @@ describe("MemberAccessValidator", () => {
           "Motor_Color",
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           true,
           { rootIdentifier: "Color", knownEnums },
         ),
@@ -267,7 +268,7 @@ describe("MemberAccessValidator", () => {
           "Motor_Color",
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           { rootIdentifier: "Color", knownEnums },
         ),
@@ -281,7 +282,7 @@ describe("MemberAccessValidator", () => {
           "Motor_Color",
           "Red",
           "enum",
-          "Motor",
+          TestScopeUtils.createMockScope("Motor"),
           false,
           { rootIdentifier: "Color", knownEnums },
         ),

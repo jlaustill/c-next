@@ -102,7 +102,12 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const memberName = ctx.identifiers[0];
-  const scopedName = QualifiedCName.join(CodeGenState.currentScope, memberName);
+  // #1295: leaf key. AssignmentClassifier routes here after hitting the same
+  // map with a leaf key; a chain key would miss and the `!` below would throw.
+  const scopedName = QualifiedCName.join(
+    CodeGenState.currentScope?.name,
+    memberName,
+  );
   const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
   const capacity = typeInfo!.stringCapacity!;
 

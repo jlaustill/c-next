@@ -15,6 +15,8 @@
 import ISeparatorContext from "../types/ISeparatorContext";
 import IMemberSeparatorDeps from "../types/IMemberSeparatorDeps";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
  * Input parameters for building a separator context
@@ -23,7 +25,7 @@ interface IBuildContextInput {
   firstId: string;
   hasGlobal: boolean;
   hasThis: boolean;
-  currentScope: string | null;
+  currentScope: IScopeSymbol | null;
   isStructParam: boolean;
   isCppAccess: boolean;
   forcePointerSemantics?: boolean;
@@ -55,7 +57,7 @@ class MemberSeparatorResolver {
 
     const scopedRegName =
       hasThis && currentScope
-        ? QualifiedCName.join(currentScope, firstId)
+        ? ScopeUtils.qualifyInScope(firstId, currentScope)
         : null;
 
     const isScopedRegister =

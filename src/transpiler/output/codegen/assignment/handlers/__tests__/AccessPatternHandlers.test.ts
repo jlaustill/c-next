@@ -191,7 +191,7 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates scoped member assignment", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor__speed"),
       });
@@ -207,7 +207,7 @@ describe("AccessPatternHandlers", () => {
     });
 
     it("throws when used outside scope", () => {
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByPath(null);
       const ctx = createMockContext({ hasThis: true, hasGlobal: false });
 
       expect(() => getHandler()!(ctx)).toThrow(
@@ -216,7 +216,7 @@ describe("AccessPatternHandlers", () => {
     });
 
     it("handles compound assignment", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_count"),
       });
@@ -241,7 +241,7 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates scoped array element assignment", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_items[0]"),
       });

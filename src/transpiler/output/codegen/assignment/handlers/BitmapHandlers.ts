@@ -194,7 +194,7 @@ function handleScopedRegisterMemberBitmapField(
     if (!CodeGenState.currentScope) {
       throw new Error("Error: 'this' can only be used inside a scope");
     }
-    scopeName = CodeGenState.currentScope;
+    scopeName = CodeGenState.currentScope.name;
     regName = ctx.identifiers[0];
     memberName = ctx.identifiers[1];
     fieldName = ctx.identifiers[2];
