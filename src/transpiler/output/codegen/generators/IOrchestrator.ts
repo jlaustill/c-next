@@ -41,7 +41,7 @@ interface IOrchestrator {
   /** Resolve an identifier to its fully-scoped name */
   resolveIdentifier(name: string): string;
 
-  // === Expression Generation (ADR-053 A2) ===
+  // === Expression Generation ===
   // These methods allow extracted generators to call back into CodeGenerator
   // for parts not yet extracted, enabling incremental "strangler fig" migration.
 
@@ -150,7 +150,7 @@ interface IOrchestrator {
   /** Validate type conversion is allowed */
   validateTypeConversion(targetType: string, sourceType: string | null): void;
 
-  // === Function Call Helpers (ADR-053 A2 Phase 5) ===
+  // === Function Call Helpers ===
 
   /** Get simple identifier from expression, or null if complex */
   getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
@@ -179,7 +179,7 @@ interface IOrchestrator {
   /** Issue #269: Check if a parameter is pass-by-value (small unmodified primitive) */
   isParameterPassByValue(funcName: string, paramIndex: number): boolean;
 
-  // === Statement Generation (ADR-053 A3) ===
+  // === Statement Generation ===
 
   /** Generate a block (curly braces with statements) */
   generateBlock(ctx: Parser.BlockContext): string;
@@ -198,7 +198,7 @@ interface IOrchestrator {
   /** Get indentation string for current level */
   indent(text: string): string;
 
-  // === Statement Validation (ADR-053 A3) ===
+  // === Statement Validation ===
 
   /** Validate no early exits (return/break) in critical blocks (ADR-050) */
   validateNoEarlyExits(ctx: Parser.BlockContext): void;
@@ -227,7 +227,7 @@ interface IOrchestrator {
   /** Validate no function calls in ternary condition (Issue #254, E0702) */
   validateTernaryConditionNoFunctionCall(ctx: Parser.OrExpressionContext): void;
 
-  // === Control Flow Helpers (ADR-053 A3) ===
+  // === Control Flow Helpers ===
 
   /** Generate an assignment target */
   generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string;
@@ -238,7 +238,7 @@ interface IOrchestrator {
   /** Generate single array dimension */
   generateArrayDimension(dim: Parser.ArrayDimensionContext): string;
 
-  // === strlen Optimization (ADR-053 A3) ===
+  // === strlen Optimization ===
 
   /** Count string length accesses for caching */
   countStringLengthAccesses(ctx: Parser.ExpressionContext): Map<string, number>;
@@ -266,7 +266,7 @@ interface IOrchestrator {
    */
   registerLocalVariable(name: string): string;
 
-  // === Declaration Generation (ADR-053 A4) ===
+  // === Declaration Generation ===
 
   /** Generate parameter list for function signature */
   generateParameterList(ctx: Parser.ParameterListContext): string;

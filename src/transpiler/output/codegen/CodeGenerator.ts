@@ -30,18 +30,18 @@ import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import TIncludeHeader from "./generators/TIncludeHeader";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
-// ADR-053: Expression generators (A2)
+// Expression generators
 import generateLiteral from "./generators/expressions/LiteralGenerator";
 import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
 import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
 import expressionGenerators from "./generators/expressions/ExpressionGenerator";
 import generatePostfixExpression from "./generators/expressions/PostfixExpressionGenerator";
-// ADR-053: Statement generators (A3)
+// Statement generators
 import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
 import generateCriticalStatement from "./generators/statements/CriticalGenerator";
 import atomicGenerators from "./generators/statements/AtomicGenerator";
 import switchGenerators from "./generators/statements/SwitchGenerator";
-// ADR-053: Declaration generators (A4)
+// Declaration generators
 import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
 import registerGenerator from "./generators/declarationGenerators/RegisterGenerator";
@@ -56,7 +56,7 @@ import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
-// ADR-053: Support generators (A5)
+// Support generators
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
 import commentUtils from "./generators/support/CommentUtils";
@@ -251,7 +251,7 @@ const IRQ_WRAPPER_REQUIREMENTS: readonly TRequirementKey[] = [
 /**
  * Code Generator - Transpiles C-Next to C
  *
- * Implements IOrchestrator to support modular generator extraction (ADR-053).
+ * Implements IOrchestrator to support modular generator extraction.
  */
 export default class CodeGenerator implements IOrchestrator {
   /** Lookup map for primitive type zero initializers */
@@ -278,7 +278,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Array initialization helper for size inference and fill-all */
 
-  /** Generator registry for modular code generation (ADR-053) */
+  /** Generator registry for modular code generation */
   private readonly registry: GeneratorRegistry = new GeneratorRegistry();
 
   /**
@@ -302,7 +302,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Phase 4: Composite generators
     this.registry.registerDeclaration("scope", scopeGenerator);
 
-    // Statement generators (ADR-053 A3)
+    // Statement generators
     // Note: generateSwitchCase, generateCaseLabel, generateDefaultCase have extra
     // switchEnumType param and are called directly rather than through the registry.
     // Same for generateForVarDecl, generateForAssignment - internal helpers.
@@ -327,7 +327,7 @@ export default class CodeGenerator implements IOrchestrator {
     this.registry.registerStatement("switch", switchGenerators.generateSwitch);
     this.registry.registerStatement("critical", generateCriticalStatement);
 
-    // Expression generators (ADR-053 A2)
+    // Expression generators
     this.registry.registerExpression(
       "expression",
       expressionGenerators.generateExpression,
@@ -408,7 +408,7 @@ export default class CodeGenerator implements IOrchestrator {
   private generatorsInitialized = false;
 
   // ===========================================================================
-  // IOrchestrator Implementation (ADR-053)
+  // IOrchestrator Implementation
   // ===========================================================================
 
   /**
@@ -625,7 +625,7 @@ export default class CodeGenerator implements IOrchestrator {
     return CodeGenState.resolveIdentifier(identifier);
   }
 
-  // === Expression Generation (ADR-053 A2) ===
+  // === Expression Generation ===
 
   /**
    * Generate a C expression from any expression context.
@@ -979,7 +979,7 @@ export default class CodeGenerator implements IOrchestrator {
     TypeValidator.validateNoNestedTernary(expr, branchName);
   }
 
-  // === Function Call Helpers (ADR-053 A2 Phase 5) ===
+  // === Function Call Helpers ===
 
   /**
    * Get simple identifier from expression, or null if complex.
@@ -1053,7 +1053,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate a block (curly braces with statements).
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   generateBlock(ctx: Parser.BlockContext): string {
     const lines: string[] = ["{"];
@@ -1081,7 +1081,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Validate no early exits (return/break) in critical blocks.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   validateNoEarlyExits(ctx: Parser.BlockContext): void {
     TypeValidator.validateNoEarlyExits(ctx);
@@ -1089,7 +1089,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate a single statement.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   generateStatement(ctx: Parser.StatementContext): string {
     let result = "";
@@ -1148,7 +1148,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Get indentation string for current level.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   indent(text: string): string {
     return FormatUtils.indentAllLines(text, CodeGenState.indentLevel);
@@ -1156,7 +1156,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Validate switch statement.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   validateSwitchStatement(
     ctx: Parser.SwitchStatementContext,
@@ -1167,7 +1167,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Validate condition is a boolean expression (ADR-027, Issue #884).
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   validateConditionIsBoolean(
     ctx: Parser.ExpressionContext,
@@ -1186,7 +1186,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Issue #254: Validate no function calls in condition (E0702).
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   validateConditionNoFunctionCall(
     ctx: Parser.ExpressionContext,
@@ -1197,7 +1197,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Issue #254: Validate no function calls in ternary condition (E0702).
-   * Part of IOrchestrator interface (ADR-053 A2).
+   * Part of IOrchestrator interface.
    */
   validateTernaryConditionNoFunctionCall(
     ctx: Parser.OrExpressionContext,
@@ -1207,7 +1207,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate an assignment target.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    * Issue #387: Unified postfix chain - all patterns now use IDENTIFIER postfixTargetOp*
    */
   generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
@@ -1301,17 +1301,17 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate array dimensions.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
     return dims.map((d) => this.generateArrayDimension(d)).join("");
   }
 
-  // === strlen Optimization (ADR-053 A3) ===
+  // === strlen Optimization ===
 
   /**
    * Count string length accesses for caching.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   countStringLengthAccesses(
     ctx: Parser.ExpressionContext,
@@ -1322,7 +1322,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Count block length accesses.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   countBlockLengthAccesses(
     ctx: Parser.BlockContext,
@@ -1334,7 +1334,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Setup length cache and return declarations.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   setupLengthCache(counts: Map<string, number>): string {
     const declarations: string[] = [];
@@ -1358,7 +1358,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Clear length cache.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   clearLengthCache(): void {
     CodeGenState.lengthCache = null;
@@ -1366,14 +1366,14 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Register a local variable.
-   * Part of IOrchestrator interface (ADR-053 A3).
+   * Part of IOrchestrator interface.
    */
   registerLocalVariable(name: string): string {
     CodeGenState.registerLocalVariable(name);
     return CodeGenState.emittedLocalName(name);
   }
 
-  // === Declaration Generation (ADR-053 A4) ===
+  // === Declaration Generation ===
 
   /** Generate single array dimension */
   generateArrayDimension(dim: Parser.ArrayDimensionContext): string {
@@ -2309,7 +2309,7 @@ export default class CodeGenerator implements IOrchestrator {
       options?.target,
     );
 
-    // ADR-053: Initialize generators (once per CodeGenerator instance)
+    // Initialize generators (once per CodeGenerator instance)
     if (!this.generatorsInitialized) {
       this.initializeGenerators();
       this.generatorsInitialized = true;
@@ -2749,7 +2749,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
-   * ADR-053 A5: Delegates to IncludeGenerator
+   * Delegates to IncludeGenerator
    * Issue #349: Now passes includeDirs and inputs for angle-bracket resolution
    * Issue #941: Now passes cppMode for .hpp extension in C++ mode
    */
@@ -3125,7 +3125,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ADR-024: Type Classification and Validation Helpers
   // ========================================================================
 
-  // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface (ADR-053 A2)
+  // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface
   // Private versions kept for internal use
   private _isIntegerType(typeName: string): boolean {
     return TypeResolver.isIntegerType(typeName);
@@ -3428,7 +3428,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateScope(ctx: Parser.ScopeDeclarationContext): string {
-    // ADR-053: Check registry for extracted generator
+    // Check registry for extracted generator
     const generator = this.registry.getDeclaration("scope");
     if (generator) {
       const result = generator(ctx, this.getInput(), this.getState(), this);
@@ -3600,7 +3600,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
-    // ADR-053: Check registry for extracted generator
+    // Check registry for extracted generator
     const generator = this.registry.getDeclaration("register");
     if (generator) {
       const result = generator(ctx, this.getInput(), this.getState(), this);
@@ -3647,7 +3647,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.RegisterDeclarationContext,
     scopeName: string,
   ): string {
-    // ADR-053: Delegate to extracted generator
+    // Delegate to extracted generator
     const result = scopedRegisterGenerator(
       ctx,
       scopeName,
@@ -3664,7 +3664,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
-    // ADR-053: Delegates to extracted StructGenerator
+    // Delegates to extracted StructGenerator
     const generator = this.registry.getDeclaration("struct");
     if (!generator) {
       throw new Error("Error: struct generator not registered");
@@ -3683,7 +3683,7 @@ export default class CodeGenerator implements IOrchestrator {
    * enum State { IDLE, RUNNING, ERROR <- 255 }
    * -> typedef enum { State_IDLE = 0, State_RUNNING = 1, State_ERROR = 255 } State;
    *
-   * ADR-053: Delegates to extracted EnumGenerator.
+   * Delegates to extracted EnumGenerator.
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
     const generator = this.registry.getDeclaration("enum");
@@ -3703,10 +3703,10 @@ export default class CodeGenerator implements IOrchestrator {
    * bitmap8 MotorFlags { Running, Direction, Mode[3], Reserved[2] }
    * -> typedef uint8_t MotorFlags; (with field layout comment)
    *
-   * ADR-053: Delegates to extracted generator if registered.
+   * Delegates to extracted generator if registered.
    */
   private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
-    // ADR-053: Check registry for extracted generator
+    // Check registry for extracted generator
     const generator = this.registry.getDeclaration("bitmap");
     if (generator) {
       const result = generator(ctx, this.getInput(), this.getState(), this);
@@ -3966,7 +3966,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateFunction(ctx: Parser.FunctionDeclarationContext): string {
-    // ADR-053: Check registry for extracted generator
+    // Check registry for extracted generator
     const generator = this.registry.getDeclaration("function");
     if (generator) {
       const result = generator(ctx, this.getInput(), this.getState(), this);
@@ -4964,7 +4964,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate a literal expression with C++ mode handling
-   * ADR-053 A2: Uses extracted literal generator
+   * Uses extracted literal generator
    */
   private _generateLiteralExpression(ctx: Parser.LiteralContext): string {
     const result = generateLiteral(ctx, this.getInput(), this.getState(), this);
@@ -5191,7 +5191,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Generate all needed overflow helper functions
-   * ADR-053 A5: Delegates to HelperGenerator
+   * Delegates to HelperGenerator
    */
   private generateOverflowHelpers(): string[] {
     return helperGenerateOverflowHelpers(
@@ -5266,7 +5266,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Process a preprocessor directive
-   * ADR-053 A5: Delegates to IncludeGenerator
+   * Delegates to IncludeGenerator
    */
   private processPreprocessorDirective(
     ctx: Parser.PreprocessorDirectiveContext,
@@ -5276,7 +5276,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   // ========================================================================
   // Comment Handling (ADR-043)
-  // ADR-053 A5: Delegates to CommentUtils
+  // Delegates to CommentUtils
   // ========================================================================
 
   /**
@@ -5302,7 +5302,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * ADR-051: Generate safe division helper functions for used integer types only
-   * ADR-053 A5: Delegates to HelperGenerator
+   * Delegates to HelperGenerator
    */
   private generateSafeDivHelpers(): string[] {
     return helperGenerateSafeDivHelpers(CodeGenState.usedSafeDivOps);

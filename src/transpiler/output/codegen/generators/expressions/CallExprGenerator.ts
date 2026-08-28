@@ -1,5 +1,5 @@
 /**
- * Function Call Expression Generator (ADR-053 A2 Phase 5)
+ * Function Call Expression Generator
  *
  * Generates C code for function calls:
  * - safe_div/safe_mod built-in functions (ADR-051)

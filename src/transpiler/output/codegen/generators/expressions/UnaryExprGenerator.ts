@@ -1,5 +1,5 @@
 /**
- * Unary Expression Generator (ADR-053 A2)
+ * Unary Expression Generator
  *
  * Generates C code for unary expressions:
  * - Prefix operators: !, -, ~, &

@@ -1,5 +1,5 @@
 /**
- * Control Flow Statement Generators (ADR-053 A3)
+ * Control Flow Statement Generators
  *
  * Generates C code for control flow statements:
  * - return statements

@@ -2,8 +2,7 @@
  * Transpiler
  * Unified transpiler for both single-file and multi-file builds
  *
- * Key insight from ADR-053: "A single file transpilation is just a project
- * with one .cnx file."
+ * A single file transpilation is just a project with one .cnx file.
  *
  * Architecture: transpile() is the single entry point. It discovers files
  * via discoverIncludes(), then delegates to _executePipeline(). There is

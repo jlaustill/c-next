@@ -1,5 +1,5 @@
 /**
- * Access Expression Generator (ADR-053 A2 Phase 6)
+ * Access Expression Generator
  *
  * Generates C code for string buffer property access:
  * - .capacity → compile-time max string length (excluding null terminator)

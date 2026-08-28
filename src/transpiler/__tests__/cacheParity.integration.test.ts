@@ -2,7 +2,7 @@
  * Integration test for issue #1225: a warm `.cnx` cache must produce byte-identical
  * output to a cold one.
  *
- * The cache is a performance optimization (ADR-053). Nothing in that decision
+ * The cache is a performance optimization. Nothing about it
  * licenses it to change generated code — but it did: a header naming a pointer
  * typedef included the header defining it on a cold build, and forward-declared
  * it as an incomplete struct on a warm one. Those are different types, and the

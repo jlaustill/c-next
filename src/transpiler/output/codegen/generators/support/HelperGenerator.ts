@@ -1,6 +1,6 @@
 /**
  * Helper function generators for overflow-safe arithmetic and safe division.
- * Extracted from CodeGenerator.ts as part of ADR-053 A5.
+ * Extracted from CodeGenerator.ts.
  *
  * Portability note: Uses __builtin_add_overflow, __builtin_sub_overflow, and
  * __builtin_mul_overflow intrinsics (GCC 5+, Clang 3.4+). C-Next targets embedded

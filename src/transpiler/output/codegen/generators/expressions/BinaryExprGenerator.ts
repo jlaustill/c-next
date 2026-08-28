@@ -1,5 +1,5 @@
 /**
- * Binary Expression Generator (ADR-053 A2)
+ * Binary Expression Generator
  *
  * Generates C code for binary expressions in the operator precedence chain:
  * - Logical: || (or), && (and)
