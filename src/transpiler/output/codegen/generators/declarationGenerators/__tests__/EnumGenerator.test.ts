@@ -4,6 +4,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
+import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================
 // Test Helpers
@@ -67,22 +68,7 @@ function createMockInput(
  * Create minimal mock state.
  */
 function createMockState(currentScope: string | null = null): IGeneratorState {
-  return {
-    currentScope,
-    indentLevel: 0,
-    inFunctionBody: false,
-    currentParameters: new Map(),
-    localVariables: new Set(),
-    localArrays: new Set(),
-    expectedType: null,
-    selfIncludeAdded: false,
-    // Issue #644: Postfix expression state
-    scopeMembers: new Map(),
-    mainArgsName: null,
-    floatBitShadows: new Set(),
-    floatShadowCurrent: new Set(),
-    lengthCache: null,
-  };
+  return TestGeneratorState.create({ currentScope });
 }
 
 /**
