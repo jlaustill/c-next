@@ -1,5 +1,5 @@
 /**
- * Literal Generator (ADR-053 A2)
+ * Literal Generator
  *
  * Generates C code for literal values:
  * - Boolean literals (true/false) → needs stdbool.h

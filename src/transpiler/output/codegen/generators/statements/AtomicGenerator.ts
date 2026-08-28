@@ -1,5 +1,5 @@
 /**
- * Atomic Operation Generators (ADR-053 A3)
+ * Atomic Operation Generators
  *
  * Generates C code for atomic Read-Modify-Write operations (ADR-049):
  * - LDREX/STREX loops for platforms with exclusive access support

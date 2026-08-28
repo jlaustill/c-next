@@ -3,6 +3,7 @@
   "language": "en",
   "words": [
     "Adafruit",
+    "miscompile",
     "adr",
     "adrs",
     "antlr",
@@ -443,7 +444,7 @@
     "docs/decisions/**",
     "docs/implementation/**",
     "docs/plans/**",
-    "docs/architecture/**",
+    "docs/architecture/*.svg",
     "docs/LANGUAGE-FEATURE-TESTING-RESEARCH.md",
     "docs/misra-compliance.md",
     "docs/learn-cnext-in-y-minutes.md",

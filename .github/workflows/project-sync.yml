@@ -5,10 +5,18 @@
 # well -- item closed, pull request merged -- is left to them and is absent from
 # this file.
 #
-# Reopening is handled here rather than by the built-in "Item reopened", which
+# PR reopening is handled here rather than by the built-in "Item reopened", which
 # fires on issues and pull requests alike: it would send a reopened PR to Backlog
 # while this workflow sends it to PR Review, and which one lands is a race. One
 # owner per transition. See docs/WORKFLOW.md.
+#
+# ISSUE reopening is deliberately unhandled. Reopening a closed issue is not a
+# supported transition on this project -- a defect found after a fix shipped is a
+# NEW issue, with its own reproduction, not a resurrected one. So this workflow
+# does not subscribe to `issues.reopened` and does not move the card, which leaves
+# a reopened issue visibly stranded in Done rather than quietly re-entering the
+# pipeline. That inconsistency is the point: it is how the policy violation
+# surfaces. See docs/WORKFLOW.md.
 #
 # GITHUB_TOKEN is scoped to the repository and cannot write Projects v2, so this
 # uses PROJECT_TOKEN: a classic PAT with the `project` scope.
@@ -20,7 +28,7 @@ name: Project sync
 
 on:
   issues:
-    types: [opened, assigned, reopened]
+    types: [opened, assigned]
   pull_request:
     types: [opened, reopened, ready_for_review]
   workflow_call:
@@ -54,9 +62,8 @@ jobs:
           set -euo pipefail
 
           case "${{ github.event_name }}.${{ github.event.action }}" in
-            issues.opened)                  TARGET="Backlog";    OVERWRITE="unset" ;;
-            issues.reopened)                TARGET="Backlog";    OVERWRITE="unset|Done" ;;
-            issues.assigned)                TARGET="WIP";        OVERWRITE="unset|Backlog" ;;
+            issues.opened)                  TARGET="Grooming";   OVERWRITE="unset" ;;
+            issues.assigned)                TARGET="WIP";        OVERWRITE="unset|Grooming|Backlog" ;;
             pull_request.opened)            TARGET="PR Review";  OVERWRITE="unset" ;;
             pull_request.reopened)          TARGET="PR Review";  OVERWRITE="any" ;;
             pull_request.ready_for_review)  TARGET="PR Review";  OVERWRITE="unset|Backlog" ;;

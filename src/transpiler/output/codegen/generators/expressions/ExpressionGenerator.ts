@@ -1,5 +1,5 @@
 /**
- * Expression Generator Entry Point (ADR-053 A2 Phase 7)
+ * Expression Generator Entry Point
  *
  * Top-level entry point for expression code generation.
  * Handles:

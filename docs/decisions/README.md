@@ -48,6 +48,8 @@ toward its band's gate.
 ### Numbers are never reused
 
 Gaps are intentional and permanent. `059` and `107` were never allocated; neither will be filled.
+`053` was withdrawn on 2026-08-28 -- it described the transpiler's pipeline rather than deciding
+anything about the language, so it did not meet the definition of an ADR. The number stays retired.
 A retired number stays retired, so that an old issue or commit referencing it can never resolve
 to a different decision than the one its author meant.
 

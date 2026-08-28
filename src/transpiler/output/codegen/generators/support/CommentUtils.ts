@@ -1,6 +1,6 @@
 /**
  * Comment handling utilities.
- * Extracted from CodeGenerator.ts as part of ADR-053 A5.
+ * Extracted from CodeGenerator.ts.
  */
 import IComment from "../../../../types/IComment";
 import CommentExtractor from "../../../../logic/analysis/CommentExtractor";

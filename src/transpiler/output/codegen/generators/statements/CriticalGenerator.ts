@@ -1,5 +1,5 @@
 /**
- * Critical Statement Generator (ADR-053 A3)
+ * Critical Statement Generator
  *
  * Generates C code for critical sections (ADR-050):
  * - Wraps block with PRIMASK save/restore for interrupt safety

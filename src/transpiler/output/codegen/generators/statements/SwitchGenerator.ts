@@ -1,5 +1,5 @@
 /**
- * Switch Statement Generators (ADR-053 A3)
+ * Switch Statement Generators
  *
  * Generates C code for switch statements (ADR-025):
  * - switch statement dispatch

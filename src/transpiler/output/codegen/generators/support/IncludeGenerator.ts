@@ -1,6 +1,6 @@
 /**
  * Include directive and preprocessor handling.
- * Extracted from CodeGenerator.ts as part of ADR-053 A5.
+ * Extracted from CodeGenerator.ts.
  */
 import * as path from "node:path";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
