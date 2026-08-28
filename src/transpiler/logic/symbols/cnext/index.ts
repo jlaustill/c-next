@@ -128,7 +128,10 @@ class CNextResolver {
     const name = varCtx.IDENTIFIER().getText();
     constValues.set(name, value);
 
-    // Store scoped name as well for scoped variables
+    // Store scoped name as well for scoped variables.
+    // #1295: keyed by the scope LEAF, like scopeMembers and knownScopes. Left
+    // as-is deliberately -- its consumers look up with leaf-built keys too, and
+    // moving one side alone would break the pairing.
     if (scopeName) {
       constValues.set(QualifiedCName.join(scopeName, name), value);
     }
@@ -172,7 +175,14 @@ class CNextResolver {
       const scopeDecl = decl.scopeDeclaration();
       if (!scopeDecl) continue;
 
-      const scopeName = scopeDecl.IDENTIFIER().getText();
+      // #1285: resolve the scope through the registry -- the one thing that
+      // builds a real parent chain -- rather than joining one level from the
+      // parse-tree identifier. The set this fills is queried with chain-built
+      // names, so a leaf-built key here never matched at depth two and the
+      // lookup fell silently through to the bare name.
+      const scope = SymbolRegistry.getOrCreateScope(
+        scopeDecl.IDENTIFIER().getText(),
+      );
       for (const member of scopeDecl.scopeMember()) {
         const typeDecl =
           member.enumDeclaration() ??
@@ -180,7 +190,7 @@ class CNextResolver {
           member.bitmapDeclaration();
         if (typeDecl) {
           scopeTypes.add(
-            QualifiedCName.join(scopeName, typeDecl.IDENTIFIER().getText()),
+            ScopeUtils.qualifyInScope(typeDecl.IDENTIFIER().getText(), scope),
           );
         }
       }
@@ -250,9 +260,11 @@ class CNextResolver {
         const bitmapCtx = member.bitmapDeclaration()!;
         const symbol = BitmapCollector.collect(bitmapCtx, sourceFile, scope);
         symbols.push(symbol);
-        // Use transpiled C name (e.g., "Timer_ControlBits") for scoped bitmaps
-        const cName = QualifiedCName.join(scopeName, symbol.name);
-        knownBitmaps.add(cName);
+        // #1285: the symbol was just built and carries its own identity, so
+        // read it rather than re-deriving one. The re-derivation here joined a
+        // leaf scope name and the stale comment beside it still said
+        // "Timer_ControlBits" -- one underscore, from before ADR-063.
+        knownBitmaps.add(symbol.fullyQualifiedCName);
       }
 
       // Collect structs early so they're available as types
@@ -371,7 +383,7 @@ class CNextResolver {
       const symbol = FunctionCollector.collectAndRegister(
         funcDecl,
         sourceFile,
-        undefined, // global scope name (empty string)
+        SymbolRegistry.getGlobalScope(),
         body,
         // ADR-016: functions are public by default (API surface). Scopes are
         // how C-Next expresses privacy — neither `public` nor `private` parses

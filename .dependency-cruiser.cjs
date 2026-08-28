@@ -32,6 +32,23 @@ module.exports = {
       to: { path: "^src/transpiler/output/" },
     },
     {
+      name: "collectors-build-names-from-scopes",
+      comment:
+        "#1285: symbol collectors must build qualified names from a scope " +
+        "REFERENCE, through ScopeUtils, never by joining a scope NAME string. " +
+        "Four collectors used to flatten `scope.name` and join one level, which " +
+        "is correct only while the grammar admits no nested scopes -- a " +
+        "coincidence, not a decision. Importing QualifiedCName here is how that " +
+        "comes back, so it fails the build rather than review.",
+      severity: "error",
+      from: {
+        path: "^src/transpiler/logic/symbols/cnext/collectors/",
+      },
+      to: {
+        path: "^src/utils/QualifiedCName\\.ts$",
+      },
+    },
+    {
       name: "logic-cannot-import-output",
       comment:
         "Logic layer must not depend on output layer. " +

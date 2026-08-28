@@ -248,6 +248,18 @@ describe("IScopeSymbol", () => {
       );
     });
 
+    it("qualifyScopeType does not qualify when a DIFFERENT scope declares the type", () => {
+      // Ported from the deleted QualifiedCName.qualifyScopeType suite. Being
+      // inside scope Z does not let you reach A's type by its bare name.
+      const global = ScopeUtils.createGlobalScope();
+      const other = ScopeUtils.createScope("Z", global);
+      const known = new Set(["A__B"]);
+
+      expect(ScopeUtils.qualifyScopeType("B", other, (q) => known.has(q))).toBe(
+        "B",
+      );
+    });
+
     it("keeps the two namespaces distinct but describing the same path", () => {
       // `Outer.Inner.tick` is not derivable from `Outer__Inner__tick` at a call
       // site without knowing which one it already holds, which is why both are

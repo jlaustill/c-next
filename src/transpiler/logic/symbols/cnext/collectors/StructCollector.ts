@@ -148,7 +148,9 @@ class StructCollector {
   ): IStructSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
-    const scopeName = scope.name === "" ? undefined : scope.name;
+    // #1285: the scope REFERENCE flows on from here. Flattening it to its
+    // leaf name was the choke point that made every downstream qualification
+    // one level deep, whatever the chain actually was.
 
     const fields = new Map<string, IFieldInfo>();
 
@@ -157,7 +159,7 @@ class StructCollector {
       const fieldInfo = StructCollector.collectField(
         member,
         fieldName,
-        scopeName,
+        scope,
         constValues,
         isScopeType,
       );
@@ -186,12 +188,12 @@ class StructCollector {
   private static collectField(
     member: Parser.StructMemberContext,
     fieldName: string,
-    scopeName?: string,
+    scope?: IScopeSymbol,
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFieldInfo {
     const typeCtx = member.type();
-    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopeName, isScopeType);
+    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scope, isScopeType);
     const fieldType = TypeResolver.resolve(fieldTypeStr);
     // Note: C-Next struct members don't have const modifier in grammar
     const isConst = false;

@@ -42,10 +42,12 @@ class FunctionCollector {
 
     // Get return type string and convert to TType
     const returnTypeCtx = ctx.type();
-    const scopeName = scope.name === "" ? undefined : scope.name;
+    // #1285: the scope REFERENCE flows on from here. Flattening it to its
+    // leaf name was the choke point that made every downstream qualification
+    // one level deep, whatever the chain actually was.
     const returnTypeStr = TypeUtils.getTypeName(
       returnTypeCtx,
-      scopeName,
+      scope,
       isScopeType,
     );
     const returnType = TypeResolver.resolve(returnTypeStr);
@@ -54,7 +56,7 @@ class FunctionCollector {
     const params = ctx.parameterList()?.parameter() ?? [];
     const parameters = FunctionCollector.collectParameters(
       params,
-      scopeName,
+      scope,
       isScopeType,
     );
 
@@ -86,7 +88,7 @@ class FunctionCollector {
    *
    * @param ctx The function declaration context
    * @param sourceFile Source file path
-   * @param scopeName Optional scope name for nested functions
+   * @param scope Declaring scope; carries the parent chain
    * @param body AST reference for the function body
    * @param visibility Required: #1161 — a default here is a third source
    *   of truth for ADR-016 and drifted from it. Callers pass
@@ -97,13 +99,12 @@ class FunctionCollector {
   static collectAndRegister(
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
-    scopeName: string | undefined,
+    scope: IScopeSymbol,
     body: Parser.BlockContext,
     visibility: "public" | "private",
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     // 1. Get or create the scope in SymbolRegistry
-    const scope = SymbolRegistry.getOrCreateScope(scopeName ?? "");
 
     // 2. Collect function with TType-based types and scope reference
     const symbol = FunctionCollector.collect(
@@ -127,13 +128,13 @@ class FunctionCollector {
    */
   private static collectParameters(
     params: Parser.ParameterContext[],
-    scopeName?: string,
+    scope?: IScopeSymbol,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IParameterInfo[] {
     return params.map((p) => {
       const name = p.IDENTIFIER().getText();
       const typeCtx = p.type();
-      const typeStr = TypeUtils.getTypeName(typeCtx, scopeName, isScopeType);
+      const typeStr = TypeUtils.getTypeName(typeCtx, scope, isScopeType);
       const type = TypeResolver.resolve(typeStr);
       const isConst = p.constModifier() !== null;
 

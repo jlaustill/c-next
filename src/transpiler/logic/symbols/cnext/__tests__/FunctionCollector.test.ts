@@ -323,7 +323,7 @@ describe("FunctionCollector", () => {
       const symbol = FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        undefined,
+        SymbolRegistry.getGlobalScope(),
         body,
         "private",
       );
@@ -346,7 +346,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        undefined,
+        SymbolRegistry.getGlobalScope(),
         body,
         "private",
       );
@@ -368,7 +368,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "motor.cnx",
-        "Motor",
+        SymbolRegistry.getOrCreateScope("Motor"),
         body,
         "public",
       );
@@ -393,14 +393,14 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcACtx,
         "test.cnx",
-        "Test",
+        SymbolRegistry.getOrCreateScope("Test"),
         funcACtx.block(),
         "public",
       );
       FunctionCollector.collectAndRegister(
         funcBCtx,
         "test.cnx",
-        "Test",
+        SymbolRegistry.getOrCreateScope("Test"),
         funcBCtx.block(),
         "private",
       );
@@ -424,7 +424,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        undefined,
+        SymbolRegistry.getGlobalScope(),
         body,
         "private",
       );
@@ -446,7 +446,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        undefined,
+        SymbolRegistry.getGlobalScope(),
         funcCtx.block(),
         "private",
       );

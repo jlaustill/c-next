@@ -115,7 +115,7 @@ class ScopeCollector {
         const funcSymbol = FunctionCollector.collectAndRegister(
           funcDecl,
           sourceFile,
-          scopeName,
+          scope,
           body,
           visibility,
           isScopeType,

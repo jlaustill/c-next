@@ -5,6 +5,8 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /**
  * Common interface for type contexts that share the same type accessors.
@@ -40,13 +42,16 @@ function resolveStringType(stringCtx: Parser.StringTypeContext): string {
  */
 function dispatchTypeResolution(
   accessors: ITypeAccessors,
-  scopeName?: string,
+  scope?: IScopeSymbol,
   isScopeType?: (qualifiedName: string) => boolean,
 ): string | null {
-  // Handle this.Type for scoped types (e.g., this.State -> Motor_State)
+  // Handle this.Type for scoped types (e.g., this.State -> Motor__State)
   if (accessors.scopedType()) {
     const typeName = accessors.scopedType()!.IDENTIFIER().getText();
-    return scopeName ? QualifiedCName.join(scopeName, typeName) : typeName;
+    // #1285: built from the scope CHAIN. The collectors used to flatten `scope`
+    // to its leaf name before reaching here, so a nested scope lost every
+    // component but the innermost.
+    return ScopeUtils.qualifyInScope(typeName, scope ?? null);
   }
 
   // Handle global.Type for global types inside scope
@@ -68,11 +73,7 @@ function dispatchTypeResolution(
     // Qualify here, while the parse tree still distinguishes a bare `T` from
     // an explicit `global.T` — downstream both are the same string.
     return isScopeType
-      ? QualifiedCName.qualifyScopeType(
-          typeName,
-          scopeName ?? null,
-          isScopeType,
-        )
+      ? ScopeUtils.qualifyScopeType(typeName, scope ?? null, isScopeType)
       : typeName;
   }
 
@@ -96,7 +97,7 @@ class TypeUtils {
    * and simple types.
    *
    * @param ctx The type context (may be null)
-   * @param scopeName Optional current scope for this.Type resolution
+   * @param scope Optional current scope for this.Type resolution
    * @param isScopeType ADR-057: predicate answering whether a *qualified* name
    *                    is a type declared in the current scope. Omit at call
    *                    sites that have no scope context.
@@ -104,7 +105,7 @@ class TypeUtils {
    */
   static getTypeName(
     ctx: Parser.TypeContext | null,
-    scopeName?: string,
+    scope?: IScopeSymbol,
     isScopeType?: (qualifiedName: string) => boolean,
   ): string {
     if (!ctx) return "void";
@@ -114,7 +115,7 @@ class TypeUtils {
     if (ctx.arrayType()) {
       const result = dispatchTypeResolution(
         ctx.arrayType()!,
-        scopeName,
+        scope,
         isScopeType,
       );
       if (result !== null) {
@@ -127,7 +128,7 @@ class TypeUtils {
     }
 
     // Non-array types - dispatch directly
-    const result = dispatchTypeResolution(ctx, scopeName, isScopeType);
+    const result = dispatchTypeResolution(ctx, scope, isScopeType);
     if (result !== null) {
       return result;
     }

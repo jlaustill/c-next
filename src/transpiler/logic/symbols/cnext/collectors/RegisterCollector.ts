@@ -11,7 +11,6 @@ import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeUtils from "../utils/TypeUtils";
-import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /** Access mode type for register members */
@@ -37,7 +36,9 @@ class RegisterCollector {
   ): IRegisterSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
-    const scopeName = scope.name === "" ? undefined : scope.name;
+    // #1285: the scope REFERENCE flows on from here. Flattening it to its
+    // leaf name was the choke point that made every downstream qualification
+    // one level deep, whatever the chain actually was.
 
     // Get base address
     const baseAddress = ctx.expression().getText();
@@ -51,17 +52,13 @@ class RegisterCollector {
       const accessMod = member.accessModifier().getText() as TAccessMode;
 
       // Get member type and convert to C type
-      const typeName = TypeUtils.getTypeName(
-        member.type(),
-        scopeName,
-        isScopeType,
-      );
+      const typeName = TypeUtils.getTypeName(member.type(), scope, isScopeType);
       const cType = TypeUtils.cnextTypeToCType(typeName);
 
       // Check if member type is a bitmap
       // Try both scoped name and plain name for bitmap lookup
-      const scopedTypeName = scopeName
-        ? QualifiedCName.join(scopeName, typeName)
+      const scopedTypeName = !ScopeUtils.isGlobalScope(scope)
+        ? ScopeUtils.qualifyInScope(typeName, scope)
         : typeName;
       let bitmapType: string | undefined;
       if (knownBitmaps.has(scopedTypeName)) {
