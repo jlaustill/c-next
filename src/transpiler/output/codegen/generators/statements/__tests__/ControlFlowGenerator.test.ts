@@ -4,6 +4,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
+import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 const {
   generateReturn,
@@ -323,21 +324,7 @@ function createMockInput(options?: {
  * Create minimal mock state.
  */
 function createMockState(): IGeneratorState {
-  return {
-    currentScope: null,
-    indentLevel: 0,
-    inFunctionBody: true,
-    currentParameters: new Map(),
-    localVariables: new Set(),
-    localArrays: new Set(),
-    expectedType: null,
-    selfIncludeAdded: false,
-    scopeMembers: new Map(),
-    mainArgsName: null,
-    floatBitShadows: new Set(),
-    floatShadowCurrent: new Set(),
-    lengthCache: null,
-  };
+  return TestGeneratorState.create({ inFunctionBody: true });
 }
 
 /**

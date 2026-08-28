@@ -5,6 +5,7 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../../state/CodeGenState";
+import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================
 // Test Helpers
@@ -70,21 +71,7 @@ function createMockInput(): IGeneratorInput {
  * Create minimal mock state.
  */
 function createMockState(): IGeneratorState {
-  return {
-    currentScope: null,
-    indentLevel: 0,
-    inFunctionBody: false,
-    currentParameters: new Map(),
-    localVariables: new Set(),
-    localArrays: new Set(),
-    expectedType: null,
-    selfIncludeAdded: false,
-    scopeMembers: new Map(),
-    mainArgsName: null,
-    floatBitShadows: new Set(),
-    floatShadowCurrent: new Set(),
-    lengthCache: null,
-  };
+  return TestGeneratorState.create();
 }
 
 /**

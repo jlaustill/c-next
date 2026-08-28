@@ -4,6 +4,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
+import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================
 // Test Helpers
@@ -82,7 +83,7 @@ function createMockInput(
  * Create minimal mock state.
  */
 function createMockState(): IGeneratorState {
-  return {} as IGeneratorState;
+  return TestGeneratorState.create();
 }
 
 /**

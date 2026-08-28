@@ -19,6 +19,7 @@ import type TTypeInfo from "../../../types/TTypeInfo";
 import type TParameterInfo from "../../../types/TParameterInfo";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../../state/CodeGenState";
+import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -103,21 +104,18 @@ function createMockState(overrides?: {
   lengthCache?: Map<string, string> | null;
   inFunctionBody?: boolean;
 }): IGeneratorState {
-  return {
+  // Mapped explicitly rather than spread: this factory's `inFunctionBody`
+  // default is true, and an override object carrying an explicit `undefined`
+  // would otherwise silently reinstate the shared default of false.
+  return TestGeneratorState.create({
     currentScope: overrides?.currentScope ?? null,
-    indentLevel: 0,
     inFunctionBody: overrides?.inFunctionBody ?? true,
     currentParameters: overrides?.currentParameters ?? new Map(),
     localVariables: overrides?.localVariables ?? new Set(),
-    localArrays: new Set(),
-    expectedType: null,
-    selfIncludeAdded: false,
     scopeMembers: overrides?.scopeMembers ?? new Map(),
     mainArgsName: overrides?.mainArgsName ?? null,
-    floatBitShadows: new Set(),
-    floatShadowCurrent: new Set(),
     lengthCache: overrides?.lengthCache ?? null,
-  };
+  });
 }
 
 // ========================================================================
