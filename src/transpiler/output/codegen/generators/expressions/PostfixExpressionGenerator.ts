@@ -344,15 +344,7 @@ const handleMemberOp = (
   ctx: IPostfixContext,
 ): void => {
   // ADR-016: Handle global. prefix
-  if (
-    handleGlobalPrefix(
-      memberName,
-      tracking,
-      ctx.input,
-      ctx.state,
-      ctx.orchestrator,
-    )
-  ) {
+  if (handleGlobalPrefix(memberName, tracking, ctx)) {
     return;
   }
 
@@ -426,9 +418,7 @@ const handleMemberOp = (
 const handleGlobalPrefix = (
   memberName: string,
   tracking: ITrackingState,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  ctx: IPostfixContext,
 ): boolean => {
   if (tracking.result !== "__GLOBAL_PREFIX__") {
     return false;
@@ -438,24 +428,23 @@ const handleGlobalPrefix = (
   tracking.resolvedIdentifier = memberName;
   tracking.isGlobalAccess = true;
 
-  // ADR-057: Check if global variable would be shadowed by a local
-  if (state.localVariables.has(memberName)) {
-    throw new Error(
-      `Error: Cannot use 'global.${memberName}' when local variable '${memberName}' shadows it. ` +
-        `Rename the local variable to avoid shadowing.`,
-    );
-  }
+  // ADR-057: a local shadowing this global does NOT make it unreachable. The
+  // shadowing local is emitted under a distinct C name, so plain `memberName`
+  // still denotes the global here.
 
-  if (orchestrator.isCppScopeSymbol(memberName)) {
+  if (ctx.orchestrator.isCppScopeSymbol(memberName)) {
     tracking.isCppAccessChain = true;
   }
-  if (input.symbols!.knownRegisters.has(memberName)) {
+  if (ctx.input.symbols!.knownRegisters.has(memberName)) {
     tracking.isRegisterChain = true;
   }
 
   // Issue #612: Set currentStructType for global struct variables
   const globalTypeInfo = CodeGenState.getVariableTypeInfo(memberName);
-  if (globalTypeInfo && orchestrator.isKnownStruct(globalTypeInfo.baseType)) {
+  if (
+    globalTypeInfo &&
+    ctx.orchestrator.isKnownStruct(globalTypeInfo.baseType)
+  ) {
     tracking.currentStructType = globalTypeInfo.baseType;
   }
 
@@ -631,7 +620,10 @@ const tryPropertyAccess = (
   // ADR-058: .length is deprecated - use explicit properties instead
   if (memberName === "length") {
     throw new Error(
-      `Error: '.length' on '${tracking.result}' is deprecated. Use explicit properties: ` +
+      // ADR-057: report the name the author wrote. `tracking.result` is the
+      // generated identifier, and for a shadowing local that is a name they
+      // never typed (`S__f__msg`).
+      `Error: '.length' on '${CodeGenState.sourceLocalName(tracking.result)}' is deprecated. Use explicit properties: ` +
         `.bit_length (bit width), .byte_length (byte size), ` +
         `.element_count (array size), or .char_count (string length)`,
     );

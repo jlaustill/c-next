@@ -1,0 +1,99 @@
+// test-execution
+// test-adr: 057
+// Issue #1130: Bare reference to a scope's own type is not qualified
+// ADR-057: bare names inside a scope resolve local -> scope -> global.
+//
+// Every position below emitted a bare (non-compiling) type name at some point.
+// This is an execution test on purpose: #1130 is "transpiler exits 0, but the
+// generated C does not compile", so the C compiler itself must be the guard.
+
+enum Mode { idle, busy }
+
+struct Config { u8 x; }
+
+scope A {
+    public enum B { c, d }
+
+    // Struct field of a scope-local enum type
+    public struct S { u8 x; B kind; }
+
+    // Struct field written as global.Mode must stay UNqualified — the scope
+    // declares its own Mode, and global. explicitly opts out of it.
+    public enum Mode { off, on }
+    public struct Wrapper { global.Mode mode; u8 v; }
+
+    // Scope variable of a scope-local type
+    public B current <- B.c;
+
+    // A non-type member sharing a leaf name with a global type must NOT
+    // capture that type at a type position.
+    private u8 Config <- 7;
+
+    // Bare enum as return type
+    public B pick() {
+        return B.d;
+    }
+
+    // Bare struct as a parameter — the only category with pointer promotion
+    public u8 readStruct(S value) {
+        return value.x;
+    }
+
+    public u8 wrapperValue(Wrapper w) {
+        return w.v;
+    }
+
+    // Bare enum as a parameter, and as a local declaration
+    public u8 isBusy(B value) {
+        B local <- value;
+        if (local = B.d) { return 1; }
+        return 0;
+    }
+
+    // global.Config as a parameter type, while a scope variable named Config exists
+    public u8 useGlobalConfig(global.Config cfg) {
+        return cfg.x;
+    }
+
+    public u8 configValue() {
+        return Config;
+    }
+}
+
+u32 main() {
+    // Bare struct parameter (pointer promotion) and scope-local field type
+    A.S s <- {x: 42, kind: A.B.d};
+    u8 structX <- A.readStruct(s);
+    if (structX != 42) return 1;
+
+    // Bare enum return type
+    A.B picked <- A.pick();
+    if (picked != A.B.d) return 2;
+
+    // Bare enum parameter + local declaration
+    u8 isBusyResult <- A.isBusy(A.B.d);
+    if (isBusyResult != 1) return 3;
+
+    u8 isNotBusyResult <- A.isBusy(A.B.c);
+    if (isNotBusyResult != 0) return 4;
+
+    // global.Mode field is the GLOBAL enum, not A.Mode
+    A.Wrapper w <- {mode: busy, v: 9};
+    u8 wrapped <- A.wrapperValue(w);
+    if (wrapped != 9) return 5;
+
+    // global.Config parameter resolves to the global struct, not A's variable
+    Config globalConfig <- {x: 5};
+    u8 configX <- A.useGlobalConfig(globalConfig);
+    if (configX != 5) return 6;
+
+    // The scope variable named Config is still reachable as a value
+    u8 scopeConfig <- A.configValue();
+    if (scopeConfig != 7) return 7;
+
+    // Scope variable of a scope-local type
+    if (A.current != A.B.c) return 8;
+
+    // All 8 validations passed
+    return 0;
+}

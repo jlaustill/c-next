@@ -70,11 +70,10 @@ class FunctionContextManager {
       callbacks,
     );
 
-    // ADR-016: Clear local variables and mark that we're in a function body
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
-    CodeGenState.inFunctionBody = true;
+    // ADR-016: Clear local tracking and mark that we're in a function body.
+    // Delegated: this path used to clear three of the four local registers and
+    // let `localArrays` leak into the next function.
+    CodeGenState.enterFunctionBody();
   }
 
   /**
@@ -82,10 +81,7 @@ class FunctionContextManager {
    * Resets all function-related state.
    */
   static cleanupFunctionContext(): void {
-    CodeGenState.inFunctionBody = false;
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
+    CodeGenState.exitFunctionBody();
     CodeGenState.mainArgsName = null;
     CodeGenState.currentFunctionName = null;
     CodeGenState.currentFunctionReturnType = null;
@@ -502,10 +498,6 @@ class FunctionContextManager {
    * This is a simpler version used when only body lifecycle is needed.
    */
   static enterFunctionBody(): void {
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
-    CodeGenState.inFunctionBody = true;
     CodeGenState.enterFunctionBody();
   }
 
@@ -514,10 +506,6 @@ class FunctionContextManager {
    * This is a simpler version used when only body lifecycle is needed.
    */
   static exitFunctionBody(): void {
-    CodeGenState.inFunctionBody = false;
-    CodeGenState.localVariables.clear();
-    CodeGenState.floatBitShadows.clear();
-    CodeGenState.floatShadowCurrent.clear();
     CodeGenState.mainArgsName = null;
     CodeGenState.exitFunctionBody();
   }

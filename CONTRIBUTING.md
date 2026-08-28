@@ -386,7 +386,7 @@ Update if your changes affect:
 **Documentation Sync Order:**
 When implementing a feature, update in this order:
 
-1. **ADR file** (`docs/decisions/adr-NNN.md`) — Add implementation details, mark Implemented
+1. **ADR file** (`docs/decisions/adr-NNN.md`) — Record the decision, its diagnostics and its scope-context matrix; put the implementing modules in `## References` as `file:line`. Implementation detail does not belong in an ADR (see `docs/decisions/TEMPLATE.md`). Mark Implemented
 2. **README.md** — Update feature list to reflect ADR is Implemented
 3. **learn-cnext-in-y-minutes.md** — Add syntax examples
 
@@ -446,7 +446,7 @@ git status
 
 # 4. Documentation
 # - README.md updated (if feature-visible)
-# - ADR updated with implementation details
+# - ADR References name the implementing modules (file:line)
 # - learn-cnext-in-y-minutes.md updated (if syntax changed)
 # - Test README created (tests/[feature]/README.md)
 ```
@@ -526,7 +526,7 @@ Docs: Update contributing guide with PR workflow
 ## Documentation
 
 - [ ] README.md updated (if feature-visible)
-- [ ] ADR updated with implementation details
+- [ ] ADR References name the implementing modules (`file:line`), not a Files-Modified inventory
 - [ ] learn-cnext-in-y-minutes.md updated (if syntax changed)
 - [ ] Test README created
 
@@ -670,7 +670,7 @@ on the board — see [`docs/WORKFLOW.md`](./docs/WORKFLOW.md).
 #### 3. Documentation
 
 - [ ] README.md updated if feature is user-visible
-- [ ] ADR updated with implementation details (if applicable)
+- [ ] ADR References name the implementing modules (`file:line`) (if applicable)
 - [ ] ADR status changes have explicit approval (if applicable)
 - [ ] learn-cnext-in-y-minutes.md updated if syntax changed
 - [ ] Code comments explain "why", not "what"
@@ -725,7 +725,7 @@ Added `critical { }` block syntax with PRIMASK save/restore:
 
 Documentation:
 - Updated README.md with critical section example
-- Updated ADR-050 with implementation details
+- Updated ADR-050: decision, E0853 diagnostic, References cite the implementing modules
 - Added examples to learn-cnext-in-y-minutes.md
 
 Testing:
@@ -840,7 +840,7 @@ git push origin feature/my-feature
 
 # Documentation
 □ README.md updated (if needed)
-□ ADR updated with implementation details
+□ ADR References name the implementing modules (file:line)
 □ learn-cnext-in-y-minutes.md updated (if syntax changed)
 □ Test README created
 

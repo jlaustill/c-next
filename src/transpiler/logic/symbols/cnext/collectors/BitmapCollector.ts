@@ -12,6 +12,7 @@ import IBitmapFieldInfo from "../../../../types/symbols/IBitmapFieldInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import BITMAP_SIZE from "../../../../constants/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "../../../../constants/BITMAP_BACKING_TYPE";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 class BitmapCollector {
   /**
@@ -60,6 +61,9 @@ class BitmapCollector {
       kind: "bitmap",
       name,
       scope,
+      // #1285: identity computed once, from the scope chain, not
+      // re-derived by every consumer.
+      ...ScopeUtils.identityOf({ name, scope }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 // test-execution
+// test-adr: 057
 // Issue #1244 review: ADR-057 resolves a bare name local -> scope -> global.
 // The guard that keeps `Name.member[...]` a struct chain looked the name up by
 // its BARE spelling, which answers the local and global tiers only -- a scope

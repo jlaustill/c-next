@@ -8,14 +8,14 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | --------- | ----------------------- | ------ |
 | E00xx     | Reserved/Test           | 1      |
 | E02xx     | Identifier/Param Naming | 4      |
-| E03xx     | Struct Fields           | 2      |
-| E04xx     | Symbol Resolution       | 3      |
-| E05xx     | Include/Preprocessor    | 4      |
+| E03xx     | Struct Fields           | 1      |
+| E04xx     | Symbol Resolution       | 4      |
+| E05xx     | Include/Preprocessor    | 5      |
 | E06xx     | Sizeof Expressions      | 2      |
-| E07xx     | Control Flow            | 6      |
+| E07xx     | Control Flow            | 7      |
 | E08xx     | Arithmetic/Array Safety | 16     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **46** |
+| **Total** |                         | **48** |
 
 ---
 

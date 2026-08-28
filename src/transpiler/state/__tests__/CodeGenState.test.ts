@@ -11,6 +11,7 @@ import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
 import TestScopeUtils from "../../logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
+import TestSymbolUtils from "../../logic/symbols/cnext/__tests__/testSymbolUtils";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -19,13 +20,15 @@ function createCNextVariableSymbol(
   overrides: Partial<IVariableSymbol> & { name: string },
 ): IVariableSymbol {
   return {
-    kind: "variable",
-    name: overrides.name,
-    sourceFile: overrides.sourceFile ?? "test.cnx",
-    sourceLine: overrides.sourceLine ?? 1,
-    sourceLanguage: ESourceLanguage.CNext,
-    isExported: overrides.isExported ?? false,
-    scope: overrides.scope ?? TestScopeUtils.createMockGlobalScope(),
+    ...TestSymbolUtils.base({
+      kind: "variable",
+      name: overrides.name,
+      scope: overrides.scope ?? TestScopeUtils.createMockGlobalScope(),
+      sourceFile: overrides.sourceFile ?? "test.cnx",
+      sourceLine: overrides.sourceLine ?? 1,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: overrides.isExported ?? false,
+    }),
     type: overrides.type ?? TTypeUtils.createPrimitive("u32"),
     isConst: overrides.isConst ?? false,
     isVolatile: overrides.isVolatile ?? false,
@@ -350,6 +353,66 @@ describe("CodeGenState", () => {
       CodeGenState.registerLocalVariable("localArr", true);
       expect(CodeGenState.localVariables.has("localArr")).toBe(true);
       expect(CodeGenState.localArrays.has("localArr")).toBe(true);
+    });
+
+    it("registerLocalVariable leaves a non-shadowing local under its own name", () => {
+      CodeGenState.currentFunctionName = "Counter__test";
+
+      CodeGenState.registerLocalVariable("fresh");
+
+      expect(CodeGenState.emittedLocalName("fresh")).toBe("fresh");
+    });
+
+    it("registerLocalVariable qualifies a local that shadows a global function", () => {
+      CodeGenState.currentFunctionName = "Counter__test";
+      CodeGenState.knownFunctions.add("count");
+
+      CodeGenState.registerLocalVariable("count");
+
+      expect(CodeGenState.emittedLocalName("count")).toBe(
+        "Counter__test__count",
+      );
+    });
+
+    it("registerLocalVariable does not qualify when there is no function context", () => {
+      CodeGenState.currentFunctionName = null;
+      CodeGenState.knownFunctions.add("count");
+
+      CodeGenState.registerLocalVariable("count");
+
+      expect(CodeGenState.emittedLocalName("count")).toBe("count");
+    });
+
+    it("shadowsFileScopeSymbol ignores an enclosing local", () => {
+      CodeGenState.localVariables.add("outer");
+      CodeGenState.knownFunctions.add("outer");
+
+      // Already local, so C block scoping already gives the right answer and
+      // neither `this.` nor `global.` can name an enclosing local.
+      expect(CodeGenState.shadowsFileScopeSymbol("outer")).toBe(false);
+    });
+
+    it("shadowsFileScopeSymbol is false for an unknown name", () => {
+      expect(CodeGenState.shadowsFileScopeSymbol("nothingNamedThis")).toBe(
+        false,
+      );
+    });
+
+    it("exitFunctionBody drops the rename map with the other locals", () => {
+      CodeGenState.currentFunctionName = "Counter__test";
+      CodeGenState.knownFunctions.add("count");
+      CodeGenState.registerLocalVariable("count");
+      expect(CodeGenState.emittedLocalName("count")).toBe(
+        "Counter__test__count",
+      );
+
+      CodeGenState.exitFunctionBody();
+
+      // A rename surviving into the next function would rewrite an unrelated
+      // local of the same name.
+      expect(CodeGenState.emittedLocalName("count")).toBe("count");
+      expect(CodeGenState.localVariables.size).toBe(0);
+      expect(CodeGenState.localArrays.size).toBe(0);
     });
 
     it("registerFunctionSignature adds to functionSignatures and knownFunctions", () => {

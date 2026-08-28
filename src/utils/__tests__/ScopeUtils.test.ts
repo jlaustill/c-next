@@ -131,4 +131,91 @@ describe("IScopeSymbol", () => {
       ).toBe("Outer__Inner__process");
     });
   });
+
+  describe("identityOf (#1285)", () => {
+    it("gives a global symbol its bare name in both namespaces", () => {
+      const global = ScopeUtils.createGlobalScope();
+
+      expect(ScopeUtils.identityOf({ name: "counter", scope: global })).toEqual(
+        {
+          fullyQualifiedCName: "counter",
+          cnxScopedName: "counter",
+        },
+      );
+    });
+
+    it("qualifies a scope member in both namespaces", () => {
+      const global = ScopeUtils.createGlobalScope();
+      const motor = ScopeUtils.createScope("Motor", global);
+
+      expect(ScopeUtils.identityOf({ name: "init", scope: motor })).toEqual({
+        fullyQualifiedCName: "Motor__init",
+        cnxScopedName: "Motor.init",
+      });
+    });
+
+    it("walks the whole parent chain at depth 2", () => {
+      // The property this whole change exists to establish. Reading `scope.name`
+      // alone yields "Inner__tick"/"Inner.tick" and drops the outer scope --
+      // which is what the leaf-only encoders did, agreeing with the chain-walking
+      // one only because the grammar admits no nested scopes today.
+      //
+      // Nested scopes are unreachable from .cnx source (grammar/CNext.g4:81-89),
+      // so this unit test is the ONLY thing that can hold the property. It must
+      // not be deleted as "testing an impossible case".
+      const global = ScopeUtils.createGlobalScope();
+      const outer = ScopeUtils.createScope("Outer", global);
+      const inner = ScopeUtils.createScope("Inner", outer);
+
+      expect(ScopeUtils.identityOf({ name: "tick", scope: inner })).toEqual({
+        fullyQualifiedCName: "Outer__Inner__tick",
+        cnxScopedName: "Outer.Inner.tick",
+      });
+    });
+
+    it("gives a nested scope its own identity from its parent chain", () => {
+      const global = ScopeUtils.createGlobalScope();
+      const outer = ScopeUtils.createScope("Outer", global);
+      const inner = ScopeUtils.createScope("Inner", outer);
+      const leaf = ScopeUtils.createScope("Leaf", inner);
+
+      // Depth THREE on purpose. At depth two a scope's parent name happens to
+      // be the whole chain, so a leaf-only encoder is accidentally right and a
+      // depth-two assertion here cannot fail. Verified: mutating the encoder to
+      // read `scope.name` alone leaves `inner` correct and breaks only `leaf`.
+      expect(leaf.fullyQualifiedCName).toBe("Outer__Inner__Leaf");
+      expect(leaf.cnxScopedName).toBe("Outer.Inner.Leaf");
+      expect(outer.fullyQualifiedCName).toBe("Outer");
+    });
+
+    it("gives the global scope an empty identity", () => {
+      // Computed through the encoder after the self-references are patched, not
+      // hardcoded -- the global scope must not become the one symbol whose
+      // identity was derived a second way.
+      const global = ScopeUtils.createGlobalScope();
+
+      expect(global.fullyQualifiedCName).toBe("");
+      expect(global.cnxScopedName).toBe("");
+    });
+
+    it("keeps the two namespaces distinct but describing the same path", () => {
+      // `Outer.Inner.tick` is not derivable from `Outer__Inner__tick` at a call
+      // site without knowing which one it already holds, which is why both are
+      // stored rather than one being converted into the other on demand.
+      //
+      // They must still describe the SAME path. This is the cross-check that
+      // catches one namespace being computed a different way from the other:
+      // under a leaf-only C encoder the names come back as `Inner__tick` and
+      // `Outer.Inner.tick`, which disagree about how deep the symbol sits.
+      const global = ScopeUtils.createGlobalScope();
+      const outer = ScopeUtils.createScope("Outer", global);
+      const inner = ScopeUtils.createScope("Inner", outer);
+      const identity = ScopeUtils.identityOf({ name: "tick", scope: inner });
+
+      expect(identity.fullyQualifiedCName).not.toBe(identity.cnxScopedName);
+      expect(identity.fullyQualifiedCName.split("__")).toHaveLength(
+        identity.cnxScopedName.split(".").length,
+      );
+    });
+  });
 });

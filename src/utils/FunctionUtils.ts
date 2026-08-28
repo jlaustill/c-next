@@ -41,6 +41,11 @@ class FunctionUtils {
       kind: "function",
       name: options.name,
       scope: options.scope,
+      // #1285: identity computed once, here, from the scope chain.
+      ...ScopeUtils.identityOf({
+        name: options.name,
+        scope: options.scope,
+      }),
       parameters: options.parameters,
       returnType: options.returnType,
       visibility: options.visibility,

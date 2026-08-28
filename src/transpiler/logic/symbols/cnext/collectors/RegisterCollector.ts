@@ -12,6 +12,7 @@ import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /** Access mode type for register members */
 type TAccessMode = "rw" | "ro" | "wo" | "w1c" | "w1s";
@@ -83,6 +84,9 @@ class RegisterCollector {
       kind: "register",
       name,
       scope,
+      // #1285: identity computed once, from the scope chain, not
+      // re-derived by every consumer.
+      ...ScopeUtils.identityOf({ name, scope }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

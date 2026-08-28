@@ -14,6 +14,7 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TestSymbolUtils from "../../../../logic/symbols/cnext/__tests__/testSymbolUtils";
 
 describe("HeaderSymbolAdapter", () => {
   const globalScope = ScopeUtils.createGlobalScope();
@@ -26,13 +27,15 @@ describe("HeaderSymbolAdapter", () => {
   describe("fromTSymbol - variable", () => {
     it("should convert global variable TSymbol", () => {
       const tSymbol: IVariableSymbol = {
-        kind: "variable",
-        name: "counter",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "counter",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isConst: false,
         isAtomic: false,
@@ -51,13 +54,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert scoped variable with transpiled C name", () => {
       const tSymbol: IVariableSymbol = {
-        kind: "variable",
-        name: "speed",
-        scope: motorScope,
-        sourceFile: "motor.cnx",
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "speed",
+          scope: motorScope,
+          sourceFile: "motor.cnx",
+          sourceLine: 5,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("f32"),
         isConst: false,
         isAtomic: true,
@@ -75,13 +80,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert array variable with dimensions", () => {
       const tSymbol: IVariableSymbol = {
-        kind: "variable",
-        name: "buffer",
-        scope: globalScope,
-        sourceFile: "data.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "buffer",
+          scope: globalScope,
+          sourceFile: "data.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
         isAtomic: false,
@@ -98,13 +105,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert const variable", () => {
       const tSymbol: IVariableSymbol = {
-        kind: "variable",
-        name: "MAX_SIZE",
-        scope: globalScope,
-        sourceFile: "config.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "MAX_SIZE",
+          scope: globalScope,
+          sourceFile: "config.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isConst: true,
         isAtomic: false,
@@ -121,13 +130,15 @@ describe("HeaderSymbolAdapter", () => {
   describe("fromTSymbol - function", () => {
     it("should convert global function TSymbol", () => {
       const tSymbol: IFunctionSymbol = {
-        kind: "function",
-        name: "init",
-        scope: globalScope,
-        sourceFile: "main.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "init",
+          scope: globalScope,
+          sourceFile: "main.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -145,13 +156,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert scoped function with parameters", () => {
       const tSymbol: IFunctionSymbol = {
-        kind: "function",
-        name: "setSpeed",
-        scope: motorScope,
-        sourceFile: "motor.cnx",
-        sourceLine: 10,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "setSpeed",
+          scope: motorScope,
+          sourceFile: "motor.cnx",
+          sourceLine: 10,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         parameters: [
           {
             name: "value",
@@ -178,13 +191,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert function with array parameter", () => {
       const tSymbol: IFunctionSymbol = {
-        kind: "function",
-        name: "process",
-        scope: globalScope,
-        sourceFile: "process.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "process",
+          scope: globalScope,
+          sourceFile: "process.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         parameters: [
           {
             name: "data",
@@ -210,13 +225,15 @@ describe("HeaderSymbolAdapter", () => {
   describe("fromTSymbol - struct", () => {
     it("should convert global struct TSymbol", () => {
       const tSymbol: IStructSymbol = {
-        kind: "struct",
-        name: "Point",
-        scope: globalScope,
-        sourceFile: "geometry.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "Point",
+          scope: globalScope,
+          sourceFile: "geometry.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map([
           [
             "x",
@@ -243,13 +260,15 @@ describe("HeaderSymbolAdapter", () => {
     it("should convert scoped struct with transpiled C name", () => {
       const geometryScope = ScopeUtils.createScope("Geometry", globalScope);
       const tSymbol: IStructSymbol = {
-        kind: "struct",
-        name: "Vector",
-        scope: geometryScope,
-        sourceFile: "geometry.cnx",
-        sourceLine: 10,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "Vector",
+          scope: geometryScope,
+          sourceFile: "geometry.cnx",
+          sourceLine: 10,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map(),
       };
 
@@ -263,13 +282,15 @@ describe("HeaderSymbolAdapter", () => {
   describe("fromTSymbol - enum", () => {
     it("should convert global enum TSymbol", () => {
       const tSymbol: IEnumSymbol = {
-        kind: "enum",
-        name: "EColor",
-        scope: globalScope,
-        sourceFile: "colors.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "enum",
+          name: "EColor",
+          scope: globalScope,
+          sourceFile: "colors.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         members: new Map([
           ["RED", 0],
           ["GREEN", 1],
@@ -286,13 +307,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert scoped enum with transpiled C name", () => {
       const tSymbol: IEnumSymbol = {
-        kind: "enum",
-        name: "EMode",
-        scope: motorScope,
-        sourceFile: "motor.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "enum",
+          name: "EMode",
+          scope: motorScope,
+          sourceFile: "motor.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         members: new Map([
           ["OFF", 0],
           ["ON", 1],
@@ -309,13 +332,15 @@ describe("HeaderSymbolAdapter", () => {
   describe("fromTSymbol - bitmap", () => {
     it("should convert bitmap TSymbol", () => {
       const tSymbol: IBitmapSymbol = {
-        kind: "bitmap",
-        name: "Flags",
-        scope: globalScope,
-        sourceFile: "flags.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "bitmap",
+          name: "Flags",
+          scope: globalScope,
+          sourceFile: "flags.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         backingType: "u8",
         bitWidth: 8,
         fields: new Map([
@@ -334,13 +359,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert scoped bitmap with transpiled C name", () => {
       const tSymbol: IBitmapSymbol = {
-        kind: "bitmap",
-        name: "Status",
-        scope: motorScope,
-        sourceFile: "motor.cnx",
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "bitmap",
+          name: "Status",
+          scope: motorScope,
+          sourceFile: "motor.cnx",
+          sourceLine: 5,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         backingType: "u16",
         bitWidth: 16,
         fields: new Map(),
@@ -357,13 +384,15 @@ describe("HeaderSymbolAdapter", () => {
   describe("fromTSymbol - register", () => {
     it("should convert register TSymbol", () => {
       const tSymbol: IRegisterSymbol = {
-        kind: "register",
-        name: "GPIO",
-        scope: globalScope,
-        sourceFile: "gpio.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "register",
+          name: "GPIO",
+          scope: globalScope,
+          sourceFile: "gpio.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         baseAddress: "0x40000000",
         members: new Map([
           ["DATA", { cType: "u32", offset: "0x00", access: "rw" as const }],
@@ -380,13 +409,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should convert scoped register with transpiled C name", () => {
       const tSymbol: IRegisterSymbol = {
-        kind: "register",
-        name: "CTRL",
-        scope: motorScope,
-        sourceFile: "motor.cnx",
-        sourceLine: 20,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "register",
+          name: "CTRL",
+          scope: motorScope,
+          sourceFile: "motor.cnx",
+          sourceLine: 20,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         baseAddress: "0x50000000",
         members: new Map(),
       };
@@ -401,14 +432,16 @@ describe("HeaderSymbolAdapter", () => {
   describe("fromTSymbol - scope", () => {
     it("should convert scope TSymbol", () => {
       const tSymbol: IScopeSymbol = {
-        kind: "scope",
-        name: "Motor",
-        scope: globalScope,
+        ...TestSymbolUtils.base({
+          kind: "scope",
+          name: "Motor",
+          scope: globalScope,
+          sourceFile: "motor.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         parent: globalScope,
-        sourceFile: "motor.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
         members: ["init", "setSpeed"],
         functions: [],
         variables: [],
@@ -427,13 +460,13 @@ describe("HeaderSymbolAdapter", () => {
     it("should convert array of TSymbols", () => {
       const tSymbols = [
         {
-          kind: "variable" as const,
-          name: "var1",
-          scope: globalScope,
-          sourceFile: "test.cnx",
-          sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          ...TestSymbolUtils.base({
+            kind: "variable" as const,
+            name: "var1",
+            scope: globalScope,
+            sourceFile: "test.cnx",
+            sourceLine: 1,
+          }),
           type: TTypeUtils.createPrimitive("u32"),
           isConst: false,
           isAtomic: false,
@@ -441,13 +474,13 @@ describe("HeaderSymbolAdapter", () => {
           isArray: false,
         },
         {
-          kind: "function" as const,
-          name: "func1",
-          scope: globalScope,
-          sourceFile: "test.cnx",
-          sourceLine: 5,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          ...TestSymbolUtils.base({
+            kind: "function" as const,
+            name: "func1",
+            scope: globalScope,
+            sourceFile: "test.cnx",
+            sourceLine: 5,
+          }),
           parameters: [],
           returnType: TTypeUtils.createPrimitive("void"),
           visibility: "public" as const,
@@ -472,13 +505,15 @@ describe("HeaderSymbolAdapter", () => {
   describe("edge cases", () => {
     it("should handle string dimensions in arrays", () => {
       const tSymbol: IVariableSymbol = {
-        kind: "variable",
-        name: "macroArray",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "macroArray",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
         isAtomic: false,
@@ -494,13 +529,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should resolve qualified enum array dimensions", () => {
       const tSymbol: IVariableSymbol = {
-        kind: "variable",
-        name: "DATA",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "DATA",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u8"),
         isConst: true,
         isAtomic: false,
@@ -523,10 +560,12 @@ describe("HeaderSymbolAdapter", () => {
         scope: typeof globalScope,
         dim: string,
       ): IVariableSymbol => ({
-        kind: "variable",
-        name: "counters",
-        scope,
-        sourceFile: "test.cnx",
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "counters",
+          scope,
+          sourceFile: "test.cnx",
+        }),
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
         isExported: true,
@@ -576,13 +615,15 @@ describe("HeaderSymbolAdapter", () => {
 
     it("should handle autoConst parameter flag", () => {
       const tSymbol: IFunctionSymbol = {
-        kind: "function",
-        name: "processData",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "processData",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         parameters: [
           {
             name: "data",

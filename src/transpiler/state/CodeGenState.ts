@@ -295,6 +295,23 @@ export default class CodeGenState {
   /** ADR-006: Local array variables (no & needed when passing) */
   static localArrays: Set<string> = new Set();
 
+  /**
+   * ADR-057: bare source name -> the C identifier a shadowing local is emitted
+   * under.
+   *
+   * A local that shadows a file-scope name must NOT be emitted under that bare
+   * name: C has no `::` and no other syntax for reaching a shadowed outer
+   * identifier, so `global.x` would silently bind to the local. C-Next promises
+   * shadowing works and that `global.` still reaches past it, which means the
+   * *local* moves rather than the global becoming unreachable.
+   *
+   * Populated only when a collision actually exists, so the generated C keeps
+   * plain names in the common case -- the generated file is a certification
+   * artifact and a reviewer should not have to decode every local. Empty for
+   * the overwhelming majority of functions.
+   */
+  private static localRenames: Map<string, string> = new Map();
+
   /** Scope member names: scope -> Set of member names */
   private static scopeMembers: Map<string, Set<string>> = new Map();
 
@@ -484,6 +501,7 @@ export default class CodeGenState {
     this.currentParameters = new Map();
     this.localVariables = new Set();
     this.localArrays = new Set();
+    this.localRenames = new Map();
     this.scopeMembers = new Map();
     this.floatBitShadows = new Set();
     this.floatShadowCurrent = new Set();
@@ -538,8 +556,21 @@ export default class CodeGenState {
    */
   static enterFunctionBody(): void {
     this.inFunctionBody = true;
+    this.clearFunctionLocals();
+  }
+
+  /**
+   * Clear every per-function local register.
+   *
+   * One owner for the whole family. Four copies of this block existed, and they
+   * had already diverged: `FunctionContextManager.setupFunctionContext` cleared
+   * three of the four and left `localArrays` to leak between functions. Adding
+   * `localRenames` to four call sites would have made that five.
+   */
+  private static clearFunctionLocals(): void {
     this.localVariables.clear();
     this.localArrays.clear();
+    this.localRenames.clear();
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
   }
@@ -550,10 +581,7 @@ export default class CodeGenState {
    */
   static exitFunctionBody(): void {
     this.inFunctionBody = false;
-    this.localVariables.clear();
-    this.localArrays.clear();
-    this.floatBitShadows.clear();
-    this.floatShadowCurrent.clear();
+    this.clearFunctionLocals();
   }
 
   /**
@@ -794,6 +822,20 @@ export default class CodeGenState {
     const localInfo = this.typeRegistry.get(name);
     if (localInfo) {
       return localInfo;
+    }
+
+    // ADR-057: callers reach here with a RESOLVED identifier -- for a scope
+    // member that is already the registry key (`Scope__member`), but for a
+    // shadowing local it is the emitted name while the registry is keyed on
+    // the source spelling. Resolving both here rather than in each of the
+    // ~65 call sites keeps one answer to "what type is this?"; without it a
+    // bit-range write on a shadowing local silently lost its narrowing cast.
+    const sourceName = this.sourceLocalName(name);
+    if (sourceName !== name) {
+      const renamedInfo = this.typeRegistry.get(sourceName);
+      if (renamedInfo) {
+        return renamedInfo;
+      }
     }
 
     // ADR-055 Phase 7: Fall back to SymbolTable for cross-file C-Next variables only.
@@ -1281,13 +1323,108 @@ export default class CodeGenState {
   }
 
   /**
-   * Register a local variable.
+   * ADR-057: whether a bare name is already taken by a FILE-SCOPE C identifier.
+   *
+   * Asks the canonical-identity index, not the bare-name one: a symbol whose
+   * transpiled C name IS the bare spelling is by definition at file scope,
+   * because anything inside a scope carries its scope in that name
+   * (`Counter__count`). So a scope member never counts as a collision -- it is
+   * still reachable as `this.count` regardless of what the local is called.
+   *
+   * An outer *local* is excluded deliberately. C block scoping already gives
+   * the language's shadowing semantics there, and neither `global.` nor `this.`
+   * can name an outer local, so nothing becomes unreachable.
+   */
+  static shadowsFileScopeSymbol(name: string): boolean {
+    if (this.localVariables.has(name)) {
+      return false;
+    }
+    if (this.knownFunctions.has(name)) {
+      return true;
+    }
+    return this.symbolTable.getOverloadsByCName(name).length > 0;
+  }
+
+  /**
+   * Record that a shadowing local is emitted under a different C identifier.
+   *
+   * Keyed on the BARE name because that is what every reference in the source
+   * says and what every registry (`typeRegistry`, `localVariables`,
+   * `constValues`) is keyed by. Only the emitted text moves.
+   */
+  static registerLocalRename(name: string, emittedName: string): void {
+    this.localRenames.set(name, emittedName);
+  }
+
+  /**
+   * The C identifier a local is emitted under -- its own name unless it shadows
+   * a file-scope symbol. Call at every point a local's name is WRITTEN into C;
+   * never when looking one up.
+   */
+  static emittedLocalName(name: string): string {
+    return this.localRenames.get(name) ?? name;
+  }
+
+  /**
+   * The source name behind an emitted local identifier -- the inverse of
+   * `emittedLocalName`.
+   *
+   * Derived by scanning the one rename map rather than kept as a second map,
+   * so the two directions cannot drift apart. The map holds only shadowing
+   * locals, so it is empty in almost every function.
+   *
+   * Needed where a helper is handed the emitted name for code generation but
+   * must still register under the name the source used: every registry
+   * (`localVariables`, `localArrays`, `typeRegistry`) is keyed by the source
+   * spelling, because that is what references in the source say.
+   */
+  static sourceLocalName(emittedName: string): string {
+    for (const [source, emitted] of this.localRenames) {
+      if (emitted === emittedName) {
+        return source;
+      }
+    }
+    return emittedName;
+  }
+
+  /**
+   * Register a local variable, deciding its emitted C name first.
+   *
+   * The single registration point for every kind of local -- declarations,
+   * `for` init variables, and generator effects all arrive here. The shadow
+   * decision has to sit in front of the registration and cannot be duplicated
+   * into the callers: `shadowsFileScopeSymbol` consults `localVariables`, so a
+   * caller that registered first would ask about a name that is already local
+   * and always be told "no collision".
    */
   static registerLocalVariable(name: string, isArray: boolean = false): void {
+    this.planShadowingLocalName(name);
     this.localVariables.add(name);
     if (isArray) {
       this.localArrays.add(name);
     }
+  }
+
+  /**
+   * ADR-057: give a local that shadows a file-scope name a distinct C
+   * identifier, so `global.x` still reaches past it.
+   *
+   * C has no `::`. Emitting the local as plain `count` makes an outer `count`
+   * unreachable for the rest of the function, so `global.count` would silently
+   * bind to the local -- wrong code, no diagnostic, clean compile. C-Next
+   * guarantees shadowing works AND that `global.` sees through it, so the local
+   * is what moves.
+   *
+   * `currentFunctionName` is already the qualified function name
+   * (`Counter__test`), so this adds one component to the existing encoder
+   * rather than inventing a second naming scheme.
+   */
+  private static planShadowingLocalName(name: string): void {
+    const functionName = this.currentFunctionName;
+    if (!functionName || !this.shadowsFileScopeSymbol(name)) {
+      return;
+    }
+    this.registerLocalRename(name, QualifiedCName.join(functionName, name));
   }
 
   /**

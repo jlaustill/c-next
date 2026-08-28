@@ -1,0 +1,176 @@
+// test-execution
+// test-adr: 057
+// ADR-057: bare names resolve local -> scope -> global, AND `global.` must see
+// PAST a shadow. C has no `::`, so a local that shadows a file-scope name is
+// emitted under a distinct C identifier; were it not, `global.count` would
+// silently bind to the local and compile clean (#1289).
+//
+// Reads AND writes are covered. Writes matter more: a write that lands on the
+// wrong storage compiles under -Wall -Wextra and is invisible until runtime,
+// which is how the subscript, struct-field and bit-range paths were found
+// broken in review. Every write case therefore also asserts the GLOBAL is
+// unchanged -- reading the local back cannot tell the two apart.
+//
+// Every value is distinct so a wrong binding cannot pass by coincidence.
+
+struct Holder {
+    u32 x;
+}
+
+// `sizeof` cases need the local and the global to differ in SIZE, or the
+// assertion cannot fail. Same field name, different field width.
+struct Wide {
+    u32 x;
+}
+
+struct Narrow {
+    u8 x;
+}
+
+u32 count <- 1000;
+u32[2] buf <- [7, 8];
+u32 tick <- 99;
+u32[2] wbuf <- [70, 80];
+Holder wcfg <- {x: 90};
+u8 wflags <- 0;
+string<16> wmsg <- "global";
+u32[4] sarr <- [1, 2, 3, 4];
+Wide scfg <- {x: 1};
+
+scope Counter {
+    u32 count <- 100;
+
+    // Negative control: nothing here shadows a file-scope name, so `fresh` must
+    // keep its plain C name. If the rename ever fired unconditionally, the
+    // committed snapshot for this function would change.
+    public u32 plain() {
+        u32 fresh <- 5;
+        return fresh;
+    }
+
+    public u32 allThreeLevels() {
+        u32 count <- 10;
+        return count + this.count + global.count;
+    }
+
+    public u32 arrayShadow() {
+        u32[2] buf <- [1, 2];
+        return buf[0] + global.buf[0];
+    }
+
+    public u32 loopShadow() {
+        u32 sum <- 0;
+        for (u32 tick <- 0; tick < 2; tick +<- 1) {
+            sum +<- global.tick;
+        }
+        return sum;
+    }
+
+    // --- writes through a shadowing local ---
+
+    public u32 writeSubscript() {
+        u32[2] wbuf <- [1, 2];
+        wbuf[0] <- 5;
+        return wbuf[0];
+    }
+
+    public u32 writeStructField() {
+        Holder wcfg <- {x: 1};
+        wcfg.x <- 7;
+        return wcfg.x;
+    }
+
+    public u32 writeBitRange() {
+        u8 wflags <- 0;
+        wflags[0, 4] <- 3;
+        return wflags;
+    }
+
+    public u32 shadowingString() {
+        string<8> wmsg <- "ab";
+        return wmsg.char_count;
+    }
+
+    // --- sizeof and element_count resolve their own identifiers, so they are
+    // --- separate emission sites from every read and write above ---
+
+    public u32 sizeofArray() {
+        u32[2] sarr <- [1, 2];
+        return sizeof(sarr);
+    }
+
+    public u32 sizeofMember() {
+        Narrow scfg <- {x: 1};
+        return sizeof(scfg.x);
+    }
+
+    public u32 elementCount() {
+        u32[2] sarr <- [1, 2];
+        return sarr.element_count;
+    }
+
+    // --- the globals the writes above must NOT have touched ---
+
+    public u32 globalSubscript() {
+        return global.wbuf[0];
+    }
+
+    public u32 globalStructField() {
+        return global.wcfg.x;
+    }
+
+    public u32 globalBits() {
+        return global.wflags;
+    }
+
+    public u32 globalStringLength() {
+        return global.wmsg.char_count;
+    }
+}
+
+u32 main() {
+    u32 a <- Counter.allThreeLevels();
+    if (a != 1110) return 1;
+
+    u32 b <- Counter.arrayShadow();
+    if (b != 8) return 2;
+
+    u32 c <- Counter.loopShadow();
+    if (c != 198) return 3;
+
+    u32 d <- Counter.plain();
+    if (d != 5) return 4;
+
+    u32 e <- Counter.writeSubscript();
+    if (e != 5) return 5;
+    u32 e2 <- Counter.globalSubscript();
+    if (e2 != 70) return 6;
+
+    u32 f <- Counter.writeStructField();
+    if (f != 7) return 7;
+    u32 f2 <- Counter.globalStructField();
+    if (f2 != 90) return 8;
+
+    u32 g <- Counter.writeBitRange();
+    if (g != 3) return 9;
+    u32 g2 <- Counter.globalBits();
+    if (g2 != 0) return 10;
+
+    u32 h <- Counter.shadowingString();
+    if (h != 2) return 11;
+    u32 h2 <- Counter.globalStringLength();
+    if (h2 != 6) return 12;
+
+    // sizeof the LOCAL u32[2] is 8; the shadowed global u32[4] would be 16
+    u32 i <- Counter.sizeofArray();
+    if (i != 8) return 13;
+
+    // sizeof the LOCAL Narrow.x is 1; the shadowed global Wide.x would be 4
+    u32 j <- Counter.sizeofMember();
+    if (j != 1) return 14;
+
+    u32 k <- Counter.elementCount();
+    if (k != 2) return 15;
+
+    return 0;
+}

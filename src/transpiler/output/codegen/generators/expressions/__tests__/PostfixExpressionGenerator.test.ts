@@ -210,7 +210,7 @@ function createMockOrchestrator(overrides?: {
     countBlockLengthAccesses: vi.fn(),
     setupLengthCache: vi.fn(),
     clearLengthCache: vi.fn(),
-    registerLocalVariable: vi.fn(),
+    registerLocalVariable: vi.fn((name: string) => name),
     generateParameterList: vi.fn(),
     getStringLiteralLength: vi.fn(),
     getStringConcatOperands: vi.fn(),
@@ -387,7 +387,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("counter");
     });
 
-    it("throws when global.x shadows local variable (ADR-057)", () => {
+    it("global.x still reaches the global when a local shadows it (ADR-057)", () => {
       const ctx = createMockPostfixExpressionContext("global", [
         createMockPostfixOp({ identifier: "counter" }),
       ]);
@@ -397,11 +397,12 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(
-        "Cannot use 'global.counter' when local variable 'counter' shadows it",
-      );
+      // The shadowing local is emitted under a qualified C name, so the bare
+      // spelling here still denotes the global. This used to throw; rejecting
+      // it made a language guarantee unusable rather than fixing the codegen.
+      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+
+      expect(result.code).toBe("counter");
     });
 
     it("sets struct type for global struct variable", () => {

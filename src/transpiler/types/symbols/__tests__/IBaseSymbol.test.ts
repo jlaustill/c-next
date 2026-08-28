@@ -3,6 +3,7 @@ import type IBaseSymbol from "../IBaseSymbol";
 import type TSymbolKindCNext from "../../symbol-kinds/TSymbolKindCNext";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../utils/ScopeUtils";
+import TestSymbolUtils from "../../../logic/symbols/cnext/__tests__/testSymbolUtils";
 
 describe("IBaseSymbol", () => {
   it("accepts valid symbol with TSymbolKindCNext kind", () => {
@@ -12,13 +13,13 @@ describe("IBaseSymbol", () => {
     const scope = ScopeUtils.createGlobalScope();
 
     const symbol: IBaseSymbol = {
-      kind: "function" as TSymbolKindCNext,
-      name: "testFunc",
-      scope,
-      sourceFile: "test.cnx",
-      sourceLine: 10,
-      sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      ...TestSymbolUtils.base({
+        kind: "function" as TSymbolKindCNext,
+        name: "testFunc",
+        scope,
+        sourceFile: "test.cnx",
+        sourceLine: 10,
+      }),
     };
 
     expect(symbol.kind).toBe("function");

@@ -10,6 +10,7 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 class EnumCollector {
   /**
@@ -58,6 +59,9 @@ class EnumCollector {
       kind: "enum",
       name,
       scope,
+      // #1285: identity computed once, from the scope chain, not
+      // re-derived by every consumer.
+      ...ScopeUtils.identityOf({ name, scope }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
