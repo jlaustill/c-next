@@ -315,13 +315,33 @@ Every invariant ships with its gate.
 1. **The ADR band.** `0xx` commits v1 to completing this; `1xx` says the current pipeline
    ships v1. This also obliges a decision on ADR-053 (Implemented, describes the pipeline
    this supersedes) and ADR-065 (WIP, prescribes a decomposition this absorbs).
-2. **Why the Tier boundary exists.** It was justified here by cacheability. Measured over
-   1,176 `.cnx` files, Declare is the **cheapest** pass — ~50 ms against Parse's ~415 ms
-   and Analyze's ~2,400 ms — so perfect Tier 1 caching saves ~1.5%. There is also **no
-   C-Next symbol cache today at all**. The boundary is probably still right, for
-   order-independence and incremental rebuild for the LSP; the justification needs rewriting or the
-   boundary needs moving. Falsify by instrumenting `_executePipeline` on a real firmware
-   project, not this corpus.
+2. **Why the Tier boundary exists.** It was justified here by cacheability, and that
+   justification does not survive measurement. Over 1,163 `.cnx` files from `tests/` and
+   `examples/`, timed after a warm-up pass, Declare is the **cheapest** of the three passes
+   measured:
+
+   | pass        | share    |
+   | ----------- | -------- |
+   | Parse       | 15.2%    |
+   | **Declare** | **2.0%** |
+   | Analyze     | 82.8%    |
+
+   So perfect Tier 1 caching removes about 2% of the work of these three passes, and less
+   than that of the whole pipeline. There is also **no C-Next symbol cache today at all** —
+   `CacheManager` filters C-Next symbols out explicitly, so `FileSymbols` caching is new
+   capability, not a refactor of an existing one.
+
+   Only the ratio is durable; absolute milliseconds vary by machine and warm-up, so they are
+   deliberately not quoted. Analyze dominating at 82.8% is itself the more interesting
+   finding, and it is not what this document is organized around.
+
+   The boundary is probably still right — for order-independence, for making cross-file
+   dependence visible in the type system, and for incremental rebuild in the LSP. But if the
+   ADR justifies it by caching, it justifies it with the smallest number in the system.
+   Rewrite the justification or move the boundary. Falsify by instrumenting
+   `_executePipeline` on a real firmware project rather than this corpus, whose files average
+   ~42 lines — the exact shape that could hide per-symbol and per-include cost.
+
 3. **Is `EmissionPlan` per-file or per (file × mode)?** `cppMode` changes structural
    decisions, not just text, and C++ is the larger render target (823 `.expected.cpp` vs
    803 `.expected.c`). If structural, "Render owns nothing" needs restating. `cppMode` is
