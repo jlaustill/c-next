@@ -539,6 +539,7 @@ class TypeResolver {
       current.baseType === TypeResolver.THIS_SENTINEL &&
       CodeGenState.currentScope
     ) {
+      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
       const scopedName = QualifiedCName.join(
         CodeGenState.currentScope.name,
         memberName,

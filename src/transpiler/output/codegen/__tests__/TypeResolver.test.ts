@@ -983,7 +983,7 @@ describe("TypeResolver", () => {
     });
 
     it("should resolve this.scopeVar type", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       setTypeInfo("Motor__speed", {
         baseType: "u32",
         bitWidth: 32,
@@ -1027,7 +1027,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return null for this.X without current scope", () => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
 
       const ctx = {
         primaryExpression: () => ({

@@ -12,6 +12,8 @@ import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
 import TestScopeUtils from "../../logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../logic/symbols/cnext/__tests__/testSymbolUtils";
+import SymbolRegistry from "../SymbolRegistry";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -115,7 +117,7 @@ describe("CodeGenState", () => {
   describe("reset()", () => {
     it("resets all state to initial values", () => {
       // Set some state
-      CodeGenState.setCurrentScopeByName("TestScope");
+      CodeGenState.setCurrentScopeByPath("TestScope");
       CodeGenState.currentFunctionName = "testFunc";
       CodeGenState.needsStdint = true;
       CodeGenState.indentLevel = 5;
@@ -170,19 +172,19 @@ describe("CodeGenState", () => {
     });
 
     it("isCurrentScopeMember returns false when not in a scope", () => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
       expect(CodeGenState.isCurrentScopeMember("anyMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns false for non-member", () => {
-      CodeGenState.setCurrentScopeByName("TestScope");
+      CodeGenState.setCurrentScopeByPath("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("nonMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns true for member", () => {
-      CodeGenState.setCurrentScopeByName("TestScope");
+      CodeGenState.setCurrentScopeByPath("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("member1")).toBe(true);
@@ -191,19 +193,19 @@ describe("CodeGenState", () => {
 
   describe("resolveIdentifier()", () => {
     it("returns identifier unchanged when not in a scope", () => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
       expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns identifier unchanged when not a scope member", () => {
-      CodeGenState.setCurrentScopeByName("TestScope");
+      CodeGenState.setCurrentScopeByPath("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns scoped name for scope member", () => {
-      CodeGenState.setCurrentScopeByName("TestScope");
+      CodeGenState.setCurrentScopeByPath("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("member1")).toBe(
@@ -353,6 +355,37 @@ describe("CodeGenState", () => {
       CodeGenState.registerLocalVariable("localArr", true);
       expect(CodeGenState.localVariables.has("localArr")).toBe(true);
       expect(CodeGenState.localArrays.has("localArr")).toBe(true);
+    });
+
+    it("setCurrentScopeByPath resolves a DOTTED PATH to the registered scope", () => {
+      // The contract is a path, not a leaf. This proves the API is chain-capable,
+      // so the fix for #1304 is on the caller side: codegen can only supply a
+      // leaf today because `scopeMember` admits no `scopeDeclaration`.
+      const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+
+      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+
+      expect(CodeGenState.currentScope).toBe(inner);
+      expect(CodeGenState.currentScope?.fullyQualifiedCName).toBe(
+        "Outer__Inner",
+      );
+      expect(ScopeUtils.qualifyInScope("tick", CodeGenState.currentScope)).toBe(
+        "Outer__Inner__tick",
+      );
+    });
+
+    it("setCurrentScopeByPath with a LEAF cannot reach a nested scope (#1304)", () => {
+      // Documents the gap rather than asserting it is fine. A leaf does not
+      // fail -- it mints a fresh scope parented to global, and every
+      // qualification through it silently loses the outer component.
+      const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+
+      CodeGenState.setCurrentScopeByPath("Inner");
+
+      expect(CodeGenState.currentScope).not.toBe(inner);
+      expect(ScopeUtils.qualifyInScope("tick", CodeGenState.currentScope)).toBe(
+        "Inner__tick",
+      );
     });
 
     it("registerLocalVariable leaves a non-shadowing local under its own name", () => {
@@ -966,7 +999,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.setCurrentScopeByName("A");
+      CodeGenState.setCurrentScopeByPath("A");
 
       expect(CodeGenState.qualifyScopeType("B")).toBe("A__B");
     });
@@ -975,7 +1008,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.setCurrentScopeByName("A");
+      CodeGenState.setCurrentScopeByPath("A");
 
       expect(CodeGenState.qualifyScopeType("Other")).toBe("Other");
     });
@@ -984,7 +1017,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
 
       expect(CodeGenState.qualifyScopeType("B")).toBe("B");
     });
@@ -995,7 +1028,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownStructs: new Set(["Config"]),
       });
-      CodeGenState.setCurrentScopeByName("A");
+      CodeGenState.setCurrentScopeByPath("A");
 
       expect(CodeGenState.qualifyScopeType("Config")).toBe("Config");
     });

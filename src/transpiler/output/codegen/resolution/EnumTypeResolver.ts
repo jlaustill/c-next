@@ -151,6 +151,7 @@ export default class EnumTypeResolver {
       return null;
     }
     const varName = parts[1];
+    // #1295: leaf key, matching QualifiedNameGenerator.forMember.
     const scopedVarName = QualifiedCName.join(
       CodeGenState.currentScope.name,
       varName,

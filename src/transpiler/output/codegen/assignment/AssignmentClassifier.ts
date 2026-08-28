@@ -536,6 +536,7 @@ class AssignmentClassifier {
     }
 
     return (
+      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
       CodeGenState.getVariableTypeInfo(
         QualifiedCName.join(scope.name, name),
       ) !== undefined
@@ -779,6 +780,7 @@ class AssignmentClassifier {
     } else if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
       // this.member pattern: lookup using scoped name
       const memberName = ctx.identifiers[0];
+      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
       const scopedName = QualifiedCName.join(
         CodeGenState.currentScope.name,
         memberName,
@@ -841,6 +843,7 @@ class AssignmentClassifier {
   ): AssignmentKind | null {
     if (!ctx.isSimpleThisAccess || !CodeGenState.currentScope) return null;
     const memberName = ctx.identifiers[0];
+    // #1295: leaf key, matching QualifiedNameGenerator.forMember.
     const scopedName = QualifiedCName.join(
       CodeGenState.currentScope.name,
       memberName,

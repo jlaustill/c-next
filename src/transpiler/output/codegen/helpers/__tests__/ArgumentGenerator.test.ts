@@ -83,7 +83,7 @@ describe("ArgumentGenerator", () => {
     describe("scope members", () => {
       it("prefixes scope member and adds & in C mode", () => {
         CodeGenState.cppMode = false;
-        CodeGenState.setCurrentScopeByName("LED");
+        CodeGenState.setCurrentScopeByPath("LED");
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");
@@ -92,7 +92,7 @@ describe("ArgumentGenerator", () => {
 
       it("prefixes scope member without & in C++ mode", () => {
         CodeGenState.cppMode = true;
-        CodeGenState.setCurrentScopeByName("LED");
+        CodeGenState.setCurrentScopeByPath("LED");
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");

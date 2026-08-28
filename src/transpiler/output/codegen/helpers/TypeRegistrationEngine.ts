@@ -93,7 +93,7 @@ class TypeRegistrationEngine {
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
     const savedScope = CodeGenState.currentScope;
-    CodeGenState.setCurrentScopeByName(scopeName);
+    CodeGenState.setCurrentScopeByPath(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
       if (member.variableDeclaration()) {

@@ -1337,18 +1337,22 @@ export default class CodeGenState {
   }
 
   /**
-   * Enter a named scope, resolving the name to the scope SYMBOL that carries
-   * its parent chain.
+   * Enter a scope by its DOTTED PATH, resolving it to the scope symbol that
+   * carries the parent chain.
    *
-   * Codegen learns a scope's name from the parse tree, which gives it a leaf.
-   * Storing that leaf is what made every downstream join one-level; resolving
-   * it through the registry -- the one place that builds a real parent chain --
-   * means every consumer gets the chain for free (#1285).
+   * The parameter is a path (`Outer.Inner`), not a leaf, because that is what
+   * `SymbolRegistry.getOrCreateScope` takes. Pass a leaf for a nested scope and
+   * it does not fail -- it CREATES a fresh scope parented to global and
+   * registers it under the leaf, after which every qualification through
+   * `currentScope` silently returns a one-level name.
    *
-   * `getOrCreateScope` is idempotent: by codegen time the symbols pass has
-   * already registered every scope, so this finds rather than creates.
+   * Every codegen caller currently passes a leaf, and that is correct for every
+   * program C-Next can express: `scopeMember` admits no `scopeDeclaration`
+   * (grammar/CNext.g4:81-89), so a scope's leaf IS its whole path. It stops
+   * being correct the moment scopes can nest, which is why the gap is tracked
+   * as #1304 rather than left to be rediscovered.
    */
-  static setCurrentScopeByName(name: string | null): void {
+  static setCurrentScopeByPath(name: string | null): void {
     this.currentScope =
       name === null ? null : SymbolRegistry.getOrCreateScope(name);
   }

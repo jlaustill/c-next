@@ -506,7 +506,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Scope effects (ADR-016)
         case "set-scope":
-          CodeGenState.setCurrentScopeByName(effect.name);
+          CodeGenState.setCurrentScopeByPath(effect.name);
           break;
 
         // Function body effects
@@ -1621,7 +1621,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   setCurrentScope(name: string | null): void {
     // The assignment was written twice on main; the second was dead.
-    CodeGenState.setCurrentScopeByName(name);
+    CodeGenState.setCurrentScopeByPath(name);
   }
 
   /**
@@ -2245,7 +2245,7 @@ export default class CodeGenerator implements IOrchestrator {
 
       throw new Error(
         `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
-          `from inside scope '${CodeGenState.currentScope?.cnxScopedName}'`,
+          `from inside scope '${CodeGenState.currentScope!.cnxScopedName}'`,
       );
     }
   }
@@ -2800,7 +2800,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Set scope context for scoped type resolution (this.Type)
     const savedScope = CodeGenState.currentScope;
-    CodeGenState.setCurrentScopeByName(scopeName);
+    CodeGenState.setCurrentScopeByPath(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
       // Issue #1200: a struct nested in a scope has callback fields just like a
@@ -3438,7 +3438,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Fallback to inline implementation (will be removed after migration)
     const name = ctx.IDENTIFIER().getText();
-    CodeGenState.setCurrentScopeByName(name);
+    CodeGenState.setCurrentScopeByPath(name);
 
     const lines: string[] = [];
     lines.push(`/* Scope: ${name} */`);
@@ -3717,11 +3717,15 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Fallback to inline implementation (will be removed after migration)
     const name = ctx.IDENTIFIER().getText();
-    // #1285: this built `Scope_name` with a SINGLE underscore while
-    // `bitmapBackingType` is keyed by ScopeUtils.getTranspiledCName, which uses
-    // the ADR-063 `__` separator -- so the lookup below could never match for a
-    // scoped bitmap and always threw "not found". Built through the one encoder
-    // now, which fixes the separator and the scope chain together.
+    // #1285: built through the one encoder, like every other qualification.
+    //
+    // This branch is UNREACHABLE: `initializeGenerators()` runs at the top of
+    // `generate()` and registers "bitmap" unconditionally, and nothing outside
+    // the registry's own tests unregisters it. So the single-underscore form
+    // this replaces was a latent defect in dead code -- it could never have
+    // matched `bitmapBackingType`, and could never have thrown either. Corrected
+    // for consistency, not because it fixed anything a program could reach.
+    // The four inline fallbacks in this file are tracked for deletion as #1305.
     const fullName = ScopeUtils.qualifyInScope(name, CodeGenState.currentScope);
 
     const backingType = CodeGenState.symbols!.bitmapBackingType.get(fullName);

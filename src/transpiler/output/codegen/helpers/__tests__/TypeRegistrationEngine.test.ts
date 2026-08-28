@@ -215,7 +215,7 @@ describe("TypeRegistrationEngine", () => {
 
     it("registers global type arrays", () => {
       // Set up a scope context to test global.Type[N] pattern
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
 
       const source = `
         scope Motor {
@@ -232,7 +232,7 @@ describe("TypeRegistrationEngine", () => {
       expect(info?.baseType).toBe("State");
       expect(info?.isArray).toBe(true);
 
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
     });
 
     it("registers qualified type arrays (Scope.Type[N])", () => {
@@ -253,7 +253,7 @@ describe("TypeRegistrationEngine", () => {
     });
 
     it("registers scoped type arrays (this.Type[N])", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
 
       const source = `
         scope Motor {
@@ -270,7 +270,7 @@ describe("TypeRegistrationEngine", () => {
       expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);
 
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
     });
   });
 });

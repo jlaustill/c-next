@@ -297,7 +297,7 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
@@ -313,7 +313,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only scoped register", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
@@ -331,7 +331,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
       const ctx = createMockContext({ hasThis: true });
 
       expect(() => getHandler()!(ctx)).toThrow(
@@ -340,7 +340,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
 
       expect(() => getHandler()!(ctx)).toThrow(
@@ -349,7 +349,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on write-only register with false value", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
@@ -375,7 +375,7 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit range", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -397,7 +397,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only scoped register bit range", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -421,7 +421,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates MMIO optimization for byte-aligned scoped access", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -451,7 +451,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
       const ctx = createMockContext({
         subscripts: [{ mockValue: "6" } as never, { mockValue: "2" } as never],
         hasThis: true,
@@ -463,7 +463,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on compound assignment", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       const ctx = createMockContext({
         isCompound: true,
         cnextOp: "+<-",
@@ -476,7 +476,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on write-only bit range with 0 value", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()

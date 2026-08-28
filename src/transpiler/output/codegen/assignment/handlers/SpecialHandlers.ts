@@ -11,7 +11,7 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TTypeInfo from "../../types/TTypeInfo";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /** Maps C operators to clamp helper operation names */
 const CLAMP_OP_MAP: Record<string, string> = {
@@ -36,7 +36,8 @@ function getTargetTypeInfo(ctx: IAssignmentContext): {
 
   // this.member: lookup using scoped name
   if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
-    const scopedName = ScopeUtils.qualifyInScope(id, CodeGenState.currentScope);
+    // #1295: leaf key -- see QualifiedNameGenerator.forMember, the producer.
+    const scopedName = QualifiedCName.join(CodeGenState.currentScope.name, id);
     return { typeInfo: CodeGenState.getVariableTypeInfo(scopedName) };
   }
 

@@ -56,7 +56,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("resolves this.method() returning enum type", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["State"]),
         functionReturnTypes: new Map([["Motor__getState", "State"]]),
@@ -166,7 +166,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("resolves this.Enum.MEMBER inside scope", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["Motor__State"]),
       });
@@ -185,7 +185,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("resolves this.variable pattern for enum-typed scope member", () => {
-      CodeGenState.setCurrentScopeByName("Motor");
+      CodeGenState.setCurrentScopeByPath("Motor");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["Motor__State"]),
       });
@@ -300,7 +300,7 @@ describe("EnumTypeResolver", () => {
 
   describe("resolve() - edge cases", () => {
     it("returns null for this.Enum.MEMBER when not in a scope", () => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["Motor__State"]),
       });
@@ -310,7 +310,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("returns null for this.variable when not in a scope", () => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
 
       const mockCtx = { getText: () => "this.current" };
       expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();

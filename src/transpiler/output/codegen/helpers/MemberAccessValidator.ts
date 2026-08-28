@@ -49,7 +49,7 @@ class MemberAccessValidator {
     memberName: string,
     currentScope: IScopeSymbol | null,
   ): void {
-    if (currentScope && scopeName === currentScope.name) {
+    if (scopeName === currentScope?.name) {
       throw new Error(
         `Error: Cannot reference own scope '${scopeName}' by name. Use 'this.${memberName}' instead of '${scopeName}.${memberName}'`,
       );

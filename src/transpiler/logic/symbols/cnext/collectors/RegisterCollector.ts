@@ -57,9 +57,7 @@ class RegisterCollector {
 
       // Check if member type is a bitmap
       // Try both scoped name and plain name for bitmap lookup
-      const scopedTypeName = !ScopeUtils.isGlobalScope(scope)
-        ? ScopeUtils.qualifyInScope(typeName, scope)
-        : typeName;
+      const scopedTypeName = ScopeUtils.qualifyInScope(typeName, scope);
       let bitmapType: string | undefined;
       if (knownBitmaps.has(scopedTypeName)) {
         bitmapType = scopedTypeName;

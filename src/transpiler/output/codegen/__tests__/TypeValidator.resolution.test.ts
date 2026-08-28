@@ -50,7 +50,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       isArray: false,
       isConst: false,
     });
-    CodeGenState.setCurrentScopeByName("Motor");
+    CodeGenState.setCurrentScopeByPath("Motor");
     CodeGenState.symbols = createMockSymbols({
       knownScopes: new Set(["Motor", "LED"]),
       knownRegisters: new Set(["GPIO"]),
@@ -120,7 +120,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
 
   describe("outside a scope", () => {
     beforeEach(() => {
-      CodeGenState.setCurrentScopeByName(null);
+      CodeGenState.setCurrentScopeByPath(null);
     });
 
     it("returns null for local variables", () => {

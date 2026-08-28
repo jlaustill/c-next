@@ -48,7 +48,7 @@ export default class ScopeResolver {
         ?.get(memberName);
       if (visibility === "private") {
         const context = CodeGenState.currentScope
-          ? `from scope '${CodeGenState.currentScope?.cnxScopedName}'`
+          ? `from scope '${CodeGenState.currentScope.cnxScopedName}'`
           : "from outside the scope";
         throw new Error(
           `Cannot access private member '${memberName}' of scope '${scopeName}' ${context}. ` +
