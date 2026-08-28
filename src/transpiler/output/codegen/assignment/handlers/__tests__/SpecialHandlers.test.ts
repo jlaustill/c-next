@@ -97,7 +97,7 @@ describe("SpecialHandlers", () => {
     });
 
     it("handles this.member atomic variable", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByName("Motor");
       HandlerTestUtils.setupMockTypeRegistry([
         ["Motor__count", { baseType: "u32", isAtomic: true }],
       ]);
@@ -301,7 +301,7 @@ describe("SpecialHandlers", () => {
     });
 
     it("handles this.member with clamp", () => {
-      CodeGenState.currentScope = "Motor";
+      CodeGenState.setCurrentScopeByName("Motor");
       HandlerTestUtils.setupMockTypeRegistry([
         ["Motor__speed", { baseType: "u8", overflowBehavior: "clamp" }],
       ]);

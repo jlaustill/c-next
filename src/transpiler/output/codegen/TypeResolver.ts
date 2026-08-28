@@ -540,7 +540,7 @@ class TypeResolver {
       CodeGenState.currentScope
     ) {
       const scopedName = QualifiedCName.join(
-        CodeGenState.currentScope,
+        CodeGenState.currentScope.name,
         memberName,
       );
       return TypeResolver.resolveRegistryLookup(scopedName);

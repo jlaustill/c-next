@@ -149,7 +149,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("sets current function name with scope prefix", () => {
-      CodeGenState.currentScope = "MyScope";
+      CodeGenState.setCurrentScopeByName("MyScope");
       const callbacks = createMockCallbacks();
       const ctx = createMockFunctionDecl("myFunc", "void");
 
@@ -497,7 +497,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("resolves scoped type with current scope", () => {
-      CodeGenState.currentScope = "MyScope";
+      CodeGenState.setCurrentScopeByName("MyScope");
       const callbacks = createMockCallbacks();
       const typeCtx = {
         primitiveType: () => null,

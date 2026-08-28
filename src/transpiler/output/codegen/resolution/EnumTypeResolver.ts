@@ -20,6 +20,7 @@ import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
  * Resolves enum types from expressions.
@@ -121,7 +122,7 @@ export default class EnumTypeResolver {
     }
     const enumName = parts[1];
     const scopedEnumName = QualifiedCName.join(
-      CodeGenState.currentScope,
+      CodeGenState.currentScope.name,
       enumName,
     );
     return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
@@ -151,7 +152,7 @@ export default class EnumTypeResolver {
     }
     const varName = parts[1];
     const scopedVarName = QualifiedCName.join(
-      CodeGenState.currentScope,
+      CodeGenState.currentScope.name,
       varName,
     );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedVarName);
@@ -205,7 +206,10 @@ export default class EnumTypeResolver {
     } else if (parts.length === 2) {
       if (parts[0] === "this" && CodeGenState.currentScope) {
         // this.method() -> Scope_method
-        fullFuncName = QualifiedCName.join(CodeGenState.currentScope, parts[1]);
+        fullFuncName = ScopeUtils.qualifyInScope(
+          parts[1],
+          CodeGenState.currentScope,
+        );
       } else if (parts[0] === "global") {
         // global.func() -> func
         fullFuncName = parts[1];

@@ -217,6 +217,54 @@ class ScopeUtils {
   }
 
   /**
+   * The C name a bare member of `scope` is emitted under, or the bare name at
+   * file scope.
+   *
+   * The drop-in for `QualifiedCName.join(currentScopeName, name)`, which is the
+   * leaf-only encoder #1285 exists to remove. Identical at depth one -- a
+   * top-level scope's leaf name IS its whole chain -- and correct beyond it,
+   * where the string version dropped every outer component.
+   *
+   * Null and the global scope both mean "no qualification": a global symbol
+   * keeps its bare name, which is what makes `global.x` reachable.
+   */
+  static qualifyInScope(name: string, scope: IScopeSymbol | null): string {
+    if (!scope || ScopeUtils.isGlobalScope(scope)) {
+      return name;
+    }
+    return ScopeUtils.getTranspiledCName({ name, scope });
+  }
+
+  /**
+   * Qualify a bare type name against a scope, if the scope declares it.
+   *
+   * ADR-057: a bare name inside a scope resolves local -> scope -> global. The
+   * predicate is asked about the QUALIFIED name so that only actual type
+   * declarations capture it -- a scope function or variable sharing a leaf name
+   * with a global type must not shadow that type at a type position.
+   *
+   * Takes the scope REFERENCE, not its name. The string version this replaces
+   * joined one level from a leaf, so at depth two it asked about
+   * `Inner__Config` for a type whose name is `Outer__Inner__Config` and got
+   * "no" -- silently falling through to the bare name, which is the #1200
+   * failure shape (#1285).
+   *
+   * `isKnownType` is injected rather than read from CodeGenState so this stays
+   * usable from the symbols layer, which must not depend on codegen.
+   */
+  static qualifyScopeType(
+    typeName: string,
+    scope: IScopeSymbol | null,
+    isKnownType: (qualifiedName: string) => boolean,
+  ): string {
+    if (!scope || ScopeUtils.isGlobalScope(scope)) {
+      return typeName;
+    }
+    const qualified = ScopeUtils.getTranspiledCName({ name: typeName, scope });
+    return isKnownType(qualified) ? qualified : typeName;
+  }
+
+  /**
    * Both qualified names for a symbol, computed together.
    *
    * Returned as a pair rather than as two separate calls so a construction site

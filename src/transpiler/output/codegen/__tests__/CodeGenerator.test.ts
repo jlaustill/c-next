@@ -268,7 +268,9 @@ describe("CodeGenerator", () => {
         generator.applyEffects([{ type: "set-scope", name: "MyScope" }]);
 
         const state = generator.getState();
-        expect(state.currentScope).toBe("MyScope");
+        // #1285: state carries the scope SYMBOL now, so assert its identity
+        // rather than the leaf the caller happened to pass.
+        expect(state.currentScope?.fullyQualifiedCName).toBe("MyScope");
       });
 
       it("should process enter-function-body effects", () => {
@@ -510,7 +512,9 @@ describe("CodeGenerator", () => {
         generator.setCurrentScope("Motor");
 
         // Verify scope was set correctly
-        expect(generator.getState().currentScope).toBe("Motor");
+        expect(generator.getState().currentScope?.fullyQualifiedCName).toBe(
+          "Motor",
+        );
       });
     });
 
@@ -679,7 +683,9 @@ describe("CodeGenerator", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
         generator.setCurrentScope("MyScope");
-        expect(generator.getState().currentScope).toBe("MyScope");
+        expect(generator.getState().currentScope?.fullyQualifiedCName).toBe(
+          "MyScope",
+        );
 
         generator.setCurrentScope(null);
         expect(generator.getState().currentScope).toBeNull();

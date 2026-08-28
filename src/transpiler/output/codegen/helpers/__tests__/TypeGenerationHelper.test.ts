@@ -7,6 +7,8 @@ import { describe, it, expect, vi } from "vitest";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import TypeGenerationHelper from "../TypeGenerationHelper.js";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
+import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
 describe("TypeGenerationHelper", () => {
   /**
@@ -69,7 +71,10 @@ describe("TypeGenerationHelper", () => {
 
   describe("generateScopedType", () => {
     it("generates prefixed type name within scope", () => {
-      const result = TypeGenerationHelper.generateScopedType("State", "Motor");
+      const result = TypeGenerationHelper.generateScopedType(
+        "State",
+        TestScopeUtils.createMockScope("Motor"),
+      );
       expect(result).toBe("Motor__State");
     });
 
@@ -206,7 +211,7 @@ describe("TypeGenerationHelper", () => {
 
   describe("generate (full context)", () => {
     const defaultDeps = {
-      currentScope: null as string | null,
+      currentScope: null as IScopeSymbol | null,
       isCppScopeSymbol: () => false,
       checkNeedsStructKeyword: () => false,
       validateCrossScopeVisibility: vi.fn(),
@@ -229,7 +234,7 @@ describe("TypeGenerationHelper", () => {
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.generate(ctx!, {
         ...defaultDeps,
-        currentScope: "Motor",
+        currentScope: TestScopeUtils.createMockScope("Motor"),
       });
       expect(result).toBe("Motor__State");
     });
@@ -249,7 +254,7 @@ describe("TypeGenerationHelper", () => {
     // (the project uses default exports only). Deriving from typeof defaultDeps
     // instead would narrow the mocks to their zero-argument shapes.
     type DepsOverride = {
-      currentScope?: string | null;
+      currentScope?: IScopeSymbol | null;
       isCppScopeSymbol?: (name: string) => boolean;
       checkNeedsStructKeyword?: (name: string) => boolean;
       isScopeType?: (qualifiedName: string) => boolean;

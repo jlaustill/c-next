@@ -31,6 +31,7 @@ import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 // ========================================================================
 // Tracking State
@@ -174,7 +175,7 @@ const resolveSubscriptBase = (
   // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
   const name =
     prefix === "this"
-      ? QualifiedCName.join(CodeGenState.currentScope, memberName)
+      ? ScopeUtils.qualifyInScope(memberName, CodeGenState.currentScope)
       : memberName;
   return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
 };
@@ -468,12 +469,12 @@ const handleThisScopeLength = (
   if (!state.currentScope) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
-  const members = state.scopeMembers.get(state.currentScope);
+  const members = state.scopeMembers.get(state.currentScope.name);
   if (!members?.has("length")) {
     return false;
   }
 
-  tracking.result = QualifiedCName.join(state.currentScope, memberName);
+  tracking.result = ScopeUtils.qualifyInScope(memberName, state.currentScope);
   tracking.resolvedIdentifier = tracking.result;
   const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(tracking.result);
   if (
@@ -1344,7 +1345,10 @@ const tryScopeMemberAccess = (
   }
 
   const output = initializeMemberOutput(ctx);
-  const fullName = QualifiedCName.join(state.currentScope, ctx.memberName);
+  const fullName = ScopeUtils.qualifyInScope(
+    ctx.memberName,
+    state.currentScope,
+  );
   const constValue = input.symbols!.scopePrivateConstValues.get(fullName);
   if (constValue === undefined) {
     output.result = fullName;

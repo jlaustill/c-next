@@ -12,6 +12,8 @@ import ExpressionUtils from "../../../utils/ExpressionUtils";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import LiteralEvaluator from "./helpers/LiteralEvaluator";
 import QualifiedCName from "../../../utils/QualifiedCName";
+import IScopeSymbol from "../../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 /**
  * ADR-010: Implementation file extensions that should NOT be #included
@@ -333,44 +335,44 @@ class TypeValidator {
       return;
     }
 
-    const scopeMembers = CodeGenState.getScopeMembers(currentScope);
+    const scopeMembers = CodeGenState.getScopeMembers(currentScope.name);
     if (scopeMembers?.has(identifier)) {
       throw new Error(
-        `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScope}'`,
+        `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
       );
     }
 
     if (CodeGenState.symbols!.knownRegisters.has(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${currentScope}'`,
+        `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
       );
     }
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, currentScope)
+      !QualifiedCName.isInScope(identifier, currentScope.name)
     ) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${currentScope}'`,
+        `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
       );
     }
 
     if (CodeGenState.symbols!.knownEnums.has(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${currentScope}'`,
+        `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
       );
     }
 
     if (isKnownStruct(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${currentScope}'`,
+        `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
       );
     }
 
     const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
     if (typeInfo && !QualifiedCName.isQualified(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScope}'`,
+        `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
       );
     }
   }
@@ -413,14 +415,15 @@ class TypeValidator {
 
   private static _resolveScopeMember(
     identifier: string,
-    currentScope: string,
+    currentScope: IScopeSymbol,
   ): string | null {
-    const scopeMembers = CodeGenState.getScopeMembers(currentScope);
+    // #1295: getScopeMembers is keyed by the scope LEAF name.
+    const scopeMembers = CodeGenState.getScopeMembers(currentScope.name);
     if (scopeMembers?.has(identifier)) {
-      return QualifiedCName.join(currentScope, identifier);
+      return ScopeUtils.qualifyInScope(identifier, currentScope);
     }
 
-    const scopedFuncName = QualifiedCName.join(currentScope, identifier);
+    const scopedFuncName = ScopeUtils.qualifyInScope(identifier, currentScope);
     if (CodeGenState.knownFunctions.has(scopedFuncName)) {
       return scopedFuncName;
     }
@@ -430,7 +433,7 @@ class TypeValidator {
 
   private static _isKnownGlobalIdentifier(
     identifier: string,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isKnownStruct: (name: string) => boolean,
   ): boolean {
     const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
@@ -440,7 +443,7 @@ class TypeValidator {
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, currentScope)
+      !QualifiedCName.isInScope(identifier, currentScope?.name)
     ) {
       return true;
     }

@@ -115,7 +115,7 @@ describe("CodeGenState", () => {
   describe("reset()", () => {
     it("resets all state to initial values", () => {
       // Set some state
-      CodeGenState.currentScope = "TestScope";
+      CodeGenState.setCurrentScopeByName("TestScope");
       CodeGenState.currentFunctionName = "testFunc";
       CodeGenState.needsStdint = true;
       CodeGenState.indentLevel = 5;
@@ -170,19 +170,19 @@ describe("CodeGenState", () => {
     });
 
     it("isCurrentScopeMember returns false when not in a scope", () => {
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByName(null);
       expect(CodeGenState.isCurrentScopeMember("anyMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns false for non-member", () => {
-      CodeGenState.currentScope = "TestScope";
+      CodeGenState.setCurrentScopeByName("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("nonMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns true for member", () => {
-      CodeGenState.currentScope = "TestScope";
+      CodeGenState.setCurrentScopeByName("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("member1")).toBe(true);
@@ -191,19 +191,19 @@ describe("CodeGenState", () => {
 
   describe("resolveIdentifier()", () => {
     it("returns identifier unchanged when not in a scope", () => {
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByName(null);
       expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns identifier unchanged when not a scope member", () => {
-      CodeGenState.currentScope = "TestScope";
+      CodeGenState.setCurrentScopeByName("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns scoped name for scope member", () => {
-      CodeGenState.currentScope = "TestScope";
+      CodeGenState.setCurrentScopeByName("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("member1")).toBe(
@@ -966,7 +966,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.currentScope = "A";
+      CodeGenState.setCurrentScopeByName("A");
 
       expect(CodeGenState.qualifyScopeType("B")).toBe("A__B");
     });
@@ -975,7 +975,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.currentScope = "A";
+      CodeGenState.setCurrentScopeByName("A");
 
       expect(CodeGenState.qualifyScopeType("Other")).toBe("Other");
     });
@@ -984,7 +984,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.currentScope = null;
+      CodeGenState.setCurrentScopeByName(null);
 
       expect(CodeGenState.qualifyScopeType("B")).toBe("B");
     });
@@ -995,7 +995,7 @@ describe("CodeGenState", () => {
       CodeGenState.symbols = createMockSymbols({
         knownStructs: new Set(["Config"]),
       });
-      CodeGenState.currentScope = "A";
+      CodeGenState.setCurrentScopeByName("A");
 
       expect(CodeGenState.qualifyScopeType("Config")).toBe("Config");
     });

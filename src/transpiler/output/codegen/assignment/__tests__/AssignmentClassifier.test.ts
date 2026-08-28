@@ -520,7 +520,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.member", () => {
     setupSymbols();
-    CodeGenState.currentScope = "Counter";
+    CodeGenState.setCurrentScopeByName("Counter");
 
     const ctx = createMockContext({
       identifiers: ["count"],
@@ -534,7 +534,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.arr[i]", () => {
     setupSymbols();
-    CodeGenState.currentScope = "Buffer";
+    CodeGenState.setCurrentScopeByName("Buffer");
 
     const ctx = createMockContext({
       identifiers: ["data"],
@@ -555,7 +555,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
   // carries the scope prefix, so no `this.`-specific kind is needed.
   it("classifies this.flags[3] as INTEGER_BIT for integer type", () => {
     setupSymbols();
-    CodeGenState.currentScope = "Sensor";
+    CodeGenState.setCurrentScopeByName("Sensor");
     // Register Sensor_flags as a non-array integer type
     CodeGenState.setVariableTypeInfo(
       "Sensor__flags",
@@ -577,7 +577,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.value[0, 8] as INTEGER_BIT_RANGE for integer type", () => {
     setupSymbols();
-    CodeGenState.currentScope = "Sensor";
+    CodeGenState.setCurrentScopeByName("Sensor");
     // Register Sensor_value as a non-array integer type
     CodeGenState.setVariableTypeInfo(
       "Sensor__value",
@@ -604,7 +604,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.data[i] as ARRAY_ELEMENT for array type", () => {
     setupSymbols();
-    CodeGenState.currentScope = "Buffer";
+    CodeGenState.setCurrentScopeByName("Buffer");
     // Register Buffer_data as an array type
     CodeGenState.setVariableTypeInfo(
       "Buffer__data",
@@ -676,7 +676,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
     const knownScopes = new Set(["Teensy4"]);
     const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownScopes, knownRegisters });
-    CodeGenState.currentScope = "Teensy4";
+    CodeGenState.setCurrentScopeByName("Teensy4");
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "DR_SET"],
@@ -852,7 +852,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
   it("classifies this.reg[start, width] as SCOPED_REGISTER_BIT_RANGE", () => {
     const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownRegisters });
-    CodeGenState.currentScope = "Teensy4";
+    CodeGenState.setCurrentScopeByName("Teensy4");
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "ICR1"],
@@ -1080,7 +1080,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
     "keeps %s named like a scope as a struct chain (ADR-057)",
     (_label, currentScope, typeInfoKey) => {
       setupSymbols({ knownScopes: new Set(["Other"]) });
-      CodeGenState.currentScope = currentScope;
+      CodeGenState.setCurrentScopeByName(currentScope);
       CodeGenState.setVariableTypeInfo(
         typeInfoKey,
         createTypeInfo({ baseType: "Point", bitWidth: 0 }),
@@ -1117,7 +1117,7 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
       ["CtrlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
     ]);
     setupSymbols({ knownRegisters, registerMemberTypes, bitmapFields });
-    CodeGenState.currentScope = "Motor";
+    CodeGenState.setCurrentScopeByName("Motor");
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "ICR1", "Enable"],

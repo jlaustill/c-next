@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from "vitest";
 import MemberSeparatorResolver from "../MemberSeparatorResolver";
 import type IMemberSeparatorDeps from "../../types/IMemberSeparatorDeps";
 import type ISeparatorContext from "../../types/ISeparatorContext";
+import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
 
 describe("MemberSeparatorResolver", () => {
   // Helper to create mock dependencies
@@ -91,7 +92,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "CONTROL_REG",
           hasGlobal: false,
           hasThis: true,
-          currentScope: "Motor",
+          currentScope: TestScopeUtils.createMockScope("Motor"),
           isStructParam: false,
           isCppAccess: false,
         },
@@ -110,7 +111,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "CONTROL_REG",
           hasGlobal: false,
           hasThis: false,
-          currentScope: "Motor",
+          currentScope: TestScopeUtils.createMockScope("Motor"),
           isStructParam: false,
           isCppAccess: false,
         },

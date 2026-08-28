@@ -39,6 +39,9 @@ import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
+import IScopeSymbol from "../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../utils/ScopeUtils";
+import SymbolRegistry from "./SymbolRegistry";
 
 /**
  * Default target capabilities (safe fallback)
@@ -278,7 +281,7 @@ export default class CodeGenState {
   // ===========================================================================
 
   /** ADR-016: Current scope for name resolution */
-  static currentScope: string | null = null;
+  static currentScope: IScopeSymbol | null = null;
 
   /** Issue #269: Current function for modification tracking */
   static currentFunctionName: string | null = null;
@@ -722,7 +725,7 @@ export default class CodeGenState {
    * explicit answer in the syntax and must keep their own branches.
    */
   static qualifyScopeType(typeName: string): string {
-    return QualifiedCName.qualifyScopeType(
+    return ScopeUtils.qualifyScopeType(
       typeName,
       this.currentScope,
       (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
@@ -1100,7 +1103,13 @@ export default class CodeGenState {
    */
   static isCurrentScopeMember(identifier: string): boolean {
     if (!this.currentScope) return false;
-    return this.scopeMembers.get(this.currentScope)?.has(identifier) ?? false;
+    // `scopeMembers` is keyed by the scope's LEAF name, so this passes `.name`
+    // deliberately rather than the scope's identity. That key is itself a
+    // leaf-only encoder and collides at depth two -- tracked as #1295, not
+    // changed here, because its producer and every other reader move with it.
+    return (
+      this.scopeMembers.get(this.currentScope.name)?.has(identifier) ?? false
+    );
   }
 
   /**
@@ -1109,9 +1118,14 @@ export default class CodeGenState {
    */
   static resolveIdentifier(identifier: string): string {
     if (this.currentScope) {
-      const members = this.scopeMembers.get(this.currentScope);
+      const members = this.scopeMembers.get(this.currentScope.name);
       if (members?.has(identifier)) {
-        return QualifiedCName.join(this.currentScope, identifier);
+        // Built from the scope CHAIN, so a member of a nested scope gets every
+        // component rather than just the innermost one.
+        return ScopeUtils.getTranspiledCName({
+          name: identifier,
+          scope: this.currentScope,
+        });
       }
     }
     return identifier;
@@ -1320,6 +1334,23 @@ export default class CodeGenState {
    */
   static registerConstValue(name: string, value: number): void {
     this.constValues.set(name, value);
+  }
+
+  /**
+   * Enter a named scope, resolving the name to the scope SYMBOL that carries
+   * its parent chain.
+   *
+   * Codegen learns a scope's name from the parse tree, which gives it a leaf.
+   * Storing that leaf is what made every downstream join one-level; resolving
+   * it through the registry -- the one place that builds a real parent chain --
+   * means every consumer gets the chain for free (#1285).
+   *
+   * `getOrCreateScope` is idempotent: by codegen time the symbols pass has
+   * already registered every scope, so this finds rather than creates.
+   */
+  static setCurrentScopeByName(name: string | null): void {
+    this.currentScope =
+      name === null ? null : SymbolRegistry.getOrCreateScope(name);
   }
 
   /**

@@ -18,8 +18,8 @@ import dimensionEvalOptions from "./dimensionEvalOptions.js";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser.js";
-import QualifiedCName from "../../../../utils/QualifiedCName";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
  * Result from resolving parameter type information.
@@ -57,7 +57,7 @@ class FunctionContextManager {
   ): void {
     // Issue #269: Set current function name for pass-by-value lookup
     const fullFuncName = CodeGenState.currentScope
-      ? QualifiedCName.join(CodeGenState.currentScope, name)
+      ? ScopeUtils.qualifyInScope(name, CodeGenState.currentScope)
       : name;
     CodeGenState.currentFunctionName = fullFuncName;
 
@@ -252,7 +252,7 @@ class FunctionContextManager {
     if (typeCtx.scopedType()) {
       const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
       const typeName = CodeGenState.currentScope
-        ? QualifiedCName.join(CodeGenState.currentScope, localTypeName)
+        ? ScopeUtils.qualifyInScope(localTypeName, CodeGenState.currentScope)
         : localTypeName;
       return {
         typeName,

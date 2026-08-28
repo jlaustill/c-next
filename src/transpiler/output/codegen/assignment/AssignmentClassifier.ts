@@ -536,8 +536,9 @@ class AssignmentClassifier {
     }
 
     return (
-      CodeGenState.getVariableTypeInfo(QualifiedCName.join(scope, name)) !==
-      undefined
+      CodeGenState.getVariableTypeInfo(
+        QualifiedCName.join(scope.name, name),
+      ) !== undefined
     );
   }
 
@@ -586,7 +587,7 @@ class AssignmentClassifier {
 
     const firstId = ctx.identifiers[0];
     const scopedRegName = QualifiedCName.join(
-      CodeGenState.currentScope,
+      CodeGenState.currentScope.name,
       firstId,
     );
 
@@ -779,7 +780,7 @@ class AssignmentClassifier {
       // this.member pattern: lookup using scoped name
       const memberName = ctx.identifiers[0];
       const scopedName = QualifiedCName.join(
-        CodeGenState.currentScope,
+        CodeGenState.currentScope.name,
         memberName,
       );
       typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
@@ -841,7 +842,7 @@ class AssignmentClassifier {
     if (!ctx.isSimpleThisAccess || !CodeGenState.currentScope) return null;
     const memberName = ctx.identifiers[0];
     const scopedName = QualifiedCName.join(
-      CodeGenState.currentScope,
+      CodeGenState.currentScope.name,
       memberName,
     );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
