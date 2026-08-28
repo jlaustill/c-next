@@ -77,9 +77,14 @@ A fact has two independent properties, and conflating them mis-files the AST:
 The test for tier is mechanical: **could you compute it with only this file open?**
 
 The AST is Tier 1 with a short lifetime. That resolves the problem of a parse tree that
-cannot be serialized, rather than relocating it: pull a serializable `SourceSpan` out
-(Tier 1, long lifetime, four integers), and the tree is confined to a pass whose output is
-cheap to recompute.
+cannot be serialized, rather than relocating it: pull a serializable `SourceSpan` out and
+the tree is confined to a pass whose output is cheap to recompute.
+
+A `SourceSpan` is four integers -- `line`, `column`, `endLine`, `endColumn`. It names no
+file, because the symbol or diagnostic carrying it already does. It is Tier 1 with a long
+lifetime: computable from one file, and needed everywhere a position is reported, which is
+as far as 3.1. Position is the only thing later passes want from a tree, so once a span can
+travel on its own, nothing downstream has a reason to hold a node.
 
 **Pass 1.3 consumes `ParsedFile` and does not re-export it.** That single rule is what makes
 the lifetime axis enforceable -- the tree is not reachable from any artifact a downstream
