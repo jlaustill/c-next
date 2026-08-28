@@ -20,6 +20,7 @@ import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
 import TypedefParamParser from "./TypedefParamParser.js";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 import ScopeUtils from "../../../../utils/ScopeUtils";
+import TypeBinding from "../../../logic/symbols/TypeBinding";
 
 /**
  * Result from resolving parameter type information.
@@ -213,66 +214,12 @@ class FunctionContextManager {
     typeCtx: Parser.TypeContext,
     callbacks: IFunctionContextCallbacks,
   ): IParameterTypeInfo {
-    if (typeCtx.primitiveType()) {
-      return {
-        typeName: typeCtx.primitiveType()!.getText(),
-        isStruct: false,
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.userType()) {
-      // ADR-057: bare type name inside a scope — qualify if it's a scope type
-      const qualified = CodeGenState.qualifyScopeType(
-        typeCtx.userType()!.getText(),
-      );
-      return {
-        typeName: qualified,
-        isStruct: callbacks.isStructType(qualified),
-        isCallback: CodeGenState.callbackTypes.has(qualified),
-        isString: false,
-      };
-    }
-
-    if (typeCtx.qualifiedType()) {
-      const identifierNames = typeCtx
-        .qualifiedType()!
-        .IDENTIFIER()
-        .map((id) => id.getText());
-      const typeName = callbacks.resolveQualifiedType(identifierNames);
-      return {
-        typeName,
-        isStruct: callbacks.isStructType(typeName),
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.scopedType()) {
-      const localTypeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      const typeName = CodeGenState.currentScope
-        ? ScopeUtils.qualifyInScope(localTypeName, CodeGenState.currentScope)
-        : localTypeName;
-      return {
-        typeName,
-        isStruct: callbacks.isStructType(typeName),
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.globalType()) {
-      const typeName = typeCtx.globalType()!.IDENTIFIER().getText();
-      return {
-        typeName,
-        isStruct: callbacks.isStructType(typeName),
-        isCallback: false,
-        isString: false,
-      };
-    }
-
-    if (typeCtx.stringType()) {
+    // Strings are special and stay explicit: a top-level `string<32>` parameter
+    // reports the bare "string" (its capacity travels separately through
+    // stringCapacities), while a string ARRAY element keeps "string<32>". That
+    // asymmetry is load-bearing, so it is preserved rather than folded in.
+    const topLevelString = typeCtx.stringType();
+    if (topLevelString) {
       return {
         typeName: "string",
         isStruct: false,
@@ -280,44 +227,43 @@ class FunctionContextManager {
         isString: true,
       };
     }
-
-    // Handle C-Next style array type (u8[8] param) - extract base type
-    if (typeCtx.arrayType()) {
-      const arrayTypeCtx = typeCtx.arrayType()!;
-      if (arrayTypeCtx.primitiveType()) {
-        return {
-          typeName: arrayTypeCtx.primitiveType()!.getText(),
-          isStruct: false,
-          isCallback: false,
-          isString: false,
-        };
-      }
-      if (arrayTypeCtx.userType()) {
-        const typeName = arrayTypeCtx.userType()!.getText();
-        return {
-          typeName,
-          isStruct: callbacks.isStructType(typeName),
-          isCallback: CodeGenState.callbackTypes.has(typeName),
-          isString: false,
-        };
-      }
-      // Handle string array type (string<32>[5] param)
-      if (arrayTypeCtx.stringType()) {
-        const stringCtx = arrayTypeCtx.stringType()!;
-        return {
-          typeName: stringCtx.getText(), // "string<32>"
-          isStruct: false,
-          isCallback: false,
-          isString: true,
-        };
-      }
+    const arrayString = typeCtx.arrayType()?.stringType();
+    if (arrayString) {
+      return {
+        typeName: arrayString.getText(),
+        isStruct: false,
+        isCallback: false,
+        isString: true,
+      };
     }
 
-    // Fallback
+    const primitive =
+      typeCtx.primitiveType() ?? typeCtx.arrayType()?.primitiveType();
+    if (primitive) {
+      return {
+        typeName: primitive.getText(),
+        isStruct: false,
+        isCallback: false,
+        isString: false,
+      };
+    }
+
+    // #1285: one ladder for the NAME, then ONE derivation of its consequences.
+    // Previously each of the six branches decided isStruct/isCallback for
+    // itself, so `isCallback` was hardcoded false in the scoped, qualified and
+    // global branches, and `arrayType().userType()` skipped the ADR-057
+    // qualification that the bare `userType()` branch applied -- `Mode[4] p`
+    // and `Mode p` in the same scope resolved to different names.
+    const typeName =
+      TypeBinding.resolveName(typeCtx, CodeGenState.currentScope, {
+        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+        resolveQualifiedType: (parts) => callbacks.resolveQualifiedType(parts),
+      }) ?? typeCtx.getText();
+
     return {
-      typeName: typeCtx.getText(),
-      isStruct: false,
-      isCallback: false,
+      typeName,
+      isStruct: callbacks.isStructType(typeName),
+      isCallback: CodeGenState.callbackTypes.has(typeName),
       isString: false,
     };
   }

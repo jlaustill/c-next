@@ -154,6 +154,7 @@ import type TRequirementKey from "../../types/TRequirementKey";
 import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
+import TypeBinding from "../../logic/symbols/TypeBinding";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -1401,44 +1402,15 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Get the raw type name without C conversion */
   getTypeName(ctx: Parser.TypeContext): string {
-    // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
-    if (ctx.scopedType()) {
-      const typeName = ctx.scopedType()!.IDENTIFIER().getText();
-      if (CodeGenState.currentScope) {
-        return ScopeUtils.qualifyInScope(typeName, CodeGenState.currentScope);
-      }
-      return typeName;
-    }
-    // Issue #478: Handle global.Type for global types inside scope
-    if (ctx.globalType()) {
-      return ctx.globalType()!.IDENTIFIER().getText();
-    }
-    // ADR-016: Handle Scope.Type from outside scope (e.g., Motor.State -> Motor_State)
-    // Issue #388: Also handles C++ namespace types
-    if (ctx.qualifiedType()) {
-      const identifiers = ctx.qualifiedType()!.IDENTIFIER();
-      const identifierNames = identifiers.map((id) => id.getText());
-      return this.resolveQualifiedType(identifierNames);
-    }
-    // Handle C-Next array type syntax (Type[N]) - return base type without dimension
-    if (ctx.arrayType()) {
-      const arrayTypeCtx = ctx.arrayType()!;
-      if (arrayTypeCtx.primitiveType()) {
-        return arrayTypeCtx.primitiveType()!.getText();
-      }
-      if (arrayTypeCtx.userType()) {
-        return CodeGenState.qualifyScopeType(
-          arrayTypeCtx.userType()!.getText(),
-        );
-      }
-    }
-    if (ctx.userType()) {
-      return CodeGenState.qualifyScopeType(ctx.userType()!.getText());
-    }
-    if (ctx.primitiveType()) {
-      return ctx.primitiveType()!.getText();
-    }
-    return ctx.getText();
+    // #1285: one ladder. This was the largest of seven copies, and the only one
+    // that handled `arrayType` by peeking at two of its six element
+    // alternatives -- TypeBinding recurses into all of them.
+    const resolved = TypeBinding.resolveName(ctx, CodeGenState.currentScope, {
+      isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+      resolveQualifiedType: (identifiers) =>
+        this.resolveQualifiedType(identifiers),
+    });
+    return resolved ?? ctx.getText();
   }
 
   /** Try to evaluate a constant expression at compile time */
@@ -4515,41 +4487,29 @@ export default class CodeGenerator implements IOrchestrator {
   private _resolveTypeNameFromContext(
     typeCtx: Parser.TypeContext,
   ): { name: string; separator: string } | null {
-    // ADR-016: Check for scoped types (this.Type)
-    if (typeCtx.scopedType()) {
-      const localName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      const name = CodeGenState.currentScope
-        ? ScopeUtils.qualifyInScope(localName, CodeGenState.currentScope)
-        : localName;
-      return { name, separator: QualifiedCName.SEPARATOR };
+    // #1285: one ladder. The caller distinguishes named types from string,
+    // template and primitive types AFTER this returns null, so those keep
+    // falling through rather than being resolved here.
+    if (
+      typeCtx.stringType() ||
+      typeCtx.arrayType() ||
+      typeCtx.templateType() ||
+      typeCtx.primitiveType()
+    ) {
+      return null;
     }
 
-    // Issue #478: Check for global types (global.Type)
-    if (typeCtx.globalType()) {
-      return {
-        name: typeCtx.globalType()!.IDENTIFIER().getText(),
-        separator: QualifiedCName.SEPARATOR,
-      };
+    const name = TypeBinding.resolveName(typeCtx, CodeGenState.currentScope, {
+      isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+      resolveQualifiedType: (parts) => this.resolveQualifiedType(parts),
+    });
+    if (name === null) {
+      return null;
     }
 
-    // ADR-016: Check for qualified types (Scope.Type)
-    // Issue #388: Also handles C++ namespace types (MockLib.Parse.ParseResult)
-    if (typeCtx.qualifiedType()) {
-      const parts = typeCtx.qualifiedType()!.IDENTIFIER();
-      const name = this.resolveQualifiedType(parts.map((id) => id.getText()));
-      const separator = name.includes("::") ? "::" : QualifiedCName.SEPARATOR;
-      return { name, separator };
-    }
-
-    // Check for user-defined types (structs/classes/enums)
-    if (typeCtx.userType()) {
-      return {
-        name: typeCtx.userType()!.getText(),
-        separator: QualifiedCName.SEPARATOR,
-      };
-    }
-
-    return null;
+    // Issue #388: a C++ namespace type comes back `::`-joined.
+    const separator = name.includes("::") ? "::" : QualifiedCName.SEPARATOR;
+    return { name, separator };
   }
 
   /**

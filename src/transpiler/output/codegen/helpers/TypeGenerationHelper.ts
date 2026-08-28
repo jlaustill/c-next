@@ -13,6 +13,7 @@ import TIncludeHeader from "../generators/TIncludeHeader.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../../../utils/ScopeUtils";
+import ITypeAccessors from "../../../types/ITypeAccessors";
 
 /**
  * Result of generating a primitive type.
@@ -36,19 +37,6 @@ interface ITypeGenerationDeps {
    * only actual enum/struct/bitmap declarations capture the name.
    */
   isScopeType: (qualifiedName: string) => boolean;
-}
-
-/**
- * Common interface for type contexts that share the same type accessors.
- * Both TypeContext and ArrayTypeContext have these methods.
- */
-interface ITypeAccessors {
-  primitiveType(): Parser.PrimitiveTypeContext | null;
-  userType(): Parser.UserTypeContext | null;
-  stringType(): Parser.StringTypeContext | null;
-  scopedType(): Parser.ScopedTypeContext | null;
-  qualifiedType(): Parser.QualifiedTypeContext | null;
-  globalType(): Parser.GlobalTypeContext | null;
 }
 
 class TypeGenerationHelper {
