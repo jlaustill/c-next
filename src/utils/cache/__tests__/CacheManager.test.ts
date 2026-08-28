@@ -27,6 +27,7 @@ import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import TestScopeUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import TestSymbolUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testSymbolUtils";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -1014,15 +1015,15 @@ describe("CacheManager", () => {
         isExported: true,
       });
       symbolTable.addTSymbol({
-        name: "cnextFunction",
-        kind: "function",
-        sourceFile: headerFile,
-        sourceLine: 2,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "cnextFunction",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: headerFile,
+          sourceLine: 2,
+        }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
       } as IFunctionSymbol);

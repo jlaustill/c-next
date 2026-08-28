@@ -16,6 +16,7 @@ import TypeUtils from "../utils/TypeUtils";
 import StringUtils from "../../../../../utils/StringUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import type TType from "../../../../types/TType";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 class VariableCollector {
   /**
@@ -213,6 +214,9 @@ class VariableCollector {
       kind: "variable",
       name,
       scope,
+      // #1285: identity computed once, from the scope chain, not
+      // re-derived by every consumer.
+      ...ScopeUtils.identityOf({ name, scope }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

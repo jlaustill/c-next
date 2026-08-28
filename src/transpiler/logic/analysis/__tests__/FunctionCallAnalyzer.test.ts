@@ -13,6 +13,7 @@ import TestScopeUtils from "../../symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import CodeGenState from "../../../state/CodeGenState";
+import TestSymbolUtils from "../../symbols/cnext/__tests__/testSymbolUtils";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -691,15 +692,17 @@ describe("FunctionCallAnalyzer", () => {
       const tree = parse(code);
       const symbolTable = new SymbolTable();
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "cnextFunc",
-        sourceFile: "module.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "cnextFunc",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "module.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
       } as IFunctionSymbol);

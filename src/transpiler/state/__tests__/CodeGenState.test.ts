@@ -11,6 +11,7 @@ import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
 import TestScopeUtils from "../../logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
+import TestSymbolUtils from "../../logic/symbols/cnext/__tests__/testSymbolUtils";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -19,13 +20,15 @@ function createCNextVariableSymbol(
   overrides: Partial<IVariableSymbol> & { name: string },
 ): IVariableSymbol {
   return {
-    kind: "variable",
-    name: overrides.name,
-    sourceFile: overrides.sourceFile ?? "test.cnx",
-    sourceLine: overrides.sourceLine ?? 1,
-    sourceLanguage: ESourceLanguage.CNext,
-    isExported: overrides.isExported ?? false,
-    scope: overrides.scope ?? TestScopeUtils.createMockGlobalScope(),
+    ...TestSymbolUtils.base({
+      kind: "variable",
+      name: overrides.name,
+      scope: overrides.scope ?? TestScopeUtils.createMockGlobalScope(),
+      sourceFile: overrides.sourceFile ?? "test.cnx",
+      sourceLine: overrides.sourceLine ?? 1,
+      sourceLanguage: ESourceLanguage.CNext,
+      isExported: overrides.isExported ?? false,
+    }),
     type: overrides.type ?? TTypeUtils.createPrimitive("u32"),
     isConst: overrides.isConst ?? false,
     isVolatile: overrides.isVolatile ?? false,
