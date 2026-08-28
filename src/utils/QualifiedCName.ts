@@ -46,6 +46,25 @@ class QualifiedCName {
   }
 
   /**
+   * Build the SOURCE-language qualified name from its components, outermost
+   * first — `Outer.Inner.tick`, the way a C-Next author would write it.
+   *
+   * The counterpart to join(). The two namespaces are separate on purpose:
+   * `Outer__Inner__tick` is what the C compiler sees, `Outer.Inner.tick` is what
+   * the author typed, and neither is derivable from the other at a call site
+   * without knowing which one it already holds. A diagnostic wants this one; a
+   * lookup key wants join().
+   *
+   * @param components Ordered name parts, e.g. ["Motor", "State", "IDLE"]
+   * @returns The source spelling, e.g. "Motor.State.IDLE"
+   */
+  static joinSource(...components: (string | undefined | null)[]): string {
+    return QualifiedCName.toParts(components).join(
+      QualifiedCName.SOURCE_SEPARATOR,
+    );
+  }
+
+  /**
    * Split a qualified C name back into its components.
    *
    * Exact inverse of join() for names built from ADR-063-conformant identifiers.

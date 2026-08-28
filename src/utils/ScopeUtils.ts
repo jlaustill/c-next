@@ -36,10 +36,19 @@ class ScopeUtils {
       sourceLine: 0,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
+      // Patched below: identityOf walks the scope chain, and the chain is not
+      // complete until the self-references are set.
+      fullyQualifiedCName: "",
+      cnxScopedName: "",
     };
     // Set self-references for global scope
     (global as unknown as { parent: IScopeSymbol }).parent = global;
     (global as unknown as { scope: IScopeSymbol }).scope = global;
+    // #1285: computed through the same encoder as every other symbol rather than
+    // hardcoded, so the global scope cannot become the one symbol whose identity
+    // was derived a second way. Both resolve to "" -- it has no name and no
+    // outer scope -- which is what makes a global symbol keep its bare name.
+    Object.assign(global, ScopeUtils.identityOf(global));
     return global;
   }
 
@@ -54,6 +63,10 @@ class ScopeUtils {
       name,
       parent,
       scope: parent, // Scope's containing scope is its parent
+      // #1285: a nested scope's own identity comes from its parent chain, so
+      // `Inner` inside `Outer` is `Outer__Inner` without any site knowing how
+      // deep it sits.
+      ...ScopeUtils.identityOf({ name, scope: parent }),
       members: [],
       functions: [],
       variables: [],
@@ -181,6 +194,48 @@ class ScopeUtils {
       ...ScopeUtils.getScopePath(symbol.scope),
       symbol.name,
     );
+  }
+
+  /**
+   * Build the SOURCE-language qualified name for a symbol from its scope chain.
+   *
+   * `Motor.init`, `Outer.Inner.process`, and the bare name for a global symbol --
+   * the spelling a C-Next author would recognize. The counterpart to
+   * getTranspiledCName, which builds the identifier the C compiler sees.
+   *
+   * Walks the same parent chain, for the same reason: reading `scope.name` alone
+   * drops every outer scope.
+   */
+  static getCnxScopedName(symbol: {
+    name: string;
+    scope: IScopeSymbol;
+  }): string {
+    return QualifiedCName.joinSource(
+      ...ScopeUtils.getScopePath(symbol.scope),
+      symbol.name,
+    );
+  }
+
+  /**
+   * Both qualified names for a symbol, computed together.
+   *
+   * Returned as a pair rather than as two separate calls so a construction site
+   * cannot produce half an identity. Setting one and forgetting the other leaves
+   * a symbol whose C name and source name disagree about where it lives, which
+   * is the shape of defect this whole line of work exists to remove.
+   *
+   * Spread into every C-Next symbol literal, so both names are a property of the
+   * symbol from the moment it exists rather than something each consumer
+   * re-derives from `scope`.
+   */
+  static identityOf(symbol: { name: string; scope: IScopeSymbol }): {
+    fullyQualifiedCName: string;
+    cnxScopedName: string;
+  } {
+    return {
+      fullyQualifiedCName: ScopeUtils.getTranspiledCName(symbol),
+      cnxScopedName: ScopeUtils.getCnxScopedName(symbol),
+    };
   }
 }
 

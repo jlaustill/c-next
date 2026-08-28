@@ -17,6 +17,7 @@ import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TestScopeUtils from "./testUtils";
+import TestSymbolUtils from "./testSymbolUtils";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution
@@ -25,13 +26,15 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert structs", () => {
     it("should populate knownStructs set", () => {
       const struct: IStructSymbol = {
-        kind: "struct",
-        name: "Point",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "Point",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map([
           [
             "x",
@@ -65,13 +68,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate structFields map", () => {
       const struct: IStructSymbol = {
-        kind: "struct",
-        name: "Point",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "Point",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map([
           [
             "x",
@@ -106,13 +111,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate structFieldArrays for array fields", () => {
       const struct: IStructSymbol = {
-        kind: "struct",
-        name: "Buffer",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "Buffer",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map([
           [
             "data",
@@ -148,13 +155,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate structFieldDimensions for array fields", () => {
       const struct: IStructSymbol = {
-        kind: "struct",
-        name: "Matrix",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "Matrix",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map([
           [
             "values",
@@ -182,13 +191,15 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert enums", () => {
     it("should populate knownEnums set", () => {
       const enumSym: IEnumSymbol = {
-        kind: "enum",
-        name: "Color",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "enum",
+          name: "Color",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         members: new Map([
           ["Red", 0],
           ["Green", 1],
@@ -203,13 +214,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate enumMembers map", () => {
       const enumSym: IEnumSymbol = {
-        kind: "enum",
-        name: "Priority",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "enum",
+          name: "Priority",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         members: new Map([
           ["LOW", 0],
           ["MEDIUM", 1],
@@ -228,13 +241,15 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert bitmaps", () => {
     it("should populate knownBitmaps set", () => {
       const bitmap: IBitmapSymbol = {
-        kind: "bitmap",
-        name: "Status",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "bitmap",
+          name: "Status",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         backingType: "uint8_t",
         bitWidth: 8,
         fields: new Map([["enabled", { offset: 0, width: 1 }]]),
@@ -247,13 +262,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate bitmapBackingType and bitmapBitWidth", () => {
       const bitmap: IBitmapSymbol = {
-        kind: "bitmap",
-        name: "Control",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "bitmap",
+          name: "Control",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         backingType: "uint16_t",
         bitWidth: 16,
         fields: new Map([
@@ -271,13 +288,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate bitmapFields with offset and width", () => {
       const bitmap: IBitmapSymbol = {
-        kind: "bitmap",
-        name: "Flags",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "bitmap",
+          name: "Flags",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         backingType: "uint8_t",
         bitWidth: 8,
         fields: new Map([
@@ -360,13 +379,15 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert registers", () => {
     it("should populate knownRegisters set", () => {
       const register: IRegisterSymbol = {
-        kind: "register",
-        name: "GPIO",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "register",
+          name: "GPIO",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         baseAddress: "0x40000000",
         members: new Map([
           ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
@@ -380,13 +401,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate registerBaseAddresses", () => {
       const register: IRegisterSymbol = {
-        kind: "register",
-        name: "UART",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "register",
+          name: "UART",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         baseAddress: "0x40001000",
         members: new Map([
           ["TX", { offset: "0x00", cType: "u32", access: "wo" }],
@@ -400,13 +423,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should populate register member info maps", () => {
       const register: IRegisterSymbol = {
-        kind: "register",
-        name: "SPI",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "register",
+          name: "SPI",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         baseAddress: "0x40002000",
         members: new Map([
           ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
@@ -426,26 +451,30 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should track bitmap types for register members", () => {
       const bitmap: IBitmapSymbol = {
-        kind: "bitmap",
-        name: "StatusFlags",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "bitmap",
+          name: "StatusFlags",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         backingType: "uint8_t",
         bitWidth: 8,
         fields: new Map([["ready", { offset: 0, width: 1 }]]),
       };
 
       const register: IRegisterSymbol = {
-        kind: "register",
-        name: "CTRL",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "register",
+          name: "CTRL",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         baseAddress: "0x40003000",
         members: new Map([
           [
@@ -472,13 +501,15 @@ describe("TSymbolInfoAdapter", () => {
       // Create a scoped variable with bare name and scope reference
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
-        kind: "variable",
-        name: "MAX_SPEED", // Bare name - adapter computes transpiled C name
-        scope: motorScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false, // private
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "MAX_SPEED", // Bare name - adapter computes transpiled C name,
+          scope: motorScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false, // private,
+        }),
         type: TypeResolver.resolve("u32"),
         isConst: true,
         isAtomic: false,
@@ -496,13 +527,15 @@ describe("TSymbolInfoAdapter", () => {
     it("should not track public const values", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
-        kind: "variable",
-        name: "PUBLIC_CONST", // Bare name - adapter computes transpiled C name
-        scope: motorScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true, // public
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "PUBLIC_CONST", // Bare name - adapter computes transpiled C name,
+          scope: motorScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true, // public,
+        }),
         type: TypeResolver.resolve("u32"),
         isConst: true,
         isAtomic: false,
@@ -521,13 +554,15 @@ describe("TSymbolInfoAdapter", () => {
     it("should not track non-const private values", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
-        kind: "variable",
-        name: "counter", // Bare name - adapter computes transpiled C name
-        scope: motorScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "counter", // Bare name - adapter computes transpiled C name,
+          scope: motorScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false,
+        }),
         type: TypeResolver.resolve("u32"),
         isConst: false, // not const
         isAtomic: false,
@@ -544,13 +579,15 @@ describe("TSymbolInfoAdapter", () => {
       // Issue #500: Array consts must be emitted, not inlined
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
-        kind: "variable",
-        name: "LOOKUP_TABLE", // Bare name - adapter computes transpiled C name
-        scope: motorScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "LOOKUP_TABLE", // Bare name - adapter computes transpiled C name,
+          scope: motorScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false,
+        }),
         type: TypeResolver.resolve("u16"),
         isConst: true,
         isAtomic: false,
@@ -572,13 +609,15 @@ describe("TSymbolInfoAdapter", () => {
       // Issue #500: Multi-dimensional arrays must also be emitted
       const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
-        kind: "variable",
-        name: "MATRIX", // Bare name - adapter computes transpiled C name
-        scope: motorScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "MATRIX", // Bare name - adapter computes transpiled C name,
+          scope: motorScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false,
+        }),
         type: TypeResolver.resolve("u8"),
         isConst: true,
         isAtomic: false,
@@ -674,13 +713,15 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should preserve all other fields unchanged", () => {
       const struct: IStructSymbol = {
-        kind: "struct",
-        name: "Point",
-        scope: globalScope,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "Point",
+          scope: globalScope,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map([
           [
             "x",
@@ -719,13 +760,15 @@ describe("TSymbolInfoAdapter", () => {
 
       const symbols = [
         {
-          kind: "struct",
-          name: "Point",
-          scope: globalScope,
-          sourceFile: "test.cnx",
-          sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          ...TestSymbolUtils.base({
+            kind: "struct",
+            name: "Point",
+            scope: globalScope,
+            sourceFile: "test.cnx",
+            sourceLine: 1,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+          }),
           fields: new Map([
             [
               "x",
@@ -741,13 +784,15 @@ describe("TSymbolInfoAdapter", () => {
           ]),
         } as IStructSymbol,
         {
-          kind: "enum",
-          name: "Color",
-          scope: globalScope,
-          sourceFile: "test.cnx",
-          sourceLine: 5,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          ...TestSymbolUtils.base({
+            kind: "enum",
+            name: "Color",
+            scope: globalScope,
+            sourceFile: "test.cnx",
+            sourceLine: 5,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+          }),
           members: new Map([
             ["Red", 0],
             ["Green", 1],
@@ -755,14 +800,16 @@ describe("TSymbolInfoAdapter", () => {
         } as IEnumSymbol,
         motorScope,
         {
-          kind: "function",
-          name: "main",
-          scope: globalScope,
+          ...TestSymbolUtils.base({
+            kind: "function",
+            name: "main",
+            scope: globalScope,
+            sourceFile: "test.cnx",
+            sourceLine: 15,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+          }),
           body: null,
-          sourceFile: "test.cnx",
-          sourceLine: 15,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
           returnType: TypeResolver.resolve("void"),
           visibility: "public",
           parameters: [],

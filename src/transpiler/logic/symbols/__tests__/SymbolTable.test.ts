@@ -15,6 +15,7 @@ import TestScopeUtils from "../cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
+import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
@@ -30,18 +31,20 @@ describe("SymbolTable", () => {
   describe("addTSymbol and getTSymbol", () => {
     it("should add and retrieve a TSymbol by name", () => {
       const symbol: IVariableSymbol = {
-        kind: "variable",
-        name: "myVar",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "myVar",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: TestScopeUtils.createMockGlobalScope(),
       };
 
       symbolTable.addTSymbol(symbol);
@@ -59,33 +62,37 @@ describe("SymbolTable", () => {
 
     it("should return first symbol when multiple exist with same name", () => {
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "duplicate",
-        sourceFile: "first.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "duplicate",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "first.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: TestScopeUtils.createMockGlobalScope(),
       });
 
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "duplicate",
-        sourceFile: "second.cnx",
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "duplicate",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "second.cnx",
+          sourceLine: 5,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: TestScopeUtils.createMockGlobalScope(),
       });
 
       const retrieved = symbolTable.getTSymbol("duplicate");
@@ -97,32 +104,36 @@ describe("SymbolTable", () => {
     it("should add multiple TSymbols at once", () => {
       const symbols: TSymbol[] = [
         {
-          kind: "variable",
-          name: "var1",
-          sourceFile: "test.cnx",
-          sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          ...TestSymbolUtils.base({
+            kind: "variable",
+            name: "var1",
+            scope: TestScopeUtils.createMockGlobalScope(),
+            sourceFile: "test.cnx",
+            sourceLine: 1,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+          }),
           type: TTypeUtils.createPrimitive("u32"),
           isArray: false,
           isConst: false,
           isAtomic: false,
           isVolatile: false,
-          scope: TestScopeUtils.createMockGlobalScope(),
         },
         {
-          kind: "variable",
-          name: "var2",
-          sourceFile: "test.cnx",
-          sourceLine: 2,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          ...TestSymbolUtils.base({
+            kind: "variable",
+            name: "var2",
+            scope: TestScopeUtils.createMockGlobalScope(),
+            sourceFile: "test.cnx",
+            sourceLine: 2,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+          }),
           type: TTypeUtils.createPrimitive("i32"),
           isArray: false,
           isConst: false,
           isAtomic: false,
           isVolatile: false,
-          scope: TestScopeUtils.createMockGlobalScope(),
         },
       ];
 
@@ -194,18 +205,20 @@ describe("SymbolTable", () => {
   describe("getAllSymbols", () => {
     it("should return symbols from all languages", () => {
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "cnextVar",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "cnextVar",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: TestScopeUtils.createMockGlobalScope(),
       });
 
       symbolTable.addCSymbol({
@@ -236,15 +249,17 @@ describe("SymbolTable", () => {
   describe("getOverloads", () => {
     it("should return overloads from all languages", () => {
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "process",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "process",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
       } as IFunctionSymbol);
@@ -274,15 +289,17 @@ describe("SymbolTable", () => {
   describe("hasConflict", () => {
     it("should detect cross-language conflicts between C-Next and C", () => {
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "conflictFunc",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "conflictFunc",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
       } as IFunctionSymbol);
@@ -338,34 +355,38 @@ describe("SymbolTable", () => {
 
       // Add 'enabled' variable in scope Foo
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "enabled",
-        sourceFile: "test.cnx",
-        sourceLine: 2,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "enabled",
+          scope: fooScope,
+          sourceFile: "test.cnx",
+          sourceLine: 2,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false,
+        }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: fooScope,
       });
 
       // Add 'enabled' variable in scope Bar
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "enabled",
-        sourceFile: "test.cnx",
-        sourceLine: 10,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "enabled",
+          scope: barScope,
+          sourceFile: "test.cnx",
+          sourceLine: 10,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false,
+        }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: barScope,
       });
 
       // These are NOT conflicts - they generate Foo_enabled and Bar_enabled
@@ -380,30 +401,34 @@ describe("SymbolTable", () => {
 
       // Add 'initialize' function in scope Foo
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "initialize",
-        sourceFile: "test.cnx",
-        sourceLine: 4,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "initialize",
+          scope: fooScope,
+          sourceFile: "test.cnx",
+          sourceLine: 4,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
-        scope: fooScope,
         visibility: "public",
         body: null,
       } as IFunctionSymbol);
 
       // Add 'initialize' function in scope Bar
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "initialize",
-        sourceFile: "test.cnx",
-        sourceLine: 12,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "initialize",
+          scope: barScope,
+          sourceFile: "test.cnx",
+          sourceLine: 12,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
-        scope: barScope,
         visibility: "public",
         body: null,
       } as IFunctionSymbol);
@@ -419,33 +444,37 @@ describe("SymbolTable", () => {
 
       // Add 'duplicate' variable in scope Foo twice
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "duplicate",
-        sourceFile: "test.cnx",
-        sourceLine: 2,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "duplicate",
+          scope: fooScope,
+          sourceFile: "test.cnx",
+          sourceLine: 2,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false,
+        }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: fooScope,
       });
 
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "duplicate",
-        sourceFile: "test.cnx",
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: false,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "duplicate",
+          scope: fooScope,
+          sourceFile: "test.cnx",
+          sourceLine: 5,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: false,
+        }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: fooScope,
       });
 
       // Same name in SAME scope IS a conflict
@@ -458,33 +487,37 @@ describe("SymbolTable", () => {
 
       // Add two global variables with same name
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "globalVar",
-        sourceFile: "first.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "globalVar",
+          scope: globalScope,
+          sourceFile: "first.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: globalScope,
       });
 
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "globalVar",
-        sourceFile: "second.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "globalVar",
+          scope: globalScope,
+          sourceFile: "second.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: globalScope,
       });
 
       // Two globals with same name IS a conflict
@@ -500,15 +533,17 @@ describe("SymbolTable", () => {
       // Add C-Next scoped function 'read' in scope 'Touch'
       // This transpiles to Touch_read()
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "read",
-        sourceFile: "touch.cnx",
-        sourceLine: 28,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "read",
+          scope: touchScope,
+          sourceFile: "touch.cnx",
+          sourceLine: 28,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("u8"),
         parameters: [],
-        scope: touchScope,
         visibility: "public",
         body: null,
       } as IFunctionSymbol);
@@ -540,15 +575,17 @@ describe("SymbolTable", () => {
 
       // Add global C-Next function 'read'
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "read",
-        sourceFile: "utils.cnx",
-        sourceLine: 5,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "read",
+          scope: globalScope,
+          sourceFile: "utils.cnx",
+          sourceLine: 5,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("u8"),
         parameters: [],
-        scope: globalScope,
         visibility: "public",
         body: null,
       } as IFunctionSymbol);
@@ -577,29 +614,33 @@ describe("SymbolTable", () => {
   describe("type-safe queries", () => {
     it("getStructSymbols should return only struct symbols", () => {
       symbolTable.addTSymbol({
-        kind: "struct",
-        name: "MyStruct",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "struct",
+          name: "MyStruct",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         fields: new Map(),
-        scope: TestScopeUtils.createMockGlobalScope(),
       } as IStructSymbol);
 
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "myVar",
-        sourceFile: "test.cnx",
-        sourceLine: 2,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "myVar",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 2,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: TestScopeUtils.createMockGlobalScope(),
       });
 
       const structs = symbolTable.getStructSymbols();
@@ -609,14 +650,16 @@ describe("SymbolTable", () => {
 
     it("getEnumSymbols should return only enum symbols", () => {
       symbolTable.addTSymbol({
-        kind: "enum",
-        name: "MyEnum",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "enum",
+          name: "MyEnum",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         members: new Map([["VALUE1", 0]]),
-        scope: TestScopeUtils.createMockGlobalScope(),
       } as IEnumSymbol);
 
       const enums = symbolTable.getEnumSymbols();
@@ -626,15 +669,17 @@ describe("SymbolTable", () => {
 
     it("getFunctionSymbols should return only function symbols", () => {
       symbolTable.addTSymbol({
-        kind: "function",
-        name: "myFunc",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "myFunc",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
-        scope: TestScopeUtils.createMockGlobalScope(),
         visibility: "public",
         body: null,
       } as IFunctionSymbol);
@@ -989,18 +1034,20 @@ describe("SymbolTable", () => {
   describe("clear", () => {
     it("should clear all symbols", () => {
       symbolTable.addTSymbol({
-        kind: "variable",
-        name: "test",
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-        sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "test",
+          scope: TestScopeUtils.createMockGlobalScope(),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
         isConst: false,
         isAtomic: false,
         isVolatile: false,
-        scope: TestScopeUtils.createMockGlobalScope(),
       });
 
       symbolTable.addStructField("Point", "x", "int");

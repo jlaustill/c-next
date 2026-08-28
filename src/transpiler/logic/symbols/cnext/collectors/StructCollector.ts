@@ -13,6 +13,7 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /**
  * Result of processing an arrayType syntax context.
@@ -167,6 +168,9 @@ class StructCollector {
       kind: "struct",
       name,
       scope,
+      // #1285: identity computed once, from the scope chain, not
+      // re-derived by every consumer.
+      ...ScopeUtils.identityOf({ name, scope }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

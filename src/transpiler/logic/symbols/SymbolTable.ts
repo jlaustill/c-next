@@ -24,7 +24,6 @@ import IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../utils/TypeResolver";
-import ScopeUtils from "../../../utils/ScopeUtils";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -162,10 +161,12 @@ class SymbolTable {
    * Add a C-Next TSymbol to the table
    */
   addTSymbol(symbol: TSymbol): void {
-    // The canonical-identity key uses the same encoder codegen uses to build
-    // the name it will later look up, so the two cannot drift. Computed once
-    // and handed to registerStructFields rather than derived again there.
-    const cName = ScopeUtils.getTranspiledCName(symbol);
+    // #1285: read the identity the symbol was built with rather than deriving
+    // it again. The symbol and its index key can no longer disagree, because
+    // there is no second derivation to disagree with -- previously this called
+    // the encoder a second time and stayed correct only because it happened to
+    // be the same encoder.
+    const cName = symbol.fullyQualifiedCName;
 
     SymbolTable.appendToIndex(this.tSymbols, symbol.name, symbol);
     SymbolTable.appendToIndex(this.tSymbolsByCName, cName, symbol);
@@ -780,11 +781,11 @@ class SymbolTable {
           const locations = symbols.map(
             (s) => `${s.sourceFile}:${s.sourceLine}`,
           );
-          const scopeName = symbols[0].scope.name;
-          const displayName =
-            scopeName === ""
-              ? symbols[0].name
-              : `${scopeName}.${symbols[0].name}`;
+          // #1285: the symbol's own source-language name. This was built here
+          // by hand from `scope.name`, which is the leaf -- at depth two it
+          // reported `Inner.tick` for a symbol the author writes as
+          // `Outer.Inner.tick`.
+          const displayName = symbols[0].cnxScopedName;
           return {
             symbolName: displayName,
             definitions: symbols,
@@ -820,8 +821,11 @@ class SymbolTable {
 
     for (const def of symbols) {
       const tSymbol = def as TSymbol;
-      const scopeName = tSymbol.scope.name;
-      const key = `${scopeName}:${tSymbol.kind}`;
+      // #1285: key on the scope's own identity, not its leaf name. Two distinct
+      // scopes can share a leaf (`Outer.Inner` and `Other.Inner`), and keying on
+      // the leaf grouped their members together -- reporting a conflict between
+      // symbols that never shared a scope.
+      const key = `${tSymbol.scope.fullyQualifiedCName}:${tSymbol.kind}`;
       const existing = byScopeAndKind.get(key);
       if (existing) {
         existing.push(tSymbol);
