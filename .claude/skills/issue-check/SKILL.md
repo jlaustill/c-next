@@ -86,6 +86,38 @@ EXTRACT issue numbers from branch names (e.g., "origin/fix/525-parser-bug" → #
 ADD to IN_FLIGHT_ISSUES if not already tracked
 ```
 
+#### 1d: Board State (REQUIRED — the board holds facts no label carries)
+
+Where an issue sits, what is blocking it, and which release it ships in live on the
+**project board**, not on labels. See [`docs/WORKFLOW.md`](../../../docs/WORKFLOW.md).
+
+```bash
+# --paginate is REQUIRED: the board is past 200 items, and a bare
+# items(first: 100) truncates silently — every card past the first page
+# reads as "not on the board" — no blocker, no status, no sprint.
+gh api graphql --paginate -f query='
+query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
+  items(first: 100, after: $endCursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+    content { ... on Issue { number } }
+    fieldValues(first: 20) { nodes {
+      ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } }
+      ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2FieldCommon { name } } } } }
+  } } } } }' \
+  --jq '.data.user.projectV2.items.nodes[] | select(.content.number != null) |
+        "\(.content.number)\t\([.fieldValues.nodes[]|select(.field.name=="Status")|.name][0] // "-")\t\([.fieldValues.nodes[]|select(.field.name=="Blocked by")|.text][0] // "")"'
+```
+
+```
+STORE per issue: BOARD_STATUS, BLOCKED_BY
+
+IF the query fails (needs `gh auth refresh -s project`):
+  SAY SO EXPLICITLY and stop — do not fall back to label-only scoring and
+  present it as a recommendation. A ranking that silently ignores Blocked by
+  is worse than no ranking, because it looks authoritative.
+```
+
 ---
 
 ### Phase 2: Fetch Open Issues
@@ -97,9 +129,23 @@ gh issue list --state open --limit 50 --json number,title,labels,milestone,creat
 ```
 
 ```
+DETERMINE ACTIVE_MILESTONE = the open milestone with the most open issues
+  (this repo uses a milestone as its sprint — see docs/WORKFLOW.md, "Releases are issues")
+
 PARTITION issues into:
-  AVAILABLE_ISSUES = open issues NOT in IN_FLIGHT_ISSUES
   IN_FLIGHT_DISPLAY = open issues that ARE in IN_FLIGHT_ISSUES (for the report)
+
+  EXCLUDED = open issues, each with the reason, where any of:
+    - BLOCKED       BLOCKED_BY is non-empty       → name what blocks it
+    - GROOMING      BOARD_STATUS == "Grooming"    → not triaged; scope is still open
+    - EPIC          has the "epic" label          → a tracker, never picked up directly
+    - OUT_OF_SPRINT milestone != ACTIVE_MILESTONE → unless --all was passed
+
+  AVAILABLE_ISSUES = everything else
+
+DEFAULT: recommend only from ACTIVE_MILESTONE.
+ESCAPE HATCH: `/issue-check --all` drops the OUT_OF_SPRINT exclusion and ranks the
+  whole backlog. BLOCKED, GROOMING and EPIC are excluded in BOTH modes.
 ```
 
 ---
@@ -109,11 +155,11 @@ PARTITION issues into:
 Score each AVAILABLE_ISSUE using a weighted heuristic tuned to c-next's label taxonomy.
 Higher score = recommend first.
 
-**Note:** there are no `status:` labels. Where an issue sits, and what is blocking
-it, live on the project board as its `Status` and `Blocked by` fields — see
-[`docs/WORKFLOW.md`](../../../docs/WORKFLOW.md). This rubric scores labels only,
-so it does not read the board and will happily recommend blocked work; check the
-board before starting.
+**Note:** there are no `status:` labels. Where an issue sits, what blocks it, and
+which release it ships in live on the project board — read in Phase 1d and applied
+as *exclusions* in Phase 2, not as score. By the time an issue reaches this rubric it
+is already known unblocked, triaged, and in the active sprint. Scoring only ranks
+what can actually be started.
 
 #### Scoring Rubric
 
@@ -130,18 +176,22 @@ FOR each available issue, compute SCORE:
     "test-coverage"                       → +10
     "good first issue"                    → +8
     "documentation"                       → +5
+    "tech-debt"                           → +15   (architecture/duplicate-path work)
+    "interop"                             → +12
     "priority: low"                       → +3
     "question"                            → +2
-    "wontfix" / "test-blocked"            → -100 (skip — see Anti-Patterns)
+    "epic" / "wontfix" / "test-blocked"   → -100 (skip — see Anti-Patterns)
+    "duplicate" / "invalid"               → -100 (skip)
 
-  MILESTONE PROXIMITY (0-20 points):
-    Has milestone with due date:
-      Due within 7 days                   → +20
-      Due within 30 days                  → +15
-      Due within 90 days                  → +10
-      Overdue                             → +25
-    Has milestone without due date        → +5
+  SPRINT MEMBERSHIP (0-30 points):
+    In ACTIVE_MILESTONE                   → +30
+    In a different open milestone         → +5
     No milestone                          → +0
+
+    Due dates are NOT scored. This repo does not set them — the milestone names
+    the release, and the board status says where the work is. Scoring proximity to
+    a date nobody sets gave every issue in a milestone an identical +5, which made
+    sprint membership a rounding error.
 
   COMMUNITY SIGNAL (0-15 points):
     Comment count:
@@ -150,11 +200,12 @@ FOR each available issue, compute SCORE:
       2-4 comments                        → +5
       0-1 comments                        → +0
 
-  AGE (0-15 points):
-    Older issues get slight priority (avoid stale backlog):
-      > 6 months old                      → +15
-      3-6 months old                      → +10
-      1-3 months old                      → +5
+  AGE (0-5 points):
+    A mild nudge against stale backlog — deliberately too small to outrank
+    sprint membership, which it used to do 3:1.
+      > 6 months old                      → +5
+      3-6 months old                      → +3
+      1-3 months old                      → +2
       < 1 month old                       → +0
 
   ESTIMATED COMPLEXITY (0-10 points):
@@ -191,6 +242,24 @@ Output a clear, actionable report.
 These issues are excluded from recommendations to avoid conflicts.
 ```
 
+#### Excluded by the Board
+
+Always print this, even when empty. A card skipped silently reads as a card that
+does not exist, and the reason it was skipped is usually the useful part.
+
+```
+## Not Recommended Yet
+
+| Issue | Reason | Detail |
+|-------|--------|--------|
+| #1322 | Blocked | #1316, #1321 |
+| #1318 | Blocked | #1285 (PR5-PR7) |
+| #1313 | Epic    | tracker; closes when its children do |
+| #1330 | Grooming | not triaged — scope still open |
+
+Ranking below covers <ACTIVE_MILESTONE> only. Run `/issue-check --all` for the full backlog.
+```
+
 #### Top Recommendations
 
 ```
@@ -199,6 +268,7 @@ These issues are excluded from recommendations to avoid conflicts.
 **Score**: <N>/100
 **Type**: <bug|validation-bug|enhancement|feature|docs|test-coverage>
 **Domain**: <parser|code-generator|types|scope|safety|MISRA|... if labeled>
+**Board**: <BOARD_STATUS> · <milestone> · unblocked
 **Why this one**:
   - <reason 1: e.g., "priority: high + bug — correctness over convenience">
   - <reason 2: e.g., "bug label — correctness over convenience">
@@ -356,6 +426,24 @@ IF a recommended issue shares a DOMAIN label (parser, code-generator, types, sco
          There's some conflict risk. Proceed carefully or pick another."
 ```
 
+### Blocked Work and Sequencing
+
+```
+`Blocked by` is free text, not a link — it may name a whole issue ("#1285"), a
+specific slice of one ("#1285 PR5 - do PR5 first"), or a pending decision.
+
+NEVER recommend an issue with a non-empty `Blocked by`. Report it under
+"Not Recommended Yet" with the blocker named, so the user can see the chain.
+
+IF every issue in the active milestone is blocked:
+  SAY SO, and name the root blockers — that set IS the recommendation.
+  "Everything in <milestone> is blocked on #<a> and #<b>. Those are the work."
+
+IF a blocker is itself finished but the field was never cleared:
+  FLAG it rather than silently ignoring the field. A stale `Blocked by` is a bug
+  in the board, and clearing it is a one-line fix that unblocks real work.
+```
+
 ### Stale Issues
 
 ```
@@ -381,7 +469,11 @@ IF no open issues exist:
 - **DO NOT** work around a c-next bug downstream — fix it upstream in the transpiler
 - **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit ADR approval
 - **DO NOT** forget to update the GitHub issue as work progresses
-- **DO NOT** pick issues labeled "test-blocked" or "wontfix"
+- **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
+- **DO NOT** recommend an issue with a non-empty `Blocked by`, or one sitting in `Grooming`
+- **DO NOT** fall back to label-only scoring when the board query fails — say it failed
+  and stop; a ranking that ignores `Blocked by` looks authoritative and is not
+- **DO NOT** widen past the active milestone without `--all` — the milestone is the sprint
 - **DO NOT** assume issue type from title alone — check labels and body content
 - **DO NOT** propose massive refactors as "quick fixes" — scope work to the issue
 - **DO NOT** squash-merge — always use a merge commit
