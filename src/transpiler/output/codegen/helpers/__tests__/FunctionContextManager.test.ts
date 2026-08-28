@@ -9,6 +9,7 @@ import FunctionContextManager from "../FunctionContextManager.js";
 import UNRESOLVED_DIMENSION from "../../../../constants/UNRESOLVED_DIMENSION";
 import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
+import TestTypeAccessors from "../../../../types/__testUtils__/testTypeAccessors";
 
 /**
  * Helper to set up CodeGenState.symbols with minimal fields.
@@ -577,11 +578,10 @@ describe("FunctionContextManager", () => {
         scopedType: () => null,
         globalType: () => null,
         stringType: () => null,
-        arrayType: () => ({
-          primitiveType: () => ({ getText: () => "u8" }),
-          userType: () => null,
-          stringType: () => null,
-        }),
+        arrayType: () =>
+          TestTypeAccessors.create({
+            primitiveType: () => ({ getText: () => "u8" }) as never,
+          }),
         getText: () => "u8[10]",
       } as never;
 
@@ -606,11 +606,10 @@ describe("FunctionContextManager", () => {
         scopedType: () => null,
         globalType: () => null,
         stringType: () => null,
-        arrayType: () => ({
-          primitiveType: () => null,
-          userType: () => ({ getText: () => "Point" }),
-          stringType: () => null,
-        }),
+        arrayType: () =>
+          TestTypeAccessors.create({
+            userType: () => ({ getText: () => "Point" }) as never,
+          }),
         getText: () => "Point[5]",
       } as never;
 
@@ -632,13 +631,10 @@ describe("FunctionContextManager", () => {
         scopedType: () => null,
         globalType: () => null,
         stringType: () => null,
-        arrayType: () => ({
-          primitiveType: () => null,
-          userType: () => null,
-          stringType: () => ({
-            getText: () => "string<32>",
+        arrayType: () =>
+          TestTypeAccessors.create({
+            stringType: () => ({ getText: () => "string<32>" }) as never,
           }),
-        }),
         getText: () => "string<32>[5]",
       } as never;
 

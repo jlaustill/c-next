@@ -1,0 +1,52 @@
+// Issue #1285 (PR4): getZeroInitializer resolved a bare `userType()` WITHOUT
+// ADR-057 scope qualification, so `knownEnums.has("Mode")` missed the
+// scope-local `S.Mode` and fell back to the aggregate zero brace. The
+// DECLARATION `S__Mode ...` was qualified correctly by a different derivation
+// of the same name -- two derivations of one name, one of them wrong, which is
+// #1285 itself.
+//
+// ADR-017: an enum zero-initializes to its zero-valued member, or to its first
+// member when none is zero. Before the fix this file emitted
+//   S__Mode S__firstMemberWins = {0};
+// which is not the ADR-017 form, and whose C++ spelling `= {0}` does not even
+// compile for an enum -- the C++ path escaped that only because
+// _getAggregateZeroInitBrace() happens to emit `{}` in C++ mode. Agreement by
+// coincidence, not by construction.
+//
+// This is a snapshot fixture rather than an execution one on purpose: E0381
+// rejects READING an uninitialized variable, so the wrong initializer can never
+// reach a comparison. The emitted C is the artifact under test.
+
+enum GlobalMode {
+    GLOBAL_FIRST <- 7,
+    GLOBAL_SECOND <- 8
+}
+
+// Negative control: a global enum already resolved correctly. A fix that
+// qualified unconditionally would look up `S__GlobalMode`, find nothing, and
+// regress this line to the aggregate brace.
+GlobalMode globalControl;
+
+scope S {
+    enum Mode {
+        ALPHA <- 5,
+        BETA <- 6
+    }
+
+    enum Zeroed {
+        HIGH <- 9,
+        ZERO <- 0
+    }
+
+    // No member is 0, so ADR-017 selects the FIRST member.
+    Mode firstMemberWins;
+
+    // A member IS 0, so ADR-017 selects that member, not the first.
+    Zeroed zeroMemberWins;
+
+    void set() {
+        firstMemberWins <- Mode.BETA;
+        zeroMemberWins <- Zeroed.HIGH;
+        globalControl <- GlobalMode.GLOBAL_SECOND;
+    }
+}

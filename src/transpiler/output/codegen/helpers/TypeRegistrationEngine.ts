@@ -15,12 +15,11 @@ import CodeGenState from "../../../state/CodeGenState";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
-import QualifiedCName from "../../../../utils/QualifiedCName";
 import LiteralUtils from "../../../../utils/LiteralUtils";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
-import ScopeUtils from "../../../../utils/ScopeUtils";
+import TypeBinding from "../../../logic/symbols/TypeBinding";
 
 /**
  * Callbacks required for type registration.
@@ -157,46 +156,16 @@ class TypeRegistrationEngine {
     currentScope: IScopeSymbol | null,
     callbacks?: ITypeRegistrationCallbacks,
   ): string | null {
-    if (typeCtx.primitiveType()) {
-      return typeCtx.primitiveType()!.getText();
+    // #1285: one ladder. String and array types are still handled by the
+    // callers, which want a bit width alongside the name, so this asks only for
+    // the branches it previously spelled out.
+    if (typeCtx.stringType() || typeCtx.arrayType()) {
+      return null;
     }
-
-    if (typeCtx.scopedType()) {
-      // ADR-016: Handle this.Type for scoped types (e.g., this.State -> Motor_State)
-      const typeName = typeCtx.scopedType()!.IDENTIFIER().getText();
-      return currentScope
-        ? ScopeUtils.qualifyInScope(typeName, currentScope)
-        : typeName;
-    }
-
-    if (typeCtx.globalType()) {
-      // Issue #478: Handle global.Type for global types inside scope
-      return typeCtx.globalType()!.IDENTIFIER().getText();
-    }
-
-    if (typeCtx.qualifiedType()) {
-      // ADR-016: Handle Scope.Type from outside scope
-      // Issue #388: Also handles C++ namespace types when callback is provided
-      const identifiers = typeCtx.qualifiedType()!.IDENTIFIER();
-      const identifierNames = identifiers.map((id) => id.getText());
-
-      // Use callback if provided for C++ namespace support
-      if (callbacks?.resolveQualifiedType) {
-        return callbacks.resolveQualifiedType(identifierNames);
-      }
-      return QualifiedCName.join(...identifierNames);
-    }
-
-    if (typeCtx.userType()) {
-      const typeName = typeCtx.userType()!.getText();
-      // ADR-057: bare type name inside a scope — qualify if it's a scope type
-      return ScopeUtils.qualifyScopeType(typeName, currentScope, (qn) =>
-        CodeGenState.isScopeType(qn),
-      );
-    }
-
-    // String types and array types are handled separately
-    return null;
+    return TypeBinding.resolveName(typeCtx, currentScope, {
+      isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+      resolveQualifiedType: callbacks?.resolveQualifiedType,
+    });
   }
 
   // ============================================================================
@@ -482,41 +451,22 @@ class TypeRegistrationEngine {
   private static _extractArrayBaseTypeInfo(
     arrayTypeCtx: Parser.ArrayTypeContext,
   ): { baseType: string; bitWidth: number } {
-    if (arrayTypeCtx.primitiveType()) {
-      const baseType = arrayTypeCtx.primitiveType()!.getText();
-      return { baseType, bitWidth: TYPE_WIDTH[baseType] || 0 };
+    // A string element is registered by _registerStringArrayType before this is
+    // reached; an empty baseType tells the caller to skip registration, so the
+    // shared ladder must not resolve it to "string<N>" here.
+    if (arrayTypeCtx.stringType()) {
+      return { baseType: "", bitWidth: 0 };
     }
 
-    if (arrayTypeCtx.qualifiedType()) {
-      const parts = arrayTypeCtx.qualifiedType()!.IDENTIFIER();
-      return {
-        baseType: QualifiedCName.join(...parts.map((p) => p.getText())),
-        bitWidth: 0,
-      };
-    }
+    // #1285: one ladder. bitWidth is meaningful only for primitives -- a named
+    // type is absent from TYPE_WIDTH and yields 0, exactly as each named branch
+    // used to hardcode.
+    const baseType =
+      TypeBinding.resolveName(arrayTypeCtx, CodeGenState.currentScope, {
+        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+      }) ?? "";
 
-    if (arrayTypeCtx.scopedType()) {
-      const typeName = arrayTypeCtx.scopedType()!.IDENTIFIER().getText();
-      const baseType = CodeGenState.currentScope
-        ? ScopeUtils.qualifyInScope(typeName, CodeGenState.currentScope)
-        : typeName;
-      return { baseType, bitWidth: 0 };
-    }
-
-    if (arrayTypeCtx.globalType()) {
-      const typeName = arrayTypeCtx.globalType()!.IDENTIFIER().getText();
-      return { baseType: typeName, bitWidth: 0 };
-    }
-
-    if (arrayTypeCtx.userType()) {
-      // ADR-057: bare type name inside a scope — qualify if it's a scope type
-      const qualified = CodeGenState.qualifyScopeType(
-        arrayTypeCtx.userType()!.getText(),
-      );
-      return { baseType: qualified, bitWidth: 0 };
-    }
-
-    return { baseType: "", bitWidth: 0 };
+    return { baseType, bitWidth: TYPE_WIDTH[baseType] ?? 0 };
   }
 
   /**

@@ -28,10 +28,10 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Key case: const struct array with inferred size []
 // Header MUST generate: extern const ConstInferred_TItem ITEMS[3];
 // NOT: extern const ConstInferred_TItem ITEMS;  (this breaks cross-file compilation)
-const ConstInferred__TItem ITEMS[3] = {{ .id = 1, .value = 100 }, { .id = 2, .value = 200 }, { .id = 3, .value = 300 }};
+const ConstInferred__TItem ITEMS[3] = {{ .id = 1U, .value = 100U }, { .id = 2U, .value = 200U }, { .id = 3U, .value = 300U }};
 
 // Also test: non-const struct array with inferred size
-ConstInferred__TItem mutableItems[2] = {{ .id = 10, .value = 1000 }, { .id = 20, .value = 2000 }};
+ConstInferred__TItem mutableItems[2] = {{ .id = 10U, .value = 1000U }, { .id = 20U, .value = 2000U }};
 
 // Also test: const primitive array with inferred size
 const uint8_t SIZES[4] = {10U, 20U, 30U, 40U};
