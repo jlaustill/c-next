@@ -89,7 +89,7 @@ npm run typecheck
 **C-Next has transitioned from direct commits to main to a PR-based workflow.**
 
 **How work travels:** [`docs/WORKFLOW.md`](./docs/WORKFLOW.md) is the single
-source of truth for the project board — the six statuses, what moves a card
+source of truth for the project board — the seven statuses, what moves a card
 automatically, and what you move by hand. This guide covers how to write the
 change; that one covers how the change travels.
 

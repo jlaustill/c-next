@@ -7,7 +7,7 @@ assignees: jlaustill
 ---
 
 A release is work, so it gets managed as work. This issue is the unit of that
-work: it moves Backlog → WIP → Done like anything else. Set the milestone to the
+work: it moves Grooming → Backlog → WIP → Done like anything else. Set the milestone to the
 version being released — the milestone identifies _which_ release, so "Release"
 never needs to be a board status.
 

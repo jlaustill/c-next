@@ -37,11 +37,13 @@ const LINKED_REPOSITORIES = ["c-next", "vscode-c-next"] as const;
 const STATUS_FIELD = "Status";
 const BLOCKED_FIELD = "Blocked by";
 
+const GROOMING = "Grooming";
 const BACKLOG = "Backlog";
 const PR_REVIEW = "PR Review";
 
 /** Board order, left to right. Renames happen in the UI; this is the assertion. */
 const STATUS_OPTIONS = [
+  GROOMING,
   BACKLOG,
   "WIP",
   PR_REVIEW,
@@ -56,6 +58,7 @@ Finish the UI-only setup first (docs/WORKFLOW.md "Board setup"):
   1. Open the project's Settings, and under the ${STATUS_FIELD} field:
        rename "Todo"        -> "${BACKLOG}"
        rename "In Progress" -> "WIP"
+     ${GROOMING} is a new option, not a rename -- add it in step 2.
      Rename in place. Do not delete and recreate: renaming preserves the option
      ID, which is what the built-in workflows are bound to.
   2. Add the missing options so the full list, in board order, reads:
@@ -503,7 +506,9 @@ class SetupProject {
     let untouched = 0;
 
     for (const entry of content) {
-      const target = entry.kind === "issue" ? BACKLOG : PR_REVIEW;
+      // Seeded issues land in Grooming, the same column `project-sync.yml` gives a
+      // newly opened one. Seeding into Backlog would assert these were triaged.
+      const target = entry.kind === "issue" ? GROOMING : PR_REVIEW;
       const label = `${entry.repository}#${entry.number}`;
       let item = existing.get(entry.id);
 
