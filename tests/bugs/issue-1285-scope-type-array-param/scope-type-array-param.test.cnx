@@ -1,0 +1,79 @@
+// test-execution
+// Issue #1285 (PR4 review): FunctionContextManager.resolveParameterTypeInfo
+// resolved `arrayType().userType()` WITHOUT the ADR-057 qualification that the
+// bare `userType()` branch applied, so a scope-local type reached the parameter
+// registry as `Point` from `Point[4] p` and as `S__Point` from `Point p`.
+// `isStruct` followed the same split, because it was derived from whichever
+// name that branch happened to produce.
+//
+// The PR body argued no fixture could fail on this, from "zero corpus
+// movement". That is evidence no fixture REACHES the line, which is the
+// argument for adding one. This is that fixture: it exercises both element
+// kinds in array-parameter position, reads and writes struct fields through
+// them, and compares enum elements -- the paths that consume `typeName` and
+// `isStruct` downstream.
+
+scope S {
+    struct Point {
+        u32 x;
+        u32 y;
+    }
+
+    enum Mode {
+        ALPHA <- 5,
+        BETA <- 6
+    }
+
+    u32 sumThroughArrayParam(Point[2] points) {
+        return points[0].x + points[1].y;
+    }
+
+    u32 writeThroughArrayParam(Point[2] points) {
+        points[0].x <- 40;
+        points[1].y <- 2;
+        return points[0].x + points[1].y;
+    }
+
+    // Negative control: the scalar form was ALWAYS qualified. If a fix ever
+    // qualifies the array branch by a different route than the scalar one,
+    // these two stop agreeing.
+    u32 sumThroughScalarParam(Point point) {
+        return point.x + point.y;
+    }
+
+    u32 countBeta(Mode[3] modes) {
+        u32 total <- 0;
+        for (u32 i <- 0; i < 3; i <- i + 1) {
+            if (modes[i] = Mode.BETA) {
+                total <- total + 1;
+            }
+        }
+        return total;
+    }
+
+    // Driver lives inside the scope: Point and Mode are scope-private, which
+    // is itself why the array-parameter form has to qualify -- an unqualified
+    // `Point` would name nothing at file scope.
+    u32 runAll() {
+        Point[2] pair <- [{x: 10, y: 20}, {x: 30, y: 40}];
+        u32 sum <- sumThroughArrayParam(pair);
+        if (sum != 50) return 1;
+
+        u32 written <- writeThroughArrayParam(pair);
+        if (written != 42) return 2;
+
+        Point single <- {x: 3, y: 4};
+        u32 scalarSum <- sumThroughScalarParam(single);
+        if (scalarSum != 7) return 3;
+
+        Mode[3] modes <- [Mode.ALPHA, Mode.BETA, Mode.BETA];
+        u32 betaCount <- countBeta(modes);
+        if (betaCount != 2) return 4;
+
+        return 0;
+    }
+}
+
+u32 main() {
+    return S.runAll();
+}

@@ -254,11 +254,35 @@ class FunctionContextManager {
     // global branches, and `arrayType().userType()` skipped the ADR-057
     // qualification that the bare `userType()` branch applied -- `Mode[4] p`
     // and `Mode p` in the same scope resolved to different names.
+    const deps = {
+      isScopeType: (qualifiedName: string): boolean =>
+        CodeGenState.isScopeType(qualifiedName),
+      resolveQualifiedType: (parts: string[]): string =>
+        callbacks.resolveQualifiedType(parts),
+    };
+    const arrayTypeCtx = typeCtx.arrayType();
     const typeName =
-      TypeBinding.resolveName(typeCtx, CodeGenState.currentScope, {
-        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-        resolveQualifiedType: (parts) => callbacks.resolveQualifiedType(parts),
-      }) ?? typeCtx.getText();
+      TypeBinding.resolveNamedType(typeCtx, CodeGenState.currentScope, deps) ??
+      (arrayTypeCtx
+        ? TypeBinding.resolveNamedType(
+            arrayTypeCtx,
+            CodeGenState.currentScope,
+            deps,
+          )
+        : null);
+
+    // What is left is `templateType` and `void`. Neither is a symbol name, and
+    // querying knownStructs/callbackTypes with mangled template text
+    // (`FlexCAN_T4<CAN1,RX_SIZE_256,TX_SIZE_16>`) only fails to match by
+    // construction of those lookups rather than by intent.
+    if (typeName === null) {
+      return {
+        typeName: typeCtx.getText(),
+        isStruct: false,
+        isCallback: false,
+        isString: false,
+      };
+    }
 
     return {
       typeName,

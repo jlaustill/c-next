@@ -4487,22 +4487,19 @@ export default class CodeGenerator implements IOrchestrator {
   private _resolveTypeNameFromContext(
     typeCtx: Parser.TypeContext,
   ): { name: string; separator: string } | null {
-    // #1285: one ladder. The caller distinguishes named types from string,
-    // template and primitive types AFTER this returns null, so those keep
-    // falling through rather than being resolved here.
-    if (
-      typeCtx.stringType() ||
-      typeCtx.arrayType() ||
-      typeCtx.templateType() ||
-      typeCtx.primitiveType()
-    ) {
-      return null;
-    }
-
-    const name = TypeBinding.resolveName(typeCtx, CodeGenState.currentScope, {
-      isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-      resolveQualifiedType: (parts) => this.resolveQualifiedType(parts),
-    });
+    // #1285: ask for named types by name. Everything else -- string, array,
+    // template, primitive, `void` -- returns null and is handled by the
+    // caller's own chain, which is where it was always handled. An enumerated
+    // list of alternatives to SKIP would have to be kept in step with the
+    // grammar from ~3000 lines away, and getting it wrong fails open.
+    const name = TypeBinding.resolveNamedType(
+      typeCtx,
+      CodeGenState.currentScope,
+      {
+        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+        resolveQualifiedType: (parts) => this.resolveQualifiedType(parts),
+      },
+    );
     if (name === null) {
       return null;
     }

@@ -70,6 +70,77 @@ class TypeBinding {
     scope: IScopeSymbol | null,
     deps?: ITypeBindingDeps,
   ): string | null {
+    const direct = TypeBinding.resolveNamedOrPrimitiveType(
+      accessors,
+      scope,
+      deps,
+    );
+    if (direct !== null) {
+      return direct;
+    }
+
+    // Arrays carry their element type; recurse rather than re-deriving it.
+    const array = accessors.arrayType?.();
+    if (array) {
+      return TypeBinding.resolveName(array, scope, deps);
+    }
+
+    const str = accessors.stringType();
+    if (str) {
+      return TypeBinding.resolveStringType(str);
+    }
+
+    return null;
+  }
+
+  /**
+   * The C name for a type that names itself outright -- a named type or a
+   * primitive -- and null for the two alternatives that WRAP another type.
+   *
+   * This is the allow-list a caller wants when it handles `arrayType` and
+   * `stringType` itself because it needs a bit width or a capacity alongside
+   * the name, which is what TypeRegistrationEngine's variable-registration path
+   * does. Asking `resolveNamedType` there dropped every primitive on the floor:
+   * its caller treats a falsy base type as "not registerable" and returns, so
+   * `u32 counter` registered no type info at all and the ADR-044 overflow
+   * helpers stopped being emitted across 478 fixtures. Naming the pair the
+   * caller accepts keeps that an allow-list rather than reinstating the
+   * grammar-tracking exclusion list it replaced.
+   */
+  static resolveNamedOrPrimitiveType(
+    accessors: ITypeAccessors,
+    scope: IScopeSymbol | null,
+    deps?: ITypeBindingDeps,
+  ): string | null {
+    const named = TypeBinding.resolveNamedType(accessors, scope, deps);
+    if (named !== null) {
+      return named;
+    }
+
+    const primitive = accessors.primitiveType();
+    return primitive ? primitive.getText() : null;
+  }
+
+  /**
+   * The C name for a NAMED type -- `this.T`, `global.T`, `Scope.T` or a bare
+   * `T` -- and null for every other alternative.
+   *
+   * This is an ALLOW-LIST, and that direction is the point. Callers that only
+   * ever wanted named types previously spelled out the alternatives they would
+   * NOT answer for and let everything else through to the ladder; three callers
+   * did that with three different exclusion lists, each correct only as long as
+   * someone remembered to update it when the grammar grew. A new `type`
+   * alternative would have reached the ladder, resolved to something, and been
+   * silently mistaken for a named type -- `getZeroInitializer` would emit
+   * `= {0}` with no diagnostic. Asking for named types by name makes an
+   * unrecognized alternative `null` by default, which is where the callers'
+   * own fallbacks already handle it.
+   */
+  static resolveNamedType(
+    accessors: ITypeAccessors,
+    scope: IScopeSymbol | null,
+    deps?: ITypeBindingDeps,
+  ): string | null {
     // this.T -- the scope is stated, so qualify against the chain unconditionally
     const scoped = accessors.scopedType();
     if (scoped) {
@@ -91,17 +162,6 @@ class TypeBinding {
         : QualifiedCName.join(...names);
     }
 
-    // Arrays carry their element type; recurse rather than re-deriving it.
-    const array = accessors.arrayType?.();
-    if (array) {
-      return TypeBinding.resolveName(array, scope, deps);
-    }
-
-    const str = accessors.stringType();
-    if (str) {
-      return TypeBinding.resolveStringType(str);
-    }
-
     // Bare T -- the ONLY branch that resolves local -> scope -> global
     const user = accessors.userType();
     if (user) {
@@ -109,11 +169,6 @@ class TypeBinding {
       return deps?.isScopeType
         ? ScopeUtils.qualifyScopeType(typeName, scope, deps.isScopeType)
         : typeName;
-    }
-
-    const primitive = accessors.primitiveType();
-    if (primitive) {
-      return primitive.getText();
     }
 
     return null;

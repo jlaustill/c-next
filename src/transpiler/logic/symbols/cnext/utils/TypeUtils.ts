@@ -8,10 +8,8 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeBinding from "../../TypeBinding";
 
 /**
- * Common interface for type contexts that share the same type accessors.
- * Both TypeContext and ArrayTypeContext have these methods.
+ * Static utility class for extracting and converting C-Next type names.
  */
-
 class TypeUtils {
   /**
    * Extract the type name from a type context.
@@ -32,28 +30,18 @@ class TypeUtils {
   ): string {
     if (!ctx) return "void";
 
-    // Handle arrayType: Type[size] - extract the inner type without dimension
-    // The dimension is tracked separately in arrayDimensions
-    if (ctx.arrayType()) {
-      const result = TypeBinding.resolveName(ctx.arrayType()!, scope ?? null, {
-        isScopeType,
-      });
-      if (result !== null) {
-        return result;
-      }
-      // Fallback for unrecognized array types - strip the dimension part
-      const text = ctx.arrayType()!.getText();
-      const bracketIdx = text.indexOf("[");
-      return bracketIdx > 0 ? text.substring(0, bracketIdx) : text;
-    }
-
-    // Non-array types - dispatch directly
+    // #1285: resolveName recurses into arrayType itself, so an explicit array
+    // branch here would be a second array-handling path -- and it carried a
+    // DIFFERENT fallback (bracket-stripped text) from this one (raw text),
+    // reachable only if a seventh element alternative ever appeared. One call,
+    // one fallback.
     const result = TypeBinding.resolveName(ctx, scope ?? null, { isScopeType });
     if (result !== null) {
       return result;
     }
 
-    // Fallback
+    // templateType and `void` are the alternatives resolveName does not answer
+    // for; both are already their own text.
     return ctx.getText();
   }
 
