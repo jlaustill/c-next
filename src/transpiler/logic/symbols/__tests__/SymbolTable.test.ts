@@ -481,6 +481,83 @@ describe("SymbolTable", () => {
       expect(symbolTable.hasConflict("duplicate")).toBe(true);
     });
 
+    // #1285: the conflict grouping key must be the scope's IDENTITY, not its
+    // leaf name. Two distinct scopes can share a leaf, and the #817 tests above
+    // cannot see the difference because they use depth-one scopes, where a
+    // scope's name and its qualified name are the same string.
+    //
+    // Nested scopes are unreachable from .cnx source (grammar/CNext.g4:81-89),
+    // so this has to be built through the scope factory. That is the point: the
+    // property is real in the symbol model before the grammar admits it.
+    it("should NOT detect conflict for members of distinct scopes sharing a leaf name", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+      const outer = TestScopeUtils.createMockScope("Outer", globalScope);
+      const other = TestScopeUtils.createMockScope("Other", globalScope);
+      const outerInner = TestScopeUtils.createMockScope("Inner", outer);
+      const otherInner = TestScopeUtils.createMockScope("Inner", other);
+
+      // Outer.Inner.tick and Other.Inner.tick -- different symbols, and they
+      // generate different C names, so they do not compete.
+      for (const [scope, line] of [
+        [outerInner, 2],
+        [otherInner, 20],
+      ] as const) {
+        symbolTable.addTSymbol({
+          ...TestSymbolUtils.base({
+            kind: "variable",
+            name: "tick",
+            scope,
+            sourceFile: "test.cnx",
+            sourceLine: line,
+            isExported: false,
+          }),
+          type: TTypeUtils.createPrimitive("u32"),
+          isArray: false,
+          isConst: false,
+          isAtomic: false,
+          isVolatile: false,
+        });
+      }
+
+      // Keying on the leaf groups both under "Inner:variable" and reports a
+      // conflict between symbols that never shared a scope.
+      expect(symbolTable.hasConflict("tick")).toBe(false);
+    });
+
+    // #1285: the conflict message must name the symbol the way the author wrote
+    // it. Nothing asserted this, so dropping the scope from the message entirely
+    // left the whole suite green.
+    it("names a conflicting symbol by its full source path", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+      const outer = TestScopeUtils.createMockScope("Outer", globalScope);
+      const inner = TestScopeUtils.createMockScope("Inner", outer);
+
+      for (const line of [2, 5]) {
+        symbolTable.addTSymbol({
+          ...TestSymbolUtils.base({
+            kind: "variable",
+            name: "tick",
+            scope: inner,
+            sourceFile: "test.cnx",
+            sourceLine: line,
+            isExported: false,
+          }),
+          type: TTypeUtils.createPrimitive("u32"),
+          isArray: false,
+          isConst: false,
+          isAtomic: false,
+          isVolatile: false,
+        });
+      }
+
+      const conflicts = symbolTable.getConflicts();
+
+      expect(conflicts).toHaveLength(1);
+      // Not "tick" (no scope at all) and not "Inner.tick" (the leaf only, which
+      // is what building this by hand from scope.name produced).
+      expect(conflicts[0].symbolName).toBe("Outer.Inner.tick");
+    });
+
     // Global scope conflicts should still be detected
     it("should detect conflict for same-named globals", () => {
       const globalScope = TestScopeUtils.createMockGlobalScope();
