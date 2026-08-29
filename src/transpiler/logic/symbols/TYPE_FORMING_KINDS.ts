@@ -20,7 +20,9 @@ import TSymbolKindCNext from "../../types/symbol-kinds/TSymbolKindCNext";
  * declares a variable at an address; `CodeGenState.isScopeType` is measurably
  * `knownEnums | knownStructs | knownBitmaps` and has never included registers.
  * Adding it here would qualify a bare name matching a register declaration --
- * a C-Next behavior change with no ADR behind it.
+ * a C-Next behavior change. ADR-111 would make a register a type, but it is
+ * `Research`, so ADR-004 remains in force and this exclusion stands. Revisit
+ * when ADR-111 is implemented, not when it is merely Accepted.
  */
 const TYPE_FORMING_KINDS: ReadonlySet<TSymbolKindCNext> =
   new Set<TSymbolKindCNext>(["enum", "struct", "bitmap", "function"]);

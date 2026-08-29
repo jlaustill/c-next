@@ -3,6 +3,25 @@
 **Status:** Implemented
 **Date:** 2025-12-26
 **Decision Makers:** C-Next Language Design Team
+**Superseded By:** ADR-111 (Safe Hardware Abstraction Primitives — `Research`; the supersession takes effect when ADR-111 is Accepted, not before)
+
+> **What is implemented, and what is not.** The register syntax this ADR defines —
+> `NAME: type access @ offset` — and its `rw` / `ro` / `wo` access modifiers are
+> implemented and enforced (`MemberAccessValidator` rejects a read of a write-only
+> member). ADR-016 `### Scoped Registers` shows the same syntax inside a scope; it
+> applies this ADR rather than competing with it.
+>
+> The `typedef struct { … } GPIOA_Registers;` shape in `## Initial Design Direction`
+> below was **never implemented** and is illustrative, not normative — it sits beside
+> `## Open Questions (Research Needed)`. A register emits one `#define` per field:
+>
+> ```c
+> #define Teensy4__GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+> ```
+>
+> So **a register is not a type** in the language as shipped. It becomes one under
+> ADR-111, where a register definition is a parameterized type and the base address is
+> supplied at instantiation (`SystemControl SCB(0xE000ED00);`).
 
 ## Context
 

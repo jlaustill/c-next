@@ -3,7 +3,15 @@
 **Status:** Research
 **Date:** 2026-02-20 (revised 2026-07-04: simplified register syntax; added Parts 4–5)
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-004 (Register Bindings), ADR-034 (Bitmap Types), ADR-033 (Packed Structs — Rejected; Part 4 is the safe alternative)
+**Supersedes:** ADR-004 (Register Bindings — on acceptance; this ADR removes the `register Name @ address { }` form ADR-004 defines)
+**Amends:** ADR-016 (`### Scoped Registers` — on acceptance; that section's `@ address` examples go with it)
+**Related ADRs:** ADR-034 (Bitmap Types), ADR-033 (Packed Structs — Rejected; Part 4 is the safe alternative)
+
+> **Status is load-bearing here.** While this ADR is `Research` it is **not**
+> established syntax: ADR-004 still governs, a register is still not a type, and the
+> `@ address` form is still the one to write. The supersession is recorded now so a
+> reader arriving at ADR-004 has a route forward — it does not take effect until this
+> ADR is Accepted.
 
 ## Context
 

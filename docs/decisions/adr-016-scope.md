@@ -5,7 +5,7 @@
 **Decision Makers:** C-Next Language Design Team
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)
 **Related:** ADR-014 (Structs), ADR-063 (Identifier Syntax — amends the qualified-name separator, see below)
-**Amended by:** ADR-057 (Implicit Scope Resolution — withdraws this ADR's requirement that `this.` and `global.` be explicit)
+**Amended by:** ADR-057 (Implicit Scope Resolution — withdraws this ADR's requirement that `this.` and `global.` be explicit), ADR-111 (Safe Hardware Abstraction Primitives — `Research`; on acceptance, replaces the `@ address` form used throughout `### Scoped Registers`)
 **Amends:** ADR-002 (Namespaces — carries forward its file-independence rule, see _Scope Composition_)
 
 > **Amended by ADR-063 (Issue #1117).** Members are named `Scope__member` in
@@ -42,6 +42,12 @@ ADR-005 attempted to provide "classes without inheritance" but the term "class" 
 - An OOP mental model
 
 This conflicts with C-Next's goal of embracing C patterns with safety improvements.
+
+The argument above is stated rather than demonstrated. **[The comparison matrix in the
+language guide](../language-guide.md#how-a-scope-compares-to-a-class-a-namespace-and-a-struct)**
+turns it into row-by-row claims a reader can check — including the two rows where
+"scope" behaves like neither term (`private` members, and no nesting), and the `this.`
+rows, where a class and a scope share a spelling but not a meaning.
 
 ---
 
@@ -243,6 +249,12 @@ A previous optimization attempted to convert scope variables used by only one fu
 - Users who need reentrant functions should explicitly use local variables
 
 ### Scoped Registers
+
+> **Amended by ADR-111 (on acceptance).** The `register GPIO7 @ 0x42004000 { … }` form
+> below is ADR-004's, and ADR-111 removes it: a register definition will carry plain
+> byte offsets with the base address supplied at instantiation, so one definition can
+> produce several instances (`Serial1`, `Serial2`, `Serial3`). ADR-111 is `Research`,
+> so the form shown here is still the correct one to write today.
 
 Scopes can contain register declarations for platform-specific hardware:
 
