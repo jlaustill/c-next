@@ -10,6 +10,17 @@
 // Members are grouped by the scope's own identity, not by the declaration block,
 // so these two definitions of Lib.useIt collide exactly as they would inside one
 // block.
+//
+// The assertion in .expected.error is DELIBERATELY GENERIC and is weaker than this
+// fixture's intent. It pins only the wrapper message:
+//
+//     1:0 Symbol conflicts detected - cannot proceed
+//
+// which names no symbol, so any symbol conflict satisfies it. The specific line --
+// "Symbol conflict: 'Lib.useIt' is defined multiple times in C-Next" -- carries no
+// usable position: the conflict is reported at 1:0 rather than at the offending
+// declaration. That is #1334, and it is the same defect that stops ADR-016's matrix
+// cells from being occupiable. Strengthening this assertion is blocked on it.
 
 scope Lib {
     public u32 useIt() {
