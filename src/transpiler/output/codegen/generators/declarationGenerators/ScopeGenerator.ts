@@ -26,6 +26,7 @@ import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import type IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../../../state/CodeGenState";
+import AdrProvenance from "../../../../state/AdrProvenance";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
@@ -367,6 +368,14 @@ function processScopeMember(
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): string[] {
+  // #1241: ADR-016's rule -- a scope member is emitted at file scope under a
+  // scope-qualified C name, with visibility deciding linkage -- fires once per
+  // member, here. Recorded at the MEMBER's position rather than the scope's, so
+  // a variable member and a function member land in different matrix contexts
+  // (scope-member vs scope-method) instead of both crediting whichever
+  // declaration the scope keyword happens to sit in.
+  AdrProvenance.record("016", member.start?.line);
+
   // ADR-016: Member-type-aware visibility defaults via ScopeUtils
   const explicitVisibility = member.visibilityModifier()?.getText();
   const isFunction = member.functionDeclaration() !== null;

@@ -1,0 +1,21 @@
+// Middle link of the ADR-057 transitive chain. Not a test itself.
+//
+// Includes the provider, so a fixture including THIS file sits two hops from
+// `cross-file-provider.cnx` and lands in the `imported transitive` column.
+
+#include "cross-file-provider.cnx"
+
+scope Filter {
+    u32 window <- 4;
+
+    u32 half() {
+        return window / 2;
+    }
+
+    public u32 smooth(u32 sample) {
+        // Bare `half()` and bare `window`: ADR-057 resolution one hop from the
+        // fixture and two from the provider.
+        u32 h <- half();
+        return sample + h;
+    }
+}

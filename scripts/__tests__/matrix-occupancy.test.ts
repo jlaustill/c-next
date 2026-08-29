@@ -84,7 +84,7 @@ describe("FixtureOccupancy.build", () => {
     // The negative control for the test above. A scope VARIABLE named like a
     // global type must not capture it (ADR-057), so the rule correctly does
     // nothing -- and a mechanism that credited a cell anyway would report
-    // coverage for behaviour no fixture exercises.
+    // coverage for behavior no fixture exercises.
     const fixture = write(
       "no-capture.test.cnx",
       "// test-adr: 057\nu8 plain <- 1;\nvoid go() {\n    u8 local <- 2;\n}\n",

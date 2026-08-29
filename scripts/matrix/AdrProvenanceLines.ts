@@ -8,7 +8,7 @@
  * cells sat `warn` with no path to green.
  *
  * Transpiling the fixture and reading `result.adrSites` supplies the missing
- * positions from the transpiler's own behaviour. Occupancy stays DERIVED -- the
+ * positions from the transpiler's own behavior. Occupancy stays DERIVED -- the
  * fixture still declares nothing, and a cell is credited only where the rule
  * demonstrably fired.
  */
