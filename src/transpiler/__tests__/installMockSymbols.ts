@@ -73,7 +73,7 @@ function register(
   for (const qualifiedName of names) {
     const parts = QualifiedCName.split(qualifiedName);
     const base = {
-      name: parts[parts.length - 1],
+      name: parts.at(-1)!,
       fullyQualifiedCName: qualifiedName,
       cnxScopedName: parts.join(QualifiedCName.SOURCE_SEPARATOR),
       scope,
