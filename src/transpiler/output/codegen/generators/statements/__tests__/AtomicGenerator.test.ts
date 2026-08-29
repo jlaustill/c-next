@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../AtomicGenerator";
 import TTypeInfo from "../../../types/TTypeInfo";
-import ITargetCapabilities from "../../../types/ITargetCapabilities";
+import ITargetCapabilities from "../../../../../types/ITargetCapabilities";
 
 const {
   generateAtomicRMW,

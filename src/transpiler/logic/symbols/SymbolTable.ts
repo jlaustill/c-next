@@ -25,7 +25,7 @@ import IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../utils/TypeResolver";
-import type ITargetCapabilities from "../../output/codegen/types/ITargetCapabilities";
+import type ITargetCapabilities from "../../types/ITargetCapabilities";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();

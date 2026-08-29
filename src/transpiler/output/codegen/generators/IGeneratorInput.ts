@@ -6,7 +6,7 @@
 import TTypeInfo from "../types/TTypeInfo";
 import IFunctionSignature from "../types/IFunctionSignature";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import ITargetCapabilities from "../types/ITargetCapabilities";
+import ITargetCapabilities from "../../../types/ITargetCapabilities";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 

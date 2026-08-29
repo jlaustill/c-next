@@ -31,7 +31,7 @@ import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import type IRequirementSite from "../types/IRequirementSite";
 import type TRequirementKey from "../types/TRequirementKey";
 import RequirementSites from "../../utils/RequirementSites";
-import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
+import ITargetCapabilities from "../types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";

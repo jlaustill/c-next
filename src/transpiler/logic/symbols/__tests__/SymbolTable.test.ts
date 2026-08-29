@@ -11,7 +11,7 @@ import IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import IStructSymbol from "../../../types/symbols/IStructSymbol";
 import IEnumSymbol from "../../../types/symbols/IEnumSymbol";
-import ITargetCapabilities from "../../../output/codegen/types/ITargetCapabilities";
+import ITargetCapabilities from "../../../types/ITargetCapabilities";
 import TestScopeUtils from "../cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";

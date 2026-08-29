@@ -155,7 +155,7 @@ import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeBinding from "../../logic/symbols/TypeBinding";
-import type ITargetCapabilities from "./types/ITargetCapabilities";
+import type ITargetCapabilities from "../../types/ITargetCapabilities";
 import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";
 
 const {

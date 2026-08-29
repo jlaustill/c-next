@@ -8,7 +8,7 @@
  * capability is a single edit now.
  */
 
-import type ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
+import type ITargetCapabilities from "../types/ITargetCapabilities";
 
 const DEFAULT_TARGET: ITargetCapabilities = {
   wordSize: 32,
