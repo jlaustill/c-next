@@ -9,7 +9,7 @@ u32 globalCounter <- 100;
 bool globalFlag <- true;
 i32 globalOffset <- -50;
 
-scope PrivateMethodTest {
+scope PrivateMethods {
     // Private state (default visibility)
     u32 privateState <- 0;
     bool privateFlag <- false;
@@ -180,43 +180,43 @@ u32 main() {
 
 
 // Test 1: Initial private state is 0
-    u32 resultState <- PrivateMethodTest.exposePrivateState();
+    u32 resultState <- PrivateMethods.exposePrivateState();
     if (resultState != 0) return 1;
 
 
 // Test 2: Update private state and verify
-    PrivateMethodTest.setPrivateState(42);
-    resultState <- PrivateMethodTest.exposePrivateState();
+    PrivateMethods.setPrivateState(42);
+    resultState <- PrivateMethods.exposePrivateState();
     if (resultState != 42) return 2;
 
 
 // Test 3: Initial private flag is false
-    bool resultFlag <- PrivateMethodTest.exposePrivateFlag();
+    bool resultFlag <- PrivateMethods.exposePrivateFlag();
     if (resultFlag != false) return 3;
 
 
 // Test 4: Update private flag and verify
-    PrivateMethodTest.setPrivateFlag(true);
-    resultFlag <- PrivateMethodTest.exposePrivateFlag();
+    PrivateMethods.setPrivateFlag(true);
+    resultFlag <- PrivateMethods.exposePrivateFlag();
     if (resultFlag != true) return 4;
 
 
 // Test 5: Initial private accumulator is 0
-    i32 resultAccum <- PrivateMethodTest.exposePrivateAccumulator();
+    i32 resultAccum <- PrivateMethods.exposePrivateAccumulator();
     if (resultAccum != 0) return 5;
 
 
 // Test 6: Add to accumulator (persists across calls)
-    PrivateMethodTest.addToAccumulator(100);
+    PrivateMethods.addToAccumulator(100);
     // accumulator: 0 + 100 = 100, callCount: 0 + 1 = 1
-    resultAccum <- PrivateMethodTest.exposePrivateAccumulator();
+    resultAccum <- PrivateMethods.exposePrivateAccumulator();
     if (resultAccum != 100) return 6;
 
 
 // Test 7: Add negative value (accumulator persists from test 6)
-    PrivateMethodTest.addToAccumulator(-30);
+    PrivateMethods.addToAccumulator(-30);
     // accumulator: 100 + (-30) = 70, callCount: 1 + 1 = 2
-    resultAccum <- PrivateMethodTest.exposePrivateAccumulator();
+    resultAccum <- PrivateMethods.exposePrivateAccumulator();
     if (resultAccum != 70) return 7;
 
     // ==========================================
@@ -225,26 +225,26 @@ u32 main() {
 
 
 // Test 8: Private method reads global counter
-    u32 resultCounter <- PrivateMethodTest.exposeGlobalCounter();
+    u32 resultCounter <- PrivateMethods.exposeGlobalCounter();
     if (resultCounter != 100) return 8;
 
 
 // Test 9: Private method combines this. and global.
     // privateState(42) + globalCounter(100) = 142
-    u32 resultCombined <- PrivateMethodTest.exposeCombinedStateAndGlobal();
+    u32 resultCombined <- PrivateMethods.exposeCombinedStateAndGlobal();
     if (resultCombined != 142) return 9;
 
 
 // Test 10: Private method checks both flags
     // privateFlag(true) && globalFlag(true) = true
-    bool resultBothFlags <- PrivateMethodTest.exposeBothFlagsCheck();
+    bool resultBothFlags <- PrivateMethods.exposeBothFlagsCheck();
     if (resultBothFlags != true) return 10;
 
 
 // Test 11: Change private flag and recheck
-    PrivateMethodTest.setPrivateFlag(false);
+    PrivateMethods.setPrivateFlag(false);
     // privateFlag(false) && globalFlag(true) = false
-    resultBothFlags <- PrivateMethodTest.exposeBothFlagsCheck();
+    resultBothFlags <- PrivateMethods.exposeBothFlagsCheck();
     if (resultBothFlags != false) return 11;
 
     // ==========================================
@@ -254,35 +254,35 @@ u32 main() {
 
 // Test 12: Nested private call - getStateViaHelper reads (no reset)
     // privateState is still 42 from test 2
-    u32 resultHelper <- PrivateMethodTest.exposeStateViaHelper();
+    u32 resultHelper <- PrivateMethods.exposeStateViaHelper();
     if (resultHelper != 42) return 12;
 
 
 // Test 13: Set state to known value for chain test
-    PrivateMethodTest.setPrivateState(990);
-    resultState <- PrivateMethodTest.exposePrivateState();
+    PrivateMethods.setPrivateState(990);
+    resultState <- PrivateMethods.exposePrivateState();
     if (resultState != 990) return 13;
 
 
 // Test 14: Call count persists (2 calls from tests 6 and 7)
-    u8 resultCallCount <- PrivateMethodTest.exposeCallCount();
+    u8 resultCallCount <- PrivateMethods.exposeCallCount();
     if (resultCallCount != 2) return 14;
 
 
 // Test 15: Trigger private chain (state persists from test 13: 990)
     // performPrivateChain: state=990+10=1000, flag=!false=true, count=2+1=3
-    PrivateMethodTest.triggerPrivateChain();
-    resultState <- PrivateMethodTest.exposePrivateState();
+    PrivateMethods.triggerPrivateChain();
+    resultState <- PrivateMethods.exposePrivateState();
     if (resultState != 1000) return 15;
 
 
 // Test 16: Verify flag was toggled from false (test 11) to true
-    resultFlag <- PrivateMethodTest.exposePrivateFlag();
+    resultFlag <- PrivateMethods.exposePrivateFlag();
     if (resultFlag != true) return 16;
 
 
 // Test 17: Verify call count is 3 (persists from tests 6, 7, and chain)
-    resultCallCount <- PrivateMethodTest.exposeCallCount();
+    resultCallCount <- PrivateMethods.exposeCallCount();
     if (resultCallCount != 3) return 17;
 
     // ==========================================
@@ -290,24 +290,24 @@ u32 main() {
     // ==========================================
 
     // Set known state values
-    PrivateMethodTest.setPrivateState(777);
-    PrivateMethodTest.setPrivateFlag(true);
+    PrivateMethods.setPrivateState(777);
+    PrivateMethods.setPrivateFlag(true);
     // Accumulator is 70 from test 7 (100 + (-30))
 
 
 // Test 18: Copy private to public
-    PrivateMethodTest.copyPrivateToPublic();
+    PrivateMethods.copyPrivateToPublic();
 
     // Verify public members match (direct access)
-    if (PrivateMethodTest.publicResult != 777) return 18;
+    if (PrivateMethods.publicResult != 777) return 18;
 
 
 // Test 19: Verify public flag matches
-    if (PrivateMethodTest.publicFlag != true) return 19;
+    if (PrivateMethods.publicFlag != true) return 19;
 
 
 // Test 20: Verify public accumulator matches (70 from test 7)
-    if (PrivateMethodTest.publicAccumulator != 70) return 20;
+    if (PrivateMethods.publicAccumulator != 70) return 20;
 
     // All 20 validations passed
     return 0;

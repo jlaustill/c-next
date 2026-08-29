@@ -44,7 +44,7 @@ assessment claimed N/A.
 | Category         | Enforced | By Design | Partial | Planned | N/A | Not Enforced | Deviation |
 | ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
 | Directives (1-4) | 1        | 9         | 1       | 0       | 1   | 0            | 1         |
-| Rules 1-5        | 2        | 8         | 2       | 0       | 3   | 7            | 1         |
+| Rules 1-5        | 3        | 7         | 2       | 0       | 3   | 7            | 1         |
 | Rules 6-10       | 2        | 15        | 7       | 0       | 0   | 9            | 0         |
 | Rules 11-15      | 3        | 15        | 6       | 0       | 1   | 6            | 0         |
 | Rules 16-22      | 5        | 29        | 4       | 0       | 11  | 7            | 1         |
@@ -158,7 +158,7 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 | Rule | Description                              | Status        | Reference                 |
 | ---- | ---------------------------------------- | ------------- | ------------------------- |
-| 5.1  | External identifiers distinct (31 chars) | **By Design** | Generated C uses prefixes |
+| 5.1  | External identifiers distinct (31 chars) | **Enforced**  | E0204 — see below         |
 | 5.2  | Identifiers in same scope distinct       | **By Design** | Scope prefixing           |
 | 5.3  | Identifier in inner scope no hide        | Partial       | Some shadowing detection  |
 | 5.4  | Macro identifiers distinct               | N/A           | No macros                 |
@@ -167,6 +167,36 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 | 5.7  | Unique tag names                         | **By Design** | Type system enforces      |
 | 5.8  | Unique external identifiers              | **By Design** | Scope prefixing (ADR-016) |
 | 5.9  | Unique internal identifiers              | Not Enforced  |                           |
+
+### Rule 5.1 and the cost of `Scope__member` (issue #1307)
+
+Scope prefixing is not what _satisfies_ Rule 5.1 here — it is what puts the rule
+at risk, and this table said the opposite until #1307.
+
+C99 §5.2.4.1 guarantees only **31 significant initial characters** in an external
+identifier. `Scope__member` spends that budget on the encoding rather than on the
+author's names: the `__` separator costs two characters per level and the scope
+name costs its full length. Two public members of a 27-character scope therefore
+agree for 29 characters before their own names begin, and a conforming
+implementation may treat them as one identifier:
+
+```c
+uint8_t TemperatureSensorController__calibrationOffsetValue = 1U;
+uint8_t TemperatureSensorController__calibrationOffsetLimit = 2U;
+/* first 31 characters of both: TemperatureSensorController__ca */
+```
+
+On a hosted GCC nothing happens, and `cppcheck --addon=misra` does not report it.
+On the minimal embedded toolchain that is C-Next's target audience the two
+variables silently become one.
+
+**E0204** rejects this at transpile time, against the budget recorded in
+`ITargetCapabilities.significantExternalIdentifierChars` (31 by default) rather
+than a hardcoded constant — the limit is a property of the C target, not of the
+language. It applies only to identifiers C-Next generates with external linkage:
+`private` members are emitted `static` and get C99's 63-character internal budget
+(Rule 5.9, not yet enforced — issue #1338), types name nothing the linker
+resolves, and a C or C++ header's identifiers are not C-Next's to rename.
 
 ---
 

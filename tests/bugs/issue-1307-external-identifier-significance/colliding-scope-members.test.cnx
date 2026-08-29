@@ -1,0 +1,43 @@
+// test-error
+// Issue #1307: MISRA C:2012 Rule 5.1 -- external identifiers shall be distinct.
+//
+// C99 5.2.4.1 guarantees only 31 significant initial characters in an external
+// identifier. `Scope__member` spends that budget on the encoding, so two members
+// of a long scope can generate one identifier on a conforming implementation.
+//
+// The negative controls below MUST stay silent. They are in this file rather
+// than a separate one so that an over-eager check -- one that flags every long
+// name, or that is off by one on the limit -- fails this snapshot instead of
+// passing it.
+
+scope TemperatureSensorController {
+    // VIOLATION: 51 characters each, byte-identical for the first 31
+    // ("TemperatureSensorController__ca").
+    public u8 calibrationOffsetValue <- 1;
+    public u8 calibrationOffsetLimit <- 2;
+
+    // NEGATIVE CONTROL 1: external, and long, but they diverge at exactly the
+    // 31st character ("...__re" vs "...__ra"). A limit that were off by one in
+    // either direction would report these.
+    public u8 readValue() {
+        return calibrationOffsetValue;
+    }
+
+    public u8 rawValue() {
+        return calibrationOffsetLimit;
+    }
+
+    // NEGATIVE CONTROL 2: these DO collide within 31 characters, but `private`
+    // is emitted `static` (ADR-016) and so has internal linkage, which C99
+    // gives 63 significant characters. Rule 5.1 does not apply to them.
+    private u8 shadowRegisterMirrorAlpha <- 3;
+    private u8 shadowRegisterMirrorOmega <- 4;
+
+    public u8 sumShadow() {
+        return shadowRegisterMirrorAlpha + shadowRegisterMirrorOmega;
+    }
+}
+
+i32 main() {
+    return 0;
+}

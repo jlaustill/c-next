@@ -43,290 +43,290 @@ int16_t globalOffset = -25;
 
 float globalScale = 2.5;
 
-/* Scope: MethodContexts */
-static uint8_t MethodContexts__privateValue = 10U;
-static uint8_t MethodContexts__privateClampValue = 200U;
-static uint8_t MethodContexts__privateWrapValue = 250U;
-static bool MethodContexts__privateFlag = false;
-static int16_t MethodContexts__privateOffset = -50;
-uint8_t MethodContexts__publicValue = 20U;
-uint16_t MethodContexts__publicClampValue = 60000U;
-uint16_t MethodContexts__publicWrapValue = 65530U;
-bool MethodContexts__publicFlag = true;
-int32_t MethodContexts__publicOffset = -1000;
+/* Scope: Contexts */
+static uint8_t Contexts__privateValue = 10U;
+static uint8_t Contexts__privateClampValue = 200U;
+static uint8_t Contexts__privateWrapValue = 250U;
+static bool Contexts__privateFlag = false;
+static int16_t Contexts__privateOffset = -50;
+uint8_t Contexts__publicValue = 20U;
+uint16_t Contexts__publicClampValue = 60000U;
+uint16_t Contexts__publicWrapValue = 65530U;
+bool Contexts__publicFlag = true;
+int32_t Contexts__publicOffset = -1000;
 
-uint8_t MethodContexts__getPrivateValue(void) {
-    return MethodContexts__privateValue;
+uint8_t Contexts__getPrivateValue(void) {
+    return Contexts__privateValue;
 }
 
-uint8_t MethodContexts__getPublicValueInternal(void) {
-    return MethodContexts__publicValue;
+uint8_t Contexts__getPublicValueInternal(void) {
+    return Contexts__publicValue;
 }
 
-uint8_t MethodContexts__getPrivateClampValue(void) {
-    return MethodContexts__privateClampValue;
+uint8_t Contexts__getPrivateClampValue(void) {
+    return Contexts__privateClampValue;
 }
 
-uint8_t MethodContexts__getPrivateWrapValue(void) {
-    return MethodContexts__privateWrapValue;
+uint8_t Contexts__getPrivateWrapValue(void) {
+    return Contexts__privateWrapValue;
 }
 
-void MethodContexts__incrementPrivateClamp(void) {
-    MethodContexts__privateClampValue = cnx_clamp_add_u8(MethodContexts__privateClampValue, 100U);
+void Contexts__incrementPrivateClamp(void) {
+    Contexts__privateClampValue = cnx_clamp_add_u8(Contexts__privateClampValue, 100U);
 }
 
-void MethodContexts__incrementPrivateWrap(void) {
-    MethodContexts__privateWrapValue += 10U;
+void Contexts__incrementPrivateWrap(void) {
+    Contexts__privateWrapValue += 10U;
 }
 
-bool MethodContexts__getPrivateFlag(void) {
-    return MethodContexts__privateFlag;
+bool Contexts__getPrivateFlag(void) {
+    return Contexts__privateFlag;
 }
 
-int16_t MethodContexts__getPrivateOffset(void) {
-    return MethodContexts__privateOffset;
+int16_t Contexts__getPrivateOffset(void) {
+    return Contexts__privateOffset;
 }
 
-uint8_t MethodContexts__getGlobalMaxInternal(void) {
+uint8_t Contexts__getGlobalMaxInternal(void) {
     return GLOBAL_MAX;
 }
 
-uint8_t MethodContexts__getGlobalCounterInternal(void) {
+uint8_t Contexts__getGlobalCounterInternal(void) {
     return globalCounter;
 }
 
-bool MethodContexts__getGlobalEnabledInternal(void) {
+bool Contexts__getGlobalEnabledInternal(void) {
     return globalEnabled;
 }
 
-int16_t MethodContexts__getGlobalOffsetInternal(void) {
+int16_t Contexts__getGlobalOffsetInternal(void) {
     return globalOffset;
 }
 
-float MethodContexts__getGlobalScaleInternal(void) {
+float Contexts__getGlobalScaleInternal(void) {
     return globalScale;
 }
 
-uint8_t MethodContexts__computePrivateSum(void) {
-    return MethodContexts__privateValue + globalCounter;
+uint8_t Contexts__computePrivateSum(void) {
+    return Contexts__privateValue + globalCounter;
 }
 
-bool MethodContexts__privateValueBelowMax(void) {
-    return MethodContexts__privateValue < GLOBAL_MAX;
+bool Contexts__privateValueBelowMax(void) {
+    return Contexts__privateValue < GLOBAL_MAX;
 }
 
-int16_t MethodContexts__computePrivateWithOffset(void) {
-    return MethodContexts__privateOffset + globalOffset;
+int16_t Contexts__computePrivateWithOffset(void) {
+    return Contexts__privateOffset + globalOffset;
 }
 
-uint8_t MethodContexts__getPrivateValueExternal(void) {
-    return MethodContexts__privateValue;
+uint8_t Contexts__getPrivateValueExternal(void) {
+    return Contexts__privateValue;
 }
 
-uint8_t MethodContexts__getPublicValue(void) {
-    return MethodContexts__publicValue;
+uint8_t Contexts__getPublicValue(void) {
+    return Contexts__publicValue;
 }
 
-uint16_t MethodContexts__getPublicClampValue(void) {
-    return MethodContexts__publicClampValue;
+uint16_t Contexts__getPublicClampValue(void) {
+    return Contexts__publicClampValue;
 }
 
-uint16_t MethodContexts__getPublicWrapValue(void) {
-    return MethodContexts__publicWrapValue;
+uint16_t Contexts__getPublicWrapValue(void) {
+    return Contexts__publicWrapValue;
 }
 
-void MethodContexts__incrementPublicClamp(void) {
-    MethodContexts__publicClampValue = cnx_clamp_add_u16(MethodContexts__publicClampValue, 10000U);
+void Contexts__incrementPublicClamp(void) {
+    Contexts__publicClampValue = cnx_clamp_add_u16(Contexts__publicClampValue, 10000U);
 }
 
-void MethodContexts__incrementPublicWrap(void) {
-    MethodContexts__publicWrapValue += 10U;
+void Contexts__incrementPublicWrap(void) {
+    Contexts__publicWrapValue += 10U;
 }
 
-bool MethodContexts__getPublicFlag(void) {
-    return MethodContexts__publicFlag;
+bool Contexts__getPublicFlag(void) {
+    return Contexts__publicFlag;
 }
 
-int32_t MethodContexts__getPublicOffset(void) {
-    return MethodContexts__publicOffset;
+int32_t Contexts__getPublicOffset(void) {
+    return Contexts__publicOffset;
 }
 
-void MethodContexts__setPrivateValue(uint8_t val) {
-    MethodContexts__privateValue = val;
+void Contexts__setPrivateValue(uint8_t val) {
+    Contexts__privateValue = val;
 }
 
-void MethodContexts__setPublicValue(uint8_t val) {
-    MethodContexts__publicValue = val;
+void Contexts__setPublicValue(uint8_t val) {
+    Contexts__publicValue = val;
 }
 
-void MethodContexts__setPrivateFlag(bool val) {
-    MethodContexts__privateFlag = val;
+void Contexts__setPrivateFlag(bool val) {
+    Contexts__privateFlag = val;
 }
 
-void MethodContexts__setPublicFlag(bool val) {
-    MethodContexts__publicFlag = val;
+void Contexts__setPublicFlag(bool val) {
+    Contexts__publicFlag = val;
 }
 
-uint8_t MethodContexts__getGlobalMax(void) {
+uint8_t Contexts__getGlobalMax(void) {
     return GLOBAL_MAX;
 }
 
-uint16_t MethodContexts__getGlobalThreshold(void) {
+uint16_t Contexts__getGlobalThreshold(void) {
     return GLOBAL_THRESHOLD;
 }
 
-uint8_t MethodContexts__getGlobalCounter(void) {
+uint8_t Contexts__getGlobalCounter(void) {
     return globalCounter;
 }
 
-bool MethodContexts__getGlobalEnabled(void) {
+bool Contexts__getGlobalEnabled(void) {
     return globalEnabled;
 }
 
-int16_t MethodContexts__getGlobalOffset(void) {
+int16_t Contexts__getGlobalOffset(void) {
     return globalOffset;
 }
 
-float MethodContexts__getGlobalScale(void) {
+float Contexts__getGlobalScale(void) {
     return globalScale;
 }
 
-uint8_t MethodContexts__computePublicSum(void) {
-    return MethodContexts__publicValue + globalCounter;
+uint8_t Contexts__computePublicSum(void) {
+    return Contexts__publicValue + globalCounter;
 }
 
-bool MethodContexts__publicValueBelowMax(void) {
-    return MethodContexts__publicValue < GLOBAL_MAX;
+bool Contexts__publicValueBelowMax(void) {
+    return Contexts__publicValue < GLOBAL_MAX;
 }
 
-int32_t MethodContexts__computePublicWithOffset(void) {
-    return MethodContexts__publicOffset + globalOffset;
+int32_t Contexts__computePublicWithOffset(void) {
+    return Contexts__publicOffset + globalOffset;
 }
 
-uint8_t MethodContexts__getPrivateSumViaInternal(void) {
-    return MethodContexts__computePrivateSum();
+uint8_t Contexts__getPrivateSumViaInternal(void) {
+    return Contexts__computePrivateSum();
 }
 
-uint8_t MethodContexts__getGlobalCounterViaInternal(void) {
-    return MethodContexts__getGlobalCounterInternal();
+uint8_t Contexts__getGlobalCounterViaInternal(void) {
+    return Contexts__getGlobalCounterInternal();
 }
 
-uint8_t MethodContexts__getPrivateClampViaInternal(void) {
-    return MethodContexts__getPrivateClampValue();
+uint8_t Contexts__getPrivateClampViaInternal(void) {
+    return Contexts__getPrivateClampValue();
 }
 
-void MethodContexts__modifyAllPrivate(void) {
-    MethodContexts__privateValue = MethodContexts__privateValue + 1U;
-    MethodContexts__privateClampValue = cnx_clamp_add_u8(MethodContexts__privateClampValue, 10U);
-    MethodContexts__privateWrapValue += 5U;
-    MethodContexts__privateFlag = !MethodContexts__privateFlag;
-    MethodContexts__privateOffset = MethodContexts__privateOffset - 10;
+void Contexts__modifyAllPrivate(void) {
+    Contexts__privateValue = Contexts__privateValue + 1U;
+    Contexts__privateClampValue = cnx_clamp_add_u8(Contexts__privateClampValue, 10U);
+    Contexts__privateWrapValue += 5U;
+    Contexts__privateFlag = !Contexts__privateFlag;
+    Contexts__privateOffset = Contexts__privateOffset - 10;
 }
 
-void MethodContexts__modifyAllPublic(void) {
-    MethodContexts__publicValue = MethodContexts__publicValue + 1U;
-    MethodContexts__publicClampValue = cnx_clamp_add_u16(MethodContexts__publicClampValue, 100U);
-    MethodContexts__publicWrapValue += 5U;
-    MethodContexts__publicFlag = !MethodContexts__publicFlag;
-    MethodContexts__publicOffset = MethodContexts__publicOffset - 100;
+void Contexts__modifyAllPublic(void) {
+    Contexts__publicValue = Contexts__publicValue + 1U;
+    Contexts__publicClampValue = cnx_clamp_add_u16(Contexts__publicClampValue, 100U);
+    Contexts__publicWrapValue += 5U;
+    Contexts__publicFlag = !Contexts__publicFlag;
+    Contexts__publicOffset = Contexts__publicOffset - 100;
 }
 
-bool MethodContexts__checkThresholds(void) {
-    return MethodContexts__publicClampValue < GLOBAL_THRESHOLD && MethodContexts__privateValue < GLOBAL_MAX;
+bool Contexts__checkThresholds(void) {
+    return Contexts__publicClampValue < GLOBAL_THRESHOLD && Contexts__privateValue < GLOBAL_MAX;
 }
 
-bool MethodContexts__getAllFlags(void) {
-    return MethodContexts__privateFlag && MethodContexts__publicFlag && globalEnabled;
+bool Contexts__getAllFlags(void) {
+    return Contexts__privateFlag && Contexts__publicFlag && globalEnabled;
 }
 
 int main(void) {
-    uint8_t res1 = MethodContexts__getPrivateValueExternal();
+    uint8_t res1 = Contexts__getPrivateValueExternal();
     if (res1 != 10) return 1;
-    uint8_t res2 = MethodContexts__getPrivateSumViaInternal();
+    uint8_t res2 = Contexts__getPrivateSumViaInternal();
     if (res2 != 60) return 2;
-    uint8_t res3 = MethodContexts__getGlobalCounterViaInternal();
+    uint8_t res3 = Contexts__getGlobalCounterViaInternal();
     if (res3 != 50) return 3;
-    uint8_t res4 = MethodContexts__getPrivateClampViaInternal();
+    uint8_t res4 = Contexts__getPrivateClampViaInternal();
     if (res4 != 200) return 4;
-    uint8_t res5 = MethodContexts__getPublicValue();
+    uint8_t res5 = Contexts__getPublicValue();
     if (res5 != 20) return 5;
-    uint16_t res6 = MethodContexts__getPublicClampValue();
+    uint16_t res6 = Contexts__getPublicClampValue();
     if (res6 != 60000) return 6;
-    uint16_t res7 = MethodContexts__getPublicWrapValue();
+    uint16_t res7 = Contexts__getPublicWrapValue();
     if (res7 != 65530) return 7;
-    bool res8 = MethodContexts__getPublicFlag();
+    bool res8 = Contexts__getPublicFlag();
     if (res8 != true) return 8;
-    int32_t res9 = MethodContexts__getPublicOffset();
+    int32_t res9 = Contexts__getPublicOffset();
     if (res9 != -1000) return 9;
-    uint8_t res10 = MethodContexts__getGlobalMax();
+    uint8_t res10 = Contexts__getGlobalMax();
     if (res10 != 100) return 10;
-    uint16_t res11 = MethodContexts__getGlobalThreshold();
+    uint16_t res11 = Contexts__getGlobalThreshold();
     if (res11 != 1000) return 11;
-    uint8_t res12 = MethodContexts__getGlobalCounter();
+    uint8_t res12 = Contexts__getGlobalCounter();
     if (res12 != 50) return 12;
-    bool res13 = MethodContexts__getGlobalEnabled();
+    bool res13 = Contexts__getGlobalEnabled();
     if (res13 != true) return 13;
-    int16_t res14 = MethodContexts__getGlobalOffset();
+    int16_t res14 = Contexts__getGlobalOffset();
     if (res14 != -25) return 14;
     float expectedScale = 2.5;
-    float res15 = MethodContexts__getGlobalScale();
+    float res15 = Contexts__getGlobalScale();
     if (res15 != expectedScale) return 15;
-    uint8_t res16 = MethodContexts__computePublicSum();
+    uint8_t res16 = Contexts__computePublicSum();
     if (res16 != 70) return 16;
-    bool res17 = MethodContexts__publicValueBelowMax();
+    bool res17 = Contexts__publicValueBelowMax();
     if (res17 != true) return 17;
-    int32_t res18 = MethodContexts__computePublicWithOffset();
+    int32_t res18 = Contexts__computePublicWithOffset();
     if (res18 != -1025) return 18;
-    MethodContexts__setPrivateValue(42U);
-    uint8_t res19 = MethodContexts__getPrivateValueExternal();
+    Contexts__setPrivateValue(42U);
+    uint8_t res19 = Contexts__getPrivateValueExternal();
     if (res19 != 42) return 19;
-    uint8_t res20 = MethodContexts__getPrivateSumViaInternal();
+    uint8_t res20 = Contexts__getPrivateSumViaInternal();
     if (res20 != 92) return 20;
-    MethodContexts__setPublicValue(84U);
-    uint8_t res21 = MethodContexts__getPublicValue();
+    Contexts__setPublicValue(84U);
+    uint8_t res21 = Contexts__getPublicValue();
     if (res21 != 84) return 21;
-    uint8_t res22 = MethodContexts__computePublicSum();
+    uint8_t res22 = Contexts__computePublicSum();
     if (res22 != 134) return 22;
-    MethodContexts__setPrivateFlag(true);
-    MethodContexts__setPublicFlag(false);
-    bool res24 = MethodContexts__getPublicFlag();
+    Contexts__setPrivateFlag(true);
+    Contexts__setPublicFlag(false);
+    bool res24 = Contexts__getPublicFlag();
     if (res24 != false) return 24;
-    MethodContexts__incrementPublicClamp();
-    uint16_t res25 = MethodContexts__getPublicClampValue();
+    Contexts__incrementPublicClamp();
+    uint16_t res25 = Contexts__getPublicClampValue();
     if (res25 != 65535) return 25;
-    MethodContexts__incrementPublicWrap();
-    uint16_t res26 = MethodContexts__getPublicWrapValue();
+    Contexts__incrementPublicWrap();
+    uint16_t res26 = Contexts__getPublicWrapValue();
     if (res26 != 4) return 26;
-    MethodContexts__modifyAllPrivate();
-    uint8_t res27 = MethodContexts__getPrivateValueExternal();
+    Contexts__modifyAllPrivate();
+    uint8_t res27 = Contexts__getPrivateValueExternal();
     if (res27 != 43) return 27;
-    uint8_t res28 = MethodContexts__getPrivateClampViaInternal();
+    uint8_t res28 = Contexts__getPrivateClampViaInternal();
     if (res28 != 210) return 28;
-    MethodContexts__modifyAllPublic();
-    uint8_t res30 = MethodContexts__getPublicValue();
+    Contexts__modifyAllPublic();
+    uint8_t res30 = Contexts__getPublicValue();
     if (res30 != 85) return 30;
-    uint16_t res31 = MethodContexts__getPublicClampValue();
+    uint16_t res31 = Contexts__getPublicClampValue();
     if (res31 != 65535) return 31;
-    uint16_t res32 = MethodContexts__getPublicWrapValue();
+    uint16_t res32 = Contexts__getPublicWrapValue();
     if (res32 != 9) return 32;
-    bool res33 = MethodContexts__getPublicFlag();
+    bool res33 = Contexts__getPublicFlag();
     if (res33 != true) return 33;
-    int32_t res34 = MethodContexts__getPublicOffset();
+    int32_t res34 = Contexts__getPublicOffset();
     if (res34 != -1100) return 34;
-    bool res35 = MethodContexts__checkThresholds();
+    bool res35 = Contexts__checkThresholds();
     if (res35 != false) return 35;
-    bool res36 = MethodContexts__getAllFlags();
+    bool res36 = Contexts__getAllFlags();
     if (res36 != false) return 36;
-    if (MethodContexts__publicValue != 85) return 37;
-    if (MethodContexts__publicClampValue != 65535) return 38;
-    if (MethodContexts__publicWrapValue != 9) return 39;
-    if (MethodContexts__publicFlag != true) return 40;
-    if (MethodContexts__publicOffset != -1100) return 41;
-    MethodContexts__publicValue = 99;
-    uint8_t res42 = MethodContexts__getPublicValue();
+    if (Contexts__publicValue != 85) return 37;
+    if (Contexts__publicClampValue != 65535) return 38;
+    if (Contexts__publicWrapValue != 9) return 39;
+    if (Contexts__publicFlag != true) return 40;
+    if (Contexts__publicOffset != -1100) return 41;
+    Contexts__publicValue = 99;
+    uint8_t res42 = Contexts__getPublicValue();
     if (res42 != 99) return 42;
-    MethodContexts__publicFlag = false;
-    bool res43 = MethodContexts__getPublicFlag();
+    Contexts__publicFlag = false;
+    bool res43 = Contexts__getPublicFlag();
     if (res43 != false) return 43;
     return 0;
 }

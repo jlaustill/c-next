@@ -155,6 +155,8 @@ import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeBinding from "../../logic/symbols/TypeBinding";
+import type ITargetCapabilities from "./types/ITargetCapabilities";
+import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -203,35 +205,65 @@ interface FunctionSignature {
 }
 
 /**
- * ADR-049: Target platform capabilities for code generation
- */
-interface TargetCapabilities {
-  wordSize: 8 | 16 | 32;
-  hasLdrexStrex: boolean;
-  hasBasepri: boolean;
-}
-
-/**
  * ADR-049: Target platform capability map
  */
-const TARGET_CAPABILITIES: Record<string, TargetCapabilities> = {
-  teensy41: { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  teensy40: { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m7": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m4": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m3": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m0+": { wordSize: 32, hasLdrexStrex: true, hasBasepri: false },
-  "cortex-m0": { wordSize: 32, hasLdrexStrex: false, hasBasepri: false },
-  avr: { wordSize: 8, hasLdrexStrex: false, hasBasepri: false },
-};
-
-/**
- * ADR-049: Default target capabilities (safe fallback)
- */
-const DEFAULT_TARGET: TargetCapabilities = {
-  wordSize: 32,
-  hasLdrexStrex: false,
-  hasBasepri: false,
+const TARGET_CAPABILITIES: Record<string, ITargetCapabilities> = {
+  teensy41: {
+    wordSize: 32,
+    hasLdrexStrex: true,
+    hasBasepri: true,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
+  teensy40: {
+    wordSize: 32,
+    hasLdrexStrex: true,
+    hasBasepri: true,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
+  "cortex-m7": {
+    wordSize: 32,
+    hasLdrexStrex: true,
+    hasBasepri: true,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
+  "cortex-m4": {
+    wordSize: 32,
+    hasLdrexStrex: true,
+    hasBasepri: true,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
+  "cortex-m3": {
+    wordSize: 32,
+    hasLdrexStrex: true,
+    hasBasepri: true,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
+  "cortex-m0+": {
+    wordSize: 32,
+    hasLdrexStrex: true,
+    hasBasepri: false,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
+  "cortex-m0": {
+    wordSize: 32,
+    hasLdrexStrex: false,
+    hasBasepri: false,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
+  avr: {
+    wordSize: 8,
+    hasLdrexStrex: false,
+    hasBasepri: false,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
+  },
 };
 
 /**
@@ -2339,7 +2371,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Reset all generator state for a fresh generation pass.
    */
-  private resetGeneratorState(targetCapabilities: TargetCapabilities): void {
+  private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
     // Reset global state (CodeGenState.reset() handles all field initialization)
     CodeGenState.reset(targetCapabilities);
 
@@ -2671,7 +2703,7 @@ export default class CodeGenerator implements IOrchestrator {
   private resolveTargetCapabilities(
     tree: Parser.ProgramContext,
     cliTarget?: string,
-  ): TargetCapabilities {
+  ): ITargetCapabilities {
     // Priority 1: CLI --target flag
     if (cliTarget) {
       const targetName = cliTarget.toLowerCase();
@@ -2698,7 +2730,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-049: Parse #pragma target directive from source
    * Returns capabilities for the specified platform, or DEFAULT_TARGET if none found
    */
-  private parseTargetPragma(tree: Parser.ProgramContext): TargetCapabilities {
+  private parseTargetPragma(tree: Parser.ProgramContext): ITargetCapabilities {
     // pragmaDirective is accessed through preprocessorDirective
     const preprocessorDirs = tree.preprocessorDirective();
     for (const ppDir of preprocessorDirs) {

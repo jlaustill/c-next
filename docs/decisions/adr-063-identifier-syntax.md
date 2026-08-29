@@ -373,5 +373,22 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
 - Issue #1133 — Include-guard macros are not injective
 - Issue #1134 — Two included `.cnx` files sharing a basename: the second is silently dropped
 - Issue #1132 — Reserve the `cnx_` prefix for the transpiler (E0202)
+- Issue #1307 — Injectivity holds for the whole string but not within the target's
+  significant-character budget: C99 §5.2.4.1 guarantees 31 characters for an external
+  identifier, and `Scope__member` spends them on the encoding. Diagnosed as E0204 in
+  `Transpiler.ts:_checkExternalIdentifierSignificance` and
+  `logic/symbols/SymbolTable.ts:detectMISRA51Conflicts`; MISRA C:2012 Rule 5.1.
+
+  This is not the diagnostic "Why a diagnostic is the wrong fix" rejects, and the
+  difference is what makes that section's argument hold. There, a diagnostic would
+  have stood in for an encoding that _can_ be made injective, so rejecting a
+  well-formed program was avoidable and therefore wrong. Here it cannot: 51 characters
+  do not fit in 31, and the only encodings that would fit are the length-prefixed and
+  hashed forms this ADR already rejected for destroying the readability of the
+  generated artifact. A diagnostic is the least-cost remaining option, not a substitute
+  for one.
+
+- Issue #1338 — the same gap against the 63-character _internal_ budget (Rule 5.9), open
+- Issue #1292 — diagnostics name `cnxScopedName`, not the generated identifier
 - ADR-016 (Scopes), ADR-017 (Enums), ADR-057 (Implicit Scope Resolution), ADR-010 (C Interoperability), ADR-105 (Prefixed Includes)
-- ISO/IEC 9899:2011 §7.1.3; ISO/IEC 14882 §lex.name/3; MISRA C:2012 Rule 21.2
+- ISO/IEC 9899:2011 §7.1.3; ISO/IEC 14882 §lex.name/3; MISRA C:2012 Rule 21.2; ISO/IEC 9899:1999 §5.2.4.1

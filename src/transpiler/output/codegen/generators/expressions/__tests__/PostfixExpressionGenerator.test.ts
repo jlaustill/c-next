@@ -88,6 +88,8 @@ function createMockInput(overrides?: {
       wordSize: 32,
       hasLdrexStrex: false,
       hasBasepri: false,
+      significantExternalIdentifierChars: 31,
+      significantInternalIdentifierChars: 63,
     },
     debugMode: false,
   } as IGeneratorInput;

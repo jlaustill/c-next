@@ -325,6 +325,11 @@ class Transpiler {
       return;
     }
 
+    // Stage 4c: Check external identifier significance (MISRA 5.1, issue #1307)
+    if (!this._checkExternalIdentifierSignificance(result)) {
+      return;
+    }
+
     // Stage 5: Analyze and transpile each C-Next file
     for (const file of input.cnextFiles) {
       if (file.symbolOnly) {
@@ -946,6 +951,45 @@ class Transpiler {
         severity: "error",
       });
     }
+    return result.success;
+  }
+
+  /**
+   * Stage 4c: Reject external identifiers that are not distinct within the
+   * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
+   *
+   * A sibling of Stage 4b rather than part of Stage 4: a symbol *conflict* is
+   * two declarations competing for one name, which is a fact about the symbol
+   * table. This is a fact about the C target -- the same two declarations are
+   * fine at 63 significant characters and wrong at 31 -- so it is reported as a
+   * coded diagnostic against a source line, the way E0203 is, instead of going
+   * through the untyped `conflicts` channel.
+   *
+   * @returns true when every external identifier is distinct within the budget
+   */
+  private _checkExternalIdentifierSignificance(
+    result: ITranspilerResult,
+  ): boolean {
+    const collisions = CodeGenState.symbolTable.detectMISRA51Conflicts(
+      CodeGenState.targetCapabilities,
+    );
+
+    for (const collision of collisions) {
+      const first = collision.definitions[0];
+      result.errors.push({
+        line: first?.sourceLine ?? 1,
+        column: 0,
+        message: collision.message,
+        severity: "error",
+        // Anchored to a file even in single-file builds. The message runs to
+        // several lines, and the CLI's reader only accumulates continuation
+        // lines under a `path:line:col` header -- without a sourcePath the
+        // colliding names are printed and then dropped on the way to a snapshot.
+        sourcePath: first?.sourceFile,
+      });
+      result.success = false;
+    }
+
     return result.success;
   }
 

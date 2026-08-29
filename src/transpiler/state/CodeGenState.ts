@@ -42,16 +42,12 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import IScopeSymbol from "../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import SymbolRegistry from "./SymbolRegistry";
+import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
 /**
  * Default target capabilities (safe fallback)
+ * Uses C99 guarantees: 31 external, 63 internal significant characters.
  */
-const DEFAULT_TARGET: ITargetCapabilities = {
-  wordSize: 32,
-  hasLdrexStrex: false,
-  hasBasepri: false,
-};
-
 /**
  * Assignment context for overflow behavior tracking (ADR-044)
  */

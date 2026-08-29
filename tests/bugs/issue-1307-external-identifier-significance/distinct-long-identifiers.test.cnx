@@ -1,0 +1,38 @@
+// test-execution
+// Issue #1307, the other half of the assertion: external identifiers that are
+// long but DO differ within the target's 31 significant characters must still
+// transpile, compile and run. Without this, the Rule 5.1 check could pass its
+// error fixture by rejecting every qualified name over 31 characters.
+
+scope TemperatureSensorController {
+    public u8 calibrationOffsetValue <- 7;
+    public u8 diagnosticOffsetValue <- 9;
+
+    public u8 sumOffsets() {
+        return calibrationOffsetValue + diagnosticOffsetValue;
+    }
+}
+
+// A global whose name shares its first 31 characters with nothing.
+u8 ambientTemperatureCorrectionFactor <- 3;
+
+i32 main() {
+    u8 total <- TemperatureSensorController.sumOffsets();
+    if (total != 16) {
+        return 1;
+    }
+
+    if (TemperatureSensorController.calibrationOffsetValue != 7) {
+        return 2;
+    }
+
+    if (TemperatureSensorController.diagnosticOffsetValue != 9) {
+        return 3;
+    }
+
+    if (ambientTemperatureCorrectionFactor != 3) {
+        return 4;
+    }
+
+    return 0;
+}

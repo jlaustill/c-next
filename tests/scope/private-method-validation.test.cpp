@@ -20,171 +20,171 @@ bool globalFlag = true;
 
 int32_t globalOffset = -50;
 
-/* Scope: PrivateMethodTest */
-static uint32_t PrivateMethodTest__privateState = 0U;
-static bool PrivateMethodTest__privateFlag = false;
-static int32_t PrivateMethodTest__privateAccumulator = 0;
-static uint8_t PrivateMethodTest__callCount = 0U;
-uint32_t PrivateMethodTest__publicResult = 0U;
-bool PrivateMethodTest__publicFlag = false;
-int32_t PrivateMethodTest__publicAccumulator = 0;
+/* Scope: PrivateMethods */
+static uint32_t PrivateMethods__privateState = 0U;
+static bool PrivateMethods__privateFlag = false;
+static int32_t PrivateMethods__privateAccumulator = 0;
+static uint8_t PrivateMethods__callCount = 0U;
+uint32_t PrivateMethods__publicResult = 0U;
+bool PrivateMethods__publicFlag = false;
+int32_t PrivateMethods__publicAccumulator = 0;
 
-uint32_t PrivateMethodTest__getPrivateState(void) {
-    return PrivateMethodTest__privateState;
+uint32_t PrivateMethods__getPrivateState(void) {
+    return PrivateMethods__privateState;
 }
 
-bool PrivateMethodTest__getPrivateFlag(void) {
-    return PrivateMethodTest__privateFlag;
+bool PrivateMethods__getPrivateFlag(void) {
+    return PrivateMethods__privateFlag;
 }
 
-int32_t PrivateMethodTest__getPrivateAccumulator(void) {
-    return PrivateMethodTest__privateAccumulator;
+int32_t PrivateMethods__getPrivateAccumulator(void) {
+    return PrivateMethods__privateAccumulator;
 }
 
-void PrivateMethodTest__incrementCallCount(void) {
-    PrivateMethodTest__callCount = PrivateMethodTest__callCount + 1U;
+void PrivateMethods__incrementCallCount(void) {
+    PrivateMethods__callCount = PrivateMethods__callCount + 1U;
 }
 
-uint8_t PrivateMethodTest__getCallCount(void) {
-    return PrivateMethodTest__callCount;
+uint8_t PrivateMethods__getCallCount(void) {
+    return PrivateMethods__callCount;
 }
 
-uint32_t PrivateMethodTest__readGlobalCounter(void) {
+uint32_t PrivateMethods__readGlobalCounter(void) {
     return globalCounter;
 }
 
-bool PrivateMethodTest__readGlobalFlag(void) {
+bool PrivateMethods__readGlobalFlag(void) {
     return globalFlag;
 }
 
-int32_t PrivateMethodTest__readGlobalOffset(void) {
+int32_t PrivateMethods__readGlobalOffset(void) {
     return globalOffset;
 }
 
-uint32_t PrivateMethodTest__combineStateAndGlobal(void) {
-    return PrivateMethodTest__privateState + globalCounter;
+uint32_t PrivateMethods__combineStateAndGlobal(void) {
+    return PrivateMethods__privateState + globalCounter;
 }
 
-bool PrivateMethodTest__checkBothFlags(void) {
-    return PrivateMethodTest__privateFlag && globalFlag;
+bool PrivateMethods__checkBothFlags(void) {
+    return PrivateMethods__privateFlag && globalFlag;
 }
 
-uint32_t PrivateMethodTest__getStateViaHelper(void) {
-    return PrivateMethodTest__getPrivateState();
+uint32_t PrivateMethods__getStateViaHelper(void) {
+    return PrivateMethods__getPrivateState();
 }
 
-void PrivateMethodTest__performPrivateChain(void) {
-    PrivateMethodTest__incrementCallCount();
-    PrivateMethodTest__privateState = PrivateMethodTest__privateState + 10U;
-    PrivateMethodTest__privateFlag = !PrivateMethodTest__privateFlag;
+void PrivateMethods__performPrivateChain(void) {
+    PrivateMethods__incrementCallCount();
+    PrivateMethods__privateState = PrivateMethods__privateState + 10U;
+    PrivateMethods__privateFlag = !PrivateMethods__privateFlag;
 }
 
-void PrivateMethodTest__addValue(int32_t amount) {
-    PrivateMethodTest__privateAccumulator = PrivateMethodTest__privateAccumulator + amount;
-    PrivateMethodTest__incrementCallCount();
+void PrivateMethods__addValue(int32_t amount) {
+    PrivateMethods__privateAccumulator = PrivateMethods__privateAccumulator + amount;
+    PrivateMethods__incrementCallCount();
 }
 
-uint32_t PrivateMethodTest__exposePrivateState(void) {
-    return PrivateMethodTest__getPrivateState();
+uint32_t PrivateMethods__exposePrivateState(void) {
+    return PrivateMethods__getPrivateState();
 }
 
-void PrivateMethodTest__setPrivateState(uint32_t val) {
-    PrivateMethodTest__privateState = val;
+void PrivateMethods__setPrivateState(uint32_t val) {
+    PrivateMethods__privateState = val;
 }
 
-bool PrivateMethodTest__exposePrivateFlag(void) {
-    return PrivateMethodTest__getPrivateFlag();
+bool PrivateMethods__exposePrivateFlag(void) {
+    return PrivateMethods__getPrivateFlag();
 }
 
-void PrivateMethodTest__setPrivateFlag(bool val) {
-    PrivateMethodTest__privateFlag = val;
+void PrivateMethods__setPrivateFlag(bool val) {
+    PrivateMethods__privateFlag = val;
 }
 
-int32_t PrivateMethodTest__exposePrivateAccumulator(void) {
-    return PrivateMethodTest__getPrivateAccumulator();
+int32_t PrivateMethods__exposePrivateAccumulator(void) {
+    return PrivateMethods__getPrivateAccumulator();
 }
 
-void PrivateMethodTest__addToAccumulator(int32_t val) {
-    PrivateMethodTest__addValue(val);
+void PrivateMethods__addToAccumulator(int32_t val) {
+    PrivateMethods__addValue(val);
 }
 
-uint32_t PrivateMethodTest__exposeGlobalCounter(void) {
-    return PrivateMethodTest__readGlobalCounter();
+uint32_t PrivateMethods__exposeGlobalCounter(void) {
+    return PrivateMethods__readGlobalCounter();
 }
 
-uint32_t PrivateMethodTest__exposeCombinedStateAndGlobal(void) {
-    return PrivateMethodTest__combineStateAndGlobal();
+uint32_t PrivateMethods__exposeCombinedStateAndGlobal(void) {
+    return PrivateMethods__combineStateAndGlobal();
 }
 
-bool PrivateMethodTest__exposeBothFlagsCheck(void) {
-    return PrivateMethodTest__checkBothFlags();
+bool PrivateMethods__exposeBothFlagsCheck(void) {
+    return PrivateMethods__checkBothFlags();
 }
 
-uint32_t PrivateMethodTest__exposeStateViaHelper(void) {
-    return PrivateMethodTest__getStateViaHelper();
+uint32_t PrivateMethods__exposeStateViaHelper(void) {
+    return PrivateMethods__getStateViaHelper();
 }
 
-uint8_t PrivateMethodTest__exposeCallCount(void) {
-    return PrivateMethodTest__getCallCount();
+uint8_t PrivateMethods__exposeCallCount(void) {
+    return PrivateMethods__getCallCount();
 }
 
-void PrivateMethodTest__triggerPrivateChain(void) {
-    PrivateMethodTest__performPrivateChain();
+void PrivateMethods__triggerPrivateChain(void) {
+    PrivateMethods__performPrivateChain();
 }
 
-void PrivateMethodTest__copyPrivateToPublic(void) {
-    PrivateMethodTest__publicResult = PrivateMethodTest__getPrivateState();
-    PrivateMethodTest__publicFlag = PrivateMethodTest__getPrivateFlag();
-    PrivateMethodTest__publicAccumulator = PrivateMethodTest__getPrivateAccumulator();
+void PrivateMethods__copyPrivateToPublic(void) {
+    PrivateMethods__publicResult = PrivateMethods__getPrivateState();
+    PrivateMethods__publicFlag = PrivateMethods__getPrivateFlag();
+    PrivateMethods__publicAccumulator = PrivateMethods__getPrivateAccumulator();
 }
 
 int main(void) {
-    uint32_t resultState = PrivateMethodTest__exposePrivateState();
+    uint32_t resultState = PrivateMethods__exposePrivateState();
     if (resultState != 0) return 1;
-    PrivateMethodTest__setPrivateState(42U);
-    resultState = PrivateMethodTest__exposePrivateState();
+    PrivateMethods__setPrivateState(42U);
+    resultState = PrivateMethods__exposePrivateState();
     if (resultState != 42) return 2;
-    bool resultFlag = PrivateMethodTest__exposePrivateFlag();
+    bool resultFlag = PrivateMethods__exposePrivateFlag();
     if (resultFlag != false) return 3;
-    PrivateMethodTest__setPrivateFlag(true);
-    resultFlag = PrivateMethodTest__exposePrivateFlag();
+    PrivateMethods__setPrivateFlag(true);
+    resultFlag = PrivateMethods__exposePrivateFlag();
     if (resultFlag != true) return 4;
-    int32_t resultAccum = PrivateMethodTest__exposePrivateAccumulator();
+    int32_t resultAccum = PrivateMethods__exposePrivateAccumulator();
     if (resultAccum != 0) return 5;
-    PrivateMethodTest__addToAccumulator(100);
-    resultAccum = PrivateMethodTest__exposePrivateAccumulator();
+    PrivateMethods__addToAccumulator(100);
+    resultAccum = PrivateMethods__exposePrivateAccumulator();
     if (resultAccum != 100) return 6;
-    PrivateMethodTest__addToAccumulator(-30);
-    resultAccum = PrivateMethodTest__exposePrivateAccumulator();
+    PrivateMethods__addToAccumulator(-30);
+    resultAccum = PrivateMethods__exposePrivateAccumulator();
     if (resultAccum != 70) return 7;
-    uint32_t resultCounter = PrivateMethodTest__exposeGlobalCounter();
+    uint32_t resultCounter = PrivateMethods__exposeGlobalCounter();
     if (resultCounter != 100) return 8;
-    uint32_t resultCombined = PrivateMethodTest__exposeCombinedStateAndGlobal();
+    uint32_t resultCombined = PrivateMethods__exposeCombinedStateAndGlobal();
     if (resultCombined != 142) return 9;
-    bool resultBothFlags = PrivateMethodTest__exposeBothFlagsCheck();
+    bool resultBothFlags = PrivateMethods__exposeBothFlagsCheck();
     if (resultBothFlags != true) return 10;
-    PrivateMethodTest__setPrivateFlag(false);
-    resultBothFlags = PrivateMethodTest__exposeBothFlagsCheck();
+    PrivateMethods__setPrivateFlag(false);
+    resultBothFlags = PrivateMethods__exposeBothFlagsCheck();
     if (resultBothFlags != false) return 11;
-    uint32_t resultHelper = PrivateMethodTest__exposeStateViaHelper();
+    uint32_t resultHelper = PrivateMethods__exposeStateViaHelper();
     if (resultHelper != 42) return 12;
-    PrivateMethodTest__setPrivateState(990U);
-    resultState = PrivateMethodTest__exposePrivateState();
+    PrivateMethods__setPrivateState(990U);
+    resultState = PrivateMethods__exposePrivateState();
     if (resultState != 990) return 13;
-    uint8_t resultCallCount = PrivateMethodTest__exposeCallCount();
+    uint8_t resultCallCount = PrivateMethods__exposeCallCount();
     if (resultCallCount != 2) return 14;
-    PrivateMethodTest__triggerPrivateChain();
-    resultState = PrivateMethodTest__exposePrivateState();
+    PrivateMethods__triggerPrivateChain();
+    resultState = PrivateMethods__exposePrivateState();
     if (resultState != 1000) return 15;
-    resultFlag = PrivateMethodTest__exposePrivateFlag();
+    resultFlag = PrivateMethods__exposePrivateFlag();
     if (resultFlag != true) return 16;
-    resultCallCount = PrivateMethodTest__exposeCallCount();
+    resultCallCount = PrivateMethods__exposeCallCount();
     if (resultCallCount != 3) return 17;
-    PrivateMethodTest__setPrivateState(777U);
-    PrivateMethodTest__setPrivateFlag(true);
-    PrivateMethodTest__copyPrivateToPublic();
-    if (PrivateMethodTest__publicResult != 777) return 18;
-    if (PrivateMethodTest__publicFlag != true) return 19;
-    if (PrivateMethodTest__publicAccumulator != 70) return 20;
+    PrivateMethods__setPrivateState(777U);
+    PrivateMethods__setPrivateFlag(true);
+    PrivateMethods__copyPrivateToPublic();
+    if (PrivateMethods__publicResult != 777) return 18;
+    if (PrivateMethods__publicFlag != true) return 19;
+    if (PrivateMethods__publicAccumulator != 70) return 20;
     return 0;
 }

@@ -38,6 +38,8 @@ function createCapabilities(hasLdrexStrex: boolean): ITargetCapabilities {
     wordSize: 32,
     hasLdrexStrex,
     hasBasepri: true,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
   };
 }
 
