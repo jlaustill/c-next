@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
+import installMockSymbols from "../../__tests__/installMockSymbols";
 import CodeGenState from "../CodeGenState";
 import TTypeInfo from "../../output/codegen/types/TTypeInfo";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
@@ -218,7 +219,7 @@ describe("CodeGenState", () => {
         ["VALUE1", 0],
         ["VALUE2", 1],
       ]);
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownEnums: new Set(["MyEnum"]),
         enumMembers: new Map([["MyEnum", enumMembers]]),
       });
@@ -234,7 +235,7 @@ describe("CodeGenState", () => {
     });
 
     it("returns return type when available", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         functionReturnTypes: new Map([["myFunc", "u32"]]),
       });
 
@@ -769,7 +770,7 @@ describe("CodeGenState", () => {
 
     it("convertSymbolToTypeInfo handles enum types", () => {
       // Register an enum
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownEnums: new Set(["EColor"]),
       });
 
@@ -892,7 +893,7 @@ describe("CodeGenState", () => {
     });
 
     it("isKnownEnum returns true for known enum", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
@@ -906,7 +907,7 @@ describe("CodeGenState", () => {
     });
 
     it("isKnownScope returns true for known scope", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownScopes: new Set(["MyScope"]),
       });
 
@@ -920,7 +921,7 @@ describe("CodeGenState", () => {
     });
 
     it("isOpaqueType returns true for opaque type", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         opaqueTypes: new Set(["widget_t", "display_t"]),
       });
 
@@ -932,7 +933,7 @@ describe("CodeGenState", () => {
 
   describe("Scope Type Qualification (ADR-057)", () => {
     it("isScopeType matches enums, structs and bitmaps by qualified name", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownEnums: new Set(["A__B"]),
         knownStructs: new Set(["A__S"]),
         knownBitmaps: new Set(["A__Flags"]),
@@ -950,7 +951,7 @@ describe("CodeGenState", () => {
     });
 
     it("qualifyScopeType qualifies a bare scope-local type name", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
       CodeGenState.setCurrentScopeByPath("A");
@@ -959,7 +960,7 @@ describe("CodeGenState", () => {
     });
 
     it("qualifyScopeType leaves names the scope does not declare", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
       CodeGenState.setCurrentScopeByPath("A");
@@ -968,7 +969,7 @@ describe("CodeGenState", () => {
     });
 
     it("qualifyScopeType leaves names alone outside any scope", () => {
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
       CodeGenState.setCurrentScopeByPath(null);
@@ -979,7 +980,7 @@ describe("CodeGenState", () => {
     it("qualifyScopeType does not let a non-type member capture a global type", () => {
       // Scope A has a function/variable named Config, but no *type* named
       // Config — so Config must keep resolving to the global struct.
-      CodeGenState.symbols = createMockSymbols({
+      installMockSymbols({
         knownStructs: new Set(["Config"]),
       });
       CodeGenState.setCurrentScopeByPath("A");
