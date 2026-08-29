@@ -346,6 +346,36 @@ describe("SymbolTable", () => {
       expect(symbolTable.hasConflict("overloaded")).toBe(false);
     });
 
+    // The same symbol declared in both a C header and a C++ header is normally the
+    // SAME symbol seen twice, not a conflict. Covered here because extracting
+    // detectCNextDuplicate moved this branch, and a moved line is attributed to
+    // the mover.
+    it("should NOT detect conflict for the same symbol in C and C++ headers", () => {
+      symbolTable.addCSymbol({
+        kind: "function",
+        name: "shared_api",
+        sourceFile: "api.h",
+        sourceLine: 3,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+        type: "int",
+        parameters: [],
+      });
+
+      symbolTable.addCppSymbol({
+        kind: "function",
+        name: "shared_api",
+        sourceFile: "api.hpp",
+        sourceLine: 4,
+        sourceLanguage: ESourceLanguage.Cpp,
+        isExported: true,
+        type: "int",
+        parameters: [],
+      } as unknown as TCppSymbol);
+
+      expect(symbolTable.hasConflict("shared_api")).toBe(false);
+    });
+
     // Issue #1333: a scope may be REOPENED. Two `scope Lib` declarations are the
     // same scope gaining members, not two definitions of one name.
     //
