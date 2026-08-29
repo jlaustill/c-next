@@ -7,6 +7,7 @@
 
 #include "function-param-init.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #502 - Function parameters and return types with C++ namespaced types
 #include "SeaDash.hpp"

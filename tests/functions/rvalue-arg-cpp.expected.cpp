@@ -5,6 +5,7 @@
 
 #include "rvalue-arg-cpp.test.hpp"
 
+// test-cpp-only
 // test-execution
 // Tests: Issue #250 - rvalue expressions in C++ mode
 // C++ compound literals are rvalues, can't take address

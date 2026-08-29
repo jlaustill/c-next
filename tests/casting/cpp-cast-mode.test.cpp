@@ -5,6 +5,7 @@
 
 #include "cpp-cast-mode.test.hpp"
 
+// test-cpp-only
 // test-coverage: 267-cpp-casts
 // test-execution
 // Tests: C++ casts are generated when cppMode is enabled (Issue #267)

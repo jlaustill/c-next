@@ -5,6 +5,7 @@
 
 #include "template-type.test.hpp"
 
+// test-cpp-only
 // Issue #375: Template type with constructor
 #include "constructor-stubs.h"
 

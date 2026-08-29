@@ -5,6 +5,7 @@
 
 #include "issue-321-global-object-method.test.hpp"
 
+// test-cpp-only
 // test-execution
 // Issue #321: global.Object.method() generates :: instead of . for object instances
 // Tests: Correct syntax generation for object instances vs classes in C++ mode

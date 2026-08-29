@@ -5,6 +5,7 @@
 
 #include "issue-328-false-symbol-conflict.test.hpp"
 
+// test-cpp-only
 // test-execution
 // Issue #328: Transpiler detects false symbol conflict with its own generated output files
 //

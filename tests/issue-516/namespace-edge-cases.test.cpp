@@ -5,6 +5,7 @@
 
 #include "namespace-edge-cases.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Edge cases for C++ namespace function calls (Issue #516)
 // Comprehensive regression prevention tests

@@ -489,6 +489,28 @@ extern uint32_t WRONG_VAR_NAME;
     expect(result.message).toBe("C header mismatch");
   });
 
+  it("fails a C-mode run whose .hpp include forces C++ output (#1314)", async () => {
+    // The guard runs before the snapshot comparison, so no .expected.* is needed.
+    // Without it the run falls back to the guessed `.c` and reads whatever is on
+    // disk -- which is how 44 fixtures stayed green against files the transpiler
+    // never wrote. Delete the guard and this test is what goes red.
+    writeFileSync(
+      join(tempDir, "thing.hpp"),
+      "#pragma once\nnamespace Thing { struct Config { int v; }; }\n",
+    );
+    const cnxFile = join(tempDir, "forced.test.cnx");
+    writeFileSync(
+      cnxFile,
+      '// test-c-only\n#include "thing.hpp"\n\nu32 main() { return 0; }\n',
+    );
+
+    const tools: ITools = { gcc: false };
+    const result = await TestUtils.runTest(cnxFile, false, tools, tempDir);
+
+    expect(result.passed).toBe(false);
+    expect(result.message).toContain("C mode produced no .c file");
+  });
+
   it("should pass when .expected.h matches for c-only tests", async () => {
     // Create a minimal c-only test
     const cnxContent = `// test-c-only
@@ -626,5 +648,77 @@ describe("checkForStaleErrorTestArtifacts", () => {
     const result = TestUtils.checkForStaleErrorTestArtifacts(basePath);
     expect(result).not.toBeNull();
     expect(result?.actual).toContain("git rm");
+  });
+});
+
+describe("TestUtils.parseGeneratedImplPaths", () => {
+  // Issue #1314: the harness must learn the output path from the CLI rather than
+  // guessing it from the mode it asked for. A stale file on disk answers an
+  // existence check just as convincingly as a fresh one, which is how seven dead
+  // snapshots stayed green.
+  const cppOnlyBlock = [
+    "Compiled 2 files",
+    "Generated 2 output files:",
+    "  /repo/tests/x.test.cpp",
+    "  /repo/tests/x.test.hpp",
+    "",
+  ].join("\n");
+
+  it.each([
+    {
+      name: "returns the .cpp when C mode auto-detected C++",
+      stdout: cppOnlyBlock,
+      expected: ["/repo/tests/x.test.cpp"],
+    },
+    {
+      name: "returns the .c for an ordinary C-mode run",
+      stdout:
+        "Generated 2 output files:\n  /repo/tests/y.test.c\n  /repo/tests/y.test.h\n",
+      expected: ["/repo/tests/y.test.c"],
+    },
+    {
+      // The CLI fills outputFiles impl-by-impl across the whole pipeline and
+      // appends headers afterwards, so every impl precedes every header. Verified
+      // against this branch's CLI: `dep.c, main.test.c, dep.h`. An interleaved
+      // `a.c, a.h, b.c` cannot occur, so the parser does not tolerate it.
+      name: "returns every implementation file for a multi-file run",
+      stdout:
+        "Generated 3 output files:\n  /repo/dep.c\n  /repo/main.test.c\n  /repo/dep.h\n",
+      expected: ["/repo/dep.c", "/repo/main.test.c"],
+    },
+    {
+      name: "ends the block at the first header line",
+      stdout:
+        "Generated 3 output files:\n  /repo/a.c\n  /repo/a.h\n  /repo/b.c\n",
+      expected: ["/repo/a.c"],
+    },
+    {
+      name: "handles the singular 'output file' wording",
+      stdout: "Generated 1 output file:\n  /repo/solo.c\n",
+      expected: ["/repo/solo.c"],
+    },
+    {
+      name: "returns nothing when the CLI printed no block",
+      stdout: "Compiled 1 files\nCollected 3 symbols\n",
+      expected: [],
+    },
+    {
+      // Indented, so it only matches if the block regex loses its `^` anchor.
+      // The previous version put the decoy before an unindented header line and
+      // passed with or without the anchor -- it tested nothing.
+      name: "ignores an indented line that merely mentions the block header",
+      stdout:
+        "  Generated 1 output file: (nested)\n  /repo/decoy.c\n" +
+        "Generated 1 output file:\n  /repo/real.c\n",
+      expected: ["/repo/real.c"],
+    },
+    {
+      name: "stops at the first non-output line after the block",
+      stdout:
+        "Generated 1 output file:\n  /repo/real.c\n\nToolchain requirements:\n  /repo/not-output.c\n",
+      expected: ["/repo/real.c"],
+    },
+  ])("$name", ({ stdout, expected }) => {
+    expect(TestUtils.parseGeneratedImplPaths(stdout)).toEqual(expected);
   });
 });

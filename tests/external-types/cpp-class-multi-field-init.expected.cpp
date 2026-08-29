@@ -5,6 +5,7 @@
 
 #include "cpp-class-multi-field-init.test.hpp"
 
+// test-cpp-only
 // Issue #517: C++ class multi-field struct initialization
 // Multiple fields should generate multiple assignments
 #include "CppTestClass.hpp"

@@ -5,6 +5,7 @@
 
 #include "in-scope.test.hpp"
 
+// test-cpp-only
 // Issue #375: Constructor inside scope
 #include "constructor-stubs.h"
 

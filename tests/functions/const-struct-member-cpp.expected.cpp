@@ -5,6 +5,7 @@
 
 #include "const-struct-member-cpp.test.hpp"
 
+// test-cpp-only
 // tests/functions/const-struct-member-cpp.test.cnx
 // test-execution
 // Tests: Issue #251 - const struct members passed to non-const parameters

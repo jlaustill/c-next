@@ -92,6 +92,20 @@ interface ICliTranspileResult {
   headerCode: string;
   errors: Array<{ line: number; column: number; message: string }>;
   stderr: string;
+  /**
+   * Implementation files the CLI reported writing, as absolute paths.
+   *
+   * Issue #1314: the harness used to infer the output extension from the mode it
+   * ASKED for (`cppMode ? ".cpp" : ".c"`) and only reconsidered when that file was
+   * absent. A `.hpp` include makes the transpiler auto-select C++
+   * (`Transpiler.detectCppFromFileType`), so in C mode no `.c` is written -- but a
+   * stale committed `.c` from an older transpiler satisfied the existence check,
+   * so the harness read THAT and compared it to an equally stale `.expected.c`.
+   * Both matched, the test passed, and the file under validation was one no
+   * transpiler produced. The stale file's existence was what suppressed the
+   * detection. Reading the CLI's own report removes the inference entirely.
+   */
+  generatedImplPaths: string[];
 }
 
 /**
@@ -238,16 +252,26 @@ function transpileViaCli(
   let actualCodePath = codePath;
   let actualHeaderPath = headerPath;
 
+  // Issue #1314: the CLI names every file it wrote. Ask it, rather than probing
+  // the filesystem for a name we guessed -- a leftover file from an older
+  // transpiler answers an existence check just as convincingly as a fresh one.
+  const generatedImplPaths = TestUtils.parseGeneratedImplPaths(
+    result.stdout || "",
+  );
+
   if (result.status === 0) {
-    // Check if the expected file exists, or if CLI auto-detected a different mode
-    if (!existsSync(codePath)) {
-      // CLI may have auto-detected C++ mode from .hpp includes
-      const altCodePath = codePath.replace(/\.c$/, ".cpp");
-      const altHeaderPath = headerPath.replace(/\.h$/, ".hpp");
-      if (existsSync(altCodePath)) {
-        actualCodePath = altCodePath;
-        actualHeaderPath = altHeaderPath;
-      }
+    // Only the CLI's answer for THIS path counts. `generatedImplPaths[0]` would be
+    // a second guess and a wrong one: outputFiles is filled impl-by-impl across the
+    // whole pipeline (Transpiler._recordFileResult) with headers appended afterwards
+    // (_generateAllHeadersFromPipeline), so in a multi-file run [0] is a DEPENDENCY's
+    // impl, not the fixture's. Verified -- an entry including dep.cnx prints
+    // `dep.c, main.test.c, dep.h`. A miss stays a miss; the caller's guard reports it.
+    const reportedImpl = generatedImplPaths.find((p) => p === codePath);
+    if (reportedImpl) {
+      actualCodePath = reportedImpl;
+      actualHeaderPath = reportedImpl
+        .replace(/\.cpp$/, ".hpp")
+        .replace(/\.c$/, ".h");
     }
 
     if (existsSync(actualCodePath)) {
@@ -264,6 +288,7 @@ function transpileViaCli(
     headerCode,
     errors,
     stderr: result.stderr || "",
+    generatedImplPaths,
   };
 }
 
@@ -798,6 +823,38 @@ class TestUtils {
 
     result.transpileSuccess = true;
 
+    // Issue #1314: a fixture that includes a `.hpp` makes the transpiler
+    // auto-select C++, so a C-mode run writes no `.c` at all. Without this the
+    // run silently validates whatever `.c` happens to be lying in the directory
+    // -- which is how seven dead snapshots stayed green for months. The fixture
+    // is a C++ interop test and must say so.
+    // A block that cannot be parsed is a harness fault and must be loud. Skipping the check
+    // here would restore exactly #1314: the path falls back to the GUESSED `.c`, the
+    // run reads whatever `.c` is on disk, and it goes silently green again. The CLI
+    // prints this block unconditionally on the success path (Runner.ts:65 ->
+    // ResultPrinter.print), so an empty parse means its format moved, not that it
+    // was asked to be quiet -- there is no --quiet flag.
+    if (transpileResult.generatedImplPaths.length === 0) {
+      result.error =
+        "CLI reported no generated output files -- could not parse the " +
+        "`Generated N output files:` block. Update " +
+        "TestUtils.parseGeneratedImplPaths to match the CLI's output format.";
+      return result;
+    }
+
+    if (mode === "c") {
+      const wroteC = transpileResult.generatedImplPaths.some((implPath) =>
+        implPath.endsWith(".c"),
+      );
+      if (!wroteC) {
+        result.error =
+          "C mode produced no .c file: the transpiler auto-detected C++ " +
+          "(a .hpp include). Mark this fixture `// test-cpp-only` and remove " +
+          "its C-side snapshots (.test.c/.test.h/.expected.c/.expected.h).";
+        return result;
+      }
+    }
+
     // Transpile helper files via CLI
     // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
     // that would move tracked helper files to temp locations. Instead, let
@@ -816,7 +873,15 @@ class TestUtils {
       const helperResult = transpileViaCli(helperCnx, rootDir, mode === "cpp");
 
       if (helperResult.success) {
-        helperImplFiles.push(helperImplFile);
+        // Same fact, same source: ask the CLI which impl it wrote for this helper
+        // rather than re-deriving it from the mode we asked for, three lines from
+        // the call that already returns the truth. A helper that includes a `.hpp`
+        // auto-switches to C++, and pushing the guessed `helper.c` would hand a
+        // stale file to the compiler for test-execution runs -- #1314's exact shape.
+        const reported = helperResult.generatedImplPaths.find((implPath) =>
+          basename(implPath).startsWith(`${helperBaseName}.`),
+        );
+        helperImplFiles.push(reported ?? helperImplFile);
       }
     }
 
@@ -1148,6 +1213,38 @@ class TestUtils {
     }
 
     return null;
+  }
+
+  /**
+   * Implementation files (`.c` / `.cpp`) named in the CLI's "Generated N output
+   * files:" block.
+   *
+   * Issue #1314: the harness used to infer the output extension from the mode it
+   * ASKED for and only reconsidered when that file was absent, so a stale
+   * committed `.c` satisfied the check and the run validated a file no
+   * transpiler had written. Reading the CLI's own report removes the inference.
+   *
+   * Headers are excluded deliberately -- callers derive the header path from the
+   * implementation path so the two cannot disagree. The block therefore ends at the
+   * first non-implementation line: the CLI emits every impl before any header
+   * (impl-by-impl in the transpile loop, headers appended afterwards), so an
+   * interleaved `a.c, a.h, b.c` cannot occur and tolerating it would be a branch
+   * defended only by input the CLI cannot produce.
+   */
+  static parseGeneratedImplPaths(stdout: string): string[] {
+    const paths: string[] = [];
+    let inBlock = false;
+    for (const line of stdout.split("\n")) {
+      if (/^Generated \d+ output files?:/.test(line)) {
+        inBlock = true;
+        continue;
+      }
+      if (!inBlock) continue;
+      const match = /^\s+(\S.*\.(?:c|cpp))$/.exec(line);
+      if (!match) break;
+      paths.push(match[1]);
+    }
+    return paths;
   }
 
   /**

@@ -7,6 +7,7 @@
 
 #include "nested-struct-init.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #502 - Nested struct initialization with C++ namespaced types
 #include "SeaDash.hpp"

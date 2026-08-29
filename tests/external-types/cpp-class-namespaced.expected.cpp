@@ -5,6 +5,7 @@
 
 #include "cpp-class-namespaced.test.hpp"
 
+// test-cpp-only
 // Issue #517: Namespaced C++ class with constructor
 // Test that namespaced classes with constructors also use field assignment pattern
 #include "NamespacedCppClass.hpp"

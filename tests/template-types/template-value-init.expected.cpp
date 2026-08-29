@@ -5,6 +5,7 @@
 
 #include "template-value-init.test.hpp"
 
+// test-cpp-only
 // Issue #295: Test C++ template type value initialization
 // Template types should use {} (value initialization) not = 0
 // Because = 0 is invalid for non-trivial C++ class types

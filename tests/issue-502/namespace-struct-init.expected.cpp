@@ -7,6 +7,7 @@
 
 #include "namespace-struct-init.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #502 - External C++ namespaced types in struct initialization
 #include "SeaDash.hpp"

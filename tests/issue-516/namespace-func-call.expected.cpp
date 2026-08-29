@@ -5,6 +5,7 @@
 
 #include "namespace-func-call.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: C++ namespace function calls WITHOUT global. prefix (Issue #516)
 // This test verifies that C-Next can call C++ namespaced functions

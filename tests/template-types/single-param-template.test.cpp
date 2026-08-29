@@ -5,6 +5,7 @@
 
 #include "single-param-template.test.hpp"
 
+// test-cpp-only
 // Issue #291: Test single parameter template type
 // Tests template with a single type parameter like Vector<u32>
 #include "template-stubs.h"

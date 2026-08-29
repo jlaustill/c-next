@@ -1,3 +1,4 @@
+// test-cpp-only
 // Issue #375: Multiple const argument constructor
 #include "constructor-stubs.h"
 

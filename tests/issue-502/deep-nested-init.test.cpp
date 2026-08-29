@@ -7,6 +7,7 @@
 
 #include "deep-nested-init.test.hpp"
 
+// test-cpp-only
 // test-transpile-only
 // Tests: Issue #502 - Deeply nested struct initialization with C++ namespaced types
 #include "SeaDash.hpp"

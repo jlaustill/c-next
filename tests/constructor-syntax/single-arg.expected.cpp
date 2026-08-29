@@ -5,6 +5,7 @@
 
 #include "single-arg.test.hpp"
 
+// test-cpp-only
 // Issue #375: Single const argument constructor
 #include "constructor-stubs.h"
 

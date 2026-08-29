@@ -5,6 +5,7 @@
 
 #include "external-template-interop.test.hpp"
 
+// test-cpp-only
 // Issue #291: Test C++ template interop with C-Next scope
 // This demonstrates that template types come from C++ headers (external)
 // while scope types are defined in C-Next itself

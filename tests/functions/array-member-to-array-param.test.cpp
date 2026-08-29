@@ -5,6 +5,7 @@
 
 #include "array-member-to-array-param.test.hpp"
 
+// test-cpp-only
 // tests/functions/array-member-to-array-param.test.cnx
 // test-execution
 // Tests: Issue #342 - array member passed to array parameter
