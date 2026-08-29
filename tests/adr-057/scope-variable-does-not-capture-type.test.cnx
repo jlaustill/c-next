@@ -1,0 +1,37 @@
+// test-execution
+// test-adr: 057
+// ADR-057: a scope VARIABLE must not capture a global type name at a type
+// position. Only a declaration that introduces a TYPE may do that
+// (TYPE_FORMING_KINDS: enum, struct, bitmap, and function via ADR-029).
+//
+// Here `Motor.Config` is a u32 variable and `Config` is a global struct. Inside
+// Motor, the bare name `Config` at a TYPE position must resolve to the global
+// struct; at a VALUE position it must resolve to the scope variable. One name,
+// two answers, decided by what the name is being used AS.
+//
+// This is the negative control for the kind check in CodeGenState.isScopeType.
+// Before this fixture, making that check accept ANY symbol kind -- so a scope
+// variable would capture the name -- passed the entire corpus: 1119 integration,
+// 124 bug fixtures and 6642 unit tests. The rule was stated in ADR-057 and in
+// TYPE_FORMING_KINDS' docblock, and enforced by nothing.
+
+struct Config {
+    u32 speed;
+}
+
+scope Motor {
+    u32 Config;
+
+    public u32 run() {
+        Config settings;
+        settings.speed <- 7;
+        this.Config <- 2;
+        return settings.speed + this.Config;
+    }
+}
+
+u32 main() {
+    u32 result <- Motor.run();
+    if (result != 9) return 1;
+    return 0;
+}

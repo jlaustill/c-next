@@ -8236,6 +8236,13 @@ describe("CodeGenerator", () => {
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
+        // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
+        // pipeline never reaches, and one in which kind-aware type resolution
+        // silently finds nothing. 390 sites in this file share this shape and pass
+        // because they do not assert on scope-qualified names; these two do.
+        CodeGenState.symbolTable = new SymbolTable();
+        CodeGenState.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generator.generate(tree, tokenStream, {
@@ -8949,6 +8956,13 @@ describe("CodeGenerator", () => {
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const generator = new CodeGenerator();
         const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+        // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
+        // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
+        // pipeline never reaches, and one in which kind-aware type resolution
+        // silently finds nothing. 390 sites in this file share this shape and pass
+        // because they do not assert on scope-qualified names; these two do.
+        CodeGenState.symbolTable = new SymbolTable();
+        CodeGenState.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generator.generate(tree, tokenStream, {
