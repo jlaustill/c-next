@@ -114,6 +114,16 @@ jobs:
         run: npm run coverage:matrix:check
         continue-on-error: true
 
+      # Issue #1316: a `.expected.error` is the only assertion that a diagnostic
+      # fires, and losing one was silent -- `--update` unlinked it and reported
+      # the run green. docs/diagnostic-manifest.md is the committed record, so
+      # the loss becomes a reviewable diff. Gated here rather than in test:all,
+      # which must stay free of update steps to remain a gate.
+      - name: Check diagnostic manifest
+        id: diagnosticmanifest
+        run: npm run diagnostics:manifest:check
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -127,6 +137,7 @@ jobs:
           [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
           [ "${{ steps.toolchaindocs.outcome }}" != "success" ] && echo "❌ Toolchain docs" && FAILED=1 || echo "✅ Toolchain docs"
           [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
+          [ "${{ steps.diagnosticmanifest.outcome }}" != "success" ] && echo "❌ Diagnostic manifest" && FAILED=1 || echo "✅ Diagnostic manifest"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   build:

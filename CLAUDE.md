@@ -151,6 +151,21 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
+**A lost diagnostic used to erase its own evidence (#1316)**: under `--update`, a
+`test-error` fixture that stopped erroring had its `.expected.error` unlinked and rewritten
+as a `.expected.c`, reported `passed: true`. A regression that silenced a diagnostic and an
+intentional fix were indistinguishable — on the one command a diagnostic migration runs
+repeatedly, across 287 fixtures. `--update` now **fails** on that transition, keeps the
+`.expected.error`, and writes the `.expected.c` for inspection only.
+
+**`docs/diagnostic-manifest.md`** is the committed record of which fixture asserts which
+codes, gated by `npm run diagnostics:manifest:check` in the **`lint`** job — not `test:all`,
+which must stay update-free to remain a gate. It fails when a listed fixture loses its
+`.expected.error` (`assertion-removed`) or stops asserting a code it used to
+(`code-removed` — the quieter one, since the fixture still errors and the suite stays
+green). Growth never fails it. Removing a diagnostic on purpose means deleting its row in
+the same commit. Regenerate with `npm run diagnostics:manifest`.
+
 **C vs C++ const linkage**: C const at file scope has external linkage; C++ const has internal linkage (needs `extern`). `CodeGenState.cppMode` controls this.
 
 ---

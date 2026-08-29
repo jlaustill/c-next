@@ -5,7 +5,7 @@
  * It verifies the public API contract for the shared test utilities.
  */
 
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import TestUtils from "./test-utils";
@@ -720,5 +720,110 @@ describe("TestUtils.parseGeneratedImplPaths", () => {
     },
   ])("$name", ({ stdout, expected }) => {
     expect(TestUtils.parseGeneratedImplPaths(stdout)).toEqual(expected);
+  });
+});
+
+describe("runTest on an error fixture that stopped erroring (#1316)", () => {
+  // A test-error fixture asserts that a diagnostic fires. Under --update, a
+  // fixture that transpiles cleanly had its .expected.error unlinked and was
+  // rewritten as a .expected.c, reported as `passed: true`. A change that LOSES
+  // a diagnostic is indistinguishable from one that fixes a bug, and the update
+  // resolves the ambiguity by discarding the assertion. The next `npm test` is
+  // green with nothing left to fail. Restore that branch and this goes red.
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-lost-diagnostic-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("does not report success under --update", async () => {
+    const cnxFile = join(tempDir, "lost.test.cnx");
+    writeFileSync(cnxFile, "u32 testVar;\n");
+    writeFileSync(
+      join(tempDir, "lost.expected.error"),
+      "1:0 E0001 a diagnostic this fixture exists to assert\n",
+    );
+
+    const tools: ITools = { gcc: false };
+    const result = await TestUtils.runTest(cnxFile, true, tools, tempDir);
+
+    expect(result.passed).toBe(false);
+  });
+
+  it("keeps the .expected.error under --update", async () => {
+    const cnxFile = join(tempDir, "lost.test.cnx");
+    writeFileSync(cnxFile, "u32 testVar;\n");
+    const expectedErrorFile = join(tempDir, "lost.expected.error");
+    writeFileSync(
+      expectedErrorFile,
+      "1:0 E0001 a diagnostic this fixture exists to assert\n",
+    );
+
+    const tools: ITools = { gcc: false };
+    await TestUtils.runTest(cnxFile, true, tools, tempDir);
+
+    expect(existsSync(expectedErrorFile)).toBe(true);
+  });
+
+  it("writes the .expected.c for inspection under --update", async () => {
+    // Control for the fix above: the run must fail, but the author who meant to
+    // remove the diagnostic still needs to see what the fixture now generates.
+    // A fix that simply stopped writing anything would pass the two tests above.
+    const cnxFile = join(tempDir, "lost.test.cnx");
+    writeFileSync(cnxFile, "u32 testVar;\n");
+    writeFileSync(
+      join(tempDir, "lost.expected.error"),
+      "1:0 E0001 a diagnostic this fixture exists to assert\n",
+    );
+
+    const tools: ITools = { gcc: false };
+    await TestUtils.runTest(cnxFile, true, tools, tempDir);
+
+    expect(existsSync(join(tempDir, "lost.expected.c"))).toBe(true);
+  });
+
+  it("reports the same failure on a second --update run", async () => {
+    // Keeping the .expected.error leaves this run's own .test.c/.test.h on disk,
+    // so checkForStaleErrorTestArtifacts fires first next time and replaces the
+    // message with "stale generated artifacts" -- telling the author to `git rm`
+    // files this run just wrote, instead of that a diagnostic went missing.
+    // Re-running to confirm a failure is the first thing anyone does.
+    const cnxFile = join(tempDir, "lost.test.cnx");
+    writeFileSync(cnxFile, "u32 testVar;\n");
+    writeFileSync(
+      join(tempDir, "lost.expected.error"),
+      "1:0 E0001 a diagnostic this fixture exists to assert\n",
+    );
+
+    const tools: ITools = { gcc: false };
+    const first = await TestUtils.runTest(cnxFile, true, tools, tempDir);
+    const second = await TestUtils.runTest(cnxFile, true, tools, tempDir);
+
+    expect(second.passed).toBe(false);
+    expect(second.message).toBe(first.message);
+    expect(second.message).not.toContain("stale generated artifacts");
+  });
+
+  it("still updates the snapshot of a fixture that keeps erroring", async () => {
+    // Negative control: --update must stay useful for a fixture whose diagnostic
+    // still fires, or the fix above passes by disabling error-snapshot updates.
+    const cnxFile = join(tempDir, "kept.test.cnx");
+    writeFileSync(
+      cnxFile,
+      "void shiftTooFar() {\n  u8 value <- 1;\n  value <- value << 8;\n}\n",
+    );
+    const expectedErrorFile = join(tempDir, "kept.expected.error");
+    writeFileSync(expectedErrorFile, "0:0 stale text to be refreshed\n");
+
+    const tools: ITools = { gcc: false };
+    const result = await TestUtils.runTest(cnxFile, true, tools, tempDir);
+
+    expect(result.passed).toBe(true);
+    expect(result.updated).toBe(true);
+    expect(existsSync(expectedErrorFile)).toBe(true);
   });
 });
