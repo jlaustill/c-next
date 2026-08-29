@@ -1,0 +1,37 @@
+// test-execution
+// test-adr: 016
+// Issue #1334: a scope spanning FOUR files.
+//
+// SymbolRegistry.getOrCreateScope caches a scope by path, and ScopeCollector used
+// to assign sourceFile/sourceLine on that shared object unconditionally -- so a
+// reopened scope reported whichever block was collected LAST, and every earlier
+// site was lost. A conflict naming two definitions printed the same location
+// twice because there was only ever one position.
+//
+// FOUR files, not two. Two cannot tell "kept the first" from "kept the last" from
+// "kept all": with a:1, b:4, c:4, d:N every site is distinct, so collapsing to any
+// single one is visible. The mutation table runs both the keep-first and keep-last
+// mutations against this fixture and both must redden.
+//
+// The depth is load-bearing on its own: `Point` is declared in block 1 and used
+// bare in blocks 3 and 4, so resolution has to cross two and three include hops.
+// ADR-016's matrix declares `imported transitive` cells and the existing
+// cross-file-span fixture only reaches depth 1.
+
+#include "span4-c.cnx"
+
+scope Span {
+    public u32 runAll() {
+        Point p <- {x: 3, y: 4};
+        Mode m <- Mode.BETA;
+        u32 viaC <- fromC(p);
+        return viaC + m;
+    }
+}
+
+u32 main() {
+    u32 result <- Span.runAll();
+    // fromC(3,4) = 7, plus Mode.BETA = 2
+    if (result != 9) return 1;
+    return 0;
+}

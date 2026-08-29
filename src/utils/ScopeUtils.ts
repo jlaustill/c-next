@@ -32,6 +32,8 @@ class ScopeUtils {
       functions: [],
       variables: [],
       memberVisibility: new Map(),
+      // #1334: filled by ScopeCollector, one entry per declaring block.
+      declarationSites: new Set<string>(),
       sourceFile: "",
       sourceLine: 0,
       sourceLanguage: ESourceLanguage.CNext,
@@ -71,6 +73,8 @@ class ScopeUtils {
       functions: [],
       variables: [],
       memberVisibility: new Map(),
+      // #1334: filled by ScopeCollector, one entry per declaring block.
+      declarationSites: new Set<string>(),
       sourceFile: "",
       sourceLine: 0,
       sourceLanguage: ESourceLanguage.CNext,

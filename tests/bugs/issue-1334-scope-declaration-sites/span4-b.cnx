@@ -1,0 +1,9 @@
+// Block 2 of scope Span.
+#include "span4-a.cnx"
+
+scope Span {
+    public enum Mode {
+        ALPHA <- 1,
+        BETA <- 2
+    }
+}

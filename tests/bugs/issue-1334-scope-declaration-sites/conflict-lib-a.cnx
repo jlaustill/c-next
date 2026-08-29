@@ -1,0 +1,6 @@
+// Block 1 of scope Clash (#1334). Defines `shared`.
+scope Clash {
+    public u32 shared() {
+        return 1;
+    }
+}

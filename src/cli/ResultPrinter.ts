@@ -30,11 +30,6 @@ class ResultPrinter {
       console.warn(`Warning: ${warning}`);
     }
 
-    // Print conflicts
-    for (const conflict of result.conflicts) {
-      console.error(`Conflict: ${conflict}`);
-    }
-
     // Print errors
     for (const error of result.errors) {
       // Format error with source path if available

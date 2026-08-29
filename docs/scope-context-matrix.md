@@ -23,13 +23,14 @@ cell is declared by the ADR that owns it.
 | global variable    | -         | -      | -          | n/a         | n/a        |
 | top-level function | -         | -      | -          | n/a         | n/a        |
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
-| scope method       | warn      | warn   | warn       | n/a         | n/a        |
+| scope method       | ok        | warn   | warn       | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+4 linked fixtures with no derivable context:
 
 - `bugs/issue-1333-scope-reopening/cross-file-span.test.cnx`
-- `bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx`
 - `bugs/issue-1333-scope-reopening/same-file-reopen.test.cnx`
+- `bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx`
+- `bugs/issue-1334-scope-declaration-sites/span4-d.test.cnx`
 
 ## ADR-051
 

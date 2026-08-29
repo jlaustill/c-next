@@ -959,20 +959,30 @@ class Transpiler {
   private _checkSymbolConflicts(result: ITranspilerResult): boolean {
     const conflicts = CodeGenState.symbolTable.getConflicts();
     for (const conflict of conflicts) {
+      // #1334: a conflict is an ordinary diagnostic. It used to reach the user
+      // through a SECOND channel -- `result.conflicts`, printed by ResultPrinter
+      // with a `Conflict:` prefix that duplicated the message's own `Symbol
+      // conflict:` prefix -- plus ONE companion error with no position hardcoded at
+      // 1:0. Two outputs for one problem, and the only diagnostic path in the
+      // transpiler with no error code.
+      //
+      // Now: one error per conflict, at the offending definition, coded like
+      // every other diagnostic. The code is embedded in the message because
+      // ITranspileError carries no `code` field -- the same precedent E0203 uses
+      // above, and how runAnalyzers formats analyzer codes.
       result.conflicts.push(conflict.message);
       if (conflict.severity === "error") {
         result.success = false;
       }
-    }
-
-    if (!result.success) {
       result.errors.push({
-        line: 1,
-        column: 0,
-        message: "Symbol conflicts detected - cannot proceed",
-        severity: "error",
+        line: conflict.line,
+        column: conflict.column,
+        sourcePath: conflict.sourceFile,
+        message: `error[E0425]: ${conflict.message}`,
+        severity: conflict.severity,
       });
     }
+
     return result.success;
   }
 

@@ -69,7 +69,11 @@ describe("ResultPrinter", () => {
       expect(warnOutput).toContain("Warning: Deprecated function");
     });
 
-    it("prints conflicts to console.error", () => {
+    // #1334: the `Conflict:` channel is gone. A symbol conflict is an ordinary
+    // coded diagnostic in `errors` now, with a real position -- it used to arrive
+    // through a second channel AND a companion error with no position, so one problem
+    // printed two lines and neither carried an error code.
+    it("does not print result.conflicts — conflicts arrive as ordinary errors", () => {
       ResultPrinter.print(
         createResult({
           filesProcessed: 1,
@@ -78,8 +82,36 @@ describe("ResultPrinter", () => {
         }),
       );
 
-      expect(errorOutput).toContain("Conflict: Symbol 'foo' defined twice");
-      expect(errorOutput).toContain("Conflict: Type mismatch");
+      expect(errorOutput).not.toContain("Conflict:");
+      expect(errorOutput).not.toContain("Symbol 'foo' defined twice");
+    });
+
+    it("prints a symbol conflict as a coded error at its real position", () => {
+      ResultPrinter.print(
+        createResult({
+          success: false,
+          errors: [
+            {
+              line: 24,
+              column: 0,
+              sourcePath: "dup.cnx",
+              message:
+                "error[E0425]: Symbol conflict: 'Lib.useIt' is defined multiple times in C-Next:\n  dup.cnx:24\n  dup.cnx:30",
+              severity: "error",
+            },
+          ],
+        }),
+      );
+
+      // errorOutput is string[], and the conflict is ONE multi-line entry --
+      // that is the point: it used to be two separate outputs.
+      const printed = errorOutput.join("\n");
+      expect(printed).toContain("Error: dup.cnx:24:0 error[E0425]:");
+      expect(printed).toContain("dup.cnx:30");
+      // The property that matters: one diagnostic, not a `Conflict:` line plus a
+      // companion error carrying no position.
+      expect(printed).not.toContain("Conflict:");
+      expect(printed).not.toContain("cannot proceed");
     });
 
     it("prints errors with source path when available", () => {
@@ -198,7 +230,7 @@ describe("ResultPrinter", () => {
       expect(errorOutput).toContain("Error: 3:3 Error 3");
     });
 
-    it("prints warnings, conflicts, and errors in order", () => {
+    it("prints warnings before errors", () => {
       const allOutput: string[] = [];
       consoleWarnSpy.mockImplementation(((msg: string) =>
         allOutput.push(`warn:${msg}`)) as typeof console.warn);
@@ -216,15 +248,13 @@ describe("ResultPrinter", () => {
         }),
       );
 
-      // Warnings come first, then conflicts, then errors
+      // #1334: warnings then errors. The conflicts channel between them is gone;
+      // a conflict is now one of the errors.
       const warningIndex = allOutput.findIndex((s) => s.includes("Warning 1"));
-      const conflictIndex = allOutput.findIndex((s) =>
-        s.includes("Conflict 1"),
-      );
       const errorIndex = allOutput.findIndex((s) => s.includes("Error 1"));
 
-      expect(warningIndex).toBeLessThan(conflictIndex);
-      expect(conflictIndex).toBeLessThan(errorIndex);
+      expect(warningIndex).toBeLessThan(errorIndex);
+      expect(allOutput.some((s) => s.includes("Conflict 1"))).toBe(false);
     });
   });
 });

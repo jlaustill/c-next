@@ -446,6 +446,7 @@ describe("HeaderSymbolAdapter", () => {
         functions: [],
         variables: [],
         memberVisibility: new Map(),
+        declarationSites: new Set<string>(),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);

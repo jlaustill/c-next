@@ -1,0 +1,7 @@
+3:0 error[E0425]: Symbol conflict: 'Clash.shared' is defined multiple times in C-Next:
+  conflict-lib-a.cnx:3
+  conflict-across-files.test.cnx:17
+  scope 'Clash' is declared in:
+    conflict-across-files.test.cnx:16
+    conflict-lib-a.cnx:2
+    conflict-lib-b.cnx:5
