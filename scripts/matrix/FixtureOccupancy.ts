@@ -15,6 +15,7 @@ import FixtureContext from "./FixtureContext";
 import IncludeDepth from "./IncludeDepth";
 import MatrixCell from "./MatrixCell";
 import TestUtils from "../test-utils";
+import AdrProvenanceLines from "./AdrProvenanceLines";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
 import TMatrixContext from "../types/TMatrixContext";
 
@@ -48,10 +49,11 @@ function diagnosticLines(expectedErrorPath: string): number[] {
   return lines;
 }
 
-/** Contexts a fixture's diagnostics resolve to. Empty when none can be. */
-function contextsOf(fixturePath: string, source: string): TMatrixContext[] {
-  const expectedError = fixturePath.replace(/\.test\.cnx$/, ".expected.error");
-  const lines = diagnosticLines(expectedError);
+/** Contexts the given source lines resolve to. Empty when none can be. */
+function contextsAt(
+  source: string,
+  lines: readonly number[],
+): TMatrixContext[] {
   if (lines.length === 0) return [];
 
   const { tree } = CNextSourceParser.parse(source);
@@ -63,6 +65,12 @@ function contextsOf(fixturePath: string, source: string): TMatrixContext[] {
   return contexts;
 }
 
+/** Contexts a fixture's diagnostics resolve to. Empty when none can be. */
+function contextsOf(fixturePath: string, source: string): TMatrixContext[] {
+  const expectedError = fixturePath.replace(/\.test\.cnx$/, ".expected.error");
+  return contextsAt(source, diagnosticLines(expectedError));
+}
+
 /**
  * Fold one fixture into the per-ADR occupancy maps.
  */
@@ -72,6 +80,7 @@ function recordFixture(
   searchPaths: readonly string[],
   cells: Map<string, Map<string, string[]>>,
   withoutContext: Map<string, string[]>,
+  provenance: ReadonlyMap<string, number[]>,
 ): void {
   let source: string;
   try {
@@ -86,10 +95,21 @@ function recordFixture(
   const relationship = MatrixCell.relationshipForDepth(
     IncludeDepth.maxDepth(fixturePath, searchPaths),
   );
-  const contexts = contextsOf(fixturePath, source);
   const shortPath = relative(testsDir, fixturePath);
 
+  // #1241: a diagnostic's position is ADR-agnostic -- a fixture's `.expected.error`
+  // speaks for every ADR it is tagged with. Provenance is not: it records WHICH
+  // rule fired where, so contexts are resolved per ADR rather than once per file.
+  const expectedError = fixturePath.replace(/\.test\.cnx$/, ".expected.error");
+  const diagnostics = diagnosticLines(expectedError);
+
   for (const adr of adrs) {
+    const lines = [...diagnostics];
+    for (const line of provenance.get(adr) ?? []) {
+      if (!lines.includes(line)) lines.push(line);
+    }
+    const contexts = contextsAt(source, lines);
+
     if (contexts.length === 0) {
       const pending = withoutContext.get(adr) ?? [];
       pending.push(shortPath);
@@ -109,16 +129,35 @@ function recordFixture(
 }
 
 /** Build occupancy for every ADR referenced by any fixture under `testsDir`. */
-function build(
+async function build(
   fixturePaths: readonly string[],
   testsDir: string,
   searchPaths: readonly string[] = [],
-): Map<string, IMatrixOccupancy> {
+): Promise<Map<string, IMatrixOccupancy>> {
   const cells = new Map<string, Map<string, string[]>>();
   const withoutContext = new Map<string, string[]>();
 
   for (const fixturePath of fixturePaths) {
-    recordFixture(fixturePath, testsDir, searchPaths, cells, withoutContext);
+    // #1241: only tagged fixtures are transpiled -- provenance is the expensive
+    // input, and an untagged fixture contributes to no ADR's occupancy anyway.
+    let source: string;
+    try {
+      source = readFileSync(fixturePath, "utf-8");
+    } catch {
+      continue;
+    }
+    const provenance = TestUtils.findAdrReferences(source).length
+      ? await AdrProvenanceLines.forFixture(fixturePath)
+      : new Map<string, number[]>();
+
+    recordFixture(
+      fixturePath,
+      testsDir,
+      searchPaths,
+      cells,
+      withoutContext,
+      provenance,
+    );
   }
 
   const result = new Map<string, IMatrixOccupancy>();
@@ -136,6 +175,7 @@ function build(
 class FixtureOccupancy {
   static diagnosticLines = diagnosticLines;
   static contextsOf = contextsOf;
+  static contextsAt = contextsAt;
   static build = build;
 }
 

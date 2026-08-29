@@ -1,0 +1,40 @@
+// test-execution
+// test-adr: 057
+// ADR-057: resolution local -> scope -> global, exercised where there is NO
+// enclosing scope.
+//
+// Every other ADR-057 fixture puts its shadowing inside a `scope`, so the
+// matrix rows for `top-level function` and `global variable` had no fixture at
+// all -- the rule's behaviour outside a scope was untested, not merely
+// unobservable. A local that shadows a file-scope name must still be renamed
+// here, where the middle resolution step does not exist.
+
+u32 counter <- 100;
+u32 limit <- 7;
+
+u32 doubled(u32 v) {
+    return v + v;
+}
+
+u32 main() {
+    // `counter` and `limit` shadow the file-scope names above. No `global.`
+    // appears anywhere below, so every bare reference must resolve to the
+    // LOCAL, and the generated C must not carry a bare `counter`/`limit`
+    // inside this function.
+    u32 counter <- 1;
+    u32 limit <- 2;
+
+    counter <- counter + limit;
+
+    u32 viaCall <- doubled(counter);
+
+    if (counter != 3) return 1;
+    if (limit != 2) return 2;
+    if (viaCall != 6) return 3;
+
+    // The file-scope values must be untouched by the shadowing above.
+    if (global.counter != 100) return 4;
+    if (global.limit != 7) return 5;
+
+    return 0;
+}

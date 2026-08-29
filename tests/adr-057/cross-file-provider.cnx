@@ -1,0 +1,24 @@
+// Provider for the ADR-057 cross-file fixtures. Not a test itself.
+//
+// Declares a scope whose members are referenced BARE from a method declared in
+// this same file, so the consumer's include depth -- not this file's contents --
+// is what places the fixture on the relationship axis.
+
+scope Sensor {
+    u32 reading <- 0;
+    u32 offset <- 3;
+
+    u32 raw() {
+        return 7;
+    }
+
+    public void refresh() {
+        // Bare `raw()` and bare `reading`/`offset`: ADR-057 resolution, in a
+        // scope method, in a file that is included rather than the fixture.
+        reading <- raw() + offset;
+    }
+
+    public u32 value() {
+        return reading;
+    }
+}

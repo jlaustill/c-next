@@ -14,7 +14,6 @@ import SubscriptClassifier from "../subscript/SubscriptClassifier";
 import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
@@ -230,7 +229,9 @@ class AssignmentClassifier {
       return null;
     }
 
-    const fullRegName = QualifiedNameGenerator.forMember(scopeName, ids[1]);
+    // #1285: textual candidate built from parse-tree identifiers, not scope
+    // qualification -- see EnumTypeResolver.getEnumTypeFromScopedEnum.
+    const fullRegName = QualifiedCName.join(scopeName, ids[1]);
     if (!CodeGenState.symbols!.knownRegisters.has(fullRegName)) {
       return null;
     }

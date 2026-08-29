@@ -5,6 +5,7 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import SymbolRegistry from "../../../../../state/SymbolRegistry";
 
 // ========================================================================
 // Test Helpers
@@ -134,7 +135,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "Teensy4",
+        SymbolRegistry.getOrCreateScope("Teensy4"),
         input,
         state,
         orchestrator,
@@ -169,7 +170,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "Driver",
+        SymbolRegistry.getOrCreateScope("Driver"),
         input,
         state,
         orchestrator,
@@ -197,7 +198,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "HAL",
+        SymbolRegistry.getOrCreateScope("HAL"),
         input,
         state,
         orchestrator,
@@ -224,7 +225,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "HAL",
+        SymbolRegistry.getOrCreateScope("HAL"),
         input,
         state,
         orchestrator,
@@ -259,7 +260,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "Teensy4",
+        SymbolRegistry.getOrCreateScope("Teensy4"),
         input,
         state,
         orchestrator,
@@ -284,7 +285,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "Teensy4",
+        SymbolRegistry.getOrCreateScope("Teensy4"),
         input,
         state,
         orchestrator,
@@ -326,7 +327,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "Board",
+        SymbolRegistry.getOrCreateScope("Board"),
         input,
         state,
         orchestrator,
@@ -359,7 +360,7 @@ describe("ScopedRegisterGenerator", () => {
 
       const result = generateScopedRegister(
         ctx,
-        "Scope",
+        SymbolRegistry.getOrCreateScope("Scope"),
         input,
         state,
         orchestrator,

@@ -56,7 +56,11 @@ async function render(): Promise<{
   const fixtures = existsSync(testsDir)
     ? FileScanner.findTestFiles(testsDir)
     : [];
-  const occupancy = FixtureOccupancy.build(fixtures, testsDir, searchPaths);
+  const occupancy = await FixtureOccupancy.build(
+    fixtures,
+    testsDir,
+    searchPaths,
+  );
   const declarationErrors = [...declarations.values()].flatMap((d) => d.errors);
   const document = await formatMarkdown(
     MatrixRenderer.renderDocument(declarations, occupancy),

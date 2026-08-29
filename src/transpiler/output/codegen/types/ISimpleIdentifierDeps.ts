@@ -15,7 +15,11 @@ interface ISimpleIdentifierDeps {
   isLocalVariable(name: string): boolean;
 
   /** Resolve bare identifier (local -> scope -> global priority) */
-  resolveBareIdentifier(name: string, isLocal: boolean): string | null;
+  resolveBareIdentifier(
+    name: string,
+    isLocal: boolean,
+    line?: number,
+  ): string | null;
 }
 
 export default ISimpleIdentifierDeps;

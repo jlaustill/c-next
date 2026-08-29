@@ -45,7 +45,6 @@ import switchGenerators from "./generators/statements/SwitchGenerator";
 import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
 import registerGenerator from "./generators/declarationGenerators/RegisterGenerator";
-import scopedRegisterGenerator from "./generators/declarationGenerators/ScopedRegisterGenerator";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
@@ -134,7 +133,10 @@ import CastValidator from "./helpers/CastValidator";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
+import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../state/CodeGenState";
+import AdrProvenance from "../../state/AdrProvenance";
+import SymbolRegistry from "../../state/SymbolRegistry";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../logic/analysis/PassByValueAnalyzer";
@@ -262,8 +264,6 @@ export default class CodeGenerator implements IOrchestrator {
     this.registry.registerDeclaration("enum", enumGenerator);
     this.registry.registerDeclaration("bitmap", bitmapGenerator);
     this.registry.registerDeclaration("register", registerGenerator);
-    // Note: generateScopedRegister has a different signature (extra scopeName param)
-    // and is called directly rather than through the registry
 
     // Phase 2: Medium complexity generators
     this.registry.registerDeclaration("struct", structGenerator);
@@ -1193,6 +1193,7 @@ export default class CodeGenerator implements IOrchestrator {
       return SimpleIdentifierResolver.resolve(
         identifier,
         this._buildSimpleIdentifierDeps(),
+        ctx.start?.line,
       );
     }
 
@@ -1234,6 +1235,7 @@ export default class CodeGenerator implements IOrchestrator {
           identifier,
           isLocalVariable,
           (name: string) => this.isKnownStruct(name),
+          ctx.start?.line,
         );
         if (resolved !== null) {
           resolvedIdentifier = resolved;
@@ -1925,7 +1927,7 @@ export default class CodeGenerator implements IOrchestrator {
           `${line}:${col} error[E0703]: '${id}' is not supported in C-Next - use structured conditions instead`,
         );
       }
-      return this._resolveIdentifierExpression(id);
+      return this._resolveIdentifierExpression(id, ctx.start?.line);
     }
     if (ctx.literal()) {
       return this._generateLiteralExpression(ctx.literal()!);
@@ -2294,6 +2296,10 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     CodeGenState.debugMode = options?.debugMode ?? false;
     CodeGenState.sourcePath = options?.sourcePath ?? null;
+    // #1241: Transpiler._transpileFile sets the provenance file before
+    // analyzers run; re-assert it here for API callers that drive the
+    // generator directly and never go through that path.
+    AdrProvenance.beginFile(CodeGenState.sourcePath);
     CodeGenState.includeDirs = options?.includeDirs ?? [];
     CodeGenState.inputs = options?.inputs ?? [];
     CodeGenState.cppMode = options?.cppMode ?? false;
@@ -2730,7 +2736,12 @@ export default class CodeGenerator implements IOrchestrator {
     for (const member of scopeDecl.scopeMember()) {
       const funcDecl = member.functionDeclaration();
       if (funcDecl) {
-        this._registerScopeFunction(scopeName, funcDecl);
+        // #1285: resolve the scope SYMBOL rather than reading back mutable
+        // state, so the generated name does not depend on when it is asked.
+        this._registerScopeFunction(
+          SymbolRegistry.getOrCreateScope(scopeName),
+          funcDecl,
+        );
       }
     }
 
@@ -2759,13 +2770,13 @@ export default class CodeGenerator implements IOrchestrator {
    * reference to one is resolved.
    */
   private _registerScopeFunction(
-    scopeName: string,
+    declaringScope: IScopeSymbol | null,
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
     const funcName = funcDecl.IDENTIFIER().getText();
     // Track fully qualified function name: Scope_function
-    const fullName = QualifiedNameGenerator.forFunctionStrings(
-      scopeName,
+    const fullName = QualifiedNameGenerator.forFunctionInScope(
+      declaringScope,
       funcName,
     );
     CodeGenState.knownFunctions.add(fullName);
@@ -3368,110 +3379,20 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateScope(ctx: Parser.ScopeDeclarationContext): string {
-    // Check registry for extracted generator
+    // #1285: no inline fallback. This used to carry a second, parallel
+    // implementation guarded by `if (generator)`, but registration is
+    // unconditional in the constructor, so the guard never failed and the twin
+    // was unreachable -- while still having to be kept in step by hand. A
+    // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("scope");
-    if (generator) {
-      const result = generator(ctx, this.getInput(), this.getState(), this);
-      this.applyEffects(result.effects);
-      return result.code;
-    }
-
-    // Fallback to inline implementation (will be removed after migration)
-    const name = ctx.IDENTIFIER().getText();
-    CodeGenState.setCurrentScopeByPath(name);
-
-    const lines: string[] = [];
-    lines.push(`/* Scope: ${name} */`);
-
-    for (const member of ctx.scopeMember()) {
-      this._generateScopeMember(member, name, lines);
-    }
-
-    lines.push("");
-    CodeGenState.currentScope = null;
-    return lines.join("\n");
-  }
-
-  /**
-   * Generate code for a single scope member
-   */
-  private _generateScopeMember(
-    member: Parser.ScopeMemberContext,
-    scopeName: string,
-    lines: string[],
-  ): void {
-    const visibility = member.visibilityModifier()?.getText() || "private";
-    const isPrivate = visibility === "private";
-
-    if (member.variableDeclaration()) {
-      this._generateScopeVariable(
-        member.variableDeclaration()!,
-        scopeName,
-        isPrivate,
-        lines,
-      );
-    } else if (member.functionDeclaration()) {
-      this._generateScopeFunction(
-        member.functionDeclaration()!,
-        scopeName,
-        isPrivate,
-        lines,
-      );
-    } else if (member.enumDeclaration()) {
-      lines.push("", this.generateEnum(member.enumDeclaration()!));
-    } else if (member.bitmapDeclaration()) {
-      lines.push("", this.generateBitmap(member.bitmapDeclaration()!));
-    } else if (member.registerDeclaration()) {
-      lines.push(
-        "",
-        this.generateScopedRegister(member.registerDeclaration()!, scopeName),
+    if (!generator) {
+      throw new Error(
+        "Internal: no 'scope' declaration generator is registered",
       );
     }
-  }
-
-  /**
-   * Generate code for a scope variable declaration
-   */
-  private _generateScopeVariable(
-    varDecl: Parser.VariableDeclarationContext,
-    scopeName: string,
-    isPrivate: boolean,
-    lines: string[],
-  ): void {
-    const type = this.generateType(varDecl.type());
-    const varName = varDecl.IDENTIFIER().getText();
-    const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
-    const prefix = isPrivate ? "static " : "";
-
-    const arrayDims = varDecl.arrayDimension();
-    const hasArrayTypeSyntax = varDecl.type().arrayType() !== null;
-    const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
-
-    let decl = `${prefix}${type} ${fullName}`;
-
-    // Handle arrayType dimension (C-Next style: u8[16] data)
-    if (hasArrayTypeSyntax) {
-      decl += VariableDeclHelper.getArrayTypeDimension(varDecl.type(), {
-        tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
-        generateExpression: (exprCtx) => this.generateExpression(exprCtx),
-      });
-    }
-
-    // Handle arrayDimension (C-style or additional dimensions)
-    if (arrayDims.length > 0) {
-      decl += this.generateArrayDimensions(arrayDims);
-    }
-
-    // ADR-045: Add string capacity dimension for string arrays
-    decl += this._getStringCapacityDimension(varDecl.type());
-
-    if (varDecl.expression()) {
-      decl += ` = ${CodeGenState.withDeclarationInit(() => this.generateExpression(varDecl.expression()!))}`;
-    } else {
-      // ADR-015: Zero initialization for uninitialized scope variables
-      decl += ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
-    }
-    lines.push(decl + ";");
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   /**
@@ -3485,116 +3406,23 @@ export default class CodeGenerator implements IOrchestrator {
     return `[${capacity + 1}]`;
   }
 
-  /**
-   * Generate code for a scope function declaration
-   */
-  private _generateScopeFunction(
-    funcDecl: Parser.FunctionDeclarationContext,
-    scopeName: string,
-    isPrivate: boolean,
-    lines: string[],
-  ): void {
-    const returnType = this.generateType(funcDecl.type());
-    const funcName = funcDecl.IDENTIFIER().getText();
-    const fullName = QualifiedNameGenerator.forFunctionStrings(
-      scopeName,
-      funcName,
-    );
-    const prefix = isPrivate ? "static " : "";
-
-    // Issue #269: Set current function name for pass-by-value lookup
-    CodeGenState.currentFunctionName = fullName;
-    // Issue #477: Set return type for enum inference in return statements
-    CodeGenState.currentFunctionReturnType = funcDecl.type().getText();
-
-    // Track parameters for ADR-006 pointer semantics
-    this._setParameters(funcDecl.parameterList() ?? null);
-
-    // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
-    this.enterFunctionBody();
-
-    // Issue #281: Generate body FIRST to track parameter modifications
-    const body = this.generateBlock(funcDecl.block());
-
-    // Issue #281: Update symbol's parameter info with auto-const before generating params
-    this.updateFunctionParamsAutoConst(fullName);
-
-    // Now generate parameter list (can use modifiedParameters for auto-const)
-    const params = funcDecl.parameterList()
-      ? this.generateParameterList(funcDecl.parameterList()!)
-      : "void";
-
-    // ADR-016: Exit function body context
-    this.exitFunctionBody();
-    CodeGenState.currentFunctionName = null;
-    CodeGenState.currentFunctionReturnType = null;
-    this._clearParameters();
-
-    lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
-
-    this.recordCallbackTypedef(fullName);
-  }
-
   // ========================================================================
   // Register Bindings (ADR-004)
   // ========================================================================
 
   private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
-    // Check registry for extracted generator
+    // #1285: no inline fallback. This used to carry a second, parallel
+    // implementation guarded by `if (generator)`, but registration is
+    // unconditional in the constructor, so the guard never failed and the twin
+    // was unreachable -- while still having to be kept in step by hand. A
+    // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("register");
-    if (generator) {
-      const result = generator(ctx, this.getInput(), this.getState(), this);
-      this.applyEffects(result.effects);
-      return result.code;
-    }
-
-    // Fallback to inline implementation (will be removed after migration)
-    const name = ctx.IDENTIFIER().getText();
-    const baseAddress = this.generateExpression(ctx.expression());
-
-    const lines: string[] = [];
-    lines.push(`/* Register: ${name} @ ${baseAddress} */`);
-
-    // Generate individual #define for each register member with its offset
-    // This handles non-contiguous register layouts correctly (like i.MX RT1062)
-    for (const member of ctx.registerMember()) {
-      const regName = member.IDENTIFIER().getText();
-      const regType = this.generateType(member.type());
-      const access = member.accessModifier().getText();
-      const offset = this.generateExpression(member.expression());
-
-      // Determine qualifiers based on access mode
-      let cast = `volatile ${regType}*`;
-      if (access === "ro") {
-        cast = `volatile ${regType} const *`;
-      }
-
-      // Generate: #define GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-      lines.push(
-        `#define ${QualifiedCName.join(name, regName)} (*(${cast})(${baseAddress} + ${offset}))`,
+    if (!generator) {
+      throw new Error(
+        "Internal: no 'register' declaration generator is registered",
       );
     }
-
-    lines.push("");
-    return lines.join("\n");
-  }
-
-  /**
-   * Generate register macros with scope prefix
-   * scope Teensy4 { register GPIO7 @ ... } generates Teensy4_GPIO7_* macros
-   */
-  private generateScopedRegister(
-    ctx: Parser.RegisterDeclarationContext,
-    scopeName: string,
-  ): string {
-    // Delegate to extracted generator
-    const result = scopedRegisterGenerator(
-      ctx,
-      scopeName,
-      this.getInput(),
-      this.getState(),
-      this,
-    );
+    const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
   }
@@ -3646,59 +3474,21 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted generator if registered.
    */
   private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
-    // Check registry for extracted generator
+    // #1285: no inline fallback. This used to carry a second, parallel
+    // implementation guarded by `if (generator)`, but registration is
+    // unconditional in the constructor, so the guard never failed and the twin
+    // was unreachable -- while still having to be kept in step by hand. A
+    // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("bitmap");
-    if (generator) {
-      const result = generator(ctx, this.getInput(), this.getState(), this);
-      this.applyEffects(result.effects);
-      // Issues #369/#1164: the included header owns the definition.
-      return CodeGenState.selfIncludeAdded ? "" : result.code;
+    if (!generator) {
+      throw new Error(
+        "Internal: no 'bitmap' declaration generator is registered",
+      );
     }
-
-    // Fallback to inline implementation (will be removed after migration)
-    const name = ctx.IDENTIFIER().getText();
-    // #1285: built through the one encoder, like every other qualification.
-    //
-    // This branch is UNREACHABLE: `initializeGenerators()` runs at the top of
-    // `generate()` and registers "bitmap" unconditionally, and nothing outside
-    // the registry's own tests unregisters it. So the single-underscore form
-    // this replaces was a latent defect in dead code -- it could never have
-    // matched `bitmapBackingType`, and could never have thrown either. Corrected
-    // for consistency, not because it fixed anything a program could reach.
-    // The four inline fallbacks in this file are tracked for deletion as #1305.
-    const fullName = ScopeUtils.qualifyInScope(name, CodeGenState.currentScope);
-
-    const backingType = CodeGenState.symbols!.bitmapBackingType.get(fullName);
-    if (!backingType) {
-      throw new Error(`Error: Bitmap ${fullName} not found in registry`);
-    }
-
-    this.requireInclude("stdint");
-
-    const lines: string[] = [];
-
-    // Generate comment with field layout
-    lines.push(`/* Bitmap: ${fullName} */`);
-
-    const fields = CodeGenState.symbols!.bitmapFields.get(fullName);
-    if (fields) {
-      lines.push("/* Fields:");
-      for (const [fieldName, info] of fields.entries()) {
-        const endBit = info.offset + info.width - 1;
-        const bitRange =
-          info.width === 1
-            ? `bit ${info.offset}`
-            : `bits ${info.offset}-${endBit}`;
-        lines.push(
-          ` *   ${fieldName}: ${bitRange} (${info.width} bit${info.width > 1 ? "s" : ""})`,
-        );
-      }
-      lines.push(" */");
-    }
-
-    lines.push(`typedef ${backingType} ${fullName};`, "");
-
-    return lines.join("\n");
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    // Issues #369/#1164: the included header owns the definition.
+    return CodeGenState.selfIncludeAdded ? "" : result.code;
   }
 
   /**
@@ -3906,54 +3696,20 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateFunction(ctx: Parser.FunctionDeclarationContext): string {
-    // Check registry for extracted generator
+    // #1285: no inline fallback. This used to carry a second, parallel
+    // implementation guarded by `if (generator)`, but registration is
+    // unconditional in the constructor, so the guard never failed and the twin
+    // was unreachable -- while still having to be kept in step by hand. A
+    // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("function");
-    if (generator) {
-      const result = generator(ctx, this.getInput(), this.getState(), this);
-      this.applyEffects(result.effects);
-      return result.code;
+    if (!generator) {
+      throw new Error(
+        "Internal: no 'function' declaration generator is registered",
+      );
     }
-
-    // Fallback to inline implementation (will be removed after migration)
-    const returnType = this.generateType(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-
-    // Set up function context
-    this._setupFunctionContext(name, ctx);
-
-    // Check for main function with args parameter (u8 args[][])
-    const isMainWithArgs = CodegenParserUtils.isMainFunctionWithArgs(
-      name,
-      ctx.parameterList(),
-    );
-
-    // Get return type and params, handling main with args special case
-    const { actualReturnType, initialParams } =
-      this._resolveReturnTypeAndParams(name, returnType, isMainWithArgs, ctx);
-
-    // Generate body first (this populates modifiedParameters)
-    const body = this.generateBlock(ctx.block());
-
-    // Issue #268: Update symbol's parameter info with auto-const before clearing
-    this.updateFunctionParamsAutoConst(name);
-
-    // Now generate parameter list (can use modifiedParameters for auto-const)
-    let params: string;
-    if (isMainWithArgs) {
-      params = initialParams;
-    } else if (ctx.parameterList()) {
-      params = this.generateParameterList(ctx.parameterList()!);
-    } else {
-      params = "void";
-    }
-
-    // Clean up function context
-    this._cleanupFunctionContext();
-
-    const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
-
-    // ADR-029: Generate callback typedef only if this function is used as a type
-    return this._appendCallbackTypedefIfNeeded(name, functionCode);
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    return result.code;
   }
 
   /**
@@ -4632,9 +4388,12 @@ export default class CodeGenerator implements IOrchestrator {
           this._buildParameterDereferenceDeps(),
         ),
       isLocalVariable: (name: string) => CodeGenState.localVariables.has(name),
-      resolveBareIdentifier: (name: string, isLocal: boolean) =>
-        TypeValidator.resolveBareIdentifier(name, isLocal, (n: string) =>
-          this.isKnownStruct(n),
+      resolveBareIdentifier: (name: string, isLocal: boolean, line?: number) =>
+        TypeValidator.resolveBareIdentifier(
+          name,
+          isLocal,
+          (n: string) => this.isKnownStruct(n),
+          line,
         ),
     };
   }
@@ -4798,7 +4557,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Resolve an identifier in a primary expression context
    * Handles: main args, parameters, local variables, scope resolution, enum members
    */
-  private _resolveIdentifierExpression(id: string): string {
+  private _resolveIdentifierExpression(id: string, line?: number): string {
     // Special case: main function's args parameter -> argv
     if (CodeGenState.mainArgsName && id === CodeGenState.mainArgsName) {
       return "argv";
@@ -4820,6 +4579,7 @@ export default class CodeGenerator implements IOrchestrator {
       id,
       isLocalVariable,
       (name: string) => this.isKnownStruct(name),
+      line,
     );
     if (resolved !== null) {
       // Issue #741: Check if this is a private const that should be inlined

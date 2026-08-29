@@ -4,63 +4,12 @@
  */
 
 import { vi } from "vitest";
+import createMockSymbols from "../../../../../__tests__/codeGenSymbolsHelpers";
 import CodeGenState from "../../../../../state/CodeGenState";
 import SymbolTable from "../../../../../logic/symbols/SymbolTable";
 import type ICodeGenApi from "../../../types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../types/TTypeInfo";
-
-/**
- * Default mock symbols with all required ICodeGenSymbols fields.
- * Override specific fields as needed for individual tests.
- */
-function createDefaultMockSymbols(): ICodeGenSymbols {
-  return {
-    // Known type names
-    knownScopes: new Set(),
-    knownStructs: new Set(),
-    knownRegisters: new Set(),
-    knownEnums: new Set(),
-    knownBitmaps: new Set(),
-
-    // Scope information
-    scopeMembers: new Map(),
-    scopeMemberVisibility: new Map(),
-
-    // Struct information
-    structFields: new Map(),
-    structFieldArrays: new Map(),
-    structFieldDimensions: new Map(),
-
-    // Enum information
-    enumMembers: new Map(),
-
-    // Bitmap information
-    bitmapFields: new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: new Map(),
-
-    // Register information
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-
-    // Scope variable analysis
-    scopeVariableUsage: new Map(),
-    scopePrivateConstValues: new Map(),
-
-    // Function return types
-    functionReturnTypes: new Map(),
-
-    // Methods
-    hasPublicInterface: false,
-    getSingleFunctionForVariable: () => null,
-    opaqueTypes: new Set(),
-  };
-}
 
 /**
  * Set up mock symbols on CodeGenState.
@@ -69,7 +18,7 @@ function createDefaultMockSymbols(): ICodeGenSymbols {
  */
 function setupMockSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
   CodeGenState.symbols = {
-    ...createDefaultMockSymbols(),
+    ...createMockSymbols(),
     ...overrides,
   };
 
@@ -176,7 +125,6 @@ export default class HandlerTestUtils {
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
   static readonly setupMockState = setupMockState;
-  static readonly createDefaultMockSymbols = createDefaultMockSymbols;
   static readonly createTypeInfo = createTypeInfo;
   static readonly setupMockTypeRegistry = setupMockTypeRegistry;
 }

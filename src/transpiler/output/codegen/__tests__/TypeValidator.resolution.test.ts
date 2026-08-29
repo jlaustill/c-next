@@ -1,40 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeValidator from "../TypeValidator";
 import CodeGenState from "../../../state/CodeGenState";
-import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
+import createMockSymbols from "../../../__tests__/codeGenSymbolsHelpers";
 
 describe("TypeValidator.resolveBareIdentifier", () => {
-  const createMockSymbols = (
-    overrides: Partial<ICodeGenSymbols> = {},
-  ): ICodeGenSymbols =>
-    ({
-      knownScopes: new Set(),
-      knownRegisters: new Set(),
-      knownEnums: new Set(),
-      knownStructs: new Set(),
-      knownBitmaps: new Set(),
-      scopeMembers: new Map(),
-      scopeMemberVisibility: new Map(),
-      structFields: new Map(),
-      structFieldArrays: new Map(),
-      structFieldDimensions: new Map(),
-      enumMembers: new Map(),
-      bitmapFields: new Map(),
-      bitmapBackingType: new Map(),
-      bitmapBitWidth: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberCTypes: new Map(),
-      scopeVariableUsage: new Map(),
-      scopePrivateConstValues: new Map(),
-      functionReturnTypes: new Map(),
-      getSingleFunctionForVariable: () => null,
-      ...overrides,
-    }) as ICodeGenSymbols;
-
   beforeEach(() => {
     CodeGenState.reset();
     CodeGenState.setScopeMembers("Motor", new Set(["speed", "maxSpeed"]));

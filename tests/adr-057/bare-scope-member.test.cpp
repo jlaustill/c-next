@@ -9,7 +9,7 @@
 
 // Test bare identifier resolves to scope member
 // test-execution
-// test-adr: 057
+// test-adr: 057, 016
 /* Scope: Counter */
 static uint32_t Counter__value = 0U;
 

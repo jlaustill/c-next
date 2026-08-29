@@ -20,6 +20,7 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
+import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
 import TypeResolver from "../utils/TypeResolver";
@@ -470,6 +471,12 @@ class Transpiler {
     const sourcePath = file.path;
     const source = file.source ?? this.fs.readFile(file.path);
 
+    // #1241: attribute ADR provenance from here, not from codegen. Analyzers run
+    // before the generator is initialized, so a rule firing in `runAnalyzers`
+    // would otherwise be credited to the PREVIOUS file -- or dropped on the
+    // first, which reads identically to "this rule never fires".
+    AdrProvenance.beginFile(sourcePath);
+
     try {
       // Parse source
       const { tree, tokenStream, errors, declarationCount } =
@@ -765,6 +772,8 @@ class Transpiler {
     // Reset callback-compatible functions for new run
     // (populated by FunctionCallAnalyzer, persists through CodeGenState.reset())
     CodeGenState.callbackCompatibleFunctions = new Map();
+    // Issue #1241: the previous run's ADR provenance is not this run's evidence
+    AdrProvenance.reset();
   }
 
   /**
@@ -1157,6 +1166,8 @@ class Transpiler {
     result.warnings = [...result.warnings, ...this.warnings];
     // Issue #1143: union of what each file's emitters recorded.
     result.requirements = RequirementAggregator.merge(result.files);
+    // Issue #1241: every position at which an ADR's rule fired this run.
+    result.adrSites = AdrProvenance.collect();
 
     if (this.cacheManager) {
       await this.cacheManager.flush();

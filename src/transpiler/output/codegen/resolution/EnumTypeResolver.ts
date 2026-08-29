@@ -18,7 +18,6 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
@@ -172,10 +171,11 @@ export default class EnumTypeResolver {
     }
     const scopeName = parts[0];
     const enumName = parts[1];
-    const scopedEnumName = QualifiedNameGenerator.forMember(
-      scopeName,
-      enumName,
-    );
+    // #1285: `parts` is source text (`Motor.State.IDLE`), so this builds a
+    // candidate KEY from components -- it is not qualifying a member by its
+    // declaring scope symbol. Those are different operations; `forMember` now
+    // takes a symbol and this one stays textual.
+    const scopedEnumName = QualifiedCName.join(scopeName, enumName);
     return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
   }
 

@@ -23,7 +23,11 @@ describe("SimpleIdentifierResolver", () => {
       expect(result).toBe("myVar");
       expect(deps.getParameterInfo).toHaveBeenCalledWith("myVar");
       expect(deps.isLocalVariable).toHaveBeenCalledWith("myVar");
-      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith("myVar", false);
+      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith(
+        "myVar",
+        false,
+        undefined,
+      );
     });
 
     it("should resolve parameter using resolveParameter", () => {
@@ -56,7 +60,11 @@ describe("SimpleIdentifierResolver", () => {
 
       SimpleIdentifierResolver.resolve("localVar", deps);
 
-      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith("localVar", true);
+      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith(
+        "localVar",
+        true,
+        undefined,
+      );
     });
 
     it("should return resolved identifier when bare resolution succeeds", () => {

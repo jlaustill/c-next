@@ -15,8 +15,8 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TypeValidator from "../../TypeValidator";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -184,7 +184,11 @@ function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
 function handleScopedRegisterMemberBitmapField(
   ctx: IAssignmentContext,
 ): string {
-  let scopeName: string;
+  // #1285: the two branches do not hold the same kind of thing. `this.` has the
+  // declaring scope SYMBOL; `Scope.` has a scope NAME written in the source. They
+  // were both flattened to a string here, which is what let one leaf-only encoder
+  // serve both. Each branch now builds the register name its own way.
+  let fullRegName: string;
   let regName: string;
   let memberName: string;
   let fieldName: string;
@@ -194,13 +198,13 @@ function handleScopedRegisterMemberBitmapField(
     if (!CodeGenState.currentScope) {
       throw new Error("Error: 'this' can only be used inside a scope");
     }
-    scopeName = CodeGenState.currentScope.name;
     regName = ctx.identifiers[0];
     memberName = ctx.identifiers[1];
     fieldName = ctx.identifiers[2];
+    fullRegName = ScopeUtils.qualifyInScope(regName, CodeGenState.currentScope);
   } else {
     // Scope.REG.MEMBER.field - 4 identifiers
-    scopeName = ctx.identifiers[0];
+    const scopeName = ctx.identifiers[0];
     regName = ctx.identifiers[1];
     memberName = ctx.identifiers[2];
     fieldName = ctx.identifiers[3];
@@ -210,13 +214,12 @@ function handleScopedRegisterMemberBitmapField(
       scopeName,
       regName,
     );
+
+    fullRegName = QualifiedCName.join(scopeName, regName);
   }
 
-  const fullRegName = QualifiedNameGenerator.forMember(scopeName, regName);
-  const fullRegMember = QualifiedNameGenerator.forMember(
-    fullRegName,
-    memberName,
-  );
+  // A register MEMBER is qualified by its register, textually -- not by a scope.
+  const fullRegMember = QualifiedCName.join(fullRegName, memberName);
   const bitmapType =
     CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 

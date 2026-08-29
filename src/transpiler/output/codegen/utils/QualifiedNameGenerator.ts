@@ -16,7 +16,6 @@ import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import QualifiedCName from "../../../../utils/QualifiedCName";
 
 class QualifiedNameGenerator {
   // ============================================================================
@@ -54,51 +53,44 @@ class QualifiedNameGenerator {
   // ============================================================================
 
   /**
-   * Generate a qualified function name from strings.
+   * Generate a qualified function name for a function named inside a scope.
    *
-   * Tries to look up the function in SymbolRegistry first.
-   * Falls back to simple string concatenation if not found.
+   * Takes the scope SYMBOL. #1285: the previous signature took a `string` and
+   * immediately did `SymbolRegistry.getScope(scopeName)` to recover the symbol --
+   * so the caller had to flatten a symbol to its leaf name and this had to look it
+   * back up, losing any outer chain in between. Callers hold the symbol already.
    *
-   * @param scopeName Scope name (e.g., "Test", "Outer.Inner") or undefined for global
-   * @param funcName Bare function name (e.g., "fillData")
-   * @returns Transpiled C name (e.g., "Test_fillData")
+   * Falls back to qualifying the bare name when the function is not registered.
    */
-  static forFunctionStrings(
-    scopeName: string | undefined,
+  static forFunctionInScope(
+    scope: IScopeSymbol | null,
     funcName: string,
   ): string {
-    // Try SymbolRegistry first (using getScope to avoid creating orphaned scopes)
-    if (scopeName) {
-      const scope = SymbolRegistry.getScope(scopeName);
-      if (scope) {
-        const func = SymbolRegistry.resolveFunction(funcName, scope);
-        if (func) {
-          return this.forFunction(func);
-        }
-      }
-    } else {
-      const global = SymbolRegistry.getGlobalScope();
-      const func = SymbolRegistry.resolveFunction(funcName, global);
-      if (func) {
-        return this.forFunction(func);
-      }
+    const lookupScope = scope ?? SymbolRegistry.getGlobalScope();
+    const func = SymbolRegistry.resolveFunction(funcName, lookupScope);
+    if (func) {
+      return this.forFunction(func);
     }
-
-    // Fallback: build the name directly (dotted scope paths are expanded by join)
-    return QualifiedCName.join(scopeName, funcName);
+    return ScopeUtils.qualifyInScope(funcName, scope);
   }
 
   /**
    * Generate a qualified name for any scoped member (variable, enum, etc.).
    *
-   * This is a simple string concatenation helper for non-function members.
+   * Takes the scope SYMBOL, not its name. #1285: the previous signature took a
+   * `string`, so it could only ever join one level -- a scope's `name` is its leaf,
+   * and an outer chain has no way to reach this function. That made it the producer
+   * half of a leaf-only pair, and `SpecialHandlers` the consumer half; the two
+   * agreed because both dropped the same components, not because they shared a
+   * decision. Threading the symbol makes the outer chain reachable, which is what
+   * `ScopeUtils.qualifyInScope` walks.
    *
-   * @param scopeName Scope name or undefined for global
+   * @param scope Declaring scope, or null/global scope for an unqualified name
    * @param memberName Member name
    * @returns Transpiled C name
    */
-  static forMember(scopeName: string | undefined, memberName: string): string {
-    return QualifiedCName.join(scopeName, memberName);
+  static forMember(scope: IScopeSymbol | null, memberName: string): string {
+    return ScopeUtils.qualifyInScope(memberName, scope);
   }
 }
 

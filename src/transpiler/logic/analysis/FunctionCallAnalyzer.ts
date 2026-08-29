@@ -16,6 +16,7 @@ import ParserUtils from "../../../utils/ParserUtils";
 import CodeGenState from "../../state/CodeGenState";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
+import AdrProvenance from "../../state/AdrProvenance";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 
@@ -788,6 +789,12 @@ class FunctionCallAnalyzer {
     if (currentScope && !isGlobalCall) {
       const qualifiedName = QualifiedCName.join(currentScope, name);
       if (this.definedFunctions.has(qualifiedName)) {
+        // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
+        // firing at a position. Recorded HERE, where the candidate is
+        // CONFIRMED, not at `scopeQualifiedCandidate`, which only proposes one:
+        // recording the proposal would credit a cell for a name that went on to
+        // resolve somewhere else entirely.
+        AdrProvenance.record("057", line);
         return; // OK - implicit resolution will handle it
       }
     }

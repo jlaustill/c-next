@@ -22,6 +22,9 @@
  */
 
 import SymbolTable from "../logic/symbols/SymbolTable";
+import TYPE_FORMING_KINDS from "../logic/symbols/TYPE_FORMING_KINDS";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import type TSymbolKindCNext from "../types/symbol-kinds/TSymbolKindCNext";
 import ReservedCnxName from "../../utils/ReservedCnxName";
 import ICodeGenSymbols from "../types/ICodeGenSymbols";
 import TTypeInfo from "../output/codegen/types/TTypeInfo";
@@ -706,23 +709,27 @@ export default class CodeGenState {
    *          function-as-type (ADR-029)
    */
   static isScopeType(qualifiedName: string): boolean {
-    return (
-      this.symbols?.knownEnums.has(qualifiedName) ||
-      this.symbols?.knownStructs.has(qualifiedName) ||
-      this.symbols?.knownBitmaps.has(qualifiedName) ||
-      // ADR-029 makes a function definition create a callback type, so a
-      // function IS type-forming (TYPE_FORMING_KINDS says so, and the symbols
-      // layer's Pass 0b now asks it). This is the codegen half of the same
-      // question -- CLAUDE.md's "two resolution points, one decision" -- and it
-      // knew only the other three kinds, so a scope-local function-as-type
-      // stayed BARE here while the header resolved it qualified (#1281).
-      //
-      // callbackTypes is read rather than a fifth `knownCallbackTypes` set
-      // being added: #1281 proposed that set, and a fifth parallel set is the
-      // same bug #1285 exists to remove. callbackTypes is already keyed by
-      // qualified function name and already owns the `_fp` typedef decision.
-      this.callbackTypes.has(qualifiedName) ||
-      false
+    // #1285: ONE lookup that returns the symbol, then a question about its kind.
+    //
+    // This was four parallel string sets -- knownEnums | knownStructs |
+    // knownBitmaps | callbackTypes -- and #1281 proposed adding a fifth. The sets
+    // are standing in for a `kind` field the symbol already carries, and asking
+    // them throws that kind away at the moment of lookup, which is why #1287's
+    // member access on a function-as-type has nothing left to diagnose with.
+    //
+    // TYPE_FORMING_KINDS owns "does this kind introduce a type name", so a new
+    // kind is answered in one place rather than by remembering to add a set.
+    // ADR-029 makes a function definition create a callback type, which is why
+    // `function` is a member.
+    //
+    // Measured equivalent to the four sets across the whole corpus before the
+    // swap: 1119 integration and 124 bug fixtures, zero disagreements, with a
+    // control confirming the probe fired (breaking the candidate produced 51).
+    const found = this.symbolTable.getOverloadsByCName(qualifiedName);
+    return found.some(
+      (symbol) =>
+        symbol.sourceLanguage === ESourceLanguage.CNext &&
+        TYPE_FORMING_KINDS.has(symbol.kind as TSymbolKindCNext),
     );
   }
 

@@ -14,6 +14,7 @@ import QualifiedCName from "../../../../utils/QualifiedCName";
 import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import ITypeAccessors from "../../../types/ITypeAccessors";
+import AdrProvenance from "../../../state/AdrProvenance";
 
 /**
  * Result of generating a primitive type.
@@ -220,6 +221,11 @@ class TypeGenerationHelper {
         deps.isScopeType,
       );
       if (qualified !== typeName) {
+        // #1241: the enclosing scope captured a bare name -- ADR-057's rule
+        // firing, observably, at a position. Recorded so a codegen-only fixture
+        // can occupy a matrix cell; without it ADR-057's eleven fixtures were
+        // invisible because they assert generated C and emit no diagnostic.
+        AdrProvenance.record("057", accessors.userType()!.start?.line);
         return qualified;
       }
       const needsStruct = deps.checkNeedsStructKeyword(typeName);
