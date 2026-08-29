@@ -1183,6 +1183,19 @@ class TestUtils {
   }
 
   /**
+   * What a test-error fixture's generated output consists of.
+   *
+   * Read by the stale-artifact guard and by the `--update` cleanup below, so
+   * "which files does a test-error fixture produce?" is answered in one place.
+   */
+  private static readonly ERROR_TEST_ARTIFACT_EXTENSIONS = [
+    "test.c",
+    "test.cpp",
+    "test.h",
+    "test.hpp",
+  ];
+
+  /**
    * Check if a test-error case has stale .test.* artifacts committed
    *
    * A test-error case stops at the expected compile error and emits no generated
@@ -1192,10 +1205,9 @@ class TestUtils {
    * @returns ITestResult with failure if stale artifacts found, null otherwise
    */
   static checkForStaleErrorTestArtifacts(basePath: string): ITestResult | null {
-    const staleExtensions = ["test.c", "test.cpp", "test.h", "test.hpp"];
     const staleFiles: string[] = [];
 
-    for (const ext of staleExtensions) {
+    for (const ext of TestUtils.ERROR_TEST_ARTIFACT_EXTENSIONS) {
       const artifactPath = `${basePath}.${ext}`;
       if (existsSync(artifactPath)) {
         staleFiles.push(artifactPath);
@@ -1287,14 +1299,29 @@ class TestUtils {
       // diagnostic migration runs repeatedly. The snapshot is still written so
       // an author who meant to remove the diagnostic can see the new output;
       // removing the assertion stays their explicit act, made by deleting the
-      // .expected.error and its DIAGNOSTIC-MANIFEST.md entry in the same commit.
+      // .expected.error and its docs/diagnostic-manifest.md row in the same commit.
       if (updateMode) {
         writeFileSync(expectedCFile, result.code);
+        // Keeping the .expected.error means transpileViaCli's own output stays
+        // on disk, so the stale-artifact guard would fire first on the next run
+        // and report "git rm" for files this run just wrote -- masking the
+        // message above with an unrelated one, on the re-run an author reaches
+        // for immediately. These are this run's output, not committed artifacts.
+        for (const ext of TestUtils.ERROR_TEST_ARTIFACT_EXTENSIONS) {
+          const artifactPath = `${basePath}.${ext}`;
+          if (existsSync(artifactPath)) {
+            try {
+              unlinkSync(artifactPath);
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+        }
       }
       return {
         passed: false,
         message: updateMode
-          ? `test-error fixture no longer errors: .expected.error kept, wrote ${basename(expectedCFile)} for inspection. If intentional, delete the .expected.error and its DIAGNOSTIC-MANIFEST.md entry.`
+          ? `test-error fixture no longer errors: .expected.error kept, wrote ${basename(expectedCFile)} for inspection. If intentional, delete the .expected.error and its docs/diagnostic-manifest.md row in the same commit.`
           : "Expected errors but transpilation succeeded",
         expected: expectedErrors,
         actual: "(no errors)",

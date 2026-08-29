@@ -42,81 +42,42 @@ async function formatMarkdown(markdown: string): Promise<string> {
 
 async function main(): Promise<void> {
   const mode = process.argv[2] ?? "check";
+  if (mode !== "write" && mode !== "check") {
+    console.error(chalk.red(`Unknown mode '${mode}'. Use write or check.`));
+    process.exit(1);
+  }
+
   const current = DiagnosticManifest.collect(rootDir);
   const document = await formatMarkdown(DiagnosticManifest.render(current));
+  const committed = existsSync(manifestPath)
+    ? readFileSync(manifestPath, "utf-8")
+    : null;
+
+  // Both modes decide in DiagnosticManifest and only print here, so the
+  // ordering between "an assertion was lost" and "the file is stale" is
+  // reachable from a test rather than buried in a CLI entry point.
+  const outcome =
+    mode === "write"
+      ? DiagnosticManifest.writeOutcome(committed, current)
+      : DiagnosticManifest.checkOutcome(committed, current, document);
 
   if (mode === "write") {
     writeFileSync(manifestPath, document);
     console.log(
       chalk.green(`Wrote ${manifestPath} (${current.length} fixture(s))`),
     );
-    return;
   }
 
-  if (mode !== "check") {
-    console.error(chalk.red(`Unknown mode '${mode}'. Use write or check.`));
+  for (const line of outcome.warnings) {
+    console.warn(chalk.yellow(line));
+  }
+  for (const line of outcome.info) {
+    console.log(chalk.green(line));
+  }
+  if (!outcome.ok) {
+    console.error(chalk.red(outcome.errors.join("\n")));
     process.exit(1);
   }
-
-  if (!existsSync(manifestPath)) {
-    console.error(
-      chalk.red(
-        `docs/diagnostic-manifest.md is missing. Run: npm run diagnostics:manifest`,
-      ),
-    );
-    process.exit(1);
-  }
-
-  const committedDocument = readFileSync(manifestPath, "utf-8");
-  const failures = DiagnosticManifest.diff(
-    DiagnosticManifest.parse(committedDocument),
-    current,
-  );
-
-  if (failures.length > 0) {
-    console.error(
-      chalk.red(
-        `${failures.length} fixture(s) no longer assert what the manifest records:`,
-      ),
-    );
-    for (const failure of failures) {
-      console.error(
-        chalk.red(
-          `  ${failure.fixture}: ${failure.detail} [${failure.reason}]`,
-        ),
-      );
-    }
-    console.error(
-      chalk.red(
-        "\nIf a diagnostic was removed on purpose, delete its row from\n" +
-          "docs/diagnostic-manifest.md in the same commit so the loss is reviewed.",
-      ),
-    );
-    process.exit(1);
-  }
-
-  if (committedDocument !== document) {
-    // Growth alone reaches here: a new fixture or a promoted code. It is not a
-    // failure of the guard, but the committed file must still track it, or the
-    // next real shrinkage diffs against a stale baseline.
-    console.error(
-      chalk.red(
-        "docs/diagnostic-manifest.md is stale. Run: npm run diagnostics:manifest",
-      ),
-    );
-    process.exit(1);
-  }
-
-  // Say what was enforced, not just that nothing failed. An identical line for
-  // 287 fixtures and for zero is what would let a silently-emptied manifest pass
-  // unremarked in a CI log.
-  const coded = current.filter((entry) => entry.codes.length > 0).length;
-  console.log(
-    chalk.green(
-      `Diagnostic manifest is satisfied ` +
-        `(${current.length} fixture(s) asserting a diagnostic, ${coded} coded)`,
-    ),
-  );
 }
 
 main().catch((err) => {

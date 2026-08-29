@@ -786,6 +786,28 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     expect(existsSync(join(tempDir, "lost.expected.c"))).toBe(true);
   });
 
+  it("reports the same failure on a second --update run", async () => {
+    // Keeping the .expected.error leaves this run's own .test.c/.test.h on disk,
+    // so checkForStaleErrorTestArtifacts fires first next time and replaces the
+    // message with "stale generated artifacts" -- telling the author to `git rm`
+    // files this run just wrote, instead of that a diagnostic went missing.
+    // Re-running to confirm a failure is the first thing anyone does.
+    const cnxFile = join(tempDir, "lost.test.cnx");
+    writeFileSync(cnxFile, "u32 testVar;\n");
+    writeFileSync(
+      join(tempDir, "lost.expected.error"),
+      "1:0 E0001 a diagnostic this fixture exists to assert\n",
+    );
+
+    const tools: ITools = { gcc: false };
+    const first = await TestUtils.runTest(cnxFile, true, tools, tempDir);
+    const second = await TestUtils.runTest(cnxFile, true, tools, tempDir);
+
+    expect(second.passed).toBe(false);
+    expect(second.message).toBe(first.message);
+    expect(second.message).not.toContain("stale generated artifacts");
+  });
+
   it("still updates the snapshot of a fixture that keeps erroring", async () => {
     // Negative control: --update must stay useful for a fixture whose diagnostic
     // still fires, or the fix above passes by disabling error-snapshot updates.

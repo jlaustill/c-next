@@ -4,6 +4,7 @@ import { join, relative, sep } from "node:path";
 import FileScanner from "../utils/FileScanner";
 import IManifestEntry from "../types/IManifestEntry";
 import IManifestFailure from "../types/IManifestFailure";
+import IManifestOutcome from "../types/IManifestOutcome";
 
 /**
  * The committed record of which fixtures assert which diagnostics (issue #1316).
@@ -14,8 +15,25 @@ import IManifestFailure from "../types/IManifestFailure";
  * The manifest turns both into a diff a reviewer has to approve.
  */
 class DiagnosticManifest {
-  /** Matches the `error[E0902]` / `error[MISRA-3.1]` tag the transpiler emits. */
-  private static readonly CODE_PATTERN_SOURCE = "error\\[([^\\]]+)\\]";
+  /**
+   * Matches every code-carrying shape the corpus emits, not just one of them.
+   *
+   * Four forms exist, and a bracket-only pattern saw a single one -- leaving 39
+   * of the 155 fixtures it recorded as `(uncoded)` actually asserting a code, so
+   * `code-removed` could never fire for any of them:
+   *
+   *     error[E0902]:                          matched before
+   *     error[MISRA-3.1]:                      matched before
+   *     Code generation failed: Error[E0602]:   missed
+   *     Code generation failed: Error E0702:    missed
+   *     Code generation failed: E0504:          missed
+   *
+   * The trailing `:` is what keeps this from over-matching a message body: every
+   * code-carrying line in the corpus writes its code as a tag ending in `:`, and
+   * stripping each file's own tag leaves zero stray `E####` anywhere in `tests/`.
+   */
+  private static readonly CODE_PATTERN_SOURCE =
+    "(?:(?:error|Error) ?\\[?)?\\b(E[0-9]{4}|MISRA-[0-9.]+)\\b\\]?:";
 
   /** Shown in place of a code list for a fixture whose diagnostic carries none. */
   private static readonly UNCODED = "(uncoded)";
@@ -129,6 +147,102 @@ class DiagnosticManifest {
       return null;
     }
     return [cells[0], cells[1]];
+  }
+
+  /** Describes a `check` run without performing any of its I/O. */
+  static checkOutcome(
+    committedDocument: string | null,
+    current: readonly IManifestEntry[],
+    freshDocument: string,
+  ): IManifestOutcome {
+    if (committedDocument === null) {
+      return {
+        ok: false,
+        errors: [
+          "docs/diagnostic-manifest.md is missing. Run: npm run diagnostics:manifest",
+        ],
+        warnings: [],
+        info: [],
+      };
+    }
+
+    const failures = DiagnosticManifest.diff(
+      DiagnosticManifest.parse(committedDocument),
+      current,
+    );
+    if (failures.length > 0) {
+      return {
+        ok: false,
+        errors: [
+          `${failures.length} fixture(s) no longer assert what the manifest records:`,
+          ...failures.map(
+            (failure) =>
+              `  ${failure.fixture}: ${failure.detail} [${failure.reason}]`,
+          ),
+          // Regeneration first: a rename presents as `assertion-removed`, and it
+          // is the commoner cause. Advising row deletion first would turn a
+          // rename into the real loss the gate exists to catch.
+          "\nIf the fixture was renamed or moved, regenerate: npm run diagnostics:manifest",
+          "If the diagnostic was removed on purpose, delete its row from",
+          "docs/diagnostic-manifest.md in the same commit so the loss is reviewed.",
+        ],
+        warnings: [],
+        info: [],
+      };
+    }
+
+    if (committedDocument !== freshDocument) {
+      // Growth alone reaches here: a new fixture or a promoted code. Not a
+      // failure of the guard, but the committed file must track it or the next
+      // real shrinkage diffs against a stale baseline.
+      return {
+        ok: false,
+        errors: [
+          "docs/diagnostic-manifest.md is stale. Run: npm run diagnostics:manifest",
+        ],
+        warnings: [],
+        info: [],
+      };
+    }
+
+    // Say what was enforced, not just that nothing failed. An identical line for
+    // 287 fixtures and for zero is what would let a silently-emptied manifest
+    // pass unremarked in a CI log.
+    const coded = current.filter((entry) => entry.codes.length > 0).length;
+    return {
+      ok: true,
+      errors: [],
+      warnings: [],
+      info: [
+        `Diagnostic manifest is satisfied (${current.length} fixture(s) asserting a diagnostic, ${coded} coded)`,
+      ],
+    };
+  }
+
+  /**
+   * Describes a `write` run: regenerating is the reflex `check` trains, so an
+   * assertion it is about to erase has to be named at the moment it happens
+   * rather than left to a one-line diff inside a GENERATED-FILE header.
+   */
+  static writeOutcome(
+    committedDocument: string | null,
+    current: readonly IManifestEntry[],
+  ): IManifestOutcome {
+    const lost =
+      committedDocument === null
+        ? []
+        : DiagnosticManifest.diff(
+            DiagnosticManifest.parse(committedDocument),
+            current,
+          );
+    return {
+      ok: true,
+      errors: [],
+      warnings: lost.map(
+        (failure) => `  dropped ${failure.fixture}: ${failure.detail}`,
+      ),
+      info: [],
+    };
   }
 
   /**

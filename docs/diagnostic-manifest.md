@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-287 fixture(s) assert a diagnostic; 132 carry a code.
+287 fixture(s) assert a diagnostic; 171 carry a code.
 
 | Fixture                                                                                         | Codes        |
 | ----------------------------------------------------------------------------------------------- | ------------ |
@@ -44,8 +44,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/analysis/signed-arithmetic-index.test.cnx                                                 | E0850        |
 | tests/analysis/signed-array-index.test.cnx                                                      | E0850        |
 | tests/analysis/signed-bit-index.test.cnx                                                        | E0850        |
-| tests/analysis/sizeof-array-param.test.cnx                                                      | (uncoded)    |
-| tests/analysis/sizeof-side-effects.test.cnx                                                     | (uncoded)    |
+| tests/analysis/sizeof-array-param.test.cnx                                                      | E0601        |
+| tests/analysis/sizeof-side-effects.test.cnx                                                     | E0602        |
 | tests/analysis/undefined-function.test.cnx                                                      | E0422        |
 | tests/analysis/uninitialized-variable.test.cnx                                                  | E0381        |
 | tests/arithmetic/division-by-const-zero.test.cnx                                                | E0800        |
@@ -57,8 +57,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/array-initializers/bounds-error.test.cnx                                                  | (uncoded)    |
 | tests/atomic/atomic-struct-member.test.cnx                                                      | (uncoded)    |
 | tests/atomic/atomic-volatile-error.test.cnx                                                     | (uncoded)    |
-| tests/bit-indexing/scalar-over-subscript-this.test.cnx                                          | (uncoded)    |
-| tests/bit-indexing/scalar-over-subscript.test.cnx                                               | (uncoded)    |
+| tests/bit-indexing/scalar-over-subscript-this.test.cnx                                          | E0856        |
+| tests/bit-indexing/scalar-over-subscript.test.cnx                                               | E0856        |
 | tests/bitmap/bitmap-bracket-indexing-error.test.cnx                                             | (uncoded)    |
 | tests/bitmap/bitmap-error-bits.test.cnx                                                         | (uncoded)    |
 | tests/bitmap/bitmap-error-overflow.test.cnx                                                     | (uncoded)    |
@@ -84,11 +84,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1040-all-paths-return/no-return.test.cnx                                       | E0704        |
 | tests/bugs/issue-1040-all-paths-return/switch-no-default.test.cnx                               | E0704        |
 | tests/bugs/issue-1040-all-paths-return/while-only.test.cnx                                      | E0704        |
-| tests/bugs/issue-1042-bare-bool-condition/bare-bool-local.test.cnx                              | (uncoded)    |
-| tests/bugs/issue-1042-bare-bool-condition/bare-bool-logical-and.test.cnx                        | (uncoded)    |
-| tests/bugs/issue-1042-bare-bool-condition/bare-bool-member.test.cnx                             | (uncoded)    |
-| tests/bugs/issue-1042-bare-bool-condition/bare-bool-negation.test.cnx                           | (uncoded)    |
-| tests/bugs/issue-1042-bare-bool-condition/bare-bool-param.test.cnx                              | (uncoded)    |
+| tests/bugs/issue-1042-bare-bool-condition/bare-bool-local.test.cnx                              | E0701        |
+| tests/bugs/issue-1042-bare-bool-condition/bare-bool-logical-and.test.cnx                        | E0701        |
+| tests/bugs/issue-1042-bare-bool-condition/bare-bool-member.test.cnx                             | E0701        |
+| tests/bugs/issue-1042-bare-bool-condition/bare-bool-negation.test.cnx                           | E0701        |
+| tests/bugs/issue-1042-bare-bool-condition/bare-bool-param.test.cnx                              | E0701        |
 | tests/bugs/issue-1133-guard-collision-diagnostic/guard-collision.test.cnx                       | E0203        |
 | tests/bugs/issue-1145-atomic-bool-clamp-helper/atomic-bool-compound.test.cnx                    | E0806        |
 | tests/bugs/issue-1159-dimension-notation-bounds/binary-dimension-bounds.test.cnx                | (uncoded)    |
@@ -148,15 +148,15 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/comments/misra-3-1-nested-block.test.cnx                                                  | MISRA-3.1    |
 | tests/comments/misra-3-2-backslash.test.cnx                                                     | MISRA-3.2    |
 | tests/compound-assign/bit-index-compound.test.cnx                                               | (uncoded)    |
-| tests/conditions/function-call-in-do-while-error.test.cnx                                       | (uncoded)    |
-| tests/conditions/function-call-in-for-error.test.cnx                                            | (uncoded)    |
-| tests/conditions/function-call-in-if-double-negated-error.test.cnx                              | (uncoded)    |
-| tests/conditions/function-call-in-if-error.test.cnx                                             | (uncoded)    |
-| tests/conditions/function-call-in-if-negated-error.test.cnx                                     | (uncoded)    |
-| tests/conditions/function-call-in-if-negated-this-error.test.cnx                                | (uncoded)    |
-| tests/conditions/function-call-in-if-this-method-error.test.cnx                                 | (uncoded)    |
-| tests/conditions/function-call-in-ternary-error.test.cnx                                        | (uncoded)    |
-| tests/conditions/function-call-in-while-error.test.cnx                                          | (uncoded)    |
+| tests/conditions/function-call-in-do-while-error.test.cnx                                       | E0702        |
+| tests/conditions/function-call-in-for-error.test.cnx                                            | E0702        |
+| tests/conditions/function-call-in-if-double-negated-error.test.cnx                              | E0702        |
+| tests/conditions/function-call-in-if-error.test.cnx                                             | E0702        |
+| tests/conditions/function-call-in-if-negated-error.test.cnx                                     | E0702        |
+| tests/conditions/function-call-in-if-negated-this-error.test.cnx                                | E0702        |
+| tests/conditions/function-call-in-if-this-method-error.test.cnx                                 | E0702        |
+| tests/conditions/function-call-in-ternary-error.test.cnx                                        | E0702        |
+| tests/conditions/function-call-in-while-error.test.cnx                                          | E0702        |
 | tests/const/const-assign-error.test.cnx                                                         | (uncoded)    |
 | tests/const/const-bool-assign-error.test.cnx                                                    | (uncoded)    |
 | tests/const/const-bool-param-assign-error.test.cnx                                              | (uncoded)    |
@@ -188,17 +188,17 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/constructor-syntax/error-undeclared-arg.test.cnx                                          | (uncoded)    |
 | tests/control-flow/break-rejected.test.cnx                                                      | E0703        |
 | tests/control-flow/continue-rejected.test.cnx                                                   | E0703        |
-| tests/control-flow/forever-disguised-dowhile.test.cnx                                           | (uncoded)    |
-| tests/control-flow/forever-disguised-for-cond.test.cnx                                          | (uncoded)    |
-| tests/control-flow/forever-disguised-for-empty.test.cnx                                         | (uncoded)    |
-| tests/control-flow/forever-disguised-while-bool.test.cnx                                        | (uncoded)    |
-| tests/control-flow/forever-disguised-while-eq.test.cnx                                          | (uncoded)    |
-| tests/control-flow/forever-disguised-while-rel.test.cnx                                         | (uncoded)    |
-| tests/control-flow/forever-non-void-error.test.cnx                                              | (uncoded)    |
-| tests/control-flow/if-error-non-boolean.test.cnx                                                | (uncoded)    |
-| tests/control-flow/while-error-non-boolean.test.cnx                                             | (uncoded)    |
-| tests/critical/return-error.test.cnx                                                            | (uncoded)    |
-| tests/do-while/do-while-error-non-boolean.test.cnx                                              | (uncoded)    |
+| tests/control-flow/forever-disguised-dowhile.test.cnx                                           | E0707        |
+| tests/control-flow/forever-disguised-for-cond.test.cnx                                          | E0707        |
+| tests/control-flow/forever-disguised-for-empty.test.cnx                                         | E0707        |
+| tests/control-flow/forever-disguised-while-bool.test.cnx                                        | E0707        |
+| tests/control-flow/forever-disguised-while-eq.test.cnx                                          | E0707        |
+| tests/control-flow/forever-disguised-while-rel.test.cnx                                         | E0707        |
+| tests/control-flow/forever-non-void-error.test.cnx                                              | E0705        |
+| tests/control-flow/if-error-non-boolean.test.cnx                                                | E0701        |
+| tests/control-flow/while-error-non-boolean.test.cnx                                             | E0701        |
+| tests/critical/return-error.test.cnx                                                            | E0853        |
+| tests/do-while/do-while-error-non-boolean.test.cnx                                              | E0701        |
 | tests/enum/enum-error-assign-int.test.cnx                                                       | (uncoded)    |
 | tests/enum/enum-error-compare-int.test.cnx                                                      | (uncoded)    |
 | tests/enum/enum-error-compare-types.test.cnx                                                    | (uncoded)    |
@@ -212,7 +212,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/floats/float-modulo-f64-error.test.cnx                                                    | E0804        |
 | tests/floats/float-modulo-literal-error.test.cnx                                                | E0804        |
 | tests/floats/float-modulo-param-error.test.cnx                                                  | E0804        |
-| tests/for-loops/for-error-non-boolean.test.cnx                                                  | (uncoded)    |
+| tests/for-loops/for-error-non-boolean.test.cnx                                                  | E0701        |
 | tests/forward-declarations/bare-undeclared-function-error.test.cnx                              | E0422        |
 | tests/forward-declarations/call-before-define-error.test.cnx                                    | E0422        |
 | tests/forward-declarations/global-undeclared-function-error.test.cnx                            | E0422        |
@@ -223,9 +223,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/forward-declarations/stdlib-without-include-error.test.cnx                                | E0422        |
 | tests/forward-declarations/this-undefined-method-error.test.cnx                                 | E0422        |
 | tests/forward-declarations/undefined-function-error.test.cnx                                    | E0422        |
-| tests/include/cnx-alternative-error-angle.test.cnx                                              | (uncoded)    |
-| tests/include/cnx-alternative-error-hpp.test.cnx                                                | (uncoded)    |
-| tests/include/cnx-alternative-error-quoted.test.cnx                                             | (uncoded)    |
+| tests/include/cnx-alternative-error-angle.test.cnx                                              | E0504        |
+| tests/include/cnx-alternative-error-hpp.test.cnx                                                | E0504        |
+| tests/include/cnx-alternative-error-quoted.test.cnx                                             | E0504        |
 | tests/initialization/compound-assign-all-ops.test.cnx                                           | E0381        |
 | tests/initialization/compound-assign-struct-field.test.cnx                                      | E0381        |
 | tests/initialization/compound-assign-use-before-init.test.cnx                                   | E0381        |
@@ -247,10 +247,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/null-check/null-neq-check.test.cnx                                                        | E0905, E0907 |
 | tests/null-check/valid-fgetc-check.test.cnx                                                     | E0905        |
 | tests/postfix-chains/mixed-access-ultimate.test.cnx                                             | (uncoded)    |
-| tests/preprocessor/function-macro-error.test.cnx                                                | (uncoded)    |
-| tests/preprocessor/include-impl-file-error.test.cnx                                             | (uncoded)    |
+| tests/preprocessor/function-macro-error.test.cnx                                                | E0501        |
+| tests/preprocessor/include-impl-file-error.test.cnx                                             | E0503        |
 | tests/preprocessor/nested-ifdef.test.cnx                                                        | (uncoded)    |
-| tests/preprocessor/value-define-error.test.cnx                                                  | (uncoded)    |
+| tests/preprocessor/value-define-error.test.cnx                                                  | E0502        |
 | tests/register/register-bits-syntax-error.test.cnx                                              | (uncoded)    |
 | tests/register/register-read-wo-error.test.cnx                                                  | (uncoded)    |
 | tests/register/register-wo-set-false-error.test.cnx                                             | (uncoded)    |
@@ -266,8 +266,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/scope/scope-enum-naming-conflict.test.cnx                                                 | (uncoded)    |
 | tests/scope/self-scope-bare-error.test.cnx                                                      | (uncoded)    |
 | tests/scoped-structs/private-scoped-struct-error.test.cnx                                       | (uncoded)    |
-| tests/sizeof/array-param-error.test.cnx                                                         | (uncoded)    |
-| tests/sizeof/side-effects-error.test.cnx                                                        | (uncoded)    |
+| tests/sizeof/array-param-error.test.cnx                                                         | E0601        |
+| tests/sizeof/side-effects-error.test.cnx                                                        | E0602        |
 | tests/slice-assignment/slice-bounds-violation.test.cnx                                          | (uncoded)    |
 | tests/slice-assignment/slice-length-exceeds-source.test.cnx                                     | (uncoded)    |
 | tests/slice-assignment/slice-literal-negative-too-wide.test.cnx                                 | (uncoded)    |
@@ -302,4 +302,4 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/switch/switch-error-wrong-count.test.cnx                                                  | (uncoded)    |
 | tests/ternary/ternary-error-nested.test.cnx                                                     | (uncoded)    |
 | tests/ternary/ternary-error-no-parens.test.cnx                                                  | (uncoded)    |
-| tests/ternary/ternary-error-non-boolean.test.cnx                                                | (uncoded)    |
+| tests/ternary/ternary-error-non-boolean.test.cnx                                                | E0701        |
