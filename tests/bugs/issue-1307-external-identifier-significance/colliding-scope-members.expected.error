@@ -1,4 +1,4 @@
 16:0 error[E0204]: External identifiers are not distinct within the target's 31 significant characters (MISRA C:2012 Rule 5.1). All of these generate an identifier beginning 'TemperatureSensorController__ca':
-  TemperatureSensorController.calibrationOffsetValue (colliding-scope-members.test.cnx:16)
-  TemperatureSensorController.calibrationOffsetLimit (colliding-scope-members.test.cnx:17)
+  TemperatureSensorController.calibrationOffsetValue (tests/bugs/issue-1307-external-identifier-significance/colliding-scope-members.test.cnx:16)
+  TemperatureSensorController.calibrationOffsetLimit (tests/bugs/issue-1307-external-identifier-significance/colliding-scope-members.test.cnx:17)
   Shorten the scope name or the member names so the first 31 characters differ.

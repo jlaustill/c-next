@@ -5,6 +5,18 @@
 import TAnySymbol from "./symbols/TAnySymbol";
 
 interface IConflict {
+  /**
+   * The diagnostic code this conflict reports under, without brackets --
+   * `"E0425"` for a symbol conflict, `"E0204"` for MISRA Rule 5.1.
+   *
+   * On the conflict, not on the consumer. #1342 hardcoded `error[E0425]` at the
+   * point of consumption, and #1339 landed a second producer whose code is
+   * E0204 -- so the two merged into a state where the code a conflict reports
+   * under depended on which consumer happened to read it. One producer knows
+   * its own code; no consumer should be guessing.
+   */
+  readonly code: string;
+
   symbolName: string;
   definitions: TAnySymbol[];
   /**

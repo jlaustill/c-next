@@ -10,6 +10,7 @@
  */
 
 import { join, basename, dirname, resolve, relative } from "node:path";
+import type IConflict from "./types/IConflict";
 
 import IFileSystem from "./types/IFileSystem";
 import NodeFileSystem from "./NodeFileSystem";
@@ -1000,13 +1001,7 @@ class Transpiler {
       // `npx knip` cannot see -- it does not analyze interface fields.
       // IConflict.severity is `"error"`, so this is unconditional by construction.
       result.success = false;
-      result.errors.push({
-        line: conflict.line,
-        column: conflict.column,
-        sourcePath: conflict.sourceFile,
-        message: `error[E0425]: ${conflict.message}`,
-        severity: conflict.severity,
-      });
+      result.errors.push(Transpiler._conflictToError(conflict));
     }
 
     return result.success;
@@ -1025,6 +1020,31 @@ class Transpiler {
    *
    * @returns true when every external identifier is distinct within the budget
    */
+  /**
+   * The one rendering of a conflict as a diagnostic.
+   *
+   * Both conflict checks used to do this themselves and disagreed on both halves:
+   * one read `conflict.line`, the other re-derived it from `definitions[0]`; one
+   * hardcoded `error[E0425]`, the other embedded `error[E0204]` in the message
+   * text. They were written against different bases and merged into `main`
+   * without either CI run seeing the other (#1339 + #1342), which is how `main`
+   * came to fail `tsc`.
+   *
+   * Anchored to a file even in single-file builds: the message runs to several
+   * lines, and the CLI's reader only accumulates continuation lines under a
+   * `path:line:col` header -- without a sourcePath the colliding names are
+   * printed and then dropped on the way to a snapshot.
+   */
+  private static _conflictToError(conflict: IConflict): ITranspileError {
+    return {
+      line: conflict.line,
+      column: conflict.column,
+      sourcePath: conflict.sourceFile,
+      message: `error[${conflict.code}]: ${conflict.message}`,
+      severity: conflict.severity,
+    };
+  }
+
   private _checkExternalIdentifierSignificance(
     result: ITranspilerResult,
   ): boolean {
@@ -1037,18 +1057,7 @@ class Transpiler {
     );
 
     for (const collision of collisions) {
-      const first = collision.definitions[0];
-      result.errors.push({
-        line: first?.sourceLine ?? 1,
-        column: 0,
-        message: collision.message,
-        severity: "error",
-        // Anchored to a file even in single-file builds. The message runs to
-        // several lines, and the CLI's reader only accumulates continuation
-        // lines under a `path:line:col` header -- without a sourcePath the
-        // colliding names are printed and then dropped on the way to a snapshot.
-        sourcePath: first?.sourceFile,
-      });
+      result.errors.push(Transpiler._conflictToError(collision));
       result.success = false;
     }
 
