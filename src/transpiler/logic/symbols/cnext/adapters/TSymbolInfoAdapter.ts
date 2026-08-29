@@ -512,10 +512,30 @@ class TSymbolInfoAdapter {
     mergedEnumMembers: Map<string, Map<string, number>>,
     mergedFunctionReturnTypes: Map<string, string>,
     mergedScopeMemberVisibility: Map<string, Map<string, "public" | "private">>,
+    mergedKnownStructs: Set<string>,
+    mergedKnownBitmaps: Set<string>,
+    mergedKnownRegisters: Set<string>,
   ): void {
     // Merge known enums
     for (const enumName of external.knownEnums) {
       mergedKnownEnums.add(enumName);
+    }
+    // #1333: the other type-forming kinds merge on the same terms as enums.
+    //
+    // Only knownEnums crossed the include boundary, so ADR-057
+    // qualification was kind-dependent: in a scope spanning two files, an enum
+    // declared in the other file qualified and a struct did not. Adjacent lines
+    // in one function emitted `Lib__Mode m` and bare `Point p` -- the second
+    // does not compile. The asymmetry was invisible while a scope could not span
+    // files at all, which is the bug this shipped with.
+    for (const structName of external.knownStructs) {
+      mergedKnownStructs.add(structName);
+    }
+    for (const bitmapName of external.knownBitmaps) {
+      mergedKnownBitmaps.add(bitmapName);
+    }
+    for (const registerName of external.knownRegisters) {
+      mergedKnownRegisters.add(registerName);
     }
     // Merge scopes from external sources for cross-scope method calls.
     //
@@ -575,6 +595,9 @@ class TSymbolInfoAdapter {
     // Create mutable copies of enum-related data and scope info
     const mergedKnownEnums = new Set(base.knownEnums);
     const mergedKnownScopes = new Set(base.knownScopes);
+    const mergedKnownStructs = new Set(base.knownStructs);
+    const mergedKnownBitmaps = new Set(base.knownBitmaps);
+    const mergedKnownRegisters = new Set(base.knownRegisters);
     const mergedEnumMembers = this._copyEnumMembers(base.enumMembers);
     const mergedFunctionReturnTypes = new Map(base.functionReturnTypes);
     const mergedScopeMemberVisibility = this._copyScopeMemberVisibility(
@@ -590,6 +613,9 @@ class TSymbolInfoAdapter {
         mergedEnumMembers,
         mergedFunctionReturnTypes,
         mergedScopeMemberVisibility,
+        mergedKnownStructs,
+        mergedKnownBitmaps,
+        mergedKnownRegisters,
       );
     }
 
@@ -598,6 +624,9 @@ class TSymbolInfoAdapter {
       ...base,
       knownScopes: mergedKnownScopes,
       knownEnums: mergedKnownEnums,
+      knownStructs: mergedKnownStructs,
+      knownBitmaps: mergedKnownBitmaps,
+      knownRegisters: mergedKnownRegisters,
       enumMembers: mergedEnumMembers,
       functionReturnTypes: mergedFunctionReturnTypes,
       scopeMemberVisibility: mergedScopeMemberVisibility,

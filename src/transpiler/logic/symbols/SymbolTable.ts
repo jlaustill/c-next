@@ -778,6 +778,21 @@ class SymbolTable {
       // Check each scope+kind group for conflicts (multiple symbols in same scope with same kind)
       for (const symbols of byScopeAndKind.values()) {
         if (symbols.length > 1) {
+          // #1333: a scope declaration is not a definition in the sense this
+          // rule means. Declaring `scope Lib` a second time REOPENS it and adds
+          // members; it does not redefine it -- the model ADR-002:256 described
+          // ("one namespace can span files") and ADR-016 carries forward.
+          // Without this, a scope could not be split across files, and could not
+          // even be reopened within one file, which defeats the organizational
+          // purpose scopes exist for.
+          //
+          // Members still conflict normally: they are grouped by the scope's own
+          // identity, so two `Lib.useIt` definitions collide whichever block
+          // they were written in.
+          if (symbols[0].kind === "scope") {
+            continue;
+          }
+
           const locations = symbols.map(
             (s) => `${s.sourceFile}:${s.sourceLine}`,
           );
