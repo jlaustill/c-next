@@ -2801,7 +2801,6 @@ export default class CodeGenerator implements IOrchestrator {
       if (member.variableDeclaration()) {
         const varType = this.getTypeName(member.variableDeclaration()!.type());
         CodeGenState.callbackTypeReferences.add(varType);
-        continue;
       }
     }
 
