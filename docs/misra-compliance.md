@@ -44,7 +44,7 @@ assessment claimed N/A.
 | Category         | Enforced | By Design | Partial | Planned | N/A | Not Enforced | Deviation |
 | ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
 | Directives (1-4) | 1        | 9         | 1       | 0       | 1   | 0            | 1         |
-| Rules 1-5        | 3        | 7         | 2       | 0       | 3   | 7            | 1         |
+| Rules 1-5        | 4        | 3         | 5       | 0       | 3   | 7            | 1         |
 | Rules 6-10       | 2        | 15        | 7       | 0       | 0   | 9            | 0         |
 | Rules 11-15      | 3        | 15        | 6       | 0       | 1   | 6            | 0         |
 | Rules 16-22      | 5        | 29        | 4       | 0       | 11  | 7            | 1         |
@@ -156,17 +156,17 @@ The failure decision lives in `scripts/misra-baseline.mjs`:
 
 ## Rule 5 - Identifiers
 
-| Rule | Description                              | Status        | Reference                 |
-| ---- | ---------------------------------------- | ------------- | ------------------------- |
-| 5.1  | External identifiers distinct (31 chars) | **Enforced**  | E0204 — see below         |
-| 5.2  | Identifiers in same scope distinct       | **By Design** | Scope prefixing           |
-| 5.3  | Identifier in inner scope no hide        | Partial       | Some shadowing detection  |
-| 5.4  | Macro identifiers distinct               | N/A           | No macros                 |
-| 5.5  | Identifiers distinct from macros         | N/A           | No macros                 |
-| 5.6  | Unique typedef names                     | **By Design** | Type system enforces      |
-| 5.7  | Unique tag names                         | **By Design** | Type system enforces      |
-| 5.8  | Unique external identifiers              | **By Design** | Scope prefixing (ADR-016) |
-| 5.9  | Unique internal identifiers              | Not Enforced  |                           |
+| Rule | Description                              | Status       | Reference                |
+| ---- | ---------------------------------------- | ------------ | ------------------------ |
+| 5.1  | External identifiers distinct (31 chars) | **Enforced** | E0204 — see below        |
+| 5.2  | Identifiers in same scope distinct       | Partial      | #1341 — see below        |
+| 5.3  | Identifier in inner scope no hide        | Partial      | Some shadowing detection |
+| 5.4  | Macro identifiers distinct               | N/A          | No macros                |
+| 5.5  | Identifiers distinct from macros         | N/A          | No macros                |
+| 5.6  | Unique typedef names                     | Partial      | #1341 — see below        |
+| 5.7  | Unique tag names                         | Partial      | #1341 — see below        |
+| 5.8  | Unique external identifiers              | **Enforced** | E0204 — see below        |
+| 5.9  | Unique internal identifiers              | Not Enforced | #1338                    |
 
 ### Rule 5.1 and the cost of `Scope__member` (issue #1307)
 
@@ -197,6 +197,26 @@ language. It applies only to identifiers C-Next generates with external linkage:
 `private` members are emitted `static` and get C99's 63-character internal budget
 (Rule 5.9, not yet enforced — issue #1338), types name nothing the linker
 resolves, and a C or C++ header's identifiers are not C-Next's to rename.
+
+### The same budget, still unenforced for types and statics
+
+Rule 5.1 is the _external_ case. C99 §5.2.4.1 also caps **internal** identifiers at 63
+significant characters, and `Scope__member` consumes that budget by the identical
+mechanism. Two of the three classes are still open:
+
+| Identifier class                        | Budget | Status            |
+| --------------------------------------- | ------ | ----------------- |
+| External variables and functions        | 31     | **E0204** (#1307) |
+| `static` (private) variables, functions | 63     | Open — #1338      |
+| Typedef names and struct tags           | 63     | Open — #1341      |
+
+Rows 5.2, 5.6 and 5.7 previously read **By Design**, justified by "Scope prefixing" and
+"Type system enforces". Both justifications are the one #1307 discredited for 5.1:
+prefixing is what puts the budget at risk rather than what protects it, and the type
+system enforcing uniqueness of _C-Next_ names says nothing about whether the generated
+names survive truncation. Two structs in a 52-character scope generate typedef names and
+struct tags that are 94 characters and byte-identical for 63 — transpiling exit 0
+(reproduction in #1341). Recorded here as `Partial` rather than satisfied.
 
 ---
 

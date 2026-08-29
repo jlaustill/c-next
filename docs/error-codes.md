@@ -60,7 +60,11 @@ target truncates it. The `__` separator costs two characters per level and the
 scope name costs its full length, so the budget is consumed by the encoding, not
 by the author's naming (#1307). Reported against
 `ITargetCapabilities.significantExternalIdentifierChars`, not a hardcoded 31 —
-the limit belongs to the C target. Scoped to identifiers C-Next generates with
+the limit belongs to the C target. Because Rule 5.1 is a whole-program property,
+the budget is resolved once per run rather than per file: an explicit `--target`
+names one target for every translation unit and wins outright; otherwise the
+narrowest budget among the files' `#pragma target` declarations applies, since a
+pair that collides for the strictest target in a build collides in that build. Scoped to identifiers C-Next generates with
 external linkage: `private` members are `static` and get the 63-character
 internal budget (#1338), types have no linkage, and a C/C++ header's identifiers
 are not C-Next's to rename. The message names `cnxScopedName` rather than the
