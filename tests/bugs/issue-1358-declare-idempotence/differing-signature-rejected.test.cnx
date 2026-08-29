@@ -1,0 +1,43 @@
+// test-error
+// test-adr: 016
+// Issue #1358: C-Next has no function overloads, and the declare step's
+// idempotence DEPENDS on that.
+//
+// `SymbolRegistry.registerFunction` suppresses a re-registration keyed on
+// `fullyQualifiedCName` alone. That key is only sufficient because a qualified
+// name can never be shared by two DIFFERENT declarations -- E0425 rejects the
+// collision first, whether or not the signatures differ. If overloads were ever
+// admitted, or E0425 relaxed to permit differing signatures, that key would
+// silently drop one of the two symbols and nothing would fail.
+//
+// docs/architecture/README.md principle 5: "An invariant without a gate does not
+// count." This is the gate. The two existing E0425 fixtures
+// (issue-1333/duplicate-member-reopened, issue-1334/conflict-across-files) both
+// declare IDENTICAL signatures, so neither of them constrains this.
+//
+// NEGATIVE CONTROL: `start` and `stop` are two different names in the same scope,
+// which is legal and must stay silent. Without them a check that flagged every
+// second function in a scope -- over-enforcement -- would pass this fixture. Only
+// `init` is named in .expected.error.
+
+scope Motor {
+    public u32 start() {
+        return 1;
+    }
+
+    public u32 stop() {
+        return 2;
+    }
+
+    public u32 init() {
+        return 3;
+    }
+
+    public u32 init(u8 speed) {
+        return speed;
+    }
+}
+
+u32 main() {
+    return Motor.start();
+}

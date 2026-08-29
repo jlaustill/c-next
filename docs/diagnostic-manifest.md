@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-293 fixture(s) assert a diagnostic; 171 carry a code.
+294 fixture(s) assert a diagnostic; 172 carry a code.
 
 | Fixture                                                                                         | Codes        |
 | ----------------------------------------------------------------------------------------------- | ------------ |
@@ -125,6 +125,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx                        | E0425        |
 | tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx                    | E0425        |
 | tests/bugs/issue-1334-scope-declaration-sites/cross-language-conflict.test.cnx                  | E0425        |
+| tests/bugs/issue-1358-declare-idempotence/differing-signature-rejected.test.cnx                 | E0425        |
 | tests/bugs/issue-1360-read-path-bounds/cross-file-macro-dimension.test.cnx                      | (uncoded)    |
 | tests/bugs/issue-1360-read-path-bounds/read-path-array-param.test.cnx                           | (uncoded)    |
 | tests/bugs/issue-1360-read-path-bounds/read-path-bounds.test.cnx                                | (uncoded)    |
