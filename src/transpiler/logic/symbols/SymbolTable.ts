@@ -11,7 +11,6 @@
 import DeclarationSite from "../../../utils/DeclarationSite";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import { produce, enableMapSet } from "immer";
-import { basename } from "node:path";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "../../types/IConflict";
@@ -833,6 +832,7 @@ class SymbolTable {
       ];
 
       return {
+        code: "E0425",
         symbolName: conflictingDefs[0].name,
         definitions: conflictingDefs,
         severity: "error",
@@ -980,22 +980,27 @@ class SymbolTable {
     limit: number,
   ): IConflict {
     const shared = group[0].fullyQualifiedCName.slice(0, limit);
-    // basename, not the full path: the diagnostic is snapshotted by the test
-    // corpus, and an absolute path would make the snapshot machine-specific.
-    // E0203 names its colliding files the same way.
+    // Rendered through DeclarationSite like every other conflict location. This
+    // producer landed concurrently with #1342 and carried its own `basename`
+    // copy, which is ambiguous for the `can/config.cnx` + `uart/config.cnx`
+    // layout #1133 supports -- both render as `config.cnx`.
     const locations = group
       .map(
         (symbol) =>
-          `  ${symbol.cnxScopedName} (${basename(symbol.sourceFile)}:${symbol.sourceLine})`,
+          `  ${symbol.cnxScopedName} (${DeclarationSite.display(symbol.sourceFile, symbol.sourceLine)})`,
       )
       .join("\n");
 
     return {
+      code: "E0204",
       symbolName: group[0].name,
       definitions: [...group],
       severity: "error",
+      sourceFile: group[0].sourceFile,
+      line: group[0].sourceLine,
+      column: 0,
       message:
-        `error[E0204]: External identifiers are not distinct within the target's ` +
+        `External identifiers are not distinct within the target's ` +
         `${limit} significant characters (MISRA C:2012 Rule 5.1). ` +
         `All of these generate an identifier beginning '${shared}':\n${locations}\n` +
         `  Shorten the scope name or the member names so the first ${limit} ` +
@@ -1056,6 +1061,7 @@ class SymbolTable {
       // into it -- the shape #1330's review caught as a method with no caller.
       const scopeSites = SymbolTable.scopeDeclarationNote(symbols[0]);
       return {
+        code: "E0425",
         symbolName: displayName,
         definitions: symbols,
         severity: "error",

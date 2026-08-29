@@ -1283,7 +1283,15 @@ describe("SymbolTable", () => {
       expect(conflicts[0].severity).toBe("error");
       expect(conflicts[0].definitions).toHaveLength(2);
       expect(conflicts[0].message).toContain("MISRA C:2012 Rule 5.1");
-      expect(conflicts[0].message).toContain("E0204");
+      // The code is a field on the conflict, not text inside the message: the
+      // consumer renders `error[<code>]`. Asserting it in the message text is
+      // what let #1339's producer and #1342's consumer each apply a code
+      // independently.
+      expect(conflicts[0].code).toBe("E0204");
+      expect(conflicts[0].message).not.toContain("E0204");
+      // Position comes from the conflict, not re-derived downstream.
+      expect(conflicts[0].line).toBe(2);
+      expect(conflicts[0].column).toBe(0);
     });
 
     it("names the C-Next names the author wrote, not the generated ones", () => {

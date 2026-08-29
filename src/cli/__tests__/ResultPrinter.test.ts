@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { join } from "node:path";
 import ResultPrinter from "../ResultPrinter";
 import ITranspilerResult from "../../transpiler/types/ITranspilerResult";
 
@@ -71,6 +72,34 @@ describe("ResultPrinter", () => {
     // #1334: the `Conflict:` channel is gone -- the field, its producer, and its
     // reader. A conflict used to arrive through it AND as a companion error with no
     // position, so one problem printed two lines and neither carried an error code.
+    // #1345 review: the header rendered `error.sourcePath` raw while the message
+    // BODY beside it went through DeclarationSite, so one diagnostic spelled the
+    // same file two ways, one line apart -- an absolute machine-specific path
+    // above a cwd-relative one. Nothing guarded it: the harness strips the header
+    // path before snapshotting, so `.expected.error` cannot see this at all.
+    it("renders the header path relative to the invocation directory", () => {
+      ResultPrinter.print(
+        createResult({
+          success: false,
+          errors: [
+            {
+              line: 16,
+              column: 0,
+              sourcePath: join(process.cwd(), "tests/bugs/collide.test.cnx"),
+              message: "error[E0204]: External identifiers are not distinct",
+              severity: "error",
+            },
+          ],
+        }),
+      );
+
+      const printed = errorOutput.join("\n");
+      expect(printed).toContain(
+        "Error: tests/bugs/collide.test.cnx:16:0 error[E0204]:",
+      );
+      expect(printed).not.toContain(process.cwd());
+    });
+
     it("prints a symbol conflict as a coded error at its real position", () => {
       ResultPrinter.print(
         createResult({

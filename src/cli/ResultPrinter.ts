@@ -33,8 +33,13 @@ class ResultPrinter {
     // Print errors
     for (const error of result.errors) {
       // Format error with source path if available
+      // Through DeclarationSite, like the diagnostic BODY beside it. A conflict
+      // rendered its locations cwd-relative here and its header as a raw absolute
+      // path, so one diagnostic spelled the same file two ways, one line apart.
+      // DeclarationSite's docblock claims to be the single source of truth for
+      // `sourceFile:line`; the header was the last renderer bypassing it.
       const location = error.sourcePath
-        ? `${error.sourcePath}:${error.line}:${error.column}`
+        ? `${DeclarationSite.displayPath(error.sourcePath)}:${error.line}:${error.column}`
         : `${error.line}:${error.column}`;
       console.error(`Error: ${location} ${error.message}`);
     }
