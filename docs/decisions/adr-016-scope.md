@@ -43,6 +43,12 @@ ADR-005 attempted to provide "classes without inheritance" but the term "class" 
 
 This conflicts with C-Next's goal of embracing C patterns with safety improvements.
 
+The argument above is stated rather than demonstrated. **[The comparison matrix in the
+language guide](../language-guide.md#how-a-scope-compares-to-a-class-a-namespace-and-a-struct)**
+turns it into row-by-row claims a reader can check — including the two rows where
+"scope" behaves like neither term (`private` members, and no nesting), and the `this.`
+rows, where a class and a scope share a spelling but not a meaning.
+
 ---
 
 ## Proposal: The `scope` Keyword
