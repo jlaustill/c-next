@@ -16,9 +16,7 @@ i32 main() {
     if (display.settings.contrast != 50) return 4;
 
     // Test 2: Partial init of multiple anonymous fields
-    DisplayConfig display2 <- {
-        resolution: { width: 800, height: 600 }
-    };
+    DisplayConfig display2 <- { resolution: { width: 800, height: 600 } };
 
     if (display2.resolution.width != 800) return 5;
     if (display2.resolution.height != 600) return 6;

@@ -90,7 +90,7 @@ scope AllTypesTest {
 
 i32 main() {
 
-// Test all getter methods using this. accessor - verify returned values
+    // Test all getter methods using this. accessor - verify returned values
     // Each validation uses a unique error code for debugging
 
     // Unsigned integers
@@ -151,8 +151,7 @@ i32 main() {
         return 11;
     }
 
-
-// Test setters - modify and verify
+    // Test setters - modify and verify
     u8 newU8Value <- 100;
     AllTypesTest.setU8(newU8Value);
     resultU8 <- AllTypesTest.getU8();

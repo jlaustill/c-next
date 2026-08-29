@@ -41,14 +41,14 @@ u32 main() {
         sum <- sum + counter;
         counter <- counter + 1;
     }
-    if (sum != 10) return 4;  // 0+1+2+3+4 = 10
+    if (sum != 10) return 4; // 0+1+2+3+4 = 10
 
     // For loop
     sum <- 0;
     for (u32 i <- 1; i <= 5; i <- i + 1) {
         sum <- sum + i;
     }
-    if (sum != 15) return 5;  // 1+2+3+4+5 = 15
+    if (sum != 15) return 5; // 1+2+3+4+5 = 15
 
     // Do-while (executes at least once)
     counter <- 0;
@@ -71,7 +71,7 @@ u32 main() {
             sum <- sum + 1;
         }
     }
-    if (sum != 4) return 8;  // Skipped i=2, so 4 iterations counted
+    if (sum != 4) return 8; // Skipped i=2, so 4 iterations counted
 
     return 0;
 }

@@ -8,12 +8,12 @@ enum EPressureType {
 
 scope EnumBareCompare {
     public struct Config {
-    EPressureType pType;
-}
+        EPressureType pType;
+    }
 }
 
 u32 main() {
-    EnumBareCompare.Config cfg <- {pType: EPressureType.PSIA};
+    EnumBareCompare.Config cfg <- { pType: EPressureType.PSIA };
     if (cfg.pType != PSIA) return 1;
     return 0;
 }

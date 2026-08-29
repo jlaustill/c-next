@@ -1,10 +1,14 @@
 // test-error
 // Issue #1183 review: the struct-field path had no test, and resolved only
 // depth-1 fields -- `outer.inner.ready` slipped through entirely.
-struct Inner { bool ready; }
-struct Outer { Inner inner; }
+struct Inner {
+    bool ready;
+}
+struct Outer {
+    Inner inner;
+}
 
 void main() {
-    Outer o <- {inner: {ready: false}};
+    Outer o <- { inner: { ready: false } };
     o.inner.ready +<- true; // E0806: depth-independent
 }

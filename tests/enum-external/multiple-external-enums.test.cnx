@@ -15,10 +15,7 @@ void configure(DeviceState state) {
 }
 
 u32 main() {
-    DeviceState dev <- {
-        pressure: PRESSURE_TYPE_PSIA,
-        status: STATUS_IDLE
-    };
+    DeviceState dev <- { pressure: PRESSURE_TYPE_PSIA, status: STATUS_IDLE };
 
     // Test 1: Initial values from different external enums
     if (dev.pressure != EPressureType.PRESSURE_TYPE_PSIA) return 1;

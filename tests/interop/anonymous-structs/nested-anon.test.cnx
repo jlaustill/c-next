@@ -21,9 +21,7 @@ i32 main() {
 
     // Test 2: Partial nested init
     ThemeConfig theme2 <- {
-        colors: {
-            foreground: { r: 200, g: 200, b: 200 }
-        }
+        colors: { foreground: { r: 200, g: 200, b: 200 } }
     };
 
     if (theme2.colors.foreground.r != 200) return 7;

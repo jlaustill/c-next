@@ -13,32 +13,32 @@ u32 level3Read(u32 val) {
 
 // Level 2: Middle functions
 void level2PassToModify(u32 val) {
-    level3Modify(val);  // Passes to modifier
+    level3Modify(val); // Passes to modifier
 }
 
 u32 level2PassToRead(u32 val) {
-    return level3Read(val);  // Passes to reader
+    return level3Read(val); // Passes to reader
 }
 
 void level2Mixed(u32 readVal, u32 modVal) {
-    u32 temp <- level3Read(readVal);  // readVal goes to reader
-    level3Modify(modVal);              // modVal goes to modifier
+    u32 temp <- level3Read(readVal); // readVal goes to reader
+    level3Modify(modVal); // modVal goes to modifier
 }
 
 // Level 1: Top functions
 void level1DeepModify(u32 val) {
-    level2PassToModify(val);  // Deep chain to modifier
+    level2PassToModify(val); // Deep chain to modifier
 }
 
 u32 level1DeepRead(u32 val) {
-    return level2PassToRead(val);  // Deep chain to reader
+    return level2PassToRead(val); // Deep chain to reader
 }
 
 // Complex: multiple paths, some modify, some read
 u32 complexChain(u32 a, u32 b, u32 c) {
-    u32 sum <- level3Read(a);      // a only read
-    level2PassToModify(b);          // b modified through chain
-    sum +<- level2PassToRead(c);    // c only read
+    u32 sum <- level3Read(a); // a only read
+    level2PassToModify(b); // b modified through chain
+    sum +<- level2PassToRead(c); // c only read
     return sum;
 }
 
@@ -52,14 +52,14 @@ u32 main() {
     u32 y <- 50;
     u32 result <- level1DeepRead(y);
     if (result != 51) return 2;
-    if (y != 50) return 3;  // y should be unchanged
+    if (y != 50) return 3; // y should be unchanged
 
     // Test level2 mixed
     u32 r <- 10;
     u32 m <- 20;
     level2Mixed(r, m);
-    if (r != 10) return 4;  // r unchanged (passed to reader)
-    if (m != 999) return 5;  // m modified (passed to modifier)
+    if (r != 10) return 4; // r unchanged (passed to reader)
+    if (m != 999) return 5; // m modified (passed to modifier)
 
     // Test complex chain
     u32 a <- 5;
@@ -68,9 +68,9 @@ u32 main() {
     result <- complexChain(a, b, c);
     // result = (5+1) + (7+1) = 6 + 8 = 14
     if (result != 14) return 6;
-    if (a != 5) return 7;   // a unchanged
+    if (a != 5) return 7; // a unchanged
     if (b != 999) return 8; // b modified through chain
-    if (c != 7) return 9;   // c unchanged
+    if (c != 7) return 9; // c unchanged
 
     return 0;
 }

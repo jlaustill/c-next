@@ -8,8 +8,8 @@
 #include "c-interop/structs.h"
 
 u32 main() {
-   
-// Test 1: Use NamedPoint (declared as 'struct NamedPoint' in C header)
+
+    // Test 1: Use NamedPoint (declared as 'struct NamedPoint' in C header)
     // Generated C must have: struct NamedPoint pt = {0};
     NamedPoint pt;
     pt.x <- 100;
@@ -17,8 +17,7 @@ u32 main() {
     if (pt.x != 100) return 1;
     if (pt.y != 200) return 2;
 
-   
-// Test 2: Use NamedConfig (declared as 'struct NamedConfig' in C header)
+    // Test 2: Use NamedConfig (declared as 'struct NamedConfig' in C header)
     // Generated C must have: struct NamedConfig cfg = {0};
     NamedConfig cfg;
     cfg.magic <- 0xCAFEBABE;
@@ -31,20 +30,18 @@ u32 main() {
     if (cfg.flags != 0xFF) return 5;
     if (cfg.checksum != 0xAA) return 6;
 
-   
-// Test 3: Verify field types via .length property
+    // Test 3: Verify field types via .length property
     if (pt.x.bit_length != 32) return 7;
     if (cfg.magic.bit_length != 32) return 8;
     if (cfg.version.bit_length != 16) return 9;
     if (cfg.flags.bit_length != 8) return 10;
 
-   
-// Test 4: Field assignment from another field
+    // Test 4: Field assignment from another field
     NamedPoint pt2;
     pt2.x <- pt.x;
     pt2.y <- pt.y;
     if (pt2.x != 100) return 11;
     if (pt2.y != 200) return 12;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

@@ -25,7 +25,7 @@ u32 main() {
     if (result != 8) return 1;
 
     result <- Calculator.multiply(3, 4);
-    if (result != 25) return 2;  // 9 + 16 = 25
+    if (result != 25) return 2; // 9 + 16 = 25
 
     return 0;
 }

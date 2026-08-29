@@ -21,6 +21,6 @@ scope S {
 u32 main() {
     S.init();
     u8 length <- S.len();
-    if (length != 11) return 1;  // "initialized" has 11 chars
+    if (length != 11) return 1; // "initialized" has 11 chars
     return 0;
 }

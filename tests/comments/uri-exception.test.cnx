@@ -6,4 +6,5 @@
 // Reference: http://spec.org/standard
 /* API endpoint: https://api.example.com/v1
  * Protocol: https://
- */ u32 apiVersion <- 1;
+ */
+u32 apiVersion <- 1;

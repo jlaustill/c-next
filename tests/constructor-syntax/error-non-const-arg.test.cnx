@@ -2,5 +2,4 @@
 u8 mutablePin <- 10;
 Adafruit_MAX31856 thermocouple(mutablePin);
 
-void main() {
-}
+void main() {}

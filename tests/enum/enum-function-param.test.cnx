@@ -41,7 +41,7 @@ u32 getStatusPriority(Status s) {
 
 u32 main() {
 
-// Test passing different enum values as parameters
+    // Test passing different enum values as parameters
     u32 code <- getStatusCode(Status.OK);
     if (code != 0) return 1;
     code <- getStatusCode(Status.WARNING);
@@ -51,14 +51,12 @@ u32 main() {
     code <- getStatusCode(Status.CRITICAL);
     if (code != 3) return 4;
 
-
-// Test with enum variable
+    // Test with enum variable
     Status current <- Status.ERROR;
     code <- getStatusCode(current);
     if (code != 2) return 5;
 
-
-// Test priority function
+    // Test priority function
     u32 priority <- getStatusPriority(Status.OK);
     if (priority != 0) return 6;
     priority <- getStatusPriority(Status.WARNING);
@@ -68,8 +66,7 @@ u32 main() {
     priority <- getStatusPriority(Status.CRITICAL);
     if (priority != 100) return 9;
 
-
-// Test with variable
+    // Test with variable
     current <- Status.CRITICAL;
     priority <- getStatusPriority(current);
     if (priority != 100) return 10;

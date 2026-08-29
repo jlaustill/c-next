@@ -8,13 +8,13 @@ scope Counter {
 
     void increment() {
         // this.member compound assignment
-        this.value +<- 10;  // Should be: Counter_value += 10
+        this.value +<- 10; // Should be: Counter_value += 10
     }
 
     void incrementArray() {
         // this.arr[i] compound assignment (line 4336)
         this.values[0] <- 50;
-        this.values[0] +<- 25;  // Should be: Counter_values[0] += 25
+        this.values[0] +<- 25; // Should be: Counter_values[0] += 25
     }
 
     public i32 test() {

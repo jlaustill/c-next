@@ -33,8 +33,7 @@ u32 main() {
     if (cube3d[1][0][0] != 150) return 8;
     if (cube3d[1][2][3] != 250) return 9;
 
-   
-// Test .length property on first dimension
+    // Test .length property on first dimension
     if (matrix2d.element_count != 4) return 10; // 2D first dimension
     if (cube3d.element_count != 2) return 11; // 3D first dimension
 
@@ -65,18 +64,15 @@ u32 main() {
     // Verify sum: 6+26+46+46+66+86 = 276
     if (sum != 276) return 21;
 
-   
-// Test modification after initialization
+    // Test modification after initialization
     matrix2d[2][4] <- 255;
     if (matrix2d[2][4] != 255) return 22;
 
-   
-// Test boundary access
+    // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 111;
     if (matrix2d[3][7] != 111) return 23;
 
-   
-// Test u8 specific edge cases
+    // Test u8 specific edge cases
     u8[3][2] testArray;
 
     // Initialize all elements first
@@ -95,8 +91,7 @@ u32 main() {
     if (testArray[1][0] != 128) return 26;
     if (testArray[2][1] != 1) return 27;
 
-   
-// Test 2D array with byte buffer pattern
+    // Test 2D array with byte buffer pattern
     u8[4][4] buffer;
 
     // Initialize all elements first

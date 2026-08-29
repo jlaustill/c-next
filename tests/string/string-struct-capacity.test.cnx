@@ -11,13 +11,13 @@ struct Person {
 
 scope StrCapacity {
     public struct Config {
-    string<32> key;
-    string<256> value;
-}
+        string<32> key;
+        string<256> value;
+    }
 }
 
 i32 main() {
-// Test 1: .capacity on struct member
+    // Test 1: .capacity on struct member
     Person alice;
     alice.name <- "Alice";
     alice.bio <- "Software engineer";
@@ -26,11 +26,11 @@ i32 main() {
     if (alice.name.capacity != 64) return 1;
     if (alice.bio.capacity != 128) return 2;
 
-// Test 2: .size on struct member
+    // Test 2: .size on struct member
     if (alice.name.size != 65) return 3;
     if (alice.bio.size != 129) return 4;
 
-// Test 3: Different struct, different capacities
+    // Test 3: Different struct, different capacities
     StrCapacity.Config cfg;
     cfg.key <- "api_url";
     cfg.value <- "https://example.com";

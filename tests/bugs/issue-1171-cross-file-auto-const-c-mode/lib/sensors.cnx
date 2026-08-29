@@ -5,7 +5,9 @@
 // `Sample&` in C++. readValue never writes, so auto-const applies to it. The
 // pair proves the fix propagates a real modification rather than blanket-
 // disabling auto-const for every cross-file callee.
-struct Sample { u8 value; }
+struct Sample {
+    u8 value;
+}
 
 scope Sensors {
     public void bump(Sample sample) {

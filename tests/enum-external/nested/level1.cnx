@@ -4,8 +4,8 @@
 
 scope NestedExtEnum {
     public struct Config {
-    ELevel level;
-}
+        ELevel level;
+    }
 }
 
 void setMedium(NestedExtEnum.Config cfg) {

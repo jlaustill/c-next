@@ -5,7 +5,7 @@
 // accessed by a single function. This test verifies the fix.
 
 scope SingleFunctionState {
-    u32 callCount <- 0;  // Only used by countCalls()
+    u32 callCount <- 0; // Only used by countCalls()
 
     // This function both modifies AND reads the variable
     public u32 countCalls() {

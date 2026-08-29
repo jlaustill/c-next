@@ -3,26 +3,26 @@
 
 scope DeepThreeLevel {
     public struct Color {
-    u8 r;
-    u8 g;
-    u8 b;
-}
+        u8 r;
+        u8 g;
+        u8 b;
+    }
 
     public struct Material {
-    this.Color ambient;
-    this.Color diffuse;
-    u8 opacity;
-}
+        this.Color ambient;
+        this.Color diffuse;
+        u8 opacity;
+    }
 
     public struct Object {
-    this.Material material;
-    i32 id;
-}
+        this.Material material;
+        i32 id;
+    }
 
     public struct Scene {
-    this.Object[4] objects;
-    u32 count;
-}
+        this.Object[4] objects;
+        u32 count;
+    }
 }
 
 DeepThreeLevel.Scene[2] scenes;

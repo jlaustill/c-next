@@ -6,7 +6,7 @@ struct Data {
 }
 
 u32 main() {
-    Data d <- {value: 1};
+    Data d <- { value: 1 };
     d.value <<<- 2; // OK: u8 is unsigned
     if (d.value != 4) return 1;
 

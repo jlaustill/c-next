@@ -33,8 +33,7 @@ u32 main() {
     if (cube3d[1][0][0] != 999.999999999999) return 8;
     if (cube3d[1][2][3] != -0.000000000001) return 9;
 
-   
-// Test .length property at each dimension
+    // Test .length property at each dimension
     // 2D array dimensions
     if (matrix2d.element_count != 4) return 10; // First dimension
     if (matrix2d[0].element_count != 8) return 11; // Second dimension
@@ -73,18 +72,15 @@ u32 main() {
     // Verify sum: 3.0+12.0+21.0+45.0+54.0+63.0 = 198.0
     if (sum != 198.0) return 21;
 
-   
-// Test modification after initialization
+    // Test modification after initialization
     matrix2d[2][4] <- -999999.999999;
     if (matrix2d[2][4] != -999999.999999) return 22;
 
-   
-// Test boundary access
+    // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 42.123456789;
     if (matrix2d[3][7] != 42.123456789) return 23;
 
-   
-// Test f64 specific edge cases
+    // Test f64 specific edge cases
     f64[4][2] testArray;
 
     // Initialize all elements first
@@ -107,8 +103,7 @@ u32 main() {
     if (testArray[2][0] != 0.123456789012345) return 28;
     if (testArray[3][1] != -0.123456789012345) return 29;
 
-   
-// Test 2D array with scientific constants
+    // Test 2D array with scientific constants
     f64[3][3] constants;
 
     // Initialize all elements first
@@ -133,8 +128,7 @@ u32 main() {
     if (constants[2][0] != 6.67430e-11) return 35;
     if (constants[2][1] != 9.80665) return 36;
 
-   
-// Test high precision decimal calculations
+    // Test high precision decimal calculations
     f64[2][2] precise;
 
     // Initialize all elements first
@@ -153,8 +147,7 @@ u32 main() {
     if (precise[1][0] != 999999.999999999) return 39;
     if (precise[1][1] != -123456.789012345) return 40;
 
-   
-// Test floating point arithmetic with high precision
+    // Test floating point arithmetic with high precision
     f64[2][2] calc;
 
     // Initialize all elements first
@@ -168,8 +161,7 @@ u32 main() {
     f64 calcSum <- calc[0][0] + calc[0][1];
     if (calcSum != 16.11111111) return 41;
 
-   
-// Test astronomical distances (light-years to meters)
+    // Test astronomical distances (light-years to meters)
     f64[2][3] distances;
 
     // Initialize all elements first
@@ -189,8 +181,7 @@ u32 main() {
     if (distances[0][1] != 1.496e11) return 43;
     if (distances[1][0] != 4.0e26) return 44;
 
-   
-// Test very small numbers (quantum scale)
+    // Test very small numbers (quantum scale)
     f64[2][2] quantum;
 
     // Initialize all elements first

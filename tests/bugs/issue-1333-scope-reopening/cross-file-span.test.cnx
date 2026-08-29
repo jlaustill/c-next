@@ -20,7 +20,7 @@ scope Lib {
     // and why it stayed green while three other positions emitted broken C.
     public u32 useBoth() {
         Mode m <- Mode.BETA;
-        Point p <- {x: 3, y: 4};
+        Point p <- { x: 3, y: 4 };
         return p.x + p.y + m;
     }
 
@@ -34,7 +34,7 @@ scope Lib {
     }
 
     public Point makeOrigin() {
-        Point o <- {x: 10, y: 20};
+        Point o <- { x: 10, y: 20 };
         return o;
     }
 
@@ -56,13 +56,13 @@ scope Lib {
     public u32 runAll() {
         u32 total <- useBoth();
 
-        Point p <- {x: 1, y: 2};
+        Point p <- { x: 1, y: 2 };
         total <- total + sumThrough(p);
 
         Point origin <- makeOrigin();
         total <- total + origin.x;
 
-        Line l <- {start: {x: 100, y: 0}, end: {x: 0, y: 0}};
+        Line l <- { start: { x: 100, y: 0 }, end: { x: 0, y: 0 } };
         total <- total + l.start.x;
 
         u8 flags <- useFlags();

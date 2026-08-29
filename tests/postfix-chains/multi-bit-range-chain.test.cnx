@@ -16,16 +16,16 @@ u32 registers <- 0;
 
 void main() {
     // Multi-bit assignment to primitives
-    flags[0, 3] <- 7;      // bits 0-2 = 3 bits = max value 7
-    flags[3, 5] <- 31;     // bits 3-7 = 5 bits = max value 31
+    flags[0, 3] <- 7; // bits 0-2 = 3 bits = max value 7
+    flags[3, 5] <- 31; // bits 3-7 = 5 bits = max value 31
 
     // Multi-bit assignment to u16
-    settings[0, 8] <- 255;    // bits 0-7 = 8 bits
-    settings[8, 8] <- 128;    // bits 8-15 = 8 bits
+    settings[0, 8] <- 255; // bits 0-7 = 8 bits
+    settings[8, 8] <- 128; // bits 8-15 = 8 bits
 
     // Multi-bit assignment to u32
-    registers[0, 16] <- 0xFFFF;   // bits 0-15 = 16 bits
-    registers[16, 16] <- 0x1234;  // bits 16-31 = 16 bits
+    registers[0, 16] <- 0xFFFF; // bits 0-15 = 16 bits
+    registers[16, 16] <- 0x1234; // bits 16-31 = 16 bits
 
     // Multi-bit read
     u8 lowBits <- flags[0, 3];
@@ -35,8 +35,8 @@ void main() {
 
     // Multi-bit assignment through struct member chain
     devices[0].control <- 0;
-    devices[0].control[0, 4] <- 15;    // bits 0-3
-    devices[0].control[4, 4] <- 8;     // bits 4-7
+    devices[0].control[0, 4] <- 15; // bits 0-3
+    devices[0].control[4, 4] <- 8; // bits 4-7
 
     // Multi-bit read through chain
     u8 ctrlLow <- devices[0].control[0, 4];
@@ -70,9 +70,9 @@ void main() {
 
     // Various width combinations on u8
     u8 test <- 0;
-    test[0, 2] <- 3;    // 2 bits
-    test[2, 3] <- 7;    // 3 bits
-    test[5, 3] <- 6;    // 3 bits
+    test[0, 2] <- 3; // 2 bits
+    test[2, 3] <- 7; // 3 bits
+    test[5, 3] <- 6; // 3 bits
 
     u8 r1 <- test[0, 2];
     u8 r2 <- test[2, 3];

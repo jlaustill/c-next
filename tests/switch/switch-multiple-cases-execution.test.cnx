@@ -16,7 +16,7 @@ void testMultiCase(u32 val) {
         case 100 {
             result <- 300;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -34,7 +34,7 @@ void testMultiCaseHex(u8 val) {
         case 0xFF {
             result <- 30;
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -52,7 +52,7 @@ void testMultiCaseBinary(u8 val) {
         case 0b11111111 {
             result <- 60;
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -70,7 +70,7 @@ void testMultiCaseSigned(i8 val) {
         case 126 || 127 {
             result <- 3;
         }
-    default {
+        default {
             result <- 9;
         }
     }
@@ -85,7 +85,7 @@ void testManyMultiCases(u16 val) {
         case 100 || 200 || 300 {
             result <- 600;
         }
-    default {
+        default {
             result <- 999;
         }
     }

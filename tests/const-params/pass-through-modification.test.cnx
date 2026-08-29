@@ -29,8 +29,8 @@ u32 passesThroughToReader(u32 value) {
 // Mixed case: reads and passes to modifier
 // Should NOT get const because of pass-through to modifier
 void mixedPassThrough(u32 value) {
-    u32 local <- value + 1;  // Read is fine
-    modifiesParam(value);     // But this causes modification
+    u32 local <- value + 1; // Read is fine
+    modifiesParam(value); // But this causes modification
 }
 
 u32 main() {
@@ -49,13 +49,13 @@ u32 main() {
     x <- 5;
     u32 result <- readOnly(x);
     if (result != 6) return 3;
-    if (x != 5) return 4;  // x should be unchanged
+    if (x != 5) return 4; // x should be unchanged
 
     // Test passesThroughToReader
     x <- 7;
     result <- passesThroughToReader(x);
     if (result != 8) return 5;
-    if (x != 7) return 6;  // x should be unchanged
+    if (x != 7) return 6; // x should be unchanged
 
     // Test mixedPassThrough
     x <- 200;

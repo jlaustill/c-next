@@ -2,8 +2,8 @@
 // Verifies arr[i].field +<- value generates += correctly (was losing the +=)
 scope CompoundBug {
     public struct Counter {
-    i32 value;
-}
+        i32 value;
+    }
 }
 
 CompoundBug.Counter[2] counters;

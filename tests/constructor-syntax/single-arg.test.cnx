@@ -9,5 +9,4 @@ void setup() {
     // Use the thermocouple object
 }
 
-void loop() {
-}
+void loop() {}

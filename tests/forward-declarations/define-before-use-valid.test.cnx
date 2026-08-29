@@ -6,5 +6,5 @@ void helper() {
 }
 
 void main() {
-    helper();  // OK: helper defined before main
+    helper(); // OK: helper defined before main
 }

@@ -6,13 +6,13 @@ void level3() {
 }
 
 void level2() {
-    level3();  // OK: level3 defined first
+    level3(); // OK: level3 defined first
 }
 
 void level1() {
-    level2();  // OK: level2 defined first
+    level2(); // OK: level2 defined first
 }
 
 void main() {
-    level1();  // OK: level1 defined first
+    level1(); // OK: level1 defined first
 }

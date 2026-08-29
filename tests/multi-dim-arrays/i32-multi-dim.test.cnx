@@ -33,8 +33,7 @@ u32 main() {
     if (cube3d[1][0][0] != 500000) return 8;
     if (cube3d[1][2][3] != 2000000) return 9;
 
-   
-// Test .length property at each dimension
+    // Test .length property at each dimension
     // 2D array dimensions
     if (matrix2d.element_count != 4) return 10; // First dimension
     if (matrix2d[0].element_count != 8) return 11; // Second dimension
@@ -73,18 +72,15 @@ u32 main() {
     // Verify sum: 6+406+806+4006+4406+4806 = 14436
     if (sum != 14436) return 21;
 
-   
-// Test modification after initialization
+    // Test modification after initialization
     matrix2d[2][4] <- -2147483648;
     if (matrix2d[2][4] != -2147483648) return 22;
 
-   
-// Test boundary access
+    // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- -100000;
     if (matrix2d[3][7] != -100000) return 23;
 
-   
-// Test i32 specific edge cases
+    // Test i32 specific edge cases
     i32[4][2] testArray;
 
     // Initialize all elements first
@@ -107,8 +103,7 @@ u32 main() {
     if (testArray[2][0] != 1) return 28;
     if (testArray[3][1] != -1000000) return 29;
 
-   
-// Test 2D array with financial data pattern (cents)
+    // Test 2D array with financial data pattern (cents)
     i32[3][3] balances;
 
     // Initialize all elements first
@@ -131,8 +126,7 @@ u32 main() {
     if (balances[2][0] != -250000) return 34;
     if (balances[2][1] != 500000000) return 35;
 
-   
-// Test negative value calculations
+    // Test negative value calculations
     i32[2][2] deltas;
 
     // Initialize all elements first
@@ -146,8 +140,7 @@ u32 main() {
     i64 deltaSum <- deltas[0][0] + deltas[0][1];
     if (deltaSum != -250000) return 36;
 
-   
-// Test with timestamp offsets (seconds from epoch)
+    // Test with timestamp offsets (seconds from epoch)
     i32[2][3] offsets;
 
     // Initialize all elements first

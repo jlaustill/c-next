@@ -5,4 +5,4 @@ struct Point {
     i32 y;
 }
 
-const Point ORIGIN <- Point {x: 0, y: 0};
+const Point ORIGIN <- Point { x: 0, y: 0 };

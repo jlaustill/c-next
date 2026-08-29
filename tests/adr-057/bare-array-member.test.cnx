@@ -8,8 +8,8 @@ scope ArrayBug {
     bool flag <- false;
 
     public void callback() {
-        data[0] <- 42;   // BUG: missing prefix
-        flag <- true;     // OK: prefix generated
+        data[0] <- 42; // BUG: missing prefix
+        flag <- true; // OK: prefix generated
     }
 
     public u8 getData0() {

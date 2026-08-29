@@ -6,5 +6,5 @@ void testGuardClause() {
     if (c_file = NULL) {
         return; // Guard clause: early return if NULL
     }
-    (void) fclose(c_file); // OK: guard clause implies not NULL
+    (void)fclose(c_file); // OK: guard clause implies not NULL
 }

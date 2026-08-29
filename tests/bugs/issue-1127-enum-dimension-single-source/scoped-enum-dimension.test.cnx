@@ -1,10 +1,18 @@
 // Issue #1127: every qualification form must produce the same identifier in the
 // .c and the .h, for struct fields as well as variables. Snapshot test so the
 // two files can be compared directly for all four forms.
-enum Top { A, B, COUNT }
+enum Top {
+    A,
+    B,
+    COUNT
+}
 
 scope Motor {
-    enum State { IDLE, RUN, COUNT }
+    enum State {
+        IDLE,
+        RUN,
+        COUNT
+    }
 
     struct Info {
         u8[State.COUNT] viaBare;
@@ -17,4 +25,6 @@ scope Motor {
     public u8[global.Top.COUNT] varGlobal;
 }
 
-i32 main() { return 0; }
+i32 main() {
+    return 0;
+}

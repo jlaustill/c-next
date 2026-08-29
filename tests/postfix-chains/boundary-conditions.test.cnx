@@ -3,23 +3,23 @@
 
 scope BoundaryTest {
     public struct Data {
-    u8 byte;
-    u16 word;
-    u32 dword;
-    u64 qword;
-}
+        u8 byte;
+        u16 word;
+        u32 dword;
+        u64 qword;
+    }
 }
 
-BoundaryTest.Data[16] items;  // Max reasonable array size for testing
+BoundaryTest.Data[16] items; // Max reasonable array size for testing
 
 void main() {
-   
-// Test maximum bit indices for each type
+
+    // Test maximum bit indices for each type
 
     // u8: bits 0-7
     items[0].byte <- 0xFF;
-    items[0].byte[0] <- true;   // First bit
-    items[0].byte[7] <- false;  // Last bit
+    items[0].byte[0] <- true; // First bit
+    items[0].byte[7] <- false; // Last bit
 
     bool b0 <- items[0].byte[0];
     bool b7 <- items[0].byte[7];
@@ -27,7 +27,7 @@ void main() {
     // u16: bits 0-15
     items[0].word <- 0xFFFF;
     items[0].word[0] <- true;
-    items[0].word[15] <- false;  // Last bit of u16
+    items[0].word[15] <- false; // Last bit of u16
 
     bool w0 <- items[0].word[0];
     bool w15 <- items[0].word[15];
@@ -35,7 +35,7 @@ void main() {
     // u32: bits 0-31
     items[0].dword <- 0xFFFFFFFF;
     items[0].dword[0] <- true;
-    items[0].dword[31] <- false;  // Last bit of u32
+    items[0].dword[31] <- false; // Last bit of u32
 
     bool d0 <- items[0].dword[0];
     bool d31 <- items[0].dword[31];
@@ -48,26 +48,25 @@ void main() {
     bool q0 <- items[0].qword[0];
     bool q30 <- items[0].qword[30];
 
-   
-// Test maximum array indices
-    items[15].byte <- 0xAA;  // Last element
+    // Test maximum array indices
+    items[15].byte <- 0xAA; // Last element
     u8 lastByte <- items[15].byte;
 
     // Multi-bit ranges at boundaries
 
     // u8: maximum width = 8 bits
     u8 test8 <- 0;
-    test8[0, 8] <- 0xFF;  // All 8 bits
+    test8[0, 8] <- 0xFF; // All 8 bits
     u8 all8 <- test8[0, 8];
 
     // u16: maximum width = 16 bits
     u16 test16 <- 0;
-    test16[0, 16] <- 0xFFFF;  // All 16 bits
+    test16[0, 16] <- 0xFFFF; // All 16 bits
     u16 all16 <- test16[0, 16];
 
     // u32: maximum width = 32 bits
     u32 test32 <- 0;
-    test32[0, 32] <- 0xFFFFFFFF;  // All 32 bits
+    test32[0, 32] <- 0xFFFFFFFF; // All 32 bits
     u32 all32 <- test32[0, 32];
 
     // Edge case: Single bit at maximum position

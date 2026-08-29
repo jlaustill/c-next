@@ -11,7 +11,7 @@ void movePoint(Point p, i32 dx, i32 dy) {
 }
 
 void main() {
-    Point origin <- {x: 0, y: 0};
+    Point origin <- { x: 0, y: 0 };
     i32 deltaX <- 10;
     i32 deltaY <- 20;
     movePoint(origin, deltaX, deltaY);

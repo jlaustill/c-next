@@ -7,10 +7,9 @@ struct Point {
 }
 
 u32 main() {
-    Point p <- {x: 10, y: 20};
+    Point p <- { x: 10, y: 20 };
 
-   
-// Test initial values
+    // Test initial values
     if (p.x != 10) {
         return 1;
     }

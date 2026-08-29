@@ -3,7 +3,7 @@
 // Issue #779: Ambiguity-aware validation - only require global. when shadowed
 
 register GPIO @ 0x40000000 {
-    DR:  u32 rw @ 0x00,
+    DR: u32 rw @ 0x00,
     DIR: u32 rw @ 0x04,
 }
 
@@ -17,5 +17,4 @@ scope Motor {
     }
 }
 
-void main() {
-}
+void main() {}

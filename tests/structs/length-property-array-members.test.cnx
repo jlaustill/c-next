@@ -23,23 +23,19 @@ u32 main() {
     data.samples[0].value <- 42;
     data.samples[0].quality <- 100;
 
-   
-// Test .length on scalar struct member
+    // Test .length on scalar struct member
     if (data.id.bit_length != 32) return 1;
     if (data.count.bit_length != 8) return 2;
 
-   
-// Test .element_count on array member (should be element count)
+    // Test .element_count on array member (should be element count)
     if (data.samples.element_count != 10) return 3;
 
-   
-// Test .length on array element's field
+    // Test .length on array element's field
     if (data.samples[0].timestamp.bit_length != 32) return 4;
     if (data.samples[0].value.bit_length != 16) return 5;
     if (data.samples[0].quality.bit_length != 8) return 6;
 
-   
-// Test byte calculation from array element field
+    // Test byte calculation from array element field
     u32 bytes <- data.samples[0].timestamp.bit_length / 8;
     if (bytes != 4) return 7;
 

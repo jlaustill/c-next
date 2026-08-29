@@ -3,35 +3,35 @@
 
 // Read-only parameter - should get const
 void readOnly(u32 value) {
-    u32 local <- value;  // Only reads, never assigns
+    u32 local <- value; // Only reads, never assigns
 }
 
 // Modified parameter - should NOT get const
 void modified(u32 value) {
-    value <- 42;  // Direct assignment
+    value <- 42; // Direct assignment
 }
 
 // Multiple params - mixed const/non-const
 u32 mixedParams(u32 readVal, u32 writeVal) {
-    writeVal <- readVal + 10;  // readVal read-only, writeVal modified
+    writeVal <- readVal + 10; // readVal read-only, writeVal modified
     return writeVal;
 }
 
 // Array parameter modification via index
 void arrayMod(u8[4] arr) {
-    arr[0] <- 99;  // Array element modified - no const on arr
+    arr[0] <- 99; // Array element modified - no const on arr
 }
 
 // Array parameter read-only - arrays never get auto-const per ADR-006
 // (arrays are mutable by default; use explicit const if needed)
 u8 arrayReadOnly(u8[4] arr) {
-    return arr[0];  // Only reads, but no auto-const for arrays
+    return arr[0]; // Only reads, but no auto-const for arrays
 }
 
 u32 main() {
     u32 x <- 10;
     readOnly(x);
-    if (x != 10) return 1;  // x unchanged
+    if (x != 10) return 1; // x unchanged
 
     modified(x);
     // Note: x is passed by pointer but modified inside function

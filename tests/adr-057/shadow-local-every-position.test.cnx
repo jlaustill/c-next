@@ -24,7 +24,7 @@ u32[4] parr <- [1, 2, 3, 4];
 u8 pbits <- 0;
 u32 pidx <- 3;
 u32 pdown <- 50;
-Holder pcfg <- {x: 9};
+Holder pcfg <- { x: 9 };
 string<16> pstr <- "global";
 
 u32 takes(u32 v) {
@@ -38,7 +38,7 @@ scope S {
         u8 pbits <- 0;
         u32 pidx <- 1;
         u32 pdown <- 2;
-        Holder pcfg <- {x: 1};
+        Holder pcfg <- { x: 1 };
         string<8> pstr <- "ab";
 
         u32 acc <- 0;
@@ -88,7 +88,7 @@ scope S {
         acc +<- pstr.char_count;
 
         // struct initializer value and array initializer element
-        Holder made <- {x: probe};
+        Holder made <- { x: probe };
         acc +<- made.x;
 
         u32[2] init <- [probe, 2];

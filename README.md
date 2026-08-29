@@ -343,10 +343,21 @@ C-Next has two separate toolchain contexts with different requirements:
 # Clone and install (IMPORTANT: npm install sets up pre-commit hooks)
 git clone https://github.com/jlaustill/c-next.git
 cd c-next
-npm install  # Installs dependencies and Husky pre-commit hooks
+npm install                # Dependencies and Husky pre-commit hooks
+npm run plugin:install     # Prettier plugin for .cnx files
+npm run build              # Transpiler and Prettier plugin
 ```
 
 **Pre-commit hooks:** The project uses [Husky](https://typicode.github.io/husky/) to automatically format code (Prettier) and fix linting (oxlint) before every commit. This prevents formatting errors in PRs.
+
+**Formatting `.cnx` files:** `prettier-plugin/` teaches Prettier the C-Next language, and
+`.prettierrc` loads it for `*.cnx`, so `npm run prettier:fix` formats C-Next sources
+alongside everything else. The plugin prints ANTLR's parse tree directly, dispatching on the
+rule indices generated from `grammar/CNext.g4` — so adding a grammar rule without a layout
+for it fails CI rather than going unnoticed. `npm run format:fidelity` checks the formatter
+against every fixture in `tests/`: the transpiler must produce byte-identical output from
+the formatted source, every comment must survive verbatim, and formatting must be
+idempotent.
 
 ### Commands
 
@@ -359,8 +370,13 @@ npm test -- tests/enum                # Run specific directory
 npm test -- tests/enum/my.test.cnx    # Run single test file
 
 # Code quality (auto-run by pre-commit hooks)
-npm run prettier:fix   # Format all code
+npm run prettier:fix   # Format all code, .cnx included
 npm run oxlint:check   # Check for lint errors
+
+# C-Next formatter
+npm run plugin:install    # Install the Prettier plugin's dependencies
+npm run plugin:test       # Prettier plugin unit tests
+npm run format:fidelity   # Formatting preserves meaning across every fixture
 
 # Coverage tracking
 npm run coverage:check           # Feature coverage report

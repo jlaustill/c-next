@@ -16,10 +16,7 @@ void my_config_handler(SimpleConfig cfg) {
 
 i32 main() {
     // Test: Initialize struct with anonymous member
-    SimpleConfig cfg <- {
-        value: 100,
-        flags: { flag_a: 1 }
-    };
+    SimpleConfig cfg <- { value: 100, flags: { flag_a: 1 } };
 
     // Direct call works (validates struct init + member access)
     my_config_handler(cfg);

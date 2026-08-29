@@ -1,1 +1,1 @@
-9:12 error[E0807]: Operator '/' is not valid on a bool operand
+12:12 error[E0807]: Operator '/' is not valid on a bool operand

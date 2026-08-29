@@ -19,8 +19,8 @@ u32 main() {
 
     // === Chained AND (a && b && c) ===
     bool a <- true;
-    bool b <- (1 = 1);  // true but via comparison
-    bool c <- (2 = 2);  // true but via different comparison
+    bool b <- (1 = 1); // true but via comparison
+    bool c <- (2 = 2); // true but via different comparison
     bool d <- false;
 
     bool chain1 <- a && b && c;

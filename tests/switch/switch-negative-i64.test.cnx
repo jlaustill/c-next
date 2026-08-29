@@ -43,7 +43,7 @@ void testI64Values(i64 val) {
         case 9007199254740991 {
             result <- 12; // JS MAX_SAFE_INTEGER
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -71,15 +71,15 @@ void testI64Hex(i64 val) {
         case 0x100000000 {
             result <- 25; // Beyond i32 range
         }
-    default {
+        default {
             result <- 99;
         }
     }
 }
 
 u32 main() {
-   
-// Test i64 values
+
+    // Test i64 values
     i64 minSafe <- -9007199254740991;
     i64 negQuad <- -1000000000000000;
     i64 negTrillion <- -1000000000000;
@@ -133,8 +133,7 @@ u32 main() {
     testI64Values(other);
     if (result != 99) return 13;
 
-   
-// Test hex literals
+    // Test hex literals
     i64 negBeyondU32 <- -4294967296;
     testI64Hex(negBeyondU32);
     if (result != 20) return 14;

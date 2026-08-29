@@ -31,8 +31,7 @@ u32 main() {
     i64 minus_one <- -1;
     i64 not_minus_one <- ~minus_one; // 0
 
-   
-// Test with smaller values
+    // Test with smaller values
     i64 small_a <- 0xFFA0;
     i64 small_b <- 0xAA;
     i64 small_and <- small_a & small_b; // 0xA0 = 160

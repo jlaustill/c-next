@@ -9,7 +9,7 @@ void setHigh(NestedExtEnum.Config cfg) {
 }
 
 u32 main() {
-    NestedExtEnum.Config cfg <- {level: ELevel.LEVEL_LOW};
+    NestedExtEnum.Config cfg <- { level: ELevel.LEVEL_LOW };
 
     // Test 1: Initial value from deeply nested enum
     if (cfg.level != ELevel.LEVEL_LOW) return 1;

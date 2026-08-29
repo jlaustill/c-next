@@ -55,14 +55,14 @@ scope S {
     // is itself why the array-parameter form has to qualify -- an unqualified
     // `Point` would name nothing at file scope.
     u32 runAll() {
-        Point[2] pair <- [{x: 10, y: 20}, {x: 30, y: 40}];
+        Point[2] pair <- [{ x: 10, y: 20 }, { x: 30, y: 40 }];
         u32 sum <- sumThroughArrayParam(pair);
         if (sum != 50) return 1;
 
         u32 written <- writeThroughArrayParam(pair);
         if (written != 42) return 2;
 
-        Point single <- {x: 3, y: 4};
+        Point single <- { x: 3, y: 4 };
         u32 scalarSum <- sumThroughScalarParam(single);
         if (scalarSum != 7) return 3;
 

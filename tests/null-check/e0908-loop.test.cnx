@@ -9,9 +9,9 @@ void testLoopPattern() {
     if (c_file != NULL) {
         cstring c_line <- fgets(buffer, buffer.size, c_file);
         while (c_line != NULL) {
-            (void) printf("%s", buffer);
+            (void)printf("%s", buffer);
             c_line <- fgets(buffer, buffer.size, c_file);
         }
-        (void) fclose(c_file);
+        (void)fclose(c_file);
     }
 }

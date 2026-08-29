@@ -14,8 +14,8 @@ scope Calculator {
     }
 
     public void compute() {
-        reset();      // Bare call to scope function
-        addTen();     // Bare call to scope function
+        reset(); // Bare call to scope function
+        addTen(); // Bare call to scope function
         addTen();
     }
 

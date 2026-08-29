@@ -82,7 +82,7 @@ u32 testMultipleArrayMembers() {
 
 u32 testArrayMemberInCondition() {
     CanMessage msg;
-    msg.id <- 65280;  // 0xFF00
+    msg.id <- 65280; // 0xFF00
 
     msg.buf[0] <- 5;
     msg.buf[1] <- 10;

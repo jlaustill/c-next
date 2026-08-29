@@ -8,10 +8,10 @@ struct Point {
 
 scope ZeroInit {
     public struct Config {
-    u32 baudRate;
-    u8 dataBits;
-    bool enabled;
-}
+        u32 baudRate;
+        u8 dataBits;
+        bool enabled;
+    }
 }
 
 Point origin;

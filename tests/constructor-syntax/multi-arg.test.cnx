@@ -9,5 +9,4 @@ const u8 clkPin <- 13;
 
 Adafruit_MAX31856 thermocouple(csPin, diPin, doPin, clkPin);
 
-void main() {
-}
+void main() {}

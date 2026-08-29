@@ -10,19 +10,19 @@ u32 main() {
 
     // Test overflow clamping
     u16 result <- (u16)over;
-    if (result != 65535) return 1;  // 70000.0 should clamp to 65535
+    if (result != 65535) return 1; // 70000.0 should clamp to 65535
 
     // Test underflow clamping
     result <- (u16)negative;
-    if (result != 0) return 2;  // -100.0 should clamp to 0
+    if (result != 0) return 2; // -100.0 should clamp to 0
 
     // Test in-range value
     result <- (u16)in_range;
-    if (result != 30000) return 3;  // 30000.0 -> 30000
+    if (result != 30000) return 3; // 30000.0 -> 30000
 
     // Test max boundary
     result <- (u16)at_max;
-    if (result != 65535) return 4;  // 65535.0 -> 65535
+    if (result != 65535) return 4; // 65535.0 -> 65535
 
     return 0;
 }

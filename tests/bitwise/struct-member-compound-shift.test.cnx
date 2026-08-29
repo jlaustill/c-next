@@ -7,6 +7,6 @@ struct Data {
 }
 
 void main() {
-    Data d <- {signedField: 1, unsignedField: 1};
+    Data d <- { signedField: 1, unsignedField: 1 };
     d.signedField <<<- 2; // E0805: signed shift not allowed
 }

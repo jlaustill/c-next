@@ -6,11 +6,11 @@
 
 scope TestScope {
     public void increment(u32 x) {
-        x <- x + 1;  // x is modified, should NOT have const
+        x <- x + 1; // x is modified, should NOT have const
     }
 
     public u32 accumulate(u32 sum, u32 value) {
-        sum <- sum + value;  // sum is modified
+        sum <- sum + value; // sum is modified
         return sum;
     }
 
@@ -37,13 +37,13 @@ scope TestScope {
 
     // Negative test: unmodified params should still get const
     public u32 readOnly(u32 x) {
-        return x * 2;  // x is NOT modified, should have const
+        return x * 2; // x is NOT modified, should have const
     }
 
     // Mixed: first param modified, second param read-only
     public u32 mixedParams(u32 counter, u32 multiplier) {
-        counter <- counter + 1;  // modified, no const
-        return counter * multiplier;  // multiplier only read
+        counter <- counter + 1; // modified, no const
+        return counter * multiplier; // multiplier only read
     }
 }
 
@@ -82,16 +82,16 @@ u32 main() {
     // Negative test: readOnly should NOT modify input (const param)
     u32 readVal <- 25;
     u32 readResult <- TestScope.readOnly(readVal);
-    if (readVal != 25) return 8;  // Should be unchanged
-    if (readResult != 50) return 9;  // Should be 25 * 2
+    if (readVal != 25) return 8; // Should be unchanged
+    if (readResult != 50) return 9; // Should be 25 * 2
 
     // Mixed params: counter modified, multiplier const
     u32 mixedCounter <- 10;
     u32 mixedMult <- 3;
     u32 mixedResult <- TestScope.mixedParams(mixedCounter, mixedMult);
-    if (mixedCounter != 11) return 10;  // counter was modified
-    if (mixedMult != 3) return 11;  // multiplier unchanged
-    if (mixedResult != 33) return 12;  // (10+1) * 3 = 33
+    if (mixedCounter != 11) return 10; // counter was modified
+    if (mixedMult != 3) return 11; // multiplier unchanged
+    if (mixedResult != 33) return 12; // (10+1) * 3 = 33
 
     return 0;
 }

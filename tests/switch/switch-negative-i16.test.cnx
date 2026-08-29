@@ -39,7 +39,7 @@ void testI16Boundaries(i16 val) {
         case 32767 {
             result <- 11; // INT16_MAX
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -66,15 +66,15 @@ void testI16Hex(i16 val) {
         case 0x7FFF {
             result <- 25; // 32767
         }
-    default {
+        default {
             result <- 99;
         }
     }
 }
 
 u32 main() {
-   
-// Test i16 boundaries
+
+    // Test i16 boundaries
     i16 minVal <- -32768;
     i16 minPlus1 <- -32767;
     i16 neg256 <- -256;
@@ -124,8 +124,7 @@ u32 main() {
     testI16Boundaries(other);
     if (result != 99) return 12;
 
-   
-// Test hex literals
+    // Test hex literals
     testI16Hex(minVal);
     if (result != 20) return 13;
 

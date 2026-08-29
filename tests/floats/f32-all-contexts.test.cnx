@@ -11,9 +11,9 @@ f32 global_uninit;
 // Struct member
 scope F32AllCtx {
     public struct Point {
-    f32 x;
-    f32 y;
-}
+        f32 x;
+        f32 y;
+    }
 }
 
 // Array element type

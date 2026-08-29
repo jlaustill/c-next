@@ -3,15 +3,23 @@
 // Tests .bit_length property for enum type (ADR-058)
 // Enums are 32 bits by default (ADR-017)
 
-enum Color { Red, Green, Blue }
-enum State { IDLE, RUNNING, STOPPED }
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+enum State {
+    IDLE,
+    RUNNING,
+    STOPPED
+}
 
 Color globalColor <- Color.Red;
 
 scope EnumBitLen {
     public struct TestStruct {
-    State state;
-}
+        State state;
+    }
 }
 
 i32 main() {

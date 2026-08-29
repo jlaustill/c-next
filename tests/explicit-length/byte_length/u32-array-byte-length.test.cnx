@@ -22,8 +22,8 @@ u32 checkArrayByteLength(u32[16] arr) {
 
 scope U32ArrayByteLength {
     public struct TestStruct {
-    u32[16] arr;
-}
+        u32[16] arr;
+    }
 }
 
 i32 main() {

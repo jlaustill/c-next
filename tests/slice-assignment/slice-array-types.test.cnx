@@ -67,5 +67,5 @@ u32 main() {
     if (multiArr[4] != 0x22) return 16;
     if (multiArr[8] != 0x33) return 17;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

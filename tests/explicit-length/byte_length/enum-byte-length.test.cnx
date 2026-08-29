@@ -3,15 +3,23 @@
 // Tests .byte_length property for enum type (ADR-058)
 // Enums are 4 bytes (32 bits) by default
 
-enum Color { Red, Green, Blue }
-enum State { IDLE, RUNNING, STOPPED }
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+enum State {
+    IDLE,
+    RUNNING,
+    STOPPED
+}
 
 Color globalColor <- Color.Red;
 
 scope EnumByteLen {
     public struct TestStruct {
-    State state;
-}
+        State state;
+    }
 }
 
 i32 main() {

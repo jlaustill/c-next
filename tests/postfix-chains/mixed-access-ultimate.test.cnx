@@ -4,28 +4,28 @@
 // Tests the most complex chaining scenarios that can exist in the language
 
 bitmap8 DeviceFlags {
-    Active,         // bit 0
-    Ready,          // bit 1
-    Mode[3],        // bits 2-4
-    Reserved[3]     // bits 5-7
+    Active, // bit 0
+    Ready, // bit 1
+    Mode[3], // bits 2-4
+    Reserved[3] // bits 5-7
 }
 
 scope MixedAccess {
     public struct Sensor {
-    u32 id;
-    u8[8] data;
-    DeviceFlags flags;
-}
+        u32 id;
+        u8[8] data;
+        DeviceFlags flags;
+    }
 
     public struct Controller {
-    this.Sensor[4] sensors;
-    u32 status;
-}
+        this.Sensor[4] sensors;
+        u32 status;
+    }
 }
 
 register PERIPH @ 0x50000000 {
-    CTRL:   DeviceFlags rw @ 0x00,
-    DATA:   u32 rw @ 0x04,
+    CTRL: DeviceFlags rw @ 0x00,
+    DATA: u32 rw @ 0x04,
 }
 
 scope Device {

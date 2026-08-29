@@ -6,18 +6,16 @@ const clamp u16 MAX_ADC <- 4095;
 const clamp u16 THRESHOLD <- 2048;
 
 u32 main() {
-   
-// Test 1: Read const clamp into local
+
+    // Test 1: Read const clamp into local
     u16 maxAdc <- MAX_ADC;
     if (maxAdc != 4095) return 1;
 
-   
-// Test 2: Read second const clamp
+    // Test 2: Read second const clamp
     u16 thresh <- THRESHOLD;
     if (thresh != 2048) return 2;
 
-   
-// Test 3: Use const clamp in comparison
+    // Test 3: Use const clamp in comparison
     if (THRESHOLD >= MAX_ADC) return 3;
 
     return 0;

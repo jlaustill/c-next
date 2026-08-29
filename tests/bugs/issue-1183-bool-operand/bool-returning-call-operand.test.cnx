@@ -7,7 +7,9 @@
 // Resolved through CodeGenState.getFunctionReturnType, keyed by transpiled C
 // name via QualifiedCName -- the single encoder -- so the bare, scope-qualified
 // and this.member() spellings all resolve to the same answer.
-bool isReady() { return false; }
+bool isReady() {
+    return false;
+}
 u8 n <- 10;
 
 void main() {

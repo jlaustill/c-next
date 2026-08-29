@@ -8,6 +8,6 @@ struct Point {
 }
 
 void testStructField() {
-    Point p;      // p.x and p.y are uninitialized
-    p.x +<- 10;   // ERROR: reads p.x
+    Point p; // p.x and p.y are uninitialized
+    p.x +<- 10; // ERROR: reads p.x
 }

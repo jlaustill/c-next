@@ -4,27 +4,27 @@
 
 void testAdd() {
     u32 x;
-    x +<- 1;    // ERROR: reads x
+    x +<- 1; // ERROR: reads x
 }
 
 void testSub() {
     u32 x;
-    x -<- 1;    // ERROR: reads x
+    x -<- 1; // ERROR: reads x
 }
 
 void testMul() {
     u32 x;
-    x *<- 2;    // ERROR: reads x
+    x *<- 2; // ERROR: reads x
 }
 
 void testDiv() {
     u32 x;
-    x /<- 2;    // ERROR: reads x
+    x /<- 2; // ERROR: reads x
 }
 
 void testMod() {
     u32 x;
-    x %<- 2;    // ERROR: reads x
+    x %<- 2; // ERROR: reads x
 }
 
 void testBitAnd() {
@@ -44,10 +44,10 @@ void testBitXor() {
 
 void testLeftShift() {
     u32 x;
-    x <<<- 1;   // ERROR: reads x
+    x <<<- 1; // ERROR: reads x
 }
 
 void testRightShift() {
     u32 x;
-    x >><- 1;   // ERROR: reads x
+    x >><- 1; // ERROR: reads x
 }

@@ -10,7 +10,7 @@ void moveRight(Point p) {
 }
 
 void main() {
-    Point cursor <- {x: 0, y: 0};
+    Point cursor <- { x: 0, y: 0 };
     moveRight(cursor);
     // cursor.x is now 10
 }

@@ -4,10 +4,7 @@
 
 i32 main() {
     // Initialize outer_t with nested inner_t initializer
-    outer_t val <- {
-        pos: { x: 10, y: 20 },
-        z: 30
-    };
+    outer_t val <- { pos: { x: 10, y: 20 }, z: 30 };
 
     // Verify the values were correctly assigned
     if (val.pos.x != 10) return 1;

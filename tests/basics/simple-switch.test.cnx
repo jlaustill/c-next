@@ -28,13 +28,13 @@ u32 dayType(u32 day) {
     u32 result <- 0;
     switch (day) {
         case 0 {
-            result <- 1;  // Sunday - weekend
+            result <- 1; // Sunday - weekend
         }
         case 6 {
-            result <- 1;  // Saturday - weekend
+            result <- 1; // Saturday - weekend
         }
         default {
-            result <- 2;  // Weekday
+            result <- 2; // Weekday
         }
     }
     return result;
@@ -61,7 +61,7 @@ u32 main() {
     result <- dayType(6);
     if (result != 1) return 5;
 
-    result <- dayType(3);  // Wednesday
+    result <- dayType(3); // Wednesday
     if (result != 2) return 6;
 
     return 0;

@@ -16,7 +16,7 @@ void testSwitchU8(u8 val) {
         case 255 {
             result <- 355;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -33,7 +33,7 @@ void testSwitchU16(u16 val) {
         case 65535 {
             result <- 65735;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -47,7 +47,7 @@ void testSwitchU32(u32 val) {
         case 1000000 {
             result <- 1000300;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -61,7 +61,7 @@ void testSwitchU64(u64 val) {
         case 1000000000000 {
             result <- 401;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -81,7 +81,7 @@ void testSwitchI8(i8 val) {
         case 127 {
             result <- 502;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -98,7 +98,7 @@ void testSwitchI16(i16 val) {
         case 32767 {
             result <- 602;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -115,7 +115,7 @@ void testSwitchI32(i32 val) {
         case 2000000 {
             result <- 702;
         }
-    default {
+        default {
             result <- 999;
         }
     }
@@ -132,7 +132,7 @@ void testSwitchI64(i64 val) {
         case 9000000000 {
             result <- 802;
         }
-    default {
+        default {
             result <- 999;
         }
     }

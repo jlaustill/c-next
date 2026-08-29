@@ -6,8 +6,7 @@ u32 main() {
     u32 j <- 0;
     u32 count <- 0;
 
-   
-// Test 1: Simple nested do-while
+    // Test 1: Simple nested do-while
     i <- 0;
     do {
         j <- 0;
@@ -19,8 +18,7 @@ u32 main() {
     } while (i < 3);
     if (count != 9) return 1;
 
-   
-// Test 2: Deeply nested (3 levels)
+    // Test 2: Deeply nested (3 levels)
     u32 k <- 0;
     count <- 0;
     i <- 0;
@@ -38,8 +36,7 @@ u32 main() {
     } while (i < 2);
     if (count != 8) return 2;
 
-   
-// Test 3: Nested with different conditions
+    // Test 3: Nested with different conditions
     count <- 0;
     i <- 0;
     do {

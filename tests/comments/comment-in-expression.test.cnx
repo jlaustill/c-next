@@ -18,7 +18,7 @@ u32 main() {
     // Comment in array index
     u32[5] arr;
     arr[0] <- 100;
-    arr[/* index */ 0] <- 200;
+    arr[ /* index */0] <- 200;
     if (arr[0] != 200) return 4;
 
     // Comment in ternary
@@ -30,10 +30,8 @@ u32 main() {
     if (test != true) return 6;
 
     // Multi-line comment in expression
-    u32 e <- 1 +
-        /* this is a
-           multi-line comment */
-        2;
+    u32 e <- 1 + /* this is a
+           multi-line comment */ 2;
     if (e != 3) return 7;
 
     return 0;

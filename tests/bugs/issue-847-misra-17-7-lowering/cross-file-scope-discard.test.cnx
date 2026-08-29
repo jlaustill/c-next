@@ -6,6 +6,6 @@
 
 i32 main() {
     Helper.compute();
-    (void) global.Helper.other();
+    (void)global.Helper.other();
     return 0;
 }

@@ -14,7 +14,7 @@ u32 getValue(u32 code) {
         case 2 {
             return 300;
         }
-    default {
+        default {
             return 999;
         }
     }
@@ -33,7 +33,7 @@ u32 computeWithSwitch(u32 base, u32 operation) {
         case 2 {
             result -<- 5;
         }
-    default {
+        default {
             result <- 0;
         }
     }
@@ -52,7 +52,7 @@ i8 getSignedValue(i8 selector) {
         case 50 {
             return -128;
         }
-    default {
+        default {
             return -1;
         }
     }
@@ -71,7 +71,7 @@ bool isSpecialValue(u16 val) {
         case 65535 {
             special <- true;
         }
-    default {
+        default {
             special <- false;
         }
     }
@@ -90,7 +90,7 @@ u64 getLargeValue(u8 index) {
         case 2 {
             return 9000000000000000000;
         }
-    default {
+        default {
             return 0;
         }
     }
@@ -107,7 +107,7 @@ u32 sumWithSwitchInLoop(u32 count, u32 mode) {
             case 1 {
                 sum +<- 2;
             }
-        default {
+            default {
                 sum +<- 10;
             }
         }
@@ -138,7 +138,7 @@ i16 categorize(i16 value) {
         case 200 {
             return 2;
         }
-    default {
+        default {
             return 99;
         }
     }

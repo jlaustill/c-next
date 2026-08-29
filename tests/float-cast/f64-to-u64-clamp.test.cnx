@@ -4,7 +4,7 @@
 
 u32 main() {
     f64 negative <- -100.0;
-    f64 in_range <- 1000000000000.0;  // 1 trillion
+    f64 in_range <- 1000000000000.0; // 1 trillion
 
     u64 result <- (u64)negative;
     if (result != 0) return 1;

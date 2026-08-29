@@ -50,7 +50,7 @@ u32 main() {
     u16 i <- 255;
     u16 j <- 257;
     u16 product_large <- i * j;
-    if (product_large != 65535) return 10;  // 255 * 257 = 65535
+    if (product_large != 65535) return 10; // 255 * 257 = 65535
 
     // === Division ===
     u16 k <- 10000;

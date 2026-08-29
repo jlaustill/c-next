@@ -4,7 +4,7 @@ scope Board {
     const u32 LED_BIT <- 3;
 
     register GPIO @ 0x40000000 {
-        DR:     u32 rw @ 0x00,
+        DR: u32 rw @ 0x00,
         DR_SET: u32 wo @ 0x84,
     }
 

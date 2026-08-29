@@ -21,8 +21,7 @@ u32 main() {
     i32 neg <- -5;
     i32 pos <- 7;
 
-
-// Test max function
+    // Test max function
     u32 maxResult1 <- getMax(a, b);
     if (maxResult1 != 20) {
         return 1;
@@ -32,15 +31,13 @@ u32 main() {
         return 2;
     }
 
-
-// Test min function
+    // Test min function
     u32 minResult <- getMin(a, b);
     if (minResult != 10) {
         return 3;
     }
 
-
-// Test abs function
+    // Test abs function
     i32 absResult1 <- getAbs(neg);
     if (absResult1 != 5) {
         return 4;

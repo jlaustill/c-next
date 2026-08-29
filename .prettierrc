@@ -1,0 +1,11 @@
+{
+  "overrides": [
+    {
+      "files": "*.cnx",
+      "options": {
+        "plugins": ["./prettier-plugin/dist/index.js"],
+        "tabWidth": 4
+      }
+    }
+  ]
+}

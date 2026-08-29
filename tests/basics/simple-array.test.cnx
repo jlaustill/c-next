@@ -29,7 +29,7 @@ u32 main() {
     for (u32 i <- 0; i < numbers.element_count; i <- i + 1) {
         sum <- sum + numbers[i];
     }
-    if (sum != 150) return 8;  // 10+20+30+40+50
+    if (sum != 150) return 8; // 10+20+30+40+50
 
     // Modify array element
     numbers[2] <- 100;

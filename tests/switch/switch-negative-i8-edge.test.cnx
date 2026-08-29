@@ -33,7 +33,7 @@ void testI8Boundaries(i8 val) {
         case 127 {
             result <- 9; // INT8_MAX
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -57,15 +57,15 @@ void testConsecutiveNegatives(i8 val) {
         case -1 {
             result <- 14;
         }
-    default {
+        default {
             result <- 99;
         }
     }
 }
 
 u32 main() {
-   
-// Test i8 boundary values
+
+    // Test i8 boundary values
     i8 minVal <- -128;
     i8 minPlus1 <- -127;
     i8 midNeg <- -64;
@@ -107,8 +107,7 @@ u32 main() {
     testI8Boundaries(other);
     if (result != 99) return 10;
 
-   
-// Test consecutive negative values
+    // Test consecutive negative values
     i8 neg5 <- -5;
     i8 neg4 <- -4;
     i8 neg3 <- -3;

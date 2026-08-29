@@ -2,5 +2,5 @@
 #include "dependent.h"
 
 void loop() {
-  global.dependent_fn(5);
+    global.dependent_fn(5);
 }

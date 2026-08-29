@@ -33,8 +33,7 @@ u32 main() {
     if (cube3d[1][0][0] != 10000) return 8;
     if (cube3d[1][2][3] != 30000) return 9;
 
-   
-// Test .length property at each dimension
+    // Test .length property at each dimension
     // 2D array dimensions
     if (matrix2d.element_count != 4) return 10; // First dimension
     if (matrix2d[0].element_count != 8) return 11; // Second dimension
@@ -73,18 +72,15 @@ u32 main() {
     // Verify sum: 6+46+86+406+446+486 = 1476
     if (sum != 1476) return 21;
 
-   
-// Test modification after initialization
+    // Test modification after initialization
     matrix2d[2][4] <- -32768;
     if (matrix2d[2][4] != -32768) return 22;
 
-   
-// Test boundary access
+    // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- -1000;
     if (matrix2d[3][7] != -1000) return 23;
 
-   
-// Test i16 specific edge cases
+    // Test i16 specific edge cases
     i16[4][2] testArray;
 
     // Initialize all elements first
@@ -107,8 +103,7 @@ u32 main() {
     if (testArray[2][0] != 1) return 28;
     if (testArray[3][1] != -15000) return 29;
 
-   
-// Test 2D array with coordinate system pattern
+    // Test 2D array with coordinate system pattern
     i16[3][3] coords;
 
     // Initialize all elements first
@@ -131,8 +126,7 @@ u32 main() {
     if (coords[2][0] != 2000) return 34;
     if (coords[2][1] != -3000) return 35;
 
-   
-// Test negative value calculations
+    // Test negative value calculations
     i16[2][2] deltas;
 
     // Initialize all elements first
@@ -146,8 +140,7 @@ u32 main() {
     i32 deltaSum <- deltas[0][0] + deltas[0][1];
     if (deltaSum != -2000) return 36;
 
-   
-// Test with altitude values (meters, can be negative)
+    // Test with altitude values (meters, can be negative)
     i16[2][3] altitudes;
 
     // Initialize all elements first

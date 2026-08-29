@@ -3,8 +3,8 @@
 // Note: f64 can represent values beyond i64 range but with precision loss
 
 u32 main() {
-    f64 in_range <- 1000000000000.0;  // 1 trillion
-    f64 negative <- -500000000000.0;  // -500 billion
+    f64 in_range <- 1000000000000.0; // 1 trillion
+    f64 negative <- -500000000000.0; // -500 billion
 
     i64 result <- (i64)in_range;
     if (result != 1000000000000) return 1;

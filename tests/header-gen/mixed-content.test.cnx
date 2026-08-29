@@ -9,13 +9,17 @@ enum EStatus {
 
 scope HeaderMixed {
     public struct Config {
-    u32 timeout;
-    u8 retries;
-    EStatus status;
-}
+        u32 timeout;
+        u8 retries;
+        EStatus status;
+    }
 }
 
-HeaderMixed.Config globalConfig <- {timeout: 1000, retries: 3, status: STATUS_IDLE};
+HeaderMixed.Config globalConfig <- {
+    timeout: 1000,
+    retries: 3,
+    status: STATUS_IDLE
+};
 
 void initConfig() {
     globalConfig.timeout <- 5000;

@@ -52,12 +52,12 @@ scope Contexts {
 
     // Private method: this. modify private clamp variable
     void incrementPrivateClamp() {
-        this.privateClampValue +<- 100;  // Clamps at 255
+        this.privateClampValue +<- 100; // Clamps at 255
     }
 
     // Private method: this. modify private wrap variable
     void incrementPrivateWrap() {
-        this.privateWrapValue +<- 10;  // Wraps around
+        this.privateWrapValue +<- 10; // Wraps around
     }
 
     // Private method: boolean this. access
@@ -144,12 +144,12 @@ scope Contexts {
 
     // Public method: this. modify public clamp variable
     public void incrementPublicClamp() {
-        this.publicClampValue +<- 10000;  // Clamps at 65535
+        this.publicClampValue +<- 10000; // Clamps at 65535
     }
 
     // Public method: this. modify public wrap variable
     public void incrementPublicWrap() {
-        this.publicWrapValue +<- 10;  // Wraps around
+        this.publicWrapValue +<- 10; // Wraps around
     }
 
     // Public method: boolean this. access

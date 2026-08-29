@@ -3,18 +3,9 @@
 // Tests: array access, .length, .capacity after inline initialization
 
 // C-style allowed for string arrays (grammar limitation)
-const string<10>[3] LABELS <- [
-    "One",
-    "Two",
-    "Three"
-];
+const string<10>[3] LABELS <- ["One", "Two", "Three"];
 
-string<8>[4] colors <- [
-    "Red",
-    "Green",
-    "Blue",
-    "Yellow"
-];
+string<8>[4] colors <- ["Red", "Green", "Blue", "Yellow"];
 
 u32 main() {
     // Test 1: Array .element_count returns element count
@@ -27,9 +18,9 @@ u32 main() {
     if (LABELS[2] != "Three") return 5;
 
     // Test 3: Element .char_count returns string length (strlen)
-    if (LABELS[0].char_count != 3) return 6;  // "One"
-    if (LABELS[1].char_count != 3) return 7;  // "Two"
-    if (LABELS[2].char_count != 5) return 8;  // "Three"
+    if (LABELS[0].char_count != 3) return 6; // "One"
+    if (LABELS[1].char_count != 3) return 7; // "Two"
+    if (LABELS[2].char_count != 5) return 8; // "Three"
 
     // Test 4: Colors array element access
     if (colors[0] != "Red") return 9;
@@ -38,10 +29,10 @@ u32 main() {
     if (colors[3] != "Yellow") return 12;
 
     // Test 5: Colors element lengths
-    if (colors[0].char_count != 3) return 13;  // "Red"
-    if (colors[1].char_count != 5) return 14;  // "Green"
-    if (colors[2].char_count != 4) return 15;  // "Blue"
-    if (colors[3].char_count != 6) return 16;  // "Yellow"
+    if (colors[0].char_count != 3) return 13; // "Red"
+    if (colors[1].char_count != 5) return 14; // "Green"
+    if (colors[2].char_count != 4) return 15; // "Blue"
+    if (colors[3].char_count != 6) return 16; // "Yellow"
 
     // Test 6: Element .capacity returns string capacity
     if (LABELS[0].capacity != 10) return 17;

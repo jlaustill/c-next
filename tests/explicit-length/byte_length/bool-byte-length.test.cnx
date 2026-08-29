@@ -6,8 +6,8 @@ bool globalBool <- true;
 
 scope BoolByteLen {
     public struct TestStruct {
-    bool flag;
-}
+        bool flag;
+    }
 }
 
 i32 main() {

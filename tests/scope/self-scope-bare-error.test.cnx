@@ -10,5 +10,4 @@ scope Counter {
     }
 }
 
-void main() {
-}
+void main() {}

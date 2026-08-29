@@ -121,8 +121,7 @@ void normalizeVector(Vector3 v) {
 
 // Check if a point is inside a rectangle
 void isPointInRect(const Point p, const Rectangle rect, bool result) {
-    result <- p.x >= rect.topLeft.x && p.x <= rect.bottomRight.x &&
-              p.y >= rect.topLeft.y && p.y <= rect.bottomRight.y;
+    result <- p.x >= rect.topLeft.x && p.x <= rect.bottomRight.x && p.y >= rect.topLeft.y && p.y <= rect.bottomRight.y;
 }
 
 // ============================================================================
@@ -152,9 +151,9 @@ void main() {
     // -----------------------------------------
 
     // Uninitialized structs are zero-initialized
-    Point origin;                    // origin.x = 0, origin.y = 0
-    Vector3 direction;               // direction.x = 0, direction.y = 0, direction.z = 0
-    UARTConfig uart;                 // All fields zero
+    Point origin; // origin.x = 0, origin.y = 0
+    Vector3 direction; // direction.x = 0, direction.y = 0, direction.z = 0
+    UARTConfig uart; // All fields zero
 
     // -----------------------------------------
     // Struct initializer syntax (inferred types)
@@ -164,7 +163,7 @@ void main() {
     Point cursor <- { x: 100, y: 200 };
 
     // Partial initialization (other fields zero)
-    Color red <- { r: 255 };         // g=0, b=0, a=0
+    Color red <- { r: 255 }; // g=0, b=0, a=0
 
     // All fields specified
     Color blue <- { r: 0, g: 0, b: 255, a: 255 };
@@ -186,10 +185,7 @@ void main() {
         bottomRight: { x: 640, y: 480 }
     };
 
-    Circle circle <- {
-        center: { x: 320, y: 240 },
-        radius: 100
-    };
+    Circle circle <- { center: { x: 320, y: 240 }, radius: 100 };
 
     // -----------------------------------------
     // Member access
@@ -198,8 +194,8 @@ void main() {
     // Read member values
     i32 cursorX <- cursor.x;
     i32 cursorY <- cursor.y;
-    Console.printInt(cursorX);       // 100
-    Console.printInt(cursorY);       // 200
+    Console.printInt(cursorX); // 100
+    Console.printInt(cursorY); // 200
 
     // Modify member values
     cursor.x <- 150;
@@ -208,8 +204,8 @@ void main() {
     // Access nested struct members
     i32 rectWidth <- rect.bottomRight.x - rect.topLeft.x;
     i32 rectHeight <- rect.bottomRight.y - rect.topLeft.y;
-    Console.printInt(rectWidth);     // 640
-    Console.printInt(rectHeight);    // 480
+    Console.printInt(rectWidth); // 640
+    Console.printInt(rectHeight); // 480
 
     // -----------------------------------------
     // Functions with struct parameters
@@ -218,13 +214,13 @@ void main() {
     // Structs pass by reference (ADR-006)
     Point player <- { x: 10, y: 20 };
     movePoint(player, MOVE_DX, MOVE_DY);
-    Console.printInt(player.x);      // 15
-    Console.printInt(player.y);      // 30
+    Console.printInt(player.x); // 15
+    Console.printInt(player.y); // 30
 
     // Scale the player position
     scalePoint(player, SCALE_FACTOR);
-    Console.printInt(player.x);      // 30
-    Console.printInt(player.y);      // 60
+    Console.printInt(player.x); // 30
+    Console.printInt(player.y); // 60
 
     // Calculate distance
     Point target <- { x: 100, y: 100 };

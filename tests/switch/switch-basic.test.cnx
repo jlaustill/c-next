@@ -11,7 +11,7 @@ void handleCommand(u32 cmd) {
         case 1 {
             result <- 200;
         }
-    default {
+        default {
             result <- 999;
         }
     }

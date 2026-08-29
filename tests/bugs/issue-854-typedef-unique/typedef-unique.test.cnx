@@ -18,7 +18,7 @@ scope Reader {
 }
 
 u32 main() {
-    TypedefTypes.Sensor s <- {id: 42, value: 100};
+    TypedefTypes.Sensor s <- { id: 42, value: 100 };
     Reader.update(s);
     TypedefTypes.Sensor result <- Reader.read();
     if (result.id != 42) return 1;

@@ -13,6 +13,6 @@ scope Level1 {
 }
 
 void main() {
-    Config c <- {value: 0};
+    Config c <- { value: 0 };
     global.Level1.entry(c);
 }

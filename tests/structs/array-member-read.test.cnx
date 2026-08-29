@@ -14,9 +14,9 @@ i32 main() {
     Container cfg;
 
     // Initialize array items through intermediate variables
-    Item item0 <- {value: 100, flags: 0};
-    Item item1 <- {value: 200, flags: 0};
-    Item item2 <- {value: 300, flags: 0};
+    Item item0 <- { value: 100, flags: 0 };
+    Item item1 <- { value: 200, flags: 0 };
+    Item item2 <- { value: 300, flags: 0 };
     cfg.items[0] <- item0;
     cfg.items[1] <- item1;
     cfg.items[2] <- item2;

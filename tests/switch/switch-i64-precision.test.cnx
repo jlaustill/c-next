@@ -19,7 +19,7 @@ void testDecimalPrecision(i64 val) {
         case 9223372036854775804 {
             result <- 4;
         } // INT64_MAX - 3
-    default {
+        default {
             result <- 99;
         }
     }
@@ -40,7 +40,7 @@ void testHexPrecision(i64 val) {
         case 0x7FFFFFFFFFFFFFFC {
             result <- 13;
         } // INT64_MAX - 3
-    default {
+        default {
             result <- 99;
         }
     }

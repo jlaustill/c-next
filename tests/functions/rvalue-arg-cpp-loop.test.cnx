@@ -20,7 +20,7 @@ u32 main() {
     if (check1 > 5) {
         result <- 1;
     }
-    if (result != 1) return 1;  // 5 + 3 = 8 > 5, so result should be 1
+    if (result != 1) return 1; // 5 + 3 = 8 > 5, so result should be 1
 
     // Test 2: rvalue expression in while condition
     // Note: Since temp is hoisted before loop, it's only evaluated once
@@ -30,7 +30,7 @@ u32 main() {
     u32 check2 <- checkValue(limit + 1);
     while (check2 > iterations) {
         iterations <- iterations + 1;
-        if (iterations > 10) return 2;  // Safety: prevent infinite loop
+        if (iterations > 10) return 2; // Safety: prevent infinite loop
     }
     // limit + 1 = 3, evaluated once, so loops while iterations < 3
     if (iterations != 3) return 3;

@@ -39,8 +39,8 @@ void adjustTemperature(i8 delta) {
 }
 
 void main() {
-   
-// Test various operations
+
+    // Test various operations
     adjustBrightness(50);
     decreaseBrightness(200); // Would clamp to 0
     updateVolume(1000);

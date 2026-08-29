@@ -10,8 +10,8 @@
 #include "issue-332-external-processor.hpp"
 
 scope Issue332Storage {
-    Issue332AppData appData;      // From C-Next .cnx file
-    Issue332AppConfig appConfig;  // From C .h file
+    Issue332AppData appData; // From C-Next .cnx file
+    Issue332AppConfig appConfig; // From C .h file
 
     public void setup() {
         // Initialize C header struct

@@ -27,7 +27,6 @@
     "dist/**",
     "node_modules/**",
     "src/transpiler/logic/parser/**/grammar/**",
-    "prettier-plugin/**",
     "**/*.js"
   ]
 }

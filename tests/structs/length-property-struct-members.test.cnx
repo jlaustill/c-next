@@ -3,10 +3,10 @@
 // Verifies cfg.magic.bit_length correctly returns 32 (was returning 0)
 scope LengthPropMembers {
     public struct Config {
-    u32 magic;
-    u16 version;
-    u8 flags;
-}
+        u32 magic;
+        u16 version;
+        u8 flags;
+    }
 }
 
 i32 main() {
@@ -15,8 +15,7 @@ i32 main() {
     cfg.version <- 1;
     cfg.flags <- 0xFF;
 
-   
-// Test .length on struct members
+    // Test .length on struct members
     if (cfg.magic.bit_length != 32) {
         return 1;
     }

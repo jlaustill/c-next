@@ -53,7 +53,6 @@ scope Later {
     }
 }
 
-
 // ADR-057:97-101 has TWO halves, and TYPE_FORMING_KINDS is what decides between
 // them. Neither had a fixture anywhere.
 //
@@ -111,7 +110,7 @@ scope NoCapture {
         // shadows the enum -- ADR-057 diagnoses that. The FIELD TYPE above is
         // the half under test: it stays the global `Mode`, because a scope
         // variable is not type-forming.
-        Holder h <- {m: global.Mode.BETA};
+        Holder h <- { m: global.Mode.BETA };
         return h.m + Mode;
     }
 }

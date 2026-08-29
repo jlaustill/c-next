@@ -25,7 +25,7 @@ void testHexCases(u8 val) {
         case 0xFF {
             result <- 6;
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -52,7 +52,7 @@ void testBinaryCases(u8 val) {
         case 0b11111111 {
             result <- 15;
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -79,7 +79,7 @@ void testCharCases(u8 val) {
         case '9' {
             result <- 25;
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -100,7 +100,7 @@ void testMixedLiterals(u8 val) {
         case 'X' {
             result <- 33;
         }
-    default {
+        default {
             result <- 99;
         }
     }
@@ -127,7 +127,7 @@ void testLargeHex(u16 val) {
         case 0xFFFF {
             result <- 45;
         }
-    default {
+        default {
             result <- 99;
         }
     }

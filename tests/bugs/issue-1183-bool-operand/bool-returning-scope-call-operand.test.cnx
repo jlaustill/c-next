@@ -3,7 +3,9 @@
 // Its key is the transpiled C name (Sensors__isReady), not the source-qualified
 // one, so it must be built with QualifiedCName rather than by hand (CLAUDE.md).
 scope Sensors {
-    public bool isReady() { return false; }
+    public bool isReady() {
+        return false;
+    }
 }
 
 u8 n <- 10;

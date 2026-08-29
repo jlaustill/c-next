@@ -17,7 +17,7 @@ scope Console {
 // Function that modifies its parameter
 // No * or & needed - parameters always receive the address
 void increment(i32 x) {
-    x <- x + 1;  // Updates the original variable
+    x <- x + 1; // Updates the original variable
 }
 
 // Swap function - clean and simple
@@ -70,21 +70,21 @@ void main() {
     // Simple increment
     i32 counter <- INITIAL_COUNTER;
     increment(counter);
-    Console.printInt(counter);  // Prints 6
+    Console.printInt(counter); // Prints 6
 
     // Swap
     i32 x <- INITIAL_X;
     i32 y <- INITIAL_Y;
     swap(x, y);
-    Console.printInt(x);  // Prints 20
-    Console.printInt(y);  // Prints 10
+    Console.printInt(x); // Prints 20
+    Console.printInt(y); // Prints 10
 
     // Multiple outputs
     i32 q;
     i32 r;
     divmod(DIVIDEND, DIVISOR, q, r);
-    Console.printInt(q);  // Prints 3
-    Console.printInt(r);  // Prints 2
+    Console.printInt(q); // Prints 3
+    Console.printInt(r); // Prints 2
 
     // Array
     u8[16] data;
@@ -92,15 +92,15 @@ void main() {
 
     // Point with struct initializer (ADR-014 - inferred type)
     Point origin <- { x: 0, y: 0 };
-    Console.printInt(origin.x);  // Prints 0
+    Console.printInt(origin.x); // Prints 0
 
     // Point with zero initialization (ADR-015)
-    Point cursor;  // Zero-initialized: cursor.x = 0, cursor.y = 0
+    Point cursor; // Zero-initialized: cursor.x = 0, cursor.y = 0
     movePoint(cursor, MOVE_DX, MOVE_DY);
-    Console.printInt(cursor.x);  // Prints 5
-    Console.printInt(cursor.y);  // Prints 10
+    Console.printInt(cursor.x); // Prints 5
+    Console.printInt(cursor.y); // Prints 10
 
     // Address-of operator (read-only)
     u32 addr <- &counter;
-    Console.printHex(addr);  // Prints memory address
+    Console.printHex(addr); // Prints memory address
 }

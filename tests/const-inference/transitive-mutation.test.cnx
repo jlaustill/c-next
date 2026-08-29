@@ -2,8 +2,8 @@
 
 scope TransMutation {
     public struct Data {
-    u8 value;
-}
+        u8 value;
+    }
 }
 
 scope Test {
@@ -14,12 +14,12 @@ scope Test {
 
     // Delegates mutation — transpiler should generate non-const
     public void loadData(TransMutation.Data d) {
-        fillData(d);  // passes to non-const function, so d must be non-const
+        fillData(d); // passes to non-const function, so d must be non-const
     }
 }
 
 u32 main() {
-    TransMutation.Data d <- {value: 0};
+    TransMutation.Data d <- { value: 0 };
 
     // Verify initial value
     if (d.value != 0) return 1;

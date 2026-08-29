@@ -3,7 +3,9 @@
 scope S {
     bool flag <- false;
     public bool g() {
-        if (this.flag) { return true; }
+        if (this.flag) {
+            return true;
+        }
         return false;
     }
 }

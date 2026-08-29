@@ -12,8 +12,8 @@ enum EPressureType {
 
 scope EnumUnqualRef {
     public struct Config {
-    EPressureType pType;
-}
+        EPressureType pType;
+    }
 }
 
 void setDefault(EnumUnqualRef.Config config) {
@@ -22,7 +22,7 @@ void setDefault(EnumUnqualRef.Config config) {
 }
 
 u32 main() {
-    EnumUnqualRef.Config cfg <- {pType: EPressureType.PRESSURE_TYPE_PSIA};
+    EnumUnqualRef.Config cfg <- { pType: EPressureType.PRESSURE_TYPE_PSIA };
 
     // Test 1: Verify initial value
     if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 1;
@@ -40,5 +40,5 @@ u32 main() {
     // Test 5: Qualified in comparison
     if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 4;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

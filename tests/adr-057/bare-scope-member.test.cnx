@@ -6,11 +6,11 @@ scope Counter {
     u32 value <- 0;
 
     public void increment() {
-        value +<- 1;  // Should resolve to this.value
+        value +<- 1; // Should resolve to this.value
     }
 
     public u32 getValue() {
-        return value;  // Should resolve to this.value
+        return value; // Should resolve to this.value
     }
 }
 

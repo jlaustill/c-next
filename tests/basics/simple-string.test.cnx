@@ -10,7 +10,7 @@ u32 main() {
     if (greeting.char_count != 5) return 1;
 
     // String size (capacity) property
-    if (greeting.size != 11) return 2;  // 10 + null terminator
+    if (greeting.size != 11) return 2; // 10 + null terminator
 
     // Empty string
     string<20> empty <- "";

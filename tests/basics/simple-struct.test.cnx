@@ -11,10 +11,10 @@ struct Point {
 // Struct with different field types
 scope SimpleStruct {
     public struct Sensor {
-    u16 id;
-    f32 temperature;
-    bool active;
-}
+        u16 id;
+        f32 temperature;
+        bool active;
+    }
 }
 
 // Function that reads struct fields (pass-by-reference, ADR-006)
@@ -43,7 +43,7 @@ i32 manhattanDistance(Point p) {
 
 u32 main() {
     // Struct initialization with named fields
-    Point origin <- {x: 0, y: 0};
+    Point origin <- { x: 0, y: 0 };
     if (origin.x != 0) return 1;
     if (origin.y != 0) return 2;
 
@@ -55,7 +55,7 @@ u32 main() {
     if (p1.y != 20) return 4;
 
     // Initialization with values
-    Point p2 <- {x: 5, y: -3};
+    Point p2 <- { x: 5, y: -3 };
     if (p2.x != 5) return 5;
     if (p2.y != -3) return 6;
 
@@ -64,18 +64,18 @@ u32 main() {
     if (xVal != 5) return 7;
 
     // Pass-by-reference modification (ADR-006)
-    Point p3 <- {x: 100, y: 200};
+    Point p3 <- { x: 100, y: 200 };
     setPointOrigin(p3);
     if (p3.x != 0) return 8;
     if (p3.y != 0) return 9;
 
     // Function using struct values
-    Point p4 <- {x: -3, y: 4};
+    Point p4 <- { x: -3, y: 4 };
     i32 dist <- manhattanDistance(p4);
     if (dist != 7) return 10;
 
     // Struct with mixed types
-    SimpleStruct.Sensor s1 <- {id: 42, temperature: 23.5, active: true};
+    SimpleStruct.Sensor s1 <- { id: 42, temperature: 23.5, active: true };
     if (s1.id != 42) return 11;
     if (s1.active != true) return 12;
 

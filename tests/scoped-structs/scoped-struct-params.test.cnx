@@ -47,13 +47,13 @@ u32 main() {
 
     // Test 2: Add vectors
     Math.add(result, v1, v2);
-    if (result.x != 4) return 1;  // 3 + 1
-    if (result.y != 6) return 2;  // 4 + 2
+    if (result.x != 4) return 1; // 3 + 1
+    if (result.y != 6) return 2; // 4 + 2
 
     // Test 3: Scale vector
     Math.scale(v1, 2);
-    if (v1.x != 6) return 3;  // 3 * 2
-    if (v1.y != 8) return 4;  // 4 * 2
+    if (v1.x != 6) return 3; // 3 * 2
+    if (v1.y != 8) return 4; // 4 * 2
 
     // Test 4: Dot product
     v1.x <- 2;
@@ -61,7 +61,7 @@ u32 main() {
     v2.x <- 4;
     v2.y <- 5;
     i32 dp <- Math.dot(v1, v2);
-    if (dp != 23) return 5;  // 2*4 + 3*5 = 8 + 15 = 23
+    if (dp != 23) return 5; // 2*4 + 3*5 = 8 + 15 = 23
 
     // Test 5: Equality check
     v1.x <- 10;

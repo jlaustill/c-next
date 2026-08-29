@@ -47,8 +47,7 @@ u32 main() {
     holder.primary <- structHandler1;
     holder.secondary <- structHandler1;
 
-   
-// Test 1: Assign and invoke primary handler
+    // Test 1: Assign and invoke primary handler
     structCallCount <- 0;
     structLastHandler <- 0;
     holder.primary <- structHandler1;
@@ -56,8 +55,7 @@ u32 main() {
     if (structCallCount != 1) return 1;
     if (structLastHandler != 1) return 2;
 
-   
-// Test 2: Assign and invoke secondary handler
+    // Test 2: Assign and invoke secondary handler
     structCallCount <- 0;
     structLastHandler <- 0;
     holder.secondary <- structHandler2;
@@ -65,8 +63,7 @@ u32 main() {
     if (structCallCount != 1) return 3;
     if (structLastHandler != 2) return 4;
 
-   
-// Test 3: Initialize via function and invoke both
+    // Test 3: Initialize via function and invoke both
     structCallCount <- 0;
     structLastHandler <- 0;
     initStructHolder(holder, structHandler1, structHandler3);
@@ -74,8 +71,7 @@ u32 main() {
     if (structCallCount != 2) return 5;
     if (structLastHandler != 3) return 6; // secondary (structHandler3) called last
 
-   
-// Test 4: Swap handlers and verify
+    // Test 4: Swap handlers and verify
     structCallCount <- 0;
     holder.primary <- structHandler2;
     holder.secondary <- structHandler1;
@@ -83,8 +79,7 @@ u32 main() {
     if (structCallCount != 2) return 7;
     if (structLastHandler != 1) return 8; // secondary (structHandler1) called last
 
-   
-// Test 5: Direct struct field invocation
+    // Test 5: Direct struct field invocation
     structCallCount <- 0;
     structLastHandler <- 0;
     holder.primary <- structHandler3;

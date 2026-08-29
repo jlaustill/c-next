@@ -33,8 +33,7 @@ u32 main() {
     if (cube3d[1][0][0] != 10000) return 8;
     if (cube3d[1][2][3] != 50000) return 9;
 
-   
-// Test .length property at each dimension
+    // Test .length property at each dimension
     // 2D array dimensions
     if (matrix2d.element_count != 4) return 10; // First dimension
     if (matrix2d[0].element_count != 8) return 11; // Second dimension
@@ -73,18 +72,15 @@ u32 main() {
     // Verify sum: 6+46+86+406+446+486 = 1476
     if (sum != 1476) return 21;
 
-   
-// Test modification after initialization
+    // Test modification after initialization
     matrix2d[2][4] <- 60000;
     if (matrix2d[2][4] != 60000) return 22;
 
-   
-// Test boundary access
+    // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 555;
     if (matrix2d[3][7] != 555) return 23;
 
-   
-// Test u16 specific edge cases
+    // Test u16 specific edge cases
     u16[3][2] testArray;
 
     // Initialize all elements first
@@ -103,8 +99,7 @@ u32 main() {
     if (testArray[1][0] != 32768) return 26;
     if (testArray[2][1] != 1000) return 27;
 
-   
-// Test 2D array with port numbers pattern
+    // Test 2D array with port numbers pattern
     u16[3][3] ports;
 
     // Initialize all elements first
@@ -127,8 +122,7 @@ u32 main() {
     if (ports[2][0] != 5432) return 32;
     if (ports[2][1] != 8080) return 33;
 
-   
-// Test large value calculations
+    // Test large value calculations
     u16[2][2] data;
 
     // Initialize all elements first

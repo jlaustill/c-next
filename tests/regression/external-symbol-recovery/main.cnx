@@ -2,11 +2,11 @@
 #include "widget.h"
 
 scope Demo {
-  widget_t handle;
+    widget_t handle;
 
-  void build() {
-    widget_cfg_t cfg <- {mode: 1};
-    i32 err <- global.widget_install(cfg);
-    handle <- global.widget_create();
-  }
+    void build() {
+        widget_cfg_t cfg <- { mode: 1 };
+        i32 err <- global.widget_install(cfg);
+        handle <- global.widget_create();
+    }
 }

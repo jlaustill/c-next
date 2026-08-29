@@ -16,23 +16,20 @@ void clear() {
 }
 
 u32 main() {
-   
-// Test basic assignment in function
+
+    // Test basic assignment in function
     reset();
     if (messageBuffer.char_count != 6) return 1;
 
-   
-// Test another assignment
+    // Test another assignment
     setToHello();
     if (messageBuffer.char_count != 13) return 2;
 
-   
-// Test clearing (empty string assignment)
+    // Test clearing (empty string assignment)
     clear();
     if (messageBuffer.char_count != 0) return 3;
 
-   
-// Test multiple assignments in sequence
+    // Test multiple assignments in sequence
     messageBuffer <- "First";
     if (messageBuffer.char_count != 5) return 4;
 

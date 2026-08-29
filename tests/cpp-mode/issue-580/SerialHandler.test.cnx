@@ -12,7 +12,7 @@ scope SerialHandler {
     // with other non-modifying calls (Serial.println)
     public void handleReset(Config config) {
         global.Serial.println(1);
-        global.CommandHandler.reset(config);  // reset() mutates config
+        global.CommandHandler.reset(config); // reset() mutates config
         global.Serial.println(2);
     }
 
@@ -34,6 +34,6 @@ scope SerialHandler {
 }
 
 void main() {
-    Config c <- {value: 0};
+    Config c <- { value: 0 };
     global.SerialHandler.handleReset(c);
 }

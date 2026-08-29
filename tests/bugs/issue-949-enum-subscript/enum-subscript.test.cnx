@@ -1,7 +1,12 @@
 // test-execution
 // Bug #949: E0852 incorrectly rejects enum type as array subscript index
 
-enum EColor { RED, GREEN, BLUE, COUNT }
+enum EColor {
+    RED,
+    GREEN,
+    BLUE,
+    COUNT
+}
 
 struct TValue {
     u32 data;

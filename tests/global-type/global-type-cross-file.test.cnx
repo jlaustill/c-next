@@ -17,7 +17,7 @@ scope TaskManager {
 
     // Test 3: global.StructType as return type (cross-file)
     public global.Vec2 getPosition() {
-        global.Vec2 pos <- {x: 100, y: 200};
+        global.Vec2 pos <- { x: 100, y: 200 };
         return pos;
     }
 
@@ -42,7 +42,7 @@ i32 main() {
     if (pos.y != 200) return 4;
 
     // Test parameter type with struct
-    global.Vec2 v <- {x: 15, y: 25};
+    global.Vec2 v <- { x: 15, y: 25 };
     i32 total <- TaskManager.sumVec(v);
     if (total != 40) return 5;
 

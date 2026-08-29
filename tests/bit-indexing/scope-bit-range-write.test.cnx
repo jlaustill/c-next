@@ -30,7 +30,7 @@ u32 main() {
     Sensor.setLowByte(0xAB);
     result <- Sensor.getValue();
     if (result != 0xF0AB) {
-        return 1;  // Low byte not set correctly
+        return 1; // Low byte not set correctly
     }
 
     // Test 2: Set high nibble (bits 12-15)
@@ -38,15 +38,15 @@ u32 main() {
     Sensor.setHighNibble(0x05);
     result <- Sensor.getValue();
     if (result != 0x5FFF) {
-        return 2;  // High nibble not set correctly
+        return 2; // High nibble not set correctly
     }
 
     // Test 3: Multiple writes preserve other bits
     Sensor.reset(0x1234);
-    Sensor.setLowByte(0xFF);  // Should become 0x12FF
+    Sensor.setLowByte(0xFF); // Should become 0x12FF
     result <- Sensor.getValue();
     if (result != 0x12FF) {
-        return 3;  // Other bits not preserved
+        return 3; // Other bits not preserved
     }
 
     return 0;

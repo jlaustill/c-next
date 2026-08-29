@@ -2,10 +2,10 @@
 // Test: Scope shadowing between global and scope (ADR-016)
 // Scope member should shadow global const
 
-const u8 globalFlags <- 0;  // Global const
+const u8 globalFlags <- 0; // Global const
 
 scope Control {
-    u8 flags <- 0b11111111;  // Scope member
+    u8 flags <- 0b11111111; // Scope member
 
     public void setFlag() {
         // Should reference Control.flags, not global

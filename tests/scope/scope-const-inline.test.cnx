@@ -71,7 +71,7 @@ scope ConstTest {
         u16 a <- this.MAX_VALUE;
         u16 b <- this.MAX_VALUE + 1;
         u16 c <- this.MAX_VALUE * 2;
-        return a + b + c;  // 255 + 256 + 510 = 1021
+        return a + b + c; // 255 + 256 + 510 = 1021
     }
 }
 
