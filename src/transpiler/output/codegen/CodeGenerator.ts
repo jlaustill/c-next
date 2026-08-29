@@ -135,6 +135,7 @@ import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../state/CodeGenState";
+import AdrProvenance from "../../state/AdrProvenance";
 import SymbolRegistry from "../../state/SymbolRegistry";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
@@ -1192,6 +1193,7 @@ export default class CodeGenerator implements IOrchestrator {
       return SimpleIdentifierResolver.resolve(
         identifier,
         this._buildSimpleIdentifierDeps(),
+        ctx.start?.line,
       );
     }
 
@@ -1233,6 +1235,7 @@ export default class CodeGenerator implements IOrchestrator {
           identifier,
           isLocalVariable,
           (name: string) => this.isKnownStruct(name),
+          ctx.start?.line,
         );
         if (resolved !== null) {
           resolvedIdentifier = resolved;
@@ -1924,7 +1927,7 @@ export default class CodeGenerator implements IOrchestrator {
           `${line}:${col} error[E0703]: '${id}' is not supported in C-Next - use structured conditions instead`,
         );
       }
-      return this._resolveIdentifierExpression(id);
+      return this._resolveIdentifierExpression(id, ctx.start?.line);
     }
     if (ctx.literal()) {
       return this._generateLiteralExpression(ctx.literal()!);
@@ -2293,6 +2296,10 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     CodeGenState.debugMode = options?.debugMode ?? false;
     CodeGenState.sourcePath = options?.sourcePath ?? null;
+    // #1241: Transpiler._transpileFile sets the provenance file before
+    // analyzers run; re-assert it here for API callers that drive the
+    // generator directly and never go through that path.
+    AdrProvenance.beginFile(CodeGenState.sourcePath);
     CodeGenState.includeDirs = options?.includeDirs ?? [];
     CodeGenState.inputs = options?.inputs ?? [];
     CodeGenState.cppMode = options?.cppMode ?? false;
@@ -4381,9 +4388,12 @@ export default class CodeGenerator implements IOrchestrator {
           this._buildParameterDereferenceDeps(),
         ),
       isLocalVariable: (name: string) => CodeGenState.localVariables.has(name),
-      resolveBareIdentifier: (name: string, isLocal: boolean) =>
-        TypeValidator.resolveBareIdentifier(name, isLocal, (n: string) =>
-          this.isKnownStruct(n),
+      resolveBareIdentifier: (name: string, isLocal: boolean, line?: number) =>
+        TypeValidator.resolveBareIdentifier(
+          name,
+          isLocal,
+          (n: string) => this.isKnownStruct(n),
+          line,
         ),
     };
   }
@@ -4547,7 +4557,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Resolve an identifier in a primary expression context
    * Handles: main args, parameters, local variables, scope resolution, enum members
    */
-  private _resolveIdentifierExpression(id: string): string {
+  private _resolveIdentifierExpression(id: string, line?: number): string {
     // Special case: main function's args parameter -> argv
     if (CodeGenState.mainArgsName && id === CodeGenState.mainArgsName) {
       return "argv";
@@ -4569,6 +4579,7 @@ export default class CodeGenerator implements IOrchestrator {
       id,
       isLocalVariable,
       (name: string) => this.isKnownStruct(name),
+      line,
     );
     if (resolved !== null) {
       // Issue #741: Check if this is a private const that should be inlined

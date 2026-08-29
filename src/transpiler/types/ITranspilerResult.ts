@@ -2,6 +2,7 @@ import ITranspileError from "../../lib/types/ITranspileError";
 import IGrammarCoverageReport from "../logic/analysis/types/IGrammarCoverageReport";
 import IFileResult from "./IFileResult";
 import type IRecordedRequirement from "./IRecordedRequirement";
+import type IRecordedAdrSite from "./IRecordedAdrSite";
 
 /**
  * Result of running the unified transpiler
@@ -37,6 +38,13 @@ interface ITranspilerResult {
    * "what does *my* project need?" rather than "what might C-Next need?".
    */
   requirements?: readonly IRecordedRequirement[];
+
+  /**
+   * Issue #1241: every position at which an ADR's rule fired while generating
+   * this run's output. Consumed by the scope-context matrix so a fixture that
+   * asserts generated C -- rather than a diagnostic -- can occupy a cell.
+   */
+  adrSites?: readonly IRecordedAdrSite[];
 }
 
 export default ITranspilerResult;

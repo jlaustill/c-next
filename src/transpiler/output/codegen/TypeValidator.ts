@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
+import AdrProvenance from "../../state/AdrProvenance";
 import TypeResolver from "./TypeResolver";
 import ExpressionUtils from "../../../utils/ExpressionUtils";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
@@ -377,17 +378,31 @@ class TypeValidator {
     }
   }
 
+  /**
+   * @param line Source line of the reference, when the caller has one. Used only
+   *   to record #1241 provenance: an ADR-057 resolution is invisible to the
+   *   scope-context matrix without a position, because a successful resolution
+   *   emits no diagnostic to take one from. Recorded HERE rather than at the
+   *   three callers, which are required not to re-derive this decision.
+   */
   static resolveBareIdentifier(
     identifier: string,
     isLocalVariable: boolean,
     isKnownStruct: (name: string) => boolean,
+    line?: number,
   ): string | null {
     if (isLocalVariable) {
       // ADR-057: a local normally emits under its own name (null = "leave it
       // alone"). One that shadows a file-scope symbol was given a distinct C
       // identifier at its declaration, and every reference must follow it.
       const emitted = CodeGenState.emittedLocalName(identifier);
-      return emitted === identifier ? null : emitted;
+      if (emitted === identifier) {
+        return null;
+      }
+      // The rename IS ADR-057's shadowing rule firing; a local that shadows
+      // nothing is the rule declining to act, which is not evidence of it.
+      AdrProvenance.record("057", line);
+      return emitted;
     }
 
     const currentScope = CodeGenState.currentScope;
@@ -397,7 +412,10 @@ class TypeValidator {
         identifier,
         currentScope,
       );
-      if (scopeResolved) return scopeResolved;
+      if (scopeResolved) {
+        AdrProvenance.record("057", line);
+        return scopeResolved;
+      }
     }
 
     if (

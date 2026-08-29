@@ -27,9 +27,14 @@ class SimpleIdentifierResolver {
    *
    * @param id The identifier to resolve
    * @param deps Dependencies for resolution
+   * @param line Source line of the reference, when the caller has one (#1241)
    * @returns The resolved identifier string
    */
-  static resolve(id: string, deps: ISimpleIdentifierDeps): string {
+  static resolve(
+    id: string,
+    deps: ISimpleIdentifierDeps,
+    line?: number,
+  ): string {
     // ADR-006: Check if it's a function parameter
     const paramInfo = deps.getParameterInfo(id);
     if (paramInfo) {
@@ -40,7 +45,7 @@ class SimpleIdentifierResolver {
     const isLocalVariable = deps.isLocalVariable(id);
 
     // ADR-016: Resolve bare identifier using local -> scope -> global priority
-    const resolved = deps.resolveBareIdentifier(id, isLocalVariable);
+    const resolved = deps.resolveBareIdentifier(id, isLocalVariable, line);
 
     // If resolved to a different name, use it
     if (resolved !== null) {
