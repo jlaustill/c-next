@@ -22,42 +22,11 @@ import CodeGenState from "../../../../../state/CodeGenState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import TestScopeUtils from "../../../../../logic/symbols/cnext/__tests__/testUtils";
 import IScopeSymbol from "../../../../../types/symbols/IScopeSymbol";
+import createMockSymbols from "../../../../../__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
 // ========================================================================
-
-function createMockSymbols(
-  overrides?: Partial<ICodeGenSymbols>,
-): ICodeGenSymbols {
-  return {
-    knownScopes: new Set(),
-    knownRegisters: new Set(),
-    knownEnums: new Set(),
-    knownStructs: new Set(),
-    knownBitmaps: new Set(),
-    scopeMembers: new Map(),
-    scopeMemberVisibility: new Map(),
-    structFields: new Map(),
-    structFieldArrays: new Map(),
-    structFieldDimensions: new Map(),
-    enumMembers: new Map(),
-    bitmapFields: new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: new Map(),
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-    scopeVariableUsage: new Map(),
-    scopePrivateConstValues: new Map(),
-    functionReturnTypes: new Map(),
-    getSingleFunctionForVariable: () => null,
-    ...overrides,
-  } as ICodeGenSymbols;
-}
 
 // ========================================================================
 // Test Helpers - Mock Input

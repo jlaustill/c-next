@@ -8,7 +8,7 @@ import { CNextLexer } from "../../parser/grammar/CNextLexer";
 import { CNextParser } from "../../parser/grammar/CNextParser";
 import ArrayIndexTypeAnalyzer from "../ArrayIndexTypeAnalyzer";
 import CodeGenState from "../../../state/CodeGenState";
-import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
+import createMockSymbols from "../../../__tests__/codeGenSymbolsHelpers";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -19,47 +19,6 @@ function parse(source: string) {
   const tokenStream = new CommonTokenStream(lexer);
   const parser = new CNextParser(tokenStream);
   return parser.program();
-}
-
-/**
- * Create a minimal mock ICodeGenSymbols with default empty collections.
- */
-function createMockSymbols(
-  overrides: Partial<{
-    knownEnums: Set<string>;
-    knownStructs: Set<string>;
-    structFields: Map<string, Map<string, string>>;
-    functionReturnTypes: Map<string, string>;
-  }> = {},
-): ICodeGenSymbols {
-  return {
-    knownScopes: new Set(),
-    knownEnums: overrides.knownEnums ?? new Set(),
-    knownBitmaps: new Set(),
-    knownStructs: overrides.knownStructs ?? new Set(),
-    knownRegisters: new Set(),
-    scopeMembers: new Map(),
-    scopeMemberVisibility: new Map(),
-    structFields: overrides.structFields ?? new Map(),
-    structFieldArrays: new Map(),
-    structFieldDimensions: new Map(),
-    enumMembers: new Map(),
-    bitmapFields: new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: new Map(),
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-    scopeVariableUsage: new Map(),
-    scopePrivateConstValues: new Map(),
-    functionReturnTypes: overrides.functionReturnTypes ?? new Map(),
-    opaqueTypes: new Set(),
-    hasPublicInterface: false,
-    getSingleFunctionForVariable: () => null,
-  };
 }
 
 describe("ArrayIndexTypeAnalyzer", () => {

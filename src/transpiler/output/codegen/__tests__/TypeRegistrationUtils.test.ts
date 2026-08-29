@@ -8,9 +8,15 @@ import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import CodeGenState from "../../../state/CodeGenState";
 
 /**
- * Create mock symbols for testing
+ * Mock for `ITypeSymbols` -- the three-field interface TypeRegistrationUtils
+ * declares locally, NOT `ICodeGenSymbols`.
+ *
+ * Deliberately not the shared `createMockSymbols` helper: this mocks a narrower
+ * contract, and matching it exactly is what keeps the util's dependency honest.
+ * It was named `createMockSymbols` too, which made it read as a ninth copy of
+ * the ICodeGenSymbols mock the other eight files shared (#1285).
  */
-function createMockSymbols(overrides: Record<string, unknown> = {}) {
+function createMockTypeSymbols(overrides: Record<string, unknown> = {}) {
   return {
     knownEnums: new Set<string>(),
     knownBitmaps: new Set<string>(),
@@ -26,7 +32,7 @@ describe("TypeRegistrationUtils", () => {
 
   describe("tryRegisterEnumType", () => {
     it("returns false if type is not a known enum", () => {
-      const symbols = createMockSymbols();
+      const symbols = createMockTypeSymbols();
 
       const result = TypeRegistrationUtils.tryRegisterEnumType(symbols, {
         name: "myVar",
@@ -41,7 +47,7 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("registers enum type and returns true", () => {
-      const symbols = createMockSymbols({
+      const symbols = createMockTypeSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
@@ -64,7 +70,7 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("respects isConst flag", () => {
-      const symbols = createMockSymbols({
+      const symbols = createMockTypeSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
@@ -80,7 +86,7 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("respects overflowBehavior", () => {
-      const symbols = createMockSymbols({
+      const symbols = createMockTypeSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
@@ -98,7 +104,7 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("respects isAtomic flag", () => {
-      const symbols = createMockSymbols({
+      const symbols = createMockTypeSymbols({
         knownEnums: new Set(["MyEnum"]),
       });
 
@@ -116,7 +122,7 @@ describe("TypeRegistrationUtils", () => {
 
   describe("tryRegisterBitmapType", () => {
     it("returns false if type is not a known bitmap", () => {
-      const symbols = createMockSymbols();
+      const symbols = createMockTypeSymbols();
 
       const result = TypeRegistrationUtils.tryRegisterBitmapType(
         symbols,
@@ -135,7 +141,7 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("registers non-array bitmap type", () => {
-      const symbols = createMockSymbols({
+      const symbols = createMockTypeSymbols({
         knownBitmaps: new Set(["MyFlags"]),
         bitmapBitWidth: new Map([["MyFlags", 8]]),
       });
@@ -164,7 +170,7 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("registers bitmap array type with dimensions", () => {
-      const symbols = createMockSymbols({
+      const symbols = createMockTypeSymbols({
         knownBitmaps: new Set(["MyFlags"]),
         bitmapBitWidth: new Map([["MyFlags", 16]]),
       });
@@ -190,7 +196,7 @@ describe("TypeRegistrationUtils", () => {
     });
 
     it("defaults bitWidth to 0 if not found", () => {
-      const symbols = createMockSymbols({
+      const symbols = createMockTypeSymbols({
         knownBitmaps: new Set(["MyFlags"]),
         // No bitWidth entry
       });

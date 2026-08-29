@@ -7,43 +7,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
 import CodeGenState from "../../../../state/CodeGenState";
-import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
-
-/**
- * Create a minimal mock ICodeGenSymbols with default empty collections.
- */
-function createMockSymbols(): ICodeGenSymbols {
-  return {
-    knownScopes: new Set(),
-    knownEnums: new Set(),
-    knownBitmaps: new Set(),
-    knownStructs: new Set(),
-    knownRegisters: new Set(),
-    scopeMembers: new Map(),
-    scopeMemberVisibility: new Map(),
-    structFields: new Map(),
-    structFieldArrays: new Map(),
-    structFieldDimensions: new Map(),
-    enumMembers: new Map(),
-    bitmapFields: new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: new Map(),
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-    scopeVariableUsage: new Map(),
-    scopePrivateConstValues: new Map(),
-    functionReturnTypes: new Map(),
-    hasPublicInterface: false,
-    getSingleFunctionForVariable: () => null,
-    opaqueTypes: new Set(),
-  };
-}
+import createMockSymbols from "../../../../__tests__/codeGenSymbolsHelpers";
 
 /**
  * Helper to parse a variable declaration and get its arrayType context
