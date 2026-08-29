@@ -18,6 +18,24 @@ import VariableCollector from "./collectors/VariableCollector";
 import RegisterCollector from "./collectors/RegisterCollector";
 import ScopeCollector from "./collectors/ScopeCollector";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import TYPE_FORMING_KINDS from "../TYPE_FORMING_KINDS";
+import TSymbolKindCNext from "../../../types/symbol-kinds/TSymbolKindCNext";
+
+/**
+ * The declaration node behind any one `scopeMember` alternative.
+ *
+ * A union of the real parse-tree context types rather than a structural
+ * `{ IDENTIFIER(): ... }`: every scopeMember accessor satisfies the structural
+ * shape, so a wrong kind/accessor pairing in `byKind` would still compile.
+ */
+type TScopeMemberDeclaration =
+  | Parser.EnumDeclarationContext
+  | Parser.StructDeclarationContext
+  | Parser.BitmapDeclarationContext
+  | Parser.FunctionDeclarationContext
+  | Parser.VariableDeclarationContext
+  | Parser.RegisterDeclarationContext
+  | null;
 
 class CNextResolver {
   /**
@@ -157,12 +175,56 @@ class CNextResolver {
   }
 
   /**
-   * Pass 0b: Collect the qualified name of every *type* declared inside a
-   * scope — enums, structs and bitmaps (ADR-057).
+   * The declaration inside a scope member that introduces a TYPE NAME, or null.
    *
-   * Only type declarations are collected. A scope function or variable sharing
-   * a leaf name with a global type must not capture that name at a type
-   * position, which is why this cannot key on scope membership generally.
+   * The kind-to-parse-node mapping lives here; whether that kind forms a type
+   * is TYPE_FORMING_KINDS' answer, asked rather than restated. Adding a kind to
+   * that set is therefore the whole change -- there is no second list to update.
+   */
+  private static typeFormingDeclaration(
+    member: Parser.ScopeMemberContext,
+  ): TScopeMemberDeclaration {
+    const byKind: ReadonlyArray<[TSymbolKindCNext, TScopeMemberDeclaration]> = [
+      ["enum", member.enumDeclaration()],
+      ["struct", member.structDeclaration()],
+      ["bitmap", member.bitmapDeclaration()],
+      ["function", member.functionDeclaration()],
+      // All six `scopeMember` alternatives (grammar/CNext.g4:81-88) are listed
+      // so TYPE_FORMING_KINDS is the ONLY thing that excludes a kind. Omitting
+      // these two instead would put the exclusion here while the reasoning for
+      // it lives in TYPE_FORMING_KINDS -- one file apart, which is the shape
+      // this work exists to remove. Listing them costs nothing (both are absent
+      // from the set, so behavior is unchanged) and makes the exclusions
+      // mutation-testable: adding "variable" to the set now actually changes
+      // behavior, and a fixture can fail on it.
+      ["variable", member.variableDeclaration()],
+      ["register", member.registerDeclaration()],
+    ];
+
+    for (const [kind, decl] of byKind) {
+      if (decl && TYPE_FORMING_KINDS.has(kind)) {
+        return decl;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Pass 0b: Collect the qualified name of every *type* declared inside a
+   * scope (ADR-057).
+   *
+   * Which kinds form a type is NOT decided here. It is read from
+   * TYPE_FORMING_KINDS, which is the single owner of that question -- this pass
+   * previously hardcoded enum/struct/bitmap, and #1281 proposed a fifth
+   * parallel set (`knownCallbackTypes`) for the one kind it had missed. ADR-029
+   * makes a function definition create a callback type, so `function` is a
+   * type-forming kind and belongs in the same answer rather than in a set of
+   * its own (#1285).
+   *
+   * Only type declarations are collected. A scope VARIABLE sharing a leaf name
+   * with a global type must not capture that name at a type position, which is
+   * why this cannot key on scope membership generally -- `variable` is
+   * deliberately absent from TYPE_FORMING_KINDS.
    *
    * Runs before any collector resolves a type so the answer does not depend on
    * whether the declaration appears above or below its use.
@@ -184,10 +246,7 @@ class CNextResolver {
         scopeDecl.IDENTIFIER().getText(),
       );
       for (const member of scopeDecl.scopeMember()) {
-        const typeDecl =
-          member.enumDeclaration() ??
-          member.structDeclaration() ??
-          member.bitmapDeclaration();
+        const typeDecl = CNextResolver.typeFormingDeclaration(member);
         if (typeDecl) {
           scopeTypes.add(
             ScopeUtils.qualifyInScope(typeDecl.IDENTIFIER().getText(), scope),

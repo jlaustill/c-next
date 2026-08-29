@@ -700,16 +700,32 @@ export default class CodeGenState {
   /**
    * Check if a *qualified* name is a known type declared in a scope.
    * Used by QualifedCName.qualifyScopeType() to ensure only actual type
-   * declarations (enum/struct/bitmap) capture the name at a type position.
+   * declarations (enum/struct/bitmap/function) capture the name at a type
+   * position. ADR-029 makes a function definition create a callback type, so a
+   * scope function is a type declaration for this purpose; a scope VARIABLE is
+   * not, and deliberately does not capture (ADR-057).
    *
    * @param qualifiedName The already-joined C name (e.g. "A__B")
-   * @returns true if the qualified name is a known enum, struct, or bitmap
+   * @returns true if the qualified name is a known enum, struct, bitmap, or
+   *          function-as-type (ADR-029)
    */
   static isScopeType(qualifiedName: string): boolean {
     return (
       this.symbols?.knownEnums.has(qualifiedName) ||
       this.symbols?.knownStructs.has(qualifiedName) ||
       this.symbols?.knownBitmaps.has(qualifiedName) ||
+      // ADR-029 makes a function definition create a callback type, so a
+      // function IS type-forming (TYPE_FORMING_KINDS says so, and the symbols
+      // layer's Pass 0b now asks it). This is the codegen half of the same
+      // question -- CLAUDE.md's "two resolution points, one decision" -- and it
+      // knew only the other three kinds, so a scope-local function-as-type
+      // stayed BARE here while the header resolved it qualified (#1281).
+      //
+      // callbackTypes is read rather than a fifth `knownCallbackTypes` set
+      // being added: #1281 proposed that set, and a fifth parallel set is the
+      // same bug #1285 exists to remove. callbackTypes is already keyed by
+      // qualified function name and already owns the `_fp` typedef decision.
+      this.callbackTypes.has(qualifiedName) ||
       false
     );
   }
