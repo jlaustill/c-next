@@ -1,0 +1,31 @@
+// test-execution
+// #1360 NEGATIVE CONTROL. Every read here is legal and must stay silent. A fix
+// that rejected every subscript -- rather than only an out-of-range constant --
+// would pass the .expected.error fixtures beside this one and fail here.
+//
+// Covers the shapes the bounds check must NOT fire on:
+//   - an in-bounds constant index, including the last valid one
+//   - a bit index on a scalar (u8 has no dimensions, so it is not an array)
+//   - a variable index, which is not a compile-time constant
+u8[4] values <- [10, 20, 30, 40];
+u8 flags <- 5;
+
+i32 main() {
+    u8 first <- values[0];
+    if (first != 10) { return 1; }
+
+    u8 last <- values[3];
+    if (last != 40) { return 2; }
+
+    u8 bitZero <- flags[0];
+    if (bitZero != 1) { return 3; }
+
+    u8 bitTwo <- flags[2];
+    if (bitTwo != 1) { return 4; }
+
+    u8 index <- 2;
+    u8 viaVariable <- values[index];
+    if (viaVariable != 30) { return 5; }
+
+    return 0;
+}

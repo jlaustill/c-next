@@ -32,6 +32,7 @@ import TTypeInfo from "../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TypeValidator from "../../TypeValidator";
 
 // ========================================================================
 // Tracking State
@@ -1694,6 +1695,33 @@ const handleSingleSubscript = (
     }
     output.result = expr;
     return output;
+  }
+
+  // ADR-036 (#1360): a constant subscript in a VALUE position is bounds-checked
+  // exactly as in an assignment target. The ADR names CWE-125 ("Out-of-bounds
+  // Read") and claims "compile-time and runtime bounds checking prevents all
+  // out-of-bounds reads", but only the assignment paths asked -- so
+  // `arr[9] <- 1` was rejected while `u8 x <- arr[9]` was emitted as `arr[9U]`
+  // at exit 0, and `arr[-1]` as `arr[-1U]`, i.e. UINT32_MAX.
+  //
+  // Placed here, once, rather than in each of the array branches below:
+  // whether this subscript is an array index at all is checkArrayBounds's
+  // decision (no dimensions -> it returns), so bit indexing on a scalar and
+  // struct-member access reach it and are correctly ignored. Register bit
+  // extraction has already returned above.
+  //
+  // subscriptDepth is the dimension this subscript indexes -- both array
+  // branches increment it -- so the full dimension list is passed with an
+  // offset rather than sliced.
+  const boundsIdentifier = ctx.resolvedIdentifier || ctx.rootIdentifier;
+  if (boundsIdentifier) {
+    TypeValidator.checkArrayBounds(
+      boundsIdentifier,
+      [expr],
+      ctx.op.start?.line ?? 0,
+      (indexExpr) => orchestrator.tryEvaluateConstant(indexExpr),
+      ctx.subscriptDepth,
+    );
   }
 
   // Member array access

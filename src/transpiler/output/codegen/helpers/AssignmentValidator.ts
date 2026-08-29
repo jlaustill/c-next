@@ -172,18 +172,14 @@ class AssignmentValidator {
       throw new Error(`${constError} (array element)`);
     }
 
-    // ADR-036: Compile-time bounds checking
-    const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
-
-    if (typeInfo?.isArray && typeInfo.arrayDimensions) {
-      TypeValidator.checkArrayBounds(
-        arrayName,
-        typeInfo.arrayDimensions,
-        subscriptExprs,
-        line,
-        callbacks.tryEvaluateConstant,
-      );
-    }
+    // ADR-036: Compile-time bounds checking. The whether-to-check guard lives
+    // in checkArrayBounds so all three callers ask the same question (#1360).
+    TypeValidator.checkArrayBounds(
+      arrayName,
+      subscriptExprs,
+      line,
+      callbacks.tryEvaluateConstant,
+    );
   }
 
   /**

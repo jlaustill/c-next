@@ -1,0 +1,13 @@
+// test-error
+// #1360 / ADR-036: a negative constant subscript in a VALUE position must be
+// rejected. Today it compiles at exit 0 and emits `arr[-1U]` -- the negative
+// literal also takes a `U` suffix, so the index is UINT32_MAX, not -1.
+//
+// The in-bounds read above must stay SILENT.
+u8[5] arr;
+
+i32 main() {
+    u8 inBounds <- arr[0];
+    u8 negative <- arr[-1];
+    return 0;
+}

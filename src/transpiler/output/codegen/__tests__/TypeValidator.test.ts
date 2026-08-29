@@ -510,65 +510,109 @@ describe("TypeValidator", () => {
   // ========================================================================
 
   describe("checkArrayBounds", () => {
+    const arrayType = (dims: number[]): TTypeInfo => ({
+      baseType: "u8",
+      bitWidth: 8,
+      isArray: true,
+      isConst: false,
+      arrayDimensions: dims,
+    });
+    const withArray = (name: string, dims: number[]): void =>
+      setupState({ typeRegistry: new Map([[name, arrayType(dims)]]) });
+
     it("allows valid constant indices", () => {
-      setupState();
+      withArray("arr", [10]);
       const indexExprs = [createMockExpression("0")];
       const tryEval = vi.fn(() => 0);
       expect(() =>
-        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 1, tryEval),
+        TypeValidator.checkArrayBounds("arr", indexExprs, 1, tryEval),
       ).not.toThrow();
     });
 
     it("throws for negative indices", () => {
-      setupState();
+      withArray("arr", [10]);
       const indexExprs = [createMockExpression("-1")];
       const tryEval = vi.fn(() => -1);
       expect(() =>
-        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 5, tryEval),
+        TypeValidator.checkArrayBounds("arr", indexExprs, 5, tryEval),
       ).toThrow("Array index out of bounds: -1 is negative for 'arr'");
     });
 
     it("throws for index >= dimension", () => {
-      setupState();
+      withArray("arr", [10]);
       const indexExprs = [createMockExpression("10")];
       const tryEval = vi.fn(() => 10);
       expect(() =>
-        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 3, tryEval),
+        TypeValidator.checkArrayBounds("arr", indexExprs, 3, tryEval),
       ).toThrow("Array index out of bounds: 10 >= 10 for 'arr' dimension 1");
     });
 
     it("checks all dimensions for multi-dimensional arrays", () => {
-      setupState();
+      withArray("matrix", [3, 4]);
       const indexExprs = [createMockExpression("0"), createMockExpression("5")];
       let callIdx = 0;
       const tryEval = vi.fn(() => (callIdx++ === 0 ? 0 : 5));
       expect(() =>
-        TypeValidator.checkArrayBounds(
-          "matrix",
-          [3, 4],
-          indexExprs,
-          1,
-          tryEval,
-        ),
+        TypeValidator.checkArrayBounds("matrix", indexExprs, 1, tryEval),
       ).toThrow("Array index out of bounds: 5 >= 4 for 'matrix' dimension 2");
     });
 
     it("skips non-constant indices", () => {
-      setupState();
+      withArray("arr", [10]);
       const indexExprs = [createMockExpression("i")];
       const tryEval = vi.fn(() => undefined);
       expect(() =>
-        TypeValidator.checkArrayBounds("arr", [10], indexExprs, 1, tryEval),
+        TypeValidator.checkArrayBounds("arr", indexExprs, 1, tryEval),
       ).not.toThrow();
     });
 
     it("skips upper bound check for unsized dimensions (Issue #547)", () => {
-      setupState();
+      // UNRESOLVED_DIMENSION: size unknown, cannot validate -- not a bound of 0
+      withArray("unsized", [0]);
       const indexExprs = [createMockExpression("100")];
       const tryEval = vi.fn(() => 100);
-      // Dimension 0 means unsized array
       expect(() =>
-        TypeValidator.checkArrayBounds("unsized", [0], indexExprs, 1, tryEval),
+        TypeValidator.checkArrayBounds("unsized", indexExprs, 1, tryEval),
+      ).not.toThrow();
+    });
+
+    it("skips a variable that has no array dimensions (#1360 unified guard)", () => {
+      setupState({
+        typeRegistry: new Map([
+          [
+            "flags",
+            { baseType: "u8", bitWidth: 8, isArray: false, isConst: false },
+          ],
+        ]),
+      });
+      const indexExprs = [createMockExpression("99")];
+      const tryEval = vi.fn(() => 99);
+      expect(() =>
+        TypeValidator.checkArrayBounds("flags", indexExprs, 1, tryEval),
+      ).not.toThrow();
+    });
+
+    it("validates against the offset dimension, not dimension 0 (#1360)", () => {
+      // The read path walks a postfix chain one subscript at a time, so it
+      // reports its depth instead of slicing. Index 5 at offset 1 must be
+      // judged against dimension 2 (size 4), not dimension 1 (size 3).
+      withArray("grid", [3, 4]);
+      const indexExprs = [createMockExpression("5")];
+      const tryEval = vi.fn(() => 5);
+      expect(() =>
+        TypeValidator.checkArrayBounds("grid", indexExprs, 1, tryEval, 1),
+      ).toThrow("Array index out of bounds: 5 >= 4 for 'grid' dimension 2");
+    });
+
+    it("allows an index at the offset dimension that is in range (#1360)", () => {
+      // Negative control for the offset test above: 3 is out of range for
+      // dimension 1 (size 3) but in range for dimension 2 (size 4), so an
+      // offset that was ignored would make this throw.
+      withArray("grid", [3, 4]);
+      const indexExprs = [createMockExpression("3")];
+      const tryEval = vi.fn(() => 3);
+      expect(() =>
+        TypeValidator.checkArrayBounds("grid", indexExprs, 1, tryEval, 1),
       ).not.toThrow();
     });
   });
