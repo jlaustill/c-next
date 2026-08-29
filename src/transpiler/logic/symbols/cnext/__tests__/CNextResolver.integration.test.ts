@@ -602,6 +602,25 @@ describe("CNextResolver Integration", () => {
   // pipeline runs -- Transpiler stages 3 and 5 both resolve every file, and
   // SymbolRegistry.reset() runs once per run, not between them (#1301).
   describe("idempotence of the declare step", () => {
+    // Snapshots EVERY mutable collection on IScopeSymbol, not just the one this
+    // PR guarded. "Declare runs twice over the same tree" is compensated
+    // separately in three places -- `declarationSites` by Set semantics,
+    // `members` by the includes-check `ScopeCollector` added for #1334, and
+    // `functions` by `SymbolRegistry.isAlreadyRegistered` -- each with only a
+    // local test. Nothing asserted the STEP was idempotent, so a collection
+    // added without a guard would duplicate silently. `variables` is exactly
+    // that shape today: declared on IScopeSymbol and never written.
+    const snapshotMotor = () => {
+      const scope = SymbolRegistry.getScope("Motor")!;
+      return {
+        functions: scope.functions.map((f) => f.fullyQualifiedCName),
+        members: [...scope.members],
+        variables: [...scope.variables],
+        declarationSites: [...scope.declarationSites].sort(),
+        memberVisibility: [...scope.memberVisibility.entries()].sort(),
+      };
+    };
+
     it("resolving the same tree twice leaves registry state unchanged", () => {
       const code = `scope Motor {
         void start() { }
@@ -611,16 +630,16 @@ describe("CNextResolver Integration", () => {
       // Re-parsed each time, as stage 5 does -- distinct trees, distinct symbol
       // objects. An identity-based guard would not catch the duplication.
       CNextResolver.resolve(parse(code), "motor.cnx");
-      const afterFirst = SymbolRegistry.getScope("Motor")?.functions.map(
-        (f) => f.name,
-      );
-      CNextResolver.resolve(parse(code), "motor.cnx");
-      const afterSecond = SymbolRegistry.getScope("Motor")?.functions.map(
-        (f) => f.name,
-      );
+      const afterFirst = snapshotMotor();
 
-      expect(afterFirst).toEqual(["start", "stop"]);
-      expect(afterSecond).toEqual(["start", "stop"]);
+      // Absolute assertion first: before/after equality alone cannot tell
+      // "idempotent" from "consistently wrong on both passes".
+      expect(afterFirst.functions).toEqual(["Motor__start", "Motor__stop"]);
+      expect(afterFirst.members).toEqual(["start", "stop"]);
+
+      CNextResolver.resolve(parse(code), "motor.cnx");
+
+      expect(snapshotMotor()).toEqual(afterFirst);
     });
 
     // NEGATIVE CONTROL. A scope spanned across two files must still merge

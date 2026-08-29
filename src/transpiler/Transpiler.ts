@@ -2050,10 +2050,9 @@ class Transpiler {
   }
 
   /**
-   * Collect external enum sources from included C-Next files.
-   */
-  /**
-   * Pass 1.4 Resolve (Tier 2) then pass 1.3 Declare (Tier 1), for one file.
+   * Derive the Tier 2 facts (pass 1.4 Resolve), then run the Tier 1 declare
+   * (pass 1.3), for one file. The inversion is deliberate: declare cannot start
+   * until the cross-file facts it reads exist.
    *
    * #1358: the two facts a per-file declare cannot know are authored HERE, once.
    * Both stage 3 and stage 5 previously derived "which scope types are visible
@@ -2094,6 +2093,9 @@ class Transpiler {
     };
   }
 
+  /**
+   * Collect external enum sources from included C-Next files.
+   */
   private _collectExternalEnumSources(
     sourcePath: string,
     cnextIncludes?: ReadonlyArray<{ path: string }>,

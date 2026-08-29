@@ -99,13 +99,20 @@ class SymbolRegistry {
   /**
    * Is `func` a re-registration of a declaration already in its scope?
    *
-   * Keyed on `fullyQualifiedCName`, which ADR-063 makes injective and
-   * `IBaseSymbol` documents as the symbol's canonical identity. That is a
-   * sufficient key here because C-Next has no function overloads: two functions
-   * sharing a qualified name are rejected as E0425 by
-   * `SymbolTable.detectCNextDuplicate` before anything reads this list, whether
-   * their signatures differ or not. So a collision reaching this point is always
-   * the same declaration seen twice, never two declarations.
+   * Keyed on `fullyQualifiedCName`, but this does NOT rest on ADR-063's
+   * program-wide injectivity. The search is over `func.scope.functions` -- one
+   * scope's array -- where the qualified prefix is constant, so the key reduces
+   * to the bare name. The property actually required is the narrower "no two
+   * functions in ONE scope share a name", which is the stronger result: it holds
+   * even if the encoder changes.
+   *
+   * E0425 is what supplies it. C-Next has no function overloads, so two functions
+   * sharing a name in a scope are rejected by `SymbolTable.detectCNextDuplicate`
+   * before anything reads this list, whether their signatures differ or not --
+   * gated by tests/bugs/issue-1358-declare-idempotence/. The same holds in the
+   * global scope, where two same-named top-level functions in different files
+   * also raise E0425 (verified, not assumed). So a collision reaching this point
+   * is always the same declaration seen twice, never two declarations.
    *
    * Deliberately NOT keyed on the scope. `getOrCreateScope` is repeat-safe by
    * design -- that is how a scope spanned across two files merges (#1333) -- so
