@@ -185,25 +185,67 @@ class TypeValidator {
   // Array Bounds Validation (ADR-036)
   // ========================================================================
 
+  /**
+   * ADR-036: compile-time bounds checking for a constant subscript.
+   *
+   * The whether-to-check decision lives HERE, not at each call site. Two
+   * callers used to guard on different predicates -- `isArray &&
+   * arrayDimensions` in `AssignmentValidator`, `arrayDimensions` alone in
+   * `ArrayHandlers` -- which agreed only because `arrayDimensions` is set "if
+   * isArray is true" by convention rather than by enforcement
+   * (`IVariableSymbol.ts:32`). #1360 added a third caller, and three places
+   * deciding whether a safety check happens is the divergence CLAUDE.md
+   * forbids. The surviving predicate is the broader one: dimensions present
+   * means there is a bound to check against, and unifying on the narrower one
+   * would have LOOSENED an existing check.
+   *
+   * Callers still supply the name, because resolving it legitimately differs
+   * by context -- a bare identifier on the declaration path, the
+   * scope-resolved one in `ArrayHandlers` (#1139).
+   *
+   * @param dimensionOffset Which dimension `indexExprs[0]` indexes. The read
+   *   path walks a postfix chain one subscript at a time, so it reports its
+   *   depth rather than slicing `arrayDimensions`. Slicing would shift every
+   *   later dimension and validate an index against the wrong bound -- e.g.
+   *   `u8[N][4] grid` checking `grid[i]` against 4 -- which is exactly the
+   *   defect `UNRESOLVED_DIMENSION` keeps a placeholder slot to prevent.
+   */
   static checkArrayBounds(
     arrayName: string,
-    dimensions: number[],
     indexExprs: Parser.ExpressionContext[],
     line: number,
     tryEvaluateConstant: (ctx: Parser.ExpressionContext) => number | undefined,
+    dimensionOffset = 0,
   ): void {
-    for (let i = 0; i < indexExprs.length && i < dimensions.length; i++) {
+    const dimensions =
+      CodeGenState.getVariableTypeInfo(arrayName)?.arrayDimensions;
+    if (!dimensions) {
+      return;
+    }
+
+    for (let i = 0; i < indexExprs.length; i++) {
+      const dimension = dimensionOffset + i;
+      if (dimension >= dimensions.length) {
+        break;
+      }
+
       const constValue = tryEvaluateConstant(indexExprs[i]);
-      if (constValue !== undefined) {
-        if (constValue < 0) {
-          throw new Error(
-            `Array index out of bounds: ${constValue} is negative for '${arrayName}' dimension ${i + 1} (line ${line})`,
-          );
-        } else if (dimensions[i] > 0 && constValue >= dimensions[i]) {
-          throw new Error(
-            `Array index out of bounds: ${constValue} >= ${dimensions[i]} for '${arrayName}' dimension ${i + 1} (line ${line})`,
-          );
-        }
+      if (constValue === undefined) {
+        continue;
+      }
+
+      if (constValue < 0) {
+        throw new Error(
+          `Array index out of bounds: ${constValue} is negative for '${arrayName}' dimension ${dimension + 1} (line ${line})`,
+        );
+      }
+
+      // A non-positive dimension is UNRESOLVED_DIMENSION -- size unknown,
+      // cannot validate -- never a real bound of zero.
+      if (dimensions[dimension] > 0 && constValue >= dimensions[dimension]) {
+        throw new Error(
+          `Array index out of bounds: ${constValue} >= ${dimensions[dimension]} for '${arrayName}' dimension ${dimension + 1} (line ${line})`,
+        );
       }
     }
   }

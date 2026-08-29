@@ -316,9 +316,10 @@ describe("AssignmentValidator", () => {
         defaultCallbacks,
       );
 
+      // #1360: dimensions are no longer passed in -- checkArrayBounds owns the
+      // whether-to-check decision, so every caller asks the same question.
       expect(TypeValidator.checkArrayBounds).toHaveBeenCalledWith(
         "arr",
-        [10],
         expect.anything(),
         5,
         expect.any(Function),

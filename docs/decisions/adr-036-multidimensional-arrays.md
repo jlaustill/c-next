@@ -446,6 +446,26 @@ Compiler flags:
 - [CWE-787: Out-of-bounds Write](https://cwe.mitre.org/data/definitions/787.html)
 - [CWE-119: Improper Restriction of Operations within Bounds](https://cwe.mitre.org/data/definitions/119.html)
 
+### Implementation
+
+Compile-time bounds checking for a constant subscript:
+
+- `src/transpiler/output/codegen/TypeValidator.ts:213` — `checkArrayBounds`, the single
+  decision: whether a variable has a bound to check against, and whether the index clears it.
+  Callers supply the name and the subscript depth; they do not re-derive the guard.
+- `src/transpiler/output/codegen/helpers/AssignmentValidator.ts:177` — assignment target.
+- `src/transpiler/output/codegen/assignment/handlers/ArrayHandlers.ts:61` — multi-dimensional
+  assignment target.
+- `src/transpiler/output/codegen/generators/expressions/PostfixExpressionGenerator.ts:1718` —
+  value position (#1360). Until then only the assignment paths asked, so `arr[9] <- 1` was
+  rejected while `u8 x <- arr[9]` compiled at exit 0 — contradicting this ADR's CWE-125
+  mitigation claim below.
+- `src/transpiler/constants/UNRESOLVED_DIMENSION.ts` — why a dimension that cannot be folded
+  keeps its slot rather than being omitted.
+
+Not yet covered: a subscript on a **struct field** (`s.arr[9]`) is unchecked in both
+positions — tracked as #1168.
+
 ### Related ADRs
 
 - ADR-007: `.length` property and bit indexing

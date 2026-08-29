@@ -1,0 +1,19 @@
+// test-error
+// #1360 / ADR-036: a read of a scope-declared array is bounds-checked. The
+// write path already rejects this; the read path did not (ADR-057 scope
+// context -- the identifier resolves to Motor__table).
+//
+// The in-bounds read above must stay SILENT.
+scope Motor {
+    u8[4] table <- [1, 2, 3, 4];
+
+    u8 readIt() {
+        u8 inBounds <- table[3];
+        u8 outOfBounds <- table[9];
+        return outOfBounds;
+    }
+}
+
+i32 main() {
+    return 0;
+}
