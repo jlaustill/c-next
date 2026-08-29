@@ -823,4 +823,76 @@ describe("TSymbolInfoAdapter", () => {
       expect(info.knownScopes.has("Motor")).toBe(true);
     });
   });
+
+  // Issue #1333: a scope may be reopened across files, so an included file's
+  // scope types must cross the include boundary. Only knownEnums did -- and
+  // enumMembers crossed with it, which is why enums were the only kind that
+  // ever worked. A bitmap's NAME alone lets the type resolve and then hard-error
+  // on the field lookup behind it.
+  //
+  // Covered here rather than only in tests/bugs/issue-1333-scope-reopening/
+  // because integration fixtures do not feed the coverage metric.
+  describe("mergeExternalSymbols — bitmap detail maps", () => {
+    const makeBitmap = (
+      name: string,
+      fields: Map<string, { offset: number; width: number }> = new Map([
+        ["Ready", { offset: 0, width: 1 }],
+        ["Mode", { offset: 1, width: 3 }],
+      ]),
+    ): IBitmapSymbol => ({
+      ...TestSymbolUtils.base({
+        kind: "bitmap",
+        name,
+        scope: globalScope,
+        sourceFile: "lib.cnx",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.CNext,
+        isExported: true,
+      }),
+      backingType: "uint8_t",
+      bitWidth: 8,
+      fields,
+    });
+
+    it("carries a bitmap's fields, backing type and bit width across the boundary", () => {
+      const base = TSymbolInfoAdapter.convert([]);
+      const external = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
+
+      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
+
+      expect(merged.knownBitmaps.has("Flags")).toBe(true);
+      // The name alone is what used to cross; these three are the fix.
+      expect(merged.bitmapFields.get("Flags")?.get("Mode")).toEqual({
+        offset: 1,
+        width: 3,
+      });
+      expect(merged.bitmapBackingType.get("Flags")).toBe("uint8_t");
+      expect(merged.bitmapBitWidth.get("Flags")).toBe(8);
+    });
+
+    it("keeps the local definition when both files declare the same bitmap", () => {
+      const local = makeBitmap(
+        "Flags",
+        new Map([["Ready", { offset: 7, width: 1 }]]),
+      );
+
+      const base = TSymbolInfoAdapter.convert([local]);
+      const external = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
+
+      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
+
+      // Local takes precedence, matching how enumMembers already merges.
+      expect(merged.bitmapFields.get("Flags")?.get("Ready")).toEqual({
+        offset: 7,
+        width: 1,
+      });
+      expect(merged.bitmapFields.get("Flags")?.has("Mode")).toBe(false);
+    });
+
+    it("returns the base unchanged when there are no external sources", () => {
+      const base = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
+
+      expect(TSymbolInfoAdapter.mergeExternalSymbols(base, [])).toBe(base);
+    });
+  });
 });

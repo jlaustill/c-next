@@ -1,0 +1,19 @@
+// Helper for cross-file-span.test.cnx (#1333). Declares the first half of
+// scope Lib; the fixture reopens it and uses both types bare.
+scope Lib {
+    public enum Mode {
+        ALPHA <- 1,
+        BETA <- 2
+    }
+
+    public struct Point {
+        u32 x;
+        u32 y;
+    }
+
+    public bitmap8 Flags {
+        Ready,
+        Mode[3],
+        Reserved[4]
+    }
+}

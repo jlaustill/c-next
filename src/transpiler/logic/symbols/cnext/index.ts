@@ -50,6 +50,7 @@ class CNextResolver {
     tree: Parser.ProgramContext,
     sourceFile: string,
     externalConstValues?: Map<string, number>,
+    externalScopeTypes?: ReadonlySet<string>,
   ): TSymbol[] {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
@@ -70,7 +71,14 @@ class CNextResolver {
     // scope (ADR-057). This must complete before any type is resolved, so that
     // a bare type name is qualified the same way no matter where its
     // declaration appears relative to its use.
-    const scopeTypes = new Set<string>();
+    // #1333: seed with the scope types declared in INCLUDED files. Pass 0b walks
+    // one parse tree, which was sufficient only while a scope could not be
+    // reopened -- now the other half of a spanned scope lives in another file and
+    // this pass cannot see it. Without the seed the symbols layer resolves a bare
+    // `Point` unqualified while codegen resolves it to `Lib__Point`, so the `.h`
+    // and the `.c` disagree about a function's signature and the file does not
+    // compile (CLAUDE.md, "Two resolution points, one decision").
+    const scopeTypes = new Set<string>(externalScopeTypes ?? []);
     CNextResolver.collectScopeTypesPass0b(tree, scopeTypes);
     const isScopeType = (qualifiedName: string): boolean =>
       scopeTypes.has(qualifiedName);
