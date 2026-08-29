@@ -15,6 +15,7 @@ import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import CNextResolver from "../../../logic/symbols/cnext/index";
+import SymbolRegistry from "../../../state/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
@@ -55,6 +56,10 @@ function setupGenerator(
 describe("CodeGenerator Coverage Tests", () => {
   beforeEach(() => {
     CodeGenState.reset();
+    // CLAUDE.md, "Test isolation": this file drives CNextResolver, which writes
+    // to the SymbolRegistry. Without this, every test inherits the scopes the
+    // previous one registered.
+    SymbolRegistry.reset();
   });
 
   // ==========================================================================
