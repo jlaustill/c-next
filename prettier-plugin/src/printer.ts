@@ -6,10 +6,14 @@
  * that no grammar rule is unhandled -- which is what turns "the grammar grew
  * and the formatter did not" into a CI failure instead of silent bit-rot.
  *
- * The one invariant every layout function must hold: **consume every child
- * exactly once**. Comments are anchored to tokens, so synthesizing punctuation
- * instead of printing the token deletes that token's comments. Only whitespace
- * is ever synthesized here.
+ * The one invariant every layout function must hold: **print every child
+ * exactly once**. Comments are anchored to tokens, so consuming a token and
+ * discarding its doc -- synthesizing `","` in its place, say -- deletes that
+ * token's comments. Only whitespace is ever synthesized here.
+ *
+ * Note that the `cursor.done()` check in `printNode` catches a child that was
+ * never *consumed*, not one consumed and then dropped. Three comment-loss bugs
+ * of the second kind reached review before that distinction was clear.
  *
  * Formatting style (asserted by tests/format.test.ts):
  * - 4-space indentation
@@ -25,6 +29,7 @@ import { CNextParser } from "../../src/transpiler/logic/parser/grammar/CNextPars
 
 import ChildCursor from "./childCursor";
 import Cst from "./cst";
+import ICommentAnchor from "./types/ICommentAnchor";
 import ICommentNode from "./types/ICommentNode";
 import TCstNode from "./types/TCstNode";
 
@@ -77,6 +82,15 @@ const CONCATENATED_RULES: ReadonlySet<number> = new Set([
   CNextParser.RULE_globalType,
   CNextParser.RULE_qualifiedType,
   CNextParser.RULE_stringType,
+  // Also just their children run together: `sizeof(T)`, `(T)x`, `a.b[i]`,
+  // `(expr)`, `[N]`. Each had its own function with an identical body; the
+  // duplication was five copies of one decision.
+  CNextParser.RULE_assignmentTarget,
+  CNextParser.RULE_primaryExpression,
+  CNextParser.RULE_sizeofExpression,
+  CNextParser.RULE_castExpression,
+  CNextParser.RULE_arrayDimension,
+  CNextParser.RULE_arrayTypeDimension,
 ]);
 
 /**
@@ -144,15 +158,29 @@ function printTrailingComments(comments: ICommentNode[]): Doc[] {
   return parts;
 }
 
-/** A comment that leads a token, plus the separation that must follow it. */
-function printLeadingComment(comment: ICommentNode): Doc[] {
+/**
+ * The comments leading a token, each on its own line.
+ *
+ * This is half of the anti-oscillation contract; the parser holds the other.
+ * The parser calls a comment trailing exactly when it shares the previous
+ * token's line, so rendering a *leading* comment anywhere but the start of a
+ * line means the next run reads it as trailing something else and moves it.
+ * Giving it its own line makes re-parsing reproduce the classification.
+ */
+function printLeadingComments(anchor: ICommentAnchor): Doc[] {
+  if (anchor.before.length === 0) return [];
   const parts: Doc[] = [];
-  if (comment.precededByBlankLine) parts.push(hardline);
-  parts.push(comment.value);
-  // A line comment runs to end of line, so anything after it must start a new
-  // one -- otherwise the following token is swallowed into the comment. A block
-  // comment keeps whichever it had: alone on its line, or inline before code.
-  parts.push(comment.endsItsLine ? hardline : " ");
+  // Nothing to break from at the very start of a file.
+  if (!anchor.atFileStart) parts.push(hardline);
+  for (let index = 0; index < anchor.before.length; index += 1) {
+    const comment = anchor.before[index];
+    if (index > 0) parts.push(hardline);
+    if (comment.precededByBlankLine) parts.push(hardline);
+    parts.push(comment.value);
+  }
+  // The token itself starts the next line.
+  parts.push(hardline);
+  if (anchor.blankLineBeforeToken) parts.push(hardline);
   return parts;
 }
 
@@ -170,12 +198,10 @@ function printLeadingCommentLines(node: TCstNode): Doc[] {
   const lines: Doc[] = [];
   for (let index = 0; index < anchor.before.length; index += 1) {
     const comment = anchor.before[index];
-    if (index > 0)
-      lines.push(anchor.before[index - 1].endsItsLine ? hardline : " ");
+    if (index > 0) lines.push(hardline);
     if (comment.precededByBlankLine) lines.push(hardline);
     lines.push(comment.value);
   }
-  if (anchor.blankLineBeforeToken) lines.push(hardline);
   return lines;
 }
 
@@ -199,15 +225,11 @@ function printTerminal(node: TCstNode): Doc {
   const text = Cst.isEndOfFile(node) ? "" : Cst.textOf(node);
   if (anchor === undefined) return text;
 
-  const parts: Doc[] = [];
-  for (const comment of anchor.before) {
-    parts.push(...printLeadingComment(comment));
-  }
-  // The separator above already ended the line after a comment that owned it,
-  // so a blank line needs one more break than a comment sharing its line.
-  if (anchor.blankLineBeforeToken) parts.push(hardline);
-  parts.push(text, ...printTrailingComments(anchor.after));
-  return parts;
+  return [
+    ...printLeadingComments(anchor),
+    text,
+    ...printTrailingComments(anchor.after),
+  ];
 }
 
 // ============================================================================
@@ -224,7 +246,10 @@ function joinPreservingBlankLines(
 ): Doc[] {
   const parts: Doc[] = [];
   for (let index = 0; index < taken.length; index += 1) {
-    if (index > 0) {
+    // An item whose first token carries leading comments already begins with a
+    // break, and its comment records its own blank line. Adding the separator
+    // too would open a blank line the author never wrote.
+    if (index > 0 && !Cst.hasLeadingComments(taken[index].node)) {
       parts.push(separator);
       if (Cst.hasBlankLineBetween(taken[index - 1].node, taken[index].node)) {
         parts.push(hardline);
@@ -242,7 +267,12 @@ function joinPreservingBlankLines(
  * anchored to it can be laid out inside the braces, at body indentation, where
  * they were written.
  */
-function printBraced(open: Doc, body: Doc[], closeNode: TCstNode): Doc {
+function printBraced(
+  open: Doc,
+  body: Doc[],
+  closeNode: TCstNode,
+  firstItem?: TCstNode,
+): Doc {
   const trailingComments = printLeadingCommentLines(closeNode);
   const close = printTerminalBody(closeNode);
   const contents = [...body];
@@ -251,7 +281,12 @@ function printBraced(open: Doc, body: Doc[], closeNode: TCstNode): Doc {
     contents.push(...trailingComments);
   }
   if (contents.length === 0) return [open, close];
-  return [open, indent([hardline, ...contents]), hardline, close];
+  // The first item supplies its own break when it starts with a comment.
+  const opensBody =
+    firstItem !== undefined && Cst.hasLeadingComments(firstItem)
+      ? []
+      : [hardline];
+  return [open, indent([...opensBody, ...contents]), hardline, close];
 }
 
 /** A brace-delimited member list: `'{' member* '}'`. */
@@ -263,6 +298,7 @@ function printMemberBlock(cursor: ChildCursor, memberRule: number): Doc {
     open,
     joinPreservingBlankLines(members, hardline),
     close.node,
+    members[0]?.node,
   );
 }
 
@@ -277,8 +313,10 @@ function printCommaMemberBlock(cursor: ChildCursor, memberRule: number): Doc {
   const open = cursor.take();
   const parts: Doc[] = [];
   let previous: TCstNode | null = null;
+  let first: TCstNode | undefined;
   while (cursor.peekRule() === memberRule) {
     const member = cursor.takeChild();
+    first = first ?? member.node;
     if (previous !== null && Cst.hasBlankLineBetween(previous, member.node)) {
       parts.push(hardline);
     }
@@ -289,7 +327,7 @@ function printCommaMemberBlock(cursor: ChildCursor, memberRule: number): Doc {
     if (cursor.peekRule() === memberRule) parts.push(hardline);
   }
   const close = cursor.takeChild();
-  return printBraced(open, parts, close.node);
+  return printBraced(open, parts, close.node, first);
 }
 
 /** `keyword body`, e.g. `critical { ... }` and `forever { ... }`. */
@@ -384,7 +422,9 @@ function printRegisterMember(cursor: ChildCursor): Doc {
     at,
     " ",
     address,
-    comma ?? ",",
+    // Only the comma the author wrote: the grammar's `','?` makes it optional,
+    // and synthesizing one would break "only whitespace is synthesized here".
+    comma ?? "",
   ];
 }
 
@@ -504,19 +544,14 @@ function printAssignmentLike(cursor: ChildCursor): Doc {
   return parts;
 }
 
-function printAssignmentTarget(cursor: ChildCursor): Doc {
-  // `global . x`, `this . x` and a bare identifier all concatenate verbatim;
-  // the postfix chain supplies its own punctuation.
-  return cursor.takeRest().map((taken) => taken.doc);
-}
-
 function printPostfixOperation(cursor: ChildCursor): Doc {
-  const opening = cursor.take();
-  const parts: Doc[] = [opening];
+  const parts: Doc[] = [cursor.take()];
   while (cursor.remaining() > 0) {
     if (cursor.peekText() === ",") {
-      cursor.take();
-      parts.push(", ");
+      // The bit-range form is `'[' expression ',' expression ']'`. Print the
+      // comma rather than synthesizing one: a comment written after it is
+      // anchored to that token, and discarding its doc deletes the comment.
+      parts.push(cursor.take(), " ");
       continue;
     }
     parts.push(cursor.take());
@@ -639,6 +674,7 @@ function printSwitchStatement(cursor: ChildCursor): Doc {
       openBrace,
       joinPreservingBlankLines(cases, hardline),
       closeBrace.node,
+      cases[0]?.node,
     ),
   ];
 }
@@ -693,10 +729,12 @@ function printTernaryExpression(cursor: ChildCursor): Doc {
   ];
 }
 
-function printBinaryChain(cursor: ChildCursor): Doc {
+function printBinaryChain(cursor: ChildCursor, node: TCstNode): Doc {
+  const broken = Cst.containsTrailingLineComment(node);
+  const separator: Doc = broken ? indent(hardline) : " ";
   const parts: Doc[] = [cursor.take()];
   while (!cursor.done()) {
-    parts.push(" ", cursor.take(), " ", cursor.take());
+    parts.push(" ", cursor.take(), separator, cursor.take());
   }
   return parts;
 }
@@ -705,19 +743,6 @@ function printUnaryExpression(cursor: ChildCursor): Doc {
   const first = cursor.take();
   if (cursor.done()) return first;
   return [first, cursor.take()];
-}
-
-function printPrimaryExpression(cursor: ChildCursor): Doc {
-  // `'(' expression ')'`, `this`, `global`, IDENTIFIER, or a nested rule.
-  return cursor.takeRest().map((taken) => taken.doc);
-}
-
-function printSizeofExpression(cursor: ChildCursor): Doc {
-  return [cursor.take(), cursor.take(), cursor.take(), cursor.take()];
-}
-
-function printCastExpression(cursor: ChildCursor): Doc {
-  return [cursor.take(), cursor.take(), cursor.take(), cursor.take()];
 }
 
 function printStructInitializer(cursor: ChildCursor): Doc {
@@ -736,8 +761,10 @@ function printFieldInitializerList(cursor: ChildCursor): Doc {
   while (cursor.peekText() === ",") {
     const comma = cursor.take();
     if (cursor.done()) {
-      // A trailing comma is dropped: re-emitting it would fight the group's
-      // own separator and make the output non-idempotent.
+      // The grammar allows a trailing comma. Print it, as the enum and bitmap
+      // layout already does: a comment written after it anchors to that token,
+      // so dropping the comma deletes the comment.
+      parts.push(comma);
       break;
     }
     parts.push(comma, line, cursor.take());
@@ -762,17 +789,26 @@ function printArrayInitializer(cursor: ChildCursor): Doc {
   const elements: Doc[] = [first];
   while (cursor.peekText() === ",") {
     const comma = cursor.take();
-    if (cursor.remaining() <= 1) break;
+    if (cursor.remaining() <= 1) {
+      // Trailing comma: grammatical, and printing it keeps any comment
+      // anchored to it.
+      elements.push(comma);
+      break;
+    }
     elements.push(comma, line, cursor.take());
   }
   const close = cursor.take();
   return group([open, indent([softline, ...elements]), softline, close]);
 }
 
-function printCommaList(cursor: ChildCursor): Doc {
+function printCommaList(cursor: ChildCursor, node: TCstNode): Doc {
+  // A line comment inside the list must end a line, or the next item's comment
+  // is deferred to the same newline and merges into it.
+  const broken = Cst.containsTrailingLineComment(node);
+  const separator: Doc = broken ? indent(hardline) : " ";
   const parts: Doc[] = [cursor.take()];
   while (!cursor.done()) {
-    parts.push(cursor.take(), " ", cursor.take());
+    parts.push(cursor.take(), separator, cursor.take());
   }
   return parts;
 }
@@ -791,10 +827,6 @@ function printTemplateType(cursor: ChildCursor): Doc {
   // formatter emits a file it cannot itself parse.
   const closesNestedTemplate = Cst.textOf(argumentList.node).endsWith(">");
   return [name, open, argumentList.doc, closesNestedTemplate ? " " : "", close];
-}
-
-function printDimension(cursor: ChildCursor): Doc {
-  return cursor.takeRest().map((taken) => taken.doc);
 }
 
 // ============================================================================
@@ -825,15 +857,12 @@ const RULE_LAYOUTS: ReadonlyMap<number, (cursor: ChildCursor) => Doc> = new Map(
     [CNextParser.RULE_functionDeclaration, printFunctionDeclaration],
     [CNextParser.RULE_parameter, printParameter],
     [CNextParser.RULE_variableDeclaration, printVariableDeclaration],
-    [CNextParser.RULE_arrayDimension, printDimension],
-    [CNextParser.RULE_arrayTypeDimension, printDimension],
     [CNextParser.RULE_block, printBlock],
     [CNextParser.RULE_criticalStatement, printKeywordBlock],
     [CNextParser.RULE_foreverStatement, printKeywordBlock],
     [CNextParser.RULE_assignmentStatement, printAssignmentLike],
     [CNextParser.RULE_forAssignment, printAssignmentLike],
     [CNextParser.RULE_forUpdate, printAssignmentLike],
-    [CNextParser.RULE_assignmentTarget, printAssignmentTarget],
     [CNextParser.RULE_postfixTargetOp, printPostfixOperation],
     [CNextParser.RULE_postfixOp, printPostfixOperation],
     [CNextParser.RULE_expressionStatement, printExpressionStatement],
@@ -848,9 +877,6 @@ const RULE_LAYOUTS: ReadonlyMap<number, (cursor: ChildCursor) => Doc> = new Map(
     [CNextParser.RULE_defaultCase, printDefaultCase],
     [CNextParser.RULE_ternaryExpression, printTernaryExpression],
     [CNextParser.RULE_unaryExpression, printUnaryExpression],
-    [CNextParser.RULE_primaryExpression, printPrimaryExpression],
-    [CNextParser.RULE_sizeofExpression, printSizeofExpression],
-    [CNextParser.RULE_castExpression, printCastExpression],
     [CNextParser.RULE_structInitializer, printStructInitializer],
     [CNextParser.RULE_fieldInitializerList, printFieldInitializerList],
     [CNextParser.RULE_fieldInitializer, printFieldInitializer],
@@ -871,8 +897,10 @@ function printRule(
 ): Doc {
   if (CONCATENATED_RULES.has(ruleIndex)) return printConcatenated(cursor);
   if (DELEGATING_RULES.has(ruleIndex)) return printConcatenated(cursor);
-  if (BINARY_CHAIN_RULES.has(ruleIndex)) return printBinaryChain(cursor);
-  if (COMMA_LIST_RULES.has(ruleIndex)) return printCommaList(cursor);
+  if (BINARY_CHAIN_RULES.has(ruleIndex)) {
+    return printBinaryChain(cursor, node);
+  }
+  if (COMMA_LIST_RULES.has(ruleIndex)) return printCommaList(cursor, node);
 
   const layout = RULE_LAYOUTS.get(ruleIndex);
   if (layout !== undefined) return layout(cursor);

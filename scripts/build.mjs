@@ -55,7 +55,13 @@ if (existsSync(new URL("node_modules/antlr4ng/", pluginDir))) {
     process.exit(result.status ?? 1);
   }
 } else {
-  console.warn(
-    "Skipping prettier-plugin build: run `npm --prefix prettier-plugin ci` first.",
+  // `prepare` installs this tree on `npm install`, so reaching here means a
+  // deliberately partial checkout. Fail rather than warn: `.prettierrc` points
+  // `*.cnx` at the bundle, so continuing defers the error to the first commit
+  // that touches a `.cnx`, where it surfaces inside the pre-commit hook as a
+  // bare "Cannot find module" long after this message has scrolled away.
+  console.error(
+    "prettier-plugin dependencies are missing. Run `npm run plugin:install`.",
   );
+  process.exit(1);
 }

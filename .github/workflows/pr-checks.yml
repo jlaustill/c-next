@@ -59,19 +59,10 @@ jobs:
         run: npm ci
 
       # Issue #1364: `.prettierrc` loads the C-Next plugin, so Prettier cannot
-      # check a .cnx file until the plugin is built.
-      - name: Install Prettier plugin dependencies
-        run: npm run plugin:install
-
-      - name: Generate parser files
-        run: npm run antlr:all
-
-      # Only the plugin: `prettier:check` needs it to parse .cnx, but this job
-      # has no use for the transpiler bundle, and building it would serialise
-      # lint behind work the `build` job is already doing in parallel.
-      - name: Build Prettier plugin
-        run: npm run plugin:build
-
+      # check a .cnx file until the plugin is built. `npm ci` runs `prepare`,
+      # which installs and builds it from the committed grammar -- the same path
+      # a contributor gets from a plain `npm install`, so CI cannot pass on a
+      # setup they do not have.
       - name: Check formatting (Prettier)
         id: prettier
         run: npm run prettier:check
@@ -183,11 +174,6 @@ jobs:
 
       - name: Generate parser files
         run: npm run antlr:all
-
-      # Issue #1364: the Prettier plugin is a separate npm package. It bundles
-      # the generated parser, so it installs and builds after antlr:all.
-      - name: Install Prettier plugin dependencies
-        run: npm run plugin:install
 
       - name: Build transpiler bundle
         run: npm run build

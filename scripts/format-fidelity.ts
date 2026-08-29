@@ -60,8 +60,6 @@ interface ITranspileOutcome {
 interface IFixtureVerdict {
   file: string;
   failures: string[];
-  /** The parser rejects this source, so no formatter can format it. */
-  unparseable?: boolean;
 }
 
 /**
@@ -109,12 +107,21 @@ function parseRejects(dir: string): Set<string> {
   return rejected;
 }
 
-/** Format source through the plugin, or throw the way Prettier would. */
-async function format(source: string): Promise<string> {
+/**
+ * Format source exactly the way `prettier --write` would.
+ *
+ * The options come from `.prettierrc` rather than being restated here. A gate
+ * that hardcodes them checks a pipeline nobody runs: deleting the `overrides`
+ * block would leave this reporting every fixture green while `prettier --write`
+ * reformatted the corpus at a different width.
+ */
+async function format(source: string, filepath: string): Promise<string> {
+  const config = await prettier.resolveConfig(filepath, { editorconfig: true });
   return prettier.format(source, {
-    parser: "cnext",
+    ...config,
+    filepath,
     plugins: [pluginPath],
-    tabWidth: 4,
+    parser: "cnext",
   });
 }
 
@@ -179,7 +186,7 @@ async function checkFixture(file: string): Promise<IFixtureVerdict> {
 
   let formatted: string;
   try {
-    formatted = await format(source);
+    formatted = await format(source, file);
   } catch (error) {
     const before = await transpile(source, file);
     if (before.success) {
@@ -187,12 +194,12 @@ async function checkFixture(file: string): Promise<IFixtureVerdict> {
         `formatter rejected a source the transpiler accepts: ${(error as Error).message}`,
       );
     }
-    return { file, failures, unparseable: !before.success };
+    return { file, failures };
   }
 
   let twice: string;
   try {
-    twice = await format(formatted);
+    twice = await format(formatted, file);
   } catch (error) {
     // The formatter produced text it cannot itself parse. That is the worst
     // outcome available to a formatter, so it is reported separately.
@@ -232,16 +239,21 @@ async function main(): Promise<void> {
   const target = args.find((arg) => !arg.startsWith("--")) ?? "tests";
   const searchDir = join(rootDir, target);
 
+  // Every `.cnx`, not just `.test.cnx`: the files this used to skip are the
+  // interesting ones -- `examples/`, and the cross-file helpers the project's
+  // own testing guidance says to exercise rather than same-file fixtures.
   const files = existsSync(searchDir)
-    ? FileScanner.findTestFiles(searchDir)
+    ? FileScanner.findFiles(searchDir, ".cnx")
     : [];
   if (files.length === 0) {
-    console.error(chalk.red(`No .test.cnx fixtures found under ${target}`));
+    console.error(chalk.red(`No .cnx files found under ${target}`));
     process.exit(1);
   }
 
   console.log(
-    chalk.bold(`Format fidelity: ${files.length} fixtures under ${target}\n`),
+    chalk.bold(
+      `Format fidelity: ${files.length} .cnx file(s) under ${target}\n`,
+    ),
   );
 
   const exempted = exemptedFixtures(target);
@@ -284,7 +296,7 @@ async function main(): Promise<void> {
 
   if (failed.length === 0) {
     console.log(
-      chalk.green.bold(`All ${files.length} fixtures survive formatting.`),
+      chalk.green.bold(`All ${files.length} .cnx file(s) survive formatting.`),
     );
     return;
   }

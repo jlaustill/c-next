@@ -37,7 +37,7 @@
     "lint:test-location": "! find src -name '*.test.ts' | grep -qv '__tests__' || (echo 'Error: .test.ts files must be in __tests__ directories' && exit 1)",
     "depcruise": "depcruise src/transpiler --config .dependency-cruiser.cjs",
     "depcruise:graph": "depcruise src/transpiler --config .dependency-cruiser.cjs --output-type dot | dot -T svg > dependency-graph.svg",
-    "prepare": "husky",
+    "prepare": "husky && npm run plugin:install && npm run plugin:build",
     "prepublishOnly": "npm run prettier:check && npm run oxlint:check && npm run build && npm test",
     "coverage:check": "tsx scripts/coverage-checker.ts check",
     "coverage:report": "tsx scripts/coverage-checker.ts report",
@@ -73,7 +73,7 @@
     "analyze:cpd": "./scripts/cpd.sh",
     "analyze:duplication": "npx jscpd src/ scripts/",
     "analyze:all": "npm run analyze:duplication && npm run analyze:prune && npm run analyze:madge",
-    "format:fidelity": "tsx scripts/format-fidelity.ts",
+    "format:fidelity": "tsx scripts/format-fidelity.ts tests && tsx scripts/format-fidelity.ts examples && tsx scripts/format-fidelity.ts tests-gtest",
     "plugin:install": "npm --prefix prettier-plugin ci",
     "plugin:test": "npm --prefix prettier-plugin test",
     "plugin:build": "npm --prefix prettier-plugin run build"

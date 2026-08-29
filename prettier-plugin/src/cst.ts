@@ -167,6 +167,27 @@ class Cst {
   }
 
   /**
+   * True when any token inside this node carries a trailing line comment.
+   *
+   * A line comment is emitted with `lineSuffix`, which defers it to the next
+   * newline the layout produces. In a layout that never breaks, two of them
+   * reach the same newline and the second ends up nested inside the first --
+   * one comment silently swallowing another. Layouts consult this to decide
+   * whether they must break, which depends on the comments alone and not on
+   * the line widths, so it cannot drift the way a width-driven group would.
+   */
+  static containsTrailingLineComment(node: TCstNode): boolean {
+    if (Cst.isTerminal(node)) {
+      const anchor = Cst.commentsOf(node);
+      if (anchor === undefined) return false;
+      return anchor.after.some((comment) => !comment.block);
+    }
+    return Cst.childrenOf(node).some((child) =>
+      Cst.containsTrailingLineComment(child),
+    );
+  }
+
+  /**
    * True when a blank line separated these two nodes in the source.
    *
    * `grammar/CNext.g4` sends whitespace to `-> skip`, so there are no

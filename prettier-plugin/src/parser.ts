@@ -11,14 +11,16 @@
  * the token it belongs to.
  */
 
-import { ParseTree, TerminalNode, Token } from "antlr4ng";
+import { ParseTree, Token } from "antlr4ng";
 
 import CNextSourceParser from "../../src/transpiler/logic/parser/CNextSourceParser";
 import { CNextLexer } from "../../src/transpiler/logic/parser/grammar/CNextLexer";
 
+import Cst from "./cst";
 import ICommentAnchor from "./types/ICommentAnchor";
+import TCstNode from "./types/TCstNode";
 import ICommentNode from "./types/ICommentNode";
-import ICstRoot from "./types/ICstRoot";
+import TCstRoot from "./types/TCstRoot";
 
 /** Prettier reports a parse failure through an error carrying `loc`. */
 interface IPrettierSyntaxError extends Error {
@@ -107,6 +109,7 @@ function anchorComments(tokens: Token[]): Map<number, ICommentAnchor> {
       before: [],
       after: [],
       blankLineBeforeToken: false,
+      atFileStart: false,
     };
     anchors.set(tokenIndex, created);
     return created;
@@ -118,18 +121,15 @@ function anchorComments(tokens: Token[]): Map<number, ICommentAnchor> {
       const comment = toCommentNode(token, previousEndLine);
       const following = nextRealLine(position);
       comment.endsItsLine = following === null || following > comment.endLine;
-      // A comment trails the token before it only when it shares that token's
-      // line AND something follows it there. A block comment that owns the
-      // rest of its line is a standalone block leading the next token instead.
-      //
-      // Without the second condition the classification flips between runs: the
-      // first pass lays a leading comment out on the operator's line, and the
-      // second pass then reads that same comment as trailing the operator.
-      const ownsRestOfLine = comment.block && comment.endsItsLine;
+      // A comment trails the token before it exactly when it shares that
+      // token's line. Nothing here may consult where the *formatter* will put
+      // the line breaks: a predicate that does gives a different answer on the
+      // second run, and the comment migrates. The printer holds up the other
+      // half of this -- it renders a leading comment on its own line, so
+      // re-parsing its own output classifies the comment the same way.
       const trailsPreviousToken =
         previousReal !== null &&
         previousReal.line === token.line &&
-        !ownsRestOfLine &&
         pendingBefore.length === 0;
       if (previousReal !== null && trailsPreviousToken) {
         anchorFor(previousReal.tokenIndex).after.push(comment);
@@ -143,6 +143,7 @@ function anchorComments(tokens: Token[]): Map<number, ICommentAnchor> {
 
     if (pendingBefore.length > 0) {
       const anchor = anchorFor(token.tokenIndex);
+      anchor.atFileStart = previousReal === null;
       for (let index = 0; index < pendingBefore.length; index += 1) {
         const next = pendingBefore[index + 1];
         const followingLine = next === undefined ? token.line : next.line;
@@ -166,10 +167,14 @@ function attachToTerminals(
   node: ParseTree,
   anchors: Map<number, ICommentAnchor>,
 ): void {
-  if (node instanceof TerminalNode) {
-    const anchor = anchors.get(node.symbol.tokenIndex);
+  // `Cst.isTerminal` rather than `instanceof`: the plugin and the transpiler can
+  // hold separate `antlr4ng` module instances, and `instanceof` returns false
+  // across them -- silently attaching nothing, which loses every comment.
+  const candidate = node as unknown as TCstNode;
+  if (Cst.isTerminal(candidate)) {
+    const anchor = anchors.get(candidate.symbol.tokenIndex);
     if (anchor !== undefined) {
-      (node as TerminalNode & { comments?: ICommentAnchor }).comments = anchor;
+      (candidate as unknown as { comments?: ICommentAnchor }).comments = anchor;
     }
     return;
   }
@@ -184,7 +189,7 @@ function attachToTerminals(
  * Throws on any syntax error: a formatter that cannot parse a file must leave
  * it alone rather than emit a guess.
  */
-function parse(source: string): ICstRoot {
+function parse(source: string): TCstRoot {
   const { tree, tokenStream, errors } = CNextSourceParser.parse(source);
 
   if (errors.length > 0) {
@@ -194,7 +199,7 @@ function parse(source: string): ICstRoot {
 
   tokenStream.fill();
   attachToTerminals(tree, anchorComments(tokenStream.getTokens()));
-  return tree as ICstRoot;
+  return tree as TCstRoot;
 }
 
 export default parse;

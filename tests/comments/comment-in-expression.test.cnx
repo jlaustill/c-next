@@ -31,8 +31,7 @@ u32 main() {
 
     // Multi-line comment in expression
     u32 e <- 1 + /* this is a
-           multi-line comment */
-    2;
+           multi-line comment */ 2;
     if (e != 3) return 7;
 
     return 0;

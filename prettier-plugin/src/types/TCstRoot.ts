@@ -6,6 +6,6 @@ import { ProgramContext } from "../../../src/transpiler/logic/parser/grammar/CNe
  * Comments are not carried here: they are anchored to individual tokens during
  * parsing, so Prettier's own comment attachment stays out of the picture.
  */
-type ICstRoot = ProgramContext;
+type TCstRoot = ProgramContext;
 
-export default ICstRoot;
+export default TCstRoot;

@@ -19,6 +19,14 @@ interface ICommentAnchor {
    * below and with it every `line:column` in a committed `.expected.error`.
    */
   blankLineBeforeToken: boolean;
+  /**
+   * This token opens the file.
+   *
+   * A leading comment is rendered on its own line, which means emitting a break
+   * before it. At the very start of a file there is nothing to break from, and
+   * doing it anyway opens every commented file with a blank line.
+   */
+  atFileStart: boolean;
 }
 
 export default ICommentAnchor;
