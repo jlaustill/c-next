@@ -185,6 +185,74 @@ void LED__off(void) { GPIO7__DR_CLEAR = (1 << LED_BIT); }
 uint8_t LED__getBrightness(void) { return LED__brightness; }
 ```
 
+#### How a scope compares to a class, a namespace, and a struct
+
+C-Next uses `scope` rather than `namespace` or `class` because both of those terms
+promise things C-Next does not deliver (ADR-016). Rather than take that on faith,
+check it row by row.
+
+Each row is a single claim, true or false in every column. Where two constructs share
+a spelling but not a meaning — `this.` is the important one — they get separate rows
+instead of a shared checkmark, because a shared checkmark would teach the wrong thing.
+
+|                                                         | C++ class | C++ namespace | C struct | C-Next struct | C-Next scope |
+| ------------------------------------------------------- | :-------: | :-----------: | :------: | :-----------: | :----------: |
+| **Identity**                                            |           |               |          |               |              |
+| Is a type — you can declare a variable of it            |     ✓     |       ✗       |    ✓     |       ✓       |      ✗       |
+| Can be instantiated                                     |     ✓     |       ✗       |    ✓     |       ✓       |      ✗       |
+| Exists exactly once, always                             |     ✗     |       ✓       |    ✗     |       ✗       |      ✓       |
+| **Contents**                                            |           |               |          |               |              |
+| Holds functions                                         |     ✓     |       ✓       |    ✗     |       ✗       |      ✓       |
+| Holds type declarations (enum, struct, bitmap)          |     ✓     |       ✓       |    ✓     |       ✗       |      ✓       |
+| Holds pointer or self-referential fields                |     ✓     |       ✓       |    ✓     |       ✗       |      ✗       |
+| Explicit layout control (packed)                        |     ✓     |       —       |    ✓     |       ✗       |      —       |
+| **Access**                                              |           |               |          |               |              |
+| Per-member `public` / `private`                         |     ✓     |       ✗       |    ✗     |       ✗       |      ✓       |
+| **Shape**                                               |           |               |          |               |              |
+| Nests inside itself                                     |     ✓     |       ✓       |    ✓     |       ✗       |      ✗       |
+| Reopened and split across several files                 |     ✗     |       ✓       |    ✗     |       ✗       |      ✓       |
+| **`this.`**                                             |           |               |          |               |              |
+| `this.` is an instance pointer                          |     ✓     |       ✗       |    ✗     |       ✗       |      ✗       |
+| `this.` disambiguates a name, with no runtime meaning   |     ✗     |       ✗       |    ✗     |       ✗       |      ✓       |
+| **Cost**                                                |           |               |          |               |              |
+| Copied when passed to a function                        |     ✓     |       —       |    ✓     |       ✗       |      —       |
+| Can carry a vtable, constructor, or destructor          |     ✓     |       ✗       |    ✗     |       ✗       |      ✗       |
+| Inheritance                                             |     ✓     |       ✗       |    ✗     |       ✗       |      ✗       |
+| Members reachable from plain C under a predictable name |     ✗     |       ✗       |    —     |       —       |      ✓       |
+
+`—` marks a property that does not apply to that construct at all.
+
+Two rows deserve a second look, because they are the ones most likely to surprise you.
+
+**`this.`** is the trap. In a C++ class it is a pointer to the current instance, so it
+carries data and exists at runtime. A scope has no instance, so its `this.` is
+nothing but a way to say "the `brightness` belonging to this scope, not the local one"
+(ADR-057). It disappears entirely in the generated C. If you find yourself wanting to
+pass a scope's `this` somewhere, the mental model has slipped.
+
+**Reachable from plain C** is what makes scopes practical for embedded work. A scope
+member is named `Scope__member` in the generated C (ADR-063), so `LED.on()` above is
+`LED__on()` — an ordinary C function that any C or C++ translation unit can call and
+any linker can resolve. Neither a C++ class method nor a namespaced function offers
+that without `extern "C"`.
+
+#### Which one do I want?
+
+- **A `scope`** when there is exactly one of something — one Console, one Logger, one
+  CAN driver — and you want its functions and its state under a shared name, with
+  `private` available for the parts that are nobody else's business. It costs nothing
+  at runtime; it is a naming convention the compiler enforces.
+- **A `struct`** when there are many of something and each needs its own copy of the
+  data. A struct is a type, a scope is not — that is the whole distinction, and every
+  other difference follows from it.
+- **Coming from C++?** A scope is much closer to a namespace than to a class: no
+  instances, reopens across files, and a `this.` that is not a pointer. It differs
+  from a namespace in the two ways that matter most — it supports `private`, and it
+  cannot nest.
+- **Coming from C?** A scope is the `Module_function()` naming convention you are
+  already writing by hand, except the compiler writes the prefix, enforces the
+  privacy, and cannot get it wrong.
+
 ### Switch Statements (ADR-025)
 
 Safe switch with MISRA compliance:
