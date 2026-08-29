@@ -81,6 +81,8 @@ Without classes, managing 8 UARTs means either:
 - Change management: Internal implementation can change without breaking users
 - Better organization: Related data and methods stay together
 
+<!-- cspell:disable-next-line -- verbatim quotation from the cited article -->
+
 > "The true value of encapsulation is recognised in an environment that is prone to change. If our code is well-encapsulated, we can better manage risk in the event of a requirement change."
 > — [Medium: The Importance of Code Encapsulation](https://medium.com/swlh/the-importance-of-code-encapsulation-ce19efbcfe57)
 

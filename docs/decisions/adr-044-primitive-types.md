@@ -315,6 +315,8 @@ procedure Increment(X : in out Integer)
 
 MISRA C treats signed overflow as a critical issue:
 
+<!-- cspell:disable-next-line -- verbatim MISRA C:2012 Rule 1.3 text; the standard is written in British English -->
+
 - **Rule 1.3**: "There shall be no occurrence of undefined or critical unspecified behaviour"
 - **Signed overflow**: Undefined behavior (violation)
 - **Unsigned overflow**: Well-defined wrap, but flagged in constant expressions

@@ -72,23 +72,23 @@ Customer* get_customer(int id);  // Returns nullable pointer
 #include "c_library.h"
 
 // The struct variable gets c_ prefix (contains nullable members)
-Customer c_cust <- get_customer(42);
+Customer c_customer <- get_customer(42);
 
-if (c_cust != NULL) {
-    // Access members normally - reader knows c_cust is "C territory"
-    if (c_cust.name != NULL) {
-        printf("Name: %s", c_cust.name);
+if (c_customer != NULL) {
+    // Access members normally - reader knows c_customer is "C territory"
+    if (c_customer.name != NULL) {
+        printf("Name: %s", c_customer.name);
     }
 
     // Non-pointer members don't need NULL check
-    printf("ID: %d", c_cust.id);
+    printf("ID: %d", c_customer.id);
 }
 ```
 
 **Rationale:**
 
 - The `c_` prefix signals "everything inside is C rules"
-- Avoids verbose `c_cust.c_name.c_whatever` chains
+- Avoids verbose `c_customer.c_name.c_whatever` chains
 - Member names stay readable and match the C header
 
 ## Changes from ADR-047

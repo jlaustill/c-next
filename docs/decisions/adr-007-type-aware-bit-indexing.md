@@ -324,7 +324,7 @@ This is tracked as future work (compile-time validation phase).
 
 ### Implemented: subscript depth (E0856, Issue #1106)
 
-A neighbouring check does exist. Bit-index _bounds_ (above) remain future work, but
+A neighboring check does exist. Bit-index _bounds_ (above) remain future work, but
 subscript _depth_ is validated today: since a scalar may be bit-indexed **once**, and
 ADR-036 peels one array dimension per subscript, a base accepts at most
 `arrayDimensions + 1` subscripts. A deeper chain indexes a value that is not an array
