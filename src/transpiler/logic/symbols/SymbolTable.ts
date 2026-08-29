@@ -16,6 +16,8 @@ import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
 import IStructSymbolState from "../../types/symbols/IStructSymbolState";
 import TJsonSafe from "../../../utils/types/TJsonSafe";
 import TSymbol from "../../types/symbols/TSymbol";
+import IScopeSymbol from "../../types/symbols/IScopeSymbol";
+import ScopeUtils from "../../../utils/ScopeUtils";
 import TCSymbol from "../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
 import TAnySymbol from "../../types/symbols/TAnySymbol";
@@ -540,6 +542,52 @@ class SymbolTable {
       ...this.getCOverloads(cName),
       ...this.getCppOverloads(cName),
     ];
+  }
+
+  /**
+   * ADR-057 resolution: the declarations a BARE name binds to when it is seen
+   * inside `fromScope`, walking local -> enclosing -> global and stopping at
+   * the first level that declares it.
+   *
+   * This is the counterpart to getOverloadsByCName, and the two answer
+   * different questions (#1139). getOverloadsByCName answers "which symbol IS
+   * this", for a caller that already holds a generated C identifier. This
+   * answers "what does `name` MEAN here", which needs the scope context and
+   * cannot be asked with a C name.
+   *
+   * The returned symbols carry the C name of the scope that DECLARED them, not
+   * of the scope that asked — which is the whole point of resolving against one
+   * index instead of re-deriving a candidate name at the point of use (#1285).
+   *
+   * Every candidate is built with ScopeUtils.qualifyInScope, so the chain walk
+   * goes through the single encoder rather than joining a leaf by hand.
+   */
+  resolveDeclaration(name: string, fromScope: IScopeSymbol | null): TSymbol[] {
+    let current = fromScope;
+    const seen = new Set<IScopeSymbol>();
+
+    while (current) {
+      // getScopePath guards its own walk, but this one steps through parents
+      // directly and would hang on a malformed chain rather than throwing.
+      if (seen.has(current)) {
+        break;
+      }
+      seen.add(current);
+
+      const found = this.tSymbolsByCName.get(
+        ScopeUtils.qualifyInScope(name, current),
+      );
+      if (found && found.length > 0) {
+        return found;
+      }
+
+      if (ScopeUtils.isGlobalScope(current)) {
+        break;
+      }
+      current = current.parent ?? null;
+    }
+
+    return [];
   }
 
   /**

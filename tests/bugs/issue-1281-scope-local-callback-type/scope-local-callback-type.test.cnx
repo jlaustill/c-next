@@ -1,0 +1,64 @@
+// test-execution
+// Issue #1281 / #1285: a scope-local function-as-type IS a type, so a bare
+// reference to it from a struct in the same scope must qualify.
+//
+// ADR-029 makes a function definition create a callback type. Two independent
+// places decided "does this name form a type", and BOTH knew only enum, struct
+// and bitmap:
+//
+//   - symbols layer: CNextResolver Pass 0b, which now asks TYPE_FORMING_KINDS;
+//   - codegen layer: CodeGenState.isScopeType, which now also consults
+//     callbackTypes rather than gaining a fifth parallel `known*` set.
+//
+// With either half missing, the field type stayed BARE, no `_fp` typedef was
+// emitted, and the header named something that is not a type -- `cnext` exited
+// 0 and gcc rejected the output.
+//
+// `Later` is the declaration-order control: its struct is declared ABOVE the
+// function it references. Registration used to happen during the same
+// source-order walk that read references, so this order resolved the field bare
+// even when the other order worked.
+
+scope Timing {
+    public u32 tickSource() {
+        return 40;
+    }
+
+    public struct Config {
+        tickSource tick;
+        u32 divisor;
+    }
+
+    public u32 run() {
+        Config cfg;
+        cfg.tick <- tickSource;
+        cfg.divisor <- 4;
+        return cfg.tick() + cfg.divisor;
+    }
+}
+
+scope Later {
+    public struct Holder {
+        producer make;
+    }
+
+    public u32 producer() {
+        return 2;
+    }
+
+    public u32 run() {
+        Holder h;
+        h.make <- producer;
+        return h.make();
+    }
+}
+
+u32 main() {
+    u32 timing <- Timing.run();
+    if (timing != 44) return 1;
+
+    u32 later <- Later.run();
+    if (later != 2) return 2;
+
+    return 0;
+}

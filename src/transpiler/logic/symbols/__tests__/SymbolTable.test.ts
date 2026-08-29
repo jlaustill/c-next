@@ -16,12 +16,97 @@ import TTypeUtils from "../../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
+import ScopeUtils from "../../../../utils/ScopeUtils";
+import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
 
   beforeEach(() => {
     symbolTable = new SymbolTable();
+  });
+
+  // ========================================================================
+  // resolveDeclaration (ADR-057 scope-chain resolution, #1285)
+  // ========================================================================
+
+  describe("resolveDeclaration", () => {
+    const globalScope = ScopeUtils.createGlobalScope();
+    const outer = ScopeUtils.createScope("Outer", globalScope);
+    const inner = ScopeUtils.createScope("Inner", outer);
+
+    const variableIn = (
+      name: string,
+      scope: IScopeSymbol,
+    ): IVariableSymbol => ({
+      ...TestSymbolUtils.base({ kind: "variable", name, scope }),
+      type: TTypeUtils.createPrimitive("u32"),
+      isArray: false,
+      isConst: false,
+      isAtomic: false,
+      isVolatile: false,
+    });
+
+    it("resolves a name declared in the asking scope", () => {
+      symbolTable.addTSymbol(variableIn("tick", outer));
+
+      const found = symbolTable.resolveDeclaration("tick", outer);
+
+      expect(found).toHaveLength(1);
+      expect(found[0].fullyQualifiedCName).toBe("Outer__tick");
+    });
+
+    it("falls through to the global scope when the scope does not declare it", () => {
+      symbolTable.addTSymbol(variableIn("tick", globalScope));
+
+      const found = symbolTable.resolveDeclaration("tick", outer);
+
+      expect(found).toHaveLength(1);
+      expect(found[0].fullyQualifiedCName).toBe("tick");
+    });
+
+    it("returns nothing when no scope on the chain declares the name", () => {
+      expect(symbolTable.resolveDeclaration("missing", inner)).toEqual([]);
+    });
+
+    // The property #1285 exists for. Nested scopes are unreachable from .cnx
+    // (grammar/CNext.g4:81-89 -- scopeMember has no scopeDeclaration branch),
+    // so a unit test built through ScopeUtils.createScope is the ONLY way to
+    // cover it. Do not delete these as "testing an impossible case": a
+    // leaf-only walk is accidentally correct at depth one and wrong here.
+    it("walks past an intermediate scope to a grandparent declaration", () => {
+      symbolTable.addTSymbol(variableIn("tick", outer));
+
+      const found = symbolTable.resolveDeclaration("tick", inner);
+
+      expect(found).toHaveLength(1);
+      // Outer__tick, NOT Inner__tick and NOT Outer__Inner__tick -- the C name
+      // comes from where the symbol was DECLARED, not from where it was asked.
+      expect(found[0].fullyQualifiedCName).toBe("Outer__tick");
+    });
+
+    it("prefers the nearest declaration when an inner scope shadows an outer one", () => {
+      symbolTable.addTSymbol(variableIn("tick", outer));
+      symbolTable.addTSymbol(variableIn("tick", inner));
+
+      const found = symbolTable.resolveDeclaration("tick", inner);
+
+      expect(found).toHaveLength(1);
+      expect(found[0].fullyQualifiedCName).toBe("Outer__Inner__tick");
+    });
+
+    it("returns every overload declared at the resolving level", () => {
+      symbolTable.addTSymbol(variableIn("tick", outer));
+      symbolTable.addTSymbol(variableIn("tick", outer));
+
+      expect(symbolTable.resolveDeclaration("tick", inner)).toHaveLength(2);
+    });
+
+    it("treats a null scope as the global scope", () => {
+      symbolTable.addTSymbol(variableIn("tick", globalScope));
+
+      expect(symbolTable.resolveDeclaration("tick", null)).toEqual([]);
+    });
   });
 
   // ========================================================================

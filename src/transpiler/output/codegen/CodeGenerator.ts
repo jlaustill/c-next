@@ -2774,6 +2774,22 @@ export default class CodeGenerator implements IOrchestrator {
     const savedScope = CodeGenState.currentScope;
     CodeGenState.setCurrentScopeByPath(scopeName);
 
+    // #1281/#1285: functions first, THEN everything that can reference one.
+    // A struct field naming a scope-local function-as-type asks isScopeType
+    // whether that name is a type, and the answer comes from callbackTypes --
+    // which this loop is what fills. Walking members in source order made the
+    // answer depend on whether the function happened to be declared above the
+    // struct, so `Config` before `tickSource` resolved the field BARE and
+    // emitted a header naming something that is not a type. Registering every
+    // function before reading any reference makes the order irrelevant, which
+    // is the same declaration-order invariant ADR-057 states for the symbols
+    // layer's Pass 0b.
+    for (const member of scopeDecl.scopeMember()) {
+      if (member.functionDeclaration()) {
+        this._registerScopeFunction(scopeName, member.functionDeclaration()!);
+      }
+    }
+
     for (const member of scopeDecl.scopeMember()) {
       // Issue #1200: a struct nested in a scope has callback fields just like a
       // top-level one, and a scope member variable can itself be callback-typed.
@@ -2787,28 +2803,37 @@ export default class CodeGenerator implements IOrchestrator {
         CodeGenState.callbackTypeReferences.add(varType);
         continue;
       }
-      if (member.functionDeclaration()) {
-        const funcDecl = member.functionDeclaration()!;
-        const funcName = funcDecl.IDENTIFIER().getText();
-        // Track fully qualified function name: Scope_function
-        const fullName = QualifiedNameGenerator.forFunctionStrings(
-          scopeName,
-          funcName,
-        );
-        CodeGenState.knownFunctions.add(fullName);
-        // ADR-013: Track function signature for const checking
-        const sig = this.extractFunctionSignature(
-          fullName,
-          funcDecl.parameterList() ?? null,
-        );
-        CodeGenState.functionSignatures.set(fullName, sig);
-        // ADR-029: Register scoped function as callback type
-        this.registerCallbackType(fullName, funcDecl);
-      }
     }
 
     // Restore previous scope context
     CodeGenState.currentScope = savedScope;
+  }
+
+  /**
+   * Register one scope function: its qualified name, signature, and ADR-029
+   * callback type. Extracted so the pre-pass above and nothing else owns the
+   * registration -- it must complete for every function in the scope before any
+   * reference to one is resolved.
+   */
+  private _registerScopeFunction(
+    scopeName: string,
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const funcName = funcDecl.IDENTIFIER().getText();
+    // Track fully qualified function name: Scope_function
+    const fullName = QualifiedNameGenerator.forFunctionStrings(
+      scopeName,
+      funcName,
+    );
+    CodeGenState.knownFunctions.add(fullName);
+    // ADR-013: Track function signature for const checking
+    const sig = this.extractFunctionSignature(
+      fullName,
+      funcDecl.parameterList() ?? null,
+    );
+    CodeGenState.functionSignatures.set(fullName, sig);
+    // ADR-029: Register scoped function as callback type
+    this.registerCallbackType(fullName, funcDecl);
   }
 
   /**
