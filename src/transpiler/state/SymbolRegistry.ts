@@ -81,10 +81,41 @@ class SymbolRegistry {
   /**
    * Register a function in its scope.
    *
-   * The function is added to the scope's functions array.
+   * #1358: this must be idempotent. Declare (pass 1.3) runs over the same tree
+   * more than once per run -- Transpiler stages 3 and 5 both resolve every file,
+   * and `reset()` runs once per run, not between them (#1301) -- so an
+   * unconditional push appended a second copy of every function in the program.
+   *
+   * Idempotence here must key on the SYMBOL, never on the scope. `getOrCreateScope`
+   * is deliberately repeat-safe because that is the mechanism by which a scope
+   * spanned across two files merges (#1333); suppressing registration for an
+   * already-seen scope would break spanned scopes, which are a designed feature.
    */
   static registerFunction(func: IFunctionSymbol): void {
+    if (this.isAlreadyRegistered(func)) return;
     func.scope.functions.push(func);
+  }
+
+  /**
+   * Is `func` a re-registration of a declaration already in its scope?
+   *
+   * Keyed on `fullyQualifiedCName`, which ADR-063 makes injective and
+   * `IBaseSymbol` documents as the symbol's canonical identity. That is a
+   * sufficient key here because C-Next has no function overloads: two functions
+   * sharing a qualified name are rejected as E0425 by
+   * `SymbolTable.detectCNextDuplicate` before anything reads this list, whether
+   * their signatures differ or not. So a collision reaching this point is always
+   * the same declaration seen twice, never two declarations.
+   *
+   * Deliberately NOT keyed on the scope. `getOrCreateScope` is repeat-safe by
+   * design -- that is how a scope spanned across two files merges (#1333) -- so
+   * suppressing registration for an already-seen scope would break spanned
+   * scopes. The negative control in the tests covers exactly that.
+   */
+  private static isAlreadyRegistered(func: IFunctionSymbol): boolean {
+    return func.scope.functions.some(
+      (existing) => existing.fullyQualifiedCName === func.fullyQualifiedCName,
+    );
   }
 
   /**
