@@ -16,6 +16,21 @@ cell is declared by the ADR that owns it.
 | `-`           | no obligation declared (`off`)                                                  |
 | `n/a`         | not derivable yet -- provider-side relationships need the emitting file (#1219) |
 
+## ADR-016
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | -         | -      | -          | n/a         | n/a        |
+| scope member       | warn      | warn   | warn       | n/a         | n/a        |
+| scope method       | warn      | warn   | warn       | n/a         | n/a        |
+
+3 linked fixtures with no derivable context:
+
+- `bugs/issue-1333-scope-reopening/cross-file-span.test.cnx`
+- `bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx`
+- `bugs/issue-1333-scope-reopening/same-file-reopen.test.cnx`
+
 ## ADR-051
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

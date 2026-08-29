@@ -1,0 +1,80 @@
+// test-execution
+// test-adr: 016
+// Issue #1333: the cross-file half -- a scope spans two files.
+//
+// This is also the kind-symmetry control for the defect it exposed.
+// TSymbolInfoAdapter.mergeExternalSymbols merged knownEnums across the include
+// boundary but NOT knownStructs, so ADR-057 qualification was kind-dependent:
+// these two adjacent lines emitted `Lib__Mode m` and bare `Point p`, and the
+// second does not compile. The asymmetry was invisible while a scope could not
+// span files at all.
+//
+// The enum line is the control: it passed before the fix and must keep passing.
+// The struct line is the assertion. Both must qualify, or the pair has drifted.
+
+#include "span-lib.cnx"
+
+scope Lib {
+    // A function-body LOCAL. This position is resolved by the codegen layer alone,
+    // which is why it was the only one the first version of this fixture covered --
+    // and why it stayed green while three other positions emitted broken C.
+    public u32 useBoth() {
+        Mode m <- Mode.BETA;
+        Point p <- {x: 3, y: 4};
+        return p.x + p.y + m;
+    }
+
+    // PARAMETER, RETURN TYPE and STRUCT FIELD all route through the SYMBOLS layer,
+    // which produces the `.h`. Pass 0b walks one parse tree, so before the fix it
+    // could not see the half of this scope declared in span-lib.cnx: the `.h` said
+    // `const Point*` while the `.c` said `const Lib__Point*`, and gcc rejected the
+    // pair. `cnext` exited 0 (CLAUDE.md, "Two resolution points, one decision").
+    public u32 sumThrough(Point p) {
+        return p.x + p.y;
+    }
+
+    public Point makeOrigin() {
+        Point o <- {x: 10, y: 20};
+        return o;
+    }
+
+    public struct Line {
+        Point start;
+        Point end;
+    }
+
+    // A cross-file BITMAP. Carrying knownBitmaps without bitmapFields let the type
+    // resolve to Lib__Flags and then hard-error on the field behind it -- the same
+    // asymmetry one level down, since enumMembers travels with knownEnums and is why
+    // enums were the only kind that ever worked.
+    public u8 useFlags() {
+        Flags f <- 0;
+        f.Ready <- true;
+        return f.Mode;
+    }
+
+    public u32 runAll() {
+        u32 total <- useBoth();
+
+        Point p <- {x: 1, y: 2};
+        total <- total + sumThrough(p);
+
+        Point origin <- makeOrigin();
+        total <- total + origin.x;
+
+        Line l <- {start: {x: 100, y: 0}, end: {x: 0, y: 0}};
+        total <- total + l.start.x;
+
+        u8 flags <- useFlags();
+        total <- total + flags;
+
+        return total;
+    }
+}
+
+u32 main() {
+    u32 result <- Lib.runAll();
+    // useBoth 9 + sumThrough 3 + origin.x 10 + l.start.x 100 + flags 0 = 122
+    if (result != 122) return 1;
+    return 0;
+}

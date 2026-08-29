@@ -6,6 +6,7 @@
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)
 **Related:** ADR-014 (Structs), ADR-063 (Identifier Syntax — amends the qualified-name separator, see below)
 **Amended by:** ADR-057 (Implicit Scope Resolution — withdraws this ADR's requirement that `this.` and `global.` be explicit)
+**Amends:** ADR-002 (Namespaces — carries forward its file-independence rule, see _Scope Composition_)
 
 > **Amended by ADR-063 (Issue #1117).** Members are named `Scope__member` in
 > generated C. The separator is two underscores, and ADR-063 forbids a C-Next
@@ -92,7 +93,70 @@ static void LED__reset(void) { }       // private → static
 - **Name prefixing** — Members become `Scope__member` in generated C (ADR-063)
 - **Static linkage** — Private members use `static` for file-local visibility
 - **Not a type** — Cannot create instances of a scope
+- **File-independent** — A scope may be reopened; declarations compose (see below)
 - **Minimal expectations** — No baggage from C++ namespaces or classes
+
+### Scope Composition (Issue #1333)
+
+**DECIDED: A scope may be reopened. Declaring the same scope again adds members
+to it; it does not redefine it.** This holds within one file and across files.
+
+```cnx
+// lib.cnx
+scope Lib {
+    public struct Point { u32 x; u32 y; }
+}
+
+// app.cnx
+#include "lib.cnx"
+
+scope Lib {                       // reopens Lib, does not redefine it
+    public u32 useIt() {
+        Point p <- {x: 3, y: 4};  // bare name, resolves to Lib.Point (ADR-057)
+    }
+}
+```
+
+Scopes exist for organization. A scope that must live in exactly one contiguous
+block forces one file per scope and grows without bound, which is the opposite of
+what the construct is for.
+
+**This rule is not new.** ADR-002 stated it:
+
+> File organization is independent — Multiple namespaces can live in one file, or
+> one namespace can span files
+
+ADR-002 is `Rejected`, but by its own rationale it was rejected **for terminology,
+not behavior** — "namespace" carried C++ baggage. This ADR superseded it and
+carried the behavior while never restating this rule, so the requirement existed
+nowhere that governed. It was consequently unimplemented: a second declaration of
+a scope was rejected as a duplicate symbol definition, in the same file as well as
+across files (#1333).
+
+**What still conflicts.** Reopening composes the scope; it does not relax member
+uniqueness. Two definitions of `Lib.useIt` collide whichever block they appear in,
+because members are grouped by the scope's own identity rather than by the
+declaration block.
+
+**What this requires of resolution.** A bare type name inside a reopened block
+resolves against the whole scope, not the block. Cross-file, this means every
+type-forming kind must be visible across the include boundary on the same terms —
+if enums are visible and structs are not, `Mode` and `Point` declared side by side
+in one file resolve differently in another, and the second does not compile.
+
+The same obligation holds over a second axis, and missing it is the more dangerous
+half. C-Next resolves a type name at **two points** (CLAUDE.md, _"Two resolution
+points, one decision"_): the **symbols layer**, which produces the header, and the
+**codegen layer**, which produces the body. Both must see the same scope types.
+If they disagree, the prototype and the definition disagree — a bare `Point` in a
+parameter reaches the `.h` as `Point` and the `.c` as `Lib__Point`, `cnext` exits 0,
+and the C compiler rejects the pair.
+
+The two axes multiply rather than add: a kind that is visible in one layer and not
+the other fails only in the positions that route through the missing layer. A
+function-body local is resolved by codegen alone and keeps working, which is exactly
+why this can look fixed while parameters, return types and struct fields are broken.
+Coverage therefore has to name positions, not just kinds.
 
 ### Scope Variable Persistence (Issue #233)
 
@@ -505,6 +569,50 @@ These questions will be answered through:
 - Evaluation against the KISS principle
 
 ---
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist** for
+this feature, `warn` that it should be covered and is not, `error` that it must
+be. Undeclared cells are `off`.
+
+This ADR has never declared a matrix, which per [`README.md`](README.md) is
+indistinguishable from claiming the feature cannot occur anywhere. That silence is
+why #1333 survived: no obligation existed for "a scope member, in an imported
+file", so nothing could report that the cell was empty.
+
+**These cells are not occupiable yet, and the reason is worth recording.** Under
+#1241 a cell's context is derived from a diagnostic's position, so only a fixture
+with an `.expected.error` can occupy one. Scope composition _does_ raise a
+diagnostic — reopening composes a scope, but member uniqueness still holds, so
+two definitions of the same member are an error. I expected that to make these
+cells reachable and it does not: the conflict diagnostic is reported at position
+`1:0` rather than at the offending declaration, so no context can be derived from
+it. The three fixtures below link to this ADR and land in "no derivable context".
+
+That makes **#1334 the blocker for this matrix**, not just a cosmetic diagnostic
+defect. Giving the conflict diagnostic a real position would make every cell here
+reachable at once. Recorded so the connection is not rediscovered.
+
+Declared `warn` first and ratcheted to `error` as fixtures reach them, the same
+way a new lint rule is introduced.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context      | Relationship        | Severity |
+| ------------ | ------------------- | -------- |
+| scope member | same file           | warn     |
+| scope method | same file           | warn     |
+| scope member | imported direct     | warn     |
+| scope method | imported direct     | warn     |
+| scope member | imported transitive | warn     |
+| scope method | imported transitive | warn     |
+
+`global variable` and `top-level function` are left undeclared, which reads as
+`off`, and that is a claim being made deliberately rather than an omission: scope
+composition is a property of a scope, so a declaration that is not inside one
+cannot occupy a cell of this rule. A global variable declared twice is an ordinary
+duplicate-definition error and belongs to whatever ADR governs that, not here.
 
 ## Implementation Status
 

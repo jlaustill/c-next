@@ -41,6 +41,33 @@ interface IRegisterMaps {
  * Converts TSymbol[] to ISymbolInfo for CodeGenerator.
  * Replaces the need for SymbolCollector during code generation.
  */
+/**
+ * The mutable collections mergeExternalSymbols accumulates into.
+ *
+ * Grouped into one object rather than passed as eight parameters: adding the
+ * three type-forming sets for #1333 took the parameter list past what is
+ * readable, and a positional list of eight same-shaped collections is a
+ * transposition waiting to happen.
+ */
+interface IMergeAccumulator {
+  readonly knownEnums: Set<string>;
+  readonly knownScopes: Set<string>;
+  readonly enumMembers: Map<string, Map<string, number>>;
+  readonly functionReturnTypes: Map<string, string>;
+  readonly scopeMemberVisibility: Map<
+    string,
+    Map<string, "public" | "private">
+  >;
+  readonly knownStructs: Set<string>;
+  readonly knownBitmaps: Set<string>;
+  readonly bitmapFields: Map<
+    string,
+    Map<string, { readonly offset: number; readonly width: number }>
+  >;
+  readonly bitmapBackingType: Map<string, string>;
+  readonly bitmapBitWidth: Map<string, number>;
+}
+
 class TSymbolInfoAdapter {
   /**
    * Convert TSymbol[] to ISymbolInfo for CodeGenerator consumption.
@@ -505,46 +532,97 @@ class TSymbolInfoAdapter {
   /**
    * Merge a single external source into the merged data structures
    */
+  /**
+   * Add every member of `from` into `into`. A name-only set: no precedence
+   * question arises because the sets carry no payload.
+   */
+  private static _mergeNames(
+    from: ReadonlySet<string>,
+    into: Set<string>,
+  ): void {
+    for (const name of from) {
+      into.add(name);
+    }
+  }
+
+  /**
+   * Merge `from` into `into`, **local wins**: an entry already present is never
+   * overwritten by an external one.
+   *
+   * The nine merges in _mergeExternalSource were nine copies of this loop, which
+   * is both the duplication and the cognitive complexity SonarCloud flagged
+   * (S3776, 22 against 15). More to the point, "local takes precedence" was
+   * restated nine times, so a tenth merge could silently choose otherwise.
+   *
+   * `clone` exists because half the values are Maps that must not be aliased
+   * between the base and the merged result.
+   */
+  private static _mergePreferringLocal<K, V>(
+    from: ReadonlyMap<K, V>,
+    into: Map<K, V>,
+    clone: (value: V) => V = (value) => value,
+  ): void {
+    for (const [key, value] of from) {
+      if (!into.has(key)) {
+        into.set(key, clone(value));
+      }
+    }
+  }
+
   private static _mergeExternalSource(
     external: ICodeGenSymbols,
-    mergedKnownEnums: Set<string>,
-    mergedKnownScopes: Set<string>,
-    mergedEnumMembers: Map<string, Map<string, number>>,
-    mergedFunctionReturnTypes: Map<string, string>,
-    mergedScopeMemberVisibility: Map<string, Map<string, "public" | "private">>,
+    into: IMergeAccumulator,
   ): void {
-    // Merge known enums
-    for (const enumName of external.knownEnums) {
-      mergedKnownEnums.add(enumName);
-    }
-    // Merge scopes from external sources for cross-scope method calls.
-    //
-    // Issue #1190: the visibility map travels with the scope name. Registering
-    // a scope as known while leaving its visibility unknown makes every member
-    // of an included scope look public, because the access check reads
-    // `undefined` and only rejects an explicit "private". That silently emitted
-    // a reference to a member the generator had already declined to declare.
-    for (const scopeName of external.knownScopes) {
-      mergedKnownScopes.add(scopeName);
-    }
-    // Merge scope member visibility (local takes precedence)
-    for (const [scopeName, visibility] of external.scopeMemberVisibility) {
-      if (!mergedScopeMemberVisibility.has(scopeName)) {
-        mergedScopeMemberVisibility.set(scopeName, new Map(visibility));
-      }
-    }
-    // Merge enum members (local takes precedence)
-    for (const [enumName, members] of external.enumMembers) {
-      if (!mergedEnumMembers.has(enumName)) {
-        mergedEnumMembers.set(enumName, new Map(members));
-      }
-    }
-    // Merge function return types (local takes precedence)
-    for (const [funcName, returnType] of external.functionReturnTypes) {
-      if (!mergedFunctionReturnTypes.has(funcName)) {
-        mergedFunctionReturnTypes.set(funcName, returnType);
-      }
-    }
+    // #1333: every type-forming kind crosses the include boundary on the same
+    // terms. Only knownEnums did, so ADR-057 qualification was kind-dependent: in
+    // a scope spanning two files, an enum declared in the other file qualified and
+    // a struct did not. Adjacent lines in one function emitted `Lib__Mode m` and
+    // bare `Point p` -- the second does not compile. The asymmetry was invisible
+    // while a scope could not span files at all, which is the bug this shipped with.
+    TSymbolInfoAdapter._mergeNames(external.knownEnums, into.knownEnums);
+    TSymbolInfoAdapter._mergeNames(external.knownStructs, into.knownStructs);
+    TSymbolInfoAdapter._mergeNames(external.knownBitmaps, into.knownBitmaps);
+
+    // Issue #1190: the visibility map travels with the scope name. Registering a
+    // scope as known while leaving its visibility unknown makes every member of an
+    // included scope look public, because the access check reads `undefined` and
+    // only rejects an explicit "private".
+    TSymbolInfoAdapter._mergeNames(external.knownScopes, into.knownScopes);
+
+    // A type's NAME is not enough; its detail travels with it. enumMembers already
+    // moved with knownEnums, which is exactly why enums were the only kind that
+    // ever worked -- carrying knownBitmaps alone let a cross-file bitmap type
+    // resolve and then hard-error on the field behind it ("Unknown bitmap field
+    // 'Mode' on type 'Lib__Flags'"). Same asymmetry, one level down.
+    const cloneMap = <K, V>(m: ReadonlyMap<K, V>): Map<K, V> => new Map(m);
+
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.enumMembers,
+      into.enumMembers,
+      cloneMap,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.bitmapFields,
+      into.bitmapFields,
+      cloneMap,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.bitmapBackingType,
+      into.bitmapBackingType,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.bitmapBitWidth,
+      into.bitmapBitWidth,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.scopeMemberVisibility,
+      into.scopeMemberVisibility,
+      cloneMap,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.functionReturnTypes,
+      into.functionReturnTypes,
+    );
   }
 
   /**
@@ -563,6 +641,31 @@ class TSymbolInfoAdapter {
    * @param externalSources Array of ISymbolInfo from included .cnx files
    * @returns New ISymbolInfo with merged enum, scope and visibility data
    */
+  /**
+   * The qualified names of every type-forming declaration in these sources.
+   *
+   * #1333: fed to CNextResolver Pass 0b so the symbols layer sees the same scope
+   * types the codegen layer does. The two resolve type names independently
+   * (CLAUDE.md, "Two resolution points, one decision"), and a reopened scope puts
+   * half its members in another file -- so without this the `.h` prototype and the
+   * `.c` definition disagree about a parameter's type and gcc rejects the pair.
+   *
+   * Kinds match CodeGenState.isScopeType: enums, structs and bitmaps. Registers
+   * are excluded, exactly as they are there -- a register declares a variable at
+   * an address, not a type.
+   */
+  static collectScopeTypeNames(
+    sources: readonly ICodeGenSymbols[],
+  ): ReadonlySet<string> {
+    const names = new Set<string>();
+    for (const source of sources) {
+      for (const name of source.knownEnums) names.add(name);
+      for (const name of source.knownStructs) names.add(name);
+      for (const name of source.knownBitmaps) names.add(name);
+    }
+    return names;
+  }
+
   static mergeExternalSymbols(
     base: ICodeGenSymbols,
     externalSources: ICodeGenSymbols[],
@@ -575,6 +678,13 @@ class TSymbolInfoAdapter {
     // Create mutable copies of enum-related data and scope info
     const mergedKnownEnums = new Set(base.knownEnums);
     const mergedKnownScopes = new Set(base.knownScopes);
+    const mergedKnownStructs = new Set(base.knownStructs);
+    const mergedKnownBitmaps = new Set(base.knownBitmaps);
+    const mergedBitmapFields = new Map(
+      [...base.bitmapFields].map(([name, fields]) => [name, new Map(fields)]),
+    );
+    const mergedBitmapBackingType = new Map(base.bitmapBackingType);
+    const mergedBitmapBitWidth = new Map(base.bitmapBitWidth);
     const mergedEnumMembers = this._copyEnumMembers(base.enumMembers);
     const mergedFunctionReturnTypes = new Map(base.functionReturnTypes);
     const mergedScopeMemberVisibility = this._copyScopeMemberVisibility(
@@ -583,14 +693,18 @@ class TSymbolInfoAdapter {
 
     // Merge in external enum info, function return types, scopes and visibility
     for (const external of externalSources) {
-      this._mergeExternalSource(
-        external,
-        mergedKnownEnums,
-        mergedKnownScopes,
-        mergedEnumMembers,
-        mergedFunctionReturnTypes,
-        mergedScopeMemberVisibility,
-      );
+      this._mergeExternalSource(external, {
+        knownEnums: mergedKnownEnums,
+        knownScopes: mergedKnownScopes,
+        enumMembers: mergedEnumMembers,
+        functionReturnTypes: mergedFunctionReturnTypes,
+        scopeMemberVisibility: mergedScopeMemberVisibility,
+        knownStructs: mergedKnownStructs,
+        knownBitmaps: mergedKnownBitmaps,
+        bitmapFields: mergedBitmapFields,
+        bitmapBackingType: mergedBitmapBackingType,
+        bitmapBitWidth: mergedBitmapBitWidth,
+      });
     }
 
     // Return new ICodeGenSymbols with merged enum data and scope info
@@ -598,6 +712,11 @@ class TSymbolInfoAdapter {
       ...base,
       knownScopes: mergedKnownScopes,
       knownEnums: mergedKnownEnums,
+      knownStructs: mergedKnownStructs,
+      knownBitmaps: mergedKnownBitmaps,
+      bitmapFields: mergedBitmapFields,
+      bitmapBackingType: mergedBitmapBackingType,
+      bitmapBitWidth: mergedBitmapBitWidth,
       enumMembers: mergedEnumMembers,
       functionReturnTypes: mergedFunctionReturnTypes,
       scopeMemberVisibility: mergedScopeMemberVisibility,
