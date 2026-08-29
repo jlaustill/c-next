@@ -124,6 +124,18 @@ jobs:
         run: npm run diagnostics:manifest:check
         continue-on-error: true
 
+      # Issue #1365: docs/architecture/output-throw-classification.md cites all
+      # every throw site in output/ by file:line, and a line number decays
+      # silently. #1362
+      # committed it correct; #1363 then added 62 lines to TypeValidator.ts and
+      # 64 citations began pointing at a docstring. Each PR was green alone, and
+      # main is unprotected (#1344), so nothing evaluated the pair. This also
+      # fails when a new throw is added and nobody classifies it.
+      - name: Check throw classification citations
+        id: throwcitations
+        run: npm run docs:throw-citations:check
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -138,6 +150,7 @@ jobs:
           [ "${{ steps.toolchaindocs.outcome }}" != "success" ] && echo "❌ Toolchain docs" && FAILED=1 || echo "✅ Toolchain docs"
           [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
           [ "${{ steps.diagnosticmanifest.outcome }}" != "success" ] && echo "❌ Diagnostic manifest" && FAILED=1 || echo "✅ Diagnostic manifest"
+          [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   build:
