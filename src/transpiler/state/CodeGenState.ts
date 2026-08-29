@@ -31,7 +31,7 @@ import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
 import type IRequirementSite from "../types/IRequirementSite";
 import type TRequirementKey from "../types/TRequirementKey";
 import RequirementSites from "../../utils/RequirementSites";
-import ITargetCapabilities from "../output/codegen/types/ITargetCapabilities";
+import ITargetCapabilities from "../types/ITargetCapabilities";
 import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
 import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
@@ -42,16 +42,12 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import IScopeSymbol from "../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import SymbolRegistry from "./SymbolRegistry";
+import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
 /**
  * Default target capabilities (safe fallback)
+ * Uses C99 guarantees: 31 external, 63 internal significant characters.
  */
-const DEFAULT_TARGET: ITargetCapabilities = {
-  wordSize: 32,
-  hasLdrexStrex: false,
-  hasBasepri: false,
-};
-
 /**
  * Assignment context for overflow behavior tracking (ADR-044)
  */

@@ -1,0 +1,16 @@
+// test-error
+// Issue #1307, cross-file: MISRA C:2012 Rule 5.1 is a whole-program property.
+// Neither file collides with itself -- the two scopes are declared in different
+// translation units, and only the linker sees both names. This is the case the
+// whole-symbol-table design exists for, and the only one that asserts the
+// basename() choice in the diagnostic, since the two names come from
+// different files.
+#include "collision-lib.cnx"
+
+scope TemperatureSensorControllerModuleOmega {
+    public u8 offset <- 2;
+}
+
+i32 main() {
+    return 0;
+}

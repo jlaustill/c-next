@@ -11,7 +11,7 @@
 import TTypeInfo from "../../types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import ITargetCapabilities from "../../types/ITargetCapabilities";
+import ITargetCapabilities from "../../../../types/ITargetCapabilities";
 import TYPE_WIDTH from "../../../../constants/TYPE_WIDTH";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
 

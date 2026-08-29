@@ -1,0 +1,5 @@
+// Helper for cross-file-collision.test.cnx -- NOT a test itself.
+// Declares one half of a collision pair; the includer declares the other.
+scope TemperatureSensorControllerModuleAlpha {
+    public u8 offset <- 1;
+}

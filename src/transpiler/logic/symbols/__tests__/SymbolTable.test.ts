@@ -11,6 +11,7 @@ import IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import IStructSymbol from "../../../types/symbols/IStructSymbol";
 import IEnumSymbol from "../../../types/symbols/IEnumSymbol";
+import ITargetCapabilities from "../../../types/ITargetCapabilities";
 import TestScopeUtils from "../cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
@@ -1229,6 +1230,224 @@ describe("SymbolTable", () => {
       expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
       expect(symbolTable.getEnumBitWidth("SmallEnum")).toBeUndefined();
       expect(symbolTable.isTypedefStructType("handle_t")).toBe(false);
+    });
+  });
+
+  // ========================================================================
+  // MISRA C:2012 Rule 5.1 - External Identifier Length (issue #1307)
+  // ========================================================================
+
+  describe("detectMISRA51Conflicts", () => {
+    const LONG_SCOPE = "TemperatureSensorController";
+
+    const targetCaps: ITargetCapabilities = {
+      wordSize: 32,
+      hasLdrexStrex: false,
+      hasBasepri: false,
+      significantExternalIdentifierChars: 31,
+      significantInternalIdentifierChars: 63,
+    };
+
+    /** A scope member variable, public unless told otherwise. */
+    function scopeVariable(
+      name: string,
+      line: number,
+      isExported = true,
+      scopeName = LONG_SCOPE,
+    ): IVariableSymbol {
+      return {
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name,
+          scope: TestScopeUtils.createMockScope(scopeName),
+          sourceFile: "sensor.cnx",
+          sourceLine: line,
+          isExported,
+        }),
+        type: TTypeUtils.createPrimitive("u8"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        isVolatile: false,
+      };
+    }
+
+    it("reports the two members that share a truncated prefix", () => {
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+      table.addTSymbol(scopeVariable("calibrationOffsetLimit", 3));
+
+      const conflicts = table.detectMISRA51Conflicts(targetCaps);
+
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0].severity).toBe("error");
+      expect(conflicts[0].definitions).toHaveLength(2);
+      expect(conflicts[0].message).toContain("MISRA C:2012 Rule 5.1");
+      expect(conflicts[0].message).toContain("E0204");
+    });
+
+    it("names the C-Next names the author wrote, not the generated ones", () => {
+      // #1292: `TemperatureSensorController__calibrationOffsetValue` appears in
+      // no source file, so pointing at it does not help anyone rename anything.
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+      table.addTSymbol(scopeVariable("calibrationOffsetLimit", 3));
+
+      const message = table.detectMISRA51Conflicts(targetCaps)[0].message;
+
+      expect(message).toContain(
+        `${LONG_SCOPE}.calibrationOffsetValue (sensor.cnx:2)`,
+      );
+      expect(message).toContain(
+        `${LONG_SCOPE}.calibrationOffsetLimit (sensor.cnx:3)`,
+      );
+      expect(message).not.toContain(`${LONG_SCOPE}__calibrationOffsetValue`);
+    });
+
+    it("groups three colliding members into one diagnostic", () => {
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+      table.addTSymbol(scopeVariable("calibrationOffsetLimit", 3));
+      table.addTSymbol(scopeVariable("calibrationOffsetScale", 4));
+
+      const conflicts = table.detectMISRA51Conflicts(targetCaps);
+
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0].definitions).toHaveLength(3);
+    });
+
+    it("stays silent when the names diverge inside the limit", () => {
+      const table = new SymbolTable();
+      // "...__re" vs "...__ra" -- they differ at exactly the 31st character.
+      table.addTSymbol(scopeVariable("readValue", 2));
+      table.addTSymbol(scopeVariable("rawValue", 3));
+
+      expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(0);
+    });
+
+    it("stays silent for a declaration registered more than once", () => {
+      // One file reached along two include paths is one identifier, not two.
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+
+      expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(0);
+    });
+
+    it("stays silent when the capability is not configured", () => {
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+      table.addTSymbol(scopeVariable("calibrationOffsetLimit", 3));
+
+      const withoutLimit = {
+        wordSize: 32,
+        hasLdrexStrex: false,
+        hasBasepri: false,
+      } as unknown as ITargetCapabilities;
+
+      expect(table.detectMISRA51Conflicts(withoutLimit)).toHaveLength(0);
+    });
+
+    it.each([
+      { limit: 63, expected: 0, why: "a wider budget separates them" },
+      { limit: 31, expected: 1, why: "C99's guarantee does not" },
+      { limit: 20, expected: 1, why: "a narrower budget does not either" },
+    ])("honours the target's limit of $limit ($why)", ({ limit, expected }) => {
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+      table.addTSymbol(scopeVariable("calibrationOffsetLimit", 3));
+
+      const conflicts = table.detectMISRA51Conflicts({
+        ...targetCaps,
+        significantExternalIdentifierChars: limit,
+      });
+
+      expect(conflicts).toHaveLength(expected);
+    });
+
+    it("ignores private members, which are emitted static", () => {
+      // ADR-016 emits `private` as `static`. Internal linkage gets 63
+      // significant characters under a different rule, not 31 under 5.1.
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("shadowRegisterMirrorAlpha", 2, false));
+      table.addTSymbol(scopeVariable("shadowRegisterMirrorOmega", 3, false));
+
+      expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(0);
+    });
+
+    it("ignores types, which name nothing the linker resolves", () => {
+      const table = new SymbolTable();
+      const scope = TestScopeUtils.createMockScope(LONG_SCOPE);
+      for (const [name, line] of [
+        ["calibrationProfileAlpha", 2],
+        ["calibrationProfileOmega", 3],
+      ] as Array<[string, number]>) {
+        table.addTSymbol({
+          ...TestSymbolUtils.base({
+            kind: "enum",
+            name,
+            scope,
+            sourceFile: "sensor.cnx",
+            sourceLine: line,
+          }),
+          members: [],
+        } as unknown as IEnumSymbol);
+      }
+
+      expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(0);
+    });
+
+    it("ignores C and C++ header symbols", () => {
+      // A header's identifiers are not this transpiler's to rename, and C++
+      // names are mangled rather than truncated.
+      const table = new SymbolTable();
+      const colliding = [
+        "TemperatureSensorController__calibrationValue",
+        "TemperatureSensorController__calibrationLimit",
+      ];
+
+      table.addCSymbol({
+        kind: "function",
+        name: colliding[0],
+        sourceFile: "sensor.h",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.C,
+        isExported: true,
+        type: "void",
+        parameters: [],
+      } as TCSymbol);
+      table.addCppSymbol({
+        kind: "function",
+        name: colliding[1],
+        sourceFile: "sensor.hpp",
+        sourceLine: 1,
+        sourceLanguage: ESourceLanguage.Cpp,
+        isExported: true,
+        returnType: "void",
+        parameters: [],
+      } as unknown as TCppSymbol);
+
+      expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(0);
+    });
+
+    it("reports a global colliding with a scope member", () => {
+      const table = new SymbolTable();
+      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
+      table.addTSymbol({
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "TemperatureSensorController__calibrationOffsetLimit",
+          sourceFile: "sensor.cnx",
+          sourceLine: 9,
+        }),
+        type: TTypeUtils.createPrimitive("u8"),
+        isArray: false,
+        isConst: false,
+        isAtomic: false,
+        isVolatile: false,
+      } as IVariableSymbol);
+
+      expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(1);
     });
   });
 });

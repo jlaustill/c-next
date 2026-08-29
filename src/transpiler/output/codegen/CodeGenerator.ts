@@ -155,6 +155,9 @@ import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeBinding from "../../logic/symbols/TypeBinding";
+import type ITargetCapabilities from "../../types/ITargetCapabilities";
+import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";
+import TargetResolver from "../../../utils/TargetResolver";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -201,38 +204,6 @@ interface FunctionSignature {
     isArray: boolean;
   }>;
 }
-
-/**
- * ADR-049: Target platform capabilities for code generation
- */
-interface TargetCapabilities {
-  wordSize: 8 | 16 | 32;
-  hasLdrexStrex: boolean;
-  hasBasepri: boolean;
-}
-
-/**
- * ADR-049: Target platform capability map
- */
-const TARGET_CAPABILITIES: Record<string, TargetCapabilities> = {
-  teensy41: { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  teensy40: { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m7": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m4": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m3": { wordSize: 32, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m0+": { wordSize: 32, hasLdrexStrex: true, hasBasepri: false },
-  "cortex-m0": { wordSize: 32, hasLdrexStrex: false, hasBasepri: false },
-  avr: { wordSize: 8, hasLdrexStrex: false, hasBasepri: false },
-};
-
-/**
- * ADR-049: Default target capabilities (safe fallback)
- */
-const DEFAULT_TARGET: TargetCapabilities = {
-  wordSize: 32,
-  hasLdrexStrex: false,
-  hasBasepri: false,
-};
 
 /**
  * Issue #1143: The requirements carried by generateIrqWrappers()'s output.
@@ -2339,7 +2310,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Reset all generator state for a fresh generation pass.
    */
-  private resetGeneratorState(targetCapabilities: TargetCapabilities): void {
+  private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
     // Reset global state (CodeGenState.reset() handles all field initialization)
     CodeGenState.reset(targetCapabilities);
 
@@ -2664,59 +2635,31 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-049: Resolve target capabilities with priority: CLI > pragma > default
+   * ADR-049: Resolve target capabilities with priority: CLI > pragma > default.
+   *
+   * Delegates to TargetResolver so this file and the whole-program Rule 5.1
+   * check read the same pragma the same way (#1307 review).
+   *
    * @param tree - The parsed program tree
    * @param cliTarget - Optional target from CLI --target flag
    */
   private resolveTargetCapabilities(
     tree: Parser.ProgramContext,
     cliTarget?: string,
-  ): TargetCapabilities {
-    // Priority 1: CLI --target flag
+  ): ITargetCapabilities {
     if (cliTarget) {
-      const targetName = cliTarget.toLowerCase();
-      if (TARGET_CAPABILITIES[targetName]) {
-        return TARGET_CAPABILITIES[targetName];
+      const fromCli = TargetResolver.byName(cliTarget);
+      if (fromCli) {
+        return fromCli;
       }
-      // Warn about unknown CLI target but continue with pragma/default
       console.warn(
         `Warning: Unknown target '${cliTarget}', falling back to pragma or default`,
       );
     }
 
-    // Priority 2: #pragma target in source
-    const pragmaTarget = this.parseTargetPragma(tree);
-    if (pragmaTarget !== DEFAULT_TARGET) {
-      return pragmaTarget;
-    }
-
-    // Priority 3: Default (safe fallback - no LDREX/STREX)
-    return DEFAULT_TARGET;
-  }
-
-  /**
-   * ADR-049: Parse #pragma target directive from source
-   * Returns capabilities for the specified platform, or DEFAULT_TARGET if none found
-   */
-  private parseTargetPragma(tree: Parser.ProgramContext): TargetCapabilities {
-    // pragmaDirective is accessed through preprocessorDirective
-    const preprocessorDirs = tree.preprocessorDirective();
-    for (const ppDir of preprocessorDirs) {
-      const pragmaDir = ppDir.pragmaDirective();
-      if (pragmaDir) {
-        // PRAGMA_TARGET captures the whole "#pragma target <name>" as one token
-        const text = pragmaDir.getText();
-        // Extract target name: "#pragma target teensy41" -> "teensy41"
-        const match = /#\s*pragma\s+target\s+(\S+)/i.exec(text);
-        if (match) {
-          const targetName = match[1].toLowerCase();
-          if (TARGET_CAPABILITIES[targetName]) {
-            return TARGET_CAPABILITIES[targetName];
-          }
-        }
-      }
-    }
-    return DEFAULT_TARGET;
+    return (
+      TargetResolver.byName(TargetResolver.fromPragma(tree)) ?? DEFAULT_TARGET
+    );
   }
 
   /**

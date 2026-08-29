@@ -151,6 +151,8 @@ describe("CodeGenState", () => {
         wordSize: 32 as const,
         hasLdrexStrex: true,
         hasBasepri: true,
+        significantExternalIdentifierChars: 31,
+        significantInternalIdentifierChars: 63,
       };
 
       CodeGenState.reset(customTarget);

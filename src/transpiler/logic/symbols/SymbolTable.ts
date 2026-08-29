@@ -11,6 +11,7 @@
 import DeclarationSite from "../../../utils/DeclarationSite";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import { produce, enableMapSet } from "immer";
+import { basename } from "node:path";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "../../types/IConflict";
@@ -26,6 +27,7 @@ import IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../utils/TypeResolver";
+import type ITargetCapabilities from "../../types/ITargetCapabilities";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -858,6 +860,147 @@ class SymbolTable {
     }
 
     return null;
+  }
+
+  // ========================================================================
+  // MISRA C:2012 Rule 5.1 - External Identifier Length
+  // ========================================================================
+
+  /**
+   * Reject two external identifiers that are indistinguishable within the
+   * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
+   *
+   * C99 5.2.4.1 guarantees only 31 significant initial characters in an
+   * external identifier, and `Scope__member` spends that budget on the
+   * *encoding* rather than on the author's names -- the `__` separator costs two
+   * characters per level and the scope name costs its full length. Two members
+   * of `TemperatureSensorController` agree for 29 characters before their own
+   * names begin, so a conforming implementation may treat them as one
+   * identifier. On a hosted GCC nothing happens; on the minimal embedded
+   * toolchain that is C-Next's target audience the two variables silently
+   * become one, and `cppcheck --addon=misra` does not report it.
+   *
+   * Scoped to identifiers C-Next itself generates, and among those to the ones
+   * with external linkage:
+   * - A C or C++ header's identifiers are not this transpiler's to rename, and
+   *   C++ names are mangled rather than truncated.
+   * - `static` members (ADR-016 emits `private` as `static`) have internal
+   *   linkage, which C99 gives a 63-character budget under a different rule.
+   * - Types (struct/enum/bitmap/register) have no linkage at all.
+   * - Two identifiers that are equal outright are `detectConflict`'s job
+   *   (ADR-063, #1117), not this one.
+   *
+   * @param targetCapabilities The target's identifier significance limits
+   * @returns One conflict per group of identifiers sharing a truncated prefix
+   */
+  detectMISRA51Conflicts(targetCapabilities: ITargetCapabilities): IConflict[] {
+    const limit = targetCapabilities?.significantExternalIdentifierChars;
+    if (limit === undefined) {
+      return [];
+    }
+
+    const byPrefix = SymbolTable.groupExternalCNextSymbolsByPrefix(
+      this.getAllSymbols(),
+      limit,
+    );
+
+    const conflicts: IConflict[] = [];
+    for (const group of byPrefix.values()) {
+      if (group.length < 2) {
+        continue;
+      }
+      conflicts.push(SymbolTable.buildMISRA51Conflict(group, limit));
+    }
+    return conflicts;
+  }
+
+  /**
+   * Bucket every externally-linked C-Next identifier by its truncated prefix.
+   *
+   * Deduplicated by `fullyQualifiedCName`: one declaration can be registered
+   * more than once when a file is reached along two include paths, and identity
+   * -- not arrival count -- is what a linker sees.
+   */
+  private static groupExternalCNextSymbolsByPrefix(
+    symbols: TAnySymbol[],
+    limit: number,
+  ): Map<string, TSymbol[]> {
+    const byPrefix = new Map<string, TSymbol[]>();
+    const seen = new Set<string>();
+
+    for (const symbol of symbols) {
+      if (!SymbolTable.hasExternalLinkage(symbol)) {
+        continue;
+      }
+
+      const cnextSymbol = symbol as TSymbol;
+      const identifier = cnextSymbol.fullyQualifiedCName;
+      if (seen.has(identifier)) {
+        continue;
+      }
+      seen.add(identifier);
+
+      const prefix = identifier.slice(0, limit);
+      const group = byPrefix.get(prefix);
+      if (group) {
+        group.push(cnextSymbol);
+      } else {
+        byPrefix.set(prefix, [cnextSymbol]);
+      }
+    }
+
+    return byPrefix;
+  }
+
+  /**
+   * True when the symbol is a C-Next declaration emitted with external linkage.
+   *
+   * Only variables and functions have linkage in C; a typedef or an enumeration
+   * constant names nothing the linker resolves.
+   */
+  private static hasExternalLinkage(symbol: TAnySymbol): boolean {
+    if (symbol.sourceLanguage !== ESourceLanguage.CNext) {
+      return false;
+    }
+    if (symbol.kind !== "variable" && symbol.kind !== "function") {
+      return false;
+    }
+    return symbol.isExported;
+  }
+
+  /**
+   * Build the Rule 5.1 diagnostic for one group of colliding identifiers.
+   *
+   * Names the C-Next names the author wrote (`cnxScopedName`) rather than the
+   * generated identifiers, per #1292 -- reporting `Scope__member` names
+   * something that appears in no source file.
+   */
+  private static buildMISRA51Conflict(
+    group: TSymbol[],
+    limit: number,
+  ): IConflict {
+    const shared = group[0].fullyQualifiedCName.slice(0, limit);
+    // basename, not the full path: the diagnostic is snapshotted by the test
+    // corpus, and an absolute path would make the snapshot machine-specific.
+    // E0203 names its colliding files the same way.
+    const locations = group
+      .map(
+        (symbol) =>
+          `  ${symbol.cnxScopedName} (${basename(symbol.sourceFile)}:${symbol.sourceLine})`,
+      )
+      .join("\n");
+
+    return {
+      symbolName: group[0].name,
+      definitions: [...group],
+      severity: "error",
+      message:
+        `error[E0204]: External identifiers are not distinct within the target's ` +
+        `${limit} significant characters (MISRA C:2012 Rule 5.1). ` +
+        `All of these generate an identifier beginning '${shared}':\n${locations}\n` +
+        `  Shorten the scope name or the member names so the first ${limit} ` +
+        `characters differ.`,
+    };
   }
 
   /**

@@ -2,7 +2,7 @@
 // Verifies that combined modifiers (const clamp, const wrap, public clamp, etc.)
 // work correctly with scope variables accessed via this. accessor
 
-scope ModifierCombos {
+scope Combos {
     // const + clamp combination - immutable with clamp semantics
     const clamp u8 MAX_BRIGHTNESS <- 255;
     const clamp u16 MAX_SENSOR <- 65535;
@@ -175,74 +175,74 @@ scope ModifierCombos {
 void main() {
    
 // Test reading const clamp values
-    (void) ModifierCombos.getMaxBrightness();
-    (void) ModifierCombos.getMaxSensor();
-    (void) ModifierCombos.getMinTemp();
+    (void) Combos.getMaxBrightness();
+    (void) Combos.getMaxSensor();
+    (void) Combos.getMinTemp();
 
    
 // Test reading const wrap values
-    (void) ModifierCombos.getCounterStart();
-    (void) ModifierCombos.getTickStart();
+    (void) Combos.getCounterStart();
+    (void) Combos.getTickStart();
 
    
 // Test reading public clamp values
-    (void) ModifierCombos.getPublicClampByte();
-    (void) ModifierCombos.getPublicClampWord();
-    (void) ModifierCombos.getPublicClampSigned();
+    (void) Combos.getPublicClampByte();
+    (void) Combos.getPublicClampWord();
+    (void) Combos.getPublicClampSigned();
 
    
 // Test reading private clamp values via public methods
-    (void) ModifierCombos.getPrivateClampByte();
-    (void) ModifierCombos.getPrivateClampWord();
-    (void) ModifierCombos.getPrivateClampSigned();
+    (void) Combos.getPrivateClampByte();
+    (void) Combos.getPrivateClampWord();
+    (void) Combos.getPrivateClampSigned();
 
    
 // Test reading public wrap values
-    (void) ModifierCombos.getPublicWrapByte();
-    (void) ModifierCombos.getPublicWrapWord();
+    (void) Combos.getPublicWrapByte();
+    (void) Combos.getPublicWrapWord();
 
    
 // Test reading private wrap values via public methods
-    (void) ModifierCombos.getPrivateWrapByte();
-    (void) ModifierCombos.getPrivateWrapWord();
+    (void) Combos.getPrivateWrapByte();
+    (void) Combos.getPrivateWrapWord();
 
    
 // Test reading public const values
-    (void) ModifierCombos.getPublicConst();
-    (void) ModifierCombos.getPublicFlag();
+    (void) Combos.getPublicConst();
+    (void) Combos.getPublicFlag();
 
    
 // Test reading private const values via public methods
-    (void) ModifierCombos.getPrivateConst();
-    (void) ModifierCombos.getPrivateFlag();
+    (void) Combos.getPrivateConst();
+    (void) Combos.getPrivateFlag();
 
    
 // Test modifying public clamp variables (overflow clamping)
-    ModifierCombos.increasePublicClampByte();
-    ModifierCombos.decreasePublicClampSigned();
+    Combos.increasePublicClampByte();
+    Combos.decreasePublicClampSigned();
 
    
 // Test modifying public wrap variables (overflow wrapping)
-    ModifierCombos.incrementPublicWrapByte();
-    ModifierCombos.incrementPublicWrapWord();
+    Combos.incrementPublicWrapByte();
+    Combos.incrementPublicWrapWord();
 
    
 // Test combined operations
-    ModifierCombos.adjustAllClamp();
-    ModifierCombos.adjustAllWrap();
+    Combos.adjustAllClamp();
+    Combos.adjustAllWrap();
 
     // Direct access to public clamp variables - verify they can be read
-    u8 testClampByte <- ModifierCombos.publicClampByte;
-    u16 testClampWord <- ModifierCombos.publicClampWord;
-    i8 testClampSigned <- ModifierCombos.publicClampSigned;
+    u8 testClampByte <- Combos.publicClampByte;
+    u16 testClampWord <- Combos.publicClampWord;
+    i8 testClampSigned <- Combos.publicClampSigned;
 
     // Direct access to public wrap variables - verify they can be read
-    u8 testWrapByte <- ModifierCombos.publicWrapByte;
-    u16 testWrapWord <- ModifierCombos.publicWrapWord;
+    u8 testWrapByte <- Combos.publicWrapByte;
+    u16 testWrapWord <- Combos.publicWrapWord;
 
     // Direct access to public const variables - verify they can be read
-    u8 testConst <- ModifierCombos.PUBLIC_CONST;
-    bool testConstFlag <- ModifierCombos.PUBLIC_FLAG;
+    u8 testConst <- Combos.PUBLIC_CONST;
+    bool testConstFlag <- Combos.PUBLIC_FLAG;
 
     // Use the values to prevent warnings
     if (testClampByte = 0 && testClampWord = 0 && testClampSigned = 0 &&

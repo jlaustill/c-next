@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../AtomicGenerator";
 import TTypeInfo from "../../../types/TTypeInfo";
-import ITargetCapabilities from "../../../types/ITargetCapabilities";
+import ITargetCapabilities from "../../../../../types/ITargetCapabilities";
 
 const {
   generateAtomicRMW,
@@ -38,6 +38,8 @@ function createCapabilities(hasLdrexStrex: boolean): ITargetCapabilities {
     wordSize: 32,
     hasLdrexStrex,
     hasBasepri: true,
+    significantExternalIdentifierChars: 31,
+    significantInternalIdentifierChars: 63,
   };
 }
 

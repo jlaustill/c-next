@@ -75,6 +75,7 @@ import TransitiveEnumCollector from "./logic/symbols/TransitiveEnumCollector";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "./types/IRecordedRequirement";
 import RequirementAggregator from "../utils/RequirementAggregator";
+import TargetResolver from "../utils/TargetResolver";
 
 /**
  * Unified transpiler
@@ -95,6 +96,15 @@ class Transpiler {
    * only projects with unresolvable framework headers pay its cost.
    */
   private anyHeaderPreprocessFailed = false;
+
+  /**
+   * ADR-049: `#pragma target` names declared by this run's C-Next files.
+   *
+   * Collected in Stage 3 so the whole-program Rule 5.1 check can resolve one
+   * budget for the build. Cleared per run by `_initializeRun()` — a stale entry
+   * here would reintroduce exactly the cross-run leak it exists to fix.
+   */
+  private pragmaTargets: string[] = [];
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   private readonly state = new TranspilerState();
   /**
@@ -325,6 +335,11 @@ class Transpiler {
       return;
     }
 
+    // Stage 4c: Check external identifier significance (MISRA 5.1, issue #1307)
+    if (!this._checkExternalIdentifierSignificance(result)) {
+      return;
+    }
+
     // Stage 5: Analyze and transpile each C-Next file
     for (const file of input.cnextFiles) {
       if (file.symbolOnly) {
@@ -381,6 +396,13 @@ class Transpiler {
     // Parse errors — return them with original line/column and sourcePath
     if (errors.length > 0) {
       return errors.map((e) => ({ ...e, sourcePath: file.path }));
+    }
+
+    // ADR-049: record the file's declared target while its tree is in hand, so
+    // Stage 4c can resolve a run-level budget without re-parsing or re-deriving.
+    const pragmaTarget = TargetResolver.fromPragma(tree);
+    if (pragmaTarget) {
+      this.pragmaTargets.push(pragmaTarget);
     }
 
     try {
@@ -733,6 +755,8 @@ class Transpiler {
     this.modificationAnalyzer.clear();
     // Issue #587: Reset accumulated state for new run
     this.state.reset();
+    // ADR-049: the previous run's targets must not decide this run's budget
+    this.pragmaTargets = [];
     // Issue #634: Reset symbol table for new run
     CodeGenState.symbolTable.clear();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
@@ -983,6 +1007,49 @@ class Transpiler {
         message: `error[E0425]: ${conflict.message}`,
         severity: conflict.severity,
       });
+    }
+
+    return result.success;
+  }
+
+  /**
+   * Stage 4c: Reject external identifiers that are not distinct within the
+   * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
+   *
+   * A sibling of Stage 4b rather than part of Stage 4: a symbol *conflict* is
+   * two declarations competing for one name, which is a fact about the symbol
+   * table. This is a fact about the C target -- the same two declarations are
+   * fine at 63 significant characters and wrong at 31 -- so it is reported as a
+   * coded diagnostic against a source line, the way E0203 is, instead of going
+   * through the untyped `conflicts` channel.
+   *
+   * @returns true when every external identifier is distinct within the budget
+   */
+  private _checkExternalIdentifierSignificance(
+    result: ITranspilerResult,
+  ): boolean {
+    // NOT CodeGenState.targetCapabilities: codegen assigns that in Stage 5, one
+    // stage after this runs, so it holds the module default on a fresh process
+    // and the previous file's target in a long-lived one (#1307 review). The
+    // budget a whole-program check reports against has to be the build's.
+    const collisions = CodeGenState.symbolTable.detectMISRA51Conflicts(
+      TargetResolver.forRun(this.config.target, this.pragmaTargets),
+    );
+
+    for (const collision of collisions) {
+      const first = collision.definitions[0];
+      result.errors.push({
+        line: first?.sourceLine ?? 1,
+        column: 0,
+        message: collision.message,
+        severity: "error",
+        // Anchored to a file even in single-file builds. The message runs to
+        // several lines, and the CLI's reader only accumulates continuation
+        // lines under a `path:line:col` header -- without a sourcePath the
+        // colliding names are printed and then dropped on the way to a snapshot.
+        sourcePath: first?.sourceFile,
+      });
+      result.success = false;
     }
 
     return result.success;
