@@ -1,0 +1,24 @@
+// test-error
+// #1360 / ADR-036: bounds checking across a file boundary, where the array's
+// first dimension is an unfoldable C macro.
+//
+// The in-bounds read below is the load-bearing part of this fixture. Index 10
+// is valid for dimension 1 (GRID_ROWS = 16) and it must stay SILENT. While
+// CodeGenState.convertTSymbolToTypeInfo filtered the unfoldable slot out, the
+// dimension list arrived as [3] instead of [16, 3], so that line was REJECTED
+// as "10 >= 3 ... dimension 1" -- valid code refused, and dimension 2 never
+// checked at all because the subscript depth ran past the shortened list.
+//
+// The flagged read is out of range for dimension 2, which is the bound that
+// was being skipped.
+#include <grid-source.cnx>
+
+u8 readIt() {
+    u8 inBounds <- sharedGrid[10][0];
+    u8 outOfBounds <- sharedGrid[10][9];
+    return outOfBounds;
+}
+
+i32 main() {
+    return 0;
+}
