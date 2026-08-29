@@ -346,6 +346,64 @@ describe("SymbolTable", () => {
       expect(symbolTable.hasConflict("overloaded")).toBe(false);
     });
 
+    // Issue #1333: a scope may be REOPENED. Two `scope Lib` declarations are the
+    // same scope gaining members, not two definitions of one name.
+    //
+    // The integration fixtures under tests/bugs/issue-1333-scope-reopening/ cover
+    // the behavior end-to-end, but they do not feed the coverage metric, so the
+    // `continue` implementing this rule measured 0 hits on new code. This is the
+    // unit-level seam for it.
+    it("should NOT detect conflict for a scope declared twice (reopened)", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+
+      for (const line of [1, 10]) {
+        symbolTable.addTSymbol({
+          ...TestSymbolUtils.base({
+            kind: "scope",
+            name: "Lib",
+            scope: globalScope,
+            sourceFile: "test.cnx",
+            sourceLine: line,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+          }),
+          members: [],
+          parent: globalScope,
+        } as unknown as TSymbol);
+      }
+
+      expect(symbolTable.hasConflict("Lib")).toBe(false);
+    });
+
+    // The negative control: reopening composes a scope, it does not relax member
+    // uniqueness. Two definitions of the same member collide whichever block they
+    // were written in, because members group by the scope's own identity.
+    it("should STILL detect conflict for a duplicated member of a reopened scope", () => {
+      const globalScope = TestScopeUtils.createMockGlobalScope();
+      const libScope = TestScopeUtils.createMockScope("Lib", globalScope);
+
+      for (const line of [2, 11]) {
+        symbolTable.addTSymbol({
+          ...TestSymbolUtils.base({
+            kind: "variable",
+            name: "count",
+            scope: libScope,
+            sourceFile: "test.cnx",
+            sourceLine: line,
+            sourceLanguage: ESourceLanguage.CNext,
+            isExported: true,
+          }),
+          type: TTypeUtils.createPrimitive("u32"),
+          isArray: false,
+          isConst: false,
+          isAtomic: false,
+          isVolatile: false,
+        });
+      }
+
+      expect(symbolTable.hasConflict("count")).toBe(true);
+    });
+
     // Issue #817: Scope-private members should NOT conflict across scopes
     it("should NOT detect conflict for same-named members in different scopes", () => {
       // Create two different named scopes

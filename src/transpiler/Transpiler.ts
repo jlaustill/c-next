@@ -384,8 +384,23 @@ class Transpiler {
     }
 
     try {
+      // #1333: seed with scope types from already-collected included files, the
+      // same set the codegen layer gets. This table is what PublicInterface reads
+      // to build the HEADER, so leaving it unseeded made the `.h` resolve a bare
+      // `Point` unqualified while the `.c` resolved `Lib__Point` -- a prototype
+      // and a definition that disagree, at exit 0. Pipeline files are visited in
+      // dependency order, so an included file's symbols are already present.
+      const externalScopeTypes = TSymbolInfoAdapter.collectScopeTypeNames(
+        this._collectExternalEnumSources(file.path, file.cnextIncludes),
+      );
+
       // ADR-055 Phase 7: Use composable collectors via CNextResolver
-      const tSymbols = CNextResolver.resolve(tree, file.path);
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        file.path,
+        undefined,
+        externalScopeTypes,
+      );
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       CodeGenState.symbolTable.addTSymbols(tSymbols);
@@ -446,15 +461,27 @@ class Transpiler {
         return this.buildParseOnlyResult(sourcePath, declarationCount);
       }
 
-      // Build symbolInfo for code generation (before analyzers so they can read it)
-      const tSymbols = CNextResolver.resolve(tree, sourcePath);
-      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
-
-      // Merge enum info from included .cnx files
+      // #1333: collect the included files' symbols BEFORE resolving, so the
+      // symbols layer and the codegen layer are fed the same set of scope types.
+      // A reopened scope has half its members in another file; resolving first
+      // and merging afterwards let the `.h` see a bare `Point` while the `.c`
+      // saw `Lib__Point`, which does not compile.
       const externalEnumSources = this._collectExternalEnumSources(
         sourcePath,
         file.cnextIncludes,
       );
+      const externalScopeTypes =
+        TSymbolInfoAdapter.collectScopeTypeNames(externalEnumSources);
+
+      // Build symbolInfo for code generation (before analyzers so they can read it)
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        sourcePath,
+        undefined,
+        externalScopeTypes,
+      );
+      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+
       if (externalEnumSources.length > 0) {
         symbolInfo = TSymbolInfoAdapter.mergeExternalSymbols(
           symbolInfo,

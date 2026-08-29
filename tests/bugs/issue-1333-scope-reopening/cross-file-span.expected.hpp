@@ -14,8 +14,21 @@
 extern "C" {
 #endif
 
+/* External type dependencies - include appropriate headers */
+typedef struct Lib__Point Lib__Point;
+
+/* Struct definitions */
+typedef struct Lib__Line {
+    Lib__Point start;
+    Lib__Point end;
+} Lib__Line;
+
 /* Function prototypes */
 uint32_t Lib__useBoth(void);
+uint32_t Lib__sumThrough(const Lib__Point& p);
+Lib__Point Lib__makeOrigin(void);
+uint8_t Lib__useFlags(void);
+uint32_t Lib__runAll(void);
 
 #ifdef __cplusplus
 }

@@ -60,7 +60,12 @@ interface IMergeAccumulator {
   >;
   readonly knownStructs: Set<string>;
   readonly knownBitmaps: Set<string>;
-  readonly knownRegisters: Set<string>;
+  readonly bitmapFields: Map<
+    string,
+    Map<string, { readonly offset: number; readonly width: number }>
+  >;
+  readonly bitmapBackingType: Map<string, string>;
+  readonly bitmapBitWidth: Map<string, number>;
 }
 
 class TSymbolInfoAdapter {
@@ -539,7 +544,9 @@ class TSymbolInfoAdapter {
       scopeMemberVisibility: mergedScopeMemberVisibility,
       knownStructs: mergedKnownStructs,
       knownBitmaps: mergedKnownBitmaps,
-      knownRegisters: mergedKnownRegisters,
+      bitmapFields: mergedBitmapFields,
+      bitmapBackingType: mergedBitmapBackingType,
+      bitmapBitWidth: mergedBitmapBitWidth,
     } = into;
     // Merge known enums
     for (const enumName of external.knownEnums) {
@@ -559,9 +566,27 @@ class TSymbolInfoAdapter {
     for (const bitmapName of external.knownBitmaps) {
       mergedKnownBitmaps.add(bitmapName);
     }
-    for (const registerName of external.knownRegisters) {
-      mergedKnownRegisters.add(registerName);
+    // A bitmap's NAME is not enough. enumMembers travels with knownEnums, which is
+    // why enums were the only kind that ever worked across the boundary; carrying
+    // knownBitmaps alone let a cross-file bitmap type resolve and then hard-error on
+    // the field lookup behind it ("Unknown bitmap field 'Mode' on type 'Lib__Flags'").
+    // Same asymmetry as the one this method is fixing, one level down.
+    for (const [name, fields] of external.bitmapFields) {
+      if (!mergedBitmapFields.has(name)) {
+        mergedBitmapFields.set(name, new Map(fields));
+      }
     }
+    for (const [name, backing] of external.bitmapBackingType) {
+      if (!mergedBitmapBackingType.has(name)) {
+        mergedBitmapBackingType.set(name, backing);
+      }
+    }
+    for (const [name, width] of external.bitmapBitWidth) {
+      if (!mergedBitmapBitWidth.has(name)) {
+        mergedBitmapBitWidth.set(name, width);
+      }
+    }
+
     // Merge scopes from external sources for cross-scope method calls.
     //
     // Issue #1190: the visibility map travels with the scope name. Registering
@@ -608,6 +633,31 @@ class TSymbolInfoAdapter {
    * @param externalSources Array of ISymbolInfo from included .cnx files
    * @returns New ISymbolInfo with merged enum, scope and visibility data
    */
+  /**
+   * The qualified names of every type-forming declaration in these sources.
+   *
+   * #1333: fed to CNextResolver Pass 0b so the symbols layer sees the same scope
+   * types the codegen layer does. The two resolve type names independently
+   * (CLAUDE.md, "Two resolution points, one decision"), and a reopened scope puts
+   * half its members in another file -- so without this the `.h` prototype and the
+   * `.c` definition disagree about a parameter's type and gcc rejects the pair.
+   *
+   * Kinds match CodeGenState.isScopeType: enums, structs and bitmaps. Registers
+   * are excluded, exactly as they are there -- a register declares a variable at
+   * an address, not a type.
+   */
+  static collectScopeTypeNames(
+    sources: readonly ICodeGenSymbols[],
+  ): ReadonlySet<string> {
+    const names = new Set<string>();
+    for (const source of sources) {
+      for (const name of source.knownEnums) names.add(name);
+      for (const name of source.knownStructs) names.add(name);
+      for (const name of source.knownBitmaps) names.add(name);
+    }
+    return names;
+  }
+
   static mergeExternalSymbols(
     base: ICodeGenSymbols,
     externalSources: ICodeGenSymbols[],
@@ -622,7 +672,11 @@ class TSymbolInfoAdapter {
     const mergedKnownScopes = new Set(base.knownScopes);
     const mergedKnownStructs = new Set(base.knownStructs);
     const mergedKnownBitmaps = new Set(base.knownBitmaps);
-    const mergedKnownRegisters = new Set(base.knownRegisters);
+    const mergedBitmapFields = new Map(
+      [...base.bitmapFields].map(([name, fields]) => [name, new Map(fields)]),
+    );
+    const mergedBitmapBackingType = new Map(base.bitmapBackingType);
+    const mergedBitmapBitWidth = new Map(base.bitmapBitWidth);
     const mergedEnumMembers = this._copyEnumMembers(base.enumMembers);
     const mergedFunctionReturnTypes = new Map(base.functionReturnTypes);
     const mergedScopeMemberVisibility = this._copyScopeMemberVisibility(
@@ -639,7 +693,9 @@ class TSymbolInfoAdapter {
         scopeMemberVisibility: mergedScopeMemberVisibility,
         knownStructs: mergedKnownStructs,
         knownBitmaps: mergedKnownBitmaps,
-        knownRegisters: mergedKnownRegisters,
+        bitmapFields: mergedBitmapFields,
+        bitmapBackingType: mergedBitmapBackingType,
+        bitmapBitWidth: mergedBitmapBitWidth,
       });
     }
 
@@ -650,7 +706,9 @@ class TSymbolInfoAdapter {
       knownEnums: mergedKnownEnums,
       knownStructs: mergedKnownStructs,
       knownBitmaps: mergedKnownBitmaps,
-      knownRegisters: mergedKnownRegisters,
+      bitmapFields: mergedBitmapFields,
+      bitmapBackingType: mergedBitmapBackingType,
+      bitmapBitWidth: mergedBitmapBitWidth,
       enumMembers: mergedEnumMembers,
       functionReturnTypes: mergedFunctionReturnTypes,
       scopeMemberVisibility: mergedScopeMemberVisibility,

@@ -10,4 +10,10 @@ scope Lib {
         u32 x;
         u32 y;
     }
+
+    public bitmap8 Flags {
+        Ready,
+        Mode[3],
+        Reserved[4]
+    }
 }

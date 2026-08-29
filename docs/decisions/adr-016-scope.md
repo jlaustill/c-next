@@ -144,6 +144,20 @@ type-forming kind must be visible across the include boundary on the same terms 
 if enums are visible and structs are not, `Mode` and `Point` declared side by side
 in one file resolve differently in another, and the second does not compile.
 
+The same obligation holds over a second axis, and missing it is the more dangerous
+half. C-Next resolves a type name at **two points** (CLAUDE.md, _"Two resolution
+points, one decision"_): the **symbols layer**, which produces the header, and the
+**codegen layer**, which produces the body. Both must see the same scope types.
+If they disagree, the prototype and the definition disagree — a bare `Point` in a
+parameter reaches the `.h` as `Point` and the `.c` as `Lib__Point`, `cnext` exits 0,
+and the C compiler rejects the pair.
+
+The two axes multiply rather than add: a kind that is visible in one layer and not
+the other fails only in the positions that route through the missing layer. A
+function-body local is resolved by codegen alone and keeps working, which is exactly
+why this can look fixed while parameters, return types and struct fields are broken.
+Coverage therefore has to name positions, not just kinds.
+
 ### Scope Variable Persistence (Issue #233)
 
 Scope variables behave like C `static` variables — they are initialized once at program start and persist across all function calls.

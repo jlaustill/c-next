@@ -21,6 +21,20 @@
 #include "span-lib.h"
 
 #include <stdint.h>
+#include <stdbool.h>
+
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
 
 /* Scope: Lib */
 
@@ -30,8 +44,36 @@ uint32_t Lib__useBoth(void) {
     return p.x + p.y + m;
 }
 
+uint32_t Lib__sumThrough(const Lib__Point* p) {
+    return p->x + p->y;
+}
+
+Lib__Point Lib__makeOrigin(void) {
+    Lib__Point o = { .x = 10U, .y = 20U };
+    return o;
+}
+
+uint8_t Lib__useFlags(void) {
+    Lib__Flags f = 0;
+    f = (f & ~(1U << 0)) | (1U << 0);
+    return ((f >> 1) & 0x7);
+}
+
+uint32_t Lib__runAll(void) {
+    uint32_t total = Lib__useBoth();
+    Lib__Point p = { .x = 1U, .y = 2U };
+    total = cnx_clamp_add_u32(total, Lib__sumThrough(&p));
+    Lib__Point origin = Lib__makeOrigin();
+    total = cnx_clamp_add_u32(total, origin.x);
+    Lib__Line l = { .start = { .x = 100U, .y = 0U }, .end = { .x = 0U, .y = 0U } };
+    total = cnx_clamp_add_u32(total, l.start.x);
+    uint8_t flags = Lib__useFlags();
+    total = cnx_clamp_add_u32(total, flags);
+    return total;
+}
+
 int main(void) {
-    uint32_t result = Lib__useBoth();
-    if (result != 9) return 1;
+    uint32_t result = Lib__runAll();
+    if (result != 122) return 1;
     return 0;
 }

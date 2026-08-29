@@ -19,6 +19,14 @@ typedef enum {
     Lib__Mode__BETA = 2
 } Lib__Mode;
 
+/* Bitmaps */
+/* Bitmap: Lib__Flags
+ *   Ready: bit 0
+ *   Mode: bits 1-3 (3 bits)
+ *   Reserved: bits 4-7 (4 bits)
+ */
+typedef uint8_t Lib__Flags;
+
 /* Struct definitions */
 typedef struct Lib__Point {
     uint32_t x;
