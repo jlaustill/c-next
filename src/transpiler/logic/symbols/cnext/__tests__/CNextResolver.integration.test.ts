@@ -1,10 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CNextResolver from "../index";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
+import SymbolRegistry from "../../../../state/SymbolRegistry";
 import TypeResolver from "../../../../../utils/TypeResolver";
 
 describe("CNextResolver Integration", () => {
+  // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry, so
+  // without this every test in this file inherits the scopes the previous one
+  // registered.
+  beforeEach(() => {
+    SymbolRegistry.reset();
+  });
+
   describe("single declaration types", () => {
     it("resolves top-level struct", () => {
       const code = `
@@ -587,6 +595,63 @@ describe("CNextResolver Integration", () => {
       if (move && SymbolGuards.isFunction(move)) {
         expect(TypeResolver.getTypeName(move.parameters[0].type)).toBe("Point");
       }
+    });
+  });
+
+  // #1358 DoD: the declare step must be idempotent. This is the shape the real
+  // pipeline runs -- Transpiler stages 3 and 5 both resolve every file, and
+  // SymbolRegistry.reset() runs once per run, not between them (#1301).
+  describe("idempotence of the declare step", () => {
+    // Snapshots EVERY mutable collection on IScopeSymbol, not just the one this
+    // PR guarded. "Declare runs twice over the same tree" is compensated
+    // separately in three places -- `declarationSites` by Set semantics,
+    // `members` by the includes-check `ScopeCollector` added for #1334, and
+    // `functions` by `SymbolRegistry.isAlreadyRegistered` -- each with only a
+    // local test. Nothing asserted the STEP was idempotent, so a collection
+    // added without a guard would duplicate silently. `variables` is exactly
+    // that shape today: declared on IScopeSymbol and never written.
+    const snapshotMotor = () => {
+      const scope = SymbolRegistry.getScope("Motor")!;
+      return {
+        functions: scope.functions.map((f) => f.fullyQualifiedCName),
+        members: [...scope.members],
+        variables: [...scope.variables],
+        declarationSites: [...scope.declarationSites].sort(),
+        memberVisibility: [...scope.memberVisibility.entries()].sort(),
+      };
+    };
+
+    it("resolving the same tree twice leaves registry state unchanged", () => {
+      const code = `scope Motor {
+        void start() { }
+        void stop() { }
+      }`;
+
+      // Re-parsed each time, as stage 5 does -- distinct trees, distinct symbol
+      // objects. An identity-based guard would not catch the duplication.
+      CNextResolver.resolve(parse(code), "motor.cnx");
+      const afterFirst = snapshotMotor();
+
+      // Absolute assertion first: before/after equality alone cannot tell
+      // "idempotent" from "consistently wrong on both passes".
+      expect(afterFirst.functions).toEqual(["Motor__start", "Motor__stop"]);
+      expect(afterFirst.members).toEqual(["start", "stop"]);
+
+      CNextResolver.resolve(parse(code), "motor.cnx");
+
+      expect(snapshotMotor()).toEqual(afterFirst);
+    });
+
+    // NEGATIVE CONTROL. A scope spanned across two files must still merge
+    // (#1333) -- suppressing registration for an already-seen scope would pass
+    // the assertion above and break this.
+    it("still merges a scope genuinely spanned across two different files", () => {
+      CNextResolver.resolve(parse(`scope Motor { void start() { } }`), "a.cnx");
+      CNextResolver.resolve(parse(`scope Motor { void stop() { } }`), "b.cnx");
+
+      expect(
+        SymbolRegistry.getScope("Motor")?.functions.map((f) => f.name),
+      ).toEqual(["start", "stop"]);
     });
   });
 });

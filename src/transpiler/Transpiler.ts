@@ -15,6 +15,7 @@ import type IConflict from "./types/IConflict";
 import IFileSystem from "./types/IFileSystem";
 import NodeFileSystem from "./NodeFileSystem";
 
+import * as Parser from "./logic/parser/grammar/CNextParser";
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
 import HeaderParser from "./logic/parser/HeaderParser";
 
@@ -408,23 +409,12 @@ class Transpiler {
     }
 
     try {
-      // #1333: seed with scope types from already-collected included files, the
-      // same set the codegen layer gets. This table is what PublicInterface reads
-      // to build the HEADER, so leaving it unseeded made the `.h` resolve a bare
-      // `Point` unqualified while the `.c` resolved `Lib__Point` -- a prototype
-      // and a definition that disagree, at exit 0. Pipeline files are visited in
-      // dependency order, so an included file's symbols are already present.
-      const externalScopeTypes = TSymbolInfoAdapter.collectScopeTypeNames(
-        this._collectExternalEnumSources(file.path, file.cnextIncludes),
-      );
-
       // ADR-055 Phase 7: Use composable collectors via CNextResolver
-      const tSymbols = CNextResolver.resolve(
+      const tSymbols = this._declareFile(
         tree,
         file.path,
-        undefined,
-        externalScopeTypes,
-      );
+        file.cnextIncludes,
+      ).symbols;
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       CodeGenState.symbolTable.addTSymbols(tSymbols);
@@ -491,26 +481,10 @@ class Transpiler {
         return this.buildParseOnlyResult(sourcePath, declarationCount);
       }
 
-      // #1333: collect the included files' symbols BEFORE resolving, so the
-      // symbols layer and the codegen layer are fed the same set of scope types.
-      // A reopened scope has half its members in another file; resolving first
-      // and merging afterwards let the `.h` see a bare `Point` while the `.c`
-      // saw `Lib__Point`, which does not compile.
-      const externalEnumSources = this._collectExternalEnumSources(
-        sourcePath,
-        file.cnextIncludes,
-      );
-      const externalScopeTypes =
-        TSymbolInfoAdapter.collectScopeTypeNames(externalEnumSources);
-
       // Build symbolInfo for code generation (before analyzers so they can read it)
-      const tSymbols = CNextResolver.resolve(
-        tree,
-        sourcePath,
-        undefined,
-        externalScopeTypes,
-      );
-      let symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
+      const declared = this._declareFile(tree, sourcePath, file.cnextIncludes);
+      const externalEnumSources = declared.externalEnumSources;
+      let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
 
       if (externalEnumSources.length > 0) {
         symbolInfo = TSymbolInfoAdapter.mergeExternalSymbols(
@@ -2073,6 +2047,50 @@ class Transpiler {
     }
 
     return result;
+  }
+
+  /**
+   * Derive the Tier 2 facts (pass 1.4 Resolve), then run the Tier 1 declare
+   * (pass 1.3), for one file. The inversion is deliberate: declare cannot start
+   * until the cross-file facts it reads exist.
+   *
+   * #1358: the two facts a per-file declare cannot know are authored HERE, once.
+   * Both stage 3 and stage 5 previously derived "which scope types are visible
+   * from this file" inline, from the same two calls in the same order, and each
+   * then passed the result into `CNextResolver.resolve` as an `external*`
+   * parameter. That is one decision written twice -- if the visibility rule
+   * changed, both copies had to change together.
+   *
+   * The derivation sits at the orchestrator because it needs orchestrator state
+   * -- `this.state.getSymbolInfoByFileMap()` and `this.config.includeDirs`. It is
+   * NOT blocked by the layer rule: `ICodeGenSymbols` lives in `transpiler/types/`,
+   * not `output/`, and `logic/symbols/TransitiveEnumCollector.ts` already imports
+   * it. Moving this into a Tier 2 `logic/symbols/` artifact is DoD items 1-2 of
+   * #1358 and remains open.
+   *
+   * #1333: the seed must be built BEFORE resolving, so the symbols layer and the
+   * codegen layer are fed the same set. A reopened scope has half its members in
+   * another file; resolving first and merging afterwards let the `.h` see a bare
+   * `Point` while the `.c` saw `Lib__Point`, which does not compile. Pipeline
+   * files are visited in dependency order, so an included file's symbols are
+   * already present.
+   */
+  private _declareFile(
+    tree: Parser.ProgramContext,
+    sourcePath: string,
+    cnextIncludes?: ReadonlyArray<{ path: string }>,
+  ): { symbols: TSymbol[]; externalEnumSources: ICodeGenSymbols[] } {
+    const externalEnumSources = this._collectExternalEnumSources(
+      sourcePath,
+      cnextIncludes,
+    );
+    const visibleScopeTypes =
+      TSymbolInfoAdapter.collectScopeTypeNames(externalEnumSources);
+
+    return {
+      symbols: CNextResolver.resolve(tree, sourcePath, visibleScopeTypes),
+      externalEnumSources,
+    };
   }
 
   /**

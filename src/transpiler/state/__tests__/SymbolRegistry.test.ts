@@ -69,6 +69,68 @@ describe("SymbolRegistry", () => {
 
       expect(scope.functions).toContain(func);
     });
+
+    // #1358: Declare (pass 1.3) runs over the same tree more than once per run,
+    // and reset() runs once per run rather than between them (#1301). An
+    // unconditional push appended a second copy of every function in the program.
+    it("is idempotent -- re-registering the same declaration does not duplicate it", () => {
+      const scope = SymbolRegistry.getOrCreateScope("Test");
+      const make = () =>
+        FunctionUtils.create({
+          name: "fillData",
+          scope,
+          parameters: [],
+          returnType: TTypeUtils.createPrimitive("void"),
+          visibility: "private",
+          body: null,
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+        });
+
+      // Two DISTINCT objects, as a second resolve of one tree produces.
+      // Identity comparison would not catch this; fullyQualifiedCName does.
+      const first = make();
+      const second = make();
+      expect(first).not.toBe(second);
+
+      SymbolRegistry.registerFunction(first);
+      SymbolRegistry.registerFunction(second);
+
+      expect(scope.functions).toHaveLength(1);
+    });
+
+    // NEGATIVE CONTROL for the assertion above. getOrCreateScope is repeat-safe
+    // by design -- that is how a scope spanned across two files merges (#1333).
+    // A fix that keyed on the SCOPE rather than the symbol would pass the
+    // idempotence test and break this one.
+    it("still merges two different functions declared in the same scope from different files", () => {
+      const scope = SymbolRegistry.getOrCreateScope("Motor");
+      const start = FunctionUtils.create({
+        name: "start",
+        scope,
+        parameters: [],
+        returnType: TTypeUtils.createPrimitive("void"),
+        visibility: "public",
+        body: null,
+        sourceFile: "a.cnx",
+        sourceLine: 2,
+      });
+      const stop = FunctionUtils.create({
+        name: "stop",
+        scope,
+        parameters: [],
+        returnType: TTypeUtils.createPrimitive("void"),
+        visibility: "public",
+        body: null,
+        sourceFile: "b.cnx",
+        sourceLine: 2,
+      });
+
+      SymbolRegistry.registerFunction(start);
+      SymbolRegistry.registerFunction(stop);
+
+      expect(scope.functions.map((f) => f.name)).toEqual(["start", "stop"]);
+    });
   });
 
   describe("resolveFunction", () => {

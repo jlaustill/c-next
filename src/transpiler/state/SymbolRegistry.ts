@@ -81,10 +81,48 @@ class SymbolRegistry {
   /**
    * Register a function in its scope.
    *
-   * The function is added to the scope's functions array.
+   * #1358: this must be idempotent. Declare (pass 1.3) runs over the same tree
+   * more than once per run -- Transpiler stages 3 and 5 both resolve every file,
+   * and `reset()` runs once per run, not between them (#1301) -- so an
+   * unconditional push appended a second copy of every function in the program.
+   *
+   * Idempotence here must key on the SYMBOL, never on the scope. `getOrCreateScope`
+   * is deliberately repeat-safe because that is the mechanism by which a scope
+   * spanned across two files merges (#1333); suppressing registration for an
+   * already-seen scope would break spanned scopes, which are a designed feature.
    */
   static registerFunction(func: IFunctionSymbol): void {
+    if (this.isAlreadyRegistered(func)) return;
     func.scope.functions.push(func);
+  }
+
+  /**
+   * Is `func` a re-registration of a declaration already in its scope?
+   *
+   * Keyed on `fullyQualifiedCName`, but this does NOT rest on ADR-063's
+   * program-wide injectivity. The search is over `func.scope.functions` -- one
+   * scope's array -- where the qualified prefix is constant, so the key reduces
+   * to the bare name. The property actually required is the narrower "no two
+   * functions in ONE scope share a name", which is the stronger result: it holds
+   * even if the encoder changes.
+   *
+   * E0425 is what supplies it. C-Next has no function overloads, so two functions
+   * sharing a name in a scope are rejected by `SymbolTable.detectCNextDuplicate`
+   * before anything reads this list, whether their signatures differ or not --
+   * gated by tests/bugs/issue-1358-declare-idempotence/. The same holds in the
+   * global scope, where two same-named top-level functions in different files
+   * also raise E0425 (verified, not assumed). So a collision reaching this point
+   * is always the same declaration seen twice, never two declarations.
+   *
+   * Deliberately NOT keyed on the scope. `getOrCreateScope` is repeat-safe by
+   * design -- that is how a scope spanned across two files merges (#1333) -- so
+   * suppressing registration for an already-seen scope would break spanned
+   * scopes. The negative control in the tests covers exactly that.
+   */
+  private static isAlreadyRegistered(func: IFunctionSymbol): boolean {
+    return func.scope.functions.some(
+      (existing) => existing.fullyQualifiedCName === func.fullyQualifiedCName,
+    );
   }
 
   /**
