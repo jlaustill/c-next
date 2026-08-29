@@ -73,6 +73,7 @@
     "analyze:cpd": "./scripts/cpd.sh",
     "analyze:duplication": "npx jscpd src/ scripts/",
     "analyze:all": "npm run analyze:duplication && npm run analyze:prune && npm run analyze:madge",
+    "docs:throw-citations:check": "tsx scripts/throw-citations.ts",
     "format:fidelity": "tsx scripts/format-fidelity.ts tests && tsx scripts/format-fidelity.ts examples && tsx scripts/format-fidelity.ts tests-gtest",
     "plugin:install": "npm --prefix prettier-plugin ci",
     "plugin:test": "npm --prefix prettier-plugin test",
