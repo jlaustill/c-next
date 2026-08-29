@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
+import DeclarationSite from "../../../../../utils/DeclarationSite";
 import parse from "./testHelpers";
 import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
@@ -9,6 +10,62 @@ import TypeResolver from "../../../../../utils/TypeResolver";
 describe("ScopeCollector", () => {
   beforeEach(() => {
     SymbolRegistry.reset();
+  });
+
+  // Issue #1334: a scope may be reopened (ADR-016), so it has MANY declaration
+  // sites. getOrCreateScope caches by path and this collector used to assign
+  // sourceFile/sourceLine on the shared object unconditionally, so a reopened
+  // scope reported whichever block was collected last and every earlier site was
+  // lost -- which is why a conflict naming two definitions printed one location
+  // twice.
+  //
+  // The .cnx fixture at tests/bugs/issue-1334-scope-declaration-sites/ proves the
+  // four-file program RUNS. It cannot prove the sites are retained: execution is
+  // unaffected by collapsing them. This is where that is pinned.
+  describe("declaration sites across reopened blocks", () => {
+    const collectBlock = (
+      code: string,
+      sourceFile: string,
+    ): ReturnType<typeof ScopeCollector.collect> => {
+      const tree = parse(code);
+      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
+      return ScopeCollector.collect(scopeCtx, sourceFile, new Set());
+    };
+
+    it("records every block of a scope spanning four files", () => {
+      collectBlock(`scope Span {\n  u32 a;\n}`, "span4-a.cnx");
+      collectBlock(`scope Span {\n  u32 b;\n}`, "span4-b.cnx");
+      collectBlock(`scope Span {\n  u32 c;\n}`, "span4-c.cnx");
+      const last = collectBlock(`scope Span {\n  u32 d;\n}`, "span4-d.cnx");
+
+      expect(
+        [...last.scopeSymbol.declarationSites].sort(DeclarationSite.compare),
+      ).toEqual([
+        "span4-a.cnx:1",
+        "span4-b.cnx:1",
+        "span4-c.cnx:1",
+        "span4-d.cnx:1",
+      ]);
+    });
+
+    it("keeps the FIRST site in the scalar sourceFile/sourceLine", () => {
+      collectBlock(`scope Span {\n  u32 a;\n}`, "span4-a.cnx");
+      const last = collectBlock(`scope Span {\n  u32 d;\n}`, "span4-d.cnx");
+
+      // Not the last block: that was the defect. Lossless because the complete
+      // record lives in declarationSites.
+      expect(last.scopeSymbol.sourceFile).toBe("span4-a.cnx");
+    });
+
+    it("does not duplicate a site when the same block is collected twice", () => {
+      // CNextResolver.resolve runs more than once per file on some paths.
+      collectBlock(`scope Span {\n  u32 a;\n}`, "span4-a.cnx");
+      const again = collectBlock(`scope Span {\n  u32 a;\n}`, "span4-a.cnx");
+
+      expect(again.scopeSymbol.declarationSites.size).toBe(1);
+      // members is a plain array with no such protection -- guarded at the push.
+      expect(again.scopeSymbol.members).toEqual(["a"]);
+    });
   });
 
   describe("basic scope extraction", () => {

@@ -1,0 +1,9 @@
+// Block 2 of scope Clash — no conflict here; it exists to put distance between
+// the two definitions so the diagnostic has to name non-adjacent files.
+#include "conflict-lib-a.cnx"
+
+scope Clash {
+    public u32 other() {
+        return 2;
+    }
+}

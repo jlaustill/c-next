@@ -1,0 +1,34 @@
+// test-error
+// Issue #1334 review: the cross-language conflict branch had no fixture at all --
+// only unit tests and two absence-assertions in the tests/regression tree that no
+// runner executes (#1340). This PR changes that branch's message, so it needs one.
+//
+// It pins three things the branch got wrong:
+//
+//   1. Each location names its LANGUAGE. The message says the definitions are in
+//      multiple languages but not which is which, and for a `.h` a reader cannot
+//      tell C from C++ -- the distinction detectAssemblySyntax points users here for.
+//   2. The remediation line is INDENTED. The CLI treats an unindented line as a new
+//      diagnostic, so the unindented form was dropped by every consumer that parses
+//      stderr, this harness included. It became reachable only because this PR routes
+//      conflicts through result.errors.
+//   3. Locations are DEDUPLICATED. `typedef struct {...} helper;` registers both the
+//      tag and the alias at one position, which printed the same file:line twice.
+//
+// `quiet` is the negative control: a C prototype is a declaration, not a definition,
+// so a C-Next function implementing it must stay silent. Without it this fixture
+// would pass just as well against a check that flagged every shared name.
+
+#include "legacy-c-types.h"
+
+struct helper {
+    u8 v;
+}
+
+u8 quiet() {
+    return 1;
+}
+
+u32 main() {
+    return 0;
+}

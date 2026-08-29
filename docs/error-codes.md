@@ -72,14 +72,16 @@ second header and the program ran with a wrong value.
 
 ## E04xx — Symbol Resolution / Initialization
 
-| Code  | Message                                               | Help                                    | Source                                                                             |
-| ----- | ----------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------- |
-| E0381 | Use of possibly/uninitialized variable                | Variable must be initialized before use | `logic/analysis/InitializationAnalyzer.ts`                                         |
-| E0422 | Function called before definition                     | Define function before calling it       | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)      | Remove recursive call                   | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0424 | Unqualified enum member — did you mean `Enum.member`? | Use qualified enum member syntax        | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
+| Code  | Message                                                 | Help                                    | Source                                                                             |
+| ----- | ------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------- |
+| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use | `logic/analysis/InitializationAnalyzer.ts`                                         |
+| E0422 | Function called before definition                       | Define function before calling it       | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                   | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax        | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
+| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                   | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
 
-**Related:** ADR-030 (E0422)
+**Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
+members stay unique)
 
 ---
 

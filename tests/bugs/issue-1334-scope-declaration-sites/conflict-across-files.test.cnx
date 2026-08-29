@@ -1,0 +1,24 @@
+// test-error
+// test-adr: 016
+// Issue #1334: a member defined in two NON-ADJACENT blocks of a scope spanning
+// three files. The diagnostic must name both files.
+//
+// This is the case the original defect could not report. Every conflict location
+// was rendered from the shared IScopeSymbol, which held one position, so two
+// definitions printed as `one.cnx:5 / one.cnx:5`. Locations now come from each
+// member symbol's own position, so they name the block each definition is in.
+//
+// Distance is the point: `shared` is declared in conflict-lib-a.cnx and again
+// here, two include hops apart, so naming only one file would be visible.
+
+#include "conflict-lib-b.cnx"
+
+scope Clash {
+    public u32 shared() {
+        return 3;
+    }
+}
+
+u32 main() {
+    return Clash.shared();
+}

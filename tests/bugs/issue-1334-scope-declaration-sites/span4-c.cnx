@@ -1,0 +1,8 @@
+// Block 3 of scope Span. `Point` here comes from block 1, two includes away.
+#include "span4-b.cnx"
+
+scope Span {
+    public u32 fromC(Point p) {
+        return p.x + p.y;
+    }
+}

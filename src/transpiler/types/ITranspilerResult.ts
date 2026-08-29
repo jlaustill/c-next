@@ -19,9 +19,6 @@ interface ITranspilerResult {
   /** Total symbols collected from C/C++ headers */
   symbolsCollected: number;
 
-  /** Symbol conflicts detected between files */
-  conflicts: string[];
-
   /** Aggregate errors across all files */
   errors: ITranspileError[];
 

@@ -716,7 +716,6 @@ class Transpiler {
       files: [],
       filesProcessed: 0,
       symbolsCollected: 0,
-      conflicts: [],
       errors: [],
       warnings: [],
       outputFiles: [],
@@ -959,20 +958,33 @@ class Transpiler {
   private _checkSymbolConflicts(result: ITranspilerResult): boolean {
     const conflicts = CodeGenState.symbolTable.getConflicts();
     for (const conflict of conflicts) {
-      result.conflicts.push(conflict.message);
-      if (conflict.severity === "error") {
-        result.success = false;
-      }
-    }
-
-    if (!result.success) {
+      // #1334: a conflict is an ordinary diagnostic. It used to reach the user
+      // through a SECOND channel -- `result.conflicts`, printed by ResultPrinter
+      // with a `Conflict:` prefix that duplicated the message's own `Symbol
+      // conflict:` prefix -- plus ONE companion error with no position hardcoded at
+      // 1:0. Two outputs for one problem, and the only diagnostic path in the
+      // transpiler with no error code.
+      //
+      // Now: one error per conflict, at the offending definition, coded like
+      // every other diagnostic. The code is embedded in the message because
+      // ITranspileError carries no `code` field -- the same precedent E0203 uses
+      // above, and how runAnalyzers formats analyzer codes.
+      //
+      // The channel is retired whole: `ITranspilerResult.conflicts` is gone along
+      // with its reader, so a conflict has ONE representation in the result. Deleting
+      // only the reader would have left a field written here and read nowhere, which
+      // `npx knip` cannot see -- it does not analyze interface fields.
+      // IConflict.severity is `"error"`, so this is unconditional by construction.
+      result.success = false;
       result.errors.push({
-        line: 1,
-        column: 0,
-        message: "Symbol conflicts detected - cannot proceed",
-        severity: "error",
+        line: conflict.line,
+        column: conflict.column,
+        sourcePath: conflict.sourceFile,
+        message: `error[E0425]: ${conflict.message}`,
+        severity: conflict.severity,
       });
     }
+
     return result.success;
   }
 

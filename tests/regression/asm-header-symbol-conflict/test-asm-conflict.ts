@@ -34,10 +34,15 @@ async function main(): Promise<void> {
 
   const result = await transpiler.transpile({ kind: "files" });
 
-  const loopConflict = result.conflicts.find((c) => c.includes("'loop'"));
+  // #1334: conflicts are ordinary coded errors (E0425), not a separate channel.
+  const loopConflict = result.errors.find(
+    (e) => e.message.includes("E0425") && e.message.includes("'loop'"),
+  );
   if (loopConflict) {
     console.log("  FAIL: false symbol conflict for 'loop':\n");
-    console.log("    " + loopConflict.split("\n").join("\n    ") + "\n");
+    console.log(
+      "    " + loopConflict.message.split("\n").join("\n    ") + "\n",
+    );
     process.exit(1);
   }
 

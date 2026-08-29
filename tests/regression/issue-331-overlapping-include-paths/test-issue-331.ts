@@ -17,7 +17,7 @@
 
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import FileDiscovery from "../../../src/project/FileDiscovery";
+import FileDiscovery from "../../../src/transpiler/data/FileDiscovery";
 import Transpiler from "../../../src/transpiler/Transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -42,6 +42,13 @@ async function main(): Promise<void> {
   const appFile = join(moduleDir, "App.cnx");
 
   // Test 1: FileDiscovery.discover should not return duplicates
+  //
+  // #1340: this calls an API that no longer exists. FileDiscovery discovers explicit
+  // file paths now (discoverFile/discoverFiles) -- there is no recursive directory
+  // walk to deduplicate, so this test cannot run and what replaces it is a design
+  // question, not a rename. The script's import path and Transpiler call were
+  // repaired alongside the #1334 migration below; this one was left rather than
+  // guessed at. It is the concrete cost of the tree being executed by no runner.
   console.log("Test 1: FileDiscovery.discover() deduplication");
 
   // These paths overlap: moduleDir is inside srcDir
@@ -70,19 +77,21 @@ async function main(): Promise<void> {
   console.log("Test 2: Pipeline symbol conflict detection");
 
   // Create pipeline with overlapping include paths (like the bug report)
-  const pipeline = new Transpiler({
-    inputs: [appFile],
+  const transpiler = new Transpiler({
+    input: appFile,
     includeDirs: [moduleDir, srcDir], // Overlapping: moduleDir is inside srcDir
     outDir: join(__dirname, "output"),
     noCache: true,
   });
 
-  const result = await pipeline.run();
+  const result = await transpiler.transpile({ kind: "files" });
 
-  if (result.conflicts.length > 0) {
+  // #1334: conflicts are ordinary coded errors (E0425), not a separate channel.
+  const conflicts = result.errors.filter((e) => e.message.includes("E0425"));
+  if (conflicts.length > 0) {
     console.log("  FAIL: Symbol conflicts detected:\n");
-    for (const conflict of result.conflicts) {
-      console.log("    " + conflict.split("\n").join("\n    "));
+    for (const conflict of conflicts) {
+      console.log("    " + conflict.message.split("\n").join("\n    "));
     }
     console.log("");
     process.exit(1);

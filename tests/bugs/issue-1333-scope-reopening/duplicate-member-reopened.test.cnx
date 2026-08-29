@@ -11,16 +11,14 @@
 // so these two definitions of Lib.useIt collide exactly as they would inside one
 // block.
 //
-// The assertion in .expected.error is DELIBERATELY GENERIC and is weaker than this
-// fixture's intent. It pins only the wrapper message:
+// The assertion in .expected.error names the symbol, the code, and BOTH declaring
+// lines. It could not before #1334: the conflict arrived through a second channel
+// (`result.conflicts`) and the only thing reaching `result.errors` was a generic
+// wrapper hardcoded at position 1:0, which named no symbol at all.
 //
-//     1:0 Symbol conflicts detected - cannot proceed
-//
-// which names no symbol, so any symbol conflict satisfies it. The specific line --
-// "Symbol conflict: 'Lib.useIt' is defined multiple times in C-Next" -- carries no
-// usable position: the conflict is reported at 1:0 rather than at the offending
-// declaration. That is #1334, and it is the same defect that stops ADR-016's matrix
-// cells from being occupiable. Strengthening this assertion is blocked on it.
+// The two line numbers are the point. They come from each member symbol's own
+// position, so a scope reopened across files names the block each definition
+// actually came from -- the original defect printed one location twice.
 
 scope Lib {
     public u32 useIt() {

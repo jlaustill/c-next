@@ -3,7 +3,7 @@
  * Prints transpiler compilation results
  */
 
-import { relative } from "node:path";
+import DeclarationSite from "../utils/DeclarationSite";
 import ITranspilerResult from "../transpiler/types/ITranspilerResult";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
@@ -28,11 +28,6 @@ class ResultPrinter {
     // Print warnings
     for (const warning of result.warnings) {
       console.warn(`Warning: ${warning}`);
-    }
-
-    // Print conflicts
-    for (const conflict of result.conflicts) {
-      console.error(`Conflict: ${conflict}`);
     }
 
     // Print errors
@@ -276,7 +271,7 @@ class ResultPrinter {
     }
 
     for (const site of located.slice(0, SITE_LIMIT)) {
-      const path = relative(process.cwd(), site.sourcePath) || site.sourcePath;
+      const path = DeclarationSite.displayPath(site.sourcePath);
       const where = site.line === null ? path : `${path}:${site.line}`;
       console.log(`${indent}${where}`);
     }

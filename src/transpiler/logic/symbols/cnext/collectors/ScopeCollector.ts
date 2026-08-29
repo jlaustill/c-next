@@ -7,6 +7,7 @@
  */
 
 import * as Parser from "../../../parser/grammar/CNextParser";
+import DeclarationSite from "../../../../../utils/DeclarationSite";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TSymbol from "../../../../types/symbols/TSymbol";
@@ -55,14 +56,32 @@ class ScopeCollector {
     const scope = SymbolRegistry.getOrCreateScope(scopeName);
 
     // Update scope metadata (cast to mutable for initialization)
-    const mutableScope = scope as {
+    const mutableScope = scope as unknown as {
       sourceFile: string;
       sourceLine: number;
       sourceLanguage: ESourceLanguage;
       isExported: boolean;
+      declarationSites: Set<string>;
     };
-    mutableScope.sourceFile = sourceFile;
-    mutableScope.sourceLine = line;
+
+    // #1334: RECORD this block; do not overwrite the previous one. ADR-016 lets a
+    // scope be reopened, getOrCreateScope caches by path, and this method used
+    // to assign sourceFile/sourceLine unconditionally -- so a scope declared in
+    // four files reported only the fourth, and a conflict naming two definitions
+    // printed one location twice because there was only ever one position.
+    //
+    // Set membership is keyed on the rendered `file:line`, so re-collecting the
+    // same textual block (CNextResolver.resolve runs more than once per file on
+    // some paths) is a no-op rather than a duplicate entry.
+    mutableScope.declarationSites.add(DeclarationSite.format(sourceFile, line));
+
+    // The scalars keep the FIRST site. Lossless now that declarationSites holds
+    // the rest: `sourceLine === 0` is createScope's initial value, so an unset
+    // scalar is distinguishable from a real line.
+    if (mutableScope.sourceLine === 0) {
+      mutableScope.sourceFile = sourceFile;
+      mutableScope.sourceLine = line;
+    }
     mutableScope.sourceLanguage = ESourceLanguage.CNext;
     mutableScope.isExported = true;
 
@@ -73,6 +92,22 @@ class ScopeCollector {
     >;
     const members = scope.members as unknown as string[];
     const memberSymbols: TSymbol[] = [];
+
+    // #1334: `scope.members` is a shared mutable array on the cached scope, and
+    // CNextResolver.resolve runs more than once per file on some paths, so every
+    // member was re-pushed on each pass -- measured, a four-block scope grew to
+    // [Point, Mode, fromC, runAll, Point, Mode, fromC].
+    //
+    // Harmless today only by coincidence: the one real consumer wraps it in a Set
+    // (TSymbolInfoAdapter.ts:395). That is a latent divergence, not a working
+    // path, so the duplication is stopped at the source instead. A scope cannot
+    // legitimately hold two members of one name -- that case is a conflict, and
+    // conflict detection reads the TSymbols, not this array.
+    const addMember = (memberName: string): void => {
+      if (!members.includes(memberName)) {
+        members.push(memberName);
+      }
+    };
 
     for (const member of ctx.scopeMember()) {
       // ADR-016: Extract visibility with member-type-aware defaults
@@ -90,7 +125,7 @@ class ScopeCollector {
         const varDecl = member.variableDeclaration()!;
         const varName = varDecl.IDENTIFIER().getText();
         memberVisibility.set(varName, visibility);
-        members.push(varName);
+        addMember(varName);
 
         const varSymbol = VariableCollector.collect(
           varDecl,
@@ -108,7 +143,7 @@ class ScopeCollector {
         const funcDecl = member.functionDeclaration()!;
         const funcName = funcDecl.IDENTIFIER().getText();
         memberVisibility.set(funcName, visibility);
-        members.push(funcName);
+        addMember(funcName);
 
         // Use collectAndRegister to populate both memberSymbols and SymbolRegistry
         const body = funcDecl.block();
@@ -128,7 +163,7 @@ class ScopeCollector {
         const enumDecl = member.enumDeclaration()!;
         const enumName = enumDecl.IDENTIFIER().getText();
         memberVisibility.set(enumName, visibility);
-        members.push(enumName);
+        addMember(enumName);
 
         const enumSymbol = EnumCollector.collect(enumDecl, sourceFile, scope);
         memberSymbols.push(enumSymbol);
@@ -139,7 +174,7 @@ class ScopeCollector {
         const bitmapDecl = member.bitmapDeclaration()!;
         const bitmapName = bitmapDecl.IDENTIFIER().getText();
         memberVisibility.set(bitmapName, visibility);
-        members.push(bitmapName);
+        addMember(bitmapName);
 
         const bitmapSymbol = BitmapCollector.collect(
           bitmapDecl,
@@ -154,7 +189,7 @@ class ScopeCollector {
         const structDecl = member.structDeclaration()!;
         const structName = structDecl.IDENTIFIER().getText();
         memberVisibility.set(structName, visibility);
-        members.push(structName);
+        addMember(structName);
 
         const structSymbol = StructCollector.collect(
           structDecl,
@@ -171,7 +206,7 @@ class ScopeCollector {
         const regDecl = member.registerDeclaration()!;
         const regName = regDecl.IDENTIFIER().getText();
         memberVisibility.set(regName, visibility);
-        members.push(regName);
+        addMember(regName);
 
         const regSymbol = RegisterCollector.collect(
           regDecl,

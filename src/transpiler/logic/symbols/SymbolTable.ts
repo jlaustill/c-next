@@ -8,6 +8,8 @@
  * - TCppSymbol: C++ header symbols (string types)
  */
 
+import DeclarationSite from "../../../utils/DeclarationSite";
+import ScopeUtils from "../../../utils/ScopeUtils";
 import { produce, enableMapSet } from "immer";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
@@ -707,6 +709,58 @@ class SymbolTable {
   }
 
   /**
+   * The blocks declaring the scope these symbols belong to, or "" at global scope.
+   *
+   * #1334: ADR-016 lets a scope be reopened, so the members that collide may sit
+   * in different blocks of a scope spread across several files. Naming only the
+   * member definitions leaves the reader to find those blocks themselves.
+   */
+  private static scopeDeclarationNote(symbol: TSymbol): string {
+    const scope = symbol.scope;
+    if (ScopeUtils.isGlobalScope(scope) || scope.declarationSites.size === 0) {
+      return "";
+    }
+    // Sorted through DeclarationSite, not `.sort()`: these keys end in a line
+    // number, and a text sort orders `:10` ahead of `:3` (SonarCloud S2871).
+    const sites = [...scope.declarationSites]
+      .sort(DeclarationSite.compare)
+      .map(DeclarationSite.displaySite);
+    // Indented: the CLI's error format treats an unindented line as a new
+    // diagnostic, so an unindented header here is dropped by any consumer that
+    // parses stderr -- including the test harness, which kept the sites and lost
+    // the sentence introducing them.
+    return `\n  scope '${scope.name}' is declared in:\n    ${sites.join("\n    ")}`;
+  }
+
+  /**
+   * Where a definition is, as a symbol carries it.
+   *
+   * #1334: the two conflict producers formatted this differently, so the same fact
+   * printed two ways depending on which path found it. Symbols carry no column
+   * (IBaseSymbol has sourceFile/sourceLine only), so line is the finest granularity
+   * available. The rendering itself lives in DeclarationSite -- see there for why it
+   * is a basename and why the ordering needs a comparator.
+   */
+  /**
+   * The language a definition came from, as a reader knows it.
+   *
+   * Private because SymbolTable is the only consumer today; promote it beside
+   * ESourceLanguage if a second one appears.
+   */
+  private static languageName(symbol: TAnySymbol): string {
+    const names: Record<ESourceLanguage, string> = {
+      [ESourceLanguage.CNext]: "C-Next",
+      [ESourceLanguage.C]: "C",
+      [ESourceLanguage.Cpp]: "C++",
+    };
+    return names[symbol.sourceLanguage];
+  }
+
+  private static locationOf(symbol: TAnySymbol): string {
+    return DeclarationSite.display(symbol.sourceFile, symbol.sourceLine);
+  }
+
+  /**
    * Detect if a set of symbols with the same name represents a conflict
    */
   private detectConflict(symbols: TAnySymbol[]): IConflict | null {
@@ -756,16 +810,39 @@ class SymbolTable {
       (cDefs.length > 0 || cppDefs.length > 0)
     ) {
       const conflictingDefs = [...conflictingCnextDefs, ...cDefs, ...cppDefs];
-      const locations = conflictingDefs.map(
-        (s) =>
-          `${s.sourceLanguage.toUpperCase()} (${s.sourceFile}:${s.sourceLine})`,
-      );
+      // #1334: both conflict kinds render the location the same way, through
+      // `locationOf` -- these producers used to spell it differently (`LANG
+      // (file:line)` here, bare `file:line` below), which is one decision written
+      // twice. Only the language ANNOTATION is branch-specific, and it has to stay:
+      // the message says the definitions are in multiple languages but not which is
+      // which, and for a `.h` the reader cannot tell C from C++ -- the very
+      // distinction detectAssemblySyntax points users at this message for.
+      //
+      // Deduplicated because one C declaration can yield two symbols at one position
+      // (`typedef struct {...} helper;` registers both the tag and the alias), which
+      // printed the same file:line twice and told the reader nothing.
+      const locations = [
+        ...new Set(
+          conflictingDefs.map(
+            (definition) =>
+              `${SymbolTable.locationOf(definition)} (${SymbolTable.languageName(definition)})`,
+          ),
+        ),
+      ];
 
       return {
         symbolName: conflictingDefs[0].name,
         definitions: conflictingDefs,
         severity: "error",
-        message: `Symbol conflict: '${conflictingDefs[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\nRename the C-Next symbol to resolve.`,
+        sourceFile: conflictingDefs[0].sourceFile,
+        line: conflictingDefs[0].sourceLine,
+        column: 0,
+        // The remediation line is INDENTED like the locations. The CLI's error format
+        // treats an unindented line as the start of a new diagnostic, so an
+        // unindented sentence here is dropped by any consumer that parses stderr --
+        // including the test harness, which would capture the locations and silently
+        // lose this line (scripts/test-utils.ts, continuation-line branch).
+        message: `Symbol conflict: '${conflictingDefs[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\n  Rename the C-Next symbol to resolve.`,
       };
     }
 
@@ -821,16 +898,31 @@ class SymbolTable {
         continue;
       }
 
-      const locations = symbols.map((s) => `${s.sourceFile}:${s.sourceLine}`);
+      const locations = symbols.map(SymbolTable.locationOf);
       // #1285: the symbol's own source-language name. This was built here by
       // hand from `scope.name`, which is the leaf -- at depth two it reported
       // `Inner.tick` for a symbol the author writes as `Outer.Inner.tick`.
       const displayName = symbols[0].cnxScopedName;
+      // #1334: when the members belong to a scope, name where that scope is
+      // DECLARED as well as where the members are defined. A scope spanning four
+      // files is where a duplicate member is hardest to find, and the blocks are
+      // exactly what the reader needs to look through.
+      //
+      // This is also what makes declarationSites observable: without a consumer
+      // it would be a write-only field, testable only by unit tests that reach
+      // into it -- the shape #1330's review caught as a method with no caller.
+      const scopeSites = SymbolTable.scopeDeclarationNote(symbols[0]);
       return {
         symbolName: displayName,
         definitions: symbols,
         severity: "error",
-        message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}`,
+        // Report at the first offending definition. Each symbol carries its own
+        // position, so a member declared in two blocks of a scope spanning four
+        // files names the block it actually came from (#1334).
+        sourceFile: symbols[0].sourceFile,
+        line: symbols[0].sourceLine,
+        column: 0,
+        message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}${scopeSites}`,
       };
     }
 
