@@ -338,7 +338,7 @@ require them.
   `CalleeNameResolver.scopeQualifiedCandidate()` rather than re-derived.
 - **Scope names must come from the include-merged set.** `CodeGenState.isKnownScope()` reads
   scopes merged across `.cnx` includes; a per-file collection alone leaves every cross-file
-  `Helper.compute()` unrecognised as a call at all, which is a _name_-resolution gap rather
+  `Helper.compute()` unrecognized as a call at all, which is a _name_-resolution gap rather
   than the documented "return type you cannot see" boundary.
 - **Stdlib metadata** moved to `StdlibFunctions`, shared with `FunctionCallAnalyzer`, so
   "which header declares this name" and "does it return void" are answered from one list.

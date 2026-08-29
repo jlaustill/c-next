@@ -69,11 +69,11 @@ The `c_` prefix goes on the variable, not member access:
 
 ```cnx
 // C header: typedef struct { char* name; int id; } Customer;
-Customer c_cust <- get_customer(42);
+Customer c_customer <- get_customer(42);
 
-if (c_cust != NULL) {
-    if (c_cust.name != NULL) {  // Member access is normal
-        printf("Name: %s", c_cust.name);
+if (c_customer != NULL) {
+    if (c_customer.name != NULL) {  // Member access is normal
+        printf("Name: %s", c_customer.name);
     }
 }
 ```

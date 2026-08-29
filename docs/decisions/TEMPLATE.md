@@ -18,7 +18,7 @@
 ## Context
 
 <!-- What is true today that makes this worth deciding, and what goes wrong if
-     nothing changes. Show the current behaviour rather than describing it —
+     nothing changes. Show the current behavior rather than describing it —
      a transpiled snippet is worth a paragraph. If a rule is being added, this
      is where the bug it prevents belongs. -->
 
@@ -42,7 +42,7 @@
 
 ## Scope-Context Matrix (#1219)
 
-<!-- REQUIRED for any ADR whose behaviour a fixture can observe. Do not skip it
+<!-- REQUIRED for any ADR whose behavior a fixture can observe. Do not skip it
      because the gate does not force you: undeclared cells default to `off`, so
      skipping is indistinguishable from claiming the feature cannot occur
      anywhere, and that claim is almost never true.

@@ -85,7 +85,7 @@ expensive to skip:
 - **Diagnostics** — every error code the ADR introduces, allocated in
   `docs/error-codes.md` in the same change. A code reserved and never allocated
   reads as implemented when it is not.
-- **Scope-Context Matrix (#1219)** — required for any ADR whose behaviour a
+- **Scope-Context Matrix (#1219)** — required for any ADR whose behavior a
   fixture can observe. Undeclared cells default to `off`, so an ADR without a
   matrix is indistinguishable from one claiming its feature cannot occur
   anywhere, and nothing in the gate will tell you. `off` is a claim that a cell
